@@ -151,7 +151,7 @@ fn test_waitpid_still_running() {
         vmas: Vec::new(),
         brk_pos: 0,
         custom_font: None,
-    font_mode: 0,
+        font_mode: 0,
         capabilities: None,
         data_base: 0,
     });
@@ -184,7 +184,7 @@ fn test_waitpid_halted_process() {
         signal_handlers: [0; 4],
         vmas: Vec::new(),
         brk_pos: 0,
-    font_mode: 0,
+        font_mode: 0,
         custom_font: None,
         capabilities: None,
         data_base: 0,

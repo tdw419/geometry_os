@@ -344,7 +344,8 @@ fn boot_guest_empty_image_runs_nop_loop() {
     assert_eq!(result.entry, 0x8000_0000);
 }
 
-#[ignore] // Runs 1B RISC-V instructions (~60s). Run explicitly: cargo test --lib -- --ignored test_linux_kernel_early_boot
+#[ignore]
+// Runs 1B RISC-V instructions (~60s). Run explicitly: cargo test --lib -- --ignored test_linux_kernel_early_boot
 #[test]
 fn test_linux_kernel_early_boot() {
     use std::fs;
@@ -1305,12 +1306,11 @@ fn test_framebuf_control_register() {
     assert!(vm.bus.framebuf.present_flag, "present flag set");
 }
 
-
 // ── Phase 209: Cooperative Multi-Process Tests ──────────────────────────────
 
 #[test]
 fn test_guest_context_save_restore() {
-            use super::cpu::Privilege;
+    use super::cpu::Privilege;
 
     let mut vm = super::RiscvVm::new(4096);
 
@@ -1338,7 +1338,6 @@ fn test_guest_context_save_restore() {
 
 #[test]
 fn test_spawn_creates_new_context() {
-    
     let mut vm = super::RiscvVm::new(4096);
     assert_eq!(vm.contexts.len(), 1, "starts with primary context");
     assert_eq!(vm.current_context, 0);
@@ -1351,14 +1350,16 @@ fn test_spawn_creates_new_context() {
     // We expect Ok or similar since there is no real instruction to execute
     // The spawn is processed at the beginning of step()
     assert_eq!(vm.contexts.len(), 2, "new context created");
-    assert_eq!(vm.contexts[1].pc, 0x80100000, "new context has correct entry");
+    assert_eq!(
+        vm.contexts[1].pc, 0x80100000,
+        "new context has correct entry"
+    );
     assert_eq!(vm.contexts[1].id, 1, "new context has correct id");
     assert_eq!(vm.next_context_id, 2, "next id incremented");
 }
 
 #[test]
 fn test_yield_round_robin() {
-        
     let mut vm = super::RiscvVm::new(4096);
 
     // Write an ECALL instruction at the current PC (0x80000000)
@@ -1368,7 +1369,7 @@ fn test_yield_round_robin() {
 
     // Set up registers for GEO_YIELD: a7=SBI_EXT_GEOMETRY, a6=GEO_FN_YIELD(1)
     vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 1;          // GEO_FN_YIELD
+    vm.cpu.x[16] = 1; // GEO_FN_YIELD
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
     // Create a second context
@@ -1384,7 +1385,6 @@ fn test_yield_round_robin() {
 
 #[test]
 fn test_yield_returns_to_original_context() {
-    
     let mut vm = super::RiscvVm::new(4096);
     let pa = vm.bus.mem.ram_base;
 
@@ -1393,7 +1393,7 @@ fn test_yield_returns_to_original_context() {
 
     // Set up GEO_YIELD registers for context 0
     vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 1;          // GEO_FN_YIELD
+    vm.cpu.x[16] = 1; // GEO_FN_YIELD
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
     // Create context 1
@@ -1419,7 +1419,6 @@ fn test_yield_returns_to_original_context() {
 
 #[test]
 fn test_contexts_have_independent_registers() {
-        
     let mut vm = super::RiscvVm::new(4096);
 
     // Context 0 sets x5 = 42
@@ -1461,7 +1460,6 @@ fn test_kill_context() {
 
 #[test]
 fn test_yield_to_specific_context() {
-    
     let mut vm = super::RiscvVm::new(4096);
     let pa = vm.bus.mem.ram_base;
 
@@ -1474,8 +1472,8 @@ fn test_yield_to_specific_context() {
 
     // Set up GEO_YIELD_TO to context 2: a6=2 (GEO_FN_YIELD_TO), a0=2
     vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 2;          // GEO_FN_YIELD_TO
-    vm.cpu.x[10] = 2;          // target context id
+    vm.cpu.x[16] = 2; // GEO_FN_YIELD_TO
+    vm.cpu.x[10] = 2; // target context id
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
     let result = vm.step();
@@ -1504,13 +1502,13 @@ fn test_gpu_compute_sbi_sets_pending_and_bridge_unavailable() {
     // a4 = result_addr low = pa + 512
     // a5 = result_addr high = 0
     vm.cpu.x[17] = 0x47454F00; // a7 = SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 5;          // a6 = GEO_FN_GPU_COMPUTE
+    vm.cpu.x[16] = 5; // a6 = GEO_FN_GPU_COMPUTE
     vm.cpu.x[10] = (pa + 256) as u32; // a0 = code_addr
-    vm.cpu.x[11] = 3;          // a1 = num_words
-    vm.cpu.x[12] = 100;        // a2 = max_steps
-    vm.cpu.x[13] = 1;          // a3 = num_tiles
+    vm.cpu.x[11] = 3; // a1 = num_words
+    vm.cpu.x[12] = 100; // a2 = max_steps
+    vm.cpu.x[13] = 1; // a3 = num_tiles
     vm.cpu.x[14] = (pa + 512) as u32; // a4 = result_addr low
-    vm.cpu.x[15] = 0;          // a5 = result_addr high
+    vm.cpu.x[15] = 0; // a5 = result_addr high
 
     // Step once: CPU executes ECALL, SBI handler sets gpu_compute_requested
     let result = vm.step();
@@ -1550,20 +1548,20 @@ fn test_gpu_compute_sbi_invalid_params_returns_error() {
 
     // Test: num_words = 0 -> INVALID_PARAMS
     vm.cpu.x[17] = 0x47454F00; // a7 = SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 5;          // a6 = GEO_FN_GPU_COMPUTE
-    vm.cpu.x[10] = pa as u32;  // a0 = code_addr
-    vm.cpu.x[11] = 0;          // a1 = num_words = 0 (INVALID)
-    vm.cpu.x[12] = 100;        // a2 = max_steps
-    vm.cpu.x[13] = 1;          // a3 = num_tiles
+    vm.cpu.x[16] = 5; // a6 = GEO_FN_GPU_COMPUTE
+    vm.cpu.x[10] = pa as u32; // a0 = code_addr
+    vm.cpu.x[11] = 0; // a1 = num_words = 0 (INVALID)
+    vm.cpu.x[12] = 100; // a2 = max_steps
+    vm.cpu.x[13] = 1; // a3 = num_tiles
     vm.cpu.x[14] = (pa + 512) as u32; // a4
-    vm.cpu.x[15] = 0;          // a5
+    vm.cpu.x[15] = 0; // a5
 
     vm.step();
     assert_eq!(vm.cpu.x[10], GPU_ERR_INVALID_PARAMS);
 
     // Test: num_tiles = 0 -> INVALID_PARAMS
-    vm.cpu.x[11] = 4;          // a1 = num_words = 4 (valid)
-    vm.cpu.x[13] = 0;          // a3 = num_tiles = 0 (INVALID)
+    vm.cpu.x[11] = 4; // a1 = num_words = 4 (valid)
+    vm.cpu.x[13] = 0; // a3 = num_tiles = 0 (INVALID)
     vm.step();
     assert_eq!(vm.cpu.x[10], GPU_ERR_INVALID_PARAMS);
 }

@@ -16,16 +16,16 @@ fn main() {
     let code_end = 0x80002000u32; // well past .text section
     let mut last_good_pc = vm.cpu.pc;
     let mut step = 0u64;
-    
+
     loop {
         let prev_pc = vm.cpu.pc;
         let result = vm.step();
         step += 1;
-        
+
         if step % 100000 == 0 {
             eprintln!("  step {}: pc=0x{:08X}", step + 300000, vm.cpu.pc);
         }
-        
+
         let pc = vm.cpu.pc;
         if pc < code_start || pc >= code_end {
             eprintln!("\nPC went out of range!");
@@ -33,20 +33,20 @@ fn main() {
             eprintln!("  prev_pc: 0x{:08X}", prev_pc);
             eprintln!("  bad_pc: 0x{:08X}", pc);
             eprintln!("  last_good_pc: 0x{:08X}", last_good_pc);
-            
+
             // Show context around last good PC
             eprintln!("\n  Last few PCs before jump:");
             // We already printed prev_pc. Let's also check the registers
             eprintln!("  ra=0x{:08X} sp=0x{:08X}", vm.cpu.x[1], vm.cpu.x[2]);
-            
+
             break;
         }
-        
+
         if step > 5_000_000 {
             eprintln!("Reached 5M steps, PC still in range: 0x{:08X}", pc);
             break;
         }
-        
+
         last_good_pc = pc;
     }
 }

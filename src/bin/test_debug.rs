@@ -1,8 +1,8 @@
 use std::fs;
 fn main() {
     let source = fs::read_to_string("programs/lib_test.asm").expect("read test");
-    let result = geometry_os::assembler::assemble_with_lib(&source, 0, Some("."))
-        .expect("assemble failed");
+    let result =
+        geometry_os::assembler::assemble_with_lib(&source, 0, Some(".")).expect("assemble failed");
     println!("Assembled {} words", result.pixels.len());
     // Show first 10 words
     for i in 0..10.min(result.pixels.len()) {
@@ -17,7 +17,9 @@ fn main() {
 
     let mut vm = geometry_os::vm::Vm::new();
     for (i, &word) in result.pixels.iter().enumerate() {
-        if i >= 4096 { break; }
+        if i >= 4096 {
+            break;
+        }
         vm.ram[i] = word;
     }
     vm.pc = 0;
@@ -27,8 +29,13 @@ fn main() {
         if !vm.halted {
             let pc = vm.pc;
             let ok = vm.step();
-            println!("step {}: pc={:04x} ok={} halted={}", step, pc, ok, vm.halted);
-            if !ok { break; }
+            println!(
+                "step {}: pc={:04x} ok={} halted={}",
+                step, pc, ok, vm.halted
+            );
+            if !ok {
+                break;
+            }
         }
     }
     println!("Final halted={}", vm.halted);

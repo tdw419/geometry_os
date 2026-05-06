@@ -27,13 +27,16 @@ fn main() {
     eprintln!("fb.present_flag: {}", fb.present_flag);
 
     // Check a few pixels
-    for (x, y) in [(0,0), (64, 128), (128, 128), (192, 128), (255, 255)] {
+    for (x, y) in [(0, 0), (64, 128), (128, 128), (192, 128), (255, 255)] {
         let pixel = fb.pixels[y * 256 + x];
         let r = (pixel >> 24) & 0xFF;
         let g = (pixel >> 16) & 0xFF;
         let b = (pixel >> 8) & 0xFF;
         let a = pixel & 0xFF;
-        eprintln!("  pixel({},{}) = 0x{:08X}  R={} G={} B={} A={}", x, y, pixel, r, g, b, a);
+        eprintln!(
+            "  pixel({},{}) = 0x{:08X}  R={} G={} B={} A={}",
+            x, y, pixel, r, g, b, a
+        );
     }
 
     // Count unique colors

@@ -1041,7 +1041,10 @@ pub(super) fn try_parse(
         // PCM audio streaming
         "AUDIO_PLAY" => {
             if tokens.len() < 4 {
-                return Err("AUDIO_PLAY requires 3 arguments: AUDIO_PLAY addr_reg, len_reg, rate_reg".to_string());
+                return Err(
+                    "AUDIO_PLAY requires 3 arguments: AUDIO_PLAY addr_reg, len_reg, rate_reg"
+                        .to_string(),
+                );
             }
             bytecode.push(0xD4);
             bytecode.push(parse_reg(tokens[1])? as u32);
@@ -1089,7 +1092,10 @@ pub(super) fn try_parse(
         // All values in fixed-point 16.16 format (same as MATVEC).
         "MATMUL" => {
             if tokens.len() < 7 {
-                return Err("MATMUL requires 6 arguments: MATMUL r_dst, r_a, r_b, r_m, r_n, r_k".to_string());
+                return Err(
+                    "MATMUL requires 6 arguments: MATMUL r_dst, r_a, r_b, r_m, r_n, r_k"
+                        .to_string(),
+                );
             }
             bytecode.push(0xDE);
             bytecode.push(parse_reg(tokens[1])? as u32);
@@ -1133,7 +1139,9 @@ pub(super) fn try_parse(
         // Constrains all drawing ops to the given rectangle. Use CLIPCLR to remove.
         "CLIPSET" => {
             if tokens.len() < 5 {
-                return Err("CLIPSET requires 4 arguments: CLIPSET x_reg, y_reg, w_reg, h_reg".to_string());
+                return Err(
+                    "CLIPSET requires 4 arguments: CLIPSET x_reg, y_reg, w_reg, h_reg".to_string(),
+                );
             }
             bytecode.push(0xC4);
             bytecode.push(parse_reg(tokens[1])? as u32);
@@ -1169,7 +1177,10 @@ pub(super) fn try_parse(
         // Stores [width, height, pixels...] in clipboard buffer.
         "CLIP_COPY" => {
             if tokens.len() < 5 {
-                return Err("CLIP_COPY requires 4 arguments: CLIP_COPY x_reg, y_reg, w_reg, h_reg".to_string());
+                return Err(
+                    "CLIP_COPY requires 4 arguments: CLIP_COPY x_reg, y_reg, w_reg, h_reg"
+                        .to_string(),
+                );
             }
             bytecode.push(0xD7);
             bytecode.push(parse_reg(tokens[1])? as u32);
@@ -1194,7 +1205,10 @@ pub(super) fn try_parse(
         // Mode 0: store text from RAM to clipboard; Mode 1: paste text to RAM; Mode 2: get length
         "CLIP_TEXT" => {
             if tokens.len() < 4 {
-                return Err("CLIP_TEXT requires 3 arguments: CLIP_TEXT mode_reg, addr_reg, len_reg".to_string());
+                return Err(
+                    "CLIP_TEXT requires 3 arguments: CLIP_TEXT mode_reg, addr_reg, len_reg"
+                        .to_string(),
+                );
             }
             bytecode.push(0xDD);
             bytecode.push(parse_reg(tokens[1])? as u32);
@@ -1207,7 +1221,10 @@ pub(super) fn try_parse(
         // Mode 0: push current; Mode 1: get count; Mode 2: restore slot; Mode 3: clear
         "CLIP_HISTORY" => {
             if tokens.len() < 3 {
-                return Err("CLIP_HISTORY requires 2 arguments: CLIP_HISTORY mode_reg, slot_reg".to_string());
+                return Err(
+                    "CLIP_HISTORY requires 2 arguments: CLIP_HISTORY mode_reg, slot_reg"
+                        .to_string(),
+                );
             }
             bytecode.push(0xDF);
             bytecode.push(parse_reg(tokens[1])? as u32);
@@ -1251,7 +1268,9 @@ pub(super) fn try_parse(
         // HASHINIT table_id, buckets_reg (0xE2, 3 words)
         "HASHINIT" => {
             if tokens.len() < 3 {
-                return Err("HASHINIT requires 2 arguments: HASHINIT table_id, buckets_reg".to_string());
+                return Err(
+                    "HASHINIT requires 2 arguments: HASHINIT table_id, buckets_reg".to_string(),
+                );
             }
             bytecode.push(0xE2);
             bytecode.push(parse_imm(tokens[1], constants)?);
@@ -1262,7 +1281,9 @@ pub(super) fn try_parse(
         // HASHSET table_id, key_reg, val_reg (0xE3, 4 words)
         "HASHSET" => {
             if tokens.len() < 4 {
-                return Err("HASHSET requires 3 arguments: HASHSET table_id, key_reg, val_reg".to_string());
+                return Err(
+                    "HASHSET requires 3 arguments: HASHSET table_id, key_reg, val_reg".to_string(),
+                );
             }
             bytecode.push(0xE3);
             bytecode.push(parse_imm(tokens[1], constants)?);
@@ -1274,7 +1295,9 @@ pub(super) fn try_parse(
         // HASHGET table_id, key_reg, dst_reg (0xE4, 4 words)
         "HASHGET" => {
             if tokens.len() < 4 {
-                return Err("HASHGET requires 3 arguments: HASHGET table_id, key_reg, dst_reg".to_string());
+                return Err(
+                    "HASHGET requires 3 arguments: HASHGET table_id, key_reg, dst_reg".to_string(),
+                );
             }
             bytecode.push(0xE4);
             bytecode.push(parse_imm(tokens[1], constants)?);
@@ -1306,7 +1329,10 @@ pub(super) fn try_parse(
         // ALARM_SET ms_reg, addr_reg, value_reg (0xEA, 4 words)
         "ALARM_SET" => {
             if tokens.len() < 4 {
-                return Err("ALARM_SET requires 3 arguments: ALARM_SET ms_reg, addr_reg, value_reg".to_string());
+                return Err(
+                    "ALARM_SET requires 3 arguments: ALARM_SET ms_reg, addr_reg, value_reg"
+                        .to_string(),
+                );
             }
             bytecode.push(0xEA);
             bytecode.push(parse_reg(tokens[1])? as u32);

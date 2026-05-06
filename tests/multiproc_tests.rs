@@ -4,9 +4,9 @@
 // context isolation, and kill -- all via the RiscvVm public API and
 // SBI extensions.
 
-use geometry_os::riscv::*;
 use geometry_os::riscv::cpu;
 use geometry_os::riscv::cpu::StepResult;
+use geometry_os::riscv::*;
 
 /// Helper: build a minimal ELF that loops ECALL + J back.
 /// Entry at 0x80000100, code is ECALL (0x00000073) then J x0, -4 (0xFF5FF06F).
@@ -19,7 +19,7 @@ fn make_yield_loop_elf() -> Vec<u8> {
     image[5] = 1; // ELFDATA2LSB
     image[16] = 2; // ET_EXEC
     image[18] = 243; // EM_RISCV
-    // e_entry = 0x80000100
+                     // e_entry = 0x80000100
     image[24..28].copy_from_slice(&0x80000100u32.to_le_bytes());
     // e_phoff = 52
     image[28..32].copy_from_slice(&52u32.to_le_bytes());
@@ -54,14 +54,14 @@ fn make_yield_loop_elf() -> Vec<u8> {
 /// Helper: set up GEO_YIELD SBI registers on the current CPU context.
 fn setup_yield_regs(vm: &mut RiscvVm) {
     vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 1;          // GEO_FN_YIELD
+    vm.cpu.x[16] = 1; // GEO_FN_YIELD
 }
 
 /// Helper: set up GEO_SPAWN SBI registers.
 fn setup_spawn_regs(vm: &mut RiscvVm, entry: u32) {
     vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 3;          // GEO_FN_SPAWN
-    vm.cpu.x[10] = entry;      // entry point
+    vm.cpu.x[16] = 3; // GEO_FN_SPAWN
+    vm.cpu.x[10] = entry; // entry point
 }
 
 #[test]
@@ -107,8 +107,16 @@ fn test_two_contexts_yield_round_robin() {
     }
 
     assert_eq!(yields, 10);
-    assert!(ctx0_yields >= 4, "ctx0 should yield at least 4 times, got {}", ctx0_yields);
-    assert!(ctx1_yields >= 4, "ctx1 should yield at least 4 times, got {}", ctx1_yields);
+    assert!(
+        ctx0_yields >= 4,
+        "ctx0 should yield at least 4 times, got {}",
+        ctx0_yields
+    );
+    assert!(
+        ctx1_yields >= 4,
+        "ctx1 should yield at least 4 times, got {}",
+        ctx1_yields
+    );
 }
 
 #[test]
@@ -154,11 +162,19 @@ fn test_spawn_via_sbi_ecall() {
 
     // Step 1: ECALL sets spawn_requested in SBI handler
     vm.step();
-    assert_eq!(vm.contexts.len(), 1, "spawn not yet processed after first step");
+    assert_eq!(
+        vm.contexts.len(),
+        1,
+        "spawn not yet processed after first step"
+    );
 
     // Step 2: spawn_requested is consumed at start of step, creating context
     vm.step();
-    assert_eq!(vm.contexts.len(), 2, "spawn should create context after second step");
+    assert_eq!(
+        vm.contexts.len(),
+        2,
+        "spawn should create context after second step"
+    );
     assert_eq!(vm.contexts[1].pc, 0x80100000);
     assert_eq!(vm.cpu.x[10], 1, "a0 should return new context ID");
 }

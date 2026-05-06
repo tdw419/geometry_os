@@ -1059,7 +1059,11 @@ fn test_mandelbrot_renders() {
             q_injected = true;
         }
     }
-    assert!(vm.halted, "VM should halt within {} cycles (ran {})", max_cycles, cycle);
+    assert!(
+        vm.halted,
+        "VM should halt within {} cycles (ran {})",
+        max_cycles, cycle
+    );
 
     // Count distinct colors on screen
     let mut colors = std::collections::HashSet::new();
@@ -1242,7 +1246,11 @@ fn test_asteroids_assembles() {
     let source = std::fs::read_to_string("programs/asteroids.asm")
         .expect("failed to read programs/asteroids.asm");
     let asm = assemble(&source, 0).expect("asteroids.asm should assemble");
-    assert!(asm.pixels.len() > 1000, "asteroids should be substantial ({})", asm.pixels.len());
+    assert!(
+        asm.pixels.len() > 1000,
+        "asteroids should be substantial ({})",
+        asm.pixels.len()
+    );
 }
 
 #[test]
@@ -1283,7 +1291,10 @@ fn test_asteroids_produces_frame() {
         }
         last_pc = cur_pc;
     }
-    assert!(frames >= 1, "asteroids should produce at least 1 frame in 50M steps");
+    assert!(
+        frames >= 1,
+        "asteroids should produce at least 1 frame in 50M steps"
+    );
     // Check that something was drawn on screen (not all black)
     let mut nonzero = 0u32;
     for &p in &vm.screen {
@@ -1291,5 +1302,9 @@ fn test_asteroids_produces_frame() {
             nonzero += 1;
         }
     }
-    assert!(nonzero > 10, "asteroids frame should have non-black pixels (got {})", nonzero);
+    assert!(
+        nonzero > 10,
+        "asteroids frame should have non-black pixels (got {})",
+        nonzero
+    );
 }

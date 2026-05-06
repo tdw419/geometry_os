@@ -12,19 +12,30 @@ fn main() {
     // Let's step until we hit the jal render instruction
     let boot = vm.boot_guest(&elf_data, 1, 200_000).expect("boot");
     eprintln!("After 200K boot: pc=0x{:08X}", vm.cpu.pc);
-    
+
     // Step until we reach the render call or go out of range
     let mut step = 0u64;
     loop {
         let pc = vm.cpu.pc;
         if pc == 0x8000063C {
-            eprintln!("Reached render() call at step {} (total: {})", step, step + 200000);
+            eprintln!(
+                "Reached render() call at step {} (total: {})",
+                step,
+                step + 200000
+            );
             eprintln!("  ra=0x{:08X} sp=0x{:08X}", vm.cpu.x[1], vm.cpu.x[2]);
-            eprintln!("  a0=0x{:08X} (should be 0x101010FF for COL_BG? or 0 for render args)", vm.cpu.x[10]);
+            eprintln!(
+                "  a0=0x{:08X} (should be 0x101010FF for COL_BG? or 0 for render args)",
+                vm.cpu.x[10]
+            );
             break;
         }
         if pc < 0x80000000 || pc >= 0x80002000 {
-            eprintln!("PC out of range BEFORE render: 0x{:08X} at step {}", pc, step + 200000);
+            eprintln!(
+                "PC out of range BEFORE render: 0x{:08X} at step {}",
+                pc,
+                step + 200000
+            );
             eprintln!("  ra=0x{:08X} sp=0x{:08X}", vm.cpu.x[1], vm.cpu.x[2]);
             break;
         }
@@ -35,7 +46,7 @@ fn main() {
             break;
         }
     }
-    
+
     if vm.cpu.pc == 0x8000063C {
         // Now step into render and trace
         eprintln!("\n--- Stepping into render() ---");
@@ -44,21 +55,23 @@ fn main() {
             let prev_pc = vm.cpu.pc;
             vm.step();
             let pc = vm.cpu.pc;
-            
+
             // Track PC
             last_pcs.push(prev_pc);
             if last_pcs.len() > 10 {
                 last_pcs.remove(0);
             }
-            
+
             if pc < 0x80000000 || pc >= 0x80002000 {
                 eprintln!("PC went invalid at render step {}", i);
                 eprintln!("  bad_pc=0x{:08X}", pc);
                 eprintln!("  prev_pc=0x{:08X}", prev_pc);
                 eprintln!("  last 10 PCs: {:08X?}", last_pcs);
                 eprintln!("  ra=0x{:08X} sp=0x{:08X}", vm.cpu.x[1], vm.cpu.x[2]);
-                eprintln!("  t0=0x{:08X} t1=0x{:08X} t2=0x{:08X}", 
-                    vm.cpu.x[5], vm.cpu.x[6], vm.cpu.x[7]);
+                eprintln!(
+                    "  t0=0x{:08X} t1=0x{:08X} t2=0x{:08X}",
+                    vm.cpu.x[5], vm.cpu.x[6], vm.cpu.x[7]
+                );
                 break;
             }
         }

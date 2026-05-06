@@ -10,7 +10,6 @@ macro_rules! rlog {
     };
 }
 
-
 impl Vm {
     /// Handle graphics and pixel opcodes (0x40-0x51).
     /// Returns false if halted (user-mode IKEY), true otherwise.
@@ -215,7 +214,16 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let w = self.regs[wr] as usize;
                     let h = self.regs[hr] as usize;
-                    rlog!(self, 0x4A, "SPRITE", sx as u32, sy as u32, w as u32, h as u32, addr as u32);
+                    rlog!(
+                        self,
+                        0x4A,
+                        "SPRITE",
+                        sx as u32,
+                        sy as u32,
+                        w as u32,
+                        h as u32,
+                        addr as u32
+                    );
                     for dy in 0..h {
                         for dx in 0..w {
                             if addr >= self.ram.len() {
@@ -289,7 +297,7 @@ impl Vm {
                     let x1 = self.regs[x1r] as i32;
                     let y1 = self.regs[y1r] as i32;
                     rlog!(self, 0x45, "LINE", x0 as u32, y0 as u32, x1 as u32, y1 as u32, color);
-        let dx = (x1 - x0).abs();
+                    let dx = (x1 - x0).abs();
                     let dy = -(y1 - y0).abs();
                     let sx: i32 = if x0 < x1 { 1 } else { -1 };
                     let sy: i32 = if y0 < y1 { 1 } else { -1 };
@@ -323,8 +331,16 @@ impl Vm {
                     let cy = self.regs[yr] as i32;
                     let radius = self.regs[rr] as i32;
                     let color = self.regs[cr];
-                    rlog!(self, 0x46, "CIRCLE", cx as u32, cy as u32, radius as u32, color);
-        let mut x = radius;
+                    rlog!(
+                        self,
+                        0x46,
+                        "CIRCLE",
+                        cx as u32,
+                        cy as u32,
+                        radius as u32,
+                        color
+                    );
+                    let mut x = radius;
                     let mut y = 0i32;
                     let mut err = 1 - radius;
                     while x >= y {
@@ -648,8 +664,17 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
-                    rlog!(self, 0xDB, "VWTXT", sx as u32, sy as u32, fg, bg_val, addr as u32);
-        let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    rlog!(
+                        self,
+                        0xDB,
+                        "VWTXT",
+                        sx as u32,
+                        sy as u32,
+                        fg,
+                        bg_val,
+                        addr as u32
+                    );
+                    let bg = if bg_val == 0 { None } else { Some(bg_val) };
                     loop {
                         if addr >= self.ram.len() {
                             break;

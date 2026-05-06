@@ -735,7 +735,10 @@ pub(crate) fn run_vm(vm: &mut RiscvVm, steps: usize) {
             | StepResult::Ebreak
             | StepResult::FetchFault
             | StepResult::Shutdown => break,
-            StepResult::Ok | StepResult::LoadFault | StepResult::StoreFault | StepResult::Yielded => {}
+            StepResult::Ok
+            | StepResult::LoadFault
+            | StepResult::StoreFault
+            | StepResult::Yielded => {}
         }
     }
 }

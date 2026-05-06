@@ -114,10 +114,10 @@ const VIRTQ_DESC_F_WRITE: u16 = 2;
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
 struct VirtDesc {
-    addr: u64,   // Guest physical address of buffer
-    len: u32,    // Buffer length
-    flags: u16,  // VIRTQ_DESC_F_* flags
-    next: u16,   // Next descriptor index (if VIRTQ_DESC_F_NEXT)
+    addr: u64,  // Guest physical address of buffer
+    len: u32,   // Buffer length
+    flags: u16, // VIRTQ_DESC_F_* flags
+    next: u16,  // Next descriptor index (if VIRTQ_DESC_F_NEXT)
 }
 
 /// Per-queue state.
@@ -239,8 +239,12 @@ impl VirtioBlk {
     fn load_disk(path: &str) -> (Vec<u8>, bool) {
         match std::fs::read(path) {
             Ok(data) if !data.is_empty() => {
-                eprintln!("[virtio-blk] Loaded disk image from {}: {} bytes ({} sectors)",
-                    path, data.len(), data.len() / SECTOR_SIZE as usize);
+                eprintln!(
+                    "[virtio-blk] Loaded disk image from {}: {} bytes ({} sectors)",
+                    path,
+                    data.len(),
+                    data.len() / SECTOR_SIZE as usize
+                );
                 (data, false)
             }
             Ok(_) | Err(_) => {
@@ -257,8 +261,11 @@ impl VirtioBlk {
             if self.dirty {
                 match std::fs::write(path, &self.disk) {
                     Ok(_) => {
-                        eprintln!("[virtio-blk] Saved disk image to {}: {} bytes",
-                            path, self.disk.len());
+                        eprintln!(
+                            "[virtio-blk] Saved disk image to {}: {} bytes",
+                            path,
+                            self.disk.len()
+                        );
                         self.dirty = false;
                         return true;
                     }
@@ -477,10 +484,7 @@ impl VirtioBlk {
             self.int_status |= VIRTIO_INT_USED_RING;
 
             // Write the updated used index to guest memory
-            write_word_fn(
-                q.used_addr + 2,
-                used_idx as u32,
-            );
+            write_word_fn(q.used_addr + 2, used_idx as u32);
         }
 
         processed
@@ -514,8 +518,14 @@ impl VirtioBlk {
 
         let req_type = u32::from_le_bytes([req_data[0], req_data[1], req_data[2], req_data[3]]);
         let sector = u64::from_le_bytes([
-            req_data[8], req_data[9], req_data[10], req_data[11],
-            req_data[12], req_data[13], req_data[14], req_data[15],
+            req_data[8],
+            req_data[9],
+            req_data[10],
+            req_data[11],
+            req_data[12],
+            req_data[13],
+            req_data[14],
+            req_data[15],
         ]);
 
         // Walk the chain to find the data buffer and status byte
@@ -874,7 +884,7 @@ mod tests {
     #[test]
     fn process_queue_read_request() {
         let mut dev = VirtioBlk::with_disk(vec![0u8; 2048]); // 4 sectors
-        // Pre-fill sector 0 with known data
+                                                             // Pre-fill sector 0 with known data
         dev.disk[0..14].copy_from_slice(b"Hello, virtio!");
 
         // Set up queue 0
@@ -892,11 +902,19 @@ mod tests {
 
         let mut read_word = |addr: u64| -> u32 {
             let idx = (addr / 4) as usize;
-            if idx < mem_len { unsafe { *mem_ptr.add(idx) } } else { 0 }
+            if idx < mem_len {
+                unsafe { *mem_ptr.add(idx) }
+            } else {
+                0
+            }
         };
         let mut write_word = move |addr: u64, val: u32| {
             let idx = (addr / 4) as usize;
-            if idx < mem_len { unsafe { *mem_ptr.add(idx) = val; } }
+            if idx < mem_len {
+                unsafe {
+                    *mem_ptr.add(idx) = val;
+                }
+            }
         };
         let mem_bytes = mem.as_mut_ptr() as *mut u8;
         let mem_byte_len = mem_len * 4;
@@ -905,7 +923,9 @@ mod tests {
             for i in 0..len {
                 let idx = (addr as usize).wrapping_add(i);
                 if idx < mem_byte_len {
-                    unsafe { data[i] = *mem_bytes.add(idx); }
+                    unsafe {
+                        data[i] = *mem_bytes.add(idx);
+                    }
                 }
             }
             data
@@ -914,7 +934,9 @@ mod tests {
             for (i, &b) in data.iter().enumerate() {
                 let idx = (addr as usize).wrapping_add(i);
                 if idx < mem_byte_len {
-                    unsafe { *mem_bytes.add(idx) = b; }
+                    unsafe {
+                        *mem_bytes.add(idx) = b;
+                    }
                 }
             }
         };
@@ -925,15 +947,15 @@ mod tests {
         // desc[2]: status byte (1 byte, writable) at guest PA 0x4000
 
         // desc[0]: addr=0x2000, len=16, flags=VIRTQ_DESC_F_NEXT, next=1
-        mem[0x1000 / 4] = 0x2000;       // addr_lo
-        mem[0x1004 / 4] = 0;             // addr_hi
-        mem[0x1008 / 4] = 16;                                              // len = 16
-        mem[0x100C / 4] = (VIRTQ_DESC_F_NEXT as u16 as u32) | (1 << 16);   // flags=NEXT, next=1
+        mem[0x1000 / 4] = 0x2000; // addr_lo
+        mem[0x1004 / 4] = 0; // addr_hi
+        mem[0x1008 / 4] = 16; // len = 16
+        mem[0x100C / 4] = (VIRTQ_DESC_F_NEXT as u16 as u32) | (1 << 16); // flags=NEXT, next=1
 
         // desc[1]: addr=0x3000, len=512, flags=VIRTQ_DESC_F_WRITE|NEXT, next=2
         mem[0x1010 / 4] = 0x3000;
         mem[0x1014 / 4] = 0;
-        mem[0x1018 / 4] = 512;  // len = 512
+        mem[0x1018 / 4] = 512; // len = 512
         mem[0x101C / 4] = ((VIRTQ_DESC_F_WRITE | VIRTQ_DESC_F_NEXT) as u16 as u32) | (2 << 16); // flags=WRITE|NEXT, next=2
 
         // desc[2]: addr=0x4000, len=1, flags=VIRTQ_DESC_F_WRITE, next=0
@@ -953,7 +975,7 @@ mod tests {
 
         // Available ring at 0x1100: packed flags(u16)|idx(u16), ring[0]
         mem[0x1100 / 4] = 1 << 16; // flags=0 (low 16), idx=1 (high 16)
-        mem[0x1104 / 4] = 0;       // ring[0] = 0 (head descriptor index)
+        mem[0x1104 / 4] = 0; // ring[0] = 0 (head descriptor index)
 
         // Process the queue
         let count = dev.process_queue(
@@ -996,11 +1018,19 @@ mod tests {
 
         let mut read_word = |addr: u64| -> u32 {
             let idx = (addr / 4) as usize;
-            if idx < mem_len { unsafe { *mem_ptr.add(idx) } } else { 0 }
+            if idx < mem_len {
+                unsafe { *mem_ptr.add(idx) }
+            } else {
+                0
+            }
         };
         let mut write_word = move |addr: u64, val: u32| {
             let idx = (addr / 4) as usize;
-            if idx < mem_len { unsafe { *mem_ptr.add(idx) = val; } }
+            if idx < mem_len {
+                unsafe {
+                    *mem_ptr.add(idx) = val;
+                }
+            }
         };
         let mem_bytes = mem.as_mut_ptr() as *mut u8;
         let mem_byte_len = mem_len * 4;
@@ -1009,7 +1039,9 @@ mod tests {
             for i in 0..len {
                 let idx = (addr as usize).wrapping_add(i);
                 if idx < mem_byte_len {
-                    unsafe { data[i] = *mem_bytes.add(idx); }
+                    unsafe {
+                        data[i] = *mem_bytes.add(idx);
+                    }
                 }
             }
             data
@@ -1018,7 +1050,9 @@ mod tests {
             for (i, &b) in data.iter().enumerate() {
                 let idx = (addr as usize).wrapping_add(i);
                 if idx < mem_byte_len {
-                    unsafe { *mem_bytes.add(idx) = b; }
+                    unsafe {
+                        *mem_bytes.add(idx) = b;
+                    }
                 }
             }
         };
@@ -1026,8 +1060,8 @@ mod tests {
         // desc[0]: request header at 0x2000 (read-only, chain to desc 1)
         mem[0x1000 / 4] = 0x2000;
         mem[0x1004 / 4] = 0;
-        mem[0x1008 / 4] = 16;                                              // len = 16
-        mem[0x100C / 4] = (VIRTQ_DESC_F_NEXT as u16 as u32) | (1 << 16);   // flags=NEXT, next=1
+        mem[0x1008 / 4] = 16; // len = 16
+        mem[0x100C / 4] = (VIRTQ_DESC_F_NEXT as u16 as u32) | (1 << 16); // flags=NEXT, next=1
 
         // desc[1]: data buffer at 0x3000 (read-only for write, chain to desc 2)
         mem[0x1010 / 4] = 0x3000;
@@ -1050,12 +1084,14 @@ mod tests {
         // Write data to sector at 0x3000
         let test_data = b"TestData123456789!";
         for (i, &b) in test_data.iter().enumerate() {
-            unsafe { *mem_bytes.add((0x3000 + i as u64) as usize) = b; }
+            unsafe {
+                *mem_bytes.add((0x3000 + i as u64) as usize) = b;
+            }
         }
 
         // Available ring: packed flags(u16)|idx(u16), ring[0]
         mem[0x1100 / 4] = 1 << 16; // flags=0, idx=1
-        mem[0x1104 / 4] = 0;       // ring[0] = 0
+        mem[0x1104 / 4] = 0; // ring[0] = 0
 
         // Process
         let count = dev.process_queue(
@@ -1096,11 +1132,19 @@ mod tests {
 
         let mut read_word = |addr: u64| -> u32 {
             let idx = (addr / 4) as usize;
-            if idx < mem_len { unsafe { *mem_ptr.add(idx) } } else { 0 }
+            if idx < mem_len {
+                unsafe { *mem_ptr.add(idx) }
+            } else {
+                0
+            }
         };
         let mut write_word = move |addr: u64, val: u32| {
             let idx = (addr / 4) as usize;
-            if idx < mem_len { unsafe { *mem_ptr.add(idx) = val; } }
+            if idx < mem_len {
+                unsafe {
+                    *mem_ptr.add(idx) = val;
+                }
+            }
         };
         let mem_bytes = mem.as_mut_ptr() as *mut u8;
         let mem_byte_len = mem_len * 4;
@@ -1109,7 +1153,9 @@ mod tests {
             for i in 0..len {
                 let idx = (addr as usize).wrapping_add(i);
                 if idx < mem_byte_len {
-                    unsafe { data[i] = *mem_bytes.add(idx); }
+                    unsafe {
+                        data[i] = *mem_bytes.add(idx);
+                    }
                 }
             }
             data
@@ -1118,7 +1164,9 @@ mod tests {
             for (i, &b) in data.iter().enumerate() {
                 let idx = (addr as usize).wrapping_add(i);
                 if idx < mem_byte_len {
-                    unsafe { *mem_bytes.add(idx) = b; }
+                    unsafe {
+                        *mem_bytes.add(idx) = b;
+                    }
                 }
             }
         };
@@ -1126,14 +1174,14 @@ mod tests {
         // desc[0]: request header at 0x2000
         mem[0x1000 / 4] = 0x2000;
         mem[0x1004 / 4] = 0;
-        mem[0x1008 / 4] = 16;                                              // len = 16
-        mem[0x100C / 4] = (VIRTQ_DESC_F_NEXT as u16 as u32) | (1 << 16);   // flags=NEXT, next=1
-        // desc[1]: data buffer at 0x3000
+        mem[0x1008 / 4] = 16; // len = 16
+        mem[0x100C / 4] = (VIRTQ_DESC_F_NEXT as u16 as u32) | (1 << 16); // flags=NEXT, next=1
+                                                                         // desc[1]: data buffer at 0x3000
         mem[0x1010 / 4] = 0x3000;
         mem[0x1014 / 4] = 0;
-        mem[0x1018 / 4] = 512;  // len = 512
+        mem[0x1018 / 4] = 512; // len = 512
         mem[0x101C / 4] = ((VIRTQ_DESC_F_WRITE | VIRTQ_DESC_F_NEXT) as u16 as u32) | (2 << 16); // flags=WRITE|NEXT, next=2
-        // desc[2]: status at 0x4000
+                                                                                                // desc[2]: status at 0x4000
         mem[0x1020 / 4] = 0x4000;
         mem[0x1024 / 4] = 0;
         mem[0x1028 / 4] = 1; // len = 1
@@ -1146,7 +1194,7 @@ mod tests {
         mem[0x200C / 4] = 0;
 
         mem[0x1100 / 4] = 1 << 16; // flags=0, idx=1
-        mem[0x1104 / 4] = 0;       // ring[0] = 0
+        mem[0x1104 / 4] = 0; // ring[0] = 0
 
         let count = dev.process_queue(
             0,

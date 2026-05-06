@@ -531,7 +531,13 @@ impl Vm {
     pub fn push_mouse_button(&mut self, button: u32) {
         self.mouse_button = button;
         // Determine event type: 0=release, 1=down, 2=click
-        let event_type = if button == 0 { 2 } else if button == 2 { 1 } else { button };
+        let event_type = if button == 0 {
+            2
+        } else if button == 2 {
+            1
+        } else {
+            button
+        };
         let btn = if button >= 1 { 1 } else { 0 }; // left button
         self.queue_mouse_event(event_type, btn, self.mouse_x, self.mouse_y);
     }
@@ -545,10 +551,8 @@ impl Vm {
         if next_tail == self.mouse_event_head {
             return; // buffer full, drop event
         }
-        let packed = (event_type & 0xFF)
-            | ((button & 0xFF) << 8)
-            | ((x & 0xFF) << 16)
-            | ((y & 0xFF) << 24);
+        let packed =
+            (event_type & 0xFF) | ((button & 0xFF) << 8) | ((x & 0xFF) << 16) | ((y & 0xFF) << 24);
         self.mouse_event_buffer[self.mouse_event_tail] = packed;
         self.mouse_event_x[self.mouse_event_tail] = x;
         self.mouse_event_y[self.mouse_event_tail] = y;
@@ -799,7 +803,8 @@ impl Vm {
 
             // Execution trace
             if self.trace_recording {
-                self.trace_buffer.push(pc_addr as u32, &self.regs, decoded.opcode);
+                self.trace_buffer
+                    .push(pc_addr as u32, &self.regs, decoded.opcode);
             }
 
             // Execute the cached instruction
@@ -1430,7 +1435,11 @@ impl Vm {
                     let w = self.regs[wr] as usize;
                     let h = self.regs[hr] as usize;
                     let color = self.regs[cr];
-                    self.log_render_op(0x88, "RECT", &[x0 as u32, y0 as u32, w as u32, h as u32, color]);
+                    self.log_render_op(
+                        0x88,
+                        "RECT",
+                        &[x0 as u32, y0 as u32, w as u32, h as u32, color],
+                    );
                     if w > 0 && h > 0 {
                         // Top edge
                         for dx in 0..w {
@@ -1520,7 +1529,11 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
-                    self.log_render_op(0x8C, "DRAWTEXT", &[sx as u32, sy as u32, fg, bg_val, addr as u32]);
+                    self.log_render_op(
+                        0x8C,
+                        "DRAWTEXT",
+                        &[sx as u32, sy as u32, fg, bg_val, addr as u32],
+                    );
                     let bg = if bg_val == 0 { None } else { Some(bg_val) };
                     loop {
                         if addr >= self.ram.len() {
@@ -1578,7 +1591,11 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
-                    self.log_render_op(0xD0, "SMALLTEXT", &[sx as u32, sy as u32, fg, bg_val, addr as u32]);
+                    self.log_render_op(
+                        0xD0,
+                        "SMALLTEXT",
+                        &[sx as u32, sy as u32, fg, bg_val, addr as u32],
+                    );
                     let bg = if bg_val == 0 { None } else { Some(bg_val) };
                     loop {
                         if addr >= self.ram.len() {
@@ -1625,7 +1642,11 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
-                    self.log_render_op(0xD1, "MEDTEXT", &[sx as u32, sy as u32, fg, bg_val, addr as u32]);
+                    self.log_render_op(
+                        0xD1,
+                        "MEDTEXT",
+                        &[sx as u32, sy as u32, fg, bg_val, addr as u32],
+                    );
                     let bg = if bg_val == 0 { None } else { Some(bg_val) };
                     loop {
                         if addr >= self.ram.len() {
@@ -1814,7 +1835,11 @@ impl Vm {
                         }
                     }
                     self.clipboard = buf;
-                    self.log_render_op(0xD7, "CLIP_COPY", &[x as u32, y as u32, w as u32, h as u32]);
+                    self.log_render_op(
+                        0xD7,
+                        "CLIP_COPY",
+                        &[x as u32, y as u32, w as u32, h as u32],
+                    );
                 }
             }
 
@@ -1830,7 +1855,11 @@ impl Vm {
                     let y = self.regs[yr] as usize;
                     let w = self.clipboard[0] as usize;
                     let h = self.clipboard[1] as usize;
-                    self.log_render_op(0xD8, "CLIP_PASTE", &[x as u32, y as u32, w as u32, h as u32]);
+                    self.log_render_op(
+                        0xD8,
+                        "CLIP_PASTE",
+                        &[x as u32, y as u32, w as u32, h as u32],
+                    );
                     for row in 0..h {
                         for col in 0..w {
                             let sx = x + col;
@@ -1871,7 +1900,12 @@ impl Vm {
                                 let b1 = (self.ram[addr + i + 1] & 0xFF) as u8;
                                 let b2 = (self.ram[addr + i + 2] & 0xFF) as u8;
                                 let b3 = (self.ram[addr + i + 3] & 0xFF) as u8;
-                                packed.push((b0 as u32) | ((b1 as u32) << 8) | ((b2 as u32) << 16) | ((b3 as u32) << 24));
+                                packed.push(
+                                    (b0 as u32)
+                                        | ((b1 as u32) << 8)
+                                        | ((b2 as u32) << 16)
+                                        | ((b3 as u32) << 24),
+                                );
                                 byte_count += 4;
                                 i += 4;
                             }
@@ -1903,7 +1937,11 @@ impl Vm {
                             if 0 < NUM_REGS {
                                 self.regs[0] = char_count;
                             }
-                            self.log_render_op(0xDD, "CLIP_TEXT_STORE", &[mode, addr as u32, len as u32, char_count]);
+                            self.log_render_op(
+                                0xDD,
+                                "CLIP_TEXT_STORE",
+                                &[mode, addr as u32, len as u32, char_count],
+                            );
                         }
                         1 => {
                             // Paste text from clipboard to RAM
@@ -1923,7 +1961,11 @@ impl Vm {
                                 if 0 < NUM_REGS {
                                     self.regs[0] = bytes_written;
                                 }
-                                self.log_render_op(0xDD, "CLIP_TEXT_PASTE", &[mode, addr as u32, len as u32, bytes_written]);
+                                self.log_render_op(
+                                    0xDD,
+                                    "CLIP_TEXT_PASTE",
+                                    &[mode, addr as u32, len as u32, bytes_written],
+                                );
                             } else {
                                 if 0 < NUM_REGS {
                                     self.regs[0] = 0;
@@ -1980,21 +2022,32 @@ impl Vm {
                                 self.clipboard_history_head = self.clipboard_history.len() - 1;
                             } else {
                                 // Ring buffer: overwrite oldest
-                                self.clipboard_history_head = (self.clipboard_history_head + 1) % CLIP_HISTORY_MAX;
-                                self.clipboard_history[self.clipboard_history_head] = (pixel_snap, text_snap);
+                                self.clipboard_history_head =
+                                    (self.clipboard_history_head + 1) % CLIP_HISTORY_MAX;
+                                self.clipboard_history[self.clipboard_history_head] =
+                                    (pixel_snap, text_snap);
                             }
-                            self.clipboard_history_count = self.clipboard_history.len().min(CLIP_HISTORY_MAX);
+                            self.clipboard_history_count =
+                                self.clipboard_history.len().min(CLIP_HISTORY_MAX);
                             if 0 < NUM_REGS {
                                 self.regs[0] = self.clipboard_history_count as u32;
                             }
-                            self.log_render_op(0xDF, "CLIP_HIST_PUSH", &[self.clipboard_history_count as u32]);
+                            self.log_render_op(
+                                0xDF,
+                                "CLIP_HIST_PUSH",
+                                &[self.clipboard_history_count as u32],
+                            );
                         }
                         1 => {
                             // Get count
                             if 0 < NUM_REGS {
                                 self.regs[0] = self.clipboard_history_count as u32;
                             }
-                            self.log_render_op(0xDF, "CLIP_HIST_COUNT", &[self.clipboard_history_count as u32]);
+                            self.log_render_op(
+                                0xDF,
+                                "CLIP_HIST_COUNT",
+                                &[self.clipboard_history_count as u32],
+                            );
                         }
                         2 => {
                             // Restore from slot
@@ -2003,7 +2056,8 @@ impl Vm {
                                 let hist_idx = if self.clipboard_history_count < CLIP_HISTORY_MAX {
                                     self.clipboard_history_count - 1 - slot
                                 } else {
-                                    (self.clipboard_history_head + CLIP_HISTORY_MAX - slot) % CLIP_HISTORY_MAX
+                                    (self.clipboard_history_head + CLIP_HISTORY_MAX - slot)
+                                        % CLIP_HISTORY_MAX
                                 };
                                 if let Some((pixel_snap, text_snap)) =
                                     self.clipboard_history.get(hist_idx)
@@ -2039,7 +2093,8 @@ impl Vm {
                                 let hist_idx = if self.clipboard_history_count < CLIP_HISTORY_MAX {
                                     self.clipboard_history_count - 1 - slot
                                 } else {
-                                    (self.clipboard_history_head + CLIP_HISTORY_MAX - slot) % CLIP_HISTORY_MAX
+                                    (self.clipboard_history_head + CLIP_HISTORY_MAX - slot)
+                                        % CLIP_HISTORY_MAX
                                 };
                                 if let Some((pixel_snap, text_snap)) =
                                     self.clipboard_history.get(hist_idx)
@@ -2054,7 +2109,11 @@ impl Vm {
                                     if 0 < NUM_REGS {
                                         self.regs[0] = info;
                                     }
-                                    self.log_render_op(0xDF, "CLIP_HIST_INFO", &[slot as u32, info]);
+                                    self.log_render_op(
+                                        0xDF,
+                                        "CLIP_HIST_INFO",
+                                        &[slot as u32, info],
+                                    );
                                 } else if 0 < NUM_REGS {
                                     self.regs[0] = 0;
                                 }
@@ -2079,7 +2138,9 @@ impl Vm {
                     let fn_addr = self.regs[fn_reg] as usize;
                     let dst_addr = self.regs[dst_reg] as usize;
                     let max_pixels = self.regs[max_reg] as usize;
-                    let count = self.vfs.load_sprite(&mut self.ram, fn_addr, dst_addr, max_pixels);
+                    let count = self
+                        .vfs
+                        .load_sprite(&mut self.ram, fn_addr, dst_addr, max_pixels);
                     self.regs[0] = count;
                 } else {
                     self.regs[0] = 0xFFFFFFFF;
@@ -2784,8 +2845,11 @@ impl Vm {
                             if let Some(w) =
                                 self.windows.iter_mut().find(|w| w.id == win_id && w.active)
                             {
-                                let surface =
-                                    crate::vfs::encode_pixel_surface_dir(w.w as usize, w.h as usize, &self.vfs.base_dir);
+                                let surface = crate::vfs::encode_pixel_surface_dir(
+                                    w.w as usize,
+                                    w.h as usize,
+                                    &self.vfs.base_dir,
+                                );
                                 // Blit surface into window offscreen buffer
                                 let buf_len = w.offscreen_buffer.len();
                                 for (i, &px) in surface.iter().enumerate() {
@@ -4642,7 +4706,11 @@ impl Vm {
                     if lsb >= 32 || width == 0 {
                         self.regs[rd] = 0;
                     } else {
-                        let mask = if width >= 32 { 0xFFFFFFFF } else { (1u32 << width) - 1 };
+                        let mask = if width >= 32 {
+                            0xFFFFFFFF
+                        } else {
+                            (1u32 << width) - 1
+                        };
                         self.regs[rd] = (val >> lsb) & mask;
                     }
                 }
@@ -4666,7 +4734,11 @@ impl Vm {
                     if width == 0 || lsb >= 32 {
                         // No-op: inserting 0 bits or out-of-range
                     } else {
-                        let field_mask = if width >= 32 { 0xFFFFFFFF } else { (1u32 << width) - 1 };
+                        let field_mask = if width >= 32 {
+                            0xFFFFFFFF
+                        } else {
+                            (1u32 << width) - 1
+                        };
                         let mask = field_mask << lsb;
                         self.regs[rd] = (dst & !mask) | ((src << lsb) & mask);
                     }
@@ -4722,8 +4794,10 @@ impl Vm {
                             if rid < 16 {
                                 if self.profile_active[rid] {
                                     // Stop: accumulate delta
-                                    let delta = self.total_steps.saturating_sub(self.profile_start[rid]);
-                                    self.profile_regions[rid] = self.profile_regions[rid].saturating_add(delta);
+                                    let delta =
+                                        self.total_steps.saturating_sub(self.profile_start[rid]);
+                                    self.profile_regions[rid] =
+                                        self.profile_regions[rid].saturating_add(delta);
                                     self.profile_active[rid] = false;
                                 } else {
                                     // Start: record current step
@@ -4738,7 +4812,8 @@ impl Vm {
                             if rid < 16 {
                                 let mut count = self.profile_regions[rid];
                                 if self.profile_active[rid] {
-                                    let delta = self.total_steps.saturating_sub(self.profile_start[rid]);
+                                    let delta =
+                                        self.total_steps.saturating_sub(self.profile_start[rid]);
                                     count = count.saturating_add(delta);
                                 }
                                 // Return as u32 (truncated to low 32 bits)
@@ -4758,7 +4833,9 @@ impl Vm {
                             for i in 0..16u32 {
                                 let mut val = self.profile_regions[i as usize];
                                 if self.profile_active[i as usize] {
-                                    let delta = self.total_steps.saturating_sub(self.profile_start[i as usize]);
+                                    let delta = self
+                                        .total_steps
+                                        .saturating_sub(self.profile_start[i as usize]);
                                     val = val.saturating_add(delta);
                                 }
                                 if val > 0 || self.profile_active[i as usize] {
@@ -4766,7 +4843,8 @@ impl Vm {
                                     if base + (count as usize) * 3 + 2 < self.ram.len() {
                                         self.ram[base + (count as usize) * 3] = i;
                                         self.ram[base + (count as usize) * 3 + 1] = val as u32;
-                                        self.ram[base + (count as usize) * 3 + 2] = (val >> 32) as u32;
+                                        self.ram[base + (count as usize) * 3 + 2] =
+                                            (val >> 32) as u32;
                                         count += 1;
                                     }
                                 }
@@ -4840,10 +4918,7 @@ impl Vm {
                                 }
                             }
                             let bytes_written = self.vfs.fwrite(
-                                &self.ram,
-                                fd,
-                                stage_base,
-                                n, // one word per byte
+                                &self.ram, fd, stage_base, n, // one word per byte
                                 pid,
                             );
                             if bytes_written == 0xFFFFFFFF {

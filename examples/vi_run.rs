@@ -4,8 +4,8 @@
 // Build:  cd examples/riscv-hello && ./build.sh vi.c vi.elf
 // Run:    cargo run --release --example vi_run
 
-use geometry_os::riscv::RiscvVm;
 use geometry_os::riscv::bridge::UartBridge;
+use geometry_os::riscv::RiscvVm;
 
 /// Boot the vi editor, feed input bytes, run for N steps, collect output.
 fn run_vi_with_input(elf_data: &[u8], input: &[u8], max_steps: u64) -> String {
@@ -102,11 +102,7 @@ fn main() {
     }
 
     // Test 2: Enter insert mode, type text, exit insert, quit
-    let out = run_vi_with_input(
-        &elf_data,
-        b"ihello world\x1b:q!\r",
-        20_000_000,
-    );
+    let out = run_vi_with_input(&elf_data, b"ihello world\x1b:q!\r", 20_000_000);
     print_output("Test 2: Insert text and quit", &out);
     if out.contains("[FB pixels]") {
         passed += 1;
@@ -130,27 +126,15 @@ fn main() {
     }
 
     // Test 4: Navigate with hjkl
-    let out = run_vi_with_input(
-        &elf_data,
-        b"ihello\x1bllljj:q!\r",
-        20_000_000,
-    );
+    let out = run_vi_with_input(&elf_data, b"ihello\x1bllljj:q!\r", 20_000_000);
     print_output("Test 4: Navigation with hjkl", &out);
 
     // Test 5: Delete with x key
-    let out = run_vi_with_input(
-        &elf_data,
-        b"iabcdef\x1bllx:q!\r",
-        20_000_000,
-    );
+    let out = run_vi_with_input(&elf_data, b"iabcdef\x1bllx:q!\r", 20_000_000);
     print_output("Test 5: Delete character with x", &out);
 
     // Test 6: Colon commands - :wq (write and quit)
-    let out = run_vi_with_input(
-        &elf_data,
-        b":wq\r",
-        10_000_000,
-    );
+    let out = run_vi_with_input(&elf_data, b":wq\r", 10_000_000);
     print_output("Test 6: :wq command", &out);
     if out.contains("saving") && out.contains("saved") && out.contains("goodbye") {
         passed += 1;

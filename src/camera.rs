@@ -128,10 +128,7 @@ pub fn open_camera(device: &str) -> Result<CameraHandle, String> {
 
     let (frame_tx, frame_rx) = mpsc::sync_channel::<CameraFrame>(2);
 
-    eprintln!(
-        "[camera] ffmpeg capturing from {} -> 256x256 RGB24",
-        device
-    );
+    eprintln!("[camera] ffmpeg capturing from {} -> 256x256 RGB24", device);
 
     let handle = thread::Builder::new()
         .name("camera-capture".into())
@@ -168,10 +165,7 @@ pub fn open_camera(device: &str) -> Result<CameraHandle, String> {
                     Err(mpsc::TrySendError::Full(_)) => {
                         drop_count += 1;
                         if drop_count % 100 == 0 {
-                            eprintln!(
-                                "[camera] dropped {} frames (receiver slow)",
-                                drop_count
-                            );
+                            eprintln!("[camera] dropped {} frames (receiver slow)", drop_count);
                         }
                     }
                     Err(mpsc::TrySendError::Disconnected(_)) => {

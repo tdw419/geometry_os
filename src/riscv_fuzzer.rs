@@ -364,8 +364,14 @@ fn decode_c_j_imm(w: u16) -> i32 {
     let bit_7 = ((w >> 6) & 1) as i32;
     let bits_3_1 = ((w >> 3) & 0x7) as i32;
     let bit_5 = ((w >> 2) & 1) as i32;
-    let raw = (bit_11 << 11) | (bit_4 << 4) | (bits_9_8 << 8) | (bit_10 << 10)
-        | (bit_6 << 6) | (bit_7 << 7) | (bits_3_1 << 1) | (bit_5 << 5);
+    let raw = (bit_11 << 11)
+        | (bit_4 << 4)
+        | (bits_9_8 << 8)
+        | (bit_10 << 10)
+        | (bit_6 << 6)
+        | (bit_7 << 7)
+        | (bits_3_1 << 1)
+        | (bit_5 << 5);
     // Sign-extend from bit 11
     if raw & (1 << 11) != 0 {
         raw | !0xFFF
@@ -1080,8 +1086,8 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     // Bits [17:12] form the immediate; bit 17 is the sign bit.
                     // Use raw 6-bit value where bit 5 = sign bit (bit 17 of nzimm).
                     let raw = rng.u32() & 0x3F; // 6-bit: [5]=sign, [4:0]=bits[16:12]
-                    let nzimm_raw = raw << 12;  // place in bits [17:12]
-                    // Sign-extend from bit 17 (RISC-V spec requirement)
+                    let nzimm_raw = raw << 12; // place in bits [17:12]
+                                               // Sign-extend from bit 17 (RISC-V spec requirement)
                     let nzimm = if nzimm_raw & (1 << 17) != 0 {
                         nzimm_raw | 0xFFFC_0000_u32
                     } else {
@@ -1340,11 +1346,18 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
         inst_byte_offsets.push(byte_pos);
         byte_pos += match op {
             // 32-bit instructions (ALU R-type, CSR)
-            OracleOp::Add { .. } | OracleOp::Sub { .. } | OracleOp::And { .. }
-            | OracleOp::Or { .. } | OracleOp::Xor { .. } | OracleOp::Sll { .. }
-            | OracleOp::Srl { .. } | OracleOp::Csrrw { .. } | OracleOp::Csrrs { .. }
-            | OracleOp::Csrrc { .. } | OracleOp::Csrrci { .. } | OracleOp::Csrrsi { .. }
-            => 4,
+            OracleOp::Add { .. }
+            | OracleOp::Sub { .. }
+            | OracleOp::And { .. }
+            | OracleOp::Or { .. }
+            | OracleOp::Xor { .. }
+            | OracleOp::Sll { .. }
+            | OracleOp::Srl { .. }
+            | OracleOp::Csrrw { .. }
+            | OracleOp::Csrrs { .. }
+            | OracleOp::Csrrc { .. }
+            | OracleOp::Csrrci { .. }
+            | OracleOp::Csrrsi { .. } => 4,
             // Everything else is compressed (2 bytes)
             _ => 2,
         };
@@ -1617,7 +1630,9 @@ fn main() {
                         if !det_ok {
                             failures += 1;
                             eprintln!("program {}: determinism failure", i);
-                            for op in &prog.ops { eprintln!("  {:?}", op); }
+                            for op in &prog.ops {
+                                eprintln!("  {:?}", op);
+                            }
                             if failures >= 5 {
                                 eprintln!("aborting after 5 failures");
                                 std::process::exit(1);
@@ -1627,8 +1642,13 @@ fn main() {
                     Err(e2) => {
                         // First run succeeded but second didn't -- non-deterministic error
                         failures += 1;
-                        eprintln!("program {}: non-deterministic (run1 OK, run2 error: {})", i, e2);
-                        for op in &prog.ops { eprintln!("  {:?}", op); }
+                        eprintln!(
+                            "program {}: non-deterministic (run1 OK, run2 error: {})",
+                            i, e2
+                        );
+                        for op in &prog.ops {
+                            eprintln!("  {:?}", op);
+                        }
                         if failures >= 5 {
                             eprintln!("aborting after 5 failures");
                             std::process::exit(1);
@@ -1642,7 +1662,10 @@ fn main() {
                 // fully cover CSR semantics, compressed instruction PC advancement,
                 // or AUIPC sign extension edge cases.
                 if !check_program(&prog, &vm_regs, &vm_data, &vm_csrs) {
-                    eprintln!("program {}: oracle mismatch (informational, not counted):", i);
+                    eprintln!(
+                        "program {}: oracle mismatch (informational, not counted):",
+                        i
+                    );
                 }
             }
         }

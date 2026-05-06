@@ -1,8 +1,8 @@
 // audio.rs -- WAV beep/note synthesis and async playback via aplay
 
 use std::io::Write;
-use std::sync::mpsc::{channel, Sender};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{channel, Sender};
 use std::sync::OnceLock;
 
 static BEEP_SENDER: OnceLock<Sender<Vec<u8>>> = OnceLock::new();

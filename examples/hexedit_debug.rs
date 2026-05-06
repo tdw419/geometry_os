@@ -10,7 +10,10 @@ fn main() {
     let mut bridge = UartBridge::new();
 
     let boot = vm.boot_guest(&elf_data, 1, 500_000).expect("boot");
-    eprintln!("After boot: pc=0x{:08X}, steps={}", vm.cpu.pc, boot.instructions);
+    eprintln!(
+        "After boot: pc=0x{:08X}, steps={}",
+        vm.cpu.pc, boot.instructions
+    );
 
     // Check if any pixels were written
     let nz = vm.bus.framebuf.pixels.iter().filter(|&&p| p != 0).count();

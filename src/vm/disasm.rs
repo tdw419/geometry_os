@@ -985,31 +985,16 @@ impl Vm {
             ),
             // IMOUSE rd (0xC7) -- Read next mouse event from queue
             // Returns packed event→rd, full x→rd+1, full y→rd+2
-            0xC7 => (
-                format!("IMOUSE {}", reg(ram(a + 1))),
-                2,
-            ),
+            0xC7 => (format!("IMOUSE {}", reg(ram(a + 1))), 2),
             // MOUSEX rd (0xC8) -- Read mouse X into register
-            0xC8 => (
-                format!("MOUSEX {}", reg(ram(a + 1))),
-                2,
-            ),
+            0xC8 => (format!("MOUSEX {}", reg(ram(a + 1))), 2),
             // MOUSEY rd (0xC9) -- Read mouse Y into register
-            0xC9 => (
-                format!("MOUSEY {}", reg(ram(a + 1))),
-                2,
-            ),
+            0xC9 => (format!("MOUSEY {}", reg(ram(a + 1))), 2),
             // MOUSEB rd (0xCA) -- Read mouse button bitmask
-            0xCA => (
-                format!("MOUSEB {}", reg(ram(a + 1))),
-                2,
-            ),
+            0xCA => (format!("MOUSEB {}", reg(ram(a + 1))), 2),
             // MOUSECLICK rd (0xCB) -- Peek for click event
             // type→rd, x→rd+1, y→rd+2
-            0xCB => (
-                format!("MOUSECLICK {}", reg(ram(a + 1))),
-                2,
-            ),
+            0xCB => (format!("MOUSECLICK {}", reg(ram(a + 1))), 2),
             // HTTPGET url_reg, buf_reg, max_len_reg, status_reg, len_reg (0xCC)
             // Blocking HTTP/1.0 GET request
             0xCC => (
@@ -1063,10 +1048,7 @@ impl Vm {
             ),
 
             // FONT_SELECT mode_reg (0xDC) -- select font for TEXT opcode
-            0xDC => (
-                format!("FONT_SELECT {}", reg(ram(a + 1))),
-                2,
-            ),
+            0xDC => (format!("FONT_SELECT {}", reg(ram(a + 1))), 2),
 
             // MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
             0xDE => (
@@ -1159,20 +1141,27 @@ impl Vm {
             ),
 
             // HASHINIT table_id, buckets_reg (0xE2, 3 words)
-            0xE2 => (
-                format!("HASHINIT {}, {}", ram(a + 1), reg(ram(a + 2))),
-                3,
-            ),
+            0xE2 => (format!("HASHINIT {}, {}", ram(a + 1), reg(ram(a + 2))), 3),
 
             // HASHSET table_id, key_reg, val_reg (0xE3, 4 words)
             0xE3 => (
-                format!("HASHSET {}, {}, {}", ram(a + 1), reg(ram(a + 2)), reg(ram(a + 3))),
+                format!(
+                    "HASHSET {}, {}, {}",
+                    ram(a + 1),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
                 4,
             ),
 
             // HASHGET table_id, key_reg, dst_reg (0xE4, 4 words)
             0xE4 => (
-                format!("HASHGET {}, {}, {}", ram(a + 1), reg(ram(a + 2)), reg(ram(a + 3))),
+                format!(
+                    "HASHGET {}, {}, {}",
+                    ram(a + 1),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
                 4,
             ),
 
@@ -1190,14 +1179,16 @@ impl Vm {
             ),
 
             // SPRFRAME sheet_id, frame_reg (0xE6, 3 words)
-            0xE6 => (
-                format!("SPRFRAME {}, {}", ram(a + 1), reg(ram(a + 2))),
-                3,
-            ),
+            0xE6 => (format!("SPRFRAME {}, {}", ram(a + 1), reg(ram(a + 2))), 3),
 
             // SPRANIM sheet_id, x_reg, y_reg (0xE7, 4 words)
             0xE7 => (
-                format!("SPRANIM {}, {}, {}", ram(a + 1), reg(ram(a + 2)), reg(ram(a + 3))),
+                format!(
+                    "SPRANIM {}, {}, {}",
+                    ram(a + 1),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
                 4,
             ),
 
@@ -1220,7 +1211,12 @@ impl Vm {
 
             // ALARM_SET ms_reg, addr_reg, value_reg (0xEA, 4 words)
             0xEA => (
-                format!("ALARM_SET {}, {}, {}", reg(ram(a + 1)), reg(ram(a + 2)), reg(ram(a + 3))),
+                format!(
+                    "ALARM_SET {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
                 4,
             ),
 

@@ -228,7 +228,14 @@ impl Vm {
     /// Each glyph has an 8x8 bitmap and a per-character advance width (1-8px).
     /// Returns the advance width for cursor positioning.
     /// Supports ASCII 32-127.
-    pub(super) fn draw_char_vw(&mut self, ch: u8, x: usize, y: usize, fg: u32, bg: Option<u32>) -> u32 {
+    pub(super) fn draw_char_vw(
+        &mut self,
+        ch: u8,
+        x: usize,
+        y: usize,
+        fg: u32,
+        bg: Option<u32>,
+    ) -> u32 {
         const VW_FONT: [[u8; 9]; 96] = include!("../vw_font.in");
         let idx = ch as usize;
         if !(32..=127).contains(&idx) {
@@ -503,7 +510,9 @@ impl Vm {
             snapshots: Vec::new(),
             pixel_write_log: PixelWriteLog::new(DEFAULT_PIXEL_WRITE_CAPACITY),
             render_logging: false,
-            render_log: crate::vm::trace::RenderLog::new(crate::vm::trace::DEFAULT_RENDER_LOG_CAPACITY),
+            render_log: crate::vm::trace::RenderLog::new(
+                crate::vm::trace::DEFAULT_RENDER_LOG_CAPACITY,
+            ),
             tcp_connections: (0..super::MAX_TCP_CONNECTIONS).map(|_| None).collect(),
             pty_slots: (0..super::ops_pty::MAX_PTY_SLOTS).map(|_| None).collect(),
             net_inbox: Vec::new(),

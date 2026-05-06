@@ -11,7 +11,10 @@ fn main() {
 
     // Boot with more steps - render needs ~1M+ instructions
     let boot = vm.boot_guest(&elf_data, 1, 2_000_000).expect("boot");
-    eprintln!("After boot: pc=0x{:08X}, steps={}", vm.cpu.pc, boot.instructions);
+    eprintln!(
+        "After boot: pc=0x{:08X}, steps={}",
+        vm.cpu.pc, boot.instructions
+    );
 
     let fb = &vm.bus.framebuf.pixels;
 
@@ -29,11 +32,21 @@ fn main() {
     }
 
     // Check title bar area (y=0..12) - should be COL_TITLE_BG=0x303050FF
-    let title_bg_count = fb[0..12*256].iter().filter(|&&p| p == 0x303050FF).count();
-    eprintln!("Title bar pixels matching COL_TITLE_BG: {}/{}", title_bg_count, 12*256);
+    let title_bg_count = fb[0..12 * 256].iter().filter(|&&p| p == 0x303050FF).count();
+    eprintln!(
+        "Title bar pixels matching COL_TITLE_BG: {}/{}",
+        title_bg_count,
+        12 * 256
+    );
 
     // Check for any text pixels (non-background, non-title colors)
-    let text_colors = [0xD0D0D0FFu32, 0x80C0FFFF, 0xFFFFFFFF, 0xA0D0A0FF, 0xFF8080FF];
+    let text_colors = [
+        0xD0D0D0FFu32,
+        0x80C0FFFF,
+        0xFFFFFFFF,
+        0xA0D0A0FF,
+        0xFF8080FF,
+    ];
     let mut text_count = 0usize;
     for &p in fb.iter() {
         if text_colors.contains(&p) {

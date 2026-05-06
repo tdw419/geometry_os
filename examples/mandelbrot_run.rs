@@ -75,7 +75,10 @@ fn main() {
         colors.insert(rgb);
     }
 
-    eprintln!("\nFramebuffer analysis (256x256 = {} pixels):", total_pixels);
+    eprintln!(
+        "\nFramebuffer analysis (256x256 = {} pixels):",
+        total_pixels
+    );
     eprintln!("  Non-black pixels: {}", nonzero_count);
     eprintln!("  Black pixels:     {}", black_count);
     eprintln!("  Unique RGB colors: {}", colors.len());

@@ -5596,12 +5596,10 @@ fn boot_file_browser(target_frames: u32) -> FileBrowserVm {
     use std::sync::atomic::{AtomicU64, Ordering};
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let tid = COUNTER.fetch_add(1, Ordering::Relaxed);
-    let fs_dir = std::env::current_dir()
-        .unwrap_or_default()
-        .join(format!(
-            ".geometry_os/fs_test_{:x}",
-            tid.wrapping_mul(0x9e3779b97f4a7c15)
-        ));
+    let fs_dir = std::env::current_dir().unwrap_or_default().join(format!(
+        ".geometry_os/fs_test_{:x}",
+        tid.wrapping_mul(0x9e3779b97f4a7c15)
+    ));
     let _ = std::fs::create_dir_all(&fs_dir);
     // Write known test files sorted alphabetically -- the browser lists them in order
     std::fs::write(fs_dir.join("readme.txt"), "Hello from Geometry OS!\n").unwrap();
@@ -5940,8 +5938,12 @@ fn test_file_browser_delete_click_shows_confirm_dialog() {
     vm.push_mouse(80, 38);
     let start = vm.frame_count;
     for _ in 0..500_000 {
-        if !vm.step() { break; }
-        if vm.frame_count >= start + 3 { break; }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_count >= start + 3 {
+            break;
+        }
     }
 
     // Should be in delete confirm mode (mode 2)
@@ -5950,10 +5952,7 @@ fn test_file_browser_delete_click_shows_confirm_dialog() {
         "mode should be 2 (delete confirm) after selecting file for deletion"
     );
     // DEL_TARGET should be 0 (first row, 0-indexed)
-    assert_eq!(
-        vm.ram[0x64C], 0,
-        "DEL_TARGET should be 0 (first file row)"
-    );
+    assert_eq!(vm.ram[0x64C], 0, "DEL_TARGET should be 0 (first file row)");
 }
 
 #[test]
@@ -5985,12 +5984,16 @@ fn test_file_browser_delete_cancel_returns_to_list() {
 
     // Press N to cancel
     vm.push_key(78); // 'N'
-    // Move mouse away from clickable regions to prevent re-trigger
+                     // Move mouse away from clickable regions to prevent re-trigger
     vm.push_mouse(0, 0);
     let start = vm.frame_count;
     for _ in 0..500_000 {
-        if !vm.step() { break; }
-        if vm.frame_count >= start + 3 { break; }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_count >= start + 3 {
+            break;
+        }
     }
 
     // Should return to list mode (mode 0)
@@ -6042,12 +6045,16 @@ fn test_file_browser_delete_confirm_unlinks_file() {
 
     // Press Y to confirm deletion
     vm.push_key(89); // 'Y'
-    // Move mouse away to prevent re-trigger
+                     // Move mouse away to prevent re-trigger
     vm.push_mouse(0, 0);
     let start = vm.frame_count;
     for _ in 0..500_000 {
-        if !vm.step() { break; }
-        if vm.frame_count >= start + 3 { break; }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_count >= start + 3 {
+            break;
+        }
     }
 
     // Should return to list mode after deletion
@@ -6056,10 +6063,7 @@ fn test_file_browser_delete_confirm_unlinks_file() {
         "mode should be 0 (list view) after confirming delete"
     );
     // DEL_TARGET should be reset
-    assert_eq!(
-        vm.ram[0x64C], 0,
-        "DEL_TARGET should be reset after delete"
-    );
+    assert_eq!(vm.ram[0x64C], 0, "DEL_TARGET should be reset after delete");
 }
 
 // ── STRCMP: string comparison opcode (0x86) ─────────────────────
@@ -7821,7 +7825,7 @@ fn test_vwtxt_renders_text() {
     vm.ram[100] = 'H' as u32;
     vm.ram[101] = 'i' as u32;
     vm.ram[102] = 0; // null terminator
-    // VWTXT r10, r11, r12, r13, r14
+                     // VWTXT r10, r11, r12, r13, r14
     vm.regs[10] = 10; // x
     vm.regs[11] = 10; // y
     vm.regs[12] = 100; // addr
@@ -8066,7 +8070,7 @@ fn test_font_select_sets_mode() {
     // FONT_SELECT r1 where r1=1 (variable-width)
     vm.regs[1] = 1;
     vm.ram[0] = 0xDC; // FONT_SELECT
-    vm.ram[1] = 1;    // r1
+    vm.ram[1] = 1; // r1
     vm.ram[2] = 0x00; // HALT
     vm.step();
     assert_eq!(vm.get_font_mode(), 1);
@@ -8080,7 +8084,7 @@ fn test_font_select_clamps_invalid_values() {
     // Set mode to 5 (invalid, should clamp to 5 & 0x3 = 1)
     vm.regs[1] = 5;
     vm.ram[0] = 0xDC; // FONT_SELECT
-    vm.ram[1] = 1;    // r1
+    vm.ram[1] = 1; // r1
     vm.ram[2] = 0x00; // HALT
     vm.step();
     assert_eq!(vm.get_font_mode(), 1);
@@ -8106,7 +8110,7 @@ fn test_font_select_returns_previous_mode() {
 fn test_font_select_disassembles() {
     let mut vm = Vm::new();
     vm.ram[0] = 0xDC; // FONT_SELECT
-    vm.ram[1] = 5;    // r5
+    vm.ram[1] = 5; // r5
     let (mnemonic, _len) = vm.disassemble_at(0);
     assert_eq!(mnemonic, "FONT_SELECT r5");
 }
@@ -8120,10 +8124,10 @@ fn test_text_uses_variable_width_font() {
     vm.ram[100] = 'M' as u32;
     vm.ram[101] = 'i' as u32;
     vm.ram[102] = 0; // null terminator
-    vm.regs[10] = 0;  // x=0
-    vm.regs[11] = 0;  // y=0
+    vm.regs[10] = 0; // x=0
+    vm.regs[11] = 0; // y=0
     vm.regs[12] = 100; // addr
-    // TEXT opcode (0x44)
+                       // TEXT opcode (0x44)
     vm.ram[0] = 0x44;
     vm.ram[1] = 10;
     vm.ram[2] = 11;
@@ -8143,7 +8147,11 @@ fn test_text_uses_variable_width_font() {
     }
     assert!(rightmost_pixel > 0, "Should have rendered pixels");
     // With VW font, "Mi" should fit within ~12px (M=7 + i=3 = 10)
-    assert!(rightmost_pixel <= 15, "VW 'Mi' should be compact, rightmost at {}", rightmost_pixel);
+    assert!(
+        rightmost_pixel <= 15,
+        "VW 'Mi' should be compact, rightmost at {}",
+        rightmost_pixel
+    );
 }
 
 #[test]
@@ -8201,10 +8209,14 @@ fn test_text_medium_font_mode() {
 #[test]
 fn test_font_select_assembles() {
     let result = crate::assembler::assemble("FONT_SELECT r1", 0);
-    assert!(result.is_ok(), "FONT_SELECT should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "FONT_SELECT should assemble: {:?}",
+        result.err()
+    );
     let bytecode = result.unwrap().pixels;
     assert_eq!(bytecode[0], 0xDC); // FONT_SELECT opcode
-    assert_eq!(bytecode[1], 1);    // r1
+    assert_eq!(bytecode[1], 1); // r1
 }
 
 // ── Phase 210 additional: edge-case and integration tests ──
@@ -8276,7 +8288,11 @@ fn test_vwtxt_single_character() {
             }
         }
     }
-    assert!(red_pixels > 0, "Single char X should render {} red pixels", red_pixels);
+    assert!(
+        red_pixels > 0,
+        "Single char X should render {} red pixels",
+        red_pixels
+    );
 }
 
 #[test]
@@ -8318,7 +8334,12 @@ fn test_vwtxt_space_advances_cursor() {
             }
         }
     }
-    assert!(b_leftmost > a_rightmost, "B (at col {}) should be after A (at col {})", b_leftmost, a_rightmost);
+    assert!(
+        b_leftmost > a_rightmost,
+        "B (at col {}) should be after A (at col {})",
+        b_leftmost,
+        a_rightmost
+    );
 }
 
 #[test]
@@ -8333,7 +8354,7 @@ fn test_vwtxt_invalid_registers_no_panic() {
     vm.ram[5] = 39;
     vm.ram[6] = 0x00;
     vm.step(); // should not panic
-    // Screen should remain blank
+               // Screen should remain blank
     let any_pixel: bool = vm.screen.iter().any(|&p| p != 0);
     assert!(!any_pixel, "VWTXT with invalid regs should not render");
 }
@@ -8368,7 +8389,11 @@ fn test_vwtxt_full_ascii_printable() {
             }
         }
     }
-    assert!(pixel_count > 100, "Full ASCII printable should render many pixels, got {}", pixel_count);
+    assert!(
+        pixel_count > 100,
+        "Full ASCII printable should render many pixels, got {}",
+        pixel_count
+    );
 }
 
 #[test]
@@ -8421,7 +8446,10 @@ fn test_text_font_mode_switching() {
     }
     assert!(vw_pixels > 0, "VW font mode should render A via TEXT");
     // VW font uses 8x8 glyphs vs 5x7 default, so pixel count should differ
-    assert_ne!(default_pixels, vw_pixels, "Different font modes should produce different pixel counts");
+    assert_ne!(
+        default_pixels, vw_pixels,
+        "Different font modes should produce different pixel counts"
+    );
 }
 
 #[test]
@@ -8431,10 +8459,15 @@ fn test_font_select_all_modes() {
         let mut vm = Vm::new();
         vm.regs[1] = mode;
         vm.ram[0] = 0xDC; // FONT_SELECT
-        vm.ram[1] = 1;    // r1
+        vm.ram[1] = 1; // r1
         vm.ram[2] = 0x00; // HALT
         vm.step();
-        assert_eq!(vm.get_font_mode(), mode as u8, "FONT_SELECT should set mode to {}", mode);
+        assert_eq!(
+            vm.get_font_mode(),
+            mode as u8,
+            "FONT_SELECT should set mode to {}",
+            mode
+        );
     }
 }
 
@@ -8459,12 +8492,22 @@ msg:
   .byte 0
 "#;
     let result = crate::assembler::assemble(src, 0);
-    assert!(result.is_ok(), "Demo program should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Demo program should assemble: {:?}",
+        result.err()
+    );
     let bytecode = result.unwrap().pixels;
     // Verify VWTXT opcode (0xDB) is present
-    assert!(bytecode.iter().any(|&b| b == 0xDB), "Should contain VWTXT opcode");
+    assert!(
+        bytecode.iter().any(|&b| b == 0xDB),
+        "Should contain VWTXT opcode"
+    );
     // Verify FONT_SELECT opcode (0xDC) is present
-    assert!(bytecode.iter().any(|&b| b == 0xDC), "Should contain FONT_SELECT opcode");
+    assert!(
+        bytecode.iter().any(|&b| b == 0xDC),
+        "Should contain FONT_SELECT opcode"
+    );
 }
 
 #[test]
@@ -9286,13 +9329,13 @@ fn test_matmul_identity_3x3() {
 
     let b_base: usize = 5400;
     vm.ram[b_base + 0] = 2 << 16; // B[0][0]
-    vm.ram[b_base + 1] = 0;       // B[0][1]
+    vm.ram[b_base + 1] = 0; // B[0][1]
     vm.ram[b_base + 2] = 1 << 16; // B[0][2]
-    vm.ram[b_base + 3] = 0;       // B[1][0]
+    vm.ram[b_base + 3] = 0; // B[1][0]
     vm.ram[b_base + 4] = 3 << 16; // B[1][1]
-    vm.ram[b_base + 5] = 0;       // B[1][2]
+    vm.ram[b_base + 5] = 0; // B[1][2]
     vm.ram[b_base + 6] = 1 << 16; // B[2][0]
-    vm.ram[b_base + 7] = 0;       // B[2][1]
+    vm.ram[b_base + 7] = 0; // B[2][1]
     vm.ram[b_base + 8] = 4 << 16; // B[2][2]
 
     let dst_base: usize = 5500;
@@ -9492,10 +9535,22 @@ fn test_matmul_4x4() {
 
     let b_base: usize = 6200;
     let vals: [u32; 16] = [
-        1 << 16, 2 << 16, 3 << 16, 4 << 16,
-        5 << 16, 6 << 16, 7 << 16, 8 << 16,
-        9 << 16, 10 << 16, 11 << 16, 12 << 16,
-        13 << 16, 14 << 16, 15 << 16, 16 << 16,
+        1 << 16,
+        2 << 16,
+        3 << 16,
+        4 << 16,
+        5 << 16,
+        6 << 16,
+        7 << 16,
+        8 << 16,
+        9 << 16,
+        10 << 16,
+        11 << 16,
+        12 << 16,
+        13 << 16,
+        14 << 16,
+        15 << 16,
+        16 << 16,
     ];
     for (i, &v) in vals.iter().enumerate() {
         vm.ram[b_base + i] = v;
@@ -9525,12 +9580,7 @@ fn test_matmul_4x4() {
 
     // Identity * B = B
     for (i, &v) in vals.iter().enumerate() {
-        assert_eq!(
-            vm.ram[dst_base + i],
-            v,
-            "4x4 I*B mismatch at index {}",
-            i
-        );
+        assert_eq!(vm.ram[dst_base + i], v, "4x4 I*B mismatch at index {}", i);
     }
 }
 
@@ -10274,7 +10324,7 @@ fn test_key_buffer_can_hold_200_keys() {
     let mut count = 0u32;
     for _ in 0..200 {
         vm.ram[0] = 0x48; // IKEY
-        vm.ram[1] = 1;    // dest=r1
+        vm.ram[1] = 1; // dest=r1
         vm.step();
         if vm.regs[1] != 0 {
             count += 1;
@@ -10309,7 +10359,7 @@ fn test_key_buffer_overflow_drops_gracefully() {
 fn test_imouse_no_event_returns_zero() {
     let mut vm = Vm::new();
     vm.ram[0] = 0xC7; // IMOUSE
-    vm.ram[1] = 1;    // rd=r1
+    vm.ram[1] = 1; // rd=r1
     vm.step();
     assert_eq!(vm.regs[1], 0, "no event => rd=0");
     assert_eq!(vm.regs[2], 0, "no event => rd+1=0");
@@ -10321,7 +10371,7 @@ fn test_imouse_reads_move_event() {
     let mut vm = Vm::new();
     vm.push_mouse(100, 200);
     vm.ram[0] = 0xC7; // IMOUSE
-    vm.ram[1] = 1;    // rd=r1
+    vm.ram[1] = 1; // rd=r1
     vm.step();
     // Move event: type=0, button=0, packed = 0x00000000
     // But full x=100, y=200 in rd+1, rd+2
@@ -10337,8 +10387,8 @@ fn test_imouse_reads_button_event() {
     vm.push_mouse(50, 75);
     vm.push_mouse_button(2); // left click
     vm.ram[0] = 0xC7; // IMOUSE
-    vm.ram[1] = 1;    // rd=r1
-    // First event is the move (type=0)
+    vm.ram[1] = 1; // rd=r1
+                   // First event is the move (type=0)
     vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[1] & 0xFF, 0, "first event is move");
@@ -10424,7 +10474,7 @@ fn test_mousex_reads_current_x() {
     let mut vm = Vm::new();
     vm.push_mouse(42, 99);
     vm.ram[0] = 0xC8; // MOUSEX
-    vm.ram[1] = 1;    // r1
+    vm.ram[1] = 1; // r1
     vm.step();
     assert_eq!(vm.regs[1], 42, "MOUSEX should read current mouse X");
 }
@@ -10434,7 +10484,7 @@ fn test_mousey_reads_current_y() {
     let mut vm = Vm::new();
     vm.push_mouse(42, 99);
     vm.ram[0] = 0xC9; // MOUSEY
-    vm.ram[1] = 2;    // r2
+    vm.ram[1] = 2; // r2
     vm.step();
     assert_eq!(vm.regs[2], 99, "MOUSEY should read current mouse Y");
 }
@@ -10444,7 +10494,7 @@ fn test_mouseb_no_button() {
     let mut vm = Vm::new();
     vm.push_mouse(50, 50);
     vm.ram[0] = 0xCA; // MOUSEB
-    vm.ram[1] = 3;    // r3
+    vm.ram[1] = 3; // r3
     vm.step();
     assert_eq!(vm.regs[3], 0, "MOUSEB should be 0 when no button pressed");
 }
@@ -10455,7 +10505,7 @@ fn test_mouseb_left_down() {
     vm.push_mouse(50, 50);
     vm.push_mouse_button(1); // left down
     vm.ram[0] = 0xCA; // MOUSEB
-    vm.ram[1] = 3;    // r3
+    vm.ram[1] = 3; // r3
     vm.step();
     assert_eq!(vm.regs[3], 1, "MOUSEB bit 0 should be set for left button");
 }
@@ -10466,7 +10516,7 @@ fn test_mouseb_left_click() {
     vm.push_mouse(50, 50);
     vm.push_mouse_button(2); // left click
     vm.ram[0] = 0xCA; // MOUSEB
-    vm.ram[1] = 3;    // r3
+    vm.ram[1] = 3; // r3
     vm.step();
     assert_eq!(vm.regs[3], 1, "MOUSEB bit 0 should be set for left click");
 }
@@ -10475,7 +10525,7 @@ fn test_mouseb_left_click() {
 fn test_mouseclick_no_event_pending() {
     let mut vm = Vm::new();
     vm.ram[0] = 0xCB; // MOUSECLICK
-    vm.ram[1] = 1;    // r1
+    vm.ram[1] = 1; // r1
     vm.step();
     assert_eq!(vm.regs[1], 0, "MOUSECLICK should return 0 when no event");
     assert_eq!(vm.regs[2], 0, "x should be 0");
@@ -10489,9 +10539,12 @@ fn test_mouseclick_with_click_event() {
     vm.push_mouse(30, 40);
     vm.push_mouse_button(1); // left down -> queues event_type=1
     vm.ram[0] = 0xCB; // MOUSECLICK
-    vm.ram[1] = 1;    // r1
+    vm.ram[1] = 1; // r1
     vm.step();
-    assert_eq!(vm.regs[1], 1, "MOUSECLICK should return event_type=1 (down)");
+    assert_eq!(
+        vm.regs[1], 1,
+        "MOUSECLICK should return event_type=1 (down)"
+    );
     assert_eq!(vm.regs[2], 30, "x should be 30");
     assert_eq!(vm.regs[3], 40, "y should be 40");
 }
@@ -10502,7 +10555,7 @@ fn test_mouseclick_ignores_move_events() {
     // push_mouse queues a move event (type=0), which MOUSECLICK should skip
     vm.push_mouse(10, 20);
     vm.ram[0] = 0xCB; // MOUSECLICK
-    vm.ram[1] = 1;    // r1
+    vm.ram[1] = 1; // r1
     vm.step();
     assert_eq!(vm.regs[1], 0, "MOUSECLICK should ignore move events");
 }
@@ -11814,10 +11867,10 @@ fn test_savepng_saves_png_to_vfs() {
 
     // LDI r1, 0x2000; SAVEPNG r1; HALT
     vm.ram[0] = 0x10; // LDI
-    vm.ram[1] = 1;    // r1
+    vm.ram[1] = 1; // r1
     vm.ram[2] = 0x2000; // addr
     vm.ram[3] = 0xAF; // SAVEPNG
-    vm.ram[4] = 1;    // r1
+    vm.ram[4] = 1; // r1
     vm.ram[5] = 0x00; // HALT
     vm.pc = 0;
     vm.halted = false;
@@ -11847,8 +11900,16 @@ fn test_savepng_saves_png_to_vfs() {
     assert!(file_path.exists(), "SAVEPNG file should exist in VFS");
     let data = std::fs::read(&file_path).unwrap();
     // Verify PNG signature
-    assert_eq!(&data[0..8], &[137, 80, 78, 71, 13, 10, 26, 10], "File should start with PNG signature");
-    assert_eq!(data.len(), vm.regs[0] as usize, "File size should match bytes written");
+    assert_eq!(
+        &data[0..8],
+        &[137, 80, 78, 71, 13, 10, 26, 10],
+        "File should start with PNG signature"
+    );
+    assert_eq!(
+        data.len(),
+        vm.regs[0] as usize,
+        "File size should match bytes written"
+    );
 
     // Clean up
     let _ = std::fs::remove_file(&file_path);
@@ -11951,13 +12012,22 @@ fn test_savepng_pixel_data_correct() {
     // Verify IHDR chunk: width=256, height=256, bit_depth=8, color_type=2 (RGB)
     // IHDR starts at offset 8 (after signature)
     // Length should be 13 (IHDR data length)
-    assert_eq!(u32::from_be_bytes([data[8], data[9], data[10], data[11]]), 13);
+    assert_eq!(
+        u32::from_be_bytes([data[8], data[9], data[10], data[11]]),
+        13
+    );
     // Type should be "IHDR"
     assert_eq!(&data[12..16], b"IHDR");
     // Width = 256
-    assert_eq!(u32::from_be_bytes([data[16], data[17], data[18], data[19]]), 256);
+    assert_eq!(
+        u32::from_be_bytes([data[16], data[17], data[18], data[19]]),
+        256
+    );
     // Height = 256
-    assert_eq!(u32::from_be_bytes([data[20], data[21], data[22], data[23]]), 256);
+    assert_eq!(
+        u32::from_be_bytes([data[20], data[21], data[22], data[23]]),
+        256
+    );
 
     let _ = std::fs::remove_file(&file_path);
 }
@@ -16452,8 +16522,15 @@ fn test_clipboard_demo_runs_and_writes_data() {
     // The demo exercises CLIP_TEXT (store/paste) and CLIP_HISTORY
     // (push/restore/clear).  Verify the program completed without
     // crashing and that the screen was written to (draw_bar produces pixels).
-    let screen_dirty: u32 = vm.screen.iter().map(|&p| if p != 0 { 1u32 } else { 0u32 }).sum();
-    assert!(screen_dirty > 100, "screen should have drawn indicator bars");
+    let screen_dirty: u32 = vm
+        .screen
+        .iter()
+        .map(|&p| if p != 0 { 1u32 } else { 0u32 })
+        .sum();
+    assert!(
+        screen_dirty > 100,
+        "screen should have drawn indicator bars"
+    );
 }
 
 #[test]
@@ -25323,9 +25400,12 @@ fn test_vstat_returns_file_size() {
     vm.ram[0x3000 + name.len()] = 0; // null terminator
 
     // LDI r10, 0x3000
-    vm.ram[0] = 0x10; vm.ram[1] = 10; vm.ram[2] = 0x3000;
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 10;
+    vm.ram[2] = 0x3000;
     // VSTAT r10
-    vm.ram[3] = 0xC1; vm.ram[4] = 10;
+    vm.ram[3] = 0xC1;
+    vm.ram[4] = 10;
     // HALT
     vm.ram[5] = 0x00;
 
@@ -25352,9 +25432,12 @@ fn test_vstat_nonexistent_returns_error() {
     vm.ram[0x3000 + name.len()] = 0;
 
     // LDI r10, 0x3000
-    vm.ram[0] = 0x10; vm.ram[1] = 10; vm.ram[2] = 0x3000;
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 10;
+    vm.ram[2] = 0x3000;
     // VSTAT r10
-    vm.ram[3] = 0xC1; vm.ram[4] = 10;
+    vm.ram[3] = 0xC1;
+    vm.ram[4] = 10;
     // HALT
     vm.ram[5] = 0x00;
 
@@ -25383,7 +25466,7 @@ fn test_assemble_vstat() {
     let result = crate::assembler::assemble(source, 0).unwrap();
     assert!(result.pixels.len() >= 4);
     assert_eq!(result.pixels[3], 0xC1); // VSTAT opcode
-    assert_eq!(result.pixels[4], 10);   // r10
+    assert_eq!(result.pixels[4], 10); // r10
 }
 
 // ── Phase 198: Desktop Terminal Integration -- Launch Hermes from GeOS ──
@@ -25468,10 +25551,7 @@ fn test_hermes_output_valid_utf8() {
         .output()
         .expect("hermes binary should be executable");
     let text = String::from_utf8(output.stdout);
-    assert!(
-        text.is_ok(),
-        "hermes output should be valid UTF-8"
-    );
+    assert!(text.is_ok(), "hermes output should be valid UTF-8");
 }
 
 /// Verify the PTY spawn infrastructure works with a simple command.
@@ -25489,8 +25569,8 @@ fn test_pty_spawn_echo() {
         return;
     }
 
-    let slot = crate::vm::ops_pty::spawn("echo hello_world_test")
-        .expect("PTY spawn should succeed");
+    let slot =
+        crate::vm::ops_pty::spawn("echo hello_world_test").expect("PTY spawn should succeed");
     assert!(slot.is_alive(), "spawned process should be alive initially");
 
     // Wait for output
@@ -25526,7 +25606,10 @@ fn test_query_interceptor_da1() {
     assert!(fwd, "c should be forwarded");
     assert!(resp.is_some(), "DA1 query should trigger response");
     let resp_bytes = resp.unwrap();
-    assert_eq!(resp_bytes, b"\x1B[?1;0c", "DA1 response should be \\e[?1;0c");
+    assert_eq!(
+        resp_bytes, b"\x1B[?1;0c",
+        "DA1 response should be \\e[?1;0c"
+    );
 }
 
 /// Verify the query interceptor handles XTVERSION query.
@@ -25537,9 +25620,9 @@ fn test_query_interceptor_xtversion() {
 
     // Feed ESC [ > 0 q (XTVERSION query)
     qi.feed(0x1B); // ESC
-    qi.feed(b'[');  // [
-    qi.feed(b'>');  // >
-    qi.feed(b'0');  // 0
+    qi.feed(b'['); // [
+    qi.feed(b'>'); // >
+    qi.feed(b'0'); // 0
     let (fwd, resp) = qi.feed(b'q'); // q
     assert!(fwd, "q should be forwarded");
     assert!(resp.is_some(), "XTVERSION should trigger response");
@@ -25595,13 +25678,21 @@ fn test_bfe_extract_low_byte() {
     // BFE r1, r2, r3, r4 -- extract 8 bits at offset 0 from r2 into r1
     let mut vm = Vm::new();
     vm.regs[2] = 0x12345678; // source value
-    vm.regs[3] = 8;          // width = 8
-    vm.regs[4] = 0;          // lsb = 0
-    // BFE r1, r2, r3, r4 = [0xC2, 1, 2, 3, 4, HALT]
-    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 8; // width = 8
+    vm.regs[4] = 0; // lsb = 0
+                    // BFE r1, r2, r3, r4 = [0xC2, 1, 2, 3, 4, HALT]
+    vm.ram[0] = 0xC2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0x78); // low byte of 0x12345678
 }
 
@@ -25610,12 +25701,20 @@ fn test_bfe_extract_mid_nibble() {
     // Extract 4 bits at offset 8 from 0xABCD -> bits 8-11 = 0xB
     let mut vm = Vm::new();
     vm.regs[2] = 0x0000ABCD;
-    vm.regs[3] = 4;          // width = 4
-    vm.regs[4] = 8;          // lsb = 8
-    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 4; // width = 4
+    vm.regs[4] = 8; // lsb = 8
+    vm.ram[0] = 0xC2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0xB); // nibble at bits 8-11
 }
 
@@ -25624,12 +25723,20 @@ fn test_bfe_extract_high_byte() {
     // Extract 8 bits at offset 24 from 0xAABBCCDD -> 0xAA
     let mut vm = Vm::new();
     vm.regs[2] = 0xAABBCCDD;
-    vm.regs[3] = 8;          // width = 8
-    vm.regs[4] = 24;         // lsb = 24
-    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 8; // width = 8
+    vm.regs[4] = 24; // lsb = 24
+    vm.ram[0] = 0xC2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0xAA);
 }
 
@@ -25638,12 +25745,20 @@ fn test_bfe_zero_width() {
     // Width 0 should extract 0 bits -> result is 0
     let mut vm = Vm::new();
     vm.regs[2] = 0xFFFFFFFF;
-    vm.regs[3] = 0;          // width = 0
-    vm.regs[4] = 0;          // lsb = 0
-    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 0; // width = 0
+    vm.regs[4] = 0; // lsb = 0
+    vm.ram[0] = 0xC2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0);
 }
 
@@ -25652,12 +25767,20 @@ fn test_bfe_lsb_out_of_range() {
     // lsb >= 32 should return 0
     let mut vm = Vm::new();
     vm.regs[2] = 0xFFFFFFFF;
-    vm.regs[3] = 8;          // width = 8
-    vm.regs[4] = 32;         // lsb = 32 (out of range)
-    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 8; // width = 8
+    vm.regs[4] = 32; // lsb = 32 (out of range)
+    vm.ram[0] = 0xC2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0);
 }
 
@@ -25666,12 +25789,20 @@ fn test_bfe_full_width() {
     // Width 32 should extract all bits
     let mut vm = Vm::new();
     vm.regs[2] = 0xDEADBEEF;
-    vm.regs[3] = 32;         // width = 32 (clamped to 31, mask = 0xFFFFFFFF)
-    vm.regs[4] = 0;          // lsb = 0
-    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 32; // width = 32 (clamped to 31, mask = 0xFFFFFFFF)
+    vm.regs[4] = 0; // lsb = 0
+    vm.ram[0] = 0xC2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0xDEADBEEF);
 }
 
@@ -25681,12 +25812,20 @@ fn test_bfi_insert_low_byte() {
     let mut vm = Vm::new();
     vm.regs[1] = 0xFFFF0000; // destination
     vm.regs[2] = 0x000000AB; // source (low byte = 0xAB)
-    vm.regs[3] = 8;          // width = 8
-    vm.regs[4] = 0;          // lsb = 0
-    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 8; // width = 8
+    vm.regs[4] = 0; // lsb = 0
+    vm.ram[0] = 0xC3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0xFFFF00AB);
 }
 
@@ -25696,12 +25835,20 @@ fn test_bfi_insert_mid_nibble() {
     let mut vm = Vm::new();
     vm.regs[1] = 0x0000FF00; // destination
     vm.regs[2] = 0x0000000C; // source (low nibble = 0xC)
-    vm.regs[3] = 4;          // width = 4
-    vm.regs[4] = 8;          // lsb = 8
-    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 4; // width = 4
+    vm.regs[4] = 8; // lsb = 8
+    vm.ram[0] = 0xC3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0x0000FC00);
 }
 
@@ -25711,12 +25858,20 @@ fn test_bfi_insert_high_byte() {
     let mut vm = Vm::new();
     vm.regs[1] = 0x00FFFFFF; // destination
     vm.regs[2] = 0x000000EE; // source
-    vm.regs[3] = 8;          // width = 8
-    vm.regs[4] = 24;         // lsb = 24
-    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 8; // width = 8
+    vm.regs[4] = 24; // lsb = 24
+    vm.ram[0] = 0xC3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0xEEFFFFFF);
 }
 
@@ -25726,12 +25881,20 @@ fn test_bfi_zero_width_noop() {
     let mut vm = Vm::new();
     vm.regs[1] = 0x12345678;
     vm.regs[2] = 0xFFFFFFFF;
-    vm.regs[3] = 0;          // width = 0
-    vm.regs[4] = 0;          // lsb = 0
-    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 0; // width = 0
+    vm.regs[4] = 0; // lsb = 0
+    vm.ram[0] = 0xC3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0x12345678); // unchanged
 }
 
@@ -25741,12 +25904,20 @@ fn test_bfi_lsb_out_of_range_noop() {
     let mut vm = Vm::new();
     vm.regs[1] = 0x12345678;
     vm.regs[2] = 0xFF;
-    vm.regs[3] = 8;          // width = 8
-    vm.regs[4] = 32;         // lsb = 32 (out of range)
-    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.regs[3] = 8; // width = 8
+    vm.regs[4] = 32; // lsb = 32 (out of range)
+    vm.ram[0] = 0xC3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert_eq!(vm.regs[1], 0x12345678); // unchanged
 }
 
@@ -25757,23 +25928,37 @@ fn test_bfe_bfi_roundtrip() {
     // 2. BFI r5, r6, r3, r7 -- insert r1 (0xBB) into r5 (0x00000000) at lsb=0 -> r5 = 0x000000BB
     let mut vm = Vm::new();
     vm.regs[2] = 0xAABBCCDD; // source
-    vm.regs[3] = 8;          // width = 8
-    vm.regs[4] = 16;         // lsb = 16 for extract
+    vm.regs[3] = 8; // width = 8
+    vm.regs[4] = 16; // lsb = 16 for extract
     vm.regs[5] = 0x00000000; // destination for insert
-    vm.regs[6] = 0;          // will be set to r1's value before BFI
-    vm.regs[7] = 0;          // lsb = 0 for insert
+    vm.regs[6] = 0; // will be set to r1's value before BFI
+    vm.regs[7] = 0; // lsb = 0 for insert
 
     // BFE r1, r2, r3, r4
-    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[0] = 0xC2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     // MOV r6, r1
-    vm.ram[5] = 0x51; vm.ram[6] = 6; vm.ram[7] = 1;
+    vm.ram[5] = 0x51;
+    vm.ram[6] = 6;
+    vm.ram[7] = 1;
     // BFI r5, r6, r3, r7
-    vm.ram[8] = 0xC3; vm.ram[9] = 5; vm.ram[10] = 6; vm.ram[11] = 3; vm.ram[12] = 7;
+    vm.ram[8] = 0xC3;
+    vm.ram[9] = 5;
+    vm.ram[10] = 6;
+    vm.ram[11] = 3;
+    vm.ram[12] = 7;
     vm.ram[13] = 0x00; // HALT
 
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
-    assert_eq!(vm.regs[1], 0xBB);     // extracted byte
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.regs[1], 0xBB); // extracted byte
     assert_eq!(vm.regs[5], 0x000000BB); // inserted byte
 }
 
@@ -25824,9 +26009,16 @@ fn test_bitfield_demo_assembles() {
     // Verify the demo program assembles without errors
     let source = include_str!("../../programs/bitfield_demo.asm");
     let result = crate::assembler::assemble(source, 0);
-    assert!(result.is_ok(), "bitfield_demo.asm should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "bitfield_demo.asm should assemble: {:?}",
+        result.err()
+    );
     let asm = result.unwrap();
-    assert!(asm.pixels.len() > 50, "demo should produce substantial bytecode");
+    assert!(
+        asm.pixels.len() > 50,
+        "demo should produce substantial bytecode"
+    );
 }
 
 // === PROFILE opcode tests (0xC6) ===
@@ -25837,28 +26029,54 @@ fn test_profile_mark_and_read() {
     // Encoding: PROFILE mode_reg, data_reg = [0xC6, mode_r, data_r]
     let mut vm = Vm::new();
     // LDI r1, 0       (mode=0 MARK)
-    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0;
     // LDI r2, 0       (region_id=0)
-    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;
+    vm.ram[3] = 0x10;
+    vm.ram[4] = 2;
+    vm.ram[5] = 0;
     // PROFILE r1, r2  (start region 0)
-    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    vm.ram[6] = 0xC6;
+    vm.ram[7] = 1;
+    vm.ram[8] = 2;
     // NOP x5
-    for i in 0..5 { vm.ram[9 + i] = 0x01; }
+    for i in 0..5 {
+        vm.ram[9 + i] = 0x01;
+    }
     // PROFILE r1, r2  (stop region 0)
-    vm.ram[14] = 0xC6; vm.ram[15] = 1; vm.ram[16] = 2;
+    vm.ram[14] = 0xC6;
+    vm.ram[15] = 1;
+    vm.ram[16] = 2;
     // LDI r1, 1       (mode=1 READ)
-    vm.ram[17] = 0x10; vm.ram[18] = 1; vm.ram[19] = 1;
+    vm.ram[17] = 0x10;
+    vm.ram[18] = 1;
+    vm.ram[19] = 1;
     // PROFILE r1, r2  (read region 0)
-    vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
+    vm.ram[20] = 0xC6;
+    vm.ram[21] = 1;
+    vm.ram[22] = 2;
     // HALT
     vm.ram[23] = 0x00;
     vm.pc = 0;
-    for _ in 0..1000 { if !vm.step() { break; } }
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
     // Region 0 should have accumulated some steps between the two MARKs.
     // The two MARKs (start/stop) plus the 5 NOPs between them = at least 5 NOP steps.
     // Plus the LDI instructions before the second MARK.
-    assert!(vm.regs[0] > 0, "PROFILE READ should return non-zero count, got {}", vm.regs[0]);
-    assert!(vm.regs[0] <= 20, "PROFILE READ should be reasonable, got {}", vm.regs[0]);
+    assert!(
+        vm.regs[0] > 0,
+        "PROFILE READ should return non-zero count, got {}",
+        vm.regs[0]
+    );
+    assert!(
+        vm.regs[0] <= 20,
+        "PROFILE READ should be reasonable, got {}",
+        vm.regs[0]
+    );
 }
 
 #[test]
@@ -25866,20 +26084,40 @@ fn test_profile_read_mid_region() {
     // READ while region is active should include running delta
     let mut vm = Vm::new();
     // LDI r1, 0; LDI r2, 1; PROFILE r1, r2 (start region 1)
-    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
-    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 1;
-    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0;
+    vm.ram[3] = 0x10;
+    vm.ram[4] = 2;
+    vm.ram[5] = 1;
+    vm.ram[6] = 0xC6;
+    vm.ram[7] = 1;
+    vm.ram[8] = 2;
     // NOP x10
-    for i in 0..10 { vm.ram[9 + i] = 0x01; }
+    for i in 0..10 {
+        vm.ram[9 + i] = 0x01;
+    }
     // LDI r1, 1; PROFILE r1, r2 (READ region 1 while active)
-    vm.ram[19] = 0x10; vm.ram[20] = 1; vm.ram[21] = 1;
-    vm.ram[22] = 0xC6; vm.ram[23] = 1; vm.ram[24] = 2;
+    vm.ram[19] = 0x10;
+    vm.ram[20] = 1;
+    vm.ram[21] = 1;
+    vm.ram[22] = 0xC6;
+    vm.ram[23] = 1;
+    vm.ram[24] = 2;
     // HALT
     vm.ram[25] = 0x00;
     vm.pc = 0;
-    for _ in 0..1000 { if !vm.step() { break; } }
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
     // Should include the 10 NOPs + LDIs between MARK and READ
-    assert!(vm.regs[0] >= 10, "PROFILE READ mid-region should include running delta, got {}", vm.regs[0]);
+    assert!(
+        vm.regs[0] >= 10,
+        "PROFILE READ mid-region should include running delta, got {}",
+        vm.regs[0]
+    );
 }
 
 #[test]
@@ -25887,23 +26125,45 @@ fn test_profile_reset() {
     // Start a region, do work, stop it, verify non-zero, RESET, verify zero
     let mut vm = Vm::new();
     // LDI r1, 0; LDI r2, 0; PROFILE r1, r2 (start region 0)
-    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
-    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;
-    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0;
+    vm.ram[3] = 0x10;
+    vm.ram[4] = 2;
+    vm.ram[5] = 0;
+    vm.ram[6] = 0xC6;
+    vm.ram[7] = 1;
+    vm.ram[8] = 2;
     // NOP x5
-    for i in 0..5 { vm.ram[9 + i] = 0x01; }
+    for i in 0..5 {
+        vm.ram[9 + i] = 0x01;
+    }
     // PROFILE r1, r2 (stop region 0)
-    vm.ram[14] = 0xC6; vm.ram[15] = 1; vm.ram[16] = 2;
+    vm.ram[14] = 0xC6;
+    vm.ram[15] = 1;
+    vm.ram[16] = 2;
     // LDI r1, 2; PROFILE r1, r2 (RESET all)
-    vm.ram[17] = 0x10; vm.ram[18] = 1; vm.ram[19] = 2;
-    vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
+    vm.ram[17] = 0x10;
+    vm.ram[18] = 1;
+    vm.ram[19] = 2;
+    vm.ram[20] = 0xC6;
+    vm.ram[21] = 1;
+    vm.ram[22] = 2;
     // LDI r1, 1; PROFILE r1, r2 (READ region 0)
-    vm.ram[23] = 0x10; vm.ram[24] = 1; vm.ram[25] = 1;
-    vm.ram[26] = 0xC6; vm.ram[27] = 1; vm.ram[28] = 2;
+    vm.ram[23] = 0x10;
+    vm.ram[24] = 1;
+    vm.ram[25] = 1;
+    vm.ram[26] = 0xC6;
+    vm.ram[27] = 1;
+    vm.ram[28] = 2;
     // HALT
     vm.ram[29] = 0x00;
     vm.pc = 0;
-    for _ in 0..1000 { if !vm.step() { break; } }
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
     // After RESET, READ should return 0
     assert_eq!(vm.regs[0], 0, "PROFILE READ after RESET should return 0");
 }
@@ -25913,28 +26173,56 @@ fn test_profile_dump() {
     // Start two regions, do work, stop them, DUMP to RAM
     let mut vm = Vm::new();
     // Region 0: LDI r1,0; LDI r2,0; PROFILE r1,r2 (start)
-    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
-    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;
-    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0;
+    vm.ram[3] = 0x10;
+    vm.ram[4] = 2;
+    vm.ram[5] = 0;
+    vm.ram[6] = 0xC6;
+    vm.ram[7] = 1;
+    vm.ram[8] = 2;
     // NOP x5
-    for i in 0..5 { vm.ram[9 + i] = 0x01; }
+    for i in 0..5 {
+        vm.ram[9 + i] = 0x01;
+    }
     // PROFILE r1,r2 (stop region 0)
-    vm.ram[14] = 0xC6; vm.ram[15] = 1; vm.ram[16] = 2;
+    vm.ram[14] = 0xC6;
+    vm.ram[15] = 1;
+    vm.ram[16] = 2;
     // Region 1: LDI r2,1; PROFILE r1,r2 (start)
-    vm.ram[17] = 0x10; vm.ram[18] = 2; vm.ram[19] = 1;
-    vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
+    vm.ram[17] = 0x10;
+    vm.ram[18] = 2;
+    vm.ram[19] = 1;
+    vm.ram[20] = 0xC6;
+    vm.ram[21] = 1;
+    vm.ram[22] = 2;
     // NOP x3
-    for i in 0..3 { vm.ram[23 + i] = 0x01; }
+    for i in 0..3 {
+        vm.ram[23 + i] = 0x01;
+    }
     // PROFILE r1,r2 (stop region 1)
-    vm.ram[26] = 0xC6; vm.ram[27] = 1; vm.ram[28] = 2;
+    vm.ram[26] = 0xC6;
+    vm.ram[27] = 1;
+    vm.ram[28] = 2;
     // DUMP: LDI r1,3; LDI r2,0x3000; PROFILE r1,r2
-    vm.ram[29] = 0x10; vm.ram[30] = 1; vm.ram[31] = 3;
-    vm.ram[32] = 0x10; vm.ram[33] = 2; vm.ram[34] = 0x3000;
-    vm.ram[35] = 0xC6; vm.ram[36] = 1; vm.ram[37] = 2;
+    vm.ram[29] = 0x10;
+    vm.ram[30] = 1;
+    vm.ram[31] = 3;
+    vm.ram[32] = 0x10;
+    vm.ram[33] = 2;
+    vm.ram[34] = 0x3000;
+    vm.ram[35] = 0xC6;
+    vm.ram[36] = 1;
+    vm.ram[37] = 2;
     // HALT
     vm.ram[38] = 0x00;
     vm.pc = 0;
-    for _ in 0..1000 { if !vm.step() { break; } }
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
     // r0 = number of entries dumped (should be 2)
     assert_eq!(vm.regs[0], 2, "DUMP should return 2 entries");
     // First entry at 0x3000: region_id=0, count_lo, count_hi
@@ -25950,39 +26238,78 @@ fn test_profile_multiple_regions_independent() {
     // Two regions measured independently
     let mut vm = Vm::new();
     // Start region 0
-    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;  // LDI r1, 0
-    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;  // LDI r2, 0
-    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;  // PROFILE MARK 0
-    // NOP x3 (region 0 only)
-    vm.ram[9] = 0x01; vm.ram[10] = 0x01; vm.ram[11] = 0x01;
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0; // LDI r1, 0
+    vm.ram[3] = 0x10;
+    vm.ram[4] = 2;
+    vm.ram[5] = 0; // LDI r2, 0
+    vm.ram[6] = 0xC6;
+    vm.ram[7] = 1;
+    vm.ram[8] = 2; // PROFILE MARK 0
+                   // NOP x3 (region 0 only)
+    vm.ram[9] = 0x01;
+    vm.ram[10] = 0x01;
+    vm.ram[11] = 0x01;
     // Stop region 0
-    vm.ram[12] = 0xC6; vm.ram[13] = 1; vm.ram[14] = 2;
+    vm.ram[12] = 0xC6;
+    vm.ram[13] = 1;
+    vm.ram[14] = 2;
     // Start region 1
-    vm.ram[15] = 0x10; vm.ram[16] = 2; vm.ram[17] = 1; // LDI r2, 1
-    vm.ram[18] = 0xC6; vm.ram[19] = 1; vm.ram[20] = 2; // PROFILE MARK 1
-    // NOP x7 (region 1 only)
-    for i in 0..7 { vm.ram[21 + i] = 0x01; }
+    vm.ram[15] = 0x10;
+    vm.ram[16] = 2;
+    vm.ram[17] = 1; // LDI r2, 1
+    vm.ram[18] = 0xC6;
+    vm.ram[19] = 1;
+    vm.ram[20] = 2; // PROFILE MARK 1
+                    // NOP x7 (region 1 only)
+    for i in 0..7 {
+        vm.ram[21 + i] = 0x01;
+    }
     // Stop region 1
-    vm.ram[28] = 0xC6; vm.ram[29] = 1; vm.ram[30] = 2;
+    vm.ram[28] = 0xC6;
+    vm.ram[29] = 1;
+    vm.ram[30] = 2;
     // READ region 0
-    vm.ram[31] = 0x10; vm.ram[32] = 1; vm.ram[33] = 1; // LDI r1, 1
-    vm.ram[34] = 0x10; vm.ram[35] = 2; vm.ram[36] = 0; // LDI r2, 0
-    vm.ram[37] = 0xC6; vm.ram[38] = 1; vm.ram[39] = 2; // PROFILE READ 0
-    // Save region 0 result
-    vm.ram[40] = 0x12; vm.ram[41] = 21; vm.ram[42] = 0; // STORE [0x15], r0
-    // READ region 1
-    vm.ram[43] = 0x10; vm.ram[44] = 2; vm.ram[45] = 1; // LDI r2, 1
-    vm.ram[46] = 0xC6; vm.ram[47] = 1; vm.ram[48] = 2; // PROFILE READ 1
-    // HALT
+    vm.ram[31] = 0x10;
+    vm.ram[32] = 1;
+    vm.ram[33] = 1; // LDI r1, 1
+    vm.ram[34] = 0x10;
+    vm.ram[35] = 2;
+    vm.ram[36] = 0; // LDI r2, 0
+    vm.ram[37] = 0xC6;
+    vm.ram[38] = 1;
+    vm.ram[39] = 2; // PROFILE READ 0
+                    // Save region 0 result
+    vm.ram[40] = 0x12;
+    vm.ram[41] = 21;
+    vm.ram[42] = 0; // STORE [0x15], r0
+                    // READ region 1
+    vm.ram[43] = 0x10;
+    vm.ram[44] = 2;
+    vm.ram[45] = 1; // LDI r2, 1
+    vm.ram[46] = 0xC6;
+    vm.ram[47] = 1;
+    vm.ram[48] = 2; // PROFILE READ 1
+                    // HALT
     vm.ram[49] = 0x00;
     vm.pc = 0;
-    for _ in 0..1000 { if !vm.step() { break; } }
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
     let region0 = vm.ram[21]; // saved region 0 count
     let region1 = vm.regs[0]; // region 1 count (in r0)
     assert!(region0 > 0, "Region 0 should have non-zero count");
     assert!(region1 > 0, "Region 1 should have non-zero count");
     // Region 1 should have more steps (7 NOPs vs 3 NOPs)
-    assert!(region1 > region0, "Region 1 (7 NOPs) should have more steps than region 0 (3 NOPs): {} vs {}", region1, region0);
+    assert!(
+        region1 > region0,
+        "Region 1 (7 NOPs) should have more steps than region 0 (3 NOPs): {} vs {}",
+        region1,
+        region0
+    );
 }
 
 #[test]
@@ -25990,7 +26317,11 @@ fn test_profile_assembles() {
     // Verify PROFILE assembles correctly
     let source = "LDI r1, 0\nLDI r2, 0\nPROFILE r1, r2\nHALT\n";
     let result = crate::assembler::assemble(source, 0);
-    assert!(result.is_ok(), "PROFILE should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "PROFILE should assemble: {:?}",
+        result.err()
+    );
     let asm = result.unwrap();
     // LDI r1, 0 = [0x10, 1, 0] (3 words, indices 0-2)
     // LDI r2, 0 = [0x10, 2, 0] (3 words, indices 3-5)
@@ -26005,7 +26336,9 @@ fn test_profile_assembles() {
 fn test_profile_disassembles() {
     // Verify PROFILE disassembles correctly
     let mut vm = Vm::new();
-    vm.ram[0] = 0xC6; vm.ram[1] = 3; vm.ram[2] = 5;
+    vm.ram[0] = 0xC6;
+    vm.ram[1] = 3;
+    vm.ram[2] = 5;
     let (mnemonic, len) = vm.disassemble_at(0);
     assert_eq!(mnemonic, "PROFILE r3, r5");
     assert_eq!(len, 3);
@@ -26016,33 +26349,60 @@ fn test_profile_nested_mark_regions() {
     // Starting region 0, then region 1, stopping region 1, then region 0
     let mut vm = Vm::new();
     // Start region 0
-    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
-    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;
-    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0;
+    vm.ram[3] = 0x10;
+    vm.ram[4] = 2;
+    vm.ram[5] = 0;
+    vm.ram[6] = 0xC6;
+    vm.ram[7] = 1;
+    vm.ram[8] = 2;
     // NOP x2
-    vm.ram[9] = 0x01; vm.ram[10] = 0x01;
+    vm.ram[9] = 0x01;
+    vm.ram[10] = 0x01;
     // Start region 1
-    vm.ram[11] = 0x10; vm.ram[12] = 2; vm.ram[13] = 1;
-    vm.ram[14] = 0xC6; vm.ram[15] = 1; vm.ram[16] = 2;
+    vm.ram[11] = 0x10;
+    vm.ram[12] = 2;
+    vm.ram[13] = 1;
+    vm.ram[14] = 0xC6;
+    vm.ram[15] = 1;
+    vm.ram[16] = 2;
     // NOP x3
-    vm.ram[17] = 0x01; vm.ram[18] = 0x01; vm.ram[19] = 0x01;
+    vm.ram[17] = 0x01;
+    vm.ram[18] = 0x01;
+    vm.ram[19] = 0x01;
     // Stop region 1
-    vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
+    vm.ram[20] = 0xC6;
+    vm.ram[21] = 1;
+    vm.ram[22] = 2;
     // NOP x2
-    vm.ram[23] = 0x01; vm.ram[24] = 0x01;
+    vm.ram[23] = 0x01;
+    vm.ram[24] = 0x01;
     // Set r2=0 to stop region 0
-    vm.ram[25] = 0x10; vm.ram[26] = 2; vm.ram[27] = 0;
+    vm.ram[25] = 0x10;
+    vm.ram[26] = 2;
+    vm.ram[27] = 0;
     // Stop region 0
-    vm.ram[28] = 0xC6; vm.ram[29] = 1; vm.ram[30] = 2;
+    vm.ram[28] = 0xC6;
+    vm.ram[29] = 1;
+    vm.ram[30] = 2;
     // HALT
     vm.ram[31] = 0x00;
     vm.pc = 0;
-    for _ in 0..1000 { if !vm.step() { break; } }
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
     // Region 0 should include ALL steps from its start to stop
     // Region 1 should include fewer steps (only between its start and stop)
-    assert!(vm.profile_regions[0] > vm.profile_regions[1],
+    assert!(
+        vm.profile_regions[0] > vm.profile_regions[1],
         "Region 0 (outer) should have more steps than region 1 (inner): {} vs {}",
-        vm.profile_regions[0], vm.profile_regions[1]);
+        vm.profile_regions[0],
+        vm.profile_regions[1]
+    );
 }
 
 #[test]
@@ -26050,10 +26410,16 @@ fn test_total_steps_counter() {
     // Verify total_steps increments on every instruction
     let mut vm = Vm::new();
     // 5 NOPs then HALT
-    for i in 0..5 { vm.ram[i] = 0x01; }
+    for i in 0..5 {
+        vm.ram[i] = 0x01;
+    }
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // 5 NOPs + 1 HALT = 6 steps
     assert_eq!(vm.total_steps, 6, "total_steps should be 6 (5 NOPs + HALT)");
 }
@@ -26070,13 +26436,17 @@ fn test_clip_copy_basic() {
     vm.regs[3] = 1;
     vm.regs[4] = 1;
     vm.ram[0] = 0xD7; // CLIP_COPY
-    vm.ram[1] = 1;    // x_reg
-    vm.ram[2] = 2;    // y_reg
-    vm.ram[3] = 3;    // w_reg
-    vm.ram[4] = 4;    // h_reg
+    vm.ram[1] = 1; // x_reg
+    vm.ram[2] = 2; // y_reg
+    vm.ram[3] = 3; // w_reg
+    vm.ram[4] = 4; // h_reg
     vm.ram[5] = 0x00; // HALT
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert!(vm.halted);
     // Clipboard should have [width=1, height=1, pixel=0xFF0000]
     assert_eq!(vm.clipboard.len(), 3);
@@ -26095,11 +26465,15 @@ fn test_clip_paste_basic() {
     vm.regs[1] = 5;
     vm.regs[2] = 10;
     vm.ram[0] = 0xD8; // CLIP_PASTE
-    vm.ram[1] = 1;    // x_reg
-    vm.ram[2] = 2;    // y_reg
+    vm.ram[1] = 1; // x_reg
+    vm.ram[2] = 2; // y_reg
     vm.ram[3] = 0x00; // HALT
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert!(vm.halted);
     // Verify pixels were pasted at (5,10), (6,10), (5,11), (6,11)
     assert_eq!(vm.screen[10 * 256 + 5], 0xFF0000); // red
@@ -26113,8 +26487,10 @@ fn test_clip_copy_paste_roundtrip() {
     // Copy a region from one location and paste it elsewhere
     let mut vm = Vm::new();
     // Draw a gradient in top-left 3x2 region
-    let colors = [0xFF0000, 0x00FF00, 0x0000FF,  // row 0
-                  0xFFFF00, 0xFF00FF, 0x00FFFF]; // row 1
+    let colors = [
+        0xFF0000, 0x00FF00, 0x0000FF, // row 0
+        0xFFFF00, 0xFF00FF, 0x00FFFF,
+    ]; // row 1
     for y in 0..2 {
         for x in 0..3 {
             vm.screen[y * 256 + x] = colors[y * 3 + x];
@@ -26126,22 +26502,34 @@ fn test_clip_copy_paste_roundtrip() {
     vm.regs[3] = 3;
     vm.regs[4] = 2;
     vm.ram[0] = 0xD7; // CLIP_COPY
-    vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     // CLIP_PASTE r5, r6  (x=100, y=100)
     vm.regs[5] = 100;
     vm.regs[6] = 100;
     vm.ram[5] = 0xD8; // CLIP_PASTE
-    vm.ram[6] = 5; vm.ram[7] = 6;
+    vm.ram[6] = 5;
+    vm.ram[7] = 6;
     vm.ram[8] = 0x00; // HALT
     vm.pc = 0;
-    for _ in 0..1000 { if !vm.step() { break; } }
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert!(vm.halted);
     // Verify pasted region matches original
     for y in 0..2 {
         for x in 0..3 {
             let src = vm.screen[y * 256 + x];
             let dst = vm.screen[(100 + y) * 256 + (100 + x)];
-            assert_eq!(dst, src, "mismatch at ({}, {}): got {:08X}, expected {:08X}", x, y, dst, src);
+            assert_eq!(
+                dst, src,
+                "mismatch at ({}, {}): got {:08X}, expected {:08X}",
+                x, y, dst, src
+            );
         }
     }
 }
@@ -26154,10 +26542,15 @@ fn test_clip_paste_empty_clipboard() {
     vm.regs[1] = 10;
     vm.regs[2] = 20;
     vm.ram[0] = 0xD8; // CLIP_PASTE
-    vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.ram[3] = 0x00; // HALT
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert!(vm.halted);
     // Screen should still be all zeros
     assert!(vm.screen.iter().all(|&p| p == 0));
@@ -26168,17 +26561,26 @@ fn test_clip_copy_out_of_bounds() {
     // Copying a region that extends past screen edge should clip gracefully
     let mut vm = Vm::new();
     // Fill entire screen with green
-    for p in vm.screen.iter_mut() { *p = 0x00FF00; }
+    for p in vm.screen.iter_mut() {
+        *p = 0x00FF00;
+    }
     // CLIP_COPY x=255, y=255, w=2, h=2 -- extends past screen edge
     vm.regs[1] = 255;
     vm.regs[2] = 255;
     vm.regs[3] = 2;
     vm.regs[4] = 2;
     vm.ram[0] = 0xD7;
-    vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.ram[5] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     assert!(vm.halted);
     // Clipboard should have 4 pixels: (255,255), and 3 out-of-bounds = 0
     assert_eq!(vm.clipboard[0], 2); // width
@@ -26220,20 +26622,23 @@ fn test_clip_text_store_and_paste() {
     vm.ram[0x501] = 0x69; // 'i'
 
     // CLIP_TEXT mode=0, addr=r1, len=r2
-    vm.regs[1] = 0;  // mode: store
+    vm.regs[1] = 0; // mode: store
     vm.regs[2] = 0x500; // addr
-    vm.regs[3] = 2;  // len (2 bytes)
+    vm.regs[3] = 2; // len (2 bytes)
     vm.pc = 0;
     vm.ram[0] = 0xDD; // CLIP_TEXT
-    vm.ram[1] = 1;    // mode_reg
-    vm.ram[2] = 2;    // addr_reg
-    vm.ram[3] = 3;    // len_reg
+    vm.ram[1] = 1; // mode_reg
+    vm.ram[2] = 2; // addr_reg
+    vm.ram[3] = 3; // len_reg
     vm.step();
     assert_eq!(vm.regs[0], 2, "should store 2 chars");
-    assert!(vm.clipboard_text.len() > 1, "clipboard_text should have data");
+    assert!(
+        vm.clipboard_text.len() > 1,
+        "clipboard_text should have data"
+    );
 
     // Now paste back to a different address
-    vm.regs[1] = 1;  // mode: paste
+    vm.regs[1] = 1; // mode: paste
     vm.regs[2] = 0x600; // dest addr
     vm.regs[3] = 10; // max len
     vm.pc = 0;
@@ -26288,8 +26693,8 @@ fn test_clip_history_push_and_count() {
     vm.regs[2] = 0; // slot (unused for push)
     vm.pc = 0;
     vm.ram[0] = 0xDF; // CLIP_HISTORY
-    vm.ram[1] = 1;    // mode_reg
-    vm.ram[2] = 2;    // slot_reg
+    vm.ram[1] = 1; // mode_reg
+    vm.ram[2] = 2; // slot_reg
     vm.step();
     assert_eq!(vm.regs[0], 1, "history count should be 1");
 
@@ -26342,8 +26747,15 @@ fn test_clip_history_restore_newest() {
     vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[0], 1, "restore should succeed");
-    assert_eq!(vm.clipboard.len(), 3, "restored clipboard should have 3 words");
-    assert_eq!(vm.clipboard[2], 0x00FF00, "should restore green pixel (newest)");
+    assert_eq!(
+        vm.clipboard.len(),
+        3,
+        "restored clipboard should have 3 words"
+    );
+    assert_eq!(
+        vm.clipboard[2], 0x00FF00,
+        "should restore green pixel (newest)"
+    );
 }
 
 #[test]
@@ -26372,7 +26784,10 @@ fn test_clip_history_restore_previous() {
     vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[0], 1, "restore should succeed");
-    assert_eq!(vm.clipboard[2], 0xFF0000, "should restore red pixel (previous)");
+    assert_eq!(
+        vm.clipboard[2], 0xFF0000,
+        "should restore red pixel (previous)"
+    );
 }
 
 #[test]
@@ -26494,7 +26909,10 @@ fn test_clip_history_preserves_text_clipboard() {
     vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[0], 1, "restore should succeed");
-    assert!(vm.clipboard_text.len() > 1, "text clipboard should be restored");
+    assert!(
+        vm.clipboard_text.len() > 1,
+        "text clipboard should be restored"
+    );
 }
 
 #[test]
@@ -26553,7 +26971,10 @@ fn test_clip_text_clear() {
     vm.pc = 0;
     vm.ram[0] = 0xDD;
     vm.step();
-    assert!(vm.clipboard_text.is_empty(), "text clipboard should be cleared");
+    assert!(
+        vm.clipboard_text.is_empty(),
+        "text clipboard should be cleared"
+    );
     assert_eq!(vm.regs[0], 0, "r0 should be 0 after clear");
 }
 
@@ -26562,18 +26983,36 @@ fn test_clip_text_clear_then_paste_returns_zero() {
     let mut vm = Vm::new();
     // Store text
     vm.ram[0x500] = 0x48; // 'H'
-    vm.regs[1] = 0; vm.regs[2] = 0x500; vm.regs[3] = 1;
-    vm.pc = 0; vm.ram[0] = 0xDD; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0x500;
+    vm.regs[3] = 1;
+    vm.pc = 0;
+    vm.ram[0] = 0xDD;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.step();
 
     // Clear
-    vm.regs[1] = 3; vm.pc = 0; vm.ram[0] = 0xDD; vm.step();
+    vm.regs[1] = 3;
+    vm.pc = 0;
+    vm.ram[0] = 0xDD;
+    vm.step();
 
     // Paste from empty clipboard should return 0
-    vm.regs[1] = 1; vm.regs[2] = 0x600; vm.regs[3] = 10;
-    vm.pc = 0; vm.ram[0] = 0xDD; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.regs[1] = 1;
+    vm.regs[2] = 0x600;
+    vm.regs[3] = 10;
+    vm.pc = 0;
+    vm.ram[0] = 0xDD;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.step();
-    assert_eq!(vm.regs[0], 0, "pasting from cleared clipboard should return 0");
+    assert_eq!(
+        vm.regs[0], 0,
+        "pasting from cleared clipboard should return 0"
+    );
 }
 
 // ── Phase 221: CLIP_PASTE respects clip_rect ─────────────────────────
@@ -26613,8 +27052,12 @@ fn test_clip_paste_no_clip_rect_writes_all() {
     vm.clipboard = vec![3, 1, 0xFF0000, 0x00FF00, 0x0000FF];
     vm.clip_rect = None; // no clip rect
 
-    vm.regs[1] = 0; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xD8; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xD8;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
 
     assert_eq!(vm.screen[0], 0xFF0000, "pixel 0 should be red");
@@ -26632,13 +27075,21 @@ fn test_clip_history_info_pixel_only() {
     vm.clipboard_text = Vec::new();
 
     // Push to history
-    vm.regs[1] = 0; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
 
     // Query info for slot 0 (newest)
-    vm.regs[1] = 4; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 4;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
     assert_eq!(vm.regs[0], 1, "should report bit 0 (pixel) only");
 }
@@ -26651,13 +27102,21 @@ fn test_clip_history_info_text_only() {
     vm.clipboard_text = vec![3, 0x6162_6364]; // "abcd"
 
     // Push to history
-    vm.regs[1] = 0; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
 
     // Query info
-    vm.regs[1] = 4; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 4;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
     assert_eq!(vm.regs[0], 2, "should report bit 1 (text) only");
 }
@@ -26668,12 +27127,20 @@ fn test_clip_history_info_both_formats() {
     vm.clipboard = vec![1, 1, 0xFF0000];
     vm.clipboard_text = vec![1, 0x41];
 
-    vm.regs[1] = 0; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
 
-    vm.regs[1] = 4; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 4;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
     assert_eq!(vm.regs[0], 3, "should report bit 0 + bit 1 (both formats)");
 }
@@ -26682,8 +27149,12 @@ fn test_clip_history_info_both_formats() {
 fn test_clip_history_info_invalid_slot() {
     let mut vm = Vm::new();
     // Query info with no history
-    vm.regs[1] = 4; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 4;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
     assert_eq!(vm.regs[0], 0, "invalid slot should return 0");
 }
@@ -26696,39 +27167,63 @@ fn test_clip_history_info_across_slots() {
     // Entry 0: pixel only
     vm.clipboard = vec![1, 1, 0x11];
     vm.clipboard_text = Vec::new();
-    vm.regs[1] = 0; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
 
     // Entry 1: text only
     vm.clipboard = Vec::new();
     vm.clipboard_text = vec![1, 0x42];
-    vm.regs[1] = 0; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
 
     // Entry 2: both
     vm.clipboard = vec![1, 1, 0x33];
     vm.clipboard_text = vec![1, 0x43];
-    vm.regs[1] = 0; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
 
     // Slot 0 (newest) = both = 3
-    vm.regs[1] = 4; vm.regs[2] = 0;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 4;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
     assert_eq!(vm.regs[0], 3, "slot 0 should be both formats");
 
     // Slot 1 = text only = 2
-    vm.regs[1] = 4; vm.regs[2] = 1;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 4;
+    vm.regs[2] = 1;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
     assert_eq!(vm.regs[0], 2, "slot 1 should be text only");
 
     // Slot 2 (oldest) = pixel only = 1
-    vm.regs[1] = 4; vm.regs[2] = 2;
-    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.regs[1] = 4;
+    vm.regs[2] = 2;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
     vm.step();
     assert_eq!(vm.regs[0], 1, "slot 2 should be pixel only");
 }
@@ -26761,9 +27256,13 @@ fn test_clipboard_v2_test_runs() {
     // Run until HALT
     for _ in 0..500_000 {
         let pc = vm.pc as usize;
-        if pc >= vm.ram.len() { break; }
+        if pc >= vm.ram.len() {
+            break;
+        }
         let op = vm.ram[pc];
-        if op == 0x00 { break; } // HALT
+        if op == 0x00 {
+            break;
+        } // HALT
         vm.step();
     }
 
@@ -26774,9 +27273,15 @@ fn test_clipboard_v2_test_runs() {
     // The green bar at y=16 should exist
     let mut green_count = 0;
     for x in 2..42 {
-        if vm.screen[16 * 256 + x] == 0x00FF00 { green_count += 1; }
+        if vm.screen[16 * 256 + x] == 0x00FF00 {
+            green_count += 1;
+        }
     }
-    assert!(green_count > 30, "step 1 green bar should have >30 green pixels, got {}", green_count);
+    assert!(
+        green_count > 30,
+        "step 1 green bar should have >30 green pixels, got {}",
+        green_count
+    );
 
     // Verify step 2: clip rect paste — red pixels at y=32, only cols 2-5
     // After FILL r0, only cols 2-5 at y=32 should be red from the CLIPSET clip
@@ -26785,28 +27290,49 @@ fn test_clipboard_v2_test_runs() {
     let col2_val = vm.screen[32 * 256 + 2];
     assert_eq!(col0_val, 0, "col 0 at y=32 should be 0 (outside clip rect)");
     assert_eq!(col1_val, 0, "col 1 at y=32 should be 0 (outside clip rect)");
-    assert_eq!(col2_val, 0xFF0000, "col 2 at y=32 should be red (inside clip rect)");
+    assert_eq!(
+        col2_val, 0xFF0000,
+        "col 2 at y=32 should be red (inside clip rect)"
+    );
 
     // Verify step 3: cyan bar at y=48
     let mut cyan_count = 0;
     for x in 2..42 {
-        if vm.screen[48 * 256 + x] == 0x00FFFF { cyan_count += 1; }
+        if vm.screen[48 * 256 + x] == 0x00FFFF {
+            cyan_count += 1;
+        }
     }
-    assert!(cyan_count > 30, "step 3 cyan bar should have >30 cyan pixels, got {}", cyan_count);
+    assert!(
+        cyan_count > 30,
+        "step 3 cyan bar should have >30 cyan pixels, got {}",
+        cyan_count
+    );
 
     // Verify step 4: magenta bar at y=72
     let mut magenta_count = 0;
     for x in 2..42 {
-        if vm.screen[72 * 256 + x] == 0xFF00FF { magenta_count += 1; }
+        if vm.screen[72 * 256 + x] == 0xFF00FF {
+            magenta_count += 1;
+        }
     }
-    assert!(magenta_count > 30, "step 4 magenta bar should have >30 magenta pixels, got {}", magenta_count);
+    assert!(
+        magenta_count > 30,
+        "step 4 magenta bar should have >30 magenta pixels, got {}",
+        magenta_count
+    );
 
     // Verify step 5: white bar at y=88
     let mut white_count = 0;
     for x in 2..42 {
-        if vm.screen[88 * 256 + x] == 0xFFFFFF { white_count += 1; }
+        if vm.screen[88 * 256 + x] == 0xFFFFFF {
+            white_count += 1;
+        }
     }
-    assert!(white_count > 30, "step 5 white bar should have >30 white pixels, got {}", white_count);
+    assert!(
+        white_count > 30,
+        "step 5 white bar should have >30 white pixels, got {}",
+        white_count
+    );
 }
 
 #[test]
@@ -26816,7 +27342,10 @@ fn test_tower_defense_assembles_and_runs() {
     let source = include_str!("../../programs/tower_defense.asm");
     let asm = assemble(source, 0).expect("tower_defense.asm should assemble");
     assert!(!asm.pixels.is_empty(), "should produce bytecode");
-    eprintln!("Assembled {} words from tower_defense.asm", asm.pixels.len());
+    eprintln!(
+        "Assembled {} words from tower_defense.asm",
+        asm.pixels.len()
+    );
 
     let mut vm = Vm::new();
     for (i, &word) in asm.pixels.iter().enumerate() {
@@ -26849,7 +27378,11 @@ fn test_tower_defense_assembles_and_runs() {
     // Screen should not be all black (game renders path, background, UI)
     let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
     eprintln!("Non-black pixels: {}/{}", non_black, 256 * 256);
-    assert!(non_black > 100, "screen should have rendered game elements (got {})", non_black);
+    assert!(
+        non_black > 100,
+        "screen should have rendered game elements (got {})",
+        non_black
+    );
 
     // Verify game state initialized: gold at 0x2400, lives at 0x2401, wave at 0x2402
     let gold = vm.ram[0x2400];
@@ -26878,11 +27411,11 @@ fn test_sprload_registers_sheet() {
 
     // SPRLOAD 0, r1, r2, r3, r4
     vm.ram[0] = 0xE5;
-    vm.ram[1] = 0;    // sheet_id
-    vm.ram[2] = 1;    // addr_reg
-    vm.ram[3] = 2;    // frame_w_reg
-    vm.ram[4] = 3;    // frame_h_reg
-    vm.ram[5] = 4;    // frames_reg
+    vm.ram[1] = 0; // sheet_id
+    vm.ram[2] = 1; // addr_reg
+    vm.ram[3] = 2; // frame_w_reg
+    vm.ram[4] = 3; // frame_h_reg
+    vm.ram[5] = 4; // frames_reg
     vm.pc = 0;
     vm.step();
 
@@ -26906,7 +27439,7 @@ fn test_sprload_invalid_sheet_id() {
 
     // SPRLOAD 16 (out of range), r1, r2, r3, r4
     vm.ram[0] = 0xE5;
-    vm.ram[1] = 16;   // invalid sheet_id
+    vm.ram[1] = 16; // invalid sheet_id
     vm.ram[2] = 1;
     vm.ram[3] = 2;
     vm.ram[4] = 3;
@@ -26914,7 +27447,10 @@ fn test_sprload_invalid_sheet_id() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for invalid sheet_id");
+    assert_eq!(
+        vm.regs[0], 0xFFFFFFFF,
+        "should return error for invalid sheet_id"
+    );
 }
 
 #[test]
@@ -26927,15 +27463,19 @@ fn test_sprframe_selects_frame() {
     vm.regs[3] = 4;
     vm.regs[4] = 4;
     vm.ram[0] = 0xE5;
-    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
     vm.pc = 0;
     vm.step();
 
     // SPRFRAME 0, r10 (select frame 1)
     vm.regs[10] = 1;
     vm.ram[6] = 0xE6;
-    vm.ram[7] = 0;    // sheet_id
-    vm.ram[8] = 10;   // frame_reg
+    vm.ram[7] = 0; // sheet_id
+    vm.ram[8] = 10; // frame_reg
     vm.pc = 6;
     vm.step();
 
@@ -26953,7 +27493,11 @@ fn test_sprframe_out_of_range() {
     vm.regs[3] = 4;
     vm.regs[4] = 2;
     vm.ram[0] = 0xE5;
-    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
     vm.pc = 0;
     vm.step();
 
@@ -26965,8 +27509,14 @@ fn test_sprframe_out_of_range() {
     vm.pc = 6;
     vm.step();
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for out-of-range frame");
-    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "frame should remain unchanged");
+    assert_eq!(
+        vm.regs[0], 0xFFFFFFFF,
+        "should return error for out-of-range frame"
+    );
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 0,
+        "frame should remain unchanged"
+    );
 }
 
 #[test]
@@ -26975,12 +27525,15 @@ fn test_sprframe_invalid_sheet() {
     // Try to select frame on unregistered sheet
     vm.regs[10] = 0;
     vm.ram[0] = 0xE6;
-    vm.ram[1] = 5;    // unregistered sheet
+    vm.ram[1] = 5; // unregistered sheet
     vm.ram[2] = 10;
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for unregistered sheet");
+    assert_eq!(
+        vm.regs[0], 0xFFFFFFFF,
+        "should return error for unregistered sheet"
+    );
 }
 
 #[test]
@@ -27005,7 +27558,11 @@ fn test_spranim_blits_frame_0() {
     vm.regs[3] = 2; // frame_h
     vm.regs[4] = 2; // total_frames
     vm.ram[0] = 0xE5;
-    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
     vm.pc = 0;
     vm.step();
 
@@ -27013,9 +27570,9 @@ fn test_spranim_blits_frame_0() {
     vm.regs[5] = 10; // x
     vm.regs[6] = 20; // y
     vm.ram[6] = 0xE7;
-    vm.ram[7] = 0;    // sheet_id
-    vm.ram[8] = 5;    // x_reg
-    vm.ram[9] = 6;    // y_reg
+    vm.ram[7] = 0; // sheet_id
+    vm.ram[8] = 5; // x_reg
+    vm.ram[9] = 6; // y_reg
     vm.pc = 6;
     vm.step();
 
@@ -27042,30 +27599,56 @@ fn test_spranim_blits_frame_1() {
 
     // Register sheet
     vm.regs[1] = 0x3000;
-    vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 2;
+    vm.regs[2] = 2;
+    vm.regs[3] = 2;
+    vm.regs[4] = 2;
     vm.ram[0] = 0xE5;
-    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
     vm.pc = 0;
     vm.step();
 
     // Select frame 1
     vm.regs[10] = 1;
     vm.ram[6] = 0xE6;
-    vm.ram[7] = 0; vm.ram[8] = 10;
+    vm.ram[7] = 0;
+    vm.ram[8] = 10;
     vm.pc = 6;
     vm.step();
 
     // Blit at (10, 20)
-    vm.regs[5] = 10; vm.regs[6] = 20;
+    vm.regs[5] = 10;
+    vm.regs[6] = 20;
     vm.ram[9] = 0xE7;
-    vm.ram[10] = 0; vm.ram[11] = 5; vm.ram[12] = 6;
+    vm.ram[10] = 0;
+    vm.ram[11] = 5;
+    vm.ram[12] = 6;
     vm.pc = 9;
     vm.step();
 
-    assert_eq!(vm.screen[20 * 256 + 10], 0xFFFF00, "pixel (10,20) = yellow (frame 1)");
-    assert_eq!(vm.screen[20 * 256 + 11], 0x00FFFF, "pixel (11,20) = cyan (frame 1)");
-    assert_eq!(vm.screen[21 * 256 + 10], 0xFF00FF, "pixel (10,21) = magenta (frame 1)");
-    assert_eq!(vm.screen[21 * 256 + 11], 0x808080, "pixel (11,21) = gray (frame 1)");
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0xFFFF00,
+        "pixel (10,20) = yellow (frame 1)"
+    );
+    assert_eq!(
+        vm.screen[20 * 256 + 11],
+        0x00FFFF,
+        "pixel (11,20) = cyan (frame 1)"
+    );
+    assert_eq!(
+        vm.screen[21 * 256 + 10],
+        0xFF00FF,
+        "pixel (10,21) = magenta (frame 1)"
+    );
+    assert_eq!(
+        vm.screen[21 * 256 + 11],
+        0x808080,
+        "pixel (11,21) = gray (frame 1)"
+    );
 }
 
 #[test]
@@ -27074,15 +27657,21 @@ fn test_spranim_transparency() {
 
     // 2x2 sprite with one transparent pixel (0)
     vm.ram[0x3000] = 0xFF0000;
-    vm.ram[0x3001] = 0;        // transparent
-    vm.ram[0x3002] = 0;        // transparent
+    vm.ram[0x3001] = 0; // transparent
+    vm.ram[0x3002] = 0; // transparent
     vm.ram[0x3003] = 0x00FF00;
 
     // Register sheet
     vm.regs[1] = 0x3000;
-    vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 1;
+    vm.regs[2] = 2;
+    vm.regs[3] = 2;
+    vm.regs[4] = 1;
     vm.ram[0] = 0xE5;
-    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
     vm.pc = 0;
     vm.step();
 
@@ -27093,16 +27682,35 @@ fn test_spranim_transparency() {
     vm.screen[21 * 256 + 11] = 0x444444;
 
     // Blit at (10, 20)
-    vm.regs[5] = 10; vm.regs[6] = 20;
+    vm.regs[5] = 10;
+    vm.regs[6] = 20;
     vm.ram[6] = 0xE7;
-    vm.ram[7] = 0; vm.ram[8] = 5; vm.ram[9] = 6;
+    vm.ram[7] = 0;
+    vm.ram[8] = 5;
+    vm.ram[9] = 6;
     vm.pc = 6;
     vm.step();
 
-    assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000, "non-transparent pixel drawn");
-    assert_eq!(vm.screen[20 * 256 + 11], 0x222222, "transparent pixel preserves background");
-    assert_eq!(vm.screen[21 * 256 + 10], 0x333333, "transparent pixel preserves background");
-    assert_eq!(vm.screen[21 * 256 + 11], 0x00FF00, "non-transparent pixel drawn");
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0xFF0000,
+        "non-transparent pixel drawn"
+    );
+    assert_eq!(
+        vm.screen[20 * 256 + 11],
+        0x222222,
+        "transparent pixel preserves background"
+    );
+    assert_eq!(
+        vm.screen[21 * 256 + 10],
+        0x333333,
+        "transparent pixel preserves background"
+    );
+    assert_eq!(
+        vm.screen[21 * 256 + 11],
+        0x00FF00,
+        "non-transparent pixel drawn"
+    );
 }
 
 #[test]
@@ -27116,16 +27724,25 @@ fn test_spranim_screen_clipping() {
 
     // Register sheet
     vm.regs[1] = 0x3000;
-    vm.regs[2] = 4; vm.regs[3] = 4; vm.regs[4] = 1;
+    vm.regs[2] = 4;
+    vm.regs[3] = 4;
+    vm.regs[4] = 1;
     vm.ram[0] = 0xE5;
-    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
     vm.pc = 0;
     vm.step();
 
     // Blit at (254, 254) -- partially off-screen
-    vm.regs[5] = 254; vm.regs[6] = 254;
+    vm.regs[5] = 254;
+    vm.regs[6] = 254;
     vm.ram[6] = 0xE7;
-    vm.ram[7] = 0; vm.ram[8] = 5; vm.ram[9] = 6;
+    vm.ram[7] = 0;
+    vm.ram[8] = 5;
+    vm.ram[9] = 6;
     vm.pc = 6;
     vm.step();
 
@@ -27139,15 +27756,19 @@ fn test_spranim_screen_clipping() {
 #[test]
 fn test_spranim_invalid_sheet() {
     let mut vm = Vm::new();
-    vm.regs[5] = 10; vm.regs[6] = 20;
+    vm.regs[5] = 10;
+    vm.regs[6] = 20;
     vm.ram[0] = 0xE7;
-    vm.ram[1] = 5;    // unregistered sheet
+    vm.ram[1] = 5; // unregistered sheet
     vm.ram[2] = 5;
     vm.ram[3] = 6;
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for unregistered sheet");
+    assert_eq!(
+        vm.regs[0], 0xFFFFFFFF,
+        "should return error for unregistered sheet"
+    );
 }
 
 #[test]
@@ -27167,7 +27788,7 @@ fn test_sprframe_assembler() {
     let source = "SPRFRAME 0, r10";
     let asm = crate::assembler::assemble(source, 0).unwrap();
     assert_eq!(asm.pixels[0], 0xE6);
-    assert_eq!(asm.pixels[1], 0);  // sheet_id
+    assert_eq!(asm.pixels[1], 0); // sheet_id
     assert_eq!(asm.pixels[2], 10); // r10
 }
 
@@ -27176,9 +27797,9 @@ fn test_spranim_assembler() {
     let source = "SPRANIM 0, r5, r6";
     let asm = crate::assembler::assemble(source, 0).unwrap();
     assert_eq!(asm.pixels[0], 0xE7);
-    assert_eq!(asm.pixels[1], 0);  // sheet_id
-    assert_eq!(asm.pixels[2], 5);  // r5
-    assert_eq!(asm.pixels[3], 6);  // r6
+    assert_eq!(asm.pixels[1], 0); // sheet_id
+    assert_eq!(asm.pixels[2], 5); // r5
+    assert_eq!(asm.pixels[3], 6); // r6
 }
 
 #[test]
@@ -27223,14 +27844,32 @@ fn test_multiple_sheets_independent() {
     let mut vm = Vm::new();
 
     // Register sheet 0 at 0x3000, 2x2, 2 frames
-    vm.regs[1] = 0x3000; vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 2;
-    vm.ram[0] = 0xE5; vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 2;
+    vm.regs[3] = 2;
+    vm.regs[4] = 2;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
 
     // Register sheet 1 at 0x4000, 3x3, 1 frame
-    vm.regs[1] = 0x4000; vm.regs[2] = 3; vm.regs[3] = 3; vm.regs[4] = 1;
-    vm.ram[6] = 0xE5; vm.ram[7] = 1; vm.ram[8] = 1; vm.ram[9] = 2; vm.ram[10] = 3; vm.ram[11] = 4;
-    vm.pc = 6; vm.step();
+    vm.regs[1] = 0x4000;
+    vm.regs[2] = 3;
+    vm.regs[3] = 3;
+    vm.regs[4] = 1;
+    vm.ram[6] = 0xE5;
+    vm.ram[7] = 1;
+    vm.ram[8] = 1;
+    vm.ram[9] = 2;
+    vm.ram[10] = 3;
+    vm.ram[11] = 4;
+    vm.pc = 6;
+    vm.step();
 
     assert_eq!(vm.sprite_sheets[0].base_addr, 0x3000);
     assert_eq!(vm.sprite_sheets[0].frame_w, 2);
@@ -27239,10 +27878,16 @@ fn test_multiple_sheets_independent() {
 
     // Select frame 1 on sheet 0
     vm.regs[10] = 1;
-    vm.ram[12] = 0xE6; vm.ram[13] = 0; vm.ram[14] = 10;
-    vm.pc = 12; vm.step();
+    vm.ram[12] = 0xE6;
+    vm.ram[13] = 0;
+    vm.ram[14] = 10;
+    vm.pc = 12;
+    vm.step();
     assert_eq!(vm.sprite_sheets[0].current_frame, 1);
-    assert_eq!(vm.sprite_sheets[1].current_frame, 0, "sheet 1 should be unaffected");
+    assert_eq!(
+        vm.sprite_sheets[1].current_frame, 0,
+        "sheet 1 should be unaffected"
+    );
 }
 
 #[test]
@@ -27305,12 +27950,12 @@ fn test_sprite_load_reads_vfs_file() {
     // Row 0: red, green, blue
     // Row 1: yellow, cyan, magenta
     let sprite_data: Vec<u8> = vec![
-        0xFF, 0x00, 0x00, 0xFF,  // red
-        0x00, 0xFF, 0x00, 0xFF,  // green
-        0x00, 0x00, 0xFF, 0xFF,  // blue
-        0xFF, 0xFF, 0x00, 0xFF,  // yellow
-        0x00, 0xFF, 0xFF, 0xFF,  // cyan
-        0xFF, 0x00, 0xFF, 0xFF,  // magenta
+        0xFF, 0x00, 0x00, 0xFF, // red
+        0x00, 0xFF, 0x00, 0xFF, // green
+        0x00, 0x00, 0xFF, 0xFF, // blue
+        0xFF, 0xFF, 0x00, 0xFF, // yellow
+        0x00, 0xFF, 0xFF, 0xFF, // cyan
+        0xFF, 0x00, 0xFF, 0xFF, // magenta
     ];
     std::fs::write(&sprite_file, &sprite_data).unwrap();
 
@@ -27318,9 +27963,9 @@ fn test_sprite_load_reads_vfs_file() {
     write_string_to_ram(&mut vm, 0x2000, "test_sprite.raw");
 
     // SPRITE_LOAD r1, r2, r3  (fn_addr=r1, dest=r2, max=r3)
-    vm.regs[1] = 0x2000;  // filename address
-    vm.regs[2] = 0x3000;  // destination address
-    vm.regs[3] = 100;     // max pixels
+    vm.regs[1] = 0x2000; // filename address
+    vm.regs[2] = 0x3000; // destination address
+    vm.regs[3] = 100; // max pixels
 
     // Encode SPRITE_LOAD: opcode 0xD9, fn_reg=1, dst_reg=2, max_reg=3
     vm.ram[0] = 0xD9;
@@ -27332,7 +27977,9 @@ fn test_sprite_load_reads_vfs_file() {
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
 
     // Should return 6 pixels loaded
@@ -27374,7 +28021,9 @@ fn test_sprite_load_respects_max_pixels() {
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
 
     assert_eq!(vm.regs[0], 3, "should load only 3 pixels");
@@ -27400,10 +28049,15 @@ fn test_sprite_load_missing_file_returns_error() {
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for missing file");
+    assert_eq!(
+        vm.regs[0], 0xFFFFFFFF,
+        "should return error for missing file"
+    );
 }
 
 #[test]
@@ -27427,7 +28081,9 @@ fn test_sprite_load_rejects_path_traversal() {
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
 
     assert_eq!(vm.regs[0], 0xFFFFFFFF, "should reject path traversal");
@@ -27444,7 +28100,10 @@ HALT
 "#;
     let result = crate::assembler::assemble(source, 0).unwrap();
     assert!(result.pixels.len() >= 4);
-    assert_eq!(result.pixels[9], 0xD9, "should contain SPRITE_LOAD opcode (0xD9)");
+    assert_eq!(
+        result.pixels[9], 0xD9,
+        "should contain SPRITE_LOAD opcode (0xD9)"
+    );
     assert_eq!(result.pixels[10], 1, "fn_addr_reg should be r1");
     assert_eq!(result.pixels[11], 2, "dest_reg should be r2");
     assert_eq!(result.pixels[12], 3, "max_reg should be r3");
@@ -27460,44 +28119,46 @@ fn test_sprite_load_then_blit() {
     let _ = std::fs::create_dir_all(fs_dir);
     let sprite_file = fs_dir.join("tile.raw");
     let sprite_data: Vec<u8> = vec![
-        0xFF, 0x00, 0x00, 0xFF,  // red
-        0x00, 0xFF, 0x00, 0xFF,  // green
-        0x00, 0x00, 0xFF, 0xFF,  // blue
-        0xFF, 0xFF, 0x00, 0xFF,  // yellow
+        0xFF, 0x00, 0x00, 0xFF, // red
+        0x00, 0xFF, 0x00, 0xFF, // green
+        0x00, 0x00, 0xFF, 0xFF, // blue
+        0xFF, 0xFF, 0x00, 0xFF, // yellow
     ];
     std::fs::write(&sprite_file, &sprite_data).unwrap();
 
     write_string_to_ram(&mut vm, 0x2000, "tile.raw");
 
     // SPRITE_LOAD r1, r2, r3
-    vm.regs[1] = 0x2000;  // filename
-    vm.regs[2] = 0x3000;  // dest
-    vm.regs[3] = 100;     // max
+    vm.regs[1] = 0x2000; // filename
+    vm.regs[2] = 0x3000; // dest
+    vm.regs[3] = 100; // max
 
-    vm.ram[0] = 0xD9;     // SPRITE_LOAD
+    vm.ram[0] = 0xD9; // SPRITE_LOAD
     vm.ram[1] = 0x01;
     vm.ram[2] = 0x02;
     vm.ram[3] = 0x03;
 
     // SPRITE xr, yr, addr_r, wr, hr (0x4A)
-    vm.ram[4] = 0x4A;     // SPRITE
-    vm.ram[5] = 0x04;     // x_reg (r4)
-    vm.ram[6] = 0x05;     // y_reg (r5)
-    vm.ram[7] = 0x02;     // addr_reg (r2 = 0x3000)
-    vm.ram[8] = 0x06;     // w_reg (r6)
-    vm.ram[9] = 0x07;     // h_reg (r7)
-    vm.ram[10] = 0x00;    // HALT
+    vm.ram[4] = 0x4A; // SPRITE
+    vm.ram[5] = 0x04; // x_reg (r4)
+    vm.ram[6] = 0x05; // y_reg (r5)
+    vm.ram[7] = 0x02; // addr_reg (r2 = 0x3000)
+    vm.ram[8] = 0x06; // w_reg (r6)
+    vm.ram[9] = 0x07; // h_reg (r7)
+    vm.ram[10] = 0x00; // HALT
 
-    vm.regs[4] = 10;      // x
-    vm.regs[5] = 20;      // y
-    // r2 already = 0x3000
-    vm.regs[6] = 2;       // width
-    vm.regs[7] = 2;       // height
+    vm.regs[4] = 10; // x
+    vm.regs[5] = 20; // y
+                     // r2 already = 0x3000
+    vm.regs[6] = 2; // width
+    vm.regs[7] = 2; // height
 
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..1000 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
 
     assert!(vm.halted, "program should halt");
@@ -27520,9 +28181,18 @@ fn test_spriteanim_blits_and_advances() {
 
     // Register sheet 0 at 0x3000, 2x2 frames, 4 total frames
     // Frame 0: red, Frame 1: green, Frame 2: blue, Frame 3: yellow
-    vm.regs[1] = 0x3000; vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 4;
-    vm.ram[0] = 0xE5; vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 2;
+    vm.regs[3] = 2;
+    vm.regs[4] = 4;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
 
     // Fill frame data: 4 frames of 2x2 = 4 pixels each = 16 pixels total
     let colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00];
@@ -27535,29 +28205,60 @@ fn test_spriteanim_blits_and_advances() {
     // SPRITEANIM sheet_id=0, x=r5=10, y=r6=20
     vm.regs[5] = 10;
     vm.regs[6] = 20;
-    vm.ram[10] = 0xEC; vm.ram[11] = 0; vm.ram[12] = 5; vm.ram[13] = 6;
-    vm.pc = 10; vm.step();
+    vm.ram[10] = 0xEC;
+    vm.ram[11] = 0;
+    vm.ram[12] = 5;
+    vm.ram[13] = 6;
+    vm.pc = 10;
+    vm.step();
 
     // Should blit frame 0 (red) at (10, 20)
     assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000, "frame 0 should be red");
-    assert_eq!(vm.screen[21 * 256 + 11], 0xFF0000, "frame 0 corner should be red");
+    assert_eq!(
+        vm.screen[21 * 256 + 11],
+        0xFF0000,
+        "frame 0 corner should be red"
+    );
     // Frame counter should have advanced to 1
-    assert_eq!(vm.sprite_sheets[0].current_frame, 1, "frame should advance to 1");
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 1,
+        "frame should advance to 1"
+    );
 
     // Second call: blits frame 1 (green)
-    vm.pc = 10; vm.step();
-    assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00, "frame 1 should be green");
-    assert_eq!(vm.sprite_sheets[0].current_frame, 2, "frame should advance to 2");
+    vm.pc = 10;
+    vm.step();
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0x00FF00,
+        "frame 1 should be green"
+    );
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 2,
+        "frame should advance to 2"
+    );
 
     // Third call: blits frame 2 (blue)
-    vm.pc = 10; vm.step();
+    vm.pc = 10;
+    vm.step();
     assert_eq!(vm.screen[20 * 256 + 10], 0x0000FF, "frame 2 should be blue");
-    assert_eq!(vm.sprite_sheets[0].current_frame, 3, "frame should advance to 3");
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 3,
+        "frame should advance to 3"
+    );
 
     // Fourth call: blits frame 3 (yellow)
-    vm.pc = 10; vm.step();
-    assert_eq!(vm.screen[20 * 256 + 10], 0xFFFF00, "frame 3 should be yellow");
-    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "frame should wrap to 0");
+    vm.pc = 10;
+    vm.step();
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0xFFFF00,
+        "frame 3 should be yellow"
+    );
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 0,
+        "frame should wrap to 0"
+    );
 }
 
 #[test]
@@ -27566,14 +28267,29 @@ fn test_spriteanim_transparency() {
     let mut vm = Vm::new();
 
     // Register sheet at 0x3000, 2x2, 2 frames
-    vm.regs[1] = 0x3000; vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 2;
-    vm.ram[0] = 0xE5; vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 2;
+    vm.regs[3] = 2;
+    vm.regs[4] = 2;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
 
     // Frame 0: checkerboard (red, transparent, transparent, red)
-    vm.ram[0x3000] = 0xFF0000; vm.ram[0x3001] = 0; vm.ram[0x3002] = 0; vm.ram[0x3003] = 0xFF0000;
+    vm.ram[0x3000] = 0xFF0000;
+    vm.ram[0x3001] = 0;
+    vm.ram[0x3002] = 0;
+    vm.ram[0x3003] = 0xFF0000;
     // Frame 1: all green
-    vm.ram[0x3004] = 0x00FF00; vm.ram[0x3005] = 0x00FF00; vm.ram[0x3006] = 0x00FF00; vm.ram[0x3007] = 0x00FF00;
+    vm.ram[0x3004] = 0x00FF00;
+    vm.ram[0x3005] = 0x00FF00;
+    vm.ram[0x3006] = 0x00FF00;
+    vm.ram[0x3007] = 0x00FF00;
 
     // Pre-fill screen with white at blit position
     vm.screen[10 * 256 + 10] = 0xFFFFFF;
@@ -27582,24 +28298,45 @@ fn test_spriteanim_transparency() {
     vm.screen[11 * 256 + 11] = 0xFFFFFF;
 
     // SPRITEANIM at (10, 10)
-    vm.regs[5] = 10; vm.regs[6] = 10;
-    vm.ram[10] = 0xEC; vm.ram[11] = 0; vm.ram[12] = 5; vm.ram[13] = 6;
-    vm.pc = 10; vm.step();
+    vm.regs[5] = 10;
+    vm.regs[6] = 10;
+    vm.ram[10] = 0xEC;
+    vm.ram[11] = 0;
+    vm.ram[12] = 5;
+    vm.ram[13] = 6;
+    vm.pc = 10;
+    vm.step();
 
     // Red pixels should overwrite, transparent should preserve background
     assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000, "red pixel");
-    assert_eq!(vm.screen[10 * 256 + 11], 0xFFFFFF, "transparent preserves white");
-    assert_eq!(vm.screen[11 * 256 + 10], 0xFFFFFF, "transparent preserves white");
+    assert_eq!(
+        vm.screen[10 * 256 + 11],
+        0xFFFFFF,
+        "transparent preserves white"
+    );
+    assert_eq!(
+        vm.screen[11 * 256 + 10],
+        0xFFFFFF,
+        "transparent preserves white"
+    );
     assert_eq!(vm.screen[11 * 256 + 11], 0xFF0000, "red pixel");
 }
 
 #[test]
 fn test_spriteanim_invalid_sheet() {
     let mut vm = Vm::new();
-    vm.regs[5] = 10; vm.regs[6] = 20;
-    vm.ram[0] = 0xEC; vm.ram[1] = 0; vm.ram[2] = 5; vm.ram[3] = 6;
-    vm.pc = 0; vm.step();
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for inactive sheet");
+    vm.regs[5] = 10;
+    vm.regs[6] = 20;
+    vm.ram[0] = 0xEC;
+    vm.ram[1] = 0;
+    vm.ram[2] = 5;
+    vm.ram[3] = 6;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(
+        vm.regs[0], 0xFFFFFFFF,
+        "should return error for inactive sheet"
+    );
 }
 
 #[test]
@@ -27625,7 +28362,9 @@ HALT
     let asm = crate::assembler::assemble(source, 0).expect("should assemble");
     // Find SPRITEANIM bytecode: 0xEC, 3, 5, 6
     let code = &asm.pixels;
-    let found = code.windows(4).any(|w| w[0] == 0xEC && w[1] == 3 && w[2] == 5 && w[3] == 6);
+    let found = code
+        .windows(4)
+        .any(|w| w[0] == 0xEC && w[1] == 3 && w[2] == 5 && w[3] == 6);
     assert!(found, "SPRITEANIM bytecode should be present");
 }
 
@@ -27636,30 +28375,66 @@ fn test_spriteanim_vs_spranim_difference() {
     let mut vm = Vm::new();
 
     // Register sheet at 0x3000, 2x2, 3 frames
-    vm.regs[1] = 0x3000; vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 3;
-    vm.ram[0] = 0xE5; vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 2;
+    vm.regs[3] = 2;
+    vm.regs[4] = 3;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
 
     for i in 0..12 {
         vm.ram[0x3000 + i] = 0xFF0000;
     }
 
     // Call SPRANIM twice -- frame counter should NOT advance
-    vm.regs[5] = 10; vm.regs[6] = 20;
-    vm.ram[10] = 0xE7; vm.ram[11] = 0; vm.ram[12] = 5; vm.ram[13] = 6;
-    vm.pc = 10; vm.step();
-    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "SPRANIM should not advance frame");
-    vm.pc = 10; vm.step();
-    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "SPRANIM still should not advance");
+    vm.regs[5] = 10;
+    vm.regs[6] = 20;
+    vm.ram[10] = 0xE7;
+    vm.ram[11] = 0;
+    vm.ram[12] = 5;
+    vm.ram[13] = 6;
+    vm.pc = 10;
+    vm.step();
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 0,
+        "SPRANIM should not advance frame"
+    );
+    vm.pc = 10;
+    vm.step();
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 0,
+        "SPRANIM still should not advance"
+    );
 
     // Now call SPRITEANIM -- frame counter SHOULD advance
-    vm.ram[20] = 0xEC; vm.ram[21] = 0; vm.ram[22] = 5; vm.ram[23] = 6;
-    vm.pc = 20; vm.step();
-    assert_eq!(vm.sprite_sheets[0].current_frame, 1, "SPRITEANIM should advance to 1");
-    vm.pc = 20; vm.step();
-    assert_eq!(vm.sprite_sheets[0].current_frame, 2, "SPRITEANIM should advance to 2");
-    vm.pc = 20; vm.step();
-    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "SPRITEANIM should wrap to 0");
+    vm.ram[20] = 0xEC;
+    vm.ram[21] = 0;
+    vm.ram[22] = 5;
+    vm.ram[23] = 6;
+    vm.pc = 20;
+    vm.step();
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 1,
+        "SPRITEANIM should advance to 1"
+    );
+    vm.pc = 20;
+    vm.step();
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 2,
+        "SPRITEANIM should advance to 2"
+    );
+    vm.pc = 20;
+    vm.step();
+    assert_eq!(
+        vm.sprite_sheets[0].current_frame, 0,
+        "SPRITEANIM should wrap to 0"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -27710,7 +28485,11 @@ fn test_collision_lib_assembles() {
     let source =
         std::fs::read_to_string("lib/collision.asm").expect("lib/collision.asm should exist");
     let result = crate::assembler::assemble(&source, 0);
-    assert!(result.is_ok(), "collision.asm should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "collision.asm should assemble: {:?}",
+        result.err()
+    );
 }
 
 // --- rect_overlap tests ---
@@ -27842,7 +28621,11 @@ fn test_point_in_circle_inside() {
     vm.regs[3] = 0;
     vm.regs[4] = 0;
     vm.regs[5] = 5;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_circle"), 200);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "point_in_circle"),
+        200,
+    );
     assert_eq!(vm.regs[0], 1, "point on circle boundary should return 1");
 }
 
@@ -27854,7 +28637,11 @@ fn test_point_in_circle_outside() {
     vm.regs[3] = 0;
     vm.regs[4] = 0;
     vm.regs[5] = 5;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_circle"), 200);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "point_in_circle"),
+        200,
+    );
     assert_eq!(vm.regs[0], 0, "point far outside circle should return 0");
 }
 
@@ -27866,7 +28653,11 @@ fn test_point_in_circle_at_center() {
     vm.regs[3] = 100;
     vm.regs[4] = 200;
     vm.regs[5] = 50;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_circle"), 200);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "point_in_circle"),
+        200,
+    );
     assert_eq!(vm.regs[0], 1, "point at center should return 1");
 }
 
@@ -27882,7 +28673,11 @@ fn test_circle_rect_intersect_inside() {
     vm.regs[5] = 10;
     vm.regs[6] = 20;
     vm.regs[7] = 20;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "circle_rect_intersect"), 500);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "circle_rect_intersect"),
+        500,
+    );
     assert_eq!(vm.regs[0], 1, "circle inside rect should intersect");
 }
 
@@ -27896,7 +28691,11 @@ fn test_circle_rect_intersect_far_away() {
     vm.regs[5] = 0;
     vm.regs[6] = 10;
     vm.regs[7] = 10;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "circle_rect_intersect"), 500);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "circle_rect_intersect"),
+        500,
+    );
     assert_eq!(vm.regs[0], 0, "circle far from rect should not intersect");
 }
 
@@ -27910,8 +28709,15 @@ fn test_circle_rect_intersect_circle_center_at_corner() {
     vm.regs[5] = 10;
     vm.regs[6] = 20;
     vm.regs[7] = 20;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "circle_rect_intersect"), 500);
-    assert_eq!(vm.regs[0], 1, "circle center at rect corner should intersect");
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "circle_rect_intersect"),
+        500,
+    );
+    assert_eq!(
+        vm.regs[0], 1,
+        "circle center at rect corner should intersect"
+    );
 }
 
 // --- circles_overlap tests ---
@@ -27925,7 +28731,11 @@ fn test_circles_overlap_true() {
     vm.regs[4] = 15;
     vm.regs[5] = 0;
     vm.regs[6] = 10;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "circles_overlap"), 200);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "circles_overlap"),
+        200,
+    );
     assert_eq!(vm.regs[0], 1, "overlapping circles should return 1");
 }
 
@@ -27938,7 +28748,11 @@ fn test_circles_overlap_far_apart() {
     vm.regs[4] = 100;
     vm.regs[5] = 100;
     vm.regs[6] = 5;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "circles_overlap"), 200);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "circles_overlap"),
+        200,
+    );
     assert_eq!(vm.regs[0], 0, "far apart circles should return 0");
 }
 
@@ -27951,7 +28765,11 @@ fn test_circles_overlap_touching() {
     vm.regs[4] = 10;
     vm.regs[5] = 0;
     vm.regs[6] = 5;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "circles_overlap"), 200);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "circles_overlap"),
+        200,
+    );
     assert_eq!(vm.regs[0], 1, "touching circles should return 1");
 }
 
@@ -27968,7 +28786,11 @@ fn test_point_in_triangle_inside() {
     vm.regs[6] = 0;
     vm.regs[7] = 5;
     vm.regs[8] = 10;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_triangle"), 500);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "point_in_triangle"),
+        500,
+    );
     assert_eq!(vm.regs[0], 1, "point inside triangle should return 1");
 }
 
@@ -27983,7 +28805,11 @@ fn test_point_in_triangle_outside() {
     vm.regs[6] = 0;
     vm.regs[7] = 5;
     vm.regs[8] = 10;
-    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_triangle"), 500);
+    call_subroutine(
+        &mut vm,
+        collision_addr(base, &labels, "point_in_triangle"),
+        500,
+    );
     assert_eq!(vm.regs[0], 0, "point outside triangle should return 0");
 }
 
@@ -27995,16 +28821,31 @@ fn test_tmr_get_returns_value() {
     let vm = run_program(&[0xE8, 10, 0xFF], 10);
     // TMR_GET should return elapsed ms (may be 0 if VM is very fast)
     // Value should be reasonable (< 10 seconds in ms)
-    assert!(vm.regs[10] < 10000, "TMR_GET returned unreasonable value: {}", vm.regs[10]);
+    assert!(
+        vm.regs[10] < 10000,
+        "TMR_GET returned unreasonable value: {}",
+        vm.regs[10]
+    );
 }
 
 #[test]
 fn test_tmr_get_different_registers() {
     // TMR_GET r5, TMR_GET r15, STORE r5 0x200, STORE r15 0x204
-    let vm = run_program(&[0xE8, 5, 0xE8, 15, 0x12, 0x200, 5, 0x12, 0x204, 15, 0xFF], 20);
+    let vm = run_program(
+        &[0xE8, 5, 0xE8, 15, 0x12, 0x200, 5, 0x12, 0x204, 15, 0xFF],
+        20,
+    );
     // Both registers should have similar values (within a few ms of each other)
-    let diff = if vm.regs[15] > vm.regs[5] { vm.regs[15] - vm.regs[5] } else { vm.regs[5] - vm.regs[15] };
-    assert!(diff < 100, "Two TMR_GET calls should return similar values, diff={}", diff);
+    let diff = if vm.regs[15] > vm.regs[5] {
+        vm.regs[15] - vm.regs[5]
+    } else {
+        vm.regs[5] - vm.regs[15]
+    };
+    assert!(
+        diff < 100,
+        "Two TMR_GET calls should return similar values, diff={}",
+        diff
+    );
 }
 
 #[test]
@@ -28027,13 +28868,23 @@ fn test_alarm_set_returns_valid_slot() {
     vm.ram[12] = 12;
     vm.pc = 0;
     for _ in 0..50 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     // r0 should be a valid slot index (0-7)
-    assert!(vm.regs[0] < 8, "ALARM_SET should return valid slot, got {}", vm.regs[0]);
+    assert!(
+        vm.regs[0] < 8,
+        "ALARM_SET should return valid slot, got {}",
+        vm.regs[0]
+    );
     // The alarm should be active
     let slot = vm.regs[0] as usize;
-    assert!(vm.alarms[slot].active, "Alarm slot {} should be active", slot);
+    assert!(
+        vm.alarms[slot].active,
+        "Alarm slot {} should be active",
+        slot
+    );
     assert_eq!(vm.alarms[slot].addr, 0x200);
     assert_eq!(vm.alarms[slot].value, 42);
 }
@@ -28055,17 +28906,25 @@ fn test_alarm_set_fills_all_slots() {
     vm.regs[12] = 1;
     vm.pc = 0;
     for _ in 0..200 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     // All 8 slots should be active
     for i in 0..max_alarms {
-        assert!(vm.alarms[i].active, "Alarm slot {} should be active after filling all slots", i);
+        assert!(
+            vm.alarms[i].active,
+            "Alarm slot {} should be active after filling all slots",
+            i
+        );
     }
     // Now try to set a 9th alarm -- should fail
     vm.pc = 0;
     vm.regs[0] = 0;
     for _ in 0..200 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     // The last ALARM_SET should have returned 0xFFFFFFFF (no free slots)
     // Actually, on re-run, the slots from the first pass are still active,
@@ -28100,10 +28959,15 @@ fn test_alarm_clr_deactivates_alarm() {
     vm.ram[18] = 0xFF; // HALT
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     let slot = vm.regs[13] as usize;
-    assert!(!vm.alarms[slot].active, "Alarm should be deactivated after ALARM_CLR");
+    assert!(
+        !vm.alarms[slot].active,
+        "Alarm should be deactivated after ALARM_CLR"
+    );
     assert_eq!(vm.regs[0], 0, "ALARM_CLR should return 0 on success");
 }
 
@@ -28119,9 +28983,14 @@ fn test_alarm_clr_invalid_slot_returns_error() {
     vm.ram[5] = 0xFF; // HALT
     vm.pc = 0;
     for _ in 0..20 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "ALARM_CLR with invalid slot should return error");
+    assert_eq!(
+        vm.regs[0], 0xFFFFFFFF,
+        "ALARM_CLR with invalid slot should return error"
+    );
 }
 
 #[test]
@@ -28148,14 +29017,19 @@ fn test_alarm_fires_on_frame() {
     vm.pc = 0;
     // Run the setup
     for _ in 0..30 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     // Small sleep to let real time pass
     std::thread::sleep(std::time::Duration::from_millis(5));
     // Run FRAME to trigger alarm check
     vm.step(); // FRAME
-    // Check that the alarm wrote to RAM
-    assert_eq!(vm.ram[0x300], 0xDEAD, "Alarm should have written value to RAM");
+               // Check that the alarm wrote to RAM
+    assert_eq!(
+        vm.ram[0x300], 0xDEAD,
+        "Alarm should have written value to RAM"
+    );
 }
 
 #[test]
@@ -28170,9 +29044,14 @@ fn test_tmr_wait_zero_ms_completes() {
     vm.ram[5] = 0xFF; // HALT
     vm.pc = 0;
     for _ in 0..20 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.regs[0], 0, "TMR_WAIT with 0ms should succeed immediately");
+    assert_eq!(
+        vm.regs[0], 0,
+        "TMR_WAIT with 0ms should succeed immediately"
+    );
 }
 
 #[test]
@@ -28216,11 +29095,24 @@ skip_clr:
 "#;
     let result = assemble(source, 0).expect("countdown.asm should assemble without errors");
     // Should produce a non-trivial program
-    assert!(result.pixels.len() > 20, "countdown program should produce meaningful bytecode, got {} words", result.pixels.len());
+    assert!(
+        result.pixels.len() > 20,
+        "countdown program should produce meaningful bytecode, got {} words",
+        result.pixels.len()
+    );
     // Verify key opcodes are present
-    assert!(result.pixels.contains(&0xE8), "TMR_GET opcode (0xE8) should be in bytecode");
-    assert!(result.pixels.contains(&0xEA), "ALARM_SET opcode (0xEA) should be in bytecode");
-    assert!(result.pixels.contains(&0xEB), "ALARM_CLR opcode (0xEB) should be in bytecode");
+    assert!(
+        result.pixels.contains(&0xE8),
+        "TMR_GET opcode (0xE8) should be in bytecode"
+    );
+    assert!(
+        result.pixels.contains(&0xEA),
+        "ALARM_SET opcode (0xEA) should be in bytecode"
+    );
+    assert!(
+        result.pixels.contains(&0xEB),
+        "ALARM_CLR opcode (0xEB) should be in bytecode"
+    );
 }
 
 #[test]
@@ -28247,7 +29139,9 @@ fn test_tmr_get_alarm_set_end_to_end() {
 
     // Run setup + FRAME
     for _ in 0..30 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
 
     // Verify alarm was set
@@ -28265,7 +29159,10 @@ fn test_tmr_get_alarm_set_end_to_end() {
     vm.step();
 
     // Verify alarm fired and wrote to RAM
-    assert_eq!(vm.ram[0x500], 42, "Alarm should have written 42 to RAM[0x500]");
+    assert_eq!(
+        vm.ram[0x500], 42,
+        "Alarm should have written 42 to RAM[0x500]"
+    );
 }
 
 // ── lib_test_v4.asm: comprehensive library test suite ──────
@@ -28275,7 +29172,11 @@ fn test_lib_test_v4_assembles() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm")
         .expect("programs/lib_test_v4.asm should exist");
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib"));
-    assert!(result.is_ok(), "lib_test_v4.asm should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "lib_test_v4.asm should assemble: {:?}",
+        result.err()
+    );
 }
 
 #[test]
@@ -28286,7 +29187,7 @@ fn test_lib_test_v4_runs_all_pass() {
         .expect("lib_test_v4.asm should assemble");
     let mut vm = crate::vm::Vm::new();
     vm.regs[30] = 0xFF00; // SP
-    // Load bytecode
+                          // Load bytecode
     for (i, &word) in result.pixels.iter().enumerate() {
         vm.ram[i] = word;
     }
@@ -28305,12 +29206,26 @@ fn test_lib_test_v4_runs_all_pass() {
                 for i in (0..56).rev() {
                     let addr = 0x1F80 + i;
                     if vm.ram[addr] != 0 {
-                        eprintln!("  Last completed test: T{} (addr 0x{:04X}) = {}", i+1, addr, vm.ram[addr]);
+                        eprintln!(
+                            "  Last completed test: T{} (addr 0x{:04X}) = {}",
+                            i + 1,
+                            addr,
+                            vm.ram[addr]
+                        );
                         break;
                     }
                 }
-                eprintln!("  r0={}, r1={}, r9={}, r10={}, r11={}, r12={}, r14={}, SP={}", 
-                    vm.regs[0], vm.regs[1], vm.regs[9], vm.regs[10], vm.regs[11], vm.regs[12], vm.regs[14], vm.regs[30]);
+                eprintln!(
+                    "  r0={}, r1={}, r9={}, r10={}, r11={}, r12={}, r14={}, SP={}",
+                    vm.regs[0],
+                    vm.regs[1],
+                    vm.regs[9],
+                    vm.regs[10],
+                    vm.regs[11],
+                    vm.regs[12],
+                    vm.regs[14],
+                    vm.regs[30]
+                );
                 stuck_reported = true;
             }
         }
@@ -28334,7 +29249,13 @@ fn test_lib_test_v4_runs_all_pass() {
         // Debug: print actual values for failing tests
         for &i in &failures {
             let addr = 0x1F80 + i;
-            eprintln!("  test[{}] (T{}, addr 0x{:04X}): got {}", i, i+1, addr, vm.ram[addr]);
+            eprintln!(
+                "  test[{}] (T{}, addr 0x{:04X}): got {}",
+                i,
+                i + 1,
+                addr,
+                vm.ram[addr]
+            );
         }
         // Also print some key memory locations
         eprintln!("  RAM[0xC000] (heap ptr) = 0x{:08X}", vm.ram[0xC000]);
@@ -28355,41 +29276,53 @@ fn test_lib_test_v4_runs_all_pass() {
 
 #[test]
 fn test_draw_lib_assembles() {
-    let source = std::fs::read_to_string("lib/draw.asm")
-        .expect("lib/draw.asm should exist");
+    let source = std::fs::read_to_string("lib/draw.asm").expect("lib/draw.asm should exist");
     let result = crate::assembler::assemble(&source, 0);
-    assert!(result.is_ok(), "draw.asm should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "draw.asm should assemble: {:?}",
+        result.err()
+    );
 }
 
 #[test]
 fn test_input_lib_assembles() {
-    let source = std::fs::read_to_string("lib/input.asm")
-        .expect("lib/input.asm should exist");
+    let source = std::fs::read_to_string("lib/input.asm").expect("lib/input.asm should exist");
     let result = crate::assembler::assemble(&source, 0);
-    assert!(result.is_ok(), "input.asm should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "input.asm should assemble: {:?}",
+        result.err()
+    );
 }
 
 #[test]
 fn test_random_lib_assembles() {
-    let source = std::fs::read_to_string("lib/random.asm")
-        .expect("lib/random.asm should exist");
+    let source = std::fs::read_to_string("lib/random.asm").expect("lib/random.asm should exist");
     let result = crate::assembler::assemble(&source, 0);
-    assert!(result.is_ok(), "random.asm should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "random.asm should assemble: {:?}",
+        result.err()
+    );
 }
 
 #[test]
 fn test_gfx_lib_assembles() {
-    let source = std::fs::read_to_string("lib/gfx.asm")
-        .expect("lib/gfx.asm should exist");
+    let source = std::fs::read_to_string("lib/gfx.asm").expect("lib/gfx.asm should exist");
     let result = crate::assembler::assemble(&source, 0);
-    assert!(result.is_ok(), "gfx.asm should assemble: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "gfx.asm should assemble: {:?}",
+        result.err()
+    );
 }
 
 #[test]
 fn debug_trace_lib_test_v4() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     // Print key addresses from bytecode
     eprintln!("Bytecode length: {} words", result.pixels.len());
     // Print first few instructions at 0x1100 (tests_start)
@@ -28406,23 +29339,27 @@ fn debug_trace_lib_test_v4() {
     for i in 0x519..0x550 {
         eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
     }
-    
+
     // Now run and trace
     let mut vm = crate::vm::Vm::new();
     vm.regs[30] = 0xFF00;
     for (i, &word) in result.pixels.iter().enumerate() {
         vm.ram[i] = word;
     }
-    
+
     // Run 200 steps, printing PC and instruction
     for step in 0..200 {
-        if vm.halted { break; }
+        if vm.halted {
+            break;
+        }
         let pc = vm.pc;
         let opcode = vm.ram[pc as usize];
         let (disasm, _) = vm.disassemble_at(pc);
         if step < 30 || step > 100 {
-            eprintln!("  step {:3}: PC=0x{:04X} opcode=0x{:02X} {} r0={} r1={}", 
-                step, pc, opcode, disasm, vm.regs[0], vm.regs[1]);
+            eprintln!(
+                "  step {:3}: PC=0x{:04X} opcode=0x{:02X} {} r0={} r1={}",
+                step, pc, opcode, disasm, vm.regs[0], vm.regs[1]
+            );
         }
         vm.step();
     }
@@ -28432,29 +29369,37 @@ fn debug_trace_lib_test_v4() {
 fn dump_hotloop_area() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     // Run VM for 500K steps tracking writes to 0x1F80-0x1FB7
     let mut vm = crate::vm::Vm::new();
     vm.regs[30] = 0xFF00;
     for (i, &word) in result.pixels.iter().enumerate() {
         vm.ram[i] = word;
     }
-    
-    let mut write_log: std::collections::HashMap<u32, (u64, u32, u32)> = std::collections::HashMap::new(); // addr -> (step, value, pc)
+
+    let mut write_log: std::collections::HashMap<u32, (u64, u32, u32)> =
+        std::collections::HashMap::new(); // addr -> (step, value, pc)
     let mut write_count: u64 = 0;
-    
+
     for step in 0..500_000 {
-        if vm.halted { break; }
+        if vm.halted {
+            break;
+        }
         let pc = vm.pc;
         // Check if current instruction is STORE and target addr is in result area
         let opcode = vm.ram[pc as usize];
-        if opcode == 0x12 { // STORE
+        if opcode == 0x12 {
+            // STORE
             let addr_reg = vm.ram[(pc + 1) as usize];
             if addr_reg < 32 {
                 let target_addr = vm.regs[addr_reg as usize];
                 if target_addr >= 0x1F80 && target_addr <= 0x1FB7 {
                     let val_reg = vm.ram[(pc + 2) as usize];
-                    let val = if val_reg < 32 { vm.regs[val_reg as usize] } else { 0 };
+                    let val = if val_reg < 32 {
+                        vm.regs[val_reg as usize]
+                    } else {
+                        0
+                    };
                     write_log.insert(target_addr, (step, val, pc));
                     write_count += 1;
                 }
@@ -28462,20 +29407,32 @@ fn dump_hotloop_area() {
         }
         vm.step();
     }
-    
+
     eprintln!("Total writes to result area: {}", write_count);
     eprintln!("VM halted: {}", vm.halted);
     eprintln!("Final PC: 0x{:04X}", vm.pc);
-    
+
     // Print all test results
     for i in 0..56 {
         let addr = 0x1F80 + i;
         let val = vm.ram[addr];
         if let Some(&(step, wval, wpc)) = write_log.get(&(addr as u32)) {
-            eprintln!("  T{} (0x{:04X}): final={} written at step={} val={} from PC=0x{:04X}", 
-                i+1, addr, val, step, wval, wpc);
+            eprintln!(
+                "  T{} (0x{:04X}): final={} written at step={} val={} from PC=0x{:04X}",
+                i + 1,
+                addr,
+                val,
+                step,
+                wval,
+                wpc
+            );
         } else {
-            eprintln!("  T{} (0x{:04X}): final={} (never written)", i+1, addr, val);
+            eprintln!(
+                "  T{} (0x{:04X}): final={} (never written)",
+                i + 1,
+                addr,
+                val
+            );
         }
     }
 }
@@ -28484,58 +29441,67 @@ fn dump_hotloop_area() {
 fn trace_itoa_region() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     // Find itoa: PUSH r10 (0xE0 0x0A) followed by PUSH r11 (0xE0 0x0B) etc
     for i in 0x500..0x800 {
-        if result.pixels[i] == 0x0A && i > 0 && result.pixels[i-1] == 0xE0 {
-            if i+8 < result.pixels.len() 
-                && result.pixels[i+1] == 0x0B && result.pixels[i+2] == 0xE0
-                && result.pixels[i+3] == 0x0C && result.pixels[i+4] == 0xE0
-                && result.pixels[i+5] == 0x0D && result.pixels[i+6] == 0xE0
-                && result.pixels[i+7] == 0x0E {
-                eprintln!("itoa at 0x{:04X}", i-1);
-                for j in (i-1)..std::cmp::min(i+80, result.pixels.len()) {
+        if result.pixels[i] == 0x0A && i > 0 && result.pixels[i - 1] == 0xE0 {
+            if i + 8 < result.pixels.len()
+                && result.pixels[i + 1] == 0x0B
+                && result.pixels[i + 2] == 0xE0
+                && result.pixels[i + 3] == 0x0C
+                && result.pixels[i + 4] == 0xE0
+                && result.pixels[i + 5] == 0x0D
+                && result.pixels[i + 6] == 0xE0
+                && result.pixels[i + 7] == 0x0E
+            {
+                eprintln!("itoa at 0x{:04X}", i - 1);
+                for j in (i - 1)..std::cmp::min(i + 80, result.pixels.len()) {
                     eprintln!("  [0x{:04X}] = 0x{:08X}", j, result.pixels[j]);
                 }
             }
         }
     }
-    
+
     // Print what's at final PC 0x0E88
     eprintln!("\n--- At 0x0E80-0x0EA0 ---");
     for i in 0x0E80..std::cmp::min(0x0EA0, result.pixels.len()) {
         eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
     }
-    
+
     // Run and track PC hotspots
     let mut vm = crate::vm::Vm::new();
     vm.regs[30] = 0xFF00;
     for (i, &word) in result.pixels.iter().enumerate() {
         vm.ram[i] = word;
     }
-    
+
     let mut pc_counts = std::collections::HashMap::new();
     for _ in 0..500_000 {
-        if vm.halted { break; }
+        if vm.halted {
+            break;
+        }
         let pc = vm.pc;
         *pc_counts.entry(pc).or_insert(0u64) += 1;
         vm.step();
     }
-    
+
     eprintln!("\nTop 10 hot PCs:");
     let mut sorted: Vec<_> = pc_counts.into_iter().collect();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
     for (pc, count) in sorted.iter().take(10) {
         let opcode = vm.ram[*pc as usize];
-        eprintln!("  PC=0x{:04X}: {} visits, opcode=0x{:02X}", pc, count, opcode);
+        eprintln!(
+            "  PC=0x{:04X}: {} visits, opcode=0x{:02X}",
+            pc, count, opcode
+        );
     }
-    
+
     eprintln!("\nFinal: PC=0x{:04X} halted={}", vm.pc, vm.halted);
     for i in 0..56 {
         let addr = 0x1F80 + i;
         let val = vm.ram[addr];
         if val != 1 {
-            eprintln!("  T{} (0x{:04X}): FAIL val={}", i+1, addr, val);
+            eprintln!("  T{} (0x{:04X}): FAIL val={}", i + 1, addr, val);
         }
     }
 }
@@ -28544,19 +29510,19 @@ fn trace_itoa_region() {
 fn dump_rng_bytecode() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     // Dump around the rng area (0x0E00-0x0F00)
     eprintln!("--- Bytecode 0x0E00-0x0F50 ---");
     for i in 0x0E00..std::cmp::min(0x0F50, result.pixels.len()) {
         eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
     }
-    
+
     // Also dump around T48 test area (0x1500-0x1600)
     eprintln!("\n--- Bytecode 0x1500-0x1600 ---");
     for i in 0x1500..std::cmp::min(0x1600, result.pixels.len()) {
         eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
     }
-    
+
     // Also check what's at 0xFC0 (PRNG_SEED location)
     eprintln!("\n--- Bytecode 0x0FB0-0x0FD0 ---");
     for i in 0x0FB0..std::cmp::min(0x0FD0, result.pixels.len()) {
@@ -28568,45 +29534,50 @@ fn dump_rng_bytecode() {
 fn trace_rng_calls() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     let mut vm = crate::vm::Vm::new();
     vm.regs[30] = 0xFF00;
     for (i, &word) in result.pixels.iter().enumerate() {
         vm.ram[i] = word;
     }
-    
+
     // Find _rng_ensure_init: LDI r9, PRNG_INIT (0x10 0x09 0xFC4)
     let mut ensure_init_addr = 0u32;
     for i in 0x500..0xF00 {
         if i + 2 < result.pixels.len()
             && result.pixels[i] == 0x10
-            && result.pixels[i+1] == 0x09
-            && result.pixels[i+2] == 0xFC4
+            && result.pixels[i + 1] == 0x09
+            && result.pixels[i + 2] == 0xFC4
         {
             ensure_init_addr = i as u32;
             break;
         }
     }
-    
+
     // Find rng_next: CALL to _rng_ensure_init (0x33 <addr>)
     let mut rng_next_addr = 0u32;
     for i in 0x500..0xF00 {
         if i + 1 < result.pixels.len()
             && result.pixels[i] == 0x33
-            && result.pixels[i+1] == ensure_init_addr
+            && result.pixels[i + 1] == ensure_init_addr
         {
             rng_next_addr = i as u32;
             break;
         }
     }
-    
-    eprintln!("_rng_ensure_init=0x{:04X}, rng_next=0x{:04X}", ensure_init_addr, rng_next_addr);
-    
+
+    eprintln!(
+        "_rng_ensure_init=0x{:04X}, rng_next=0x{:04X}",
+        ensure_init_addr, rng_next_addr
+    );
+
     let mut call_count = 0u64;
     let mut callers = std::collections::HashMap::new();
-    
+
     for _ in 0..500_000 {
-        if vm.halted { break; }
+        if vm.halted {
+            break;
+        }
         let pc = vm.pc;
         if pc == rng_next_addr {
             call_count += 1;
@@ -28614,12 +29585,15 @@ fn trace_rng_calls() {
             let return_addr = vm.ram[sp as usize];
             *callers.entry(return_addr).or_insert(0u64) += 1;
             if call_count <= 5 || call_count % 5000 == 0 {
-                eprintln!("rng_next #{} from return=0x{:04X} SP=0x{:04X}", call_count, return_addr, sp);
+                eprintln!(
+                    "rng_next #{} from return=0x{:04X} SP=0x{:04X}",
+                    call_count, return_addr, sp
+                );
             }
         }
         vm.step();
     }
-    
+
     eprintln!("\nTotal rng_next calls: {}", call_count);
     let mut sorted: Vec<_> = callers.into_iter().collect();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -28632,35 +29606,39 @@ fn trace_rng_calls() {
 fn trace_rng_entry() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     let mut vm = crate::vm::Vm::new();
     vm.regs[30] = 0xFF00;
     for (i, &word) in result.pixels.iter().enumerate() {
         vm.ram[i] = word;
     }
-    
+
     // The rng_next body starts at 0x0E58 (LDI r9, PRNG_SEED)
     // Track what PC comes BEFORE 0x0E58
     let body_entry = 0x0E58u32;
     let mut entry_count = 0u64;
     let mut prev_pcs = std::collections::HashMap::new();
     let mut prev_pc = 0u32;
-    
+
     for step in 0..500_000 {
-        if vm.halted { break; }
+        if vm.halted {
+            break;
+        }
         let pc = vm.pc;
         if pc == body_entry && step > 0 {
             entry_count += 1;
             *prev_pcs.entry(prev_pc).or_insert(0u64) += 1;
             if entry_count <= 5 || entry_count % 5000 == 0 {
-                eprintln!("entry #{} at step {}, prev_pc=0x{:04X}, r0={}, r9={}", 
-                    entry_count, step, prev_pc, vm.regs[0], vm.regs[9]);
+                eprintln!(
+                    "entry #{} at step {}, prev_pc=0x{:04X}, r0={}, r9={}",
+                    entry_count, step, prev_pc, vm.regs[0], vm.regs[9]
+                );
             }
         }
         prev_pc = pc;
         vm.step();
     }
-    
+
     eprintln!("\nTotal entries to rng body: {}", entry_count);
     let mut sorted: Vec<_> = prev_pcs.into_iter().collect();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -28673,12 +29651,12 @@ fn trace_rng_entry() {
 fn dump_rng_area() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     eprintln!("--- rng_next area (0x0E50-0x0E90) ---");
     for i in 0x0E50..0x0E90 {
         eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
     }
-    
+
     // Also check what addresses the test code uses for CALL rng_next
     // T47: LDI r1, 42 / CALL rng_init / CALL rng_next
     // Find rng_init: LDI r9, PRNG_INIT
@@ -28686,26 +29664,26 @@ fn dump_rng_area() {
     for i in 0x500..0xF00 {
         if i + 2 < result.pixels.len()
             && result.pixels[i] == 0x10
-            && result.pixels[i+1] == 0x09
-            && result.pixels[i+2] == 0xFC4
+            && result.pixels[i + 1] == 0x09
+            && result.pixels[i + 2] == 0xFC4
         {
             rng_init_addr = i as u32;
             eprintln!("rng_init at 0x{:04X}", rng_init_addr);
             break;
         }
     }
-    
+
     // Find all CALL instructions that target rng_next (0x0E53) or rng_init
     eprintln!("\n--- CALL targets ---");
     for i in 0x1100..0x1200 {
         if result.pixels[i] == 0x33 {
-            let target = result.pixels[i+1];
+            let target = result.pixels[i + 1];
             if target == 0x0E53 || target == rng_init_addr {
                 eprintln!("  CALL at 0x{:04X} -> 0x{:04X}", i, target);
             }
         }
     }
-    
+
     // Check how many registers the VM has
     eprintln!("\nNUM_REGS = {}", crate::vm::NUM_REGS);
 }
@@ -28714,7 +29692,7 @@ fn dump_rng_area() {
 fn dump_ensure_init() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     eprintln!("--- _rng_ensure_init (0x0E10-0x0E57) ---");
     for i in 0x0E10..0x0E57 {
         eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
@@ -28725,39 +29703,49 @@ fn dump_ensure_init() {
 fn trace_test_progression() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     let mut vm = crate::vm::Vm::new();
     vm.regs[30] = 0xFF00;
     for (i, &word) in result.pixels.iter().enumerate() {
         vm.ram[i] = word;
     }
-    
+
     // Track when each test slot gets written
     let mut test_write_steps = [0u64; 56];
     let mut prev_vals = [0u32; 56];
-    
+
     // Track when we first enter 0x0E47+ area (random lib)
     let mut first_random_entry = None;
-    
+
     for step in 0..500_000u64 {
-        if vm.halted { break; }
+        if vm.halted {
+            break;
+        }
         let pc = vm.pc;
-        
+
         // Detect entry to random library
         if pc >= 0x0E47 && pc <= 0x0E90 && first_random_entry.is_none() && step > 100 {
             first_random_entry = Some(step);
             eprintln!("First random lib entry at step {}, PC=0x{:04X}", step, pc);
-            eprintln!("  r31=0x{:04X} SP=0x{:04X} r0={} r1={}", vm.regs[31], vm.regs[30], vm.regs[0], vm.regs[1]);
+            eprintln!(
+                "  r31=0x{:04X} SP=0x{:04X} r0={} r1={}",
+                vm.regs[31], vm.regs[30], vm.regs[0], vm.regs[1]
+            );
             // Print last few test writes
             for i in 0..56 {
                 if test_write_steps[i] > 0 {
-                    eprintln!("  T{} written at step {} val={}", i+1, test_write_steps[i], vm.ram[0x1F80+i]);
+                    eprintln!(
+                        "  T{} written at step {} val={}",
+                        i + 1,
+                        test_write_steps[i],
+                        vm.ram[0x1F80 + i]
+                    );
                 }
             }
         }
-        
+
         vm.step();
-        
+
         // Check test slots
         for i in 0..56 {
             let val = vm.ram[0x1F80 + i];
@@ -28767,17 +29755,17 @@ fn trace_test_progression() {
             }
         }
     }
-    
+
     eprintln!("\nTest write steps:");
     for i in 0..56 {
         let val = vm.ram[0x1F80 + i];
         if test_write_steps[i] > 0 {
-            eprintln!("  T{}: step {} val={}", i+1, test_write_steps[i], val);
+            eprintln!("  T{}: step {} val={}", i + 1, test_write_steps[i], val);
         } else {
-            eprintln!("  T{}: NEVER WRITTEN val={}", i+1, val);
+            eprintln!("  T{}: NEVER WRITTEN val={}", i + 1, val);
         }
     }
-    
+
     if let Some(s) = first_random_entry {
         eprintln!("\nRandom lib first entered at step {}", s);
     }
@@ -28787,19 +29775,24 @@ fn trace_test_progression() {
 fn dump_itoa_area() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     // Find itoa: PUSH r10 (0xE0 0x0A) followed by PUSH r11 (0xE0 0x0B) etc
     for i in 0x500..0x800 {
         if i + 8 < result.pixels.len()
-            && result.pixels[i] == 0x0A && i > 0 && result.pixels[i-1] == 0xE0
-            && result.pixels[i+1] == 0x0B && result.pixels[i+2] == 0xE0
-            && result.pixels[i+3] == 0x0C && result.pixels[i+4] == 0xE0
-            && result.pixels[i+5] == 0x0D && result.pixels[i+6] == 0xE0
-            && result.pixels[i+7] == 0x0E
+            && result.pixels[i] == 0x0A
+            && i > 0
+            && result.pixels[i - 1] == 0xE0
+            && result.pixels[i + 1] == 0x0B
+            && result.pixels[i + 2] == 0xE0
+            && result.pixels[i + 3] == 0x0C
+            && result.pixels[i + 4] == 0xE0
+            && result.pixels[i + 5] == 0x0D
+            && result.pixels[i + 6] == 0xE0
+            && result.pixels[i + 7] == 0x0E
         {
-            eprintln!("itoa at 0x{:04X}", i-1);
+            eprintln!("itoa at 0x{:04X}", i - 1);
             // Print itoa function (about 80 instructions)
-            for j in (i-1)..std::cmp::min(i+80, result.pixels.len()) {
+            for j in (i - 1)..std::cmp::min(i + 80, result.pixels.len()) {
                 let b = result.pixels[j];
                 let desc = match b {
                     0x10 => "LDI",
@@ -28830,7 +29823,7 @@ fn dump_itoa_area() {
             break;
         }
     }
-    
+
     // Also dump test code around T9 (after T8 at ~0x1150)
     eprintln!("\n--- Test code around T9 (0x1140-0x1180) ---");
     for i in 0x1140..0x1180 {
@@ -28842,13 +29835,13 @@ fn dump_itoa_area() {
 fn dump_test_harness_start() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     // Dump first 64 words to see test harness start
     eprintln!("--- Test harness start (0x0000-0x0040) ---");
     for i in 0..0x40 {
         eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
     }
-    
+
     // Find _pass and _fail by looking for the write-to-slot pattern
     // _pass writes 1 to address in r9, _fail writes 0
     // Pattern: LDI r0, 1 / STORE r9, 0 / RET
@@ -28859,7 +29852,8 @@ fn dump_test_harness_start() {
             && result.pixels[i+3] == 0x12  // STORE
             && result.pixels[i+4] == 9  // r9
             && result.pixels[i+5] == 0  // offset 0
-            && result.pixels[i+6] == 0x34  // RET
+            && result.pixels[i+6] == 0x34
+        // RET
         {
             eprintln!("_pass found at 0x{:04X}", i);
         }
@@ -28869,7 +29863,8 @@ fn dump_test_harness_start() {
             && result.pixels[i+3] == 0x12  // STORE
             && result.pixels[i+4] == 9  // r9
             && result.pixels[i+5] == 0  // offset 0
-            && result.pixels[i+6] == 0x34  // RET
+            && result.pixels[i+6] == 0x34
+        // RET
         {
             eprintln!("_fail found at 0x{:04X}", i);
         }
@@ -28880,7 +29875,7 @@ fn dump_test_harness_start() {
 fn trace_t9_execution() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
-    
+
     let mut vm = crate::vm::Vm::new();
     for (i, &word) in result.pixels.iter().enumerate() {
         vm.ram[i] = word;
@@ -28888,20 +29883,20 @@ fn trace_t9_execution() {
     vm.pc = 0;
     vm.regs[30] = 0xFF00; // SP
     vm.regs[31] = 0; // LR
-    
+
     // Watch for when r9 gets set to 0x1F87 (T8 slot) and then 0x1F88 (T9 slot)
     let mut last_r9 = 0xFFFFFFFFu32;
     let mut t8_found = false;
     let mut step = 0u64;
     let max_steps = 2000u64;
-    
+
     while step < max_steps && !vm.halted {
         let pc = vm.pc;
         let prev_r9 = vm.regs[9];
-        
+
         vm.step();
         step += 1;
-        
+
         // Detect when r9 changes
         if vm.regs[9] != prev_r9 {
             if vm.regs[9] == 0x1F87 {
@@ -28912,17 +29907,19 @@ fn trace_t9_execution() {
                 eprintln!("Step {}: r9 set to 0x1F88 (T9 slot), PC was {}", step, pc);
             }
         }
-        
+
         // After T8 found, trace execution
         if t8_found && step < 800 {
             let opcode_word = result.pixels[pc as usize];
-            eprintln!("Step {}: PC=0x{:04X} opcode=0x{:02X} r0={} r1={} r31=0x{:04X}", 
-                step, pc, opcode_word, vm.regs[0], vm.regs[1], vm.regs[31]);
+            eprintln!(
+                "Step {}: PC=0x{:04X} opcode=0x{:02X} r0={} r1={} r31=0x{:04X}",
+                step, pc, opcode_word, vm.regs[0], vm.regs[1], vm.regs[31]
+            );
         }
     }
-    
+
     eprintln!("VM halted={}, steps={}", vm.halted, step);
-    
+
     // Check T9 slot
     eprintln!("T8 (0x1F87) = {}", vm.ram[0x1F87]);
     eprintln!("T9 (0x1F88) = {}", vm.ram[0x1F88]);

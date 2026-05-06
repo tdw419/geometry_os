@@ -6,14 +6,16 @@ use std::fs;
 
 fn main() {
     let source = fs::read_to_string("programs/lib_test.asm").expect("read test");
-    let result = geometry_os::assembler::assemble_with_lib(&source, 0, Some("."))
-        .expect("assemble failed");
+    let result =
+        geometry_os::assembler::assemble_with_lib(&source, 0, Some(".")).expect("assemble failed");
 
     println!("Assembled {} words", result.pixels.len());
 
     let mut vm = geometry_os::vm::Vm::new();
     for (i, &word) in result.pixels.iter().enumerate() {
-        if i >= 4096 { break; }
+        if i >= 4096 {
+            break;
+        }
         vm.ram[i] = word;
     }
     vm.pc = 0;
@@ -21,7 +23,9 @@ fn main() {
 
     let mut steps = 0;
     for _ in 0..100_000 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
         steps += 1;
     }
 
@@ -29,7 +33,7 @@ fn main() {
 
     // lib_test.asm stores results at 0xF80+i (T1=0xF80, T2=0xF81, ...)
     let test_names = [
-        "strlen(\"Hello\")==5",         // T1  0xF80
+        "strlen(\"Hello\")==5",          // T1  0xF80
         "strlen(\"\")==0",               // T2  0xF81
         "strcpy+strlen",                 // T3  0xF82
         "strcmp equal",                  // T4  0xF83

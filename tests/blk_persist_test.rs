@@ -31,7 +31,10 @@ fn blk_persist_roundtrip() {
     // --- Phase 1: Write data ---
     let elf_path = "examples/riscv-hello/blk_test.elf";
     if !Path::new(elf_path).exists() {
-        eprintln!("Skipping blk_persist_test: {} not found (run build.sh first)", elf_path);
+        eprintln!(
+            "Skipping blk_persist_test: {} not found (run build.sh first)",
+            elf_path
+        );
         return;
     }
 
@@ -52,7 +55,8 @@ fn blk_persist_roundtrip() {
     // Verify session 1 worked
     assert!(
         console_contains(&vm1.bus.sbi.console_output, "PASS"),
-        "Session 1 should report PASS. Console:\n{}", console1
+        "Session 1 should report PASS. Console:\n{}",
+        console1
     );
 
     // Save the disk image
@@ -96,7 +100,8 @@ fn blk_persist_roundtrip() {
     // Session 2 should also PASS because it reads the persisted data
     assert!(
         console_contains(&vm2.bus.sbi.console_output, "PASS"),
-        "Session 2 should report PASS (data persisted). Console:\n{}", console2
+        "Session 2 should report PASS (data persisted). Console:\n{}",
+        console2
     );
 
     // Clean up

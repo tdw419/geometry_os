@@ -2817,9 +2817,8 @@ phases:
       title: Implement SPRITEANIM opcode (0xEC)
       description: SPRITEANIM sheet_id, x_reg, y_reg. Uses registered sprite sheet
         from SPRLOAD (0xE5). Blits current frame then auto-advances frame counter
-        with wrap-around. Opcode 0xEC (0xCB was already taken by MOUSECLICK). 3
-        arguments (sheet_id immediate + 2 register args). Reuses existing SPRANIM
-        blit logic.
+        with wrap-around. Opcode 0xEC (0xCB was already taken by MOUSECLICK). 3 arguments
+        (sheet_id immediate + 2 register args). Reuses existing SPRANIM blit logic.
       scope_files:
       - src/vm/mod.rs
       - src/assembler/graphics_ops.rs

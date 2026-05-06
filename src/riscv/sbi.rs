@@ -404,9 +404,8 @@ impl Sbi {
                     let max_steps = _a2;
                     let num_tiles = _a3;
                     let result_addr = (_a4 as u64) | ((_a5 as u64) << 32);
-                    self.gpu_compute_requested = Some((
-                        code_addr, num_words, max_steps, num_tiles, result_addr,
-                    ));
+                    self.gpu_compute_requested =
+                        Some((code_addr, num_words, max_steps, num_tiles, result_addr));
                     Some((SBI_SUCCESS as u32, 0))
                 }
                 _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
@@ -716,20 +715,22 @@ mod tests {
         // a3=num_tiles, a4=low(result_addr), a5=high(result_addr)
         let r = sbi.handle_ecall(
             SBI_EXT_GEOMETRY,
-            5, // GEO_FN_GPU_COMPUTE
+            5,              // GEO_FN_GPU_COMPUTE
             0x8000_1000u32, // code_addr (low 32 bits)
-            16,  // num_words
-            1000, // max_steps
-            4,    // num_tiles
-            0x2000u32, // result_addr low
-            0x8000u32, // result_addr high
+            16,             // num_words
+            1000,           // max_steps
+            4,              // num_tiles
+            0x2000u32,      // result_addr low
+            0x8000u32,      // result_addr high
             &mut uart,
             &mut clint,
         );
         assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
 
         // Check that gpu_compute_requested was set
-        let req = sbi.gpu_compute_requested.expect("GPU compute should be pending");
+        let req = sbi
+            .gpu_compute_requested
+            .expect("GPU compute should be pending");
         assert_eq!(req.0, 0x8000_1000u64); // code_addr
         assert_eq!(req.1, 16); // num_words
         assert_eq!(req.2, 1000); // max_steps
@@ -748,7 +749,11 @@ mod tests {
             SBI_EXT_BASE,
             3, // PROBE_EXTENSION
             SBI_EXT_GEOMETRY,
-            0, 0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0,
+            0,
             &mut uart,
             &mut clint,
         );

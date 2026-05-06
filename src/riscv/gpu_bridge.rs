@@ -116,12 +116,7 @@ impl GpuBridge {
     /// `read_fn(phys_addr) -> u32` -- read a u32 from guest physical memory.
     /// `write_fn(phys_addr, val)` -- write a u32 to guest physical memory.
     #[allow(unused_variables)]
-    pub fn execute<R, W>(
-        &mut self,
-        req: &GpuComputeRequest,
-        read_fn: R,
-        write_fn: W,
-    ) -> u32
+    pub fn execute<R, W>(&mut self, req: &GpuComputeRequest, read_fn: R, write_fn: W) -> u32
     where
         R: Fn(u64) -> u32,
         W: Fn(u64, u32),
@@ -173,12 +168,7 @@ impl GpuBridge {
 
     /// Actual GPU execution path (only compiled with --features gpu).
     #[cfg(feature = "gpu")]
-    fn execute_gpu<R, W>(
-        &mut self,
-        req: &GpuComputeRequest,
-        read_fn: R,
-        write_fn: W,
-    ) -> u32
+    fn execute_gpu<R, W>(&mut self, req: &GpuComputeRequest, read_fn: R, write_fn: W) -> u32
     where
         R: Fn(u64) -> u32,
         W: Fn(u64, u32),
@@ -218,7 +208,7 @@ impl GpuBridge {
         write_fn(req.result_addr + 8, pc); // [2] final PC
         write_fn(req.result_addr + 12, inst_count); // [3] instruction count
         write_fn(req.result_addr + 16, status); // [4] status flags
-        // [5..12] first tile's registers x1..x7
+                                                // [5..12] first tile's registers x1..x7
         for i in 0..7 {
             write_fn(req.result_addr + 20 + (i as u64) * 4, tile_data[i + 1]);
         }

@@ -224,9 +224,7 @@ impl GuestSockets {
     /// Check if a fd is an active socket connection.
     #[allow(dead_code)]
     pub fn is_socket(&self, fd: i32) -> bool {
-        fd >= 0
-            && (fd as usize) < MAX_GUEST_SOCKETS
-            && self.connections[fd as usize].is_some()
+        fd >= 0 && (fd as usize) < MAX_GUEST_SOCKETS && self.connections[fd as usize].is_some()
     }
 
     /// Get the number of active connections (for testing).
@@ -316,7 +314,12 @@ mod tests {
 
     /// Helper: read a u32 from a byte slice at byte offset.
     fn read_u32_at(data: &[u8], offset: usize) -> u32 {
-        u32::from_le_bytes([data[offset], data[offset + 1], data[offset + 2], data[offset + 3]])
+        u32::from_le_bytes([
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+        ])
     }
 
     /// Helper: create an echo server and return its port.
@@ -398,7 +401,9 @@ mod tests {
         ram.borrow_mut()[0x102] = 0x7F000001; // 127.0.0.1 in big-endian = already correct for u32 BE
 
         let read_mem = |addr: u64| -> u32 { ram.borrow()[addr as usize] };
-        let write_mem = |addr: u64, val: u32| { ram.borrow_mut()[addr as usize] = val; };
+        let write_mem = |addr: u64, val: u32| {
+            ram.borrow_mut()[addr as usize] = val;
+        };
 
         // connect()
         let ret = sockets.sys_connect(fd, 0x100, 16, &read_mem);
@@ -416,7 +421,11 @@ mod tests {
 
         // recvfrom()
         let received = sockets.sys_recvfrom(fd, 0x300, 100, 0, &write_mem);
-        assert!(received > 0, "recvfrom() should receive bytes, got {}", received);
+        assert!(
+            received > 0,
+            "recvfrom() should receive bytes, got {}",
+            received
+        );
 
         // Verify echoed data
         for i in 0..received as usize {

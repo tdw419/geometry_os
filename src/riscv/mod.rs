@@ -30,10 +30,10 @@ pub mod memory;
 pub mod mmu;
 pub mod plic;
 pub mod sbi;
+pub mod socket;
 pub mod syscall;
 pub mod trace;
 pub mod uart;
-pub mod socket;
 pub mod vfs_surface;
 pub mod virtio_blk;
 
@@ -194,8 +194,7 @@ impl RiscvVm {
             // SAFETY: We need split borrows -- gpu_bridge.execute calls read_fn/write_fn
             // which access bus.mem, while gpu_bridge is a separate field.
             let result_code = unsafe {
-                let gpu_bridge =
-                    &mut *(&mut self.gpu_bridge as *mut gpu_bridge::GpuBridge);
+                let gpu_bridge = &mut *(&mut self.gpu_bridge as *mut gpu_bridge::GpuBridge);
                 gpu_bridge.execute(
                     &req,
                     |addr| (*bus_ptr).mem.read_word(addr).unwrap_or(0),

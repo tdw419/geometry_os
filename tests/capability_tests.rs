@@ -180,7 +180,7 @@ fn test_spawnc_creates_process_with_capabilities() {
         vmas: Vec::new(),
         brk_pos: 0,
         custom_font: None,
-    font_mode: 0,
+        font_mode: 0,
         capabilities: caps.clone(),
         data_base: 0,
     });
@@ -219,7 +219,7 @@ fn test_spawnc_no_capabilities_is_none() {
         signal_handlers: [0; 4],
         vmas: Vec::new(),
         brk_pos: 0,
-    font_mode: 0,
+        font_mode: 0,
         custom_font: None,
         capabilities: None,
         data_base: 0,
@@ -1055,44 +1055,67 @@ fn test_tetris_glyph_execution() {
 #[ignore]
 fn test_focus_debug_cmd() {
     let mut vm = load_ai_terminal();
-    
+
     // Check bytecode size
     let mut bc_size = 0;
     for i in 0..vm.ram.len() {
-        if vm.ram[i] != 0 { bc_size = i + 1; }
+        if vm.ram[i] != 0 {
+            bc_size = i + 1;
+        }
     }
-    eprintln!("Bytecode extends to address: 0x{:X} ({} words)", bc_size, bc_size);
+    eprintln!(
+        "Bytecode extends to address: 0x{:X} ({} words)",
+        bc_size, bc_size
+    );
     eprintln!("RAM[0x7820] initial (before run) = 0x{:X}", vm.ram[0x7820]);
     if bc_size > 0x7820 {
-        eprintln!("WARNING: bytecode OVERWRITES RAM[0x7820]! addr 0x7820 = 0x{:X}", vm.ram[0x7820]);
+        eprintln!(
+            "WARNING: bytecode OVERWRITES RAM[0x7820]! addr 0x7820 = 0x{:X}",
+            vm.ram[0x7820]
+        );
     }
     // Run 1M cycles to get past init
     for _ in 0..1_000_000 {
-        if vm.halted { break; }
+        if vm.halted {
+            break;
+        }
         vm.step();
     }
-    
+
     eprintln!("After 1M cycles (halted={}):", vm.halted);
     eprintln!("  RAM[0x7820] = 0x{:X} (expected 1)", vm.ram[0x7820]);
     eprintln!("  RAM[0x7821] = 0x{:X} (expected 0)", vm.ram[0x7821]);
     eprintln!("  PC = 0x{:X}", vm.pc);
     eprintln!("  segfault = {}", vm.segfault);
-    
+
     // Now inject /focus 0x40\r
-    for &key in &[b'/' as u32, b'f' as u32, b'o' as u32, b'c' as u32,
-                   b'u' as u32, b's' as u32, b' ' as u32,
-                   b'0' as u32, b'x' as u32, b'4' as u32, b'0' as u32, 13] {
+    for &key in &[
+        b'/' as u32,
+        b'f' as u32,
+        b'o' as u32,
+        b'c' as u32,
+        b'u' as u32,
+        b's' as u32,
+        b' ' as u32,
+        b'0' as u32,
+        b'x' as u32,
+        b'4' as u32,
+        b'0' as u32,
+        13,
+    ] {
         vm.push_key(key);
         for _ in 0..200_000 {
-            if vm.halted { break; }
+            if vm.halted {
+                break;
+            }
             vm.step();
         }
     }
-    
+
     eprintln!("After /focus 0x40:");
     eprintln!("  RAM[0x7820] = 0x{:X}", vm.ram[0x7820]);
     eprintln!("  RAM[0x7821] = 0x{:X} (expected 0x40)", vm.ram[0x7821]);
-    
+
     // Dump SCRATCH area
     eprintln!("  SCRATCH contents:");
     for i in 0..20 {
@@ -1100,7 +1123,7 @@ fn test_focus_debug_cmd() {
         let c = if v < 128 { v as u8 as char } else { '?' };
         eprintln!("    SCRATCH[{}] = 0x{:X} ('{}')", i, v, c);
     }
-    
+
     // Also dump the text buffer row where input should be
     let cols = 42u32;
     for row in 0..5 {

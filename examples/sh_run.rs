@@ -4,8 +4,8 @@
 // Build:  cd examples/riscv-hello && ./build.sh sh.c sh.elf
 // Run:    cargo run --release --example sh_run
 
-use geometry_os::riscv::RiscvVm;
 use geometry_os::riscv::bridge::UartBridge;
+use geometry_os::riscv::RiscvVm;
 
 /// Boot a fresh shell, feed input bytes, run for N steps, collect output.
 fn run_shell_with_input(elf_data: &[u8], input: &[u8], max_steps: u64) -> String {
@@ -181,7 +181,11 @@ fn main() {
     }
 
     // Test 16: VFS -- vtouch duplicate
-    let out = run_shell_with_input(&elf_data, b"vtouch test\rvtouch test\rshutdown\r", 10_000_000);
+    let out = run_shell_with_input(
+        &elf_data,
+        b"vtouch test\rvtouch test\rshutdown\r",
+        10_000_000,
+    );
     print_output("Test 16: vtouch duplicate", &out);
     if out.contains("already exists") {
         passed += 1;

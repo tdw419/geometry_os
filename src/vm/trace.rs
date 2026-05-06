@@ -37,7 +37,6 @@ pub struct TraceEntry {
     pub opcode: u32,
 }
 
-
 // --- Render Log: High-Level Graphics Operation History ---
 
 /// A single high-level graphics operation recorded by the render log.
@@ -64,7 +63,13 @@ impl RenderLog {
         let capacity = capacity.max(1);
         RenderLog {
             entries: vec![
-                RenderLogEntry { frame: 0, opcode: 0, name: "", args: [0; 6], argc: 0 };
+                RenderLogEntry {
+                    frame: 0,
+                    opcode: 0,
+                    name: "",
+                    args: [0; 6],
+                    argc: 0
+                };
                 capacity
             ],
             capacity,
@@ -89,8 +94,12 @@ impl RenderLog {
         }
     }
 
-    pub fn len(&self) -> usize { self.len }
-    pub fn is_empty(&self) -> bool { self.len == 0 }
+    pub fn len(&self) -> usize {
+        self.len
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 
     pub fn clear(&mut self) {
         self.head = 0;
@@ -98,8 +107,16 @@ impl RenderLog {
     }
 
     pub fn iter(&self) -> RenderLogIter<'_> {
-        let start = if self.len < self.capacity { 0 } else { self.head };
-        RenderLogIter { log: self, pos: 0, start }
+        let start = if self.len < self.capacity {
+            0
+        } else {
+            self.head
+        };
+        RenderLogIter {
+            log: self,
+            pos: 0,
+            start,
+        }
     }
 }
 
@@ -112,7 +129,9 @@ pub struct RenderLogIter<'a> {
 impl<'a> Iterator for RenderLogIter<'a> {
     type Item = &'a RenderLogEntry;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.pos >= self.log.len { return None; }
+        if self.pos >= self.log.len {
+            return None;
+        }
         let idx = (self.start + self.pos) % self.log.capacity;
         self.pos += 1;
         Some(&self.log.entries[idx])
@@ -138,12 +157,15 @@ impl TraceBuffer {
     pub fn new(capacity: usize) -> Self {
         let capacity = capacity.max(1);
         TraceBuffer {
-            entries: vec![TraceEntry {
-                step_number: 0,
-                pc: 0,
-                regs: [0; 16],
-                opcode: 0,
-            }; capacity],
+            entries: vec![
+                TraceEntry {
+                    step_number: 0,
+                    pc: 0,
+                    regs: [0; 16],
+                    opcode: 0,
+                };
+                capacity
+            ],
             capacity,
             head: 0,
             len: 0,
@@ -537,14 +559,17 @@ impl PixelWriteLog {
     pub fn new(capacity: usize) -> Self {
         let capacity = capacity.max(1);
         PixelWriteLog {
-            entries: vec![PixelWriteEntry {
-                x: 0,
-                y: 0,
-                step_lo: 0,
-                step_hi: 0,
-                opcode: 0,
-                color: 0,
-            }; capacity],
+            entries: vec![
+                PixelWriteEntry {
+                    x: 0,
+                    y: 0,
+                    step_lo: 0,
+                    step_hi: 0,
+                    opcode: 0,
+                    color: 0,
+                };
+                capacity
+            ],
             capacity,
             head: 0,
             len: 0,

@@ -42,7 +42,7 @@ fn main() {
     let mut nonzero_count = 0u32;
     let mut colors: HashSet<u32> = HashSet::new();
     let mut alive_pixels = 0u32; // green channel > 100 (alive cells)
-    let mut dark_pixels = 0u32;  // non-zero but not alive (grid/bg)
+    let mut dark_pixels = 0u32; // non-zero but not alive (grid/bg)
     let mut black_pixels = 0u32; // zero (unwritten)
 
     for &pixel in &fb.pixels {
@@ -61,7 +61,10 @@ fn main() {
         }
     }
 
-    eprintln!("\nFramebuffer analysis (256x256 = {} pixels):", total_pixels);
+    eprintln!(
+        "\nFramebuffer analysis (256x256 = {} pixels):",
+        total_pixels
+    );
     eprintln!("  Non-zero pixels: {}", nonzero_count);
     eprintln!("  Black (unwritten): {}", black_pixels);
     eprintln!("  Alive (g>100): {}", alive_pixels);
@@ -73,10 +76,7 @@ fn main() {
 
     // Check 1: Screen has content (not all black)
     if nonzero_count > 50000 {
-        eprintln!(
-            "  [PASS] Non-zero pixels > 50000 ({})",
-            nonzero_count
-        );
+        eprintln!("  [PASS] Non-zero pixels > 50000 ({})", nonzero_count);
     } else {
         eprintln!(
             "  [FAIL] Non-zero pixels too low: {} (expected > 50000)",
@@ -87,10 +87,7 @@ fn main() {
 
     // Check 2: Alive cells are present
     if alive_pixels > 50 {
-        eprintln!(
-            "  [PASS] Alive cells (g>100) > 50 ({})",
-            alive_pixels
-        );
+        eprintln!("  [PASS] Alive cells (g>100) > 50 ({})", alive_pixels);
     } else {
         eprintln!(
             "  [FAIL] Alive cells too few: {} (expected > 50)",
@@ -131,7 +128,11 @@ fn main() {
     );
 
     let max_quad = *quad_alive.iter().max().unwrap();
-    let min_quad = *quad_alive.iter().filter(|&&x| x > 0).min().unwrap_or(&max_quad);
+    let min_quad = *quad_alive
+        .iter()
+        .filter(|&&x| x > 0)
+        .min()
+        .unwrap_or(&max_quad);
     if max_quad > 0 && (max_quad > min_quad * 2 || min_quad == 0) {
         eprintln!(
             "  [PASS] Spatial pattern: non-uniform distribution (max={}, min={})",

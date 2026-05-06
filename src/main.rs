@@ -2281,10 +2281,17 @@ fn main() {
                                         let r = (c >> 16) & 0xFF;
                                         let g = (c >> 8) & 0xFF;
                                         let b = c & 0xFF;
-                                        response.push_str(&format!("{:06X} r={} g={} b={}\n", c & 0xFFFFFF, r, g, b));
+                                        response.push_str(&format!(
+                                            "{:06X} r={} g={} b={}\n",
+                                            c & 0xFFFFFF,
+                                            r,
+                                            g,
+                                            b
+                                        ));
                                     }
                                     (Some(_), Some(_)) => {
-                                        response.push_str("[error: out of range, screen is 256x256]\n");
+                                        response
+                                            .push_str("[error: out of range, screen is 256x256]\n");
                                     }
                                     _ => {
                                         response.push_str("[usage: peek_pixel <x> <y>]\n");
@@ -2298,7 +2305,8 @@ fn main() {
                                 let h = parts.get(4).and_then(|s| s.parse::<usize>().ok());
                                 match (x, y, w, h) {
                                     (Some(x), Some(y), Some(w), Some(h))
-                                        if w > 0 && h > 0
+                                        if w > 0
+                                            && h > 0
                                             && x.saturating_add(w) <= 256
                                             && y.saturating_add(h) <= 256 =>
                                     {
@@ -2312,45 +2320,53 @@ fn main() {
                                         response.push_str(&format!("{:08X}\n", hash));
                                     }
                                     (Some(_), Some(_), Some(_), Some(_)) => {
-                                        response.push_str("[error: region must fit in 256x256, w/h > 0]\n");
+                                        response.push_str(
+                                            "[error: region must fit in 256x256, w/h > 0]\n",
+                                        );
                                     }
                                     _ => {
-                                        response.push_str("[usage: region_checksum <x> <y> <w> <h>]\n");
+                                        response
+                                            .push_str("[usage: region_checksum <x> <y> <w> <h>]\n");
                                     }
                                 }
                             }
-                            "render_log" | "rlog" => {
-                                match parts.get(1).copied() {
-                                    Some("on") => {
-                                        vm.render_logging = true;
-                                        response.push_str("[render_log enabled]\n");
-                                    }
-                                    Some("off") => {
-                                        vm.render_logging = false;
-                                        response.push_str("[render_log disabled]\n");
-                                    }
-                                    Some("clear") => {
-                                        vm.render_log.clear();
-                                        response.push_str("[render_log cleared]\n");
-                                    }
-                                    Some("dump") | None => {
-                                        if vm.render_log.is_empty() {
-                                            response.push_str("[render_log empty]\n");
-                                        } else {
-                                            for entry in vm.render_log.iter() {
-                                                response.push_str(&format!("frame={} {:02X}:{} args=[", entry.frame, entry.opcode, entry.name));
-                                                for i in 0..entry.argc as usize {
-                                                    response.push_str(&format!("{}{}", if i > 0 { ", " } else { "" }, entry.args[i]));
-                                                }
-                                                response.push_str("]\n");
+                            "render_log" | "rlog" => match parts.get(1).copied() {
+                                Some("on") => {
+                                    vm.render_logging = true;
+                                    response.push_str("[render_log enabled]\n");
+                                }
+                                Some("off") => {
+                                    vm.render_logging = false;
+                                    response.push_str("[render_log disabled]\n");
+                                }
+                                Some("clear") => {
+                                    vm.render_log.clear();
+                                    response.push_str("[render_log cleared]\n");
+                                }
+                                Some("dump") | None => {
+                                    if vm.render_log.is_empty() {
+                                        response.push_str("[render_log empty]\n");
+                                    } else {
+                                        for entry in vm.render_log.iter() {
+                                            response.push_str(&format!(
+                                                "frame={} {:02X}:{} args=[",
+                                                entry.frame, entry.opcode, entry.name
+                                            ));
+                                            for i in 0..entry.argc as usize {
+                                                response.push_str(&format!(
+                                                    "{}{}",
+                                                    if i > 0 { ", " } else { "" },
+                                                    entry.args[i]
+                                                ));
                                             }
+                                            response.push_str("]\n");
                                         }
                                     }
-                                    _ => {
-                                        response.push_str("[usage: render_log on|off|dump|clear]\n");
-                                    }
                                 }
-                            }
+                                _ => {
+                                    response.push_str("[usage: render_log on|off|dump|clear]\n");
+                                }
+                            },
                             "ram" => {
                                 let base = parts
                                     .get(1)
@@ -3929,9 +3945,7 @@ fn main() {
                                             watch_path.display()
                                         ));
                                         // Immediately load, assemble, and run
-                                        if let Ok(source) =
-                                            std::fs::read_to_string(&watch_path)
-                                        {
+                                        if let Ok(source) = std::fs::read_to_string(&watch_path) {
                                             load_source_to_canvas(
                                                 &mut canvas_buffer,
                                                 &source,
@@ -3953,18 +3967,14 @@ fn main() {
                                             }
                                         }
                                     } else {
-                                        response.push_str(&format!(
-                                            "[watch: {} not found]\n",
-                                            path
-                                        ));
+                                        response
+                                            .push_str(&format!("[watch: {} not found]\n", path));
                                     }
                                 } else {
                                     // Report current watch state
                                     if let Some((ref p, _)) = watch_file {
-                                        response.push_str(&format!(
-                                            "[watching: {}]\n",
-                                            p.display()
-                                        ));
+                                        response
+                                            .push_str(&format!("[watching: {}]\n", p.display()));
                                     } else {
                                         response.push_str("[watch: no file being watched]\n");
                                     }
@@ -4070,20 +4080,14 @@ fn main() {
                                 is_running = true;
                                 terminal_direct_mode = true;
                                 fullscreen_map = false;
-                                status_msg = format!(
-                                    "[watch: reloaded {}]",
-                                    path.display()
-                                );
+                                status_msg = format!("[watch: reloaded {}]", path.display());
                             } else {
-                                status_msg = format!(
-                                    "[watch: assemble failed for {}]",
-                                    path.display()
-                                );
+                                status_msg =
+                                    format!("[watch: assemble failed for {}]", path.display());
                             }
                         }
                         // Update mtime
-                        watch_file =
-                            Some((path.clone(), Some(current_mtime)));
+                        watch_file = Some((path.clone(), Some(current_mtime)));
                     }
                 }
             }

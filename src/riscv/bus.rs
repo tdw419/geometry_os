@@ -239,9 +239,7 @@ impl Bus {
         unsafe {
             let virtio_blk = &mut (*bus).virtio_blk;
 
-            let mut read_word = |addr: u64| -> u32 {
-                (*bus).mem.read_word(addr).unwrap_or(0)
-            };
+            let mut read_word = |addr: u64| -> u32 { (*bus).mem.read_word(addr).unwrap_or(0) };
             let mut write_word = |addr: u64, val: u32| {
                 let _ = (*bus).mem.write_word(addr, val);
             };
@@ -804,26 +802,19 @@ impl Bus {
     }
 
     /// Intercept recvfrom(fd, buf_ptr, len, flags, addr_ptr, addr_len_ptr) -- writes buf to guest RAM.
-    pub fn intercept_recvfrom(
-        &mut self,
-        fd: i32,
-        buf_ptr: u32,
-        len: u32,
-        _flags: u32,
-    ) -> i32 {
+    pub fn intercept_recvfrom(&mut self, fd: i32, buf_ptr: u32, len: u32, _flags: u32) -> i32 {
         let mut buf = vec![0u8; len as usize];
         let ret = self.guest_sockets.recvfrom_guest(fd, &mut buf);
 
         if ret > 0 {
             // Write received bytes back to guest RAM
             for i in 0..(ret as u32) {
-                let _ = self.mem.write_word((buf_ptr + i) as u64, buf[i as usize] as u32);
+                let _ = self
+                    .mem
+                    .write_word((buf_ptr + i) as u64, buf[i as usize] as u32);
             }
         }
-        eprintln!(
-            "[socket] recvfrom(fd={}, len={}, ret={})",
-            fd, len, ret
-        );
+        eprintln!("[socket] recvfrom(fd={}, len={}, ret={})", fd, len, ret);
         ret
     }
 }

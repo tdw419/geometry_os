@@ -375,8 +375,7 @@ pub(super) fn try_parse(
             // sheet_id is an immediate (0-15), frame_reg is a register
             if tokens.len() < 3 {
                 return Err(
-                    "SPRFRAME requires 2 arguments: SPRFRAME sheet_id, frame_reg"
-                        .to_string(),
+                    "SPRFRAME requires 2 arguments: SPRFRAME sheet_id, frame_reg".to_string(),
                 );
             }
             let sheet_id: u32 = tokens[1]
@@ -393,8 +392,7 @@ pub(super) fn try_parse(
             // sheet_id is an immediate (0-15), x_reg and y_reg are registers
             if tokens.len() < 4 {
                 return Err(
-                    "SPRANIM requires 3 arguments: SPRANIM sheet_id, x_reg, y_reg"
-                        .to_string(),
+                    "SPRANIM requires 3 arguments: SPRANIM sheet_id, x_reg, y_reg".to_string(),
                 );
             }
             let sheet_id: u32 = tokens[1]

@@ -797,14 +797,30 @@ fn test_lsystem_bootstrap() {
     // Check expanded string at 0x2000
     let mut non_zero = 0;
     for i in 0..4096 {
-        if vm.ram[0x2000 + i] != 0 { non_zero += 1; }
+        if vm.ram[0x2000 + i] != 0 {
+            non_zero += 1;
+        }
     }
     // Diagnostic: print what's in various RAM areas
     eprintln!("Non-zero at 0x2000: {}", non_zero);
-    eprintln!("Non-zero at 0x3000: {}", (0..4096).filter(|&i| vm.ram[0x3000 + i] != 0).count());
-    eprintln!("Non-zero at 0x5100 (rule): {}", (0..256).filter(|&i| vm.ram[0x5100 + i] != 0).count());
-    eprintln!("Sin table: sin[0]={} sin[16]={}", vm.ram[0x7000], vm.ram[0x7010]);
-    eprintln!("Param preset={} iter={} len={} angle={} color=0x{:X}", 
-        vm.ram[0x5500], vm.ram[0x5501], vm.ram[0x5502], vm.ram[0x5503], vm.ram[0x5504]);
-    assert!(non_zero > 0, "expanded string at 0x2000 should not be empty");
+    eprintln!(
+        "Non-zero at 0x3000: {}",
+        (0..4096).filter(|&i| vm.ram[0x3000 + i] != 0).count()
+    );
+    eprintln!(
+        "Non-zero at 0x5100 (rule): {}",
+        (0..256).filter(|&i| vm.ram[0x5100 + i] != 0).count()
+    );
+    eprintln!(
+        "Sin table: sin[0]={} sin[16]={}",
+        vm.ram[0x7000], vm.ram[0x7010]
+    );
+    eprintln!(
+        "Param preset={} iter={} len={} angle={} color=0x{:X}",
+        vm.ram[0x5500], vm.ram[0x5501], vm.ram[0x5502], vm.ram[0x5503], vm.ram[0x5504]
+    );
+    assert!(
+        non_zero > 0,
+        "expanded string at 0x2000 should not be empty"
+    );
 }

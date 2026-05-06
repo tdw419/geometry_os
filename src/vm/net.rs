@@ -467,11 +467,7 @@ fn parse_status_code(response: &str) -> u32 {
 /// Returns the index into the buffer where the body begins.
 fn find_body_start(buf: &[u8]) -> usize {
     for i in 0..buf.len().saturating_sub(3) {
-        if buf[i] == b'\r'
-            && buf[i + 1] == b'\n'
-            && buf[i + 2] == b'\r'
-            && buf[i + 3] == b'\n'
-        {
+        if buf[i] == b'\r' && buf[i + 1] == b'\n' && buf[i + 2] == b'\r' && buf[i + 3] == b'\n' {
             return i + 4;
         }
     }
@@ -912,7 +908,9 @@ mod tests {
         let port = listener.local_addr().unwrap().port();
         let response = format!(
             "HTTP/1.0 {} OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
-            status, body.len(), body
+            status,
+            body.len(),
+            body
         );
         let response_bytes = response.into_bytes();
         thread::spawn(move || {
@@ -941,7 +939,7 @@ mod tests {
         // HTTPGET r1, r2, r3, r4, r5
         vm.regs[1] = 0x7000; // url address
         vm.regs[2] = 0x8000; // buf address
-        vm.regs[3] = 4096;   // max_len
+        vm.regs[3] = 4096; // max_len
         vm.pc = 100;
         vm.ram[100] = 0xCC;
         vm.ram[101] = 1; // url_reg

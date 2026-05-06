@@ -950,24 +950,30 @@ mod tests {
     fn test_pixelpack_roundtrip_encode_decode() {
         // Encode some bytes, decode them back
         let original = vec![0x10, 0x01, 0x42, 0x00, 0x00, 0x00]; // LDI r1, 66 (3 u32 words)
-        let png_data = encode_pixelpack_png(&original).unwrap();
-        let decoded = decode_pixelpack_png(&png_data).unwrap();
+        let png_data = encode_pixelpack_png(&original)
+            .expect("encode_pixelpack_png failed for roundtrip test");
+        let decoded = decode_pixelpack_png(&png_data)
+            .expect("decode_pixelpack_png failed for roundtrip test");
         assert_eq!(decoded, original);
     }
 
     #[test]
     fn test_pixelpack_roundtrip_empty() {
         let original: Vec<u8> = vec![];
-        let png_data = encode_pixelpack_png(&original).unwrap();
-        let decoded = decode_pixelpack_png(&png_data).unwrap();
+        let png_data = encode_pixelpack_png(&original)
+            .expect("encode_pixelpack_png failed for empty roundtrip");
+        let decoded = decode_pixelpack_png(&png_data)
+            .expect("decode_pixelpack_png failed for empty roundtrip");
         assert_eq!(decoded, original);
     }
 
     #[test]
     fn test_pixelpack_roundtrip_single_byte() {
         let original = vec![0x42];
-        let png_data = encode_pixelpack_png(&original).unwrap();
-        let decoded = decode_pixelpack_png(&png_data).unwrap();
+        let png_data = encode_pixelpack_png(&original)
+            .expect("encode_pixelpack_png failed for single-byte roundtrip");
+        let decoded = decode_pixelpack_png(&png_data)
+            .expect("decode_pixelpack_png failed for single-byte roundtrip");
         assert_eq!(decoded, original);
     }
 
@@ -975,8 +981,10 @@ mod tests {
     fn test_pixelpack_roundtrip_large() {
         // 100 bytes of varying data
         let original: Vec<u8> = (0..100).map(|i| (i * 7 + 13) as u8).collect();
-        let png_data = encode_pixelpack_png(&original).unwrap();
-        let decoded = decode_pixelpack_png(&png_data).unwrap();
+        let png_data = encode_pixelpack_png(&original)
+            .expect("encode_pixelpack_png failed for large roundtrip");
+        let decoded = decode_pixelpack_png(&png_data)
+            .expect("decode_pixelpack_png failed for large roundtrip");
         assert_eq!(decoded, original);
     }
 
@@ -1007,7 +1015,8 @@ mod tests {
     fn test_full_pixel_boot_roundtrip() {
         // Assemble a simple program, encode to PNG, decode, load, run
         let source = "LDI r1, 42\nLDI r2, 0xFF\nHALT\n";
-        let asm = crate::assembler::assemble(source, 0).unwrap();
+        let asm = crate::assembler::assemble(source, 0)
+            .expect("assembly failed for pixel boot roundtrip");
 
         // Convert bytecode pixels to bytes (each pixel is a u32)
         let mut bytecode_bytes = Vec::new();
@@ -1019,10 +1028,12 @@ mod tests {
         }
 
         // Encode to pixelpack PNG
-        let png_data = encode_pixelpack_png(&bytecode_bytes).unwrap();
+        let png_data = encode_pixelpack_png(&bytecode_bytes)
+            .expect("encode_pixelpack_png failed for boot roundtrip");
 
         // Decode back
-        let decoded = decode_pixelpack_png(&png_data).unwrap();
+        let decoded = decode_pixelpack_png(&png_data)
+            .expect("decode_pixelpack_png failed for boot roundtrip");
         assert_eq!(decoded, bytecode_bytes);
 
         // Load to VM RAM and run
@@ -1048,8 +1059,10 @@ mod tests {
     fn test_pixel_boot_uses_strategy_a() {
         // Verify encode_pixelpack_png uses strategy A (raw3)
         let bytes = vec![0x10, 0x01, 0x42];
-        let png_data = encode_pixelpack_png(&bytes).unwrap();
-        let decoded = decode_pixelpack_png(&png_data).unwrap();
+        let png_data =
+            encode_pixelpack_png(&bytes).expect("encode_pixelpack_png failed for strategy-a test");
+        let decoded = decode_pixelpack_png(&png_data)
+            .expect("decode_pixelpack_png failed for strategy-a test");
         assert_eq!(decoded, bytes);
 
         // The PNG should have exactly 1 seed (3 bytes packed into one seed)

@@ -675,7 +675,6 @@ fn vision_describe_schema() -> serde_json::Value {
     })
 }
 
-
 fn vision_peek_pixel_schema() -> serde_json::Value {
     serde_json::json!({
         "type": "object",
@@ -1252,22 +1251,29 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             }
         }
 
-
         "vision_peek_pixel" => {
             let x = args["x"].as_i64().unwrap_or(-1);
             let y = args["y"].as_i64().unwrap_or(-1);
             let resp = send_socket_cmd(&format!("peek_pixel {} {}", x, y))?;
             let trimmed = resp.trim();
-            if trimmed.starts_with('[') { return Err(trimmed.to_string()); }
+            if trimmed.starts_with('[') {
+                return Err(trimmed.to_string());
+            }
             let mut hex = String::new();
-            let mut r = 0i64; let mut g = 0i64; let mut b = 0i64;
+            let mut r = 0i64;
+            let mut g = 0i64;
+            let mut b = 0i64;
             for (i, tok) in trimmed.split_whitespace().enumerate() {
                 match i {
                     0 => hex = tok.to_string(),
                     _ => {
-                        if let Some(rest) = tok.strip_prefix("r=") { r = rest.parse().unwrap_or(0); }
-                        else if let Some(rest) = tok.strip_prefix("g=") { g = rest.parse().unwrap_or(0); }
-                        else if let Some(rest) = tok.strip_prefix("b=") { b = rest.parse().unwrap_or(0); }
+                        if let Some(rest) = tok.strip_prefix("r=") {
+                            r = rest.parse().unwrap_or(0);
+                        } else if let Some(rest) = tok.strip_prefix("g=") {
+                            g = rest.parse().unwrap_or(0);
+                        } else if let Some(rest) = tok.strip_prefix("b=") {
+                            b = rest.parse().unwrap_or(0);
+                        }
                     }
                 }
             }
@@ -1281,7 +1287,9 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             let h = args["h"].as_i64().unwrap_or(-1);
             let resp = send_socket_cmd(&format!("region_checksum {} {} {} {}", x, y, w, h))?;
             let trimmed = resp.trim();
-            if trimmed.starts_with('[') { return Err(trimmed.to_string()); }
+            if trimmed.starts_with('[') {
+                return Err(trimmed.to_string());
+            }
             Ok(serde_json::json!({"x": x, "y": y, "w": w, "h": h, "checksum": trimmed}))
         }
 
@@ -1292,13 +1300,18 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
                 let mut entries = Vec::new();
                 for line in resp.lines() {
                     if let Some((frame_part, rest)) = line.split_once(' ') {
-                        let frame = frame_part.strip_prefix("frame=").and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
+                        let frame = frame_part
+                            .strip_prefix("frame=")
+                            .and_then(|s| s.parse::<i64>().ok())
+                            .unwrap_or(0);
                         if let Some((op_part, args_part)) = rest.split_once(" args=[") {
                             if let Some((opcode_hex, name)) = op_part.split_once(':') {
                                 let mut arg_list = Vec::new();
                                 let inner = args_part.trim_end_matches(']');
                                 for a in inner.split(',') {
-                                    if let Ok(val) = a.trim().parse::<i64>() { arg_list.push(val); }
+                                    if let Ok(val) = a.trim().parse::<i64>() {
+                                        arg_list.push(val);
+                                    }
                                 }
                                 entries.push(serde_json::json!({"frame": frame, "opcode": opcode_hex, "name": name, "args": arg_list}));
                             }
@@ -1588,7 +1601,6 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
         }
 
         // ── Phase 208: Programmatic Assembly & Execution ──
-
         "asm_load" => {
             let path = args["path"]
                 .as_str()
@@ -1598,7 +1610,9 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             let ok = resp.contains("[loaded:");
             let lines = if ok {
                 // Read the file to count lines
-                std::fs::read_to_string(path).map(|s| s.lines().count()).unwrap_or(0)
+                std::fs::read_to_string(path)
+                    .map(|s| s.lines().count())
+                    .unwrap_or(0)
             } else {
                 0
             };
@@ -1674,7 +1688,10 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
                         "halted" => vm_halted = val.trim() == "true",
                         _ => {
                             let k = key.trim();
-                            if k.len() == 3 && k.starts_with('r') && k[1..].chars().all(|c| c.is_ascii_digit()) {
+                            if k.len() == 3
+                                && k.starts_with('r')
+                                && k[1..].chars().all(|c| c.is_ascii_digit())
+                            {
                                 registers.insert(k.into(), val.trim().into());
                             }
                         }
@@ -1695,10 +1712,7 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             let trimmed = resp.trim();
             let ok = trimmed.starts_with("pc=");
             let pc = if ok {
-                trimmed
-                    .strip_prefix("pc=")
-                    .unwrap_or("????")
-                    .to_string()
+                trimmed.strip_prefix("pc=").unwrap_or("????").to_string()
             } else {
                 "????".to_string()
             };
@@ -1928,10 +1942,19 @@ mod tests {
     fn test_asm_tools_in_tool_list() {
         let tools = get_tool_list();
         let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
-        assert!(names.contains(&"asm_load"), "asm_load missing from tool list");
-        assert!(names.contains(&"asm_assemble"), "asm_assemble missing from tool list");
+        assert!(
+            names.contains(&"asm_load"),
+            "asm_load missing from tool list"
+        );
+        assert!(
+            names.contains(&"asm_assemble"),
+            "asm_assemble missing from tool list"
+        );
         assert!(names.contains(&"asm_run"), "asm_run missing from tool list");
-        assert!(names.contains(&"asm_step"), "asm_step missing from tool list");
+        assert!(
+            names.contains(&"asm_step"),
+            "asm_step missing from tool list"
+        );
     }
 
     #[test]
@@ -1975,10 +1998,7 @@ mod tests {
         let trimmed = resp.trim();
         let ok = trimmed.starts_with("pc=");
         let pc = if ok {
-            trimmed
-                .strip_prefix("pc=")
-                .unwrap_or("????")
-                .to_string()
+            trimmed.strip_prefix("pc=").unwrap_or("????").to_string()
         } else {
             "????".to_string()
         };
@@ -1997,13 +2017,16 @@ mod tests {
                 match key.trim() {
                     "pc" => pc = val.trim().to_string(),
                     "halted" => vm_halted = val.trim() == "true",
-                        _ => {
-                            // Only capture register names r00-r31
-                            let k = key.trim();
-                            if k.len() == 3 && k.starts_with('r') && k[1..].chars().all(|c| c.is_ascii_digit()) {
-                                registers.insert(k.into(), val.trim().into());
-                            }
+                    _ => {
+                        // Only capture register names r00-r31
+                        let k = key.trim();
+                        if k.len() == 3
+                            && k.starts_with('r')
+                            && k[1..].chars().all(|c| c.is_ascii_digit())
+                        {
+                            registers.insert(k.into(), val.trim().into());
                         }
+                    }
                 }
             }
         }

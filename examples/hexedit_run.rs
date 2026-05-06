@@ -11,10 +11,11 @@ fn run_hexedit(elf_data: &[u8], input: &[u8], max_steps: u64) -> (Vec<u32>, u32,
     let mut vm = RiscvVm::new(1024 * 1024);
     let mut bridge = UartBridge::new();
 
-    let boot = vm
-        .boot_guest(elf_data, 1, 500_000)
-        .expect("boot failed");
-    eprintln!("  boot: {} steps, entry=0x{:08X}", boot.instructions, boot.entry);
+    let boot = vm.boot_guest(elf_data, 1, 500_000).expect("boot failed");
+    eprintln!(
+        "  boot: {} steps, entry=0x{:08X}",
+        boot.instructions, boot.entry
+    );
 
     bridge.drain_uart_to_canvas(&mut vm.bus, &mut vec![0u32; 256 * 256]);
     bridge.forward_keys(&mut vm.bus, input);
@@ -38,7 +39,11 @@ fn run_hexedit(elf_data: &[u8], input: &[u8], max_steps: u64) -> (Vec<u32>, u32,
     let nz = fb.iter().filter(|&&p| p != 0).count();
     eprintln!(
         "  post-boot: steps={}, pc=0x{:08X}, faults={}, fb_nz={}/{}",
-        count, vm.cpu.pc, faults, nz, fb.len()
+        count,
+        vm.cpu.pc,
+        faults,
+        nz,
+        fb.len()
     );
     if !console_out.is_empty() {
         eprintln!(
@@ -78,9 +83,7 @@ fn main() {
         Ok(d) => d,
         Err(e) => {
             eprintln!("Error: {} not found: {}", elf_path, e);
-            eprintln!(
-                "Build with: cd examples/riscv-hello && ./build.sh hexedit.c hexedit.elf"
-            );
+            eprintln!("Build with: cd examples/riscv-hello && ./build.sh hexedit.c hexedit.elf");
             std::process::exit(1);
         }
     };

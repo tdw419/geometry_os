@@ -56,12 +56,12 @@ impl Vm {
     #[inline]
     pub fn icache_operand_count(opcode: u32) -> u8 {
         match opcode {
-            0x00 | 0x01 | 0x34 => 0, // HALT, NOP, RET
+            0x00 | 0x01 | 0x34 => 0,               // HALT, NOP, RET
             0x2A | 0x30 | 0x33 | 0x60 | 0x61 => 1, // NEG, JMP, CALL, PUSH, POP
             0x10 | 0x11 | 0x12 | 0x50 | 0x51 => 2, // LDI, LOAD, STORE, CMP, MOV
-            0x20..=0x29 | 0x2B => 2, // ADD..MOD, SAR
-            0x31 | 0x32 | 0x35 | 0x36 => 2, // JZ, JNZ, BLT, BGE
-            _ => 0, // unreachable for cacheable opcodes
+            0x20..=0x29 | 0x2B => 2,               // ADD..MOD, SAR
+            0x31 | 0x32 | 0x35 | 0x36 => 2,        // JZ, JNZ, BLT, BGE
+            _ => 0,                                // unreachable for cacheable opcodes
         }
     }
 
@@ -223,9 +223,7 @@ impl Vm {
                     let vaddr = self.regs[addr_reg];
                     match self.translate_va_or_fault(vaddr) {
                         Some(addr) => {
-                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
-                                .contains(&addr)
-                            {
+                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE).contains(&addr) {
                                 self.screen[addr - SCREEN_RAM_BASE] = val;
                                 self.log_access(addr, MemAccessKind::Write);
                             } else if addr >= CANVAS_RAM_BASE
@@ -563,7 +561,7 @@ mod tests {
         }
         vm.pc = addr as u32;
         vm.halted = false; // Reset halted so step() will execute
-        // Clear stale icache entries for the loaded range
+                           // Clear stale icache entries for the loaded range
         for i in addr..(addr + words.len()).min(vm.icache.len()) {
             vm.icache[i] = None;
         }
@@ -598,13 +596,16 @@ mod tests {
         // r1 = 100, r2 = 30
         // SUB: r1 = 70, MUL: r1 = 2100, DIV: r1 = 70
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 100, LDI, 2, 30,
-            SUB, 1, 2,    // r1 = 70
-            MUL, 1, 2,    // r1 = 2100
-            DIV, 1, 2,    // r1 = 70
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 100, LDI, 2, 30, SUB, 1, 2, // r1 = 70
+                MUL, 1, 2, // r1 = 2100
+                DIV, 1, 2, // r1 = 70
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[1], 70);
@@ -615,17 +616,20 @@ mod tests {
         // r1 = 0xFF, r2 = 0x0F
         // AND: 0x0F, OR: 0xFF, XOR: 0xF0, SHL 4: 0xF00, SHR 4: 0xF0
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0xFF, LDI, 2, 0x0F,
-            AND, 1, 2,    // r1 = 0x0F
-            OR, 1, 2,     // r1 = 0x0F | 0x0F = 0x0F
-            LDI, 1, 0xFF, // reset
-            XOR, 1, 2,    // r1 = 0xF0
-            LDI, 2, 4,    // shift amount
-            SHL, 1, 2,    // r1 = 0xF0 << 4 = 0xF00
-            SHR, 1, 2,    // r1 = 0xF00 >> 4 = 0xF0
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0xFF, LDI, 2, 0x0F, AND, 1, 2, // r1 = 0x0F
+                OR, 1, 2, // r1 = 0x0F | 0x0F = 0x0F
+                LDI, 1, 0xFF, // reset
+                XOR, 1, 2, // r1 = 0xF0
+                LDI, 2, 4, // shift amount
+                SHL, 1, 2, // r1 = 0xF0 << 4 = 0xF00
+                SHR, 1, 2, // r1 = 0xF00 >> 4 = 0xF0
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[1], 0xF0);
@@ -634,11 +638,14 @@ mod tests {
     #[test]
     fn test_mov() {
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 42,
-            MOV, 2, 1,  // r2 = r1
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 42, MOV, 2, 1, // r2 = r1
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[2], 42);
@@ -651,16 +658,18 @@ mod tests {
         // CMP is 3 words, BGE/BLT are 3 words each
         // @0: LDI,1,5 | @3: LDI,2,10 | @6: CMP,1,2 | @9: BGE,0,18 | @12: BLT,0,19
         // @15: LDI,3,999 | @18: HALT | @19: LDI,3,1 | @22: HALT
-        load_program(&mut vm, 0, &[
-            LDI, 1, 5, LDI, 2, 10,
-            CMP, 1, 2,     // r0 = 0xFFFFFFFF (5 < 10)
-            BGE, 0, 18,    // r0 == 0xFFFFFFFF → don't jump (BGE: r0 != -1 means jump)
-            BLT, 0, 19,    // r0 == 0xFFFFFFFF → jump to addr 19
-            LDI, 3, 999,   // should be skipped
-            HALT,
-            LDI, 3, 1,     // addr 19: landed here
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 5, LDI, 2, 10, CMP, 1, 2, // r0 = 0xFFFFFFFF (5 < 10)
+                BGE, 0, 18, // r0 == 0xFFFFFFFF → don't jump (BGE: r0 != -1 means jump)
+                BLT, 0, 19, // r0 == 0xFFFFFFFF → jump to addr 19
+                LDI, 3, 999, // should be skipped
+                HALT, LDI, 3, 1, // addr 19: landed here
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[3], 1);
@@ -669,19 +678,21 @@ mod tests {
     #[test]
     fn test_jz_jnz() {
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0,      // r1 = 0
-            JZ, 1, 10,      // jump to addr 10 (r1 == 0)
-            LDI, 3, 999,    // skip
-            HALT,
-            LDI, 3, 1,      // addr 9
-            LDI, 1, 42,     // r1 = 42 (non-zero)
-            JNZ, 1, 23,     // jump to addr 18 (r1 != 0)
-            LDI, 3, 999,    // skip
-            HALT,
-            LDI, 3, 2,      // addr 18
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0, // r1 = 0
+                JZ, 1, 10, // jump to addr 10 (r1 == 0)
+                LDI, 3, 999, // skip
+                HALT, LDI, 3, 1, // addr 9
+                LDI, 1, 42, // r1 = 42 (non-zero)
+                JNZ, 1, 23, // jump to addr 18 (r1 != 0)
+                LDI, 3, 999, // skip
+                HALT, LDI, 3, 2, // addr 18
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[3], 2);
@@ -699,14 +710,13 @@ mod tests {
         // 18: JMP 9
         // 21: HALT
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0, LDI, 2, 1, LDI, 3, 100,
-            ADD, 1, 2,
-            CMP, 1, 3,
-            BGE, 0, 21,
-            JMP, 9,
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0, LDI, 2, 1, LDI, 3, 100, ADD, 1, 2, CMP, 1, 3, BGE, 0, 21, JMP, 9, HALT,
+            ],
+        );
         let (steps, halted) = run_steps(&mut vm, 10_000);
         assert!(halted);
         assert_eq!(vm.regs[1], 100);
@@ -733,20 +743,14 @@ mod tests {
         // 39: HALT
         // 42: HALT
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0, LDI, 4, 1, LDI, 5, 10,
-            LDI, 2, 0, LDI, 3, 100,
-            ADD, 2, 4,
-            CMP, 2, 3,
-            BGE, 0, 26,
-            JMP, 15,
-            ADD, 1, 4,
-            CMP, 1, 5,
-            BGE, 0, 42,
-            JMP, 9,
-            HALT,
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0, LDI, 4, 1, LDI, 5, 10, LDI, 2, 0, LDI, 3, 100, ADD, 2, 4, CMP, 2, 3,
+                BGE, 0, 26, JMP, 15, ADD, 1, 4, CMP, 1, 5, BGE, 0, 42, JMP, 9, HALT, HALT,
+            ],
+        );
         let (_, halted) = run_steps(&mut vm, 200_000);
         assert!(halted);
         assert_eq!(vm.regs[1], 10);
@@ -762,15 +766,14 @@ mod tests {
         // 12: LDI r3, 99
         // 15: RET
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 42,
-            CALL, 12,
-            HALT,
-            NOP, NOP, NOP,  // padding
-            NOP, NOP, NOP,
-            LDI, 3, 99,
-            RET,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 42, CALL, 12, HALT, NOP, NOP, NOP, // padding
+                NOP, NOP, NOP, LDI, 3, 99, RET,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[1], 42);
@@ -782,14 +785,18 @@ mod tests {
         // Push r1 to stack, pop into r2
         // Need to set up stack pointer
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 30, 500,    // SP = 500
-            LDI, 1, 42,      // r1 = 42
-            PUSH, 1,         // push r1
-            LDI, 1, 0,       // clobber r1
-            POP, 2,          // pop into r2
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 30, 500, // SP = 500
+                LDI, 1, 42, // r1 = 42
+                PUSH, 1, // push r1
+                LDI, 1, 0, // clobber r1
+                POP, 2, // pop into r2
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[2], 42);
@@ -806,14 +813,18 @@ mod tests {
         // 12: JMP 9           ; will be overwritten to HALT
         // 15: HALT            ; fallback
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0,        // HALT opcode value
-            LDI, 2, 12,       // target addr
-            STORE, 2, 1,      // addr_reg=r2(12), reg=r1(0=HALT)
-            LDI, 3, 42,       // r3 = 42
-            JMP, 9,           // addr 12: will be HALT now
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0, // HALT opcode value
+                LDI, 2, 12, // target addr
+                STORE, 2, 1, // addr_reg=r2(12), reg=r1(0=HALT)
+                LDI, 3, 42, // r3 = 42
+                JMP, 9, // addr 12: will be HALT now
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted, "VM should halt via self-modified code");
         assert_eq!(vm.regs[3], 42);
@@ -822,11 +833,14 @@ mod tests {
     #[test]
     fn test_neg() {
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 42,
-            NEG, 1,     // r1 = -42
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 42, NEG, 1, // r1 = -42
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[1], 0xFFFFFFD6); // -42 in u32
@@ -835,12 +849,14 @@ mod tests {
     #[test]
     fn test_mod() {
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 17,
-            LDI, 2, 5,
-            MOD, 1, 2,  // 17 % 5 = 2
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 17, LDI, 2, 5, MOD, 1, 2, // 17 % 5 = 2
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         assert_eq!(vm.regs[1], 2);
@@ -849,12 +865,22 @@ mod tests {
     #[test]
     fn test_sar() {
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0x80000010u32, // negative-ish
-            LDI, 2, 4,
-            SAR, 1, 2,  // arithmetic shift right by 4
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI,
+                1,
+                0x80000010u32, // negative-ish
+                LDI,
+                2,
+                4,
+                SAR,
+                1,
+                2, // arithmetic shift right by 4
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
         assert!(vm.halted);
         // 0x80000010 as i32 = -2147483632, >> 4 = -134217727 = 0xF8000001
@@ -866,14 +892,14 @@ mod tests {
         // Run a tight loop and verify cache hit rate is high
         let iterations = 500u32;
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0, LDI, 2, 1, LDI, 3, iterations,
-            ADD, 1, 2,
-            CMP, 1, 3,
-            BGE, 0, 21,
-            JMP, 9,
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0, LDI, 2, 1, LDI, 3, iterations, ADD, 1, 2, CMP, 1, 3, BGE, 0, 21, JMP, 9,
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100_000);
         assert!(vm.halted);
         let total = vm.icache_hits + vm.icache_misses;
@@ -893,10 +919,13 @@ mod tests {
     fn test_icache_clear() {
         let mut vm = Vm::new();
         // Populate cache
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0, LDI, 2, 1, LDI, 3, 10,
-            ADD, 1, 2, CMP, 1, 3, BGE, 0, 21, JMP, 9, HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0, LDI, 2, 1, LDI, 3, 10, ADD, 1, 2, CMP, 1, 3, BGE, 0, 21, JMP, 9, HALT,
+            ],
+        );
         run_steps(&mut vm, 100_000);
 
         // Verify cache has entries
@@ -916,27 +945,37 @@ mod tests {
     fn test_generation_invalidation() {
         let mut vm = Vm::new();
         // First: populate cache with a loop
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0, LDI, 2, 1, LDI, 3, 5,
-            ADD, 1, 2, CMP, 1, 3, BGE, 0, 21, JMP, 9,
-            HALT, HALT, HALT,
-            // addr 24+: code that will be written via STORE
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0, LDI, 2, 1, LDI, 3, 5, ADD, 1, 2, CMP, 1, 3, BGE, 0, 21, JMP, 9, HALT,
+                HALT, HALT,
+                // addr 24+: code that will be written via STORE
+            ],
+        );
         run_steps(&mut vm, 100_000);
         assert!(vm.halted);
         let gen_before = vm.icache_generation;
 
         // Now write to code memory via STORE (bumps generation)
-        load_program(&mut vm, 0, &[
-            LDI, 30, 600,      // SP
-            LDI, 1, 0,         // HALT value
-            LDI, 2, 9,         // target address
-            STORE, 2, 1,       // addr_reg=r2(9), reg=r1(0=HALT)
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 30, 600, // SP
+                LDI, 1, 0, // HALT value
+                LDI, 2, 9, // target address
+                STORE, 2, 1, // addr_reg=r2(9), reg=r1(0=HALT)
+                HALT,
+            ],
+        );
         run_steps(&mut vm, 100);
-assert_eq!(vm.icache_generation, gen_before.wrapping_add(1),
-            "Generation should have bumped after STORE to code memory");
+        assert_eq!(
+            vm.icache_generation,
+            gen_before.wrapping_add(1),
+            "Generation should have bumped after STORE to code memory"
+        );
     }
 
     #[test]
@@ -944,14 +983,14 @@ assert_eq!(vm.icache_generation, gen_before.wrapping_add(1),
         // Benchmark: 50k iteration tight loop
         let iterations = 50_000u32;
         let mut vm = Vm::new();
-        load_program(&mut vm, 0, &[
-            LDI, 1, 0, LDI, 2, 1, LDI, 3, iterations,
-            ADD, 1, 2,
-            CMP, 1, 3,
-            BGE, 0, 21,
-            JMP, 9,
-            HALT,
-        ]);
+        load_program(
+            &mut vm,
+            0,
+            &[
+                LDI, 1, 0, LDI, 2, 1, LDI, 3, iterations, ADD, 1, 2, CMP, 1, 3, BGE, 0, 21, JMP, 9,
+                HALT,
+            ],
+        );
 
         let start = Instant::now();
         let (steps, halted) = run_steps(&mut vm, 10_000_000);
@@ -962,7 +1001,11 @@ assert_eq!(vm.icache_generation, gen_before.wrapping_add(1),
         assert_eq!(steps, 3 + (iterations - 1) as u64 * 4 + 3);
 
         let total = vm.icache_hits + vm.icache_misses;
-        let hit_rate = if total > 0 { vm.icache_hits as f64 / total as f64 } else { 0.0 };
+        let hit_rate = if total > 0 {
+            vm.icache_hits as f64 / total as f64
+        } else {
+            0.0
+        };
         let steps_per_sec = if elapsed.as_micros() > 0 {
             steps as f64 / elapsed.as_secs_f64()
         } else {
@@ -978,17 +1021,27 @@ assert_eq!(vm.icache_generation, gen_before.wrapping_add(1),
              \n  Cache misses: {}\
              \n  Hit rate: {:.1}%\
              \n  Generation: {}",
-            iterations, steps,
+            iterations,
+            steps,
             elapsed.as_secs_f64() * 1000.0,
             steps_per_sec,
-            vm.icache_hits, vm.icache_misses,
+            vm.icache_hits,
+            vm.icache_misses,
             hit_rate * 100.0,
             vm.icache_generation,
         );
 
         // Sanity: should complete in reasonable time
-        assert!(elapsed.as_secs() < 10, "Benchmark took too long: {:?}", elapsed);
+        assert!(
+            elapsed.as_secs() < 10,
+            "Benchmark took too long: {:?}",
+            elapsed
+        );
         // Cache should be warm
-        assert!(hit_rate > 0.80, "Hit rate too low: {:.1}%", hit_rate * 100.0);
+        assert!(
+            hit_rate > 0.80,
+            "Hit rate too low: {:.1}%",
+            hit_rate * 100.0
+        );
     }
 }
