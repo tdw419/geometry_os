@@ -26749,7 +26749,7 @@ fn test_clipboard_v2_test_runs() {
     use crate::assembler::assemble;
     let source = std::fs::read_to_string("programs/clipboard_v2_test.asm")
         .expect("clipboard_v2_test.asm should exist");
-    let asm = assemble(&source, 0).expect("clipboard_v2_test.asm should assemble");
+    let asm = assemble(&source, 0x1000).expect("clipboard_v2_test.asm should assemble");
 
     let mut vm = Vm::new();
     // Load bytecode at 0x1000

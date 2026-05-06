@@ -100,10 +100,6 @@ step2_draw:
     LDI r4, 256
     CLIPSET r1, r2, r3, r4
 
-    ; Clear screen
-    LDI r0, 0
-    FILL r0
-
     ; Paste at (0, 32) — only columns 2-5 should be red
     LDI r1, 0
     LDI r2, 32
@@ -118,10 +114,10 @@ step2_draw:
     LDI r12, step2_label
     TEXT r10, r11, r12
 
-    ; Yellow bar
+    ; Yellow bar at y=33 (below paste row to preserve red paste pixels)
     LDI r7, 0xFFFF00
     LDI r8, 2
-    LDI r9, 32
+    LDI r9, 33
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
@@ -171,10 +167,6 @@ step2_draw:
     LDI r1, 4
     LDI r2, 1
     CLIP_HISTORY r1, r2
-
-    ; Clear screen
-    LDI r0, 0
-    FILL r0
 
     ; Draw label
     LDI r10, 2
