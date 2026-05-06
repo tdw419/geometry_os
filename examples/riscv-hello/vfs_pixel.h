@@ -53,6 +53,8 @@ struct vfs_entry {
 };
 
 /* ---- SBI helpers (for UART output only, not for file access) ---- */
+/* Skip these if the caller already has them (e.g. via libgeos.h). */
+#ifndef VFS_SKIP_SBI
 
 static inline long sbi_console_putchar(int ch) {
     register long a0 __asm__("a0") = ch;
@@ -66,6 +68,8 @@ static __attribute__((noreturn)) void sbi_shutdown(void) {
     __asm__ volatile("ecall" : : "r"(a7) : "memory", "a0", "a1");
     __builtin_unreachable();
 }
+
+#endif /* VFS_SKIP_SBI */
 
 /* ---- Internal helpers ---- */
 
