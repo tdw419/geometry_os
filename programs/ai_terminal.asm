@@ -68,13 +68,6 @@
 LDI r1, 1
 LDI r30, 0xFD00   ; Stack pointer
 
-; Request asm_dev system prompt for every LLM call from this app.
-; RAM[0x78E0] = 1 tells build_llm_system_prompt() to send the GeoOS
-; assembly-programmer prompt instead of the Oracle world-guide prompt.
-LDI r20, 0x78E0
-LDI r0, 1
-STORE r20, r0
-
 ; Clear screen
 LDI r0, 0x0A0A14
 FILL r0
@@ -124,6 +117,15 @@ STORE r20, r0
 LDI r20, CTX_TURNS
 STORE r20, r0
 LDI r20, CTX_CHARS
+STORE r20, r0
+
+; Request asm_dev system prompt for every LLM call from this app.
+; RAM[0x7820] = 1 tells build_llm_system_prompt() to send the GeoOS
+; assembly-programmer prompt instead of the Oracle world-guide prompt.
+; NOTE: Must be set AFTER clearing CMD_HIST_BASE (0x7700, 336 words)
+; because that range overlaps 0x7820.
+LDI r20, 0x7820
+LDI r0, 1
 STORE r20, r0
 
 ; Title bar
