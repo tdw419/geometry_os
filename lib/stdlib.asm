@@ -269,15 +269,19 @@ itoa_reverse:
     SUB r12, r3            ; r12 = last digit pos
     MOV r14, r12           ; src = last digit pos
 itoa_rev_loop:
-    LOAD r2, r14
-    STORE r1, r2
+    ; Check if src <= dst: reversal complete (avoids overwrite)
+    ; First check src == dst (middle element)
+    CMP r14, r1
+    JZ r0, itoa_done       ; src == dst → done
+    ; Check src < dst: CMP result is negative (0xFFFFFFFF in unsigned)
+    BLT r0, itoa_done      ; src < dst → done
+    ; Swap: save dst, load src into dst, load saved into src
+    LOAD r3, r1            ; r3 = dst value (temp)
+    LOAD r2, r14           ; r2 = src value
+    STORE r1, r2           ; dst = src
+    STORE r14, r3          ; src = dst (swap complete)
     LDI r3, 1
     ADD r1, r3             ; dst++
-    CMP r14, r1
-    LDI r3, 0xFFFFFFFF
-    CMP r0, r3             ; if CMP == -1, src < dst, done
-    JZ r0, itoa_done
-    LDI r3, 1
     SUB r14, r3            ; src--
     JMP itoa_rev_loop
 itoa_done:

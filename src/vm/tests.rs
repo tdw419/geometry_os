@@ -28138,9 +28138,28 @@ fn test_lib_test_v4_runs_all_pass() {
         vm.ram[i] = word;
     }
     // Run for up to 500k steps
-    for _ in 0..500_000 {
+    let mut seen_pcs = std::collections::HashSet::new();
+    let mut stuck_reported = false;
+    for step in 0..500_000 {
         if vm.halted {
             break;
+        }
+        if !stuck_reported && step > 100 {
+            if !seen_pcs.insert(vm.pc) {
+                // PC revisited — likely stuck in a loop
+                eprintln!("  LOOP DETECTED at PC=0x{:04X} (step {})", vm.pc, step);
+                // Check which test result area was last written (scan for non-zero)
+                for i in (0..56).rev() {
+                    let addr = 0x1F80 + i;
+                    if vm.ram[addr] != 0 {
+                        eprintln!("  Last completed test: T{} (addr 0x{:04X}) = {}", i+1, addr, vm.ram[addr]);
+                        break;
+                    }
+                }
+                eprintln!("  r0={}, r1={}, r9={}, r10={}, r11={}, r12={}, r14={}, SP={}", 
+                    vm.regs[0], vm.regs[1], vm.regs[9], vm.regs[10], vm.regs[11], vm.regs[12], vm.regs[14], vm.regs[30]);
+                stuck_reported = true;
+            }
         }
         vm.step();
     }
@@ -28211,4 +28230,47 @@ fn test_gfx_lib_assembles() {
         .expect("lib/gfx.asm should exist");
     let result = crate::assembler::assemble(&source, 0);
     assert!(result.is_ok(), "gfx.asm should assemble: {:?}", result.err());
+}
+
+#[test]
+fn debug_trace_lib_test_v4() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    // Print key addresses from bytecode
+    eprintln!("Bytecode length: {} words", result.pixels.len());
+    // Print first few instructions at 0x1100 (tests_start)
+    for i in 0x1100..0x1110 {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+    // Print strlen entry
+    eprintln!("strlen at 0x500:");
+    for i in 0x500..0x520 {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+    // Print strcmp entry (after strlen)
+    eprintln!("Code after strlen:");
+    for i in 0x519..0x550 {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+    
+    // Now run and trace
+    let mut vm = crate::vm::Vm::new();
+    vm.regs[30] = 0xFF00;
+    for (i, &word) in result.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    
+    // Run 200 steps, printing PC and instruction
+    for step in 0..200 {
+        if vm.halted { break; }
+        let pc = vm.pc;
+        let opcode = vm.ram[pc as usize];
+        let (disasm, _) = vm.disassemble_at(pc);
+        if step < 30 || step > 100 {
+            eprintln!("  step {:3}: PC=0x{:04X} opcode=0x{:02X} {} r0={} r1={}", 
+                step, pc, opcode, disasm, vm.regs[0], vm.regs[1]);
+        }
+        vm.step();
+    }
 }
