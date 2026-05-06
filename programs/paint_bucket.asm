@@ -41,23 +41,7 @@
     FILL r2               ; dark background
 
 ; ── Draw bordered shapes ──────────────────────────────
-; Shape 1: Large rectangle border (white outline, black interior)
-; Outer: (20,20) to (100,80)
-    LDI r2, 20
-    LDI r3, 20
-    LDI r5, 0xFFFFFF      ; white
-draw_rect_outline:
-    ; Top edge
-    LDI r2, 20
-top_loop:
-    CMP r2, r14
-    JZ r15, skip_top
-    PSETI 20, r2, r5      ; actually we need a different approach
-    ; Let's use a simpler method - draw the outline manually
-skip_top:
-
-; Actually, let me draw filled rectangles to make borders
-; Approach: draw outer filled rect in white, then inner filled rect in black
+; ── Draw bordered shapes using RECTF (outer fill + inner fill) ──
 
 ; Shape 1: White-bordered rectangle at (20,20) size 80x60
     LDI r5, 0xFFFFFF      ; white
@@ -155,66 +139,66 @@ skip_top:
 ; ── Draw UI text at bottom ────────────────────────────
 ; Store strings in RAM
     LDI r20, 0x500
-    LDI r2, 'W'
+    LDI r2, 0x57           ; 'W'
     STORE r20, r2
     LDI r20, 0x504
-    LDI r2, 'A'
+    LDI r2, 0x41           ; 'A'
     STORE r20, r2
     LDI r20, 0x508
-    LDI r2, 'S'
+    LDI r2, 0x53           ; 'S'
     STORE r20, r2
     LDI r20, 0x50C
-    LDI r2, 'D'
+    LDI r2, 0x44           ; 'D'
     STORE r20, r2
     LDI r20, 0x510
     LDI r2, 0
     STORE r20, r2
 
     LDI r20, 0x520
-    LDI r2, 'S'
+    LDI r2, 0x53           ; 'S'
     STORE r20, r2
     LDI r20, 0x524
-    LDI r2, 'P'
+    LDI r2, 0x50           ; 'P'
     STORE r20, r2
     LDI r20, 0x528
-    LDI r2, '='
+    LDI r2, 0x3D           ; '='
     STORE r20, r2
     LDI r20, 0x52C
-    LDI r2, 'P'
+    LDI r2, 0x50           ; 'P'
     STORE r20, r2
     LDI r20, 0x530
-    LDI r2, 'A'
+    LDI r2, 0x41           ; 'A'
     STORE r20, r2
     LDI r20, 0x534
-    LDI r2, 'I'
+    LDI r2, 0x49           ; 'I'
     STORE r20, r2
     LDI r20, 0x538
-    LDI r2, 'N'
+    LDI r2, 0x4E           ; 'N'
     STORE r20, r2
     LDI r20, 0x53C
-    LDI r2, 'T'
+    LDI r2, 0x54           ; 'T'
     STORE r20, r2
     LDI r20, 0x540
     LDI r2, 0
     STORE r20, r2
 
     LDI r20, 0x560
-    LDI r2, 'F'
+    LDI r2, 0x46           ; 'F'
     STORE r20, r2
     LDI r20, 0x564
-    LDI r2, '='
+    LDI r2, 0x3D           ; '='
     STORE r20, r2
     LDI r20, 0x568
-    LDI r2, 'F'
+    LDI r2, 0x46           ; 'F'
     STORE r20, r2
     LDI r20, 0x56C
-    LDI r2, 'I'
+    LDI r2, 0x49           ; 'I'
     STORE r20, r2
     LDI r20, 0x570
-    LDI r2, 'L'
+    LDI r2, 0x4C           ; 'L'
     STORE r20, r2
     LDI r20, 0x574
-    LDI r2, 'L'
+    LDI r2, 0x4C           ; 'L'
     STORE r20, r2
     LDI r20, 0x578
     LDI r2, 0
@@ -338,4 +322,4 @@ not_q:
     ; Draw cursor (current color with white center indicator)
     PSET r10, r11, r5
 
-    JMP r14, main_loop
+    JMP main_loop
