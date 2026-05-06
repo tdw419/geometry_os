@@ -10407,7 +10407,7 @@ phases:
       or execution (boot_guest with 5M steps). Add eprintln before and after the boot_guest
       call to isolate the hang. Check if guest_vfs_write.c exists in the RISC-V test
       fixtures directory.
-    status: todo
+    status: done
     tasks:
     - id: p216.d1.t1
       title: Isolate timeout to compilation vs execution
@@ -10444,7 +10444,7 @@ phases:
       which WINSYS opcode hangs. Check if the WINSYS handler for op=0 (CREATE), op=8
       (VFS_BLIT), or op=9 (VFS_SYNC) has an infinite loop or unbounded filesystem
       operation.
-    status: todo
+    status: done
     tasks:
     - id: p217.d1.t1
       title: Add step-level debug logging to isolate which WINSYS op hangs
@@ -10586,7 +10586,7 @@ phases:
       the crate root using CARGO_MANIFEST_DIR env var or env!("CARGO_MANIFEST_DIR")
       at compile time, instead of relying on CWD being the project root. This eliminates
       the CWD dependency.
-    status: todo
+    status: done
     tasks:
     - id: p220.d1.t1
       title: Resolve font source dir from CARGO_MANIFEST_DIR
@@ -10600,7 +10600,7 @@ phases:
       errors from create_dir_all, fs::read, and fs::write. Update the caller in boot()
       to log the error but continue booting. This makes failures visible in test output
       instead of mysterious assertion failures.
-    status: todo
+    status: done
     tasks:
     - id: p220.d2.t1
       title: Change ensure_fonts to return Result
@@ -10717,7 +10717,7 @@ phases:
       1266 (push `OracleOp::BranchZ { rs1 }` instead of `OracleOp::BranchZ { rs1,
       taken }`). Update destructuring at line 736 to `OracleOp::BranchZ { rs1: _ }`
       (remove `taken: _`).'
-    status: todo
+    status: done
     tasks:
     - id: p252.d1.t1
       title: Fix BranchZ construction in gen_program (lines 1255, 1266)
@@ -10736,7 +10736,7 @@ phases:
     description: 'Jump is defined as `Jump { target_idx: usize }` but used as unit
       variant at lines 737, 1243, 1363. Either add `target_idx` to all construction
       sites or change the enum to a unit variant if target_idx is never actually used.'
-    status: todo
+    status: done
     tasks:
     - id: p252.d2.t1
       title: Fix Jump construction and destructuring at all 3 sites
@@ -10750,7 +10750,7 @@ phases:
     description: Line 1347 references `OracleOp::CsrrwZero { .. }` and `OracleOp::CsrrsiZero
       { .. }` in a match arm for byte offset calculation. These variants no longer
       exist. Remove them from the match.
-    status: todo
+    status: done
     tasks:
     - id: p252.d3.t1
       title: Remove CsrrwZero/CsrrsiZero from match arm at line 1347

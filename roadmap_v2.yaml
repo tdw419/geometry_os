@@ -2964,7 +2964,7 @@ phases:
   scope_lines_total: 160
 - id: phase-232
   title: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST)
-  status: planned
+  status: in_progress
   goal: Add bitwise manipulation opcodes for efficient flag and bitfield operations
   description: Current bitwise ops (AND, OR, XOR, SHL, SHR, SAR) cover basic needs
     but programs doing bitfield manipulation (device registers, packed colors, sprite
@@ -3001,6 +3001,8 @@ phases:
       scope_lines: 60
   test_target: 4
   scope_lines_total: 140
+  _claimed_by: worker-0
+  _claimed_at: 1778089163
 - id: phase-233
   title: GeOS VM -- Conditional Move Opcodes (CMOV, CSEL)
   status: todo

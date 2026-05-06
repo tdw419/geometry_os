@@ -8868,6 +8868,131 @@ fn test_inv_inverts_screen() {
     assert_eq!(vm.screen[2], 0x000000);
 }
 
+// ── Bit manipulation assembler aliases (BNOT, BSET, BCLR, BTST) ──
+
+#[test]
+fn test_bset_alias_assembles() {
+    // BSET is an alias for BITSET -- both should produce identical bytecode
+    let src_long = "LDI r1, 0\nLDI r2, 5\nBITSET r1, r2\nHALT\n";
+    let src_short = "LDI r1, 0\nLDI r2, 5\nBSET r1, r2\nHALT\n";
+    let result_long = crate::assembler::assemble(src_long, 0).unwrap();
+    let result_short = crate::assembler::assemble(src_short, 0).unwrap();
+    assert_eq!(result_long.pixels, result_short.pixels,
+        "BSET alias should produce same bytecode as BITSET");
+}
+
+#[test]
+fn test_bclr_alias_assembles() {
+    let src_long = "LDI r1, 0xFF\nLDI r2, 3\nBITCLR r1, r2\nHALT\n";
+    let src_short = "LDI r1, 0xFF\nLDI r2, 3\nBCLR r1, r2\nHALT\n";
+    let result_long = crate::assembler::assemble(src_long, 0).unwrap();
+    let result_short = crate::assembler::assemble(src_short, 0).unwrap();
+    assert_eq!(result_long.pixels, result_short.pixels,
+        "BCLR alias should produce same bytecode as BITCLR");
+}
+
+#[test]
+fn test_btst_alias_assembles() {
+    let src_long = "LDI r1, 0x80\nLDI r2, 7\nBITTEST r1, r2\nHALT\n";
+    let src_short = "LDI r1, 0x80\nLDI r2, 7\nBTST r1, r2\nHALT\n";
+    let result_long = crate::assembler::assemble(src_long, 0).unwrap();
+    let result_short = crate::assembler::assemble(src_short, 0).unwrap();
+    assert_eq!(result_long.pixels, result_short.pixels,
+        "BTST alias should produce same bytecode as BITTEST");
+}
+
+#[test]
+fn test_bnot_alias_assembles() {
+    let src_long = "LDI r1, 0xFF\nNOT r1\nHALT\n";
+    let src_short = "LDI r1, 0xFF\nBNOT r1\nHALT\n";
+    let result_long = crate::assembler::assemble(src_long, 0).unwrap();
+    let result_short = crate::assembler::assemble(src_short, 0).unwrap();
+    assert_eq!(result_long.pixels, result_short.pixels,
+        "BNOT alias should produce same bytecode as NOT");
+}
+
+#[test]
+fn test_bset_alias_executes() {
+    // Verify BSET alias produces working bytecode via end-to-end execution
+    let src = "LDI r1, 0\nLDI r2, 5\nBSET r1, r2\nHALT\n";
+    let asm = crate::assembler::assemble(src, 0).unwrap();
+    let vm = run_program(&asm.pixels, 100);
+    assert_eq!(vm.regs[1], 0x20, "BSET should set bit 5 (= 0x20)");
+}
+
+#[test]
+fn test_bclr_alias_executes() {
+    let src = "LDI r1, 0xFF\nLDI r2, 3\nBCLR r1, r2\nHALT\n";
+    let asm = crate::assembler::assemble(src, 0).unwrap();
+    let vm = run_program(&asm.pixels, 100);
+    assert_eq!(vm.regs[1], 0xF7, "BCLR should clear bit 3");
+}
+
+#[test]
+fn test_btst_alias_executes() {
+    let src = "LDI r1, 0x80\nLDI r2, 7\nBTST r1, r2\nHALT\n";
+    let asm = crate::assembler::assemble(src, 0).unwrap();
+    let vm = run_program(&asm.pixels, 100);
+    assert_eq!(vm.regs[0], 1, "BTST should find bit 7 set");
+}
+
+#[test]
+fn test_bnot_alias_executes() {
+    let src = "LDI r1, 0x00FF00FF\nBNOT r1\nHALT\n";
+    let asm = crate::assembler::assemble(src, 0).unwrap();
+    let vm = run_program(&asm.pixels, 100);
+    assert_eq!(vm.regs[1], !0x00FF00FFu32, "BNOT should invert all bits");
+}
+
+#[test]
+fn test_bit_ops_combined_with_branch() {
+    // Real-world pattern: set a flag, test it, branch
+    // LDI(3) + LDI(3) + BSET(3) + BTST(3) + JNZ(3) + LDI(3) + HALT(1) = 19 words
+    // target at offset 19
+    let src = "\
+        LDI r1, 0
+        LDI r2, 3
+        BSET r1, r2
+        BTST r1, r2
+        JNZ r0, 19
+        LDI r5, 0
+        HALT
+        LDI r5, 42
+        HALT
+    ";
+    let asm = crate::assembler::assemble(src, 0).unwrap();
+    let vm = run_program(&asm.pixels, 100);
+    assert_eq!(vm.regs[5], 42, "BSET+BTST+JNZ pattern should branch");
+}
+
+#[test]
+fn test_bclr_then_btst() {
+    // Clear a bit then test it -- should be 0
+    let src = "\
+        LDI r1, 0xFF
+        LDI r2, 7
+        BCLR r1, r2
+        BTST r1, r2
+        JZ r0, 19
+        LDI r5, 0
+        HALT
+        LDI r5, 99
+        HALT
+    ";
+    let asm = crate::assembler::assemble(src, 0).unwrap();
+    let vm = run_program(&asm.pixels, 100);
+    assert_eq!(vm.regs[5], 99, "BCLR+BTST+JZ pattern should branch");
+}
+
+#[test]
+fn test_bnot_bit31_edge() {
+    // BNOT on value with bit 31 set (sign bit)
+    let src = "LDI r1, 0x80000000\nBNOT r1\nHALT\n";
+    let asm = crate::assembler::assemble(src, 0).unwrap();
+    let vm = run_program(&asm.pixels, 100);
+    assert_eq!(vm.regs[1], 0x7FFFFFFF, "BNOT should flip sign bit");
+}
+
 #[test]
 fn test_inv_double_invert_restores() {
     let mut vm = Vm::new();

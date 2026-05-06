@@ -70,7 +70,7 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 | phase-229 RISC-V Guest -- Simple File Viewer | PLANNED | 0/1 | 270 | 2 |
 | phase-230 Error Resilience -- Replace pixel.rs unwrap() Calls | PLANNED | 0/1 | 130 | 3 |
 | phase-231 Error Resilience -- Replace mmu.rs unwrap() Calls | PLANNED | 0/1 | 160 | 3 |
-| phase-232 GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST) | PLANNED | 0/1 | 140 | 4 |
+| phase-232 GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST) | DONE | 3/3 | 140 | 4 |
 | phase-233 GeOS VM -- Conditional Move Opcodes (CMOV, CSEL) | PLANNED | 0/1 | 145 | 3 |
 | phase-234 GeOS VM -- Pixel Alpha Blending Opcode (BLEND) | PLANNED | 0/1 | 155 | 3 |
 | phase-235 RISC-V Guest -- Shared Memory IPC | PLANNED | 0/1 | 270 | 2 |
@@ -1262,7 +1262,7 @@ riscv/mmu.rs is the memory management unit for the RISC-V interpreter. It has 14
   - [ ] `p231.d1.t3` Wire translate errors into bus fault handling
     > CPU step loop catches TranslateError and delivers proper page fault exceptions instead of panicking.
 
-## [ ] phase-232: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST) (PLANNED)
+## [x] phase-232: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST) (DONE)
 
 **Goal:** Add bitwise manipulation opcodes for efficient flag and bitfield operations
 
@@ -1270,13 +1270,13 @@ Current bitwise ops (AND, OR, XOR, SHL, SHR, SAR) cover basic needs but programs
 
 ### Deliverables
 
-- [ ] **Bit manipulation opcodes** -- 
-  - [ ] `p232.d1.t1` Implement BNOT rd (0xC1), BSET rd bit_reg (0xC2), BCLR rd bit_reg (0xC3)
-    > BNOT inverts all bits. BSET sets bit N. BCLR clears bit N. Two-word encoding for BNOT, three-word for BSET/BCLR.
-  - [ ] `p232.d1.t2` Implement BTST rd bit_reg (0xC4) with r0 result
-    > Test bit N and store result in r0. Combined with JZ/JNZ for conditional bit branches. Three-word encoding.
-  - [ ] `p232.d1.t3` Add disassembler entries and tests
-    > Disassemble all four new opcodes. Add 4 unit tests verifying bit manipulation behavior with edge cases (bit 0, bit 31, overflow).
+- [x] **Bit manipulation opcodes** --
+  - [x] `p232.d1.t1` Implement BNOT rd (0x90), BSET rd bit_reg (0x8D), BCLR rd bit_reg (0x8E)
+    > Already existed as NOT/BITSET/BITCLR. Added BNOT/BSET/BCLR as assembler aliases producing identical bytecode.
+  - [x] `p232.d1.t2` Implement BTST rd bit_reg (0x8F) with r0 result
+    > Already existed as BITTEST. Added BTST as assembler alias. Combined with JZ/JNZ for conditional bit branches.
+  - [x] `p232.d1.t3` Add disassembler entries and tests
+    > Disassembler already covered all four opcodes. Added 11 new tests: alias equivalence (4), alias execution (4), branch patterns (2), bit31 edge case (1). Also added opcodes to icache for hot-loop performance.
 
 ## [ ] phase-233: GeOS VM -- Conditional Move Opcodes (CMOV, CSEL) (PLANNED)
 

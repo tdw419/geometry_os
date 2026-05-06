@@ -447,7 +447,12 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
-        "BITSET" => {
+        // Bit manipulation opcodes: BITSET/BSET (0x8D), BITCLR/BCLR (0x8E),
+        // BITTEST/BTST (0x8F), NOT/BNOT (0x90).
+        // Short aliases (BSET, BCLR, BTST, BNOT) are equivalent to their
+        // longer forms and produce identical bytecode.
+
+        "BITSET" | "BSET" => {
             if tokens.len() < 3 {
                 return Err("BITSET requires 2 arguments: BITSET rd, bit_reg".to_string());
             }
@@ -457,7 +462,7 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
-        "BITCLR" => {
+        "BITCLR" | "BCLR" => {
             if tokens.len() < 3 {
                 return Err("BITCLR requires 2 arguments: BITCLR rd, bit_reg".to_string());
             }
@@ -467,7 +472,7 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
-        "BITTEST" => {
+        "BITTEST" | "BTST" => {
             if tokens.len() < 3 {
                 return Err("BITTEST requires 2 arguments: BITTEST rd, bit_reg".to_string());
             }
@@ -477,7 +482,7 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
-        "NOT" => {
+        "NOT" | "BNOT" => {
             if tokens.len() < 2 {
                 return Err("NOT requires 1 argument: NOT rd".to_string());
             }

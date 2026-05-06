@@ -45,6 +45,10 @@ impl Vm {
             0x60 | 0x61 => true, // PUSH, POP
             // NOP, HALT (0 operands)
             0x00 | 0x01 => true,
+            // Bit manipulation: rd, bit_reg (2 operands)
+            0x8D | 0x8E | 0x8F => true, // BITSET, BITCLR, BITTEST
+            // Bit manipulation: rd (1 operand)
+            0x90 => true, // NOT
             // Everything else: not cacheable (complex, variable behavior)
             _ => false,
         }
@@ -58,9 +62,11 @@ impl Vm {
         match opcode {
             0x00 | 0x01 | 0x34 => 0,               // HALT, NOP, RET
             0x2A | 0x30 | 0x33 | 0x60 | 0x61 => 1, // NEG, JMP, CALL, PUSH, POP
+            0x90 => 1,                               // NOT
             0x10 | 0x11 | 0x12 | 0x50 | 0x51 => 2, // LDI, LOAD, STORE, CMP, MOV
             0x20..=0x29 | 0x2B => 2,               // ADD..MOD, SAR
             0x31 | 0x32 | 0x35 | 0x36 => 2,        // JZ, JNZ, BLT, BGE
+            0x8D | 0x8E | 0x8F => 2,                // BITSET, BITCLR, BITTEST
             _ => 0,                                // unreachable for cacheable opcodes
         }
     }
@@ -505,6 +511,44 @@ impl Vm {
                         }
                         _ => {}
                     }
+                }
+            }
+
+            // BITSET rd, bit_reg (0x8D) -- rd |= 1 << (bit_reg & 31)
+            0x8D => {
+                let rd = ops[0] as usize;
+                let br = ops[1] as usize;
+                if rd < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[rd] |= 1 << bit;
+                }
+            }
+
+            // BITCLR rd, bit_reg (0x8E) -- rd &= !(1 << (bit_reg & 31))
+            0x8E => {
+                let rd = ops[0] as usize;
+                let br = ops[1] as usize;
+                if rd < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[rd] &= !(1 << bit);
+                }
+            }
+
+            // BITTEST rd, bit_reg (0x8F) -- r0 = (rd >> (bit_reg & 31)) & 1
+            0x8F => {
+                let rd = ops[0] as usize;
+                let br = ops[1] as usize;
+                if rd < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[0] = (self.regs[rd] >> bit) & 1;
+                }
+            }
+
+            // NOT rd (0x90) -- rd = !rd
+            0x90 => {
+                let rd = ops[0] as usize;
+                if rd < NUM_REGS {
+                    self.regs[rd] = !self.regs[rd];
                 }
             }
 
