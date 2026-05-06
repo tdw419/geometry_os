@@ -2964,7 +2964,7 @@ phases:
   scope_lines_total: 160
 - id: phase-232
   title: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST)
-  status: in_progress
+  status: complete
   goal: Add bitwise manipulation opcodes for efficient flag and bitfield operations
   description: Current bitwise ops (AND, OR, XOR, SHL, SHR, SAR) cover basic needs
     but programs doing bitfield manipulation (device registers, packed colors, sprite
@@ -2973,7 +2973,7 @@ phases:
     SHL+OR+AND sequences currently used.
   deliverables:
   - name: Bit manipulation opcodes
-    status: todo
+    status: done
     tasks:
     - id: p232.d1.t1
       title: Implement BNOT rd (0xC1), BSET rd bit_reg (0xC2), BCLR rd bit_reg (0xC3)
@@ -2983,6 +2983,7 @@ phases:
       - src/vm/mod.rs
       - src/assembler/ops_core.rs
       scope_lines: 50
+      status: done
     - id: p232.d1.t2
       title: Implement BTST rd bit_reg (0xC4) with r0 result
       description: Test bit N and store result in r0. Combined with JZ/JNZ for conditional
@@ -2991,6 +2992,7 @@ phases:
       - src/vm/mod.rs
       - src/assembler/ops_core.rs
       scope_lines: 30
+      status: done
     - id: p232.d1.t3
       title: Add disassembler entries and tests
       description: Disassemble all four new opcodes. Add 4 unit tests verifying bit
@@ -2999,10 +3001,9 @@ phases:
       - src/vm/disasm.rs
       - src/vm/tests.rs
       scope_lines: 60
+      status: done
   test_target: 4
   scope_lines_total: 140
-  _claimed_by: worker-0
-  _claimed_at: 1778089163
 - id: phase-233
   title: GeOS VM -- Conditional Move Opcodes (CMOV, CSEL)
   status: todo
