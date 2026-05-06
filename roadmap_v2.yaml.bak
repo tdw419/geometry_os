@@ -2485,7 +2485,7 @@ phases:
   _completed_at: 1778048500
 - id: phase-221
   title: GeOS VM -- Clipboard Protocol Enhancement
-  status: in_progress
+  status: planned
   goal: Extend the system clipboard (0xF010-0xF01F) with multi-format copy/paste and
     clipboard history
   description: 'The clipboard protocol at 0xF010-0xF01F supports basic pixel-region
@@ -2527,11 +2527,9 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 200
-  _claimed_by: worker-0
-  _claimed_at: 1778049551
 - id: phase-222
   title: GeOS VM -- Timer and Alarm Opcodes
-  status: in_progress
+  status: planned
   goal: Add wall-clock timer opcodes so programs can schedule actions by real time,
     not just frame count
   description: Programs currently use the TICKS register (RAM[0xFFE], incremented
@@ -2571,11 +2569,9 @@ phases:
       scope_lines: 50
   test_target: 3
   scope_lines_total: 120
-  _claimed_by: worker-0
-  _claimed_at: 1778050654
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
-  status: in_progress
+  status: planned
   goal: Audit and standardize the programs/lib/ assembly library with proper documentation
     and test coverage
   description: The programs/lib/ directory contains stdlib.asm, math.asm, stdio.asm,
@@ -2618,8 +2614,6 @@ phases:
       scope_lines: 120
   test_target: 3
   scope_lines_total: 300
-  _claimed_by: worker-0
-  _claimed_at: 1778053885
 - id: phase-224
   title: RISC-V Guest -- Conway's Life with Framebuffer Rendering
   status: complete
@@ -2664,7 +2658,7 @@ phases:
     _claimed_at: 1778040167
 - id: phase-225
   title: GeOS VM -- Network HTTP Client Opcode
-  status: planned
+  status: complete
   goal: Add a simple HTTP GET opcode that fetches a URL and stores the response in
     RAM
   description: 'The VM has TCP opcodes (CONNECT, SOCKSEND, SOCKRECV) but no HTTP-level
@@ -2675,7 +2669,7 @@ phases:
     returns the actual length. Uses the existing TCP networking in src/vm/net.rs.'
   deliverables:
   - name: HTTP GET opcode
-    status: todo
+    status: done
     tasks:
     - id: p225.d1.t1
       title: Implement HTTPGET opcode (0xC9)
@@ -2707,7 +2701,7 @@ phases:
   test_target: 3
   scope_lines_total: 210
   _claimed_by: worker-0
-  _claimed_at: 1778042137
+  _claimed_at: 1778057736
 - id: phase-226
   title: RISC-V Guest -- Minimal Text Editor
   status: complete
