@@ -1,3 +1,7 @@
+## 2026-05-07T23:59Z Watchdog: Drafter auto-paused after agent failure, loop STALLED for ~80m
+**Decided instead:** Resumed the drafter cron job via `hermes cron resume`.
+**Reason:** Drafter job (1e09480a3258) was auto-paused at 17:39 CDT with `RuntimeError: agent reported failure`. Last run was working on phase-254 (Dungeon Generator). The error had no additional context — likely a transient agent failure. No system-level cron entries exist (all managed by Hermes cron). Build is clean (21 warnings, 0 errors). Human Gate has 47 accumulated questions, mostly duplicate scrollback limit questions from repeated drafter runs — this is injected context, not actionable from watchdog. Reviewer (geo-reviewer-shipper) is healthy and running every 5m.
+**Outcome:** Drafter resumed, next run scheduled for ~18:08 CDT. Loop should self-recover. Recurring pattern: drafter keeps getting auto-paused on transient agent failures (3rd time this project). May want to configure `max_retries` or `auto_resume_on_transient` if Hermes supports it.
 
 ## 2026-05-07T03:48Z Watchdog: Drafter cron job deleted, loop STALLED for 5+ hours
 **Decided instead:** Recreated the drafter cron job from session history.

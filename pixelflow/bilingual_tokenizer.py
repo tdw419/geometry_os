@@ -38,8 +38,8 @@ _CHAR_TABLE = (
     string.ascii_lowercase + # a-z  (26 chars)
     "_."                     # _ .  (2 chars)
 )
-# Add symbols used in addressing, operators, comments
-_EXTRA_CHARS = "[]+-*/=!#()<>{}"
+# Add symbols used in addressing, operators, comments, and strings
+_EXTRA_CHARS = "[]+-*/=!#()<>{}\"'"
 _CHAR_TABLE = _CHAR_TABLE + _EXTRA_CHARS
 CHAR_TO_ID = {ch: 270 + i for i, ch in enumerate(_CHAR_TABLE)}
 ID_TO_CHAR = {v: k for k, v in CHAR_TO_ID.items()}
@@ -132,6 +132,7 @@ class BilingualTokenizer:
     def _encode_asm_line(self, line):
         """Encode a pure ASM line (no comments) into token IDs."""
         tokens = []
+        prev_was_chars = False
         # Split on whitespace, commas, colons, and brackets individually
         parts = re.split(r'([\s,:{}\[\]])', line)
         for p in parts:
@@ -139,23 +140,32 @@ class BilingualTokenizer:
             if not ps: continue
             if ps == ",":
                 tokens.append(COMMA)
+                prev_was_chars = False
             elif ps == ":":
                 tokens.append(COLON)
+                prev_was_chars = False
             else:
                 tid = self.asm_tok._classify_token(ps)
-                # Directives (.byte, .data, etc.) should be treated as opcodes
-                is_directive = ps.startswith('.')
+                # Directives (.byte, #define, etc.) should be treated as atomic-like
+                is_directive = ps.startswith('.') or ps.startswith('#')
                 if is_directive:
                     # Encode directive as chars, then emit SPACE_TOKEN to separate from args
                     tokens.extend(self._encode_chars(ps))
                     tokens.append(SPACE_TOKEN)
+                    prev_was_chars = True
                 elif tid in [NUM, LABEL, STR]:
+                    if prev_was_chars:
+                        tokens.append(SPACE_TOKEN)
                     tokens.extend(self._encode_chars(ps))
+                    prev_was_chars = True
                 elif ps == "[" or ps == "]":
-                    # Brackets are structural -- encode as char but mark as no-space-needed
+                    if prev_was_chars:
+                        tokens.append(SPACE_TOKEN)
                     tokens.extend(self._encode_chars(ps))
+                    prev_was_chars = True
                 else:
                     tokens.append(tid)
+                    prev_was_chars = False
         return tokens
 
     def decode(self, ids):
@@ -200,6 +210,13 @@ class BilingualTokenizer:
 
         for tid in ids:
             if tid == BOS or tid == EOS or tid == PAD:
+                continue
+            
+            if tid == SPACE_TOKEN:
+                # Force-flush current chars and add a space
+                flush_chars()
+                if parts and not parts[-1].endswith(" "):
+                    parts.append(" ")
                 continue
             
             if tid in ID_TO_CHAR:
