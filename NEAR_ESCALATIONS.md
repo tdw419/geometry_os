@@ -18,3 +18,13 @@
 **Decided instead:** Cleaned the working tree (reset to HEAD), dropped conflicting stash. The drafter's phase-221 clipboard implementation WIP had merge conflicts after stash pop (stash was from pre-phase-220 state). Rather than manually resolve 12 conflict markers across 6 files, let the drafter redo the work from scratch.
 **Reason:** The drafter errored at 15:43 CDT with RuntimeError (desktop socket /tmp/geos_desktop.sock unavailable for vision-gate verification). All 11 unit tests passed, but the agent couldn't complete the full pipeline and raised an error. The WIP was uncommitted and in a conflicting stash. Clean tree + next cron run is the fastest path to unblock.
 **Outcome:** Working tree clean, test gate green (0 halts, 100% pass rate). Phases 219/220 are in_progress and stale (>30m timeout), so drafter will steal them. 4 pre-existing AI terminal test failures in capability_tests are invisible to the test gate (gate only runs --lib tests). Loop should self-recover on next drafter run.
+
+## [2026-05-06 22:35 UTC] Almost asked: Should I add a new phase for the scrollback panic bug?
+**Decided instead:** Verified phase-266 already tracks the exact bug (SCROLLBACK_COLS=32 vs CANVAS_COLS=128 causing runtime panic in copy_from_slice). No new phase needed.
+**Reason:** The bug is already well-documented in roadmap.yaml. The main finding is that the severity is worse than described — it's not just "misaligned/garbage data" but an actual runtime panic (slice length mismatch: 32 vs 128) when PageUp is pressed with any scrollback content.
+**Outcome:** Confirmed phase-266 is correct and sufficient. Fixed two minor issues directly: duplicate Yielded match arm in riscv_fuzzer.rs, stale comment in canvas.rs.
+
+## [2026-05-06 22:35 UTC] Almost asked: Should I add phases for unused imports/dead code?
+**Decided instead:** Skipped — these are cosmetic warnings (23 in lib, 11 in bin). Not worth roadmap phases.
+**Reason:** The project has 266 phases and 185K LOC. Dead code accumulation is normal. `cargo fix` can clean up unused imports in one pass if desired.
+**Outcome:** No action taken. Build is clean (0 errors).
