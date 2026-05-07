@@ -1387,14 +1387,13 @@ impl Vm {
             }
 
             // STRCMP addr1_reg, addr2_reg -- compare two null-terminated strings
-            // Sets r0: 0 if equal, 1 if not equal
+            // Sets r0: 0 if equal, 1 if s1 > s2, 0xFFFFFFFF (-1) if s1 < s2
             0x86 => {
                 let a1 = self.fetch() as usize;
                 let a2 = self.fetch() as usize;
                 if a1 < NUM_REGS && a2 < NUM_REGS {
                     let mut addr1 = self.regs[a1] as usize;
                     let mut addr2 = self.regs[a2] as usize;
-                    let mut equal = true;
                     loop {
                         let c1 = if addr1 < self.ram.len() {
                             (self.ram[addr1] & 0xFF) as u8
@@ -1407,16 +1406,16 @@ impl Vm {
                             0
                         };
                         if c1 != c2 {
-                            equal = false;
+                            self.regs[0] = if c1 > c2 { 1 } else { 0xFFFFFFFF };
                             break;
                         }
                         if c1 == 0 {
+                            self.regs[0] = 0;
                             break;
                         }
                         addr1 += 1;
                         addr2 += 1;
                     }
-                    self.regs[0] = if equal { 0 } else { 1 };
                 }
             }
 
