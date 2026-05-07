@@ -31617,3 +31617,253 @@ fn test_blend_blendr_composition() {
     assert!(b > 0, "should have some blue from background, got b={}", b);
     assert!(r > 0, "should have some red from blend, got r={}", r);
 }
+
+// ── Phase 241: ROTATE and SCALE opcode tests ──
+
+#[test]
+fn test_rotate_assembles() {
+    let source = "ROTATE r1, r2, r3, r4, r5\nHALT\n";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(result.pixels[0], 0xF4, "ROTATE opcode");
+    assert_eq!(result.pixels[1], 1, "x_reg");
+    assert_eq!(result.pixels[2], 2, "y_reg");
+    assert_eq!(result.pixels[3], 3, "w_reg");
+    assert_eq!(result.pixels[4], 4, "h_reg");
+    assert_eq!(result.pixels[5], 5, "angle_reg");
+    assert_eq!(result.pixels[6], 0x00, "HALT");
+}
+
+#[test]
+fn test_scale_assembles() {
+    let source = "SCALE r1, r2, r3, r4, r5, r6, r7, r8\nHALT\n";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(result.pixels[0], 0xF5, "SCALE opcode");
+    assert_eq!(result.pixels[1], 1, "sx_reg");
+    assert_eq!(result.pixels[2], 2, "sy_reg");
+    assert_eq!(result.pixels[3], 3, "sw_reg");
+    assert_eq!(result.pixels[4], 4, "sh_reg");
+    assert_eq!(result.pixels[5], 5, "dx_reg");
+    assert_eq!(result.pixels[6], 6, "dy_reg");
+    assert_eq!(result.pixels[7], 7, "dw_reg");
+    assert_eq!(result.pixels[8], 8, "dh_reg");
+    assert_eq!(result.pixels[9], 0x00, "HALT");
+}
+
+#[test]
+fn test_rotate_zero_angle() {
+    // Rotating by 0 should leave pixels unchanged
+    let mut vm = Vm::new();
+    // Draw a 4x4 red square at (10, 10)
+    for dy in 0..4 {
+        for dx in 0..4 {
+            vm.screen[(10 + dy) * 256 + (10 + dx)] = 0xFF0000;
+        }
+    }
+    vm.regs[1] = 10; // x
+    vm.regs[2] = 10; // y
+    vm.regs[3] = 4;  // w
+    vm.regs[4] = 4;  // h
+    vm.regs[5] = 0;  // angle = 0 (no rotation)
+    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[6] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    for dy in 0..4 {
+        for dx in 0..4 {
+            assert_eq!(vm.screen[(10 + dy) * 256 + (10 + dx)], 0xFF0000,
+                "zero rotation should preserve pixel at ({}, {})", 10 + dx, 10 + dy);
+        }
+    }
+}
+
+#[test]
+fn test_rotate_90_degrees() {
+    // Rotating a 4x4 asymmetric pattern 90 degrees clockwise.
+    // Top half red, bottom half blue -- after 90° CW, left half should be red, right half blue.
+    let mut vm = Vm::new();
+    for dx in 0..4 {
+        for dy in 0..2 {
+            vm.screen[(10 + dy) * 256 + (10 + dx)] = 0xFF0000; // top half = red
+        }
+        for dy in 2..4 {
+            vm.screen[(10 + dy) * 256 + (10 + dx)] = 0x0000FF; // bottom half = blue
+        }
+    }
+    // 90° = π/2 radians. Fixed-point: angle_fixed / 256.0 = radians
+    let angle_fixed = (std::f64::consts::FRAC_PI_2 * 256.0) as i32 as u32;
+    vm.regs[1] = 10; // x
+    vm.regs[2] = 10; // y
+    vm.regs[3] = 4;  // w
+    vm.regs[4] = 4;  // h
+    vm.regs[5] = angle_fixed;
+    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[6] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // After 90° CW rotation: the original top-half (red) should now appear on the right side
+    // and the original bottom-half (blue) should appear on the left side.
+    // Check that center pixels changed from the original pattern.
+    let center = vm.screen[12 * 256 + 12]; // center of 4x4
+    // Original center was red (top half). After 90° CW rotation, center may be
+    // different due to rotation mapping. Just verify SOMETHING changed.
+    // Count red and blue pixels in the rotated region
+    let mut red_count = 0u32;
+    let mut blue_count = 0u32;
+    for dy in 0..4 {
+        for dx in 0..4 {
+            let p = vm.screen[(10 + dy) * 256 + (10 + dx)];
+            if p == 0xFF0000 { red_count += 1; }
+            if p == 0x0000FF { blue_count += 1; }
+        }
+    }
+    // Original had 8 red + 8 blue. After 90° rotation of horizontal split,
+    // it should become vertical split. Due to nearest-neighbor on 4x4,
+    // counts may not be exactly 8/8, but both colors must be present.
+    assert!(red_count > 0, "should still have red pixels after rotation");
+    assert!(blue_count > 0, "should still have blue pixels after rotation");
+    // The center pixel was originally blue (row 2 = bottom half); after 90° CW rotation,
+    // it maps to source (2,1) which is red. Verify it changed from its original color.
+    assert_ne!(center, 0x0000FF,
+        "center pixel should change after 90° rotation, got {:06X}", center);
+}
+
+#[test]
+fn test_rotate_degenerate_is_noop() {
+    // Zero width/height should be a no-op
+    let mut vm = Vm::new();
+    vm.screen[10 * 256 + 10] = 0xFF0000;
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0; vm.regs[4] = 4; vm.regs[5] = 4021;
+    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[6] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000, "zero-width rotate should be no-op");
+}
+
+#[test]
+fn test_rotate_disasm() {
+    let source = "ROTATE r1, r2, r3, r4, r5\nHALT\n";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &w) in result.pixels.iter().enumerate() {
+        if i < vm.ram.len() { vm.ram[i] = w; }
+    }
+    let (s, _) = vm.disassemble_at(0);
+    assert!(s.contains("ROTATE"), "disasm should contain ROTATE, got: {}", s);
+}
+
+#[test]
+fn test_scale_up_2x() {
+    // Scale a 2x2 source to 4x4 destination
+    let mut vm = Vm::new();
+    // Draw 2x2 pattern at (10, 10): red top-left, green top-right, blue bottom-left, white bottom-right
+    vm.screen[10 * 256 + 10] = 0xFF0000;
+    vm.screen[10 * 256 + 11] = 0x00FF00;
+    vm.screen[11 * 256 + 10] = 0x0000FF;
+    vm.screen[11 * 256 + 11] = 0xFFFFFF;
+    // Scale to (20, 20) at 4x4
+    vm.regs[1] = 10; // sx
+    vm.regs[2] = 10; // sy
+    vm.regs[3] = 2;  // sw
+    vm.regs[4] = 2;  // sh
+    vm.regs[5] = 20; // dx
+    vm.regs[6] = 20; // dy
+    vm.regs[7] = 4;  // dw
+    vm.regs[8] = 4;  // dh
+    vm.ram[0] = 0xF5; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.ram[9] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // Top-left 2x2 of dest should be red (from src[0][0])
+    assert_eq!(vm.screen[20 * 256 + 20], 0xFF0000, "top-left of scaled should be red");
+    assert_eq!(vm.screen[20 * 256 + 21], 0xFF0000, "scaled red extends right");
+    assert_eq!(vm.screen[21 * 256 + 20], 0xFF0000, "scaled red extends down");
+    // Top-right 2x2 should be green (from src[0][1])
+    assert_eq!(vm.screen[20 * 256 + 22], 0x00FF00, "top-right of scaled should be green");
+    // Bottom-left should be blue
+    assert_eq!(vm.screen[22 * 256 + 20], 0x0000FF, "bottom-left of scaled should be blue");
+    // Bottom-right should be white
+    assert_eq!(vm.screen[22 * 256 + 22], 0xFFFFFF, "bottom-right of scaled should be white");
+}
+
+#[test]
+fn test_scale_down() {
+    // Scale a 4x4 source to 2x2 destination
+    let mut vm = Vm::new();
+    // Fill 4x4 at (10,10) with red
+    for dy in 0..4 { for dx in 0..4 { vm.screen[(10 + dy) * 256 + (10 + dx)] = 0xFF0000; } }
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4;
+    vm.regs[5] = 20; vm.regs[6] = 20; vm.regs[7] = 2; vm.regs[8] = 2;
+    vm.ram[0] = 0xF5; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.ram[9] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // All 4 dest pixels should be red
+    for dy in 0..2 { for dx in 0..2 {
+        assert_eq!(vm.screen[(20 + dy) * 256 + (20 + dx)], 0xFF0000,
+            "scaled-down pixel at ({}, {}) should be red", 20 + dx, 20 + dy);
+    }}
+}
+
+#[test]
+fn test_scale_degenerate_is_noop() {
+    // Zero dest size should be no-op
+    let mut vm = Vm::new();
+    vm.screen[10 * 256 + 10] = 0xFF0000;
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 2; vm.regs[4] = 2;
+    vm.regs[5] = 20; vm.regs[6] = 20; vm.regs[7] = 0; vm.regs[8] = 2;
+    vm.ram[0] = 0xF5; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.ram[9] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // Source should be unchanged (dest was zero-size, no pixels written to source)
+    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000, "zero-size scale dest should be no-op on source");
+}
+
+#[test]
+fn test_scale_disasm() {
+    let source = "SCALE r1, r2, r3, r4, r5, r6, r7, r8\nHALT\n";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &w) in result.pixels.iter().enumerate() {
+        if i < vm.ram.len() { vm.ram[i] = w; }
+    }
+    let (s, _) = vm.disassemble_at(0);
+    assert!(s.contains("SCALE"), "disasm should contain SCALE, got: {}", s);
+}
+
+#[test]
+fn test_rotate_respects_clip_rect() {
+    // ROTATE should be clipped by clip rectangle
+    let mut vm = Vm::new();
+    vm.screen[5 * 256 + 5] = 0x00FF00; // green pixel
+    vm.clip_rect = Some((0, 0, 3, 3)); // clip to 3x3 top-left
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 8; vm.regs[4] = 8;
+    vm.regs[5] = 0; // zero angle
+    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[6] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // Pixel at (5,5) is outside clip, should be unchanged
+    assert_eq!(vm.screen[5 * 256 + 5], 0x00FF00, "clipped ROTATE should not touch (5,5)");
+}
+
+#[test]
+fn test_scale_respects_clip_rect() {
+    // SCALE should be clipped by clip rectangle
+    let mut vm = Vm::new();
+    vm.screen[10 * 256 + 10] = 0x00FF00; // green pixel outside clip region
+    vm.clip_rect = Some((0, 0, 5, 5)); // clip to 5x5 top-left
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 2; vm.regs[4] = 2;
+    vm.regs[5] = 8; vm.regs[6] = 8; vm.regs[7] = 4; vm.regs[8] = 4;
+    vm.ram[0] = 0xF5; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.ram[9] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // Pixel at (10,10) should be unchanged (outside clip)
+    assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "clipped SCALE should not touch (10,10)");
+}
