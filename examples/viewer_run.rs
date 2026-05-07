@@ -39,7 +39,11 @@ fn run_viewer(elf_data: &[u8], input: &[u8], max_steps: u64) -> (Vec<u32>, u32, 
     let nz = fb.iter().filter(|&&p| p != 0).count();
     eprintln!(
         "  post-boot: steps={}, pc=0x{:08X}, faults={}, fb_nz={}/{}",
-        count, vm.cpu.pc, faults, nz, fb.len()
+        count,
+        vm.cpu.pc,
+        faults,
+        nz,
+        fb.len()
     );
     if !console_out.is_empty() {
         eprintln!(
@@ -86,11 +90,14 @@ fn main() {
     // Test 1: Initial display renders content (title bar, line numbers, status bar)
     eprintln!("\n=== Test 1: Initial Display ===");
     let (canvas, _pc, _con) = run_viewer(&elf_data, b"", 15_000_000);
-    let tp = count_bright(&canvas, 0, 0, 256, 12);          // title bar
-    let cp = count_bright(&canvas, 0, 12, 256, 220);         // content area
-    let sp = count_bright(&canvas, 0, 246, 256, 10);         // status bar
-    let ln = count_bright(&canvas, 0, 12, 36, 220);          // line number column
-    eprintln!("  title={} content={} status={} linenums={}", tp, cp, sp, ln);
+    let tp = count_bright(&canvas, 0, 0, 256, 12); // title bar
+    let cp = count_bright(&canvas, 0, 12, 256, 220); // content area
+    let sp = count_bright(&canvas, 0, 246, 256, 10); // status bar
+    let ln = count_bright(&canvas, 0, 12, 36, 220); // line number column
+    eprintln!(
+        "  title={} content={} status={} linenums={}",
+        tp, cp, sp, ln
+    );
     if tp > 20 && sp > 10 && ln > 5 {
         eprintln!("  PASS");
         passed += 1;

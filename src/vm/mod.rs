@@ -5281,7 +5281,11 @@ impl Vm {
                         self.regs[dr] = self.regs[sr];
                     }
                     if self.render_logging {
-                        self.log_render_op(0xE0, "CMOV", &[self.regs[dr], self.regs[sr], self.regs[cr]]);
+                        self.log_render_op(
+                            0xE0,
+                            "CMOV",
+                            &[self.regs[dr], self.regs[sr], self.regs[cr]],
+                        );
                     }
                 }
             }
@@ -5302,7 +5306,11 @@ impl Vm {
                         self.regs[dr] = self.regs[s2];
                     }
                     if self.render_logging {
-                        self.log_render_op(0xEF, "CSEL", &[self.regs[dr], self.regs[s1], self.regs[s2], self.regs[cr]]);
+                        self.log_render_op(
+                            0xEF,
+                            "CSEL",
+                            &[self.regs[dr], self.regs[s1], self.regs[s2], self.regs[cr]],
+                        );
                     }
                 }
             }
@@ -5332,9 +5340,17 @@ impl Vm {
                 let br = self.fetch() as usize;
                 if dr < NUM_REGS && br < NUM_REGS {
                     let bit = self.regs[br] & 31;
-                    self.regs[0] = if (self.regs[dr] & (1u32 << bit)) != 0 { 1 } else { 0 };
+                    self.regs[0] = if (self.regs[dr] & (1u32 << bit)) != 0 {
+                        1
+                    } else {
+                        0
+                    };
                     if self.render_logging {
-                        self.log_render_op(0xF1, "BTST", &[self.regs[dr], self.regs[br], self.regs[0]]);
+                        self.log_render_op(
+                            0xF1,
+                            "BTST",
+                            &[self.regs[dr], self.regs[br], self.regs[0]],
+                        );
                     }
                 }
             }
