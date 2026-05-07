@@ -651,3 +651,20 @@ long geos_msleep(long ms) {
     geos_wait_ms((uint32_t)ms);
     return 0;
 }
+
+/* ---- Phase 244: TCP Networking ---- */
+
+/*
+ * Note: The primary TCP API is in libgeos.h as static inline functions
+ * (geos_net_connect, geos_net_send, geos_net_recv, geos_net_disconnect,
+ * geos_net_ip). These use direct SBI ecall with no function-call overhead.
+ *
+ * The non-inline wrappers below exist for code that needs function pointers
+ * or wants to avoid including the full header.
+ */
+
+/* Pack IPv4 octets into big-endian u32 (non-inline version). */
+uint32_t geos_net_ip_pack(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
+    return ((uint32_t)a << 24) | ((uint32_t)b << 16) |
+           ((uint32_t)c << 8)  | (uint32_t)d;
+}

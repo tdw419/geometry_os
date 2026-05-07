@@ -494,4 +494,112 @@ static inline int geos_shm_is_done(volatile uint32_t *base) {
     return (base[GEOS_SHM_HDR_FLAGS] & GEOS_SHM_FLAG_DONE) != 0;
 }
 
+/* ---- Phase 244: TCP Networking via SBI ---- */
+
+/*
+ * SBI extension ID for TCP networking.
+ * EID = 0x4E4554 (ASCII "NET\0").
+ *
+ * Calling convention:
+ *   a7 = SBI_EXT_NET (0x4E4554)
+ *   a6 = function (0=connect, 1=send, 2=recv, 3=disconnect)
+ *
+ * Connect:  a0 = IP (big-endian packed, e.g. 0x7F000001 = 127.0.0.1)
+ *           a1 = port (host byte order)
+ *           Returns a0 = error (0=success), a1 = socket_id (0-3)
+ *
+ * Send:     a0 = socket_id, a1 = buf_phys_addr, a2 = len
+ *           Returns a0 = bytes sent (or SBI_ERR_FAILURE = -1)
+ *
+ * Recv:     a0 = socket_id, a1 = buf_phys_addr, a2 = len
+ *           Returns a0 = bytes received (0 = EOF, negative = error)
+ *
+ * Disconnect: a0 = socket_id
+ *           Returns a0 = error (0=success)
+ */
+#define SBI_EXT_NET       0x4E4554u
+#define NET_FN_CONNECT    0
+#define NET_FN_SEND       1
+#define NET_FN_RECV       2
+#define NET_FN_DISCONNECT 3
+
+/*
+ * Connect to a TCP server.
+ * ip_packed: IPv4 address as big-endian packed u32 (0x7F000001 = 127.0.0.1)
+ * port: TCP port number in host byte order
+ * Returns socket_id (0-3) on success, negative on failure.
+ */
+static inline long geos_net_connect(uint32_t ip_packed, uint16_t port) {
+    register long a0 __asm__("a0") = (long)ip_packed;
+    register long a1 __asm__("a1") = (long)port;
+    register long a6 __asm__("a6") = NET_FN_CONNECT;
+    register long a7 __asm__("a7") = (long)SBI_EXT_NET;
+    __asm__ volatile("ecall" : "+r"(a0), "+r"(a1) : "r"(a6), "r"(a7)
+                     : "memory");
+    /* a0 = error code (0=success), a1 = socket_id */
+    return a0 == 0 ? a1 : a0;
+}
+
+/*
+ * Send data over a TCP socket.
+ * sock: socket_id returned by geos_net_connect
+ * buf: pointer to data buffer
+ * len: number of bytes to send
+ * Returns bytes sent on success, negative on failure.
+ */
+static inline long geos_net_send(long sock, const void *buf, long len) {
+    register long a0 __asm__("a0") = sock;
+    register long a1 __asm__("a1") = (long)(uintptr_t)buf;
+    register long a2 __asm__("a2") = len;
+    register long a6 __asm__("a6") = NET_FN_SEND;
+    register long a7 __asm__("a7") = (long)SBI_EXT_NET;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a1), "r"(a2), "r"(a6), "r"(a7)
+                     : "memory");
+    return a0;
+}
+
+/*
+ * Receive data from a TCP socket.
+ * sock: socket_id returned by geos_net_connect
+ * buf: pointer to receive buffer
+ * len: max bytes to receive
+ * Returns bytes received (0 = connection closed, negative = error).
+ */
+static inline long geos_net_recv(long sock, void *buf, long len) {
+    register long a0 __asm__("a0") = sock;
+    register long a1 __asm__("a1") = (long)(uintptr_t)buf;
+    register long a2 __asm__("a2") = len;
+    register long a6 __asm__("a6") = NET_FN_RECV;
+    register long a7 __asm__("a7") = (long)SBI_EXT_NET;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a1), "r"(a2), "r"(a6), "r"(a7)
+                     : "memory");
+    return a0;
+}
+
+/*
+ * Disconnect a TCP socket.
+ * sock: socket_id returned by geos_net_connect
+ * Returns 0 on success, negative on failure.
+ */
+static inline long geos_net_disconnect(long sock) {
+    register long a0 __asm__("a0") = sock;
+    register long a6 __asm__("a6") = NET_FN_DISCONNECT;
+    register long a7 __asm__("a7") = (long)SBI_EXT_NET;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a6), "r"(a7)
+                     : "memory");
+    return a0;
+}
+
+/*
+ * Pack an IPv4 address into big-endian u32 for geos_net_connect.
+ * Example: geos_net_ip(127, 0, 0, 1) = 0x7F000001
+ */
+static inline uint32_t geos_net_ip(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
+    return ((uint32_t)a << 24) | ((uint32_t)b << 16) |
+           ((uint32_t)c << 8)  | (uint32_t)d;
+}
+
+/* Non-inline version (for function pointer use). */
+uint32_t geos_net_ip_pack(uint8_t a, uint8_t b, uint8_t c, uint8_t d);
+
 #endif /* LIBGEOS_H */
