@@ -437,7 +437,8 @@ mod tests {
 
         // Create a test file
         let file_content = vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88];
-        fs::write(test_dir.join("test.bin"), &file_content).unwrap();
+        fs::write(test_dir.join("test.bin"), &file_content)
+            .expect("failed to create test.bin for load test");
 
         surface.load_files();
 
@@ -471,7 +472,8 @@ mod tests {
 
         // Create a test file
         let file_content = vec![0x11, 0x22, 0x33, 0x44];
-        fs::write(test_dir.join("test.bin"), &file_content).unwrap();
+        fs::write(test_dir.join("test.bin"), &file_content)
+            .expect("failed to create test.bin for flush test");
 
         surface.load_files();
         assert_eq!(surface.pixels[256 + 1], 0x44332211);
@@ -486,7 +488,8 @@ mod tests {
         assert!(surface.dirty_rows.is_empty());
 
         // Verify file on host has changed
-        let new_content = fs::read(test_dir.join("test.bin")).unwrap();
+        let new_content = fs::read(test_dir.join("test.bin"))
+            .expect("failed to read test.bin after flush");
         assert_eq!(new_content, vec![0xDD, 0xCC, 0xBB, 0xAA]);
 
         let _ = fs::remove_dir_all(&test_dir);
@@ -500,7 +503,9 @@ mod tests {
         let _ = fs::create_dir_all(&td);
         s.base_dir = td.clone();
         assert_eq!(s.pixels[1], 0);
-        let row = s.create_file_entry("guest_log.txt").unwrap();
+        let row = s
+            .create_file_entry("guest_log.txt")
+            .expect("create_file_entry should succeed for guest_log.txt");
         assert_eq!(row, 1);
         assert_eq!(s.pixels[1], 1);
         assert_eq!(s.pixels[2] >> 16, 1);
@@ -517,7 +522,8 @@ mod tests {
         let _ = fs::remove_dir_all(&td);
         let _ = fs::create_dir_all(&td);
         s.base_dir = td.clone();
-        fs::write(td.join("to_del.txt"), b"bye").unwrap();
+        fs::write(td.join("to_del.txt"), b"bye")
+            .expect("failed to create to_del.txt for delete test");
         s.load_files();
         assert_eq!(s.pixels[1], 1);
         assert!(s.delete_file_entry("to_del.txt"));
@@ -555,7 +561,8 @@ mod tests {
         s.pixels[1] = 1;
         s.dirty_rows.insert(1);
         s.flush();
-        let data = fs::read(td.join("guest_out.txt")).unwrap();
+        let data = fs::read(td.join("guest_out.txt"))
+            .expect("failed to read guest_out.txt after flush");
         assert_eq!(data, b"Hello Guest!");
         assert_eq!(s.file_map[&1], "guest_out.txt");
         let _ = fs::remove_dir_all(&td);
@@ -568,13 +575,16 @@ mod tests {
         let _ = fs::remove_dir_all(&td);
         let _ = fs::create_dir_all(&td);
         s.base_dir = td.clone();
-        let row = s.create_file_entry("hello.txt").unwrap();
+        let row = s
+            .create_file_entry("hello.txt")
+            .expect("create_file_entry should succeed for hello.txt");
         s.update_file_header(row, 6, 1);
         let ba = VFS_SURFACE_BASE + ((row as u64 * 256 + 1) * 4);
         s.write(ba, 0x6C6C6548);
         s.write(ba + 4, 0x0000216F);
         s.flush();
-        let data = fs::read(td.join("hello.txt")).unwrap();
+        let data = fs::read(td.join("hello.txt"))
+            .expect("failed to read hello.txt after flush");
         assert_eq!(&data[..6], b"Hello!");
         let _ = fs::remove_dir_all(&td);
     }
@@ -604,7 +614,8 @@ mod tests {
         // Verify canvas.raw exists and has correct size
         let raw_path = td.join(CANVAS_RAW_FILE);
         assert!(raw_path.exists(), "canvas.raw should be created on drop");
-        let data = fs::read(&raw_path).unwrap();
+        let data = fs::read(&raw_path)
+            .expect("failed to read canvas.raw after drop");
         let expected_size = CANV_DATA_ROWS * 256 * 4; // 261,120 bytes
         assert_eq!(
             data.len(),
@@ -647,7 +658,8 @@ mod tests {
         raw_data[4..8].copy_from_slice(&green_bytes);
         let blue_bytes = 0x0000FFu32.to_le_bytes();
         raw_data[1024..1028].copy_from_slice(&blue_bytes); // row 2 col 0
-        fs::write(td.join(CANVAS_RAW_FILE), &raw_data).unwrap();
+        fs::write(td.join(CANVAS_RAW_FILE), &raw_data)
+            .expect("failed to write canvas.raw for restore test");
 
         // Create new surface — should restore from canvas.raw
         let mut s = VfsSurface::new_with_base(td.clone());
