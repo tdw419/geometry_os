@@ -151,7 +151,9 @@ mod tests {
         assert_eq!(sb.len(), SCROLLBACK_CAPACITY);
         assert_eq!(sb.total_written(), SCROLLBACK_CAPACITY + 100);
         // First line should be the (100)th entry
-        let first = sb.get_line(0).expect("line 0 should exist after filling buffer");
+        let first = sb
+            .get_line(0)
+            .expect("line 0 should exist after filling buffer");
         assert_eq!(first[0], 100);
     }
 

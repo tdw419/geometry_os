@@ -731,7 +731,8 @@ impl Vm {
                 let wr = self.fetch() as usize;
                 let hr = self.fetch() as usize;
                 let ar = self.fetch() as usize;
-                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS && ar < NUM_REGS {
+                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS && ar < NUM_REGS
+                {
                     let sx = self.regs[xr] as usize;
                     let sy = self.regs[yr] as usize;
                     let sw = self.regs[wr] as usize;
@@ -777,7 +778,11 @@ impl Vm {
                                 let sx_i = src_x.round() as isize;
                                 let sy_i = src_y.round() as isize;
 
-                                let color = if sx_i >= 0 && sx_i < sw as isize && sy_i >= 0 && sy_i < sh as isize {
+                                let color = if sx_i >= 0
+                                    && sx_i < sw as isize
+                                    && sy_i >= 0
+                                    && sy_i < sh as isize
+                                {
                                     src_buf[sy_i as usize * sw + sx_i as usize]
                                 } else {
                                     0 // out of bounds = black/transparent
@@ -790,7 +795,17 @@ impl Vm {
                         }
                     }
                     if self.render_logging {
-                        self.log_render_op(0xF4, "ROTATE", &[sx as u32, sy as u32, sw as u32, sh as u32, angle_fixed as u32]);
+                        self.log_render_op(
+                            0xF4,
+                            "ROTATE",
+                            &[
+                                sx as u32,
+                                sy as u32,
+                                sw as u32,
+                                sh as u32,
+                                angle_fixed as u32,
+                            ],
+                        );
                     }
                 }
             }
@@ -811,8 +826,14 @@ impl Vm {
                 let dyr = self.fetch() as usize;
                 let dwr = self.fetch() as usize;
                 let dhr = self.fetch() as usize;
-                if sxr < NUM_REGS && syr < NUM_REGS && swr < NUM_REGS && shr < NUM_REGS
-                    && dxr < NUM_REGS && dyr < NUM_REGS && dwr < NUM_REGS && dhr < NUM_REGS
+                if sxr < NUM_REGS
+                    && syr < NUM_REGS
+                    && swr < NUM_REGS
+                    && shr < NUM_REGS
+                    && dxr < NUM_REGS
+                    && dyr < NUM_REGS
+                    && dwr < NUM_REGS
+                    && dhr < NUM_REGS
                 {
                     let sx = self.regs[sxr] as usize;
                     let sy = self.regs[syr] as usize;
@@ -846,7 +867,8 @@ impl Vm {
                                 // Map dest pixel to source pixel (nearest neighbor)
                                 let src_col = (col as u64 * src_w as u64 / dst_w as u64) as usize;
                                 let src_row = (row as u64 * src_h as u64 / dst_h as u64) as usize;
-                                let color = src_buf[src_row.min(src_h - 1) * src_w + src_col.min(src_w - 1)];
+                                let color = src_buf
+                                    [src_row.min(src_h - 1) * src_w + src_col.min(src_w - 1)];
 
                                 let px = dx + col;
                                 let py = dy + row;
@@ -855,7 +877,14 @@ impl Vm {
                         }
                     }
                     if self.render_logging {
-                        self.log_render_op(0xF5, "SCALE", &[sx as u32, sy as u32, sw as u32, sh as u32, dx as u32, dy as u32, dw as u32, dh as u32]);
+                        self.log_render_op(
+                            0xF5,
+                            "SCALE",
+                            &[
+                                sx as u32, sy as u32, sw as u32, sh as u32, dx as u32, dy as u32,
+                                dw as u32, dh as u32,
+                            ],
+                        );
                     }
                 }
             }

@@ -458,8 +458,10 @@ impl Sbi {
                         // a1 = port (u16)
                         let ip_bytes = a0.to_be_bytes();
                         let ip = std::net::Ipv4Addr::new(
-                            ip_bytes[0], ip_bytes[1],
-                            ip_bytes[2], ip_bytes[3],
+                            ip_bytes[0],
+                            ip_bytes[1],
+                            ip_bytes[2],
+                            ip_bytes[3],
                         );
                         let port = a1 as u16;
                         let addr = std::net::SocketAddr::new(ip.into(), port);
@@ -471,19 +473,21 @@ impl Sbi {
                                     std::time::Duration::from_secs(2),
                                 ) {
                                     Ok(mut stream) => {
-                                        stream.set_read_timeout(Some(
-                                            std::time::Duration::from_secs(1),
-                                        )).ok();
-                                        stream.set_write_timeout(Some(
-                                            std::time::Duration::from_secs(1),
-                                        )).ok();
+                                        stream
+                                            .set_read_timeout(Some(std::time::Duration::from_secs(
+                                                1,
+                                            )))
+                                            .ok();
+                                        stream
+                                            .set_write_timeout(Some(
+                                                std::time::Duration::from_secs(1),
+                                            ))
+                                            .ok();
                                         self.net_sockets[slot] = Some(stream);
                                         // a0=success, a1=socket_id
                                         Some((SBI_SUCCESS as u32, slot as u32))
                                     }
-                                    Err(_) => {
-                                        Some((SBI_ERR_FAILURE as u32, 0))
-                                    }
+                                    Err(_) => Some((SBI_ERR_FAILURE as u32, 0)),
                                 }
                             }
                         }
@@ -888,8 +892,16 @@ mod tests {
         let mut clint = Clint::new();
         // SBI_BASE_PROBE_EXTENSION (function 3) with a0=SBI_EXT_NET
         let result = sbi.handle_ecall(
-            SBI_EXT_BASE, 3, SBI_EXT_NET, 0, 0, 0, 0, 0,
-            &mut uart, &mut clint,
+            SBI_EXT_BASE,
+            3,
+            SBI_EXT_NET,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
         );
         assert!(result.is_some());
         let (a0, a1) = result.unwrap();
@@ -904,8 +916,16 @@ mod tests {
         let mut clint = Clint::new();
         // NET_FN_RECV on non-existent socket should return INVALID_PARAM
         let result = sbi.handle_ecall(
-            SBI_EXT_NET, NET_FN_RECV, 0, 0, 0, 0, 0, 0,
-            &mut uart, &mut clint,
+            SBI_EXT_NET,
+            NET_FN_RECV,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
         );
         assert!(result.is_some());
         let (a0, _) = result.unwrap();
@@ -919,8 +939,16 @@ mod tests {
         let mut clint = Clint::new();
         // NET_FN_DISCONNECT on slot >= 4 should return INVALID_PARAM
         let result = sbi.handle_ecall(
-            SBI_EXT_NET, NET_FN_DISCONNECT, 5, 0, 0, 0, 0, 0,
-            &mut uart, &mut clint,
+            SBI_EXT_NET,
+            NET_FN_DISCONNECT,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
         );
         assert!(result.is_some());
         let (a0, _) = result.unwrap();
@@ -934,8 +962,16 @@ mod tests {
         let mut clint = Clint::new();
         // NET_FN_SEND on non-existent socket should return INVALID_PARAM
         let result = sbi.handle_ecall(
-            SBI_EXT_NET, NET_FN_SEND, 2, 0x1000, 100, 0, 0, 0,
-            &mut uart, &mut clint,
+            SBI_EXT_NET,
+            NET_FN_SEND,
+            2,
+            0x1000,
+            100,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
         );
         assert!(result.is_some());
         let (a0, _) = result.unwrap();
@@ -948,12 +984,282 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         // Unknown NET function should return NOT_SUPPORTED
-        let result = sbi.handle_ecall(
-            SBI_EXT_NET, 99, 0, 0, 0, 0, 0, 0,
-            &mut uart, &mut clint,
-        );
+        let result = sbi.handle_ecall(SBI_EXT_NET, 99, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
         assert!(result.is_some());
         let (a0, _) = result.unwrap();
         assert_eq!(a0, SBI_ERR_NOT_SUPPORTED as u32);
+    }
+
+    /// Integration test: full TCP connect/send/recv/disconnect lifecycle
+    /// against a real local TCP server.
+    #[test]
+    fn test_sbi_net_connect_send_recv_lifecycle() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::thread;
+
+        // Start a local TCP echo server
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let port = listener.local_addr().unwrap().port();
+        let server = thread::spawn(move || {
+            let (mut conn, _) = listener.accept().expect("accept");
+            // Read until we get all 5 bytes (may take multiple read calls)
+            let mut buf = [0u8; 256];
+            let mut total = 0usize;
+            while total < 5 {
+                let n = conn.read(&mut buf[total..]).expect("read");
+                if n == 0 {
+                    break;
+                }
+                total += n;
+            }
+            // Echo back with prefix
+            conn.write_all(b"ACK:").expect("write prefix");
+            conn.write_all(&buf[..total]).expect("write data");
+            conn.flush().expect("flush");
+        });
+
+        // Pack IP as big-endian: 127.0.0.1 = 0x7F000001
+        let ip_packed: u32 = (127u32 << 24) | (0u32 << 16) | (0u32 << 8) | 1u32;
+
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // Step 1: Connect
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_CONNECT,
+            ip_packed,
+            port as u32,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, a1) = result.unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32, "connect should succeed");
+        let socket_id = a1 as u8;
+        assert!(socket_id < 4, "socket_id should be 0-3");
+
+        // Step 2: Send (sets net_pending)
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_SEND,
+            socket_id as u32,
+            0x1000,
+            5,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, _) = result.unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32, "send should set pending");
+        assert!(sbi.net_pending.is_some());
+
+        // Simulate the system.rs pending-op handler by processing the send
+        // with a mock bus that has "HELLO" at address 0x1000
+        if let Some(op) = sbi.net_pending.take() {
+            let sid = op.socket_id as usize;
+            let socket = sbi.net_sockets[sid].take();
+            if let Some(mut stream) = socket {
+                stream.set_nodelay(true).ok();
+                // Write "HELLO" directly (simulating guest memory at 0x1000)
+                let data = b"HELLO";
+                let result = match stream.write_all(data) {
+                    Ok(()) => {
+                        stream.flush().ok();
+                        data.len() as u32
+                    }
+                    Err(_) => SBI_ERR_FAILURE as u32,
+                };
+                sbi.net_sockets[sid] = Some(stream);
+                assert_eq!(result, 5);
+            }
+        }
+
+        // Small delay to let server process and respond
+        thread::sleep(std::time::Duration::from_millis(50));
+
+        // Step 3: Recv (sets net_pending)
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_RECV,
+            socket_id as u32,
+            0x2000,
+            32,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, _) = result.unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32, "recv should set pending");
+        assert!(sbi.net_pending.is_some());
+
+        // Simulate recv processing
+        let mut recv_buf = vec![0u8; 32];
+        if let Some(op) = sbi.net_pending.take() {
+            let sid = op.socket_id as usize;
+            let socket = sbi.net_sockets[sid].take();
+            if let Some(mut stream) = socket {
+                let n = stream.read(&mut recv_buf[..op.len]).expect("recv read");
+                sbi.net_sockets[sid] = Some(stream);
+                assert!(n > 0, "should receive data");
+                let response = String::from_utf8_lossy(&recv_buf[..n]);
+                assert!(
+                    response.starts_with("ACK:HELLO"),
+                    "expected 'ACK:HELLO', got '{}'",
+                    response
+                );
+            }
+        }
+
+        // Step 4: Disconnect
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_DISCONNECT,
+            socket_id as u32,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, _) = result.unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32, "disconnect should succeed");
+        assert!(sbi.net_sockets[socket_id as usize].is_none());
+
+        // Wait for server thread
+        server.join().expect("server thread");
+    }
+
+    /// Test that socket slots are reused after disconnect.
+    #[test]
+    fn test_sbi_net_socket_slot_reuse() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::thread;
+
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let port = listener.local_addr().unwrap().port();
+        let server = thread::spawn(move || {
+            // Accept two connections sequentially
+            for _ in 0..2 {
+                let (mut conn, _) = listener.accept().expect("accept");
+                let mut buf = [0u8; 64];
+                let _ = conn.read(&mut buf);
+                conn.write_all(b"OK").expect("write");
+                conn.flush().expect("flush");
+            }
+        });
+
+        let ip_packed: u32 = (127u32 << 24) | 1u32;
+
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // Connect first socket
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_CONNECT,
+            ip_packed,
+            port as u32,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        let (_, slot1) = result.unwrap();
+        assert_eq!(slot1, 0, "first socket should be slot 0");
+
+        // Connect second socket
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_CONNECT,
+            ip_packed,
+            port as u32,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        let (_, slot2) = result.unwrap();
+        assert_eq!(slot2, 1, "second socket should be slot 1");
+
+        // Disconnect slot 0
+        sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_DISCONNECT,
+            slot1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        assert!(sbi.net_sockets[0].is_none());
+
+        // Connect again -- should reuse slot 0
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_CONNECT,
+            ip_packed,
+            port as u32,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        let (_, slot3) = result.unwrap();
+        assert_eq!(slot3, 0, "should reuse freed slot 0");
+
+        // Disconnect remaining
+        sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_DISCONNECT,
+            slot2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        sbi.handle_ecall(
+            SBI_EXT_NET,
+            NET_FN_DISCONNECT,
+            slot3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+
+        server.join().expect("server thread");
     }
 }

@@ -1993,11 +1993,7 @@ mod tests {
         let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
         let mut seen = std::collections::HashSet::new();
         for name in &names {
-            assert!(
-                seen.insert(*name),
-                "Duplicate tool name: {}",
-                name
-            );
+            assert!(seen.insert(*name), "Duplicate tool name: {}", name);
         }
     }
 
@@ -2018,7 +2014,10 @@ mod tests {
         assert!(names.contains(&"vm_save_asm"), "vm_save_asm missing");
         assert!(names.contains(&"vm_load_source"), "vm_load_source missing");
         assert!(names.contains(&"vm_load_asm"), "vm_load_asm missing");
-        assert!(names.contains(&"vm_screen_ascii"), "vm_screen_ascii missing");
+        assert!(
+            names.contains(&"vm_screen_ascii"),
+            "vm_screen_ascii missing"
+        );
         assert!(names.contains(&"vm_run_program"), "vm_run_program missing");
         assert!(names.contains(&"vm_watch"), "vm_watch missing");
         assert!(names.contains(&"vm_unwatch"), "vm_unwatch missing");
@@ -2047,13 +2046,31 @@ mod tests {
     fn test_vision_tools_present() {
         let tools = get_tool_list();
         let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
-        assert!(names.contains(&"vision_screenshot"), "vision_screenshot missing");
-        assert!(names.contains(&"vision_checksum"), "vision_checksum missing");
+        assert!(
+            names.contains(&"vision_screenshot"),
+            "vision_screenshot missing"
+        );
+        assert!(
+            names.contains(&"vision_checksum"),
+            "vision_checksum missing"
+        );
         assert!(names.contains(&"vision_diff"), "vision_diff missing");
-        assert!(names.contains(&"vision_describe"), "vision_describe missing");
-        assert!(names.contains(&"vision_peek_pixel"), "vision_peek_pixel missing");
-        assert!(names.contains(&"vision_region_checksum"), "vision_region_checksum missing");
-        assert!(names.contains(&"vision_render_log"), "vision_render_log missing");
+        assert!(
+            names.contains(&"vision_describe"),
+            "vision_describe missing"
+        );
+        assert!(
+            names.contains(&"vision_peek_pixel"),
+            "vision_peek_pixel missing"
+        );
+        assert!(
+            names.contains(&"vision_region_checksum"),
+            "vision_region_checksum missing"
+        );
+        assert!(
+            names.contains(&"vision_render_log"),
+            "vision_render_log missing"
+        );
     }
 
     #[test]
@@ -2074,7 +2091,10 @@ mod tests {
         assert!(names.contains(&"building_exit"), "building_exit missing");
         assert!(names.contains(&"desktop_state"), "desktop_state missing");
         assert!(names.contains(&"desktop_launch"), "desktop_launch missing");
-        assert!(names.contains(&"player_position"), "player_position missing");
+        assert!(
+            names.contains(&"player_position"),
+            "player_position missing"
+        );
         assert!(names.contains(&"desktop_key"), "desktop_key missing");
         assert!(names.contains(&"desktop_vision"), "desktop_vision missing");
     }
@@ -2099,7 +2119,9 @@ mod tests {
             if let Some(required) = tool["inputSchema"]["required"].as_array() {
                 for req_param in required {
                     if let Some(param_name) = req_param.as_str() {
-                        if let Some(props) = tool["inputSchema"]["properties"][param_name].as_object() {
+                        if let Some(props) =
+                            tool["inputSchema"]["properties"][param_name].as_object()
+                        {
                             assert!(
                                 props.get("type").is_some(),
                                 "Required param '{}' on '{}' missing type",
@@ -2403,7 +2425,10 @@ mod tests {
                     "halted" => vm_halted = val.trim() == "true",
                     _ => {
                         let k = key.trim();
-                        if k.len() == 3 && k.starts_with('r') && k[1..].chars().all(|c| c.is_ascii_digit()) {
+                        if k.len() == 3
+                            && k.starts_with('r')
+                            && k[1..].chars().all(|c| c.is_ascii_digit())
+                        {
                             registers.insert(k.into(), val.trim().into());
                         }
                     }
@@ -2557,12 +2582,18 @@ mod tests {
     fn test_vision_peek_pixel_parsing_black() {
         let resp = "0x000000 r=0 g=0 b=0";
         let trimmed = resp.trim();
-        let mut r = 0i64; let mut g = 0i64; let mut b = 0i64;
+        let mut r = 0i64;
+        let mut g = 0i64;
+        let mut b = 0i64;
         for (i, tok) in trimmed.split_whitespace().enumerate() {
             if i > 0 {
-                if let Some(rest) = tok.strip_prefix("r=") { r = rest.parse().unwrap_or(0); }
-                else if let Some(rest) = tok.strip_prefix("g=") { g = rest.parse().unwrap_or(0); }
-                else if let Some(rest) = tok.strip_prefix("b=") { b = rest.parse().unwrap_or(0); }
+                if let Some(rest) = tok.strip_prefix("r=") {
+                    r = rest.parse().unwrap_or(0);
+                } else if let Some(rest) = tok.strip_prefix("g=") {
+                    g = rest.parse().unwrap_or(0);
+                } else if let Some(rest) = tok.strip_prefix("b=") {
+                    b = rest.parse().unwrap_or(0);
+                }
             }
         }
         assert_eq!(r, 0);
@@ -2739,11 +2770,7 @@ mod tests {
 
     #[test]
     fn test_json_rpc_response_error() {
-        let resp = JsonRpcResponse::error(
-            Some(serde_json::json!(1)),
-            -32000,
-            "something failed",
-        );
+        let resp = JsonRpcResponse::error(Some(serde_json::json!(1)), -32000, "something failed");
         assert_eq!(resp.jsonrpc, "2.0");
         assert!(resp.result.is_none());
         assert!(resp.error.is_some());
@@ -2773,7 +2800,10 @@ mod tests {
         assert_eq!(t["description"], "A test tool");
         assert_eq!(t["inputSchema"]["type"], "object");
         assert!(t["inputSchema"]["properties"]["arg1"].is_object());
-        assert!(t["inputSchema"]["required"].as_array().unwrap().contains(&serde_json::json!("arg1")));
+        assert!(t["inputSchema"]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("arg1")));
     }
 
     #[test]
@@ -2840,10 +2870,18 @@ mod tests {
         for part in status_resp.split_whitespace() {
             if let Some((k, v)) = part.split_once('=') {
                 match k {
-                    "mode" => { status_obj.insert("mode".into(), serde_json::Value::String(v.into())); }
-                    "running" => { status_obj.insert("running".into(), serde_json::Value::Bool(v == "true")); }
-                    "assembled" => { status_obj.insert("assembled".into(), serde_json::Value::Bool(v == "true")); }
-                    "pc" => { status_obj.insert("pc".into(), serde_json::Value::String(v.into())); }
+                    "mode" => {
+                        status_obj.insert("mode".into(), serde_json::Value::String(v.into()));
+                    }
+                    "running" => {
+                        status_obj.insert("running".into(), serde_json::Value::Bool(v == "true"));
+                    }
+                    "assembled" => {
+                        status_obj.insert("assembled".into(), serde_json::Value::Bool(v == "true"));
+                    }
+                    "pc" => {
+                        status_obj.insert("pc".into(), serde_json::Value::String(v.into()));
+                    }
                     _ => {}
                 };
             }
@@ -2858,7 +2896,8 @@ mod tests {
 
     #[test]
     fn test_desktop_vision_json_parsing() {
-        let resp = r#"{"windows":[{"id":"win-1"}],"focused_window":{"id":"win-1"},"ascii_desktop":"..."}"#;
+        let resp =
+            r#"{"windows":[{"id":"win-1"}],"focused_window":{"id":"win-1"},"ascii_desktop":"..."}"#;
         let trimmed = resp.trim();
         let parsed: serde_json::Value = if trimmed.starts_with('{') {
             serde_json::from_str(trimmed).unwrap_or_else(|_| serde_json::json!({}))
@@ -2892,7 +2931,10 @@ mod tests {
         } else {
             format!("hypervisor_boot {}", config)
         };
-        assert_eq!(cmd, "hypervisor_boot arch=riscv64 kernel=Image ram=256M window=win-3");
+        assert_eq!(
+            cmd,
+            "hypervisor_boot arch=riscv64 kernel=Image ram=256M window=win-3"
+        );
     }
 
     #[test]

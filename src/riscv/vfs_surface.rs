@@ -488,8 +488,8 @@ mod tests {
         assert!(surface.dirty_rows.is_empty());
 
         // Verify file on host has changed
-        let new_content = fs::read(test_dir.join("test.bin"))
-            .expect("failed to read test.bin after flush");
+        let new_content =
+            fs::read(test_dir.join("test.bin")).expect("failed to read test.bin after flush");
         assert_eq!(new_content, vec![0xDD, 0xCC, 0xBB, 0xAA]);
 
         let _ = fs::remove_dir_all(&test_dir);
@@ -561,8 +561,8 @@ mod tests {
         s.pixels[1] = 1;
         s.dirty_rows.insert(1);
         s.flush();
-        let data = fs::read(td.join("guest_out.txt"))
-            .expect("failed to read guest_out.txt after flush");
+        let data =
+            fs::read(td.join("guest_out.txt")).expect("failed to read guest_out.txt after flush");
         assert_eq!(data, b"Hello Guest!");
         assert_eq!(s.file_map[&1], "guest_out.txt");
         let _ = fs::remove_dir_all(&td);
@@ -583,8 +583,7 @@ mod tests {
         s.write(ba, 0x6C6C6548);
         s.write(ba + 4, 0x0000216F);
         s.flush();
-        let data = fs::read(td.join("hello.txt"))
-            .expect("failed to read hello.txt after flush");
+        let data = fs::read(td.join("hello.txt")).expect("failed to read hello.txt after flush");
         assert_eq!(&data[..6], b"Hello!");
         let _ = fs::remove_dir_all(&td);
     }
@@ -614,8 +613,7 @@ mod tests {
         // Verify canvas.raw exists and has correct size
         let raw_path = td.join(CANVAS_RAW_FILE);
         assert!(raw_path.exists(), "canvas.raw should be created on drop");
-        let data = fs::read(&raw_path)
-            .expect("failed to read canvas.raw after drop");
+        let data = fs::read(&raw_path).expect("failed to read canvas.raw after drop");
         let expected_size = CANV_DATA_ROWS * 256 * 4; // 261,120 bytes
         assert_eq!(
             data.len(),

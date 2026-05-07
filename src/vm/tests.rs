@@ -26747,7 +26747,10 @@ fn test_bit_manipulation_demo_program() {
     assert!(vm.halted, "demo program should halt");
     assert_eq!(vm.ram[0x3000], 0xFF, "BSET all 8 bits = 0xFF");
     assert_eq!(vm.ram[0x3001], 0x55, "BCLR odd bits = 0x55");
-    assert_eq!(vm.ram[0x3002], 0xFFFFFFAA, "BNOT 0x55 = 0xFFFFFFAA (32-bit invert)");
+    assert_eq!(
+        vm.ram[0x3002], 0xFFFFFFAA,
+        "BNOT 0x55 = 0xFFFFFFAA (32-bit invert)"
+    );
     assert_eq!(vm.ram[0x3003], 0, "BTST bit 2 of 0xAA = 0 (bit 2 is clear)");
 }
 
@@ -31401,9 +31404,15 @@ fn test_blend_fully_opaque() {
     vm.ram[5] = 0x00; // HALT
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000, "fully opaque should replace pixel");
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0xFF0000,
+        "fully opaque should replace pixel"
+    );
 }
 
 #[test]
@@ -31423,9 +31432,15 @@ fn test_blend_fully_transparent() {
     vm.ram[5] = 0x00; // HALT
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00, "fully transparent should not change pixel");
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0x00FF00,
+        "fully transparent should not change pixel"
+    );
 }
 
 #[test]
@@ -31448,14 +31463,20 @@ fn test_blend_half_alpha() {
     vm.ram[5] = 0x00; // HALT
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     let pixel = vm.screen[20 * 256 + 10];
     let r = (pixel >> 16) & 0xFF;
     let g = (pixel >> 8) & 0xFF;
     let b = pixel & 0xFF;
     assert!(r > 100 && r < 140, "red channel should be ~128, got {}", r);
-    assert!(g > 100 && g < 140, "green channel should be ~127, got {}", g);
+    assert!(
+        g > 100 && g < 140,
+        "green channel should be ~127, got {}",
+        g
+    );
     assert_eq!(b, 0, "blue channel should be 0");
 }
 
@@ -31476,9 +31497,15 @@ fn test_blend_out_of_bounds() {
     vm.ram[5] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00, "out-of-bounds should be no-op");
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0x00FF00,
+        "out-of-bounds should be no-op"
+    );
 }
 
 #[test]
@@ -31495,9 +31522,14 @@ fn test_blendr_fully_opaque() {
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.regs[1], 0xFF0000, "fully opaque should replace dst with src");
+    assert_eq!(
+        vm.regs[1], 0xFF0000,
+        "fully opaque should replace dst with src"
+    );
 }
 
 #[test]
@@ -31514,9 +31546,14 @@ fn test_blendr_fully_transparent() {
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.regs[1], 0x00FF00, "fully transparent should not change dst");
+    assert_eq!(
+        vm.regs[1], 0x00FF00,
+        "fully transparent should not change dst"
+    );
 }
 
 #[test]
@@ -31533,14 +31570,20 @@ fn test_blendr_half_alpha() {
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     let result = vm.regs[1];
     let r = (result >> 16) & 0xFF;
     let g = (result >> 8) & 0xFF;
     let b = result & 0xFF;
     assert!(r > 100 && r < 140, "red channel should be ~128, got {}", r);
-    assert!(g > 100 && g < 140, "green channel should be ~127, got {}", g);
+    assert!(
+        g > 100 && g < 140,
+        "green channel should be ~127, got {}",
+        g
+    );
     assert_eq!(b, 0, "blue channel should be 0");
 }
 
@@ -31558,9 +31601,14 @@ fn test_blendr_alpha_masks_to_byte() {
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.regs[1], 0xFFFFFF, "alpha 0x1FF should be masked to 255 (fully opaque)");
+    assert_eq!(
+        vm.regs[1], 0xFFFFFF,
+        "alpha 0x1FF should be masked to 255 (fully opaque)"
+    );
 }
 
 #[test]
@@ -31581,9 +31629,15 @@ fn test_blend_respects_clip_rect() {
     vm.ram[5] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
-    assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00, "clipped BLEND should not change pixel");
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0x00FF00,
+        "clipped BLEND should not change pixel"
+    );
 }
 
 #[test]
@@ -31592,10 +31646,16 @@ fn test_blend_disasm() {
     let result = crate::assembler::assemble(source, 0).unwrap();
     let mut vm = Vm::new();
     for (i, &w) in result.pixels.iter().enumerate() {
-        if i < vm.ram.len() { vm.ram[i] = w; }
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
     }
     let (s, _) = vm.disassemble_at(0);
-    assert!(s.contains("BLEND"), "disasm should contain BLEND, got: {}", s);
+    assert!(
+        s.contains("BLEND"),
+        "disasm should contain BLEND, got: {}",
+        s
+    );
 }
 
 #[test]
@@ -31604,10 +31664,16 @@ fn test_blendr_disasm() {
     let result = crate::assembler::assemble(source, 0).unwrap();
     let mut vm = Vm::new();
     for (i, &w) in result.pixels.iter().enumerate() {
-        if i < vm.ram.len() { vm.ram[i] = w; }
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
     }
     let (s, _) = vm.disassemble_at(0);
-    assert!(s.contains("BLENDR"), "disasm should contain BLENDR, got: {}", s);
+    assert!(
+        s.contains("BLENDR"),
+        "disasm should contain BLENDR, got: {}",
+        s
+    );
 }
 
 #[test]
@@ -31616,21 +31682,30 @@ fn test_blend_blendr_composition() {
     // This tests the real use case: pre-blend for sprite compositing
     let mut vm = Vm::new();
     vm.screen[10 * 256 + 10] = 0x0000FF; // blue background
-    // Step 1: BLENDR r1, r2, r3 -> pre-blend red+green at 50% alpha
+                                         // Step 1: BLENDR r1, r2, r3 -> pre-blend red+green at 50% alpha
     vm.regs[1] = 0x00FF00; // dst: green
     vm.regs[2] = 0xFF0000; // src: red
     vm.regs[3] = 128; // alpha
-    // Step 2: BLEND the result onto screen at (10,10) with alpha=200
+                      // Step 2: BLEND the result onto screen at (10,10) with alpha=200
     vm.regs[4] = 10; // x
     vm.regs[5] = 10; // y
     vm.regs[6] = 200; // alpha for screen blend
-    // Bytecode: BLENDR r1,r2,r3 / BLEND r4,r5,r1,r6 / HALT
-    vm.ram[0] = 0xF3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.ram[4] = 0xF2; vm.ram[5] = 4; vm.ram[6] = 5; vm.ram[7] = 1; vm.ram[8] = 6;
+                      // Bytecode: BLENDR r1,r2,r3 / BLEND r4,r5,r1,r6 / HALT
+    vm.ram[0] = 0xF3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0xF2;
+    vm.ram[5] = 4;
+    vm.ram[6] = 5;
+    vm.ram[7] = 1;
+    vm.ram[8] = 6;
     vm.ram[9] = 0x00; // HALT
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     let pixel = vm.screen[10 * 256 + 10];
     let r = (pixel >> 16) & 0xFF;
@@ -31685,17 +31760,31 @@ fn test_rotate_zero_angle() {
     }
     vm.regs[1] = 10; // x
     vm.regs[2] = 10; // y
-    vm.regs[3] = 4;  // w
-    vm.regs[4] = 4;  // h
-    vm.regs[5] = 0;  // angle = 0 (no rotation)
-    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.regs[3] = 4; // w
+    vm.regs[4] = 4; // h
+    vm.regs[5] = 0; // angle = 0 (no rotation)
+    vm.ram[0] = 0xF4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.ram[6] = 0x00; // HALT
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     for dy in 0..4 {
         for dx in 0..4 {
-            assert_eq!(vm.screen[(10 + dy) * 256 + (10 + dx)], 0xFF0000,
-                "zero rotation should preserve pixel at ({}, {})", 10 + dx, 10 + dy);
+            assert_eq!(
+                vm.screen[(10 + dy) * 256 + (10 + dx)],
+                0xFF0000,
+                "zero rotation should preserve pixel at ({}, {})",
+                10 + dx,
+                10 + dy
+            );
         }
     }
 }
@@ -31717,38 +31806,57 @@ fn test_rotate_90_degrees() {
     let angle_fixed = (std::f64::consts::FRAC_PI_2 * 256.0) as i32 as u32;
     vm.regs[1] = 10; // x
     vm.regs[2] = 10; // y
-    vm.regs[3] = 4;  // w
-    vm.regs[4] = 4;  // h
+    vm.regs[3] = 4; // w
+    vm.regs[4] = 4; // h
     vm.regs[5] = angle_fixed;
-    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0xF4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.ram[6] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // After 90° CW rotation: the original top-half (red) should now appear on the right side
     // and the original bottom-half (blue) should appear on the left side.
     // Check that center pixels changed from the original pattern.
     let center = vm.screen[12 * 256 + 12]; // center of 4x4
-    // Original center was red (top half). After 90° CW rotation, center may be
-    // different due to rotation mapping. Just verify SOMETHING changed.
-    // Count red and blue pixels in the rotated region
+                                           // Original center was red (top half). After 90° CW rotation, center may be
+                                           // different due to rotation mapping. Just verify SOMETHING changed.
+                                           // Count red and blue pixels in the rotated region
     let mut red_count = 0u32;
     let mut blue_count = 0u32;
     for dy in 0..4 {
         for dx in 0..4 {
             let p = vm.screen[(10 + dy) * 256 + (10 + dx)];
-            if p == 0xFF0000 { red_count += 1; }
-            if p == 0x0000FF { blue_count += 1; }
+            if p == 0xFF0000 {
+                red_count += 1;
+            }
+            if p == 0x0000FF {
+                blue_count += 1;
+            }
         }
     }
     // Original had 8 red + 8 blue. After 90° rotation of horizontal split,
     // it should become vertical split. Due to nearest-neighbor on 4x4,
     // counts may not be exactly 8/8, but both colors must be present.
     assert!(red_count > 0, "should still have red pixels after rotation");
-    assert!(blue_count > 0, "should still have blue pixels after rotation");
+    assert!(
+        blue_count > 0,
+        "should still have blue pixels after rotation"
+    );
     // The center pixel was originally blue (row 2 = bottom half); after 90° CW rotation,
     // it maps to source (2,1) which is red. Verify it changed from its original color.
-    assert_ne!(center, 0x0000FF,
-        "center pixel should change after 90° rotation, got {:06X}", center);
+    assert_ne!(
+        center, 0x0000FF,
+        "center pixel should change after 90° rotation, got {:06X}",
+        center
+    );
 }
 
 #[test]
@@ -31756,12 +31864,29 @@ fn test_rotate_degenerate_is_noop() {
     // Zero width/height should be a no-op
     let mut vm = Vm::new();
     vm.screen[10 * 256 + 10] = 0xFF0000;
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0; vm.regs[4] = 4; vm.regs[5] = 4021;
-    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0;
+    vm.regs[4] = 4;
+    vm.regs[5] = 4021;
+    vm.ram[0] = 0xF4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.ram[6] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
-    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000, "zero-width rotate should be no-op");
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0xFF0000,
+        "zero-width rotate should be no-op"
+    );
 }
 
 #[test]
@@ -31770,10 +31895,16 @@ fn test_rotate_disasm() {
     let result = crate::assembler::assemble(source, 0).unwrap();
     let mut vm = Vm::new();
     for (i, &w) in result.pixels.iter().enumerate() {
-        if i < vm.ram.len() { vm.ram[i] = w; }
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
     }
     let (s, _) = vm.disassemble_at(0);
-    assert!(s.contains("ROTATE"), "disasm should contain ROTATE, got: {}", s);
+    assert!(
+        s.contains("ROTATE"),
+        "disasm should contain ROTATE, got: {}",
+        s
+    );
 }
 
 #[test]
@@ -31788,27 +31919,62 @@ fn test_scale_up_2x() {
     // Scale to (20, 20) at 4x4
     vm.regs[1] = 10; // sx
     vm.regs[2] = 10; // sy
-    vm.regs[3] = 2;  // sw
-    vm.regs[4] = 2;  // sh
+    vm.regs[3] = 2; // sw
+    vm.regs[4] = 2; // sh
     vm.regs[5] = 20; // dx
     vm.regs[6] = 20; // dy
-    vm.regs[7] = 4;  // dw
-    vm.regs[8] = 4;  // dh
-    vm.ram[0] = 0xF5; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.regs[7] = 4; // dw
+    vm.regs[8] = 4; // dh
+    vm.ram[0] = 0xF5;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 7;
+    vm.ram[8] = 8;
     vm.ram[9] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // Top-left 2x2 of dest should be red (from src[0][0])
-    assert_eq!(vm.screen[20 * 256 + 20], 0xFF0000, "top-left of scaled should be red");
-    assert_eq!(vm.screen[20 * 256 + 21], 0xFF0000, "scaled red extends right");
-    assert_eq!(vm.screen[21 * 256 + 20], 0xFF0000, "scaled red extends down");
+    assert_eq!(
+        vm.screen[20 * 256 + 20],
+        0xFF0000,
+        "top-left of scaled should be red"
+    );
+    assert_eq!(
+        vm.screen[20 * 256 + 21],
+        0xFF0000,
+        "scaled red extends right"
+    );
+    assert_eq!(
+        vm.screen[21 * 256 + 20],
+        0xFF0000,
+        "scaled red extends down"
+    );
     // Top-right 2x2 should be green (from src[0][1])
-    assert_eq!(vm.screen[20 * 256 + 22], 0x00FF00, "top-right of scaled should be green");
+    assert_eq!(
+        vm.screen[20 * 256 + 22],
+        0x00FF00,
+        "top-right of scaled should be green"
+    );
     // Bottom-left should be blue
-    assert_eq!(vm.screen[22 * 256 + 20], 0x0000FF, "bottom-left of scaled should be blue");
+    assert_eq!(
+        vm.screen[22 * 256 + 20],
+        0x0000FF,
+        "bottom-left of scaled should be blue"
+    );
     // Bottom-right should be white
-    assert_eq!(vm.screen[22 * 256 + 22], 0xFFFFFF, "bottom-right of scaled should be white");
+    assert_eq!(
+        vm.screen[22 * 256 + 22],
+        0xFFFFFF,
+        "bottom-right of scaled should be white"
+    );
 }
 
 #[test]
@@ -31816,19 +31982,47 @@ fn test_scale_down() {
     // Scale a 4x4 source to 2x2 destination
     let mut vm = Vm::new();
     // Fill 4x4 at (10,10) with red
-    for dy in 0..4 { for dx in 0..4 { vm.screen[(10 + dy) * 256 + (10 + dx)] = 0xFF0000; } }
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4;
-    vm.regs[5] = 20; vm.regs[6] = 20; vm.regs[7] = 2; vm.regs[8] = 2;
-    vm.ram[0] = 0xF5; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    for dy in 0..4 {
+        for dx in 0..4 {
+            vm.screen[(10 + dy) * 256 + (10 + dx)] = 0xFF0000;
+        }
+    }
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 4;
+    vm.regs[4] = 4;
+    vm.regs[5] = 20;
+    vm.regs[6] = 20;
+    vm.regs[7] = 2;
+    vm.regs[8] = 2;
+    vm.ram[0] = 0xF5;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 7;
+    vm.ram[8] = 8;
     vm.ram[9] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // All 4 dest pixels should be red
-    for dy in 0..2 { for dx in 0..2 {
-        assert_eq!(vm.screen[(20 + dy) * 256 + (20 + dx)], 0xFF0000,
-            "scaled-down pixel at ({}, {}) should be red", 20 + dx, 20 + dy);
-    }}
+    for dy in 0..2 {
+        for dx in 0..2 {
+            assert_eq!(
+                vm.screen[(20 + dy) * 256 + (20 + dx)],
+                0xFF0000,
+                "scaled-down pixel at ({}, {}) should be red",
+                20 + dx,
+                20 + dy
+            );
+        }
+    }
 }
 
 #[test]
@@ -31836,15 +32030,36 @@ fn test_scale_degenerate_is_noop() {
     // Zero dest size should be no-op
     let mut vm = Vm::new();
     vm.screen[10 * 256 + 10] = 0xFF0000;
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 2; vm.regs[4] = 2;
-    vm.regs[5] = 20; vm.regs[6] = 20; vm.regs[7] = 0; vm.regs[8] = 2;
-    vm.ram[0] = 0xF5; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 2;
+    vm.regs[4] = 2;
+    vm.regs[5] = 20;
+    vm.regs[6] = 20;
+    vm.regs[7] = 0;
+    vm.regs[8] = 2;
+    vm.ram[0] = 0xF5;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 7;
+    vm.ram[8] = 8;
     vm.ram[9] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // Source should be unchanged (dest was zero-size, no pixels written to source)
-    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000, "zero-size scale dest should be no-op on source");
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0xFF0000,
+        "zero-size scale dest should be no-op on source"
+    );
 }
 
 #[test]
@@ -31853,10 +32068,16 @@ fn test_scale_disasm() {
     let result = crate::assembler::assemble(source, 0).unwrap();
     let mut vm = Vm::new();
     for (i, &w) in result.pixels.iter().enumerate() {
-        if i < vm.ram.len() { vm.ram[i] = w; }
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
     }
     let (s, _) = vm.disassemble_at(0);
-    assert!(s.contains("SCALE"), "disasm should contain SCALE, got: {}", s);
+    assert!(
+        s.contains("SCALE"),
+        "disasm should contain SCALE, got: {}",
+        s
+    );
 }
 
 #[test]
@@ -31865,14 +32086,30 @@ fn test_rotate_respects_clip_rect() {
     let mut vm = Vm::new();
     vm.screen[5 * 256 + 5] = 0x00FF00; // green pixel
     vm.clip_rect = Some((0, 0, 3, 3)); // clip to 3x3 top-left
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 8; vm.regs[4] = 8;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 8;
+    vm.regs[4] = 8;
     vm.regs[5] = 0; // zero angle
-    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0xF4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.ram[6] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // Pixel at (5,5) is outside clip, should be unchanged
-    assert_eq!(vm.screen[5 * 256 + 5], 0x00FF00, "clipped ROTATE should not touch (5,5)");
+    assert_eq!(
+        vm.screen[5 * 256 + 5],
+        0x00FF00,
+        "clipped ROTATE should not touch (5,5)"
+    );
 }
 
 #[test]
@@ -31881,15 +32118,36 @@ fn test_scale_respects_clip_rect() {
     let mut vm = Vm::new();
     vm.screen[10 * 256 + 10] = 0x00FF00; // green pixel outside clip region
     vm.clip_rect = Some((0, 0, 5, 5)); // clip to 5x5 top-left
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 2; vm.regs[4] = 2;
-    vm.regs[5] = 8; vm.regs[6] = 8; vm.regs[7] = 4; vm.regs[8] = 4;
-    vm.ram[0] = 0xF5; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 2;
+    vm.regs[4] = 2;
+    vm.regs[5] = 8;
+    vm.regs[6] = 8;
+    vm.regs[7] = 4;
+    vm.regs[8] = 4;
+    vm.ram[0] = 0xF5;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 7;
+    vm.ram[8] = 8;
     vm.ram[9] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // Pixel at (10,10) should be unchanged (outside clip)
-    assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "clipped SCALE should not touch (10,10)");
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0x00FF00,
+        "clipped SCALE should not touch (10,10)"
+    );
 }
 
 // ── Phase 241: rotate_demo program integration test ──
@@ -31902,11 +32160,17 @@ fn test_rotate_demo_program_assembles() {
     // Should contain ROTATE (0xF4) and SCALE (0xF5) opcodes
     let has_rotate = result.pixels.iter().any(|&p| p == 0xF4);
     let has_scale = result.pixels.iter().any(|&p| p == 0xF5);
-    assert!(has_rotate, "rotate_demo should contain ROTATE opcode (0xF4)");
+    assert!(
+        has_rotate,
+        "rotate_demo should contain ROTATE opcode (0xF4)"
+    );
     assert!(has_scale, "rotate_demo should contain SCALE opcode (0xF5)");
     // Should also have FRAME (0x02) for animation loop
     let has_frame = result.pixels.iter().any(|&p| p == 0x02);
-    assert!(has_frame, "rotate_demo should contain FRAME opcode for animation");
+    assert!(
+        has_frame,
+        "rotate_demo should contain FRAME opcode for animation"
+    );
 }
 
 #[test]
@@ -31935,7 +32199,10 @@ fn test_rotate_demo_runs_one_frame() {
             }
         }
     }
-    assert!(frames_seen >= 1, "rotate_demo should produce at least 1 frame");
+    assert!(
+        frames_seen >= 1,
+        "rotate_demo should produce at least 1 frame"
+    );
     // Screen should have non-black pixels (the sprite was drawn and scaled)
     let mut non_black = 0u32;
     for &pixel in vm.screen.iter() {
@@ -31943,7 +32210,11 @@ fn test_rotate_demo_runs_one_frame() {
             non_black += 1;
         }
     }
-    assert!(non_black > 100, "screen should have many non-black pixels after 1 frame, got {}", non_black);
+    assert!(
+        non_black > 100,
+        "screen should have many non-black pixels after 1 frame, got {}",
+        non_black
+    );
 }
 
 #[test]
@@ -31957,28 +32228,47 @@ fn test_rotate_scale_chain() {
         }
     }
     // SCALE source (0,0,4,4) to dest (10,10,8,8) -- 2x upscale
-    vm.regs[1] = 0;  // sx
-    vm.regs[2] = 0;  // sy
-    vm.regs[3] = 4;  // sw
-    vm.regs[4] = 4;  // sh
+    vm.regs[1] = 0; // sx
+    vm.regs[2] = 0; // sy
+    vm.regs[3] = 4; // sw
+    vm.regs[4] = 4; // sh
     vm.regs[5] = 10; // dx
     vm.regs[6] = 10; // dy
-    vm.regs[7] = 8;  // dw
-    vm.regs[8] = 8;  // dh
+    vm.regs[7] = 8; // dw
+    vm.regs[8] = 8; // dh
     vm.ram[0] = 0xF5;
-    vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 7;
+    vm.ram[8] = 8;
     vm.ram[9] = 0xF4; // ROTATE follows
-    vm.ram[10] = 5; vm.ram[11] = 6; vm.ram[12] = 7; vm.ram[13] = 8;
-    vm.ram[14] = 0;   // angle = 0 (registers 5-8 still set from SCALE)
+    vm.ram[10] = 5;
+    vm.ram[11] = 6;
+    vm.ram[12] = 7;
+    vm.ram[13] = 8;
+    vm.ram[14] = 0; // angle = 0 (registers 5-8 still set from SCALE)
     vm.ram[15] = 0x00; // HALT
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // After SCALE(2x) then ROTATE(0°), the 8x8 area at (10,10) should be red
-    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000,
-        "SCALE+ROTATE chain: dest pixel should be red");
-    assert_eq!(vm.screen[17 * 256 + 17], 0xFF0000,
-        "SCALE+ROTATE chain: bottom-right of 2x scaled area should be red");
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0xFF0000,
+        "SCALE+ROTATE chain: dest pixel should be red"
+    );
+    assert_eq!(
+        vm.screen[17 * 256 + 17],
+        0xFF0000,
+        "SCALE+ROTATE chain: bottom-right of 2x scaled area should be red"
+    );
 }
 
 #[test]
@@ -31988,7 +32278,7 @@ fn test_rotate_180_degrees() {
     // Asymmetric: top-left pixel red, bottom-right pixel blue
     vm.screen[10 * 256 + 10] = 0xFF0000; // top-left = red
     vm.screen[13 * 256 + 13] = 0x0000FF; // bottom-right = blue
-    // Fill rest with a neutral color so nearest-neighbor has something
+                                         // Fill rest with a neutral color so nearest-neighbor has something
     for dy in 0..4 {
         for dx in 0..4 {
             if vm.screen[(10 + dy) * 256 + (10 + dx)] == 0 {
@@ -32000,17 +32290,32 @@ fn test_rotate_180_degrees() {
     let angle_fixed = (std::f64::consts::PI * 256.0) as i32 as u32;
     vm.regs[1] = 10; // x
     vm.regs[2] = 10; // y
-    vm.regs[3] = 4;  // w
-    vm.regs[4] = 4;  // h
+    vm.regs[3] = 4; // w
+    vm.regs[4] = 4; // h
     vm.regs[5] = angle_fixed;
-    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0xF4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.ram[6] = 0x00;
     vm.pc = 0;
-    for _ in 0..100 { if !vm.step() { break; } }
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
     // After 180° rotation, the red that was at (10,10) should be near (13,13)
     // and the blue that was at (13,13) should be near (10,10)
-    assert_eq!(vm.screen[13 * 256 + 13], 0xFF0000,
-        "180° rotation: red should move from top-left to bottom-right");
-    assert_eq!(vm.screen[10 * 256 + 10], 0x0000FF,
-        "180° rotation: blue should move from bottom-right to top-left");
+    assert_eq!(
+        vm.screen[13 * 256 + 13],
+        0xFF0000,
+        "180° rotation: red should move from top-left to bottom-right"
+    );
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0x0000FF,
+        "180° rotation: blue should move from bottom-right to top-left"
+    );
 }

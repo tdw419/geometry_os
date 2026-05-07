@@ -160,17 +160,13 @@ impl RiscvCpu {
                                         // Read from guest memory, send over TCP
                                         let mut buf = vec![0u8; op.len];
                                         for i in 0..op.len {
-                                            if let Ok(b) =
-                                                bus.read_byte(op.buf_addr + i as u64)
-                                            {
+                                            if let Ok(b) = bus.read_byte(op.buf_addr + i as u64) {
                                                 buf[i] = b;
                                             }
                                         }
                                         let result = match stream.write_all(&buf) {
                                             Ok(()) => op.len as u32,
-                                            Err(_) => {
-                                                super::super::sbi::SBI_ERR_FAILURE as u32
-                                            }
+                                            Err(_) => super::super::sbi::SBI_ERR_FAILURE as u32,
                                         };
                                         bus.sbi.net_sockets[sid] = Some(stream);
                                         self.x[10] = result;
@@ -181,24 +177,19 @@ impl RiscvCpu {
                                         let result = match stream.read(&mut buf) {
                                             Ok(n) => {
                                                 for i in 0..n {
-                                                    let _ = bus.write_byte(
-                                                        op.buf_addr + i as u64,
-                                                        buf[i],
-                                                    );
+                                                    let _ = bus
+                                                        .write_byte(op.buf_addr + i as u64, buf[i]);
                                                 }
                                                 n as u32
                                             }
-                                            Err(_) => {
-                                                super::super::sbi::SBI_ERR_FAILURE as u32
-                                            }
+                                            Err(_) => super::super::sbi::SBI_ERR_FAILURE as u32,
                                         };
                                         bus.sbi.net_sockets[sid] = Some(stream);
                                         self.x[10] = result;
                                     }
                                 }
                             } else {
-                                self.x[10] =
-                                    super::super::sbi::SBI_ERR_INVALID_PARAM as u32;
+                                self.x[10] = super::super::sbi::SBI_ERR_INVALID_PARAM as u32;
                             }
                         }
 

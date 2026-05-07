@@ -5399,7 +5399,11 @@ impl Vm {
                             self.set_pixel_clipped(x, y, blended);
                         }
                         if self.render_logging {
-                            self.log_render_op(0xF2, "BLEND", &[x as u32, y as u32, src_color, alpha]);
+                            self.log_render_op(
+                                0xF2,
+                                "BLEND",
+                                &[x as u32, y as u32, src_color, alpha],
+                            );
                         }
                     }
                 }

@@ -1397,7 +1397,10 @@ fn main() {
         },
     )
     .unwrap_or_else(|e| {
-        eprintln!("Failed to open window: {}. Ensure a display is available.", e);
+        eprintln!(
+            "Failed to open window: {}. Ensure a display is available.",
+            e
+        );
         std::process::exit(1);
     });
     window.set_target_fps(60);
