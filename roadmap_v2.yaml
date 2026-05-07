@@ -3527,7 +3527,7 @@ phases:
   scope_lines_total: 360
 - id: phase-248
   title: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST)
-  status: planned
+  status: done
   goal: Add single-bit manipulation opcodes for embedded-style register bitfield control
   description: Many VM programs need to set, clear, test, and toggle individual bits
     in registers (flag registers, color masks, hardware port registers). Currently
@@ -3536,17 +3536,18 @@ phases:
     available via XOR with 0xFFFFFFFF but a dedicated opcode is clearer).
   deliverables:
   - name: Bit manipulation opcodes
-    status: todo
+    status: done
     tasks:
     - id: p248.d1.t1
-      title: Implement BNOT rd (0xD1), BSET rd, bit_reg (0xD2), BCLR rd, bit_reg (0xD3),
-        BTST rd, bit_reg -> r0 (0xD4)
+      title: Implement BNOT rd (0xCF), BSET rd, bit_reg (0xE1), BCLR rd, bit_reg (0xF0),
+        BTST rd, bit_reg -> r0 (0xF1)
       description: BNOT = rd = !rd. BSET = rd |= (1 << bit_reg[4:0]). BCLR = rd &=
         !(1 << bit_reg[4:0]). BTST = r0 = (rd >> bit_reg[4:0]) & 1.
       scope_files:
       - src/vm/mod.rs
       - src/assembler/ops_extended.rs
       scope_lines: 80
+      status: done
     - id: p248.d1.t2
       title: Add disassembler entries
       description: Wire all four opcodes into the disassembler with correct mnemonic
@@ -3554,6 +3555,7 @@ phases:
       scope_files:
       - src/vm/disasm.rs
       scope_lines: 30
+      status: done
     - id: p248.d1.t3
       title: Add comprehensive tests
       description: Test each opcode with known bit patterns. Test boundary (bit 0,
@@ -3561,6 +3563,7 @@ phases:
       scope_files:
       - src/vm/tests.rs
       scope_lines: 80
+      status: done
     - id: p248.d1.t4
       title: Write bit_manipulation_demo.asm
       description: Program that uses BSET/BCLR/BTST to implement a simple flag register
@@ -3568,8 +3571,11 @@ phases:
       scope_files:
       - programs/bit_manipulation_demo.asm
       scope_lines: 60
+      status: done
   test_target: 10
   scope_lines_total: 250
+  _claimed_by: worker-0
+  _claimed_at: 1778181464
 - id: phase-249
   title: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET)
   status: planned

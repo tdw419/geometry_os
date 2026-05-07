@@ -26727,6 +26727,30 @@ fn test_bit_manip_combined_flag_pattern() {
     assert!(vm.halted);
 }
 
+#[test]
+fn test_bit_manipulation_demo_program() {
+    // Verify bit_manipulation_demo.asm produces correct RAM results
+    let source = std::fs::read_to_string("programs/bit_manipulation_demo.asm").unwrap();
+    let asm = crate::assembler::assemble(&source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
+    }
+    vm.pc = 0;
+    for _ in 0..1_000_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted, "demo program should halt");
+    assert_eq!(vm.ram[0x3000], 0xFF, "BSET all 8 bits = 0xFF");
+    assert_eq!(vm.ram[0x3001], 0x55, "BCLR odd bits = 0x55");
+    assert_eq!(vm.ram[0x3002], 0xFFFFFFAA, "BNOT 0x55 = 0xFFFFFFAA (32-bit invert)");
+    assert_eq!(vm.ram[0x3003], 0, "BTST bit 2 of 0xAA = 0 (bit 2 is clear)");
+}
+
 // === PROFILE opcode tests (0xC6) ===
 
 #[test]
