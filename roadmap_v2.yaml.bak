@@ -3581,7 +3581,7 @@ phases:
   _claimed_at: 1778181464
 - id: phase-249
   title: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET)
-  status: planned
+  status: done
   goal: Add efficient block memory operations to reduce loop overhead
   description: Programs that copy or fill memory regions currently use byte-by-byte
     loops (LOAD + STORE + ADD + CMP + BLT = 5+ instructions per word). MEMCPY copies
@@ -3590,7 +3590,7 @@ phases:
     string operations, and VFS data transfer.
   deliverables:
   - name: Block memory opcodes
-    status: todo
+    status: done
     tasks:
     - id: p249.d1.t1
       title: Implement MEMCPY dst_reg, src_reg, count_reg (0xD5) and MEMSET dst_reg,
@@ -3626,6 +3626,8 @@ phases:
       scope_lines: 50
   test_target: 12
   scope_lines_total: 270
+  _claimed_by: worker-0
+  _claimed_at: 1778183461
 - id: phase-250
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
   status: planned

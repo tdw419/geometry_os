@@ -3630,7 +3630,7 @@ phases:
   _claimed_at: 1778183461
 - id: phase-250
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
-  status: planned
+  status: done
   goal: Add string primitives that operate on null-terminated RAM strings
   description: VM programs that manipulate strings (shell, file browser, text editor)
     currently implement strlen/strcmp/strcpy as subroutine loops (10-30 instructions
@@ -3640,7 +3640,7 @@ phases:
     RISC-V guest already has.
   deliverables:
   - name: String operation opcodes
-    status: todo
+    status: done
     tasks:
     - id: p250.d1.t1
       title: Implement STRLEN addr_reg -> count_reg (0xD7), STRCMP addr1_reg, addr2_reg
@@ -3676,6 +3676,8 @@ phases:
       scope_lines: 60
   test_target: 10
   scope_lines_total: 250
+  _claimed_by: worker-0
+  _claimed_at: 1778184577
 - id: phase-251
   title: GeOS Program -- Mandelbrot Fractal Explorer
   status: planned

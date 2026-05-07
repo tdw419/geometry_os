@@ -960,8 +960,7 @@ impl Vm {
                         match self.translate_va_or_fault(vaddr) {
                             Some(addr) => {
                                 // Screen buffer intercept
-                                if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
-                                    .contains(&addr)
+                                if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE).contains(&addr)
                                 {
                                     self.screen[addr - SCREEN_RAM_BASE] = val;
                                     self.log_access(addr, MemAccessKind::Write);
@@ -979,9 +978,7 @@ impl Vm {
                                         self.formula_recalc(cidx);
                                     } else {
                                         // Invalidate instruction cache if writing to code memory
-                                        if addr < self.icache.len()
-                                            && self.ram[addr] != val
-                                        {
+                                        if addr < self.icache.len() && self.ram[addr] != val {
                                             self.icache_invalidate_range(addr, addr + 1);
                                         }
                                         self.ram[addr] = val;

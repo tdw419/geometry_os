@@ -6484,6 +6484,74 @@ fn test_strlen_strcpy_combined() {
     assert_eq!(vm.regs[0], 5, "STRLEN of copied string should be 5");
 }
 
+#[test]
+fn test_string_ops_demo_assembles_and_runs() {
+    let source = include_str!("../../programs/string_ops_demo.asm");
+    let bc = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &word) in bc.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..500_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted, "string_ops_demo should halt");
+
+    // STRLEN: "Geometry" has 8 chars -> length bar of 8 green pixels at y=38
+    // Check first and last pixel of the green bar
+    assert_eq!(
+        vm.screen[38 * 256 + 10],
+        0x00FF00,
+        "STRLEN bar: first pixel"
+    );
+    assert_eq!(
+        vm.screen[38 * 256 + 17],
+        0x00FF00,
+        "STRLEN bar: last pixel (8th)"
+    );
+    assert_eq!(
+        vm.screen[38 * 256 + 18],
+        0x000000,
+        "STRLEN bar: no 9th pixel"
+    );
+
+    // STRCMP equal: green indicator at y=68
+    assert_eq!(
+        vm.screen[68 * 256 + 10],
+        0x00FF00,
+        "STRCMP equal: green indicator"
+    );
+
+    // STRCMP different: red indicator at y=98
+    assert_eq!(
+        vm.screen[98 * 256 + 10],
+        0xFF0000,
+        "STRCMP diff: red indicator"
+    );
+
+    // STRCPY: "Hello" copied to 0x3030, blue bar at y=128
+    assert_eq!(vm.ram[0x3030], 'H' as u32, "STRCPY: H at dest");
+    assert_eq!(vm.ram[0x3031], 'e' as u32, "STRCPY: e at dest");
+    assert_eq!(vm.ram[0x3032], 'l' as u32, "STRCPY: l at dest");
+    assert_eq!(vm.ram[0x3033], 'l' as u32, "STRCPY: l at dest");
+    assert_eq!(vm.ram[0x3034], 'o' as u32, "STRCPY: o at dest");
+    assert_eq!(vm.ram[0x3035], 0, "STRCPY: null terminator");
+    assert_eq!(
+        vm.screen[128 * 256 + 10],
+        0x0000FF,
+        "STRCPY: blue bar start"
+    );
+
+    // Title bar: yellow at y=2
+    assert_eq!(vm.screen[2 * 256 + 10], 0xFFFF00, "Title bar: yellow pixel");
+}
+
 // ── ABS: absolute value opcode (0x87) ─────────────────────
 
 #[test]
@@ -31067,7 +31135,9 @@ fn test_memset_fills_region() {
     vm.ram[4] = 0x00; // HALT
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     for i in 0..5 {
         assert_eq!(vm.ram[100 + i], 0x42, "MEMSET failed at offset {}", i);
@@ -31088,7 +31158,9 @@ fn test_memset_zero_count_is_noop() {
     vm.ram[4] = 0x00; // HALT
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     assert_eq!(vm.ram[100], 0xDEAD); // untouched
 }
@@ -31107,7 +31179,9 @@ fn test_memset_boundary_clamp() {
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     // Should have written up to 65535 (6 words), rest silently skipped
     assert_eq!(vm.ram[65530], 0xBB);
@@ -31129,7 +31203,9 @@ fn test_memset_various_values() {
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     assert_eq!(vm.ram[200], 0xFFFFFFFF);
     assert_eq!(vm.ram[201], 0xFFFFFFFF);
@@ -31149,7 +31225,9 @@ fn test_memset_single_word() {
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     assert_eq!(vm.ram[500], 0x1234);
     assert_eq!(vm.ram[499], 0); // untouched
@@ -31163,15 +31241,24 @@ fn test_memset_assembles_and_runs() {
     let asm = assemble(src, 0).unwrap();
     let mut vm = Vm::new();
     for (i, &w) in asm.pixels.iter().enumerate() {
-        if i < vm.ram.len() { vm.ram[i] = w; }
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
     }
     vm.pc = 0;
     for _ in 0..10000 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     assert!(vm.halted);
     for i in 0..4 {
-        assert_eq!(vm.ram[0x3000 + i], 0xFF, "MEMSET asm failed at offset {}", i);
+        assert_eq!(
+            vm.ram[0x3000 + i],
+            0xFF,
+            "MEMSET asm failed at offset {}",
+            i
+        );
     }
 }
 
