@@ -3630,7 +3630,7 @@ phases:
   _claimed_at: 1778183461
 - id: phase-250
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
-  status: planned
+  status: done
   goal: Add string primitives that operate on null-terminated RAM strings
   description: VM programs that manipulate strings (shell, file browser, text editor)
     currently implement strlen/strcmp/strcpy as subroutine loops (10-30 instructions
@@ -3640,7 +3640,7 @@ phases:
     RISC-V guest already has.
   deliverables:
   - name: String operation opcodes
-    status: todo
+    status: done
     tasks:
     - id: p250.d1.t1
       title: Implement STRLEN addr_reg -> count_reg (0xD7), STRCMP addr1_reg, addr2_reg
@@ -3676,9 +3676,11 @@ phases:
       scope_lines: 60
   test_target: 10
   scope_lines_total: 250
+  _claimed_by: worker-0
+  _claimed_at: 1778184577
 - id: phase-251
   title: GeOS Program -- Mandelbrot Fractal Explorer
-  status: planned
+  status: done
   goal: Write a zoomable Mandelbrot set renderer in assembly
   description: The VM has MUL, SUB, CMP, BLT, PSET, TEXT, IKEY, and FRAME -- everything
     needed for an interactive Mandelbrot renderer. This is a classic compute-heavy
@@ -3687,7 +3689,7 @@ phases:
     avoids floating point requirements.
   deliverables:
   - name: Mandelbrot fractal program
-    status: todo
+    status: done
     tasks:
     - id: p251.d1.t1
       title: Implement fixed-point Mandelbrot core loop
@@ -3713,9 +3715,11 @@ phases:
       scope_lines: 50
   test_target: 2
   scope_lines_total: 280
+  _claimed_by: worker-0
+  _claimed_at: 1778185724
 - id: phase-252
   title: GeOS Program -- Raycasting 3D Engine (Wolfenstein-style)
-  status: planned
+  status: in_progress
   goal: Write a first-person raycasting renderer in assembly
   description: A raycasting engine renders a pseudo-3D view from a 2D map using only
     arithmetic (MUL, DIV, SHL, SHR, SIN table lookups) and PSET/RECTF. This is the
@@ -3750,9 +3754,11 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 360
+  _claimed_by: worker-0
+  _claimed_at: 1778187541
 - id: phase-253
   title: GeOS VM -- Audio System Tests and Improvements
-  status: planned
+  status: complete
   goal: Add tests to audio.rs and implement PCM sample streaming
   description: audio.rs (124 lines, 0 tests) handles the BEEP opcode and WAV generation.
     The current implementation spawns aplay subprocess for each beep, which causes
@@ -3760,7 +3766,7 @@ phases:
     improve reliability and enable more complex sound effects.
   deliverables:
   - name: Audio system tests
-    status: todo
+    status: done
     tasks:
     - id: p253.d1.t1
       title: Add unit tests for WAV generation
@@ -3769,6 +3775,7 @@ phases:
       scope_files:
       - src/audio.rs
       scope_lines: 80
+      status: done
     - id: p253.d1.t2
       title: Add test for audio parameter extraction
       description: Test that BEEP correctly extracts freq and duration from registers
@@ -3776,8 +3783,9 @@ phases:
       scope_files:
       - src/vm/tests.rs
       scope_lines: 40
+      status: done
   - name: Audio streaming buffer
-    status: todo
+    status: done
     tasks:
     - id: p253.d2.t1
       title: Implement audio sample buffer with mixing
@@ -3787,6 +3795,7 @@ phases:
       scope_files:
       - src/audio.rs
       scope_lines: 100
+      status: done
     - id: p253.d2.t2
       title: Write sfx_mixer.asm with layered sound effects
       description: Program that plays multiple overlapping beeps to demonstrate mixing
@@ -3794,8 +3803,11 @@ phases:
       scope_files:
       - programs/sfx_mixer.asm
       scope_lines: 60
+      status: done
   test_target: 6
   scope_lines_total: 280
+  _claimed_by: worker-0
+  _claimed_at: 1778188766
 - id: phase-254
   title: GeOS Program -- Procedural Dungeon Generator with Fog of War
   status: planned

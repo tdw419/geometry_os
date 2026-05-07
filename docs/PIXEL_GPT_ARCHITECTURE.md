@@ -9,35 +9,38 @@ In Geometry OS, the "Pixel Substrate" collapses the distinction between the grap
 ### The Information Geometry of Pixel Seeds
 The mapping of these 32-bit seeds into a latent space is governed by principles of information geometry. PixelGPT navigates a high-dimensional Output-Space Search (OS-Search), predicting the most probable subsequent seed. The relationship between these tokens is defined within a 128-dimensional continuous vector space. Proximity indicates functional similarity—for example, arithmetic operations like `ADD` and `SUB` are clustered due to their shared relationship to register-based logic.
 
-### Pixel-to-Token vs. BPE
-Unlike standard LLMs using Byte Pair Encoding (BPE) on text, PixelGPT maps ~19,000 unique pixel seeds directly to tokens. This eliminates the "geometry bottleneck" by treating the pixel seed as the irreducible unit of meaning, avoiding the fragmentation of machine code that occurs when applying text tokenization to binary formats.
+### Hybrid Atomic-BPE Tokenization
+Geometry OS has transitioned from raw pixel-packing to a **Hybrid Atomic-BPE** substrate. This bridges the gap between machine logic and natural language documentation.
+
+*   **Atomic Opcodes (IDs 0-267):** Instructions, registers, and structural tokens are preserved as discrete atomic units. This prevents syntax hallucinations and ensures high-fidelity code generation.
+*   **BPE Literals & Prose (IDs 300+):** English documentation, comments, and ASM literals (Numbers, Labels, Strings) are routed through a Byte-Pair Encoding (BPE) model. 
+*   **The Benefit:** This architecture allows for **Geometric RAG**. Documentation pixels and code opcodes share the same latent space, enabling the model to "read" descriptions to inform its "painting" of code.
 
 ## Core Architecture and Hyperparameters
 
-PixelGPT uses a standard **GPT-2 style decoder-only transformer** architecture. This unidirectional causal flow is perfectly suited for "painting" a program sequentially from top-left to bottom-right.
+PixelGPT uses a GPT-2 style decoder-only transformer architecture.
 
-### Model Parameterization (Spike Version)
-The Spike version focuses on emergent intelligence within a restricted computational budget:
-- **Total Parameters:** ~2.8 Million
-- **Layers (Blocks):** 2
-- **Attention Heads:** 4
-- **Embedding Dimension:** 128
-- **MLP Expansion Factor:** 4 (Inner Dim = 512)
-- **Context Window:** 512 Pixels
-- **Vocabulary Size:** ~19,000 unique pixel seeds
+### Model Parameterization (Bilingual Version)
+The Bilingual version scales the model to support semantic understanding:
+- **Total Parameters:** ~15 Million (Target)
+- **Layers (Blocks):** 6-12
+- **Attention Heads:** 8-12
+- **Embedding Dimension:** 384-512
+- **Vocabulary Size:** ~3,300 (268 Atomic + 3,000 BPE)
+- **Context Window:** 1024 Pixels
 
-## The Data Pipeline: From raw3 to Latent Embeddings
+## The Data Pipeline: From Pixels to Latent Embeddings
 
-The transformation of raw pixels into tokens uses **Strategy A (raw3)**. Most tokens pack 3 ASCII characters into an RGBA pixel (e.g., `0xA04C4449` corresponds to `LDI `).
+The transformation of raw pixels into tokens uses **Strategy 0x4 (Neural Pack)**. Each 32-bit pixel encodes up to three 9-bit token IDs from the Bilingual Tokenizer (0x4_ID1_ID2_ID3). This allows the OS kernel to expand a single visual pixel into three discrete neural instructions (Opcodes or BPE subwords).
 
-The pipeline extracts every unique 32-bit seed from the training corpus (208 programs) and assigns a dense integer index (0 to ~19,000). The embedding layer then projects this discrete categorical data into the continuous 128-dimensional manifold, essential for describing the geometric shapes of code regions.
+The pipeline uses the **Bilingual Tokenizer** to map source code and documentation into a dense index space (0-3300). The embedding layer then projects these IDs into a continuous vector space (384-512 dimensions), where functional similarity is learned through autoregressive prediction on the Bilingual Corpus (211 annotated programs + synthetic descriptions).
 
 ## The Transformer Block Mechanics
 
-Each of the 2 transformer blocks contains two primary sub-layers:
+Each transformer block contains two primary sub-layers:
 
 ### 1. Causal Self-Attention
-For each pixel in the context window, the model generates Query, Key, and Value vectors. Attention scores are constrained by a **Causal Mask** (a lower triangular matrix) preventing the model from "looking ahead." This forces it to learn the "grammar" of the pixels sequentially, emulating human geometry learning. Each of the 4 heads specializes in structural aspects of the GeOS ISA (e.g., matching `RECTF` with its 5 required registers).
+For each pixel in the context window, the model generates Query, Key, and Value vectors. Attention scores are constrained by a **Causal Mask** (a lower triangular matrix) preventing the model from "looking ahead." This forces it to learn the "grammar" of the pixels sequentially, emulating human geometry learning. Each of the 8-12 heads specializes in structural aspects of the GeOS ISA (e.g., matching `RECTF` with its 5 required registers).
 
 ### 2. Feed-Forward Network (MLP)
 Following the attention mechanism, a 2-layer linear network with **GELU** activation processes each token independently. This models the complex, non-linear relationships between opcodes (e.g., `LDI` typically preceding a register).

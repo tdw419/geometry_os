@@ -1,0 +1,385 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "padding": null,
+  "added_tokens": [
+    {
+      "id": 0,
+      "content": "<UNK>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 1,
+      "content": "<PAD>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 2,
+      "content": "<BOS>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 3,
+      "content": "<EOS>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 4,
+      "content": "<NL>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    }
+  ],
+  "normalizer": null,
+  "pre_tokenizer": {
+    "type": "Whitespace"
+  },
+  "post_processor": null,
+  "decoder": null,
+  "model": {
+    "type": "BPE",
+    "dropout": null,
+    "unk_token": "<UNK>",
+    "continuing_subword_prefix": null,
+    "end_of_word_suffix": null,
+    "fuse_unk": false,
+    "byte_fallback": false,
+    "ignore_merges": false,
+    "vocab": {
+      "<UNK>": 0,
+      "<PAD>": 1,
+      "<BOS>": 2,
+      "<EOS>": 3,
+      "<NL>": 4,
+      ".": 5,
+      "0": 6,
+      "1": 7,
+      "3": 8,
+      "C": 9,
+      "E": 10,
+      "F": 11,
+      "I": 12,
+      "R": 13,
+      "T": 14,
+      "a": 15,
+      "c": 16,
+      "d": 17,
+      "e": 18,
+      "f": 19,
+      "g": 20,
+      "h": 21,
+      "i": 22,
+      "l": 23,
+      "n": 24,
+      "o": 25,
+      "p": 26,
+      "q": 27,
+      "r": 28,
+      "s": 29,
+      "t": 30,
+      "u": 31,
+      "z": 32,
+      "re": 33,
+      "se": 34,
+      "ti": 35,
+      "31": 36,
+      "CT": 37,
+      "ECT": 38,
+      "In": 39,
+      "It": 40,
+      "RECT": 41,
+      "Th": 42,
+      "al": 43,
+      "an": 44,
+      "ati": 45,
+      "ce": 46,
+      "co": 47,
+      "ct": 48,
+      "de": 49,
+      "en": 50,
+      "er": 51,
+      "fi": 52,
+      "gi": 53,
+      "gl": 54,
+      "iz": 55,
+      "iti": 56,
+      "ll": 57,
+      "on": 58,
+      "op": 59,
+      "qu": 60,
+      "r0": 61,
+      "r31": 62,
+      "st": 63,
+      "to": 64,
+      "use": 65,
+      "rect": 66,
+      "regi": 67,
+      "sequ": 68,
+      "Initi": 69,
+      "RECTF": 70,
+      "The": 71,
+      "aliz": 72,
+      "angl": 73,
+      "ation": 74,
+      "code": 75,
+      "ence": 76,
+      "ers": 77,
+      "fill": 78,
+      "opcode": 79,
+      "sters": 80,
+      "uses": 81,
+      "rectangl": 82,
+      "registers": 83,
+      "sequence": 84,
+      "Initializ": 85,
+      "fills": 86,
+      "rectangle": 87,
+      "Initialization": 88
+    },
+    "merges": [
+      [
+        "r",
+        "e"
+      ],
+      [
+        "s",
+        "e"
+      ],
+      [
+        "t",
+        "i"
+      ],
+      [
+        "3",
+        "1"
+      ],
+      [
+        "C",
+        "T"
+      ],
+      [
+        "E",
+        "CT"
+      ],
+      [
+        "I",
+        "n"
+      ],
+      [
+        "I",
+        "t"
+      ],
+      [
+        "R",
+        "ECT"
+      ],
+      [
+        "T",
+        "h"
+      ],
+      [
+        "a",
+        "l"
+      ],
+      [
+        "a",
+        "n"
+      ],
+      [
+        "a",
+        "ti"
+      ],
+      [
+        "c",
+        "e"
+      ],
+      [
+        "c",
+        "o"
+      ],
+      [
+        "c",
+        "t"
+      ],
+      [
+        "d",
+        "e"
+      ],
+      [
+        "e",
+        "n"
+      ],
+      [
+        "e",
+        "r"
+      ],
+      [
+        "f",
+        "i"
+      ],
+      [
+        "g",
+        "i"
+      ],
+      [
+        "g",
+        "l"
+      ],
+      [
+        "i",
+        "z"
+      ],
+      [
+        "i",
+        "ti"
+      ],
+      [
+        "l",
+        "l"
+      ],
+      [
+        "o",
+        "n"
+      ],
+      [
+        "o",
+        "p"
+      ],
+      [
+        "q",
+        "u"
+      ],
+      [
+        "r",
+        "0"
+      ],
+      [
+        "r",
+        "31"
+      ],
+      [
+        "s",
+        "t"
+      ],
+      [
+        "t",
+        "o"
+      ],
+      [
+        "u",
+        "se"
+      ],
+      [
+        "re",
+        "ct"
+      ],
+      [
+        "re",
+        "gi"
+      ],
+      [
+        "se",
+        "qu"
+      ],
+      [
+        "In",
+        "iti"
+      ],
+      [
+        "RECT",
+        "F"
+      ],
+      [
+        "Th",
+        "e"
+      ],
+      [
+        "al",
+        "iz"
+      ],
+      [
+        "an",
+        "gl"
+      ],
+      [
+        "ati",
+        "on"
+      ],
+      [
+        "co",
+        "de"
+      ],
+      [
+        "en",
+        "ce"
+      ],
+      [
+        "er",
+        "s"
+      ],
+      [
+        "fi",
+        "ll"
+      ],
+      [
+        "op",
+        "code"
+      ],
+      [
+        "st",
+        "ers"
+      ],
+      [
+        "use",
+        "s"
+      ],
+      [
+        "rect",
+        "angl"
+      ],
+      [
+        "regi",
+        "sters"
+      ],
+      [
+        "sequ",
+        "ence"
+      ],
+      [
+        "Initi",
+        "aliz"
+      ],
+      [
+        "fill",
+        "s"
+      ],
+      [
+        "rectangl",
+        "e"
+      ],
+      [
+        "Initializ",
+        "ation"
+      ]
+    ]
+  }
+}
