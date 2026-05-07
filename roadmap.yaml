@@ -11366,3 +11366,90 @@ phases:
     scope_lines: 14
   scope_lines_total: 14
   test_target: 0
+
+- id: phase-270
+  title: "Fix all remaining clippy erasing_op errors across src/ and tests/"
+  status: planned
+  goal: "Eliminate all clippy erasing_op errors so cargo clippy --all-targets passes for lib and test targets"
+  description: "Phase 269 fixed 7 erasing_op errors in src/qemu/ansi.rs but there are 23 more erasing_op errors across the codebase. These are all '0 * N + M' or 'N * 0 + M' patterns that evaluate to M. The errors are in: src/vm/tests.rs (lines 4503, 4540, 4545, 4661, 4869, 5061 — all '0x4000 + 42 * 0 + N' in VM syscall tests), tests/program_tests/basic_programs.rs (lines 108, 109, 120, 122, 124 — '0 * 256 + N' screen index), tests/program_tests/games.rs (line 2169 — '0 * 256 + x'), src/qemu/ansi.rs (additional lines 1125, 1136, 1212, 1253, 1424, 1723 beyond what phase-269 covers), src/riscv/virtio_blk.rs (lines 923, 953, 959, 965, 1039, 1064, 1070, 1076, 1153, 1178, 1183, 1188), src/vm/ops_syscall.rs (lines 596, 623, 737, 771, 794, 895, 1381, 1403, 1422, 1462, 1532, 1548, 1570, 1793, 1811, 2145, 2165), src/vm/ops_host_fs.rs (lines 1334, 1429, 1481), src/vm/net.rs (lines 669, 734), src/vm/mod.rs (line 3232), src/vm/http_tests.rs (line 411), src/vm/disasm.rs (line 2156), src/riscv/bus.rs (line 1032), src/riscv/decode/tests.rs (lines 219, 231, 440), src/riscv/framebuf.rs (lines 252, 267), src/riscv/gpu.rs (lines 344, 355), src/riscv/mmu.rs (lines 680, 974), src/riscv/socket.rs (lines 409, 419, 431, 462, 480), src/riscv/vfs_surface.rs (lines 347, 480), src/riscv/tests.rs (line 20), src/riscv/bridge.rs (line 365), src/scrollback.rs (line 178), src/vfs.rs (line 80), src/vision.rs (lines 470, 528), examples/test_boot_mmu.rs (lines 36, 75), tests/program_tests/shell.rs (lines 255-258, 272), tests/program_tests/self_host.rs (lines 218, 222, 327, 331, 661, 840-842), tests/program_tests/hypervisor.rs (line 338), tests/program_tests/kernel.rs (lines 338, 854), tests/program_tests/multiprocess.rs (lines 803, 808), tests/program_tests/opcodes.rs (lines 73, 80, 1734). Found during dogfood QA clippy audit."
+  deliverables:
+  - name: "Fix erasing_op in src/vm/tests.rs"
+    description: "Simplify all '0x4000 + 42 * 0 + N' to '0x4000 + N' (6 occurrences around lines 4503-5061) and '0 * 256 + N' to 'N' where applicable."
+    status: todo
+    tasks:
+    - id: p270.d1.t1
+      title: "Fix 42 * 0 patterns in vm/tests.rs"
+      status: todo
+      description: "Replace '0x4000 + 42 * 0 + N' with '0x4000 + N' at lines 4503, 4540, 4545, 4661, 4869, 5061. Also fix '0 * 256 + N' at lines 20894, 30762, 30860."
+      scope_lines: 20
+    scope_lines: 20
+  - name: "Fix erasing_op in tests/program_tests/"
+    description: "Fix all '0 * 256 + N' patterns in basic_programs.rs, games.rs, shell.rs, self_host.rs, hypervisor.rs, kernel.rs, multiprocess.rs, opcodes.rs"
+    status: todo
+    tasks:
+    - id: p270.d2.t1
+      title: "Fix erasing_op in program_tests files"
+      status: todo
+      description: "Replace '0 * 256 + N' with 'N' and '0 * N' with '0' across all program test files. Also fix '42 * 0' in multiprocess.rs."
+      scope_lines: 30
+    scope_lines: 30
+  - name: "Fix erasing_op in src/qemu/ansi.rs (remaining)"
+    description: "Fix lines 1125, 1136, 1212, 1253, 1424, 1723 that were not covered by phase-269."
+    status: todo
+    tasks:
+    - id: p270.d3.t1
+      title: "Fix remaining qemu/ansi.rs erasing_op errors"
+      status: todo
+      description: "Replace '0 * CANVAS_COLS + N' with just 'N' at the 6 remaining lines."
+      scope_lines: 10
+    scope_lines: 10
+  - name: "Fix erasing_op in src/riscv/ modules"
+    description: "Fix erasing_op errors in virtio_blk.rs, bus.rs, decode/tests.rs, framebuf.rs, gpu.rs, mmu.rs, socket.rs, vfs_surface.rs, tests.rs, bridge.rs"
+    status: todo
+    tasks:
+    - id: p270.d4.t1
+      title: "Fix erasing_op across riscv modules"
+      status: todo
+      description: "Systematically fix all '0 * N + M' and 'N * 0 + M' patterns in riscv subsystem files."
+      scope_lines: 40
+    scope_lines: 40
+  - name: "Fix erasing_op in src/vm/ops_*.rs and src/vm/mod.rs"
+    description: "Fix erasing_op errors in ops_syscall.rs (16 locations), ops_host_fs.rs (3), ops_pty.rs (0 but check), net.rs (2), mod.rs (1), http_tests.rs (1), disasm.rs (1)"
+    status: todo
+    tasks:
+    - id: p270.d5.t1
+      title: "Fix erasing_op in VM opcode handler files"
+      status: todo
+      description: "Fix all erasing_op patterns in ops_syscall.rs, ops_host_fs.rs, net.rs, mod.rs, http_tests.rs, disasm.rs."
+      scope_lines: 40
+    scope_lines: 40
+  - name: "Fix erasing_op in remaining src/ files"
+    description: "Fix scrollback.rs:178, vfs.rs:80, vision.rs:470,528, examples/test_boot_mmu.rs:36,75"
+    status: todo
+    tasks:
+    - id: p270.d6.t1
+      title: "Fix erasing_op in misc files"
+      status: todo
+      description: "Fix remaining erasing_op patterns in scrollback.rs, vfs.rs, vision.rs, and test_boot_mmu.rs."
+      scope_lines: 10
+    scope_lines: 10
+  scope_lines_total: 150
+  test_target: 0
+- id: phase-271
+  title: "Fix clippy almost_swapped errors in src/vm/tests.rs"
+  status: planned
+  goal: "Fix 6 clippy almost_swapped errors where 'let win_id = vm.regs[0]; vm.regs[0] = win_id;' should use std::mem::replace"
+  description: "Six test functions in src/vm/tests.rs have the pattern 'let win_id = vm.regs[0]; ... vm.regs[0] = win_id;' which clippy flags as almost_swapped. The intent is to save and restore vm.regs[0], not to swap. The fix is to use 'let win_id = std::mem::replace(&mut vm.regs[0], value);' or add #[allow(clippy::almost_swapped)] on each test since the pattern is intentional (save-restore, not swap). Lines: 11127, 11179, 11222, 19958, 20193, 22001. Found during dogfood QA clippy audit."
+  deliverables:
+  - name: "Fix almost_swapped in vm/tests.rs"
+    description: "Add #[allow(clippy::almost_swapped)] attribute to the 6 test functions, since the save-restore pattern is intentional."
+    status: todo
+    tasks:
+    - id: p271.d1.t1
+      title: "Add allow attribute to 6 test functions"
+      status: todo
+      description: "Add '#[allow(clippy::almost_swapped)]' before each of the 6 test functions at lines 11127, 11179, 11222, 19958, 20193, 22001. These are save-restore patterns, not swaps."
+      scope_lines: 12
+    scope_lines: 12
+  scope_lines_total: 12
+  test_target: 0
