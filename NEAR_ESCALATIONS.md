@@ -1,4 +1,9 @@
 
+## 2026-05-07T03:48Z Watchdog: Drafter cron job deleted, loop STALLED for 5+ hours
+**Decided instead:** Recreated the drafter cron job from session history.
+**Reason:** The drafter cron job (4d1ff376a535) was deleted from Hermes. Last session was 2026-05-06T22:03 UTC. The watchdog correctly detected STALE (45m since last event, but the underlying issue was the job didn't exist anymore). The reviewer was still running (heartbeat every 15m) but had nothing to review — clean tree, no WIP. Build was clean (23 warnings, 0 errors). Cleaned up stale /tmp/geo_cargo_test.lock. Dismissed 2 malformed template Human Gate questions and 3 duplicate scrollback questions.
+**Outcome:** New drafter job created (1e09480a3258) with same prompt, skills, schedule, workdir. First run expected within minutes. Updated drafter-reviewer-loop skill job ID references.
+
 ## 2026-05-06T02:26Z Watchdog: Drafter stale 78m, MCP bridge dead, loop STALLED
 **Decided instead:** Investigated root cause chain.
 **Reason:** Drafter (autodev-coreutils-roadmap) last ran at 21:05 UTC, found phase-221 already implemented but couldn't verify via MCP (connection dropped). The GeOS desktop process wasn't running, so the MCP VM bridge was dead. Multiple cron jobs stopped firing around the same time (cron-doctor at 21:05, terminal-qa at 20:24) suggesting a gateway scheduling hiccup. The reviewer still ran at 21:23 and committed WIP. 28 pre-existing program_tests failures (nano_editor undefined label, shell.asm .org issue, etc.) are not related to recent drafter work -- they're pre-existing on dev/autodev branch.
