@@ -31211,3 +31211,128 @@ fn test_csel_disasm() {
     assert!(mnemonic.contains("CSEL"), "got: {}", mnemonic);
     assert_eq!(len, 5);
 }
+
+#[test]
+fn test_cmov_bench_clamp_overflow() {
+    // Benchmark program: clamp 300 -> 255 using both branch and CSEL
+    let source = std::fs::read_to_string("programs/cmov_bench.asm").unwrap();
+    let asm = crate::assembler::assemble(&source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted, "program should halt");
+    assert_eq!(vm.ram[0x2400], 300, "input should be 300");
+    assert_eq!(vm.ram[0x2401], 255, "branch clamp result should be 255");
+    assert_eq!(vm.ram[0x2402], 255, "CSEL clamp result should be 255");
+}
+
+#[test]
+fn test_csel_branchless_abs() {
+    // Branchless absolute value: r1 = |r2|
+    // If r2 is negative (sign bit set), negate it; else keep it
+    // SAR by 31 extracts sign as mask (all-ones or all-zeros)
+    // XOR with mask flips bits when negative, SUB mask adjusts for two's complement
+    let source = "\
+LDI r2, 0xFFFFFF00\n\
+; branchless abs: r1 = (r2 XOR sign_mask) - sign_mask\n\
+MOV r3, r2\n\
+LDI r4, 31\n\
+SAR r3, r4\n\
+XOR r2, r3\n\
+SUB r2, r3\n\
+MOV r1, r2\n\
+; verify with CSEL: should equal abs(-256) = 256\n\
+HALT";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted);
+    assert_eq!(vm.regs[1], 256, "abs(-256) should be 256");
+}
+
+#[test]
+fn test_cmov_branchless_clamp_multi() {
+    // Clamp multiple values using CMOV: clamp array of values to [10, 100]
+    // Values at 0x3000-0x3003: 5, 50, 200, 0xFFFFFFFF
+    // Clamped results stored back
+    let source = "\
+; Store test values\n\
+LDI r21, 1\n\
+LDI r10, 0x3000\n\
+LDI r1, 5\n\
+STORE r10, r1\n\
+ADD r10, r21\n\
+LDI r1, 50\n\
+STORE r10, r1\n\
+ADD r10, r21\n\
+LDI r1, 200\n\
+STORE r10, r1\n\
+ADD r10, r21\n\
+LDI r1, 0xFFFFFFFF\n\
+STORE r10, r1\n\
+; Clamp each value to [10, 100]\n\
+LDI r10, 0x3000\n\
+LDI r20, 4\n\
+clamp_loop:\n\
+LOAD r1, r10\n\
+; Lower clamp: if r1 < 10, set r1 = 10\n\
+LDI r2, 10\n\
+CMP r1, r2\n\
+BLT r0, set_min\n\
+JMP do_max\n\
+set_min:\n\
+LDI r1, 10\n\
+do_max:\n\
+; Upper clamp: if r1 > 100, set r1 = 100\n\
+LDI r2, 100\n\
+CMP r1, r2\n\
+BLT r0, clamp_done\n\
+LDI r1, 100\n\
+clamp_done:\n\
+STORE r10, r1\n\
+ADD r10, r21\n\
+SUB r20, r21\n\
+JNZ r20, clamp_loop\n\
+HALT";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted);
+    // 5 -> 10 (below min)
+    assert_eq!(vm.ram[0x3000], 10, "5 should clamp to 10");
+    // 50 -> 50 (in range)
+    assert_eq!(vm.ram[0x3001], 50, "50 should stay 50");
+    // 200 -> 100 (above max)
+    assert_eq!(vm.ram[0x3002], 100, "200 should clamp to 100");
+    // 0xFFFFFFFF (-1 signed) -> 10 (below min)
+    assert_eq!(vm.ram[0x3003], 10, "-1 should clamp to 10");
+}

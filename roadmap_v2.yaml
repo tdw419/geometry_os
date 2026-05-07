@@ -3012,7 +3012,7 @@ phases:
   scope_lines_total: 140
 - id: phase-233
   title: GeOS VM -- Conditional Move Opcodes (CMOV, CSEL)
-  status: planned
+  status: done
   goal: Add branchless conditional move and select to eliminate branch-heavy patterns
   description: Many programs use CMP+BLT+LDI+MOV+JMP patterns for min/max/clamp. CMOV
     rd, rs, cond_reg moves rs into rd only when cond_reg is nonzero. CSEL rd, rs1,
@@ -3020,11 +3020,11 @@ phases:
     that reduce step count in tight loops.
   deliverables:
   - name: Conditional move opcodes
-    status: todo
+    status: done
     tasks:
     - id: p233.d1.t1
-      title: Implement CMOV rd, rs, cond_reg (0xC5) and CSEL rd, rs1, rs2, cond_reg
-        (0xC6)
+      title: Implement CMOV rd, rs, cond_reg (0xE0) and CSEL rd, rs1, rs2, cond_reg
+        (0xEF)
       description: CMOV conditionally moves rs into rd. CSEL selects between rs1 and
         rs2. Both register-only.
       scope_files:
@@ -3048,6 +3048,8 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 145
+  _claimed_by: worker-0
+  _claimed_at: 1778167100
 - id: phase-234
   title: GeOS VM -- Pixel Alpha Blending Opcode (BLEND)
   status: planned
