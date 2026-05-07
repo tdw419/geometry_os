@@ -873,8 +873,6 @@ phases:
     must be rejected if they appear in scope discussions.
 
     '
-  _claimed_by: worker-0
-  _claimed_at: 1777620455
 - id: phase-141
   title: Terminal Polish -- Scrollback and Visual Refinements
   status: done
@@ -926,8 +924,6 @@ phases:
     supports Block/Underline/Bar via F12 toggle with 500ms blink timer.
 
     '
-  _claimed_by: worker-0
-  _claimed_at: 1777317398
 - id: phase-185
   title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
   status: done
@@ -994,8 +990,6 @@ phases:
     scope_lines: 150
     scope_lines_total: 84860
   test_target: 6
-  _claimed_by: worker-0
-  _claimed_at: 1777623016
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
   status: done
@@ -1043,8 +1037,6 @@ phases:
   scope_lines: 85
   scope_lines_total: 84945
   test_target: 5
-  _claimed_by: worker-0
-  _claimed_at: 1777558123
 - id: phase-187
   title: Replace save.rs unwrap() with Proper Error Handling
   status: done
@@ -1092,8 +1084,6 @@ phases:
   scope_lines: 120
   scope_lines_total: 85065
   test_target: 4
-  _claimed_by: worker-0
-  _claimed_at: 1777632421
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
   status: done
@@ -1120,8 +1110,6 @@ phases:
       scope_lines: 105
       scope_lines_total: 85170
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777558123
   _completed_at: 1777558123
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
@@ -1176,8 +1164,6 @@ phases:
   scope_lines: 125
   scope_lines_total: 85295
   test_target: 4
-  _claimed_by: worker-0
-  _claimed_at: 1777634458
 - id: phase-190
   title: Sync qemu/ansi.rs Feature Parity with host_term.asm
   status: done
@@ -1223,8 +1209,6 @@ phases:
   scope_lines: 130
   scope_lines_total: 85425
   test_target: 8
-  _claimed_by: worker-0
-  _claimed_at: 1777643541
 - id: phase-191
   title: Roguelike Game Polish -- Save/Load and Win Condition
   status: done
@@ -1278,8 +1262,6 @@ phases:
   scope_lines: 135
   scope_lines_total: 85560
   test_target: 3
-  _claimed_by: worker-0
-  _claimed_at: 1777642836
 - id: phase-192
   title: Shell.asm Built-in Commands Expansion
   status: done
@@ -1322,8 +1304,6 @@ phases:
   scope_lines: 150
   scope_lines_total: 85710
   test_target: 5
-  _claimed_by: worker-0
-  _claimed_at: 1777644925
 - id: phase-193
   title: Nano Editor -- Search and Replace
   status: done
@@ -1364,8 +1344,6 @@ phases:
   scope_lines: 130
   scope_lines_total: 85840
   test_target: 3
-  _claimed_by: worker-0
-  _claimed_at: 1777644926
 - id: phase-194
   title: Host Terminal Performance -- Dirty Rectangle Rendering
   status: done
@@ -1460,8 +1438,6 @@ phases:
   scope_lines: 60
   scope_lines_total: 86025
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777653464
 - id: phase-197
   title: Replace mmu.rs unwrap() Calls with Proper Error Paths
   status: done
@@ -1491,8 +1467,6 @@ phases:
   scope_lines: 85
   scope_lines_total: 86110
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
   status: done
@@ -1525,8 +1499,6 @@ phases:
   scope_lines: 70
   scope_lines_total: 86180
   test_target: 3
-  _claimed_by: worker-0
-  _claimed_at: 1777667685
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
   status: done
@@ -1555,8 +1527,6 @@ phases:
       scope_files:
       - programs/code_evolution.asm
       scope_lines: 40
-  _claimed_by: worker-0
-  _claimed_at: 1777656998
 - id: phase-200
   title: Pixelpack Seamless Authoring Loop
   status: done
@@ -1599,8 +1569,6 @@ phases:
       scope_lines: 60
     scope_lines_total: 86280
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777669959
 - id: phase-201
   title: RISC-V Guest Networking -- Socket Syscall Layer
   status: done
@@ -1760,8 +1728,6 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 160
-  _claimed_by: worker-0
-  _claimed_at: 1777810831
 - id: phase-205
   title: GeOS Sprite Sheet Loader
   status: complete
@@ -1859,8 +1825,6 @@ phases:
       status: done
   test_target: 3
   scope_lines_total: 230
-  _claimed_by: worker-0
-  _claimed_at: 1777961733
   _completed_at: 1746424960
 - id: phase-207
   title: GeOS Collision Detection Library
@@ -1899,8 +1863,6 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 130
-  _claimed_by: worker-0
-  _claimed_at: 1777925762
 - id: phase-208
   title: MCP Server -- Programmatic Assembly and Execution
   status: complete
@@ -2024,8 +1986,6 @@ phases:
   test_target: 26
   scope_lines_total: 130
   completed_at: 1777981221
-  _claimed_by: worker-0
-  _claimed_at: 1777981221
 - id: phase-211
   title: GeOS Performance -- Instruction Cache for Hot Loops
   status: done
@@ -2065,8 +2025,6 @@ phases:
       scope_lines: 30
   test_target: 3
   scope_lines_total: 140
-  _claimed_by: worker-0
-  _claimed_at: 1777965326
 - id: phase-212
   title: GeOS Pixel Art Export -- PNG Screenshot to VFS
   status: complete
@@ -2149,8 +2107,6 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 240
-  _claimed_by: worker-0
-  _claimed_at: 1777991177
   _completed_at: 1777991777
 - id: phase-214
   title: RISC-V GPU Compute -- WGSL Shader Integration
@@ -2191,8 +2147,6 @@ phases:
       scope_lines: 30
   test_target: 2
   scope_lines_total: 170
-  _claimed_by: worker-0
-  _claimed_at: 1777984932
 - id: phase-215
   title: RISC-V Guest -- Hex Editor
   status: completed
@@ -2233,8 +2187,6 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 410
-  _claimed_by: worker-0
-  _claimed_at: 1777995812
 - id: phase-216
   title: RISC-V Guest -- Filesystem Commands in Shell
   status: complete
@@ -2329,8 +2281,6 @@ phases:
     _completed_at: 1778005975
   test_target: 4
   scope_lines_total: 240
-  _claimed_by: worker-0
-  _claimed_at: 1778003125
   _completed_at: 1778005975
   _completed_by: geo-watchdog
   _completion_note: Mouse opcodes (MOUSEQ, push_mouse, button state) implemented with
@@ -2381,8 +2331,6 @@ phases:
       status: done
   test_target: 3
   scope_lines_total: 240
-  _claimed_by: worker-0
-  _claimed_at: 1778009152
   _completed_at: 1778012800
   _completed_by: worker-0
   _completion_note: Added 128-glyph 8x8 VGA font (geos_font8x8) to libgeos.c with
@@ -2431,8 +2379,6 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 100
-  _claimed_by: worker-0
-  _claimed_at: 1778046723
 - id: phase-220
   title: RISC-V Guest -- Mandelbrot Fractal Renderer
   status: complete
@@ -2480,8 +2426,6 @@ phases:
       status: done
   test_target: 3
   scope_lines_total: 260
-  _claimed_by: worker-0
-  _claimed_at: 1778047795
   _completed_at: 1778048500
 - id: phase-221
   title: GeOS VM -- Clipboard Protocol Enhancement
@@ -2527,8 +2471,6 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 200
-  _claimed_by: worker-0
-  _claimed_at: 1778058739
 - id: phase-222
   title: GeOS VM -- Timer and Alarm Opcodes
   status: complete
@@ -2580,8 +2522,6 @@ phases:
   test_target: 3
   scope_lines_total: 120
   tests: 12
-  _claimed_by: worker-0
-  _claimed_at: 1778060054
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
   status: complete
@@ -2716,8 +2656,6 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 210
-  _claimed_by: worker-0
-  _claimed_at: 1778057736
 - id: phase-226
   title: RISC-V Guest -- Minimal Text Editor
   status: complete
@@ -2753,8 +2691,6 @@ phases:
       status: done
   test_target: 2
   scope_lines_total: 350
-  _claimed_by: worker-0
-  _claimed_at: 1778043907
 - id: phase-227
   title: GeOS VM -- Debugging Opcode BREAKPOINT
   status: done
@@ -2797,8 +2733,6 @@ phases:
       scope_lines: 30
   test_target: 3
   scope_lines_total: 100
-  _claimed_by: worker-0
-  _claimed_at: 1778045495
 - id: phase-228
   title: GeOS VM -- Sprite Animation System
   status: complete
@@ -2844,8 +2778,6 @@ phases:
       status: complete
   test_target: 3
   scope_lines_total: 135
-  _claimed_by: worker-0
-  _claimed_at: 1778083378
 - id: phase-229
   title: RISC-V Guest -- Simple File Viewer
   status: complete
@@ -3048,8 +2980,6 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 145
-  _claimed_by: worker-0
-  _claimed_at: 1778167100
 - id: phase-234
   title: GeOS VM -- Pixel Alpha Blending Opcode (BLEND)
   status: done
@@ -3088,8 +3018,6 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 155
-  _claimed_by: worker-0
-  _claimed_at: 1778168163
 - id: phase-235
   title: RISC-V Guest -- Shared Memory IPC
   status: complete
@@ -3129,8 +3057,6 @@ phases:
     scope_lines: 100
   test_target: 2
   scope_lines_total: 270
-  _claimed_by: worker-0
-  _claimed_at: 1778169647
 - id: phase-236
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
   status: complete
@@ -3206,8 +3132,6 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 130
-  _claimed_by: worker-0
-  _claimed_at: 1778171207
 - id: phase-238
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
   status: done
@@ -3246,8 +3170,6 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 160
-  _claimed_by: worker-0
-  _claimed_at: 1778095884
 - id: phase-239
   title: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET) (overlap-safe MEMCPY)
   status: done
@@ -3324,19 +3246,14 @@ phases:
     scope_lines: 60
   test_target: 2
   scope_lines_total: 190
-  _claimed_by: worker-0
-  _claimed_at: 1778171975
 - id: phase-241
-  title: GeOS VM -- Rotation and Scaling Opcodes (ROTATE, SCALE)
-  status: in_progress
+  title: GeOS VM -- Rotation and Scaling Opcodes (ROTATE, SCALE, BLEND, BLENDR)
+  status: complete
   goal: Add pixel rotation and scaling for sprite-based games
-  description: Current sprite rendering is axis-aligned only. Programs needing rotation
-    (asteroids) or scaling (zoom) do per-pixel transforms manually. ROTATE rotates
-    a screen region 90/180/270 degrees. SCALE scales source rect to dest rect with
-    nearest-neighbor sampling.
+  description: "Added ROTATE (0xF4, arbitrary angle via fixed-point), SCALE (0xF5, screen-to-screen nearest-neighbor), BLEND (0xF2, per-pixel alpha), BLENDR (0xF3, register alpha blend). All respect clip_rect. Demo: rotate_demo.asm"
   deliverables:
   - name: Rotation and scaling opcodes
-    status: todo
+    status: done
     tasks:
     - id: p241.d1.t1
       title: Implement ROTATE x y w h angle_reg (0xCE)
@@ -3364,8 +3281,6 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 210
-  _claimed_by: worker-0
-  _claimed_at: 1778179029
 - id: phase-242
   title: Error Resilience -- Replace scrollback.rs and geos_term.rs unwrap() Calls
   status: done
@@ -3399,8 +3314,6 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 110
-  _claimed_by: worker-0
-  _claimed_at: 1778175078
 - id: phase-243
   title: GeOS VM -- Direct Screen Text Opcode (DRAWTEXT)
   status: complete
@@ -3530,8 +3443,6 @@ phases:
       scope_lines: 80
   test_target: 15
   scope_lines_total: 360
-  _claimed_by: worker-0
-  _claimed_at: 1778130615
 - id: phase-246
   title: Test Coverage -- ops_syscall.rs Unit Tests
   status: done
@@ -3568,8 +3479,6 @@ phases:
       scope_lines: 60
   test_target: 8
   scope_lines_total: 180
-  _claimed_by: worker-0
-  _claimed_at: 1778160220
 - id: phase-247
   title: Test Coverage -- MCP Server Integration Tests
   status: done
@@ -3612,8 +3521,6 @@ phases:
       scope_lines: 80
   test_target: 15
   scope_lines_total: 360
-  _claimed_by: worker-0
-  _claimed_at: 1778177067
 - id: phase-248
   title: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST)
   status: planned
@@ -4137,8 +4044,6 @@ phases:
       scope_lines: 120
   test_target: 6
   scope_lines_total: 260
-  _claimed_by: worker-0
-  _claimed_at: 1777699143
 - id: phase-261
   title: GeOS Program -- Particle Physics Sandbox
   status: complete
@@ -4170,8 +4075,6 @@ phases:
       scope_lines: 100
   test_target: 2
   scope_lines_total: 250
-  _claimed_by: worker-0
-  _claimed_at: 1777704231
 - id: phase-262
   title: RISC-V Guest -- Basic Shell with Pipes and Redirection
   status: done
@@ -4210,8 +4113,6 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 300
-  _claimed_by: worker-0
-  _claimed_at: 1777705830
 - id: phase-263
   title: GeOS VM -- Bitfield Extract/Insert Opcodes (BFE, BFI)
   status: complete
@@ -4415,8 +4316,6 @@ phases:
       scope_lines: 100
   test_target: 6
   scope_lines_total: 210
-  _claimed_by: worker-0
-  _claimed_at: 1777759924
 - id: phase-268
   title: GeOS Program -- Tower Defense Game
   status: done
@@ -4455,8 +4354,6 @@ phases:
       scope_lines: 150
   test_target: 2
   scope_lines_total: 500
-  _claimed_by: worker-0
-  _claimed_at: 1777757073
 - id: phase-269
   title: GeOS VM -- Hash Table Opcodes (HASHINIT, HASHSET, HASHGET)
   status: complete
@@ -4538,8 +4435,6 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 350
-  _claimed_by: worker-0
-  _claimed_at: 1777776676
 - id: phase-271
   title: RISC-V Guest -- vi-like Text Editor
   status: done
@@ -4577,8 +4472,6 @@ phases:
       scope_lines: 100
   test_target: 2
   scope_lines_total: 370
-  _claimed_by: worker-0
-  _claimed_at: 1777780226
 - id: phase-272
   title: GeOS VM -- Sprite Sheet and Animation Frame Opcodes (SPRLOAD, SPRFRAME)
   status: complete
@@ -4691,8 +4584,6 @@ phases:
       scope_lines: 120
   test_target: 2
   scope_lines_total: 270
-  _claimed_by: worker-0
-  _claimed_at: 1777799086
 - id: phase-275
   title: User-Driven Self-Hosting -- Native Assembler Shell Utility
   status: planned
