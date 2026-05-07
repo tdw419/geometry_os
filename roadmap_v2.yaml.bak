@@ -3542,7 +3542,7 @@ phases:
   test_target: 8
   scope_lines_total: 180
   _claimed_by: worker-0
-  _claimed_at: 1778138766
+  _claimed_at: 1778142797
 - id: phase-247
   title: Test Coverage -- MCP Server Integration Tests
   status: todo
