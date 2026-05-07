@@ -3052,7 +3052,7 @@ phases:
   _claimed_at: 1778167100
 - id: phase-234
   title: GeOS VM -- Pixel Alpha Blending Opcode (BLEND)
-  status: planned
+  status: done
   goal: Add hardware-accelerated alpha blending for sprite compositing and transparency
   description: The SPRITE opcode treats color 0 as transparent but has no partial
     transparency. Programs needing glass effects, fog, or smooth sprite edges must
@@ -3060,20 +3060,22 @@ phases:
     blending in one instruction, accelerating transparency 15x.
   deliverables:
   - name: BLEND opcode
-    status: todo
+    status: done
     tasks:
     - id: p234.d1.t1
       title: Implement BLEND dest_reg, src_reg, alpha_reg (0xC7)
       description: 'Blend: dest = src * alpha/255 + dest * (255 - alpha)/255. Per-channel
         RGB. Alpha in low byte (0-255). 4-word encoding.'
+      status: done
       scope_files:
       - src/vm/mod.rs
-      - src/assembler/ops_graphics.rs
+      - src/assembler/graphics_ops.rs
       scope_lines: 35
     - id: p234.d1.t2
       title: Add disassembler entry and unit tests
       description: Test blend white+black at 50% alpha = gray. Alpha 0 = unchanged.
         Alpha 255 = pure src.
+      status: done
       scope_files:
       - src/vm/disasm.rs
       - src/vm/tests.rs
@@ -3086,9 +3088,11 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 155
+  _claimed_by: worker-0
+  _claimed_at: 1778168163
 - id: phase-235
   title: RISC-V Guest -- Shared Memory IPC
-  status: planned
+  status: in_progress
   goal: Enable bare-metal RISC-V programs to share memory regions for communication
   description: 'The Layer 2 kernel supports multi-program time-slicing but programs
     cannot communicate. Add shared memory: geos_shm_alloc(size), geos_shm_attach(id),
@@ -3124,6 +3128,8 @@ phases:
       scope_lines: 100
   test_target: 2
   scope_lines_total: 270
+  _claimed_by: worker-0
+  _claimed_at: 1778169647
 - id: phase-236
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
   status: complete
@@ -3167,7 +3173,7 @@ phases:
   scope_lines_total: 220
 - id: phase-237
   title: Error Resilience -- Replace vfs_surface.rs unwrap() Calls
-  status: planned
+  status: done
   goal: Eliminate all 10 unwrap() calls in riscv/vfs_surface.rs
   description: vfs_surface.rs bridges the RISC-V guest filesystem to the host VFS.
     It has 10 unwrap() calls that panic on corrupt surfaces or missing files. Replace
@@ -3199,6 +3205,8 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 130
+  _claimed_by: worker-0
+  _claimed_at: 1778171207
 - id: phase-238
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
   status: done
