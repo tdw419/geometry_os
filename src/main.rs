@@ -1790,9 +1790,12 @@ fn main() {
             let copy_len = vm.canvas_buffer.len().min(canvas_buffer.len());
             vm.canvas_buffer[..copy_len].copy_from_slice(&canvas_buffer[..copy_len]);
 
-            // Run until FRAME, breakpoint, halt, or 1M steps (safety cap)
+            // Run until FRAME, breakpoint, halt, or step cap.
+            // Cap is 10K steps per frame to keep the event loop responsive --
+            // minifb needs to pump X11 events each iteration or the window
+            // goes stale and is_open() returns false, killing the process.
             vm.frame_ready = false;
-            for _ in 0..1_000_000 {
+            for _ in 0..10_000 {
                 if !vm.step() {
                     // Main process halted -- but keep running if windowed apps exist
                     if !has_active_apps {
@@ -1826,8 +1829,9 @@ fn main() {
         } else if vm.halted && has_active_apps {
             // Main process halted but windowed apps are still running.
             // Keep scheduling child processes so apps stay alive.
+            // Same 10K cap as main execution to keep event loop responsive.
             vm.frame_ready = false;
-            for _ in 0..1_000_000 {
+            for _ in 0..10_000 {
                 vm.step_all_processes();
                 if vm.frame_ready {
                     break;
