@@ -1169,6 +1169,182 @@ fn test_mandelbrot_renders() {
 }
 
 #[test]
+fn test_mandelbrot_hud() {
+    // Verify the HUD displays center coordinates and zoom level as text in RAM
+    let source =
+        std::fs::read_to_string("programs/mandelbrot.asm").expect("mandelbrot.asm should exist");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+
+    // Run until first FRAME completes (render + HUD drawn)
+    let mut q_injected = false;
+    let max_cycles = 200_000_000u64;
+    let mut cycle = 0u64;
+    while cycle < max_cycles {
+        if !vm.step() {
+            break;
+        }
+        cycle += 1;
+        if !q_injected && vm.frame_count > 0 {
+            vm.push_key(81); // 'Q'
+            q_injected = true;
+        }
+    }
+    assert!(vm.halted, "VM should halt after rendering + HUD");
+
+    // HUD text is written to RAM starting at 0x5200
+    // Line 1 should start with "RE: " (R=0x52, E=0x45, :=0x3A, space=0x20)
+    assert_eq!(vm.ram[0x5200], 0x52, "HUD should start with 'R'");
+    assert_eq!(vm.ram[0x5201], 0x45, "HUD should have 'E'");
+    assert_eq!(vm.ram[0x5202], 0x3A, "HUD should have ':'");
+    assert_eq!(vm.ram[0x5203], 0x20, "HUD should have space after ':'");
+
+    // The default center_re is -0.5, so HUD should show "-0" after "RE: "
+    assert_eq!(
+        vm.ram[0x5204], 0x2D,
+        "HUD should show '-' for negative center_re"
+    );
+    assert_eq!(
+        vm.ram[0x5205], 0x30,
+        "HUD should show '0' for center_re integer part"
+    );
+
+    // Line 2 at 0x5280 should start with "[+/-]" control hints
+    assert_eq!(vm.ram[0x5280], 0x5B, "HUD line 2 should start with '['");
+    assert_eq!(vm.ram[0x5281], 0x2B, "HUD should show '+' in controls");
+
+    // Verify "IM: " appears somewhere in line 1 (after center_re value)
+    // "RE: -0.500  IM: " -- "IM" at approximately offset 12-14
+    let mut found_im = false;
+    for i in 0x5200..0x5280 {
+        if vm.ram[i] == 0x49
+            && i + 2 < vm.ram.len()
+            && vm.ram[i + 1] == 0x4D
+            && vm.ram[i + 2] == 0x3A
+        {
+            found_im = true;
+            break;
+        }
+    }
+    assert!(found_im, "HUD should contain 'IM:' label");
+
+    // Verify "Z: " appears somewhere in line 1
+    let mut found_z = false;
+    for i in 0x5200..0x5280 {
+        if vm.ram[i] == 0x5A && i + 1 < vm.ram.len() && vm.ram[i + 1] == 0x3A {
+            found_z = true;
+            break;
+        }
+    }
+    assert!(found_z, "HUD should contain 'Z:' label");
+
+    // The default zoom is 1.5, so after "Z: " there should be "1."
+    // Find "Z: " and check the next chars
+    for i in 0x5200..0x5280 {
+        if vm.ram[i] == 0x5A
+            && i + 3 < vm.ram.len()
+            && vm.ram[i + 1] == 0x3A
+            && vm.ram[i + 2] == 0x20
+        {
+            assert_eq!(
+                vm.ram[i + 3],
+                0x31,
+                "After 'Z: ' should show '1' (zoom=1.5), got {}",
+                vm.ram[i + 3]
+            );
+            assert_eq!(
+                vm.ram[i + 4],
+                0x2E,
+                "After 'Z: 1' should show '.' (decimal point), got {}",
+                vm.ram[i + 4]
+            );
+            break;
+        }
+    }
+}
+
+#[test]
+fn test_mandelbrot_zoom_updates_hud() {
+    // Verify that zooming in changes the HUD zoom display
+    let source =
+        std::fs::read_to_string("programs/mandelbrot.asm").expect("mandelbrot.asm should exist");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+
+    // Run first frame, then inject '+' (43) to zoom in, then 'Q' to quit
+    let mut phase = 0; // 0=wait render, 1=inject zoom, 2=inject quit
+    let max_cycles = 400_000_000u64;
+    let mut cycle = 0u64;
+    while cycle < max_cycles {
+        if !vm.step() {
+            break;
+        }
+        cycle += 1;
+        if phase == 0 && vm.frame_count > 0 {
+            vm.push_key(43); // '+' to zoom in
+            phase = 1;
+        } else if phase == 1 && vm.frame_count > 1 {
+            vm.push_key(81); // 'Q' to quit
+            phase = 2;
+        }
+    }
+    assert!(vm.halted, "VM should halt after zoom + quit");
+
+    // After zooming in, scale is right-shifted by 2: 6144 -> 1536
+    // 1536 / 4096 = 0.375 in fixed-point
+    // HUD should show "Z: 0.375" instead of "Z: 1.500"
+    // The '0' after "Z: " confirms the zoom changed
+    let mut found_z_val = false;
+    for i in 0x5200..0x5280 {
+        if vm.ram[i] == 0x5A
+            && i + 3 < vm.ram.len()
+            && vm.ram[i + 1] == 0x3A
+            && vm.ram[i + 2] == 0x20
+        {
+            assert_eq!(
+                vm.ram[i + 3],
+                0x30,
+                "After zoom in, Z should start with '0', got '{}' (0x{:02X})",
+                vm.ram[i + 3] as u8 as char,
+                vm.ram[i + 3]
+            );
+            assert_eq!(
+                vm.ram[i + 4],
+                0x2E,
+                "After zoom '0', should be '.', got '{}' (0x{:02X})",
+                vm.ram[i + 4] as u8 as char,
+                vm.ram[i + 4]
+            );
+            // Next char should be '3' (0x33) for 0.375
+            assert_eq!(
+                vm.ram[i + 5],
+                0x33,
+                "After '0.', should be '3' (0.375), got '{}' (0x{:02X})",
+                vm.ram[i + 5] as u8 as char,
+                vm.ram[i + 5]
+            );
+            found_z_val = true;
+            break;
+        }
+    }
+    assert!(found_z_val, "HUD should contain 'Z:' with zoom value");
+}
+
+#[test]
 fn test_wirecube_assembles() {
     let source =
         std::fs::read_to_string("programs/wirecube.asm").expect("wirecube.asm should exist");

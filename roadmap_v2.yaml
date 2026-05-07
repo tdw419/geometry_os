@@ -3680,7 +3680,7 @@ phases:
   _claimed_at: 1778184577
 - id: phase-251
   title: GeOS Program -- Mandelbrot Fractal Explorer
-  status: planned
+  status: done
   goal: Write a zoomable Mandelbrot set renderer in assembly
   description: The VM has MUL, SUB, CMP, BLT, PSET, TEXT, IKEY, and FRAME -- everything
     needed for an interactive Mandelbrot renderer. This is a classic compute-heavy
@@ -3689,7 +3689,7 @@ phases:
     avoids floating point requirements.
   deliverables:
   - name: Mandelbrot fractal program
-    status: todo
+    status: done
     tasks:
     - id: p251.d1.t1
       title: Implement fixed-point Mandelbrot core loop
@@ -3715,6 +3715,8 @@ phases:
       scope_lines: 50
   test_target: 2
   scope_lines_total: 280
+  _claimed_by: worker-0
+  _claimed_at: 1778185724
 - id: phase-252
   title: GeOS Program -- Raycasting 3D Engine (Wolfenstein-style)
   status: planned
