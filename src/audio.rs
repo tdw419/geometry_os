@@ -560,6 +560,7 @@ mod tests {
 
     #[test]
     fn test_mixer_write_offset_wraps() {
+        let _guard = MIXER_TEST_LOCK.lock().unwrap();
         mixer_reset();
         // Write near the end of the buffer (size 4096)
         let samples: Vec<u32> = vec![100, 200, 300];
@@ -574,6 +575,7 @@ mod tests {
 
     #[test]
     fn test_mixer_write_empty_noop() {
+        let _guard = MIXER_TEST_LOCK.lock().unwrap();
         mixer_reset();
         mixer_write(0, &[]);
         assert_eq!(mixer_layer_count(), 0);
@@ -581,6 +583,7 @@ mod tests {
 
     #[test]
     fn test_mixer_write_negative_samples() {
+        let _guard = MIXER_TEST_LOCK.lock().unwrap();
         mixer_reset();
         // 0xFFFF as i16 = -1
         let samples: Vec<u32> = vec![0xFFFF, 0xFFFE]; // -1, -2
@@ -592,6 +595,7 @@ mod tests {
 
     #[test]
     fn test_mixer_read_beyond_buffer() {
+        let _guard = MIXER_TEST_LOCK.lock().unwrap();
         mixer_reset();
         let buf = mixer_read(0, MIXER_BUFFER_SIZE + 100);
         assert_eq!(buf.len(), MIXER_BUFFER_SIZE + 100);
@@ -603,6 +607,7 @@ mod tests {
 
     #[test]
     fn test_mixer_reset_between_cycles() {
+        let _guard = MIXER_TEST_LOCK.lock().unwrap();
         mixer_reset();
         let samples: Vec<u32> = vec![5000; 10];
         mixer_write(0, &samples);
@@ -616,6 +621,7 @@ mod tests {
 
     #[test]
     fn test_mixer_commit_returns_true() {
+        let _guard = MIXER_TEST_LOCK.lock().unwrap();
         mixer_reset();
         let samples: Vec<u32> = vec![1000; 100];
         mixer_write(0, &samples);
@@ -627,6 +633,7 @@ mod tests {
 
     #[test]
     fn test_mixer_commit_zero_samples_returns_false() {
+        let _guard = MIXER_TEST_LOCK.lock().unwrap();
         mixer_reset();
         let result = mixer_commit(0, 22050);
         assert!(!result);
@@ -634,6 +641,7 @@ mod tests {
 
     #[test]
     fn test_mixer_commit_clamps_rate() {
+        let _guard = MIXER_TEST_LOCK.lock().unwrap();
         mixer_reset();
         let samples: Vec<u32> = vec![1000; 10];
         mixer_write(0, &samples);
