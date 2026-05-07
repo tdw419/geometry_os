@@ -3092,7 +3092,7 @@ phases:
   _claimed_at: 1778168163
 - id: phase-235
   title: RISC-V Guest -- Shared Memory IPC
-  status: in_progress
+  status: complete
   goal: Enable bare-metal RISC-V programs to share memory regions for communication
   description: 'The Layer 2 kernel supports multi-program time-slicing but programs
     cannot communicate. Add shared memory: geos_shm_alloc(size), geos_shm_attach(id),
@@ -3100,9 +3100,10 @@ phases:
     producer-consumer patterns between guest programs.'
   deliverables:
   - name: Shared memory IPC for RISC-V guests
-    status: todo
-    tasks:
+    status: done
+  tasks:
     - id: p235.d1.t1
+      status: done
       title: Implement shm_alloc, shm_attach, shm_release in geos_kern.c
       description: Kernel manages shared regions with reference counting. Alloc returns
         region ID. Attach maps into caller address space.
@@ -3288,16 +3289,17 @@ phases:
   scope_lines_total: 150
 - id: phase-240
   title: RISC-V Guest -- Timer and Sleep Syscalls
-  status: in_progress
+  status: complete
   goal: Add timer syscalls to the Layer 2 kernel for time-based guest behavior
   description: Guest programs have no concept of time. Add geos_msleep(ms), geos_uptime()
     (ms since boot), and geos_alarm(ms, callback) syscalls. Enables animation, periodic
     polling, timeout I/O, and frame rate control.
   deliverables:
   - name: Timer syscalls for RISC-V guests
-    status: todo
-    tasks:
+    status: done
+  tasks:
     - id: p240.d1.t1
+      status: done
       title: Implement geos_msleep and geos_uptime in geos_kern.c
       description: geos_msleep spins on mtime with yield. geos_uptime reads mtime
         in milliseconds.
@@ -3366,14 +3368,14 @@ phases:
   _claimed_at: 1778173589
 - id: phase-242
   title: Error Resilience -- Replace scrollback.rs and geos_term.rs unwrap() Calls
-  status: planned
+  status: done
   goal: Eliminate unwrap() calls in terminal infrastructure
   description: scrollback.rs (4 unwrap) and geos_term.rs (6 unwrap) handle terminal
     history and the standalone binary. Panics crash the terminal UX. Replace with
     graceful degradation.
   deliverables:
   - name: unwrap()-free terminal infrastructure
-    status: todo
+    status: done
     tasks:
     - id: p242.d1.t1
       title: Replace scrollback.rs unwrap() with graceful degradation
@@ -3397,6 +3399,8 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 110
+  _claimed_by: worker-0
+  _claimed_at: 1778175078
 - id: phase-243
   title: GeOS VM -- Direct Screen Text Opcode (DRAWTEXT)
   status: complete
