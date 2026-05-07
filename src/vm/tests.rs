@@ -31336,3 +31336,284 @@ HALT";
     // 0xFFFFFFFF (-1 signed) -> 10 (below min)
     assert_eq!(vm.ram[0x3003], 10, "-1 should clamp to 10");
 }
+
+// ── Phase 234: BLEND / BLENDR Alpha Blending ───────────────────────
+
+#[test]
+fn test_blend_assembles() {
+    let source = "BLEND r1, r2, r3, r4\nHALT\n";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(result.pixels[0], 0xF2, "BLEND opcode");
+    assert_eq!(result.pixels[1], 1, "x_reg");
+    assert_eq!(result.pixels[2], 2, "y_reg");
+    assert_eq!(result.pixels[3], 3, "color_reg");
+    assert_eq!(result.pixels[4], 4, "alpha_reg");
+}
+
+#[test]
+fn test_blendr_assembles() {
+    let source = "BLENDR r1, r2, r3\nHALT\n";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(result.pixels[0], 0xF3, "BLENDR opcode");
+    assert_eq!(result.pixels[1], 1, "dst_reg");
+    assert_eq!(result.pixels[2], 2, "src_reg");
+    assert_eq!(result.pixels[3], 3, "alpha_reg");
+}
+
+#[test]
+fn test_blend_fully_opaque() {
+    // BLEND at (10,20) with red, alpha=255 -> pixel becomes pure red
+    let mut vm = Vm::new();
+    vm.screen[20 * 256 + 10] = 0x00FF00; // green background
+    vm.regs[1] = 10; // x
+    vm.regs[2] = 20; // y
+    vm.regs[3] = 0xFF0000; // red source
+    vm.regs[4] = 255; // fully opaque
+    vm.ram[0] = 0xF2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000, "fully opaque should replace pixel");
+}
+
+#[test]
+fn test_blend_fully_transparent() {
+    // BLEND with alpha=0 -> pixel unchanged
+    let mut vm = Vm::new();
+    vm.screen[20 * 256 + 10] = 0x00FF00; // green background
+    vm.regs[1] = 10; // x
+    vm.regs[2] = 20; // y
+    vm.regs[3] = 0xFF0000; // red source
+    vm.regs[4] = 0; // fully transparent
+    vm.ram[0] = 0xF2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00, "fully transparent should not change pixel");
+}
+
+#[test]
+fn test_blend_half_alpha() {
+    // BLEND with alpha=128: blend red over green
+    // R: (255*128 + 0*127)/255 = 32640/255 = 128
+    // G: (0*128 + 255*127)/255 = 32385/255 = 127
+    // B: (0*128 + 0*127)/255 = 0
+    let mut vm = Vm::new();
+    vm.screen[20 * 256 + 10] = 0x00FF00; // green background
+    vm.regs[1] = 10; // x
+    vm.regs[2] = 20; // y
+    vm.regs[3] = 0xFF0000; // red source
+    vm.regs[4] = 128; // half alpha
+    vm.ram[0] = 0xF2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    let pixel = vm.screen[20 * 256 + 10];
+    let r = (pixel >> 16) & 0xFF;
+    let g = (pixel >> 8) & 0xFF;
+    let b = pixel & 0xFF;
+    assert!(r > 100 && r < 140, "red channel should be ~128, got {}", r);
+    assert!(g > 100 && g < 140, "green channel should be ~127, got {}", g);
+    assert_eq!(b, 0, "blue channel should be 0");
+}
+
+#[test]
+fn test_blend_out_of_bounds() {
+    // BLEND at x=300 should be a no-op (out of bounds)
+    let mut vm = Vm::new();
+    vm.screen[20 * 256 + 10] = 0x00FF00;
+    vm.regs[1] = 300; // x out of bounds
+    vm.regs[2] = 20;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 255;
+    vm.ram[0] = 0xF2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00, "out-of-bounds should be no-op");
+}
+
+#[test]
+fn test_blendr_fully_opaque() {
+    // BLENDR with alpha=255: dst becomes src
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x00FF00; // dst: green
+    vm.regs[2] = 0xFF0000; // src: red
+    vm.regs[3] = 255; // fully opaque
+    vm.ram[0] = 0xF3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.regs[1], 0xFF0000, "fully opaque should replace dst with src");
+}
+
+#[test]
+fn test_blendr_fully_transparent() {
+    // BLENDR with alpha=0: dst unchanged
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x00FF00; // dst: green
+    vm.regs[2] = 0xFF0000; // src: red
+    vm.regs[3] = 0; // fully transparent
+    vm.ram[0] = 0xF3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.regs[1], 0x00FF00, "fully transparent should not change dst");
+}
+
+#[test]
+fn test_blendr_half_alpha() {
+    // BLENDR with alpha=128: blend green with red
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x00FF00; // dst: green
+    vm.regs[2] = 0xFF0000; // src: red
+    vm.regs[3] = 128; // half alpha
+    vm.ram[0] = 0xF3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    let result = vm.regs[1];
+    let r = (result >> 16) & 0xFF;
+    let g = (result >> 8) & 0xFF;
+    let b = result & 0xFF;
+    assert!(r > 100 && r < 140, "red channel should be ~128, got {}", r);
+    assert!(g > 100 && g < 140, "green channel should be ~127, got {}", g);
+    assert_eq!(b, 0, "blue channel should be 0");
+}
+
+#[test]
+fn test_blendr_alpha_masks_to_byte() {
+    // Alpha > 255 should be masked to low byte
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x000000; // dst: black
+    vm.regs[2] = 0xFFFFFF; // src: white
+    vm.regs[3] = 0x1FF; // 511 -> masked to 255
+    vm.ram[0] = 0xF3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.regs[1], 0xFFFFFF, "alpha 0x1FF should be masked to 255 (fully opaque)");
+}
+
+#[test]
+fn test_blend_respects_clip_rect() {
+    // BLEND should be clipped by clip rectangle
+    let mut vm = Vm::new();
+    vm.screen[20 * 256 + 10] = 0x00FF00; // green
+    vm.clip_rect = Some((0, 0, 5, 5)); // clip to top-left 5x5
+    vm.regs[1] = 10; // x=10 is outside clip
+    vm.regs[2] = 20; // y=20 is outside clip
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 255;
+    vm.ram[0] = 0xF2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00, "clipped BLEND should not change pixel");
+}
+
+#[test]
+fn test_blend_disasm() {
+    let source = "BLEND r1, r2, r3, r4\nHALT\n";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &w) in result.pixels.iter().enumerate() {
+        if i < vm.ram.len() { vm.ram[i] = w; }
+    }
+    let (s, _) = vm.disassemble_at(0);
+    assert!(s.contains("BLEND"), "disasm should contain BLEND, got: {}", s);
+}
+
+#[test]
+fn test_blendr_disasm() {
+    let source = "BLENDR r1, r2, r3\nHALT\n";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &w) in result.pixels.iter().enumerate() {
+        if i < vm.ram.len() { vm.ram[i] = w; }
+    }
+    let (s, _) = vm.disassemble_at(0);
+    assert!(s.contains("BLENDR"), "disasm should contain BLENDR, got: {}", s);
+}
+
+#[test]
+fn test_blend_blendr_composition() {
+    // Pre-compute a blended color with BLENDR, then BLEND it onto the screen
+    // This tests the real use case: pre-blend for sprite compositing
+    let mut vm = Vm::new();
+    vm.screen[10 * 256 + 10] = 0x0000FF; // blue background
+    // Step 1: BLENDR r1, r2, r3 -> pre-blend red+green at 50% alpha
+    vm.regs[1] = 0x00FF00; // dst: green
+    vm.regs[2] = 0xFF0000; // src: red
+    vm.regs[3] = 128; // alpha
+    // Step 2: BLEND the result onto screen at (10,10) with alpha=200
+    vm.regs[4] = 10; // x
+    vm.regs[5] = 10; // y
+    vm.regs[6] = 200; // alpha for screen blend
+    // Bytecode: BLENDR r1,r2,r3 / BLEND r4,r5,r1,r6 / HALT
+    vm.ram[0] = 0xF3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.ram[4] = 0xF2; vm.ram[5] = 4; vm.ram[6] = 5; vm.ram[7] = 1; vm.ram[8] = 6;
+    vm.ram[9] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    let pixel = vm.screen[10 * 256 + 10];
+    let r = (pixel >> 16) & 0xFF;
+    let _g = (pixel >> 8) & 0xFF;
+    let b = pixel & 0xFF;
+    // After BLENDR: r1 should be ~yellowish (red+green blend)
+    // After BLEND onto blue: should have some blue mixed in
+    assert!(b > 0, "should have some blue from background, got b={}", b);
+    assert!(r > 0, "should have some red from blend, got r={}", r);
+}

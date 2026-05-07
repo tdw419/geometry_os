@@ -440,6 +440,34 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "BLEND" => {
+            if tokens.len() < 5 {
+                return Err(
+                    "BLEND requires 4 arguments: BLEND x_reg, y_reg, color_reg, alpha_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xF2);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            Ok(Some(()))
+        }
+
+        "BLENDR" => {
+            if tokens.len() < 4 {
+                return Err(
+                    "BLENDR requires 3 arguments: BLENDR dst_reg, src_reg, alpha_reg".to_string(),
+                );
+            }
+            bytecode.push(0xF3);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

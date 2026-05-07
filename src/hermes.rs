@@ -1042,6 +1042,8 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xEF => "CSEL",
         0xF0 => "BCLR",
         0xF1 => "BTST",
+        0xF2 => "BLEND",
+        0xF3 => "BLENDR",
         _ => "???",
     }
 }

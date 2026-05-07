@@ -3052,7 +3052,7 @@ phases:
   _claimed_at: 1778167100
 - id: phase-234
   title: GeOS VM -- Pixel Alpha Blending Opcode (BLEND)
-  status: planned
+  status: in_progress
   goal: Add hardware-accelerated alpha blending for sprite compositing and transparency
   description: The SPRITE opcode treats color 0 as transparent but has no partial
     transparency. Programs needing glass effects, fog, or smooth sprite edges must
@@ -3086,6 +3086,8 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 155
+  _claimed_by: worker-0
+  _claimed_at: 1778168163
 - id: phase-235
   title: RISC-V Guest -- Shared Memory IPC
   status: planned

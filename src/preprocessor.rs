@@ -222,6 +222,9 @@ pub const OPCODES: &[&str] = &[
     "BSET",
     "BCLR",
     "BTST",
+    // Phase 234: Alpha blending opcodes
+    "BLEND",
+    "BLENDR",
     // Phase 260: Matrix multiply (2D)
     "MATMUL",
     // Phase 269: Hash table opcodes

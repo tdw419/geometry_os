@@ -5355,6 +5355,86 @@ impl Vm {
                 }
             }
 
+            // ── Phase 234: BLEND opcode (0xF2) ──
+            // BLEND x_reg, y_reg, color_reg, alpha_reg -- Alpha blend a color onto screen pixel.
+            // Reads the existing screen pixel at (x, y), blends it with color using alpha (0-255),
+            // and writes the result back. Alpha 0 = fully transparent (no change),
+            // alpha 255 = fully opaque (replaces pixel with color).
+            // Standard Porter-Duff "source over" per-channel:
+            //   result_ch = (src_ch * alpha + dst_ch * (255 - alpha)) / 255
+            // Encoding: 5 words [0xF2, x_reg, y_reg, color_reg, alpha_reg]
+            0xF2 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && cr < NUM_REGS && ar < NUM_REGS {
+                    let x = self.regs[xr] as usize;
+                    let y = self.regs[yr] as usize;
+                    let src_color = self.regs[cr];
+                    let alpha = (self.regs[ar] & 0xFF) as u32;
+                    if x < 256 && y < 256 && alpha > 0 {
+                        let dst_color = self.screen[y * 256 + x];
+                        if alpha >= 255 {
+                            // Fully opaque: just set the pixel
+                            self.set_pixel_clipped(x, y, src_color);
+                        } else {
+                            let inv_alpha = 255 - alpha;
+                            let src_r = (src_color >> 16) & 0xFF;
+                            let src_g = (src_color >> 8) & 0xFF;
+                            let src_b = src_color & 0xFF;
+                            let dst_r = (dst_color >> 16) & 0xFF;
+                            let dst_g = (dst_color >> 8) & 0xFF;
+                            let dst_b = dst_color & 0xFF;
+                            let blend_r = (src_r * alpha + dst_r * inv_alpha) / 255;
+                            let blend_g = (src_g * alpha + dst_g * inv_alpha) / 255;
+                            let blend_b = (src_b * alpha + dst_b * inv_alpha) / 255;
+                            let blended = (blend_r << 16) | (blend_g << 8) | blend_b;
+                            self.set_pixel_clipped(x, y, blended);
+                        }
+                        if self.render_logging {
+                            self.log_render_op(0xF2, "BLEND", &[x as u32, y as u32, src_color, alpha]);
+                        }
+                    }
+                }
+            }
+
+            // ── Phase 234: BLENDR opcode (0xF3) ──
+            // BLENDR dst_reg, src_reg, alpha_reg -- Alpha blend two register colors.
+            // dst = blend(dst, src, alpha). Alpha 0 = no change, 255 = replace with src.
+            // Same per-channel formula as BLEND but operates on register values.
+            // Encoding: 4 words [0xF3, dst_reg, src_reg, alpha_reg]
+            0xF3 => {
+                let dr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                if dr < NUM_REGS && sr < NUM_REGS && ar < NUM_REGS {
+                    let dst_color = self.regs[dr];
+                    let src_color = self.regs[sr];
+                    let alpha = (self.regs[ar] & 0xFF) as u32;
+                    if alpha == 0 {
+                        // Fully transparent: no change
+                    } else if alpha >= 255 {
+                        self.regs[dr] = src_color;
+                    } else {
+                        let inv_alpha = 255 - alpha;
+                        let src_r = (src_color >> 16) & 0xFF;
+                        let src_g = (src_color >> 8) & 0xFF;
+                        let src_b = src_color & 0xFF;
+                        let dst_r = (dst_color >> 16) & 0xFF;
+                        let dst_g = (dst_color >> 8) & 0xFF;
+                        let dst_b = dst_color & 0xFF;
+                        let blend_r = (src_r * alpha + dst_r * inv_alpha) / 255;
+                        let blend_g = (src_g * alpha + dst_g * inv_alpha) / 255;
+                        let blend_b = (src_b * alpha + dst_b * inv_alpha) / 255;
+                        self.regs[dr] = (blend_r << 16) | (blend_g << 8) | blend_b;
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xF3, "BLENDR", &[self.regs[dr], src_color, alpha]);
+                    }
+                }
+            }
+
             _ => {
                 self.halted = true;
                 return false;

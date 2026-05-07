@@ -764,6 +764,53 @@ fn test_ball_program() {
 }
 
 #[test]
+fn test_blend_demo_program() {
+    // blend_demo.asm: gradient background with two translucent alpha-blended circles
+    let source = std::fs::read_to_string("programs/blend_demo.asm")
+        .expect("failed to read programs/blend_demo.asm");
+    let asm = assemble(&source, 0).expect("blend_demo.asm should assemble");
+
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
+    }
+    vm.pc = 0;
+
+    // Run until halted (gradient + two circles = ~465 bytes of code)
+    for _ in 0..2_000_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Check that the gradient background exists (row 10 should have color)
+    assert!(
+        vm.screen[10 * 256 + 10] != 0,
+        "blend_demo should draw gradient background at (10,10)"
+    );
+
+    // Check that red circle area has pixels (around center 100,128)
+    let center_pixel = vm.screen[128 * 256 + 100];
+    let r = (center_pixel >> 16) & 0xFF;
+    assert!(
+        r > 50,
+        "center of red circle should have significant red channel, got r={}",
+        r
+    );
+
+    // Check green circle area has pixels (around center 160,100)
+    let green_center = vm.screen[100 * 256 + 160];
+    let g = (green_center >> 8) & 0xFF;
+    assert!(
+        g > 30,
+        "center of green circle should have significant green channel, got g={}",
+        g
+    );
+}
+
+#[test]
 fn test_fire_program() {
     let vm = compile_run_interactive("programs/fire.asm", 2000);
     // Fire starts at bottom row and scrolls up.

@@ -683,6 +683,27 @@ impl Vm {
             0xF0 => (format!("BCLR {}, {}", reg(ram(a + 1)), reg(ram(a + 2))), 3),
             // BTST rd, bit_reg (0xF1) -- Test bit (sets r0)
             0xF1 => (format!("BTST {}, {}", reg(ram(a + 1)), reg(ram(a + 2))), 3),
+            // BLEND x_reg, y_reg, color_reg, alpha_reg (0xF2) -- Alpha blend screen pixel
+            0xF2 => (
+                format!(
+                    "BLEND {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4))
+                ),
+                5,
+            ),
+            // BLENDR dst_reg, src_reg, alpha_reg (0xF3) -- Alpha blend register colors
+            0xF3 => (
+                format!(
+                    "BLENDR {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
+                4,
+            ),
             0x87 => (format!("ABS {}", reg(ram(a + 1))), 2),
             0x88 => (
                 format!(
