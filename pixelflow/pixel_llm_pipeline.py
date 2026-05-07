@@ -137,16 +137,33 @@ class PixelGPT(nn.Module):
         return logits, loss
 
     @torch.no_grad()
-    def generate(self, idx, max_new_tokens, temperature=0.8, top_k=50, stop_tokens=None):
+    def generate(self, idx, max_new_tokens, temperature=0.8, top_k=50, stop_tokens=None, constraint_fn=None):
         for _ in range(max_new_tokens):
             idx_cond = idx if idx.size(1) <= self.block_size else idx[:, -self.block_size:]
             logits, _ = self(idx_cond)
             logits = logits[:, -1, :] / temperature
+            
+            if constraint_fn is not None:
+                # Fast path: only check top 200 tokens
+                v, top_indices = torch.topk(logits, min(200, logits.size(-1)))
+                allowed_mask = constraint_fn(idx, top_indices[0])
+                invalid_indices = top_indices[0][~allowed_mask]
+                logits[0, invalid_indices] = float('-inf')
+                # Zero out anything not in top 200 to be safe
+                v_min = v[:, -1].unsqueeze(-1)
+                logits[logits < v_min] = float('-inf')
+
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < v[:, [-1]]] = float("-inf")
+                
             probs = F.softmax(logits, dim=-1)
-            idx_next = torch.multinomial(probs, num_samples=1)
+            # fallback if all probs are zero (e.g. over-constrained)
+            if torch.isnan(probs).any() or probs.sum() == 0:
+                break
+            else:
+                idx_next = torch.multinomial(probs, num_samples=1)
+                
             idx = torch.cat([idx, idx_next], dim=1)
             if stop_tokens and idx_next.item() in stop_tokens:
                 break
@@ -173,8 +190,85 @@ def load_model(ckpt_path, device="cpu"):
     return model, seed_to_idx, idx_to_seed
 
 
+def build_constraint_fn(idx_to_seed):
+    arg_counts = {
+        "HALT": 0, "FRAME": 0, "RET": 0, "NEG": 0,
+        "FILL": 1, "PUSH": 1, "POP": 1, "IKEY": 1, "RAND": 1, "BEEP": 1, "BLINK": 1,
+        "TICKS": 1, "PID": 1, "NOTE": 1,
+        "ADD": 3, "SUB": 3, "MUL": 3, "DIV": 3, "MOD": 3,
+        "AND": 3, "OR": 3, "XOR": 3, "SHL": 3, "SHR": 3, "SAR": 3,
+        "MOV": 2, "CMP": 2, "LOAD": 2, "STORE": 2,
+        "ADDI": 3, "SUBI": 3, "ANDI": 3, "ORI": 3, "XORI": 3, "SHLI": 3,
+        "CMPI": 2, "BLT": 2, "BGE": 2, "BEQ": 2, "BNE": 2,
+        "LDI": 2, "PSETI": 3, "WPIXEL": 3, "FG_COLOR": 1,
+        "PSET": 3, "SCROLL": 2, "RAM": 2, "BUF": 2,
+        "RECTF": 5, "CIRCLE": 4, "LINE": 5,
+        "CALL": 1, "JMP": 1, "JZ": 2, "JNZ": 2,
+        "TEXT": -1, "DRAWTEXT": -1, "STRO": -1, "SEND_BUF": -1,
+        "STR_BUF": -1, "WINSYS": 1, "VM_SPAWN": -1, "LLM": -1, "OS": -1, "PTY": -1,
+    }
+
+    token_strs = {}
+    for i, s in idx_to_seed.items():
+        try:
+            token_strs[i] = seeds_to_text([s])
+        except:
+            token_strs[i] = ""
+
+    def constraint_fn(idx, top_indices):
+        out_seeds = [idx_to_seed.get(i.item(), 0xA0000000) for i in idx[0]]
+        current_text = seeds_to_text(out_seeds)
+        lines = current_text.split('\n')
+        last_line = lines[-1]
+        
+        if ';' in last_line or '"' in last_line or "'" in last_line:
+            return torch.ones_like(top_indices, dtype=torch.bool)
+            
+        parts = last_line.strip().split()
+        if not parts:
+            return torch.ones_like(top_indices, dtype=torch.bool)
+            
+        opcode = parts[0].upper()
+        if opcode not in arg_counts:
+            return torch.ones_like(top_indices, dtype=torch.bool)
+            
+        expected = arg_counts[opcode]
+        if expected < 0:
+            return torch.ones_like(top_indices, dtype=torch.bool)
+            
+        target_commas = max(0, expected - 1)
+        mask = torch.ones_like(top_indices, dtype=torch.bool)
+        
+        for idx_idx, token_idx in enumerate(top_indices):
+            tok_str = token_strs[token_idx.item()]
+            if not tok_str:
+                continue
+                
+            new_line = last_line + tok_str
+            
+            if '\n' in tok_str or ';' in tok_str:
+                before_end = new_line.split('\n')[0].split(';')[0]
+                operands = [p for p in before_end.replace(',', ' ').split()][1:]
+                if len(operands) != expected:
+                    mask[idx_idx] = False
+                continue
+                
+            current_commas = new_line.count(',')
+            if current_commas > target_commas:
+                mask[idx_idx] = False
+                continue
+                
+            operands = [p for p in new_line.replace(',', ' ').split()][1:]
+            if len(operands) > expected:
+                mask[idx_idx] = False
+                
+        return mask
+
+    return constraint_fn
+
+
 def generate_asm(model, seed_to_idx, idx_to_seed, prompt: str,
-                 max_tokens=200, temperature=0.7, top_k=50, device="cpu") -> str:
+                 max_tokens=200, temperature=0.7, top_k=50, device="cpu", use_grammar=True) -> str:
     """Generate assembly text from a prompt."""
     prompt_seeds = text_to_seeds(prompt)
     prompt_indices = [seed_to_idx.get(s, 0) for s in prompt_seeds if s in seed_to_idx]
@@ -188,8 +282,10 @@ def generate_asm(model, seed_to_idx, idx_to_seed, prompt: str,
     halt_seeds = text_to_seeds("HALT")
     halt_indices = {seed_to_idx.get(s) for s in halt_seeds if s in seed_to_idx}
 
+    constraint_fn = build_constraint_fn(idx_to_seed) if use_grammar else None
+
     out = model.generate(idx, max_new_tokens=max_tokens, temperature=temperature,
-                         top_k=top_k, stop_tokens=halt_indices)
+                         top_k=top_k, stop_tokens=halt_indices, constraint_fn=constraint_fn)
 
     out_seeds = [idx_to_seed.get(i.item(), 0xA0000000) for i in out[0]]
     return seeds_to_text(out_seeds)
