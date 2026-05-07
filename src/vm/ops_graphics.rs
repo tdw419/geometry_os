@@ -716,6 +716,150 @@ impl Vm {
                     self.regs[0] = old_mode as u32;
                 }
             }
+
+            // ── Phase 241: ROTATE opcode (0xF4) ──
+            // ROTATE x_reg, y_reg, w_reg, h_reg, angle_reg
+            // Rotates a rectangular screen region around its center.
+            // angle_reg: fixed-point radians (value / 256.0 = radians).
+            //   Example: 16384 ≈ 2π (full rotation), 4096 ≈ π/2 (90°).
+            // Uses nearest-neighbor sampling. Source rect bounds the read;
+            // rotated pixels outside the source rect are transparent (black).
+            // Encoding: 6 words [0xF4, x_reg, y_reg, w_reg, h_reg, angle_reg]
+            0xF4 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS && ar < NUM_REGS {
+                    let sx = self.regs[xr] as usize;
+                    let sy = self.regs[yr] as usize;
+                    let sw = self.regs[wr] as usize;
+                    let sh = self.regs[hr] as usize;
+                    let angle_fixed = self.regs[ar] as i32;
+
+                    if sw == 0 || sh == 0 || sw > 256 || sh > 256 {
+                        // Degenerate or oversized rect -- no-op
+                    } else {
+                        // Convert fixed-point angle to radians (f32)
+                        let angle_rad = angle_fixed as f32 / 256.0;
+                        let cos_a = angle_rad.cos();
+                        let sin_a = angle_rad.sin();
+
+                        // Center of source rect
+                        let cx = sx + sw / 2;
+                        let cy = sy + sh / 2;
+
+                        // Capture source pixels into a temp buffer
+                        let mut src_buf = vec![0u32; sw * sh];
+                        for dy in 0..sh {
+                            for dx in 0..sw {
+                                let px = sx + dx;
+                                let py = sy + dy;
+                                if px < 256 && py < 256 {
+                                    src_buf[dy * sw + dx] = self.screen[py * 256 + px];
+                                }
+                            }
+                        }
+
+                        // Write rotated pixels back to screen
+                        for dy in 0..sh {
+                            for dx in 0..sw {
+                                // Point relative to center
+                                let rx = dx as f32 - (sw / 2) as f32 + 0.5;
+                                let ry = dy as f32 - (sh / 2) as f32 + 0.5;
+
+                                // Inverse rotate to find source pixel
+                                let src_x = rx * cos_a + ry * sin_a + (sw / 2) as f32 - 0.5;
+                                let src_y = -rx * sin_a + ry * cos_a + (sh / 2) as f32 - 0.5;
+
+                                // Nearest-neighbor sampling
+                                let sx_i = src_x.round() as isize;
+                                let sy_i = src_y.round() as isize;
+
+                                let color = if sx_i >= 0 && sx_i < sw as isize && sy_i >= 0 && sy_i < sh as isize {
+                                    src_buf[sy_i as usize * sw + sx_i as usize]
+                                } else {
+                                    0 // out of bounds = black/transparent
+                                };
+
+                                let px = sx + dx;
+                                let py = sy + dy;
+                                self.set_pixel_clipped(px, py, color);
+                            }
+                        }
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xF4, "ROTATE", &[sx as u32, sy as u32, sw as u32, sh as u32, angle_fixed as u32]);
+                    }
+                }
+            }
+
+            // ── Phase 241: SCALE opcode (0xF5) ──
+            // SCALE sx_reg, sy_reg, sw_reg, sh_reg, dx_reg, dy_reg, dw_reg, dh_reg
+            // Scales a rectangular screen region from source to destination.
+            // Source rect: (sx, sy, sw, sh) -- where to read from.
+            // Dest rect:   (dx, dy, dw, dh) -- where to write to.
+            // Uses nearest-neighbor sampling. Dest can be larger or smaller than source.
+            // Encoding: 9 words [0xF5, sx_reg, sy_reg, sw_reg, sh_reg, dx_reg, dy_reg, dw_reg, dh_reg]
+            0xF5 => {
+                let sxr = self.fetch() as usize;
+                let syr = self.fetch() as usize;
+                let swr = self.fetch() as usize;
+                let shr = self.fetch() as usize;
+                let dxr = self.fetch() as usize;
+                let dyr = self.fetch() as usize;
+                let dwr = self.fetch() as usize;
+                let dhr = self.fetch() as usize;
+                if sxr < NUM_REGS && syr < NUM_REGS && swr < NUM_REGS && shr < NUM_REGS
+                    && dxr < NUM_REGS && dyr < NUM_REGS && dwr < NUM_REGS && dhr < NUM_REGS
+                {
+                    let sx = self.regs[sxr] as usize;
+                    let sy = self.regs[syr] as usize;
+                    let sw = self.regs[swr] as usize;
+                    let sh = self.regs[shr] as usize;
+                    let dx = self.regs[dxr] as usize;
+                    let dy = self.regs[dyr] as usize;
+                    let dw = self.regs[dwr] as usize;
+                    let dh = self.regs[dhr] as usize;
+
+                    if sw == 0 || sh == 0 || dw == 0 || dh == 0 {
+                        // Degenerate -- no-op
+                    } else {
+                        // Capture source pixels
+                        let src_w = sw.min(256);
+                        let src_h = sh.min(256);
+                        let mut src_buf = vec![0u32; src_w * src_h];
+                        for row in 0..src_h {
+                            for col in 0..src_w {
+                                let px = (sx + col).min(255);
+                                let py = (sy + row).min(255);
+                                src_buf[row * src_w + col] = self.screen[py * 256 + px];
+                            }
+                        }
+
+                        // Write scaled pixels to destination
+                        let dst_w = dw.min(256);
+                        let dst_h = dh.min(256);
+                        for row in 0..dst_h {
+                            for col in 0..dst_w {
+                                // Map dest pixel to source pixel (nearest neighbor)
+                                let src_col = (col as u64 * src_w as u64 / dst_w as u64) as usize;
+                                let src_row = (row as u64 * src_h as u64 / dst_h as u64) as usize;
+                                let color = src_buf[src_row.min(src_h - 1) * src_w + src_col.min(src_w - 1)];
+
+                                let px = dx + col;
+                                let py = dy + row;
+                                self.set_pixel_clipped(px, py, color);
+                            }
+                        }
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xF5, "SCALE", &[sx as u32, sy as u32, sw as u32, sh as u32, dx as u32, dy as u32, dw as u32, dh as u32]);
+                    }
+                }
+            }
+
             _ => {}
         }
         true

@@ -704,6 +704,33 @@ impl Vm {
                 ),
                 4,
             ),
+            // ROTATE x_reg, y_reg, w_reg, h_reg, angle_reg (0xF4) -- Rotate screen region
+            0xF4 => (
+                format!(
+                    "ROTATE {}, {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4)),
+                    reg(ram(a + 5))
+                ),
+                6,
+            ),
+            // SCALE sx_reg, sy_reg, sw_reg, sh_reg, dx_reg, dy_reg, dw_reg, dh_reg (0xF5)
+            0xF5 => (
+                format!(
+                    "SCALE {}, {}, {}, {}, {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4)),
+                    reg(ram(a + 5)),
+                    reg(ram(a + 6)),
+                    reg(ram(a + 7)),
+                    reg(ram(a + 8))
+                ),
+                9,
+            ),
             0x87 => (format!("ABS {}", reg(ram(a + 1))), 2),
             0x88 => (
                 format!(

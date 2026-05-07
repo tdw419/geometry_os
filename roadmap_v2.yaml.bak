@@ -3288,7 +3288,7 @@ phases:
   scope_lines_total: 150
 - id: phase-240
   title: RISC-V Guest -- Timer and Sleep Syscalls
-  status: planned
+  status: in_progress
   goal: Add timer syscalls to the Layer 2 kernel for time-based guest behavior
   description: Guest programs have no concept of time. Add geos_msleep(ms), geos_uptime()
     (ms since boot), and geos_alarm(ms, callback) syscalls. Enables animation, periodic
@@ -3322,9 +3322,11 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 190
+  _claimed_by: worker-0
+  _claimed_at: 1778171975
 - id: phase-241
   title: GeOS VM -- Rotation and Scaling Opcodes (ROTATE, SCALE)
-  status: planned
+  status: in_progress
   goal: Add pixel rotation and scaling for sprite-based games
   description: Current sprite rendering is axis-aligned only. Programs needing rotation
     (asteroids) or scaling (zoom) do per-pixel transforms manually. ROTATE rotates
@@ -3360,6 +3362,8 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 210
+  _claimed_by: worker-0
+  _claimed_at: 1778173589
 - id: phase-242
   title: Error Resilience -- Replace scrollback.rs and geos_term.rs unwrap() Calls
   status: planned

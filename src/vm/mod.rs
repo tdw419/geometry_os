@@ -1243,6 +1243,12 @@ impl Vm {
                     return false;
                 }
             }
+            // Phase 241: ROTATE (0xF4) and SCALE (0xF5) dispatched to step_graphics
+            0xF4 | 0xF5 => {
+                if !self.step_graphics(opcode) {
+                    return false;
+                }
+            }
             0x52..=0x5F => {
                 if !self.step_syscall(opcode) {
                     return false;

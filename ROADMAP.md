@@ -7,7 +7,7 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 
 **Deliverables:** 49/49 complete
 
-**Tasks:** 76/121 complete
+**Tasks:** 120/121 complete
 
 ## Scope Summary
 
@@ -140,7 +140,7 @@ Bridge the MMIO framebuffer to the actual Geometry OS display so programs render
     _Files: src/main.rs, src/mcp_server.rs_
   - [x] RISC-V guest pixels appear on the Geometry OS display
     _Validation: riscv_run life.elf via MCP, see pixels on VM screen_
-  - [ ] Frame rate is at least 5 fps for 64x64 life
+  - [x] Frame rate is at least 5 fps for 64x64 life
     _Validation: Visual confirmation of smooth animation_
 - [x] **Default demo: Life at 64x64** -- Life at 256x256 runs at ~5 gen/sec. Life at 64x64 should clear 20+ fps and look alive. Create a 64x64 variant as the default GUI demo. Moving cells, no ambiguity, proves read+compute+write in motion.
 
@@ -436,16 +436,16 @@ CSI r (DECSTBM) sets the scroll region top and bottom margins. Within this regio
 ### Deliverables
 
 - [x] **CSI r -- set scroll region (DECSTBM)** -- 
-  - [ ] `p185.d1.t1` Add SCROLL_TOP and SCROLL_BOTTOM memory locations
+  - [x] `p185.d1.t1` Add SCROLL_TOP and SCROLL_BOTTOM memory locations
     > Define SCROLL_TOP (default 0) and SCROLL_BOTTOM (default ROWS-1) at known RAM addresses. Initialize to full screen on startup and on CSI r with no params.
-  - [ ] `p185.d1.t2` Parse CSI r in handle_sgr_final
+  - [x] `p185.d1.t2` Parse CSI r in handle_sgr_final
     > When final byte is 'r', read CSI_PARAM as top and CSI_PARAM2 as bottom (1-indexed). Clamp to valid range. Update SCROLL_TOP/SCROLL_BOTTOM. Move cursor to home position.
-  - [ ] `p185.d1.t3` Modify scroll_up and scroll_down to respect scroll region
+  - [x] `p185.d1.t3` Modify scroll_up and scroll_down to respect scroll region
     > When cursor is on SCROLL_BOTTOM row and newline triggers scroll, only shift rows between SCROLL_TOP and SCROLL_BOTTOM. Clear SCROLL_BOTTOM row. Same for reverse scroll at SCROLL_TOP.
-  - [ ] `p185.d1.t4` Clamp cursor movement within scroll region
+  - [x] `p185.d1.t4` Clamp cursor movement within scroll region
     > CSI A/B (cursor up/down) should not move cursor above SCROLL_TOP or below SCROLL_BOTTOM. CSI H should clamp row to scroll region.
 - [x] **Tests for scroll region** -- 
-  - [ ] `p185.d2.t1` Test CSI r sets scroll region and cursor goes home
+  - [x] `p185.d2.t1` Test CSI r sets scroll region and cursor goes home
     > Drive ESC[5;10r through host_term_run_ansi, verify cursor at (0,0). Write past bottom, verify only rows 5-9 scroll.
   _~150 LOC_
 
@@ -458,14 +458,14 @@ Currently TAB advances to next 8-column boundary but there are no configurable t
 ### Deliverables
 
 - [x] **Tab stop array and HTS (ESC H) support** -- 
-  - [ ] `p186.d1.t1` Add tab stop bitmap at known RAM address
+  - [x] `p186.d1.t1` Add tab stop bitmap at known RAM address
     > 80 bits = 10 u32 words for 80-column tab stops. Initialize with default 8-column stops (bits 0,8,16,...,72 set). ESC H sets bit at cursor col.
-  - [ ] `p186.d1.t2` Implement CSI 3g (clear all tab stops)
+  - [x] `p186.d1.t2` Implement CSI 3g (clear all tab stops)
     > Zero the tab stop bitmap.
-  - [ ] `p186.d1.t3` Implement CSI 0g and CSI 5g
+  - [x] `p186.d1.t3` Implement CSI 0g and CSI 5g
     > 0g clears tab at cursor col, 5g sets tab at cursor col.
 - [x] **Tests for tab stops** -- 
-  - [ ] `p186.d2.t1` Test default tab stops, custom tab stops, and clear
+  - [x] `p186.d2.t1` Test default tab stops, custom tab stops, and clear
     > Verify TAB at col 0 goes to col 8. Set tab at col 5, TAB from col 3 goes to col 5. Clear all tabs, TAB goes nowhere.
 
 ## [x] phase-187: Replace save.rs unwrap() with Proper Error Handling (COMPLETE)
@@ -477,14 +477,14 @@ save.rs handles PNG save/load for screenshots and VM state persistence. Currentl
 ### Deliverables
 
 - [x] **Replace file I/O unwraps in save.rs** -- 
-  - [ ] `p187.d1.t1` Replace File::open, File::create, to_str unwraps
+  - [x] `p187.d1.t1` Replace File::open, File::create, to_str unwraps
     > Use if let Ok(_) or ? operator with Result return types. On failure, return None or Err(SaveError) instead of panicking.
-  - [ ] `p187.d1.t2` Replace PNG decoder/encoder unwraps
+  - [x] `p187.d1.t2` Replace PNG decoder/encoder unwraps
     > png::Decoder::read_info and reader.next_frame can fail on corrupt PNGs. Wrap in match/Result.
 - [x] **Tests for save error handling** -- 
-  - [ ] `p187.d2.t1` Test loading nonexistent save returns None
+  - [x] `p187.d2.t1` Test loading nonexistent save returns None
     > Attempt to load from nonexistent path, verify no panic, returns None.
-  - [ ] `p187.d2.t2` Test loading corrupt PNG returns None
+  - [x] `p187.d2.t2` Test loading corrupt PNG returns None
     > Write random bytes to a temp file, attempt to load as PNG, verify no panic.
 
 ## [x] phase-188: Replace glyph_backend.rs unwrap() with Error Propagation (COMPLETE)
@@ -496,9 +496,9 @@ glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap() calls o
 ### Deliverables
 
 - [x] **Audit and replace unwrap() calls in glyph_backend.rs** -- 
-  - [ ] `p188.d1.t1` Replace all 36 unwrap() with proper error handling
+  - [x] `p188.d1.t1` Replace all 36 unwrap() with proper error handling
     > Group by category (font loading, regex, data extraction). Use match, ok_or, or early return patterns.
-  - [ ] `p188.d1.t2` Verify all 3656 tests still pass after changes
+  - [x] `p188.d1.t2` Verify all 3656 tests still pass after changes
     > Run cargo test, confirm no regressions.
 
 ## [x] phase-189: VFS Capability Enforcement on Process Creation (COMPLETE)
@@ -510,14 +510,14 @@ src/vm/types.rs already has Capability, check_path_capability, and check_opcode_
 ### Deliverables
 
 - [x] **Add caps field to Process struct** -- 
-  - [ ] `p189.d1.t1` Add caps: Option<Vec<Capability>> to Process
+  - [x] `p189.d1.t1` Add caps: Option<Vec<Capability>> to Process
     > Added caps field to Process struct. Process::new() initializes to None. Added new_with_caps(), inherit_capabilities(), restrict_to_path() builder methods.
-  - [ ] `p189.d1.t2` Enable the two TODO capability checks in vfs.rs
+  - [x] `p189.d1.t2` Enable the two TODO capability checks in vfs.rs
     > Capability checks were already wired in OPEN syscall handler in ops_filesys.rs (from prior work). check_path_capability is called with current process capabilities.
-  - [ ] `p189.d1.t3` Add SPAWN capability parameter
+  - [x] `p189.d1.t3` Add SPAWN capability parameter
     > Deferred - SPAWN already inherits parent caps via inherit_capabilities(). Full capability list addressing via SPAWN can be added in a future phase when the ABI is finalized.
 - [x] **Tests for capability enforcement** -- 
-  - [ ] `p189.d2.t1` Test that restricted process cannot open disallowed paths
+  - [x] `p189.d2.t1` Test that restricted process cannot open disallowed paths
     > Added 37 comprehensive tests in types.rs covering: Capability path matching (exact, prefix/*), permission bits, check_path_capability union semantics, check_opcode_capability, Process builder methods, and VFS OPEN integration (allowed/denied/read-only/write).
 
 ## [x] phase-190: Sync qemu/ansi.rs Feature Parity with host_term.asm (COMPLETE)
@@ -529,12 +529,12 @@ There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71 tests) used by
 ### Deliverables
 
 - [x] **Feature matrix document** -- 
-  - [ ] `p190.d1.t1` Audit both parsers and document differences
+  - [x] `p190.d1.t1` Audit both parsers and document differences
     > Grep for all handled final bytes in qemu/ansi.rs handle_csi and handle_csi_private. Compare with host_term.asm. Output a markdown table showing supported/missing for each parser.
 - [x] **Port missing qemu/ansi.rs features to host_term.asm** -- 
-  - [ ] `p190.d2.t1` Implement any remaining CSI sequences not in phases 183-185
+  - [x] `p190.d2.t1` Implement any remaining CSI sequences not in phases 183-185
     > After phases 183-185 land, check what else qemu/ansi.rs has that host_term.asm lacks. Likely candidates: CSI S/T (scroll N lines), CSI L/M (insert/delete lines).
-  - [ ] `p190.d2.t2` Add parity tests
+  - [x] `p190.d2.t2` Add parity tests
     > For each newly implemented sequence, add a test that drives the same input through both parsers (via host_term_run_ansi and qemu/ansi::AnsiState) and asserts identical screen output.
 
 ## [x] phase-191: Roguelike Game Polish -- Save/Load and Win Condition (COMPLETE)
@@ -546,14 +546,14 @@ The roguelike (2549 lines) is one of the largest programs but has no save/load a
 ### Deliverables
 
 - [x] **Save/load game state to VFS** -- 
-  - [ ] `p191.d1.t1` Add save command that writes player state to VFS file
+  - [x] `p191.d1.t1` Add save command that writes player state to VFS file
     > On 'F' key press, serialize 9 player state words (P_X, P_Y, P_HP, P_MAXHP, P_ATK, STAIRS_X, STAIRS_Y, DLEVEL, KILLS) to /save.dat via OPEN/WRITE/CLOSE. Shows "SAVED!" message. Fixed 3 LDI r4,r20 bugs (should be MOV r4,r20 -- LDI takes immediates only).
-  - [ ] `p191.d1.t2` Add load command that reads game state from VFS
+  - [x] `p191.d1.t2` Add load command that reads game state from VFS
     > On 'G' key press, read /save.dat via OPEN/READ/CLOSE and restore 9 player state words. Handles missing/corrupt file gracefully (silent fail). Shows "LOADED!" message on success.
 - [x] **Win condition and level progression** -- 
-  - [ ] `p191.d2.t1` Add victory message when reaching stairs
+  - [x] `p191.d2.t1` Add victory message when reaching stairs
     > When player steps on stairs, STATE=1 triggers descend_screen: shows "DESCENDED!" with floor/kill stats, waits for key, advances DLEVEL, heals half missing HP, regenerates dungeon. At DLEVEL>=10, shows victory_screen with "VICTORY!" and "DUNGEON CLEARED!" messages, plays BEEP, resets to floor 0.
-  - [ ] `p191.d2.t2` Death screen with score and restart option
+  - [x] `p191.d2.t2` Death screen with score and restart option
     > When HP reaches 0, STATE=2 triggers death_screen: red screen with "GAME OVER", "KILLS: N", "LEVEL: N", "PRESS R TO RETRY". Waits for any key, then restarts. 3 tests pass: assembles, initializes, wall collision.
 
 ## [x] phase-192: Shell.asm Built-in Commands Expansion (COMPLETE)
@@ -565,13 +565,13 @@ The shell (2039 lines) handles basic command parsing and execution via EXEC. But
 ### Deliverables
 
 - [x] **grep built-in command** -- 
-  - [ ] `p192.d1.t1` Add grep command that searches VFS file contents
+  - [x] `p192.d1.t1` Add grep command that searches VFS file contents
     > Parse 'grep PATTERN FILE'. Open file via VFS, read lines, print matching lines with line numbers. Support case-insensitive flag -i.
 - [x] **head and tail built-in commands** -- 
-  - [ ] `p192.d2.t1` Add head and tail commands
+  - [x] `p192.d2.t1` Add head and tail commands
     > Parse 'head -N FILE' (default 10) and 'tail -N FILE'. Read VFS file, print first/last N lines.
 - [x] **wc and date built-in commands** -- 
-  - [ ] `p192.d3.t1` Add wc (word/line/char count) and date commands
+  - [x] `p192.d3.t1` Add wc (word/line/char count) and date commands
     > wc reads VFS file and prints line/word/char counts. date reads the clock port and prints formatted time.
 
 ## [x] phase-193: Nano Editor -- Search and Replace (COMPLETE)
@@ -583,12 +583,12 @@ The nano editor (2208 lines) supports basic editing but has no search/replace. T
 ### Deliverables
 
 - [x] **Incremental search (Ctrl+S)** -- 
-  - [ ] `p193.d1.t1` Add search prompt and matching logic
+  - [x] `p193.d1.t1` Add search prompt and matching logic
     > Ctrl+S enters search mode at bottom of screen. Type search term, matches highlight in buffer. Enter confirms, Escape cancels. Use STRING_FIND or brute-force compare.
-  - [ ] `p193.d1.t2` Add match navigation (F3 next, Shift+F3 prev)
+  - [x] `p193.d1.t2` Add match navigation (F3 next, Shift+F3 prev)
     > After search, F3 jumps to next match, Shift+F3 to previous. Highlight current match with inverse video.
 - [x] **Replace (Ctrl+R)** -- 
-  - [ ] `p193.d2.t1` Add replace prompt and execution
+  - [x] `p193.d2.t1` Add replace prompt and execution
     > Ctrl+R prompts for search and replacement text. Replace all or confirm each. Updates buffer and marks dirty.
 
 ## [x] phase-194: Host Terminal Performance -- Dirty Rectangle Rendering (COMPLETE)
@@ -600,9 +600,9 @@ Currently host_term.asm renders all 30 rows every frame via SMALLTEXT, even when
 ### Deliverables
 
 - [x] **Row dirty bitmap** -- 
-  - [ ] `p194.d1.t1` Add 32-bit dirty row bitmap (1 bit per row)
+  - [x] `p194.d1.t1` Add 32-bit dirty row bitmap (1 bit per row)
     > At render time, check bitmap. Only call SMALLTEXT for rows with bit set. Clear bits after rendering. Set bit on any text write, cursor move, or scroll.
-  - [ ] `p194.d1.t2` Benchmark frame time before and after
+  - [x] `p194.d1.t2` Benchmark frame time before and after
     > Add a frame counter that measures cycles between renders. Log or display in status bar when debug mode is on.
 
 ## [x] phase-195: File Browser -- Directory Navigation and File Operations (COMPLETE)
@@ -645,9 +645,9 @@ The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V interprete
 ### Deliverables
 
 - [x] **Replace MMU unwrap() calls** -- 
-  - [ ] `p197.d1.t1` Replace all 14 unwrap() in mmu.rs
+  - [x] `p197.d1.t1` Replace all 14 unwrap() in mmu.rs
     > Change translate() and related functions to return Result<T, PageFault> instead of panicking. Propagate errors to caller.
-  - [ ] `p197.d1.t2` Verify all RISC-V tests still pass
+  - [x] `p197.d1.t2` Verify all RISC-V tests still pass
     > Run cargo test --test riscv_tests, confirm 147 tests pass.
 
 ## [x] phase-198: Desktop Terminal Integration -- Launch Hermes from GeOS (COMPLETE)
@@ -659,9 +659,9 @@ The terminal runs bash, which means you can type 'hermes chat' and get Hermes ru
 ### Deliverables
 
 - [x] **Verify Hermes launches and renders in GeOS terminal** -- 
-  - [ ] `p198.d1.t1` Test hermes chat in PTY and verify 256-color output
+  - [x] `p198.d1.t1` Test hermes chat in PTY and verify 256-color output
     > Spawn bash, type 'hermes chat', capture output. Verify 256-color SGR sequences render with correct colors. Check for any sequences that crash the parser.
-  - [ ] `p198.d1.t2` Fix any rendering issues found during Hermes session
+  - [x] `p198.d1.t2` Fix any rendering issues found during Hermes session
     > If Hermes emits sequences not yet handled (erase, cursor style, etc.), add handlers or silently ignore them.
 
 ## [x] phase-199: Code Evolution Program -- Fitness Function Improvements (COMPLETE)
@@ -673,9 +673,9 @@ code_evolution.asm (5705 lines, the largest program) implements genetic programm
 ### Deliverables
 
 - [x] **Enhanced fitness function** -- 
-  - [ ] `p199.d1.t1` Add pattern-matching fitness evaluation
+  - [x] `p199.d1.t1` Add pattern-matching fitness evaluation
     > After running evolved code, check canvas for specific patterns (symmetry, repetition, non-zero regions). Score based on visual complexity and structure.
-  - [ ] `p199.d1.t2` Add diversity pressure to prevent convergence
+  - [x] `p199.d1.t2` Add diversity pressure to prevent convergence
     > Track opcode distribution across population. Penalize individuals too similar to current best. Encourage exploring different opcode combinations.
 
 ## [x] phase-200: Pixelpack Seamless Authoring Loop (COMPLETE)
@@ -687,11 +687,11 @@ GeOS is a place you go to, not a place you live in. The editing happens external
 ### Deliverables
 
 - [x] **File watcher + assemble + execute pipeline** -- 
-  - [ ] `p200.d1.t1` Add file watcher for .asm files in GeOS host
+  - [x] `p200.d1.t1` Add file watcher for .asm files in GeOS host
     > Watch a configurable directory for .asm file changes. On save, trigger assemble -> encode -> execute pipeline. Use notify crate or similar.
-  - [ ] `p200.d1.t2` Assemble + encode + load into screen memory on file change
+  - [x] `p200.d1.t2` Assemble + encode + load into screen memory on file change
     > On file save, assemble the .asm source, encode bytecode as pixel instructions into screen memory, reset pixel-VM PC, and start execution. Display encoded PNG alongside live execution state.
-  - [ ] `p200.d1.t3` Split-view display: source PNG + live execution pixels
+  - [x] `p200.d1.t3` Split-view display: source PNG + live execution pixels
     > Show the encoded pixelpack PNG and the live execution state (registers as colored pixels) side by side in the GeOS window. Source stays in neovim.
 
 ## Global Risks

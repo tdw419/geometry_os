@@ -9686,7 +9686,7 @@ phases:
   test_target: 4
 - id: phase-202
   title: Fix Preflight Script TimeoutExpired Crash (phase-168 regression)
-  status: done
+  status: complete
   goal: The preflight QA script must handle cargo test timeouts gracefully instead
     of crashing with an uncaught exception
   description: 'Dogfood QA preflight script (geo_dogfood_qa.py) crashed with uncaught
@@ -11503,7 +11503,7 @@ phases:
   test_target: 0
 - id: phase-269
   title: Fix clippy erasing_op errors in src/qemu/ansi.rs
-  status: done
+  status: complete
   goal: Eliminate clippy errors in src/qemu/ansi.rs so cargo clippy --all-targets
     passes for this crate
   description: Seven clippy errors in src/qemu/ansi.rs, all erasing_op (0 * CANVAS_COLS
@@ -11538,7 +11538,7 @@ phases:
   test_target: 0
 - id: phase-270
   title: Fix all remaining clippy erasing_op errors across src/ and tests/
-  status: done
+  status: complete
   goal: Eliminate all clippy erasing_op errors so cargo clippy --all-targets passes
     for lib and test targets
   description: 'Phase 269 fixed 7 erasing_op errors in src/qemu/ansi.rs but there
@@ -11642,7 +11642,7 @@ phases:
   test_target: 0
 - id: phase-271
   title: Fix clippy almost_swapped errors in src/vm/tests.rs
-  status: done
+  status: complete
   goal: Fix 6 clippy almost_swapped errors where 'let win_id = vm.regs[0]; vm.regs[0]
     = win_id;' should use std::mem::replace
   description: 'Six test functions in src/vm/tests.rs have the pattern ''let win_id

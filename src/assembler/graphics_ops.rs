@@ -468,6 +468,41 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "ROTATE" => {
+            if tokens.len() < 6 {
+                return Err(
+                    "ROTATE requires 5 arguments: ROTATE x_reg, y_reg, w_reg, h_reg, angle_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xF4);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            Ok(Some(()))
+        }
+
+        "SCALE" => {
+            if tokens.len() < 9 {
+                return Err(
+                    "SCALE requires 8 arguments: SCALE sx_reg, sy_reg, sw_reg, sh_reg, dx_reg, dy_reg, dw_reg, dh_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xF5);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            bytecode.push(parse_reg(tokens[6])? as u32);
+            bytecode.push(parse_reg(tokens[7])? as u32);
+            bytecode.push(parse_reg(tokens[8])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

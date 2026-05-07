@@ -240,7 +240,7 @@ def build_constraint_fn(idx_to_seed):
         mask = torch.ones_like(top_indices, dtype=torch.bool)
         
         for idx_idx, token_idx in enumerate(top_indices):
-            tok_str = token_strs[token_idx.item()]
+            tok_str = token_strs.get(token_idx.item(), "")
             if not tok_str:
                 continue
                 
