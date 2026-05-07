@@ -3358,19 +3358,20 @@ phases:
   scope_lines_total: 140
 - id: phase-244
   title: RISC-V Guest -- Basic Socket Networking via SBI Extension
-  status: planned
+  status: complete
   goal: Enable bare-metal RISC-V programs to make TCP connections via SBI
   description: The VM has TCP networking opcodes but RISC-V guests cannot access the
     network. Add an SBI extension (0x4E4554) proxying TCP operations to the host stack
     via geos_kern. Enables guest HTTP clients and telemetry.
   deliverables:
   - name: RISC-V guest TCP networking
-    status: todo
+    status: done
     tasks:
     - id: p244.d1.t1
       title: Add SBI NET extension with connect/send/recv/disconnect
       description: 'Four functions via ECALL dispatch in geos_kern: connect, send,
         recv, disconnect.'
+      status: done
       scope_files:
       - src/riscv/sbi.rs
       - examples/riscv-hello/geos_kern.c
@@ -3379,6 +3380,7 @@ phases:
       title: Add libgeos network wrappers
       description: geos_net_connect, geos_net_send, geos_net_recv, geos_net_disconnect
         in libgeos.a.
+      status: done
       scope_files:
       - examples/riscv-hello/libgeos.c
       - examples/riscv-hello/libgeos.h
@@ -3386,12 +3388,15 @@ phases:
     - id: p244.d1.t3
       title: Write HTTP GET demo guest program
       description: Connect to local server, send GET, display response on framebuffer.
+      status: done
       scope_files:
       - examples/riscv-hello/net_get.c
       - examples/riscv-hello/build.sh
       scope_lines: 80
   test_target: 2
   scope_lines_total: 220
+  _claimed_by: worker-0
+  _claimed_at: 1778182537
 - id: phase-245
   title: Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests
   status: done

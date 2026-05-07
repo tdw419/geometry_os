@@ -731,6 +731,16 @@ impl Vm {
                 ),
                 9,
             ),
+            // MEMSET dst_reg, val_reg, count_reg (0xF6) -- Fill memory region with value
+            0xF6 => (
+                format!(
+                    "MEMSET {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
+                4,
+            ),
             0x87 => (format!("ABS {}", reg(ram(a + 1))), 2),
             0x88 => (
                 format!(
@@ -1405,6 +1415,14 @@ mod tests {
         let vm = load_instruction(&[0x04, 1, 2, 3], 0);
         let (s, len) = vm.disassemble_at(0);
         assert_eq!(s, "MEMCPY r1, r2, r3");
+        assert_eq!(len, 4);
+    }
+
+    #[test]
+    fn test_memset_disasm() {
+        let vm = load_instruction(&[0xF6, 5, 10, 20], 0);
+        let (s, len) = vm.disassemble_at(0);
+        assert_eq!(s, "MEMSET r5, r10, r20");
         assert_eq!(len, 4);
     }
 

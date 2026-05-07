@@ -941,6 +941,65 @@ impl Vm {
                     }
                 }
             }
+
+            // MEMSET dst_reg, val_reg, count_reg -- fill memory region with value
+            // Fills count words starting at dst with val. Bounds-checks against RAM.
+            // Intercepts canvas buffer (0x8000-0x8FFF) and screen buffer (0x10000+) ranges.
+            0xF6 => {
+                let dr = self.fetch() as usize;
+                let vr = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if dr < NUM_REGS && vr < NUM_REGS && cr < NUM_REGS {
+                    let dst_base = self.regs[dr] as usize;
+                    let val = self.regs[vr];
+                    let count = self.regs[cr] as usize;
+                    for i in 0..count {
+                        let vaddr = (dst_base + i) as u32;
+                        // COW resolve before each write (like STORE)
+                        self.resolve_cow_if_needed(vaddr);
+                        match self.translate_va_or_fault(vaddr) {
+                            Some(addr) => {
+                                // Screen buffer intercept
+                                if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                    .contains(&addr)
+                                {
+                                    self.screen[addr - SCREEN_RAM_BASE] = val;
+                                    self.log_access(addr, MemAccessKind::Write);
+                                } else if addr < self.ram.len() {
+                                    if self.mode == CpuMode::User && addr >= 0xFF00 {
+                                        self.trigger_segfault();
+                                        return false;
+                                    }
+                                    // Canvas buffer intercept
+                                    if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
+                                        .contains(&addr)
+                                    {
+                                        let cidx = addr - CANVAS_RAM_BASE;
+                                        self.canvas_buffer[cidx] = val;
+                                        self.formula_recalc(cidx);
+                                    } else {
+                                        // Invalidate instruction cache if writing to code memory
+                                        if addr < self.icache.len()
+                                            && self.ram[addr] != val
+                                        {
+                                            self.icache_invalidate_range(addr, addr + 1);
+                                        }
+                                        self.ram[addr] = val;
+                                    }
+                                    self.log_access(addr, MemAccessKind::Write);
+                                } else {
+                                    break; // out of bounds, stop filling
+                                }
+                            }
+                            None => {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
             0x10..=0x1F => {
                 if !self.step_memory(opcode) {
                     return false;

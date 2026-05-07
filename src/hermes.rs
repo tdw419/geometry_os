@@ -672,7 +672,7 @@ Other:    SCROLL nr | IKEY reg | RAND reg | FRAME | BEEP freq_r, dur_r | NOTE wa
           SIGNAL sig_reg, pid_reg | SIGSET handler_reg | WAITPID pid_reg
           OPEN path_r, mode_r | READ fd_r, buf_r, len_r | WRITE fd_r, buf_r, len_r | CLOSE fd_r
           SEEK fd_r, offset_r | IOCTL fd_r, cmd_r
-          MEMCPY dst_r, src_r, len_r
+          MEMCPY dst_r, src_r, len_r | MEMSET dst_r, val_r, count_r
           TEXTI xr, yr, addr_r, len_r | STRO addr_r, char_r | SCREENP xr, yr, dr
           TILEMAP xr, yr, map_r, tw_r, th_r | REPLAY slot_r | SNAP_TRACE
           HALT | NOP
@@ -1046,6 +1046,7 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xF3 => "BLENDR",
         0xF4 => "ROTATE",
         0xF5 => "SCALE",
+        0xF6 => "MEMSET",
         _ => "???",
     }
 }

@@ -1,6 +1,6 @@
 // assembler/core_ops.rs -- Core instruction match arms
 //
-// HALT, NOP, FRAME, BEEP, MEMCPY, LDI, LOAD, STORE, MOV,
+// HALT, NOP, FRAME, BEEP, MEMCPY, MEMSET, LDI, LOAD, STORE, MOV,
 // arithmetic (ADD..MOD), jumps (JMP, JZ, JNZ, CALL, RET, BLT, BGE),
 // stack (PUSH, POP), CMP, NEG, IKEY, RAND
 
@@ -160,6 +160,19 @@ pub(super) fn try_parse(
                 );
             }
             bytecode.push(0x04);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        "MEMSET" => {
+            if tokens.len() < 4 {
+                return Err(
+                    "MEMSET requires 3 arguments: MEMSET dst_reg, val_reg, count_reg".to_string(),
+                );
+            }
+            bytecode.push(0xF6);
             bytecode.push(parse_reg(tokens[1])? as u32);
             bytecode.push(parse_reg(tokens[2])? as u32);
             bytecode.push(parse_reg(tokens[3])? as u32);

@@ -53,6 +53,7 @@ pub const OPCODES: &[&str] = &[
     "BEEP",
     "ASM",
     "MEMCPY",
+    "MEMSET",
     "SPAWN",
     "KILL",
     "PEEK",

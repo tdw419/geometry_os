@@ -31051,6 +31051,130 @@ fn test_memcpy_backward_overlap() {
     assert_eq!(vm.ram[102], 0x66);
 }
 
+// ── MEMSET ───────────────────────────────────────────────────────
+
+#[test]
+fn test_memset_fills_region() {
+    let mut vm = Vm::new();
+    // MEMSET r1, r2, r3 -- fill 5 words starting at addr 100 with value 0x42
+    vm.regs[1] = 100; // dst addr
+    vm.regs[2] = 0x42; // fill value
+    vm.regs[3] = 5; // count
+    vm.ram[0] = 0xF6;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    for i in 0..5 {
+        assert_eq!(vm.ram[100 + i], 0x42, "MEMSET failed at offset {}", i);
+    }
+}
+
+#[test]
+fn test_memset_zero_count_is_noop() {
+    let mut vm = Vm::new();
+    vm.ram[100] = 0xDEAD;
+    vm.regs[1] = 100; // dst
+    vm.regs[2] = 0xFF; // value
+    vm.regs[3] = 0; // count = 0
+    vm.ram[0] = 0xF6;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.ram[100], 0xDEAD); // untouched
+}
+
+#[test]
+fn test_memset_boundary_clamp() {
+    let mut vm = Vm::new();
+    // Try to write past end of RAM -- should clamp
+    vm.regs[1] = 65530; // near end
+    vm.regs[2] = 0xBB;
+    vm.regs[3] = 100; // way past end
+    vm.ram[0] = 0xF6;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    // Should have written up to 65535 (6 words), rest silently skipped
+    assert_eq!(vm.ram[65530], 0xBB);
+    assert_eq!(vm.ram[65535], 0xBB);
+    // PC should be past MEMSET (at HALT)
+    assert!(vm.halted);
+}
+
+#[test]
+fn test_memset_various_values() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 200;
+    vm.regs[2] = 0xFFFFFFFF; // max u32
+    vm.regs[3] = 3;
+    vm.ram[0] = 0xF6;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.ram[200], 0xFFFFFFFF);
+    assert_eq!(vm.ram[201], 0xFFFFFFFF);
+    assert_eq!(vm.ram[202], 0xFFFFFFFF);
+}
+
+#[test]
+fn test_memset_single_word() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 500;
+    vm.regs[2] = 0x1234;
+    vm.regs[3] = 1;
+    vm.ram[0] = 0xF6;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.ram[500], 0x1234);
+    assert_eq!(vm.ram[499], 0); // untouched
+    assert_eq!(vm.ram[501], 0); // untouched
+}
+
+#[test]
+fn test_memset_assembles_and_runs() {
+    use crate::assembler::assemble;
+    let src = "LDI r1, 0x3000\nLDI r2, 0xFF\nLDI r3, 4\nMEMSET r1, r2, r3\nHALT";
+    let asm = assemble(src, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() { vm.ram[i] = w; }
+    }
+    vm.pc = 0;
+    for _ in 0..10000 {
+        if !vm.step() { break; }
+    }
+    assert!(vm.halted);
+    for i in 0..4 {
+        assert_eq!(vm.ram[0x3000 + i], 0xFF, "MEMSET asm failed at offset {}", i);
+    }
+}
+
 // === Phase 233: CMOV and CSEL opcodes ===
 
 #[test]
