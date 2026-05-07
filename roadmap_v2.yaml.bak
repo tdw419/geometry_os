@@ -3542,7 +3542,7 @@ phases:
   test_target: 8
   scope_lines_total: 180
   _claimed_by: worker-0
-  _claimed_at: 1778149063
+  _claimed_at: 1778153129
 - id: phase-247
   title: Test Coverage -- MCP Server Integration Tests
   status: todo
@@ -4664,6 +4664,44 @@ phases:
   scope_lines_total: 270
   _claimed_by: worker-0
   _claimed_at: 1777799086
+- id: phase-275
+  title: User-Driven Self-Hosting -- Native Assembler Shell Utility
+  status: todo
+  goal: Implement a native 'as' command in the shell to enable the full in-guest development loop
+  description: While the ASM opcode and nano_editor exists, there is no way for a user
+    to assemble a file from the VFS into bytecode without host intervention. Add an
+    'as <src.asm> <dst.png>' command to shell.asm. It will read the source file from
+    VFS, use the ASM opcode to generate bytecode, and write the result as a pixelpack-encoded
+    PNG back to the VFS. This completes Level 3 self-hosting.
+  deliverables:
+  - name: Native 'as' command in shell.asm
+    status: todo
+    tasks:
+    - id: p275.d1.t1
+      title: Implement 'as' command parsing and VFS read
+      description: Add 'as' to shell.asm built-ins. Read the source filename argument,
+        open it via OPEN, and read content into a large RAM buffer (e.g., 0x4000).
+      scope_files:
+      - programs/shell.asm
+      scope_lines: 60
+    - id: p275.d1.t2
+      title: Integration with ASM opcode and VFS write
+      description: Execute ASM opcode on the source buffer. On success, take the bytecode
+        from the output buffer and write it to the destination PNG file via SAVEPNG or
+        manual pixelpack encoding. Handle errors by displaying the ASM error port (0xFFD).
+      scope_files:
+      - programs/shell.asm
+      scope_lines: 80
+    - id: p275.d1.t3
+      title: 'Demo: Edit-Compile-Run Loop'
+      description: Use nano_editor.asm to create a small 'hello_native.asm', assemble
+        it with 'as hello_native.asm hello.png', and execute with 'hello.png'.
+      scope_files:
+      - programs/nano_editor.asm
+      - programs/shell.asm
+      scope_lines: 40
+  test_target: 3
+  scope_lines_total: 180
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'

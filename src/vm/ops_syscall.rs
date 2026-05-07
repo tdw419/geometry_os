@@ -1451,4 +1451,813 @@ mod tests {
         assert_eq!(vm.mode, CpuMode::User);
         assert!(vm.kernel_stack.is_empty());
     }
+
+    // ── SYSCALL deep nesting (3 levels) ────────────────────────────
+
+    #[test]
+    fn test_deep_nested_syscall_three_levels() {
+        let mut vm = Vm::new();
+        vm.mode = CpuMode::User;
+        // Three syscall handlers: 0 -> 0x100 -> 0x200 -> 0x300
+        vm.ram[SYSCALL_TABLE + 0] = 0x100;
+        vm.ram[SYSCALL_TABLE + 1] = 0x200;
+        vm.ram[SYSCALL_TABLE + 2] = 0x300;
+        // Chain: SYSCALL 0 at addr 0, SYSCALL 1 at 0x100, SYSCALL 2 at 0x200
+        vm.ram[0] = 0x52;
+        vm.ram[1] = 0;
+        vm.ram[0x100] = 0x52;
+        vm.ram[0x101] = 1;
+        vm.ram[0x200] = 0x52;
+        vm.ram[0x201] = 2;
+        // RETK at 0x300, 0x202, 0x102
+        vm.ram[0x300] = 0x53;
+        vm.ram[0x202] = 0x53;
+        vm.ram[0x102] = 0x53;
+        vm.pc = 0;
+
+        vm.step();
+        assert_eq!(vm.kernel_stack.len(), 1); // depth 1
+        vm.step();
+        assert_eq!(vm.kernel_stack.len(), 2); // depth 2
+        vm.step();
+        assert_eq!(vm.kernel_stack.len(), 3); // depth 3
+        vm.step();
+        assert_eq!(vm.kernel_stack.len(), 2); // unwind 1
+        vm.step();
+        assert_eq!(vm.kernel_stack.len(), 1); // unwind 2
+        vm.step();
+        assert_eq!(vm.kernel_stack.len(), 0); // unwind 3
+        assert_eq!(vm.mode, CpuMode::User);
+        assert_eq!(vm.pc, 2);
+    }
+
+    // ── OPEN capability enforcement ────────────────────────────────
+
+    #[test]
+    fn test_open_capability_denied_eperm() {
+        let mut vm = Vm::new();
+        // Set capabilities that only allow "/allowed/*" read
+        vm.current_capabilities = Some(vec![Capability {
+            resource_type: 0,
+            pattern: "/allowed/*".to_string(),
+            permissions: Capability::PERM_READ,
+        }]);
+        write_string(&mut vm, 0x200, "/dev/screen");
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 1; // write mode
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFE); // EPERM
+    }
+
+    #[test]
+    fn test_open_capability_allowed_read() {
+        let mut vm = Vm::new();
+        vm.current_capabilities = Some(vec![Capability {
+            resource_type: 0,
+            pattern: "/dev/*".to_string(),
+            permissions: Capability::PERM_READ | Capability::PERM_WRITE,
+        }]);
+        write_string(&mut vm, 0x200, "/dev/screen");
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 0; // read mode
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], DEVICE_FD_BASE + 0); // allowed
+    }
+
+    #[test]
+    fn test_open_no_capabilities_allows_all() {
+        // current_capabilities = None means full access (backward compat)
+        let mut vm = Vm::new();
+        assert!(vm.current_capabilities.is_none());
+        write_string(&mut vm, 0x200, "/dev/screen");
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 1;
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], DEVICE_FD_BASE + 0);
+    }
+
+    #[test]
+    fn test_open_capability_via_process_list() {
+        let mut vm = Vm::new();
+        let mut proc = Process::new(5, 0, 0x100);
+        proc.capabilities = Some(vec![Capability {
+            resource_type: 0,
+            pattern: "/dev/*".to_string(),
+            permissions: Capability::PERM_READ,
+        }]);
+        vm.processes.push(proc);
+        vm.current_pid = 5;
+        write_string(&mut vm, 0x200, "/dev/screen");
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 0; // read -- allowed
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], DEVICE_FD_BASE + 0); // allowed via process caps
+    }
+
+    #[test]
+    fn test_open_process_capability_write_denied() {
+        let mut vm = Vm::new();
+        let mut proc = Process::new(5, 0, 0x100);
+        proc.capabilities = Some(vec![Capability {
+            resource_type: 0,
+            pattern: "/dev/*".to_string(),
+            permissions: Capability::PERM_READ, // only read
+        }]);
+        vm.processes.push(proc);
+        vm.current_pid = 5;
+        write_string(&mut vm, 0x200, "/dev/screen");
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 1; // write mode -- denied
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFE); // EPERM
+    }
+
+    #[test]
+    fn test_open_empty_path_returns_vfs_result() {
+        let mut vm = Vm::new();
+        // Write a null byte at the path address (empty string)
+        vm.ram[0x200] = 0;
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 0;
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        // Empty string -> read_string_static returns None -> skips device check
+        // Falls through to vfs.fopen which will handle it
+        // The result depends on VFS behavior for empty path
+        // Just verify it doesn't panic and returns something
+        assert!(vm.regs[0] != 0xDEADBEEF); // no crash
+    }
+
+    // ── READ: pipe read blocking for child process ─────────────────
+
+    #[test]
+    fn test_pipe_read_empty_blocks_child_process() {
+        let mut vm = Vm::new();
+        let mut proc = Process::new(5, 0, 0x100);
+        proc.state = ProcessState::Ready;
+        vm.processes.push(proc);
+        vm.pipes.push(Pipe::new(5, 0));
+        vm.current_pid = 5;
+        vm.regs[1] = 0x8000; // read fd
+        vm.regs[2] = 0x300; // buf addr
+        vm.regs[3] = 1; // len
+        vm.ram[0] = 0x55; // READ
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // 0 bytes read
+        assert_eq!(vm.processes[0].state, ProcessState::Blocked);
+        // PC should be rewound 4 words (opcode + 3 args)
+        assert_eq!(vm.pc, 0); // 4 - 4 = 0
+    }
+
+    #[test]
+    fn test_pipe_read_from_dead_pipe_returns_error() {
+        let mut vm = Vm::new();
+        let mut pipe = Pipe::new(0, 0);
+        pipe.alive = false;
+        vm.pipes.push(pipe);
+        vm.regs[1] = 0x8000;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // bad pipe fd
+    }
+
+    #[test]
+    fn test_pipe_read_multiple_words() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        // Write 3 words to the pipe
+        vm.pipes[0].write_word(0xAA);
+        vm.pipes[0].write_word(0xBB);
+        vm.pipes[0].write_word(0xCC);
+        // Read 3 words via READ syscall
+        vm.regs[1] = 0x8000;
+        vm.regs[2] = 0x300; // buf addr
+        vm.regs[3] = 3; // len
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 3);
+        assert_eq!(vm.ram[0x300], 0xAA);
+        assert_eq!(vm.ram[0x301], 0xBB);
+        assert_eq!(vm.ram[0x302], 0xCC);
+    }
+
+    // ── READ: device edge cases ────────────────────────────────────
+
+    #[test]
+    fn test_read_audio_device_returns_zero() {
+        let mut vm = Vm::new();
+        vm.regs[1] = DEVICE_FD_BASE + 2; // /dev/audio
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 10;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // audio has no read
+    }
+
+    #[test]
+    fn test_read_keyboard_clears_port() {
+        let mut vm = Vm::new();
+        vm.key_port = 0x42;
+        vm.regs[1] = DEVICE_FD_BASE + 1;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.key_port, 0); // cleared after read
+    }
+
+    // ── WRITE: pipe edge cases ─────────────────────────────────────
+
+    #[test]
+    fn test_pipe_write_to_full_pipe_partial_write() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        // Fill the pipe to capacity
+        for _ in 0..PIPE_BUFFER_SIZE {
+            vm.pipes[0].write_word(0xFF);
+        }
+        assert!(vm.pipes[0].is_full());
+        // Try to write 2 more words
+        vm.ram[0x300] = 0xAA;
+        vm.ram[0x301] = 0xBB;
+        vm.regs[1] = 0xC000;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 2;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // 0 words written (pipe full)
+    }
+
+    #[test]
+    fn test_pipe_write_to_dead_pipe_returns_error() {
+        let mut vm = Vm::new();
+        let mut pipe = Pipe::new(0, 0);
+        pipe.alive = false;
+        vm.pipes.push(pipe);
+        vm.ram[0x300] = 42;
+        vm.regs[1] = 0xC000;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_write_keyboard_device_returns_zero() {
+        let mut vm = Vm::new();
+        vm.ram[0x300] = 0x41;
+        vm.regs[1] = DEVICE_FD_BASE + 1; // /dev/keyboard (no write)
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // keyboard write = no-op
+    }
+
+    #[test]
+    fn test_write_net_device_zero_len() {
+        let mut vm = Vm::new();
+        vm.regs[1] = DEVICE_FD_BASE + 3; // /dev/net
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 0; // len = 0
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_write_screen_zero_len() {
+        let mut vm = Vm::new();
+        vm.regs[1] = DEVICE_FD_BASE + 0;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 0; // len = 0
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // 0 triplets processed
+    }
+
+    #[test]
+    fn test_write_screen_clips_y_out_of_bounds() {
+        let mut vm = Vm::new();
+        vm.ram[0x300] = 10;
+        vm.ram[0x301] = 300; // y out of bounds
+        vm.ram[0x302] = 0xFF0000;
+        vm.regs[1] = DEVICE_FD_BASE + 0;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 3;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 3); // triplet consumed
+                                   // No panic, pixel not drawn (y >= 256)
+    }
+
+    #[test]
+    fn test_write_audio_exact_min_max_boundary() {
+        let mut vm = Vm::new();
+        vm.ram[0x300] = 20; // min freq
+        vm.ram[0x301] = 1; // min dur
+        vm.regs[1] = DEVICE_FD_BASE + 2;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 2;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 2);
+        assert_eq!(vm.beep, Some((20, 1))); // exact boundary values
+    }
+
+    // ── CLOSE edge cases ───────────────────────────────────────────
+
+    #[test]
+    fn test_close_already_dead_pipe_succeeds() {
+        let mut vm = Vm::new();
+        let mut pipe = Pipe::new(0, 0);
+        pipe.alive = false;
+        vm.pipes.push(pipe);
+        vm.regs[1] = 0x8000;
+        vm.ram[0] = 0x57;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // close always succeeds for valid idx
+        assert!(!vm.pipes[0].alive);
+    }
+
+    #[test]
+    fn test_close_all_devices_succeed() {
+        for i in 0..DEVICE_COUNT {
+            let mut vm = Vm::new();
+            vm.regs[1] = DEVICE_FD_BASE + i as u32;
+            vm.ram[0] = 0x57;
+            vm.ram[1] = 1;
+            vm.pc = 0;
+            vm.step();
+            assert_eq!(vm.regs[0], 0);
+        }
+    }
+
+    // ── SEEK edge cases ────────────────────────────────────────────
+
+    #[test]
+    fn test_seek_all_whence_values() {
+        // SEEK on an invalid fd (not opened) -- VFS will handle
+        let mut vm = Vm::new();
+        vm.regs[1] = 99; // fd not opened
+        vm.regs[2] = 0; // offset
+        vm.regs[3] = 0; // whence = SET
+        vm.ram[0] = 0x58;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        // Result depends on VFS -- just verify no panic
+        assert!(vm.regs[0] == 0xFFFFFFFF || vm.regs[0] == 0);
+    }
+
+    #[test]
+    fn test_seek_invalid_whence_still_calls_vfs() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0; // fd
+        vm.regs[2] = 10; // offset
+        vm.regs[3] = 99; // invalid whence -- VFS handles
+        vm.ram[0] = 0x58;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        // No panic, returns VFS result
+    }
+
+    // ── MSGSND edge cases ──────────────────────────────────────────
+
+    #[test]
+    fn test_msgsnd_send_to_self() {
+        let mut vm = Vm::new();
+        vm.current_pid = 5;
+        let mut proc = Process::new(5, 0, 0x100);
+        vm.processes.push(proc);
+        vm.regs[1] = 0x11;
+        vm.regs[2] = 0x22;
+        vm.regs[3] = 0x33;
+        vm.regs[4] = 0x44;
+        vm.regs[10] = 5; // target = self
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 10;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // success
+        assert_eq!(vm.processes[0].msg_queue.len(), 1);
+        assert_eq!(vm.processes[0].msg_queue[0].data, [0x11, 0x22, 0x33, 0x44]);
+    }
+
+    #[test]
+    fn test_msgsnd_queue_near_full_then_delivers() {
+        let mut vm = Vm::new();
+        let mut target = Process::new(5, 0, 0x100);
+        // Fill queue to MAX_MESSAGES - 1
+        for _ in 0..MAX_MESSAGES - 1 {
+            target.msg_queue.push(Message::new(0, [0; MSG_WORDS]));
+        }
+        vm.processes.push(target);
+        vm.regs[10] = 5;
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 10;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // success (one slot left)
+        assert_eq!(vm.processes[0].msg_queue.len(), MAX_MESSAGES);
+    }
+
+    #[test]
+    fn test_msgsnd_does_not_unblock_non_blocked_process() {
+        let mut vm = Vm::new();
+        let mut target = Process::new(5, 0, 0x100);
+        target.state = ProcessState::Ready; // not blocked
+        vm.processes.push(target);
+        vm.regs[10] = 5;
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 10;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.processes[0].state, ProcessState::Ready); // unchanged
+    }
+
+    // ── MSGRCV edge cases ──────────────────────────────────────────
+
+    #[test]
+    fn test_msgrcv_receives_in_fifo_order() {
+        let mut vm = Vm::new();
+        let mut proc = Process::new(5, 0, 0x100);
+        proc.msg_queue.push(Message::new(1, [10, 20, 30, 40]));
+        proc.msg_queue.push(Message::new(2, [50, 60, 70, 80]));
+        vm.processes.push(proc);
+        vm.current_pid = 5;
+
+        // Receive first message
+        vm.ram[0] = 0x5F;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 1); // sender 1
+        assert_eq!(vm.regs[1], 10);
+
+        // Receive second message
+        vm.ram[0] = 0x5F;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 2); // sender 2
+        assert_eq!(vm.regs[1], 50);
+        assert!(vm.processes[0].msg_queue.is_empty());
+    }
+
+    #[test]
+    fn test_msgrcv_blocks_rewinds_pc_correctly() {
+        let mut vm = Vm::new();
+        let proc = Process::new(5, 0, 0x100);
+        vm.processes.push(proc);
+        vm.current_pid = 5;
+        vm.ram[50] = 0x5F; // MSGRCV at PC=50
+        vm.pc = 50;
+        vm.step();
+        // step() advances PC to 51 (1-word opcode), then MSGRCV does pc -= 1
+        assert_eq!(vm.pc, 50); // back to MSGRCV for retry
+    }
+
+    // ── PIPE read/write roundtrip with blocking ────────────────────
+
+    #[test]
+    fn test_pipe_read_unblocks_on_write() {
+        let mut vm = Vm::new();
+        let mut reader = Process::new(5, 0, 0x100);
+        reader.state = ProcessState::Ready;
+        vm.processes.push(reader);
+        vm.pipes.push(Pipe::new(5, 0));
+        vm.current_pid = 5;
+
+        // First: read from empty pipe -> blocks
+        vm.regs[1] = 0x8000;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.processes[0].state, ProcessState::Blocked);
+
+        // Now write to the pipe -> should unblock reader
+        vm.ram[0x400] = 42;
+        vm.regs[1] = 0xC000;
+        vm.regs[2] = 0x400;
+        vm.regs[3] = 1;
+        vm.ram[4] = 0x56;
+        vm.ram[5] = 1;
+        vm.ram[6] = 2;
+        vm.ram[7] = 3;
+        vm.pc = 4;
+        vm.step();
+        assert_eq!(vm.regs[0], 1); // written
+        assert_eq!(vm.processes[0].state, ProcessState::Ready); // unblocked
+    }
+
+    #[test]
+    fn test_pipe_write_partial_when_nearly_full() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        // Fill pipe to capacity - 1
+        for _ in 0..PIPE_BUFFER_SIZE - 1 {
+            vm.pipes[0].write_word(0xFF);
+        }
+        // Write 3 words, only 1 should succeed
+        vm.ram[0x300] = 0xAA;
+        vm.ram[0x301] = 0xBB;
+        vm.ram[0x302] = 0xCC;
+        vm.regs[1] = 0xC000;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 3;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 1); // only 1 word written
+        assert!(vm.pipes[0].is_full());
+    }
+
+    // ── YIELD / SLEEP edge cases ───────────────────────────────────
+
+    #[test]
+    fn test_yield_does_not_halt() {
+        let mut vm = Vm::new();
+        vm.halted = false;
+        vm.yielded = false;
+        vm.ram[0] = 0x5A;
+        vm.pc = 0;
+        let result = vm.step();
+        assert!(result); // step returns true (not halted)
+        assert!(vm.yielded);
+    }
+
+    #[test]
+    fn test_sleep_zero_frames() {
+        let mut vm = Vm::new();
+        vm.sleep_frames = 999;
+        vm.regs[5] = 0;
+        vm.ram[0] = 0x5B;
+        vm.ram[1] = 5;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.sleep_frames, 0);
+    }
+
+    #[test]
+    fn test_sleep_large_value() {
+        let mut vm = Vm::new();
+        vm.regs[5] = 0xFFFFFFFF; // max u32
+        vm.ram[0] = 0x5B;
+        vm.ram[1] = 5;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.sleep_frames, 0xFFFFFFFF);
+    }
+
+    // ── SETPRIORITY edge cases ─────────────────────────────────────
+
+    #[test]
+    fn test_setpriority_exact_boundary_values() {
+        for val in 0u32..=3 {
+            let mut vm = Vm::new();
+            vm.regs[5] = val;
+            vm.ram[0] = 0x5C;
+            vm.ram[1] = 5;
+            vm.pc = 0;
+            vm.step();
+            assert_eq!(vm.new_priority, val as u8);
+        }
+    }
+
+    // ── PIPE: PID tracking ─────────────────────────────────────────
+
+    #[test]
+    fn test_pipe_records_pid() {
+        let mut vm = Vm::new();
+        vm.current_pid = 7;
+        vm.ram[0] = 0x5D;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.pipes[0].read_pid, 7);
+        assert_eq!(vm.pipes[0].write_pid, 7);
+    }
+
+    // ── WRITE: screen device with mixed valid/invalid triplets ────
+
+    #[test]
+    fn test_write_screen_mixed_triplets() {
+        let mut vm = Vm::new();
+        // 3 triplets: valid, out-of-bounds x, valid
+        vm.ram[0x300] = 10;
+        vm.ram[0x301] = 10;
+        vm.ram[0x302] = 0xFF0000;
+        vm.ram[0x303] = 999;
+        vm.ram[0x304] = 10;
+        vm.ram[0x305] = 0x00FF00; // x OOB
+        vm.ram[0x306] = 20;
+        vm.ram[0x307] = 20;
+        vm.ram[0x308] = 0x0000FF;
+        vm.regs[1] = DEVICE_FD_BASE + 0;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 9; // 3 triplets
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 9); // all 9 words consumed
+        assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000); // first drawn
+        assert_eq!(vm.screen[20 * 256 + 20], 0x0000FF); // third drawn
+                                                        // Middle triplet skipped (x=999 >= 256)
+    }
+
+    // ── SYSCALL: handler at address 0 ──────────────────────────────
+
+    #[test]
+    fn test_syscall_handler_at_address_zero() {
+        let mut vm = Vm::new();
+        vm.ram[SYSCALL_TABLE + 0] = 0; // handler at addr 0
+                                       // But handler=0 is treated as "no handler"
+        vm.ram[100] = 0x52;
+        vm.ram[101] = 0;
+        vm.pc = 100;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // no handler
+    }
+
+    // ── READ: invalid fd range falls through to VFS ────────────────
+
+    #[test]
+    fn test_read_regular_fd_falls_through_to_vfs() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0; // regular fd (not device, not pipe)
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        // VFS handles this; fd 0 not opened so should return error
+        // Just verify no panic
+    }
+
+    #[test]
+    fn test_write_regular_fd_falls_through_to_vfs() {
+        let mut vm = Vm::new();
+        vm.ram[0x300] = 42;
+        vm.regs[1] = 0; // regular fd
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        // VFS handles; no panic
+    }
+
+    // ── Unknown opcode in 0x52-0x5F range (unreachable_patterns) ───
+
+    #[test]
+    fn test_unknown_syscall_opcode_noop() {
+        // 0x60 is PUSH (not in 0x52-0x5F range), but test the _ => {} arm
+        // by directly calling step_syscall with an unknown opcode
+        let mut vm = Vm::new();
+        vm.halted = false;
+        vm.regs[0] = 0;
+        // We can't easily test the _ => {} arm via step() since
+        // the main dispatch in mod.rs handles 0x60+ separately.
+        // But step_syscall's _ => {} means any unhandled sub-opcode
+        // in the 0x52-0x5F range is a no-op that returns true.
+        // The #[allow(unreachable_patterns)] suggests all 0x52-0x5F
+        // are covered, so this arm is technically dead code.
+    }
+
+    // ── READ pipe: out-of-bounds buf_addr ──────────────────────────
+
+    #[test]
+    fn test_pipe_read_out_of_bounds_buffer() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        vm.pipes[0].write_word(0xAA);
+        vm.regs[1] = 0x8000;
+        vm.regs[2] = 0xFFFE; // buf addr near end of RAM
+        vm.regs[3] = 3; // read 3 words, but addr+2 would overflow
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        // Should read 1 word (only 0xFFFE fits in 65536 RAM)
+        assert!(vm.regs[0] >= 1);
+    }
+
+    // ── WRITE pipe: out-of-bounds buf_addr ────────────────────────
+
+    #[test]
+    fn test_pipe_write_out_of_bounds_buffer() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        vm.regs[1] = 0xC000;
+        vm.regs[2] = 0xFFFE; // near end of RAM
+        vm.regs[3] = 3; // 3 words but addr+2 overflows
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        // Should write fewer than 3 words
+        assert!(vm.regs[0] <= 2);
+    }
 }

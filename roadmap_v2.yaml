@@ -3542,7 +3542,7 @@ phases:
   test_target: 8
   scope_lines_total: 180
   _claimed_by: worker-0
-  _claimed_at: 1778153129
+  _claimed_at: 1778156073
 - id: phase-247
   title: Test Coverage -- MCP Server Integration Tests
   status: todo
@@ -4667,12 +4667,13 @@ phases:
 - id: phase-275
   title: User-Driven Self-Hosting -- Native Assembler Shell Utility
   status: todo
-  goal: Implement a native 'as' command in the shell to enable the full in-guest development loop
-  description: While the ASM opcode and nano_editor exists, there is no way for a user
-    to assemble a file from the VFS into bytecode without host intervention. Add an
-    'as <src.asm> <dst.png>' command to shell.asm. It will read the source file from
-    VFS, use the ASM opcode to generate bytecode, and write the result as a pixelpack-encoded
-    PNG back to the VFS. This completes Level 3 self-hosting.
+  goal: Implement a native 'as' command in the shell to enable the full in-guest development
+    loop
+  description: While the ASM opcode and nano_editor exists, there is no way for a
+    user to assemble a file from the VFS into bytecode without host intervention.
+    Add an 'as <src.asm> <dst.png>' command to shell.asm. It will read the source
+    file from VFS, use the ASM opcode to generate bytecode, and write the result as
+    a pixelpack-encoded PNG back to the VFS. This completes Level 3 self-hosting.
   deliverables:
   - name: Native 'as' command in shell.asm
     status: todo
@@ -4687,8 +4688,9 @@ phases:
     - id: p275.d1.t2
       title: Integration with ASM opcode and VFS write
       description: Execute ASM opcode on the source buffer. On success, take the bytecode
-        from the output buffer and write it to the destination PNG file via SAVEPNG or
-        manual pixelpack encoding. Handle errors by displaying the ASM error port (0xFFD).
+        from the output buffer and write it to the destination PNG file via SAVEPNG
+        or manual pixelpack encoding. Handle errors by displaying the ASM error port
+        (0xFFD).
       scope_files:
       - programs/shell.asm
       scope_lines: 80

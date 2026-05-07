@@ -76,4 +76,4 @@ def generate_dataset(source_dirs, output_file):
     print(f"Compression Ratio: {total_chars / (total_seeds * 4):.2f}x (chars per byte-of-seeds)")
 
 if __name__ == "__main__":
-    generate_dataset(["programs", "lib"], "pixel_llm_dataset.npz")
+    generate_dataset(["programs", "lib", "synthetic_programs"], "pixel_llm_dataset.npz")
