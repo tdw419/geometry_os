@@ -7214,7 +7214,7 @@ phases:
       to RAM. P previews with SPRITE opcode.
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p142.d1.t1
       title: Grid-based pixel editor with cursor
@@ -7247,7 +7247,7 @@ phases:
       Twinkle, Ode to Joy, Mary Had a Lamb).
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p143.d1.t1
       title: Note frequency lookup table
@@ -7279,7 +7279,7 @@ phases:
       G prompts for address. S searches for byte value. E edits byte at cursor.
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p144.d1.t1
       title: Hex dump display with scrolling
@@ -7311,7 +7311,7 @@ phases:
       filename and size. Arrow keys navigate. Enter loads file. R runs via EXEC.
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p145.d1.t1
       title: List programs directory
@@ -7375,7 +7375,7 @@ phases:
       cursor, space paints.
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p147.d1.t1
       title: Canvas with cursor and painting
@@ -7408,7 +7408,7 @@ phases:
       cyan, AI in white.
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p148.d1.t1
       title: Chat log display with scrolling
@@ -7473,7 +7473,7 @@ phases:
       playing. Frame counter and duration display.
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p150.d1.t1
       title: Frame capture with delta compression
@@ -7506,7 +7506,7 @@ phases:
       Visual: worker boxes showing PID/state/current task.
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p151.d1.t1
       title: Worker process spawn and pipe setup
@@ -7539,7 +7539,7 @@ phases:
       area). Supports alphanumeric characters with error correction level L.
 
       '
-    status: todo
+    status: superseded
     tasks:
     - id: p152.d1.t1
       title: QR code data encoding
@@ -9686,7 +9686,7 @@ phases:
   test_target: 4
 - id: phase-202
   title: Fix Preflight Script TimeoutExpired Crash (phase-168 regression)
-  status: planned
+  status: done
   goal: The preflight QA script must handle cargo test timeouts gracefully instead
     of crashing with an uncaught exception
   description: 'Dogfood QA preflight script (geo_dogfood_qa.py) crashed with uncaught
@@ -9702,7 +9702,7 @@ phases:
     agents aren''t left without data.'
   deliverables:
   - name: Graceful timeout handling in geo_dogfood_qa.py
-    status: todo
+    status: done
     tasks:
     - id: p202.d1.t1
       title: Wrap check_build_status() subprocess call in try/except TimeoutExpired
@@ -11068,388 +11068,633 @@ phases:
   scope_lines_total: 5
   test_target: 0
 - id: phase-259
-  title: "Add font_test.asm to test_all_programs_assemble skip list (RISC-V program in GeoASM directory)"
+  title: Add font_test.asm to test_all_programs_assemble skip list (RISC-V program
+    in GeoASM directory)
   status: planned
-  goal: "test_all_programs_assemble skips font_test.asm, reducing failures from 5 to 4"
-  description: "font_test.asm was committed in 2e4e47ec as part of phase-218 (bitmap font renderer for RISC-V guest). It uses RISC-V assembly syntax (LOAD R0 0x000033, FONT_SELECT, TEXT with register args) which is not valid GeoASM. The GeoASM assembler reports 'invalid register: 0x000033' at line 14. The file should be added to the skip list in tests/program_tests/basic_programs.rs alongside other RISC-V programs like test_vfs_pixel.asm. Alternative: move the file to a programs/riscv/ subdirectory, but adding to skip list is simpler and consistent with the existing pattern."
+  goal: test_all_programs_assemble skips font_test.asm, reducing failures from 5 to
+    4
+  description: 'font_test.asm was committed in 2e4e47ec as part of phase-218 (bitmap
+    font renderer for RISC-V guest). It uses RISC-V assembly syntax (LOAD R0 0x000033,
+    FONT_SELECT, TEXT with register args) which is not valid GeoASM. The GeoASM assembler
+    reports ''invalid register: 0x000033'' at line 14. The file should be added to
+    the skip list in tests/program_tests/basic_programs.rs alongside other RISC-V
+    programs like test_vfs_pixel.asm. Alternative: move the file to a programs/riscv/
+    subdirectory, but adding to skip list is simpler and consistent with the existing
+    pattern.'
   deliverables:
   - name: Add font_test.asm to skip list
-    description: "In tests/program_tests/basic_programs.rs, add \"font_test.asm\" to the skip array with comment '// RISC-V assembly (LOAD/FONT_SELECT/TEXT), not GeoASM'. This matches the pattern used for test_vfs_pixel.asm."
+    description: In tests/program_tests/basic_programs.rs, add "font_test.asm" to
+      the skip array with comment '// RISC-V assembly (LOAD/FONT_SELECT/TEXT), not
+      GeoASM'. This matches the pattern used for test_vfs_pixel.asm.
     status: todo
     tasks:
     - id: p259.d1.t1
       title: Add font_test.asm to skip list in basic_programs.rs
       status: todo
-      description: "In tests/program_tests/basic_programs.rs, in the skip array (around line 317), add \"font_test.asm\" with a comment explaining it's RISC-V assembly. Place it near test_vfs_pixel.asm for logical grouping."
+      description: In tests/program_tests/basic_programs.rs, in the skip array (around
+        line 317), add "font_test.asm" with a comment explaining it's RISC-V assembly.
+        Place it near test_vfs_pixel.asm for logical grouping.
       scope_lines: 2
     - id: p259.d1.t2
       title: Verify test_all_programs_assemble drops to 4 failures
       status: todo
-      description: "Run cargo test --test program_tests basic_programs::test_all_programs_assemble. Expect 4 of 176 programs to fail (click_test.asm, shell.asm, mouse_demo.asm, nano_editor.asm), with font_test.asm now in the skipped count."
+      description: Run cargo test --test program_tests basic_programs::test_all_programs_assemble.
+        Expect 4 of 176 programs to fail (click_test.asm, shell.asm, mouse_demo.asm,
+        nano_editor.asm), with font_test.asm now in the skipped count.
       scope_lines: 0
     scope_lines: 2
   scope_lines_total: 2
   test_target: 1
 - id: phase-260
-  title: "Fix p219_screen_capture.asm: JNZ requires 2 arguments"
+  title: 'Fix p219_screen_capture.asm: JNZ requires 2 arguments'
   status: planned
-  goal: "p219_screen_capture.asm assembles cleanly, reducing test_all_programs_assemble failures from 6 to 5"
-  description: "p219_screen_capture.asm was committed in e0168216 (phase-219, screen buffer LOAD readback verification). It fails to assemble with 'JNZ requires 2 arguments: JNZ reg, addr' at line 73. The instruction is written as 'JNZ COPY_LOOP' (one argument) but the GeoASM assembler requires the form 'JNZ r12, COPY_LOOP' (register + label). This is a simple syntax fix — add the register argument r12 (the loop counter being compared to zero via the preceding CMPI r12, 0)."
+  goal: p219_screen_capture.asm assembles cleanly, reducing test_all_programs_assemble
+    failures from 6 to 5
+  description: 'p219_screen_capture.asm was committed in e0168216 (phase-219, screen
+    buffer LOAD readback verification). It fails to assemble with ''JNZ requires 2
+    arguments: JNZ reg, addr'' at line 73. The instruction is written as ''JNZ COPY_LOOP''
+    (one argument) but the GeoASM assembler requires the form ''JNZ r12, COPY_LOOP''
+    (register + label). This is a simple syntax fix — add the register argument r12
+    (the loop counter being compared to zero via the preceding CMPI r12, 0).'
   deliverables:
   - name: Fix JNZ instruction in p219_screen_capture.asm
-    description: "At programs/p219_screen_capture.asm line 73, change 'JNZ COPY_LOOP' to 'JNZ r12, COPY_LOOP'. The register r12 is the loop counter decremented by SUBI r12, 1 and compared with CMPI r12, 0 on the preceding lines, so it is the correct register for the conditional jump."
+    description: At programs/p219_screen_capture.asm line 73, change 'JNZ COPY_LOOP'
+      to 'JNZ r12, COPY_LOOP'. The register r12 is the loop counter decremented by
+      SUBI r12, 1 and compared with CMPI r12, 0 on the preceding lines, so it is the
+      correct register for the conditional jump.
     status: todo
     tasks:
     - id: p260.d1.t1
       title: Fix JNZ syntax in p219_screen_capture.asm line 73
       status: todo
-      description: "Edit programs/p219_screen_capture.asm line 73. Change 'JNZ COPY_LOOP' to 'JNZ r12, COPY_LOOP'. This matches the JNZ two-argument form documented in the assembler (JNZ reg, addr)."
+      description: Edit programs/p219_screen_capture.asm line 73. Change 'JNZ COPY_LOOP'
+        to 'JNZ r12, COPY_LOOP'. This matches the JNZ two-argument form documented
+        in the assembler (JNZ reg, addr).
       scope_lines: 1
     - id: p260.d1.t2
       title: Verify p219_screen_capture.asm assembles and runs correctly
       status: todo
-      description: "Run cargo test --test program_tests basic_programs::test_all_programs_assemble. Expect p219_screen_capture.asm to now pass, reducing failures from 6 to 5 (remaining: click_test.asm, shell.asm, mouse_demo.asm, font_test.asm, nano_editor.asm). Also run the program in the VM to verify the screen capture logic works: draws 10 pixels, copies to RAM, verifies first pixel is red, shows green pass bar."
+      description: 'Run cargo test --test program_tests basic_programs::test_all_programs_assemble.
+        Expect p219_screen_capture.asm to now pass, reducing failures from 6 to 5
+        (remaining: click_test.asm, shell.asm, mouse_demo.asm, font_test.asm, nano_editor.asm).
+        Also run the program in the VM to verify the screen capture logic works: draws
+        10 pixels, copies to RAM, verifies first pixel is red, shows green pass bar.'
       scope_lines: 0
     scope_lines: 1
   scope_lines_total: 1
   test_target: 1
 - id: phase-261
-  title: "Web IDE backend liveness detection and stale socket cleanup"
+  title: Web IDE backend liveness detection and stale socket cleanup
   status: planned
-  goal: "geos_web_ide.py detects when the VM backend dies, reports it to the browser, and cleans up stale /tmp/geo_cmd.sock"
-  description: "Discovered during dogfood QA: the GeOS web IDE frontend (geos_web_ide.py on port 3841) stays running even when the geometry_os VM backend dies. The stale /tmp/geo_cmd.sock file remains on disk with no listener, making every WebSocket command silently fail. The preflight QA script reports 'GeOS running' because it only checks for the web IDE process, not the actual VM backend. This creates a misleading state where the IDE appears functional but cannot load, run, or screenshot anything. The fix has two parts: (1) geos_web_ide.py should periodically check socket liveness (e.g., try a non-blocking connect to /tmp/geo_cmd.sock every 10s) and push a 'backend-down' status event to all connected WebSocket clients; (2) the preflight QA script (or its wrapper) should verify the VM backend process is actually listening on the socket, not just that the web IDE process exists."
+  goal: geos_web_ide.py detects when the VM backend dies, reports it to the browser,
+    and cleans up stale /tmp/geo_cmd.sock
+  description: 'Discovered during dogfood QA: the GeOS web IDE frontend (geos_web_ide.py
+    on port 3841) stays running even when the geometry_os VM backend dies. The stale
+    /tmp/geo_cmd.sock file remains on disk with no listener, making every WebSocket
+    command silently fail. The preflight QA script reports ''GeOS running'' because
+    it only checks for the web IDE process, not the actual VM backend. This creates
+    a misleading state where the IDE appears functional but cannot load, run, or screenshot
+    anything. The fix has two parts: (1) geos_web_ide.py should periodically check
+    socket liveness (e.g., try a non-blocking connect to /tmp/geo_cmd.sock every 10s)
+    and push a ''backend-down'' status event to all connected WebSocket clients; (2)
+    the preflight QA script (or its wrapper) should verify the VM backend process
+    is actually listening on the socket, not just that the web IDE process exists.'
   deliverables:
-  - name: "Add socket liveness probe to geos_web_ide.py"
-    description: "In tools/geos_web_ide.py, add a background asyncio task that attempts a non-blocking connect to the Unix socket every 10 seconds. If the connect fails (ConnectionRefused or ENOENT), set a shared state variable backend_alive=False and broadcast a JSON message {'type': 'status', 'backend': 'down'} to all connected WebSocket clients. When the backend comes back, broadcast {'type': 'status', 'backend': 'up'}. The HTML frontend should display this status in the header bar (red indicator when down, green when up)."
+  - name: Add socket liveness probe to geos_web_ide.py
+    description: 'In tools/geos_web_ide.py, add a background asyncio task that attempts
+      a non-blocking connect to the Unix socket every 10 seconds. If the connect fails
+      (ConnectionRefused or ENOENT), set a shared state variable backend_alive=False
+      and broadcast a JSON message {''type'': ''status'', ''backend'': ''down''} to
+      all connected WebSocket clients. When the backend comes back, broadcast {''type'':
+      ''status'', ''backend'': ''up''}. The HTML frontend should display this status
+      in the header bar (red indicator when down, green when up).'
     status: todo
     tasks:
     - id: p261.d1.t1
-      title: "Add asyncio liveness probe task to geos_web_ide.py"
+      title: Add asyncio liveness probe task to geos_web_ide.py
       status: todo
-      description: "Add a periodic task using asyncio.create_task() that calls socket.socket + connect_ex to /tmp/geo_cmd.sock every 10 seconds. Store result in a global or passed-around variable. On transition from alive->dead or dead->alive, log it."
+      description: Add a periodic task using asyncio.create_task() that calls socket.socket
+        + connect_ex to /tmp/geo_cmd.sock every 10 seconds. Store result in a global
+        or passed-around variable. On transition from alive->dead or dead->alive,
+        log it.
       scope_lines: 25
     - id: p261.d1.t2
-      title: "Broadcast backend status to WebSocket clients"
+      title: Broadcast backend status to WebSocket clients
       status: todo
-      description: "Maintain a set of connected websocket references. When backend status changes, iterate and send {'type': 'status', 'backend': 'up'/'down'} to each. Handle Disconnected errors gracefully."
+      description: 'Maintain a set of connected websocket references. When backend
+        status changes, iterate and send {''type'': ''status'', ''backend'': ''up''/''down''}
+        to each. Handle Disconnected errors gracefully.'
       scope_lines: 20
     - id: p261.d1.t3
-      title: "Show backend status indicator in geos_ide.html header"
+      title: Show backend status indicator in geos_ide.html header
       status: todo
-      description: "In the HTML frontend, add a small colored dot in the header bar next to the status display. Green when backend is up, red when down. Listen for the 'status' WebSocket message type to update it."
+      description: In the HTML frontend, add a small colored dot in the header bar
+        next to the status display. Green when backend is up, red when down. Listen
+        for the 'status' WebSocket message type to update it.
       scope_lines: 15
     scope_lines: 60
-  - name: "Fix preflight QA to verify VM backend liveness"
-    description: "The dogfood QA preflight (or its cron wrapper) should not just check if geos_web_ide.py PID exists — it should also verify that /tmp/geo_cmd.sock has an active listener. This can be done with a non-blocking connect attempt or by checking if any process has the socket open (lsof/ss). Report GEOS_RUNNING=false if the socket is stale."
+  - name: Fix preflight QA to verify VM backend liveness
+    description: The dogfood QA preflight (or its cron wrapper) should not just check
+      if geos_web_ide.py PID exists — it should also verify that /tmp/geo_cmd.sock
+      has an active listener. This can be done with a non-blocking connect attempt
+      or by checking if any process has the socket open (lsof/ss). Report GEOS_RUNNING=false
+      if the socket is stale.
     status: todo
     tasks:
     - id: p261.d2.t1
-      title: "Add socket liveness check to QA preflight"
+      title: Add socket liveness check to QA preflight
       status: todo
-      description: "In the QA preflight script, after finding GeOS PIDs, attempt a non-blocking connect to /tmp/geo_cmd.sock. If it fails, set geos_running=false. This prevents false 'all green' reports when only the web IDE is running."
+      description: In the QA preflight script, after finding GeOS PIDs, attempt a
+        non-blocking connect to /tmp/geo_cmd.sock. If it fails, set geos_running=false.
+        This prevents false 'all green' reports when only the web IDE is running.
       scope_lines: 10
     scope_lines: 10
   scope_lines_total: 70
   test_target: 0
-
 - id: phase-262
-  title: "Fix duplicate Yielded match arm in riscv_fuzzer.rs"
+  title: Fix duplicate Yielded match arm in riscv_fuzzer.rs
   status: planned
-  goal: "Eliminate 'unreachable pattern' compiler warning in riscv_fuzzer.rs"
-  description: "src/riscv_fuzzer.rs line 1482-1483 has a duplicate 'cpu::StepResult::Yielded => {}' match arm. The second arm is unreachable since the first already matches. This was found during dogfood QA exploratory testing. While harmless at runtime, it indicates a copy-paste error and generates a compiler warning that adds noise to build output."
+  goal: Eliminate 'unreachable pattern' compiler warning in riscv_fuzzer.rs
+  description: src/riscv_fuzzer.rs line 1482-1483 has a duplicate 'cpu::StepResult::Yielded
+    => {}' match arm. The second arm is unreachable since the first already matches.
+    This was found during dogfood QA exploratory testing. While harmless at runtime,
+    it indicates a copy-paste error and generates a compiler warning that adds noise
+    to build output.
   deliverables:
-  - name: "Remove duplicate Yielded match arm"
-    description: "At src/riscv_fuzzer.rs line 1483, delete the duplicate 'cpu::StepResult::Yielded => {}' line. Verify with cargo build that the 'unreachable pattern' warning for riscv_fuzzer.rs is gone."
+  - name: Remove duplicate Yielded match arm
+    description: At src/riscv_fuzzer.rs line 1483, delete the duplicate 'cpu::StepResult::Yielded
+      => {}' line. Verify with cargo build that the 'unreachable pattern' warning
+      for riscv_fuzzer.rs is gone.
     status: todo
     tasks:
     - id: p262.d1.t1
-      title: "Delete duplicate Yielded arm at line 1483"
+      title: Delete duplicate Yielded arm at line 1483
       status: todo
-      description: "Edit src/riscv_fuzzer.rs. Remove line 1483 which is an exact duplicate of line 1482. Run cargo build --bin riscv_fuzzer and confirm no 'unreachable pattern' warning for this file."
+      description: Edit src/riscv_fuzzer.rs. Remove line 1483 which is an exact duplicate
+        of line 1482. Run cargo build --bin riscv_fuzzer and confirm no 'unreachable
+        pattern' warning for this file.
       scope_lines: 1
     scope_lines: 1
   scope_lines_total: 1
   test_target: 0
 - id: phase-263
-  title: "Fix suspicious_open_options in ops_host_fs.rs mode 3"
+  title: Fix suspicious_open_options in ops_host_fs.rs mode 3
   status: planned
-  goal: "Explicitly define behavior for read+write file open mode"
-  description: "src/vm/ops_host_fs.rs line 128 opens files in mode 3 (read+write) with .create(true) but no explicit clearing. Rust default preserves existing content so new writes append beyond old data. This differs from mode 1 (File::create) which always starts fresh. Found via clippy suspicious_open_options. Also fix ineffective_open_options in mode 2 (.write(true) is redundant with .append(true))."
+  goal: Explicitly define behavior for read+write file open mode
+  description: src/vm/ops_host_fs.rs line 128 opens files in mode 3 (read+write) with
+    .create(true) but no explicit clearing. Rust default preserves existing content
+    so new writes append beyond old data. This differs from mode 1 (File::create)
+    which always starts fresh. Found via clippy suspicious_open_options. Also fix
+    ineffective_open_options in mode 2 (.write(true) is redundant with .append(true)).
   deliverables:
-  - name: "Fix mode 3 open options to clear file on create"
-    description: "In src/vm/ops_host_fs.rs, after opening mode 3 file, call set_len(0) to clear it, matching mode 1 behavior. Also remove redundant .write(true) from mode 2."
+  - name: Fix mode 3 open options to clear file on create
+    description: In src/vm/ops_host_fs.rs, after opening mode 3 file, call set_len(0)
+      to clear it, matching mode 1 behavior. Also remove redundant .write(true) from
+      mode 2.
     status: todo
     tasks:
     - id: p263.d1.t1
-      title: "Add file clearing to mode 3 open in ops_host_fs.rs"
+      title: Add file clearing to mode 3 open in ops_host_fs.rs
       status: todo
-      description: "Edit src/vm/ops_host_fs.rs. After mode 3 OpenOptions open succeeds, call file.set_len(0) to ensure existing content is cleared. Verify with cargo clippy."
+      description: Edit src/vm/ops_host_fs.rs. After mode 3 OpenOptions open succeeds,
+        call file.set_len(0) to ensure existing content is cleared. Verify with cargo
+        clippy.
       scope_lines: 8
     scope_lines: 8
   scope_lines_total: 8
   test_target: 0
 - id: phase-264
-  title: "Fix clippy errors in test code (erasing_op, almost_swapped)"
+  title: Fix clippy errors in test code (erasing_op, almost_swapped)
   status: planned
-  goal: "Allow cargo clippy --all-targets to pass without errors"
-  description: "Running cargo clippy --all-targets produces 21 errors across tests/program_tests/basic_programs.rs, examples/test_boot_mmu.rs, and src/vm/tests.rs. 16 are erasing_op (0 * 256 in array indexing) and 7 are almost_swapped (save/restore of win_id with no mutation in between). These prevent clippy from being used as a CI gate."
+  goal: Allow cargo clippy --all-targets to pass without errors
+  description: Running cargo clippy --all-targets produces 21 errors across tests/program_tests/basic_programs.rs,
+    examples/test_boot_mmu.rs, and src/vm/tests.rs. 16 are erasing_op (0 * 256 in
+    array indexing) and 7 are almost_swapped (save/restore of win_id with no mutation
+    in between). These prevent clippy from being used as a CI gate.
   deliverables:
-  - name: "Fix erasing_op clippy errors in test and example code"
-    description: "Simplify expressions like 0 * 256 + n to just n in basic_programs.rs and test_boot_mmu.rs."
+  - name: Fix erasing_op clippy errors in test and example code
+    description: Simplify expressions like 0 * 256 + n to just n in basic_programs.rs
+      and test_boot_mmu.rs.
     status: todo
     tasks:
     - id: p264.d1.t1
-      title: "Simplify zero-multiplication expressions in basic_programs.rs"
+      title: Simplify zero-multiplication expressions in basic_programs.rs
       status: todo
-      description: "In tests/program_tests/basic_programs.rs, replace all 0 * 256 + n with n, 0 * CANVAS_COLS + n with n, and similar patterns."
+      description: In tests/program_tests/basic_programs.rs, replace all 0 * 256 +
+        n with n, 0 * CANVAS_COLS + n with n, and similar patterns.
       scope_lines: 40
     - id: p264.d1.t2
-      title: "Simplify zero-multiplication in test_boot_mmu.rs"
+      title: Simplify zero-multiplication in test_boot_mmu.rs
       status: todo
-      description: "In examples/test_boot_mmu.rs line 36, change boot_pt_addr + 0 * 4 to boot_pt_addr."
+      description: In examples/test_boot_mmu.rs line 36, change boot_pt_addr + 0 *
+        4 to boot_pt_addr.
       scope_lines: 2
     scope_lines: 42
-  - name: "Fix almost_swapped clippy errors in vm/tests.rs"
-    description: "7 instances of save-restore pattern for win_id with no intermediate mutation at lines 10705, 10757, 10800, 19512, 19747."
+  - name: Fix almost_swapped clippy errors in vm/tests.rs
+    description: 7 instances of save-restore pattern for win_id with no intermediate
+      mutation at lines 10705, 10757, 10800, 19512, 19747.
     status: todo
     tasks:
     - id: p264.d2.t1
-      title: "Audit and fix almost_swapped patterns in vm/tests.rs"
+      title: Audit and fix almost_swapped patterns in vm/tests.rs
       status: todo
-      description: "For each of the 7 instances, check if save/restore is needed. If not modified between, remove both lines. Otherwise add allow annotation with comment."
+      description: For each of the 7 instances, check if save/restore is needed. If
+        not modified between, remove both lines. Otherwise add allow annotation with
+        comment.
       scope_lines: 50
     scope_lines: 50
   scope_lines_total: 92
   test_target: 0
 - id: phase-265
-  title: "Fix socket 'halt' killing GeOS process in terminal_direct_mode"
+  title: Fix socket 'halt' killing GeOS process in terminal_direct_mode
   status: planned
-  goal: "Allow socket halt/run cycle without process exit"
-  description: "The socket 'halt' command (src/main.rs line 2551) sets both is_running=false AND vm.halted=true. When terminal_direct_mode is true (set during terminal.asm boot), the main loop at line 4218 checks 'terminal_direct_mode && vm.halted' and sets should_quit=true, killing the entire GeOS process. This makes it impossible to pause/resume the VM via socket commands. Additionally, loadasm (line 2624) doesn't reset terminal_direct_mode, so ANY loaded program that halts will kill the process. Found during dogfood QA exploratory testing."
+  goal: Allow socket halt/run cycle without process exit
+  description: The socket 'halt' command (src/main.rs line 2551) sets both is_running=false
+    AND vm.halted=true. When terminal_direct_mode is true (set during terminal.asm
+    boot), the main loop at line 4218 checks 'terminal_direct_mode && vm.halted' and
+    sets should_quit=true, killing the entire GeOS process. This makes it impossible
+    to pause/resume the VM via socket commands. Additionally, loadasm (line 2624)
+    doesn't reset terminal_direct_mode, so ANY loaded program that halts will kill
+    the process. Found during dogfood QA exploratory testing.
   deliverables:
-  - name: "Fix socket halt to not set vm.halted"
-    description: "In src/main.rs line 2549-2553, the 'halt' match arm should only set is_running=false, NOT vm.halted=true. The vm.halted flag should only be set by the actual HALT opcode execution, not by the pause command. This allows halt/run toggling without triggering should_quit."
+  - name: Fix socket halt to not set vm.halted
+    description: In src/main.rs line 2549-2553, the 'halt' match arm should only set
+      is_running=false, NOT vm.halted=true. The vm.halted flag should only be set
+      by the actual HALT opcode execution, not by the pause command. This allows halt/run
+      toggling without triggering should_quit.
     status: todo
     tasks:
     - id: p265.d1.t1
-      title: "Remove vm.halted = true from socket halt command"
+      title: Remove vm.halted = true from socket halt command
       status: todo
-      description: "Edit src/main.rs line 2551. Remove 'vm.halted = true;' so the halt command only pauses execution. Verify: start GeOS, run via socket, halt via socket, confirm process still alive, run again, confirm VM resumes."
+      description: 'Edit src/main.rs line 2551. Remove ''vm.halted = true;'' so the
+        halt command only pauses execution. Verify: start GeOS, run via socket, halt
+        via socket, confirm process still alive, run again, confirm VM resumes.'
       scope_lines: 3
     scope_lines: 3
-  - name: "Reset terminal_direct_mode in loadasm command"
-    description: "In src/main.rs around line 2656, after successfully loading and assembling a program via loadasm, set terminal_direct_mode = false. The loaded program is not the terminal, so the auto-quit-on-halt behavior should not apply."
+  - name: Reset terminal_direct_mode in loadasm command
+    description: In src/main.rs around line 2656, after successfully loading and assembling
+      a program via loadasm, set terminal_direct_mode = false. The loaded program
+      is not the terminal, so the auto-quit-on-halt behavior should not apply.
     status: todo
     tasks:
     - id: p265.d2.t1
-      title: "Add terminal_direct_mode = false after loadasm success"
+      title: Add terminal_direct_mode = false after loadasm success
       status: todo
-      description: "After the 'loadasm OK' status_msg assignment (around line 2656), add 'terminal_direct_mode = false;'. Verify: loadasm hello.asm, run, wait for HALT, confirm process still alive."
+      description: 'After the ''loadasm OK'' status_msg assignment (around line 2656),
+        add ''terminal_direct_mode = false;''. Verify: loadasm hello.asm, run, wait
+        for HALT, confirm process still alive.'
       scope_lines: 2
     scope_lines: 2
   scope_lines_total: 5
   test_target: 0
 - id: phase-266
-  title: "Fix scrollback buffer stride mismatch (SCROLLBACK_COLS=32 vs CANVAS_COLS=128)"
+  title: Fix scrollback buffer stride mismatch (SCROLLBACK_COLS=32 vs CANVAS_COLS=128)
   status: planned
-  goal: "Fix scrollback capturing wrong data due to stride mismatch between scrollback ring buffer and canvas buffer"
-  description: "The scrollback ring buffer in src/scrollback.rs uses SCROLLBACK_COLS=32 as both the line width and the row stride when reading from canvas_buffer. However, the actual canvas buffer stride is CANVAS_COLS=128 (defined in src/render.rs). This causes two bugs: (1) push_canvas_rows() reads from wrong offsets (row 1 reads bytes 32-63 instead of 128-159), capturing misaligned/garbage data; (2) even if stride were correct, only 32 of 128 pixels per row would be stored, truncating terminal output to ~5 characters wide. The rendering path in main.rs line 4647 also copies only 32 elements into a 128-wide canvas row, so even correct storage would display truncated. Found during dogfood QA code review."
+  goal: Fix scrollback capturing wrong data due to stride mismatch between scrollback
+    ring buffer and canvas buffer
+  description: 'The scrollback ring buffer in src/scrollback.rs uses SCROLLBACK_COLS=32
+    as both the line width and the row stride when reading from canvas_buffer. However,
+    the actual canvas buffer stride is CANVAS_COLS=128 (defined in src/render.rs).
+    This causes two bugs: (1) push_canvas_rows() reads from wrong offsets (row 1 reads
+    bytes 32-63 instead of 128-159), capturing misaligned/garbage data; (2) even if
+    stride were correct, only 32 of 128 pixels per row would be stored, truncating
+    terminal output to ~5 characters wide. The rendering path in main.rs line 4647
+    also copies only 32 elements into a 128-wide canvas row, so even correct storage
+    would display truncated. Found during dogfood QA code review.'
   deliverables:
-  - name: "Fix SCROLLBACK_COLS to match CANVAS_COLS"
-    description: "In src/scrollback.rs, change SCROLLBACK_COLS from 32 to 128 to match render::CANVAS_COLS. Update push_canvas_rows to use the correct stride for row offset calculation (row * CANVAS_COLS, not row * SCROLLBACK_COLS). The ring buffer memory usage increases from ~128KB to ~512KB (128 * 4 * 1024 lines) which is acceptable."
+  - name: Fix SCROLLBACK_COLS to match CANVAS_COLS
+    description: In src/scrollback.rs, change SCROLLBACK_COLS from 32 to 128 to match
+      render::CANVAS_COLS. Update push_canvas_rows to use the correct stride for row
+      offset calculation (row * CANVAS_COLS, not row * SCROLLBACK_COLS). The ring
+      buffer memory usage increases from ~128KB to ~512KB (128 * 4 * 1024 lines) which
+      is acceptable.
     status: todo
     tasks:
     - id: p266.d1.t1
-      title: "Change SCROLLBACK_COLS to 128 in scrollback.rs"
+      title: Change SCROLLBACK_COLS to 128 in scrollback.rs
       status: todo
-      description: "Update const SCROLLBACK_COLS from 32 to 128. This fixes both the stride mismatch and the width truncation. The existing tests use SCROLLBACK_COLS so they will adapt automatically. Update the comment about canvas dimensions matching."
+      description: Update const SCROLLBACK_COLS from 32 to 128. This fixes both the
+        stride mismatch and the width truncation. The existing tests use SCROLLBACK_COLS
+        so they will adapt automatically. Update the comment about canvas dimensions
+        matching.
       scope_lines: 5
     - id: p266.d1.t2
-      title: "Fix push_canvas_rows stride calculation"
+      title: Fix push_canvas_rows stride calculation
       status: todo
-      description: "In push_canvas_rows, change the row offset from 'row * SCROLLBACK_COLS' to 'row * CANVAS_COLS' where CANVAS_COLS is passed as a parameter or imported from render. Currently the function uses SCROLLBACK_COLS for both stride and width which is wrong since the canvas has a different stride."
+      description: In push_canvas_rows, change the row offset from 'row * SCROLLBACK_COLS'
+        to 'row * CANVAS_COLS' where CANVAS_COLS is passed as a parameter or imported
+        from render. Currently the function uses SCROLLBACK_COLS for both stride and
+        width which is wrong since the canvas has a different stride.
       scope_lines: 8
     scope_lines: 13
-  - name: "Fix scrollback rendering to use full width"
-    description: "In src/main.rs around line 4647, the scrollback rendering copies scrollback lines into sb_canvas with 'sb_canvas[offset..offset + CANVAS_COLS].copy_from_slice(line.as_slice())'. After fixing SCROLLBACK_COLS to 128, this will work correctly (128 elements copied into 128-wide row). Verify no other rendering code assumes 32-wide scrollback lines."
+  - name: Fix scrollback rendering to use full width
+    description: In src/main.rs around line 4647, the scrollback rendering copies
+      scrollback lines into sb_canvas with 'sb_canvas[offset..offset + CANVAS_COLS].copy_from_slice(line.as_slice())'.
+      After fixing SCROLLBACK_COLS to 128, this will work correctly (128 elements
+      copied into 128-wide row). Verify no other rendering code assumes 32-wide scrollback
+      lines.
     status: todo
     tasks:
     - id: p266.d2.t1
-      title: "Verify scrollback rendering uses correct width"
+      title: Verify scrollback rendering uses correct width
       status: todo
-      description: "After SCROLLBACK_COLS fix, verify the rendering path at line 4647 works correctly. The copy_from_slice should now match widths. Test by running terminal commands, entering scrollback with PageUp, and verifying the displayed content matches what was on screen."
+      description: After SCROLLBACK_COLS fix, verify the rendering path at line 4647
+        works correctly. The copy_from_slice should now match widths. Test by running
+        terminal commands, entering scrollback with PageUp, and verifying the displayed
+        content matches what was on screen.
       scope_lines: 3
     scope_lines: 3
   scope_lines_total: 16
   test_target: 0
 - id: phase-267
-  title: "Fix clippy errors in geos_term.rs (redundant conditions + absurd comparison)"
+  title: Fix clippy errors in geos_term.rs (redundant conditions + absurd comparison)
   status: planned
-  goal: "Eliminate all clippy errors in src/bin/geos_term.rs so cargo clippy --all-targets passes for this binary"
-  description: "Three clippy errors in geos_term.rs: (1) line 1124 'ch >= 128 && ch > 157' — the first condition is redundant since ch > 157 implies ch >= 128. The comment says 'Extended chars (128-157) — box drawing etc' and the continue skips them, but the condition actually only skips ch > 157, allowing 128-157 to fall through to fontdue rendering which likely can't handle them. The condition should be 'ch >= 128 && ch <= 157' to correctly skip box-drawing chars. (2) line 1780 same redundant condition pattern 'ch >= 127 && ch > 157'. Here the comment says 'Skip control chars, but allow extended chars 128-157' so the intent is to skip > 157, meaning the condition simplification to just 'ch > 157' is correct but should be written clearly. (3) line 1160 'coverage >= 255' where coverage is u8 — should be 'coverage == 255'. Found during dogfood QA clippy audit."
+  goal: Eliminate all clippy errors in src/bin/geos_term.rs so cargo clippy --all-targets
+    passes for this binary
+  description: 'Three clippy errors in geos_term.rs: (1) line 1124 ''ch >= 128 &&
+    ch > 157'' — the first condition is redundant since ch > 157 implies ch >= 128.
+    The comment says ''Extended chars (128-157) — box drawing etc'' and the continue
+    skips them, but the condition actually only skips ch > 157, allowing 128-157 to
+    fall through to fontdue rendering which likely can''t handle them. The condition
+    should be ''ch >= 128 && ch <= 157'' to correctly skip box-drawing chars. (2)
+    line 1780 same redundant condition pattern ''ch >= 127 && ch > 157''. Here the
+    comment says ''Skip control chars, but allow extended chars 128-157'' so the intent
+    is to skip > 157, meaning the condition simplification to just ''ch > 157'' is
+    correct but should be written clearly. (3) line 1160 ''coverage >= 255'' where
+    coverage is u8 — should be ''coverage == 255''. Found during dogfood QA clippy
+    audit.'
   deliverables:
-  - name: "Fix extended char skip condition at line 1124"
-    description: "Change 'if ch >= 128 && ch > 157' to 'if ch >= 128 && ch <= 157' to correctly skip box-drawing extended chars 128-157. The current code allows them to pass through to fontdue rendering which cannot display them, producing garbage."
+  - name: Fix extended char skip condition at line 1124
+    description: Change 'if ch >= 128 && ch > 157' to 'if ch >= 128 && ch <= 157'
+      to correctly skip box-drawing extended chars 128-157. The current code allows
+      them to pass through to fontdue rendering which cannot display them, producing
+      garbage.
     status: todo
     tasks:
     - id: p267.d1.t1
-      title: "Fix line 1124 condition to skip 128-157 range"
+      title: Fix line 1124 condition to skip 128-157 range
       status: todo
-      description: "In src/bin/geos_term.rs line 1124, change 'if ch >= 128 && ch > 157' to 'if ch >= 128 && ch <= 157'. This matches the comment 'Extended chars (128-157) -- box drawing etc' and correctly skips chars that fontdue cannot render."
+      description: In src/bin/geos_term.rs line 1124, change 'if ch >= 128 && ch >
+        157' to 'if ch >= 128 && ch <= 157'. This matches the comment 'Extended chars
+        (128-157) -- box drawing etc' and correctly skips chars that fontdue cannot
+        render.
       scope_lines: 3
     scope_lines: 3
-  - name: "Fix redundant condition at line 1780"
-    description: "Simplify 'if ch >= 127 && ch > 157' to 'if ch > 157'. The ch == 127 check on the next line is also redundant since ch > 157 already excludes 127, but keeping it is harmless for clarity."
+  - name: Fix redundant condition at line 1780
+    description: Simplify 'if ch >= 127 && ch > 157' to 'if ch > 157'. The ch == 127
+      check on the next line is also redundant since ch > 157 already excludes 127,
+      but keeping it is harmless for clarity.
     status: todo
     tasks:
     - id: p267.d2.t1
-      title: "Simplify line 1780 condition"
+      title: Simplify line 1780 condition
       status: todo
-      description: "In src/bin/geos_term.rs line 1780, change 'if ch >= 127 && ch > 157' to 'if ch > 157'. Verify cargo clippy --bin geos-term no longer flags this line."
+      description: In src/bin/geos_term.rs line 1780, change 'if ch >= 127 && ch >
+        157' to 'if ch > 157'. Verify cargo clippy --bin geos-term no longer flags
+        this line.
       scope_lines: 3
     scope_lines: 3
-  - name: "Fix absurd comparison at line 1160"
-    description: "Change 'coverage >= 255' to 'coverage == 255' since coverage is u8 and 255 is the max value for u8."
+  - name: Fix absurd comparison at line 1160
+    description: Change 'coverage >= 255' to 'coverage == 255' since coverage is u8
+      and 255 is the max value for u8.
     status: todo
     tasks:
     - id: p267.d3.t1
-      title: "Fix coverage comparison at line 1160"
+      title: Fix coverage comparison at line 1160
       status: todo
-      description: "In src/bin/geos_term.rs line 1160, change 'if coverage >= 255' to 'if coverage == 255'. Verify cargo clippy --bin geos-term no longer flags this."
+      description: In src/bin/geos_term.rs line 1160, change 'if coverage >= 255'
+        to 'if coverage == 255'. Verify cargo clippy --bin geos-term no longer flags
+        this.
       scope_lines: 1
     scope_lines: 1
   scope_lines_total: 7
   test_target: 0
 - id: phase-268
-  title: "Fix test_ai_agent_vision_api_no_mock_fallback hanging cargo test"
+  title: Fix test_ai_agent_vision_api_no_mock_fallback hanging cargo test
   status: planned
-  goal: "Prevent cargo test --lib from hanging when Ollama is unavailable"
-  description: "The test test_ai_agent_vision_api_no_mock_fallback in src/vm/tests.rs calls real Ollama via call_ollama_vision -> call_vision_llm which spawns curl with --max-time 120. When Ollama is not running, this blocks for up to 120 seconds, causing cargo test --lib to time out (the 90s QA timeout kills it, returning 0 passed 0 failed). This blocks all CI and QA. The test should be marked #[ignore] with a comment explaining it requires a running Ollama instance, since the mock variant (test_ai_agent_perception_op4_mock) already covers the code path with mocked responses."
+  goal: Prevent cargo test --lib from hanging when Ollama is unavailable
+  description: 'The test test_ai_agent_vision_api_no_mock_fallback in src/vm/tests.rs
+    calls real Ollama via call_ollama_vision -> call_vision_llm which spawns curl
+    with --max-time 120. When Ollama is not running, this blocks for up to 120 seconds,
+    causing cargo test --lib to time out (the 90s QA timeout kills it, returning 0
+    passed 0 failed). This blocks all CI and QA. The test should be marked #[ignore]
+    with a comment explaining it requires a running Ollama instance, since the mock
+    variant (test_ai_agent_perception_op4_mock) already covers the code path with
+    mocked responses.'
   deliverables:
-  - name: "Mark test_ai_agent_vision_api_no_mock_fallback as #[ignore]"
-    description: "Add #[ignore] attribute to the test function at src/vm/tests.rs line 15614. Add a doc comment: '// Ignored by default — requires running Ollama. Run with: cargo test --lib -- --ignored test_ai_agent_vision_api_no_mock_fallback'. This matches the pattern used by other integration tests that depend on external services."
+  - name: 'Mark test_ai_agent_vision_api_no_mock_fallback as #[ignore]'
+    description: 'Add #[ignore] attribute to the test function at src/vm/tests.rs
+      line 15614. Add a doc comment: ''// Ignored by default — requires running Ollama.
+      Run with: cargo test --lib -- --ignored test_ai_agent_vision_api_no_mock_fallback''.
+      This matches the pattern used by other integration tests that depend on external
+      services.'
     status: todo
     tasks:
     - id: p268.d1.t1
-      title: "Add #[ignore] to test_ai_agent_vision_api_no_mock_fallback"
+      title: 'Add #[ignore] to test_ai_agent_vision_api_no_mock_fallback'
       status: todo
-      description: "Edit src/vm/tests.rs. Add #[ignore] attribute before fn test_ai_agent_vision_api_no_mock_fallback at line 15615. Add doc comment explaining why. Verify: cargo test --lib completes in under 30s."
+      description: 'Edit src/vm/tests.rs. Add #[ignore] attribute before fn test_ai_agent_vision_api_no_mock_fallback
+        at line 15615. Add doc comment explaining why. Verify: cargo test --lib completes
+        in under 30s.'
       scope_lines: 5
     scope_lines: 5
   scope_lines_total: 5
   test_target: 0
 - id: phase-269
-  title: "Fix clippy erasing_op errors in src/qemu/ansi.rs"
-  status: planned
-  goal: "Eliminate clippy errors in src/qemu/ansi.rs so cargo clippy --all-targets passes for this crate"
-  description: "Seven clippy errors in src/qemu/ansi.rs, all erasing_op (0 * CANVAS_COLS + n should just be n). Lines 954-956, 1124, 1135, 1210-1211, 1252. These are in test functions within the qemu/ansi module. Each occurrence is buf[0 * CANVAS_COLS + offset] which should be buf[offset]. Found during dogfood QA clippy audit."
+  title: Fix clippy erasing_op errors in src/qemu/ansi.rs
+  status: done
+  goal: Eliminate clippy errors in src/qemu/ansi.rs so cargo clippy --all-targets
+    passes for this crate
+  description: Seven clippy errors in src/qemu/ansi.rs, all erasing_op (0 * CANVAS_COLS
+    + n should just be n). Lines 954-956, 1124, 1135, 1210-1211, 1252. These are in
+    test functions within the qemu/ansi module. Each occurrence is buf[0 * CANVAS_COLS
+    + offset] which should be buf[offset]. Found during dogfood QA clippy audit.
   deliverables:
-  - name: "Simplify zero-multiplication expressions in qemu/ansi.rs tests"
-    description: "Replace all 7 instances of 0 * CANVAS_COLS + n with just n in src/qemu/ansi.rs test functions."
-    status: todo
+  - name: Simplify zero-multiplication expressions in qemu/ansi.rs tests
+    description: Replace all 7 instances of 0 * CANVAS_COLS + n with just n in src/qemu/ansi.rs
+      test functions.
+    status: done
     tasks:
     - id: p269.d1.t1
-      title: "Fix erasing_op in qemu/ansi.rs lines 954-956"
+      title: Fix erasing_op in qemu/ansi.rs lines 954-956
       status: todo
-      description: "Change buf[0 * CANVAS_COLS + 0] to buf[0], buf[0 * CANVAS_COLS + 1] to buf[1], buf[0 * CANVAS_COLS + 2] to buf[2]."
+      description: Change buf[0 * CANVAS_COLS + 0] to buf[0], buf[0 * CANVAS_COLS
+        + 1] to buf[1], buf[0 * CANVAS_COLS + 2] to buf[2].
       scope_lines: 5
     - id: p269.d1.t2
-      title: "Fix erasing_op in qemu/ansi.rs lines 1124, 1135"
+      title: Fix erasing_op in qemu/ansi.rs lines 1124, 1135
       status: todo
-      description: "Change buf[0 * CANVAS_COLS] to buf[0] at lines 1124 and 1135."
+      description: Change buf[0 * CANVAS_COLS] to buf[0] at lines 1124 and 1135.
       scope_lines: 4
     - id: p269.d1.t3
-      title: "Fix erasing_op in qemu/ansi.rs lines 1210-1211, 1252"
+      title: Fix erasing_op in qemu/ansi.rs lines 1210-1211, 1252
       status: todo
-      description: "Change buf[0 * CANVAS_COLS] to buf[0] and buf[0 * CANVAS_COLS + 1] to buf[1] at lines 1210, 1211, and 1252."
+      description: Change buf[0 * CANVAS_COLS] to buf[0] and buf[0 * CANVAS_COLS +
+        1] to buf[1] at lines 1210, 1211, and 1252.
       scope_lines: 5
     scope_lines: 14
   scope_lines_total: 14
   test_target: 0
-
 - id: phase-270
-  title: "Fix all remaining clippy erasing_op errors across src/ and tests/"
-  status: planned
-  goal: "Eliminate all clippy erasing_op errors so cargo clippy --all-targets passes for lib and test targets"
-  description: "Phase 269 fixed 7 erasing_op errors in src/qemu/ansi.rs but there are 23 more erasing_op errors across the codebase. These are all '0 * N + M' or 'N * 0 + M' patterns that evaluate to M. The errors are in: src/vm/tests.rs (lines 4503, 4540, 4545, 4661, 4869, 5061 — all '0x4000 + 42 * 0 + N' in VM syscall tests), tests/program_tests/basic_programs.rs (lines 108, 109, 120, 122, 124 — '0 * 256 + N' screen index), tests/program_tests/games.rs (line 2169 — '0 * 256 + x'), src/qemu/ansi.rs (additional lines 1125, 1136, 1212, 1253, 1424, 1723 beyond what phase-269 covers), src/riscv/virtio_blk.rs (lines 923, 953, 959, 965, 1039, 1064, 1070, 1076, 1153, 1178, 1183, 1188), src/vm/ops_syscall.rs (lines 596, 623, 737, 771, 794, 895, 1381, 1403, 1422, 1462, 1532, 1548, 1570, 1793, 1811, 2145, 2165), src/vm/ops_host_fs.rs (lines 1334, 1429, 1481), src/vm/net.rs (lines 669, 734), src/vm/mod.rs (line 3232), src/vm/http_tests.rs (line 411), src/vm/disasm.rs (line 2156), src/riscv/bus.rs (line 1032), src/riscv/decode/tests.rs (lines 219, 231, 440), src/riscv/framebuf.rs (lines 252, 267), src/riscv/gpu.rs (lines 344, 355), src/riscv/mmu.rs (lines 680, 974), src/riscv/socket.rs (lines 409, 419, 431, 462, 480), src/riscv/vfs_surface.rs (lines 347, 480), src/riscv/tests.rs (line 20), src/riscv/bridge.rs (line 365), src/scrollback.rs (line 178), src/vfs.rs (line 80), src/vision.rs (lines 470, 528), examples/test_boot_mmu.rs (lines 36, 75), tests/program_tests/shell.rs (lines 255-258, 272), tests/program_tests/self_host.rs (lines 218, 222, 327, 331, 661, 840-842), tests/program_tests/hypervisor.rs (line 338), tests/program_tests/kernel.rs (lines 338, 854), tests/program_tests/multiprocess.rs (lines 803, 808), tests/program_tests/opcodes.rs (lines 73, 80, 1734). Found during dogfood QA clippy audit."
+  title: Fix all remaining clippy erasing_op errors across src/ and tests/
+  status: done
+  goal: Eliminate all clippy erasing_op errors so cargo clippy --all-targets passes
+    for lib and test targets
+  description: 'Phase 269 fixed 7 erasing_op errors in src/qemu/ansi.rs but there
+    are 23 more erasing_op errors across the codebase. These are all ''0 * N + M''
+    or ''N * 0 + M'' patterns that evaluate to M. The errors are in: src/vm/tests.rs
+    (lines 4503, 4540, 4545, 4661, 4869, 5061 — all ''0x4000 + 42 * 0 + N'' in VM
+    syscall tests), tests/program_tests/basic_programs.rs (lines 108, 109, 120, 122,
+    124 — ''0 * 256 + N'' screen index), tests/program_tests/games.rs (line 2169 —
+    ''0 * 256 + x''), src/qemu/ansi.rs (additional lines 1125, 1136, 1212, 1253, 1424,
+    1723 beyond what phase-269 covers), src/riscv/virtio_blk.rs (lines 923, 953, 959,
+    965, 1039, 1064, 1070, 1076, 1153, 1178, 1183, 1188), src/vm/ops_syscall.rs (lines
+    596, 623, 737, 771, 794, 895, 1381, 1403, 1422, 1462, 1532, 1548, 1570, 1793,
+    1811, 2145, 2165), src/vm/ops_host_fs.rs (lines 1334, 1429, 1481), src/vm/net.rs
+    (lines 669, 734), src/vm/mod.rs (line 3232), src/vm/http_tests.rs (line 411),
+    src/vm/disasm.rs (line 2156), src/riscv/bus.rs (line 1032), src/riscv/decode/tests.rs
+    (lines 219, 231, 440), src/riscv/framebuf.rs (lines 252, 267), src/riscv/gpu.rs
+    (lines 344, 355), src/riscv/mmu.rs (lines 680, 974), src/riscv/socket.rs (lines
+    409, 419, 431, 462, 480), src/riscv/vfs_surface.rs (lines 347, 480), src/riscv/tests.rs
+    (line 20), src/riscv/bridge.rs (line 365), src/scrollback.rs (line 178), src/vfs.rs
+    (line 80), src/vision.rs (lines 470, 528), examples/test_boot_mmu.rs (lines 36,
+    75), tests/program_tests/shell.rs (lines 255-258, 272), tests/program_tests/self_host.rs
+    (lines 218, 222, 327, 331, 661, 840-842), tests/program_tests/hypervisor.rs (line
+    338), tests/program_tests/kernel.rs (lines 338, 854), tests/program_tests/multiprocess.rs
+    (lines 803, 808), tests/program_tests/opcodes.rs (lines 73, 80, 1734). Found during
+    dogfood QA clippy audit.'
   deliverables:
-  - name: "Fix erasing_op in src/vm/tests.rs"
-    description: "Simplify all '0x4000 + 42 * 0 + N' to '0x4000 + N' (6 occurrences around lines 4503-5061) and '0 * 256 + N' to 'N' where applicable."
-    status: todo
+  - name: Fix erasing_op in src/vm/tests.rs
+    description: Simplify all '0x4000 + 42 * 0 + N' to '0x4000 + N' (6 occurrences
+      around lines 4503-5061) and '0 * 256 + N' to 'N' where applicable.
+    status: done
     tasks:
     - id: p270.d1.t1
-      title: "Fix 42 * 0 patterns in vm/tests.rs"
+      title: Fix 42 * 0 patterns in vm/tests.rs
       status: todo
-      description: "Replace '0x4000 + 42 * 0 + N' with '0x4000 + N' at lines 4503, 4540, 4545, 4661, 4869, 5061. Also fix '0 * 256 + N' at lines 20894, 30762, 30860."
+      description: Replace '0x4000 + 42 * 0 + N' with '0x4000 + N' at lines 4503,
+        4540, 4545, 4661, 4869, 5061. Also fix '0 * 256 + N' at lines 20894, 30762,
+        30860.
       scope_lines: 20
     scope_lines: 20
-  - name: "Fix erasing_op in tests/program_tests/"
-    description: "Fix all '0 * 256 + N' patterns in basic_programs.rs, games.rs, shell.rs, self_host.rs, hypervisor.rs, kernel.rs, multiprocess.rs, opcodes.rs"
-    status: todo
+  - name: Fix erasing_op in tests/program_tests/
+    description: Fix all '0 * 256 + N' patterns in basic_programs.rs, games.rs, shell.rs,
+      self_host.rs, hypervisor.rs, kernel.rs, multiprocess.rs, opcodes.rs
+    status: done
     tasks:
     - id: p270.d2.t1
-      title: "Fix erasing_op in program_tests files"
+      title: Fix erasing_op in program_tests files
       status: todo
-      description: "Replace '0 * 256 + N' with 'N' and '0 * N' with '0' across all program test files. Also fix '42 * 0' in multiprocess.rs."
+      description: Replace '0 * 256 + N' with 'N' and '0 * N' with '0' across all
+        program test files. Also fix '42 * 0' in multiprocess.rs.
       scope_lines: 30
     scope_lines: 30
-  - name: "Fix erasing_op in src/qemu/ansi.rs (remaining)"
-    description: "Fix lines 1125, 1136, 1212, 1253, 1424, 1723 that were not covered by phase-269."
-    status: todo
+  - name: Fix erasing_op in src/qemu/ansi.rs (remaining)
+    description: Fix lines 1125, 1136, 1212, 1253, 1424, 1723 that were not covered
+      by phase-269.
+    status: done
     tasks:
     - id: p270.d3.t1
-      title: "Fix remaining qemu/ansi.rs erasing_op errors"
+      title: Fix remaining qemu/ansi.rs erasing_op errors
       status: todo
-      description: "Replace '0 * CANVAS_COLS + N' with just 'N' at the 6 remaining lines."
+      description: Replace '0 * CANVAS_COLS + N' with just 'N' at the 6 remaining
+        lines.
       scope_lines: 10
     scope_lines: 10
-  - name: "Fix erasing_op in src/riscv/ modules"
-    description: "Fix erasing_op errors in virtio_blk.rs, bus.rs, decode/tests.rs, framebuf.rs, gpu.rs, mmu.rs, socket.rs, vfs_surface.rs, tests.rs, bridge.rs"
-    status: todo
+  - name: Fix erasing_op in src/riscv/ modules
+    description: Fix erasing_op errors in virtio_blk.rs, bus.rs, decode/tests.rs,
+      framebuf.rs, gpu.rs, mmu.rs, socket.rs, vfs_surface.rs, tests.rs, bridge.rs
+    status: done
     tasks:
     - id: p270.d4.t1
-      title: "Fix erasing_op across riscv modules"
+      title: Fix erasing_op across riscv modules
       status: todo
-      description: "Systematically fix all '0 * N + M' and 'N * 0 + M' patterns in riscv subsystem files."
+      description: Systematically fix all '0 * N + M' and 'N * 0 + M' patterns in
+        riscv subsystem files.
       scope_lines: 40
     scope_lines: 40
-  - name: "Fix erasing_op in src/vm/ops_*.rs and src/vm/mod.rs"
-    description: "Fix erasing_op errors in ops_syscall.rs (16 locations), ops_host_fs.rs (3), ops_pty.rs (0 but check), net.rs (2), mod.rs (1), http_tests.rs (1), disasm.rs (1)"
-    status: todo
+  - name: Fix erasing_op in src/vm/ops_*.rs and src/vm/mod.rs
+    description: Fix erasing_op errors in ops_syscall.rs (16 locations), ops_host_fs.rs
+      (3), ops_pty.rs (0 but check), net.rs (2), mod.rs (1), http_tests.rs (1), disasm.rs
+      (1)
+    status: done
     tasks:
     - id: p270.d5.t1
-      title: "Fix erasing_op in VM opcode handler files"
+      title: Fix erasing_op in VM opcode handler files
       status: todo
-      description: "Fix all erasing_op patterns in ops_syscall.rs, ops_host_fs.rs, net.rs, mod.rs, http_tests.rs, disasm.rs."
+      description: Fix all erasing_op patterns in ops_syscall.rs, ops_host_fs.rs,
+        net.rs, mod.rs, http_tests.rs, disasm.rs.
       scope_lines: 40
     scope_lines: 40
-  - name: "Fix erasing_op in remaining src/ files"
-    description: "Fix scrollback.rs:178, vfs.rs:80, vision.rs:470,528, examples/test_boot_mmu.rs:36,75"
-    status: todo
+  - name: Fix erasing_op in remaining src/ files
+    description: Fix scrollback.rs:178, vfs.rs:80, vision.rs:470,528, examples/test_boot_mmu.rs:36,75
+    status: done
     tasks:
     - id: p270.d6.t1
-      title: "Fix erasing_op in misc files"
+      title: Fix erasing_op in misc files
       status: todo
-      description: "Fix remaining erasing_op patterns in scrollback.rs, vfs.rs, vision.rs, and test_boot_mmu.rs."
+      description: Fix remaining erasing_op patterns in scrollback.rs, vfs.rs, vision.rs,
+        and test_boot_mmu.rs.
       scope_lines: 10
     scope_lines: 10
   scope_lines_total: 150
   test_target: 0
 - id: phase-271
-  title: "Fix clippy almost_swapped errors in src/vm/tests.rs"
-  status: planned
-  goal: "Fix 6 clippy almost_swapped errors where 'let win_id = vm.regs[0]; vm.regs[0] = win_id;' should use std::mem::replace"
-  description: "Six test functions in src/vm/tests.rs have the pattern 'let win_id = vm.regs[0]; ... vm.regs[0] = win_id;' which clippy flags as almost_swapped. The intent is to save and restore vm.regs[0], not to swap. The fix is to use 'let win_id = std::mem::replace(&mut vm.regs[0], value);' or add #[allow(clippy::almost_swapped)] on each test since the pattern is intentional (save-restore, not swap). Lines: 11127, 11179, 11222, 19958, 20193, 22001. Found during dogfood QA clippy audit."
+  title: Fix clippy almost_swapped errors in src/vm/tests.rs
+  status: done
+  goal: Fix 6 clippy almost_swapped errors where 'let win_id = vm.regs[0]; vm.regs[0]
+    = win_id;' should use std::mem::replace
+  description: 'Six test functions in src/vm/tests.rs have the pattern ''let win_id
+    = vm.regs[0]; ... vm.regs[0] = win_id;'' which clippy flags as almost_swapped.
+    The intent is to save and restore vm.regs[0], not to swap. The fix is to use ''let
+    win_id = std::mem::replace(&mut vm.regs[0], value);'' or add #[allow(clippy::almost_swapped)]
+    on each test since the pattern is intentional (save-restore, not swap). Lines:
+    11127, 11179, 11222, 19958, 20193, 22001. Found during dogfood QA clippy audit.'
   deliverables:
-  - name: "Fix almost_swapped in vm/tests.rs"
-    description: "Add #[allow(clippy::almost_swapped)] attribute to the 6 test functions, since the save-restore pattern is intentional."
-    status: todo
+  - name: Fix almost_swapped in vm/tests.rs
+    description: 'Add #[allow(clippy::almost_swapped)] attribute to the 6 test functions,
+      since the save-restore pattern is intentional.'
+    status: done
     tasks:
     - id: p271.d1.t1
-      title: "Add allow attribute to 6 test functions"
+      title: Add allow attribute to 6 test functions
       status: todo
-      description: "Add '#[allow(clippy::almost_swapped)]' before each of the 6 test functions at lines 11127, 11179, 11222, 19958, 20193, 22001. These are save-restore patterns, not swaps."
+      description: Add '#[allow(clippy::almost_swapped)]' before each of the 6 test
+        functions at lines 11127, 11179, 11222, 19958, 20193, 22001. These are save-restore
+        patterns, not swaps.
       scope_lines: 12
     scope_lines: 12
   scope_lines_total: 12
+  test_target: 0
+- id: phase-272
+  title: Fix preflight GeOS running detection false positives
+  status: planned
+  goal: geo_dogfood_qa.py correctly identifies whether the GeOS desktop binary is
+    running, not just any process with 'geometry_os' in its path
+  description: The preflight QA script's check_geos_running() uses pgrep -f 'geometry_os'
+    which matches VS Code (editing files in the geometry_os project directory), geo_mcp_server,
+    and any other process with 'geometry_os' in its cmdline. It only filters out cargo
+    test processes (--test-threads). This causes the preflight to report 'GeOS running'
+    when it's not, leading the QA explorer to attempt window interaction on non-GeOS
+    windows. The fix should match specifically on the geos-term or geometry_os binary
+    names, or check for the minifb window. Found during dogfood QA exploratory testing.
+  deliverables:
+  - name: Fix check_geos_running() to match only GeOS binaries
+    description: Change pgrep pattern from 'geometry_os' to something more specific
+      like 'geos-term|target/release/geometry_os' and add exclusion filters for 'code'
+      (VS Code) and 'geo_mcp_server'.
+    status: todo
+    tasks:
+    - id: p272.d1.t1
+      title: Update pgrep pattern and exclusion filters
+      status: todo
+      description: In geo_dogfood_qa.py check_geos_running(), change pgrep -f pattern
+        to specifically match geos-term or target/release/geometry_os binaries. Add
+        cmdline exclusion for 'code' (VS Code), 'geo_mcp_server', and 'geometry_os/docs'.
+        Verify by checking cmdline contains 'geos-term' or ends with 'geometry_os'
+        (the binary, not a directory path).
+      scope_lines: 20
+    scope_lines: 20
+  scope_lines_total: 20
   test_target: 0
