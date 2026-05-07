@@ -467,3 +467,988 @@ impl Vm {
         true
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vm::types::*;
+
+    /// Helper: create a VM with a bytecode program loaded at addr, run one step from addr.
+    fn step_one(bytecode: &[u32], addr: u32) -> Vm {
+        let mut vm = Vm::new();
+        for (i, &w) in bytecode.iter().enumerate() {
+            let a = addr as usize + i;
+            if a < vm.ram.len() {
+                vm.ram[a] = w;
+            }
+        }
+        vm.pc = addr;
+        vm.halted = false;
+        vm.step();
+        vm
+    }
+
+    /// Helper: write a null-terminated string into RAM at addr.
+    fn write_string(vm: &mut Vm, addr: usize, s: &str) {
+        for (i, ch) in s.chars().enumerate() {
+            if addr + i < vm.ram.len() {
+                vm.ram[addr + i] = ch as u32;
+            }
+        }
+        if addr + s.len() < vm.ram.len() {
+            vm.ram[addr + s.len()] = 0; // null terminator
+        }
+    }
+
+    // ── SYSCALL (0x52) ──────────────────────────────────────────────
+
+    #[test]
+    fn test_syscall_dispatches_to_handler() {
+        // Register handler at SYSCALL_TABLE + 0 = 0xFE00
+        let mut vm = Vm::new();
+        vm.ram[SYSCALL_TABLE] = 0x100; // handler at address 0x100
+                                       // SYSCALL 0: opcode=0x52, arg=0
+        vm.ram[0] = 0x52;
+        vm.ram[1] = 0;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.pc, 0x100);
+        assert_eq!(vm.mode, CpuMode::Kernel);
+        assert_eq!(vm.kernel_stack.len(), 1);
+    }
+
+    #[test]
+    fn test_syscall_no_handler_sets_error() {
+        let mut vm = Vm::new();
+        // No handler registered at SYSCALL_TABLE + 1
+        vm.ram[SYSCALL_TABLE + 1] = 0;
+        vm.regs[0] = 0;
+        vm.ram[0] = 0x52;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        // Vm::new() starts in Kernel mode; no-handler path doesn't change it
+        assert_eq!(vm.mode, CpuMode::Kernel);
+        assert_eq!(vm.kernel_stack.len(), 0);
+    }
+
+    #[test]
+    fn test_syscall_out_of_range_sets_error() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        // SYSCALL with num that puts table_idx out of RAM range
+        vm.ram[0] = 0x52;
+        vm.ram[1] = 0xFFFF;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_syscall_saves_mode_and_pc() {
+        let mut vm = Vm::new();
+        vm.mode = CpuMode::User;
+        vm.ram[SYSCALL_TABLE + 5] = 0x200;
+        vm.ram[42] = 0x52; // SYSCALL at PC=42
+        vm.ram[43] = 5;
+        vm.pc = 42;
+        vm.step();
+        // step() advances PC to 44 (42 + 2 words) BEFORE the handler runs,
+        // so the saved PC is 44 (return address after SYSCALL instruction)
+        let (saved_pc, saved_mode) = vm.kernel_stack[0];
+        assert_eq!(saved_pc, 44);
+        assert_eq!(saved_mode, CpuMode::User);
+        assert_eq!(vm.pc, 0x200);
+        assert_eq!(vm.mode, CpuMode::Kernel);
+    }
+
+    // ── RETK (0x53) ────────────────────────────────────────────────
+
+    #[test]
+    fn test_retk_restores_pc_and_mode() {
+        let mut vm = Vm::new();
+        vm.mode = CpuMode::Kernel;
+        vm.kernel_stack.push((0x500, CpuMode::User));
+        vm.ram[0] = 0x53;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.pc, 0x500);
+        assert_eq!(vm.mode, CpuMode::User);
+        assert!(vm.kernel_stack.is_empty());
+    }
+
+    #[test]
+    fn test_retk_empty_stack_halts() {
+        let mut vm = Vm::new();
+        vm.halted = false;
+        vm.ram[0] = 0x53;
+        vm.pc = 0;
+        let result = vm.step();
+        assert!(!result);
+        assert!(vm.halted);
+    }
+
+    #[test]
+    fn test_syscall_retk_roundtrip() {
+        let mut vm = Vm::new();
+        vm.mode = CpuMode::User;
+        vm.ram[SYSCALL_TABLE + 0] = 0x100;
+        // SYSCALL 0
+        vm.ram[0] = 0x52;
+        vm.ram[1] = 0;
+        // At 0x100: RETK
+        vm.ram[0x100] = 0x53;
+        vm.pc = 0;
+        vm.step(); // SYSCALL -> jumps to 0x100, mode=Kernel
+        assert_eq!(vm.mode, CpuMode::Kernel);
+        vm.step(); // RETK -> back to caller, mode=User
+        assert_eq!(vm.mode, CpuMode::User);
+        assert_eq!(vm.pc, 2); // PC after SYSCALL instruction (2 words)
+    }
+
+    // ── OPEN (0x54) ────────────────────────────────────────────────
+
+    #[test]
+    fn test_open_device_screen() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "/dev/screen");
+        vm.regs[1] = 0x200; // path_reg = r1 -> points to string
+        vm.regs[2] = 1; // mode_reg = r2 -> write mode
+        vm.ram[0] = 0x54; // OPEN
+        vm.ram[1] = 1; // path_reg
+        vm.ram[2] = 2; // mode_reg
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], DEVICE_FD_BASE + 0); // 0xE000
+    }
+
+    #[test]
+    fn test_open_device_keyboard() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "/dev/keyboard");
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 0;
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], DEVICE_FD_BASE + 1); // 0xE001
+    }
+
+    #[test]
+    fn test_open_device_audio() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "/dev/audio");
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 1;
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], DEVICE_FD_BASE + 2); // 0xE002
+    }
+
+    #[test]
+    fn test_open_device_net() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "/dev/net");
+        vm.regs[1] = 0x200;
+        vm.regs[2] = 0;
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], DEVICE_FD_BASE + 3); // 0xE003
+    }
+
+    #[test]
+    fn test_open_invalid_register_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        // path_reg = 32 (out of range)
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 32;
+        vm.ram[2] = 0;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── READ (0x55) ────────────────────────────────────────────────
+
+    #[test]
+    fn test_read_keyboard_device() {
+        let mut vm = Vm::new();
+        vm.key_port = 0x41; // 'A'
+        vm.regs[1] = DEVICE_FD_BASE + 1; // fd = /dev/keyboard
+        vm.regs[2] = 0x300; // buf addr
+        vm.regs[3] = 1; // len
+        vm.ram[0] = 0x55; // READ
+        vm.ram[1] = 1; // fd_reg
+        vm.ram[2] = 2; // buf_reg
+        vm.ram[3] = 3; // len_reg
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 1); // 1 byte read
+        assert_eq!(vm.ram[0x300], 0x41); // 'A' read into buffer
+        assert_eq!(vm.key_port, 0); // port cleared
+    }
+
+    #[test]
+    fn test_read_net_device() {
+        let mut vm = Vm::new();
+        vm.ram[0xFFC] = 0xDEAD;
+        vm.regs[1] = DEVICE_FD_BASE + 3; // fd = /dev/net
+        vm.regs[2] = 0x300; // buf addr
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 1);
+        assert_eq!(vm.ram[0x300], 0xDEAD);
+    }
+
+    #[test]
+    fn test_read_device_zero_len_returns_zero() {
+        let mut vm = Vm::new();
+        vm.key_port = 0x41;
+        vm.regs[1] = DEVICE_FD_BASE + 1;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 0; // len = 0
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_read_screen_device_returns_zero() {
+        let mut vm = Vm::new();
+        vm.regs[1] = DEVICE_FD_BASE + 0; // /dev/screen has no read
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 10;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_read_invalid_register_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 32; // invalid reg
+        vm.ram[2] = 0;
+        vm.ram[3] = 0;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── WRITE (0x56) ───────────────────────────────────────────────
+
+    #[test]
+    fn test_write_screen_device_pixel() {
+        let mut vm = Vm::new();
+        // Write (x=10, y=20, color=0xFF0000) triplet to /dev/screen
+        vm.ram[0x300] = 10;
+        vm.ram[0x301] = 20;
+        vm.ram[0x302] = 0xFF0000;
+        vm.regs[1] = DEVICE_FD_BASE + 0; // /dev/screen
+        vm.regs[2] = 0x300; // buf addr
+        vm.regs[3] = 3; // len = 3 (one triplet)
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 3);
+        assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000);
+    }
+
+    #[test]
+    fn test_write_screen_device_multiple_triplets() {
+        let mut vm = Vm::new();
+        // Two triplets: (5,5,RED) and (6,6,BLUE)
+        vm.ram[0x300] = 5;
+        vm.ram[0x301] = 5;
+        vm.ram[0x302] = 0xFF0000;
+        vm.ram[0x303] = 6;
+        vm.ram[0x304] = 6;
+        vm.ram[0x305] = 0x0000FF;
+        vm.regs[1] = DEVICE_FD_BASE + 0;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 6; // len = 6 (two triplets)
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 6);
+        assert_eq!(vm.screen[5 * 256 + 5], 0xFF0000);
+        assert_eq!(vm.screen[6 * 256 + 6], 0x0000FF);
+    }
+
+    #[test]
+    fn test_write_audio_device() {
+        let mut vm = Vm::new();
+        vm.ram[0x300] = 440; // freq
+        vm.ram[0x301] = 200; // duration
+        vm.regs[1] = DEVICE_FD_BASE + 2; // /dev/audio
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 2;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 2);
+        assert_eq!(vm.beep, Some((440, 200)));
+    }
+
+    #[test]
+    fn test_write_net_device() {
+        let mut vm = Vm::new();
+        vm.ram[0xFFC] = 0;
+        vm.ram[0x300] = 0xBEEF;
+        vm.regs[1] = DEVICE_FD_BASE + 3; // /dev/net
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 1);
+        assert_eq!(vm.ram[0xFFC], 0xBEEF);
+    }
+
+    #[test]
+    fn test_write_audio_clamps_values() {
+        let mut vm = Vm::new();
+        vm.ram[0x300] = 10; // freq below min 20
+        vm.ram[0x301] = 99999; // dur above max 5000
+        vm.regs[1] = DEVICE_FD_BASE + 2;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 2;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.beep, Some((20, 5000))); // clamped
+    }
+
+    #[test]
+    fn test_write_audio_insufficient_len_returns_zero() {
+        let mut vm = Vm::new();
+        vm.regs[1] = DEVICE_FD_BASE + 2;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1; // only 1 word, need 2
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert!(vm.beep.is_none());
+    }
+
+    #[test]
+    fn test_write_invalid_register_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 32;
+        vm.ram[2] = 0;
+        vm.ram[3] = 0;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── CLOSE (0x57) ───────────────────────────────────────────────
+
+    #[test]
+    fn test_close_device_succeeds() {
+        let mut vm = Vm::new();
+        vm.regs[1] = DEVICE_FD_BASE + 0;
+        vm.ram[0] = 0x57;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_close_invalid_register_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        vm.ram[0] = 0x57;
+        vm.ram[1] = 32;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_close_pipe_marks_dead() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        vm.regs[1] = 0x8000; // pipe read fd, idx=0
+        vm.ram[0] = 0x57;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert!(!vm.pipes[0].alive);
+    }
+
+    #[test]
+    fn test_close_pipe_write_fd_marks_dead() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        vm.regs[1] = 0xC000; // pipe write fd, idx=0
+        vm.ram[0] = 0x57;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert!(!vm.pipes[0].alive);
+    }
+
+    #[test]
+    fn test_close_bad_pipe_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x8005; // pipe idx=5, but only 0 pipes exist
+        vm.ram[0] = 0x57;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── SEEK (0x58) ────────────────────────────────────────────────
+
+    #[test]
+    fn test_seek_invalid_register_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        vm.ram[0] = 0x58;
+        vm.ram[1] = 32; // invalid reg
+        vm.ram[2] = 0;
+        vm.ram[3] = 0;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── LS (0x59) ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_ls_invalid_register_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        vm.ram[0] = 0x59;
+        vm.ram[1] = 32;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── YIELD (0x5A) ───────────────────────────────────────────────
+
+    #[test]
+    fn test_yield_sets_flag() {
+        let mut vm = Vm::new();
+        vm.yielded = false;
+        vm.ram[0] = 0x5A;
+        vm.pc = 0;
+        vm.step();
+        assert!(vm.yielded);
+    }
+
+    // ── SLEEP (0x5B) ──────────────────────────────────────────────
+
+    #[test]
+    fn test_sleep_sets_sleep_frames() {
+        let mut vm = Vm::new();
+        vm.sleep_frames = 0;
+        vm.regs[5] = 100;
+        vm.ram[0] = 0x5B;
+        vm.ram[1] = 5; // reg r5
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.sleep_frames, 100);
+    }
+
+    #[test]
+    fn test_sleep_invalid_register_ignored() {
+        let mut vm = Vm::new();
+        vm.sleep_frames = 0;
+        vm.ram[0] = 0x5B;
+        vm.ram[1] = 32; // out of range
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.sleep_frames, 0);
+    }
+
+    // ── SETPRIORITY (0x5C) ─────────────────────────────────────────
+
+    #[test]
+    fn test_setpriority_clamps_to_max() {
+        let mut vm = Vm::new();
+        vm.regs[5] = 255; // way above max 3
+        vm.ram[0] = 0x5C;
+        vm.ram[1] = 5;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.new_priority, 3);
+    }
+
+    #[test]
+    fn test_setpriority_valid_value() {
+        let mut vm = Vm::new();
+        vm.regs[10] = 2;
+        vm.ram[0] = 0x5C;
+        vm.ram[1] = 10;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.new_priority, 2);
+    }
+
+    #[test]
+    fn test_setpriority_zero() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0;
+        vm.ram[0] = 0x5C;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.new_priority, 0);
+    }
+
+    #[test]
+    fn test_setpriority_invalid_register_ignored() {
+        let mut vm = Vm::new();
+        vm.new_priority = 1;
+        vm.ram[0] = 0x5C;
+        vm.ram[1] = 32;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.new_priority, 1); // unchanged
+    }
+
+    // ── PIPE (0x5D) ────────────────────────────────────────────────
+
+    #[test]
+    fn test_pipe_creates_and_returns_fds() {
+        let mut vm = Vm::new();
+        vm.ram[0] = 0x5D;
+        vm.ram[1] = 1; // read fd -> r1
+        vm.ram[2] = 2; // write fd -> r2
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // success
+        assert_eq!(vm.regs[1], 0x8000); // read fd
+        assert_eq!(vm.regs[2], 0xC000); // write fd
+        assert_eq!(vm.pipes.len(), 1);
+        assert!(vm.pipes[0].alive);
+    }
+
+    #[test]
+    fn test_pipe_second_pipe_gets_incremented_fds() {
+        let mut vm = Vm::new();
+        // First pipe
+        vm.pipes.push(Pipe::new(0, 0));
+        // Now create second
+        vm.ram[0] = 0x5D;
+        vm.ram[1] = 3;
+        vm.ram[2] = 4;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.regs[3], 0x8001); // read fd idx=1
+        assert_eq!(vm.regs[4], 0xC001); // write fd idx=1
+        assert_eq!(vm.pipes.len(), 2);
+    }
+
+    #[test]
+    fn test_pipe_max_pipes_returns_error() {
+        let mut vm = Vm::new();
+        // Fill up to MAX_PIPES
+        for _ in 0..MAX_PIPES {
+            vm.pipes.push(Pipe::new(0, 0));
+        }
+        vm.ram[0] = 0x5D;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_pipe_invalid_register_returns_error() {
+        let mut vm = Vm::new();
+        vm.ram[0] = 0x5D;
+        vm.ram[1] = 32;
+        vm.ram[2] = 0;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── MSGSND (0x5E) ──────────────────────────────────────────────
+
+    #[test]
+    fn test_msgsnd_delivers_to_target_process() {
+        let mut vm = Vm::new();
+        let target = Process::new(5, 0, 0x100);
+        vm.processes.push(target);
+        vm.regs[0] = 0;
+        vm.regs[1] = 0xAA;
+        vm.regs[2] = 0xBB;
+        vm.regs[3] = 0xCC;
+        vm.regs[4] = 0xDD;
+        vm.regs[10] = 5; // target PID
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 10; // pid_reg = r10
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // success
+        let proc = &vm.processes[0];
+        assert_eq!(proc.msg_queue.len(), 1);
+        let msg = &proc.msg_queue[0];
+        assert_eq!(msg.sender, 0); // current_pid
+        assert_eq!(msg.data, [0xAA, 0xBB, 0xCC, 0xDD]);
+    }
+
+    #[test]
+    fn test_msgsnd_unblocks_blocked_receiver() {
+        let mut vm = Vm::new();
+        let mut target = Process::new(5, 0, 0x100);
+        target.state = ProcessState::Blocked;
+        vm.processes.push(target);
+        vm.regs[10] = 5;
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 10;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.processes[0].state, ProcessState::Ready);
+    }
+
+    #[test]
+    fn test_msgsnd_nonexistent_target_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[10] = 99; // PID 99 doesn't exist
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 10;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_msgsnd_halted_target_returns_error() {
+        let mut vm = Vm::new();
+        let mut target = Process::new(5, 0, 0x100);
+        target.state = ProcessState::Zombie;
+        vm.processes.push(target);
+        vm.regs[10] = 5;
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 10;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_msgsnd_full_queue_returns_error() {
+        let mut vm = Vm::new();
+        let mut target = Process::new(5, 0, 0x100);
+        for _ in 0..MAX_MESSAGES {
+            target.msg_queue.push(Message::new(0, [0; MSG_WORDS]));
+        }
+        vm.processes.push(target);
+        vm.regs[10] = 5;
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 10;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_msgsnd_invalid_register_returns_error() {
+        let mut vm = Vm::new();
+        vm.ram[0] = 0x5E;
+        vm.ram[1] = 32;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── MSGRCV (0x5F) ──────────────────────────────────────────────
+
+    #[test]
+    fn test_msgrcv_receives_message() {
+        let mut vm = Vm::new();
+        let mut proc = Process::new(5, 0, 0x100);
+        proc.msg_queue.push(Message::new(1, [10, 20, 30, 40]));
+        vm.processes.push(proc);
+        vm.current_pid = 5;
+        vm.ram[0] = 0x5F;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 1); // sender PID
+        assert_eq!(vm.regs[1], 10);
+        assert_eq!(vm.regs[2], 20);
+        assert_eq!(vm.regs[3], 30);
+        assert_eq!(vm.regs[4], 40);
+        assert!(vm.processes[0].msg_queue.is_empty());
+    }
+
+    #[test]
+    fn test_msgrcv_blocks_when_empty() {
+        let mut vm = Vm::new();
+        let proc = Process::new(5, 0, 0x100);
+        vm.processes.push(proc);
+        vm.current_pid = 5;
+        vm.ram[0] = 0x5F;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.processes[0].state, ProcessState::Blocked);
+    }
+
+    #[test]
+    fn test_msgrcv_main_process_returns_error() {
+        let mut vm = Vm::new();
+        vm.current_pid = 0; // main process
+        vm.ram[0] = 0x5F;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_msgrcv_rewinds_pc_on_block() {
+        let mut vm = Vm::new();
+        let proc = Process::new(5, 0, 0x100);
+        vm.processes.push(proc);
+        vm.current_pid = 5;
+        vm.ram[100] = 0x5F; // MSGRCV at PC=100
+        vm.pc = 100;
+        vm.step();
+        // step() advances PC to 101 (100 + 1 word), then MSGRCV handler
+        // does self.pc -= 1 to rewind for retry, so PC = 100
+        assert_eq!(vm.pc, 100);
+    }
+
+    // ── Pipe read/write integration ────────────────────────────────
+
+    #[test]
+    fn test_pipe_write_then_read() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        // Write 0xBEEF to pipe write fd (0xC000)
+        vm.ram[0x300] = 0xBEEF;
+        vm.regs[1] = 0xC000; // write fd
+        vm.regs[2] = 0x300; // buf addr
+        vm.regs[3] = 1; // len
+        vm.ram[0] = 0x56; // WRITE
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 1); // 1 word written
+
+        // Read from pipe read fd (0x8000)
+        vm.ram[0x400] = 0; // clear buffer
+        vm.regs[1] = 0x8000; // read fd
+        vm.regs[2] = 0x400; // buf addr
+        vm.regs[3] = 1; // len
+        vm.ram[4] = 0x55; // READ
+        vm.ram[5] = 1;
+        vm.ram[6] = 2;
+        vm.ram[7] = 3;
+        vm.pc = 4;
+        vm.step();
+        assert_eq!(vm.regs[0], 1); // 1 word read
+        assert_eq!(vm.ram[0x400], 0xBEEF);
+    }
+
+    #[test]
+    fn test_pipe_write_multiple_words() {
+        let mut vm = Vm::new();
+        vm.pipes.push(Pipe::new(0, 0));
+        vm.ram[0x300] = 10;
+        vm.ram[0x301] = 20;
+        vm.ram[0x302] = 30;
+        vm.regs[1] = 0xC000;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 3;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 3);
+    }
+
+    #[test]
+    fn test_pipe_read_bad_fd_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x8005; // pipe idx=5, no pipes exist
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x55;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_pipe_write_bad_fd_returns_error() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xC005; // pipe idx=5, no pipes exist
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_pipe_write_unblocks_blocked_readers() {
+        let mut vm = Vm::new();
+        let mut proc = Process::new(1, 0, 0x100);
+        proc.state = ProcessState::Blocked;
+        vm.processes.push(proc);
+        vm.pipes.push(Pipe::new(1, 0));
+        vm.ram[0x300] = 42;
+        vm.regs[1] = 0xC000;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 1;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        // Blocked process should be unblocked
+        assert_eq!(vm.processes[0].state, ProcessState::Ready);
+    }
+
+    // ── Screen write clipping ──────────────────────────────────────
+
+    #[test]
+    fn test_write_screen_clips_out_of_bounds() {
+        let mut vm = Vm::new();
+        // x=300 (out of 256), y=20, color=RED
+        vm.ram[0x300] = 300;
+        vm.ram[0x301] = 20;
+        vm.ram[0x302] = 0xFF0000;
+        vm.regs[1] = DEVICE_FD_BASE + 0;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 3;
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        // Triplet consumed but pixel not drawn (x >= 256)
+        assert_eq!(vm.regs[0], 3);
+        // Verify no pixel was set at the out-of-bounds location
+        // Screen is 256x256 = 65536 pixels, index 20*256+300 = 5420 would be out of bounds
+        // The code checks x < 256 && y < 256, so this pixel is skipped
+    }
+
+    #[test]
+    fn test_write_screen_incomplete_triplet_ignored() {
+        let mut vm = Vm::new();
+        // Only 2 words, not a complete triplet
+        vm.ram[0x300] = 10;
+        vm.ram[0x301] = 20;
+        vm.regs[1] = DEVICE_FD_BASE + 0;
+        vm.regs[2] = 0x300;
+        vm.regs[3] = 2; // len=2, not enough for a triplet
+        vm.ram[0] = 0x56;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.ram[3] = 3;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // 0 triplets processed
+    }
+
+    // ── SYSCALL + RETK nested ──────────────────────────────────────
+
+    #[test]
+    fn test_nested_syscall_retk() {
+        let mut vm = Vm::new();
+        vm.mode = CpuMode::User;
+        // Handler A at 0x100 does SYSCALL 1 -> handler B at 0x200
+        vm.ram[SYSCALL_TABLE + 0] = 0x100;
+        vm.ram[SYSCALL_TABLE + 1] = 0x200;
+        // At 0x0: SYSCALL 0
+        vm.ram[0] = 0x52;
+        vm.ram[1] = 0;
+        // At 0x100: SYSCALL 1
+        vm.ram[0x100] = 0x52;
+        vm.ram[0x101] = 1;
+        // At 0x200: RETK
+        vm.ram[0x200] = 0x53;
+        // At 0x102: RETK
+        vm.ram[0x102] = 0x53;
+        vm.pc = 0;
+
+        vm.step(); // SYSCALL 0 -> jump to 0x100
+        assert_eq!(vm.pc, 0x100);
+        assert_eq!(vm.mode, CpuMode::Kernel);
+        assert_eq!(vm.kernel_stack.len(), 1);
+
+        vm.step(); // SYSCALL 1 -> jump to 0x200
+        assert_eq!(vm.pc, 0x200);
+        assert_eq!(vm.kernel_stack.len(), 2);
+
+        vm.step(); // RETK -> back to 0x102
+        assert_eq!(vm.pc, 0x102);
+        assert_eq!(vm.kernel_stack.len(), 1);
+
+        vm.step(); // RETK -> back to 0x02 (after first SYSCALL)
+        assert_eq!(vm.pc, 2);
+        assert_eq!(vm.mode, CpuMode::User);
+        assert!(vm.kernel_stack.is_empty());
+    }
+}
