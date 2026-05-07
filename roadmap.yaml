@@ -11698,3 +11698,73 @@ phases:
     scope_lines: 20
   scope_lines_total: 20
   test_target: 0
+- id: phase-273
+  title: Fix GeOS crash on Xvfb due to minifb XOpenIM failure
+  status: planned
+  goal: GeOS launches successfully on Xvfb headless displays without crashing
+  description: 'GeOS crashes immediately on Xvfb with: "Failed to create window. Ensure
+    a display is available.: Failed to setup X IM via XOpenIM." This is because
+    minifb 0.27 calls XOpenIM() and treats a NULL return as fatal. Xvfb does not
+    support X Input Method by default. This prevents automated testing (terminal QA
+    tester, dogfood QA) from running on headless Xvfb displays. Workaround confirmed:
+    XMODIFIERS=@im=none allows GeOS to start. The fix should either: (a) patch minifb
+    locally to make XIM optional (graceful fallback when XOpenIM returns NULL), or
+    (b) set XMODIFIERS=@im=none in GeOS launch scripts. Found during dogfood QA
+    exploratory testing 2026-05-07.'
+  deliverables:
+  - name: Patch minifb to make XIM optional on Xvfb
+    description: In the minifb x11.rs backend, when XOpenIM returns NULL, skip XIM/XIC
+      setup and continue with basic key handling. This allows GeOS to run on Xvfb
+      without needing XMODIFIERS workarounds. The patch should be in a local minifb
+      fork or via a [patch.crates-io] section in Cargo.toml.
+    status: todo
+    tasks:
+    - id: p273.d1.t1
+      title: Create minifb patch to handle XOpenIM failure gracefully
+      status: todo
+      description: Copy minifb x11.rs source, modify XOpenIM handling to not panic
+        when it returns NULL. Instead, set xim/xic to null and skip XFilterEvent calls.
+        Apply via [patch.crates-io] in Cargo.toml. Verify GeOS starts on Xvfb without
+        XMODIFIERS and that basic key input still works.
+      scope_lines: 30
+    scope_lines: 30
+  scope_lines_total: 30
+  test_target: 0
+- id: phase-274
+  title: Batch-fix clippy warnings (148 warnings, mostly cosmetic)
+  status: planned
+  goal: Reduce clippy warning count from 148 to near-zero to enable clippy as a CI
+    quality gate
+  description: 'Running cargo clippy --lib produces 148 warnings. Most are auto-fixable
+    with cargo clippy --fix (100 suggestions offered). Categories include: same-type
+    casts (u32->u32, u8->u8, usize->usize) across framebuf.rs, socket.rs, vfs_surface.rs,
+    vfs.rs, vm/mod.rs; manual_range_contains in vm/mod.rs; len_zero comparisons;
+    manual_pattern_char_comparison; redundant_pattern_matching; unnecessary_mut;
+    useless_format; operations_with_no_effect (3 instances in vfs_surface.rs and vm/mod.rs
+    where | 0u32 is redundant); and various style suggestions. No errors, all warnings.
+    Found during dogfood QA clippy audit 2026-05-07.'
+  deliverables:
+  - name: Run cargo clippy --fix and review changes
+    description: Run cargo clippy --fix --lib to auto-apply 100 of the 148 suggestions.
+      Review the diff carefully for any semantic changes. Then manually fix the remaining
+      ~48 warnings that clippy --fix cannot handle.
+    status: todo
+    tasks:
+    - id: p274.d1.t1
+      title: Run cargo clippy --fix and review auto-applied changes
+      status: todo
+      description: Run cargo clippy --fix --lib --allow-dirty. Review the git diff to
+        ensure no semantic changes were introduced. Run cargo test --lib to verify
+        no regressions. Commit if all tests pass.
+      scope_lines: 200
+    - id: p274.d1.t2
+      title: Manually fix remaining clippy warnings
+      status: todo
+      description: After clippy --fix, address remaining warnings that need manual
+        intervention: dead_code (unused functions, structs, constants), Default derive
+        suggestions, complex type definitions needing type aliases, and deprecated
+        struct usage. Add #[allow(dead_code)] where appropriate for WIP code.
+      scope_lines: 100
+    scope_lines: 300
+  scope_lines_total: 300
+  test_target: 0
