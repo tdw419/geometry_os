@@ -1416,4 +1416,343 @@ mod tests {
         assert_eq!(resp[1], b"\x1B[1;1R"); // CPR
         assert_eq!(resp[2], b"\x1B[>0;0;0c"); // DA2
     }
+
+    // ── Opcode error-path tests (no real PTY needed) ──────────────
+
+    /// Helper: set up a VM with fetch-stream words at a given PC.
+    /// Each word in `args` is placed at sequential RAM[pc], RAM[pc+1], ...
+    /// The VM's pc is set to `pc` so op_* handlers can fetch() from there.
+    fn setup_fetch(vm: &mut crate::vm::Vm, pc: usize, args: &[u32]) {
+        for (i, &w) in args.iter().enumerate() {
+            vm.ram[pc + i] = w;
+        }
+        vm.pc = pc as u32;
+    }
+
+    #[test]
+    fn ptyopen_out_of_range_register_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        // reg 32 is out of range (NUM_REGS = 32, valid 0..31)
+        setup_fetch(&mut vm, 0, &[32, 10]);
+        vm.op_ptyopen();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptywrite_out_of_range_register_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        setup_fetch(&mut vm, 0, &[32, 6, 7]);
+        vm.op_ptywrite();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptywrite_invalid_handle_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        // handle_reg points to r12 which holds handle 0 (no slot open)
+        vm.regs[12] = 0;
+        setup_fetch(&mut vm, 100, &[12, 6, 7]);
+        vm.op_ptywrite();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptywrite_handle_exceeds_max_slots() {
+        let mut vm = crate::vm::Vm::new();
+        vm.regs[12] = MAX_PTY_SLOTS as u32; // handle = 4, but max is 4
+        setup_fetch(&mut vm, 100, &[12, 6, 7]);
+        vm.op_ptywrite();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptyread_out_of_range_register_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        setup_fetch(&mut vm, 0, &[32, 6, 7]);
+        vm.op_ptyread();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptyread_invalid_handle_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        vm.regs[12] = 0;
+        setup_fetch(&mut vm, 100, &[12, 6, 7]);
+        vm.op_ptyread();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptyclose_out_of_range_register_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        setup_fetch(&mut vm, 0, &[32]);
+        vm.op_ptyclose();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptyclose_invalid_handle_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        vm.regs[12] = 0; // no slot open
+        setup_fetch(&mut vm, 100, &[12]);
+        vm.op_ptyclose();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptyclose_handle_exceeds_max_slots() {
+        let mut vm = crate::vm::Vm::new();
+        vm.regs[12] = MAX_PTY_SLOTS as u32;
+        setup_fetch(&mut vm, 100, &[12]);
+        vm.op_ptyclose();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptysize_out_of_range_register_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        setup_fetch(&mut vm, 0, &[32, 13, 14]);
+        vm.op_ptysize();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptysize_invalid_handle_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        vm.regs[12] = 0;
+        setup_fetch(&mut vm, 100, &[12, 13, 14]);
+        vm.op_ptysize();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn ptysize_handle_exceeds_max_slots() {
+        let mut vm = crate::vm::Vm::new();
+        vm.regs[12] = MAX_PTY_SLOTS as u32;
+        setup_fetch(&mut vm, 100, &[12, 13, 14]);
+        vm.op_ptysize();
+        assert_eq!(vm.regs[0], PTY_ERR_INVALID_HANDLE);
+    }
+
+    #[test]
+    fn resize_pty_direct_out_of_range_returns_false() {
+        let mut vm = crate::vm::Vm::new();
+        assert!(!vm.resize_pty_direct(MAX_PTY_SLOTS, 24, 80));
+        assert!(!vm.resize_pty_direct(100, 24, 80));
+    }
+
+    #[test]
+    fn resize_pty_direct_empty_slot_returns_false() {
+        let mut vm = crate::vm::Vm::new();
+        // No slots opened -- all are None
+        assert!(!vm.resize_pty_direct(0, 24, 80));
+        assert!(!vm.resize_pty_direct(3, 24, 80));
+    }
+
+    // ── Helper function tests ─────────────────────────────────────
+
+    #[test]
+    fn read_string_from_ram_basic() {
+        let ram: Vec<u32> = vec![0x48, 0x69, 0x00, 0xFF]; // "Hi\0\xff"
+        let s = read_string_from_ram(&ram, 0);
+        assert_eq!(s, "Hi");
+    }
+
+    #[test]
+    fn read_string_from_ram_empty() {
+        let ram: Vec<u32> = vec![0x00];
+        let s = read_string_from_ram(&ram, 0);
+        assert_eq!(s, "");
+    }
+
+    #[test]
+    fn read_string_from_ram_past_end() {
+        let ram: Vec<u32> = vec![0x41, 0x42]; // no null terminator
+        let s = read_string_from_ram(&ram, 0);
+        assert_eq!(s, "AB");
+    }
+
+    #[test]
+    fn read_string_from_ram_masks_to_byte() {
+        // Each u32 cell stores one byte in the low 8 bits.
+        // Non-ASCII bytes (>127) are silently skipped by the function.
+        let ram: Vec<u32> = vec![0x41, 0x100 | 0x42, 0x00];
+        let s = read_string_from_ram(&ram, 0);
+        assert_eq!(s, "AB");
+    }
+
+    #[test]
+    fn escape_for_trace_basic() {
+        assert_eq!(escape_for_trace(b"hello"), "hello");
+    }
+
+    #[test]
+    fn escape_for_trace_escapes() {
+        assert_eq!(escape_for_trace(b"\x1B[31m"), "\\e[31m");
+        assert_eq!(escape_for_trace(b"\n\r\t"), "\\n\\r\\t");
+        assert_eq!(escape_for_trace(&[0x01, 0x7F]), "\\x01\\x7f");
+    }
+
+    // ── QueryInterceptor additional edge cases ────────────────────
+
+    #[test]
+    fn qi_partial_esc_then_normal_resets() {
+        // ESC followed by a non-CSI byte should reset to Ground.
+        let mut qi = QueryInterceptor::new();
+        let (fwd1, resp1) = qi.feed(0x1B); // ESC
+        assert!(fwd1);
+        assert!(resp1.is_none());
+        // Now feed a non-'[' byte
+        let (fwd2, resp2) = qi.feed(0x37); // '7' (DECSC)
+        assert!(fwd2);
+        assert!(resp2.is_none());
+        // State should be back to Ground -- feed plain text
+        let (fwd3, resp3) = qi.feed(b'A');
+        assert!(fwd3);
+        assert!(resp3.is_none());
+    }
+
+    #[test]
+    fn qi_csi_with_semicolon_resets_param() {
+        // ESC [ 1 ; c → the ';' clears param_buf, then 'c' with empty buf = DA1
+        let mut qi = QueryInterceptor::new();
+        qi.feed(0x1B); // ESC
+        qi.feed(b'[');  // CSI
+        qi.feed(b'1');  // digit
+        qi.feed(b';');  // semicolon -- clears param_buf
+        let (_, resp) = qi.feed(b'c'); // 'c' with empty buf → DA1
+        assert_eq!(resp.as_deref(), Some(b"\x1B[?1;0c".as_slice()));
+    }
+
+    #[test]
+    fn qi_csi_greater_with_semicolon_resets_param() {
+        // ESC [ > 1 ; c → DA2 (semicolon clears param, then 'c')
+        let mut qi = QueryInterceptor::new();
+        qi.feed(0x1B);
+        qi.feed(b'[');
+        qi.feed(b'>');
+        qi.feed(b'1');
+        qi.feed(b';');
+        let (_, resp) = qi.feed(b'c');
+        assert_eq!(resp.as_deref(), Some(b"\x1B[>0;0;0c".as_slice()));
+    }
+
+    #[test]
+    fn qi_dsr_with_non_5_6_param_no_response() {
+        // ESC [ 3 n → not 5 or 6, should not respond
+        let (_, resp) = run_qi(b"\x1B[3n");
+        assert!(resp.is_empty());
+    }
+
+    #[test]
+    fn qi_decxcpr_always_responds_to_n() {
+        // ESC [ ? 5 n → CsiQuestion state responds to ANY 'n' (not just ?6)
+        let (_, resp) = run_qi(b"\x1B[?5n");
+        // The CsiQuestion handler treats all 'n' as DECXCPR
+        assert_eq!(resp[0], b"\x1B[?1;1R");
+    }
+
+    #[test]
+    fn qi_unknown_csi_final_byte_passes_through() {
+        // ESC [ J = erase screen -- 'J' is a CSI final byte, no response
+        let (fwd, resp) = run_qi(b"\x1B[J");
+        assert_eq!(fwd, b"\x1B[J");
+        assert!(resp.is_empty());
+    }
+
+    #[test]
+    fn qi_unknown_esc_greater_passes_through() {
+        // ESC > without CSI -- just ESC then '>'
+        let (fwd, resp) = run_qi(b"\x1B>");
+        assert_eq!(fwd, b"\x1B>");
+        assert!(resp.is_empty());
+    }
+
+    #[test]
+    fn qi_multiple_semicolons_in_csi() {
+        // ESC [ 1 ; 2 ; c → semicolons clear param_buf each time, final 'c' = DA1
+        let mut qi = QueryInterceptor::new();
+        qi.feed(0x1B);
+        qi.feed(b'[');
+        qi.feed(b'1');
+        qi.feed(b';');
+        qi.feed(b'2');
+        qi.feed(b';');
+        let (_, resp) = qi.feed(b'c');
+        assert_eq!(resp.as_deref(), Some(b"\x1B[?1;0c".as_slice()));
+    }
+
+    #[test]
+    fn qi_control_chars_in_ground_state() {
+        // Control chars (0x00-0x1A, 0x7F) should pass through in Ground
+        let (fwd, resp) = run_qi(&[0x00, 0x01, 0x0D, 0x7F]);
+        assert_eq!(fwd.len(), 4);
+        assert!(resp.is_empty());
+    }
+
+    #[test]
+    fn qi_esc_in_csi_state_stays_trapped() {
+        // Once in Csi state, ESC (0x1B) does NOT reset to Ground — it falls
+        // through the else clause at line 154 and stays in Csi.  A subsequent
+        // [ > c never starts a CsiGreater sequence because the state is still Csi.
+        let mut qi = QueryInterceptor::new();
+        qi.feed(0x1B); // Ground → Esc
+        qi.feed(b'[');  // Esc → Csi
+        qi.feed(0x1B);  // stays in Csi (0x1B < 0x40, not a digit/';'/final byte)
+        qi.feed(b'[');  // still in Csi — '[' is a digit? No. 0x5B >= 0x40 && <= 0x7E → final byte → Ground
+        // After the '[' (0x5B) is treated as a CSI final byte, we're back in Ground.
+        // Now start a fresh DA2:
+        qi.feed(0x1B);
+        qi.feed(b'[');
+        qi.feed(b'>');
+        let (_, resp) = qi.feed(b'c');
+        assert_eq!(resp.as_deref(), Some(b"\x1B[>0;0;0c".as_slice()));
+    }
+
+    // ── PtySlot helper tests (with real PTY) ──────────────────────
+
+    #[test]
+    fn pty_slot_is_alive_after_spawn() {
+        let slot = match spawn("") {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("skipping: pty spawn failed: {}", e);
+                return;
+            }
+        };
+        assert!(slot.is_alive(), "freshly spawned PTY should be alive");
+        // Clean up
+        drop(slot);
+    }
+
+    #[test]
+    fn pty_slot_drain_remaining_empty() {
+        let slot = match spawn("") {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("skipping: pty spawn failed: {}", e);
+                return;
+            }
+        };
+        // Don't send any input, just drain immediately
+        thread::sleep(Duration::from_millis(100));
+        let remaining = slot.drain_remaining();
+        // There may be initial prompt bytes, but the function should not panic
+        // and should return a valid Vec regardless
+        let _ = remaining;
+    }
+
+    #[test]
+    fn pty_slot_constants_are_sensible() {
+        assert_eq!(MAX_PTY_SLOTS, 4);
+        assert_eq!(DEFAULT_COLS, 80);
+        assert_eq!(DEFAULT_ROWS, 30);
+        assert_eq!(PTY_OK, 0);
+        assert_ne!(PTY_ERR_INVALID_HANDLE, PTY_OK);
+        assert_ne!(PTY_ERR_OPEN_FAILED, PTY_OK);
+        assert_ne!(PTY_ERR_NO_SLOTS, PTY_OK);
+        assert_ne!(PTY_ERR_WRITE_FAILED, PTY_OK);
+        assert_ne!(PTY_ERR_CLOSED, PTY_OK);
+        assert_ne!(PTY_ERR_RESIZE_FAILED, PTY_OK);
+    }
 }

@@ -11235,3 +11235,41 @@ phases:
     scope_lines: 3
   scope_lines_total: 16
   test_target: 0
+- id: phase-267
+  title: "Fix clippy errors in geos_term.rs (redundant conditions + absurd comparison)"
+  status: planned
+  goal: "Eliminate all clippy errors in src/bin/geos_term.rs so cargo clippy --all-targets passes for this binary"
+  description: "Three clippy errors in geos_term.rs: (1) line 1124 'ch >= 128 && ch > 157' — the first condition is redundant since ch > 157 implies ch >= 128. The comment says 'Extended chars (128-157) — box drawing etc' and the continue skips them, but the condition actually only skips ch > 157, allowing 128-157 to fall through to fontdue rendering which likely can't handle them. The condition should be 'ch >= 128 && ch <= 157' to correctly skip box-drawing chars. (2) line 1780 same redundant condition pattern 'ch >= 127 && ch > 157'. Here the comment says 'Skip control chars, but allow extended chars 128-157' so the intent is to skip > 157, meaning the condition simplification to just 'ch > 157' is correct but should be written clearly. (3) line 1160 'coverage >= 255' where coverage is u8 — should be 'coverage == 255'. Found during dogfood QA clippy audit."
+  deliverables:
+  - name: "Fix extended char skip condition at line 1124"
+    description: "Change 'if ch >= 128 && ch > 157' to 'if ch >= 128 && ch <= 157' to correctly skip box-drawing extended chars 128-157. The current code allows them to pass through to fontdue rendering which cannot display them, producing garbage."
+    status: todo
+    tasks:
+    - id: p267.d1.t1
+      title: "Fix line 1124 condition to skip 128-157 range"
+      status: todo
+      description: "In src/bin/geos_term.rs line 1124, change 'if ch >= 128 && ch > 157' to 'if ch >= 128 && ch <= 157'. This matches the comment 'Extended chars (128-157) -- box drawing etc' and correctly skips chars that fontdue cannot render."
+      scope_lines: 3
+    scope_lines: 3
+  - name: "Fix redundant condition at line 1780"
+    description: "Simplify 'if ch >= 127 && ch > 157' to 'if ch > 157'. The ch == 127 check on the next line is also redundant since ch > 157 already excludes 127, but keeping it is harmless for clarity."
+    status: todo
+    tasks:
+    - id: p267.d2.t1
+      title: "Simplify line 1780 condition"
+      status: todo
+      description: "In src/bin/geos_term.rs line 1780, change 'if ch >= 127 && ch > 157' to 'if ch > 157'. Verify cargo clippy --bin geos-term no longer flags this line."
+      scope_lines: 3
+    scope_lines: 3
+  - name: "Fix absurd comparison at line 1160"
+    description: "Change 'coverage >= 255' to 'coverage == 255' since coverage is u8 and 255 is the max value for u8."
+    status: todo
+    tasks:
+    - id: p267.d3.t1
+      title: "Fix coverage comparison at line 1160"
+      status: todo
+      description: "In src/bin/geos_term.rs line 1160, change 'if coverage >= 255' to 'if coverage == 255'. Verify cargo clippy --bin geos-term no longer flags this."
+      scope_lines: 1
+    scope_lines: 1
+  scope_lines_total: 7
+  test_target: 0

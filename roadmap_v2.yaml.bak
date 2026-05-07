@@ -3507,7 +3507,7 @@ phases:
   _claimed_at: 1778121825
 - id: phase-246
   title: Test Coverage -- ops_syscall.rs Unit Tests
-  status: planned
+  status: in_progress
   goal: Add unit tests for the VM syscall dispatch module
   description: ops_syscall.rs (469 lines, 0 tests) handles the SYSCALL opcode dispatch
     table, mapping syscall numbers to handler functions. Zero test coverage means
@@ -3541,6 +3541,8 @@ phases:
       scope_lines: 60
   test_target: 8
   scope_lines_total: 180
+  _claimed_by: worker-0
+  _claimed_at: 1778122991
 - id: phase-247
   title: Test Coverage -- MCP Server Integration Tests
   status: todo

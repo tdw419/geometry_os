@@ -663,10 +663,7 @@ impl Vm {
                 format!("STRCMP {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
                 3,
             ),
-            0xED => (
-                format!("STRLEN {}", reg(ram(a + 1))),
-                2,
-            ),
+            0xED => (format!("STRLEN {}", reg(ram(a + 1))), 2),
             0xEE => (
                 format!("STRCPY {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
                 3,

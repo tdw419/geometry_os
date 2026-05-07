@@ -6321,7 +6321,9 @@ HALT";
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..1000 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     assert_eq!(vm.regs[0], 4, "assembled STRLEN: 'GeOS' length = 4");
 }
@@ -6346,10 +6348,7 @@ fn test_strcpy_basic() {
     // Verify copy
     let expected = b"hello\0";
     for (i, &b) in expected.iter().enumerate() {
-        assert_eq!(
-            vm.ram[0x4000 + i], b as u32,
-            "STRCPY: dst[{}] mismatch", i
-        );
+        assert_eq!(vm.ram[0x4000 + i], b as u32, "STRCPY: dst[{}] mismatch", i);
     }
 }
 
@@ -6363,7 +6362,10 @@ fn test_strcpy_empty() {
     vm.ram[1] = 1;
     vm.ram[2] = 2;
     vm.step();
-    assert_eq!(vm.regs[0], 1, "STRCPY of empty string should copy 1 byte (null)");
+    assert_eq!(
+        vm.regs[0], 1,
+        "STRCPY of empty string should copy 1 byte (null)"
+    );
     assert_eq!(vm.ram[0x4000], 0, "STRCPY: dst should have null");
 }
 
@@ -30632,7 +30634,7 @@ fn test_memcpy_forward_no_overlap() {
     // MEMCPY dst_reg, src_reg, len_reg = opcode 0x04
     vm.regs[1] = 200; // dst
     vm.regs[2] = 100; // src
-    vm.regs[3] = 3;   // len
+    vm.regs[3] = 3; // len
     vm.ram[100] = 0xAA;
     vm.ram[101] = 0xBB;
     vm.ram[102] = 0xCC;
@@ -30655,19 +30657,28 @@ fn test_memcpy_overlap_forward_shift() {
     // If copied forward, src[2] would already be overwritten by the time we read it.
     vm.regs[1] = 102; // dst (2 ahead of src)
     vm.regs[2] = 100; // src
-    vm.regs[3] = 3;   // len
+    vm.regs[3] = 3; // len
     vm.ram[100] = 0x11;
     vm.ram[101] = 0x22;
     vm.ram[102] = 0xFF; // will be overwritten
     vm.ram[103] = 0xFF;
     vm.ram[104] = 0xFF;
-    vm.ram[0] = 0x04; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.ram[0] = 0x04;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.pc = 0;
     vm.step();
     // With backward copy: ram[104]=0x22, ram[103]=0x11, ram[102]=0x11
     // All original data preserved despite overlap
-    assert_eq!(vm.ram[102], 0x11, "overlap: first element shifted correctly");
-    assert_eq!(vm.ram[103], 0x22, "overlap: second element shifted correctly");
+    assert_eq!(
+        vm.ram[102], 0x11,
+        "overlap: first element shifted correctly"
+    );
+    assert_eq!(
+        vm.ram[103], 0x22,
+        "overlap: second element shifted correctly"
+    );
     assert_eq!(vm.ram[104], 0xFF, "overlap: old data at tail not clobbered");
 }
 
@@ -30677,11 +30688,14 @@ fn test_memcpy_backward_overlap() {
     // Shift data left by 2 (backward overlap). Forward copy is safe here.
     vm.regs[1] = 100; // dst
     vm.regs[2] = 102; // src (2 ahead)
-    vm.regs[3] = 3;   // len
+    vm.regs[3] = 3; // len
     vm.ram[102] = 0x44;
     vm.ram[103] = 0x55;
     vm.ram[104] = 0x66;
-    vm.ram[0] = 0x04; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.ram[0] = 0x04;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.pc = 0;
     vm.step();
     assert_eq!(vm.ram[100], 0x44);

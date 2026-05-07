@@ -1957,11 +1957,8 @@ fn main() {
                                 if parts.len() >= 2 {
                                     let path = parts[1];
                                     let base_addr = if parts.len() >= 3 {
-                                        usize::from_str_radix(
-                                            parts[2].trim_start_matches("0x"),
-                                            16,
-                                        )
-                                        .unwrap_or(render::CANVAS_BYTECODE_ADDR)
+                                        usize::from_str_radix(parts[2].trim_start_matches("0x"), 16)
+                                            .unwrap_or(render::CANVAS_BYTECODE_ADDR)
                                     } else {
                                         render::CANVAS_BYTECODE_ADDR
                                     };
@@ -1972,11 +1969,15 @@ fn main() {
                                             match assembler::assemble(&preprocessed, base_addr) {
                                                 Ok(asm_result) => {
                                                     // Clear and load bytecode into RAM
-                                                    let clear_end = (base_addr + 4096).min(vm.ram.len());
-                                                    for v in vm.ram[base_addr..clear_end].iter_mut() {
+                                                    let clear_end =
+                                                        (base_addr + 4096).min(vm.ram.len());
+                                                    for v in vm.ram[base_addr..clear_end].iter_mut()
+                                                    {
                                                         *v = 0;
                                                     }
-                                                    for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+                                                    for (i, &pixel) in
+                                                        asm_result.pixels.iter().enumerate()
+                                                    {
                                                         let addr = base_addr + i;
                                                         if addr < vm.ram.len() {
                                                             vm.ram[addr] = pixel;

@@ -43,18 +43,19 @@ fn main() {
 
     let mut comp = compiler::Compiler::new();
     match comp.compile(&source) {
-        Ok(asm) => {
-            match fs::write(&output_path, &asm) {
-                Ok(()) => {
-                    let lines = asm.lines().count();
-                    println!("Compiled {} -> {} ({} lines)", input_path, output_path, lines);
-                }
-                Err(e) => {
-                    eprintln!("Error writing {}: {}", output_path, e);
-                    std::process::exit(1);
-                }
+        Ok(asm) => match fs::write(&output_path, &asm) {
+            Ok(()) => {
+                let lines = asm.lines().count();
+                println!(
+                    "Compiled {} -> {} ({} lines)",
+                    input_path, output_path, lines
+                );
             }
-        }
+            Err(e) => {
+                eprintln!("Error writing {}: {}", output_path, e);
+                std::process::exit(1);
+            }
+        },
         Err(e) => {
             eprintln!("Compile error: {}", e);
             std::process::exit(1);

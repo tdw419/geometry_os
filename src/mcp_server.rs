@@ -1035,9 +1035,7 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
 
         "vm_load_asm" => {
             let path = args["path"].as_str().ok_or("Missing 'path' parameter")?;
-            let base_addr = args["base_addr"]
-                .as_str()
-                .unwrap_or("0x1000");
+            let base_addr = args["base_addr"].as_str().unwrap_or("0x1000");
             let cmd = if base_addr.is_empty() {
                 format!("load_asm {}", path)
             } else {
