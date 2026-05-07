@@ -226,6 +226,110 @@ def attempt_assembly(asm_text: str) -> dict:
     return {"asm": asm_text, "lines": len(asm_text.split("\n"))}
 
 
+def validate_asm(text: str) -> tuple[bool, str]:
+    """Syntax validation for GeOS assembly. Checks opcodes, registers, and operand counts."""
+    # Full opcode set from actual corpus
+    valid_opcodes = {
+        # 0-arg
+        "HALT", "FRAME", "RET", "NEG",
+        # 1-arg
+        "FILL", "PUSH", "POP", "IKEY", "RAND", "BEEP", "BLINK", "TICKS", "PID", "NOTE",
+        # 2-arg (reg, reg)
+        "ADD", "SUB", "MUL", "DIV", "MOD",
+        "AND", "OR", "XOR", "SHL", "SHR", "SAR",
+        "MOV", "CMP", "LOAD", "STORE",
+        "ADDI", "SUBI", "ANDI", "ORI", "XORI", "SHLI",
+        "CMPI", "BLT", "BGE", "BEQ", "BNE",
+        "LDI", "PSETI", "WPIXEL", "FG_COLOR",
+        # 3-arg
+        "PSET", "SCROLL", "RAM", "BUF", "RECTF", "CIRCLE", "LINE",
+        # Special (labels, strings)
+        "CALL", "JMP", "JZ", "JNZ", "TEXT", "DRAWTEXT", "STRO", "SEND_BUF",
+        "STR_BUF", "WINSYS", "VM_SPAWN", "LLM", "OS", "PTY",
+    }
+    # Expected operand counts (excluding the opcode itself)
+    # -1 = variable (labels, strings), 0 = no args
+    arg_counts = {
+        "HALT": 0, "FRAME": 0, "RET": 0, "NEG": 0,
+        "FILL": 1, "PUSH": 1, "POP": 1, "IKEY": 1, "RAND": 1, "BEEP": 1, "BLINK": 1,
+        "TICKS": 1, "PID": 1, "NOTE": 1,
+        "ADD": 3, "SUB": 3, "MUL": 3, "DIV": 3, "MOD": 3,
+        "AND": 3, "OR": 3, "XOR": 3, "SHL": 3, "SHR": 3, "SAR": 3,
+        "MOV": 2, "CMP": 2, "LOAD": 2, "STORE": 2,
+        "ADDI": 3, "SUBI": 3, "ANDI": 3, "ORI": 3, "XORI": 3, "SHLI": 3,
+        "CMPI": 2, "BLT": 2, "BGE": 2, "BEQ": 2, "BNE": 2,
+        "LDI": 2, "PSETI": 3, "WPIXEL": 3, "FG_COLOR": 1,
+        "PSET": 3, "SCROLL": 2, "RAM": 2, "BUF": 2,
+        "RECTF": 5, "CIRCLE": 4, "LINE": 5,
+        "CALL": 1, "JMP": 1, "JZ": 2, "JNZ": 2,
+        "TEXT": -1, "DRAWTEXT": -1, "STRO": -1, "SEND_BUF": -1,
+        "STR_BUF": -1, "WINSYS": 1, "VM_SPAWN": -1, "LLM": -1, "OS": -1, "PTY": -1,
+    }
+
+    lines = text.split("\n")
+    for i, raw_line in enumerate(lines):
+        line = raw_line.split(";")[0].strip()  # Remove comments
+        if not line or line.endswith(":"):
+            continue
+
+        # Split on commas and spaces to get operands
+        parts = [p.strip().rstrip(",") for p in line.replace(",", " ").split()]
+        if not parts:
+            continue
+
+        opcode = parts[0].upper()
+        operands = parts[1:]
+
+        if opcode not in valid_opcodes:
+            return False, f"Line {i+1}: Unknown opcode '{opcode}'"
+
+        # Check operand count
+        expected = arg_counts.get(opcode, -1)
+        if expected >= 0 and len(operands) != expected:
+            return False, f"Line {i+1}: {opcode} expects {expected} args, got {len(operands)}"
+
+        # Check registers
+        for p in operands:
+            # Skip string literals and labels
+            if p.startswith('"') or p.startswith("'"):
+                continue
+            if p.startswith("r") and len(p) > 1:
+                try:
+                    reg_num = int(p[1:])
+                    if not (0 <= reg_num <= 31):
+                        return False, f"Line {i+1}: Invalid register '{p}'"
+                except ValueError:
+                    pass  # Likely a label
+
+    return True, "OK"
+
+
+def generate_with_retry(model, seed_to_idx, idx_to_seed, prompt: str,
+                        max_tokens=200, temperature=0.7, top_k=50, device="cpu", retries=3) -> str:
+    """Generate assembly with a feedback loop."""
+    best_asm = ""
+    for attempt in range(retries):
+        raw_asm = generate_asm(
+            model, seed_to_idx, idx_to_seed,
+            prompt, max_tokens=max_tokens,
+            temperature=temperature, top_k=top_k,
+            device=device,
+        )
+        cleaned = cleanup_asm(raw_asm)
+        is_valid, msg = validate_asm(cleaned)
+        
+        if is_valid:
+            print(f"  [Attempt {attempt+1}] Validated successfully.")
+            return cleaned
+        else:
+            print(f"  [Attempt {attempt+1}] Validation failed: {msg}")
+            if not best_asm or len(cleaned) > len(best_asm):
+                best_asm = cleaned
+                
+    print(f"  Maximum retries reached. Returning best effort.")
+    return best_asm
+
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main():
@@ -238,6 +342,7 @@ def main():
     parser.add_argument("--top-k", type=int, default=50, help="Top-k sampling")
     parser.add_argument("--save", action="store_true", help="Save generated asm to programs/ directory")
     parser.add_argument("--output-dir", default="programs", help="Output directory for saved programs")
+    parser.add_argument("--retries", type=int, default=3, help="Number of retries for validation")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -250,20 +355,14 @@ def main():
         print(f"Sample {i+1}/{args.n_samples} | prompt: {repr(args.prompt)}")
         print(f"{'='*60}")
 
-        raw_asm = generate_asm(
+        cleaned = generate_with_retry(
             model, seed_to_idx, idx_to_seed,
             args.prompt, max_tokens=args.max_tokens,
             temperature=args.temperature, top_k=args.top_k,
-            device=device,
+            device=device, retries=args.retries
         )
-        cleaned = cleanup_asm(raw_asm)
 
-        print(f"\n--- Raw generation ({len(raw_asm)} chars) ---")
-        print(raw_asm[:500])
-        if len(raw_asm) > 500:
-            print(f"  ... ({len(raw_asm) - 500} chars truncated)")
-
-        print(f"\n--- Cleaned assembly ({len(cleaned.splitlines())} lines) ---")
+        print(f"\n--- Resulting assembly ({len(cleaned.splitlines())} lines) ---")
         print(cleaned)
 
         # Save if requested

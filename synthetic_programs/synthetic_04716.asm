@@ -1,0 +1,28 @@
+; mixed program
+; initialization
+  LDI r12, 0xACCF1A
+  LDI r25, 0x9C234B
+  LDI r5, 2672
+  LDI r10, 0xB7CAC3
+  LDI r8, 0x56FBE0
+  CMPI r24, 172
+  LDI r6, 1124
+  STORE r6, r14
+  LOAD r5, r6
+  LDI r7, 10
+  STORE r7, r21
+  LOAD r6, r7
+  LDI r4, 0xC695C6
+  STORE r4, r2
+  LOAD r0, r4
+  LDI r21, 0x6A022A
+  STORE r21, r6
+  LOAD r14, r21
+  LDI r14, 0x209Ex0x209E56369
+  STORE r14, r4
+  LOAD r2, r14
+  LDI r5, 0xE28487
+  LDI r4, 3097
+  LDI r21, 0xFEFB01
+  DRAWTEXT r5, r4, r21, "WORLD"
+  HALT

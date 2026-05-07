@@ -1,0 +1,23 @@
+; input driven program
+; initialization
+  LDI r2, 0x68CA46
+  LDI r0, 3472
+  LDI r15, 128
+  LDI r11, 10
+  LDI r7, 3241
+  LDI r4, 228
+  LDI r13, 1085
+  LDI r21, 0xEBCE00
+main_0:
+  LDI r10, 256
+  LDI r0, 0x2A4A54
+  LDI r6, 8
+  DRAWTEXT r10, r0, r6, "WORLD"
+  IKEY r10
+  CMPI r10, 0x3D9F12
+  JNZ r10, key_1
+  IKEY r3
+  CMPI r3, 0xE94220
+  JNZ r3, key_2
+  FRAME
+  JMP main_0

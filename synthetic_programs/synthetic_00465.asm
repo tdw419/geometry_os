@@ -1,0 +1,35 @@
+; memory operations
+; initialization
+  LDI r26, 128
+  LDI r6, 256
+  LDI r27, 1965
+  STORE r27, r14
+  LOAD r11, r27
+  LDI r1, 8
+  STORE r1, r13
+  LOAD r6, r1
+  LDI r8, 2
+  STORE r8, r14
+  LOAD r15, r8
+  LDI r13, 2567
+  STORE r13, r6
+  LOAD r0, r13
+  LDI r6, 2694
+  STORE r6, r12
+  LOAD r5, r6
+  LDI r4, 0xE3DEBF
+  STORE r4, r12
+  LOAD r7, r4
+  LDI r13, 0xBA26E0
+  STORE r13, r4
+  LOAD r10, r13
+  LDI r14, 0x04C71D
+  STORE r14, r11
+  LOAD r1, r14
+  LDI r2, 32
+  STORE r2, r13
+  LOAD r9, r2
+  LDI r14, 612
+  STORE r14, r7
+  LOAD r18, r14
+  HALT
