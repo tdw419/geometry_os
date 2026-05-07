@@ -2848,7 +2848,7 @@ phases:
   _claimed_at: 1778083378
 - id: phase-229
   title: RISC-V Guest -- Simple File Viewer
-  status: todo
+  status: complete
   goal: Add a bare-metal file viewer that displays VFS files with line numbers and
     scrolling
   description: The guest shell has cat for printing files, but no interactive viewer
@@ -2858,7 +2858,7 @@ phases:
     and supports arrow-key scrolling and / search.
   deliverables:
   - name: Interactive file viewer
-    status: todo
+    status: done
     tasks:
     - id: p229.d1.t1
       title: Implement file display with line numbers
@@ -2868,6 +2868,7 @@ phases:
       scope_files:
       - examples/riscv-hello/viewer.c
       scope_lines: 150
+      status: done
     - id: p229.d1.t2
       title: Add search (/) and file switching (n/p)
       description: Search with / key, type pattern, Enter searches forward. n for
@@ -2875,6 +2876,7 @@ phases:
       scope_files:
       - examples/riscv-hello/viewer.c
       scope_lines: 80
+      status: done
     - id: p229.d1.t3
       title: Add build.sh entry and runner
       description: Wire into build.sh. Accept filename as command-line argument (passed
@@ -2883,6 +2885,7 @@ phases:
       - examples/riscv-hello/build.sh
       - examples/viewer_run.rs
       scope_lines: 40
+      status: done
   test_target: 2
   scope_lines_total: 270
 - id: phase-230
@@ -2927,7 +2930,7 @@ phases:
   scope_lines_total: 130
 - id: phase-231
   title: Error Resilience -- Replace mmu.rs unwrap() Calls
-  status: todo
+  status: complete
   goal: Eliminate all 14 unwrap() calls in riscv/mmu.rs with proper error paths
   description: riscv/mmu.rs is the memory management unit for the RISC-V interpreter.
     It has 14 unwrap() calls that panic on page table walk failures, allocation errors,
@@ -2936,7 +2939,7 @@ phases:
     loop for graceful fault handling.
   deliverables:
   - name: unwrap()-free mmu.rs
-    status: todo
+    status: done
     tasks:
     - id: p231.d1.t1
       title: Convert translate() to return Result with TranslateError
@@ -2945,6 +2948,7 @@ phases:
       scope_files:
       - src/riscv/mmu.rs
       scope_lines: 80
+      status: done
     - id: p231.d1.t2
       title: Convert alloc_pages and COW handlers to Result-based
       description: Page allocation and copy-on-write resolution should return errors
@@ -2952,6 +2956,7 @@ phases:
       scope_files:
       - src/riscv/mmu.rs
       scope_lines: 50
+      status: done
     - id: p231.d1.t3
       title: Wire translate errors into bus fault handling
       description: CPU step loop catches TranslateError and delivers proper page fault
@@ -2960,6 +2965,7 @@ phases:
       - src/riscv/cpu/system.rs
       - src/riscv/bus.rs
       scope_lines: 30
+      status: done
   test_target: 3
   scope_lines_total: 160
 - id: phase-232
@@ -3379,14 +3385,14 @@ phases:
   scope_lines_total: 110
 - id: phase-243
   title: GeOS VM -- Direct Screen Text Opcode (DRAWTEXT)
-  status: todo
+  status: complete
   goal: Add a text rendering opcode that reads strings directly from RAM
   description: The TEXT opcode renders from RAM but requires pre-staging strings.
     DRAWTEXT renders a null-terminated string from a RAM address to screen coordinates
     in one opcode, simplifying labels, menus, and HUD elements.
   deliverables:
   - name: DRAWTEXT opcode
-    status: todo
+    status: done
     tasks:
     - id: p243.d1.t1
       title: Implement DRAWTEXT x_reg y_reg color_reg addr_reg (0xD0)
@@ -3396,6 +3402,7 @@ phases:
       - src/vm/mod.rs
       - src/assembler/ops_graphics.rs
       scope_lines: 50
+      status: done
     - id: p243.d1.t2
       title: Add disassembler entry and tests
       description: Test Hello at various positions. Test empty string. Test boundary.
@@ -3404,6 +3411,7 @@ phases:
       - src/vm/disasm.rs
       - src/vm/tests.rs
       scope_lines: 50
+      status: done
     - id: p243.d1.t3
       title: Refactor programs to use DRAWTEXT for labels
       description: Convert calculator.asm and clock.asm label rendering from STORE+TEXT
@@ -3412,6 +3420,7 @@ phases:
       - programs/calculator.asm
       - programs/clock.asm
       scope_lines: 40
+      status: done
   test_target: 3
   scope_lines_total: 140
 - id: phase-244
@@ -3542,7 +3551,7 @@ phases:
   test_target: 8
   scope_lines_total: 180
   _claimed_by: worker-0
-  _claimed_at: 1778153129
+  _claimed_at: 1778156073
 - id: phase-247
   title: Test Coverage -- MCP Server Integration Tests
   status: todo
@@ -4667,12 +4676,13 @@ phases:
 - id: phase-275
   title: User-Driven Self-Hosting -- Native Assembler Shell Utility
   status: todo
-  goal: Implement a native 'as' command in the shell to enable the full in-guest development loop
-  description: While the ASM opcode and nano_editor exists, there is no way for a user
-    to assemble a file from the VFS into bytecode without host intervention. Add an
-    'as <src.asm> <dst.png>' command to shell.asm. It will read the source file from
-    VFS, use the ASM opcode to generate bytecode, and write the result as a pixelpack-encoded
-    PNG back to the VFS. This completes Level 3 self-hosting.
+  goal: Implement a native 'as' command in the shell to enable the full in-guest development
+    loop
+  description: While the ASM opcode and nano_editor exists, there is no way for a
+    user to assemble a file from the VFS into bytecode without host intervention.
+    Add an 'as <src.asm> <dst.png>' command to shell.asm. It will read the source
+    file from VFS, use the ASM opcode to generate bytecode, and write the result as
+    a pixelpack-encoded PNG back to the VFS. This completes Level 3 self-hosting.
   deliverables:
   - name: Native 'as' command in shell.asm
     status: todo
@@ -4687,8 +4697,9 @@ phases:
     - id: p275.d1.t2
       title: Integration with ASM opcode and VFS write
       description: Execute ASM opcode on the source buffer. On success, take the bytecode
-        from the output buffer and write it to the destination PNG file via SAVEPNG or
-        manual pixelpack encoding. Handle errors by displaying the ASM error port (0xFFD).
+        from the output buffer and write it to the destination PNG file via SAVEPNG
+        or manual pixelpack encoding. Handle errors by displaying the ASM error port
+        (0xFFD).
       scope_files:
       - programs/shell.asm
       scope_lines: 80

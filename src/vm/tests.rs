@@ -30776,7 +30776,7 @@ fn test_csel_selects_rs2_when_condition_zero() {
 #[test]
 fn test_cmov_assemble() {
     let source = "CMOV r1, r2, r3\nHALT";
-    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    let asm = crate::assembler::assemble(source, 0).unwrap();
     assert_eq!(asm.pixels[0], 0xE0); // CMOV opcode
     assert_eq!(asm.pixels[1], 1);    // rd
     assert_eq!(asm.pixels[2], 2);    // rs
@@ -30787,7 +30787,7 @@ fn test_cmov_assemble() {
 #[test]
 fn test_csel_assemble() {
     let source = "CSEL r5, r6, r7, r8\nHALT";
-    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    let asm = crate::assembler::assemble(source, 0).unwrap();
     assert_eq!(asm.pixels[0], 0xEF); // CSEL opcode
     assert_eq!(asm.pixels[1], 5);    // rd
     assert_eq!(asm.pixels[2], 6);    // rs1
@@ -30810,7 +30810,7 @@ LDI r3, 20
 CMP r2, r3
 CMOV r1, r2, r0
 HALT";
-    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    let asm = crate::assembler::assemble(source, 0).unwrap();
     let mut vm = Vm::new();
     for (i, &pixel) in asm.pixels.iter().enumerate() {
         if i < vm.ram.len() {
@@ -30849,7 +30849,7 @@ LDI r10, 0
 do_sel:
 CSEL r1, r2, r3, r10
 HALT";
-    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    let asm = crate::assembler::assemble(source, 0).unwrap();
     let mut vm = Vm::new();
     for (i, &pixel) in asm.pixels.iter().enumerate() {
         if i < vm.ram.len() {
@@ -30869,17 +30869,24 @@ HALT";
 
 #[test]
 fn test_cmov_disasm() {
-    let vm = Vm::new();
-    let ram = &[0xE0u32, 1, 2, 3];
-    let (mnemonic, _len) = vm.disassemble_at(ram, 0);
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xE0;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    let (mnemonic, _len) = vm.disassemble_at(0);
     assert!(mnemonic.contains("CMOV"), "got: {}", mnemonic);
 }
 
 #[test]
 fn test_csel_disasm() {
-    let vm = Vm::new();
-    let ram = &[0xEFu32, 5, 6, 7, 8];
-    let (mnemonic, len) = vm.disassemble_at(ram, 0);
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xEF;
+    vm.ram[1] = 5;
+    vm.ram[2] = 6;
+    vm.ram[3] = 7;
+    vm.ram[4] = 8;
+    let (mnemonic, len) = vm.disassemble_at(0);
     assert!(mnemonic.contains("CSEL"), "got: {}", mnemonic);
     assert_eq!(len, 5);
 }
