@@ -3328,7 +3328,7 @@ phases:
   _claimed_at: 1778171975
 - id: phase-241
   title: GeOS VM -- Rotation and Scaling Opcodes (ROTATE, SCALE)
-  status: in_progress
+  status: planned
   goal: Add pixel rotation and scaling for sprite-based games
   description: Current sprite rendering is axis-aligned only. Programs needing rotation
     (asteroids) or scaling (zoom) do per-pixel transforms manually. ROTATE rotates
@@ -3364,8 +3364,6 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 210
-  _claimed_by: worker-0
-  _claimed_at: 1778173589
 - id: phase-242
   title: Error Resilience -- Replace scrollback.rs and geos_term.rs unwrap() Calls
   status: done
@@ -3443,7 +3441,7 @@ phases:
   scope_lines_total: 140
 - id: phase-244
   title: RISC-V Guest -- Basic Socket Networking via SBI Extension
-  status: in_progress
+  status: planned
   goal: Enable bare-metal RISC-V programs to make TCP connections via SBI
   description: The VM has TCP networking opcodes but RISC-V guests cannot access the
     network. Add an SBI extension (0x4E4554) proxying TCP operations to the host stack
@@ -3477,8 +3475,6 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 220
-  _claimed_by: worker-0
-  _claimed_at: 1778176124
 - id: phase-245
   title: Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests
   status: done
