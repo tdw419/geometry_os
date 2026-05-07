@@ -5240,6 +5240,34 @@ impl Vm {
                 }
             }
 
+            // BNOT rd  (0xCF) -- Bitwise NOT (one's complement)
+            // rd = !rd (all bits flipped). Uses Rust ! operator (bitwise NOT).
+            // Encoding: 2 words [0xCF, rd]
+            0xCF => {
+                let dr = self.fetch() as usize;
+                if dr < NUM_REGS {
+                    self.regs[dr] = !self.regs[dr];
+                    if self.render_logging {
+                        self.log_render_op(0xCF, "BNOT", &[self.regs[dr]]);
+                    }
+                }
+            }
+
+            // BSET rd, bit_reg  (0xE1) -- Set bit in register
+            // rd = rd | (1 << (bit_reg & 31)). Sets the N-th bit of rd.
+            // Encoding: 3 words [0xE1, rd, bit_reg]
+            0xE1 => {
+                let dr = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if dr < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[dr] |= 1u32 << bit;
+                    if self.render_logging {
+                        self.log_render_op(0xE1, "BSET", &[self.regs[dr], self.regs[br]]);
+                    }
+                }
+            }
+
             // CMOV rd, rs, cond_reg  (0xE0) -- Conditional move
             // If cond_reg != 0, copy rs into rd. Otherwise rd is unchanged.
             // Branchless alternative to CMP+BLT+LDI+MOV+JMP patterns.
@@ -5275,6 +5303,38 @@ impl Vm {
                     }
                     if self.render_logging {
                         self.log_render_op(0xEF, "CSEL", &[self.regs[dr], self.regs[s1], self.regs[s2], self.regs[cr]]);
+                    }
+                }
+            }
+
+            // BCLR rd, bit_reg  (0xF0) -- Clear bit in register
+            // rd = rd & !(1 << (bit_reg & 31)). Clears the N-th bit of rd.
+            // Encoding: 3 words [0xF0, rd, bit_reg]
+            0xF0 => {
+                let dr = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if dr < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[dr] &= !(1u32 << bit);
+                    if self.render_logging {
+                        self.log_render_op(0xF0, "BCLR", &[self.regs[dr], self.regs[br]]);
+                    }
+                }
+            }
+
+            // BTST rd, bit_reg  (0xF1) -- Test bit in register
+            // Tests bit N of rd. Sets r0 = 1 if bit is set, r0 = 0 if clear.
+            // rd is NOT modified. bit_reg specifies which bit (0-31, masked).
+            // Useful for flag testing: BTST r_flags, r_bit; JNZ r0, bit_set
+            // Encoding: 3 words [0xF1, rd, bit_reg]
+            0xF1 => {
+                let dr = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if dr < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[0] = if (self.regs[dr] & (1u32 << bit)) != 0 { 1 } else { 0 };
+                    if self.render_logging {
+                        self.log_render_op(0xF1, "BTST", &[self.regs[dr], self.regs[br], self.regs[0]]);
                     }
                 }
             }

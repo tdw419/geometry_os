@@ -1036,8 +1036,12 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xEB => "ALARM_CLR",
         0xED => "STRLEN",
         0xEE => "STRCPY",
+        0xCF => "BNOT",
         0xE0 => "CMOV",
+        0xE1 => "BSET",
         0xEF => "CSEL",
+        0xF0 => "BCLR",
+        0xF1 => "BTST",
         _ => "???",
     }
 }

@@ -217,6 +217,11 @@ pub const OPCODES: &[&str] = &[
     // Conditional move and select
     "CMOV",
     "CSEL",
+    // Bit manipulation opcodes
+    "BNOT",
+    "BSET",
+    "BCLR",
+    "BTST",
     // Phase 260: Matrix multiply (2D)
     "MATMUL",
     // Phase 269: Hash table opcodes

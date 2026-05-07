@@ -9120,55 +9120,39 @@ fn test_inv_inverts_screen() {
     assert_eq!(vm.screen[2], 0x000000);
 }
 
-// ── Bit manipulation assembler aliases (BNOT, BSET, BCLR, BTST) ──
+// ── Bit manipulation short names (BNOT, BSET, BCLR, BTST) ──
+// These are now independent opcodes (0xCF, 0xE1, 0xF0, 0xF1), NOT aliases
+// for the older BITSET/BITCLR/BITTEST/NOT (0x8D, 0x8E, 0x8F, 0x90).
 
 #[test]
-fn test_bset_alias_assembles() {
-    // BSET is an alias for BITSET -- both should produce identical bytecode
-    let src_long = "LDI r1, 0\nLDI r2, 5\nBITSET r1, r2\nHALT\n";
+fn test_bset_assembles_new_opcode() {
+    // BSET uses 0xE1, BITSET uses 0x8D -- different bytecodes
     let src_short = "LDI r1, 0\nLDI r2, 5\nBSET r1, r2\nHALT\n";
-    let result_long = crate::assembler::assemble(src_long, 0).unwrap();
-    let result_short = crate::assembler::assemble(src_short, 0).unwrap();
-    assert_eq!(
-        result_long.pixels, result_short.pixels,
-        "BSET alias should produce same bytecode as BITSET"
-    );
+    let result = crate::assembler::assemble(src_short, 0).unwrap();
+    // LDI r1, 0 = [0x10, 1, 0]; LDI r2, 5 = [0x10, 2, 5]; BSET = [0xE1, 1, 2]; HALT = [0x00]
+    assert_eq!(result.pixels[6], 0xE1, "BSET should use opcode 0xE1");
 }
 
 #[test]
-fn test_bclr_alias_assembles() {
-    let src_long = "LDI r1, 0xFF\nLDI r2, 3\nBITCLR r1, r2\nHALT\n";
+fn test_bclr_assembles_new_opcode() {
     let src_short = "LDI r1, 0xFF\nLDI r2, 3\nBCLR r1, r2\nHALT\n";
-    let result_long = crate::assembler::assemble(src_long, 0).unwrap();
-    let result_short = crate::assembler::assemble(src_short, 0).unwrap();
-    assert_eq!(
-        result_long.pixels, result_short.pixels,
-        "BCLR alias should produce same bytecode as BITCLR"
-    );
+    let result = crate::assembler::assemble(src_short, 0).unwrap();
+    assert_eq!(result.pixels[6], 0xF0, "BCLR should use opcode 0xF0");
 }
 
 #[test]
-fn test_btst_alias_assembles() {
-    let src_long = "LDI r1, 0x80\nLDI r2, 7\nBITTEST r1, r2\nHALT\n";
+fn test_btst_assembles_new_opcode() {
     let src_short = "LDI r1, 0x80\nLDI r2, 7\nBTST r1, r2\nHALT\n";
-    let result_long = crate::assembler::assemble(src_long, 0).unwrap();
-    let result_short = crate::assembler::assemble(src_short, 0).unwrap();
-    assert_eq!(
-        result_long.pixels, result_short.pixels,
-        "BTST alias should produce same bytecode as BITTEST"
-    );
+    let result = crate::assembler::assemble(src_short, 0).unwrap();
+    assert_eq!(result.pixels[6], 0xF1, "BTST should use opcode 0xF1");
 }
 
 #[test]
-fn test_bnot_alias_assembles() {
-    let src_long = "LDI r1, 0xFF\nNOT r1\nHALT\n";
+fn test_bnot_assembles_new_opcode() {
     let src_short = "LDI r1, 0xFF\nBNOT r1\nHALT\n";
-    let result_long = crate::assembler::assemble(src_long, 0).unwrap();
-    let result_short = crate::assembler::assemble(src_short, 0).unwrap();
-    assert_eq!(
-        result_long.pixels, result_short.pixels,
-        "BNOT alias should produce same bytecode as NOT"
-    );
+    let result = crate::assembler::assemble(src_short, 0).unwrap();
+    // LDI r1, 0xFF = [0x10, 1, 255]; BNOT = [0xCF, 1]; HALT = [0x00]
+    assert_eq!(result.pixels[3], 0xCF, "BNOT should use opcode 0xCF");
 }
 
 #[test]
@@ -26404,6 +26388,268 @@ fn test_bitfield_demo_assembles() {
         asm.pixels.len() > 50,
         "demo should produce substantial bytecode"
     );
+}
+
+// === Bit Manipulation Opcodes: BNOT, BSET, BCLR, BTST (0xCF, 0xE1, 0xF0, 0xF1) ===
+
+#[test]
+fn test_bnot_flips_all_bits() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x0000FFFF;
+    // BNOT r1 = [0xCF, 1, HALT]
+    vm.ram[0] = 0xCF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xFFFF0000u32);
+    assert!(vm.halted);
+}
+
+#[test]
+fn test_bnot_zero_becomes_max() {
+    let mut vm = Vm::new();
+    vm.regs[2] = 0;
+    vm.ram[0] = 0xCF;
+    vm.ram[1] = 2;
+    vm.ram[2] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[2], 0xFFFFFFFFu32);
+}
+
+#[test]
+fn test_bnot_all_ones_becomes_zero() {
+    let mut vm = Vm::new();
+    vm.regs[3] = 0xFFFFFFFF;
+    vm.ram[0] = 0xCF;
+    vm.ram[1] = 3;
+    vm.ram[2] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[3], 0);
+}
+
+#[test]
+fn test_bset_sets_bit() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0;        // start with all zeros
+    vm.regs[2] = 5;        // set bit 5
+    // BSET r1, r2 = [0xE1, 1, 2, HALT]
+    vm.ram[0] = 0xE1;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 1u32 << 5); // 0x00000020
+}
+
+#[test]
+fn test_bset_already_set_bit_unchanged() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0xFF;     // bits 0-7 all set
+    vm.regs[2] = 3;        // set bit 3 (already set)
+    vm.ram[0] = 0xE1;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xFF);
+}
+
+#[test]
+fn test_bset_masks_bit_to_31() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0;
+    vm.regs[2] = 63;       // bit 63, but masked to 31
+    vm.ram[0] = 0xE1;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 1u32 << 31); // bit 31 set (63 & 31 = 31)
+}
+
+#[test]
+fn test_bclr_clears_bit() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0xFF;     // bits 0-7 all set
+    vm.regs[2] = 3;        // clear bit 3
+    // BCLR r1, r2 = [0xF0, 1, 2, HALT]
+    vm.ram[0] = 0xF0;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xFF & !(1u32 << 3)); // 0xF7
+}
+
+#[test]
+fn test_bclr_already_clear_unchanged() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x0F;     // only bits 0-3 set
+    vm.regs[2] = 7;        // clear bit 7 (already clear)
+    vm.ram[0] = 0xF0;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0x0F);
+}
+
+#[test]
+fn test_btst_set_bit_returns_one() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0xFF;
+    vm.regs[2] = 5;        // test bit 5 (should be set)
+    // BTST r1, r2 = [0xF1, 1, 2, HALT]
+    vm.ram[0] = 0xF1;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[0], 1); // bit was set
+    assert_eq!(vm.regs[1], 0xFF); // rd unchanged
+}
+
+#[test]
+fn test_btst_clear_bit_returns_zero() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x0F;     // bits 0-3 set
+    vm.regs[2] = 7;        // test bit 7 (clear)
+    vm.ram[0] = 0xF1;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[0], 0); // bit was clear
+    assert_eq!(vm.regs[1], 0x0F); // rd unchanged
+}
+
+#[test]
+fn test_btst_masks_bit_to_31() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 1u32 << 31; // only bit 31 set
+    vm.regs[2] = 31;         // test bit 31
+    vm.ram[0] = 0xF1;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[0], 1); // bit 31 was set
+}
+
+#[test]
+fn test_btst_with_jz_branching() {
+    // Test that BTST + JZ works for conditional branching
+    let mut vm = Vm::new();
+    vm.regs[1] = 0b00001010; // bits 1 and 3 set
+    vm.regs[2] = 2;          // test bit 2 (clear)
+    // BTST r1, r2 -> r0=0; JZ r0, 7 (skip to HALT at addr 7)
+    vm.ram[0] = 0xF1; // BTST
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x31; // JZ
+    vm.ram[4] = 0;    // r0
+    vm.ram[5] = 7;    // addr 7
+    vm.ram[6] = 0x10; // LDI (should be skipped)
+    vm.ram[7] = 1;
+    vm.ram[8] = 99;   // imm (should be skipped)
+    vm.ram[9] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[0], 0); // bit 2 was clear
+    // r1 should still be 0b00001010 (unchanged by BTST)
+    assert_eq!(vm.regs[1], 0b00001010u32);
+    assert!(vm.halted);
+}
+
+#[test]
+fn test_bnot_assembler_disasm() {
+    let source = "BNOT r5";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xCF);
+    assert_eq!(asm.pixels[1], 5);
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() { vm.ram[i] = w; }
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "BNOT r5");
+    assert_eq!(len, 2);
+}
+
+#[test]
+fn test_bset_assembler_disasm() {
+    let source = "BSET r5, r6";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xE1);
+    assert_eq!(asm.pixels[1], 5);
+    assert_eq!(asm.pixels[2], 6);
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() { vm.ram[i] = w; }
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "BSET r5, r6");
+    assert_eq!(len, 3);
+}
+
+#[test]
+fn test_bclr_assembler_disasm() {
+    let source = "BCLR r5, r6";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xF0);
+    assert_eq!(asm.pixels[1], 5);
+    assert_eq!(asm.pixels[2], 6);
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() { vm.ram[i] = w; }
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "BCLR r5, r6");
+    assert_eq!(len, 3);
+}
+
+#[test]
+fn test_btst_assembler_disasm() {
+    let source = "BTST r5, r6";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xF1);
+    assert_eq!(asm.pixels[1], 5);
+    assert_eq!(asm.pixels[2], 6);
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() { vm.ram[i] = w; }
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "BTST r5, r6");
+    assert_eq!(len, 3);
+}
+
+#[test]
+fn test_bit_manip_combined_flag_pattern() {
+    // Simulate a flag register pattern: set bit 0, set bit 3, clear bit 0, test bit 3
+    let mut vm = Vm::new();
+    vm.regs[1] = 0;         // flag register
+    vm.regs[2] = 0;         // bit 0
+    vm.regs[3] = 3;         // bit 3
+
+    // BSET r1, r2 (set bit 0)
+    vm.ram[0] = 0xE1; vm.ram[1] = 1; vm.ram[2] = 2;
+    // BSET r1, r3 (set bit 3)
+    vm.ram[3] = 0xE1; vm.ram[4] = 1; vm.ram[5] = 3;
+    // BCLR r1, r2 (clear bit 0)
+    vm.ram[6] = 0xF0; vm.ram[7] = 1; vm.ram[8] = 2;
+    // BTST r1, r3 (test bit 3 -> should be 1)
+    vm.ram[9] = 0xF1; vm.ram[10] = 1; vm.ram[11] = 3;
+    // HALT
+    vm.ram[12] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 1u32 << 3); // only bit 3 set
+    assert_eq!(vm.regs[0], 1);          // bit 3 was set
+    assert!(vm.halted);
 }
 
 // === PROFILE opcode tests (0xC6) ===

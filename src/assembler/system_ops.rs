@@ -466,11 +466,11 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
-        // Bit manipulation opcodes: BITSET/BSET (0x8D), BITCLR/BCLR (0x8E),
-        // BITTEST/BTST (0x8F), NOT/BNOT (0x90).
-        // Short aliases (BSET, BCLR, BTST, BNOT) are equivalent to their
-        // longer forms and produce identical bytecode.
-        "BITSET" | "BSET" => {
+        // Bit manipulation opcodes: BITSET (0x8D), BITCLR (0x8E),
+        // BITTEST (0x8F), NOT (0x90).
+        // Short aliases (BSET, BCLR, BTST, BNOT) use the newer opcodes
+        // (0xE1, 0xF0, 0xF1, 0xCF) defined later in this match.
+        "BITSET" => {
             if tokens.len() < 3 {
                 return Err("BITSET requires 2 arguments: BITSET rd, bit_reg".to_string());
             }
@@ -480,7 +480,7 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
-        "BITCLR" | "BCLR" => {
+        "BITCLR" => {
             if tokens.len() < 3 {
                 return Err("BITCLR requires 2 arguments: BITCLR rd, bit_reg".to_string());
             }
@@ -490,7 +490,7 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
-        "BITTEST" | "BTST" => {
+        "BITTEST" => {
             if tokens.len() < 3 {
                 return Err("BITTEST requires 2 arguments: BITTEST rd, bit_reg".to_string());
             }
@@ -500,7 +500,7 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
-        "NOT" | "BNOT" => {
+        "NOT" => {
             if tokens.len() < 2 {
                 return Err("NOT requires 1 argument: NOT rd".to_string());
             }
@@ -1220,6 +1220,53 @@ pub(super) fn try_parse(
             bytecode.push(parse_reg(tokens[2])? as u32);
             bytecode.push(parse_reg(tokens[3])? as u32);
             bytecode.push(parse_reg(tokens[4])? as u32);
+            Ok(Some(()))
+        }
+
+        // Bitwise NOT: BNOT rd (0xCF)
+        // rd = !rd (all bits flipped)
+        "BNOT" => {
+            if tokens.len() < 2 {
+                return Err("BNOT requires 1 argument: BNOT rd".to_string());
+            }
+            bytecode.push(0xCF);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        // Set bit: BSET rd, bit_reg (0xE1)
+        // rd = rd | (1 << (bit_reg & 31))
+        "BSET" => {
+            if tokens.len() < 3 {
+                return Err("BSET requires 2 arguments: BSET rd, bit_reg".to_string());
+            }
+            bytecode.push(0xE1);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        // Clear bit: BCLR rd, bit_reg (0xF0)
+        // rd = rd & !(1 << (bit_reg & 31))
+        "BCLR" => {
+            if tokens.len() < 3 {
+                return Err("BCLR requires 2 arguments: BCLR rd, bit_reg".to_string());
+            }
+            bytecode.push(0xF0);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        // Test bit: BTST rd, bit_reg (0xF1)
+        // Tests bit N of rd. Sets r0 = 1 if set, r0 = 0 if clear. rd unchanged.
+        "BTST" => {
+            if tokens.len() < 3 {
+                return Err("BTST requires 2 arguments: BTST rd, bit_reg".to_string());
+            }
+            bytecode.push(0xF1);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
             Ok(Some(()))
         }
 

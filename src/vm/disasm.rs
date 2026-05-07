@@ -679,6 +679,16 @@ impl Vm {
                 ),
                 5,
             ),
+            // BCLR rd, bit_reg (0xF0) -- Clear bit
+            0xF0 => (
+                format!("BCLR {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+            // BTST rd, bit_reg (0xF1) -- Test bit (sets r0)
+            0xF1 => (
+                format!("BTST {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
             0x87 => (format!("ABS {}", reg(ram(a + 1))), 2),
             0x88 => (
                 format!(
@@ -999,10 +1009,17 @@ impl Vm {
                 format!("PROFILE {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
                 3,
             ),
+            // BNOT rd (0xCF) -- Bitwise NOT
+            0xCF => (format!("BNOT {}", reg(ram(a + 1))), 2),
             // CMOV rd, rs, cond_reg (0xE0) -- Conditional move
             0xE0 => (
                 format!("CMOV {}, {}, {}", reg(ram(a + 1)), reg(ram(a + 2)), reg(ram(a + 3))),
                 4,
+            ),
+            // BSET rd, bit_reg (0xE1) -- Set bit
+            0xE1 => (
+                format!("BSET {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
             ),
             // IMOUSE rd (0xC7) -- Read next mouse event from queue
             // Returns packed event→rd, full x→rd+1, full y→rd+2
