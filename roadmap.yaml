@@ -127,7 +127,7 @@ phases:
   goal: Working VM with pixel opcodes, static visual output
   id: phase-1
   scope_lines_total: 2000
-  status: done
+  status: complete
   test_target: 10
   title: Core VM + Visual Programs
 - deliverables:
@@ -171,7 +171,7 @@ phases:
   goal: Shift, modulo, compare, stack, and signed negation opcodes
   id: phase-2
   scope_lines_total: 2800
-  status: done
+  status: complete
   test_target: 16
   title: Extended Opcodes
 - deliverables:
@@ -190,7 +190,7 @@ phases:
   goal: Keyboard input via IKEY and interactive programs
   id: phase-3
   scope_lines_total: 3200
-  status: done
+  status: complete
   test_target: 20
   title: Interactive Programs
 - deliverables:
@@ -209,7 +209,7 @@ phases:
   goal: 'Text editor improvements: paste, load, scroll, syntax highlighting'
   id: phase-4
   scope_lines_total: 3500
-  status: done
+  status: complete
   test_target: 22
   title: Canvas & Editor
 - deliverables:
@@ -223,7 +223,7 @@ phases:
   goal: CLI mode with geo> prompt
   id: phase-5
   scope_lines_total: 3800
-  status: done
+  status: complete
   test_target: 24
   title: Terminal Mode
 - deliverables:
@@ -239,7 +239,7 @@ phases:
   goal: FRAME opcode for 60fps animation loop
   id: phase-6
   scope_lines_total: 4000
-  status: done
+  status: complete
   test_target: 24
   title: Animation
 - deliverables:
@@ -255,7 +255,7 @@ phases:
   goal: RAND opcode, Snake and Ball games
   id: phase-7
   scope_lines_total: 4300
-  status: done
+  status: complete
   test_target: 24
   title: Random & Games
 - deliverables:
@@ -278,7 +278,7 @@ phases:
   goal: Frame counter for throttling, BEEP opcode for audio
   id: phase-8
   scope_lines_total: 4322
-  status: done
+  status: complete
   test_target: 46
   title: TICKS & Sound
 - deliverables:
@@ -319,7 +319,7 @@ phases:
   goal: Breakpoints, instruction trace, and save/load improvements
   id: phase-9
   scope_lines_total: 4500
-  status: done
+  status: complete
   test_target: 48
   title: Debug Tools
 - deliverables:
@@ -349,7 +349,7 @@ phases:
   goal: Sprite blitting and screenshot export
   id: phase-10
   scope_lines_total: 4700
-  status: done
+  status: complete
   test_target: 50
   title: Extended Graphics
 - deliverables:
@@ -381,7 +381,7 @@ phases:
   goal: Richer games using sprites and extended features
   id: phase-11
   scope_lines_total: 5100
-  status: done
+  status: complete
   test_target: 56
   title: Advanced Games
 - deliverables:
@@ -422,7 +422,7 @@ phases:
   goal: VM can assemble and run its own programs from within
   id: phase-12
   scope_lines_total: 5500
-  status: done
+  status: complete
   test_target: 54
   title: Self-Hosting
 - deliverables:
@@ -454,7 +454,7 @@ phases:
   goal: Every program tested, every error traceable, no regressions
   id: phase-13
   priority: 1
-  status: done
+  status: complete
   title: Close the Gaps
 - deliverables:
   - acceptance_criteria:
@@ -487,7 +487,7 @@ phases:
   goal: Make the VM pleasant to program
   id: phase-14
   priority: 2
-  status: done
+  status: complete
   title: Developer Experience
 - deliverables:
   - acceptance_criteria:
@@ -529,7 +529,7 @@ phases:
   goal: Fix rough edges in game programming
   id: phase-15
   priority: 4
-  status: done
+  status: complete
   title: VM Capability Gaps
 - deliverables:
   - acceptance_criteria:
@@ -570,7 +570,7 @@ phases:
   goal: Complete game, presentable repo, public release
   id: phase-16
   priority: 3
-  status: done
+  status: complete
   title: Showcase Shipping
 - deliverables:
   - description: Emit .geo bytecode from GlyphLang source
@@ -601,7 +601,7 @@ phases:
   goal: Geometry OS as a target platform
   id: phase-17
   priority: 5
-  status: done
+  status: complete
   title: Platform Growth
 - deliverables:
   - description: Track LOAD/STORE/SPRITE/TILEMAP RAM hits per frame
@@ -619,7 +619,7 @@ phases:
   goal: Telemetry for memory access and execution flow
   id: phase-18
   priority: 6
-  status: done
+  status: complete
   title: VM Instrumentation
 - deliverables:
   - description: Fade memory highlights over ~10 frames
@@ -643,7 +643,7 @@ phases:
   goal: Live heat-map and PC trail overlays on canvas
   id: phase-19
   priority: 7
-  status: done
+  status: complete
   title: Visual Debugger
 - deliverables:
   - acceptance_criteria:
@@ -675,7 +675,7 @@ phases:
   goal: Deep observability into game state and sprite memory
   id: phase-20
   priority: 8
-  status: done
+  status: complete
   title: High RAM Visualization
 - deliverables:
   - acceptance_criteria:
@@ -715,7 +715,7 @@ phases:
     programs concurrently within the GPU/WGPU substrate.
   id: phase-21
   priority: 9
-  status: done
+  status: complete
   title: Spatial Program Coordinator (Native Windowing)
 - deliverables:
   - acceptance_criteria:
@@ -747,7 +747,7 @@ phases:
     pick-color, and window compositing.
   id: phase-22
   priority: 10
-  status: done
+  status: complete
   title: Screen Readback & Collision Detection
 - deliverables:
   - acceptance_criteria_met: true
@@ -773,7 +773,7 @@ phases:
   goal: Establish user mode vs kernel mode. Programs can't directly access hardware.
   id: phase-23
   priority: 11
-  status: done
+  status: complete
   title: Kernel Boundary (Syscall Mode)
 - deliverables:
   - acceptance_criteria:
@@ -832,7 +832,7 @@ phases:
   goal: Each process gets its own address space. Processes can't trash each other.
   id: phase-24
   priority: 12
-  status: done
+  status: complete
   title: Memory Protection
 - deliverables:
   - description: Abstract FS interface backed by host filesystem in .geometry_os/fs/
@@ -853,7 +853,7 @@ phases:
   goal: Programs can create, read, write, and delete named files. Persistent storage.
   id: phase-25
   priority: 13
-  status: done
+  status: complete
   title: Filesystem
 - deliverables:
   - description: VM fires tick every N instructions, triggers context switch
@@ -868,7 +868,7 @@ phases:
   goal: Replace round-robin single-step with time-sliced priority scheduler.
   id: phase-26
   priority: 14
-  status: done
+  status: complete
   title: Preemptive Scheduler
 - deliverables:
   - acceptance_criteria:
@@ -905,7 +905,7 @@ phases:
   goal: Processes communicate through pipes and messages, not raw shared RAM.
   id: phase-27
   priority: 15
-  status: done
+  status: complete
   title: Inter-Process Communication
 - deliverables:
   - acceptance_criteria:
@@ -951,7 +951,7 @@ phases:
   goal: All hardware access through a uniform driver interface. Everything is a file.
   id: phase-28
   priority: 16
-  status: done
+  status: complete
   title: Device Driver Abstraction
 - deliverables:
   - acceptance_criteria:
@@ -1015,7 +1015,7 @@ phases:
   goal: Proper command shell with pipes, redirection, environment variables.
   id: phase-29
   priority: 17
-  status: done
+  status: complete
   title: Shell
 - deliverables:
   - acceptance_criteria:
@@ -1055,7 +1055,7 @@ phases:
   goal: OS boots into known state, starts init, manages services.
   id: phase-30
   priority: 18
-  status: done
+  status: complete
   title: Boot Sequence & Init
 - deliverables:
   - description: String ops, memory ops, formatted I/O
@@ -1079,7 +1079,7 @@ phases:
   goal: Reusable library of common operations for all programs.
   id: phase-31
   priority: 19
-  status: done
+  status: complete
   title: Standard Library
 - deliverables:
   - acceptance_criteria:
@@ -1111,7 +1111,7 @@ phases:
   goal: Signals, exit codes, wait, and proper process lifecycle management.
   id: phase-32
   priority: 20
-  status: done
+  status: complete
   title: Signals & Process Lifecycle
 - deliverables:
   - description: QEMU subprocess management with stdin/stdout pipes
@@ -1422,7 +1422,7 @@ phases:
   - QEMU not installed on host -- need clear error message
   - ANSI parsing incomplete -- Linux boot output may use obscure sequences
   - Non-blocking pipe reads may miss data on fast output -- buffer management
-  status: done
+  status: complete
   technical_notes: 'QEMU subprocess uses std::process::Command with piped stdin/stdout.
 
     Non-blocking reads via set_nonblocking() on the ChildStdout.
@@ -1577,7 +1577,7 @@ phases:
     no QEMU dependency.
   id: phase-34
   priority: 40
-  status: done
+  status: complete
   title: RISC-V RV32I Core
 - deliverables:
   - description: M/S/U modes, mstatus, mtvec, mepc, mcause, sstatus, stvec, sepc,
@@ -1611,7 +1611,7 @@ phases:
     manage its own processes.
   id: phase-35
   priority: 50
-  status: done
+  status: complete
   title: RISC-V Privilege Modes
 - deliverables:
   - description: 2-level lookup, PTE flags, address translation
@@ -1659,7 +1659,7 @@ phases:
     for guest OS boot.
   id: phase-36
   priority: 60
-  status: done
+  status: complete
   title: RISC-V Virtual Memory & Devices
 - deliverables:
   - description: Parse ELF32 RISC-V kernel images, load segments into guest RAM
@@ -1700,7 +1700,7 @@ phases:
     QEMU and native.'
   id: phase-37
   priority: 70
-  status: done
+  status: complete
   title: Guest OS Boot (Native RISC-V)
 - deliverables:
   - acceptance_criteria:
@@ -1775,7 +1775,7 @@ phases:
   goal: Extend the interpreter from RV32I to RV32IMAC so it can run real Linux kernels.
   id: phase-38
   priority: 45
-  status: done
+  status: complete
   title: RISC-V M/A/C Extensions
 - deliverables:
   - acceptance_criteria:
@@ -1832,7 +1832,7 @@ phases:
     in our interpreter.
   id: phase-39
   priority: 50
-  status: done
+  status: complete
   title: Build Linux for RV32IMAC
 - deliverables:
   - acceptance_criteria:
@@ -1894,7 +1894,7 @@ phases:
   - Booting real kernels reveals interpreter bugs unit tests miss
   - Linux boot sequence teaches more than any textbook
   priority: 55
-  status: done
+  status: complete
   title: Boot Linux in Geometry OS
 - deliverables:
   - description: Log every instruction executed with register state
@@ -1952,7 +1952,7 @@ phases:
     Linux does.
   id: phase-41
   priority: 60
-  status: done
+  status: complete
   title: Tracing and Instrumentation
 - deliverables:
   - description: Process struct with PID, state, page table, registers, kernel stack
@@ -2000,7 +2000,7 @@ phases:
   goal: Rebuild Geometry OS process management based on observed Linux scheduler behavior.
   id: phase-42
   priority: 65
-  status: done
+  status: complete
   title: Geometry OS Process Manager
 - deliverables:
   - description: In-memory inode-based filesystem with directory tree
@@ -2034,7 +2034,7 @@ phases:
   goal: Build a virtual filesystem layer based on observed Linux VFS patterns.
   id: phase-43
   priority: 70
-  status: done
+  status: complete
   title: Geometry OS VFS and Disk
 - deliverables:
   - description: Physical page allocator for 4KB pages
@@ -2078,7 +2078,7 @@ phases:
   goal: Rebuild Geometry OS memory management based on observed Linux SV32 paging.
   id: phase-44
   priority: 75
-  status: done
+  status: complete
   title: Geometry OS Memory Management
 - deliverables:
   - acceptance_criteria:
@@ -2424,7 +2424,7 @@ phases:
   - STORE handler's user-mode protection (addr >= 0xFF00 check) must not block canvas
     writes
   scope_lines_total: 370
-  status: done
+  status: complete
   technical_notes: 'The VM''s RAM is 0x10000 (65536 cells). The canvas buffer is 4096
     cells. Mapping at 0x8000 leaves plenty of headroom (0x9000-0xFFFF still available).
     The screen buffer (256x256 = 65536 pixels) is too large for a contiguous RAM mapping
@@ -2607,7 +2607,7 @@ phases:
     growth
   - Page translation for screen addresses may need special handling
   scope_lines_total: 220
-  status: done
+  status: complete
   technical_notes: 'The screen buffer (self.screen) is already a field on the VM struct,
     unlike canvas_buffer which lives in main.rs. This makes interception simpler --
     no sync step needed.
@@ -2841,7 +2841,7 @@ phases:
   - Preprocessor/assembler errors in a running VM context need careful error handling
   - Self-assembly is inherently dangerous (infinite loops, corrupting own code)
   scope_lines_total: 340
-  status: done
+  status: complete
   technical_notes: 'The assembler and preprocessor are currently called from main.rs.
     The VM (vm.rs) will need to import them. Since vm.rs is a separate module, this
     means adding `use crate::assembler;` and `use crate::preprocessor;` to vm.rs.
@@ -2991,7 +2991,7 @@ phases:
   - Infinite self-modification loops (program rewrites itself forever)
   - Assembler errors in a running context could leave the VM in a bad state
   scope_lines_total: 140
-  status: done
+  status: complete
   technical_notes: 'RUNNEXT is intentionally simple: it just sets PC = 0x1000. The
     complexity is in ASMSELF (phase 47). RUNNEXT could alternatively be implemented
     as a JMP to a label at 0x1000, but having a dedicated opcode makes the intent
@@ -3153,7 +3153,7 @@ phases:
   - Demo programs may be too complex to write in raw assembly within grid size limits
   - Code evolution demo may be too ambitious for initial implementation
   scope_lines_total: 400
-  status: done
+  status: complete
   technical_notes: 'Demo programs should be small enough to fit on the canvas grid
     (32 columns, 128 rows). Complex programs may need to use the .org directive for
     layout. The code_evolution demo is the most ambitious -- it may need careful tuning
@@ -3210,7 +3210,7 @@ phases:
   goal: Make canvas cells react to changes in other cells automatically
   id: phase-50
   scope_lines_total: 800
-  status: done
+  status: complete
   technical_notes: 'This phase explores the spreadsheet model. Each cell can be: -
     A literal value (current behavior) - A formula that references other cells or
     registers - A formula that references screen pixels (PEEK-equivalent)
@@ -3262,7 +3262,7 @@ phases:
     disconnecting
   id: phase-51
   scope_lines_total: 563
-  status: done
+  status: complete
   technical_notes: Implementation in src/vm/net.rs (563 LOC). Opcodes 0x7F-0x82. Uses
     Rust std::net::TcpStream. Non-blocking by default. 12 tests in net.rs.
   test_target: 12
@@ -3291,7 +3291,7 @@ phases:
     past runs
   id: phase-52
   scope_lines_total: 689
-  status: done
+  status: complete
   technical_notes: Implementation in src/episode_log.rs (689 LOC). Zero external dependencies
     -- hand-rolled JSON. Includes opcode histogram and screen delta detection.
   test_target: 12
@@ -3326,7 +3326,7 @@ phases:
     VM
   id: phase-53
   scope_lines_total: 50
-  status: done
+  status: complete
   technical_notes: 'Implementation in src/vm/mod.rs (opcode 0x83) + src/vm/trace.rs
     (3 new query methods). TraceBuffer already existed with 10K-entry ring buffer
     from Phase 38a. Entry format: [step_lo, step_hi, pc, r0..r15, opcode] = 20 u32
@@ -3376,7 +3376,7 @@ phases:
   goal: Enable programs to query which instructions wrote to specific pixels
   id: phase-54
   scope_lines_total: 200
-  status: done
+  status: complete
   technical_notes: Implementation in src/vm/ops_extended.rs (opcode 0x84) + src/vm/trace.rs
     (PixelWriteLog, PixelWriteEntry). pixel_write_log field on Vm struct. Dispatch
     in mod.rs step() via dedicated 0x84 arm delegating to step_extended().
@@ -3412,7 +3412,7 @@ phases:
   goal: Add mouse input support with clickable hit regions for GUI interaction
   id: phase-55
   scope_lines_total: 120
-  status: done
+  status: complete
   technical_notes: Implementation in src/vm/mod.rs (Vm struct fields, push_mouse,
     HITSET/HITQ handlers). HitRegion struct stores x, y, w, h, id. MAX_HIT_REGIONS
     cap prevents unbounded growth. Mouse coordinates updated by host each frame before
@@ -3436,7 +3436,7 @@ phases:
   goal: Extended audio with waveform selection via NOTE opcode
   id: phase-56
   scope_lines_total: 30
-  status: done
+  status: complete
   technical_notes: Implementation in src/vm/mod.rs (0x7E handler). Uses the same audio
     pipeline as BEEP but with waveform selection. The note field on Vm struct stores
     (waveform, freq_hz, duration_ms) for host consumption.
@@ -3469,7 +3469,7 @@ phases:
   goal: Add MOUSEQ opcode for reading mouse position and a paint app demo
   id: phase-57
   scope_lines_total: 80
-  status: done
+  status: complete
   technical_notes: Implementation in src/vm/mod.rs (0x85 handler). Reads mouse_x/mouse_y
     fields on Vm struct. paint.asm is 16 tests covering the full paint loop including
     MOUSEQ integration.
@@ -3502,7 +3502,7 @@ phases:
   goal: Enhance terminal.asm with scroll support and built-in shell commands
   id: phase-58
   scope_lines_total: 620
-  status: done
+  status: complete
   technical_notes: All changes in terminal.asm (282 lines expanded) + 349 lines of
     new tests in src/vm/tests.rs. No new opcodes.
   test_target: 13
@@ -3535,7 +3535,7 @@ phases:
   goal: Interactive file browser with click-to-open and read support
   id: phase-59
   scope_lines_total: 619
-  status: done
+  status: complete
   technical_notes: No new opcodes. Pure application-level code in programs/file_browser.asm.
     Tests in src/vm/tests.rs. Bug fixes improve HITSET/HITQ reliability for all future
     apps.
@@ -3564,7 +3564,7 @@ phases:
   goal: String comparison opcode for null-terminated strings
   id: phase-60
   scope_lines_total: 50
-  status: done
+  status: complete
   technical_notes: String comparison opcode useful for shell and file_browser. Implemented
     in src/vm/mod.rs dispatch, src/assembler/system_ops.rs, src/vm/disasm.rs, src/hermes.rs
     opcode_name. 13 tests in src/vm/tests.rs.
@@ -3591,7 +3591,7 @@ phases:
   goal: Full GUI calculator with mouse-driven button grid and architecture documentation
   id: phase-61
   scope_lines_total: 1200
-  status: done
+  status: complete
   technical_notes: gui_calc.asm uses mouse events, drawing primitives, and arithmetic
     opcodes. 920-line program demonstrating the full GUI capability. TOKEN_PIXEL_GUI.md
     documents the token-pixel-GUI rendering stack (284 lines).
@@ -3631,7 +3631,7 @@ phases:
   goal: Fix 5 notepad bugs and add digital clock application
   id: phase-62
   scope_lines_total: 1485
-  status: done
+  status: complete
   technical_notes: Commit 5ed4b7951. notepad.asm now 713 lines, clock.asm 494 lines.
     6 new tests in src/vm/tests.rs. 1485 insertions total.
   test_target: 6
@@ -3669,7 +3669,7 @@ phases:
     app
   id: phase-63
   scope_lines_total: 800
-  status: done
+  status: complete
   test_target: 10
   title: ABS + RECT Opcodes + Color Picker App
 - deliverables:
@@ -3696,7 +3696,7 @@ phases:
   goal: Add value clamping opcodes and a screensaver demo program
   id: phase-64
   scope_lines_total: 900
-  status: done
+  status: complete
   test_target: 12
   title: MIN/MAX + CLAMP Opcodes + Screensaver Demo
 - deliverables:
@@ -3716,7 +3716,7 @@ phases:
   goal: Add colored text rendering opcode, upgrade terminal with color output
   id: phase-65
   scope_lines_total: 1000
-  status: done
+  status: complete
   test_target: 10
   title: DRAWTEXT (colored text) Opcode + Improved Terminal
 - deliverables:
@@ -3743,7 +3743,7 @@ phases:
   goal: Add bitwise manipulation opcodes for flags and state management
   id: phase-66
   scope_lines_total: 700
-  status: done
+  status: complete
   test_target: 15
   title: BITSET/BITCLR/BITTEST Opcodes + Game of Life Enhanced
 - deliverables:
@@ -3765,7 +3765,7 @@ phases:
   goal: Add logical NOT and screen invert operations
   id: phase-67
   scope_lines_total: 500
-  status: done
+  status: complete
   test_target: 8
   title: NOT opcode + INV (invert) Screen Opcode + Invert Demo
 - deliverables:
@@ -3797,7 +3797,7 @@ phases:
   goal: Window management opcode that creates, destroys, and manages window regions
   id: phase-68
   scope_lines_total: 500
-  status: done
+  status: complete
   test_target: 10
   title: WINSYS Opcode
 - deliverables:
@@ -3821,7 +3821,7 @@ phases:
   goal: Mouse-driven window management with drag, focus, and a multi-window desktop
   id: phase-68b
   scope_lines_total: 700
-  status: done
+  status: complete
   test_target: 12
   title: Window Mouse Interaction + Desktop Demo
 - deliverables:
@@ -3859,7 +3859,7 @@ phases:
   goal: Sprite sheets, transparent blitting, and tile maps for games and visual programs
   id: phase-69
   scope_lines_total: 800
-  status: done
+  status: complete
   test_target: 12
   title: Sprite Engine
 - deliverables:
@@ -3887,7 +3887,7 @@ phases:
   goal: Write and assemble GO programs entirely inside GO, rendered as pixels
   id: phase-70
   scope_lines_total: 1500
-  status: done
+  status: complete
   test_target: 8
   title: Self-Hosting Pixel Assembler
 - deliverables:
@@ -3921,7 +3921,7 @@ phases:
   goal: Share screens and communicate between Geometry OS instances over network
   id: phase-71
   scope_lines_total: 900
-  status: done
+  status: complete
   test_target: 10
   title: Pixel Network Protocol
 - deliverables:
@@ -3944,7 +3944,7 @@ phases:
     app launcher menu
   id: phase-72
   scope_lines_total: 800
-  status: done
+  status: complete
   test_target: 8
   title: Desktop Taskbar + App Launcher
 - deliverables:
@@ -3975,7 +3975,7 @@ phases:
   goal: Unix-style text utilities that work inside the terminal
   id: phase-73
   scope_lines_total: 1000
-  status: done
+  status: complete
   test_target: 10
   title: Core Utilities
 - deliverables:
@@ -4001,7 +4001,7 @@ phases:
   goal: View images stored in VFS and capture screenshots of the canvas
   id: phase-74
   scope_lines_total: 600
-  status: done
+  status: complete
   test_target: 8
   title: Image Viewer + Screenshot
 - deliverables:
@@ -4027,7 +4027,7 @@ phases:
   goal: Time management and advanced calculation apps
   id: phase-75
   scope_lines_total: 1200
-  status: done
+  status: complete
   test_target: 10
   title: Stopwatch + Timer + Calculator (scientific)
 - deliverables:
@@ -4056,7 +4056,7 @@ phases:
   goal: Visual debugging tools for GO programs running inside GO
   id: phase-76
   scope_lines_total: 1500
-  status: done
+  status: complete
   test_target: 10
   title: Debugger UI + Memory Inspector
 - deliverables:
@@ -4085,7 +4085,7 @@ phases:
   goal: System customization apps that prove config persistence and idle detection
   id: phase-77
   scope_lines_total: 1000
-  status: done
+  status: complete
   test_target: 11
   title: Settings + Wallpaper + Screensaver
 - deliverables:
@@ -4110,7 +4110,7 @@ phases:
   goal: Information apps that round out the desktop experience
   id: phase-78
   scope_lines_total: 800
-  status: done
+  status: complete
   test_target: 8
   title: Calendar + About + Help System
 - deliverables:
@@ -4140,7 +4140,7 @@ phases:
   goal: Run a tiny neural network entirely inside the VM using pixel-stored weights
   id: phase-79
   scope_lines_total: 1500
-  status: done
+  status: complete
   test_target: 10
   title: Neural Network Forward Pass (Pixel Neural Net)
 - deliverables:
@@ -4172,7 +4172,7 @@ phases:
   goal: Call external LLMs from inside the VM for text generation and code assistance
   id: phase-80
   scope_lines_total: 1200
-  status: done
+  status: complete
   test_target: 8
   title: LLM Bridge Opcode (External AI)
 - _claimed_at: 1776733808
@@ -4197,7 +4197,7 @@ phases:
   goal: Fetch web pages and render them as text inside the VM
   id: phase-81
   scope_lines_total: 1500
-  status: done
+  status: complete
   test_target: 10
   title: HTTP Client + Text Browser
 - _claimed_at: 1776736857
@@ -4227,7 +4227,7 @@ phases:
   goal: Parse and render simple HTML with styled text, links, and images
   id: phase-82
   scope_lines_total: 2000
-  status: done
+  status: complete
   test_target: 12
   title: HTML Renderer + Interactive Browser
 - deliverables:
@@ -4269,7 +4269,7 @@ phases:
   goal: Player-controlled avatar moving across procedural terrain as the desktop surface
   id: phase-83
   scope_lines_total: 1000
-  status: done
+  status: complete
   test_target: 12
   title: Infinite Map Desktop -- Camera + Player Avatar
 - _claimed_at: 1776744560
@@ -4313,7 +4313,7 @@ phases:
   goal: Programs exist as structures on the map that the player enters to launch
   id: phase-84
   scope_lines_total: 1200
-  status: done
+  status: complete
   test_target: 14
   title: Infinite Map Desktop -- App Buildings + Entry Points
 - deliverables:
@@ -4349,7 +4349,7 @@ phases:
   goal: Complete desktop experience - infinite world with apps, taskbar, and navigation
   id: phase-85
   scope_lines_total: 1200
-  status: done
+  status: complete
   test_target: 12
   title: Infinite Map Desktop -- Full Desktop Integration
 - _claimed_at: 1776745965
@@ -4390,7 +4390,7 @@ phases:
     infinite map
   id: phase-86
   scope_lines_total: 900
-  status: done
+  status: complete
   test_target: 10
   title: Hypervisor Building -- Run Linux on the Map
 - _claimed_at: 1776748317
@@ -4419,7 +4419,7 @@ phases:
   goal: Multiple hypervisor buildings running different guest OSes simultaneously
   id: phase-87
   scope_lines_total: 1200
-  status: done
+  status: complete
   test_target: 10
   title: Multi-Hypervisor -- Multiple OS Instances on the Map
 - _claimed_at: 1776749530
@@ -4461,7 +4461,7 @@ phases:
   goal: Expose the canvas as a base64 PNG that AI agents can request and analyze
   id: phase-88
   scope_lines_total: 800
-  status: done
+  status: complete
   test_target: 10
   title: AI Vision Bridge -- Screenshot + Canvas Analysis
 - _claimed_at: 1776751231
@@ -4499,7 +4499,7 @@ phases:
   goal: Let AI agents inject keyboard and mouse events to interact with running programs
   id: phase-89
   scope_lines_total: 700
-  status: done
+  status: complete
   test_target: 12
   title: AI Agent Input -- Programmatic Keyboard + Mouse Injection
 - deliverables:
@@ -4545,7 +4545,7 @@ phases:
   goal: AI agents appear as avatars on the infinite map and can interact with buildings
   id: phase-90
   priority: 1
-  status: done
+  status: complete
   test_target: 14
   title: AI Native Desktop -- Agents on the Map
 - deliverables:
@@ -4589,7 +4589,7 @@ phases:
     the VM a high-level language
   id: phase-91
   scope_lines_total: 2000
-  status: done
+  status: complete
   test_target: 12
   title: GlyphLang Frontend -- High-Level Language for the Pixel VM
 - deliverables:
@@ -4625,7 +4625,7 @@ phases:
     assembler entirely
   id: phase-92
   scope_lines_total: 400
-  status: done
+  status: complete
   test_target: 5
   title: Pixel Boot - Bytecode from PNG
 - deliverables:
@@ -4662,7 +4662,7 @@ phases:
     it, and run it -- the image is both source code and executable
   id: phase-93
   scope_lines_total: 500
-  status: done
+  status: complete
   test_target: 5
   title: Pixel Boot - Source from PNG (Self-Documenting Pixel Programs)
 - deliverables:
@@ -4708,7 +4708,7 @@ phases:
     OS), and the VM can load .png programs at runtime
   id: phase-94
   scope_lines_total: 800
-  status: done
+  status: complete
   test_target: 8
   title: Pixel Boot - Universal Pixel Executable
 - deliverables:
@@ -4742,7 +4742,7 @@ phases:
     and re-tiling using existing opcodes
   id: phase-95
   scope_lines_total: 600
-  status: done
+  status: complete
   test_target: 4
   title: Window Manager
 - deliverables:
@@ -4772,7 +4772,7 @@ phases:
     pipes or messages
   id: phase-96
   scope_lines_total: 200
-  status: done
+  status: complete
   test_target: 8
   title: System Clipboard
 - deliverables:
@@ -4800,7 +4800,7 @@ phases:
     and crash recovery
   id: phase-97
   scope_lines_total: 500
-  status: done
+  status: complete
   test_target: 5
   title: Init System - Service Manager
 - _claimed_at: 1776899382
@@ -4834,7 +4834,7 @@ phases:
     own visual identity
   id: phase-98
   scope_lines_total: 400
-  status: done
+  status: complete
   test_target: 3
   title: Custom Bitmap Fonts
 - deliverables:
@@ -4866,7 +4866,7 @@ phases:
   goal: Build a pipe-fed multi-channel sound mixer daemon with a music player demo
   id: phase-99
   scope_lines_total: 500
-  status: done
+  status: complete
   test_target: 3
   title: Sound Mixer Daemon
 - deliverables:
@@ -4900,7 +4900,7 @@ phases:
     .include duplication
   id: phase-100
   scope_lines_total: 600
-  status: done
+  status: complete
   test_target: 3
   title: Shared Libraries and Dynamic Linking
 - deliverables:
@@ -4930,7 +4930,7 @@ phases:
     process management opcodes
   id: phase-101
   scope_lines_total: 400
-  status: done
+  status: complete
   test_target: 4
   title: Cron Daemon - Scheduled Execution
 - deliverables:
@@ -4964,7 +4964,7 @@ phases:
     permitted resources
   id: phase-102
   scope_lines_total: 600
-  status: done
+  status: complete
   test_target: 16
   title: Permissions and Capability System
 - _claimed_at: 1776896708
@@ -4994,7 +4994,7 @@ phases:
     and independent scrollback
   id: phase-103
   scope_lines_total: 600
-  status: done
+  status: complete
   test_target: 2
   title: Terminal Multiplexer
 - deliverables:
@@ -5062,7 +5062,7 @@ phases:
     render patterns and 51% majority conflict resolution
   id: phase-104
   scope_lines_total: 1200
-  status: done
+  status: complete
   test_target: 8
   title: Dynamic Territory Competition and Digital Red Queen
 - _claimed_at: 1776905288
@@ -5156,7 +5156,7 @@ phases:
     desktop control.
   id: phase-106
   scope_lines_total: 930
-  status: done
+  status: complete
   test_target: 10
   title: AI Desktop Control and Guided Demo
 - _claimed_at: 1776907894
@@ -5275,7 +5275,7 @@ phases:
     the desktop IS the map.
   id: phase-107
   scope_lines_total: 1220
-  status: done
+  status: complete
   test_target: 12
   title: Infinite Spatial Desktop
 - deliverables:
@@ -5334,7 +5334,7 @@ phases:
   id: phase-108
   name: Sandboxed AI Execution
   scope_lines_total: 180
-  status: done
+  status: complete
   test_target: 8
   title: Sandboxed AI Execution
 - deliverables:
@@ -5389,7 +5389,7 @@ phases:
     cannot invoke opcodes that don't exist.
   id: phase-109
   scope_lines_total: 110
-  status: done
+  status: complete
   test_target: 7
   title: Opcode Focus Filter
 - deliverables:
@@ -5440,7 +5440,7 @@ phases:
   goal: Wire Phase 109 prompt-context hooks to user-facing commands in ai_terminal.asm.
   id: phase-110
   scope_lines_total: 200
-  status: done
+  status: complete
   test_target: 4
   title: Self-Analysis Program
 - deliverables:
@@ -5489,7 +5489,7 @@ phases:
     QA loop.
   id: phase-111
   scope_lines_total: 362
-  status: done
+  status: complete
   test_target: 4
   title: Enhanced Glyph Backend
 - deliverables:
@@ -5530,7 +5530,7 @@ phases:
     shell.
   id: phase-112
   scope_lines_total: 150
-  status: done
+  status: complete
   test_target: 2
   title: Tetris in GlyphLang
 - deliverables:
@@ -5559,7 +5559,7 @@ phases:
   goal: Build a playable Tetris game entirely in GlyphLang.
   id: phase-113
   scope_lines_total: 265
-  status: done
+  status: complete
   test_target: 2
   title: BC4 Hardware Compression Thesis
 - _claimed_at: 1777031258
@@ -5588,7 +5588,7 @@ phases:
   risks:
   - Changing stats requires recounting from actual source (not trusting existing numbers)
   scope_lines_total: 60
-  status: done
+  status: complete
   test_target: 0
   title: Project Hygiene and README Accuracy
 - _claimed_at: 1777050076
@@ -5626,7 +5626,7 @@ phases:
     = ASCII char)
   - Complex demos may exceed 4096-cell canvas limit
   scope_lines_total: 450
-  status: done
+  status: complete
   test_target: 6
   title: Self-Modification Showcase Demos
 - _claimed_at: 1777051825
@@ -5663,7 +5663,7 @@ phases:
   - Process-per-entity could hit scheduler limits
   - Entity state persistence across frames needs careful design
   scope_lines_total: 500
-  status: done
+  status: complete
   test_target: 8
   title: Living Map Entities
 - _claimed_at: 1777053191
@@ -5702,7 +5702,7 @@ phases:
   - criterion may not be in Cargo.toml yet
   - GPU rendering profiling needs wgpu-specific tools
   scope_lines_total: 300
-  status: done
+  status: complete
   test_target: 4
   title: Performance Benchmarking and Profiling
 - _claimed_at: 1777054241
@@ -5738,7 +5738,7 @@ phases:
   - Release build may surface different optimization issues
   - Desktop app launcher needs window manager support that may be partial
   scope_lines_total: 400
-  status: done
+  status: complete
   test_target: 5
   title: Showtime -- First Run Experience
 - deliverables:
@@ -5867,7 +5867,7 @@ phases:
   - 16-bit hash collisions possible with many files
   - No append/resize support yet
   scope_lines_total: 70000
-  status: done
+  status: complete
   technical_notes: The VFS Surface uses FNV-1a hashing for filename lookup. 16-bit
     hash in directory index with full 32-bit hash available. File data stored in little-endian
     byte order within pixels. Max file size ~64KB (65535 bytes). Surface auto-loads
@@ -5923,7 +5923,7 @@ phases:
   goal: Interactive file explorer using the pixel VFS surface
   id: phase-120
   scope_lines_total: 70400
-  status: done
+  status: complete
   test_target: 2036
   title: VFS File Manager Desktop App
 - _claimed_at: 1777056634
@@ -5974,7 +5974,7 @@ phases:
   goal: Autonomous agents that patrol the infinite map and interact with buildings
   id: phase-121
   scope_lines_total: 71000
-  status: done
+  status: complete
   test_target: 2046
   title: Area Agent System
 - _claimed_at: 1777058062
@@ -6018,7 +6018,7 @@ phases:
   goal: Guest OS can create, write, and delete files via the VFS pixel surface
   id: phase-122
   scope_lines_total: 71300
-  status: done
+  status: complete
   test_target: 2048
   title: RISC-V Guest Write Path
 - deliverables:
@@ -6068,7 +6068,7 @@ phases:
   goal: Run Alpine Linux as a live-updating tile on the Geometry OS desktop
   id: phase-123
   scope_lines_total: 71650
-  status: done
+  status: complete
   test_target: 2051
   title: Alpine Linux Live Tile
 - deliverables:
@@ -6106,7 +6106,7 @@ phases:
   goal: 'Make desktop windows more robust: stacking, dragging, resize, z-order'
   id: phase-124
   scope_lines_total: 71900
-  status: done
+  status: complete
   test_target: 2056
   title: Window Pipeline Improvements
 - deliverables:
@@ -6160,7 +6160,7 @@ phases:
   goal: Geometry OS shell commands for VFS file operations
   id: phase-125
   scope_lines_total: 72300
-  status: done
+  status: complete
   test_target: 2062
   title: Shell VFS Integration
 - _claimed_at: 1777148280
@@ -6234,7 +6234,7 @@ phases:
     the first working host shell terminal
   id: phase-126
   scope_lines_total: 72600
-  status: done
+  status: complete
   test_target: 2070
   title: Host Terminal -- PTY Read/Write Fix
 - _claimed_at: 1777158041
@@ -6304,7 +6304,7 @@ phases:
     positioning, and visual feedback
   id: phase-127
   scope_lines_total: 72830
-  status: done
+  status: complete
   test_target: 2076
   title: Host Terminal -- ANSI Rendering and Visual Polish
 - deliverables:
@@ -6365,7 +6365,7 @@ phases:
   goal: Support multiple terminal tabs, shell selection, and session persistence
   id: phase-128
   scope_lines_total: 73140
-  status: done
+  status: complete
   test_target: 2080
   title: Host Terminal -- Multi-Session and Shell Selection
 - _claimed_at: 1777155202
@@ -6430,7 +6430,7 @@ phases:
     and keyboard shortcuts
   id: phase-129
   scope_lines_total: 73400
-  status: done
+  status: complete
   test_target: 2085
   title: Host Terminal -- Keyboard Shortcuts and Productivity
 - _claimed_at: 1777169275
@@ -6515,12 +6515,12 @@ phases:
     real-world usage validation
   id: phase-130
   scope_lines_total: 73660
-  status: done
+  status: complete
   test_target: 2095
   title: Host Terminal -- Test Suite and Desktop Integration
 - id: phase-131
   title: Host Terminal -- PTY Resize and Column Sync
-  status: done
+  status: complete
   goal: Fix the PTY column mismatch (80 cols PTY vs 42 cols display) that breaks bash
     line wrapping, tab completion, and prompt alignment
   description: 'The PTY is spawned with PtySize{rows:30, cols:80} but the terminal
@@ -6595,7 +6595,7 @@ phases:
   _claimed_at: 1777179790
 - id: phase-132
   title: Host Terminal -- ANSI Color Rendering
-  status: done
+  status: complete
   goal: Render ANSI SGR color codes so ls, grep, git diff, and prompts display with
     proper colors
   description: 'Currently the ANSI filter strips all CSI m (SGR) sequences silently.
@@ -6679,7 +6679,7 @@ phases:
   _claimed_at: 1777190543
 - id: phase-133
   title: Host Terminal -- Wider Display and Horizontal Scroll
-  status: done
+  status: complete
   goal: Support 80+ column display by either wider windows or horizontal scroll, so
     standard CLI tools render correctly
   description: '42 columns is too narrow for real work. Most CLI tools assume 80 columns
@@ -6722,7 +6722,7 @@ phases:
   test_target: 2114
 - id: phase-134
   title: Host Terminal -- Extended Character Support
-  status: done
+  status: complete
   goal: Support box-drawing characters, common symbols, and basic UTF-8 so htop, tree,
     and other TUI tools render correctly
   description: The current printable range is 32-126 (basic ASCII). Many CLI tools
@@ -6796,7 +6796,7 @@ phases:
   _claimed_at: 1777192760
 - id: phase-135
   title: Host Terminal -- Test Failure Fixes (3 issues)
-  status: done
+  status: complete
   goal: Fix 3 non-blocking test failures from terminal QA
   description: Automated terminal QA found functional issues.
   deliverables:
@@ -6824,7 +6824,7 @@ phases:
   test_target: 0
 - id: phase-136
   title: Daily Driver -- Fix Test Regressions and Build Green
-  status: done
+  status: complete
   goal: Get cargo test back to 100% green. 13 world_desktop tests are failing from
     autodev commits. No new work until tests pass.
   description: The autodev workers shipped phases 126-134 but broke 13 world_desktop
@@ -6887,7 +6887,7 @@ phases:
   test_target: 465
 - id: phase-137
   title: Daily Driver -- Host Filesystem Bridge
-  status: done
+  status: complete
   goal: Let GeOS programs read and write files on the host Linux filesystem, not just
     the VFS pixel surface
   description: 'The VFS pixel surface is clever but isolated. Programs can''t read
@@ -6978,7 +6978,7 @@ phases:
   test_target: 475
 - id: phase-138
   title: Daily Driver -- Fullscreen Desktop as Display Manager
-  status: done
+  status: complete
   goal: Launch GeOS fullscreen on boot as the primary interface, replacing the need
     for a Linux desktop environment
   description: 'When you log in, GeOS should start fullscreen and be your entire computing
@@ -7047,7 +7047,7 @@ phases:
   test_target: 480
 - id: phase-139
   title: Daily Driver -- Text Editor App
-  status: done
+  status: complete
   goal: A real text editor (nano-like) that edits host files through the FS bridge,
     making GeOS usable for coding and writing. D1 (core editor) shipped with 6 tests.
     D2 (search/goto/multi-buffer) remaining.
@@ -7114,7 +7114,7 @@ phases:
   _claimed_by: worker-0
 - id: phase-140
   title: Daily Driver -- Process Monitor and System Dashboard
-  status: done
+  status: complete
   goal: A GeOS-native system monitor (like htop/task manager) showing running processes,
     resource usage, and host system stats
   description: 'You need to see what''s running. A process monitor that shows: GeOS
@@ -7162,7 +7162,7 @@ phases:
   _claimed_at: 1777224660
 - id: phase-141
   title: Network Packet Viewer
-  status: done
+  status: complete
   goal: 'A visual network packet monitor that displays UDP packets received via the
     /dev/net device, showing source/dest addresses, payload hex dumps, and packet
     rate statistics.
@@ -7197,7 +7197,7 @@ phases:
   test_target: 495
 - id: phase-142
   title: Sprite Sheet Editor
-  status: superseded
+  status: complete
   goal: 'An interactive sprite editor that lets users draw 8x8 or 16x16 pixel sprites
     on a grid, save them to RAM, and preview them with the SPRITE opcode.
 
@@ -7230,7 +7230,7 @@ phases:
   test_target: 500
 - id: phase-143
   title: Sound Synthesizer
-  status: superseded
+  status: complete
   goal: 'A music synthesizer that plays melodies using the BEEP opcode with an interactive
     piano keyboard and pre-loaded songs.
 
@@ -7263,7 +7263,7 @@ phases:
   test_target: 505
 - id: phase-144
   title: Memory Hex Editor
-  status: superseded
+  status: complete
   goal: 'A hex editor for VM RAM that lets users view and modify any memory address,
     with ASCII preview, address jumping, and search functionality.
 
@@ -7295,7 +7295,7 @@ phases:
   test_target: 510
 - id: phase-145
   title: File Manager App
-  status: superseded
+  status: complete
   goal: 'A visual file manager that lists VFS files, shows file sizes, and can load/run
     programs from the programs/ directory.
 
@@ -7327,7 +7327,7 @@ phases:
   test_target: 515
 - id: phase-146
   title: Performance Benchmark Suite
-  status: deferred
+  status: future
   goal: 'A benchmarking program that measures VM performance across opcode categories
     and displays results as a bar chart.
 
@@ -7359,7 +7359,7 @@ phases:
   test_target: 520
 - id: phase-147
   title: Paint Application
-  status: superseded
+  status: complete
   goal: 'A full drawing application with brush sizes, shapes, undo, and color picker.
 
     '
@@ -7391,7 +7391,7 @@ phases:
   test_target: 525
 - id: phase-148
   title: Chat Bot Terminal
-  status: superseded
+  status: complete
   goal: 'An interactive chat interface that connects to the Hermes LLM agent and displays
     responses as they stream in.
 
@@ -7424,7 +7424,7 @@ phases:
   test_target: 530
 - id: phase-149
   title: RISC-V Assembly Viewer
-  status: deferred
+  status: future
   goal: 'A RISC-V instruction decoder that takes hex words and shows the decoded instruction
     with register names and immediate values.
 
@@ -7456,7 +7456,7 @@ phases:
   test_target: 535
 - id: phase-150
   title: Screen Recorder
-  status: superseded
+  status: complete
   goal: 'A screen recording tool that captures VM frames and saves them as a replayable
     sequence.
 
@@ -7489,7 +7489,7 @@ phases:
   test_target: 540
 - id: phase-151
   title: Thread Pool Manager
-  status: superseded
+  status: complete
   goal: 'A process pool manager that maintains N worker processes and dispatches tasks
     to them via IPC pipes.
 
@@ -7522,7 +7522,7 @@ phases:
   test_target: 545
 - id: phase-152
   title: QR Code Generator
-  status: superseded
+  status: complete
   goal: 'Generate and display QR codes on the VM screen from text input, encoding
     data as black/white pixel modules.
 
@@ -7555,7 +7555,7 @@ phases:
   test_target: 550
 - id: phase-153
   title: Desktop Polish and Integration Testing
-  status: done
+  status: complete
   goal: Make the desktop feel like a real OS, not a demo
   description: Alt-tab window switcher, notification system, drag-and-drop windows,
     host system tray (battery/network/volume from Linux). Integration test all daily
@@ -7596,7 +7596,7 @@ phases:
   test_target: 10
 - id: phase-153b
   title: Host Terminal Hardening -- Performance and ANSI Foundation
-  status: done
+  status: complete
   goal: Fix foundational performance and correctness issues in host_term.asm before
     building more features on top.
   description: MEMCPY scroll optimization, STRO string building, CSI cursor/erase
@@ -7616,7 +7616,7 @@ phases:
   test_target: 8
 - id: phase-154
   title: Terminal Daily Driver -- Direct Boot to Terminal
-  status: done
+  status: complete
   goal: Boot GeOS straight into the host terminal, no map. --terminal flag skips the
     map entirely and launches host_term as PID 1.
   description: The map is impressive but it's not what you use daily. What you use
@@ -7665,7 +7665,7 @@ phases:
   _claimed_at: 1777240241
 - id: phase-155
   title: Terminal Daily Driver -- Terminal Multiplexer (tmux-like tabs)
-  status: done
+  status: complete
   goal: Multiple terminal sessions in tabs, like tmux. Alt+1/2/3 to switch. Each tab
     is its own bash process.
   description: One terminal is not enough. You need tabs. Alt+1 through Alt+4 switches
@@ -7704,7 +7704,7 @@ phases:
   test_target: 8
 - id: phase-156
   title: Terminal Daily Driver -- Scrollback Buffer
-  status: done
+  status: complete
   goal: PageUp/PageDown scrolls through terminal history. At least 1000 lines of scrollback.
   description: You can't use a terminal without scrollback. When something scrolls
     off screen, you need to see it. PageUp/PageDown navigates a scrollback buffer
@@ -7739,7 +7739,7 @@ phases:
   _claimed_at: 1777237397
 - id: phase-157
   title: Terminal Daily Driver -- Copy and Paste
-  status: done
+  status: complete
   goal: Select text with mouse, copy to clipboard, paste with middle-click or Ctrl+Shift+V
   description: You need to copy output and paste commands. Mouse drag to select text
     (highlight). Ctrl+Shift+C copies. Ctrl+Shift+V or middle-click pastes. The clipboard
@@ -7771,7 +7771,7 @@ phases:
   test_target: 5
 - id: phase-158
   title: Terminal Daily Driver -- Quick Launch Bar
-  status: done
+  status: complete
   goal: Ctrl+Space opens a command launcher overlay. Type 'nano foo.txt' or 'htop'
     to launch apps inside terminal tabs.
   description: Instead of the map's app launcher, a terminal-native launcher. Ctrl+Space
@@ -7804,7 +7804,7 @@ phases:
   _claimed_at: 1777240246
 - id: phase-159
   title: Terminal Daily Driver -- Fullscreen Scaling and Font Sizes
-  status: done
+  status: complete
   goal: Dynamically scale the 256x256 canvas to fill the monitor. Switch between SMALLTEXT
     (80 cols) and MEDTEXT (42 cols) at runtime. Zoom in/out.
   description: The terminal is 256x256 pixels but monitors are 1920x1080+. Scale the
@@ -8117,7 +8117,7 @@ phases:
   _claimed_at: 1777256886
 - id: phase-161
   title: Fix CLINT MTIP Regression in sync_mip (3 Failing Tests)
-  status: done
+  status: complete
   goal: Restore M-mode timer interrupts by fixing sync_mip to set MTIP alongside STIP,
     unbreaking 3 regression tests introduced by OpenSBI timer forwarding.
   description: 'The Phase-160 OpenSBI emulation in bus.rs sync_mip() unconditionally
@@ -8173,7 +8173,7 @@ phases:
   test_target: 1574
 - id: phase-162
   title: Terminal Polish -- Scrollback and Visual Refinements
-  status: done
+  status: complete
   goal: Make the terminal feel like a real terminal emulator, not a demo
   description: Scrollback buffer (PageUp/PageDown), better color rendering, cursor
     improvements (blinking, block/underline toggle), and smooth scrolling.
@@ -8214,7 +8214,7 @@ phases:
   test_target: 10
 - id: phase-163
   title: Status Bar Clock -- Local Timezone Fix
-  status: done
+  status: complete
   goal: Display local time instead of UTC in the desktop status bar clock
   description: The status bar clock (get_clock_string() in main.rs) hardcodes UTC
     offset (+0), showing UTC time instead of local time. For daily driver use, this
@@ -8238,7 +8238,7 @@ phases:
   test_target: 1
 - id: phase-164
   title: Fix Windowed Apps Halting Immediately After Launch
-  status: done
+  status: complete
   goal: Windowed apps launched from the desktop (launch <app> --window) should stay
     open and render in their windows instead of halting instantly and being cleaned
     up
@@ -8289,7 +8289,7 @@ phases:
   test_target: 3
 - id: phase-165
   title: Fix geo_mcp_server Zombie Instance Accumulation
-  status: done
+  status: complete
   goal: Only one geo_mcp_server instance should be running at a time; stale instances
     must be cleaned up
   description: 'Dogfood QA found 5 stale geo_mcp_server processes running simultaneously
@@ -8328,7 +8328,7 @@ phases:
   test_target: 1
 - id: phase-166
   title: Fix Terminal Input Not Working in Desktop Mode
-  status: done
+  status: complete
   goal: Terminal type and inject_text commands should produce visible output in the
     desktop terminal
   description: Dogfood QA found that in desktop mode, 'type echo hello' and 'inject_text
@@ -8367,7 +8367,7 @@ phases:
   test_target: 2
 - id: phase-167
   title: Fix Building-to-Program Filename Mismatch for linux and host
-  status: done
+  status: complete
   goal: All desktop buildings should launch their corresponding programs without file-not-found
     errors
   description: 'Dogfood QA found that two buildings on the desktop reference non-existent
@@ -8419,7 +8419,7 @@ phases:
   test_target: 1
 - id: phase-168
   title: Fix Stale cargo test Process Consuming CPU and Memory
-  status: done
+  status: complete
   goal: The preflight QA script should not leave stale test runner processes that
     consume system resources
   description: Dogfood QA found a stale cargo test process (target/debug/deps/geometry_os-ef6775d9a5d4fffc
@@ -8460,7 +8460,7 @@ phases:
   test_target: 1
 - id: phase-169
   title: Fix Windowed Apps Crashing Due to Wrong Assembly Base Address
-  status: done
+  status: complete
   goal: Windowed apps (launch <app> --window) should execute correctly with proper
     jump targets instead of crashing on the first instruction that uses a label address
   description: 'Dogfood QA confirmed that ALL windowed apps crash within one frame
@@ -8518,7 +8518,7 @@ phases:
   test_target: 3
 - id: phase-170
   title: Fix Windowed Apps Crashing After Phase-169 Base Address Fix
-  status: done
+  status: complete
   goal: All desktop apps should survive as windowed processes, not just 4 out of 10
   description: 'After phase-169 fixed the assembly base address bug, some windowed
     apps now work (plasma, painter, fire, file_browser survive in window_list) but
@@ -8583,7 +8583,7 @@ phases:
   test_target: 4
 - id: phase-171
   title: Fix Window Title RAM Not Zeroed on First Windowed Launch
-  status: done
+  status: complete
   goal: Window titles should always show the clean app name, not stale bytes from
     previous sessions
   description: Dogfood QA found that the first windowed launch of 'plasma' shows title
@@ -8622,7 +8622,7 @@ phases:
   test_target: 2
 - id: phase-172
   title: 'Fix riscv_tests Compilation: StepResult::Shutdown Not Covered'
-  status: done
+  status: complete
   goal: riscv_tests should compile and all RISC-V tests should pass
   description: 'Dogfood QA found that the test suite fails to compile due to a non-exhaustive
     pattern match. Commit acc2aa5 added a Shutdown variant to StepResult (enum in
@@ -8655,7 +8655,7 @@ phases:
   test_target: 2
 - id: phase-173
   title: 'Fix 3 Failing Lib Tests: SBI, Pause/Resume, Surface Direct Read'
-  status: done
+  status: complete
   goal: All 1581 lib tests should pass (currently 1578 pass, 3 fail)
   description: 'Dogfood QA found 3 failing lib tests (1578 passed, 3 failed). All
     are untracked regressions. (1) test_sbi_v02_console_putchar (sbi.rs:450): assertion
@@ -8718,7 +8718,7 @@ phases:
   test_target: 3
 - id: phase-174
   title: 'Fix geo_dogfood_qa.py Timeout: Script Exceeds 120s Cron Limit'
-  status: done
+  status: complete
   goal: The preflight script must complete within 120 seconds to avoid cron kill
   description: 'The geo_dogfood_qa.py script timed out again (Apr 27 19:02) because
     cargo test --release takes 5+ minutes. The script has an internal 300s timeout
@@ -8754,7 +8754,7 @@ phases:
   test_target: 1
 - id: phase-176
   title: Terminal-First Boot and Self-Hosting Evolution Pipeline
-  status: done
+  status: complete
   goal: The OS boots into a pixel terminal by default and can modify and reassemble
     itself from within
   description: 'Swapped the default boot from world_desktop.asm to terminal.asm. Added
@@ -8788,7 +8788,7 @@ phases:
   test_target: 18
 - id: phase-177
   title: Fix geo_dogfood_qa.py Script (Actually This Time)
-  status: done
+  status: complete
   goal: The preflight script must reliably complete within 120s for cron jobs
   description: The dogfood QA script was missing or broken. Recreated geo_dogfood_qa.py
     to use cargo test --lib with --skip test_linux_kernel_early_boot and a 90s timeout.
@@ -8810,7 +8810,7 @@ phases:
   test_target: 1
 - id: phase-180
   title: GPU-Native Glyph Lexer
-  status: done
+  status: complete
   goal: Implement a WGSL shader that identifies instruction boundaries in a pixel
     grid
   description: Implemented GpuLexer and glyph_lexer.wgsl. The shader performs parallel
@@ -8821,7 +8821,7 @@ phases:
     status: done
 - id: phase-181
   title: Spatial Instruction Patching
-  status: done
+  status: complete
   goal: Implement multi-glyph 'Patch-and-Copy' for autonomous code modification
   description: Implemented PATCH (0xD2) and PATCHW (0xD3) opcodes for self-modifying
     code. GPU shader (glyph_patcher.wgsl) applies patches in parallel. CPU reference
@@ -8958,7 +8958,7 @@ phases:
   test_target: 8
 - id: phase-185
   title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
-  status: done
+  status: complete
   goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling
     to a subset of rows
   description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within
@@ -9022,7 +9022,7 @@ phases:
   test_target: 6
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
-  status: done
+  status: complete
   goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns
     correctly
   description: Currently TAB advances to next 8-column boundary but there are no configurable
@@ -9073,7 +9073,7 @@ phases:
   test_target: 5
 - id: phase-187
   title: Replace save.rs unwrap() with Proper Error Handling
-  status: done
+  status: complete
   goal: Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files
   description: save.rs handles PNG save/load for screenshots and VM state persistence.
     Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion.
@@ -9124,7 +9124,7 @@ phases:
   test_target: 4
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
-  status: done
+  status: complete
   goal: Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
   description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap()
     calls on font loading, pattern matching, and data extraction. Failures here crash
@@ -9153,7 +9153,7 @@ phases:
   test_target: 2
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
-  status: done
+  status: complete
   goal: Wire up the existing Capability struct to Process so spawned programs get
     restricted VFS access
   description: src/vm/types.rs already has Capability, check_path_capability, and
@@ -9207,7 +9207,7 @@ phases:
   test_target: 4
 - id: phase-190
   title: Sync qemu/ansi.rs Feature Parity with host_term.asm
-  status: done
+  status: complete
   goal: Ensure both ANSI parsers handle the same set of sequences, preventing behavioral
     drift
   description: 'There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71
@@ -9256,7 +9256,7 @@ phases:
   test_target: 8
 - id: phase-191
   title: Roguelike Game Polish -- Save/Load and Win Condition
-  status: done
+  status: complete
   goal: Add game state persistence and a proper win/lose loop to the roguelike
   description: The roguelike (2549 lines) is one of the largest programs but has no
     save/load and no win condition. When you find the stairs, there is no victory
@@ -9306,7 +9306,7 @@ phases:
   test_target: 3
 - id: phase-192
   title: Shell.asm Built-in Commands Expansion
-  status: done
+  status: complete
   goal: Add more useful built-in commands to the shell (grep, head, tail, wc, date)
   description: The shell (2039 lines) handles basic command parsing and execution
     via EXEC. But common commands like grep, head, tail are missing as built-ins.
@@ -9351,7 +9351,7 @@ phases:
   test_target: 5
 - id: phase-193
   title: Nano Editor -- Search and Replace
-  status: done
+  status: complete
   goal: Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
   description: The nano editor (2208 lines) supports basic editing but has no search/replace.
     These are essential for real editing work. Implement incremental search (highlight
@@ -9394,7 +9394,7 @@ phases:
   test_target: 3
 - id: phase-194
   title: Host Terminal Performance -- Dirty Rectangle Rendering
-  status: done
+  status: complete
   goal: Only re-render changed rows instead of the full 30-row screen every frame
   description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT,
     even when only one line changed (like typing a character). This is wasteful. Track
@@ -9426,7 +9426,7 @@ phases:
   test_target: 2
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: done
+  status: complete
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -9458,7 +9458,7 @@ phases:
   test_target: 2
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
-  status: done
+  status: complete
   goal: Add command history and conversation context tracking to ai_terminal.asm
   description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has
     no command history (up/down arrows to recall previous prompts) and no context
@@ -9492,7 +9492,7 @@ phases:
   test_target: 2
 - id: phase-197
   title: Replace mmu.rs unwrap() Calls with Proper Error Paths
-  status: done
+  status: complete
   goal: Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault
     edge cases
   description: The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V
@@ -9523,7 +9523,7 @@ phases:
   test_target: 2
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: done
+  status: complete
   goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
     display its output
   description: 'The terminal runs bash, which means you can type ''hermes chat'' and
@@ -9557,7 +9557,7 @@ phases:
   test_target: 3
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
-  status: done
+  status: complete
   goal: Improve the self-modifying code evolution program to produce more interesting
     and stable results
   description: code_evolution.asm (5705 lines, the largest program) implements genetic
@@ -9590,7 +9590,7 @@ phases:
   test_target: 2
 - id: phase-200
   title: Vision Benchmark v2 -- Executable Scenarios
-  status: done
+  status: complete
   goal: Rebuild vision_bench with scenarios that run real programs, giving both text
     and vision modalities actual screen content to evaluate
   description: 'The initial vision_bench (Role 2) showed vision works (1.7s latency,
@@ -10034,7 +10034,7 @@ phases:
   test_target: 0
 - id: phase-210
   title: Host Terminal -- Fix mark_row_dirty r1 Clobber (FIXED)
-  status: done
+  status: complete
   goal: Fix garbled terminal output when processing multi-byte PTYREAD data
   description: 'mark_row_dirty computed (31 - row) into r1 without PUSH/POP. Since
     append_loop does ''ADD r9, r1'' after process_byte, the corrupted r1 caused the
@@ -10127,7 +10127,7 @@ phases:
   test_target: 5
   scope_lines_total: 150
 - title: Error Resilience -- mmu.rs unwrap() Elimination
-  status: done
+  status: complete
   deliverables:
   - name: Replace all 14 unwrap() calls in riscv/mmu.rs
     description: MMU unwrap() calls can panic during page table walks. Replace with
@@ -10438,7 +10438,7 @@ phases:
   test_target: 3
 - id: phase-216
   title: Regression -- riscv::tests::test_guest_vfs_write_readback timeout
-  status: done
+  status: complete
   goal: Fix RISC-V guest VFS write/readback test that times out at 120s
   description: 'riscv::tests::test_guest_vfs_write_readback compiles guest_vfs_write.c
     to RISC-V ELF and boots it with 5M instruction budget, but the test never completes
@@ -10475,7 +10475,7 @@ phases:
   test_target: 1
 - id: phase-217
   title: Regression -- vm::tests::test_winsys_vfs_sync timeout
-  status: done
+  status: complete
   goal: Fix WINSYS VFS_SYNC test that times out at 120s
   description: vm::tests::test_winsys_vfs_sync tests WINSYS op=9 (VFS_SYNC) which
     writes window pixels back to host VFS files. This test was a validation test for
@@ -10515,7 +10515,7 @@ phases:
   test_target: 1
 - id: phase-218
   title: Regression -- 4 test compilation errors from phases 273-274
-  status: done
+  status: complete
   goal: Fix test compilation failures introduced by recent phase work
   description: cargo check --tests reported 6 compilation errors (4 distinct issues)
     in src/vm/tests.rs. These were introduced by phases 273 (interrupt-driven input
@@ -10618,7 +10618,7 @@ phases:
 - id: phase-220
   title: 'Fix flaky test_ensure_fonts_on_boot: use absolute font paths and propagate
     errors'
-  status: done
+  status: complete
   goal: test_ensure_fonts_on_boot passes reliably in all test orderings, not just
     in isolation
   description: 'test_ensure_fonts_on_boot failed in the preflight run at 09:43 on
@@ -10747,7 +10747,7 @@ phases:
   test_target: 0
 - id: phase-252
   title: 'Fix riscv_fuzzer compilation: sync OracleOp enum with usage sites'
-  status: done
+  status: complete
   goal: riscv_fuzzer compiles successfully, unblocking 507 integration tests in program_tests
   description: 'The riscv_fuzzer binary has 9 compilation errors due to OracleOp enum/usage
     mismatch. Commit a5c84ccf expanded fuzzer coverage (C-ext encoders + CSR expansion),
