@@ -186,7 +186,7 @@ pub fn load_source_to_canvas(
             canvas_buffer[row * CANVAS_COLS + col] = ch as u32;
             col += 1;
         }
-        // characters beyond column 32 on a single line are dropped
+        // characters beyond CANVAS_COLS (128) on a single line are dropped
     }
 
     *cursor_row = 0;
