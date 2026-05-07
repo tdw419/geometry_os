@@ -3326,7 +3326,7 @@ phases:
   _claimed_at: 1778171975
 - id: phase-241
   title: GeOS VM -- Rotation and Scaling Opcodes (ROTATE, SCALE)
-  status: planned
+  status: in_progress
   goal: Add pixel rotation and scaling for sprite-based games
   description: Current sprite rendering is axis-aligned only. Programs needing rotation
     (asteroids) or scaling (zoom) do per-pixel transforms manually. ROTATE rotates
@@ -3362,16 +3362,18 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 210
+  _claimed_by: worker-0
+  _claimed_at: 1778173589
 - id: phase-242
   title: Error Resilience -- Replace scrollback.rs and geos_term.rs unwrap() Calls
-  status: planned
+  status: done
   goal: Eliminate unwrap() calls in terminal infrastructure
   description: scrollback.rs (4 unwrap) and geos_term.rs (6 unwrap) handle terminal
     history and the standalone binary. Panics crash the terminal UX. Replace with
     graceful degradation.
   deliverables:
   - name: unwrap()-free terminal infrastructure
-    status: todo
+    status: done
     tasks:
     - id: p242.d1.t1
       title: Replace scrollback.rs unwrap() with graceful degradation
@@ -3395,6 +3397,8 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 110
+  _claimed_by: worker-0
+  _claimed_at: 1778175078
 - id: phase-243
   title: GeOS VM -- Direct Screen Text Opcode (DRAWTEXT)
   status: complete
