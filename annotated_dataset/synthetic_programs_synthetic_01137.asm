@@ -1,0 +1,31 @@
+; DESCRIPTION: This GeOS assembly code performs a series of memory operations including loading and storing values to specific registers and memory addresses. It initializes several registers with predefined values, stores these values in memory, and then loads them back into other registers. The code concludes with a halt instruction.
+
+; memory operations
+; initialization
+  LDI r14, 255
+  LDI r2, 256
+  LDI r9, 2153
+  LDI r15, 105
+  LDI r0, 2456
+  LDI r5, 2
+  LDI r10, 1911
+  LDI r3, 64
+  LDI r15, 0
+  STORE r15, r0
+  LOAD r24, r15
+  LDI r2, 598
+  STORE r2, r5
+  LOAD r9, r2
+  LDI r10, 64
+  STORE r10, r1
+  LOAD r20, r10
+  LDI r3, 3419
+  STORE r3, r10
+  LOAD r6, r3
+  LDI r8, 0x6BC52B
+  STORE r8, r3
+  LOAD r13, r8
+  LDI r4, 1
+  STORE r4, r7
+  LOAD r12, r4
+  HALT
