@@ -21,4 +21,8 @@ Cargo.lock
 *.npy
 pixelflow/gpt2_weights/
 __pycache__/
+
+# Pixel LLM model/data (generated artifacts)
+*.pt
+pixel_llm_dataset.*
 tools/hermes_bridge/target/

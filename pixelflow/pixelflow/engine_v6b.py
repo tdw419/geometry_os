@@ -505,7 +505,7 @@ class GPT2V6B:
         if len(tokens) > 1:
             # Use v5 for prompt processing (handles variable length)
             from pixelflow.engine_v5 import GPT2Engine as V5
-            v5 = V5()
+            v5 = V5(weight_dir=self.weight_dir)
             prompt_logits = v5.forward(tokens, use_gpu=False)
             next_tok = int(np.argmax(prompt_logits))
             tokens.append(next_tok)
