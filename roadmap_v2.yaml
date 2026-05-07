@@ -3012,7 +3012,7 @@ phases:
   scope_lines_total: 140
 - id: phase-233
   title: GeOS VM -- Conditional Move Opcodes (CMOV, CSEL)
-  status: todo
+  status: planned
   goal: Add branchless conditional move and select to eliminate branch-heavy patterns
   description: Many programs use CMP+BLT+LDI+MOV+JMP patterns for min/max/clamp. CMOV
     rd, rs, cond_reg moves rs into rd only when cond_reg is nonzero. CSEL rd, rs1,
@@ -3050,7 +3050,7 @@ phases:
   scope_lines_total: 145
 - id: phase-234
   title: GeOS VM -- Pixel Alpha Blending Opcode (BLEND)
-  status: todo
+  status: planned
   goal: Add hardware-accelerated alpha blending for sprite compositing and transparency
   description: The SPRITE opcode treats color 0 as transparent but has no partial
     transparency. Programs needing glass effects, fog, or smooth sprite edges must
@@ -3086,7 +3086,7 @@ phases:
   scope_lines_total: 155
 - id: phase-235
   title: RISC-V Guest -- Shared Memory IPC
-  status: todo
+  status: planned
   goal: Enable bare-metal RISC-V programs to share memory regions for communication
   description: 'The Layer 2 kernel supports multi-program time-slicing but programs
     cannot communicate. Add shared memory: geos_shm_alloc(size), geos_shm_attach(id),
@@ -3165,7 +3165,7 @@ phases:
   scope_lines_total: 220
 - id: phase-237
   title: Error Resilience -- Replace vfs_surface.rs unwrap() Calls
-  status: todo
+  status: planned
   goal: Eliminate all 10 unwrap() calls in riscv/vfs_surface.rs
   description: vfs_surface.rs bridges the RISC-V guest filesystem to the host VFS.
     It has 10 unwrap() calls that panic on corrupt surfaces or missing files. Replace
@@ -3278,7 +3278,7 @@ phases:
   scope_lines_total: 150
 - id: phase-240
   title: RISC-V Guest -- Timer and Sleep Syscalls
-  status: todo
+  status: planned
   goal: Add timer syscalls to the Layer 2 kernel for time-based guest behavior
   description: Guest programs have no concept of time. Add geos_msleep(ms), geos_uptime()
     (ms since boot), and geos_alarm(ms, callback) syscalls. Enables animation, periodic
@@ -3314,7 +3314,7 @@ phases:
   scope_lines_total: 190
 - id: phase-241
   title: GeOS VM -- Rotation and Scaling Opcodes (ROTATE, SCALE)
-  status: todo
+  status: planned
   goal: Add pixel rotation and scaling for sprite-based games
   description: Current sprite rendering is axis-aligned only. Programs needing rotation
     (asteroids) or scaling (zoom) do per-pixel transforms manually. ROTATE rotates
@@ -3352,7 +3352,7 @@ phases:
   scope_lines_total: 210
 - id: phase-242
   title: Error Resilience -- Replace scrollback.rs and geos_term.rs unwrap() Calls
-  status: todo
+  status: planned
   goal: Eliminate unwrap() calls in terminal infrastructure
   description: scrollback.rs (4 unwrap) and geos_term.rs (6 unwrap) handle terminal
     history and the standalone binary. Panics crash the terminal UX. Replace with
@@ -3425,7 +3425,7 @@ phases:
   scope_lines_total: 140
 - id: phase-244
   title: RISC-V Guest -- Basic Socket Networking via SBI Extension
-  status: todo
+  status: planned
   goal: Enable bare-metal RISC-V programs to make TCP connections via SBI
   description: The VM has TCP networking opcodes but RISC-V guests cannot access the
     network. Add an SBI extension (0x4E4554) proxying TCP operations to the host stack
@@ -3554,7 +3554,7 @@ phases:
   _claimed_at: 1778160220
 - id: phase-247
   title: Test Coverage -- MCP Server Integration Tests
-  status: todo
+  status: planned
   goal: Expand MCP server test coverage from 3 tests to 20+
   description: The MCP server (mcp_server.rs, 1588 lines) is the primary bridge between
     Hermes and the VM. It handles socket communication, tool dispatch (load_source,
@@ -3596,7 +3596,7 @@ phases:
   scope_lines_total: 360
 - id: phase-248
   title: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST)
-  status: todo
+  status: planned
   goal: Add single-bit manipulation opcodes for embedded-style register bitfield control
   description: Many VM programs need to set, clear, test, and toggle individual bits
     in registers (flag registers, color masks, hardware port registers). Currently
@@ -3641,7 +3641,7 @@ phases:
   scope_lines_total: 250
 - id: phase-249
   title: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET)
-  status: todo
+  status: planned
   goal: Add efficient block memory operations to reduce loop overhead
   description: Programs that copy or fill memory regions currently use byte-by-byte
     loops (LOAD + STORE + ADD + CMP + BLT = 5+ instructions per word). MEMCPY copies
@@ -3688,7 +3688,7 @@ phases:
   scope_lines_total: 270
 - id: phase-250
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
-  status: todo
+  status: planned
   goal: Add string primitives that operate on null-terminated RAM strings
   description: VM programs that manipulate strings (shell, file browser, text editor)
     currently implement strlen/strcmp/strcpy as subroutine loops (10-30 instructions
@@ -3736,7 +3736,7 @@ phases:
   scope_lines_total: 250
 - id: phase-251
   title: GeOS Program -- Mandelbrot Fractal Explorer
-  status: todo
+  status: planned
   goal: Write a zoomable Mandelbrot set renderer in assembly
   description: The VM has MUL, SUB, CMP, BLT, PSET, TEXT, IKEY, and FRAME -- everything
     needed for an interactive Mandelbrot renderer. This is a classic compute-heavy
@@ -3773,7 +3773,7 @@ phases:
   scope_lines_total: 280
 - id: phase-252
   title: GeOS Program -- Raycasting 3D Engine (Wolfenstein-style)
-  status: todo
+  status: planned
   goal: Write a first-person raycasting renderer in assembly
   description: A raycasting engine renders a pseudo-3D view from a 2D map using only
     arithmetic (MUL, DIV, SHL, SHR, SIN table lookups) and PSET/RECTF. This is the
@@ -3810,7 +3810,7 @@ phases:
   scope_lines_total: 360
 - id: phase-253
   title: GeOS VM -- Audio System Tests and Improvements
-  status: todo
+  status: planned
   goal: Add tests to audio.rs and implement PCM sample streaming
   description: audio.rs (124 lines, 0 tests) handles the BEEP opcode and WAV generation.
     The current implementation spawns aplay subprocess for each beep, which causes
@@ -3856,7 +3856,7 @@ phases:
   scope_lines_total: 280
 - id: phase-254
   title: GeOS Program -- Procedural Dungeon Generator with Fog of War
-  status: todo
+  status: planned
   goal: Write a dungeon crawler with BSP room generation and line-of-sight fog
   description: Extends the existing infinite_map terrain concepts into a dungeon setting.
     BSP (Binary Space Partition) generates rooms connected by corridors. Raycasting-based
@@ -3893,7 +3893,7 @@ phases:
   scope_lines_total: 380
 - id: phase-255
   title: GeOS VM -- Conditional Move and Select Opcodes (CMOV, CSEL)
-  status: todo
+  status: planned
   goal: Add branchless conditional move opcodes for performance-critical inner loops
   description: Conditional moves eliminate branch misprediction stalls in hot loops
     (pixel rendering, collision detection). CMOV rd, rs moves rs to rd if r0 != 0
@@ -3930,7 +3930,7 @@ phases:
   scope_lines_total: 150
 - id: phase-256
   title: RISC-V Guest -- Shared Memory IPC Between Processes
-  status: todo
+  status: planned
   goal: Enable RISC-V guest processes to communicate via shared memory regions
   description: The Geometry OS VM has MSGSND/MSGRCV/PIPE for IPC, but RISC-V guest
     programs running under the interpreter have no IPC mechanism. Add shared memory
@@ -3968,7 +3968,7 @@ phases:
   scope_lines_total: 280
 - id: phase-257
   title: RISC-V Guest -- Timer and Sleep Syscalls
-  status: todo
+  status: planned
   goal: Add timer and sleep syscalls for RISC-V guest programs
   description: Guest programs currently have no way to delay execution or measure
     time. The CLINT hardware provides timer interrupts, but guest C programs need
@@ -4004,7 +4004,7 @@ phases:
   scope_lines_total: 150
 - id: phase-258
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
-  status: todo
+  status: planned
   goal: Add a hardware-accelerated flood fill for paint programs
   description: The VM has PSET for single pixels and FILL for solid colors, but no
     flood fill. Implementing flood fill in assembly requires a stack-based algorithm
@@ -4043,7 +4043,7 @@ phases:
   scope_lines_total: 300
 - id: phase-259
   title: GeOS Program -- Cellular Automata Sandbox (Life, HighLife, Seeds)
-  status: todo
+  status: planned
   goal: Write a multi-rule cellular automata playground with rule switching
   description: Conway Game of Life already exists as code_evolution.asm, but a unified
     sandbox that supports multiple rules (Life, HighLife, Day and Night, Langton Ant,
@@ -4675,7 +4675,7 @@ phases:
   _claimed_at: 1777799086
 - id: phase-275
   title: User-Driven Self-Hosting -- Native Assembler Shell Utility
-  status: todo
+  status: planned
   goal: Implement a native 'as' command in the shell to enable the full in-guest development
     loop
   description: While the ASM opcode and nano_editor exists, there is no way for a
