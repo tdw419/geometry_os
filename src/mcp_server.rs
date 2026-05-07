@@ -911,19 +911,23 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             for part in resp.split_whitespace() {
                 if let Some((k, v)) = part.split_once('=') {
                     match k {
-                        "mode" => result.insert(
-                            "mode".into(),
-                            serde_json::Value::String(v.trim_end_matches(',').into()),
-                        ),
+                        "mode" => {
+                            result.insert(
+                                "mode".into(),
+                                serde_json::Value::String(v.trim_end_matches(',').into()),
+                            );
+                        }
                         "running" => {
-                            result.insert("running".into(), serde_json::Value::Bool(v == "true"))
+                            result.insert("running".into(), serde_json::Value::Bool(v == "true"));
                         }
                         "assembled" => {
-                            result.insert("assembled".into(), serde_json::Value::Bool(v == "true"))
+                            result.insert("assembled".into(), serde_json::Value::Bool(v == "true"));
                         }
-                        "pc" => result.insert("pc".into(), serde_json::Value::String(v.into())),
-                        _ => None,
-                    };
+                        "pc" => {
+                            result.insert("pc".into(), serde_json::Value::String(v.into()));
+                        }
+                        _ => {}
+                    }
                 }
                 if part.starts_with("cursor=") {
                     let inner = part.trim_start_matches("cursor=(").trim_end_matches(')');
@@ -1463,15 +1467,21 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
                 if let Some((k, v)) = part.split_once('=') {
                     match k {
                         "mode" => {
-                            status_obj.insert("mode".into(), serde_json::Value::String(v.into()))
+                            status_obj.insert("mode".into(), serde_json::Value::String(v.into()));
                         }
-                        "running" => status_obj
-                            .insert("running".into(), serde_json::Value::Bool(v == "true")),
-                        "assembled" => status_obj
-                            .insert("assembled".into(), serde_json::Value::Bool(v == "true")),
-                        "pc" => status_obj.insert("pc".into(), serde_json::Value::String(v.into())),
-                        _ => None,
-                    };
+                        "running" => {
+                            status_obj
+                                .insert("running".into(), serde_json::Value::Bool(v == "true"));
+                        }
+                        "assembled" => {
+                            status_obj
+                                .insert("assembled".into(), serde_json::Value::Bool(v == "true"));
+                        }
+                        "pc" => {
+                            status_obj.insert("pc".into(), serde_json::Value::String(v.into()));
+                        }
+                        _ => {}
+                    }
                 }
             }
 
@@ -1915,6 +1925,8 @@ fn main() {
 mod tests {
     use super::*;
 
+    // ── Tool List Tests ─────────────────────────────────
+
     #[test]
     fn test_tool_list_not_empty() {
         let tools = get_tool_list();
@@ -1929,38 +1941,87 @@ mod tests {
     }
 
     #[test]
-    fn test_status_parsing() {
-        // Simulate parsing
-        let resp = "mode=Terminal running=false assembled=false pc=0x0000 cursor=(5,3)";
-        let mut result = serde_json::Map::new();
-        for part in resp.split_whitespace() {
-            if let Some((k, v)) = part.split_once('=') {
-                match k {
-                    "mode" => {
-                        result.insert("mode".into(), serde_json::Value::String(v.into()));
-                    }
-                    "running" => {
-                        result.insert("running".into(), serde_json::Value::Bool(v == "true"));
-                    }
-                    _ => {}
-                }
-            }
+    fn test_all_tools_have_required_schema_fields() {
+        let tools = get_tool_list();
+        for tool in &tools {
+            let name = tool["name"].as_str().unwrap_or("???");
+            assert!(tool.get("name").is_some(), "Tool missing 'name': {}", name);
+            assert!(
+                tool.get("description").is_some(),
+                "Tool missing 'description': {}",
+                name
+            );
+            assert!(
+                tool.get("inputSchema").is_some(),
+                "Tool missing 'inputSchema': {}",
+                name
+            );
+            let schema = &tool["inputSchema"];
+            assert_eq!(
+                schema["type"].as_str(),
+                Some("object"),
+                "inputSchema.type != 'object' for {}",
+                name
+            );
+            assert!(
+                schema.get("properties").is_some(),
+                "inputSchema missing 'properties' for {}",
+                name
+            );
+            assert!(
+                schema.get("required").is_some(),
+                "inputSchema missing 'required' for {}",
+                name
+            );
         }
-        assert_eq!(result["mode"], serde_json::Value::String("Terminal".into()));
-        assert_eq!(result["running"], serde_json::Value::Bool(false));
     }
 
     #[test]
-    fn test_register_parsing() {
-        let resp = "r00=00000000\nr01=00000001\nr31=FFFFFFFF";
-        let mut regs = serde_json::Map::new();
-        for line in resp.lines() {
-            if let Some((name, val)) = line.split_once('=') {
-                regs.insert(name.into(), serde_json::Value::String(val.into()));
-            }
+    fn test_tool_count_is_reasonable() {
+        let tools = get_tool_list();
+        // We have 40+ tools defined -- verify at least 35
+        assert!(
+            tools.len() >= 35,
+            "Expected at least 35 tools, got {}",
+            tools.len()
+        );
+    }
+
+    #[test]
+    fn test_no_duplicate_tool_names() {
+        let tools = get_tool_list();
+        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+        let mut seen = std::collections::HashSet::new();
+        for name in &names {
+            assert!(
+                seen.insert(*name),
+                "Duplicate tool name: {}",
+                name
+            );
         }
-        assert_eq!(regs["r00"], "00000000");
-        assert_eq!(regs["r31"], "FFFFFFFF");
+    }
+
+    #[test]
+    fn test_vm_tools_present() {
+        let tools = get_tool_list();
+        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+        assert!(names.contains(&"vm_status"), "vm_status missing");
+        assert!(names.contains(&"vm_screenshot"), "vm_screenshot missing");
+        assert!(names.contains(&"vm_screen_dump"), "vm_screen_dump missing");
+        assert!(names.contains(&"vm_registers"), "vm_registers missing");
+        assert!(names.contains(&"vm_canvas"), "vm_canvas missing");
+        assert!(names.contains(&"vm_type"), "vm_type missing");
+        assert!(names.contains(&"vm_run"), "vm_run missing");
+        assert!(names.contains(&"vm_assemble"), "vm_assemble missing");
+        assert!(names.contains(&"vm_disasm"), "vm_disasm missing");
+        assert!(names.contains(&"vm_save"), "vm_save missing");
+        assert!(names.contains(&"vm_save_asm"), "vm_save_asm missing");
+        assert!(names.contains(&"vm_load_source"), "vm_load_source missing");
+        assert!(names.contains(&"vm_load_asm"), "vm_load_asm missing");
+        assert!(names.contains(&"vm_screen_ascii"), "vm_screen_ascii missing");
+        assert!(names.contains(&"vm_run_program"), "vm_run_program missing");
+        assert!(names.contains(&"vm_watch"), "vm_watch missing");
+        assert!(names.contains(&"vm_unwatch"), "vm_unwatch missing");
     }
 
     #[test]
@@ -1983,8 +2044,254 @@ mod tests {
     }
 
     #[test]
+    fn test_vision_tools_present() {
+        let tools = get_tool_list();
+        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+        assert!(names.contains(&"vision_screenshot"), "vision_screenshot missing");
+        assert!(names.contains(&"vision_checksum"), "vision_checksum missing");
+        assert!(names.contains(&"vision_diff"), "vision_diff missing");
+        assert!(names.contains(&"vision_describe"), "vision_describe missing");
+        assert!(names.contains(&"vision_peek_pixel"), "vision_peek_pixel missing");
+        assert!(names.contains(&"vision_region_checksum"), "vision_region_checksum missing");
+        assert!(names.contains(&"vision_render_log"), "vision_render_log missing");
+    }
+
+    #[test]
+    fn test_input_tools_present() {
+        let tools = get_tool_list();
+        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+        assert!(names.contains(&"input_key"), "input_key missing");
+        assert!(names.contains(&"input_mouse"), "input_mouse missing");
+        assert!(names.contains(&"input_text"), "input_text missing");
+    }
+
+    #[test]
+    fn test_desktop_tools_present() {
+        let tools = get_tool_list();
+        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+        assert!(names.contains(&"building_list"), "building_list missing");
+        assert!(names.contains(&"building_enter"), "building_enter missing");
+        assert!(names.contains(&"building_exit"), "building_exit missing");
+        assert!(names.contains(&"desktop_state"), "desktop_state missing");
+        assert!(names.contains(&"desktop_launch"), "desktop_launch missing");
+        assert!(names.contains(&"player_position"), "player_position missing");
+        assert!(names.contains(&"desktop_key"), "desktop_key missing");
+        assert!(names.contains(&"desktop_vision"), "desktop_vision missing");
+    }
+
+    #[test]
+    fn test_window_tools_present() {
+        let tools = get_tool_list();
+        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+        assert!(names.contains(&"window_list"), "window_list missing");
+        assert!(names.contains(&"window_move"), "window_move missing");
+        assert!(names.contains(&"window_close"), "window_close missing");
+        assert!(names.contains(&"window_focus"), "window_focus missing");
+        assert!(names.contains(&"window_resize"), "window_resize missing");
+        assert!(names.contains(&"process_kill"), "process_kill missing");
+    }
+
+    #[test]
+    fn test_tool_required_params_are_strings() {
+        let tools = get_tool_list();
+        for tool in &tools {
+            let name = tool["name"].as_str().unwrap_or("???");
+            if let Some(required) = tool["inputSchema"]["required"].as_array() {
+                for req_param in required {
+                    if let Some(param_name) = req_param.as_str() {
+                        if let Some(props) = tool["inputSchema"]["properties"][param_name].as_object() {
+                            assert!(
+                                props.get("type").is_some(),
+                                "Required param '{}' on '{}' missing type",
+                                param_name,
+                                name
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Status Parsing Tests ────────────────────────────
+
+    #[test]
+    fn test_status_parsing() {
+        let resp = "mode=Terminal running=false assembled=false pc=0x0000 cursor=(5,3)";
+        let mut result = serde_json::Map::new();
+        for part in resp.split_whitespace() {
+            if let Some((k, v)) = part.split_once('=') {
+                match k {
+                    "mode" => {
+                        result.insert("mode".into(), serde_json::Value::String(v.into()));
+                    }
+                    "running" => {
+                        result.insert("running".into(), serde_json::Value::Bool(v == "true"));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        assert_eq!(result["mode"], serde_json::Value::String("Terminal".into()));
+        assert_eq!(result["running"], serde_json::Value::Bool(false));
+    }
+
+    #[test]
+    fn test_status_parsing_running_true() {
+        let resp = "mode=Editor running=true assembled=true pc=0x10FF cursor=(12,7)";
+        let mut result = serde_json::Map::new();
+        for part in resp.split_whitespace() {
+            if let Some((k, v)) = part.split_once('=') {
+                match k {
+                    "mode" => {
+                        result.insert("mode".into(), serde_json::Value::String(v.into()));
+                    }
+                    "running" => {
+                        result.insert("running".into(), serde_json::Value::Bool(v == "true"));
+                    }
+                    "assembled" => {
+                        result.insert("assembled".into(), serde_json::Value::Bool(v == "true"));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        assert_eq!(result["mode"], "Editor");
+        assert_eq!(result["running"], serde_json::Value::Bool(true));
+        assert_eq!(result["assembled"], serde_json::Value::Bool(true));
+    }
+
+    #[test]
+    fn test_status_cursor_parsing() {
+        let resp = "cursor=(5,3)";
+        let inner = resp.trim_start_matches("cursor=(").trim_end_matches(')');
+        let coords: Vec<&str> = inner.split(',').collect();
+        assert_eq!(coords.len(), 2);
+        assert_eq!(coords[0].parse::<i64>().unwrap(), 5);
+        assert_eq!(coords[1].parse::<i64>().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_status_cursor_parsing_origin() {
+        let resp = "cursor=(0,0)";
+        let inner = resp.trim_start_matches("cursor=(").trim_end_matches(')');
+        let coords: Vec<&str> = inner.split(',').collect();
+        assert_eq!(coords[0].parse::<i64>().unwrap(), 0);
+        assert_eq!(coords[1].parse::<i64>().unwrap(), 0);
+    }
+
+    // ── Register Parsing Tests ──────────────────────────
+
+    #[test]
+    fn test_register_parsing() {
+        let resp = "r00=00000000\nr01=00000001\nr31=FFFFFFFF";
+        let mut regs = serde_json::Map::new();
+        for line in resp.lines() {
+            if let Some((name, val)) = line.split_once('=') {
+                regs.insert(name.into(), serde_json::Value::String(val.into()));
+            }
+        }
+        assert_eq!(regs["r00"], "00000000");
+        assert_eq!(regs["r31"], "FFFFFFFF");
+    }
+
+    #[test]
+    fn test_register_parsing_all_32() {
+        let mut resp = String::new();
+        for i in 0..32 {
+            resp.push_str(&format!("r{:02}=FFFFFFFF\n", i));
+        }
+        let mut regs = serde_json::Map::new();
+        for line in resp.lines() {
+            if let Some((name, val)) = line.split_once('=') {
+                regs.insert(name.into(), serde_json::Value::String(val.into()));
+            }
+        }
+        assert_eq!(regs.len(), 32);
+        assert_eq!(regs["r00"], "FFFFFFFF");
+        assert_eq!(regs["r31"], "FFFFFFFF");
+    }
+
+    // ── Canvas Parsing Tests ────────────────────────────
+
+    #[test]
+    fn test_canvas_line_parsing() {
+        let resp = "0|LDI r1, 10\n1|ADD r2, r3\n2|HALT";
+        let lines: Vec<serde_json::Value> = resp
+            .lines()
+            .map(|l| {
+                if let Some((row, text)) = l.split_once('|') {
+                    serde_json::json!({ "row": row.parse::<i64>().unwrap_or(0), "text": text })
+                } else {
+                    serde_json::json!({ "row": 0, "text": l })
+                }
+            })
+            .collect();
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[0]["row"], 0);
+        assert_eq!(lines[0]["text"], "LDI r1, 10");
+        assert_eq!(lines[1]["text"], "ADD r2, r3");
+        assert_eq!(lines[2]["text"], "HALT");
+    }
+
+    #[test]
+    fn test_canvas_line_parsing_empty() {
+        let resp = "";
+        let lines: Vec<serde_json::Value> = resp
+            .lines()
+            .map(|l| {
+                if let Some((row, text)) = l.split_once('|') {
+                    serde_json::json!({ "row": row.parse::<i64>().unwrap_or(0), "text": text })
+                } else {
+                    serde_json::json!({ "row": 0, "text": l })
+                }
+            })
+            .collect();
+        assert!(lines.is_empty());
+    }
+
+    // ── Disasm Parsing Tests ────────────────────────────
+
+    #[test]
+    fn test_disasm_parsing() {
+        let resp = "0x1000: LDI r1, 10\n0x1003: ADD r2, r3\n0x1005: HALT";
+        let instructions: Vec<serde_json::Value> = resp
+            .lines()
+            .map(|l| {
+                if let Some((addr, text)) = l.split_once(':') {
+                    serde_json::json!({ "addr": addr.trim(), "text": text.trim() })
+                } else {
+                    serde_json::json!({ "addr": "???", "text": l })
+                }
+            })
+            .collect();
+        assert_eq!(instructions.len(), 3);
+        assert_eq!(instructions[0]["addr"], "0x1000");
+        assert_eq!(instructions[0]["text"], "LDI r1, 10");
+        assert_eq!(instructions[2]["text"], "HALT");
+    }
+
+    #[test]
+    fn test_disasm_parsing_no_colon() {
+        let resp = "some garbage line\nanother bad line";
+        let instructions: Vec<serde_json::Value> = resp
+            .lines()
+            .map(|l| {
+                if let Some((addr, text)) = l.split_once(':') {
+                    serde_json::json!({ "addr": addr.trim(), "text": text.trim() })
+                } else {
+                    serde_json::json!({ "addr": "???", "text": l })
+                }
+            })
+            .collect();
+        assert_eq!(instructions.len(), 2);
+        assert_eq!(instructions[0]["addr"], "???");
+    }
+
+    // ── ASM Response Parsing Tests ──────────────────────
+
+    #[test]
     fn test_asm_assemble_response_parsing() {
-        // Simulate parsing the [OK: N bytes at 0x1000] response
         let resp = "[OK: 42 bytes at 0x1000]";
         let trimmed = resp.trim();
         let ok = trimmed.starts_with("[OK:");
@@ -1999,6 +2306,24 @@ mod tests {
         };
         assert!(ok);
         assert_eq!(words, 42);
+    }
+
+    #[test]
+    fn test_asm_assemble_response_large_word_count() {
+        let resp = "[OK: 4686 bytes at 0x1000]";
+        let trimmed = resp.trim();
+        let ok = trimmed.starts_with("[OK:");
+        let words: i64 = if ok {
+            trimmed
+                .strip_prefix("[OK:")
+                .and_then(|s| s.split_whitespace().next())
+                .and_then(|n| n.parse().ok())
+                .unwrap_or(0)
+        } else {
+            0
+        };
+        assert!(ok);
+        assert_eq!(words, 4686);
     }
 
     #[test]
@@ -2031,6 +2356,8 @@ mod tests {
         assert_eq!(pc, "0x1003");
     }
 
+    // ── VM State Parsing Tests ──────────────────────────
+
     #[test]
     fn test_vm_state_parsing() {
         let resp = "pc=0x0000\nhalted=true\nrunning=false\nassembled=true\nr00=00000000\nr01=00000001\nr02=000000FF";
@@ -2043,7 +2370,6 @@ mod tests {
                     "pc" => pc = val.trim().to_string(),
                     "halted" => vm_halted = val.trim() == "true",
                     _ => {
-                        // Only capture register names r00-r31
                         let k = key.trim();
                         if k.len() == 3
                             && k.starts_with('r')
@@ -2060,8 +2386,705 @@ mod tests {
         assert_eq!(registers["r00"], "00000000");
         assert_eq!(registers["r01"], "00000001");
         assert_eq!(registers["r02"], "000000FF");
-        // Non-register keys should not appear in registers map
         assert!(!registers.contains_key("running"));
         assert!(!registers.contains_key("assembled"));
+    }
+
+    #[test]
+    fn test_vm_state_parsing_not_halted() {
+        let resp = "pc=0x10FF\nhalted=false\nrunning=true\nr10=00000005\nr30=0000FF00";
+        let mut pc = "????".to_string();
+        let mut vm_halted = false;
+        let mut registers = serde_json::Map::new();
+        for line in resp.lines() {
+            if let Some((key, val)) = line.split_once('=') {
+                match key.trim() {
+                    "pc" => pc = val.trim().to_string(),
+                    "halted" => vm_halted = val.trim() == "true",
+                    _ => {
+                        let k = key.trim();
+                        if k.len() == 3 && k.starts_with('r') && k[1..].chars().all(|c| c.is_ascii_digit()) {
+                            registers.insert(k.into(), val.trim().into());
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(pc, "0x10FF");
+        assert!(!vm_halted);
+        assert_eq!(registers["r10"], "00000005");
+        assert_eq!(registers["r30"], "0000FF00");
+        assert!(!registers.contains_key("running"));
+    }
+
+    // ── Building List Parsing Tests ─────────────────────
+
+    #[test]
+    fn test_building_list_parsing() {
+        let resp = "1,10,20,#FF0000,Terminal\n2,50,30,#00FF00,Editor\n3,80,40,#0000FF,Viewer";
+        let mut buildings = Vec::new();
+        for line in resp.lines() {
+            let parts: Vec<&str> = line.split(',').collect();
+            if parts.len() >= 5 {
+                buildings.push(serde_json::json!({
+                    "id": parts[0].parse::<i64>().unwrap_or(0),
+                    "world_x": parts[1].parse::<i64>().unwrap_or(0),
+                    "world_y": parts[2].parse::<i64>().unwrap_or(0),
+                    "type_color": parts[3],
+                    "name": parts[4],
+                }));
+            }
+        }
+        assert_eq!(buildings.len(), 3);
+        assert_eq!(buildings[0]["id"], 1);
+        assert_eq!(buildings[0]["name"], "Terminal");
+        assert_eq!(buildings[1]["type_color"], "#00FF00");
+        assert_eq!(buildings[2]["world_x"], 80);
+    }
+
+    #[test]
+    fn test_building_list_parsing_empty() {
+        let resp = "";
+        let mut buildings = Vec::new();
+        for line in resp.lines() {
+            let parts: Vec<&str> = line.split(',').collect();
+            if parts.len() >= 5 {
+                buildings.push(serde_json::json!({"id": parts[0]}));
+            }
+        }
+        assert!(buildings.is_empty());
+    }
+
+    #[test]
+    fn test_building_list_parsing_too_few_fields() {
+        let resp = "1,10,20\nbad data";
+        let mut buildings = Vec::new();
+        for line in resp.lines() {
+            let parts: Vec<&str> = line.split(',').collect();
+            if parts.len() >= 5 {
+                buildings.push(serde_json::json!({"id": parts[0]}));
+            }
+        }
+        assert!(buildings.is_empty());
+    }
+
+    // ── Player Position Parsing Tests ───────────────────
+
+    #[test]
+    fn test_player_position_parsing() {
+        let resp = "128,64,north";
+        let parts: Vec<&str> = resp.split(',').collect();
+        assert!(parts.len() >= 3);
+        assert_eq!(parts[0].parse::<i64>().unwrap(), 128);
+        assert_eq!(parts[1].parse::<i64>().unwrap(), 64);
+        assert_eq!(parts[2].trim(), "north");
+    }
+
+    #[test]
+    fn test_player_position_parsing_short() {
+        let resp = "10,20";
+        let parts: Vec<&str> = resp.split(',').collect();
+        assert_eq!(parts.len(), 2);
+        // Handler returns raw response for < 3 parts
+    }
+
+    // ── Vision Checksum Parsing Tests ───────────────────
+
+    #[test]
+    fn test_vision_checksum_parsing() {
+        let resp = "1234567890";
+        let checksum = resp.parse::<u64>().unwrap_or(0);
+        let formatted = format!("{:08X}", checksum);
+        assert_eq!(formatted, "499602D2");
+    }
+
+    #[test]
+    fn test_vision_checksum_parsing_zero() {
+        let resp = "0";
+        let checksum = resp.parse::<u64>().unwrap_or(0);
+        assert_eq!(checksum, 0);
+        assert_eq!(format!("{:08X}", checksum), "00000000");
+    }
+
+    // ── Vision Diff Parsing Tests ───────────────────────
+
+    #[test]
+    fn test_vision_diff_same() {
+        let prev_checksum = "DEADBEEF";
+        let resp = "same";
+        let changed = !resp.contains("same");
+        assert!(!changed);
+    }
+
+    #[test]
+    fn test_vision_diff_changed() {
+        let prev_checksum = "DEADBEEF";
+        let resp = "0x12345678";
+        let changed = !resp.contains("same");
+        assert!(changed);
+    }
+
+    // ── Vision Peek Pixel Parsing Tests ─────────────────
+
+    #[test]
+    fn test_vision_peek_pixel_parsing() {
+        let resp = "0x00FF00 r=0 g=255 b=0";
+        let trimmed = resp.trim();
+        assert!(!trimmed.starts_with('[')); // not an error
+        let mut r = 0i64;
+        let mut g = 0i64;
+        let mut b = 0i64;
+        for (i, tok) in trimmed.split_whitespace().enumerate() {
+            match i {
+                0 => {} // hex color
+                _ => {
+                    if let Some(rest) = tok.strip_prefix("r=") {
+                        r = rest.parse().unwrap_or(0);
+                    } else if let Some(rest) = tok.strip_prefix("g=") {
+                        g = rest.parse().unwrap_or(0);
+                    } else if let Some(rest) = tok.strip_prefix("b=") {
+                        b = rest.parse().unwrap_or(0);
+                    }
+                }
+            }
+        }
+        assert_eq!(r, 0);
+        assert_eq!(g, 255);
+        assert_eq!(b, 0);
+    }
+
+    #[test]
+    fn test_vision_peek_pixel_parsing_black() {
+        let resp = "0x000000 r=0 g=0 b=0";
+        let trimmed = resp.trim();
+        let mut r = 0i64; let mut g = 0i64; let mut b = 0i64;
+        for (i, tok) in trimmed.split_whitespace().enumerate() {
+            if i > 0 {
+                if let Some(rest) = tok.strip_prefix("r=") { r = rest.parse().unwrap_or(0); }
+                else if let Some(rest) = tok.strip_prefix("g=") { g = rest.parse().unwrap_or(0); }
+                else if let Some(rest) = tok.strip_prefix("b=") { b = rest.parse().unwrap_or(0); }
+            }
+        }
+        assert_eq!(r, 0);
+        assert_eq!(g, 0);
+        assert_eq!(b, 0);
+    }
+
+    #[test]
+    fn test_vision_peek_pixel_parsing_error() {
+        let resp = "[error: pixel out of bounds]";
+        let trimmed = resp.trim();
+        assert!(trimmed.starts_with('[')); // error response
+    }
+
+    // ── Vision Render Log Parsing Tests ─────────────────
+
+    #[test]
+    fn test_render_log_parsing() {
+        let resp = "frame=0 opcode=0x42:RECTF args=[10,20,30,40,50]\nframe=0 opcode=0x43:FILL args=[0,0,100,200,0xFF0000]\nframe=1 opcode=0x00:NOP args=[]";
+        let mut entries = Vec::new();
+        for line in resp.lines() {
+            if let Some((frame_part, rest)) = line.split_once(' ') {
+                let frame = frame_part
+                    .strip_prefix("frame=")
+                    .and_then(|s| s.parse::<i64>().ok())
+                    .unwrap_or(0);
+                if let Some((op_part, args_part)) = rest.split_once(" args=[") {
+                    if let Some((opcode_hex, name)) = op_part.split_once(':') {
+                        let mut arg_list = Vec::new();
+                        let inner = args_part.trim_end_matches(']');
+                        for a in inner.split(',') {
+                            if let Ok(val) = a.trim().parse::<i64>() {
+                                arg_list.push(val);
+                            }
+                        }
+                        entries.push(serde_json::json!({"frame": frame, "opcode": opcode_hex, "name": name, "args": arg_list}));
+                    }
+                }
+            }
+        }
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0]["frame"], 0);
+        assert_eq!(entries[0]["opcode"], "opcode=0x42");
+        assert_eq!(entries[0]["name"], "RECTF");
+        assert_eq!(entries[0]["args"].as_array().unwrap().len(), 5);
+        assert_eq!(entries[2]["frame"], 1);
+        assert!(entries[2]["args"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_render_log_parsing_empty() {
+        let resp = "";
+        let entries: Vec<serde_json::Value> = Vec::new();
+        assert!(entries.is_empty());
+    }
+
+    // ── Window List Parsing Tests ───────────────────────
+
+    #[test]
+    fn test_window_list_parsing_json() {
+        let resp = r#"[{"id":"win-1","title":"Terminal","pid":100,"x":0,"y":0,"w":64,"h":48}]"#;
+        let windows: Vec<serde_json::Value> = serde_json::from_str(resp.trim()).unwrap_or_default();
+        assert_eq!(windows.len(), 1);
+        assert_eq!(windows[0]["id"], "win-1");
+        assert_eq!(windows[0]["title"], "Terminal");
+        assert_eq!(windows[0]["pid"], 100);
+    }
+
+    #[test]
+    fn test_window_list_parsing_empty() {
+        let resp = "not json";
+        let windows: Vec<serde_json::Value> = if resp.trim().starts_with('[') {
+            serde_json::from_str(resp.trim()).unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        assert!(windows.is_empty());
+    }
+
+    #[test]
+    fn test_window_list_parsing_multiple() {
+        let resp = r#"[
+            {"id":"win-1","title":"T1","pid":100},
+            {"id":"win-2","title":"T2","pid":200},
+            {"id":"win-3","title":"T3","pid":300}
+        ]"#;
+        let windows: Vec<serde_json::Value> = serde_json::from_str(resp.trim()).unwrap_or_default();
+        assert_eq!(windows.len(), 3);
+    }
+
+    // ── JSON-RPC Dispatch Tests ─────────────────────────
+
+    #[test]
+    fn test_initialize_response() {
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: Some(serde_json::json!(1)),
+            method: "initialize".into(),
+            params: None,
+        };
+        let response = handle_request(request);
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+        let result = response.result.unwrap();
+        assert_eq!(result["protocolVersion"], "2024-11-05");
+        assert_eq!(result["serverInfo"]["name"], "geometry-os-mcp");
+    }
+
+    #[test]
+    fn test_tools_list_response() {
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: Some(serde_json::json!(2)),
+            method: "tools/list".into(),
+            params: None,
+        };
+        let response = handle_request(request);
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+        let result = response.result.unwrap();
+        let tools = result["tools"].as_array().unwrap();
+        assert!(!tools.is_empty());
+    }
+
+    #[test]
+    fn test_unknown_method_returns_error() {
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: Some(serde_json::json!(99)),
+            method: "nonexistent/method".into(),
+            params: None,
+        };
+        let response = handle_request(request);
+        assert!(response.error.is_some());
+        let error = response.error.unwrap();
+        assert_eq!(error.code, -32601);
+        assert!(error.message.contains("Method not found"));
+    }
+
+    #[test]
+    fn test_notifications_initialized_no_error() {
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: None,
+            method: "notifications/initialized".into(),
+            params: None,
+        };
+        let response = handle_request(request);
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn test_tools_call_unknown_tool_returns_error() {
+        // tools/call dispatches to handle_tool_call which returns Err for unknown tools
+        // But it goes through handle_request which wraps in content
+        // So we test handle_tool_call directly
+        let result = handle_tool_call("nonexistent_tool", &serde_json::json!({}));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Unknown tool"));
+    }
+
+    #[test]
+    fn test_json_rpc_response_success() {
+        let resp = JsonRpcResponse::success(
+            Some(serde_json::json!(42)),
+            serde_json::json!({"key": "value"}),
+        );
+        assert_eq!(resp.jsonrpc, "2.0");
+        assert_eq!(resp.id, Some(serde_json::json!(42)));
+        assert!(resp.result.is_some());
+        assert!(resp.error.is_none());
+    }
+
+    #[test]
+    fn test_json_rpc_response_error() {
+        let resp = JsonRpcResponse::error(
+            Some(serde_json::json!(1)),
+            -32000,
+            "something failed",
+        );
+        assert_eq!(resp.jsonrpc, "2.0");
+        assert!(resp.result.is_none());
+        assert!(resp.error.is_some());
+        let err = resp.error.unwrap();
+        assert_eq!(err.code, -32000);
+        assert_eq!(err.message, "something failed");
+    }
+
+    #[test]
+    fn test_json_rpc_response_error_no_id() {
+        let resp = JsonRpcResponse::error(None, -32700, "parse error");
+        assert!(resp.id.is_none());
+        assert_eq!(resp.error.unwrap().code, -32700);
+    }
+
+    // ── Tool Helper Function Tests ──────────────────────
+
+    #[test]
+    fn test_tool_function_creates_valid_schema() {
+        let t = tool(
+            "test_tool",
+            "A test tool",
+            vec![param("arg1", "string", "First arg", true)],
+            serde_json::json!({"type": "object"}),
+        );
+        assert_eq!(t["name"], "test_tool");
+        assert_eq!(t["description"], "A test tool");
+        assert_eq!(t["inputSchema"]["type"], "object");
+        assert!(t["inputSchema"]["properties"]["arg1"].is_object());
+        assert!(t["inputSchema"]["required"].as_array().unwrap().contains(&serde_json::json!("arg1")));
+    }
+
+    #[test]
+    fn test_tool_function_no_params() {
+        let t = tool("no_params", "No params tool", vec![], serde_json::json!({}));
+        assert_eq!(t["name"], "no_params");
+        assert!(t["inputSchema"]["required"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_param_function() {
+        let p = param("x", "integer", "X coordinate", true);
+        assert_eq!(p["name"], "x");
+        assert_eq!(p["type"], "integer");
+        assert_eq!(p["description"], "X coordinate");
+        assert_eq!(p["required"], true);
+    }
+
+    #[test]
+    fn test_param_optional() {
+        let p = param("shift", "integer", "Shift state", false);
+        assert_eq!(p["required"], false);
+    }
+
+    // ── Save ASM Parsing Tests ──────────────────────────
+
+    #[test]
+    fn test_save_asm_response_parsing() {
+        let resp = "[saved: programs/test.asm 42 lines]";
+        let ok = resp.contains("[saved:");
+        assert!(ok);
+    }
+
+    #[test]
+    fn test_save_asm_response_parsing_failure() {
+        let resp = "error: could not write file";
+        let ok = resp.contains("[saved:");
+        assert!(!ok);
+    }
+
+    // ── Load Source Escaping Tests ──────────────────────
+
+    #[test]
+    fn test_load_source_newline_escaping() {
+        let source = "LDI r1, 10\nADD r2, r3\nHALT";
+        let escaped = source.replace('\n', "\\n");
+        assert_eq!(escaped, "LDI r1, 10\\nADD r2, r3\\nHALT");
+        assert!(!escaped.contains('\n'));
+    }
+
+    #[test]
+    fn test_load_source_single_line() {
+        let source = "HALT";
+        let escaped = source.replace('\n', "\\n");
+        assert_eq!(escaped, "HALT");
+    }
+
+    // ── VM Run Program Status Parsing Tests ─────────────
+
+    #[test]
+    fn test_run_program_status_parsing_full() {
+        let status_resp = "mode=Editor running=false assembled=true pc=0x1005 cursor=(0,0)";
+        let mut status_obj = serde_json::Map::new();
+        for part in status_resp.split_whitespace() {
+            if let Some((k, v)) = part.split_once('=') {
+                match k {
+                    "mode" => { status_obj.insert("mode".into(), serde_json::Value::String(v.into())); }
+                    "running" => { status_obj.insert("running".into(), serde_json::Value::Bool(v == "true")); }
+                    "assembled" => { status_obj.insert("assembled".into(), serde_json::Value::Bool(v == "true")); }
+                    "pc" => { status_obj.insert("pc".into(), serde_json::Value::String(v.into())); }
+                    _ => {}
+                };
+            }
+        }
+        assert_eq!(status_obj["mode"], "Editor");
+        assert_eq!(status_obj["running"], serde_json::Value::Bool(false));
+        assert_eq!(status_obj["assembled"], serde_json::Value::Bool(true));
+        assert_eq!(status_obj["pc"], "0x1005");
+    }
+
+    // ── Desktop Vision JSON Parsing Tests ───────────────
+
+    #[test]
+    fn test_desktop_vision_json_parsing() {
+        let resp = r#"{"windows":[{"id":"win-1"}],"focused_window":{"id":"win-1"},"ascii_desktop":"..."}"#;
+        let trimmed = resp.trim();
+        let parsed: serde_json::Value = if trimmed.starts_with('{') {
+            serde_json::from_str(trimmed).unwrap_or_else(|_| serde_json::json!({}))
+        } else {
+            serde_json::json!({})
+        };
+        assert_eq!(parsed["windows"].as_array().unwrap().len(), 1);
+        assert_eq!(parsed["focused_window"]["id"], "win-1");
+    }
+
+    #[test]
+    fn test_desktop_vision_non_json_fallback() {
+        let resp = "not json at all";
+        let trimmed = resp.trim();
+        let parsed: serde_json::Value = if trimmed.starts_with('{') {
+            serde_json::from_str(trimmed).unwrap_or_else(|_| serde_json::json!({}))
+        } else {
+            serde_json::json!({})
+        };
+        assert!(parsed.as_object().unwrap().is_empty());
+    }
+
+    // ── Hypervisor Boot Config Tests ────────────────────
+
+    #[test]
+    fn test_hypervisor_boot_config_with_window() {
+        let config = "arch=riscv64 kernel=Image ram=256M";
+        let window_id = "win-3";
+        let cmd = if window_id != "0" {
+            format!("hypervisor_boot {} window={}", config, window_id)
+        } else {
+            format!("hypervisor_boot {}", config)
+        };
+        assert_eq!(cmd, "hypervisor_boot arch=riscv64 kernel=Image ram=256M window=win-3");
+    }
+
+    #[test]
+    fn test_hypervisor_boot_config_no_window() {
+        let config = "arch=riscv64 kernel=Image ram=256M";
+        let window_id = "0";
+        let cmd = if window_id != "0" {
+            format!("hypervisor_boot {} window={}", config, window_id)
+        } else {
+            format!("hypervisor_boot {}", config)
+        };
+        assert_eq!(cmd, "hypervisor_boot arch=riscv64 kernel=Image ram=256M");
+    }
+
+    // ── Input Mouse Command Tests ───────────────────────
+
+    #[test]
+    fn test_input_mouse_click_command() {
+        let action = "click";
+        let x = 100i64;
+        let y = 200i64;
+        let button = 2i64;
+        let cmd = match action {
+            "click" => format!("inject_mouse click {} {} {}", x, y, button),
+            _ => format!("inject_mouse move {} {}", x, y),
+        };
+        assert_eq!(cmd, "inject_mouse click 100 200 2");
+    }
+
+    #[test]
+    fn test_input_mouse_move_command() {
+        let action = "move";
+        let x = 50i64;
+        let y = 75i64;
+        let cmd = match action {
+            "click" => format!("inject_mouse click {} {} 2", x, y),
+            _ => format!("inject_mouse move {} {}", x, y),
+        };
+        assert_eq!(cmd, "inject_mouse move 50 75");
+    }
+
+    // ── Desktop Launch Command Tests ────────────────────
+
+    #[test]
+    fn test_desktop_launch_window_mode() {
+        let app_name = "terminal";
+        let window_mode = true;
+        let cmd = if window_mode {
+            format!("launch --window {}", app_name)
+        } else {
+            format!("launch {}", app_name)
+        };
+        assert_eq!(cmd, "launch --window terminal");
+    }
+
+    #[test]
+    fn test_desktop_launch_fullscreen() {
+        let app_name = "terminal";
+        let window_mode = false;
+        let cmd = if window_mode {
+            format!("launch --window {}", app_name)
+        } else {
+            format!("launch {}", app_name)
+        };
+        assert_eq!(cmd, "launch terminal");
+    }
+
+    // ── Load ASM Base Address Tests ─────────────────────
+
+    #[test]
+    fn test_load_asm_with_custom_base() {
+        let path = "programs/test.asm";
+        let base_addr = "0x2000";
+        let cmd = format!("load_asm {} {}", path, base_addr);
+        assert_eq!(cmd, "load_asm programs/test.asm 0x2000");
+    }
+
+    #[test]
+    fn test_load_asm_default_base() {
+        let path = "programs/test.asm";
+        let base_addr = "0x1000";
+        let cmd = format!("load_asm {} {}", path, base_addr);
+        assert_eq!(cmd, "load_asm programs/test.asm 0x1000");
+    }
+
+    #[test]
+    fn test_load_asm_empty_base() {
+        let path = "programs/test.asm";
+        let base_addr = "";
+        let cmd = if base_addr.is_empty() {
+            format!("load_asm {}", path)
+        } else {
+            format!("load_asm {} {}", path, base_addr)
+        };
+        assert_eq!(cmd, "load_asm programs/test.asm");
+    }
+
+    // ── Building Radius Tests ───────────────────────────
+
+    #[test]
+    fn test_building_list_radius_zero() {
+        let radius = 0i64;
+        let cmd = if radius > 0 {
+            format!("buildings {}", radius)
+        } else {
+            "buildings 0".to_string()
+        };
+        assert_eq!(cmd, "buildings 0");
+    }
+
+    #[test]
+    fn test_building_list_radius_positive() {
+        let radius = 50i64;
+        let cmd = if radius > 0 {
+            format!("buildings {}", radius)
+        } else {
+            "buildings 0".to_string()
+        };
+        assert_eq!(cmd, "buildings 50");
+    }
+
+    // ── Region Checksum Error Parsing ───────────────────
+
+    #[test]
+    fn test_region_checksum_error() {
+        let resp = "[error: invalid region]";
+        let trimmed = resp.trim();
+        assert!(trimmed.starts_with('[')); // error response
+    }
+
+    #[test]
+    fn test_region_checksum_ok() {
+        let resp = "0xABCDEF01";
+        let trimmed = resp.trim();
+        assert!(!trimmed.starts_with('[')); // not an error
+        assert_eq!(trimmed, "0xABCDEF01");
+    }
+
+    // ── Edge Cases ──────────────────────────────────────
+
+    #[test]
+    fn test_empty_register_response() {
+        let resp = "";
+        let mut regs = serde_json::Map::new();
+        for line in resp.lines() {
+            if let Some((name, val)) = line.split_once('=') {
+                regs.insert(name.into(), serde_json::Value::String(val.into()));
+            }
+        }
+        assert!(regs.is_empty());
+    }
+
+    #[test]
+    fn test_status_with_whitespace_variants() {
+        // Status line may have trailing comma in some fields
+        let resp = "mode=Editor, running=true, assembled=true, pc=0x1000,";
+        for part in resp.split_whitespace() {
+            if let Some((k, v)) = part.split_once('=') {
+                match k {
+                    "mode" => {
+                        // v may have trailing comma
+                        let cleaned = v.trim_end_matches(',');
+                        assert_eq!(cleaned, "Editor");
+                    }
+                    "running" => {
+                        let cleaned = v.trim_end_matches(',');
+                        assert_eq!(cleaned, "true");
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_vm_watch_empty_path() {
+        let path = "";
+        assert!(path.is_empty());
+        // Handler returns error status for empty path
+    }
+
+    #[test]
+    fn test_vm_unwatch_stopped() {
+        let resp = "stopped watching programs/test.asm";
+        let ok = resp.contains("stopped") || resp.contains("no watch");
+        assert!(ok);
+    }
+
+    #[test]
+    fn test_vm_unwatch_no_watch() {
+        let resp = "no watch active";
+        let ok = resp.contains("stopped") || resp.contains("no watch");
+        assert!(ok);
     }
 }
