@@ -1617,9 +1617,9 @@ mod tests {
         // ESC [ 1 ; c → the ';' clears param_buf, then 'c' with empty buf = DA1
         let mut qi = QueryInterceptor::new();
         qi.feed(0x1B); // ESC
-        qi.feed(b'[');  // CSI
-        qi.feed(b'1');  // digit
-        qi.feed(b';');  // semicolon -- clears param_buf
+        qi.feed(b'['); // CSI
+        qi.feed(b'1'); // digit
+        qi.feed(b';'); // semicolon -- clears param_buf
         let (_, resp) = qi.feed(b'c'); // 'c' with empty buf → DA1
         assert_eq!(resp.as_deref(), Some(b"\x1B[?1;0c".as_slice()));
     }
@@ -1697,11 +1697,11 @@ mod tests {
         // [ > c never starts a CsiGreater sequence because the state is still Csi.
         let mut qi = QueryInterceptor::new();
         qi.feed(0x1B); // Ground → Esc
-        qi.feed(b'[');  // Esc → Csi
-        qi.feed(0x1B);  // stays in Csi (0x1B < 0x40, not a digit/';'/final byte)
-        qi.feed(b'[');  // still in Csi — '[' is a digit? No. 0x5B >= 0x40 && <= 0x7E → final byte → Ground
-        // After the '[' (0x5B) is treated as a CSI final byte, we're back in Ground.
-        // Now start a fresh DA2:
+        qi.feed(b'['); // Esc → Csi
+        qi.feed(0x1B); // stays in Csi (0x1B < 0x40, not a digit/';'/final byte)
+        qi.feed(b'['); // still in Csi — '[' is a digit? No. 0x5B >= 0x40 && <= 0x7E → final byte → Ground
+                       // After the '[' (0x5B) is treated as a CSI final byte, we're back in Ground.
+                       // Now start a fresh DA2:
         qi.feed(0x1B);
         qi.feed(b'[');
         qi.feed(b'>');
@@ -1754,5 +1754,260 @@ mod tests {
         assert_ne!(PTY_ERR_WRITE_FAILED, PTY_OK);
         assert_ne!(PTY_ERR_CLOSED, PTY_OK);
         assert_ne!(PTY_ERR_RESIZE_FAILED, PTY_OK);
+    }
+
+    // ── All PTY slots full (PTY_ERR_NO_SLOTS) ──────────────────────
+
+    #[test]
+    fn ptyopen_all_slots_full_returns_no_slots() {
+        let mut vm = crate::vm::Vm::new();
+
+        // Fill all MAX_PTY_SLOTS (4) slots by injecting fake PtySlots
+        // We can't easily spawn 4 real PTYs in a test, but we can
+        // verify the slot-full logic by pre-filling pty_slots.
+        // Use a real spawn for just one slot to get a valid PtySlot,
+        // then clone it (not possible since PtySlot is !Clone).
+        // Instead, test the error path directly: if all slots are Some,
+        // PTYOPEN should return PTY_ERR_NO_SLOTS.
+        //
+        // We test with the actual spawn for 1 slot, then check
+        // that subsequent opens use different slots.
+        let mut opened = Vec::new();
+        for _ in 0..MAX_PTY_SLOTS {
+            vm.ram[0x5000] = 0; // empty command = bash
+            vm.regs[5] = 0x5000;
+            vm.regs[6] = 10;
+            setup_fetch(&mut vm, 0x100, &[5, 10]);
+            vm.op_ptyopen();
+            if vm.regs[0] != PTY_OK {
+                // System can't open more PTYs (resource limit) — skip
+                for h in opened {
+                    vm.pty_slots[h] = None;
+                }
+                eprintln!("skipping: system PTY limit reached");
+                return;
+            }
+            opened.push(vm.regs[10] as usize);
+            thread::sleep(Duration::from_millis(100));
+        }
+
+        // All 4 slots should now be occupied
+        for i in 0..MAX_PTY_SLOTS {
+            assert!(vm.pty_slots[i].is_some(), "slot {} should be occupied", i);
+        }
+
+        // Opening one more should fail with PTY_ERR_NO_SLOTS
+        vm.ram[0x5000] = 0;
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 11;
+        setup_fetch(&mut vm, 0x200, &[5, 11]);
+        vm.op_ptyopen();
+
+        assert_eq!(
+            vm.regs[0], PTY_ERR_NO_SLOTS,
+            "opening PTY when all {} slots full should return NO_SLOTS",
+            MAX_PTY_SLOTS
+        );
+
+        // Cleanup
+        for h in opened {
+            vm.pty_slots[h] = None;
+        }
+    }
+
+    // ── PTYWRITE with zero-length payload ───────────────────────────
+
+    #[test]
+    fn ptywrite_zero_length_returns_ok() {
+        let mut vm = crate::vm::Vm::new();
+        vm.ram[0x5000] = 0;
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 10;
+        setup_fetch(&mut vm, 0x100, &[5, 10]);
+        vm.op_ptyopen();
+
+        if vm.regs[0] != PTY_OK {
+            eprintln!("skipping: PTY spawn failed");
+            return;
+        }
+        let handle = vm.regs[10] as usize;
+
+        // Write 0 bytes
+        vm.regs[12] = handle as u32;
+        vm.regs[13] = 0x6000;
+        vm.regs[14] = 0; // len = 0
+        setup_fetch(&mut vm, 0x200, &[12, 13, 14]);
+        vm.op_ptywrite();
+
+        assert_eq!(vm.regs[0], PTY_OK, "zero-length write should succeed");
+
+        // Cleanup
+        vm.pty_slots[handle] = None;
+    }
+
+    // ── PTYREAD returns 0 when no data available ────────────────────
+
+    #[test]
+    fn ptyread_no_data_returns_zero() {
+        let mut vm = crate::vm::Vm::new();
+        vm.ram[0x5000] = 0;
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 10;
+        setup_fetch(&mut vm, 0x100, &[5, 10]);
+        vm.op_ptyopen();
+
+        if vm.regs[0] != PTY_OK {
+            eprintln!("skipping: PTY spawn failed");
+            return;
+        }
+        let handle = vm.regs[10] as usize;
+
+        // Don't write anything — drain immediately
+        // The rx channel should be empty (or have only prompt bytes which
+        // we consume in a first read)
+        thread::sleep(Duration::from_millis(200));
+
+        // First read might get prompt bytes
+        vm.regs[12] = handle as u32;
+        vm.regs[13] = 0x6000;
+        vm.regs[14] = 4096;
+        setup_fetch(&mut vm, 0x200, &[12, 13, 14]);
+        vm.op_ptyread();
+
+        // Second read should get 0 (nothing pending)
+        vm.regs[12] = handle as u32;
+        setup_fetch(&mut vm, 0x300, &[12, 13, 14]);
+        vm.op_ptyread();
+
+        assert_eq!(
+            vm.regs[0], 0,
+            "PTYREAD with no pending data should return 0"
+        );
+
+        // Cleanup
+        vm.pty_slots[handle] = None;
+    }
+
+    // ── PTYREAD/PTYWRITE with RAM boundary ─────────────────────────
+
+    #[test]
+    fn ptyread_clamps_at_ram_boundary() {
+        let mut vm = crate::vm::Vm::new();
+        vm.ram[0x5000] = 0;
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 10;
+        setup_fetch(&mut vm, 0x100, &[5, 10]);
+        vm.op_ptyopen();
+
+        if vm.regs[0] != PTY_OK {
+            eprintln!("skipping: PTY spawn failed");
+            return;
+        }
+        let handle = vm.regs[10] as usize;
+
+        // Read into buffer near end of RAM
+        let ram_len = vm.ram.len();
+        let buf_addr = ram_len - 2; // only 2 cells fit
+        vm.regs[12] = handle as u32;
+        vm.regs[13] = buf_addr as u32;
+        vm.regs[14] = 4096; // request huge, but RAM can only hold 2
+        setup_fetch(&mut vm, 0x200, &[12, 13, 14]);
+        vm.op_ptyread();
+
+        // Should not panic — the clamping should prevent out-of-bounds
+        // r0 should be <= 2 (or more if prompt bytes were pending,
+        // but clamped by RAM boundary)
+        let read_count = vm.regs[0];
+        // Whatever was read, no out-of-bounds access occurred
+        assert!(
+            read_count != PTY_ERR_INVALID_HANDLE,
+            "should not return invalid handle for valid slot"
+        );
+
+        // Cleanup
+        vm.pty_slots[handle] = None;
+    }
+
+    #[test]
+    fn ptywrite_clamps_at_ram_boundary() {
+        let mut vm = crate::vm::Vm::new();
+        vm.ram[0x5000] = 0;
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 10;
+        setup_fetch(&mut vm, 0x100, &[5, 10]);
+        vm.op_ptyopen();
+
+        if vm.regs[0] != PTY_OK {
+            eprintln!("skipping: PTY spawn failed");
+            return;
+        }
+        let handle = vm.regs[10] as usize;
+
+        // Write from buffer near end of RAM
+        let ram_len = vm.ram.len();
+        let buf_addr = ram_len - 2; // only 2 cells fit
+        vm.ram[buf_addr] = 0x41; // 'A'
+        vm.ram[buf_addr + 1] = 0x42; // 'B'
+
+        vm.regs[12] = handle as u32;
+        vm.regs[13] = buf_addr as u32;
+        vm.regs[14] = 100; // request 100, but only 2 fit in RAM
+        setup_fetch(&mut vm, 0x200, &[12, 13, 14]);
+        vm.op_ptywrite();
+
+        // Should succeed without panic
+        assert_eq!(vm.regs[0], PTY_OK, "write near RAM boundary should succeed");
+
+        // Cleanup
+        vm.pty_slots[handle] = None;
+    }
+
+    // ── PTYCLOSE on never-opened slot ───────────────────────────────
+
+    #[test]
+    fn ptyclose_never_opened_returns_error() {
+        let mut vm = crate::vm::Vm::new();
+        vm.regs[5] = 2; // slot 2 was never opened
+        setup_fetch(&mut vm, 0x100, &[5]);
+        vm.op_ptyclose();
+
+        assert_eq!(
+            vm.regs[0], PTY_ERR_INVALID_HANDLE,
+            "closing never-opened PTY slot should return error"
+        );
+    }
+
+    // ── QueryInterceptor: OSC escape pass-through ───────────────────
+
+    #[test]
+    fn qi_osc_sequence_passes_through() {
+        // OSC sequences (ESC ] ... BEL or ESC ] ... ST) should pass through
+        // unchanged in the QueryInterceptor (it only traps CSI DA1/DA2)
+        let (fwd, resp) = run_qi(&[
+            0x1B, // ESC
+            0x5D, // ] (OSC)
+            0x30, 0x3B, // "0;"
+            b'c', b'o', b'l', b'o', b'r', // "color"
+            0x07, // BEL (terminates OSC)
+        ]);
+        assert_eq!(fwd.len(), 10, "OSC sequence bytes should pass through");
+        assert!(resp.is_empty(), "OSC should not produce a query response");
+    }
+
+    #[test]
+    fn qi_osc_with_st_terminator() {
+        // OSC can also be terminated by ST (ESC \)
+        let (fwd, resp) = run_qi(&[
+            0x1B, // ESC
+            0x5D, // ] (OSC)
+            0x32, 0x3B, // "2;"
+            b't', b'i', b't', b'l', b'e', 0x1B, // ESC (start of ST)
+            0x5C, // \ (completes ST)
+        ]);
+        assert_eq!(fwd.len(), 11, "OSC+ST bytes should pass through");
+        assert!(
+            resp.is_empty(),
+            "OSC+ST should not produce a query response"
+        );
     }
 }

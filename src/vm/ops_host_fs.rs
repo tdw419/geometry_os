@@ -1182,4 +1182,346 @@ mod tests {
 
         assert_eq!(vm.regs[0], 0xFFFFFFFF);
     }
+
+    // ── EMFILE: all slots occupied ──────────────────────────────────
+
+    #[test]
+    fn fsopen_emfile_when_all_slots_full() {
+        use crate::vm::types::MAX_HOST_FILES;
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_emfile");
+        std::fs::create_dir_all(&dir).unwrap();
+
+        // Open MAX_HOST_FILES files to fill all slots
+        for i in 0..MAX_HOST_FILES {
+            let path = dir.join(format!("slot_{}.txt", i));
+            std::fs::write(&path, format!("data{}", i)).unwrap();
+            write_string(&mut vm.ram, 0x3000 + i * 100, path.to_str().unwrap());
+            vm.regs[5] = (0x3000 + i * 100) as u32;
+            vm.regs[6] = 0; // read
+            let pc = vm.pc as usize;
+            vm.ram[pc] = 5;
+            vm.ram[pc + 1] = 6;
+            vm.op_fsopen();
+            assert_ne!(
+                vm.regs[0], 0xFFFFFFFF,
+                "slot {} should open successfully",
+                i
+            );
+        }
+
+        // Now try to open one more — should fail with 0xFFFFFFFF
+        let extra = dir.join("extra.txt");
+        std::fs::write(&extra, "nope").unwrap();
+        write_string(&mut vm.ram, 0x5000, extra.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+
+        assert_eq!(
+            vm.regs[0],
+            0xFFFFFFFD, // EMFILE
+            "opening file when all {} slots are full should return EMFILE",
+            MAX_HOST_FILES
+        );
+
+        // Cleanup
+        for i in 0..MAX_HOST_FILES {
+            vm.host_file_handles[i] = None;
+            let path = dir.join(format!("slot_{}.txt", i));
+            let _ = std::fs::remove_file(&path);
+        }
+        let _ = std::fs::remove_file(&extra);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── Empty directory listing ─────────────────────────────────────
+
+    #[test]
+    fn fsls_empty_directory_returns_zero_bytes() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_empty_dir");
+        std::fs::create_dir_all(&dir).unwrap();
+
+        write_string(&mut vm.ram, 0x5000, dir.to_str().unwrap());
+        vm.regs[5] = 0x5000; // path
+        vm.regs[6] = 0x6000; // buf
+        vm.regs[7] = 1024; // max_len
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.ram[pc + 2] = 7;
+        vm.op_fsls();
+
+        assert_eq!(vm.regs[0], 0, "empty directory should return 0 bytes");
+
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── File truncation on write-mode open ──────────────────────────
+
+    #[test]
+    fn fsopen_write_mode_truncates_existing_file() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_truncate");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("truncate.txt");
+        std::fs::write(&path, "AAAAAAAAAA").unwrap(); // 10 bytes
+
+        // Open in write mode (mode=1) — should truncate
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 1; // write mode
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+        assert_ne!(handle as u32, 0xFFFFFFFF, "write open should succeed");
+
+        // Close without writing anything
+        vm.host_file_handles[handle] = None;
+
+        // Reopen in read mode and verify file is empty
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0; // read mode
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 5;
+        vm.ram[pc2 + 1] = 6;
+        vm.op_fsopen();
+        let read_handle = vm.regs[0] as usize;
+        assert_ne!(read_handle as u32, 0xFFFFFFFF);
+
+        // Read up to 100 bytes — should get 0
+        vm.regs[7] = read_handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 100;
+        let pc3 = vm.pc as usize;
+        vm.ram[pc3] = 7;
+        vm.ram[pc3 + 1] = 8;
+        vm.ram[pc3 + 2] = 9;
+        vm.op_fsread();
+
+        assert_eq!(vm.regs[0], 0, "truncated file should read 0 bytes");
+
+        // Cleanup
+        vm.host_file_handles[read_handle] = None;
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── FSWRITE with high bytes in RAM cells ────────────────────────
+
+    #[test]
+    fn fswrite_strips_high_bytes_from_ram() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_highbyte");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("highbyte.bin");
+
+        // Open for write
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 1; // write
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+        assert!(handle < MAX_HOST_FILES as usize);
+
+        // Write data with high bytes set: each RAM cell has value 0xFF000041 etc.
+        // Only low byte (& 0xFF) should be written to the file
+        vm.ram[0x6000] = 0xFF000041; // 'A' with high bits
+        vm.ram[0x6001] = 0xDEADBEEF; // low byte = 0xEF
+        vm.ram[0x6002] = 0x12345642; // low byte = 0x42 = 'B'
+
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 3;
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fswrite();
+
+        assert_eq!(vm.regs[0], 3, "should write 3 bytes");
+
+        // Close and verify file contents
+        vm.host_file_handles[handle] = None;
+        let on_disk = std::fs::read(&path).unwrap();
+        assert_eq!(on_disk.len(), 3);
+        assert_eq!(on_disk[0], 0x41, "high byte should be stripped");
+        assert_eq!(on_disk[1], 0xEF, "high byte should be stripped");
+        assert_eq!(on_disk[2], 0x42, "high byte should be stripped");
+
+        // Cleanup
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── FSREAD from closed handle returns error ─────────────────────
+
+    #[test]
+    fn fsread_closed_handle_returns_error() {
+        let mut vm = new_vm();
+
+        // Try to read from handle 0 which was never opened (None)
+        vm.regs[7] = 0; // handle 0 — never opened
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 100;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 7;
+        vm.ram[pc + 1] = 8;
+        vm.ram[pc + 2] = 9;
+        vm.op_fsread();
+
+        assert_eq!(
+            vm.regs[0], 0xFFFFFFFF,
+            "reading from never-opened handle should return error"
+        );
+    }
+
+    // ── FSWRITE to closed handle returns error ──────────────────────
+
+    #[test]
+    fn fswrite_closed_handle_returns_error() {
+        let mut vm = new_vm();
+
+        // Try to write to handle 0 which was never opened
+        vm.ram[0x6000] = 0x41; // 'A'
+        vm.regs[7] = 0; // handle 0 — never opened
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 1;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 7;
+        vm.ram[pc + 1] = 8;
+        vm.ram[pc + 2] = 9;
+        vm.op_fswrite();
+
+        assert_eq!(
+            vm.regs[0], 0xFFFFFFFF,
+            "writing to never-opened handle should return error"
+        );
+    }
+
+    // ── FSWRITE/FSREAD with RAM boundary (near end of RAM) ─────────
+
+    #[test]
+    fn fswrite_clamps_at_ram_boundary() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_ramboundary");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("ramboundary.bin");
+
+        // Open for write
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 1;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+        assert!(handle < MAX_HOST_FILES as usize);
+
+        // Set buf_addr near end of RAM, len that exceeds it
+        let ram_len = vm.ram.len();
+        let buf_addr = ram_len - 2; // only 2 cells before end
+        vm.ram[buf_addr] = 0x58; // 'X'
+        vm.ram[buf_addr + 1] = 0x59; // 'Y'
+
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = buf_addr as u32;
+        vm.regs[9] = 100; // request 100 bytes, but only 2 fit in RAM
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fswrite();
+
+        // Should write only 2 bytes (clamped by RAM boundary)
+        assert_eq!(
+            vm.regs[0], 2,
+            "should write only 2 bytes when buf near end of RAM"
+        );
+
+        // Verify on disk
+        vm.host_file_handles[handle] = None;
+        let on_disk = std::fs::read(&path).unwrap();
+        assert_eq!(on_disk.len(), 2);
+        assert_eq!(on_disk[0], 0x58);
+        assert_eq!(on_disk[1], 0x59);
+
+        // Cleanup
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    #[test]
+    fn fsread_clamps_at_ram_boundary() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_readram");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("readram.bin");
+        std::fs::write(&path, b"ABCDE").unwrap();
+
+        // Open for read
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+        assert!(handle < MAX_HOST_FILES as usize);
+
+        // Read into buffer near end of RAM
+        let ram_len = vm.ram.len();
+        let buf_addr = ram_len - 2; // only 2 cells before end
+
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = buf_addr as u32;
+        vm.regs[9] = 100; // request 100, file has 5, but only 2 fit in RAM
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fsread();
+
+        // r0 should be 5 (bytes read from file), not 2
+        // The read reports all bytes consumed from the file,
+        // but only writes what fits in RAM
+        assert_eq!(vm.regs[0], 5, "should report 5 bytes read from file");
+
+        // But only 2 bytes actually landed in RAM
+        assert_eq!(vm.ram[buf_addr], 0x41, "first byte 'A'");
+        assert_eq!(vm.ram[buf_addr + 1], 0x42, "second byte 'B'");
+
+        // Cleanup
+        vm.host_file_handles[handle] = None;
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── FSCLOSE on never-opened handle ──────────────────────────────
+
+    #[test]
+    fn fsclose_never_opened_handle_returns_error() {
+        let mut vm = new_vm();
+
+        vm.regs[5] = 5; // handle 5 was never opened
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.op_fsclose();
+
+        assert_eq!(
+            vm.regs[0], 0xFFFFFFFF,
+            "closing never-opened handle should return error"
+        );
+    }
 }
