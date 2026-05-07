@@ -10092,7 +10092,7 @@ phases:
   scope_lines_total: 86867
   test_target: 0
 - title: Clippy Warning Cleanup -- Range::contains and Cast Cleanup
-  status: todo
+  status: planned
   deliverables:
   - name: Fix all manual Range::contains implementations
     description: Replace manual `x >= a && x <= b` patterns with `(a..=b).contains(&x)`.
@@ -10105,7 +10105,7 @@ phases:
   test_target: 0
   scope_lines_total: 100
 - title: Clippy Warning Cleanup -- div_ceil and Dead Code Removal
-  status: todo
+  status: planned
   deliverables:
   - name: Replace manual div_ceil implementations
     description: Replace manual `(n + d - 1) / d` patterns with `n.div_ceil(d)`. Clippy
@@ -10145,7 +10145,7 @@ phases:
   test_target: 5
   scope_lines_total: 120
 - title: New Opcode -- SWAP (Exchange Two Registers)
-  status: todo
+  status: planned
   deliverables:
   - name: Implement SWAP opcode (0xB1)
     description: SWAP rd, rs exchanges register values. 3-word encoding. Write swap_demo.asm.
@@ -10216,7 +10216,7 @@ phases:
   test_target: 4
   scope_lines_total: 200
 - title: Documentation and Meta Stats Update
-  status: todo
+  status: planned
   deliverables:
   - name: Update README.md and roadmap.yaml meta
     description: 'Update stale counts: 177 opcodes, 161 programs, 91K LOC, 1797 tests.'
