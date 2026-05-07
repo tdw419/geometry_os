@@ -637,3 +637,17 @@ int geos_measure_string(const char *str) {
     while (str[len]) len++;
     return len * 8;
 }
+
+/* ---- Phase 240: Timer and Sleep ---- */
+
+/*
+ * Cooperative sleep for N milliseconds.
+ * Uses CLINT mtime spin-wait (same as geos_wait_ms).
+ * The SBI-based alarm API (geos_alarm_set) is for async callbacks;
+ * geos_msleep is the simple blocking variant.
+ */
+long geos_msleep(long ms) {
+    if (ms <= 0) return 0;
+    geos_wait_ms((uint32_t)ms);
+    return 0;
+}

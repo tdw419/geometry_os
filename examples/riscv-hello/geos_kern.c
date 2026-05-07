@@ -29,6 +29,90 @@
 #define STACK_A       0x80100000u
 #define STACK_B       0x80110000u
 
+/* ---- Phase 235: Shared Memory IPC ---- */
+
+/* Shared memory pool starts after both stacks.
+ * 8 slots of 8KB each = 64KB total.
+ * Both guests can read/write this region directly (bare-metal, no MMU). */
+#define SHM_POOL_BASE    0x80130000u
+#define SHM_SLOT_SIZE    0x2000u   /* 8KB per slot */
+#define SHM_MAX_SLOTS    8
+#define SHM_POOL_END     (SHM_POOL_BASE + SHM_MAX_SLOTS * SHM_SLOT_SIZE)
+
+/* Ring buffer header at the start of each shared memory region.
+ * Placed by the kernel after allocation. Guest programs use these
+ * fields for synchronization (single-producer, single-consumer).
+ *
+ * Layout (16 bytes):
+ *   [0] write_pos  -- next write index (producer advances)
+ *   [1] read_pos   -- next read index (consumer advances)
+ *   [2] capacity   -- max number of u32 data words after header
+ *   [3] flags      -- 0x01 = producer done signal
+ *
+ * Data starts at offset 16 (4 u32 words) from the region base.
+ */
+#define SHM_HDR_WRITE_POS  0
+#define SHM_HDR_READ_POS   1
+#define SHM_HDR_CAPACITY   2
+#define SHM_HDR_FLAGS      3
+#define SHM_HDR_SIZE       4   /* header is 4 u32 words */
+#define SHM_FLAG_DONE      0x01u
+
+/* Slot metadata (in kernel BSS) */
+struct shm_slot {
+    uint32_t allocated;   /* 1 if in use, 0 if free */
+    uint32_t owner;       /* program ID that allocated (0=A, 1=B) */
+    uint32_t base_addr;   /* physical base address */
+    uint32_t capacity;    /* max data words in the ring buffer */
+};
+
+/* Slot table (8 entries, in BSS) */
+static struct shm_slot shm_slots[SHM_MAX_SLOTS];
+
+/* GEOS SBI function IDs for shared memory (continuing from existing 0-5) */
+#define GEO_SHM_ALLOC     6
+#define GEO_SHM_MAP       7
+#define GEO_SHM_RELEASE   8
+
+/* ---- Phase 240: Timer and Sleep Syscalls ---- */
+
+/* GEOS SBI function IDs for timer (continuing from shared memory 6-8) */
+#define GEO_UPTIME        9
+#define GEO_ALARM_SET     10
+#define GEO_ALARM_CANCEL  11
+#define GEO_MSLEEP        12
+
+/* Maximum concurrent alarms per program */
+#define GEO_MAX_ALARMS    4
+
+/* Approximate ticks per millisecond at ~52 MIPS */
+#define GEO_TICKS_PER_MS  52000u
+
+/*
+ * Alarm descriptor. Each program can register up to GEO_MAX_ALARMS alarms.
+ * The kernel checks them on each timer tick and fires expired ones by
+ * modifying the guest's saved context (setting PC to the callback).
+ *
+ * Layout (12 bytes = 3 u32 words):
+ *   [0] active   -- 1 if armed, 0 if free/cancelled
+ *   [1] expire   -- mtime value when alarm fires (absolute)
+ *   [2] callback -- function pointer to call when alarm fires
+ */
+struct alarm_entry {
+    uint32_t active;
+    uint32_t expire_lo;
+    uint32_t expire_hi;
+    uint32_t callback;
+    uint32_t owner;       /* program ID that registered this alarm */
+};
+
+/* Alarm table (4 entries, in BSS) */
+static struct alarm_entry alarms[GEO_MAX_ALARMS];
+
+/* Boot timestamp: mtime value at kernel boot, used by geos_uptime */
+static uint32_t boot_mtime_lo = 0;
+static uint32_t boot_mtime_hi = 0;
+
 /* Context struct layout must match kern_trap.S offsets:
  *   [0]  = padding (unused, tp was swapped at entry)
  *   [4]  = x1  (ra)
@@ -79,6 +163,35 @@ extern const char _guest_b_start[];
 extern const char _guest_b_end[];
 
 /*
+ * kern_fire_alarms -- called from kern_trap.S on each timer tick.
+ * Checks all alarm entries for the CURRENT program (before context switch).
+ * If an alarm has expired, modifies the saved context to redirect PC to
+ * the callback function. The callback sees a0 = alarm_id.
+ *
+ * IMPORTANT: Called BEFORE the context switch (current_id still points to
+ * the preempted program). tp still points to that program's context.
+ */
+void kern_fire_alarms(void) {
+    uint32_t now_lo = *(volatile uint32_t *)(GEOS_CLINT_MTIME);
+    uint32_t now_hi = *(volatile uint32_t *)(GEOS_CLINT_MTIME + 4);
+
+    for (int i = 0; i < GEO_MAX_ALARMS; i++) {
+        if (!alarms[i].active) continue;
+        if (alarms[i].owner != current_id) continue;
+
+        /* Check if alarm has expired: expire <= now */
+        if (alarms[i].expire_hi < now_hi ||
+            (alarms[i].expire_hi == now_hi && alarms[i].expire_lo <= now_lo)) {
+            /* Fire: set a0 = alarm_id in saved context, redirect PC */
+            alarms[i].active = 0;  /* one-shot: disarm after firing */
+            uint32_t *ctx = (current_id == 0) ? ctx_a : ctx_b;
+            ctx[CTX_A0_OFF / 4] = (uint32_t)i;
+            ctx[CTX_MEPC_OFF / 4] = alarms[i].callback;
+        }
+    }
+}
+
+/*
  * kern_apply_clip -- called from kern_trap.S on each timer tick.
  * Writes the clip rect for the new program to the framebuffer MMIO.
  * Also draws a focus border around the focused region.
@@ -126,7 +239,7 @@ void kern_apply_clip(uint32_t prog_id) {
 
 /*
  * kern_handle_geos_sbi -- called from kern_trap.S for GEOS extension (a7=0x47454F00).
- * a0 = function ID, a1-a5 = args.
+ * a6 = function ID, a0-a5 = args.
  * Returns result in a0.
  */
 long kern_handle_geos_sbi(long fid, long a1, long a2, long a3, long a4, long a5) {
@@ -138,6 +251,139 @@ long kern_handle_geos_sbi(long fid, long a1, long a2, long a3, long a4, long a5)
         return current_id;
     case 2: /* GEOS_SBI_GET_FOCUS -- returns 1 if caller has input focus */
         return (current_id == focused_id) ? 1 : 0;
+
+    /* Phase 235: Shared Memory IPC */
+    case GEO_SHM_ALLOC: {
+        /* Allocate a shared memory slot.
+         * a1 = requested size in bytes (rounded up to slot size).
+         * Returns slot ID (>= 0) on success, -1 if no free slots. */
+        (void)a2;
+        int i;
+        for (i = 0; i < SHM_MAX_SLOTS; i++) {
+            if (!shm_slots[i].allocated) {
+                shm_slots[i].allocated = 1;
+                shm_slots[i].owner = current_id;
+                shm_slots[i].base_addr = SHM_POOL_BASE + (uint32_t)(i * SHM_SLOT_SIZE);
+                /* Capacity = (slot_size - header_size) in u32 words */
+                shm_slots[i].capacity = (SHM_SLOT_SIZE / 4) - SHM_HDR_SIZE;
+                /* Zero-initialize the region */
+                volatile uint32_t *p = (volatile uint32_t *)shm_slots[i].base_addr;
+                for (uint32_t j = 0; j < SHM_SLOT_SIZE / 4; j++) {
+                    p[j] = 0;
+                }
+                /* Set up ring buffer header */
+                p[SHM_HDR_WRITE_POS] = 0;
+                p[SHM_HDR_READ_POS] = 0;
+                p[SHM_HDR_CAPACITY] = shm_slots[i].capacity;
+                p[SHM_HDR_FLAGS] = 0;
+                return i;
+            }
+        }
+        return -1; /* no free slots */
+    }
+    case GEO_SHM_MAP: {
+        /* Map (get base address of) a shared memory slot by ID.
+         * a1 = slot ID returned by GEO_SHM_ALLOC.
+         * Returns physical base address on success, -1 if invalid ID. */
+        int sid = (int)a1;
+        if (sid < 0 || sid >= SHM_MAX_SLOTS || !shm_slots[sid].allocated) {
+            return -1;
+        }
+        return (long)shm_slots[sid].base_addr;
+    }
+    case GEO_SHM_RELEASE: {
+        /* Release a shared memory slot.
+         * a1 = slot ID. Any program can release any slot.
+         * Returns 0 on success, -1 if invalid ID. */
+        int sid = (int)a1;
+        if (sid < 0 || sid >= SHM_MAX_SLOTS || !shm_slots[sid].allocated) {
+            return -1;
+        }
+        shm_slots[sid].allocated = 0;
+        shm_slots[sid].owner = 0;
+        return 0;
+    }
+
+    /* Phase 240: Timer and Sleep Syscalls */
+    case GEO_UPTIME: {
+        /* Return elapsed ticks since kernel boot.
+         * a1 (hi) and a2 (lo) receive the 64-bit mtime delta.
+         * Returns 0 on success. */
+        uint32_t now_lo = *(volatile uint32_t *)(GEOS_CLINT_MTIME);
+        uint32_t now_hi = *(volatile uint32_t *)(GEOS_CLINT_MTIME + 4);
+        /* Sub boot mtime (handles borrow from hi word) */
+        uint32_t elapsed_lo = now_lo - boot_mtime_lo;
+        uint32_t elapsed_hi = now_hi - boot_mtime_hi;
+        if (now_lo < boot_mtime_lo) elapsed_hi--;  /* borrow */
+        /* Write result to caller's memory via a1 (ptr to uint64_t) */
+        if (a1 != 0) {
+            volatile uint32_t *p = (volatile uint32_t *)(uintptr_t)a1;
+            p[0] = elapsed_lo;
+            p[1] = elapsed_hi;
+        }
+        return 0;
+    }
+    case GEO_ALARM_SET: {
+        /* Register a one-shot alarm.
+         * a1 = delay_ms (milliseconds from now).
+         * a2 = callback function pointer.
+         * Returns alarm_id (>= 0) on success, -1 if no free slots.
+         *
+         * When the alarm fires, the kernel modifies the guest's saved
+         * context: sets a0 = alarm_id and redirects PC to callback.
+         * The callback should end with a return to resume normal flow.
+         */
+        int i;
+        for (i = 0; i < GEO_MAX_ALARMS; i++) {
+            if (!alarms[i].active) {
+                uint64_t now = geos_mtime();
+                uint64_t expire = now + (uint64_t)a1 * GEO_TICKS_PER_MS;
+                alarms[i].active    = 1;
+                alarms[i].expire_lo = (uint32_t)(expire & 0xFFFFFFFF);
+                alarms[i].expire_hi = (uint32_t)(expire >> 32);
+                alarms[i].callback  = (uint32_t)a2;
+                alarms[i].owner     = current_id;
+                return i;
+            }
+        }
+        return -1;  /* no free alarm slots */
+    }
+    case GEO_ALARM_CANCEL: {
+        /* Cancel a previously registered alarm.
+         * a1 = alarm_id (returned by GEO_ALARM_SET).
+         * Returns 0 on success, -1 if invalid ID or not owned by caller. */
+        int aid = (int)a1;
+        if (aid < 0 || aid >= GEO_MAX_ALARMS) return -1;
+        if (!alarms[aid].active) return -1;
+        if (alarms[aid].owner != current_id) return -1;
+        alarms[aid].active = 0;
+        return 0;
+    }
+    case GEO_MSLEEP: {
+        /* Yield and sleep for a1 milliseconds.
+         * Implementation: register a self-alarm that re-schedules the
+         * caller, then yield. The alarm fires after the delay and
+         * resumes the caller by restoring its context.
+         *
+         * Returns 0 on success, -1 if no alarm slots available. */
+        if (a1 == 0) return 0;  /* msleep(0) is a no-op */
+        /* Find a free alarm slot */
+        int i;
+        for (i = 0; i < GEO_MAX_ALARMS; i++) {
+            if (!alarms[i].active) {
+                uint64_t now = geos_mtime();
+                uint64_t expire = now + (uint64_t)a1 * GEO_TICKS_PER_MS;
+                alarms[i].active    = 1;
+                alarms[i].expire_lo = (uint32_t)(expire & 0xFFFFFFFF);
+                alarms[i].expire_hi = (uint32_t)(expire >> 32);
+                alarms[i].callback  = 0;  /* no callback -- just resume */
+                alarms[i].owner     = current_id;
+                return 0;  /* timer tick will re-enable this context */
+            }
+        }
+        return -1;  /* no free alarm slots */
+    }
+
     default:
         return -1;
     }
@@ -202,6 +448,10 @@ static void init_context(uint32_t *ctx, uint32_t entry, uint32_t sp) {
  */
 void c_start(void) {
     geos_puts("[geos] kernel boot (multi-program)\n");
+
+    /* 0. Record boot timestamp for geos_uptime */
+    boot_mtime_lo = *(volatile uint32_t *)(GEOS_CLINT_MTIME);
+    boot_mtime_hi = *(volatile uint32_t *)(GEOS_CLINT_MTIME + 4);
 
     /* 1. Copy guest images to their slot addresses */
     geos_puts("[geos] loading guest A (painter)...\n");

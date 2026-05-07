@@ -70,6 +70,14 @@ handle_timer:
     sw      a0, 0(t0)
     sw      a1, 4(t0)
 
+    /* Fire expired alarms for the CURRENT program (before context switch).
+     * kern_fire_alarms() modifies tp (current context) in-place if
+     * an alarm has expired: sets a0 = alarm_id, redirects PC to callback.
+     * tp still points to the preempted program's saved context. */
+    mv      s11, tp          /* save tp across C call */
+    jal     ra, kern_fire_alarms
+    mv      tp, s11
+
     /* Toggle current_id */
     la      t0, current_id
     lw      t1, 0(t0)

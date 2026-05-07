@@ -230,6 +230,67 @@ static inline void geos_wait_ms(uint32_t ms) {
     geos_wait_ticks((uint64_t)ms * GEOS_TICKS_PER_MS);
 }
 
+/* ---- Phase 240: Timer and Sleep Syscalls ---- */
+
+/* GEOS SBI function IDs for timer (must match geos_kern.c) */
+#define GEO_UPTIME        9
+#define GEO_ALARM_SET     10
+#define GEO_ALARM_CANCEL  11
+#define GEO_MSLEEP        12
+
+/*
+ * Get elapsed ticks since kernel boot.
+ * `out` points to a uint64_t that receives the 64-bit tick count.
+ * Returns 0 on success, -1 on error.
+ *
+ * Tick rate: ~52 MIPS (each RISC-V instruction = 1 tick).
+ * Divide by 52000 for approximate milliseconds.
+ */
+static inline long geos_uptime(uint64_t *out) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a0 __asm__("a0") = GEO_UPTIME;
+    register long a1 __asm__("a1") = (long)out;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1) : "memory", "a2");
+    return a0;
+}
+
+/*
+ * Register a one-shot alarm that fires after `delay_ms` milliseconds.
+ * `callback` is the function to call when the alarm fires.
+ * The callback receives alarm_id as its first argument (a0).
+ *
+ * Returns alarm_id (>= 0) on success, -1 if no free alarm slots.
+ * Maximum 4 concurrent alarms per program.
+ */
+static inline long geos_alarm_set(long delay_ms, void (*callback)(long)) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a0 __asm__("a0") = GEO_ALARM_SET;
+    register long a1 __asm__("a1") = delay_ms;
+    register long a2 __asm__("a2") = (long)callback;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1), "r"(a2) : "memory");
+    return a0;
+}
+
+/*
+ * Cancel a previously registered alarm.
+ * `alarm_id` is the value returned by geos_alarm_set().
+ * Returns 0 on success, -1 if invalid or not owned by caller.
+ */
+static inline long geos_alarm_cancel(long alarm_id) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a0 __asm__("a0") = GEO_ALARM_CANCEL;
+    register long a1 __asm__("a1") = alarm_id;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1) : "memory");
+    return a0;
+}
+
+/*
+ * Sleep for `ms` milliseconds (cooperative).
+ * Yields the CPU and resumes after the delay.
+ * Returns 0 on success, -1 if no alarm slots available.
+ */
+long geos_msleep(long ms);
+
 /* ---- VFS Pixel Surface ---- */
 
 /* MMIO base for the VFS Pixel Surface (256x256 RGBA, same format as framebuffer). */
@@ -330,5 +391,107 @@ int geos_draw_string(int x, int y, const char *str, uint32_t fg, uint32_t bg);
 /* Measure the pixel width of a string without drawing.
    Returns the width in pixels (len * 8). */
 int geos_measure_string(const char *str);
+
+/* ---- Phase 235: Shared Memory IPC ---- */
+
+/* Ring buffer header layout at the start of each shared memory region.
+ * All fields are u32 at word offsets from the region base. */
+#define GEOS_SHM_HDR_WRITE_POS  0
+#define GEOS_SHM_HDR_READ_POS   1
+#define GEOS_SHM_HDR_CAPACITY   2
+#define GEOS_SHM_HDR_FLAGS      3
+#define GEOS_SHM_HDR_SIZE       4   /* 16 bytes = 4 words */
+#define GEOS_SHM_FLAG_DONE      0x01u
+
+/*
+ * Allocate a shared memory slot.
+ * SBI ecall: a7=SBI_EXT_GEOMETRY, a0=GEO_SHM_ALLOC (6), a1=size.
+ * Returns slot ID (>= 0) on success, -1 if no free slots.
+ */
+static inline long geos_shm_alloc(long size_bytes) {
+    register long a7 __asm__("a7") = 0x47454F00u;
+    register long a0 __asm__("a0") = 6;              /* GEO_SHM_ALLOC */
+    register long a1 __asm__("a1") = size_bytes;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1) : "memory");
+    return a0;
+}
+
+/*
+ * Map (get base address of) a shared memory slot by ID.
+ * SBI ecall: a7=SBI_EXT_GEOMETRY, a0=GEO_SHM_MAP (7), a1=slot_id.
+ * Returns physical base address on success, -1 if invalid ID.
+ */
+static inline long geos_shm_map(long slot_id) {
+    register long a7 __asm__("a7") = 0x47454F00u;
+    register long a0 __asm__("a0") = 7;              /* GEO_SHM_MAP */
+    register long a1 __asm__("a1") = slot_id;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1) : "memory");
+    return a0;
+}
+
+/*
+ * Release a shared memory slot.
+ * SBI ecall: a7=SBI_EXT_GEOMETRY, a0=GEO_SHM_RELEASE (8), a1=slot_id.
+ * Returns 0 on success, -1 if invalid ID.
+ */
+static inline long geos_shm_release(long slot_id) {
+    register long a7 __asm__("a7") = 0x47454F00u;
+    register long a0 __asm__("a0") = 8;              /* GEO_SHM_RELEASE */
+    register long a1 __asm__("a1") = slot_id;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1) : "memory");
+    return a0;
+}
+
+/*
+ * Write a u32 word into a shared memory ring buffer.
+ * `base` = physical base address of the shared memory region (from geos_shm_map).
+ * `val`  = the value to write.
+ * Returns 0 on success, -1 if the ring buffer is full.
+ *
+ * The producer advances write_pos; the consumer reads read_pos.
+ * If write_pos catches up to read_pos (mod capacity), the buffer is full.
+ */
+static inline int geos_shm_write(volatile uint32_t *base, uint32_t val) {
+    uint32_t wp = base[GEOS_SHM_HDR_WRITE_POS];
+    uint32_t rp = base[GEOS_SHM_HDR_READ_POS];
+    uint32_t cap = base[GEOS_SHM_HDR_CAPACITY];
+    uint32_t next = (wp + 1) % cap;
+    if (next == rp) return -1; /* full */
+    base[GEOS_SHM_HDR_SIZE + wp] = val;
+    base[GEOS_SHM_HDR_WRITE_POS] = next;
+    return 0;
+}
+
+/*
+ * Read a u32 word from a shared memory ring buffer.
+ * `base` = physical base address of the shared memory region.
+ * `out`  = pointer to receive the value.
+ * Returns 0 on success, -1 if the ring buffer is empty.
+ */
+static inline int geos_shm_read(volatile uint32_t *base, uint32_t *out) {
+    uint32_t wp = base[GEOS_SHM_HDR_WRITE_POS];
+    uint32_t rp = base[GEOS_SHM_HDR_READ_POS];
+    if (wp == rp) return -1; /* empty */
+    *out = base[GEOS_SHM_HDR_SIZE + rp];
+    base[GEOS_SHM_HDR_READ_POS] = (rp + 1) % base[GEOS_SHM_HDR_CAPACITY];
+    return 0;
+}
+
+/*
+ * Signal that the producer is done writing.
+ * Sets the DONE flag in the shared memory header.
+ * The consumer can check this flag to know when to stop reading.
+ */
+static inline void geos_shm_signal_done(volatile uint32_t *base) {
+    base[GEOS_SHM_HDR_FLAGS] |= GEOS_SHM_FLAG_DONE;
+}
+
+/*
+ * Check if the producer has signaled done.
+ * Returns 1 if done, 0 otherwise.
+ */
+static inline int geos_shm_is_done(volatile uint32_t *base) {
+    return (base[GEOS_SHM_HDR_FLAGS] & GEOS_SHM_FLAG_DONE) != 0;
+}
 
 #endif /* LIBGEOS_H */
