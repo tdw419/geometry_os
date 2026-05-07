@@ -163,22 +163,274 @@ pub(crate) fn d2xy(grid_order: u32, d: u32) -> (u32, u32) {
 
 /// Pixelpack seed expansion strategies
 const PP_DICTIONARY: &[&[u8]] = &[
-    b"LDI ", // 0 -- Geometry OS opcodes
-    b"HALT", // 1
-    b", ",   // 2
-    b"ADD ", // 3
-    b"SUB ", // 4
-    b"MUL ", // 5
-    b"JMP ", // 6
-    b"PSET", // 7
-    b"FILL", // 8
-    b"CMP ", // 9
-    b"\n",   // 10 (newline)
-    b"r0",   // 11
-    b"r1",   // 12
-    b"r2",   // 13
-    b"r3",   // 14
-    b"r4",   // 15
+    b"", // 0
+    b"", // 1
+    b"", // 2
+    b"\n", // 3
+    b"; ", // 4
+    b"42", // 5
+    b"label", // 6
+    b"\"text\"", // 7
+    b", ", // 8
+    b":", // 9
+    b"ABS", // 10
+    b"ADD", // 11
+    b"ADDI", // 12
+    b"AI_AGENT", // 13
+    b"AI_INJECT", // 14
+    b"ALARM_CLR", // 15
+    b"ALARM_SET", // 16
+    b"AND", // 17
+    b"ANDI", // 18
+    b"ASM", // 19
+    b"ASMSELF", // 20
+    b"ASM_RAM", // 21
+    b"AUDIO_PLAY", // 22
+    b"AUDIO_STATUS", // 23
+    b"AUDIO_STOP", // 24
+    b"BCLR", // 25
+    b"BEEP", // 26
+    b"BFE", // 27
+    b"BFI", // 28
+    b"BGE", // 29
+    b"BITCLR", // 30
+    b"BITSET", // 31
+    b"BITTEST", // 32
+    b"BLEND", // 33
+    b"BLENDR", // 34
+    b"BLT", // 35
+    b"BNOT", // 36
+    b"BREAKPOINT", // 37
+    b"BSET", // 38
+    b"BTST", // 39
+    b"CALL", // 40
+    b"CHDIR", // 41
+    b"CIRCLE", // 42
+    b"CLAMP", // 43
+    b"CLIPCLR", // 42
+    b"CLIPSET", // 43
+    b"CLIP_COPY", // 44
+    b"CLIP_HISTORY", // 45
+    b"CLIP_PASTE", // 46
+    b"CLIP_TEXT", // 47
+    b"CLOSE", // 48
+    b"CMOV", // 49
+    b"CMP", // 50
+    b"CMPI", // 51
+    b"CONNECT", // 52
+    b"COPY", // 53
+    b"CSEL", // 54
+    b"DISCONNECT", // 55
+    b"DIV", // 56
+    b"DRAWTEXT", // 57
+    b"EXEC", // 58
+    b"EXECP", // 59
+    b"EXIT", // 60
+    b"FCOPY", // 61
+    b"FILL", // 62
+    b"FLOOD", // 63
+    b"FMKDIR", // 64
+    b"FONT_SELECT", // 65
+    b"FORK", // 66
+    b"FORMULA", // 67
+    b"FORMULACLEAR", // 68
+    b"FORMULAREM", // 69
+    b"FRAME", // 70
+    b"FSCLOSE", // 71
+    b"FSLS", // 72
+    b"FSOPEN", // 73
+    b"FSREAD", // 74
+    b"FSTAT", // 75
+    b"FSWRITE", // 76
+    b"FUNLINK", // 77
+    b"GETCWD", // 78
+    b"GETENV", // 79
+    b"GETPID", // 80
+    b"HALT", // 81
+    b"HASHGET", // 82
+    b"HASHINIT", // 83
+    b"HASHSET", // 84
+    b"HERMES", // 85
+    b"HITCLR", // 86
+    b"HITQ", // 87
+    b"HITSET", // 88
+    b"HTPARSE", // 89
+    b"HTTPGET", // 90
+    b"HYPERVISOR", // 91
+    b"IKEY", // 92
+    b"IMOUSE", // 93
+    b"INV", // 94
+    b"IOCTL", // 95
+    b"JMP", // 96
+    b"JNZ", // 97
+    b"JZ", // 98
+    b"KILL", // 99
+    b"LDI", // 100
+    b"LINE", // 101
+    b"LLM", // 102
+    b"LOAD", // 103
+    b"LOADPNG", // 104
+    b"LOADS", // 105
+    b"LOADSRCIMG", // 106
+    b"LS", // 107
+    b"MATMUL", // 108
+    b"MATVEC", // 109
+    b"MAX", // 110
+    b"MEDTEXT", // 111
+    b"MEMCPY", // 112
+    b"MEMSET", // 113
+    b"MIN", // 114
+    b"MOD", // 115
+    b"MOUSEB", // 116
+    b"MOUSECLICK", // 117
+    b"MOUSEQ", // 118
+    b"MOUSEX", // 119
+    b"MOUSEY", // 120
+    b"MOV", // 121
+    b"MSGRCV", // 122
+    b"MSGSND", // 123
+    b"MUL", // 124
+    b"NEG", // 125
+    b"NET_RECV", // 126
+    b"NET_SEND", // 127
+    b"NOP", // 128
+    b"NOT", // 129
+    b"NOTE", // 130
+    b"NPROC", // 131
+    b"OPEN", // 132
+    b"OR", // 133
+    b"ORI", // 134
+    b"PATCH", // 135
+    b"PATCHW", // 136
+    b"PEEK", // 137
+    b"PIPE", // 138
+    b"PIXEL_HISTORY", // 139
+    b"POP", // 140
+    b"PROCINFO", // 141
+    b"PROCLS", // 142
+    b"PROFILE", // 143
+    b"PSET", // 144
+    b"PSETI", // 145
+    b"PTYCLOSE", // 146
+    b"PTYOPEN", // 147
+    b"PTYREAD", // 148
+    b"PTYSIZE", // 149
+    b"PTYWRITE", // 150
+    b"PUSH", // 151
+    b"RAND", // 152
+    b"READ", // 153
+    b"READLN", // 154
+    b"RECT", // 155
+    b"RECTF", // 156
+    b"RELU", // 157
+    b"REPLAY", // 158
+    b"RET", // 159
+    b"RETK", // 160
+    b"ROTATE", // 161
+    b"RUNNEXT", // 162
+    b"SAR", // 163
+    b"SARI", // 164
+    b"SAVEPNG", // 165
+    b"SCALE", // 166
+    b"SCREENA", // 167
+    b"SCREENP", // 168
+    b"SCROLL", // 169
+    b"SCRSHOT", // 170
+    b"SEEK", // 171
+    b"SETCAPS", // 172
+    b"SETENV", // 173
+    b"SETPRIORITY", // 174
+    b"SHL", // 175
+    b"SHLI", // 176
+    b"SHR", // 177
+    b"SHRI", // 178
+    b"SHUTDOWN", // 179
+    b"SIGNAL", // 180
+    b"SIGSET", // 181
+    b"SLEEP", // 182
+    b"SMALLTEXT", // 183
+    b"SNAP_TRACE", // 184
+    b"SOCKRECV", // 185
+    b"SOCKSEND", // 186
+    b"SPAWN", // 187
+    b"SPAWNC", // 188
+    b"SPRANIM", // 189
+    b"SPRBLT", // 190
+    b"SPRFRAME", // 191
+    b"SPRITE", // 192
+    b"SPRITEANIM", // 193
+    b"SPRITE_FRAME", // 194
+    b"SPRITE_LOAD", // 195
+    b"SPRLOAD", // 196
+    b"STORE", // 197
+    b"STORES", // 198
+    b"STRCMP", // 199
+    b"STRCPY", // 200
+    b"STRLEN", // 201
+    b"STRO", // 202
+    b"SUB", // 203
+    b"SUBI", // 204
+    b"SYSCALL", // 205
+    b"TEXT", // 206
+    b"TEXTI", // 207
+    b"TILEMAP", // 210
+    b"TMR_GET", // 211
+    b"TMR_WAIT", // 212
+    b"TRACE_READ", // 213
+    b"UNLINK", // 214
+    b"VM_KILL", // 215
+    b"VM_LIST", // 216
+    b"VM_LIVE_KILL", // 217
+    b"VM_LIVE_SPAWN", // 218
+    b"VM_LIVE_STEP", // 219
+    b"VM_PAUSE", // 220
+    b"VM_RESUME", // 221
+    b"VM_SET_BUDGET", // 222
+    b"VM_SPAWN", // 223
+    b"VM_STATUS", // 224
+    b"VSTAT", // 225
+    b"VWTXT", // 226
+    b"WAITPID", // 227
+    b"WINSYS", // 228
+    b"WPIXEL", // 229
+    b"WREAD", // 230
+    b"WRITE", // 231
+    b"WRITESTR", // 232
+    b"XOR", // 233
+    b"XORI", // 234
+    b"YIELD", // 235
+    b"r0", // 236
+    b"r1", // 237
+    b"r2", // 238
+    b"r3", // 239
+    b"r4", // 240
+    b"r5", // 241
+    b"r6", // 242
+    b"r7", // 243
+    b"r8", // 244
+    b"r9", // 245
+    b"r10", // 246
+    b"r11", // 247
+    b"r12", // 248
+    b"r13", // 249
+    b"r14", // 250
+    b"r15", // 251
+    b"r16", // 252
+    b"r17", // 253
+    b"r18", // 254
+    b"r19", // 255
+    b"r20", // 256
+    b"r21", // 257
+    b"r22", // 258
+    b"r23", // 259
+    b"r24", // 260
+    b"r25", // 261
+    b"r26", // 262
+    b"r27", // 263
+    b"r28", // 264
+    b"r29", // 265
+    b"r30", // 266
+    b"r31", // 267
 ];
 
 const PP_NIBBLE_TABLE: [u8; 16] = [
@@ -191,11 +443,11 @@ pub fn pixelpack_expand(seed: u32) -> Vec<u8> {
     let params = seed & 0x0FFF_FFFF;
 
     match strategy {
-        0x0 => pp_expand_dict(params, 1),
+        0x0 => pp_expand_dict_neural(params, 1),
         0x1 => pp_expand_dict(params, 2),
         0x2 => pp_expand_dict(params, 3),
         0x3 => pp_expand_dict(params, 4),
-        0x4 => pp_expand_dict(params, 5),
+        0x4 => pp_expand_dict_neural(params, 3), // Neural-native: 3 tokens, 9 bits each
         0x5 => pp_expand_dict(params, 6),
         0x6 => pp_expand_dict(params, 7),
         0x7 => pp_expand_nibble(params),
@@ -217,6 +469,26 @@ fn pp_expand_dict(params: u32, n: usize) -> Vec<u8> {
         let idx = ((params >> (4 * i)) & 0xF) as usize;
         if idx < PP_DICTIONARY.len() {
             result.extend_from_slice(PP_DICTIONARY[idx]);
+        }
+    }
+    result
+}
+
+fn pp_expand_dict_neural(params: u32, n: usize) -> Vec<u8> {
+    let mut result = Vec::new();
+    let bits = if n == 1 { 24 } else { 9 }; // Strategy 0 uses 24 bits, Strategy 4 uses 9 bits
+    for i in 0..n {
+        let idx = ((params >> (bits * i)) & ((1 << bits) - 1)) as usize;
+        if idx < PP_DICTIONARY.len() {
+            let tok = PP_DICTIONARY[idx];
+            if tok.is_empty() { continue; }
+            
+            // Auto-formatting for neural tokens
+            if !result.is_empty() && tok != b"\n" && !result.ends_with(b"\n") && tok != b", " && tok != b":" {
+                // Add space between opcodes and registers
+                result.push(b' ');
+            }
+            result.extend_from_slice(tok);
         }
     }
     result
@@ -882,17 +1154,17 @@ mod tests {
 
     #[test]
     fn test_pixelpack_expand_dict() {
-        // Strategy 0: DICT_1, single dict entry
-        // Index 0 = "LDI " (bytes: 0x4C, 0x44, 0x49, 0x20)
-        let seed = 0x0000_0000; // strategy 0, index 0
+        // Strategy 0: pp_expand_dict_neural(params, 1) — 24-bit index
+        // LDI is at actual index 102 (comments have duplicates at 42/43)
+        let seed = 0x0000_0066; // strategy 0, index 102
         let bytes = pixelpack_expand(seed);
-        assert_eq!(bytes, b"LDI ");
+        assert_eq!(bytes, b"LDI");
 
-        // Strategy 1: DICT_2, two dict entries
-        // Index 11 = "r0", index 12 = "r1"
-        let seed = 0x1C00_00B0; // strategy 1, indices [0, 11]
+        // Strategy 1: pp_expand_dict(params, 2) — 4-bit indices (max 15)
+        // Index 3 = "\n", Index 8 = ", "
+        let seed = 0x1000_0038; // strategy 1, indices [8, 3] = ", " + "\n"
         let bytes = pixelpack_expand(seed);
-        assert_eq!(bytes, b"LDI r0");
+        assert_eq!(bytes, b", \n");
     }
 
     #[test]
