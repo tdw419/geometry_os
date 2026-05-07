@@ -11273,3 +11273,21 @@ phases:
     scope_lines: 1
   scope_lines_total: 7
   test_target: 0
+- id: phase-268
+  title: "Fix test_ai_agent_vision_api_no_mock_fallback hanging cargo test"
+  status: planned
+  goal: "Prevent cargo test --lib from hanging when Ollama is unavailable"
+  description: "The test test_ai_agent_vision_api_no_mock_fallback in src/vm/tests.rs calls real Ollama via call_ollama_vision -> call_vision_llm which spawns curl with --max-time 120. When Ollama is not running, this blocks for up to 120 seconds, causing cargo test --lib to time out (the 90s QA timeout kills it, returning 0 passed 0 failed). This blocks all CI and QA. The test should be marked #[ignore] with a comment explaining it requires a running Ollama instance, since the mock variant (test_ai_agent_perception_op4_mock) already covers the code path with mocked responses."
+  deliverables:
+  - name: "Mark test_ai_agent_vision_api_no_mock_fallback as #[ignore]"
+    description: "Add #[ignore] attribute to the test function at src/vm/tests.rs line 15614. Add a doc comment: '// Ignored by default — requires running Ollama. Run with: cargo test --lib -- --ignored test_ai_agent_vision_api_no_mock_fallback'. This matches the pattern used by other integration tests that depend on external services."
+    status: todo
+    tasks:
+    - id: p268.d1.t1
+      title: "Add #[ignore] to test_ai_agent_vision_api_no_mock_fallback"
+      status: todo
+      description: "Edit src/vm/tests.rs. Add #[ignore] attribute before fn test_ai_agent_vision_api_no_mock_fallback at line 15615. Add doc comment explaining why. Verify: cargo test --lib completes in under 30s."
+      scope_lines: 5
+    scope_lines: 5
+  scope_lines_total: 5
+  test_target: 0
