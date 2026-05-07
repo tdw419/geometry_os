@@ -11202,3 +11202,36 @@ phases:
     scope_lines: 2
   scope_lines_total: 5
   test_target: 0
+- id: phase-266
+  title: "Fix scrollback buffer stride mismatch (SCROLLBACK_COLS=32 vs CANVAS_COLS=128)"
+  status: planned
+  goal: "Fix scrollback capturing wrong data due to stride mismatch between scrollback ring buffer and canvas buffer"
+  description: "The scrollback ring buffer in src/scrollback.rs uses SCROLLBACK_COLS=32 as both the line width and the row stride when reading from canvas_buffer. However, the actual canvas buffer stride is CANVAS_COLS=128 (defined in src/render.rs). This causes two bugs: (1) push_canvas_rows() reads from wrong offsets (row 1 reads bytes 32-63 instead of 128-159), capturing misaligned/garbage data; (2) even if stride were correct, only 32 of 128 pixels per row would be stored, truncating terminal output to ~5 characters wide. The rendering path in main.rs line 4647 also copies only 32 elements into a 128-wide canvas row, so even correct storage would display truncated. Found during dogfood QA code review."
+  deliverables:
+  - name: "Fix SCROLLBACK_COLS to match CANVAS_COLS"
+    description: "In src/scrollback.rs, change SCROLLBACK_COLS from 32 to 128 to match render::CANVAS_COLS. Update push_canvas_rows to use the correct stride for row offset calculation (row * CANVAS_COLS, not row * SCROLLBACK_COLS). The ring buffer memory usage increases from ~128KB to ~512KB (128 * 4 * 1024 lines) which is acceptable."
+    status: todo
+    tasks:
+    - id: p266.d1.t1
+      title: "Change SCROLLBACK_COLS to 128 in scrollback.rs"
+      status: todo
+      description: "Update const SCROLLBACK_COLS from 32 to 128. This fixes both the stride mismatch and the width truncation. The existing tests use SCROLLBACK_COLS so they will adapt automatically. Update the comment about canvas dimensions matching."
+      scope_lines: 5
+    - id: p266.d1.t2
+      title: "Fix push_canvas_rows stride calculation"
+      status: todo
+      description: "In push_canvas_rows, change the row offset from 'row * SCROLLBACK_COLS' to 'row * CANVAS_COLS' where CANVAS_COLS is passed as a parameter or imported from render. Currently the function uses SCROLLBACK_COLS for both stride and width which is wrong since the canvas has a different stride."
+      scope_lines: 8
+    scope_lines: 13
+  - name: "Fix scrollback rendering to use full width"
+    description: "In src/main.rs around line 4647, the scrollback rendering copies scrollback lines into sb_canvas with 'sb_canvas[offset..offset + CANVAS_COLS].copy_from_slice(line.as_slice())'. After fixing SCROLLBACK_COLS to 128, this will work correctly (128 elements copied into 128-wide row). Verify no other rendering code assumes 32-wide scrollback lines."
+    status: todo
+    tasks:
+    - id: p266.d2.t1
+      title: "Verify scrollback rendering uses correct width"
+      status: todo
+      description: "After SCROLLBACK_COLS fix, verify the rendering path at line 4647 works correctly. The copy_from_slice should now match widths. Test by running terminal commands, entering scrollback with PageUp, and verifying the displayed content matches what was on screen."
+      scope_lines: 3
+    scope_lines: 3
+  scope_lines_total: 16
+  test_target: 0

@@ -1,4 +1,4 @@
-title: "Geometry OS \u2014 Post-SPEC Pixel-Native Roadmap"
+title: Geometry OS — Post-SPEC Pixel-Native Roadmap
 version: 0.2.0
 description: 'Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS.
   Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction,
@@ -117,7 +117,7 @@ phases:
 
     '
 - id: phase-B
-  title: "GUI Bridge \u2014 Live Pixel Display"
+  title: GUI Bridge — Live Pixel Display
   status: complete
   goal: Watch RISC-V programs paint in real-time on the Geometry OS display
   description: 'Bridge the MMIO framebuffer to the actual Geometry OS display so programs
@@ -315,7 +315,7 @@ phases:
   - Pixel VM may use a different pixel format (RGBA vs ARGB vs indexed)
   - 512x512 display vs 256x256 guest resolution requires scaling decisions
 - id: phase-D
-  title: "Layer 2 \u2014 libgeos and Primitives"
+  title: Layer 2 — libgeos and Primitives
   status: complete
   goal: Extract shared C primitives into libgeos.c, add animation and input primitives
   description: 'When a third tool (beyond sh and life) needs shared primitives (puts,
@@ -534,10 +534,12 @@ phases:
       files:
       - tests/encode_png_audit.md
   - name: Test harness pattern
-    description: "Document the pattern so any future guest program can plug in: boot\
-      \ \u2192 inject \u2192 dump \u2192 assert. Reusable shell/Python scaffolding.\
-      \ geos_test_lib.sh extracted: boot, run, inject, dump, kill, assert_pixel, assert_pixel_count.\
-      \ paint_regression_test.sh is the first caller.\n"
+    description: 'Document the pattern so any future guest program can plug in: boot
+      → inject → dump → assert. Reusable shell/Python scaffolding. geos_test_lib.sh
+      extracted: boot, run, inject, dump, kill, assert_pixel, assert_pixel_count.
+      paint_regression_test.sh is the first caller.
+
+      '
     status: done
     acceptance_criteria:
     - description: Test harness documented and reusable
@@ -555,13 +557,15 @@ phases:
       files:
       - tests/geos_test_lib.sh
 - id: phase-G
-  title: "In-session Canvas Checkpoint \u2014 Save/Load"
+  title: In-session Canvas Checkpoint — Save/Load
   status: complete
   goal: Checkpoint and restore pixel state via the VFS surface
-  description: "Persistence means checkpointing pixels, not serializing structs. Add\
-    \ geos_save_canvas and geos_load_canvas to libgeos that write/read the framebuffer\
-    \ as raw pixel data to the VFS pixel surface at 0x7000_0000. Round-trip verified:\
-    \ save \u2192 clear \u2192 load \u2192 pixel-perfect match.\n"
+  description: 'Persistence means checkpointing pixels, not serializing structs. Add
+    geos_save_canvas and geos_load_canvas to libgeos that write/read the framebuffer
+    as raw pixel data to the VFS pixel surface at 0x7000_0000. Round-trip verified:
+    save → clear → load → pixel-perfect match.
+
+    '
   dependencies:
   - source: phase-F
     target: phase-G
@@ -581,7 +585,7 @@ phases:
       validation: 'Round-trip test: save, clear fb, load, assert all pixels match'
       met: true
     - description: Round-trip preserves exact pixel values
-      validation: "62,464 canvas pixels match (tolerance \xB13)"
+      validation: 62,464 canvas pixels match (tolerance ±3)
       met: true
     tasks:
     - id: g.1.1
@@ -630,21 +634,23 @@ phases:
     - id: g.2.1
       title: Write persistence_roundtrip_test.sh
       status: done
-      description: "Uses geos_test_lib.sh. Draws colored fill trails, saves, clears,\
-        \ loads, compares 244 rows * 256 cols = 62,464 pixels with \xB13 tolerance.\n"
+      description: 'Uses geos_test_lib.sh. Draws colored fill trails, saves, clears,
+        loads, compares 244 rows * 256 cols = 62,464 pixels with ±3 tolerance.
+
+        '
       files:
       - tests/persistence_roundtrip_test.sh
 - id: phase-H
-  title: "Cross-session Persistence \u2014 VfsSurface Raw-Region Flush"
+  title: Cross-session Persistence — VfsSurface Raw-Region Flush
   status: complete
   goal: Canvas state survives VM restart
   description: "Phase G proved in-session checkpoint/restore. Phase H makes it survive\
     \ across VM sessions: save today, kill GeOS, restart tomorrow, load. Two implementation\
-    \ paths:\n  A) Raw-region flush in VfsSurface::Drop \u2014 detect CANV marker\
-    \ in row 0,\n     write the raw pixel region to a fixed host file (e.g., .geometry_os/canvas.raw).\n\
+    \ paths:\n  A) Raw-region flush in VfsSurface::Drop — detect CANV marker in row\
+    \ 0,\n     write the raw pixel region to a fixed host file (e.g., .geometry_os/canvas.raw).\n\
     \     On boot, VfsSurface::new() checks for the file and loads it.\n  B) Virtio-blk\
-    \ integration \u2014 route geos_save_canvas through the virtio-blk\n     device\
-    \ at 0x1000_1000 instead of the VFS surface. Requires implementing\n     virtqueue\
+    \ integration — route geos_save_canvas through the virtio-blk\n     device at\
+    \ 0x1000_1000 instead of the VFS surface. Requires implementing\n     virtqueue\
     \ processing in the guest (or a simplified direct-access mode\n     in the host\
     \ virtio-blk emulation).\nPath A is simpler and keeps the \"pixels copying pixels\"\
     \ model. Path B is more general but adds virtqueue complexity to bare-metal guest\
@@ -695,7 +701,7 @@ phases:
       files:
       - src/riscv/vfs_surface.rs
 - id: phase-I
-  title: "Layer 2 Foundation \u2014 Cooperative Multi-Program Kernel"
+  title: Layer 2 Foundation — Cooperative Multi-Program Kernel
   status: complete
   goal: Two RISC-V guest programs execute concurrently in the same VM, mediated by
     a tiny supervisor that owns scheduling and pixel-region arbitration
@@ -2191,12 +2197,12 @@ phases:
   title: RISC-V Guest -- Hex Editor
   status: completed
   goal: Add a bare-metal hex editor C program for inspecting and modifying guest memory
-  description: "sh.c has peek/poke for single words and hexdump for read-only display,\
-    \ but there is no interactive hex editor that lets you navigate, inspect, and\
-    \ modify memory byte-by-byte. A hex editor is the most essential bare-metal debugging\
-    \ tool \u2014 it lets you inspect framebuffer pixels, VFS data, stack contents,\
-    \ and ELF headers without rebuilding the program. This proves the Layer 3 tooling\
-    \ thesis: useful programs on bare-metal SBI, no kernel needed."
+  description: 'sh.c has peek/poke for single words and hexdump for read-only display,
+    but there is no interactive hex editor that lets you navigate, inspect, and modify
+    memory byte-by-byte. A hex editor is the most essential bare-metal debugging tool
+    — it lets you inspect framebuffer pixels, VFS data, stack contents, and ELF headers
+    without rebuilding the program. This proves the Layer 3 tooling thesis: useful
+    programs on bare-metal SBI, no kernel needed.'
   deliverables:
   - name: Interactive hex editor for RISC-V guest
     status: done
@@ -2233,12 +2239,12 @@ phases:
   title: RISC-V Guest -- Filesystem Commands in Shell
   status: complete
   goal: 'Extend sh.c with VFS file operations: ls, cat, touch, rm, and stat'
-  description: "The mini-shell (sh.c) can peek/poke memory and run commands, but has\
-    \ no filesystem awareness. The VFS Pixel Surface at 0x7000_0000 stores files as\
-    \ pixel rows, but sh.c cannot list, read, create, or delete them. Adding filesystem\
-    \ commands to the shell makes the guest self-sufficient \u2014 users can manage\
-    \ files without the host. The VFS directory index is in row 0 (filename pixels),\
-    \ file content in subsequent rows."
+  description: The mini-shell (sh.c) can peek/poke memory and run commands, but has
+    no filesystem awareness. The VFS Pixel Surface at 0x7000_0000 stores files as
+    pixel rows, but sh.c cannot list, read, create, or delete them. Adding filesystem
+    commands to the shell makes the guest self-sufficient — users can manage files
+    without the host. The VFS directory index is in row 0 (filename pixels), file
+    content in subsequent rows.
   deliverables:
   - name: VFS filesystem commands in sh.c
     status: done
@@ -2272,12 +2278,11 @@ phases:
   title: GeOS VM -- Mouse Support Opcodes
   status: complete
   goal: Add mouse position and button state opcodes for GUI programs
-  description: "Current input is keyboard-only via IKEY. GUI programs (window manager,\
-    \ desktop, file browser) need mouse support. Add MOUSEX (read mouse X to register),\
-    \ MOUSEY (read mouse Y), MOUSEB (read button bitmask: bit 0=left, bit 1=right,\
-    \ bit 2=middle), and MOUSECLICK (blocking wait for click, returns x/y/buttons).\
-    \ The host already tracks mouse state via minifb \u2014 just expose it to the\
-    \ VM."
+  description: 'Current input is keyboard-only via IKEY. GUI programs (window manager,
+    desktop, file browser) need mouse support. Add MOUSEX (read mouse X to register),
+    MOUSEY (read mouse Y), MOUSEB (read button bitmask: bit 0=left, bit 1=right, bit
+    2=middle), and MOUSECLICK (blocking wait for click, returns x/y/buttons). The
+    host already tracks mouse state via minifb — just expose it to the VM.'
   deliverables:
   - name: Mouse input opcodes
     status: done
@@ -2389,13 +2394,13 @@ phases:
   title: GeOS VM -- Memory-Mapped Screen Buffer Readback
   status: done
   goal: Let VM programs read the screen buffer via LOAD from 0x10000-0x1FFFF
-  description: "The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen)\
-    \ already supports writes for SETPIXEL-style rendering, but LOAD from this region\
-    \ does not return actual screen pixels \u2014 it reads from vm.ram which is stale.\
-    \ Wire LOAD in this range to read vm.screen[y*256+x] so programs can implement\
-    \ screenshot save, collision detection against rendered output, and pixel pick\
-    \ operations. The existing PEEK opcode (0x4F) reads screen pixels but only one\
-    \ at a time; LOAD+STORE lets programs bulk-copy screen regions."
+  description: The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen)
+    already supports writes for SETPIXEL-style rendering, but LOAD from this region
+    does not return actual screen pixels — it reads from vm.ram which is stale. Wire
+    LOAD in this range to read vm.screen[y*256+x] so programs can implement screenshot
+    save, collision detection against rendered output, and pixel pick operations.
+    The existing PEEK opcode (0x4F) reads screen pixels but only one at a time; LOAD+STORE
+    lets programs bulk-copy screen regions.
   deliverables:
   - name: Screen buffer LOAD readback
     status: done
@@ -2754,13 +2759,13 @@ phases:
   title: GeOS VM -- Debugging Opcode BREAKPOINT
   status: done
   goal: Add a hardware breakpoint opcode that triggers the VM debugger
-  description: "The VM has software breakpoints (set via the bp command in terminal),\
-    \ but programs cannot set their own breakpoints. A BREAKPOINT opcode (0xCA) that\
-    \ halts execution and enters the debugger when hit would let programs implement\
-    \ conditional breakpoints (CMP + JNZ + BREAKPOINT), assert macros, and interactive\
-    \ debugging from within the running program. The debugger already has single-step\
-    \ and register display \u2014 BREAKPOINT just needs to set a flag that the step\
-    \ loop checks."
+  description: The VM has software breakpoints (set via the bp command in terminal),
+    but programs cannot set their own breakpoints. A BREAKPOINT opcode (0xCA) that
+    halts execution and enters the debugger when hit would let programs implement
+    conditional breakpoints (CMP + JNZ + BREAKPOINT), assert macros, and interactive
+    debugging from within the running program. The debugger already has single-step
+    and register display — BREAKPOINT just needs to set a flag that the step loop
+    checks.
   deliverables:
   - name: BREAKPOINT opcode
     status: todo
@@ -3447,7 +3452,7 @@ phases:
   scope_lines_total: 220
 - id: phase-245
   title: Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests
-  status: planned
+  status: in_progress
   goal: Add comprehensive unit tests for the two largest untested VM opcode modules
   description: ops_host_fs.rs (352 lines, 0 tests) handles HOST_READ, HOST_WRITE,
     HOST_LIST, HOST_DELETE opcodes that give VM programs access to the host filesystem.
@@ -3498,6 +3503,8 @@ phases:
       scope_lines: 80
   test_target: 15
   scope_lines_total: 360
+  _claimed_by: worker-0
+  _claimed_at: 1778121825
 - id: phase-246
   title: Test Coverage -- ops_syscall.rs Unit Tests
   status: planned
