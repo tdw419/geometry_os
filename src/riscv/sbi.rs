@@ -71,7 +71,15 @@ const GEO_FN_SPAWN: u32 = 3;
 const GEO_FN_KILL: u32 = 4;
 const GEO_FN_GPU_COMPUTE: u32 = 5;
 
-/// Pending GEO_VFS_READ request: set by handle_ecall, fulfilled by the caller
+// Phase 244: Network extension -- TCP via SBI
+// EID is ASCII "NET\0"
+const SBI_EXT_NET: u32 = 0x4E4554;
+const NET_FN_CONNECT: u32 = 0;
+const NET_FN_SEND: u32 = 1;
+const NET_FN_RECV: u32 = 2;
+const NET_FN_DISCONNECT: u32 = 3;
+
+// SBI error codes
 /// which has access to guest memory. The caller reads the filename bytes from
 /// `name_addr..name_addr+name_len`, looks up the file in the host VFS, writes up
 /// to `buf_len` bytes to `buf_addr`, and overwrites a0 with the byte count (or
@@ -86,6 +94,28 @@ pub struct GeoVfsReadReq {
     pub name_len: u32,
     pub buf_addr: u64,
     pub buf_len: u32,
+}
+
+/// Phase 244: Pending network operation for TCP send/recv.
+/// Set by handle_ecall when NET_FN_SEND or NET_FN_RECV is called.
+/// The step loop fulfills the operation using bus memory access.
+#[derive(Debug, Clone)]
+pub struct NetPendingOp {
+    /// Operation kind: Send or Recv.
+    pub kind: NetOpKind,
+    /// Socket ID (0-3).
+    pub socket_id: u8,
+    /// Guest physical address of the data buffer.
+    pub buf_addr: u64,
+    /// Number of bytes to send/receive.
+    pub len: usize,
+}
+
+/// Network operation kind for pending ops.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NetOpKind {
+    Send,
+    Recv,
 }
 
 /// SBI device: handles ECALL-based SBI calls and HTIF memory-mapped I/O.
@@ -118,6 +148,10 @@ pub struct Sbi {
     /// Guest requested GPU compute offload (GEO_FN_GPU_COMPUTE).
     /// Stores (code_addr, num_words, max_steps, num_tiles, result_addr).
     pub gpu_compute_requested: Option<(u64, u32, u32, u32, u64)>,
+    /// Phase 244: Up to 4 concurrent TCP sockets.
+    pub net_sockets: [Option<std::net::TcpStream>; 4],
+    /// Phase 244: Pending network operation (send/recv) for step loop.
+    pub net_pending: Option<NetPendingOp>,
 }
 
 impl Sbi {
@@ -136,6 +170,8 @@ impl Sbi {
             yield_to_context: None,
             spawn_requested: None,
             gpu_compute_requested: None,
+            net_sockets: [None, None, None, None],
+            net_pending: None,
         }
     }
 
@@ -245,6 +281,7 @@ impl Sbi {
                                 | SBI_EXT_IPI
                                 | SBI_EXT_DBCN
                                 | SBI_EXT_GEOMETRY
+                                | SBI_EXT_NET
                         );
                         Some((0, if available { 1 } else { 0 }))
                     }
@@ -410,6 +447,90 @@ impl Sbi {
                 }
                 _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
             },
+            // Phase 244: Network extension (TCP connect/send/recv/disconnect)
+            SBI_EXT_NET => {
+                let a1 = _a1;
+                let a2 = _a2;
+                match a6 {
+                    NET_FN_CONNECT => {
+                        // a0 = IP address packed as big-endian octets
+                        //       (0x7F000001 = 127.0.0.1)
+                        // a1 = port (u16)
+                        let ip_bytes = a0.to_be_bytes();
+                        let ip = std::net::Ipv4Addr::new(
+                            ip_bytes[0], ip_bytes[1],
+                            ip_bytes[2], ip_bytes[3],
+                        );
+                        let port = a1 as u16;
+                        let addr = std::net::SocketAddr::new(ip.into(), port);
+                        match self.net_sockets.iter().position(|s| s.is_none()) {
+                            None => Some((SBI_ERR_FAILURE as u32, 0)),
+                            Some(slot) => {
+                                match std::net::TcpStream::connect_timeout(
+                                    &addr,
+                                    std::time::Duration::from_secs(2),
+                                ) {
+                                    Ok(mut stream) => {
+                                        stream.set_read_timeout(Some(
+                                            std::time::Duration::from_secs(1),
+                                        )).ok();
+                                        stream.set_write_timeout(Some(
+                                            std::time::Duration::from_secs(1),
+                                        )).ok();
+                                        self.net_sockets[slot] = Some(stream);
+                                        // a0=success, a1=socket_id
+                                        Some((SBI_SUCCESS as u32, slot as u32))
+                                    }
+                                    Err(_) => {
+                                        Some((SBI_ERR_FAILURE as u32, 0))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    NET_FN_SEND => {
+                        // a0 = socket_id, a1 = buf_phys_addr, a2 = len
+                        let sid = a0 as u8;
+                        if sid >= 4 || self.net_sockets[sid as usize].is_none() {
+                            Some((SBI_ERR_INVALID_PARAM as u32, 0))
+                        } else {
+                            self.net_pending = Some(NetPendingOp {
+                                kind: NetOpKind::Send,
+                                socket_id: sid,
+                                buf_addr: a1 as u64,
+                                len: a2 as usize,
+                            });
+                            Some((SBI_SUCCESS as u32, 0))
+                        }
+                    }
+                    NET_FN_RECV => {
+                        // a0 = socket_id, a1 = buf_phys_addr, a2 = len
+                        let sid = a0 as u8;
+                        if sid >= 4 || self.net_sockets[sid as usize].is_none() {
+                            Some((SBI_ERR_INVALID_PARAM as u32, 0))
+                        } else {
+                            self.net_pending = Some(NetPendingOp {
+                                kind: NetOpKind::Recv,
+                                socket_id: sid,
+                                buf_addr: a1 as u64,
+                                len: a2 as usize,
+                            });
+                            Some((SBI_SUCCESS as u32, 0))
+                        }
+                    }
+                    NET_FN_DISCONNECT => {
+                        // a0 = socket_id
+                        let sid = a0 as u8;
+                        if sid < 4 {
+                            self.net_sockets[sid as usize] = None;
+                            Some((SBI_SUCCESS as u32, 0))
+                        } else {
+                            Some((SBI_ERR_INVALID_PARAM as u32, 0))
+                        }
+                    }
+                    _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
+                }
+            }
             _ => None, // Not an SBI call
         }
     }
@@ -758,5 +879,81 @@ mod tests {
             &mut clint,
         );
         assert_eq!(r, Some((0, 1))); // available
+    }
+
+    #[test]
+    fn test_sbi_net_probe_extension() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // SBI_BASE_PROBE_EXTENSION (function 3) with a0=SBI_EXT_NET
+        let result = sbi.handle_ecall(
+            SBI_EXT_BASE, 3, SBI_EXT_NET, 0, 0, 0, 0, 0,
+            &mut uart, &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, a1) = result.unwrap();
+        assert_eq!(a0, 0); // success
+        assert_eq!(a1, 1); // available
+    }
+
+    #[test]
+    fn test_sbi_net_connect_invalid_socket() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // NET_FN_RECV on non-existent socket should return INVALID_PARAM
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET, NET_FN_RECV, 0, 0, 0, 0, 0, 0,
+            &mut uart, &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, _) = result.unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_sbi_net_disconnect_invalid() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // NET_FN_DISCONNECT on slot >= 4 should return INVALID_PARAM
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET, NET_FN_DISCONNECT, 5, 0, 0, 0, 0, 0,
+            &mut uart, &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, _) = result.unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_sbi_net_send_invalid_socket() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // NET_FN_SEND on non-existent socket should return INVALID_PARAM
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET, NET_FN_SEND, 2, 0x1000, 100, 0, 0, 0,
+            &mut uart, &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, _) = result.unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_sbi_net_unknown_function() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // Unknown NET function should return NOT_SUPPORTED
+        let result = sbi.handle_ecall(
+            SBI_EXT_NET, 99, 0, 0, 0, 0, 0, 0,
+            &mut uart, &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, _) = result.unwrap();
+        assert_eq!(a0, SBI_ERR_NOT_SUPPORTED as u32);
     }
 }

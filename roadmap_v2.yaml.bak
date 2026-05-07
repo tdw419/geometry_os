@@ -3102,31 +3102,31 @@ phases:
   - name: Shared memory IPC for RISC-V guests
     status: done
   tasks:
-    - id: p235.d1.t1
-      status: done
-      title: Implement shm_alloc, shm_attach, shm_release in geos_kern.c
-      description: Kernel manages shared regions with reference counting. Alloc returns
-        region ID. Attach maps into caller address space.
-      scope_files:
-      - examples/riscv-hello/geos_kern.c
-      - examples/riscv-hello/libgeos.c
-      - examples/riscv-hello/libgeos.h
-      scope_lines: 120
-    - id: p235.d1.t2
-      title: Add shm_write and shm_read libgeos wrappers
-      description: Copy data to/from shared regions with bounds checking.
-      scope_files:
-      - examples/riscv-hello/libgeos.c
-      - examples/riscv-hello/libgeos.h
-      scope_lines: 50
-    - id: p235.d1.t3
-      title: Write producer-consumer demo
-      description: Program A writes counter to shared memory. Program B reads and
-        displays it. Both run under geos_kern.
-      scope_files:
-      - examples/riscv-hello/shm_producer.c
-      - examples/riscv-hello/shm_consumer.c
-      scope_lines: 100
+  - id: p235.d1.t1
+    status: done
+    title: Implement shm_alloc, shm_attach, shm_release in geos_kern.c
+    description: Kernel manages shared regions with reference counting. Alloc returns
+      region ID. Attach maps into caller address space.
+    scope_files:
+    - examples/riscv-hello/geos_kern.c
+    - examples/riscv-hello/libgeos.c
+    - examples/riscv-hello/libgeos.h
+    scope_lines: 120
+  - id: p235.d1.t2
+    title: Add shm_write and shm_read libgeos wrappers
+    description: Copy data to/from shared regions with bounds checking.
+    scope_files:
+    - examples/riscv-hello/libgeos.c
+    - examples/riscv-hello/libgeos.h
+    scope_lines: 50
+  - id: p235.d1.t3
+    title: Write producer-consumer demo
+    description: Program A writes counter to shared memory. Program B reads and displays
+      it. Both run under geos_kern.
+    scope_files:
+    - examples/riscv-hello/shm_producer.c
+    - examples/riscv-hello/shm_consumer.c
+    scope_lines: 100
   test_target: 2
   scope_lines_total: 270
   _claimed_by: worker-0
@@ -3298,30 +3298,30 @@ phases:
   - name: Timer syscalls for RISC-V guests
     status: done
   tasks:
-    - id: p240.d1.t1
-      status: done
-      title: Implement geos_msleep and geos_uptime in geos_kern.c
-      description: geos_msleep spins on mtime with yield. geos_uptime reads mtime
-        in milliseconds.
-      scope_files:
-      - examples/riscv-hello/geos_kern.c
-      - examples/riscv-hello/libgeos.c
-      - examples/riscv-hello/libgeos.h
-      scope_lines: 60
-    - id: p240.d1.t2
-      title: Add geos_alarm with callback registration
-      description: Register function pointer and interval. Kernel checks on yield.
-        Max 4 concurrent alarms.
-      scope_files:
-      - examples/riscv-hello/geos_kern.c
-      - examples/riscv-hello/libgeos.c
-      scope_lines: 70
-    - id: p240.d1.t3
-      title: Write animated clock demo
-      description: Digital clock on framebuffer, updating every second via geos_msleep.
-      scope_files:
-      - examples/riscv-hello/guest_clock.c
-      scope_lines: 60
+  - id: p240.d1.t1
+    status: done
+    title: Implement geos_msleep and geos_uptime in geos_kern.c
+    description: geos_msleep spins on mtime with yield. geos_uptime reads mtime in
+      milliseconds.
+    scope_files:
+    - examples/riscv-hello/geos_kern.c
+    - examples/riscv-hello/libgeos.c
+    - examples/riscv-hello/libgeos.h
+    scope_lines: 60
+  - id: p240.d1.t2
+    title: Add geos_alarm with callback registration
+    description: Register function pointer and interval. Kernel checks on yield. Max
+      4 concurrent alarms.
+    scope_files:
+    - examples/riscv-hello/geos_kern.c
+    - examples/riscv-hello/libgeos.c
+    scope_lines: 70
+  - id: p240.d1.t3
+    title: Write animated clock demo
+    description: Digital clock on framebuffer, updating every second via geos_msleep.
+    scope_files:
+    - examples/riscv-hello/guest_clock.c
+    scope_lines: 60
   test_target: 2
   scope_lines_total: 190
   _claimed_by: worker-0
@@ -3443,7 +3443,7 @@ phases:
   scope_lines_total: 140
 - id: phase-244
   title: RISC-V Guest -- Basic Socket Networking via SBI Extension
-  status: planned
+  status: in_progress
   goal: Enable bare-metal RISC-V programs to make TCP connections via SBI
   description: The VM has TCP networking opcodes but RISC-V guests cannot access the
     network. Add an SBI extension (0x4E4554) proxying TCP operations to the host stack
@@ -3477,6 +3477,8 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 220
+  _claimed_by: worker-0
+  _claimed_at: 1778176124
 - id: phase-245
   title: Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests
   status: done
