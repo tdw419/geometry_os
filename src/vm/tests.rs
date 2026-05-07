@@ -31867,3 +31867,126 @@ fn test_scale_respects_clip_rect() {
     // Pixel at (10,10) should be unchanged (outside clip)
     assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "clipped SCALE should not touch (10,10)");
 }
+
+// ── Phase 241: rotate_demo program integration test ──
+
+#[test]
+fn test_rotate_demo_program_assembles() {
+    let source = std::fs::read_to_string("programs/rotate_demo.asm")
+        .expect("programs/rotate_demo.asm should exist");
+    let result = crate::assembler::assemble(&source, 0).unwrap();
+    // Should contain ROTATE (0xF4) and SCALE (0xF5) opcodes
+    let has_rotate = result.pixels.iter().any(|&p| p == 0xF4);
+    let has_scale = result.pixels.iter().any(|&p| p == 0xF5);
+    assert!(has_rotate, "rotate_demo should contain ROTATE opcode (0xF4)");
+    assert!(has_scale, "rotate_demo should contain SCALE opcode (0xF5)");
+    // Should also have FRAME (0x02) for animation loop
+    let has_frame = result.pixels.iter().any(|&p| p == 0x02);
+    assert!(has_frame, "rotate_demo should contain FRAME opcode for animation");
+}
+
+#[test]
+fn test_rotate_demo_runs_one_frame() {
+    let source = std::fs::read_to_string("programs/rotate_demo.asm").unwrap();
+    let asm = crate::assembler::assemble(&source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    // Run until first FRAME
+    let mut frames_seen = 0;
+    for _ in 0..1_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames_seen += 1;
+            if frames_seen >= 1 {
+                break;
+            }
+        }
+    }
+    assert!(frames_seen >= 1, "rotate_demo should produce at least 1 frame");
+    // Screen should have non-black pixels (the sprite was drawn and scaled)
+    let mut non_black = 0u32;
+    for &pixel in vm.screen.iter() {
+        if pixel != 0 {
+            non_black += 1;
+        }
+    }
+    assert!(non_black > 100, "screen should have many non-black pixels after 1 frame, got {}", non_black);
+}
+
+#[test]
+fn test_rotate_scale_chain() {
+    // Test SCALE followed by ROTATE in sequence (like the demo does)
+    let mut vm = Vm::new();
+    // Draw a 4x4 red square at (0,0)
+    for dy in 0..4 {
+        for dx in 0..4 {
+            vm.screen[dy * 256 + dx] = 0xFF0000;
+        }
+    }
+    // SCALE source (0,0,4,4) to dest (10,10,8,8) -- 2x upscale
+    vm.regs[1] = 0;  // sx
+    vm.regs[2] = 0;  // sy
+    vm.regs[3] = 4;  // sw
+    vm.regs[4] = 4;  // sh
+    vm.regs[5] = 10; // dx
+    vm.regs[6] = 10; // dy
+    vm.regs[7] = 8;  // dw
+    vm.regs[8] = 8;  // dh
+    vm.ram[0] = 0xF5;
+    vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 5; vm.ram[6] = 6; vm.ram[7] = 7; vm.ram[8] = 8;
+    vm.ram[9] = 0xF4; // ROTATE follows
+    vm.ram[10] = 5; vm.ram[11] = 6; vm.ram[12] = 7; vm.ram[13] = 8;
+    vm.ram[14] = 0;   // angle = 0 (registers 5-8 still set from SCALE)
+    vm.ram[15] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // After SCALE(2x) then ROTATE(0°), the 8x8 area at (10,10) should be red
+    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000,
+        "SCALE+ROTATE chain: dest pixel should be red");
+    assert_eq!(vm.screen[17 * 256 + 17], 0xFF0000,
+        "SCALE+ROTATE chain: bottom-right of 2x scaled area should be red");
+}
+
+#[test]
+fn test_rotate_180_degrees() {
+    // Rotating 180 degrees should flip the pattern
+    let mut vm = Vm::new();
+    // Asymmetric: top-left pixel red, bottom-right pixel blue
+    vm.screen[10 * 256 + 10] = 0xFF0000; // top-left = red
+    vm.screen[13 * 256 + 13] = 0x0000FF; // bottom-right = blue
+    // Fill rest with a neutral color so nearest-neighbor has something
+    for dy in 0..4 {
+        for dx in 0..4 {
+            if vm.screen[(10 + dy) * 256 + (10 + dx)] == 0 {
+                vm.screen[(10 + dy) * 256 + (10 + dx)] = 0x008800;
+            }
+        }
+    }
+    // 180° = π radians. Fixed-point: angle_fixed / 256.0 = radians
+    let angle_fixed = (std::f64::consts::PI * 256.0) as i32 as u32;
+    vm.regs[1] = 10; // x
+    vm.regs[2] = 10; // y
+    vm.regs[3] = 4;  // w
+    vm.regs[4] = 4;  // h
+    vm.regs[5] = angle_fixed;
+    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[6] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // After 180° rotation, the red that was at (10,10) should be near (13,13)
+    // and the blue that was at (13,13) should be near (10,10)
+    assert_eq!(vm.screen[13 * 256 + 13], 0xFF0000,
+        "180° rotation: red should move from top-left to bottom-right");
+    assert_eq!(vm.screen[10 * 256 + 10], 0x0000FF,
+        "180° rotation: blue should move from bottom-right to top-left");
+}
