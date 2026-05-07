@@ -5240,6 +5240,45 @@ impl Vm {
                 }
             }
 
+            // CMOV rd, rs, cond_reg  (0xE0) -- Conditional move
+            // If cond_reg != 0, copy rs into rd. Otherwise rd is unchanged.
+            // Branchless alternative to CMP+BLT+LDI+MOV+JMP patterns.
+            // Encoding: 4 words [0xE0, rd, rs, cond_reg]
+            0xE0 => {
+                let dr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if dr < NUM_REGS && sr < NUM_REGS && cr < NUM_REGS {
+                    if self.regs[cr] != 0 {
+                        self.regs[dr] = self.regs[sr];
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xE0, "CMOV", &[self.regs[dr], self.regs[sr], self.regs[cr]]);
+                    }
+                }
+            }
+
+            // CSEL rd, rs1, rs2, cond_reg  (0xEF) -- Conditional select
+            // If cond_reg != 0, copy rs1 into rd. Otherwise copy rs2 into rd.
+            // Branchless min/max/clamp: CSEL r0, r_a, r_b, r_cond.
+            // Encoding: 5 words [0xEF, rd, rs1, rs2, cond_reg]
+            0xEF => {
+                let dr = self.fetch() as usize;
+                let s1 = self.fetch() as usize;
+                let s2 = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if dr < NUM_REGS && s1 < NUM_REGS && s2 < NUM_REGS && cr < NUM_REGS {
+                    if self.regs[cr] != 0 {
+                        self.regs[dr] = self.regs[s1];
+                    } else {
+                        self.regs[dr] = self.regs[s2];
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xEF, "CSEL", &[self.regs[dr], self.regs[s1], self.regs[s2], self.regs[cr]]);
+                    }
+                }
+            }
+
             _ => {
                 self.halted = true;
                 return false;

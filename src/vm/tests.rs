@@ -30702,3 +30702,184 @@ fn test_memcpy_backward_overlap() {
     assert_eq!(vm.ram[101], 0x55);
     assert_eq!(vm.ram[102], 0x66);
 }
+
+// === Phase 233: CMOV and CSEL opcodes ===
+
+#[test]
+fn test_cmov_moves_when_condition_nonzero() {
+    let mut vm = Vm::new();
+    // CMOV r1, r2, r3 -- if r3 != 0, r1 = r2
+    vm.ram[0] = 0xE0;
+    vm.ram[1] = 1; // rd = r1
+    vm.ram[2] = 2; // rs = r2
+    vm.ram[3] = 3; // cond = r3
+    vm.regs[1] = 100; // r1 initial
+    vm.regs[2] = 42;  // r2 = source
+    vm.regs[3] = 1;   // r3 = condition (nonzero)
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 42); // r1 was updated to r2
+    assert_eq!(vm.regs[2], 42); // r2 unchanged
+    assert_eq!(vm.regs[3], 1);   // r3 unchanged
+}
+
+#[test]
+fn test_cmov_no_move_when_condition_zero() {
+    let mut vm = Vm::new();
+    // CMOV r1, r2, r3
+    vm.ram[0] = 0xE0;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.regs[1] = 100; // r1 initial
+    vm.regs[2] = 42;  // r2 = source
+    vm.regs[3] = 0;   // r3 = condition (zero)
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 100); // r1 unchanged
+    assert_eq!(vm.regs[2], 42);  // r2 unchanged
+}
+
+#[test]
+fn test_csel_selects_rs1_when_condition_nonzero() {
+    let mut vm = Vm::new();
+    // CSEL r1, r2, r3, r4 -- if r4 != 0, r1 = r2; else r1 = r3
+    vm.ram[0] = 0xEF;
+    vm.ram[1] = 1; // rd = r1
+    vm.ram[2] = 2; // rs1
+    vm.ram[3] = 3; // rs2
+    vm.ram[4] = 4; // cond
+    vm.regs[2] = 10; // rs1
+    vm.regs[3] = 20; // rs2
+    vm.regs[4] = 1;  // condition nonzero
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 10); // selected rs1
+}
+
+#[test]
+fn test_csel_selects_rs2_when_condition_zero() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xEF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.regs[2] = 10;
+    vm.regs[3] = 20;
+    vm.regs[4] = 0; // condition zero
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 20); // selected rs2
+}
+
+#[test]
+fn test_cmov_assemble() {
+    let source = "CMOV r1, r2, r3\nHALT";
+    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xE0); // CMOV opcode
+    assert_eq!(asm.pixels[1], 1);    // rd
+    assert_eq!(asm.pixels[2], 2);    // rs
+    assert_eq!(asm.pixels[3], 3);    // cond
+    assert_eq!(asm.pixels[4], 0x00); // HALT
+}
+
+#[test]
+fn test_csel_assemble() {
+    let source = "CSEL r5, r6, r7, r8\nHALT";
+    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xEF); // CSEL opcode
+    assert_eq!(asm.pixels[1], 5);    // rd
+    assert_eq!(asm.pixels[2], 6);    // rs1
+    assert_eq!(asm.pixels[3], 7);    // rs2
+    assert_eq!(asm.pixels[4], 8);    // cond
+    assert_eq!(asm.pixels[5], 0x00); // HALT
+}
+
+#[test]
+fn test_cmov_branchless_min() {
+    // Use CMOV to implement branchless min: r1 = min(r2, r3)
+    // CMP r2, r3 -> sets r0 to 1 if r2 < r3 (meaning r2 is min)
+    // CMOV r1, r2, r0 -- if r0 != 0 (r2 < r3), r1 = r2
+    // CMOV r1, r3, r0 -- need invert: if r0 == 0 (r3 <= r2), r1 = r3
+    // Simplified: just test that CMOV correctly implements conditional copy
+    let source = "\
+LDI r1, 999
+LDI r2, 10
+LDI r3, 20
+CMP r2, r3
+CMOV r1, r2, r0
+HALT";
+    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    // r2=10 < r3=20, so CMP sets r0=1 (less), CMOV copies r2(10) to r1
+    assert_eq!(vm.regs[1], 10);
+}
+
+#[test]
+fn test_csel_branchless_max() {
+    // CSEL r1, r2, r3, r4 -- if r4 != 0, r1=r2, else r1=r3
+    // For max: CMP r2, r3 -> r0=1 if r2<r3 (use r3), r0=0xFFFFFFFF if not (use r2)
+    // Use JNZ r0 to set condition reg
+    let source = "\
+LDI r1, 0
+LDI r2, 30
+LDI r3, 20
+LDI r10, 1
+CMP r2, r3
+JZ r0, use_r2
+; r2 >= r3, use r3 as max? No, r2 is max
+; Actually CMP r2,r3: r0=0xFFFFFFFF if r2<r3 (use r3), r0=1 if r2>=r3 (use r2)
+; JZ r0 won't fire since r0 is 1
+LDI r10, 1
+JMP do_sel
+use_r2:
+LDI r10, 0
+do_sel:
+CSEL r1, r2, r3, r10
+HALT";
+    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    // r2=30 > r3=20, so r2 is max. CMP gives r0=1 (greater), JZ r0 doesn't fire,
+    // r10 stays 1, CSEL picks rs1=r2=30
+    assert_eq!(vm.regs[1], 30);
+}
+
+#[test]
+fn test_cmov_disasm() {
+    let vm = Vm::new();
+    let ram = &[0xE0u32, 1, 2, 3];
+    let (mnemonic, _len) = vm.disassemble_at(ram, 0);
+    assert!(mnemonic.contains("CMOV"), "got: {}", mnemonic);
+}
+
+#[test]
+fn test_csel_disasm() {
+    let vm = Vm::new();
+    let ram = &[0xEFu32, 5, 6, 7, 8];
+    let (mnemonic, len) = vm.disassemble_at(ram, 0);
+    assert!(mnemonic.contains("CSEL"), "got: {}", mnemonic);
+    assert_eq!(len, 5);
+}

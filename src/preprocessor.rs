@@ -214,6 +214,9 @@ pub const OPCODES: &[&str] = &[
     "SPRITE_LOAD",
     "SPRITE_FRAME",
     "PROFILE",
+    // Conditional move and select
+    "CMOV",
+    "CSEL",
     // Phase 260: Matrix multiply (2D)
     "MATMUL",
     // Phase 269: Hash table opcodes

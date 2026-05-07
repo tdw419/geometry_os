@@ -1196,6 +1196,33 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // Conditional move: CMOV rd, rs, cond_reg (0xE0)
+        // If cond_reg != 0, copy rs into rd. Otherwise rd unchanged.
+        "CMOV" => {
+            if tokens.len() < 4 {
+                return Err("CMOV requires 3 arguments: CMOV rd, rs, cond_reg".to_string());
+            }
+            bytecode.push(0xE0);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        // Conditional select: CSEL rd, rs1, rs2, cond_reg (0xEF)
+        // If cond_reg != 0, rd = rs1. Otherwise rd = rs2.
+        "CSEL" => {
+            if tokens.len() < 5 {
+                return Err("CSEL requires 4 arguments: CSEL rd, rs1, rs2, cond_reg".to_string());
+            }
+            bytecode.push(0xEF);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            Ok(Some(()))
+        }
+
         // Copy screen region to clipboard: CLIP_COPY x_reg, y_reg, w_reg, h_reg (0xD7)
         // Stores [width, height, pixels...] in clipboard buffer.
         "CLIP_COPY" => {

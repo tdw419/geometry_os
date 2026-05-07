@@ -668,6 +668,17 @@ impl Vm {
                 format!("STRCPY {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
                 3,
             ),
+            // CSEL rd, rs1, rs2, cond_reg (0xEF) -- Conditional select
+            0xEF => (
+                format!(
+                    "CSEL {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4))
+                ),
+                5,
+            ),
             0x87 => (format!("ABS {}", reg(ram(a + 1))), 2),
             0x88 => (
                 format!(
@@ -987,6 +998,11 @@ impl Vm {
             0xC6 => (
                 format!("PROFILE {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
                 3,
+            ),
+            // CMOV rd, rs, cond_reg (0xE0) -- Conditional move
+            0xE0 => (
+                format!("CMOV {}, {}, {}", reg(ram(a + 1)), reg(ram(a + 2)), reg(ram(a + 3))),
+                4,
             ),
             // IMOUSE rd (0xC7) -- Read next mouse event from queue
             // Returns packed event→rd, full x→rd+1, full y→rd+2
