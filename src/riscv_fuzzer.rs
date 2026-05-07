@@ -1494,7 +1494,6 @@ fn run_program(prog: &Program) -> Result<([u32; 32], Box<[u8]>, Vec<(u32, u32)>)
                 return Ok((vm.cpu.x, data.into_boxed_slice(), csr_vals));
             }
             cpu::StepResult::Yielded => {}
-            cpu::StepResult::Yielded => {}
             other => return Err(format!("StepResult::{:?} at pc={:08x}", other, vm.cpu.pc)),
         }
     }
