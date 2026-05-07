@@ -3092,7 +3092,7 @@ phases:
   _claimed_at: 1778168163
 - id: phase-235
   title: RISC-V Guest -- Shared Memory IPC
-  status: in_progress
+  status: complete
   goal: Enable bare-metal RISC-V programs to share memory regions for communication
   description: 'The Layer 2 kernel supports multi-program time-slicing but programs
     cannot communicate. Add shared memory: geos_shm_alloc(size), geos_shm_attach(id),
@@ -3100,9 +3100,10 @@ phases:
     producer-consumer patterns between guest programs.'
   deliverables:
   - name: Shared memory IPC for RISC-V guests
-    status: todo
-    tasks:
+    status: done
+  tasks:
     - id: p235.d1.t1
+      status: done
       title: Implement shm_alloc, shm_attach, shm_release in geos_kern.c
       description: Kernel manages shared regions with reference counting. Alloc returns
         region ID. Attach maps into caller address space.
@@ -3288,16 +3289,17 @@ phases:
   scope_lines_total: 150
 - id: phase-240
   title: RISC-V Guest -- Timer and Sleep Syscalls
-  status: in_progress
+  status: complete
   goal: Add timer syscalls to the Layer 2 kernel for time-based guest behavior
   description: Guest programs have no concept of time. Add geos_msleep(ms), geos_uptime()
     (ms since boot), and geos_alarm(ms, callback) syscalls. Enables animation, periodic
     polling, timeout I/O, and frame rate control.
   deliverables:
   - name: Timer syscalls for RISC-V guests
-    status: todo
-    tasks:
+    status: done
+  tasks:
     - id: p240.d1.t1
+      status: done
       title: Implement geos_msleep and geos_uptime in geos_kern.c
       description: geos_msleep spins on mtime with yield. geos_uptime reads mtime
         in milliseconds.
