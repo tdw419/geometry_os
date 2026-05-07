@@ -134,7 +134,7 @@ mod tests {
         line[1] = b'i' as u32;
         sb.push_line(&line);
         assert_eq!(sb.len(), 1);
-        let got = sb.get_line(0).unwrap();
+        let got = sb.get_line(0).expect("line 0 should exist after push");
         assert_eq!(got[0], b'H' as u32);
         assert_eq!(got[1], b'i' as u32);
     }
@@ -151,7 +151,7 @@ mod tests {
         assert_eq!(sb.len(), SCROLLBACK_CAPACITY);
         assert_eq!(sb.total_written(), SCROLLBACK_CAPACITY + 100);
         // First line should be the (100)th entry
-        let first = sb.get_line(0).unwrap();
+        let first = sb.get_line(0).expect("line 0 should exist after filling buffer");
         assert_eq!(first[0], 100);
     }
 
@@ -196,8 +196,16 @@ mod tests {
 
         sb.push_canvas_rows(&canvas, 0, 8);
         assert_eq!(sb.len(), 2); // only rows 2 and 5 have content
-        assert_eq!(sb.get_line(0).unwrap()[0], b'H' as u32);
-        assert_eq!(sb.get_line(1).unwrap()[0], b'W' as u32);
+        assert_eq!(
+            sb.get_line(0)
+                .expect("line 0 should exist after push_canvas_rows")[0],
+            b'H' as u32
+        );
+        assert_eq!(
+            sb.get_line(1)
+                .expect("line 1 should exist after push_canvas_rows")[0],
+            b'W' as u32
+        );
     }
 
     #[test]

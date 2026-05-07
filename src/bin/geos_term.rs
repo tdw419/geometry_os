@@ -776,10 +776,25 @@ fn run_test(test_name: &str, vm: &mut Vm) -> i32 {
             for name in &tests {
                 eprintln!("\n[TEST] === {} ===", name);
                 // Re-initialize VM for each test
-                let source = std::fs::read_to_string("programs/host_term.asm").unwrap();
+                let source = match std::fs::read_to_string("programs/host_term.asm") {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("[TEST] failed to read host_term.asm: {}", e);
+                        return 1;
+                    }
+                };
                 let mut pp = Preprocessor::new();
                 let preprocessed = pp.preprocess(&source);
-                let asm = assemble(&preprocessed, 0).unwrap();
+                let asm = match assemble(&preprocessed, 0) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        eprintln!(
+                            "[TEST] failed to assemble host_term.asm: line {}: {}",
+                            e.line, e.message
+                        );
+                        return 1;
+                    }
+                };
                 let mut fresh_vm = Vm::new();
                 for (i, &word) in asm.pixels.iter().enumerate() {
                     if i < fresh_vm.ram.len() {
@@ -1348,7 +1363,7 @@ fn main() {
         run_frames(&mut vm, nframes);
         dump_diagnostics(&vm);
         // Dump 256x256 screen as ASCII
-        let chars = " .:-=+*#%@";
+        let chars: Vec<char> = " .:-=+*#%@".chars().collect();
         for y in 0..VM_H {
             let mut line = String::with_capacity(VM_W);
             for x in 0..VM_W {
@@ -1358,7 +1373,7 @@ fn main() {
                 let b = px & 0xFF;
                 let bright = ((r as usize + g as usize + b as usize) * chars.len()) / (3 * 256 + 1);
                 let idx = bright.min(chars.len() - 1);
-                line.push(chars.chars().nth(idx).unwrap());
+                line.push(chars[idx]);
             }
             let trimmed = line.trim_end();
             if !trimmed.is_empty() {
@@ -1381,7 +1396,10 @@ fn main() {
             ..Default::default()
         },
     )
-    .expect("Failed to open window. Ensure a display is available.");
+    .unwrap_or_else(|e| {
+        eprintln!("Failed to open window: {}. Ensure a display is available.", e);
+        std::process::exit(1);
+    });
     window.set_target_fps(60);
 
     let mut framebuffer = vec![0u32; win_w * win_h];
@@ -1533,10 +1551,10 @@ fn main() {
                         let b64 = geometry_os::vision::encode_png_base64(&screen_snapshot);
                         match geometry_os::hermes::call_ollama_vision(system, prompt, &b64) {
                             Some(desc) => {
-                                *result.lock().unwrap() = Some(desc);
+                                *result.lock().unwrap_or_else(|e| e.into_inner()) = Some(desc);
                             }
                             None => {
-                                *result.lock().unwrap() =
+                                *result.lock().unwrap_or_else(|e| e.into_inner()) =
                                     Some("error: vision model unavailable".to_string());
                             }
                         }
@@ -1644,7 +1662,7 @@ fn main() {
 
         // ── Poll vision result (Ctrl+Shift+D) ──
         if vision_busy {
-            let mut result = vision_result.lock().unwrap();
+            let mut result = vision_result.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(desc) = result.take() {
                 vision_busy = false;
                 eprintln!("\n[vision] {}", desc);
