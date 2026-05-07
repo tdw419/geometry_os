@@ -1135,6 +1135,164 @@ fn test_beep_sets_state() {
     assert_eq!(vm.beep, Some((440, 200)));
 }
 
+// ── NOTE ────────────────────────────────────────────────────────
+
+#[test]
+fn test_note_sets_state() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 1;   // wave = square
+    vm.regs[2] = 880; // freq
+    vm.regs[3] = 150; // dur
+    vm.ram[0] = 0x7E;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;    // NOTE r1, r2, r3
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.note, Some((1, 880, 150)));
+}
+
+#[test]
+fn test_note_clamps_waveform() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 99;  // invalid wave -> clamped to 4 (noise)
+    vm.regs[2] = 440;
+    vm.regs[3] = 100;
+    vm.ram[0] = 0x7E;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.note, Some((4, 440, 100)));
+}
+
+#[test]
+fn test_note_clamps_freq_and_dur() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0;    // sine
+    vm.regs[2] = 10;   // below min 20 -> clamped to 20
+    vm.regs[3] = 9999; // above max 5000 -> clamped to 5000
+    vm.ram[0] = 0x7E;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.note, Some((0, 20, 5000)));
+}
+
+// ── AUDIO_PLAY ──────────────────────────────────────────────────
+
+#[test]
+fn test_audio_play_sets_state() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x2000; // addr
+    vm.regs[2] = 100;    // len
+    vm.regs[3] = 22050;  // rate
+    vm.ram[0] = 0xD4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;       // AUDIO_PLAY r1, r2, r3
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.audio_play, Some((0x2000, 100, 22050)));
+}
+
+#[test]
+fn test_audio_play_clamps_len_and_rate() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 999999; // above max 65536
+    vm.regs[3] = 1000;   // below min 8000
+    vm.ram[0] = 0xD4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.audio_play, Some((0x3000, 65536, 8000)));
+}
+
+#[test]
+fn test_audio_play_zero_len_no_op() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x2000;
+    vm.regs[2] = 0;      // zero length -> no audio_play set
+    vm.regs[3] = 22050;
+    vm.ram[0] = 0xD4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.audio_play, None);
+}
+
+// ── AUDIO_STOP ──────────────────────────────────────────────────
+
+#[test]
+fn test_audio_stop_sets_flag() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xD5; // AUDIO_STOP
+    vm.ram[1] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.audio_stop);
+}
+
+// ── AUDIO_STATUS ────────────────────────────────────────────────
+
+#[test]
+fn test_audio_status_reads_flag() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xD6; // AUDIO_STATUS r1
+    vm.ram[1] = 1;
+    vm.ram[2] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    // When no PCM is playing, status should be 0
+    assert_eq!(vm.regs[1], 0);
+}
+
 // ── MEMCPY ───────────────────────────────────────────────────────
 
 #[test]
