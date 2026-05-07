@@ -11291,3 +11291,31 @@ phases:
     scope_lines: 5
   scope_lines_total: 5
   test_target: 0
+- id: phase-269
+  title: "Fix clippy erasing_op errors in src/qemu/ansi.rs"
+  status: planned
+  goal: "Eliminate clippy errors in src/qemu/ansi.rs so cargo clippy --all-targets passes for this crate"
+  description: "Seven clippy errors in src/qemu/ansi.rs, all erasing_op (0 * CANVAS_COLS + n should just be n). Lines 954-956, 1124, 1135, 1210-1211, 1252. These are in test functions within the qemu/ansi module. Each occurrence is buf[0 * CANVAS_COLS + offset] which should be buf[offset]. Found during dogfood QA clippy audit."
+  deliverables:
+  - name: "Simplify zero-multiplication expressions in qemu/ansi.rs tests"
+    description: "Replace all 7 instances of 0 * CANVAS_COLS + n with just n in src/qemu/ansi.rs test functions."
+    status: todo
+    tasks:
+    - id: p269.d1.t1
+      title: "Fix erasing_op in qemu/ansi.rs lines 954-956"
+      status: todo
+      description: "Change buf[0 * CANVAS_COLS + 0] to buf[0], buf[0 * CANVAS_COLS + 1] to buf[1], buf[0 * CANVAS_COLS + 2] to buf[2]."
+      scope_lines: 5
+    - id: p269.d1.t2
+      title: "Fix erasing_op in qemu/ansi.rs lines 1124, 1135"
+      status: todo
+      description: "Change buf[0 * CANVAS_COLS] to buf[0] at lines 1124 and 1135."
+      scope_lines: 4
+    - id: p269.d1.t3
+      title: "Fix erasing_op in qemu/ansi.rs lines 1210-1211, 1252"
+      status: todo
+      description: "Change buf[0 * CANVAS_COLS] to buf[0] and buf[0 * CANVAS_COLS + 1] to buf[1] at lines 1210, 1211, and 1252."
+      scope_lines: 5
+    scope_lines: 14
+  scope_lines_total: 14
+  test_target: 0
