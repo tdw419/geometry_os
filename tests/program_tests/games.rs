@@ -3569,3 +3569,180 @@ fn trace_tp_teleports_step_by_step() {
 
     panic!("TRACE DONE");
 }
+
+// === Dungeon Generator ===
+
+#[test]
+fn test_dungeon_assembles() {
+    let source = std::fs::read_to_string("programs/dungeon.asm")
+        .expect("failed to read programs/dungeon.asm");
+    let asm = assemble(&source, 0).expect("dungeon.asm should assemble");
+    assert!(asm.pixels.len() > 500, "dungeon should produce substantial bytecode (got {} words)", asm.pixels.len());
+}
+
+#[test]
+fn test_dungeon_produces_frame() {
+    let source = std::fs::read_to_string("programs/dungeon.asm")
+        .expect("failed to read programs/dungeon.asm");
+    let asm = assemble(&source, 0).expect("dungeon.asm should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    let mut frames = 0u32;
+    let mut stuck = 0u32;
+    let mut last_pc = 0u32;
+    for _ in 0..50_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames += 1;
+            if frames >= 1 {
+                break;
+            }
+        }
+        let cur_pc = vm.pc as u32;
+        if cur_pc == last_pc {
+            stuck += 1;
+            if stuck > 500 {
+                break;
+            }
+        } else {
+            stuck = 0;
+        }
+        last_pc = cur_pc;
+    }
+    assert!(
+        frames >= 1,
+        "dungeon should produce at least 1 frame in 50M steps (got {})", frames
+    );
+    let mut nonzero = 0u32;
+    for &p in &vm.screen {
+        if p != 0 {
+            nonzero += 1;
+        }
+    }
+    assert!(
+        nonzero > 10,
+        "dungeon frame should have non-black pixels (got {})", nonzero
+    );
+}
+
+#[test]
+fn test_dungeon_tile_map_initialized() {
+    let source = std::fs::read_to_string("programs/dungeon.asm")
+        .expect("failed to read programs/dungeon.asm");
+    let asm = assemble(&source, 0).expect("dungeon.asm should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    // Run until first frame
+    for _ in 0..50_000_000 {
+        if !vm.step() { break; }
+        if vm.frame_ready { vm.frame_ready = false; break; }
+    }
+    // Check tile map has both walls (0) and floors (1)
+    let mut walls = 0u32;
+    let mut floors = 0u32;
+    for i in 0..1024 {
+        match vm.ram[0x2000 + i] {
+            0 => walls += 1,
+            1 => floors += 1,
+            _ => {}
+        }
+    }
+    assert!(walls > 100, "dungeon should have walls (got {})", walls);
+    assert!(floors > 20, "dungeon should have floors (got {})", floors);
+}
+
+#[test]
+fn test_dungeon_fog_of_war() {
+    let source = std::fs::read_to_string("programs/dungeon.asm")
+        .expect("failed to read programs/dungeon.asm");
+    let asm = assemble(&source, 0).expect("dungeon.asm should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..50_000_000 {
+        if !vm.step() { break; }
+        if vm.frame_ready { vm.frame_ready = false; break; }
+    }
+    // Visibility map should have all 3 states
+    let mut hidden = 0u32;
+    let mut explored = 0u32;
+    let mut visible = 0u32;
+    for i in 0..1024 {
+        match vm.ram[0x3000 + i] {
+            0 => hidden += 1,
+            1 => explored += 1,
+            2 => visible += 1,
+            _ => {}
+        }
+    }
+    assert!(visible > 5, "should have visible tiles near player (got {})", visible);
+    assert!(hidden > 100, "should have hidden tiles far from player (got {})", hidden);
+}
+
+#[test]
+fn test_dungeon_debug() {
+    let source = std::fs::read_to_string("programs/dungeon.asm")
+        .expect("failed to read programs/dungeon.asm");
+    let asm = assemble(&source, 0).expect("dungeon.asm should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..50_000_000 {
+        if !vm.step() { break; }
+        if vm.frame_ready { vm.frame_ready = false; break; }
+    }
+    let px = vm.ram[0x4000];
+    let py = vm.ram[0x4001];
+    eprintln!("Player at ({}, {})", px, py);
+    // Check surrounding tiles
+    for dy in -2..=2i32 {
+        let mut row = String::new();
+        for dx in -2..=2i32 {
+            let tx = (px as i32 + dx) as u32;
+            let ty = (py as i32 + dy) as u32;
+            if tx < 32 && ty < 32 {
+                let tile = vm.ram[0x2000 + (ty * 32 + tx) as usize];
+                let vis = vm.ram[0x3000 + (ty * 32 + tx) as usize];
+                row.push_str(&format!("{}{:?} ", tile, vis));
+            } else {
+                row.push_str("## ");
+            }
+        }
+        eprintln!("{}", row);
+    }
+    // Count visibility states
+    let mut counts = [0u32; 3];
+    for i in 0..1024 {
+        let v = vm.ram[0x3000 + i];
+        if v < 3 { counts[v as usize] += 1; }
+    }
+    eprintln!("Visibility: hidden={} explored={} visible={}", counts[0], counts[1], counts[2]);
+    // Count debug counters
+    eprintln!("Rays cast: {}", vm.ram[0x6200]);
+    eprintln!("Tiles in radius: {}", vm.ram[0x6201]);
+}

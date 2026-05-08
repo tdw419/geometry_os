@@ -4628,7 +4628,7 @@ phases:
   scope_lines_total: 270
 - id: phase-275
   title: User-Driven Self-Hosting -- Native Assembler Shell Utility
-  status: in_progress
+  status: complete
   goal: Implement a native 'as' command in the shell to enable the full in-guest development
     loop
   description: While the ASM opcode and nano_editor exists, there is no way for a
@@ -4638,7 +4638,7 @@ phases:
     a pixelpack-encoded PNG back to the VFS. This completes Level 3 self-hosting.
   deliverables:
   - name: Native 'as' command in shell.asm
-    status: todo
+    status: done
     tasks:
     - id: p275.d1.t1
       title: Implement 'as' command parsing and VFS read
@@ -4667,7 +4667,7 @@ phases:
   test_target: 3
   scope_lines_total: 180
   _claimed_by: worker-0
-  _claimed_at: 1778221274
+  _claimed_at: 1778228389
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'

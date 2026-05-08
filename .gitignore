@@ -26,3 +26,6 @@ __pycache__/
 *.pt
 pixel_llm_dataset.*
 tools/hermes_bridge/target/
+
+# Synthetic training data (generated artifacts)
+annotated_dataset/synthetic_*
