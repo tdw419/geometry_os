@@ -126,10 +126,13 @@ pub struct BootResult {
 impl RiscvVm {
     /// Create a new VM with the given RAM size in bytes.
     /// RAM starts at 0x8000_0000 (default for synthetic tests).
+    /// Captures CLINT mtime as boot_mtime for GEO_UPTIME syscall.
     pub fn new(ram_size: usize) -> Self {
-        let bus = bus::Bus::new(0x8000_0000, ram_size);
+        let mut bus = bus::Bus::new(0x8000_0000, ram_size);
         let cpu = cpu::RiscvCpu::new();
         let primary = GuestContext::new(0);
+        // Phase 257: Record boot time for uptime syscall
+        bus.sbi.boot_mtime = bus.clint.mtime;
         Self {
             cpu,
             bus,
@@ -142,10 +145,13 @@ impl RiscvVm {
 
     /// Create a new VM with a custom RAM base address.
     /// Used for Linux boot where RAM starts at 0x0000_0000.
+    /// Captures CLINT mtime as boot_mtime for GEO_UPTIME syscall.
     pub fn new_with_base(ram_base: u64, ram_size: usize) -> Self {
-        let bus = bus::Bus::new(ram_base, ram_size);
+        let mut bus = bus::Bus::new(ram_base, ram_size);
         let cpu = cpu::RiscvCpu::new();
         let primary = GuestContext::new(0);
+        // Phase 257: Record boot time for uptime syscall
+        bus.sbi.boot_mtime = bus.clint.mtime;
         Self {
             cpu,
             bus,
@@ -158,9 +164,24 @@ impl RiscvVm {
 
     /// Execute one step: tick CLINT, sync MIP, run instruction.
     /// Handles cooperative context switching when a guest yields.
+    /// Phase 257: Also checks alarms each tick.
     pub fn step(&mut self) -> StepResult {
         // 1. Advance CLINT timer
         self.bus.tick_clint();
+
+        // 1b. Phase 257: Check alarms against current CLINT mtime
+        let current_mtime = self.bus.clint.mtime;
+        let fired_alarms = self.bus.sbi.check_alarms(current_mtime);
+        for (_alarm_id, callback_addr) in fired_alarms {
+            if callback_addr != 0 {
+                // Fire alarm: jump to callback address.
+                // Save return address in ra (x1) so callback can return.
+                self.cpu.x[1] = self.cpu.pc;
+                self.cpu.pc = callback_addr;
+            }
+            // callback_addr == 0 means "just wake" -- no jump needed,
+            // the context is already running.
+        }
 
         // 2. Sync CLINT hardware state into MIP
         self.bus.sync_mip(&mut self.cpu.csr.mip);

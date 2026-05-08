@@ -73,14 +73,19 @@ static struct shm_slot shm_slots[SHM_MAX_SLOTS];
 #define GEO_SHM_ALLOC     6
 #define GEO_SHM_MAP       7
 #define GEO_SHM_RELEASE   8
+#define GEO_SHM_UNMAP     8   /* alias for RELEASE */
+#define GEO_SHM_SIZE      9
+#define GEO_SHM_WRITE     10
+#define GEO_SHM_READ      11
 
-/* ---- Phase 240: Timer and Sleep Syscalls ---- */
+/* ---- Phase 257: Timer and Sleep Syscalls ---- */
 
-/* GEOS SBI function IDs for timer (continuing from shared memory 6-8) */
-#define GEO_UPTIME        9
-#define GEO_ALARM_SET     10
-#define GEO_ALARM_CANCEL  11
-#define GEO_MSLEEP        12
+/* GEOS SBI function IDs for timer (continuing from shared memory 6-8).
+ * Must match sbi.rs GEO_FN_UPTIME/ALARM_SET/ALARM_CANCEL/MSLEEP. */
+#define GEO_UPTIME        12
+#define GEO_ALARM_SET     13
+#define GEO_ALARM_CANCEL  14
+#define GEO_MSLEEP        15
 
 /* Maximum concurrent alarms per program */
 #define GEO_MAX_ALARMS    4
@@ -291,8 +296,9 @@ long kern_handle_geos_sbi(long fid, long a1, long a2, long a3, long a4, long a5)
         }
         return (long)shm_slots[sid].base_addr;
     }
-    case GEO_SHM_RELEASE: {
-        /* Release a shared memory slot.
+    case GEO_SHM_RELEASE:
+    case GEO_SHM_UNMAP: {
+        /* Release/unmap a shared memory slot.
          * a1 = slot ID. Any program can release any slot.
          * Returns 0 on success, -1 if invalid ID. */
         int sid = (int)a1;
@@ -303,8 +309,54 @@ long kern_handle_geos_sbi(long fid, long a1, long a2, long a3, long a4, long a5)
         shm_slots[sid].owner = 0;
         return 0;
     }
+    case GEO_SHM_SIZE: {
+        /* Get the size of a shared memory slot.
+         * a1 = slot ID.
+         * Returns slot size in bytes on success, -1 if invalid. */
+        int sid = (int)a1;
+        if (sid < 0 || sid >= SHM_MAX_SLOTS || !shm_slots[sid].allocated) {
+            return -1;
+        }
+        return SHM_SLOT_SIZE;
+    }
+    case GEO_SHM_WRITE: {
+        /* Write data into a shared memory slot.
+         * a1 = slot ID, a2 = offset, a3 = src_phys_addr, a4 = len.
+         * Returns number of bytes written, or -1 on error. */
+        int sid = (int)a1;
+        if (sid < 0 || sid >= SHM_MAX_SLOTS || !shm_slots[sid].allocated)
+            return -1;
+        uint32_t offset = (uint32_t)a2;
+        uint32_t src = (uint32_t)a3;
+        uint32_t len = (uint32_t)a4;
+        if (offset + len > SHM_SLOT_SIZE || len == 0)
+            return -1;
+        volatile uint8_t *dst = (volatile uint8_t *)(shm_slots[sid].base_addr + offset);
+        volatile uint8_t *s = (volatile uint8_t *)src;
+        for (uint32_t j = 0; j < len; j++)
+            dst[j] = s[j];
+        return (long)len;
+    }
+    case GEO_SHM_READ: {
+        /* Read data from a shared memory slot.
+         * a1 = slot ID, a2 = offset, a3 = dst_phys_addr, a4 = len.
+         * Returns number of bytes read, or -1 on error. */
+        int sid = (int)a1;
+        if (sid < 0 || sid >= SHM_MAX_SLOTS || !shm_slots[sid].allocated)
+            return -1;
+        uint32_t offset = (uint32_t)a2;
+        uint32_t dst = (uint32_t)a3;
+        uint32_t len = (uint32_t)a4;
+        if (offset + len > SHM_SLOT_SIZE || len == 0)
+            return -1;
+        volatile uint8_t *src = (volatile uint8_t *)(shm_slots[sid].base_addr + offset);
+        volatile uint8_t *d = (volatile uint8_t *)dst;
+        for (uint32_t j = 0; j < len; j++)
+            d[j] = src[j];
+        return (long)len;
+    }
 
-    /* Phase 240: Timer and Sleep Syscalls */
+    /* Phase 257: Timer and Sleep Syscalls */
     case GEO_UPTIME: {
         /* Return elapsed ticks since kernel boot.
          * a1 (hi) and a2 (lo) receive the 64-bit mtime delta.

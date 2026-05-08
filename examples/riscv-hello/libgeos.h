@@ -232,43 +232,49 @@ static inline void geos_wait_ms(uint32_t ms) {
 
 /* ---- Phase 240: Timer and Sleep Syscalls ---- */
 
-/* GEOS SBI function IDs for timer (must match geos_kern.c) */
-#define GEO_UPTIME        9
-#define GEO_ALARM_SET     10
-#define GEO_ALARM_CANCEL  11
-#define GEO_MSLEEP        12
+/* GEOS SBI function IDs for timer (must match sbi.rs).
+ * After Phase 256 (SHM), function numbers shifted:
+ *   SHM functions occupy 6-11, timer functions are 12-15.
+ * All timer functions use a6 for the function ID (a0 = first arg). */
+#define GEO_UPTIME        12
+#define GEO_ALARM_SET     13
+#define GEO_ALARM_CANCEL  14
+#define GEO_MSLEEP        15
 
 /*
  * Get elapsed ticks since kernel boot.
- * `out` points to a uint64_t that receives the 64-bit tick count.
- * Returns 0 on success, -1 on error.
- *
+ * Returns elapsed ticks in a0 (SBI_SUCCESS), low 32 bits in a1.
  * Tick rate: ~52 MIPS (each RISC-V instruction = 1 tick).
  * Divide by 52000 for approximate milliseconds.
  */
-static inline long geos_uptime(uint64_t *out) {
+static inline long geos_uptime(void) {
     register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
-    register long a0 __asm__("a0") = GEO_UPTIME;
-    register long a1 __asm__("a1") = (long)out;
-    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1) : "memory", "a2");
-    return a0;
+    register long a6 __asm__("a6") = GEO_UPTIME;
+    register long a0 __asm__("a0") = 0;
+    register long a1 __asm__("a1") = 0;
+    __asm__ volatile("ecall" : "+r"(a0), "+r"(a1) : "r"(a7), "r"(a6) : "memory");
+    return a1; /* elapsed ticks (low 32 bits) */
 }
 
 /*
- * Register a one-shot alarm that fires after `delay_ms` milliseconds.
+ * Register a one-shot alarm that fires after `delay_ticks` CLINT ticks.
  * `callback` is the function to call when the alarm fires.
  * The callback receives alarm_id as its first argument (a0).
  *
  * Returns alarm_id (>= 0) on success, -1 if no free alarm slots.
  * Maximum 4 concurrent alarms per program.
+ *
+ * The callback is invoked by the step loop: PC jumps to callback address
+ * with ra (x1) saved as the return point. The callback should `ret` to
+ * return to the point where the alarm fired.
  */
-static inline long geos_alarm_set(long delay_ms, void (*callback)(long)) {
+static inline long geos_alarm_set(long delay_ticks, void (*callback)(long)) {
     register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
-    register long a0 __asm__("a0") = GEO_ALARM_SET;
-    register long a1 __asm__("a1") = delay_ms;
-    register long a2 __asm__("a2") = (long)callback;
-    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1), "r"(a2) : "memory");
-    return a0;
+    register long a6 __asm__("a6") = GEO_ALARM_SET;
+    register long a0 __asm__("a0") = delay_ticks;
+    register long a1 __asm__("a1") = (long)callback;
+    __asm__ volatile("ecall" : "+r"(a0), "+r"(a1) : "r"(a7), "r"(a6) : "memory");
+    return a0 == 0 ? (long)a1 : -1; /* a0=SBI_SUCCESS(0), a1=alarm_id */
 }
 
 /*
@@ -278,18 +284,35 @@ static inline long geos_alarm_set(long delay_ms, void (*callback)(long)) {
  */
 static inline long geos_alarm_cancel(long alarm_id) {
     register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
-    register long a0 __asm__("a0") = GEO_ALARM_CANCEL;
-    register long a1 __asm__("a1") = alarm_id;
-    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a1) : "memory");
-    return a0;
+    register long a6 __asm__("a6") = GEO_ALARM_CANCEL;
+    register long a0 __asm__("a0") = alarm_id;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a6) : "memory");
+    return a0; /* 0 on success, negative on error */
 }
 
 /*
- * Sleep for `ms` milliseconds (cooperative).
- * Yields the CPU and resumes after the delay.
- * Returns 0 on success, -1 if no alarm slots available.
+ * Sleep for `ticks` CLINT ticks (cooperative).
+ * Advances CLINT mtime directly (no busy-wait in the emulator).
+ * Returns 0 on success, -1 if ticks == 0.
+ *
+ * For approximate millisecond sleep, use: geos_msleep(ms * 52000)
+ * or geos_msleep_approx(ms) which does the multiplication for you.
  */
-long geos_msleep(long ms);
+static inline long geos_msleep(long ticks) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a6 __asm__("a6") = GEO_MSLEEP;
+    register long a0 __asm__("a0") = ticks;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a6) : "memory");
+    return a0; /* 0 on success, negative on error */
+}
+
+/*
+ * Sleep for approximately N milliseconds.
+ * Uses GEOS_TICKS_PER_MS (52000) as the conversion factor.
+ */
+static inline long geos_msleep_approx(long ms) {
+    return geos_msleep(ms * 52000);
+}
 
 /* ---- VFS Pixel Surface ---- */
 

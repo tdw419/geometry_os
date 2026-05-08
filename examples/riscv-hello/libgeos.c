@@ -638,19 +638,21 @@ int geos_measure_string(const char *str) {
     return len * 8;
 }
 
-/* ---- Phase 240: Timer and Sleep ---- */
+/* ---- Phase 240/257: Timer and Sleep ---- */
 
 /*
- * Cooperative sleep for N milliseconds.
- * Uses CLINT mtime spin-wait (same as geos_wait_ms).
- * The SBI-based alarm API (geos_alarm_set) is for async callbacks;
- * geos_msleep is the simple blocking variant.
+ * Timer and sleep syscalls are now direct SBI ECALLs via static inline
+ * functions in libgeos.h:
+ *   geos_uptime()         -- get elapsed ticks since boot
+ *   geos_alarm_set(ticks, cb)  -- register one-shot alarm
+ *   geos_alarm_cancel(id) -- cancel alarm
+ *   geos_msleep(ticks)    -- cooperative sleep (advances CLINT mtime)
+ *   geos_msleep_approx(ms) -- sleep for approximately N milliseconds
+ *
+ * All use SBI_EXT_GEOMETRY (0x47454F00) with function IDs 12-15 in a6.
+ * See sbi.rs GEO_FN_UPTIME/ALARM_SET/ALARM_CANCEL/MSLEEP for the
+ * Rust-side implementation.
  */
-long geos_msleep(long ms) {
-    if (ms <= 0) return 0;
-    geos_wait_ms((uint32_t)ms);
-    return 0;
-}
 
 /* ---- Phase 244: TCP Networking ---- */
 

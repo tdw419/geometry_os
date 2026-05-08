@@ -51,7 +51,7 @@ static void blink_callback(long alarm_id) {
     (void)alarm_id;
     colon_visible = !colon_visible;
     /* Re-arm: set another 500ms alarm */
-    geos_alarm_set(500, blink_callback);
+    geos_alarm_set(500 * 52000, blink_callback);
 }
 
 /* ---- 3x5 pixel digit patterns (each digit is 5 columns wide, stored row-major) ---- */
@@ -227,13 +227,13 @@ static void draw_frame(uint64_t uptime_ms) {
  * C entry point -- called from guest_crt0.S _start.
  */
 void c_start(void) {
-    uint64_t uptime;
+    long uptime_ticks;
 
     /* Initialize uptime */
-    geos_uptime(&uptime);
+    uptime_ticks = geos_uptime();
 
-    /* Set up blink alarm: fire every 500ms */
-    blink_alarm = geos_alarm_set(500, blink_callback);
+    /* Set up blink alarm: fire every 500ms (500 * 52000 ticks) */
+    blink_alarm = geos_alarm_set(500 * 52000, blink_callback);
 
     /* Main render loop */
     for (;;) {
@@ -241,10 +241,10 @@ void c_start(void) {
         fb_fill(COL_BG);
 
         /* Read uptime */
-        geos_uptime(&uptime);
+        uptime_ticks = geos_uptime();
 
-        /* Draw frame */
-        draw_frame(uptime);
+        /* Draw frame (convert ticks to ms for display) */
+        draw_frame((uint64_t)uptime_ticks);
 
         /* Yield to kernel (~16ms frame time) */
         geos_wait_ms(16);

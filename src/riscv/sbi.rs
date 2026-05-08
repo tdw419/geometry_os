@@ -2628,4 +2628,139 @@ mod tests {
         assert_eq!(a0, SBI_SUCCESS as u32);
         assert_eq!(a1, 200);
     }
+
+    /// End-to-end integration test: guest program exercises timer/sleep syscalls
+    /// via the full CPU step loop (decode -> execute -> ECALL -> SBI dispatch).
+    ///
+    /// This verifies the complete instruction path, not just the SBI handler in isolation.
+    /// The test writes RISC-V instructions to guest RAM, sets registers, and steps
+    /// the VM through ECALL sequences.
+    ///
+    /// ECALL instruction encoding: 0x00000073
+    /// Register convention: a7=extension, a6=function, a0-a5=args, a0=return
+    #[test]
+    fn test_timer_sleep_e2e_via_step_loop() {
+        use crate::riscv::RiscvVm;
+
+        let mut vm = RiscvVm::new_with_base(0x8000_0000, 1024 * 1024);
+        vm.cpu.privilege = crate::riscv::cpu::Privilege::Supervisor;
+
+        // Write ECALL instruction at address 0x8000_0000
+        // We'll reuse the same address by setting PC back before each ecall
+        let base_addr = 0x8000_0000u64;
+        let _ = vm.bus.mem.write_word(base_addr, 0x0000_0073); // ECALL
+
+        // ---- Test 1: geos_uptime() via ECALL ----
+        // a7 = SBI_EXT_GEOMETRY (0x47454F00), a6 = GEO_FN_UPTIME (12)
+        vm.cpu.x[17] = 0x47454F00;
+        vm.cpu.x[16] = 12; // GEO_FN_UPTIME
+        vm.cpu.x[10] = 0;
+        vm.cpu.x[11] = 0;
+        vm.cpu.pc = base_addr as u32;
+        let result = vm.step();
+        assert_eq!(result, crate::riscv::StepResult::Ok);
+        // a0 should be SBI_SUCCESS (0), a1 should be elapsed ticks (initially 0)
+        assert_eq!(vm.cpu.x[10], 0); // SBI_SUCCESS
+        assert_eq!(vm.cpu.x[11], 0); // 0 ticks elapsed
+
+        // ---- Test 2: geos_msleep(500) via ECALL ----
+        vm.cpu.x[17] = 0x47454F00;
+        vm.cpu.x[16] = 15; // GEO_FN_MSLEEP
+        vm.cpu.x[10] = 500; // sleep 500 ticks
+        vm.cpu.pc = base_addr as u32;
+        let result = vm.step();
+        assert_eq!(result, crate::riscv::StepResult::Ok);
+        // a0 should be SBI_SUCCESS (0)
+        assert_eq!(vm.cpu.x[10], 0);
+
+        // ---- Test 3: geos_uptime() should now show 500 ticks ----
+        vm.cpu.x[17] = 0x47454F00;
+        vm.cpu.x[16] = 12; // GEO_FN_UPTIME
+        vm.cpu.x[10] = 0;
+        vm.cpu.x[11] = 0;
+        vm.cpu.pc = base_addr as u32;
+        let result = vm.step();
+        assert_eq!(result, crate::riscv::StepResult::Ok);
+        assert_eq!(vm.cpu.x[10], 0); // SBI_SUCCESS
+        assert_eq!(vm.cpu.x[11], 500); // 500 ticks elapsed after msleep(500)
+
+        // ---- Test 4: geos_alarm_set(1000, 0x80100000) via ECALL ----
+        // Register alarm with callback=0x80100000 (no actual code there, but tests the path)
+        vm.cpu.x[17] = 0x47454F00;
+        vm.cpu.x[16] = 13; // GEO_FN_ALARM_SET
+        vm.cpu.x[10] = 1000; // delay in ticks
+        vm.cpu.x[11] = 0x8010_0000; // callback address
+        vm.cpu.pc = base_addr as u32;
+        let result = vm.step();
+        assert_eq!(result, crate::riscv::StepResult::Ok);
+        // a0 should be SBI_SUCCESS (0), a1 should be alarm_id (0)
+        assert_eq!(vm.cpu.x[10], 0);
+        assert_eq!(vm.cpu.x[11], 0); // first alarm slot
+
+        // ---- Test 5: geos_alarm_cancel(0) via ECALL ----
+        vm.cpu.x[17] = 0x47454F00;
+        vm.cpu.x[16] = 14; // GEO_FN_ALARM_CANCEL
+        vm.cpu.x[10] = 0; // alarm_id to cancel
+        vm.cpu.pc = base_addr as u32;
+        let result = vm.step();
+        assert_eq!(result, crate::riscv::StepResult::Ok);
+        // a0 should be SBI_SUCCESS (0)
+        assert_eq!(vm.cpu.x[10], 0);
+
+        // ---- Test 6: geos_msleep(0) should return error ----
+        vm.cpu.x[17] = 0x47454F00;
+        vm.cpu.x[16] = 15; // GEO_FN_MSLEEP
+        vm.cpu.x[10] = 0; // zero ticks = invalid
+        vm.cpu.pc = base_addr as u32;
+        let result = vm.step();
+        assert_eq!(result, crate::riscv::StepResult::Ok);
+        // a0 should be SBI_ERR_INVALID_PARAM (-2)
+        assert_eq!(vm.cpu.x[10] as i32, -2);
+    }
+
+    /// End-to-end test: alarm fires after CLINT advances past expiry.
+    /// Verifies that the step loop in RiscvVm::step() correctly fires
+    /// alarms by jumping to the callback address.
+    #[test]
+    fn test_alarm_fires_e2e_via_step_loop() {
+        use crate::riscv::RiscvVm;
+
+        let mut vm = RiscvVm::new_with_base(0x8000_0000, 1024 * 1024);
+        vm.cpu.privilege = crate::riscv::cpu::Privilege::Supervisor;
+
+        let base_addr = 0x8000_0000u64;
+        let _ = vm.bus.mem.write_word(base_addr, 0x0000_0073); // ECALL
+
+        // Set up alarm: delay=100 ticks, callback=0x8010_0000
+        vm.cpu.x[17] = 0x47454F00;
+        vm.cpu.x[16] = 13; // GEO_FN_ALARM_SET
+        vm.cpu.x[10] = 100;
+        vm.cpu.x[11] = 0x8010_0000; // callback address
+        vm.cpu.pc = base_addr as u32;
+        let result = vm.step();
+        assert_eq!(result, crate::riscv::StepResult::Ok);
+        assert_eq!(vm.cpu.x[10], 0); // SBI_SUCCESS
+
+        // PC should be past the ECALL (base_addr + 4)
+        assert_eq!(vm.cpu.pc, (base_addr + 4) as u32);
+
+        // Now advance CLINT by stepping enough times.
+        // Each step() calls tick_clint() which increments mtime by 1.
+        // The alarm was set for boot_mtime + 100. Since boot_mtime was captured
+        // at construction and we already stepped once, we need ~99 more steps.
+        let callback_addr = 0x8010_0000u32;
+        let mut alarm_fired = false;
+        for _ in 0..200 {
+            vm.cpu.x[17] = 0; // not an SBI call
+            vm.cpu.pc = base_addr as u32;
+            let _ = vm.step();
+            if vm.cpu.pc == callback_addr {
+                alarm_fired = true;
+                // Verify ra was saved (return address = base_addr + 4)
+                assert_eq!(vm.cpu.x[1], (base_addr + 4) as u32);
+                break;
+            }
+        }
+        assert!(alarm_fired, "Alarm should have fired within 200 steps");
+    }
 }
