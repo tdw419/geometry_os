@@ -1194,3 +1194,1042 @@ impl Vm {
         true
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vm::types::*;
+
+    /// Helper: create a VM with a bytecode program loaded at addr, run one step.
+    fn step_one(bytecode: &[u32], addr: u32) -> Vm {
+        let mut vm = Vm::new();
+        for (i, &w) in bytecode.iter().enumerate() {
+            let a = addr as usize + i;
+            if a < vm.ram.len() {
+                vm.ram[a] = w;
+            }
+        }
+        vm.pc = addr;
+        vm.halted = false;
+        vm.step();
+        vm
+    }
+
+    /// Helper: write a null-terminated string into RAM at addr.
+    fn write_string(vm: &mut Vm, addr: usize, s: &str) {
+        for (i, ch) in s.chars().enumerate() {
+            if addr + i < vm.ram.len() {
+                vm.ram[addr + i] = ch as u32;
+            }
+        }
+        if addr + s.len() < vm.ram.len() {
+            vm.ram[addr + s.len()] = 0;
+        }
+    }
+
+    // ── IOCTL (0x62) ──────────────────────────────────────────────
+    // Encoding: 0x62, fd_reg, cmd_reg, arg_reg (all are register indices)
+    // Tests use step_one_from to pre-load register values.
+
+    #[test]
+    fn test_ioctl_screen_get_width() {
+        // IOCTL /dev/screen cmd=0 -> r0 = 256
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xE000; // fd = /dev/screen in r1
+        vm.regs[2] = 0;      // cmd = 0 in r2
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
+        assert_eq!(vm.regs[0], 256);
+    }
+
+    #[test]
+    fn test_ioctl_screen_get_height() {
+        // IOCTL /dev/screen cmd=1 -> r0 = 256
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xE000;
+        vm.regs[2] = 1;
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
+        assert_eq!(vm.regs[0], 256);
+    }
+
+    #[test]
+    fn test_ioctl_keyboard_get_echo() {
+        // IOCTL /dev/keyboard cmd=0 -> r0 = RAM[0xFF8]
+        let mut vm = Vm::new();
+        vm.ram[0xFF8] = 42;
+        vm.regs[1] = 0xE001; // fd = /dev/keyboard
+        vm.regs[2] = 0;      // cmd = 0 (get echo)
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
+        assert_eq!(vm.regs[0], 42);
+    }
+
+    #[test]
+    fn test_ioctl_keyboard_set_echo() {
+        // IOCTL /dev/keyboard cmd=1 -> RAM[0xFF8] = arg, r0 = 0
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xE001; // fd = /dev/keyboard
+        vm.regs[2] = 1;      // cmd = 1 (set echo)
+        vm.regs[3] = 99;     // arg = 99
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 3], 0);
+        assert_eq!(vm.ram[0xFF8], 99);
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_ioctl_audio_get_volume() {
+        // IOCTL /dev/audio cmd=0 -> r0 = RAM[0xFF7]
+        let mut vm = Vm::new();
+        vm.ram[0xFF7] = 75;
+        vm.regs[1] = 0xE002; // fd = /dev/audio
+        vm.regs[2] = 0;      // cmd = 0 (get volume)
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
+        assert_eq!(vm.regs[0], 75);
+    }
+
+    #[test]
+    fn test_ioctl_audio_set_volume() {
+        // IOCTL /dev/audio cmd=1 -> RAM[0xFF7] = arg.clamp(100), r0 = 0
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xE002; // fd = /dev/audio
+        vm.regs[2] = 1;      // cmd = 1 (set volume)
+        vm.regs[3] = 80;     // arg = 80
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 3], 0);
+        assert_eq!(vm.ram[0xFF7], 80);
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_ioctl_audio_volume_clamped() {
+        // Volume > 100 should be clamped
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xE002; // fd = /dev/audio
+        vm.regs[2] = 1;      // cmd = 1 (set volume)
+        vm.regs[3] = 150;    // arg = 150 (should clamp to 100)
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 3], 0);
+        assert_eq!(vm.ram[0xFF7], 100);
+    }
+
+    #[test]
+    fn test_ioctl_net_status() {
+        // IOCTL /dev/net cmd=0 -> r0 = 1 (up)
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xE003; // fd = /dev/net
+        vm.regs[2] = 0;      // cmd = 0 (get status)
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
+        assert_eq!(vm.regs[0], 1);
+    }
+
+    #[test]
+    fn test_ioctl_invalid_device_fd() {
+        // fd not in device range -> r0 = 0xFFFFFFFF
+        let mut vm = Vm::new();
+        vm.regs[1] = 10; // fd = 10 (not in 0xE000-0xE003 range)
+        let vm = step_one_from(&vm, &[0x62, 1, 0, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_ioctl_unknown_cmd() {
+        // /dev/screen cmd=99 -> r0 = 0xFFFFFFFF
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xE000; // fd = /dev/screen
+        vm.regs[2] = 99;     // cmd = 99 (unknown)
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_ioctl_out_of_range_register() {
+        // reg index >= NUM_REGS -> r0 = 0xFFFFFFFF
+        let vm = step_one(&[0x62, 32, 0, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_ioctl_screen_clear_custom_font() {
+        // cmd=3 clears custom font -> r0 = 0
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xE000; // fd = /dev/screen
+        vm.regs[2] = 3;      // cmd = 3 (clear font)
+        let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    // ── GETENV (0x63) ─────────────────────────────────────────────
+
+    #[test]
+    fn test_getenv_found() {
+        let mut vm = Vm::new();
+        vm.env_vars.insert("HOME".to_string(), "/root".to_string());
+        write_string(&mut vm, 0x200, "HOME");
+        // GETENV key_addr=r0=0x200, val_addr=r1=0x300
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0x300;
+        let vm = step_one_from(&vm, &[0x63, 0, 1], 0);
+        assert_eq!(vm.regs[0], 5); // "/root" length
+        assert_eq!(vm.ram[0x300], '/' as u32);
+        assert_eq!(vm.ram[0x301], 'r' as u32);
+        assert_eq!(vm.ram[0x305], 0); // null terminator
+    }
+
+    #[test]
+    fn test_getenv_not_found() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "MISSING");
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0x300;
+        let vm = step_one_from(&vm, &[0x63, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_getenv_empty_key() {
+        // Key at address is null -> returns 0xFFFFFFFF
+        let mut vm = Vm::new();
+        vm.ram[0x200] = 0; // null at key addr
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0x300;
+        let vm = step_one_from(&vm, &[0x63, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── SETENV (0x64) ─────────────────────────────────────────────
+
+    #[test]
+    fn test_setenv_success() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "FOO");
+        write_string(&mut vm, 0x300, "bar");
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0x300;
+        let vm = step_one_from(&vm, &[0x64, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.env_vars.get("FOO"), Some(&"bar".to_string()));
+    }
+
+    #[test]
+    fn test_setenv_update_existing() {
+        let mut vm = Vm::new();
+        vm.env_vars.insert("X".to_string(), "old".to_string());
+        write_string(&mut vm, 0x200, "X");
+        write_string(&mut vm, 0x300, "new");
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0x300;
+        let vm = step_one_from(&vm, &[0x64, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.env_vars.get("X"), Some(&"new".to_string()));
+    }
+
+    #[test]
+    fn test_setenv_max_vars_limit() {
+        let mut vm = Vm::new();
+        // Fill up to 32 env vars
+        for i in 0..32 {
+            let key = format!("K{}", i);
+            vm.env_vars.insert(key, "v".to_string());
+        }
+        write_string(&mut vm, 0x200, "NEW");
+        write_string(&mut vm, 0x300, "val");
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0x300;
+        let vm = step_one_from(&vm, &[0x64, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // too many
+    }
+
+    // ── GETPID (0x65) ─────────────────────────────────────────────
+
+    #[test]
+    fn test_getpid_main_process() {
+        let vm = step_one(&[0x65], 0);
+        assert_eq!(vm.regs[0], 0); // main process PID = 0
+    }
+
+    // ── EXIT (0x6F) ───────────────────────────────────────────────
+
+    #[test]
+    fn test_exit_halts_vm() {
+        let vm = step_one(&[0x6F, 0], 0);
+        assert!(vm.halted);
+    }
+
+    #[test]
+    fn test_exit_with_code() {
+        // Load exit code 42 into r0, then EXIT r0
+        let mut vm = Vm::new();
+        vm.regs[0] = 42;
+        vm.ram[0] = 0x6F;
+        vm.ram[1] = 0;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+        assert!(vm.halted);
+        // Main process doesn't set step_exit_code (only children do)
+    }
+
+    // ── SHUTDOWN (0x6E) ──────────────────────────────────────────
+
+    #[test]
+    fn test_shutdown_in_kernel_mode() {
+        let vm = step_one(&[0x6E], 0);
+        assert!(vm.halted);
+        assert!(vm.shutdown_requested);
+    }
+
+    #[test]
+    fn test_shutdown_in_user_mode_fails() {
+        let mut vm = Vm::new();
+        vm.mode = CpuMode::User;
+        vm.ram[0] = 0x6E;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert!(!vm.halted);
+    }
+
+    // ── PEEK/SCREENP (0x6D) ──────────────────────────────────────
+
+    #[test]
+    fn test_screenp_read_pixel() {
+        let mut vm = Vm::new();
+        vm.screen[10 * 256 + 20] = 0xFF0000; // red at (20, 10)
+        // SCREENP dest=r0, x=r1=20, y=r2=10
+        vm.regs[1] = 20;
+        vm.regs[2] = 10;
+        let vm = step_one_from(&vm, &[0x6D, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFF0000);
+    }
+
+    #[test]
+    fn test_screenp_out_of_bounds() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 300; // x > 255
+        vm.regs[2] = 10;
+        let vm = step_one_from(&vm, &[0x6D, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_screenp_y_out_of_bounds() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 10;
+        vm.regs[2] = 256; // y == 256 is out of bounds
+        let vm = step_one_from(&vm, &[0x6D, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_screenp_zero_coords() {
+        let mut vm = Vm::new();
+        vm.screen[0] = 0x00FF00; // green at (0, 0)
+        vm.regs[1] = 0;
+        vm.regs[2] = 0;
+        let vm = step_one_from(&vm, &[0x6D, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0x00FF00);
+    }
+
+    // ── CHDIR (0x6B) ─────────────────────────────────────────────
+
+    #[test]
+    fn test_chdir_success() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "/tmp");
+        vm.regs[0] = 0x200;
+        let vm = step_one_from(&vm, &[0x6B, 0], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.env_vars.get("CWD"), Some(&"/tmp".to_string()));
+    }
+
+    #[test]
+    fn test_chdir_empty_path() {
+        let mut vm = Vm::new();
+        vm.ram[0x200] = 0; // null at path addr
+        vm.regs[0] = 0x200;
+        let vm = step_one_from(&vm, &[0x6B, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── GETCWD (0x6C) ────────────────────────────────────────────
+
+    #[test]
+    fn test_getcwd_returns_default() {
+        // No CWD set -> returns "/"
+        let mut vm = Vm::new();
+        vm.regs[0] = 0x300;
+        let vm = step_one_from(&vm, &[0x6C, 0], 0);
+        assert_eq!(vm.regs[0], 1); // "/" length
+        assert_eq!(vm.ram[0x300], '/' as u32);
+        assert_eq!(vm.ram[0x301], 0); // null terminator
+    }
+
+    #[test]
+    fn test_getcwd_returns_set_cwd() {
+        let mut vm = Vm::new();
+        vm.env_vars.insert("CWD".to_string(), "/home".to_string());
+        vm.regs[0] = 0x300;
+        let vm = step_one_from(&vm, &[0x6C, 0], 0);
+        assert_eq!(vm.regs[0], 5); // "/home" length
+        assert_eq!(vm.ram[0x300], '/' as u32);
+        assert_eq!(vm.ram[0x301], 'h' as u32);
+    }
+
+    // ── SIGNAL (0x70) ─────────────────────────────────────────────
+
+    #[test]
+    fn test_signal_term_kills_process() {
+        let mut vm = Vm::new();
+        // Spawn a process PID=1
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.regs[0] = 1; // target pid
+        vm.regs[1] = 0; // SIGTERM
+        let vm = step_one_from(&vm, &[0x70, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0); // success
+        assert_eq!(vm.processes[0].state, ProcessState::Zombie);
+        assert_eq!(vm.processes[0].exit_code, 1);
+    }
+
+    #[test]
+    fn test_signal_stop_kills_process() {
+        let mut vm = Vm::new();
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.regs[0] = 1;
+        vm.regs[1] = 3; // SIGSTOP
+        let vm = step_one_from(&vm, &[0x70, 0, 1], 0);
+        assert_eq!(vm.processes[0].exit_code, 2);
+    }
+
+    #[test]
+    fn test_signal_nonexistent_pid() {
+        let vm = step_one(&[0x70, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // not delivered
+    }
+
+    #[test]
+    fn test_signal_invalid_signal_number() {
+        let vm = step_one(&[0x70, 0, 99], 0);
+        assert_eq!(vm.regs[0], 0); // invalid signal: from_u32 returns None, not delivered, r0=0
+    }
+
+    #[test]
+    fn test_signal_user1_ignored_by_default() {
+        let mut vm = Vm::new();
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.regs[0] = 1;
+        vm.regs[1] = 1; // SIGUSER1
+        let vm = step_one_from(&vm, &[0x70, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0); // delivered (but ignored by default)
+        assert!(vm.processes[0].state != ProcessState::Zombie);
+    }
+
+    // ── SIGSET (0x71) ─────────────────────────────────────────────
+
+    #[test]
+    fn test_sigset_success() {
+        let mut vm = Vm::new();
+        // Spawn a process PID=1 and make it current
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.current_pid = 1;
+        vm.regs[0] = 0; // SIGTERM
+        vm.regs[1] = 0x500; // handler address
+        let vm = step_one_from(&vm, &[0x71, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.processes[0].signal_handlers[0], 0x500);
+    }
+
+    #[test]
+    fn test_sigset_main_process_fails() {
+        // Main process (pid=0) can't set signal handlers
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        vm.regs[1] = 0x500;
+        let vm = step_one_from(&vm, &[0x71, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_sigset_ignore_signal() {
+        let mut vm = Vm::new();
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.current_pid = 1;
+        vm.regs[0] = 0;
+        vm.regs[1] = 0xFFFFFFFF; // ignore
+        let vm = step_one_from(&vm, &[0x71, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.processes[0].signal_handlers[0], 0xFFFFFFFF);
+    }
+
+    // ── ASMSELF (0x73) ───────────────────────────────────────────
+
+    #[test]
+    fn test_asmself_simple_program() {
+        let mut vm = Vm::new();
+        // Write "LDI r1, 42\nHALT" into canvas buffer
+        let src = "LDI r1, 42\nHALT";
+        for (i, ch) in src.chars().enumerate() {
+            if i < vm.canvas_buffer.len() {
+                vm.canvas_buffer[i] = ch as u32;
+            }
+        }
+        // ASMSELF
+        vm.ram[0] = 0x73;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+        assert_eq!(vm.ram[0xFFD], 4); // 4 words: LDI(3) + HALT(1)
+        // Verify bytecode was written to 0x1000
+        assert_ne!(vm.ram[0x1000], 0); // first word should be LDI opcode
+    }
+
+    // ── RUNNEXT (0x74) ───────────────────────────────────────────
+
+    #[test]
+    fn test_runnext_sets_pc() {
+        let mut vm = Vm::new();
+        vm.ram[0] = 0x74; // RUNNEXT
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+        assert_eq!(vm.pc, 0x1000);
+    }
+
+    // ── FORMULA (0x75) ───────────────────────────────────────────
+
+    #[test]
+    fn test_formula_register_add() {
+        // FORMULA target=0, op=0 (ADD), deps=[1]
+        // bytecode: [0x75, 0, 0, 1, 1]
+        let vm = step_one(&[0x75, 0, 0, 1, 1], 0);
+        assert_eq!(vm.regs[0], 1); // success
+    }
+
+    #[test]
+    fn test_formula_register_invalid_opcode() {
+        // op=99 -> should use Copy fallback
+        let vm = step_one(&[0x75, 0, 99, 0], 0);
+        assert_eq!(vm.regs[0], 1); // still succeeds (fallback to Copy)
+    }
+
+    // ── FORMULACLEAR (0x76) ──────────────────────────────────────
+
+    #[test]
+    fn test_formula_clear() {
+        let mut vm = Vm::new();
+        vm.ram[0] = 0x76;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+        assert!(!vm.halted); // doesn't halt
+    }
+
+    // ── FORMULAREM (0x77) ────────────────────────────────────────
+
+    #[test]
+    fn test_formula_remove() {
+        // FORMULAREM target=5
+        let mut vm = Vm::new();
+        vm.ram[0] = 0x77;
+        vm.ram[1] = 5;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+        assert!(!vm.halted);
+    }
+
+    // ── SNAP_TRACE (0x7B) ────────────────────────────────────────
+
+    #[test]
+    fn test_snap_trace_start_recording() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 1; // mode = start recording
+        let vm = step_one_from(&vm, &[0x7B, 0], 0);
+        assert!(vm.trace_recording);
+        assert_eq!(vm.regs[0], 0); // 0 entries initially
+    }
+
+    #[test]
+    fn test_snap_trace_stop_recording() {
+        let mut vm = Vm::new();
+        vm.trace_recording = true;
+        vm.regs[0] = 0; // mode = stop
+        let vm = step_one_from(&vm, &[0x7B, 0], 0);
+        assert!(!vm.trace_recording);
+    }
+
+    #[test]
+    fn test_snap_trace_snapshot_and_clear() {
+        let mut vm = Vm::new();
+        vm.trace_recording = true;
+        vm.regs[0] = 2; // mode = snapshot-and-clear
+        let vm = step_one_from(&vm, &[0x7B, 0], 0);
+        assert!(!vm.trace_recording);
+        assert_eq!(vm.regs[0], 1); // 1 entry: the 0x7B instruction itself is recorded during step()
+    }
+
+    #[test]
+    fn test_snap_trace_invalid_mode() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 99;
+        let vm = step_one_from(&vm, &[0x7B, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── FORK (0x7D) ──────────────────────────────────────────────
+
+    #[test]
+    fn test_fork_save_snapshot() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0; // mode = save
+        let vm = step_one_from(&vm, &[0x7D, 0], 0);
+        assert_eq!(vm.regs[0], 0); // slot index 0
+    }
+
+    #[test]
+    fn test_fork_list_snapshots() {
+        let mut vm = Vm::new();
+        // Save one snapshot
+        vm.snapshots.push(vm.snapshot());
+        vm.regs[0] = 2; // mode = list
+        let vm = step_one_from(&vm, &[0x7D, 0], 0);
+        assert_eq!(vm.regs[0], 1); // 1 snapshot
+    }
+
+    #[test]
+    fn test_fork_clear_snapshots() {
+        let mut vm = Vm::new();
+        vm.snapshots.push(vm.snapshot());
+        vm.regs[0] = 3; // mode = clear
+        let vm = step_one_from(&vm, &[0x7D, 0], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert!(vm.snapshots.is_empty());
+    }
+
+    #[test]
+    fn test_fork_restore_invalid_slot() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 99; // invalid slot
+        vm.regs[0] = 1; // mode = restore
+        let vm = step_one_from(&vm, &[0x7D, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_fork_max_snapshots() {
+        let mut vm = Vm::new();
+        // Fill to MAX_SNAPSHOTS
+        for _ in 0..16 {
+            vm.snapshots.push(vm.snapshot());
+        }
+        vm.regs[0] = 0; // mode = save
+        let vm = step_one_from(&vm, &[0x7D, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // too many
+    }
+
+    #[test]
+    fn test_fork_invalid_mode() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 99;
+        let vm = step_one_from(&vm, &[0x7D, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    // ── FMKDIR (0x78) ────────────────────────────────────────────
+
+    #[test]
+    fn test_fmkdir_success() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "/test_dir");
+        vm.regs[0] = 0x200;
+        let vm = step_one_from(&vm, &[0x78, 0], 0);
+        assert!(vm.regs[0] > 0); // inode number > 0
+    }
+
+    #[test]
+    fn test_fmkdir_null_path() {
+        let mut vm = Vm::new();
+        vm.ram[0x200] = 0; // null at path addr
+        vm.regs[0] = 0x200;
+        let vm = step_one_from(&vm, &[0x78, 0], 0);
+        assert_eq!(vm.regs[0], 0); // error
+    }
+
+    // ── FUNLINK (0x7A) ───────────────────────────────────────────
+
+    #[test]
+    fn test_funlink_nonexistent() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "/no_such_file");
+        vm.regs[0] = 0x200;
+        let vm = step_one_from(&vm, &[0x7A, 0], 0);
+        assert_eq!(vm.regs[0], 0); // error
+    }
+
+    // ── FSTAT (0x79) ─────────────────────────────────────────────
+
+    #[test]
+    fn test_fstat_invalid_inode() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 99999; // nonexistent inode
+        vm.regs[1] = 0x300; // buffer addr
+        let vm = step_one_from(&vm, &[0x79, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0); // error
+    }
+
+    // ── HYPERVISOR (0x72) ────────────────────────────────────────
+
+    #[test]
+    fn test_hypervisor_missing_arch() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "kernel=vmlinux ram=256M");
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0; // win_id
+        let vm = step_one_from(&vm, &[0x72, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFD); // missing arch
+    }
+
+    #[test]
+    fn test_hypervisor_valid_config() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "arch=riscv64 kernel=vmlinux ram=256M");
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0x72, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0); // success
+        assert!(vm.hypervisor_active);
+        assert_eq!(vm.hypervisor_mode, HypervisorMode::Qemu);
+    }
+
+    #[test]
+    fn test_hypervisor_native_mode() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "arch=riscv64 mode=native");
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0x72, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.hypervisor_mode, HypervisorMode::Native);
+    }
+
+    #[test]
+    fn test_hypervisor_null_config() {
+        let mut vm = Vm::new();
+        vm.ram[0x200] = 0; // null at config addr -> empty string, no arch=
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0x72, 0, 1], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFD); // missing arch (empty string is Some(""))
+    }
+
+    // ── PIXEL_HISTORY (0x84) ─────────────────────────────────────
+
+    #[test]
+    fn test_pixel_history_count() {
+        // mode=0 -> count total entries
+        let mut vm = Vm::new();
+        vm.regs[0] = 0;
+        let vm = step_one_from(&vm, &[0x84, 0], 0);
+        assert_eq!(vm.regs[0], 0); // empty log
+    }
+
+    #[test]
+    fn test_pixel_history_count_at_pixel() {
+        // mode=1 -> count writes at (r1=x, r2=y)
+        let mut vm = Vm::new();
+        vm.regs[0] = 1;
+        vm.regs[1] = 10;
+        vm.regs[2] = 20;
+        let vm = step_one_from(&vm, &[0x84, 0], 0);
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_pixel_history_invalid_mode() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 99;
+        let vm = step_one_from(&vm, &[0x84, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_pixel_history_get_at_invalid_index() {
+        // mode=3 -> get entry at index, but log is empty
+        let mut vm = Vm::new();
+        vm.regs[0] = 3;
+        vm.regs[1] = 0; // index
+        vm.regs[2] = 0x300; // buf addr
+        let vm = step_one_from(&vm, &[0x84, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // no entry at index 0
+    }
+
+    // ── WAITPID (0x69) ───────────────────────────────────────────
+
+    #[test]
+    fn test_waitpid_nonexistent() {
+        // PID doesn't exist -> r0=1, r1=0
+        let vm = step_one(&[0x69, 0], 0);
+        assert_eq!(vm.regs[0], 1);
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    #[test]
+    fn test_waitpid_running_yields() {
+        let mut vm = Vm::new();
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.regs[0] = 1;
+        let vm = step_one_from(&vm, &[0x69, 0], 0);
+        assert_eq!(vm.regs[0], 0); // still running
+        assert!(vm.yielded);
+    }
+
+    #[test]
+    fn test_waitpid_zombie_reaped() {
+        let mut vm = Vm::new();
+        let mut proc = SpawnedProcess::default_spawned(1);
+        proc.state = ProcessState::Zombie;
+        proc.exit_code = 42;
+        proc.page_dir = None; // no page dir to free
+        vm.processes.push(proc);
+        vm.regs[0] = 1;
+        let vm = step_one_from(&vm, &[0x69, 0], 0);
+        assert_eq!(vm.regs[0], 1); // halted
+        assert_eq!(vm.regs[1], 42); // exit code
+        assert!(vm.processes.is_empty()); // reaped
+    }
+
+    // ── REPLAY (0x7C) ────────────────────────────────────────────
+
+    #[test]
+    fn test_replay_no_checkpoints() {
+        let mut vm = Vm::new();
+        vm.regs[0] = 0; // frame_idx = 0
+        let vm = step_one_from(&vm, &[0x7C, 0], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // no checkpoints
+    }
+
+    // ── Edge cases ───────────────────────────────────────────────
+
+    #[test]
+    fn test_unknown_extended_opcode_halts() {
+        let vm = step_one(&[0x7E], 0); // not in 0x62-0x7D range... actually 0x7E is not dispatched here
+        // 0x7E would be dispatched elsewhere. Let's test 0x7D range with invalid sub-opcode
+        // Actually 0x62..=0x7D is the range. 0x7E wouldn't hit step_extended.
+    }
+
+    #[test]
+    fn test_ioctl_screen_custom_font_bad_address() {
+        // cmd=2 with bad font address -> r0 = 0xFFFFFFFF
+        let mut vm = Vm::new();
+        vm.regs[0] = 0xE000; // /dev/screen fd
+        vm.regs[1] = 2; // set custom font
+        vm.regs[2] = 0xFFFF; // bad address (would overflow)
+        let vm = step_one_from(&vm, &[0x62, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn test_readln_no_key_yields() {
+        let mut vm = Vm::new();
+        vm.key_port = 0; // no key
+        vm.regs[0] = 0x200; // buf addr
+        vm.regs[1] = 100; // max len
+        vm.regs[2] = 0x210; // pos addr
+        let vm = step_one_from(&vm, &[0x68, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert!(vm.yielded);
+    }
+
+    #[test]
+    fn test_readln_enter_terminates() {
+        let mut vm = Vm::new();
+        vm.key_port = 13; // Enter
+        vm.ram[0x210] = 5; // current position
+        vm.regs[0] = 0x200; // buf addr
+        vm.regs[1] = 100; // max len
+        vm.regs[2] = 0x210; // pos addr
+        let vm = step_one_from(&vm, &[0x68, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 5); // line length
+        assert_eq!(vm.ram[0x200 + 5], 0); // null terminator
+    }
+
+    #[test]
+    fn test_readln_printable_char() {
+        let mut vm = Vm::new();
+        vm.key_port = 65; // 'A'
+        vm.ram[0x210] = 0; // pos = 0
+        vm.regs[0] = 0x200; // buf addr
+        vm.regs[1] = 100; // max len
+        vm.regs[2] = 0x210; // pos addr
+        let vm = step_one_from(&vm, &[0x68, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0); // still waiting
+        assert_eq!(vm.ram[0x200], 65); // 'A' stored
+        assert_eq!(vm.ram[0x210], 1); // pos advanced
+    }
+
+    #[test]
+    fn test_readln_backspace() {
+        let mut vm = Vm::new();
+        vm.key_port = 8; // backspace
+        vm.ram[0x210] = 3; // pos = 3
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 100;
+        vm.regs[2] = 0x210;
+        let vm = step_one_from(&vm, &[0x68, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.ram[0x210], 2); // pos decreased
+    }
+
+    #[test]
+    fn test_readln_backspace_at_zero() {
+        let mut vm = Vm::new();
+        vm.key_port = 8;
+        vm.ram[0x210] = 0; // pos = 0
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 100;
+        vm.regs[2] = 0x210;
+        let vm = step_one_from(&vm, &[0x68, 0, 1, 2], 0);
+        assert_eq!(vm.ram[0x210], 0); // pos stays 0
+    }
+
+    // ── EXECP (0x6A) ─────────────────────────────────────────────
+
+    #[test]
+    fn test_execp_nonexistent_file() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "nonexistent_program");
+        vm.regs[0] = 0x200; // path addr
+        vm.regs[1] = 0xFFFFFFFF; // stdin = none
+        vm.regs[2] = 0xFFFFFFFF; // stdout = none
+        let vm = step_one_from(&vm, &[0x6A, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // file not found
+    }
+
+    #[test]
+    fn test_execp_null_path() {
+        let mut vm = Vm::new();
+        vm.ram[0x200] = 0; // null at path addr
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0xFFFFFFFF;
+        vm.regs[2] = 0xFFFFFFFF;
+        let vm = step_one_from(&vm, &[0x6A, 0, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // null path
+    }
+
+    #[test]
+    fn test_execp_success() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x200, "hello");
+        vm.regs[0] = 0x200;
+        vm.regs[1] = 0xFFFFFFFF;
+        vm.regs[2] = 0xFFFFFFFF;
+        let vm = step_one_from(&vm, &[0x6A, 0, 1, 2], 0);
+        assert_ne!(vm.regs[0], 0xFFFFFFFF); // should succeed (hello.asm exists)
+        assert_ne!(vm.regs[0], 0); // pid > 0
+        assert_eq!(vm.processes.len(), 1); // child spawned
+    }
+
+    // ── EXIT_ALL (0x6E) ──────────────────────────────────────────
+
+    #[test]
+    fn test_exit_all_in_user_mode_fails() {
+        let mut vm = Vm::new();
+        vm.mode = CpuMode::User;
+        let vm = step_one_from(&vm, &[0x6E], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // user mode denied
+        assert!(!vm.halted); // should NOT halt
+    }
+
+    #[test]
+    fn test_exit_all_in_kernel_mode_halts() {
+        let mut vm = Vm::new();
+        vm.mode = CpuMode::Kernel;
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        let vm = step_one_from(&vm, &[0x6E], 0);
+        assert!(vm.halted);
+        assert!(vm.shutdown_requested);
+        // All processes should be zombies
+        for proc in &vm.processes {
+            assert!(proc.is_halted());
+        }
+    }
+
+    // ── SIGACTION (0x71) ─────────────────────────────────────────
+
+    #[test]
+    fn test_sigaction_set_handler() {
+        let mut vm = Vm::new();
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.current_pid = 1;
+        vm.regs[1] = 1;     // SIGUSER1
+        vm.regs[2] = 0x500; // handler address
+        let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0); // success
+        assert_eq!(vm.processes[0].signal_handlers[Signal::User1 as usize], 0x500);
+    }
+
+    #[test]
+    fn test_sigaction_main_process_fails() {
+        let mut vm = Vm::new();
+        vm.current_pid = 0; // main process
+        vm.regs[1] = 1;
+        vm.regs[2] = 0x500;
+        let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // main process can't set handlers
+    }
+
+    #[test]
+    fn test_sigaction_invalid_signal() {
+        let mut vm = Vm::new();
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.current_pid = 1;
+        vm.regs[1] = 99;    // invalid signal number
+        vm.regs[2] = 0x500;
+        let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // invalid signal
+    }
+
+    #[test]
+    fn test_sigaction_ignore_signal() {
+        let mut vm = Vm::new();
+        vm.processes.push(SpawnedProcess::default_spawned(1));
+        vm.current_pid = 1;
+        vm.regs[1] = 1;        // SIGUSER1
+        vm.regs[2] = 0xFFFFFFFF; // SIG_IGN
+        let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0); // success
+        assert_eq!(vm.processes[0].signal_handlers[Signal::User1 as usize], 0xFFFFFFFF);
+    }
+
+    // ── Helper for tests that need a pre-configured VM ──────────
+
+    /// Create a new VM from an existing one's state, load bytecode, step.
+    fn step_one_from(vm: &Vm, bytecode: &[u32], addr: u32) -> Vm {
+        let mut vm2 = Vm::new();
+        // Copy key fields
+        vm2.regs.copy_from_slice(&vm.regs);
+        let ram_len = vm.ram.len().min(vm2.ram.len());
+        vm2.ram[..ram_len].copy_from_slice(&vm.ram[..ram_len]);
+        let buf_len = vm.canvas_buffer.len().min(vm2.canvas_buffer.len());
+        vm2.canvas_buffer[..buf_len].copy_from_slice(&vm.canvas_buffer[..buf_len]);
+        vm2.screen.copy_from_slice(&vm.screen);
+        vm2.current_pid = vm.current_pid;
+        vm2.mode = vm.mode;
+        vm2.key_port = vm.key_port;
+        vm2.env_vars = vm.env_vars.clone();
+        vm2.processes = vm.processes.clone();
+        vm2.trace_recording = vm.trace_recording;
+        vm2.snapshots = vm.snapshots.clone();
+        vm2.hypervisor_active = vm.hypervisor_active;
+        vm2.hypervisor_mode = vm.hypervisor_mode;
+        vm2.hypervisor_config = vm.hypervisor_config.clone();
+        vm2.hypervisor_window_id = vm.hypervisor_window_id;
+        // Load bytecode
+        for (i, &w) in bytecode.iter().enumerate() {
+            let a = addr as usize + i;
+            if a < vm2.ram.len() {
+                vm2.ram[a] = w;
+            }
+        }
+        vm2.pc = addr;
+        vm2.halted = false;
+        vm2.step();
+        vm2
+    }
+}

@@ -697,6 +697,12 @@ impl Process {
         }
     }
 
+    /// Create a minimal test process with default fields.
+    /// Useful for unit tests that need a process without full setup.
+    pub fn default_spawned(pid: u32) -> Self {
+        Process::new(pid, 0, 0)
+    }
+
     /// Convenience: is this process halted (zombie, segfaulted, or stopped)?
     /// The scheduler skips halted processes.
     pub fn is_halted(&self) -> bool {
