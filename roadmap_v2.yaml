@@ -4829,7 +4829,7 @@ phases:
   _claimed_at: 1778272795
 - id: phase-281
   title: Documentation -- Modernize CANVAS_TEXT_SURFACE.md and ARCHITECTURE.md
-  status: planned
+  status: done
   goal: Update the founding spec and architecture docs to match the current 2928-test,
     217-program, 119K-LOC codebase.
   description: CANVAS_TEXT_SURFACE.md has 12+ documented discrepancies from the current
@@ -4840,18 +4840,18 @@ phases:
   deliverables:
   - name: 'Audit CANVAS_TEXT_SURFACE.md: verify every opcode, address, and behavior
       claim against source code'
-    status: planned
+    status: done
   - name: Update ISA table to include all current opcodes (150+)
-    status: planned
+    status: done
   - name: Remove dead sections (DIRECT mode, .gasm format, pixelc compiler references)
-    status: planned
+    status: done
   - name: Update memory map with all current regions (canvas buffer, screen buffer,
       mailbox, etc.)
-    status: planned
+    status: done
   - name: Audit and update ARCHITECTURE.md with current module structure
-    status: planned
+    status: done
   - name: Add quick-reference section for multi-process and VFS to founding spec
-    status: planned
+    status: done
   acceptance_criteria:
   - description: No documented opcode/address that contradicts source code
     validation: grep-based cross-check script passes
