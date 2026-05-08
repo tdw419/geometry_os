@@ -471,6 +471,14 @@ execute_command:
     CALL cmd_is_date
     JNZ r0, do_date
 
+    ; as (assembler)
+    CALL cmd_is_as
+    JNZ r0, do_as
+
+    ; run (execute assembled bytecode)
+    CALL cmd_is_run
+    JNZ r0, do_run
+
     ; Not a built-in -- try EXEC
     JMP do_exec
 
@@ -991,6 +999,49 @@ cmd_is_date:
     CMP r0, r1
     JNZ r0, cno
     LDI r9, 0x0404
+    LDI r0, 0
+    LOAD r1, r9
+    CMP r0, r1
+    JNZ r0, cno
+    LDI r0, 1
+    RET
+
+cmd_is_as:
+    LDI r9, 0x0400
+    LDI r0, 97        ; a
+    LOAD r1, r9
+    CMP r0, r1
+    JNZ r0, cno
+    LDI r9, 0x0401
+    LDI r0, 115       ; s
+    LOAD r1, r9
+    CMP r0, r1
+    JNZ r0, cno
+    LDI r9, 0x0402
+    LDI r0, 0
+    LOAD r1, r9
+    CMP r0, r1
+    JNZ r0, cno
+    LDI r0, 1
+    RET
+
+cmd_is_run:
+    LDI r9, 0x0400
+    LDI r0, 114       ; r
+    LOAD r1, r9
+    CMP r0, r1
+    JNZ r0, cno
+    LDI r9, 0x0401
+    LDI r0, 117       ; u
+    LOAD r1, r9
+    CMP r0, r1
+    JNZ r0, cno
+    LDI r9, 0x0402
+    LDI r0, 110       ; n
+    LOAD r1, r9
+    CMP r0, r1
+    JNZ r0, cno
+    LDI r9, 0x0403
     LDI r0, 0
     LOAD r1, r9
     CMP r0, r1
@@ -2697,6 +2748,230 @@ date_done:
     POP r15
     RET
 
+do_as:
+    ; Native assembler: as <filename>
+    ; Reads file from VFS, assembles to bytecode at 0x1000
+    ; Reports success (word count) or error
+    PUSH r15
+    PUSH r14
+    PUSH r13
+    PUSH r12
+
+    ; Check for argument (filename)
+    LDI r9, 0x0600
+    LOAD r0, r9
+    JZ r0, as_usage
+
+    ; Open file for reading (mode 0 = read)
+    LDI r1, 0x0600       ; filename addr
+    LDI r2, 0            ; mode = read
+    OPEN r1, r2           ; r0 = fd
+    ; Check for error
+    LDI r1, 0xFFFFFFFF
+    CMP r0, r1
+    JZ r0, as_nofile
+
+    MOV r5, r0            ; save fd in r5
+
+    ; Read file content into 0x3000 (assembly source buffer)
+    LDI r3, 0x3000        ; read buffer
+    LDI r4, 800           ; max bytes (plenty for ASM source)
+    READ r5, r3, r4       ; r0 = bytes read
+
+    CLOSE r5
+
+    ; Null terminate the source
+    MOV r12, r0            ; save bytes_read
+    LDI r6, 0x3000
+    ADD r12, r6            ; r12 = 0x3000 + bytes_read
+    LDI r7, 0
+    STORE r12, r7
+
+    ; Call ASM_RAM to assemble from 0x3000
+    LDI r5, 0x3000
+    ASM_RAM r5             ; result in RAM[0xFFD]
+
+    ; Check result: RAM[0xFFD]
+    LDI r9, 0xFFD
+    LOAD r0, r9            ; word count or 0xFFFFFFFF on error
+
+    ; Check for error (0xFFFFFFFF)
+    LDI r1, 0xFFFFFFFF
+    CMP r0, r1
+    JZ r0, as_error
+
+    ; Success -- display "assembled: N words"
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r8, 12
+    ADD r1, r8
+    STORE r9, r1
+
+    ; Build message at 0x2500: "assembled: N words\n"
+    LDI r11, 0x2500
+    ; "assembled: "
+    LDI r0, 97             ; a
+    STORE r11, r0
+    LDI r1, 1
+    ADD r11, r1
+    LDI r0, 115            ; s
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 115            ; s
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 101            ; e
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 109            ; m
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 98             ; b
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 108            ; l
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 101            ; e
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 100            ; d
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 58             ; :
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 32             ; space
+    STORE r11, r0
+    ADD r11, r1
+
+    ; Convert word count to decimal using date_utoa pattern
+    ; r0 still has the word count from RAM[0xFFD]
+    ; We need a u32-to-decimal conversion
+    ; Write digits in reverse at 0x2700
+    PUSH r11               ; save buffer position
+    LDI r13, 0x2700
+    LDI r14, 0
+as_dtoa:
+    JZ r0, as_dtoa_rev
+    LDI r8, 10
+    DIV r0, r8
+    LDI r8, 48
+    ADD r0, r8
+    STORE r13, r0
+    LDI r8, 1
+    ADD r13, r8
+    ADD r14, r8
+    JMP as_dtoa
+as_dtoa_rev:
+    JZ r14, as_dtoa_done
+    LDI r8, 1
+    SUB r13, r8
+    SUB r14, r8
+    LOAD r0, r13
+    STORE r11, r0
+    ADD r11, r8
+    JMP as_dtoa_rev
+as_dtoa_done:
+    POP r11               ; restore buffer position
+
+    ; " words"
+    LDI r0, 32             ; space
+    STORE r11, r0
+    LDI r8, 1
+    ADD r11, r8
+    LDI r0, 119            ; w
+    STORE r11, r0
+    ADD r11, r8
+    LDI r0, 111            ; o
+    STORE r11, r0
+    ADD r11, r8
+    LDI r0, 114            ; r
+    STORE r11, r0
+    ADD r11, r8
+    LDI r0, 100            ; d
+    STORE r11, r0
+    ADD r11, r8
+    LDI r0, 115            ; s
+    STORE r11, r0
+    ADD r11, r8
+    LDI r0, 0              ; null terminate
+    STORE r11, r0
+
+    ; Display message
+    LDI r2, 4
+    LDI r3, 0x2500
+    TEXT r2, r1, r3
+
+    JMP as_cleanup
+
+as_nofile:
+    ; File not found
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r8, 12
+    ADD r1, r8
+    STORE r9, r1
+    LDI r2, 4
+    LDI r3, as_nofile_msg
+    TEXT r2, r1, r3
+    JMP as_cleanup
+
+as_error:
+    ; Assembly error
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r8, 12
+    ADD r1, r8
+    STORE r9, r1
+    LDI r2, 4
+    LDI r3, as_err_msg
+    TEXT r2, r1, r3
+    JMP as_cleanup
+
+as_usage:
+    ; No filename given
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r8, 12
+    ADD r1, r8
+    STORE r9, r1
+    LDI r2, 4
+    LDI r3, as_usage_msg
+    TEXT r2, r1, r3
+    JMP as_cleanup
+
+as_cleanup:
+    POP r12
+    POP r13
+    POP r14
+    POP r15
+    JMP exec_done
+
+do_run:
+    ; Execute assembled bytecode at 0x1000
+    PUSH r15
+    PUSH r14
+
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r0, 12
+    ADD r1, r0
+    STORE r9, r1
+
+    ; Show "running..." message
+    LDI r2, 4
+    LDI r3, run_msg
+    TEXT r2, r1, r3
+
+    ; Jump to 0x1000
+    RUNNEXT
+
+    ; Should not reach here, but safety
+    POP r14
+    POP r15
+    JMP exec_done
+
 do_exec:
     ; Execute external program via EXEC
     ; Command name at 0x0400
@@ -3364,6 +3639,81 @@ date_nl:
     .byte 97  ; a
     .byte 120 ; x
     .byte 41  ; )
+    .byte 0
+
+.org 0x1E00
+
+as_usage_msg:
+    .byte 117 ; u
+    .byte 115 ; s
+    .byte 97  ; a
+    .byte 103 ; g
+    .byte 101 ; e
+    .byte 58  ; :
+    .byte 32  ; space
+    .byte 97  ; a
+    .byte 115  ; s
+    .byte 32  ; space
+    .byte 60  ; <
+    .byte 102 ; f
+    .byte 105 ; i
+    .byte 108 ; l
+    .byte 101 ; e
+    .byte 62  ; >
+    .byte 0
+
+.org 0x1E20
+
+as_nofile_msg:
+    .byte 102 ; f
+    .byte 105 ; i
+    .byte 108 ; l
+    .byte 101 ; e
+    .byte 32  ; space
+    .byte 110 ; n
+    .byte 111 ; o
+    .byte 116 ; t
+    .byte 32  ; space
+    .byte 102 ; f
+    .byte 111 ; o
+    .byte 117 ; u
+    .byte 110 ; n
+    .byte 100 ; d
+    .byte 0
+
+.org 0x1E40
+
+as_err_msg:
+    .byte 97  ; a
+    .byte 115  ; s
+    .byte 115 ; s
+    .byte 101 ; e
+    .byte 109 ; m
+    .byte 98  ; b
+    .byte 108 ; l
+    .byte 121 ; y
+    .byte 32  ; space
+    .byte 102 ; f
+    .byte 97  ; a
+    .byte 105 ; i
+    .byte 108 ; l
+    .byte 101 ; e
+    .byte 100 ; d
+    .byte 0
+
+.org 0x1E60
+
+run_msg:
+    .byte 114 ; r
+    .byte 117 ; u
+    .byte 110 ; n
+    .byte 110 ; n
+    .byte 105 ; i
+    .byte 110 ; n
+    .byte 103 ; g
+    .byte 46  ; .
+    .byte 46  ; .
+    .byte 46  ; .
     .byte 0
 
 HALT
