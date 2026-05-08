@@ -3719,7 +3719,7 @@ phases:
   _claimed_at: 1778185724
 - id: phase-252
   title: GeOS Program -- Raycasting 3D Engine (Wolfenstein-style)
-  status: planned
+  status: done
   goal: Write a first-person raycasting renderer in assembly
   description: A raycasting engine renders a pseudo-3D view from a 2D map using only
     arithmetic (MUL, DIV, SHL, SHR, SIN table lookups) and PSET/RECTF. This is the
@@ -3728,7 +3728,7 @@ phases:
     it to wall rendering with distance-based shading.
   deliverables:
   - name: Raycasting engine program
-    status: todo
+    status: done
     tasks:
     - id: p252.d1.t1
       title: Implement raycasting core with DDA algorithm
@@ -3754,6 +3754,8 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 360
+  _claimed_by: worker-0
+  _claimed_at: 1778208114
 - id: phase-253
   title: GeOS VM -- Audio System Tests and Improvements
   status: complete

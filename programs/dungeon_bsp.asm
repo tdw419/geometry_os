@@ -258,6 +258,7 @@ bsp_pop:
   LDI r21, 4
   MOV r22, r19
   MUL r22, r21
+  ADD r20, r22        ; r20 = base + (sp-1)*4
   LOAD r10, r20
   ADD r20, r21
   LOAD r11, r20
@@ -637,16 +638,16 @@ set_bit:
   ADD r13, r11
   LDI r14, 5
   MOV r15, r13
-  SHR r15, r14
+  SHR r15, r14        ; r15 = word_index (bit_index >> 5)
   LDI r14, 31
-  AND r16, r13
+  MOV r16, r13
+  AND r16, r14        ; r16 = bit_pos (bit_index & 31)
   LDI r14, 1
-  MOV r17, r16
-  SHL r17, r14
+  SHL r14, r16        ; r14 = mask (1 << bit_pos)
   MOV r18, r10
-  ADD r18, r15
+  ADD r18, r15        ; r18 = &array[word_index]
   LOAD r19, r18
-  OR r19, r17
+  OR r19, r14
   STORE r18, r19
   RET
 
@@ -1028,12 +1029,13 @@ rv_x:
   ADD r4, r13
   LDI r2, 5
   MOV r5, r4
-  SHR r5, r2
+  SHR r5, r2          ; r5 = word_index
   LDI r2, 31
-  AND r6, r4
+  MOV r6, r4
+  AND r6, r2          ; r6 = bit_pos
   LDI r2, 1
-  MOV r8, r6
-  SHL r8, r2
+  SHL r2, r6          ; r2 = mask (1 << bit_pos)
+  MOV r8, r2
   ; Load explored word
   LDI r9, 0x7900
   ADD r9, r5
@@ -1326,40 +1328,44 @@ handle_input:
   IKEY r7
   JZ r7, hi_done
 
+  ; Save key, restore r7=1 for movement delta
+  MOV r8, r7
+  LDI r7, 1
+
   ; W/w/Up
-  LDI r8, 87
-  CMP r7, r8
+  LDI r9, 87
+  CMP r8, r9
   JZ r0, hi_up
-  LDI r8, 119
-  CMP r7, r8
+  LDI r9, 119
+  CMP r8, r9
   JZ r0, hi_up
   ; S/s/Down
-  LDI r8, 83
-  CMP r7, r8
+  LDI r9, 83
+  CMP r8, r9
   JZ r0, hi_down
-  LDI r8, 115
-  CMP r7, r8
+  LDI r9, 115
+  CMP r8, r9
   JZ r0, hi_down
   ; A/a/Left
-  LDI r8, 65
-  CMP r7, r8
+  LDI r9, 65
+  CMP r8, r9
   JZ r0, hi_left
-  LDI r8, 97
-  CMP r7, r8
+  LDI r9, 97
+  CMP r8, r9
   JZ r0, hi_left
   ; D/d/Right
-  LDI r8, 68
-  CMP r7, r8
+  LDI r9, 68
+  CMP r8, r9
   JZ r0, hi_right
-  LDI r8, 100
-  CMP r7, r8
+  LDI r9, 100
+  CMP r8, r9
   JZ r0, hi_right
   ; R/r - restart
-  LDI r8, 82
-  CMP r7, r8
+  LDI r9, 82
+  CMP r8, r9
   JZ r0, hi_restart
-  LDI r8, 114
-  CMP r7, r8
+  LDI r9, 114
+  CMP r8, r9
   JZ r0, hi_restart
   JMP hi_done
 
