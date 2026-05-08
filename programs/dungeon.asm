@@ -566,10 +566,11 @@ do_fog:
 
 ; === FOG OF WAR ===
 ; Three states: 0=hidden, 1=explored (previously visible), 2=visible (current)
-; Pass 1: downgrade visible(2) to explored(1)
-; Pass 2: mark tiles within radius 9 as visible(2)
+; Uses Bresenham raycasting for true line-of-sight
+; Casts rays from player to every tile on the bounding box perimeter
+; Each ray marks tiles visible until it hits a wall
 fog_update:
-    ; Pass 1: 2 -> 1
+    ; Pass 1: downgrade all visible(2) to explored(1)
     LDI r20, 0
     LDI r21, 1024
 fog_d1:
@@ -592,42 +593,226 @@ fd1_next:
     JMP fog_d1
 
 fog_p2:
-    ; Pass 2: mark tiles within radius 9 as visible
-    ; radius^2 = 81
-    LDI r20, 0
-    LDI r21, 1024
-    LDI r22, 81       ; radius^2
-fog_p2l:
-    CMP r20, r21
-    BGE r0, fog_done
-    ; ty = tile / 32
-    MOV r23, r20
-    SHR r23, r5
-    ; tx = tile & 31
-    MOV r24, r20
-    LDI r1, 31
-    AND r24, r1
-    ; dx = tx - player_x (signed)
+    ; Cast rays to perimeter of bounding box around player
+    ; r20 = radius (9), r21 = px, r22 = py
+    LDI r20, 9
+    MOV r21, r8
+    MOV r22, r9
+
+    ; --- Top edge: y = py - r, x from px-r to px+r ---
+    ; r23 = target y, r24 = offset (0 to 2*r)
+    MOV r23, r22
+    SUB r23, r20       ; ty = py - 9
+    LDI r24, 0         ; offset = 0
+fog_top:
+    ; if offset > 2*radius, move to next edge
     MOV r25, r24
-    SUB r25, r8
-    ; dy = ty - player_y (signed)
-    MOV r1, r23
-    SUB r1, r9
-    ; dist_sq = dx*dx + dy*dy
-    MUL r25, r25
-    MUL r1, r1
-    ADD r25, r1
-    CMP r25, r22
-    BGE r0, fog_p2s
-    ; vis[tile] = 2
-    MOV r25, r7
     ADD r25, r20
-    LDI r1, 2
-    STORE r25, r1
-fog_p2s:
-    ADDI r20, 1
-    JMP fog_p2l
+    ADD r25, r20       ; r25 = offset + 18
+    LDI r1, 19
+    CMP r24, r1
+    BGE r0, fog_bot    ; offset >= 19, done with top
+    ; target_x = px - r + offset
+    MOV r25, r21
+    SUB r25, r20
+    ADD r25, r24
+    ; Circle check: dx^2 + dy^2 <= r^2 (dy = r always for top edge)
+    ; dx = offset - r, dx^2 = (offset-r)^2
+    MOV r26, r24
+    SUB r26, r20       ; dx = offset - 9
+    MUL r26, r26       ; dx^2
+    MOV r27, r20
+    MUL r27, r27       ; r^2 = 81
+    ADD r26, r27       ; dx^2 + r^2
+    ; Need dx^2 + dy^2 <= 81, but dy = r so dy^2 = 81
+    ; This means dx must be 0, so only the center tile qualifies
+    ; Actually: dx^2 + dy^2 = dx^2 + r^2 <= r^2 => dx^2 <= 0 => dx=0
+    ; That means the top edge ONLY has the center tile in the circle!
+    ; That's wrong for FOV. We want to cast to ALL perimeter tiles.
+    ; For FOV, we should cast to all tiles within radius, not just on circle.
+    ; Let me just skip the circle check and cast to all perimeter tiles.
+    ; Some rays will be longer than radius but that's fine for coverage.
+    PUSH r31
+    MOV r10, r21       ; x0 = player_x
+    MOV r11, r22       ; y0 = player_y
+    MOV r12, r25       ; x1 = target_x
+    MOV r13, r23       ; y1 = target_y
+    CALL cast_ray
+    POP r31
+    ADDI r24, 1
+    JMP fog_top
+
+fog_bot:
+    ; Bottom edge: y = py + r, x from px-r to px+r
+    MOV r23, r22
+    ADD r23, r20       ; ty = py + 9
+    LDI r24, 0
+fog_bot_l:
+    LDI r1, 19
+    CMP r24, r1
+    BGE r0, fog_left
+    MOV r25, r21
+    SUB r25, r20
+    ADD r25, r24
+    PUSH r31
+    MOV r10, r21
+    MOV r11, r22
+    MOV r12, r25
+    MOV r13, r23
+    CALL cast_ray
+    POP r31
+    ADDI r24, 1
+    JMP fog_bot_l
+
+fog_left:
+    ; Left edge: x = px - r, y from py-r+1 to py+r-1 (skip corners)
+    MOV r25, r21
+    SUB r25, r20       ; tx = px - 9
+    LDI r24, 1         ; start at 1 (skip top-left corner)
+fog_left_l:
+    LDI r1, 18
+    CMP r24, r1
+    BGE r0, fog_right  ; offset >= 18, done (skip bottom-left corner)
+    ; target_y = py - r + offset
+    MOV r23, r22
+    SUB r23, r20
+    ADD r23, r24
+    PUSH r31
+    MOV r10, r21
+    MOV r11, r22
+    MOV r12, r25
+    MOV r13, r23
+    CALL cast_ray
+    POP r31
+    ADDI r24, 1
+    JMP fog_left_l
+
+fog_right:
+    ; Right edge: x = px + r, y from py-r+1 to py+r-1
+    MOV r25, r21
+    ADD r25, r20       ; tx = px + 9
+    LDI r24, 1
+fog_right_l:
+    LDI r1, 18
+    CMP r24, r1
+    BGE r0, fog_done
+    MOV r23, r22
+    SUB r23, r20
+    ADD r23, r24
+    PUSH r31
+    MOV r10, r21
+    MOV r11, r22
+    MOV r12, r25
+    MOV r13, r23
+    CALL cast_ray
+    POP r31
+    ADDI r24, 1
+    JMP fog_right_l
+
 fog_done:
+    RET
+
+; === BRESENHAM RAY CAST ===
+; Trace line from (r10,r11) to (r12,r13) using Bresenham's algorithm
+; Marks each tile as visible (fog=2) until a wall is hit
+; Wall tiles get marked visible but stop the ray
+cast_ray:
+    ; dx_raw = x1 - x0, dy_raw = y1 - y0
+    MOV r14, r12
+    SUB r14, r10       ; dx (signed)
+    MOV r15, r13
+    SUB r15, r11       ; dy (signed)
+
+    ; sx = sign(dx): 1 if dx >= 0, else -1
+    LDI r17, 1
+    LDI r1, 31
+    MOV r19, r14
+    SAR r19, r1
+    JZ r19, cr_sy_pos
+    LDI r17, 0xFFFFFFFF
+cr_sy_pos:
+    ; sy = sign(dy): 1 if dy >= 0, else -1
+    LDI r18, 1
+    MOV r19, r15
+    SAR r19, r1
+    JZ r19, cr_abs
+    LDI r18, 0xFFFFFFFF
+
+cr_abs:
+    ; abs(dx) and abs(dy) using conditional negate
+    MOV r19, r14
+    SAR r19, r1
+    JZ r19, cr_abs_dy
+    NEG r14
+cr_abs_dy:
+    MOV r19, r15
+    SAR r19, r1
+    JZ r19, cr_init
+    NEG r15
+
+cr_init:
+    ; err = adx - ady
+    MOV r16, r14
+    SUB r16, r15
+    ; x = x0, y = y0 (already in r10, r11)
+
+cr_loop:
+    ; Mark tile (r10, r11) as visible if in bounds
+    CMPI r10, 32
+    BGE r0, cr_end
+    CMPI r11, 32
+    BGE r0, cr_end
+    ; vis[y*32 + x] = 2
+    MOV r19, r11
+    SHL r19, r5
+    ADD r19, r10
+    ADD r19, r7
+    LDI r1, 2
+    STORE r19, r1
+
+    ; Check if wall: map[y*32 + x] == 0
+    MOV r19, r11
+    SHL r19, r5
+    ADD r19, r10
+    ADD r19, r6
+    LOAD r19, r19
+    JZ r19, cr_end     ; wall hit, stop
+
+    ; Check if reached target
+    CMP r10, r12
+    JNZ r0, cr_step
+    CMP r11, r13
+    JZ r0, cr_end
+
+cr_step:
+    ; e2 = 2 * err
+    MOV r19, r16
+    SHL r19, r4        ; e2 = err * 2
+
+    ; Standard Bresenham: two independent checks
+    ; Check 1: if e2 > -ady (i.e., e2 + ady > 0): step x, err -= ady
+    MOV r1, r19
+    ADD r1, r15        ; r1 = e2 + ady
+    LDI r26, 0
+    CMP r1, r26
+    BLT r0, cr_no_x   ; skip if e2 + ady < 0
+    ; Step x
+    SUB r16, r15       ; err -= ady
+    ADD r10, r17       ; x += sx
+cr_no_x:
+    ; Check 2: if e2 < adx (i.e., e2 - adx < 0): step y, err += adx
+    MOV r1, r19
+    SUB r1, r14        ; r1 = e2 - adx
+    LDI r26, 0
+    CMP r1, r26
+    BGE r0, cr_no_y   ; skip if e2 - adx >= 0
+    ; Step y
+    ADD r16, r14       ; err += adx
+    ADD r11, r18       ; y += sy
+cr_no_y:
+    JMP cr_loop
+
+cr_end:
     RET
 
 ; === RENDER MAP ===
