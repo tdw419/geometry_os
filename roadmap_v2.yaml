@@ -4671,7 +4671,7 @@ phases:
   _claimed_at: 1778228389
 - id: phase-276
   title: GeOS VM -- ops_graphics.rs Unit Test Suite
-  status: todo
+  status: complete
   goal: Add comprehensive unit tests for all graphics opcodes in ops_graphics.rs (currently
     0 tests).
   description: 'The graphics opcode handler (PSET, PSETI, FILL, RECTF, TEXT, LINE,
@@ -4682,21 +4682,21 @@ phases:
     on uniform surfaces.'
   deliverables:
   - name: PSET boundary tests (0,0), (255,255), (256,256), (-1,-1)
-    status: todo
+    status: done
   - name: RECTF zero-width/height and out-of-bounds tests
-    status: todo
+    status: done
   - name: LINE Bresenham edge cases (horizontal, vertical, diagonal, single pixel)
-    status: todo
+    status: done
   - name: CIRCLE radius 0 and radius overflow tests
-    status: todo
+    status: done
   - name: SPRITE transparency (color=0 skip) and bounds clipping
-    status: todo
+    status: done
   - name: FLOOD fill on uniform and gradient surfaces
-    status: todo
+    status: done
   - name: BLEND/BLENDR alpha=0 and alpha=255 edge cases
-    status: todo
+    status: done
   - name: ROTATE/SCALE identity transform (0 degrees, 1x scale)
-    status: todo
+    status: done
   acceptance_criteria:
   - description: At least 40 new test functions in ops_graphics.rs
     validation: grep -c 'fn test_' src/vm/ops_graphics.rs >= 40
