@@ -2250,9 +2250,9 @@ mod tests {
     // -- Edge cases --
     #[test]
     fn test_unknown_opcode() {
-        let vm = load_instruction(&[0xFE], 0);
+        let vm = load_instruction(&[0xFF], 0);
         let (s, len) = vm.disassemble_at(0);
-        assert_eq!(s, "??? (0xFE)");
+        assert_eq!(s, "??? (0xFF)");
         assert_eq!(len, 1);
     }
 
