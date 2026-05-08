@@ -2,3 +2,4 @@
 {"prompt": "Draw a white diagonal line from (0, 0) to (255, 255)", "file": "001_white_diagonal.asm", "success": true, "non_black_ratio": 0.0039, "timestamp": "2026-05-08T17:12:30"}
 {"prompt": "Fill the entire screen with solid green color using FILL", "file": "002_green_fill.asm", "success": true, "non_black_ratio": 1.0, "timestamp": "2026-05-08T17:19:00"}
 {"prompt": "Draw a single red pixel at position (10, 10)", "file": "003_red_pixel.asm", "success": true, "non_black_ratio": 1.5e-05, "timestamp": "2026-05-08T17:42:00"}
+{"prompt": "Blue background with centered red circle and smaller white circle inside", "file": "004_blue_bg_red_circle.asm", "success": true, "non_black_ratio": 1.0, "timestamp": "2026-05-08T23:01:49"}
