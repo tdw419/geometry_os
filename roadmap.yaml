@@ -11760,10 +11760,10 @@ phases:
     - id: p274.d1.t2
       title: Manually fix remaining clippy warnings
       status: todo
-      description: After clippy --fix, address remaining warnings that need manual
-        intervention: dead_code (unused functions, structs, constants), Default derive
+      description: "After clippy --fix, address remaining warnings that need manual
+        intervention (dead_code, unused functions, structs, constants), Default derive
         suggestions, complex type definitions needing type aliases, and deprecated
-        struct usage. Add #[allow(dead_code)] where appropriate for WIP code.
+        struct usage. Add #[allow(dead_code)] where appropriate for WIP code."
       scope_lines: 100
     scope_lines: 300
   scope_lines_total: 300
