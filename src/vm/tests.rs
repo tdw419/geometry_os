@@ -33124,10 +33124,12 @@ fn test_p276_circle_center_at_corner() {
 #[test]
 fn test_p276_sprite_transparency_skips_zero() {
     let mut vm = Vm::new();
-    // Draw a background pixel first
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0xFF0000;
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    // Draw a 2x2 red background covering the sprite area
+    for y in 10..12 {
+        for x in 10..12 {
+            vm.screen[y * 256 + x] = 0xFF0000;
+        }
+    }
 
     // Sprite data: 2x2, with one transparent (0) pixel
     let base = 0x2000usize;
@@ -33462,10 +33464,9 @@ fn test_p276_screenp_reads_pixel() {
     let mut vm = Vm::new();
     vm.screen[20 * 256 + 30] = 0xABCDEF;
 
-    vm.regs[1] = 7;   // dest reg
-    vm.regs[2] = 30;  // x
-    vm.regs[3] = 20;  // y
-    vm.ram[0] = 0x6D; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.regs[2] = 30; // x
+    vm.regs[3] = 20; // y
+    vm.ram[0] = 0x6D; vm.ram[1] = 7; vm.ram[2] = 2; vm.ram[3] = 3; // dest=r7
     vm.pc = 0; vm.step();
 
     assert_eq!(vm.regs[7], 0xABCDEF, "SCREENP should read pixel into dest reg");
@@ -33489,10 +33490,9 @@ fn test_p276_peek_reads_pixel() {
     let mut vm = Vm::new();
     vm.screen[15 * 256 + 25] = 0x123456;
 
-    vm.regs[1] = 25;  // x
-    vm.regs[2] = 15;  // y
-    vm.regs[3] = 9;   // dest
-    vm.ram[0] = 0x4F; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.regs[1] = 25; // x
+    vm.regs[2] = 15; // y
+    vm.ram[0] = 0x4F; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 9; // dest=r9
     vm.pc = 0; vm.step();
 
     assert_eq!(vm.regs[9], 0x123456, "PEEK should read pixel into dest reg");
