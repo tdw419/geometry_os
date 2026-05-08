@@ -34040,7 +34040,7 @@ fn test_p276_scroll_zero_pixels() {
 // ── PUSH/POP boundary tests ──────────────────────────────
 
 #[test]
-fn test_p278_push_pop_roundtrip_at_0xFF00() {
+fn test_p278_push_pop_roundtrip_at_0x_ff00() {
     // SP starts at 0xFF00. PUSH should store at 0xFEFF, POP should retrieve it.
     let mut vm = Vm::new();
     vm.regs[30] = 0xFF00; // SP = 0xFF00

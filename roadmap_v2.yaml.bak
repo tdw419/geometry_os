@@ -4704,7 +4704,7 @@ phases:
     validation: cargo test --lib ops_graphics
 - id: phase-277
   title: GeOS VM -- ops_extended.rs Unit Test Suite
-  status: planned
+  status: in_progress
   goal: Add unit tests for extended opcodes in ops_extended.rs (currently 0 tests).
   description: The extended opcode handler covers CMP, MOV, SAR, CMOV, CSEL, BFE,
     BFI, FORMULA, and other utility opcodes. Zero test coverage means regressions
@@ -4730,6 +4730,8 @@ phases:
     validation: grep -c 'fn test_' src/vm/ops_extended.rs >= 25
   - description: All tests pass
     validation: cargo test --lib ops_extended
+  _claimed_by: worker-0
+  _claimed_at: 1778264216
 - id: phase-278
   title: GeOS VM -- ops_memory.rs and scheduler.rs Unit Tests
   status: planned
