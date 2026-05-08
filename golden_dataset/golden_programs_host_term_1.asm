@@ -1,4 +1,4 @@
-; DESCRIPTION: This is a terminal emulator implementation written in assembly language. It provides basic terminal functionality such as handling ANSI escape codes and rendering text on the screen. Here are some key features and components of the code:
+; DESCRIPTION: Display a object using color colored at the screen.
 
 1. **Initialization**:
    - The terminal area is initialized with a dark background.
@@ -82,8 +82,8 @@ This terminal emulator is designed to run on a bare-metal system with direct mem
 ;   0x7800-0x847F  Color buffer (80*40 = 3200 u32 cells, parallel to text buffer)
 ;
 ; Registers:
-;   r14  CMP/result
-;   r3  constant 1
+;   r8  CMP/result
+;   r13  constant 1
 ;   r28 PTY handle (live copies)
 ;   r30 stack pointer
 ;
@@ -154,168 +154,168 @@ This terminal emulator is designed to run on a bare-metal system with direct mem
 ; =========================================
 ; INIT
 ; =========================================
-LDI r3, 1
+LDI r13, 1
 LDI r30, 0xFD00
 
 ; Background fill -- dark gray
-LDI r14, 0x0A0A0A
-FILL r14
+LDI r8, 0x0A0A0A
+FILL r8
 
 ; Clear text buffer to spaces
 LDI r20, BUF
-LDI r7, 32
+LDI r15, 32
 clear_buf_init:
-    STORE r20, r7
-    ADD r20, r3
+    STORE r20, r15
+    ADD r20, r13
     CMPI r20, BUF_END
-    BLT r14, clear_buf_init
+    BLT r8, clear_buf_init
 
 ; Cursor + blink + handle + ansi_state init
 LDI r20, CUR_COL
-LDI r14, 0
-STORE r20, r14
+LDI r8, 0
+STORE r20, r8
 LDI r20, CUR_ROW
-STORE r20, r14
+STORE r20, r8
 LDI r20, SAVED_ROW
-STORE r20, r14
+STORE r20, r8
 LDI r20, SAVED_COL
-STORE r20, r14
+STORE r20, r8
 LDI r20, SAVED_FG
-LDI r14, 0xBBBBBB
-STORE r20, r14
+LDI r8, 0xBBBBBB
+STORE r20, r8
 LDI r20, BLINK
-LDI r14, 0
-STORE r20, r14
+LDI r8, 0
+STORE r20, r8
 LDI r20, PTY_HANDLE
-LDI r14, 0xFFFF
-STORE r20, r14
+LDI r8, 0xFFFF
+STORE r20, r8
 LDI r20, ANSI_STATE
-LDI r14, 0
-STORE r20, r14
+LDI r8, 0
+STORE r20, r8
 LDI r20, STATUS_CONNECTED
-STORE r20, r14
+STORE r20, r8
 LDI r20, STATUS_CWD_LEN
-STORE r20, r14
+STORE r20, r8
 LDI r20, OSC_LEN
-STORE r20, r14
+STORE r20, r8
 LDI r20, SCROLL_X
-STORE r20, r14
+STORE r20, r8
 
 ; FG_COLOR init (default light gray)
 LDI r20, FG_COLOR
-LDI r14, 0xBBBBBB
-STORE r20, r14
+LDI r8, 0xBBBBBB
+STORE r20, r8
 
 ; CSI_PARAM init
 LDI r20, CSI_PARAM
-LDI r14, 0
-STORE r20, r14
+LDI r8, 0
+STORE r20, r8
 
 ; CSI_PARAM2 init
 LDI r20, CSI_PARAM2
-LDI r14, 0
-STORE r20, r14
+LDI r8, 0
+STORE r20, r8
 
 ; SGR_EXTENDED init
 LDI r20, SGR_EXTENDED
-LDI r14, 0
-STORE r20, r14
+LDI r8, 0
+STORE r20, r8
 
 ; DIRTY_STATUS init (start dirty so first frame draws)
 LDI r20, DIRTY_STATUS
-LDI r14, 1
-STORE r20, r14
+LDI r8, 1
+STORE r20, r8
 
 ; DIRTY_ROWS init (start all dirty so first frame draws everything)
 LDI r20, DIRTY_ROWS
-LDI r14, 0xFFFFFFFF
-STORE r20, r14
+LDI r8, 0xFFFFFFFF
+STORE r20, r8
 
 ; SCROLL_TOP/BOT init (default: full screen scroll region)
 LDI r20, SCROLL_TOP
-LDI r14, 0
-STORE r20, r14
+LDI r8, 0
+STORE r20, r8
 LDI r20, SCROLL_BOT
-LDI r14, ROWS
-SUB r14, r3         ; ROWS - 1
-STORE r20, r14
+LDI r8, ROWS
+SUB r8, r13         ; ROWS - 1
+STORE r20, r8
 
 ; RENDERED_ROWS init (debug perf counter)
 LDI r20, RENDERED_ROWS
-LDI r14, 0
-STORE r20, r14
+LDI r8, 0
+STORE r20, r8
 
 ; TAB_STOPS init -- default every-8 columns (0, 8, 16, 24, 32, 40, 48, 56, 64, 72)
 ; 3 u32 words: word0=cols 0-31, word1=cols 32-63, word2=cols 64-79
 ; Each 8-column boundary sets bit at position col%32 in the appropriate word
 ; Pattern: 0x01010101 (bits 0,8,16,24 set)
 LDI r20, TAB_STOPS
-LDI r7, 0x01010101
-STORE r20, r7
-ADD r20, r3
-STORE r20, r7
-ADD r20, r3
-STORE r20, r7       ; word2 (cols 64-79): only bits 0,8 used (cols 64,72)
+LDI r15, 0x01010101
+STORE r20, r15
+ADD r20, r13
+STORE r20, r15
+ADD r20, r13
+STORE r20, r15       ; word2 (cols 64-79): only bits 0,8 used (cols 64,72)
 
 ; Clear COLOR_BUF to default FG color
 LDI r20, COLOR_BUF
-LDI r7, 0xBBBBBB
+LDI r15, 0xBBBBBB
 clr_color_init:
-    STORE r20, r7
-    ADD r20, r3
+    STORE r20, r15
+    ADD r20, r13
     CMPI r20, COLOR_END
-    BLT r14, clr_color_init
+    BLT r8, clr_color_init
 
 ; Title bar background
-LDI r3, 0
-LDI r9, 0
-LDI r15, 256
-LDI r6, 10
-LDI r11, 0x1A1A2E
-RECTF r3, r9, r15, r6, r11
+LDI r13, 0
+LDI r1, 0
+LDI r7, 256
+LDI r14, 10
+LDI r5, 0x1A1A2E
+RECTF r13, r1, r7, r14, r5
 
 ; Title text (using SMALLTEXT for compact display)
 LDI r20, SCRATCH
 STRO r20, "shell 80x30"
-LDI r3, 2
-LDI r9, 2
-LDI r15, SCRATCH
-LDI r6, 0x44DD44
-LDI r11, 0x1A1A2E
-SMALLTEXT r3, r9, r15, r6, r11
+LDI r13, 2
+LDI r1, 2
+LDI r7, SCRATCH
+LDI r14, 0x44DD44
+LDI r5, 0x1A1A2E
+SMALLTEXT r13, r1, r7, r14, r5
 
 ; Close button hit region
-LDI r3, 230
-LDI r9, 0
-LDI r15, 26
-LDI r6, 10
-HITSET r3, r9, r15, r6, 99
+LDI r13, 230
+LDI r1, 0
+LDI r7, 26
+LDI r14, 10
+HITSET r13, r1, r7, r14, 99
 
 ; Empty cmd string for PTYOPEN
-LDI r3, CMD_BUF
-LDI r14, 0
-STORE r3, r14
+LDI r13, CMD_BUF
+LDI r8, 0
+STORE r13, r8
 
 ; PTYOPEN
-LDI r11, CMD_BUF
-PTYOPEN r11, r12
+LDI r5, CMD_BUF
+PTYOPEN r5, r10
 
 ; Save handle and mark connected
 LDI r20, PTY_HANDLE
-STORE r20, r12
+STORE r20, r10
 LDI r28, 0
-ADD r28, r12
+ADD r28, r10
 LDI r20, STATUS_CONNECTED
-LDI r14, 1
-STORE r20, r14
+LDI r8, 1
+STORE r20, r8
 
 ; PTYSIZE -- tell the PTY we want 80 cols x 30 rows
-LDI r12, 30
-LDI r10, 80
-PTYSIZE r28, r12, r10
+LDI r10, 30
+LDI r0, 80
+PTYSIZE r28, r10, r0
 
-; r3 = 1 (restore)
-LDI r3, 1
+; r13 = 1 (restore)
+LDI r13, 1
 
 ; =========================================
 ; STARTUP DRAIN (unified)
@@ -334,25 +334,25 @@ LDI r22, 0
 LDI r23, 0
 
 startup_drain:
-    LDI r7, RECV_BUF
+    LDI r15, RECV_BUF
     LDI r4, 512
-    PTYREAD r28, r7, r4
-    MOV r8, r14
-    CMPI r8, 0
-    JZ r14, startup_check_phase
+    PTYREAD r28, r15, r4
+    MOV r9, r8
+    CMPI r9, 0
+    JZ r8, startup_check_phase
     LDI r4, 0xFFFFFFFF
-    CMP r8, r4
-    JZ r14, pty_closed
+    CMP r9, r4
+    JZ r8, pty_closed
 
-    LDI r13, 0
+    LDI r6, 0
 sd_append:
-    CMP r13, r8
-    BGE r14, sd_after
+    CMP r6, r9
+    BGE r8, sd_after
     LDI r20, RECV_BUF
-    ADD r20, r13
-    LOAD r11, r20
+    ADD r20, r6
+    LOAD r5, r20
     CALL process_byte
-    ADD r13, r3
+    ADD r6, r13
     JMP sd_append
 sd_after:
     LDI r21, 1
@@ -360,16 +360,16 @@ sd_after:
 startup_check_phase:
     CALL render
     FRAME
-    ADD r22, r3
+    ADD r22, r13
 
     ; Phase 0: drain for 60 frames
     CMPI r23, 0
-    JNZ r14, sd_phase1
+    JNZ r8, sd_phase1
     CMPI r22, 60
     BLT r22, startup_drain
     ; Check if we got output
     CMPI r21, 0
-    JNZ r14, startup_done
+    JNZ r8, startup_done
     ; No output -- enter probe phase
     LDI r23, 1
     LDI r22, 0
@@ -390,137 +390,137 @@ sd_do_probe:
     FRAME
     LDI r20, SEND_BUF
     STRO r20, "echo ready\n"
-    LDI r7, SEND_BUF
+    LDI r15, SEND_BUF
     LDI r4, 11
-    PTYWRITE r28, r7, r4
+    PTYWRITE r28, r15, r4
     LDI r23, 2
     LDI r22, 0
     JMP startup_drain
 
 startup_done:
-    LDI r3, 1
+    LDI r13, 1
 
 ; =========================================
 ; MAIN LOOP
 ; =========================================
 main_loop:
-    LDI r3, 1
+    LDI r13, 1
 
     ; Drain pty into text buffer
-    LDI r7, RECV_BUF
+    LDI r15, RECV_BUF
     LDI r4, 512
-    PTYREAD r28, r7, r4
-    MOV r8, r14
-    CMPI r8, 0
-    JZ r14, after_drain
+    PTYREAD r28, r15, r4
+    MOV r9, r8
+    CMPI r9, 0
+    JZ r8, after_drain
     LDI r4, 0xFFFFFFFF
-    CMP r8, r4
-    JZ r14, pty_closed
+    CMP r9, r4
+    JZ r8, pty_closed
 
-    LDI r13, 0
+    LDI r6, 0
 append_loop:
-    CMP r13, r8
-    BGE r14, after_drain
+    CMP r6, r9
+    BGE r8, after_drain
     LDI r20, RECV_BUF
-    ADD r20, r13
-    LOAD r11, r20
+    ADD r20, r6
+    LOAD r5, r20
     CALL process_byte
-    ADD r13, r3
+    ADD r6, r13
     JMP append_loop
 
 pty_closed:
     LDI r20, STATUS_CONNECTED
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     LDI r20, DIRTY_STATUS
-    LDI r14, 1
-    STORE r20, r14
+    LDI r8, 1
+    STORE r20, r8
     LDI r20, SEND_BUF
     STRO r20, "[pty closed]"
     CALL write_str_to_buf
     JMP after_drain
 
 after_drain:
-    LDI r3, 1
+    LDI r13, 1
 
     ; Blink counter
     LDI r20, BLINK
-    LOAD r14, r20
-    ADD r14, r3
-    STORE r20, r14
+    LOAD r8, r20
+    ADD r8, r13
+    STORE r20, r8
 
     ; Render
     CALL render
     FRAME
 
     ; Read keystroke
-    IKEY r11
-    JZ r11, main_loop
+    IKEY r5
+    JZ r5, main_loop
 
     ; Translate key and send to PTY
     CALL translate_key
-    CMPI r14, 0
-    JZ r14, main_loop
+    CMPI r8, 0
+    JZ r8, main_loop
 
     ; Send bytes from SEND_BUF
-    LDI r7, SEND_BUF
-    PTYWRITE r28, r7, r14
+    LDI r15, SEND_BUF
+    PTYWRITE r28, r15, r8
     JMP main_loop
 
 ; =========================================
 ; PROCESS_BYTE -- ANSI state machine
-; r11 = byte from PTY
+; r5 = byte from PTY
 ; =========================================
 process_byte:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     LDI r20, ANSI_STATE
-    LOAD r6, r20
+    LOAD r14, r20
 
-    CMPI r6, ANS_NORMAL
-    JNZ r14, pb_check_esc
+    CMPI r14, ANS_NORMAL
+    JNZ r8, pb_check_esc
 
-    CMPI r11, 27
-    JNZ r14, pb_normal_byte
+    CMPI r5, 27
+    JNZ r8, pb_normal_byte
 
     LDI r20, ANSI_STATE
-    LDI r14, ANS_ESC
-    STORE r20, r14
+    LDI r8, ANS_ESC
+    STORE r20, r8
     JMP pb_ret
 
 pb_normal_byte:
     ; Check for UTF-8 multi-byte start
-    CMPI r11, 192
-    BLT r14, pb_ascii
-    CMPI r11, 224
-    BGE r14, pb_utf8_3_start
+    CMPI r5, 192
+    BLT r8, pb_ascii
+    CMPI r5, 224
+    BGE r8, pb_utf8_3_start
 
-    ; 2-byte UTF-8 (0xC0-0xDF): cp = (r11 & 0x1F) << 6
+    ; 2-byte UTF-8 (0xC0-0xDF): cp = (r5 & 0x1F) << 6
     LDI r4, 31
-    AND r11, r4
+    AND r5, r4
     LDI r4, 6
-    SHL r11, r4
+    SHL r5, r4
     LDI r20, UTF8_CP
-    STORE r20, r11
+    STORE r20, r5
     LDI r20, ANSI_STATE
-    LDI r14, ANS_UTF8_2
-    STORE r20, r14
+    LDI r8, ANS_UTF8_2
+    STORE r20, r8
     JMP pb_ret
 
 pb_utf8_3_start:
-    CMPI r11, 240
-    BGE r14, pb_ret
-    ; 3-byte UTF-8 (0xE0-0xEF): cp = (r11 & 0x0F) << 12
+    CMPI r5, 240
+    BGE r8, pb_ret
+    ; 3-byte UTF-8 (0xE0-0xEF): cp = (r5 & 0x0F) << 12
     LDI r4, 15
-    AND r11, r4
+    AND r5, r4
     LDI r4, 12
-    SHL r11, r4
+    SHL r5, r4
     LDI r20, UTF8_CP
-    STORE r20, r11
+    STORE r20, r5
     LDI r20, ANSI_STATE
-    LDI r14, ANS_UTF8_3A
-    STORE r20, r14
+    LDI r8, ANS_UTF8_3A
+    STORE r20, r8
     JMP pb_ret
 
 pb_ascii:
@@ -528,326 +528,326 @@ pb_ascii:
     JMP pb_ret
 
 pb_check_esc:
-    CMPI r6, ANS_ESC
-    JNZ r14, pb_check_csi
+    CMPI r14, ANS_ESC
+    JNZ r8, pb_check_csi
 
-    CMPI r11, 91
-    JNZ r14, pb_esc_check_osc
+    CMPI r5, 91
+    JNZ r8, pb_esc_check_osc
 
     LDI r20, ANSI_STATE
-    LDI r14, ANS_CSI
-    STORE r20, r14
+    LDI r8, ANS_CSI
+    STORE r20, r8
     ; Reset extended SGR state for new sequence
     LDI r20, SGR_EXTENDED
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     ; Reset CSI params so stale values from previous sequences don't leak
     LDI r20, CSI_PARAM
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     LDI r20, CSI_PARAM2
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_check_osc:
-    CMPI r11, 93
-    JNZ r14, pb_esc_save_cursor
+    CMPI r5, 93
+    JNZ r8, pb_esc_save_cursor
 
     LDI r20, ANSI_STATE
-    LDI r14, ANS_OSC
-    STORE r20, r14
+    LDI r8, ANS_OSC
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_save_cursor:
-    CMPI r11, 55 ; '7' = DEC Save Cursor
-    JNZ r14, pb_esc_restore_cursor
+    CMPI r5, 55 ; '7' = DEC Save Cursor
+    JNZ r8, pb_esc_restore_cursor
     CALL save_cursor
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_restore_cursor:
-    CMPI r11, 56 ; '8' = DEC Restore Cursor
-    JNZ r14, pb_esc_index
+    CMPI r5, 56 ; '8' = DEC Restore Cursor
+    JNZ r8, pb_esc_index
     CALL restore_cursor
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_index:
-    CMPI r11, 68 ; 'D' = Index (move down, scroll if at bottom)
-    JNZ r14, pb_esc_rev_index
+    CMPI r5, 68 ; 'D' = Index (move down, scroll if at bottom)
+    JNZ r8, pb_esc_rev_index
     CALL do_newline
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_rev_index:
-    CMPI r11, 77 ; 'M' = Reverse Index (move up, scroll if at top)
-    JNZ r14, pb_esc_ris
+    CMPI r5, 77 ; 'M' = Reverse Index (move up, scroll if at top)
+    JNZ r8, pb_esc_ris
     CALL do_reverse_index
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_ris:
     ; 'c' (99) = RIS (Reset to Initial State)
-    CMPI r11, 99
-    JNZ r14, pb_esc_hts
+    CMPI r5, 99
+    JNZ r8, pb_esc_hts
     ; Reset cursor to (0,0)
     LDI r20, CUR_COL
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     LDI r20, CUR_ROW
-    STORE r20, r14
+    STORE r20, r8
     ; Reset saved cursor
     LDI r20, SAVED_ROW
-    STORE r20, r14
+    STORE r20, r8
     LDI r20, SAVED_COL
-    STORE r20, r14
+    STORE r20, r8
     LDI r20, SAVED_FG
-    LDI r14, 0xBBBBBB
-    STORE r20, r14
+    LDI r8, 0xBBBBBB
+    STORE r20, r8
     ; Reset FG_COLOR to default
     LDI r20, FG_COLOR
-    STORE r20, r14
+    STORE r20, r8
     ; Reset scroll region to full screen
     LDI r20, SCROLL_TOP
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     LDI r20, SCROLL_BOT
-    LDI r14, ROWS
+    LDI r8, ROWS
     LDI r4, 1
-    SUB r14, r4
-    STORE r20, r14
+    SUB r8, r4
+    STORE r20, r8
     ; Reset SGR extended state
     LDI r20, SGR_EXTENDED
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     ; Clear text buffer
     LDI r20, BUF
-    LDI r7, 32
+    LDI r15, 32
 ris_clear_buf:
-    STORE r20, r7
+    STORE r20, r15
     ADD r20, r4
     CMPI r20, BUF_END
-    BLT r14, ris_clear_buf
+    BLT r8, ris_clear_buf
     ; Clear color buffer to default FG
     LDI r20, COLOR_BUF
-    LDI r7, 0xBBBBBB
+    LDI r15, 0xBBBBBB
 ris_clear_color:
-    STORE r20, r7
+    STORE r20, r15
     ADD r20, r4
     CMPI r20, COLOR_END
-    BLT r14, ris_clear_color
+    BLT r8, ris_clear_color
     ; Return to normal state
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_hts:
     ; 'H' (72) = HTS (Horizontal Tabulation Set)
-    CMPI r11, 72
-    JNZ r14, pb_esc_next_line
+    CMPI r5, 72
+    JNZ r8, pb_esc_next_line
     ; Set tab stop at current column
     CALL set_tab_stop
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_next_line:
-    CMPI r11, 69 ; 'E' = Next Line (CR + Index)
-    JNZ r14, pb_esc_other
+    CMPI r5, 69 ; 'E' = Next Line (CR + Index)
+    JNZ r8, pb_esc_other
     LDI r20, CUR_COL
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     CALL do_newline
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_esc_other:
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_check_csi:
-    CMPI r6, ANS_CSI
-    JNZ r14, pb_check_osc
+    CMPI r14, ANS_CSI
+    JNZ r8, pb_check_osc
 
     ; Check if this is a final byte (>= 0x40)
-    CMPI r11, 64
-    BLT r14, pb_csi_param
+    CMPI r5, 64
+    BLT r8, pb_csi_param
 
     ; Final byte arrived -- dispatch based on letter
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     ; Save private mode flag before clearing (handlers need it)
     LDI r20, CSI_PRIVATE
     LOAD r24, r20
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
 
     ; 'm' (109) = SGR color
-    CMPI r11, 109
-    JNZ r14, pb_csi_k
+    CMPI r5, 109
+    JNZ r8, pb_csi_k
     CALL apply_sgr
     JMP pb_ret
 
 pb_csi_k:
     ; 'K' (75) = erase in line
-    CMPI r11, 75
-    JNZ r14, pb_csi_j
+    CMPI r5, 75
+    JNZ r8, pb_csi_j
     CALL csi_erase_line
     JMP pb_ret
 
 pb_csi_j:
     ; 'J' (74) = erase in display
-    CMPI r11, 74
-    JNZ r14, pb_csi_h
+    CMPI r5, 74
+    JNZ r8, pb_csi_h
     CALL csi_erase_display
     JMP pb_ret
 
 pb_csi_h:
     ; 'H' (72) = cursor position (CSI_PARAM2=row, CSI_PARAM=col)
-    CMPI r11, 72
-    JNZ r14, pb_csi_a
+    CMPI r5, 72
+    JNZ r8, pb_csi_a
     CALL csi_cursor_position
     JMP pb_ret
 
 pb_csi_a:
     ; 'A' (65) = cursor up
-    CMPI r11, 65
-    JNZ r14, pb_csi_b
+    CMPI r5, 65
+    JNZ r8, pb_csi_b
     CALL csi_cursor_up
     JMP pb_ret
 
 pb_csi_b:
     ; 'B' (66) = cursor down
-    CMPI r11, 66
-    JNZ r14, pb_csi_c
+    CMPI r5, 66
+    JNZ r8, pb_csi_c
     CALL csi_cursor_down
     JMP pb_ret
 
 pb_csi_c:
     ; 'C' (67) = cursor right
-    CMPI r11, 67
-    JNZ r14, pb_csi_d
+    CMPI r5, 67
+    JNZ r8, pb_csi_d
     CALL csi_cursor_right
     JMP pb_ret
 
 pb_csi_d:
     ; 'D' (68) = cursor left
-    CMPI r11, 68
-    JNZ r14, pb_csi_e
+    CMPI r5, 68
+    JNZ r8, pb_csi_e
     CALL csi_cursor_left
     JMP pb_ret
 
 pb_csi_e:
     ; 'E' (69) = cursor next line (CNL) -- move N lines down, col=0
-    CMPI r11, 69
-    JNZ r14, pb_csi_f
+    CMPI r5, 69
+    JNZ r8, pb_csi_f
     CALL csi_cursor_next_line
     JMP pb_ret
 
 pb_csi_f:
     ; 'F' (70) = cursor previous line (CPL) -- move N lines up, col=0
-    CMPI r11, 70
-    JNZ r14, pb_csi_g
+    CMPI r5, 70
+    JNZ r8, pb_csi_g
     CALL csi_cursor_prev_line
     JMP pb_ret
 
 pb_csi_g:
     ; 'G' (71) = cursor horizontal absolute (CHA)
-    CMPI r11, 71
-    JNZ r14, pb_csi_f_pos
+    CMPI r5, 71
+    JNZ r8, pb_csi_f_pos
     CALL csi_cursor_habsolute
     JMP pb_ret
 
 pb_csi_f_pos:
     ; 'f' (102) = horizontal and vertical position (same as H)
-    CMPI r11, 102
-    JNZ r14, pb_csi_d_lower
+    CMPI r5, 102
+    JNZ r8, pb_csi_d_lower
     CALL csi_cursor_position
     JMP pb_ret
 
 pb_csi_d_lower:
     ; 'd' (100) = cursor vertical absolute (VPA)
-    CMPI r11, 100
-    JNZ r14, pb_csi_l
+    CMPI r5, 100
+    JNZ r8, pb_csi_l
     CALL csi_cursor_vabsolute
     JMP pb_ret
 
 pb_csi_l:
     ; 'L' (76) = insert lines
-    CMPI r11, 76
-    JNZ r14, pb_csi_m
+    CMPI r5, 76
+    JNZ r8, pb_csi_m
     CALL csi_insert_lines
     JMP pb_ret
 
 pb_csi_m:
     ; 'M' (77) = delete lines
-    CMPI r11, 77
-    JNZ r14, pb_csi_p
+    CMPI r5, 77
+    JNZ r8, pb_csi_p
     CALL csi_delete_lines
     JMP pb_ret
 
 pb_csi_p:
     ; 'P' (80) = delete characters
-    CMPI r11, 80
-    JNZ r14, pb_csi_at
+    CMPI r5, 80
+    JNZ r8, pb_csi_at
     CALL csi_delete_chars
     JMP pb_ret
 
 pb_csi_at:
     ; '@' (64) = insert characters (ICH)
-    CMPI r11, 64
-    JNZ r14, pb_csi_s_up
+    CMPI r5, 64
+    JNZ r8, pb_csi_s_up
     CALL csi_insert_chars
     JMP pb_ret
 
 pb_csi_s_up:
     ; 'S' (83) = scroll up N lines
-    CMPI r11, 83
-    JNZ r14, pb_csi_t_down
+    CMPI r5, 83
+    JNZ r8, pb_csi_t_down
     CALL csi_scroll_up
     JMP pb_ret
 
 pb_csi_t_down:
     ; 'T' (84) = scroll down N lines
-    CMPI r11, 84
-    JNZ r14, pb_csi_r
+    CMPI r5, 84
+    JNZ r8, pb_csi_r
     CALL csi_scroll_down
     JMP pb_ret
 
 pb_csi_r:
     ; 'r' (114) = set scrolling region (DECSTBM)
-    CMPI r11, 114
-    JNZ r14, pb_csi_g_tab
+    CMPI r5, 114
+    JNZ r8, pb_csi_g_tab
     CALL csi_set_scroll_region
     JMP pb_ret
 
 pb_csi_g_tab:
     ; 'g' (103) = tab stop clear (TBC)
-    CMPI r11, 103
-    JNZ r14, pb_csi_h_mode
+    CMPI r5, 103
+    JNZ r8, pb_csi_h_mode
     ; TBC: CSI_PARAM determines mode (default 0)
     LDI r20, CSI_PARAM
-    LOAD r14, r20
-    CMPI r14, 3
-    JZ r14, tbc_clear_all
-    CMPI r14, 0
-    JZ r14, tbc_clear_one
+    LOAD r8, r20
+    CMPI r8, 3
+    JZ r8, tbc_clear_all
+    CMPI r8, 0
+    JZ r8, tbc_clear_one
     JMP pb_ret        ; unsupported mode, ignore
 
 tbc_clear_one:
@@ -860,41 +860,41 @@ tbc_clear_all:
 
 pb_csi_h_mode:
     ; 'h' (104) = set mode (private: ?1049h = alt screen on)
-    CMPI r11, 104
-    JNZ r14, pb_csi_l_mode
+    CMPI r5, 104
+    JNZ r8, pb_csi_l_mode
     CMPI r24, 0
-    JZ r14, pb_ret         ; ignore non-private 'h'
+    JZ r8, pb_ret         ; ignore non-private 'h'
     LDI r20, CSI_PARAM
-    LOAD r14, r20
-    CMPI r14, 1049
-    JNZ r14, pb_ret        ; only handle 1049
+    LOAD r8, r20
+    CMPI r8, 1049
+    JNZ r8, pb_ret        ; only handle 1049
     CALL alt_screen_on
     JMP pb_ret
 
 pb_csi_l_mode:
     ; 'l' (108) = reset mode (private: ?1049l = alt screen off)
-    CMPI r11, 108
-    JNZ r14, pb_csi_s
+    CMPI r5, 108
+    JNZ r8, pb_csi_s
     CMPI r24, 0
-    JZ r14, pb_ret         ; ignore non-private 'l'
+    JZ r8, pb_ret         ; ignore non-private 'l'
     LDI r20, CSI_PARAM
-    LOAD r14, r20
-    CMPI r14, 1049
-    JNZ r14, pb_ret        ; only handle 1049
+    LOAD r8, r20
+    CMPI r8, 1049
+    JNZ r8, pb_ret        ; only handle 1049
     CALL alt_screen_off
     JMP pb_ret
 
 pb_csi_s:
     ; 's' (115) = save cursor
-    CMPI r11, 115
-    JNZ r14, pb_csi_u
+    CMPI r5, 115
+    JNZ r8, pb_csi_u
     CALL save_cursor
     JMP pb_ret
 
 pb_csi_u:
     ; 'u' (117) = restore cursor
-    CMPI r11, 117
-    JNZ r14, pb_csi_unknown
+    CMPI r5, 117
+    JNZ r8, pb_csi_unknown
     CALL restore_cursor
     JMP pb_ret
 
@@ -904,165 +904,165 @@ pb_csi_unknown:
 
 pb_csi_param:
     ; '?' (63) = private mode prefix
-    CMPI r11, 63
-    JNZ r14, pb_csi_digit
+    CMPI r5, 63
+    JNZ r8, pb_csi_digit
     LDI r20, CSI_PRIVATE
-    LDI r14, 1
-    STORE r20, r14
+    LDI r8, 1
+    STORE r20, r8
     JMP pb_ret
 
 pb_csi_digit:
     ; Check for digit (0x30-0x39)
-    CMPI r11, 48
-    BLT r14, pb_csi_semi
-    CMPI r11, 58
-    BGE r14, pb_csi_semi
+    CMPI r5, 48
+    BLT r8, pb_csi_semi
+    CMPI r5, 58
+    BGE r8, pb_csi_semi
 
-    ; Accumulate digit: CSI_PARAM = CSI_PARAM * 10 + (r11 - 48)
+    ; Accumulate digit: CSI_PARAM = CSI_PARAM * 10 + (r5 - 48)
     LDI r20, CSI_PARAM
-    LOAD r14, r20
-    LDI r7, 10
-    MUL r14, r7
-    LDI r7, 48
-    SUB r11, r7
-    ADD r14, r11
-    STORE r20, r14
+    LOAD r8, r20
+    LDI r15, 10
+    MUL r8, r15
+    LDI r15, 48
+    SUB r5, r15
+    ADD r8, r5
+    STORE r20, r8
     JMP pb_ret
 
 pb_csi_semi:
     ; Semicolon (0x3B)
     ; For SGR: apply current param (so multi-color like ESC[1;32m works)
     ; For cursor: save param for later (CSI_PARAM2 = row before ';')
-    CMPI r11, 59
-    JNZ r14, pb_ret
+    CMPI r5, 59
+    JNZ r8, pb_ret
 
     ; Save CSI_PARAM to CSI_PARAM2 for cursor sequences
     LDI r20, CSI_PARAM
-    LOAD r14, r20
+    LOAD r8, r20
     LDI r4, CSI_PARAM2
-    STORE r4, r14
+    STORE r4, r8
 
     ; Also apply as SGR (harmless for non-SGR sequences)
     CALL apply_sgr
 
     ; Reset CSI_PARAM for next digit
     LDI r20, CSI_PARAM
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     JMP pb_ret
 
 pb_check_osc:
-    CMPI r6, ANS_OSC
-    JNZ r14, pb_check_utf8_2
+    CMPI r14, ANS_OSC
+    JNZ r8, pb_check_utf8_2
 
-    CMPI r11, 7
-    JZ r14, pb_osc_end
-    CMPI r11, 27
-    JNZ r14, pb_osc_continue
+    CMPI r5, 7
+    JZ r8, pb_osc_end
+    CMPI r5, 27
+    JNZ r8, pb_osc_continue
     LDI r20, ANSI_STATE
-    LDI r14, ANS_ESC
-    STORE r20, r14
+    LDI r8, ANS_ESC
+    STORE r20, r8
     JMP pb_ret
 
 pb_osc_continue:
     LDI r20, OSC_LEN
-    LOAD r14, r20
+    LOAD r8, r20
     LDI r4, 80
-    CMP r14, r4
-    BGE r14, pb_ret
+    CMP r8, r4
+    BGE r8, pb_ret
     LDI r4, OSC_BUF
-    ADD r4, r14
-    STORE r4, r11
-    ADD r14, r3
-    STORE r20, r14
+    ADD r4, r8
+    STORE r4, r5
+    ADD r8, r13
+    STORE r20, r8
     JMP pb_ret
 
 pb_osc_end:
     CALL process_osc
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_check_utf8_2:
-    CMPI r6, ANS_UTF8_2
-    JNZ r14, pb_check_utf8_3a
+    CMPI r14, ANS_UTF8_2
+    JNZ r8, pb_check_utf8_3a
 
     ; Validate continuation byte (0x80-0xBF)
-    CMPI r11, 128
-    BLT r14, pb_reset_state
-    CMPI r11, 192
-    BGE r14, pb_reset_state
+    CMPI r5, 128
+    BLT r8, pb_reset_state
+    CMPI r5, 192
+    BGE r8, pb_reset_state
 
-    ; cp |= (r11 & 0x3F)
+    ; cp |= (r5 & 0x3F)
     LDI r4, 63
-    AND r11, r4
+    AND r5, r4
     LDI r20, UTF8_CP
-    LOAD r14, r20
-    OR r14, r11
-    STORE r20, r14
+    LOAD r8, r20
+    OR r8, r5
+    STORE r20, r8
 
     ; Map codepoint to extended font index and append
     CALL map_codepoint
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_check_utf8_3a:
-    CMPI r6, ANS_UTF8_3A
-    JNZ r14, pb_check_utf8_3b
+    CMPI r14, ANS_UTF8_3A
+    JNZ r8, pb_check_utf8_3b
 
     ; Validate continuation byte
-    CMPI r11, 128
-    BLT r14, pb_reset_state
-    CMPI r11, 192
-    BGE r14, pb_reset_state
+    CMPI r5, 128
+    BLT r8, pb_reset_state
+    CMPI r5, 192
+    BGE r8, pb_reset_state
 
-    ; cp |= (r11 & 0x3F) << 6
+    ; cp |= (r5 & 0x3F) << 6
     LDI r4, 63
-    AND r11, r4
+    AND r5, r4
     LDI r4, 6
-    SHL r11, r4
+    SHL r5, r4
     LDI r20, UTF8_CP
-    LOAD r14, r20
-    OR r14, r11
-    STORE r20, r14
+    LOAD r8, r20
+    OR r8, r5
+    STORE r20, r8
 
     LDI r20, ANSI_STATE
-    LDI r14, ANS_UTF8_3B
-    STORE r20, r14
+    LDI r8, ANS_UTF8_3B
+    STORE r20, r8
     JMP pb_ret
 
 pb_check_utf8_3b:
-    CMPI r6, ANS_UTF8_3B
-    JNZ r14, pb_reset_state
+    CMPI r14, ANS_UTF8_3B
+    JNZ r8, pb_reset_state
 
     ; Validate continuation byte
-    CMPI r11, 128
-    BLT r14, pb_reset_state
-    CMPI r11, 192
-    BGE r14, pb_reset_state
+    CMPI r5, 128
+    BLT r8, pb_reset_state
+    CMPI r5, 192
+    BGE r8, pb_reset_state
 
-    ; cp |= (r11 & 0x3F)
+    ; cp |= (r5 & 0x3F)
     LDI r4, 63
-    AND r11, r4
+    AND r5, r4
     LDI r20, UTF8_CP
-    LOAD r14, r20
-    OR r14, r11
-    STORE r20, r14
+    LOAD r8, r20
+    OR r8, r5
+    STORE r20, r8
 
     ; Map codepoint to extended font index and append
     CALL map_codepoint
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
     JMP pb_ret
 
 pb_reset_state:
     LDI r20, ANSI_STATE
-    LDI r14, ANS_NORMAL
-    STORE r20, r14
+    LDI r8, ANS_NORMAL
+    STORE r20, r8
 
 pb_ret:
     POP r31
@@ -1071,115 +1071,115 @@ pb_ret:
 ; =========================================
 ; DIRTY ROW HELPERS
 ; =========================================
-; mark_row_dirty -- mark row in r14 as dirty
+; mark_row_dirty -- mark row in r8 as dirty
 ; Sets bit (31 - row) in DIRTY_ROWS bitmap
 mark_row_dirty:
-    PUSH r3
-    LDI r3, 31
-    SUB r3, r14          ; r3 = 31 - row
-    LDI r9, 1
-    SHL r9, r3          ; r9 = 1 << (31 - row)
-    LDI r15, DIRTY_ROWS
-    LOAD r6, r15         ; r6 = current bitmap
-    OR r6, r9           ; set the bit
-    STORE r15, r6
-    POP r3
+    PUSH r13
+    LDI r13, 31
+    SUB r13, r8          ; r13 = 31 - row
+    LDI r1, 1
+    SHL r1, r13          ; r1 = 1 << (31 - row)
+    LDI r7, DIRTY_ROWS
+    LOAD r14, r7         ; r14 = current bitmap
+    OR r14, r1           ; set the bit
+    STORE r7, r14
+    POP r13
     RET
 
 ; mark_all_dirty -- mark all 30 rows as dirty
 mark_all_dirty:
-    LDI r3, DIRTY_ROWS
-    LDI r14, 0xFFFFFFFF
-    STORE r3, r14
+    LDI r13, DIRTY_ROWS
+    LDI r8, 0xFFFFFFFF
+    STORE r13, r8
     RET
 
-; mark_row_dirty_check -- check if row in r14 is dirty
-; Returns r14 = bit value (0=clean, nonzero=dirty)
+; mark_row_dirty_check -- check if row in r8 is dirty
+; Returns r8 = bit value (0=clean, nonzero=dirty)
 mark_row_dirty_check:
     PUSH r31
-    LDI r3, 31
-    SUB r3, r14          ; r3 = 31 - row
-    LDI r9, 1
-    SHL r9, r3          ; r9 = 1 << (31 - row)
-    LDI r15, DIRTY_ROWS
-    LOAD r6, r15         ; r6 = current bitmap
-    MOV r14, r6
-    AND r14, r9          ; r14 = bitmap & mask
+    LDI r13, 31
+    SUB r13, r8          ; r13 = 31 - row
+    LDI r1, 1
+    SHL r1, r13          ; r1 = 1 << (31 - row)
+    LDI r7, DIRTY_ROWS
+    LOAD r14, r7         ; r14 = current bitmap
+    MOV r8, r14
+    AND r8, r1          ; r8 = bitmap & mask
     POP r31
     RET
 
 ; =========================================
-; APPEND_BYTE -- append r11 to text buffer
+; APPEND_BYTE -- append r5 to text buffer
 ; =========================================
 append_byte:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
-    CMPI r11, 10
-    JNZ r14, ab_check_cr
+    CMPI r5, 10
+    JNZ r8, ab_check_cr
     CALL do_newline
     JMP ab_ret
 
 ab_check_cr:
-    CMPI r11, 13
-    JNZ r14, ab_check_tab
+    CMPI r5, 13
+    JNZ r8, ab_check_tab
     LDI r20, CUR_COL
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     JMP ab_ret
 
 ab_check_tab:
-    CMPI r11, 9
-    JNZ r14, ab_check_print
+    CMPI r5, 9
+    JNZ r8, ab_check_print
     CALL advance_to_tab
     JMP ab_ret
 
 ab_check_print:
-    CMPI r11, 32
-    BLT r14, ab_ret
+    CMPI r5, 32
+    BLT r8, ab_ret
     ; Accept 32-126 (ASCII printable)
-    CMPI r11, 127
-    BLT r14, ab_store
+    CMPI r5, 127
+    BLT r8, ab_store
     ; Reject 127 (DEL)
-    CMPI r11, 127
-    JZ r14, ab_ret
+    CMPI r5, 127
+    JZ r8, ab_ret
     ; Accept 128-157 (extended box-drawing)
-    CMPI r11, 158
-    BGE r14, ab_ret
+    CMPI r5, 158
+    BGE r8, ab_ret
 
 ab_store:
-    ; buf[row*COLS + col] = r11
+    ; buf[row*COLS + col] = r5
     LDI r20, CUR_ROW
-    LOAD r9, r20
-    LDI r15, COLS
-    MUL r9, r15
+    LOAD r1, r20
+    LDI r7, COLS
+    MUL r1, r7
     LDI r20, CUR_COL
-    LOAD r14, r20
-    ADD r9, r14
+    LOAD r8, r20
+    ADD r1, r8
     LDI r20, BUF
-    ADD r20, r9
-    STORE r20, r11
+    ADD r20, r1
+    STORE r20, r5
 
     ; color_buf[row*COLS + col] = FG_COLOR
     LDI r20, COLOR_BUF
-    ADD r20, r9
-    LDI r7, FG_COLOR
-    LOAD r7, r7
-    STORE r20, r7
+    ADD r20, r1
+    LDI r15, FG_COLOR
+    LOAD r15, r15
+    STORE r20, r15
 
     ; col++
     LDI r20, CUR_COL
-    LOAD r14, r20
-    ADD r14, r3
-    STORE r20, r14
-    CMPI r14, COLS
-    JNZ r14, ab_mark_dirty
+    LOAD r8, r20
+    ADD r8, r13
+    STORE r20, r8
+    CMPI r8, COLS
+    JNZ r8, ab_mark_dirty
     CALL do_newline
 
 ab_mark_dirty:
     ; Mark current row as dirty for rendering
     LDI r20, CUR_ROW
-    LOAD r14, r20
+    LOAD r8, r20
     CALL mark_row_dirty
 
 ab_ret:
@@ -1194,277 +1194,277 @@ ab_ret:
 ; =========================================
 map_codepoint:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     LDI r20, UTF8_CP
-    LOAD r11, r20
+    LOAD r5, r20
 
     ; Box drawing U+2500-U+257F
-    CMPI r11, 9472
-    BLT r14, mc_check_arrows
-    CMPI r11, 9600
-    BGE r14, mc_check_blocks
+    CMPI r5, 9472
+    BLT r8, mc_check_arrows
+    CMPI r5, 9600
+    BGE r8, mc_check_blocks
 
     ; Map U+2500-257F to 128+
     ; 0x2500 = 9472, 128 + (cp - 9472) but only for known chars
     LDI r4, 9472
-    SUB r11, r4
-    ; r11 = offset from U+2500
+    SUB r5, r4
+    ; r5 = offset from U+2500
 
     ; U+2500 (0) = 128 (horiz)
-    CMPI r11, 0
-    JNZ r14, mc_2502
-    LDI r11, 128
+    CMPI r5, 0
+    JNZ r8, mc_2502
+    LDI r5, 128
     CALL append_byte
     JMP mc_ret
 
 mc_2502:
-    CMPI r11, 2
-    JNZ r14, mc_250c
-    LDI r11, 129
+    CMPI r5, 2
+    JNZ r8, mc_250c
+    LDI r5, 129
     CALL append_byte
     JMP mc_ret
 
 mc_250c:
-    CMPI r11, 12
-    JNZ r14, mc_2510
-    LDI r11, 130
+    CMPI r5, 12
+    JNZ r8, mc_2510
+    LDI r5, 130
     CALL append_byte
     JMP mc_ret
 
 mc_2510:
-    CMPI r11, 16
-    JNZ r14, mc_2514
-    LDI r11, 131
+    CMPI r5, 16
+    JNZ r8, mc_2514
+    LDI r5, 131
     CALL append_byte
     JMP mc_ret
 
 mc_2514:
-    CMPI r11, 20
-    JNZ r14, mc_2518
-    LDI r11, 132
+    CMPI r5, 20
+    JNZ r8, mc_2518
+    LDI r5, 132
     CALL append_byte
     JMP mc_ret
 
 mc_2518:
-    CMPI r11, 24
-    JNZ r14, mc_251c
-    LDI r11, 133
+    CMPI r5, 24
+    JNZ r8, mc_251c
+    LDI r5, 133
     CALL append_byte
     JMP mc_ret
 
 mc_251c:
-    CMPI r11, 28
-    JNZ r14, mc_2524
-    LDI r11, 134
+    CMPI r5, 28
+    JNZ r8, mc_2524
+    LDI r5, 134
     CALL append_byte
     JMP mc_ret
 
 mc_2524:
-    CMPI r11, 36
-    JNZ r14, mc_252c
-    LDI r11, 135
+    CMPI r5, 36
+    JNZ r8, mc_252c
+    LDI r5, 135
     CALL append_byte
     JMP mc_ret
 
 mc_252c:
-    CMPI r11, 44
-    JNZ r14, mc_2534
-    LDI r11, 136
+    CMPI r5, 44
+    JNZ r8, mc_2534
+    LDI r5, 136
     CALL append_byte
     JMP mc_ret
 
 mc_2534:
-    CMPI r11, 52
-    JNZ r14, mc_253c
-    LDI r11, 137
+    CMPI r5, 52
+    JNZ r8, mc_253c
+    LDI r5, 137
     CALL append_byte
     JMP mc_ret
 
 mc_253c:
-    CMPI r11, 60
-    JNZ r14, mc_2550
-    LDI r11, 138
+    CMPI r5, 60
+    JNZ r8, mc_2550
+    LDI r5, 138
     CALL append_byte
     JMP mc_ret
 
 mc_2550:
     ; U+2550 = 9552, offset = 80
-    CMPI r11, 80
-    JNZ r14, mc_2551
-    LDI r11, 155
+    CMPI r5, 80
+    JNZ r8, mc_2551
+    LDI r5, 155
     CALL append_byte
     JMP mc_ret
 
 mc_2551:
-    CMPI r11, 81
-    JNZ r14, mc_box_unknown
-    LDI r11, 156
+    CMPI r5, 81
+    JNZ r8, mc_box_unknown
+    LDI r5, 156
     CALL append_byte
     JMP mc_ret
 
 mc_box_unknown:
     ; Unknown box-drawing char, render as '?'
-    LDI r11, 63
+    LDI r5, 63
     CALL append_byte
     JMP mc_ret
 
 mc_check_arrows:
     ; U+2190-U+2193 (arrows)
-    CMPI r11, 8592
-    JNZ r14, mc_check_sym
-    LDI r11, 139
+    CMPI r5, 8592
+    JNZ r8, mc_check_sym
+    LDI r5, 139
     CALL append_byte
     JMP mc_ret
 
 mc_check_sym:
-    CMPI r11, 8594
-    JNZ r14, mc_check_up
-    LDI r11, 140
+    CMPI r5, 8594
+    JNZ r8, mc_check_up
+    LDI r5, 140
     CALL append_byte
     JMP mc_ret
 
 mc_check_up:
-    CMPI r11, 8593
-    JNZ r14, mc_check_down
-    LDI r11, 141
+    CMPI r5, 8593
+    JNZ r8, mc_check_down
+    LDI r5, 141
     CALL append_byte
     JMP mc_ret
 
 mc_check_down:
-    CMPI r11, 8595
-    JNZ r14, mc_check_sym2
-    LDI r11, 142
+    CMPI r5, 8595
+    JNZ r8, mc_check_sym2
+    LDI r5, 142
     CALL append_byte
     JMP mc_ret
 
 mc_check_sym2:
     ; U+2713 (check) = 10003
-    CMPI r11, 10003
-    JNZ r14, mc_check_sym3
-    LDI r11, 143
+    CMPI r5, 10003
+    JNZ r8, mc_check_sym3
+    LDI r5, 143
     CALL append_byte
     JMP mc_ret
 
 mc_check_sym3:
     ; U+2717 (ballot X) = 10007
-    CMPI r11, 10007
-    JNZ r14, mc_check_bullet
-    LDI r11, 144
+    CMPI r5, 10007
+    JNZ r8, mc_check_bullet
+    LDI r5, 144
     CALL append_byte
     JMP mc_ret
 
 mc_check_bullet:
     ; U+2022 (bullet) = 8226
-    CMPI r11, 8226
-    JNZ r14, mc_check_middot
-    LDI r11, 145
+    CMPI r5, 8226
+    JNZ r8, mc_check_middot
+    LDI r5, 145
     CALL append_byte
     JMP mc_ret
 
 mc_check_middot:
     ; U+00B7 (middot) = 183
-    CMPI r11, 183
-    JNZ r14, mc_check_ellipsis
-    LDI r11, 146
+    CMPI r5, 183
+    JNZ r8, mc_check_ellipsis
+    LDI r5, 146
     CALL append_byte
     JMP mc_ret
 
 mc_check_ellipsis:
     ; U+2026 (ellipsis) = 8230
-    CMPI r11, 8230
-    JNZ r14, mc_check_raquo
-    LDI r11, 147
+    CMPI r5, 8230
+    JNZ r8, mc_check_raquo
+    LDI r5, 147
     CALL append_byte
     JMP mc_ret
 
 mc_check_raquo:
     ; U+00BB (right double angle) = 187
-    CMPI r11, 187
-    JNZ r14, mc_check_cjk
-    LDI r11, 157
+    CMPI r5, 187
+    JNZ r8, mc_check_cjk
+    LDI r5, 157
     CALL append_byte
     JMP mc_ret
 
 mc_check_blocks:
     ; Block elements U+2580-U+259F
-    CMPI r11, 9600
-    BLT r14, mc_unknown
-    CMPI r11, 9632
-    BGE r14, mc_check_cjk
+    CMPI r5, 9600
+    BLT r8, mc_unknown
+    CMPI r5, 9632
+    BGE r8, mc_check_cjk
 
     LDI r4, 9600
-    SUB r11, r4
+    SUB r5, r4
     ; U+2580 (0) = 151 (upper half)
-    CMPI r11, 0
-    JNZ r14, mc_2584
-    LDI r11, 151
+    CMPI r5, 0
+    JNZ r8, mc_2584
+    LDI r5, 151
     CALL append_byte
     JMP mc_ret
 
 mc_2584:
-    CMPI r11, 4
-    JNZ r14, mc_2588
-    LDI r11, 152
+    CMPI r5, 4
+    JNZ r8, mc_2588
+    LDI r5, 152
     CALL append_byte
     JMP mc_ret
 
 mc_2588:
-    CMPI r11, 8
-    JNZ r14, mc_258c
-    LDI r11, 148
+    CMPI r5, 8
+    JNZ r8, mc_258c
+    LDI r5, 148
     CALL append_byte
     JMP mc_ret
 
 mc_258c:
-    CMPI r11, 12
-    JNZ r14, mc_258e
-    LDI r11, 149
+    CMPI r5, 12
+    JNZ r8, mc_258e
+    LDI r5, 149
     CALL append_byte
     JMP mc_ret
 
 mc_258e:
-    CMPI r11, 14
-    JNZ r14, mc_2590
-    LDI r11, 153
+    CMPI r5, 14
+    JNZ r8, mc_2590
+    LDI r5, 153
     CALL append_byte
     JMP mc_ret
 
 mc_2590:
-    CMPI r11, 16
-    JNZ r14, mc_258a
-    LDI r11, 150
+    CMPI r5, 16
+    JNZ r8, mc_258a
+    LDI r5, 150
     CALL append_byte
     JMP mc_ret
 
 mc_258a:
-    CMPI r11, 10
-    JNZ r14, mc_block_unknown
-    LDI r11, 154
+    CMPI r5, 10
+    JNZ r8, mc_block_unknown
+    LDI r5, 154
     CALL append_byte
     JMP mc_ret
 
 mc_block_unknown:
-    LDI r11, 148
+    LDI r5, 148
     CALL append_byte
     JMP mc_ret
 
 mc_check_cjk:
     ; CJK Unified Ideographs U+3000-U+9FFF -- render as double-width full block
-    CMPI r11, 12288
-    BLT r14, mc_unknown
-    CMPI r11, 40960
-    BGE r14, mc_unknown
+    CMPI r5, 12288
+    BLT r8, mc_unknown
+    CMPI r5, 40960
+    BGE r8, mc_unknown
 
     ; Full-width char: insert full block, advance col by 2
-    LDI r11, 148
+    LDI r5, 148
     CALL append_byte
     CALL append_byte
     JMP mc_ret
 
 mc_unknown:
     ; Unknown codepoint, render as '?'
-    LDI r11, 63
+    LDI r5, 63
     CALL append_byte
 
 mc_ret:
@@ -1476,190 +1476,190 @@ mc_ret:
 ; =========================================
 translate_key:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
-    CMPI r11, 32
-    BLT r14, tk_special
-    CMPI r11, 127
-    BGE r14, tk_special
+    CMPI r5, 32
+    BLT r8, tk_special
+    CMPI r5, 127
+    BGE r8, tk_special
     LDI r20, SEND_BUF
-    STORE r20, r11
-    LDI r14, 1
+    STORE r20, r5
+    LDI r8, 1
     JMP tk_ret
 
 tk_special:
-    CMPI r11, 13
-    JNZ r14, tk_bs
+    CMPI r5, 13
+    JNZ r8, tk_bs
     LDI r20, SEND_BUF
-    LDI r14, 10
-    STORE r20, r14
-    LDI r14, 1
+    LDI r8, 10
+    STORE r20, r8
+    LDI r8, 1
     JMP tk_ret
 
 tk_bs:
-    CMPI r11, 8
-    JNZ r14, tk_del
+    CMPI r5, 8
+    JNZ r8, tk_del
     LDI r20, SEND_BUF
-    LDI r14, 127
-    STORE r20, r14
-    LDI r14, 1
+    LDI r8, 127
+    STORE r20, r8
+    LDI r8, 1
     JMP tk_ret
 
 tk_del:
-    CMPI r11, 127
-    JNZ r14, tk_tab
+    CMPI r5, 127
+    JNZ r8, tk_tab
     LDI r20, SEND_BUF
-    LDI r14, 127
-    STORE r20, r14
-    LDI r14, 1
+    LDI r8, 127
+    STORE r20, r8
+    LDI r8, 1
     JMP tk_ret
 
 tk_tab:
-    CMPI r11, 9
-    JNZ r14, tk_ctrl_c
+    CMPI r5, 9
+    JNZ r8, tk_ctrl_c
     LDI r20, SEND_BUF
-    LDI r14, 9
-    STORE r20, r14
-    LDI r14, 1
+    LDI r8, 9
+    STORE r20, r8
+    LDI r8, 1
     JMP tk_ret
 
 tk_ctrl_c:
-    CMPI r11, 3
-    JNZ r14, tk_ctrl_d
+    CMPI r5, 3
+    JNZ r8, tk_ctrl_d
     LDI r20, SEND_BUF
-    LDI r14, 3
-    STORE r20, r14
-    LDI r14, 1
+    LDI r8, 3
+    STORE r20, r8
+    LDI r8, 1
     JMP tk_ret
 
 tk_ctrl_d:
-    CMPI r11, 4
-    JNZ r14, tk_escape
+    CMPI r5, 4
+    JNZ r8, tk_escape
     LDI r20, SEND_BUF
-    LDI r14, 4
-    STORE r20, r14
-    LDI r14, 1
+    LDI r8, 4
+    STORE r20, r8
+    LDI r8, 1
     JMP tk_ret
 
 tk_escape:
-    CMPI r11, 27
-    JNZ r14, tk_arrow_up
+    CMPI r5, 27
+    JNZ r8, tk_arrow_up
     LDI r20, SEND_BUF
-    LDI r14, 27
-    STORE r20, r14
-    LDI r14, 1
+    LDI r8, 27
+    STORE r20, r8
+    LDI r8, 1
     JMP tk_ret
 
 tk_arrow_up:
-    CMPI r11, KEY_UP
-    JNZ r14, tk_arrow_down
+    CMPI r5, KEY_UP
+    JNZ r8, tk_arrow_down
     LDI r20, SEND_BUF
-    LDI r14, 27
-    STORE r20, r14
+    LDI r8, 27
+    STORE r20, r8
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r14, 91
-    STORE r20, r14
+    ADD r20, r13
+    LDI r8, 91
+    STORE r20, r8
     LDI r20, SEND_BUF
-    LDI r9, 2
-    ADD r20, r9
-    LDI r14, 65
-    STORE r20, r14
-    LDI r14, 3
+    LDI r1, 2
+    ADD r20, r1
+    LDI r8, 65
+    STORE r20, r8
+    LDI r8, 3
     JMP tk_ret
 
 tk_arrow_down:
-    CMPI r11, KEY_DOWN
-    JNZ r14, tk_arrow_right
+    CMPI r5, KEY_DOWN
+    JNZ r8, tk_arrow_right
     LDI r20, SEND_BUF
-    LDI r14, 27
-    STORE r20, r14
+    LDI r8, 27
+    STORE r20, r8
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r14, 91
-    STORE r20, r14
+    ADD r20, r13
+    LDI r8, 91
+    STORE r20, r8
     LDI r20, SEND_BUF
-    LDI r9, 2
-    ADD r20, r9
-    LDI r14, 66
-    STORE r20, r14
-    LDI r14, 3
+    LDI r1, 2
+    ADD r20, r1
+    LDI r8, 66
+    STORE r20, r8
+    LDI r8, 3
     JMP tk_ret
 
 tk_arrow_right:
-    CMPI r11, KEY_RIGHT
-    JNZ r14, tk_arrow_left
+    CMPI r5, KEY_RIGHT
+    JNZ r8, tk_arrow_left
     LDI r20, SEND_BUF
-    LDI r14, 27
-    STORE r20, r14
+    LDI r8, 27
+    STORE r20, r8
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r14, 91
-    STORE r20, r14
+    ADD r20, r13
+    LDI r8, 91
+    STORE r20, r8
     LDI r20, SEND_BUF
-    LDI r9, 2
-    ADD r20, r9
-    LDI r14, 67
-    STORE r20, r14
-    LDI r14, 3
+    LDI r1, 2
+    ADD r20, r1
+    LDI r8, 67
+    STORE r20, r8
+    LDI r8, 3
     JMP tk_ret
 
 tk_arrow_left:
-    CMPI r11, KEY_LEFT
-    JNZ r14, tk_home
+    CMPI r5, KEY_LEFT
+    JNZ r8, tk_home
     LDI r20, SEND_BUF
-    LDI r14, 27
-    STORE r20, r14
+    LDI r8, 27
+    STORE r20, r8
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r14, 91
-    STORE r20, r14
+    ADD r20, r13
+    LDI r8, 91
+    STORE r20, r8
     LDI r20, SEND_BUF
-    LDI r9, 2
-    ADD r20, r9
-    LDI r14, 68
-    STORE r20, r14
-    LDI r14, 3
+    LDI r1, 2
+    ADD r20, r1
+    LDI r8, 68
+    STORE r20, r8
+    LDI r8, 3
     JMP tk_ret
 
 tk_home:
-    CMPI r11, KEY_HOME
-    JNZ r14, tk_end
+    CMPI r5, KEY_HOME
+    JNZ r8, tk_end
     LDI r20, SEND_BUF
-    LDI r14, 27
-    STORE r20, r14
+    LDI r8, 27
+    STORE r20, r8
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r14, 91
-    STORE r20, r14
+    ADD r20, r13
+    LDI r8, 91
+    STORE r20, r8
     LDI r20, SEND_BUF
-    LDI r9, 2
-    ADD r20, r9
-    LDI r14, 72
-    STORE r20, r14
-    LDI r14, 3
+    LDI r1, 2
+    ADD r20, r1
+    LDI r8, 72
+    STORE r20, r8
+    LDI r8, 3
     JMP tk_ret
 
 tk_end:
-    CMPI r11, KEY_END
-    JNZ r14, tk_ignore
+    CMPI r5, KEY_END
+    JNZ r8, tk_ignore
     LDI r20, SEND_BUF
-    LDI r14, 27
-    STORE r20, r14
+    LDI r8, 27
+    STORE r20, r8
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r14, 91
-    STORE r20, r14
+    ADD r20, r13
+    LDI r8, 91
+    STORE r20, r8
     LDI r20, SEND_BUF
-    LDI r9, 2
-    ADD r20, r9
-    LDI r14, 70
-    STORE r20, r14
-    LDI r14, 3
+    LDI r1, 2
+    ADD r20, r1
+    LDI r8, 70
+    STORE r20, r8
+    LDI r8, 3
     JMP tk_ret
 
 tk_ignore:
-    LDI r14, 0
+    LDI r8, 0
 
 tk_ret:
     POP r31
@@ -1670,20 +1670,20 @@ tk_ret:
 ; =========================================
 do_newline:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CUR_COL
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     LDI r20, CUR_ROW
-    LOAD r7, r20
-    ADD r7, r3
-    CMPI r7, ROWS
-    BLT r14, dn_store
+    LOAD r15, r20
+    ADD r15, r13
+    CMPI r15, ROWS
+    BLT r8, dn_store
     CALL scroll_up
     LDI r20, CUR_ROW
-    LDI r7, 29
+    LDI r15, 29
 dn_store:
-    STORE r20, r7
+    STORE r20, r15
     POP r31
     RET
 
@@ -1692,50 +1692,50 @@ dn_store:
 ; =========================================
 scroll_up:
     PUSH r31
-    LDI r3, 1
-    LDI r10, COLS
-    LDI r12, 0
+    LDI r13, 1
+    LDI r0, COLS
+    LDI r10, 0
 scroll_loop:
-    CMPI r12, 29
-    BGE r14, scroll_clear
+    CMPI r10, 29
+    BGE r8, scroll_clear
 
     ; dst = BUF + row * COLS
     LDI r21, BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
 
     ; src = BUF + (row+1) * COLS
     LDI r20, BUF
-    MOV r14, r12
-    ADD r14, r3
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
+    MOV r8, r10
+    ADD r8, r13
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
 
     ; MEMCPY dst, src, COLS
-    MEMCPY r21, r20, r10
+    MEMCPY r21, r20, r0
 
     ; Same for color buffer: dst = COLOR_BUF + row * COLS
     LDI r21, COLOR_BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
 
     ; src = COLOR_BUF + (row+1) * COLS
     LDI r20, COLOR_BUF
-    MOV r14, r12
-    ADD r14, r3
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
+    MOV r8, r10
+    ADD r8, r13
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
 
     ; MEMCPY dst, src, COLS
-    MEMCPY r21, r20, r10
+    MEMCPY r21, r20, r0
 
-    ADD r12, r3
+    ADD r10, r13
     JMP scroll_loop
 
 scroll_clear:
@@ -1743,34 +1743,34 @@ scroll_clear:
     ; We use a trick: copy from a region we already cleared (row 0 after scroll is row 1's old data)
     ; Simpler: just use a STORE loop for the fill (MEMCPY can't fill)
     LDI r20, BUF
-    LDI r7, 29
-    LDI r10, COLS
-    MUL r7, r10
-    ADD r20, r7
-    LDI r7, 32
+    LDI r15, 29
+    LDI r0, COLS
+    MUL r15, r0
+    ADD r20, r15
+    LDI r15, 32
     LDI r22, 0
 sc_loop:
-    STORE r20, r7
-    ADD r20, r3
-    ADD r22, r3
+    STORE r20, r15
+    ADD r20, r13
+    ADD r22, r13
     CMPI r22, COLS
-    BLT r14, sc_loop
+    BLT r8, sc_loop
 
     ; Clear last row of color buffer with default FG color
     LDI r20, COLOR_BUF
-    LDI r7, 29
-    LDI r10, COLS
-    MUL r7, r10
-    ADD r20, r7
-    LDI r7, FG_COLOR
-    LOAD r7, r7
+    LDI r15, 29
+    LDI r0, COLS
+    MUL r15, r0
+    ADD r20, r15
+    LDI r15, FG_COLOR
+    LOAD r15, r15
     LDI r22, 0
 sc_color_loop:
-    STORE r20, r7
-    ADD r20, r3
-    ADD r22, r3
+    STORE r20, r15
+    ADD r20, r13
+    ADD r22, r13
     CMPI r22, COLS
-    BLT r14, sc_color_loop
+    BLT r8, sc_color_loop
 
     CALL mark_all_dirty
     POP r31
@@ -1781,17 +1781,17 @@ sc_color_loop:
 ; =========================================
 do_reverse_index:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CUR_ROW
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, dri_dec
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, dri_dec
     ; At top of screen — scroll down (insert blank line at top)
     CALL scroll_down
     JMP dri_ret
 dri_dec:
-    SUB r7, r3
-    STORE r20, r7
+    SUB r15, r13
+    STORE r20, r15
 dri_ret:
     POP r31
     RET
@@ -1801,73 +1801,73 @@ dri_ret:
 ; =========================================
 scroll_down:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     ; Copy rows from bottom to top (iterate 28..0)
-    LDI r12, 28
+    LDI r10, 28
 sd_loop:
-    CMPI r12, 0
-    BLT r14, sd_clear
+    CMPI r10, 0
+    BLT r8, sd_clear
 
     ; dst = BUF + (row+1) * COLS
     LDI r21, BUF
-    MOV r14, r12
-    ADD r14, r3
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
+    MOV r8, r10
+    ADD r8, r13
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
 
     ; src = BUF + row * COLS
     LDI r20, BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
 
     ; MEMCPY dst, src, COLS
-    MEMCPY r21, r20, r10
+    MEMCPY r21, r20, r0
 
     ; Same for color buffer
     LDI r21, COLOR_BUF
-    MOV r14, r12
-    ADD r14, r3
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
+    MOV r8, r10
+    ADD r8, r13
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
 
     LDI r20, COLOR_BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
 
-    MEMCPY r21, r20, r10
+    MEMCPY r21, r20, r0
 
-    SUB r12, r3
+    SUB r10, r13
     JMP sd_loop
 
 sd_clear:
     ; Clear top row (row 0) of text buffer
     LDI r20, BUF
-    LDI r7, 32
+    LDI r15, 32
     LDI r22, 0
 sd_text_loop:
-    STORE r20, r7
-    ADD r20, r3
-    ADD r22, r3
+    STORE r20, r15
+    ADD r20, r13
+    ADD r22, r13
     CMPI r22, COLS
-    BLT r14, sd_text_loop
+    BLT r8, sd_text_loop
 
     ; Clear top row of color buffer with default FG color
     LDI r20, COLOR_BUF
-    LDI r7, FG_COLOR
-    LOAD r7, r7
+    LDI r15, FG_COLOR
+    LOAD r15, r15
     LDI r22, 0
 sd_color_loop:
-    STORE r20, r7
-    ADD r20, r3
-    ADD r22, r3
+    STORE r20, r15
+    ADD r20, r13
+    ADD r22, r13
     CMPI r22, COLS
-    BLT r14, sd_color_loop
+    BLT r8, sd_color_loop
 
     POP r31
     RET
@@ -1881,185 +1881,185 @@ sd_color_loop:
 ; =========================================
 
 ; set_tab_stop -- set tab stop at current cursor column
-; Clobbers: r14, r3, r9, r15
+; Clobbers: r8, r13, r1, r7
 set_tab_stop:
     PUSH r31
-    PUSH r14
-    LDI r3, 1
+    PUSH r8
+    LDI r13, 1
     ; Get current column
     LDI r20, CUR_COL
-    LOAD r14, r20
+    LOAD r8, r20
     ; word_index = col / 32
-    LDI r9, 32
-    LDI r15, 0
+    LDI r1, 32
+    LDI r7, 0
 sts_div_loop:
-    CMPI r14, 32
-    BLT r14, sts_div_done
-    SUB r14, r9
-    ADD r15, r3
+    CMPI r8, 32
+    BLT r8, sts_div_done
+    SUB r8, r1
+    ADD r7, r13
     JMP sts_div_loop
 sts_div_done:
-    ; r15 = word_index, r14 = bit position within word
-    PUSH r14              ; save bit position (CMP will clobber r14)
+    ; r7 = word_index, r8 = bit position within word
+    PUSH r8              ; save bit position (CMP will clobber r8)
     ; Load the word
     LDI r20, TAB_STOPS
-    ADD r20, r15
-    LOAD r9, r20
-    POP r14               ; restore bit position
-    ; Set bit: r9 |= (1 << r14)
-    LDI r6, 1
-    LDI r11, 0
+    ADD r20, r7
+    LOAD r1, r20
+    POP r8               ; restore bit position
+    ; Set bit: r1 |= (1 << r8)
+    LDI r14, 1
+    LDI r5, 0
 sts_shift_loop:
-    CMP r11, r14
-    JZ r14, sts_shift_done
-    SHL r6, r3
-    ADD r11, r3
+    CMP r5, r8
+    JZ r8, sts_shift_done
+    SHL r14, r13
+    ADD r5, r13
     JMP sts_shift_loop
 sts_shift_done:
-    OR r9, r6
-    STORE r20, r9
-    POP r14
+    OR r1, r14
+    STORE r20, r1
+    POP r8
     POP r31
     RET
 
 ; clear_tab_at_cursor -- clear tab stop at current cursor column
-; Clobbers: r14, r3, r9, r15
+; Clobbers: r8, r13, r1, r7
 clear_tab_at_cursor:
     PUSH r31
-    PUSH r14
-    LDI r3, 1
+    PUSH r8
+    LDI r13, 1
     ; Get current column
     LDI r20, CUR_COL
-    LOAD r14, r20
+    LOAD r8, r20
     ; word_index = col / 32
-    LDI r9, 32
-    LDI r15, 0
+    LDI r1, 32
+    LDI r7, 0
 ctc_div_loop:
-    CMPI r14, 32
-    BLT r14, ctc_div_done
-    SUB r14, r9
-    ADD r15, r3
+    CMPI r8, 32
+    BLT r8, ctc_div_done
+    SUB r8, r1
+    ADD r7, r13
     JMP ctc_div_loop
 ctc_div_done:
-    ; r15 = word_index, r14 = bit position within word
-    PUSH r14              ; save bit position (CMP will clobber r14)
+    ; r7 = word_index, r8 = bit position within word
+    PUSH r8              ; save bit position (CMP will clobber r8)
     LDI r20, TAB_STOPS
-    ADD r20, r15
-    LOAD r9, r20
-    POP r14               ; restore bit position
-    ; Clear bit: r9 &= ~(1 << r14)
-    LDI r6, 1
-    LDI r11, 0
+    ADD r20, r7
+    LOAD r1, r20
+    POP r8               ; restore bit position
+    ; Clear bit: r1 &= ~(1 << r8)
+    LDI r14, 1
+    LDI r5, 0
 ctc_shift_loop:
-    CMP r11, r14
-    JZ r14, ctc_shift_done
-    SHL r6, r3
-    ADD r11, r3
+    CMP r5, r8
+    JZ r8, ctc_shift_done
+    SHL r14, r13
+    ADD r5, r13
     JMP ctc_shift_loop
 ctc_shift_done:
-    ; r6 = mask. Invert: r6 = ~r6 (all bits except the one to clear)
+    ; r14 = mask. Invert: r14 = ~r14 (all bits except the one to clear)
     ; Geometry OS uses ! for bitwise NOT
-    LDI r7, 0xFFFFFFFF
-    XOR r6, r7
-    AND r9, r6
-    STORE r20, r9
-    POP r14
+    LDI r15, 0xFFFFFFFF
+    XOR r14, r15
+    AND r1, r14
+    STORE r20, r1
+    POP r8
     POP r31
     RET
 
 ; reset_tab_stops -- clear all tab stops, reset to default every-8
-; Clobbers: r14, r3
+; Clobbers: r8, r13
 reset_tab_stops:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     ; Default pattern: 0x01010101 (bits 0, 8, 16, 24)
     LDI r20, TAB_STOPS
-    LDI r14, 0x01010101
-    STORE r20, r14
-    ADD r20, r3
-    STORE r20, r14
-    ADD r20, r3
-    STORE r20, r14
+    LDI r8, 0x01010101
+    STORE r20, r8
+    ADD r20, r13
+    STORE r20, r8
+    ADD r20, r13
+    STORE r20, r8
     POP r31
     RET
 
 ; advance_to_tab -- move cursor to next tab stop (for TAB / 0x09)
 ; If no tab stop found, move to last column (COLS-1)
-; Clobbers: r14, r3, r9, r15, r6, r11
+; Clobbers: r8, r13, r1, r7, r14, r5
 advance_to_tab:
     PUSH r31
-    PUSH r14
-    LDI r3, 1
+    PUSH r8
+    LDI r13, 1
     ; Start searching from (col + 1)
     LDI r20, CUR_COL
-    LOAD r14, r20
-    ADD r14, r3
+    LOAD r8, r20
+    ADD r8, r13
 
 att_scan_loop:
     ; Check if past last column
-    CMPI r14, COLS
-    BGE r14, att_clamp
+    CMPI r8, COLS
+    BGE r8, att_clamp
 
-    ; Save scan column (CMP in div/shift loops clobbers r14)
-    PUSH r14
+    ; Save scan column (CMP in div/shift loops clobbers r8)
+    PUSH r8
 
     ; Compute word_index = col / 32 and bit_pos = col % 32
     ; using repeated subtraction on a copy
-    MOV r9, r14           ; r9 = col (will become bit_pos after div)
-    LDI r15, 0            ; r15 = word_index
+    MOV r1, r8           ; r1 = col (will become bit_pos after div)
+    LDI r7, 0            ; r7 = word_index
     LDI r4, 32           ; r4 = divisor
 att_div_loop:
-    CMPI r9, 32
-    BLT r14, att_check_bit
-    SUB r9, r4           ; r9 -= 32
-    ADD r15, r3           ; word_index++
+    CMPI r1, 32
+    BLT r8, att_check_bit
+    SUB r1, r4           ; r1 -= 32
+    ADD r7, r13           ; word_index++
     JMP att_div_loop
 
 att_check_bit:
     ; Load the tab stop word
     LDI r20, TAB_STOPS
-    ADD r20, r15
-    LOAD r6, r20
-    ; Check if bit r9 is set: shift 1 left by r9, AND
-    LDI r11, 1
-    LDI r7, 0
+    ADD r20, r7
+    LOAD r14, r20
+    ; Check if bit r1 is set: shift 1 left by r1, AND
+    LDI r5, 1
+    LDI r15, 0
 att_shift_loop:
-    CMP r7, r9
-    JZ r14, att_test_bit
-    SHL r11, r3
-    ADD r7, r3
+    CMP r15, r1
+    JZ r8, att_test_bit
+    SHL r5, r13
+    ADD r15, r13
     JMP att_shift_loop
 att_test_bit:
-    AND r6, r11
-    JNZ r6, att_found_pop
+    AND r14, r5
+    JNZ r14, att_found_pop
 
     ; Not a tab stop -- restore column and try next
-    POP r14               ; restore scan column
+    POP r8               ; restore scan column
 att_scan_next:
-    ADD r14, r3
+    ADD r8, r13
     JMP att_scan_loop
 
 att_found_pop:
-    POP r14               ; restore scan column (r14 = tab stop column)
+    POP r8               ; restore scan column (r8 = tab stop column)
 att_found:
-    ; Found tab stop at column r14 -- move cursor there
+    ; Found tab stop at column r8 -- move cursor there
     LDI r20, CUR_COL
-    STORE r20, r14
+    STORE r20, r8
     LDI r20, CUR_ROW
-    LOAD r14, r20         ; r14 = current row for mark_row_dirty
+    LOAD r8, r20         ; r8 = current row for mark_row_dirty
     CALL mark_row_dirty
-    POP r14
+    POP r8
     POP r31
     RET
 
 att_clamp:
     ; Move to last column
     LDI r20, CUR_COL
-    LDI r14, COLS
-    SUB r14, r3
-    STORE r20, r14
+    LDI r8, COLS
+    SUB r8, r13
+    STORE r20, r8
     LDI r20, CUR_ROW
-    LOAD r14, r20         ; r14 = current row for mark_row_dirty
+    LOAD r8, r20         ; r8 = current row for mark_row_dirty
     CALL mark_row_dirty
     POP r31
     RET
@@ -2072,12 +2072,12 @@ write_str_to_buf:
     PUSH r20
     PUSH r25
     MOV r25, r20          ; r25 = string pointer (r20 clobbered by append_byte)
-    LDI r3, 1
+    LDI r13, 1
 wsb_loop:
-    LOAD r11, r25
-    JZ r11, wsb_done
+    LOAD r5, r25
+    JZ r5, wsb_done
     CALL append_byte
-    ADD r25, r3
+    ADD r25, r13
     JMP wsb_loop
 wsb_done:
     POP r25
@@ -2090,69 +2090,69 @@ wsb_done:
 ; =========================================
 process_osc:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     LDI r20, OSC_BUF
-    LOAD r14, r20
-    CMPI r14, 55
-    JNZ r14, po_done
+    LOAD r8, r20
+    CMPI r8, 55
+    JNZ r8, po_done
 
     LDI r20, OSC_BUF
-    ADD r20, r3
-    LOAD r14, r20
-    CMPI r14, 59
-    JNZ r14, po_done
+    ADD r20, r13
+    LOAD r8, r20
+    CMPI r8, 59
+    JNZ r8, po_done
 
-    LDI r12, 0
     LDI r10, 0
+    LDI r0, 0
 po_find_path:
     LDI r20, OSC_BUF
-    ADD r20, r12
-    LOAD r14, r20
-    JZ r14, po_done
-    CMPI r14, 47
-    JNZ r14, po_next
-    ADD r10, r3
-    CMPI r10, 3
-    BGE r14, po_copy_path
+    ADD r20, r10
+    LOAD r8, r20
+    JZ r8, po_done
+    CMPI r8, 47
+    JNZ r8, po_next
+    ADD r0, r13
+    CMPI r0, 3
+    BGE r8, po_copy_path
 po_next:
-    ADD r12, r3
+    ADD r10, r13
     LDI r4, 80
-    CMP r12, r4
-    BLT r14, po_find_path
+    CMP r10, r4
+    BLT r8, po_find_path
     JMP po_done
 
 po_copy_path:
-    LDI r0, 0
+    LDI r2, 0
 po_cp_loop:
     LDI r20, OSC_BUF
-    ADD r20, r12
-    LOAD r14, r20
-    JZ r14, po_cp_done
+    ADD r20, r10
+    LOAD r8, r20
+    JZ r8, po_cp_done
     LDI r4, STATUS_CWD
-    ADD r4, r0
-    STORE r4, r14
-    ADD r12, r3
-    ADD r0, r3
+    ADD r4, r2
+    STORE r4, r8
+    ADD r10, r13
+    ADD r2, r13
     LDI r4, 60
-    CMP r0, r4
-    BLT r14, po_cp_loop
+    CMP r2, r4
+    BLT r8, po_cp_loop
 po_cp_done:
     LDI r4, STATUS_CWD
-    ADD r4, r0
-    LDI r14, 0
-    STORE r4, r14
+    ADD r4, r2
+    LDI r8, 0
+    STORE r4, r8
     LDI r20, STATUS_CWD_LEN
-    STORE r20, r0
+    STORE r20, r2
 
 po_done:
     LDI r20, OSC_LEN
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     ; Mark status bar dirty (CWD may have changed)
     LDI r20, DIRTY_STATUS
-    LDI r14, 1
-    STORE r20, r14
+    LDI r8, 1
+    STORE r20, r8
     POP r31
     RET
 
@@ -2161,144 +2161,144 @@ po_done:
 ; =========================================
 draw_status_bar:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
-    LDI r3, 0
-    LDI r9, 0
-    LDI r15, 256
-    LDI r6, 10
-    LDI r11, 0x1A1A2E
-    RECTF r2, r9, r15, r6, r11
+    LDI r13, 0
+    LDI r1, 0
+    LDI r7, 256
+    LDI r14, 10
+    LDI r5, 0x1A1A2E
+    RECTF r11, r1, r7, r14, r5
 
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, SCRATCH
     STRO r20, "bash: "
     LDI r20, SCRATCH
-    LDI r12, 0
+    LDI r10, 0
 dsb_find_end:
     LDI r4, SCRATCH
-    ADD r4, r12
-    LOAD r14, r4
-    JZ r14, dsb_append_cwd
-    ADD r12, r3
+    ADD r4, r10
+    LOAD r8, r4
+    JZ r8, dsb_append_cwd
+    ADD r10, r13
     JMP dsb_find_end
 
 dsb_append_cwd:
     LDI r20, STATUS_CWD_LEN
-    LOAD r14, r20
-    JZ r14, dsb_no_cwd
+    LOAD r8, r20
+    JZ r8, dsb_no_cwd
 
-    LDI r10, 0
+    LDI r0, 0
 dsb_cp:
     LDI r4, STATUS_CWD
-    ADD r4, r10
-    LOAD r14, r4
-    JZ r14, dsb_cp_done
+    ADD r4, r0
+    LOAD r8, r4
+    JZ r8, dsb_cp_done
     LDI r4, SCRATCH
-    ADD r4, r12
-    STORE r4, r14
-    ADD r12, r3
-    ADD r10, r3
+    ADD r4, r10
+    STORE r4, r8
+    ADD r10, r13
+    ADD r0, r13
     LDI r4, 38
-    CMP r12, r4
-    BLT r14, dsb_cp
+    CMP r10, r4
+    BLT r8, dsb_cp
     JMP dsb_cp_done
 
 dsb_no_cwd:
     LDI r4, SCRATCH
-    ADD r4, r12
-    LDI r14, 126
-    STORE r4, r14
-    ADD r12, r3
+    ADD r4, r10
+    LDI r8, 126
+    STORE r4, r8
+    ADD r10, r13
 
 dsb_cp_done:
     LDI r4, SCRATCH
-    ADD r4, r12
-    LDI r14, 0
-    STORE r4, r14
+    ADD r4, r10
+    LDI r8, 0
+    STORE r4, r8
 
-    LDI r3, 2
-    LDI r9, 2
-    LDI r15, SCRATCH
-    LDI r6, 0x44DD44
-    LDI r11, 0x1A1A2E
-    SMALLTEXT r3, r9, r15, r6, r11
+    LDI r13, 2
+    LDI r1, 2
+    LDI r7, SCRATCH
+    LDI r14, 0x44DD44
+    LDI r5, 0x1A1A2E
+    SMALLTEXT r13, r1, r7, r14, r5
 
     LDI r20, STATUS_CONNECTED
-    LOAD r14, r20
-    JZ r14, dsb_disconnected
+    LOAD r8, r20
+    JZ r8, dsb_disconnected
 
     LDI r20, SCRATCH
-    LDI r14, 42
-    STORE r20, r14
-    LDI r14, 0
-    ADD r20, r3
-    STORE r20, r14
-    LDI r3, 240
-    LDI r9, 2
-    LDI r15, SCRATCH
-    LDI r6, 0x44FF44
-    LDI r11, 0x1A1A2E
-    SMALLTEXT r3, r9, r15, r6, r11
+    LDI r8, 42
+    STORE r20, r8
+    LDI r8, 0
+    ADD r20, r13
+    STORE r20, r8
+    LDI r13, 240
+    LDI r1, 2
+    LDI r7, SCRATCH
+    LDI r14, 0x44FF44
+    LDI r5, 0x1A1A2E
+    SMALLTEXT r13, r1, r7, r14, r5
     JMP dsb_ret
 
 dsb_disconnected:
     LDI r20, SCRATCH
-    LDI r14, 88
-    STORE r20, r14
-    LDI r14, 0
-    ADD r20, r3
-    STORE r20, r14
-    LDI r3, 240
-    LDI r9, 2
-    LDI r15, SCRATCH
-    LDI r6, 0xFF4444
-    LDI r11, 0x1A1A2E
-    SMALLTEXT r3, r9, r15, r6, r11
+    LDI r8, 88
+    STORE r20, r8
+    LDI r8, 0
+    ADD r20, r13
+    STORE r20, r8
+    LDI r13, 240
+    LDI r1, 2
+    LDI r7, SCRATCH
+    LDI r14, 0xFF4444
+    LDI r5, 0x1A1A2E
+    SMALLTEXT r13, r1, r7, r14, r5
 
 dsb_ret:
     ; Draw dirty row count ("N/30" at right edge)
     LDI r20, RENDERED_ROWS
     LOAD r20, r20
 
-    ; Divide by 10: r20 = tens, r14 = ones
+    ; Divide by 10: r20 = tens, r8 = ones
     PUSH r20
     LDI r21, 10
     DIV r20, r21         ; r20 = count / 10
-    POP r14               ; r14 = original count
+    POP r8               ; r8 = original count
     LDI r21, 10
-    MOD r14, r21          ; r14 = count % 10
+    MOD r8, r21          ; r8 = count % 10
 
     ; Write "tens/30" to SCRATCH
     LDI r19, 48
     ADD r20, r19         ; tens + '0'
     LDI r21, SCRATCH
     STORE r21, r20
-    MOV r19, r14
-    LDI r14, 48
-    ADD r19, r14          ; ones + '0'
-    MOV r14, r19
-    ADD r21, r3
-    STORE r21, r14
-    ADD r21, r3
-    LDI r14, 47           ; '/'
-    STORE r21, r14
-    ADD r21, r3
-    LDI r14, 51           ; '3'
-    STORE r21, r14
-    ADD r21, r3
-    LDI r14, 48           ; '0'
-    STORE r21, r14
-    ADD r21, r3
-    LDI r14, 0
-    STORE r21, r14
+    MOV r19, r8
+    LDI r8, 48
+    ADD r19, r8          ; ones + '0'
+    MOV r8, r19
+    ADD r21, r13
+    STORE r21, r8
+    ADD r21, r13
+    LDI r8, 47           ; '/'
+    STORE r21, r8
+    ADD r21, r13
+    LDI r8, 51           ; '3'
+    STORE r21, r8
+    ADD r21, r13
+    LDI r8, 48           ; '0'
+    STORE r21, r8
+    ADD r21, r13
+    LDI r8, 0
+    STORE r21, r8
 
-    LDI r3, 252
-    LDI r9, 2
-    LDI r15, SCRATCH
-    LDI r6, 0x8888FF
-    LDI r11, 0x1A1A2E
-    SMALLTEXT r3, r9, r15, r6, r11
+    LDI r13, 252
+    LDI r1, 2
+    LDI r7, SCRATCH
+    LDI r14, 0x8888FF
+    LDI r5, 0x1A1A2E
+    SMALLTEXT r13, r1, r7, r14, r5
 
     POP r31
     RET
@@ -2306,15 +2306,15 @@ dsb_ret:
 ; =========================================
 ; APPLY_SGR -- apply SGR code from CSI_PARAM to FG_COLOR
 ; Reads CSI_PARAM from RAM, updates FG_COLOR in RAM.
-; Preserves all registers except r14 (CMP clobbers it).
+; Preserves all registers except r8 (CMP clobbers it).
 ; Supports extended SGR (256-color) via SGR_EXTENDED state.
 ; =========================================
 apply_sgr:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     LDI r20, CSI_PARAM
-    LOAD r7, r20       ; r7 = SGR code
+    LOAD r15, r20       ; r15 = SGR code
 
     ; ── Extended SGR state machine ──
     LDI r20, SGR_EXTENDED
@@ -2322,261 +2322,261 @@ apply_sgr:
 
     ; State 0x85: waiting for 256-color FG index
     CMPI r4, 0x85
-    JNZ r14, sgr_ext95
-    CALL sgr_256_to_rgb  ; r14 = RGB from r7 (color index)
+    JNZ r8, sgr_ext95
+    CALL sgr_256_to_rgb  ; r8 = RGB from r15 (color index)
     LDI r20, FG_COLOR
-    STORE r20, r14
+    STORE r20, r8
     LDI r20, SGR_EXTENDED
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_ext95:
     ; State 0x95: waiting for 256-color BG index (not rendered yet)
     CMPI r4, 0x95
-    JNZ r14, sgr_ext38
+    JNZ r8, sgr_ext38
     ; No BG support in renderer, just consume the index
     LDI r20, SGR_EXTENDED
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_ext38:
     ; State 38: saw "38", waiting for sub-mode (5 or 2)
     CMPI r4, 38
-    JNZ r14, sgr_ext48
-    CMPI r7, 5
-    JNZ r14, sgr_ext38_reset
+    JNZ r8, sgr_ext48
+    CMPI r15, 5
+    JNZ r8, sgr_ext38_reset
     ; 38;5 → enter waiting-for-index state (0x85)
     LDI r20, SGR_EXTENDED
-    LDI r14, 0x85
-    STORE r20, r14
+    LDI r8, 0x85
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_ext38_reset:
     ; 38;2 (24-bit) or unknown sub-mode — reset and fall through
     LDI r20, SGR_EXTENDED
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     JMP sgr_normal
 
 sgr_ext48:
     ; State 48: saw "48", waiting for sub-mode
     CMPI r4, 48
-    JNZ r14, sgr_normal
-    CMPI r7, 5
-    JNZ r14, sgr_ext48_reset
+    JNZ r8, sgr_normal
+    CMPI r15, 5
+    JNZ r8, sgr_ext48_reset
     ; 48;5 → enter waiting-for-index state (0x95)
     LDI r20, SGR_EXTENDED
-    LDI r14, 0x95
-    STORE r20, r14
+    LDI r8, 0x95
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_ext48_reset:
     LDI r20, SGR_EXTENDED
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     ; Fall through to normal dispatch
 
 sgr_normal:
     ; ── Extended SGR entry points ──
 
     ; Code 38 = extended FG color
-    CMPI r7, 38
-    JNZ r14, sgr_n48
+    CMPI r15, 38
+    JNZ r8, sgr_n48
     LDI r20, SGR_EXTENDED
-    LDI r14, 38
-    STORE r20, r14
+    LDI r8, 38
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_n48:
     ; Code 48 = extended BG color (accept but no renderer support)
-    CMPI r7, 48
-    JNZ r14, sgr_n39
+    CMPI r15, 48
+    JNZ r8, sgr_n39
     LDI r20, SGR_EXTENDED
-    LDI r14, 48
-    STORE r20, r14
+    LDI r8, 48
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_n39:
     ; Code 39 = reset FG to default
-    CMPI r7, 39
-    JNZ r14, sgr_n49
+    CMPI r15, 39
+    JNZ r8, sgr_n49
     LDI r20, FG_COLOR
-    LDI r14, 0xBBBBBB
-    STORE r20, r14
+    LDI r8, 0xBBBBBB
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_n49:
     ; Code 49 = reset BG (no-op, no BG support)
-    CMPI r7, 49
-    JNZ r14, sgr_existing
+    CMPI r15, 49
+    JNZ r8, sgr_existing
     JMP sgr_ret
 
 sgr_existing:
     ; ── Standard SGR dispatch (16-color) ──
-    ; r7 already loaded with SGR code from above
+    ; r15 already loaded with SGR code from above
 
     ; 0 = reset (default light gray)
-    CMPI r7, 0
-    JNZ r14, sgr_bold
+    CMPI r15, 0
+    JNZ r8, sgr_bold
     LDI r20, FG_COLOR
-    LDI r14, 0xBBBBBB
-    STORE r20, r14
+    LDI r8, 0xBBBBBB
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bold:
     ; 1 = bold (brighten -- just use bright white)
-    CMPI r7, 1
-    JNZ r14, sgr_black
+    CMPI r15, 1
+    JNZ r8, sgr_black
     LDI r20, FG_COLOR
-    LDI r14, 0xFFFFFF
-    STORE r20, r14
+    LDI r8, 0xFFFFFF
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_black:
     ; 30 = black
-    CMPI r7, 30
-    JNZ r14, sgr_red
+    CMPI r15, 30
+    JNZ r8, sgr_red
     LDI r20, FG_COLOR
-    LDI r14, 0x555555
-    STORE r20, r14
+    LDI r8, 0x555555
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_red:
-    CMPI r7, 31
-    JNZ r14, sgr_green
+    CMPI r15, 31
+    JNZ r8, sgr_green
     LDI r20, FG_COLOR
-    LDI r14, 0xCD0000
-    STORE r20, r14
+    LDI r8, 0xCD0000
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_green:
-    CMPI r7, 32
-    JNZ r14, sgr_yellow
+    CMPI r15, 32
+    JNZ r8, sgr_yellow
     LDI r20, FG_COLOR
-    LDI r14, 0x00CD00
-    STORE r20, r14
+    LDI r8, 0x00CD00
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_yellow:
-    CMPI r7, 33
-    JNZ r14, sgr_blue
+    CMPI r15, 33
+    JNZ r8, sgr_blue
     LDI r20, FG_COLOR
-    LDI r14, 0xCDCD00
-    STORE r20, r14
+    LDI r8, 0xCDCD00
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_blue:
-    CMPI r7, 34
-    JNZ r14, sgr_magenta
+    CMPI r15, 34
+    JNZ r8, sgr_magenta
     LDI r20, FG_COLOR
-    LDI r14, 0x0000EE
-    STORE r20, r14
+    LDI r8, 0x0000EE
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_magenta:
-    CMPI r7, 35
-    JNZ r14, sgr_cyan
+    CMPI r15, 35
+    JNZ r8, sgr_cyan
     LDI r20, FG_COLOR
-    LDI r14, 0xCD00CD
-    STORE r20, r14
+    LDI r8, 0xCD00CD
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_cyan:
-    CMPI r7, 36
-    JNZ r14, sgr_white
+    CMPI r15, 36
+    JNZ r8, sgr_white
     LDI r20, FG_COLOR
-    LDI r14, 0x00CDCD
-    STORE r20, r14
+    LDI r8, 0x00CDCD
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_white:
-    CMPI r7, 37
-    JNZ r14, sgr_bright_black
+    CMPI r15, 37
+    JNZ r8, sgr_bright_black
     LDI r20, FG_COLOR
-    LDI r14, 0xE5E5E5
-    STORE r20, r14
+    LDI r8, 0xE5E5E5
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bright_black:
-    CMPI r7, 90
-    JNZ r14, sgr_bright_red
+    CMPI r15, 90
+    JNZ r8, sgr_bright_red
     LDI r20, FG_COLOR
-    LDI r14, 0x808080
-    STORE r20, r14
+    LDI r8, 0x808080
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bright_red:
-    CMPI r7, 91
-    JNZ r14, sgr_bright_green
+    CMPI r15, 91
+    JNZ r8, sgr_bright_green
     LDI r20, FG_COLOR
-    LDI r14, 0xFF0000
-    STORE r20, r14
+    LDI r8, 0xFF0000
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bright_green:
-    CMPI r7, 92
-    JNZ r14, sgr_bright_yellow
+    CMPI r15, 92
+    JNZ r8, sgr_bright_yellow
     LDI r20, FG_COLOR
-    LDI r14, 0x00FF00
-    STORE r20, r14
+    LDI r8, 0x00FF00
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bright_yellow:
-    CMPI r7, 93
-    JNZ r14, sgr_bright_blue
+    CMPI r15, 93
+    JNZ r8, sgr_bright_blue
     LDI r20, FG_COLOR
-    LDI r14, 0xFFFF00
-    STORE r20, r14
+    LDI r8, 0xFFFF00
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bright_blue:
-    CMPI r7, 94
-    JNZ r14, sgr_bright_magenta
+    CMPI r15, 94
+    JNZ r8, sgr_bright_magenta
     LDI r20, FG_COLOR
-    LDI r14, 0x5C5CFF
-    STORE r20, r14
+    LDI r8, 0x5C5CFF
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bright_magenta:
-    CMPI r7, 95
-    JNZ r14, sgr_bright_cyan
+    CMPI r15, 95
+    JNZ r8, sgr_bright_cyan
     LDI r20, FG_COLOR
-    LDI r14, 0xFF00FF
-    STORE r20, r14
+    LDI r8, 0xFF00FF
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bright_cyan:
-    CMPI r7, 96
-    JNZ r14, sgr_bright_white
+    CMPI r15, 96
+    JNZ r8, sgr_bright_white
     LDI r20, FG_COLOR
-    LDI r14, 0x00FFFF
-    STORE r20, r14
+    LDI r8, 0x00FFFF
+    STORE r20, r8
     JMP sgr_ret
 
 sgr_bright_white:
-    CMPI r7, 97
-    JNZ r14, sgr_ret
+    CMPI r15, 97
+    JNZ r8, sgr_ret
     LDI r20, FG_COLOR
-    LDI r14, 0xFFFFFF
-    STORE r20, r14
+    LDI r8, 0xFFFFFF
+    STORE r20, r8
 
 sgr_ret:
     ; Reset CSI_PARAM for next sequence
     LDI r20, CSI_PARAM
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
 
     POP r31
     RET
 
 ; =========================================
 ; SGR_256_TO_RGB -- convert 256-color index to 0xRRGGBB
-; Input:  r7 = color index (0-255)
-; Output: r14 = RGB color value
-; Clobbers: r14, r3, r6, r11
-; Preserves: r7, r4, r20, r31
+; Input:  r15 = color index (0-255)
+; Output: r8 = RGB color value
+; Clobbers: r8, r13, r14, r5
+; Preserves: r15, r4, r20, r31
 ; Palette:
 ;   0-7:   standard colors (match SGR 30-37)
 ;   8-15:  bright colors (match SGR 90-97)
@@ -2587,165 +2587,165 @@ sgr_256_to_rgb:
     PUSH r31
 
     ; Check standard colors 0-15
-    CMPI r7, 16
-    BGE r14, sgr256_cube_check
+    CMPI r15, 16
+    BGE r8, sgr256_cube_check
 
     ; Standard color lookup (0-15)
-    CMPI r7, 0
-    JNZ r14, s256_1
-    LDI r14, 0x555555
+    CMPI r15, 0
+    JNZ r8, s256_1
+    LDI r8, 0x555555
     JMP sgr256_ret
 s256_1:
-    CMPI r7, 1
-    JNZ r14, s256_2
-    LDI r14, 0xCD0000
+    CMPI r15, 1
+    JNZ r8, s256_2
+    LDI r8, 0xCD0000
     JMP sgr256_ret
 s256_2:
-    CMPI r7, 2
-    JNZ r14, s256_3
-    LDI r14, 0x00CD00
+    CMPI r15, 2
+    JNZ r8, s256_3
+    LDI r8, 0x00CD00
     JMP sgr256_ret
 s256_3:
-    CMPI r7, 3
-    JNZ r14, s256_4
-    LDI r14, 0xCDCD00
+    CMPI r15, 3
+    JNZ r8, s256_4
+    LDI r8, 0xCDCD00
     JMP sgr256_ret
 s256_4:
-    CMPI r7, 4
-    JNZ r14, s256_5
-    LDI r14, 0x0000EE
+    CMPI r15, 4
+    JNZ r8, s256_5
+    LDI r8, 0x0000EE
     JMP sgr256_ret
 s256_5:
-    CMPI r7, 5
-    JNZ r14, s256_6
-    LDI r14, 0xCD00CD
+    CMPI r15, 5
+    JNZ r8, s256_6
+    LDI r8, 0xCD00CD
     JMP sgr256_ret
 s256_6:
-    CMPI r7, 6
-    JNZ r14, s256_7
-    LDI r14, 0x00CDCD
+    CMPI r15, 6
+    JNZ r8, s256_7
+    LDI r8, 0x00CDCD
     JMP sgr256_ret
 s256_7:
-    CMPI r7, 7
-    JNZ r14, s256_8
-    LDI r14, 0xE5E5E5
+    CMPI r15, 7
+    JNZ r8, s256_8
+    LDI r8, 0xE5E5E5
     JMP sgr256_ret
 s256_8:
-    CMPI r7, 8
-    JNZ r14, s256_9
-    LDI r14, 0x808080
+    CMPI r15, 8
+    JNZ r8, s256_9
+    LDI r8, 0x808080
     JMP sgr256_ret
 s256_9:
-    CMPI r7, 9
-    JNZ r14, s256_10
-    LDI r14, 0xFF0000
+    CMPI r15, 9
+    JNZ r8, s256_10
+    LDI r8, 0xFF0000
     JMP sgr256_ret
 s256_10:
-    CMPI r7, 10
-    JNZ r14, s256_11
-    LDI r14, 0x00FF00
+    CMPI r15, 10
+    JNZ r8, s256_11
+    LDI r8, 0x00FF00
     JMP sgr256_ret
 s256_11:
-    CMPI r7, 11
-    JNZ r14, s256_12
-    LDI r14, 0xFFFF00
+    CMPI r15, 11
+    JNZ r8, s256_12
+    LDI r8, 0xFFFF00
     JMP sgr256_ret
 s256_12:
-    CMPI r7, 12
-    JNZ r14, s256_13
-    LDI r14, 0x5C5CFF
+    CMPI r15, 12
+    JNZ r8, s256_13
+    LDI r8, 0x5C5CFF
     JMP sgr256_ret
 s256_13:
-    CMPI r7, 13
-    JNZ r14, s256_14
-    LDI r14, 0xFF00FF
+    CMPI r15, 13
+    JNZ r8, s256_14
+    LDI r8, 0xFF00FF
     JMP sgr256_ret
 s256_14:
-    CMPI r7, 14
-    JNZ r14, s256_15
-    LDI r14, 0x00FFFF
+    CMPI r15, 14
+    JNZ r8, s256_15
+    LDI r8, 0x00FFFF
     JMP sgr256_ret
 s256_15:
-    LDI r14, 0xFFFFFF
+    LDI r8, 0xFFFFFF
     JMP sgr256_ret
 
 sgr256_cube_check:
-    CMPI r7, 232
-    BLT r14, sgr256_cube
+    CMPI r15, 232
+    BLT r8, sgr256_cube
 
     ; Grayscale ramp: indices 232-255
     ; v = (index - 232) * 10 + 8
-    LDI r14, 232
-    SUB r7, r14        ; r7 = index - 232
-    LDI r14, 10
-    MUL r7, r14        ; r7 = (index - 232) * 10
-    LDI r14, 8
-    ADD r7, r14        ; r7 = v
+    LDI r8, 232
+    SUB r15, r8        ; r15 = index - 232
+    LDI r8, 10
+    MUL r15, r8        ; r15 = (index - 232) * 10
+    LDI r8, 8
+    ADD r15, r8        ; r15 = v
     ; color = (v << 16) | (v << 8) | v
-    PUSH r7           ; save v
-    LDI r3, 16
-    MOV r14, r7
-    SHL r14, r3        ; r14 = v << 16
-    PUSH r14           ; save high bits
-    LDI r3, 8
-    MOV r14, r7
-    SHL r14, r3        ; r14 = v << 8
-    OR r14, r7         ; r14 = (v << 8) | v
-    POP r3            ; r3 = v << 16
-    OR r14, r3         ; r14 = (v << 16) | (v << 8) | v
-    POP r7            ; restore r7
+    PUSH r15           ; save v
+    LDI r13, 16
+    MOV r8, r15
+    SHL r8, r13        ; r8 = v << 16
+    PUSH r8           ; save high bits
+    LDI r13, 8
+    MOV r8, r15
+    SHL r8, r13        ; r8 = v << 8
+    OR r8, r15         ; r8 = (v << 8) | v
+    POP r13            ; r13 = v << 16
+    OR r8, r13         ; r8 = (v << 16) | (v << 8) | v
+    POP r15            ; restore r15
     JMP sgr256_ret
 
 sgr256_cube:
     ; RGB cube: indices 16-231
     ; n = index - 16
-    LDI r14, 16
-    SUB r7, r14        ; r7 = n = index - 16
+    LDI r8, 16
+    SUB r15, r8        ; r15 = n = index - 16
 
     ; r = n / 36
-    MOV r3, r7
-    LDI r14, 36
-    DIV r3, r14        ; r3 = r
+    MOV r13, r15
+    LDI r8, 36
+    DIV r13, r8        ; r13 = r
 
     ; g = (n % 36) / 6
-    MOV r6, r7
-    LDI r14, 36
-    MOD r6, r14        ; r6 = n % 36
-    LDI r14, 6
-    DIV r6, r14        ; r6 = g
+    MOV r14, r15
+    LDI r8, 36
+    MOD r14, r8        ; r14 = n % 36
+    LDI r8, 6
+    DIV r14, r8        ; r14 = g
 
     ; b = n % 6
-    MOV r11, r7
-    LDI r14, 6
-    MOD r11, r14        ; r11 = b
+    MOV r5, r15
+    LDI r8, 6
+    MOD r5, r8        ; r5 = b
 
     ; R = r * 40 + 55
-    LDI r14, 40
-    MUL r3, r14
-    LDI r14, 55
-    ADD r3, r14        ; r3 = R
+    LDI r8, 40
+    MUL r13, r8
+    LDI r8, 55
+    ADD r13, r8        ; r13 = R
 
     ; G = g * 40 + 55
-    LDI r14, 40
-    MUL r6, r14
-    LDI r14, 55
-    ADD r6, r14        ; r6 = G
+    LDI r8, 40
+    MUL r14, r8
+    LDI r8, 55
+    ADD r14, r8        ; r14 = G
 
     ; B = b * 40 + 55
-    LDI r14, 40
-    MUL r11, r14
-    LDI r14, 55
-    ADD r11, r14        ; r11 = B
+    LDI r8, 40
+    MUL r5, r8
+    LDI r8, 55
+    ADD r5, r8        ; r5 = B
 
     ; color = (R << 16) | (G << 8) | B
-    MOV r14, r3
-    LDI r7, 16
-    SHL r14, r7        ; r14 = R << 16
-    MOV r7, r6
-    LDI r3, 8
-    SHL r7, r3        ; r7 = G << 8
-    OR r14, r7         ; r14 = (R << 16) | (G << 8)
-    OR r14, r11         ; r14 = (R << 16) | (G << 8) | B
+    MOV r8, r13
+    LDI r15, 16
+    SHL r8, r15        ; r8 = R << 16
+    MOV r15, r14
+    LDI r13, 8
+    SHL r15, r13        ; r15 = G << 8
+    OR r8, r15         ; r8 = (R << 16) | (G << 8)
+    OR r8, r5         ; r8 = (R << 16) | (G << 8) | B
 
 sgr256_ret:
     POP r31
@@ -2757,72 +2757,72 @@ sgr256_ret:
 ; =========================================
 csi_erase_line:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     LDI r20, CSI_PARAM
-    LOAD r7, r20       ; r7 = mode (0, 1, or 2)
+    LOAD r15, r20       ; r15 = mode (0, 1, or 2)
 
     ; Get current row
     LDI r20, CUR_ROW
     LOAD r4, r20       ; r4 = row
-    LDI r8, COLS
-    MUL r4, r8         ; r4 = row * COLS
+    LDI r9, COLS
+    MUL r4, r9         ; r4 = row * COLS
 
     ; Get current col
     LDI r20, CUR_COL
-    LOAD r13, r20       ; r13 = col
+    LOAD r6, r20       ; r6 = col
 
     ; Determine start and end columns
     ; mode 0: col..COLS-1 (default)
     ; mode 1: 0..col
     ; mode 2: 0..COLS-1
-    LDI r12, 0         ; r12 = start_col
-    MOV r10, r13        ; r10 = end_col (exclusive)
-    CMPI r7, 0
-    JZ r14, cel_clear
-    CMPI r7, 1
-    JNZ r14, cel_mode2
+    LDI r10, 0         ; r10 = start_col
+    MOV r0, r6        ; r0 = end_col (exclusive)
+    CMPI r15, 0
+    JZ r8, cel_clear
+    CMPI r15, 1
+    JNZ r8, cel_mode2
     ; mode 1: 0..col+1
-    LDI r12, 0
-    ADD r10, r3        ; col+1
+    LDI r10, 0
+    ADD r0, r13        ; col+1
     JMP cel_clear
 cel_mode2:
     ; mode 2: 0..COLS
-    LDI r12, 0
-    LDI r10, COLS
+    LDI r10, 0
+    LDI r0, COLS
 
 cel_clear:
     ; Clear text cells from start_col to end_col
-    MOV r0, r12
+    MOV r2, r10
 cel_loop:
-    CMP r0, r10
-    BGE r14, cel_done
+    CMP r2, r0
+    BGE r8, cel_done
     LDI r20, BUF
     ADD r20, r4
-    ADD r20, r0
-    LDI r14, 32
-    STORE r20, r14
+    ADD r20, r2
+    LDI r8, 32
+    STORE r20, r8
     ; Clear color cell too
     LDI r20, COLOR_BUF
-    LDI r14, 0
-    ADD r14, r4
-    ADD r14, r0
-    LDI r1, FG_COLOR
-    LOAD r1, r1
-    ADD r20, r14
-    STORE r20, r1
-    ADD r0, r3
+    LDI r8, 0
+    ADD r8, r4
+    ADD r8, r2
+    LDI r3, FG_COLOR
+    LOAD r3, r3
+    ADD r20, r8
+    STORE r20, r3
+    ADD r2, r13
     JMP cel_loop
 
 cel_done:
     LDI r20, DIRTY_STATUS
-    LDI r14, 1
-    STORE r20, r14
+    LDI r8, 1
+    STORE r20, r8
     ; Mark current row as dirty (row is in r4 / COLS)
     ; Re-derive row from saved value: r4 = row * COLS, row = r4 / COLS
     ; Actually we saved CUR_ROW into r4 early, then multiplied. Re-read CUR_ROW.
     LDI r20, CUR_ROW
-    LOAD r14, r20
+    LOAD r8, r20
     CALL mark_row_dirty
 
     POP r31
@@ -2834,24 +2834,24 @@ cel_done:
 ; =========================================
 csi_erase_display:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     LDI r20, CSI_PARAM
-    LOAD r7, r20       ; r7 = mode
+    LOAD r15, r20       ; r15 = mode
 
-    CMPI r7, 2
-    JNZ r14, ced_check0
+    CMPI r15, 2
+    JNZ r8, ced_check0
 
     ; Mode 2: clear entire screen
     CALL clear_entire_screen
 
     ; Reset cursor
     LDI r20, CUR_COL
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     LDI r20, CUR_ROW
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     JMP ced_done
 
 ced_check0:
@@ -2860,35 +2860,35 @@ ced_check0:
     ; For now just implement mode 0 (most common -- used by 'clear')
     ; Clear current row from cursor to end
     LDI r20, CUR_COL
-    LOAD r13, r20
+    LOAD r6, r20
     LDI r20, CUR_ROW
-    LOAD r12, r20
-    LDI r10, COLS
-    MUL r12, r10
-    ADD r12, r13        ; offset = row*COLS + col
+    LOAD r10, r20
+    LDI r0, COLS
+    MUL r10, r0
+    ADD r10, r6        ; offset = row*COLS + col
 
     LDI r4, ROWS
-    LDI r8, COLS
-    MUL r4, r8         ; total cells
+    LDI r9, COLS
+    MUL r4, r9         ; total cells
 ced_loop0:
-    CMP r12, r4
-    BGE r14, ced_done
+    CMP r10, r4
+    BGE r8, ced_done
     LDI r20, BUF
-    ADD r20, r12
-    LDI r14, 32
-    STORE r20, r14
+    ADD r20, r10
+    LDI r8, 32
+    STORE r20, r8
     LDI r20, COLOR_BUF
-    ADD r20, r12
-    LDI r7, FG_COLOR
-    LOAD r7, r7
-    STORE r20, r7
-    ADD r12, r3
+    ADD r20, r10
+    LDI r15, FG_COLOR
+    LOAD r15, r15
+    STORE r20, r15
+    ADD r10, r13
     JMP ced_loop0
 
 ced_done:
     LDI r20, DIRTY_STATUS
-    LDI r14, 1
-    STORE r20, r14
+    LDI r8, 1
+    STORE r20, r8
     CALL mark_all_dirty
 
     POP r31
@@ -2901,49 +2901,49 @@ ced_done:
 ; =========================================
 csi_cursor_position:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Row: CSI_PARAM2, default 0 means row 1
     LDI r20, CSI_PARAM2
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, ccp_row_set
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, ccp_row_set
+    LDI r15, 1
 ccp_row_set:
-    SUB r7, r3         ; convert to 0-based
-    CMPI r7, 0
-    BGE r14, ccp_row_clamp
-    LDI r7, 0
+    SUB r15, r13         ; convert to 0-based
+    CMPI r15, 0
+    BGE r8, ccp_row_clamp
+    LDI r15, 0
 ccp_row_clamp:
     LDI r4, ROWS
-    SUB r4, r3
-    CMP r7, r4
-    BLT r14, ccp_row_ok
-    MOV r7, r4
+    SUB r4, r13
+    CMP r15, r4
+    BLT r8, ccp_row_ok
+    MOV r15, r4
 ccp_row_ok:
     LDI r20, CUR_ROW
-    STORE r20, r7
+    STORE r20, r15
 
     ; Col: CSI_PARAM, default 0 means col 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, ccp_col_set
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, ccp_col_set
+    LDI r15, 1
 ccp_col_set:
-    SUB r7, r3         ; convert to 0-based
-    CMPI r7, 0
-    BGE r14, ccp_col_clamp
-    LDI r7, 0
+    SUB r15, r13         ; convert to 0-based
+    CMPI r15, 0
+    BGE r8, ccp_col_clamp
+    LDI r15, 0
 ccp_col_clamp:
     LDI r4, COLS
-    SUB r4, r3
-    CMP r7, r4
-    BLT r14, ccp_col_ok
-    MOV r7, r4
+    SUB r4, r13
+    CMP r15, r4
+    BLT r8, ccp_col_ok
+    MOV r15, r4
 ccp_col_ok:
     LDI r20, CUR_COL
-    STORE r20, r7
+    STORE r20, r15
 
     POP r31
     RET
@@ -2954,18 +2954,18 @@ ccp_col_ok:
 ; =========================================
 csi_cursor_up:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, ccu_move
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, ccu_move
+    LDI r15, 1
 ccu_move:
     LDI r20, CUR_ROW
     LOAD r4, r20
-    SUB r4, r7
+    SUB r4, r15
     CMPI r4, 0
-    BGE r14, ccu_ok
+    BGE r8, ccu_ok
     LDI r4, 0
 ccu_ok:
     STORE r20, r4
@@ -2974,21 +2974,21 @@ ccu_ok:
 
 csi_cursor_down:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, ccd_move
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, ccd_move
+    LDI r15, 1
 ccd_move:
     LDI r20, CUR_ROW
     LOAD r4, r20
-    ADD r4, r7
-    LDI r8, ROWS
-    SUB r8, r3
-    CMP r4, r8
-    BLT r14, ccd_ok
-    MOV r4, r8
+    ADD r4, r15
+    LDI r9, ROWS
+    SUB r9, r13
+    CMP r4, r9
+    BLT r8, ccd_ok
+    MOV r4, r9
 ccd_ok:
     STORE r20, r4
     POP r31
@@ -2996,21 +2996,21 @@ ccd_ok:
 
 csi_cursor_right:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, ccr_move
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, ccr_move
+    LDI r15, 1
 ccr_move:
     LDI r20, CUR_COL
     LOAD r4, r20
-    ADD r4, r7
-    LDI r8, COLS
-    SUB r8, r3
-    CMP r4, r8
-    BLT r14, ccr_ok
-    MOV r4, r8
+    ADD r4, r15
+    LDI r9, COLS
+    SUB r9, r13
+    CMP r4, r9
+    BLT r8, ccr_ok
+    MOV r4, r9
 ccr_ok:
     STORE r20, r4
     POP r31
@@ -3018,18 +3018,18 @@ ccr_ok:
 
 csi_cursor_left:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, ccl_move
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, ccl_move
+    LDI r15, 1
 ccl_move:
     LDI r20, CUR_COL
     LOAD r4, r20
-    SUB r4, r7
+    SUB r4, r15
     CMPI r4, 0
-    BGE r14, ccl_ok
+    BGE r8, ccl_ok
     LDI r4, 0
 ccl_ok:
     STORE r20, r4
@@ -3043,27 +3043,27 @@ ccl_ok:
 ; =========================================
 csi_cursor_next_line:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, cnl_move
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, cnl_move
+    LDI r15, 1
 cnl_move:
     LDI r20, CUR_ROW
     LOAD r4, r20
-    ADD r4, r7
-    LDI r8, ROWS
-    SUB r8, r3
-    CMP r4, r8
-    BLT r14, cnl_ok
-    MOV r4, r8
+    ADD r4, r15
+    LDI r9, ROWS
+    SUB r9, r13
+    CMP r4, r9
+    BLT r8, cnl_ok
+    MOV r4, r9
 cnl_ok:
     STORE r20, r4
     ; Move column to 0
     LDI r20, CUR_COL
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     POP r31
     RET
 
@@ -3074,25 +3074,25 @@ cnl_ok:
 ; =========================================
 csi_cursor_prev_line:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, cpl_move
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, cpl_move
+    LDI r15, 1
 cpl_move:
     LDI r20, CUR_ROW
     LOAD r4, r20
-    SUB r4, r7
+    SUB r4, r15
     CMPI r4, 0
-    BGE r14, cpl_ok
+    BGE r8, cpl_ok
     LDI r4, 0
 cpl_ok:
     STORE r20, r4
     ; Move column to 0
     LDI r20, CUR_COL
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     POP r31
     RET
 
@@ -3103,26 +3103,26 @@ cpl_ok:
 ; =========================================
 csi_cursor_habsolute:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, cha_set
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, cha_set
+    LDI r15, 1
 cha_set:
-    SUB r7, r3         ; convert to 0-based
-    CMPI r7, 0
-    BGE r14, cha_clamp
-    LDI r7, 0
+    SUB r15, r13         ; convert to 0-based
+    CMPI r15, 0
+    BGE r8, cha_clamp
+    LDI r15, 0
 cha_clamp:
     LDI r4, COLS
-    SUB r4, r3
-    CMP r7, r4
-    BLT r14, cha_ok
-    MOV r7, r4
+    SUB r4, r13
+    CMP r15, r4
+    BLT r8, cha_ok
+    MOV r15, r4
 cha_ok:
     LDI r20, CUR_COL
-    STORE r20, r7
+    STORE r20, r15
     POP r31
     RET
 
@@ -3133,26 +3133,26 @@ cha_ok:
 ; =========================================
 csi_cursor_vabsolute:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, cva_set
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, cva_set
+    LDI r15, 1
 cva_set:
-    SUB r7, r3         ; convert to 0-based
-    CMPI r7, 0
-    BGE r14, cva_clamp
-    LDI r7, 0
+    SUB r15, r13         ; convert to 0-based
+    CMPI r15, 0
+    BGE r8, cva_clamp
+    LDI r15, 0
 cva_clamp:
     LDI r4, ROWS
-    SUB r4, r3
-    CMP r7, r4
-    BLT r14, cva_ok
-    MOV r7, r4
+    SUB r4, r13
+    CMP r15, r4
+    BLT r8, cva_ok
+    MOV r15, r4
 cva_ok:
     LDI r20, CUR_ROW
-    STORE r20, r7
+    STORE r20, r15
     POP r31
     RET
 
@@ -3163,14 +3163,14 @@ cva_ok:
 ; =========================================
 csi_insert_lines:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Get count, default 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, cil_count
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, cil_count
+    LDI r15, 1
 cil_count:
 
     ; Get cursor row
@@ -3179,98 +3179,98 @@ cil_count:
 
     ; Shift rows from bottom up: row N-1 -> row N (for N > cursor_row)
     ; Iterate from ROWS-2 down to cursor_row
-    LDI r12, ROWS
-    SUB r12, r3        ; r12 = ROWS-1 (source row, start from bottom-1)
+    LDI r10, ROWS
+    SUB r10, r13        ; r10 = ROWS-1 (source row, start from bottom-1)
 cil_shift:
-    CMP r12, r4
-    BLT r14, cil_clear
+    CMP r10, r4
+    BLT r8, cil_clear
 
-    ; dst = BUF + (r12+1) * COLS
+    ; dst = BUF + (r10+1) * COLS
     LDI r21, BUF
-    MOV r14, r12
-    ADD r14, r3
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
+    MOV r8, r10
+    ADD r8, r13
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
 
-    ; src = BUF + r12 * COLS
+    ; src = BUF + r10 * COLS
     LDI r20, BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
 
-    MEMCPY r21, r20, r10
+    MEMCPY r21, r20, r0
 
     ; Same for color buffer
     LDI r21, COLOR_BUF
-    MOV r14, r12
-    ADD r14, r3
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
+    MOV r8, r10
+    ADD r8, r13
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
 
     LDI r20, COLOR_BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
 
-    MEMCPY r21, r20, r10
+    MEMCPY r21, r20, r0
 
-    SUB r12, r3
+    SUB r10, r13
     JMP cil_shift
 
 cil_clear:
     ; Clear N lines starting at cursor row
-    MOV r12, r4        ; r12 = starting row
+    MOV r10, r4        ; r10 = starting row
     LDI r22, 0         ; r22 = lines cleared count
 cil_clear_loop:
-    CMP r22, r7
-    BGE r14, cil_done
-    CMP r12, r4
-    LDI r8, ROWS
-    SUB r8, r3
-    BGE r14, cil_skip   ; skip if past last row
-    ; Actually check r12 >= ROWS-1
+    CMP r22, r15
+    BGE r8, cil_done
+    CMP r10, r4
+    LDI r9, ROWS
+    SUB r9, r13
+    BGE r8, cil_skip   ; skip if past last row
+    ; Actually check r10 >= ROWS-1
     ; Clear this row
     LDI r20, BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
-    LDI r14, 32
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
+    LDI r8, 32
     LDI r23, 0
 cil_clr_txt:
-    CMP r23, r10
-    BGE r14, cil_clr_color
-    STORE r20, r14
-    ADD r20, r3
-    ADD r23, r3
+    CMP r23, r0
+    BGE r8, cil_clr_color
+    STORE r20, r8
+    ADD r20, r13
+    ADD r23, r13
     JMP cil_clr_txt
 
 cil_clr_color:
     LDI r20, COLOR_BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
-    LDI r7, FG_COLOR
-    LOAD r7, r7
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
+    LDI r15, FG_COLOR
+    LOAD r15, r15
     LDI r23, 0
 cil_clr_col:
-    CMP r23, r10
-    BGE r14, cil_next_row
-    STORE r20, r7
-    ADD r20, r3
-    ADD r23, r3
+    CMP r23, r0
+    BGE r8, cil_next_row
+    STORE r20, r15
+    ADD r20, r13
+    ADD r23, r13
     JMP cil_clr_col
 
 cil_skip:
     ; Past last row, skip
 cil_next_row:
-    ADD r12, r3
-    ADD r22, r3
+    ADD r10, r13
+    ADD r22, r13
     JMP cil_clear_loop
 
 cil_done:
@@ -3285,14 +3285,14 @@ cil_done:
 ; =========================================
 csi_delete_lines:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Get count, default 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, cdl_count
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, cdl_count
+    LDI r15, 1
 cdl_count:
 
     ; Get cursor row
@@ -3301,140 +3301,140 @@ cdl_count:
 
     ; Shift rows from cursor_row+N up: row+N -> row
     ; Iterate from cursor_row to ROWS-2
-    MOV r12, r4        ; r12 = dst row
+    MOV r10, r4        ; r10 = dst row
 cdl_shift:
-    LDI r8, ROWS
-    SUB r8, r3
-    CMP r12, r8
-    BGE r14, cdl_clear
+    LDI r9, ROWS
+    SUB r9, r13
+    CMP r10, r9
+    BGE r8, cdl_clear
 
-    ; src row = r12 + count
-    MOV r14, r12
-    ADD r14, r7
-    LDI r13, ROWS
-    SUB r13, r3
-    CMP r14, r13
-    BGE r14, cdl_clear_src  ; if src past last row, clear instead
+    ; src row = r10 + count
+    MOV r8, r10
+    ADD r8, r15
+    LDI r6, ROWS
+    SUB r6, r13
+    CMP r8, r6
+    BGE r8, cdl_clear_src  ; if src past last row, clear instead
 
-    ; dst = BUF + r12 * COLS
+    ; dst = BUF + r10 * COLS
     LDI r21, BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
 
-    ; src = BUF + (r12 + count) * COLS
+    ; src = BUF + (r10 + count) * COLS
     LDI r20, BUF
-    MOV r14, r12
-    ADD r14, r7
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
+    MOV r8, r10
+    ADD r8, r15
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
 
-    MEMCPY r21, r20, r10
+    MEMCPY r21, r20, r0
 
     ; Same for color buffer
     LDI r21, COLOR_BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
 
     LDI r20, COLOR_BUF
-    MOV r14, r12
-    ADD r14, r7
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r20, r14
+    MOV r8, r10
+    ADD r8, r15
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r20, r8
 
-    MEMCPY r21, r20, r10
+    MEMCPY r21, r20, r0
 
-    ADD r12, r3
+    ADD r10, r13
     JMP cdl_shift
 
 cdl_clear_src:
     ; Source past last row -- clear this dst row instead
     LDI r21, BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
-    LDI r14, 32
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
+    LDI r8, 32
     LDI r23, 0
 cdl_cs_txt:
-    CMP r23, r10
-    BGE r14, cdl_cs_col
-    STORE r21, r14
-    ADD r21, r3
-    ADD r23, r3
+    CMP r23, r0
+    BGE r8, cdl_cs_col
+    STORE r21, r8
+    ADD r21, r13
+    ADD r23, r13
     JMP cdl_cs_txt
 cdl_cs_col:
     LDI r21, COLOR_BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
-    LDI r7, FG_COLOR
-    LOAD r7, r7
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
+    LDI r15, FG_COLOR
+    LOAD r15, r15
     LDI r23, 0
 cdl_cs_c:
-    CMP r23, r10
-    BGE r14, cdl_cs_done
-    STORE r21, r7
-    ADD r21, r3
-    ADD r23, r3
+    CMP r23, r0
+    BGE r8, cdl_cs_done
+    STORE r21, r15
+    ADD r21, r13
+    ADD r23, r13
     JMP cdl_cs_c
 cdl_cs_done:
-    ADD r12, r3
+    ADD r10, r13
     JMP cdl_shift
 
 cdl_clear:
     ; Clear N lines at the bottom
-    LDI r8, ROWS
-    SUB r8, r3         ; r8 = ROWS-1
-    MOV r12, r8
-    SUB r12, r7
-    ADD r12, r3        ; r12 = first row to clear (ROWS - count)
-    CMP r12, r4
-    BGE r14, cdl_done2  ; if nothing to clear, skip
+    LDI r9, ROWS
+    SUB r9, r13         ; r9 = ROWS-1
+    MOV r10, r9
+    SUB r10, r15
+    ADD r10, r13        ; r10 = first row to clear (ROWS - count)
+    CMP r10, r4
+    BGE r8, cdl_done2  ; if nothing to clear, skip
     LDI r22, 0
 cdl_clr_loop:
-    CMP r22, r7
-    BGE r14, cdl_done2
-    ; Clear row r12
+    CMP r22, r15
+    BGE r8, cdl_done2
+    ; Clear row r10
     LDI r21, BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
-    LDI r14, 32
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
+    LDI r8, 32
     LDI r23, 0
 cdl_clr_t:
-    CMP r23, r10
-    BGE r14, cdl_clr_c2
-    STORE r21, r14
-    ADD r21, r3
-    ADD r23, r3
+    CMP r23, r0
+    BGE r8, cdl_clr_c2
+    STORE r21, r8
+    ADD r21, r13
+    ADD r23, r13
     JMP cdl_clr_t
 cdl_clr_c2:
     LDI r21, COLOR_BUF
-    MOV r14, r12
-    LDI r10, COLS
-    MUL r14, r10
-    ADD r21, r14
-    LDI r7, FG_COLOR
-    LOAD r7, r7
+    MOV r8, r10
+    LDI r0, COLS
+    MUL r8, r0
+    ADD r21, r8
+    LDI r15, FG_COLOR
+    LOAD r15, r15
     LDI r23, 0
 cdl_clr_cc:
-    CMP r23, r10
-    BGE r14, cdl_clr_next
-    STORE r21, r7
-    ADD r21, r3
-    ADD r23, r3
+    CMP r23, r0
+    BGE r8, cdl_clr_next
+    STORE r21, r15
+    ADD r21, r13
+    ADD r23, r13
     JMP cdl_clr_cc
 cdl_clr_next:
-    ADD r12, r3
-    ADD r22, r3
+    ADD r10, r13
+    ADD r22, r13
     JMP cdl_clr_loop
 
 cdl_done2:
@@ -3449,110 +3449,110 @@ cdl_done2:
 ; =========================================
 csi_delete_chars:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Get count, default 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, cdc_count
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, cdc_count
+    LDI r15, 1
 cdc_count:
 
     ; Get cursor position
     LDI r20, CUR_ROW
     LOAD r4, r20
     LDI r20, CUR_COL
-    LOAD r8, r20       ; r8 = cursor col
+    LOAD r9, r20       ; r9 = cursor col
 
     ; Base offset = row * COLS
-    LDI r13, COLS
-    MOV r14, r4
-    MUL r14, r13
-    MOV r4, r14         ; r4 = row * COLS (base offset)
+    LDI r6, COLS
+    MOV r8, r4
+    MUL r8, r6
+    MOV r4, r8         ; r4 = row * COLS (base offset)
 
     ; Shift chars left: col+N -> col, col+N+1 -> col+1, etc.
-    MOV r12, r8        ; r12 = dst col (starting at cursor)
+    MOV r10, r9        ; r10 = dst col (starting at cursor)
 cdc_shift:
-    ADD r14, r12
-    ADD r14, r7         ; r12 + count = src col
-    LDI r13, COLS
-    CMP r14, r13
-    BGE r14, cdc_clear  ; if src >= COLS, clear instead
+    ADD r8, r10
+    ADD r8, r15         ; r10 + count = src col
+    LDI r6, COLS
+    CMP r8, r6
+    BGE r8, cdc_clear  ; if src >= COLS, clear instead
 
     ; dst = BUF + base + dst_col
     LDI r21, BUF
-    MOV r14, r4
-    ADD r21, r14
-    ADD r21, r12
+    MOV r8, r4
+    ADD r21, r8
+    ADD r21, r10
 
     ; src = BUF + base + dst_col + count
     LDI r20, BUF
-    MOV r14, r4
-    ADD r20, r14
-    ADD r20, r12
-    ADD r20, r7
+    MOV r8, r4
+    ADD r20, r8
+    ADD r20, r10
+    ADD r20, r15
 
     ; Copy one cell
-    LOAD r14, r20
-    STORE r21, r14
+    LOAD r8, r20
+    STORE r21, r8
 
     ; Same for color buffer
     LDI r21, COLOR_BUF
-    MOV r14, r4
-    ADD r21, r14
-    ADD r21, r12
+    MOV r8, r4
+    ADD r21, r8
+    ADD r21, r10
 
     LDI r20, COLOR_BUF
-    MOV r14, r4
-    ADD r20, r14
-    ADD r20, r12
-    ADD r20, r7
+    MOV r8, r4
+    ADD r20, r8
+    ADD r20, r10
+    ADD r20, r15
 
-    LOAD r14, r20
-    STORE r21, r14
+    LOAD r8, r20
+    STORE r21, r8
 
-    ADD r12, r3
+    ADD r10, r13
     JMP cdc_shift
 
 cdc_clear:
     ; Clear N chars at end of line (COLS - count to COLS-1)
-    LDI r12, COLS
-    SUB r12, r7        ; r12 = first col to clear
-    LDI r13, COLS
-    CMP r12, r8
-    BGE r14, cdc_skip   ; if clear area starts after cursor, nothing to clear
-    ; r12 < r8 is guaranteed here (BGE above would have branched)
+    LDI r10, COLS
+    SUB r10, r15        ; r10 = first col to clear
+    LDI r6, COLS
+    CMP r10, r9
+    BGE r8, cdc_skip   ; if clear area starts after cursor, nothing to clear
+    ; r10 < r9 is guaranteed here (BGE above would have branched)
     JMP cdc_do_clear
 cdc_do_clear:
     LDI r22, 0         ; clear counter
 cdc_clr_loop:
-    CMP r22, r7
-    BGE r14, cdc_skip
+    CMP r22, r15
+    BGE r8, cdc_skip
     ; Clear cell at (row, COLS - count + counter)
     LDI r20, BUF
-    MOV r14, r4
-    ADD r20, r14
-    ADD r20, r12
-    LDI r14, 32
-    STORE r20, r14
+    MOV r8, r4
+    ADD r20, r8
+    ADD r20, r10
+    LDI r8, 32
+    STORE r20, r8
 
     LDI r20, COLOR_BUF
-    MOV r14, r4
-    ADD r20, r14
-    ADD r20, r12
-    LDI r14, FG_COLOR
-    LOAD r14, r14
-    STORE r20, r14
+    MOV r8, r4
+    ADD r20, r8
+    ADD r20, r10
+    LDI r8, FG_COLOR
+    LOAD r8, r8
+    STORE r20, r8
 
-    ADD r12, r3
-    ADD r22, r3
+    ADD r10, r13
+    ADD r22, r13
     JMP cdc_clr_loop
 
 cdc_skip:
     ; Mark current row dirty
     LDI r20, CUR_ROW
-    LOAD r14, r20
+    LOAD r8, r20
     CALL mark_row_dirty
     POP r31
     RET
@@ -3564,101 +3564,101 @@ cdc_skip:
 ; =========================================
 csi_insert_chars:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Get count, default 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, cic_count
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, cic_count
+    LDI r15, 1
 cic_count:
 
     ; Get cursor position
     LDI r20, CUR_ROW
     LOAD r4, r20
     LDI r20, CUR_COL
-    LOAD r8, r20       ; r8 = cursor col
+    LOAD r9, r20       ; r9 = cursor col
 
     ; Base offset = row * COLS
-    LDI r13, COLS
-    MOV r14, r4
-    MUL r14, r13
-    MOV r4, r14         ; r4 = row * COLS (base offset)
+    LDI r6, COLS
+    MOV r8, r4
+    MUL r8, r6
+    MOV r4, r8         ; r4 = row * COLS (base offset)
 
     ; Shift chars right: from COLS-1-count down to cursor col
-    LDI r12, COLS
-    SUB r12, r3        ; r12 = COLS-1 (start from rightmost)
-    SUB r12, r7        ; r12 = COLS-1-count (first dst position)
+    LDI r10, COLS
+    SUB r10, r13        ; r10 = COLS-1 (start from rightmost)
+    SUB r10, r15        ; r10 = COLS-1-count (first dst position)
 cic_shift:
-    CMP r12, r8
-    BLT r14, cic_clear
+    CMP r10, r9
+    BLT r8, cic_clear
 
-    ; dst = BUF + base + r12 + count
+    ; dst = BUF + base + r10 + count
     LDI r21, BUF
-    MOV r14, r4
-    ADD r21, r14
-    ADD r21, r12
-    ADD r21, r7
+    MOV r8, r4
+    ADD r21, r8
+    ADD r21, r10
+    ADD r21, r15
 
-    ; src = BUF + base + r12
+    ; src = BUF + base + r10
     LDI r20, BUF
-    MOV r14, r4
-    ADD r20, r14
-    ADD r20, r12
+    MOV r8, r4
+    ADD r20, r8
+    ADD r20, r10
 
     ; Copy one cell
-    LOAD r14, r20
-    STORE r21, r14
+    LOAD r8, r20
+    STORE r21, r8
 
     ; Same for color buffer
     LDI r21, COLOR_BUF
-    MOV r14, r4
-    ADD r21, r14
-    ADD r21, r12
-    ADD r21, r7
+    MOV r8, r4
+    ADD r21, r8
+    ADD r21, r10
+    ADD r21, r15
 
     LDI r20, COLOR_BUF
-    MOV r14, r4
-    ADD r20, r14
-    ADD r20, r12
+    MOV r8, r4
+    ADD r20, r8
+    ADD r20, r10
 
-    LOAD r14, r20
-    STORE r21, r14
+    LOAD r8, r20
+    STORE r21, r8
 
-    SUB r12, r3
+    SUB r10, r13
     JMP cic_shift
 
 cic_clear:
     ; Clear N chars starting at cursor col
-    MOV r12, r8        ; r12 = cursor col
+    MOV r10, r9        ; r10 = cursor col
     LDI r22, 0
 cic_clr_loop:
-    CMP r22, r7
-    BGE r14, cic_done
+    CMP r22, r15
+    BGE r8, cic_done
     LDI r20, BUF
-    MOV r14, r4
-    ADD r20, r14
-    ADD r20, r12
-    LDI r14, 32
-    STORE r20, r14
+    MOV r8, r4
+    ADD r20, r8
+    ADD r20, r10
+    LDI r8, 32
+    STORE r20, r8
 
     LDI r20, COLOR_BUF
-    MOV r14, r4
-    ADD r20, r14
-    ADD r20, r12
-    LDI r14, FG_COLOR
-    LOAD r14, r14
-    STORE r20, r14
+    MOV r8, r4
+    ADD r20, r8
+    ADD r20, r10
+    LDI r8, FG_COLOR
+    LOAD r8, r8
+    STORE r20, r8
 
-    ADD r12, r3
-    ADD r22, r3
+    ADD r10, r13
+    ADD r22, r13
     JMP cic_clr_loop
 
 cic_done:
     ; Mark current row dirty
     LDI r20, CUR_ROW
-    LOAD r14, r20
+    LOAD r8, r20
     CALL mark_row_dirty
     POP r31
     RET
@@ -3670,20 +3670,20 @@ cic_done:
 ; =========================================
 csi_scroll_up:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Get count, default 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, csu_count
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, csu_count
+    LDI r15, 1
 csu_count:
 csu_loop:
-    CMP r7, r3
-    BLT r14, csu_done
+    CMP r15, r13
+    BLT r8, csu_done
     CALL scroll_up
-    SUB r7, r3
+    SUB r15, r13
     JMP csu_loop
 csu_done:
     POP r31
@@ -3696,20 +3696,20 @@ csu_done:
 ; =========================================
 csi_scroll_down:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Get count, default 1
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, csd_count
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, csd_count
+    LDI r15, 1
 csd_count:
 csd_loop:
-    CMP r7, r3
-    BLT r14, csd_done
+    CMP r15, r13
+    BLT r8, csd_done
     CALL scroll_down
-    SUB r7, r3
+    SUB r15, r13
     JMP csd_loop
 csd_done:
     POP r31
@@ -3725,47 +3725,47 @@ csd_done:
 ; =========================================
 csi_set_scroll_region:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Top: CSI_PARAM2 (1-based), default 1
     LDI r20, CSI_PARAM2
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, csr_top
-    LDI r7, 1
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, csr_top
+    LDI r15, 1
 csr_top:
-    SUB r7, r3         ; convert to 0-based
-    CMPI r7, 0
-    BGE r14, csr_top_ok
-    LDI r7, 0
+    SUB r15, r13         ; convert to 0-based
+    CMPI r15, 0
+    BGE r8, csr_top_ok
+    LDI r15, 0
 csr_top_ok:
     LDI r20, SCROLL_TOP
-    STORE r20, r7
+    STORE r20, r15
 
     ; Bottom: CSI_PARAM (1-based), default ROWS
     LDI r20, CSI_PARAM
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r14, csr_bot
-    LDI r7, ROWS
+    LOAD r15, r20
+    CMPI r15, 0
+    JNZ r8, csr_bot
+    LDI r15, ROWS
 csr_bot:
-    SUB r7, r3         ; convert to 0-based
+    SUB r15, r13         ; convert to 0-based
     LDI r4, ROWS
-    SUB r4, r3
-    CMP r7, r4
-    BLT r14, csr_bot_ok
-    MOV r7, r4
+    SUB r4, r13
+    CMP r15, r4
+    BLT r8, csr_bot_ok
+    MOV r15, r4
 csr_bot_ok:
     LDI r20, SCROLL_BOT
-    STORE r20, r7
+    STORE r20, r15
 
     ; Move cursor to home position
     LDI r20, CUR_ROW
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     LDI r20, CUR_COL
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     POP r31
     RET
 
@@ -3775,32 +3775,32 @@ csr_bot_ok:
 
 save_cursor:
     LDI r20, CUR_ROW
-    LOAD r7, r20
+    LOAD r15, r20
     LDI r21, SAVED_ROW
-    STORE r21, r7
+    STORE r21, r15
     LDI r20, CUR_COL
-    LOAD r7, r20
+    LOAD r15, r20
     LDI r21, SAVED_COL
-    STORE r21, r7
+    STORE r21, r15
     LDI r20, FG_COLOR
-    LOAD r7, r20
+    LOAD r15, r20
     LDI r21, SAVED_FG
-    STORE r21, r7
+    STORE r21, r15
     RET
 
 restore_cursor:
     LDI r21, SAVED_ROW
-    LOAD r7, r21
+    LOAD r15, r21
     LDI r20, CUR_ROW
-    STORE r20, r7
+    STORE r20, r15
     LDI r21, SAVED_COL
-    LOAD r7, r21
+    LOAD r15, r21
     LDI r20, CUR_COL
-    STORE r20, r7
+    STORE r20, r15
     LDI r21, SAVED_FG
-    LOAD r7, r21
+    LOAD r15, r21
     LDI r20, FG_COLOR
-    STORE r20, r7
+    STORE r20, r15
     RET
 
 ; =========================================
@@ -3809,34 +3809,34 @@ restore_cursor:
 
 clear_entire_screen:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
     ; Clear text buffer
     LDI r20, BUF
-    LDI r7, 32
-    LDI r12, 0
+    LDI r15, 32
+    LDI r10, 0
 ces_text:
-    STORE r20, r7
-    ADD r20, r3
-    ADD r12, r3
+    STORE r20, r15
+    ADD r20, r13
+    ADD r10, r13
     LDI r4, ROWS
-    LDI r8, COLS
-    MUL r4, r8
-    CMP r12, r4
-    BLT r14, ces_text
+    LDI r9, COLS
+    MUL r4, r9
+    CMP r10, r4
+    BLT r8, ces_text
     ; Clear color buffer
     LDI r20, COLOR_BUF
-    LDI r7, FG_COLOR
-    LOAD r7, r7
-    LDI r12, 0
+    LDI r15, FG_COLOR
+    LOAD r15, r15
+    LDI r10, 0
 ces_color:
-    STORE r20, r7
-    ADD r20, r3
-    ADD r12, r3
+    STORE r20, r15
+    ADD r20, r13
+    ADD r10, r13
     LDI r4, ROWS
-    LDI r8, COLS
-    MUL r4, r8
-    CMP r12, r4
-    BLT r14, ces_color
+    LDI r9, COLS
+    MUL r4, r9
+    CMP r10, r4
+    BLT r8, ces_color
     CALL mark_all_dirty
     POP r31
     RET
@@ -3851,25 +3851,25 @@ alt_screen_on:
     PUSH r31
     ; Save current cursor position
     LDI r20, CUR_ROW
-    LOAD r14, r20
+    LOAD r8, r20
     LDI r21, ALT_SAVE_ROW
-    STORE r21, r14
+    STORE r21, r8
     LDI r20, CUR_COL
-    LOAD r14, r20
+    LOAD r8, r20
     LDI r21, ALT_SAVE_COL
-    STORE r21, r14
+    STORE r21, r8
     ; Clear the screen (same as ESC[2J)
     CALL clear_entire_screen
     ; Home cursor
     LDI r20, CUR_ROW
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     LDI r20, CUR_COL
-    STORE r20, r14
+    STORE r20, r8
     ; Mark alt screen active
     LDI r20, ALT_ACTIVE
-    LDI r14, 1
-    STORE r20, r14
+    LDI r8, 1
+    STORE r20, r8
     POP r31
     RET
 
@@ -3879,17 +3879,17 @@ alt_screen_off:
     CALL clear_entire_screen
     ; Restore cursor position
     LDI r20, ALT_SAVE_ROW
-    LOAD r14, r20
+    LOAD r8, r20
     LDI r21, CUR_ROW
-    STORE r21, r14
+    STORE r21, r8
     LDI r20, ALT_SAVE_COL
-    LOAD r14, r20
+    LOAD r8, r20
     LDI r21, CUR_COL
-    STORE r21, r14
+    STORE r21, r8
     ; Clear alt screen flag
     LDI r20, ALT_ACTIVE
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
     POP r31
     RET
 
@@ -3901,72 +3901,72 @@ alt_screen_off:
 ; =========================================
 render:
     PUSH r31
-    LDI r3, 1
+    LDI r13, 1
 
     ; Reset dirty row render counter
     LDI r20, RENDERED_ROWS
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
 
     ; Only redraw status bar when dirty
     LDI r20, DIRTY_STATUS
-    LOAD r14, r20
-    JZ r14, render_skip_status
+    LOAD r8, r20
+    JZ r8, render_skip_status
     CALL draw_status_bar
     LDI r20, DIRTY_STATUS
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
 
 render_skip_status:
 
     ; --- Dirty rectangle optimization ---
     ; Check if any rows need redrawing
     LDI r20, DIRTY_ROWS
-    LOAD r14, r20
-    JZ r14, render_cursor_blink  ; no dirty rows, skip to cursor
+    LOAD r8, r20
+    JZ r8, render_cursor_blink  ; no dirty rows, skip to cursor
 
-    LDI r3, 1
-    LDI r12, 0
-    LDI r0, 10
+    LDI r13, 1
+    LDI r10, 0
+    LDI r2, 10
     LDI r4, COLS
 
 render_row:
     ; --- Check if this row is dirty ---
-    MOV r14, r12
+    MOV r8, r10
     CALL mark_row_dirty_check
-    JZ r14, render_row_skip
-    LDI r3, 1           ; restore r3 (clobbered by mark_row_dirty_check)
+    JZ r8, render_row_skip
+    LDI r13, 1           ; restore r13 (clobbered by mark_row_dirty_check)
 
     ; Increment rendered-rows counter
-    PUSH r3
+    PUSH r13
     LDI r20, RENDERED_ROWS
-    LOAD r14, r20
-    ADD r14, r3
-    STORE r20, r14
-    POP r3
+    LOAD r8, r20
+    ADD r8, r13
+    STORE r20, r8
+    POP r13
 
     ; Clear only this row's background (full width, 6px tall)
-    LDI r2, 0          ; x (use r2 to preserve r3)
-    MOV r9, r0         ; y = 10 + row*6
-    LDI r15, 256         ; w
-    LDI r6, 6           ; h
-    LDI r11, 0x0A0A0A    ; bg color
-    RECTF r2, r9, r15, r6, r11
+    LDI r11, 0          ; x (use r11 to preserve r13)
+    MOV r1, r2         ; y = 10 + row*6
+    LDI r7, 256         ; w
+    LDI r14, 6           ; h
+    LDI r5, 0x0A0A0A    ; bg color
+    RECTF r11, r1, r7, r14, r5
 
     ; Compute row base addresses
-    MOV r10, r12
-    MUL r10, r4
+    MOV r0, r10
+    MUL r0, r4
     LDI r25, BUF
-    ADD r25, r10
+    ADD r25, r0
     LDI r26, COLOR_BUF
-    ADD r26, r10
+    ADD r26, r0
 
     LDI r20, 0
 
 render_run:
     ; Check if past end of row
     CMP r20, r4
-    BGE r14, end_row
+    BGE r8, end_row
 
     ; Read run-start color
     MOV r27, r26
@@ -3978,15 +3978,15 @@ render_run:
 
 rr_scan:
     CMP r21, r4
-    BGE r14, rr_emit
+    BGE r8, rr_emit
 
     MOV r27, r26
     ADD r27, r21
     LOAD r23, r27
     CMP r23, r22
-    JNZ r14, rr_emit
+    JNZ r8, rr_emit
 
-    ADD r21, r3
+    ADD r21, r13
     JMP rr_scan
 
 rr_emit:
@@ -3996,80 +3996,80 @@ rr_emit:
 
 rr_copy:
     CMP r24, r21
-    BGE r14, rr_copy_done
+    BGE r8, rr_copy_done
     MOV r27, r25
     ADD r27, r24
-    LOAD r7, r27
+    LOAD r15, r27
     LDI r27, SCRATCH
     ADD r27, r23
-    STORE r27, r7
-    ADD r23, r3
-    ADD r24, r3
+    STORE r27, r15
+    ADD r23, r13
+    ADD r24, r13
     JMP rr_copy
 
 rr_copy_done:
     ; Null-terminate scratch
     LDI r27, SCRATCH
     ADD r27, r23
-    LDI r7, 0
-    STORE r27, r7
+    LDI r15, 0
+    STORE r27, r15
 
     ; Skip empty runs
-    CMP r23, r7
-    JZ r14, rr_next
+    CMP r23, r15
+    JZ r8, rr_next
 
     ; Compute x pixel pos (col * 3)
-    MOV r2, r20
-    LDI r7, 3
-    MUL r2, r7
-    MOV r1, r0
-    LDI r15, SCRATCH
-    MOV r6, r22
-    LDI r11, 0
-    SMALLTEXT r2, r1, r15, r6, r11
+    MOV r11, r20
+    LDI r15, 3
+    MUL r11, r15
+    MOV r3, r2
+    LDI r7, SCRATCH
+    MOV r14, r22
+    LDI r5, 0
+    SMALLTEXT r11, r3, r7, r14, r5
 
 rr_next:
     MOV r20, r21
     JMP render_run
 
 end_row:
-    LDI r7, 6
-    ADD r0, r7
+    LDI r15, 6
+    ADD r2, r15
 
 render_row_skip:
-    ADD r12, r3
-    CMPI r12, ROWS
-    BLT r14, render_row
+    ADD r10, r13
+    CMPI r10, ROWS
+    BLT r8, render_row
 
     ; Clear dirty bitmap after rendering
     LDI r20, DIRTY_ROWS
-    LDI r14, 0
-    STORE r20, r14
+    LDI r8, 0
+    STORE r20, r8
 
 render_cursor_blink:
     ; Cursor blink
     LDI r20, BLINK
-    LOAD r14, r20
+    LOAD r8, r20
     LDI r4, 8
-    AND r14, r4
-    CMPI r14, 4
-    BGE r14, cursor_done
+    AND r8, r4
+    CMPI r8, 4
+    BGE r8, cursor_done
 
 draw_cursor:
     LDI r20, CUR_COL
-    LOAD r14, r20
+    LOAD r8, r20
     LDI r4, 3
-    MUL r14, r4
+    MUL r8, r4
     LDI r20, CUR_ROW
-    LOAD r9, r20
+    LOAD r1, r20
     LDI r4, 6
-    MUL r9, r4
-    LDI r15, 10
-    ADD r9, r15
-    LDI r15, 2
-    LDI r6, 5
-    LDI r11, 0x44FF44
-    RECTF r14, r9, r15, r6, r11
+    MUL r1, r4
+    LDI r7, 10
+    ADD r1, r7
+    LDI r7, 2
+    LDI r14, 5
+    LDI r5, 0x44FF44
+    RECTF r8, r1, r7, r14, r5
 
 cursor_done:
     POP r31

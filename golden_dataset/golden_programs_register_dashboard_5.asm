@@ -1,33 +1,33 @@
-; DESCRIPTION: The GeOS assembly code implements a live register dashboard that displays the values of registers `r5` to `r16` as 4-digit decimal numbers on a canvas grid. Each frame, `r5` increments, and subsequent registers derive from `r5` via various arithmetic operations. The register values are then converted to ASCII digits and written to specific canvas buffer addresses for display.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; register_dashboard.asm
 ; Phase 50: Live Register Dashboard
 ;
 ; The canvas grid shows live register values as 4-digit decimals.
-; r5 counts up each frame. r15-r16 derive from r5 via arithmetic.
+; r8 counts up each frame. r1-r16 derive from r8 via arithmetic.
 ; 8 registers per row, 4 digits each, 2 rows = 16 registers.
 ; The grid IS the debug view -- no separate inspector.
 ;
 ; Layout (canvas buffer indices, addresses = 0x8000 + index):
-;   Row 0: r5@0  r15@4  r3@8  r4@12  r6@16  r0@20  r2@24  r1@28
-;   Row 1: r9@32 r11@36 r8@40 r7@44 r13@48 r14@52 r12@56 r16@60
+;   Row 0: r8@0  r1@4  r10@8  r9@12  r15@16  r6@20  r14@24  r11@28
+;   Row 1: r12@32 r5@36 r3@40 r0@44 r7@48 r13@52 r2@56 r16@60
 ;
-; Register computations (from r5 = frame counter):
-;   r15  = r5 * 2        (double)
-;   r3  = r5 * 3        (triple)
-;   r4  = r5 * 4        (quadruple)
-;   r6  = r5 & 255      (low byte)
-;   r0  = r5 * r5       (square)
-;   r2  = r5 XOR 0xAAAA (pseudo-random)
-;   r1  = r5 << 4       (shifted)
-;   r9  = -r5           (negated)
-;   r11 = r5 % 17       (modular)
-;   r8 = r6 + r0       (sum)
-;   r7 = r0 >> 8       (upper square)
-;   r13 = r5 | 0x0F0F   (bitmask)
-;   r14 = r2 & r1       (combination)
-;   r12 = r5 + r9       (zero: r5 + NEG(r5))
-;   r16 = r1 - r5       (r5 * 15)
+; Register computations (from r8 = frame counter):
+;   r1  = r8 * 2        (double)
+;   r10  = r8 * 3        (triple)
+;   r9  = r8 * 4        (quadruple)
+;   r15  = r8 & 255      (low byte)
+;   r6  = r8 * r8       (square)
+;   r14  = r8 XOR 0xAAAA (pseudo-random)
+;   r11  = r8 << 4       (shifted)
+;   r12  = -r8           (negated)
+;   r5 = r8 % 17       (modular)
+;   r3 = r15 + r6       (sum)
+;   r0 = r6 >> 8       (upper square)
+;   r7 = r8 | 0x0F0F   (bitmask)
+;   r13 = r14 & r11       (combination)
+;   r2 = r8 + r12       (zero: r8 + NEG(r8))
+;   r16 = r11 - r8       (r8 * 15)
 
   LDI r30, 0xFF00      ; Stack pointer for CALL/RET
   LDI r20, 10          ; Divisor constant
@@ -36,120 +36,120 @@
 
 main_loop:
   ; === Update register values ===
-  ADD r5, r22           ; r5 = frame counter (1, 2, 3, ...)
+  ADD r8, r22           ; r8 = frame counter (1, 2, 3, ...)
 
-  MOV r15, r5            ; r15 = r5 * 2
-  ADD r15, r5
+  MOV r1, r8            ; r1 = r8 * 2
+  ADD r1, r8
 
-  MOV r3, r15            ; r3 = r5 * 3
-  ADD r3, r5
+  MOV r10, r1            ; r10 = r8 * 3
+  ADD r10, r8
 
-  MOV r4, r15            ; r4 = r5 * 4
-  ADD r4, r15
+  MOV r9, r1            ; r9 = r8 * 4
+  ADD r9, r1
 
-  MOV r6, r5            ; r6 = r5 & 0xFF (low byte)
+  MOV r15, r8            ; r15 = r8 & 0xFF (low byte)
   LDI r23, 255
-  AND r6, r23
+  AND r15, r23
 
-  MOV r0, r5            ; r0 = r5 * r5 (square)
-  MUL r0, r5
+  MOV r6, r8            ; r6 = r8 * r8 (square)
+  MUL r6, r8
 
-  MOV r2, r5            ; r2 = r5 XOR 0xAAAA
+  MOV r14, r8            ; r14 = r8 XOR 0xAAAA
   LDI r23, 43690
-  XOR r2, r23
+  XOR r14, r23
 
-  MOV r1, r5            ; r1 = r5 << 4
+  MOV r11, r8            ; r11 = r8 << 4
   LDI r23, 4
-  SHL r1, r23
+  SHL r11, r23
 
-  MOV r9, r5            ; r9 = -r5 (negated)
-  NEG r9
+  MOV r12, r8            ; r12 = -r8 (negated)
+  NEG r12
 
-  MOV r11, r5           ; r11 = r5 % 17
+  MOV r5, r8           ; r5 = r8 % 17
   LDI r23, 17
-  MOD r11, r23
+  MOD r5, r23
 
-  MOV r8, r6           ; r8 = r6 + r0
-  ADD r8, r0
+  MOV r3, r15           ; r3 = r15 + r6
+  ADD r3, r6
 
-  MOV r7, r0           ; r7 = r0 >> 8
+  MOV r0, r6           ; r0 = r6 >> 8
   LDI r23, 8
-  SHR r7, r23
+  SHR r0, r23
 
-  MOV r13, r5           ; r13 = r5 | 0x0F0F
+  MOV r7, r8           ; r7 = r8 | 0x0F0F
   LDI r23, 3855
-  OR r13, r23
+  OR r7, r23
 
-  MOV r14, r2           ; r14 = r2 & r1
-  AND r14, r1
+  MOV r13, r14           ; r13 = r14 & r11
+  AND r13, r11
 
-  MOV r12, r5           ; r12 = r5 + r9 = 0
-  ADD r12, r9
+  MOV r2, r8           ; r2 = r8 + r12 = 0
+  ADD r2, r12
 
-  MOV r16, r1           ; r16 = r1 - r5 = r5*15
-  SUB r16, r5
+  MOV r16, r11           ; r16 = r11 - r8 = r8*15
+  SUB r16, r8
 
   ; === Display registers to canvas ===
   ; Row 0 (canvas indices 0-31)
   LDI r25, 0x8000
-  MOV r26, r5
+  MOV r26, r8
   CALL write_digits
 
   LDI r25, 0x8004
-  MOV r26, r15
+  MOV r26, r1
   CALL write_digits
 
   LDI r25, 0x8008
-  MOV r26, r3
+  MOV r26, r10
   CALL write_digits
 
   LDI r25, 0x800C
-  MOV r26, r4
+  MOV r26, r9
   CALL write_digits
 
   LDI r25, 0x8010
-  MOV r26, r6
+  MOV r26, r15
   CALL write_digits
 
   LDI r25, 0x8014
-  MOV r26, r0
+  MOV r26, r6
   CALL write_digits
 
   LDI r25, 0x8018
-  MOV r26, r2
+  MOV r26, r14
   CALL write_digits
 
   LDI r25, 0x801C
-  MOV r26, r1
+  MOV r26, r11
   CALL write_digits
 
   ; Row 1 (canvas indices 32-63)
   LDI r25, 0x8020
-  MOV r26, r9
+  MOV r26, r12
   CALL write_digits
 
   LDI r25, 0x8024
-  MOV r26, r11
+  MOV r26, r5
   CALL write_digits
 
   LDI r25, 0x8028
-  MOV r26, r8
+  MOV r26, r3
   CALL write_digits
 
   LDI r25, 0x802C
-  MOV r26, r7
+  MOV r26, r0
   CALL write_digits
 
   LDI r25, 0x8030
-  MOV r26, r13
+  MOV r26, r7
   CALL write_digits
 
   LDI r25, 0x8034
-  MOV r26, r14
+  MOV r26, r13
   CALL write_digits
 
   LDI r25, 0x8038
-  MOV r26, r12
+  MOV r26, r2
   CALL write_digits
 
   LDI r25, 0x803C

@@ -1,46 +1,46 @@
-; DESCRIPTION: This GeOS assembly code draws a star burst of lines from the center of a 256x256 pixel grid to its corners and midpoints, using the LINE opcode (0x45) with a white color. The lines originate from the point (128, 128) and extend to the edges and corners of the grid.
+; DESCRIPTION: A white line centered at the screen with fixed size.
 
 ; lines.asm -- draw a star burst of lines from center
 ; Uses LINE opcode (0x45)
 
 ; color: white
-LDI r11, 0xFFFFFF
+LDI r0, 0xFFFFFF
 
 ; center
-LDI r2, 128
-LDI r9, 128
+LDI r5, 128
+LDI r1, 128
 
 ; corners and edges to draw lines to
-LDI r10, 0
-LDI r1, 0
-LINE r2, r9, r10, r1, r11
+LDI r12, 0
+LDI r11, 0
+LINE r5, r1, r12, r11, r0
 
-LDI r10, 255
-LDI r1, 0
-LINE r2, r9, r10, r1, r11
+LDI r12, 255
+LDI r11, 0
+LINE r5, r1, r12, r11, r0
 
-LDI r10, 255
-LDI r1, 255
-LINE r2, r9, r10, r1, r11
+LDI r12, 255
+LDI r11, 255
+LINE r5, r1, r12, r11, r0
 
-LDI r10, 0
-LDI r1, 255
-LINE r2, r9, r10, r1, r11
+LDI r12, 0
+LDI r11, 255
+LINE r5, r1, r12, r11, r0
 
-LDI r10, 128
-LDI r1, 0
-LINE r2, r9, r10, r1, r11
+LDI r12, 128
+LDI r11, 0
+LINE r5, r1, r12, r11, r0
 
-LDI r10, 255
-LDI r1, 128
-LINE r2, r9, r10, r1, r11
+LDI r12, 255
+LDI r11, 128
+LINE r5, r1, r12, r11, r0
 
-LDI r10, 128
-LDI r1, 255
-LINE r2, r9, r10, r1, r11
+LDI r12, 128
+LDI r11, 255
+LINE r5, r1, r12, r11, r0
 
-LDI r10, 0
-LDI r1, 128
-LINE r2, r9, r10, r1, r11
+LDI r12, 0
+LDI r11, 128
+LINE r5, r1, r12, r11, r0
 
 HALT

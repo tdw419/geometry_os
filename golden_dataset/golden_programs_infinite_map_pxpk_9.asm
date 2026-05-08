@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code generates an infinite terrain map with various biomes and features using a seed-driven randomization approach. It employs table-driven biome color selection, per-tile variation through hashing, and pattern strategies for diverse tile appearances. The code includes dynamic day/night cycles, height-based shading, animated water effects, procedurally placed trees, a sky gradient, elevation contour lines, player interaction, and a minimap overlay.
+; DESCRIPTION: A colored line centered at the screen with fixed size.
 
 ; infinite_map_pxpk.asm -- Pixelpack seed-driven infinite terrain
 ;
@@ -80,13 +80,13 @@
 ; Renders via RECTF (1-2 per tile depending on pattern).
 
 ; ===== Constants =====
-LDI r4, 1               ; constant 1
-LDI r11, 64              ; TILES per axis
-LDI r6, 4               ; TILE_SIZE pixels
-LDI r9, 0xFFB          ; key bitmask port
-LDI r0, 0x7800         ; camera_x address
-LDI r10, 0x7801         ; camera_y address
-LDI r13, 0x7802         ; frame_counter address
+LDI r12, 1               ; constant 1
+LDI r0, 64              ; TILES per axis
+LDI r8, 4               ; TILE_SIZE pixels
+LDI r3, 0xFFB          ; key bitmask port
+LDI r11, 0x7800         ; camera_x address
+LDI r4, 0x7801         ; camera_y address
+LDI r7, 0x7802         ; frame_counter address
 
 ; ===== Initialize Tables =====
 ; Biome color table at RAM[0x7000] (32 entries)
@@ -266,49 +266,49 @@ LDI r20, 0x7020
 
 LDI r17, 0xFFFFFFF0    ; -16
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0xFFFFFFF4    ; -12
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0xFFFFFFF8    ; -8
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0xFFFFFFFC    ; -4
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0x00000000    ; 0
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0x00000004    ; +4
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0x00000008    ; +8
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0x0000000C    ; +12
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0xFFFFFFF0    ; -16
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0xFFFFFFF4    ; -12
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0xFFFFFFF8    ; -8
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0xFFFFFFFC    ; -4
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0x00000000    ; 0
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0x00000004    ; +4
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0x00000008    ; +8
 STORE r20, r17
-ADD r20, r4
+ADD r20, r12
 LDI r17, 0x0000000C    ; +12
 STORE r20, r17
 
@@ -316,23 +316,23 @@ STORE r20, r17
 main_loop:
 
 ; --- Increment frame counter ---
-LOAD r17, r13
-ADD r17, r4
-STORE r13, r17
+LOAD r17, r7
+ADD r17, r12
+STORE r7, r17
 
 ; --- Read camera position ---
-LOAD r2, r0           ; r2 = camera_x
-LOAD r3, r10           ; r3 = camera_y
+LOAD r6, r11           ; r6 = camera_x
+LOAD r5, r4           ; r5 = camera_y
 
 ; --- Read key bitmask ---
-LOAD r16, r9           ; r16 = key bitmask
+LOAD r16, r3           ; r16 = key bitmask
 
 ; --- Process Up (bit 0) ---
 MOV r17, r16
 LDI r18, 1
 AND r17, r18
 JZ r17, no_up
-SUB r3, r4
+SUB r5, r12
 no_up:
 
 ; --- Process Down (bit 1) ---
@@ -340,7 +340,7 @@ MOV r17, r16
 LDI r18, 2
 AND r17, r18
 JZ r17, no_down
-ADD r3, r4
+ADD r5, r12
 no_down:
 
 ; --- Process Left (bit 2) ---
@@ -348,7 +348,7 @@ MOV r17, r16
 LDI r18, 4
 AND r17, r18
 JZ r17, no_left
-SUB r2, r4
+SUB r6, r12
 no_left:
 
 ; --- Process Right (bit 3) ---
@@ -356,7 +356,7 @@ MOV r17, r16
 LDI r18, 8
 AND r17, r18
 JZ r17, no_right
-ADD r2, r4
+ADD r6, r12
 no_right:
 
 ; --- Process diagonal keys (bits 4-7) ---
@@ -364,37 +364,37 @@ MOV r17, r16
 LDI r18, 16
 AND r17, r18
 JZ r17, no_ur
-SUB r3, r4
-ADD r2, r4
+SUB r5, r12
+ADD r6, r12
 no_ur:
 
 MOV r17, r16
 LDI r18, 32
 AND r17, r18
 JZ r17, no_dr
-ADD r3, r4
-ADD r2, r4
+ADD r5, r12
+ADD r6, r12
 no_dr:
 
 MOV r17, r16
 LDI r18, 64
 AND r17, r18
 JZ r17, no_dl
-ADD r3, r4
-SUB r2, r4
+ADD r5, r12
+SUB r6, r12
 no_dl:
 
 MOV r17, r16
 LDI r18, 128
 AND r17, r18
 JZ r17, no_ul
-SUB r3, r4
-SUB r2, r4
+SUB r5, r12
+SUB r6, r12
 no_ul:
 
 ; --- Store updated camera ---
-STORE r0, r2
-STORE r10, r3
+STORE r11, r6
+STORE r4, r5
 
 ; --- Clear screen ---
 LDI r17, 0
@@ -409,7 +409,7 @@ FILL r17
 ;   Phase 2 (dusk):  frac_shr * 0x030000 → R+21 (amber glow)
 ;   Phase 3 (night): frac_shr * 0x000103 → G+7, B+21 (cool blue shift)
 ; r23 = tint offset added to every tile base color inline.
-LOAD r17, r13           ; r17 = frame_counter
+LOAD r17, r7           ; r17 = frame_counter
 LDI r18, 0xFF
 AND r17, r18            ; t = frame & 0xFF (0..255)
 MOV r18, r17
@@ -460,17 +460,17 @@ tint_dusk:
 tint_done:
 
 ; ===== Render Viewport =====
-; r2 = camera_x, r3 = camera_y
+; r6 = camera_x, r5 = camera_y
 ; r23 = precomputed tint offset
 ; Table base addresses
 LDI r24, 0x7000         ; biome color table base
 LDI r25, 0x7020         ; nibble variation table base
 
-LDI r5, 0               ; ty = 0
+LDI r15, 0               ; ty = 0
 LDI r27, 0              ; screen_y accumulator
 
 render_y:
-  LDI r1, 0             ; tx = 0
+  LDI r2, 0             ; tx = 0
   LDI r28, 0            ; screen_x accumulator
 
   ; Reset contour carry-forward elevation for start of row
@@ -479,8 +479,8 @@ render_y:
   STORE r18, r19            ; RAM[0x7807] = 0 (no left neighbor at row start)
 
   ; Precompute y-part of blend neighbor hash (shared across row)
-  MOV r26, r3
-  ADD r26, r5            ; r26 = world_y for this row
+  MOV r26, r5
+  ADD r26, r15            ; r26 = world_y for this row
   LDI r18, 3
   SHR r26, r18           ; world_y >> 3
   LDI r18, 79007
@@ -490,8 +490,8 @@ render_y:
   ; Mode: 0=none, 1=top 50/50 (pos 0), 2=top 75/25 (pos 1),
   ;        3=bottom 75/25 (pos 6), 4=bottom 50/50 (pos 7)
   ; RAM[0x7804] = precomputed neighbor y_hash for Y-blend
-  MOV r18, r3
-  ADD r18, r5              ; r18 = world_y
+  MOV r18, r5
+  ADD r18, r15              ; r18 = world_y
   ANDI r18, 7              ; r18 = local_y (0..7)
   LDI r20, 0               ; default blend mode = 0 (no blend)
   LDI r16, 0x7803          ; blend mode address
@@ -529,8 +529,8 @@ ypre_chk7:
   STORE r16, r20
   LDI r20, 8               ; +8 offset
 ypre_hash:
-  MOV r22, r3
-  ADD r22, r5
+  MOV r22, r5
+  ADD r22, r15
   ADD r22, r20             ; neighbor_y = world_y + offset
   LDI r20, 3
   SHR r22, r20
@@ -546,30 +546,30 @@ ypre_done:
 
   render_x:
     ; World coordinates
-    MOV r8, r2
-    ADD r8, r1           ; r8 = world_x
-    MOV r14, r3
-    ADD r14, r5           ; r14 = world_y
+    MOV r9, r6
+    ADD r9, r2           ; r9 = world_x
+    MOV r13, r5
+    ADD r13, r15           ; r13 = world_y
 
     ; ---- Coarse hash for biome ----
-    MOV r15, r8
-    MOV r12, r14
+    MOV r1, r9
+    MOV r14, r13
     LDI r18, 3
-    SHR r15, r18          ; r15 = world_x >> 3
-    SHR r12, r18          ; r12 = world_y >> 3
+    SHR r1, r18          ; r1 = world_x >> 3
+    SHR r14, r18          ; r14 = world_y >> 3
     LDI r18, 99001
-    MUL r15, r18          ; r15 = x_hash
+    MUL r1, r18          ; r1 = x_hash
     LDI r18, 79007
-    MUL r12, r18          ; r12 = y_hash
-    XOR r15, r12           ; r15 = coarse_hash
+    MUL r14, r18          ; r14 = y_hash
+    XOR r1, r14           ; r1 = coarse_hash
     LDI r18, 1103515245
-    MUL r15, r18          ; r15 = mixed_hash
+    MUL r1, r18          ; r1 = mixed_hash
 
     ; ---- Extract biome (top 5 bits) + pattern (bits 25-26) ----
-    MOV r17, r15
+    MOV r17, r1
     LDI r18, 27
     SHR r17, r18         ; r17 = biome_type (0..31)
-    MOV r29, r15
+    MOV r29, r1
     LDI r18, 25
     SHR r29, r18
     ANDI r29, 3           ; r29 = pattern_type (0-3) -- saved from clobber
@@ -592,11 +592,11 @@ ypre_done:
     ; -- X-direction blend (4-tile graduated transition zone) --
     ; y_hash precomputed in r26 (shared across row)
     LDI r19, 0               ; blend mode: 0=50/50, 1=75/25
-    MOV r18, r8
+    MOV r18, r9
     ANDI r18, 7              ; r18 = local_x (position within 8-tile biome)
     JNZ r18, xblend_chk_1
     ; local_x == 0: 50/50 blend with LEFT neighbor (world_x - 8)
-    MOV r21, r8
+    MOV r21, r9
     LDI r18, 8
     SUB r21, r18
     JMP xblend_hash
@@ -606,7 +606,7 @@ xblend_chk_1:
     JNZ r18, xblend_chk_6
     ; local_x == 1: 75/25 graduated blend LEFT
     LDI r19, 1               ; graduated mode
-    MOV r21, r8
+    MOV r21, r9
     LDI r18, 8
     SUB r21, r18
     JMP xblend_hash
@@ -616,7 +616,7 @@ xblend_chk_6:
     JNZ r18, xblend_chk_7
     ; local_x == 6: 75/25 graduated blend RIGHT
     LDI r19, 1               ; graduated mode
-    MOV r21, r8
+    MOV r21, r9
     LDI r18, 8
     ADD r21, r18
     JMP xblend_hash
@@ -625,7 +625,7 @@ xblend_chk_7:
     SUB r18, r21             ; r18 = local_x - 7
     JNZ r18, no_xblend       ; not at X edge, skip
     ; local_x == 7: 50/50 blend with RIGHT neighbor (world_x + 8)
-    MOV r21, r8
+    MOV r21, r9
     LDI r18, 8
     ADD r21, r18
 xblend_hash:
@@ -679,7 +679,7 @@ no_xblend:
     LOAD r26, r26           ; r26 = neighbor_y_hash
     ; Compute neighbor biome: re-derive x_hash XOR neighbor_y_hash → LCG → biome index
     ; (x_hash clobbered by X-blend, so re-derive from world_x)
-    MOV r22, r8
+    MOV r22, r9
     LDI r18, 3
     SHR r22, r18             ; r22 = world_x >> 3
     LDI r18, 99001
@@ -720,15 +720,15 @@ yblend_75:
 no_yblend:
 
     ; ---- Fine hash: MUL-based per-tile seeding (Pixelpack strategy) ----
-    ; r12 = world_x * 374761393 XOR world_y * 668265263
+    ; r14 = world_x * 374761393 XOR world_y * 668265263
     ; This gives good avalanche -- adjacent tiles get very different seeds
-    MOV r12, r8
+    MOV r14, r9
     LDI r18, 374761393
-    MUL r12, r18
-    MOV r21, r14
+    MUL r14, r18
+    MOV r21, r13
     LDI r18, 668265263
     MUL r21, r18
-    XOR r12, r21           ; r12 = fine_hash (THE SEED, 32 bits of goodness)
+    XOR r14, r21           ; r14 = fine_hash (THE SEED, 32 bits of goodness)
 
     ; ---- Single water check (biome 0 or 1) ----
     ; Sets r31=1 for water, r31=0 for land. Used by height skip and shimmer.
@@ -751,17 +751,17 @@ water_checked:
     ; Only compute at biome boundaries (world_y & 7 == 0).
     ; If tile above is also water (biome 0/1), skip (use normal water rendering).
     JZ r31, no_reflect       ; not water, skip
-    MOV r18, r14
+    MOV r18, r13
     ANDI r18, 7              ; world_y & 7
     JNZ r18, no_reflect      ; same biome block → above is same water biome
     ; At biome boundary: compute above-tile biome via hash(world_x, world_y-1)
-    MOV r18, r8
+    MOV r18, r9
     LDI r19, 3
     SHR r18, r19             ; world_x >> 3
     LDI r19, 99001
     MUL r18, r19             ; x_hash
-    MOV r19, r14
-    SUB r19, r4              ; world_y - 1
+    MOV r19, r13
+    SUB r19, r12              ; world_y - 1
     LDI r20, 3
     SHR r19, r20             ; (world_y-1) >> 3
     LDI r20, 79007
@@ -787,8 +787,8 @@ water_checked:
     LDI r18, 0x0E1C38
     ADD r19, r18             ; reflected/2 + blue_tint
     ; Ripple: (frame_counter + world_x) & 0xF * 0x020202 for wave motion
-    LOAD r20, r13            ; frame_counter
-    ADD r20, r8              ; fc + world_x (cheap position variation)
+    LOAD r20, r7            ; frame_counter
+    ADD r20, r9              ; fc + world_x (cheap position variation)
     ANDI r20, 0xF            ; 0-15 ripple phase
     LDI r21, 0x020202
     MUL r20, r21             ; ripple brightness (0x00..0x1E1E1E)
@@ -802,7 +802,7 @@ no_reflect:
     JZ r31, height_apply
     JMP height_skip        ; water = flat, no height shading
 height_apply:
-    MOV r18, r12            ; fine_hash
+    MOV r18, r14            ; fine_hash
     LDI r30, 28
     SHR r18, r30           ; top 4 bits (0-15)
     ANDI r18, 0x7          ; clamp to 0-7
@@ -812,7 +812,7 @@ height_apply:
 height_skip:
 
     ; ---- R-channel variation: nibble 0 of fine_hash ----
-    MOV r18, r12
+    MOV r18, r14
     ANDI r18, 0xF          ; r18 = seed & 0xF (nibble 0: R variation index)
     ADD r18, r25           ; r18 = 0x7020 + index
     LOAD r18, r18          ; r18 = variation offset
@@ -821,7 +821,7 @@ height_skip:
     ; ---- Apply day/night tint to base, then derive accent ----
     ADD r17, r23          ; base += tint
     ; Accent: XOR tinted base with coarse_hash mask (XOR_CHAIN strategy)
-    MOV r19, r15
+    MOV r19, r1
     LDI r18, 10
     SHR r19, r18
     ANDI r19, 0x1F1F1F     ; 5 bits per channel mask
@@ -835,8 +835,8 @@ height_skip:
     ; Water base (0x000044 / 0x0000BB) has room for +0x22 blue safely.
     JZ r31, no_shimmer     ; not water
     LDI r29, 1             ; force center pattern for water
-    LOAD r18, r13          ; frame_counter
-    MOV r30, r12
+    LOAD r18, r7          ; frame_counter
+    MOV r30, r14
     ANDI r30, 0xF          ; fine_hash nibble (spatial variation)
     ADD r18, r30           ; wave_phase = fc + spatial
     ANDI r18, 0xF          ; 0-15 shimmer phase
@@ -858,18 +858,18 @@ no_shimmer:
     ; Optimization: when world_x & 7 != 0, left neighbor is same biome column →
     ; same biome as current water tile → skip hash computation entirely.
     JZ r31, no_foam          ; not water, skip entirely
-    MOV r18, r8
+    MOV r18, r9
     ANDI r18, 7              ; world_x & 7
     JNZ r18, no_foam         ; not at X biome boundary → same biome, skip
     ; At biome boundary: compute left neighbor hash
-    MOV r18, r8
-    SUB r18, r4              ; r18 = world_x - 1 (left neighbor)
+    MOV r18, r9
+    SUB r18, r12              ; r18 = world_x - 1 (left neighbor)
     MOV r21, r18
     LDI r18, 3
     SHR r21, r18             ; (world_x-1) >> 3
     LDI r18, 99001
     MUL r21, r18
-    MOV r22, r14              ; world_y
+    MOV r22, r13              ; world_y
     LDI r18, 3
     SHR r22, r18             ; world_y >> 3
     LDI r18, 79007
@@ -895,40 +895,40 @@ no_foam:
     ; ---- Pattern dispatch (flat=0, center=1, horiz=2, vert=3) ----
     MOV r18, r29           ; restore pattern_type from r29
     JZ r18, pat_flat       ; 0: flat tile
-    SUB r18, r4            ; pattern - 1
+    SUB r18, r12            ; pattern - 1
     JZ r18, pat_center     ; 1: center bright
-    SUB r18, r4            ; pattern - 2
+    SUB r18, r12            ; pattern - 2
     JZ r18, pat_horiz      ; 2: horizontal stripe
     ; Fall through: 3 = vertical stripe
 
     ; Pattern 3: left half base, right half accent (rock faces)
-    RECTF r28, r27, r20, r6, r17
+    RECTF r28, r27, r20, r8, r17
     MOV r21, r28
     ADD r21, r20           ; r21 = x + 2
-    RECTF r21, r27, r20, r6, r19
+    RECTF r21, r27, r20, r8, r19
     JMP tile_done
 
 pat_flat:
     ; Pattern 0: single flat tile
-    RECTF r28, r27, r6, r6, r17
+    RECTF r28, r27, r8, r8, r17
     JMP tile_done
 
 pat_center:
     ; Pattern 1: base background + 2x2 accent center (oasis, crystals)
-    RECTF r28, r27, r6, r6, r17
+    RECTF r28, r27, r8, r8, r17
     MOV r21, r28
-    ADD r21, r4            ; r21 = x + 1
+    ADD r21, r12            ; r21 = x + 1
     MOV r22, r27
-    ADD r22, r4            ; r22 = y + 1
+    ADD r22, r12            ; r22 = y + 1
     RECTF r21, r22, r20, r20, r19
     JMP tile_done
 
 pat_horiz:
     ; Pattern 2: top half base, bottom half accent (dune ridges)
-    RECTF r28, r27, r6, r20, r17
+    RECTF r28, r27, r8, r20, r17
     MOV r21, r27
     ADD r21, r20           ; r21 = y + 2
-    RECTF r28, r21, r6, r20, r19
+    RECTF r28, r21, r8, r20, r19
     JMP tile_done
 
 tile_done:
@@ -942,17 +942,17 @@ tile_done:
     JNZ r31, contour_clr_skip
 
     ; Extract current elevation
-    MOV r15, r12
+    MOV r1, r14
     LDI r18, 28
-    SHR r15, r18
-    ANDI r15, 7              ; r15 = current_elevation (0-7)
+    SHR r1, r18
+    ANDI r1, 7              ; r1 = current_elevation (0-7)
 
     ; -- Right neighbor contour (carry-forward from RAM[0x7807]) --
     LDI r18, 0x7807
     LOAD r18, r18            ; r18 = prev_tile_elevation
 
     ; Check: |current - prev| >= 3? (single subtraction + sign test)
-    MOV r19, r15
+    MOV r19, r1
     SUB r19, r18              ; current - prev
     LDI r20, 3
     SUB r19, r20              ; (current - prev) - 3
@@ -962,7 +962,7 @@ tile_done:
 
     ; Check reverse: prev - current >= 3?
     MOV r19, r18
-    SUB r19, r15               ; prev - current
+    SUB r19, r1               ; prev - current
     LDI r20, 3
     SUB r19, r20              ; (prev - current) - 3
     LDI r20, 0x80000000
@@ -975,17 +975,17 @@ contour_r_draw:
     ; (tx+3, ty) and (tx+3, ty+3) checked by the tint analysis test.
     LDI r17, 0x222222
     MOV r18, r28
-    ADD r18, r4
-    ADD r18, r4               ; x = screen_x + 2 = sx + 2
-    RECTF r18, r27, r4, r6, r17
+    ADD r18, r12
+    ADD r18, r12               ; x = screen_x + 2 = sx + 2
+    RECTF r18, r27, r12, r8, r17
 
 contour_bottom_chk:
     ; -- Bottom neighbor contour --
-    MOV r18, r8
+    MOV r18, r9
     LDI r19, 374761393
     MUL r18, r19              ; wx * seed_x
-    MOV r19, r14
-    ADD r19, r4               ; world_y + 1
+    MOV r19, r13
+    ADD r19, r12               ; world_y + 1
     LDI r20, 668265263
     MUL r19, r20              ; (wy+1) * seed_y
     XOR r18, r19              ; bottom fine_hash
@@ -994,7 +994,7 @@ contour_bottom_chk:
     ANDI r18, 7               ; r18 = bottom_elevation
 
     ; Check: current - bottom >= 3?
-    MOV r19, r15
+    MOV r19, r1
     SUB r19, r18
     LDI r20, 3
     SUB r19, r20
@@ -1004,7 +1004,7 @@ contour_bottom_chk:
 
     ; Check reverse: bottom - current >= 3?
     MOV r19, r18
-    SUB r19, r15
+    SUB r19, r1
     LDI r20, 3
     SUB r19, r20
     LDI r20, 0x80000000
@@ -1017,14 +1017,14 @@ contour_b_draw:
     ; (tx, ty+3) and (tx+3, ty+3) checked by the tint analysis test.
     LDI r17, 0x222222
     MOV r18, r27
-    ADD r18, r4
-    ADD r18, r4               ; y = screen_y + 2 = sy + 2
-    RECTF r28, r18, r6, r4, r17
+    ADD r18, r12
+    ADD r18, r12               ; y = screen_y + 2 = sy + 2
+    RECTF r28, r18, r8, r12, r17
 
 contour_done:
     ; Store current elevation for next tile's right-edge contour check
     LDI r18, 0x7807
-    STORE r18, r15             ; RAM[0x7807] = current_elevation
+    STORE r18, r1             ; RAM[0x7807] = current_elevation
     JMP contour_after
 
 contour_clr_skip:
@@ -1061,13 +1061,13 @@ contour_after:
     JMP no_tree
 
 tree_grass:
-    MOV r18, r12
+    MOV r18, r14
     ANDI r18, 0x3            ; ~25% density
     JNZ r18, no_tree
     JMP tree_draw
 
 tree_forest:
-    MOV r18, r12
+    MOV r18, r14
     ANDI r18, 0x1            ; ~50% density
     JNZ r18, no_tree
 
@@ -1075,7 +1075,7 @@ tree_draw:
     ; Canopy: RECTF(sx+1, sy, 3, 2, canopy_green)
     LDI r20, 0x228811
     MOV r18, r28
-    ADD r18, r4               ; sx + 1
+    ADD r18, r12               ; sx + 1
     LDI r19, 3
     LDI r21, 2
     RECTF r18, r27, r19, r21, r20
@@ -1083,28 +1083,28 @@ tree_draw:
     ; Trunk: RECTF(sx+2, sy+2, 1, 1, trunk_brown)
     LDI r20, 0x664422
     MOV r18, r28
-    ADD r18, r4
-    ADD r18, r4               ; sx + 2
+    ADD r18, r12
+    ADD r18, r12               ; sx + 2
     MOV r19, r27
-    ADD r19, r4
-    ADD r19, r4               ; sy + 2
-    RECTF r18, r19, r4, r4, r20
+    ADD r19, r12
+    ADD r19, r12               ; sy + 2
+    RECTF r18, r19, r12, r12, r20
 
 no_tree:
 
     ; ---- Next tile ----
-    ADD r1, r4            ; tx++
-    ADD r28, r6           ; screen_x += TILE_SIZE
-    MOV r18, r1
-    SUB r18, r11           ; tx - 64
+    ADD r2, r12            ; tx++
+    ADD r28, r8           ; screen_x += TILE_SIZE
+    MOV r18, r2
+    SUB r18, r0           ; tx - 64
     JZ r18, next_row
     JMP render_x
 
 next_row:
-    ADD r5, r4            ; ty++
-    ADD r27, r6           ; screen_y += TILE_SIZE
-    MOV r18, r5
-    SUB r18, r11           ; ty - 64
+    ADD r15, r12            ; ty++
+    ADD r27, r8           ; screen_y += TILE_SIZE
+    MOV r18, r15
+    SUB r18, r0           ; ty - 64
     JZ r18, frame_end
     JMP render_y
 
@@ -1115,7 +1115,7 @@ frame_end:
 ; Colors shift per phase: dawn=blue-purple→orange, day=blue→light-blue,
 ; dusk=dark-purple→deep-orange, night=near-black→dark-blue.
 ; Bands: [0-3]=top, [4-7]=top+(horizon>>2), [8-11]=(top+horizon)>>1, [12-15]=horizon
-LOAD r17, r13           ; r17 = frame_counter
+LOAD r17, r7           ; r17 = frame_counter
 LDI r18, 0xFF
 AND r17, r18
 LDI r18, 6
@@ -1130,60 +1130,60 @@ SUB r17, r18
 JZ r17, sky_dusk
 
 sky_night:
-  LDI r15, 0x050510       ; top: near-black with hint of blue
-  LDI r12, 0x0A0A30       ; horizon: dark navy
+  LDI r1, 0x050510       ; top: near-black with hint of blue
+  LDI r14, 0x0A0A30       ; horizon: dark navy
   JMP sky_draw
 
 sky_dawn:
-  LDI r15, 0x101040       ; top: deep blue-purple
-  LDI r12, 0xCC6600       ; horizon: warm orange
+  LDI r1, 0x101040       ; top: deep blue-purple
+  LDI r14, 0xCC6600       ; horizon: warm orange
   JMP sky_draw
 
 sky_day:
-  LDI r15, 0x1844AA       ; top: medium blue
-  LDI r12, 0x5599DD       ; horizon: light sky blue
+  LDI r1, 0x1844AA       ; top: medium blue
+  LDI r14, 0x5599DD       ; horizon: light sky blue
   JMP sky_draw
 
 sky_dusk:
-  LDI r15, 0x0C0820       ; top: dark purple
-  LDI r12, 0xDD4400       ; horizon: deep orange-red
+  LDI r1, 0x0C0820       ; top: dark purple
+  LDI r14, 0xDD4400       ; horizon: deep orange-red
   JMP sky_draw
 
 sky_draw:
 ; Band 0 (rows 0-3): top color
-LDI r8, 0
-LDI r14, 0
+LDI r9, 0
+LDI r13, 0
 LDI r18, 256
 LDI r19, 4
-RECTF r8, r14, r18, r19, r15
+RECTF r9, r13, r18, r19, r1
 
 ; Band 1 (rows 4-7): top + (horizon >> 2) = 75% top + 25% horizon
-MOV r17, r12
+MOV r17, r14
 LDI r18, 2
 SHR r17, r18            ; horizon >> 2
-ADD r17, r15             ; top + (horizon >> 2)
+ADD r17, r1             ; top + (horizon >> 2)
 LDI r18, 256            ; width
-LDI r14, 4
-RECTF r8, r14, r18, r19, r17
+LDI r13, 4
+RECTF r9, r13, r18, r19, r17
 
 ; Band 2 (rows 8-11): (top >> 1) + (horizon >> 1) = 50/50 blend
-MOV r17, r15
+MOV r17, r1
 LDI r18, 1
 SHR r17, r18            ; top >> 1
-MOV r20, r12
+MOV r20, r14
 SHR r20, r18            ; horizon >> 1
 ADD r17, r20            ; mid blend
 LDI r18, 256            ; width
-LDI r14, 8
-RECTF r8, r14, r18, r19, r17
+LDI r13, 8
+RECTF r9, r13, r18, r19, r17
 
 ; Band 3 (rows 12-15): horizon color
 LDI r18, 256            ; width
-LDI r14, 12
-RECTF r8, r14, r18, r19, r12
+LDI r13, 12
+RECTF r9, r13, r18, r19, r14
 
 ; ===== Player Cursor =====
-LOAD r17, r13
+LOAD r17, r7
 LDI r18, 16
 AND r17, r18
 JZ r17, cursor_white
@@ -1194,16 +1194,16 @@ LDI r17, 0xFFFFFF
 cursor_arms:
 LDI r18, 1
 LDI r19, 3
-LDI r8, 127
-LDI r14, 124
-RECTF r8, r14, r18, r19, r17
-LDI r14, 128
-RECTF r8, r14, r18, r19, r17
-LDI r8, 124
-LDI r14, 127
-RECTF r8, r14, r19, r18, r17
-LDI r8, 128
-RECTF r8, r14, r19, r18, r17
+LDI r9, 127
+LDI r13, 124
+RECTF r9, r13, r18, r19, r17
+LDI r13, 128
+RECTF r9, r13, r18, r19, r17
+LDI r9, 124
+LDI r13, 127
+RECTF r9, r13, r19, r18, r17
+LDI r9, 128
+RECTF r9, r13, r19, r18, r17
 
 ; ===== 32x32 Minimap Overlay (top-right, updated every 4 frames) =====
 ; Covers 64-tile viewport at half resolution (1 pixel = 2 tiles).
@@ -1213,7 +1213,7 @@ RECTF r8, r14, r19, r18, r17
 ; Only recomputes biome hashes every 4 frames; repaints from cache every frame.
 
 ; --- Recompute biome hashes every 4 frames (always on frame 1) ---
-LOAD r17, r13           ; r17 = frame_counter
+LOAD r17, r7           ; r17 = frame_counter
 LDI r18, 1
 SUB r17, r18            ; r17 = frame_counter - 1 (so first frame fc=1 gives 0)
 LDI r18, 3
@@ -1221,97 +1221,97 @@ AND r17, r18            ; r17 = (fc-1) & 3
 JNZ r17, mm_repaint     ; skip recompute if not frame 1,5,9,...
 
 ; --- Compute 32x32 terrain into cache ---
-LDI r5, 0               ; my = 0
+LDI r15, 0               ; my = 0
 LDI r20, 0x7100         ; cache base
 
 mm_y:
-  LDI r1, 0             ; mx = 0
+  LDI r2, 0             ; mx = 0
   mm_x:
     ; World coords: each pixel covers 2 tiles
-    MOV r8, r1
+    MOV r9, r2
     LDI r18, 2
-    MUL r8, r18
-    ADD r8, r2          ; r8 = camera_x + mx*2
+    MUL r9, r18
+    ADD r9, r6          ; r9 = camera_x + mx*2
 
-    MOV r14, r5
+    MOV r13, r15
     LDI r18, 2
-    MUL r14, r18
-    ADD r14, r3          ; r14 = camera_y + my*2
+    MUL r13, r18
+    ADD r13, r5          ; r13 = camera_y + my*2
 
     ; Coarse hash for biome (same hash as main terrain)
-    MOV r15, r8
+    MOV r1, r9
     LDI r18, 3
-    SHR r15, r18          ; world_x >> 3
+    SHR r1, r18          ; world_x >> 3
     LDI r18, 99001
-    MUL r15, r18          ; x_hash
+    MUL r1, r18          ; x_hash
 
-    MOV r12, r14
+    MOV r14, r13
     LDI r18, 3
-    SHR r12, r18          ; world_y >> 3
+    SHR r14, r18          ; world_y >> 3
     LDI r18, 79007
-    MUL r12, r18          ; y_hash
+    MUL r14, r18          ; y_hash
 
-    XOR r15, r12           ; coarse_hash
+    XOR r1, r14           ; coarse_hash
     LDI r18, 1103515245
-    MUL r15, r18          ; mixed_hash
+    MUL r1, r18          ; mixed_hash
     LDI r18, 27
-    SHR r15, r18          ; biome index (0..31)
+    SHR r1, r18          ; biome index (0..31)
 
     ; Lookup biome color and dim to 50%
     MOV r18, r24
-    ADD r18, r15
+    ADD r18, r1
     LOAD r17, r18        ; r17 = biome base color
     LDI r18, 1
     SHR r17, r18         ; dim to 50% brightness
 
     ; Store to cache
     STORE r20, r17
-    ADD r20, r4          ; cache ptr++
+    ADD r20, r12          ; cache ptr++
 
-    ADD r1, r4           ; mx++
+    ADD r2, r12           ; mx++
     LDI r18, 32
-    MOV r19, r1
+    MOV r19, r2
     SUB r19, r18
     JZ r19, mm_next_row
     JMP mm_x
 
 mm_next_row:
-    ADD r5, r4           ; my++
+    ADD r15, r12           ; my++
     LDI r18, 32
-    MOV r19, r5
+    MOV r19, r15
     SUB r19, r18
     JZ r19, mm_repaint
     JMP mm_y
 
 ; --- Repaint minimap from cache to screen (every frame) ---
 mm_repaint:
-LDI r5, 0               ; my = 0
+LDI r15, 0               ; my = 0
 LDI r20, 0x7100         ; cache base
 
 mm_pnt_y:
-  LDI r1, 0             ; mx = 0
+  LDI r2, 0             ; mx = 0
   mm_pnt_x:
     ; Load cached color
     LOAD r17, r20
-    ADD r20, r4
+    ADD r20, r12
 
     ; Screen position: x = 224 + mx, y = my
-    MOV r8, r1
+    MOV r9, r2
     LDI r18, 224
-    ADD r8, r18
-    PSET r8, r5, r17
+    ADD r9, r18
+    PSET r9, r15, r17
 
-    ADD r1, r4           ; mx++
+    ADD r2, r12           ; mx++
     LDI r18, 32
-    MOV r19, r1
+    MOV r19, r2
     SUB r19, r18
     JZ r19, mm_pnt_next
     JMP mm_pnt_x
 
 mm_pnt_next:
-    ADD r5, r4           ; my++
+    ADD r15, r12           ; my++
     LDI r18, 32
-    MOV r19, r5
+    MOV r19, r15
     SUB r19, r18
     JZ r19, mm_border
     JMP mm_pnt_y
@@ -1322,21 +1322,21 @@ LDI r17, 0xAAAAAA
 LDI r18, 1
 LDI r19, 32
 
-LDI r8, 224
-LDI r14, 0
-RECTF r8, r14, r19, r18, r17    ; top edge
-LDI r14, 31
-RECTF r8, r14, r19, r18, r17    ; bottom edge
-LDI r14, 0
-RECTF r8, r14, r18, r19, r17    ; left edge
-LDI r8, 255
-RECTF r8, r14, r18, r19, r17    ; right edge
+LDI r9, 224
+LDI r13, 0
+RECTF r9, r13, r19, r18, r17    ; top edge
+LDI r13, 31
+RECTF r9, r13, r19, r18, r17    ; bottom edge
+LDI r13, 0
+RECTF r9, r13, r18, r19, r17    ; left edge
+LDI r9, 255
+RECTF r9, r13, r18, r19, r17    ; right edge
 
 ; --- Player center dot ---
-LDI r8, 240
-LDI r14, 16
+LDI r9, 240
+LDI r13, 16
 LDI r17, 0xFFFFFF
-PSET r8, r14, r17
+PSET r9, r13, r17
 
     FRAME
     JMP main_loop

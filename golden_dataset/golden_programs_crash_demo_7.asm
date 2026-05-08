@@ -1,17 +1,17 @@
-; DESCRIPTION: This GeOS assembly code spawns a child process that attempts to access an unmapped memory address, triggering a segmentation fault. The scheduler catches this exception, writes a core dump to `/var/core/2.txt`, and renders a crash dialog on screen while the primary process maintains a blue background animation.
+; DESCRIPTION: Display a object using color blue at the screen.
 
 ; Phase 104: Crash Demo - spawns a child that accesses unmapped memory
 ; The child triggers a segfault, which the scheduler catches and writes
 ; a core dump to /var/core/2.txt, then renders a crash dialog on screen.
 
 ; Primary draws a blue background, then spawns a child
-LDI r12, 1
-LDI r8, 0x0000FF
-FILL r8
+LDI r7, 1
+LDI r1, 0x0000FF
+FILL r1
 
 ; Spawn child at label (page-aligned .org needed)
-LDI r6, child
-SPAWN r6
+LDI r14, child
+SPAWN r14
 
 ; Primary animation loop - keeps rendering while child runs
 primary_loop:
@@ -22,6 +22,6 @@ primary_loop:
 child:
     ; Child tries to access high unmapped address
     ; This will trigger a segfault when the scheduler detects it
-    LDI r11, 0xFF00
-    LOAD r0, r11
+    LDI r2, 0xFF00
+    LOAD r3, r2
     HALT

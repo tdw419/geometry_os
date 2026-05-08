@@ -1,7 +1,7 @@
-; DESCRIPTION: This GeOS assembly code initializes system state by setting specific memory locations to designated values. It then spawns a burst of entities at random positions within a defined area, updating counters and storing entity coordinates in memory. Finally, it halts execution after verifying the count of spawned entities.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; test_sandbox_spawn.asm -- Init + spawn_burst
-LDI r15, 1
+LDI r0, 1
 LDI r21, 4
 LDI r22, 128
 LDI r23, 0x7000
@@ -20,42 +20,32 @@ STORE r26, r18
 STORE r27, r18
 
 ; Spawn burst
-LDI r3, 128
 LDI r6, 128
+LDI r1, 128
 CALL spawn_burst
 
 ; Verify count
-LOAD r0, r26
+LOAD r10, r26
 
 HALT
 
 spawn_burst:
   PUSH r31
-  PUSH r14
+  PUSH r13
   LDI r16, 8
 
 sb_loop:
   LOAD r18, r26
   LDI r17, 128
   CMP r18, r17
-  BGE r14, sb_done
+  BGE r13, sb_done
 
-  MOV r4, r23
-  MOV r13, r18
+  MOV r3, r23
+  MOV r7, r18
   LDI r17, 4
-  MUL r13, r17
-  ADD r4, r13
+  MUL r7, r17
+  ADD r3, r7
 
-  RAND r17
-  LDI r18, 15
-  AND r17, r18
-  LDI r18, 8
-  SUB r17, r18
-  MOV r18, r3
-  ADD r18, r17
-  STORE r4, r18
-
-  ADD r4, r15
   RAND r17
   LDI r18, 15
   AND r17, r18
@@ -63,32 +53,42 @@ sb_loop:
   SUB r17, r18
   MOV r18, r6
   ADD r18, r17
-  STORE r4, r18
+  STORE r3, r18
 
-  ADD r4, r15
+  ADD r3, r0
+  RAND r17
+  LDI r18, 15
+  AND r17, r18
+  LDI r18, 8
+  SUB r17, r18
+  MOV r18, r1
+  ADD r18, r17
+  STORE r3, r18
+
+  ADD r3, r0
   RAND r17
   LDI r18, 7
   AND r17, r18
   LDI r18, 3
   SUB r17, r18
-  STORE r4, r17
+  STORE r3, r17
 
-  ADD r4, r15
+  ADD r3, r0
   RAND r17
   LDI r18, 7
   AND r17, r18
   LDI r18, 5
   SUB r17, r18
-  STORE r4, r17
+  STORE r3, r17
 
   LOAD r18, r26
-  ADD r18, r15
+  ADD r18, r0
   STORE r26, r18
 
-  SUB r16, r15
+  SUB r16, r0
   JNZ r16, sb_loop
 
 sb_done:
-  POP r14
+  POP r13
   POP r31
   RET

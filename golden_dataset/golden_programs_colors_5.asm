@@ -1,14 +1,14 @@
-; DESCRIPTION: This GeOS assembly code fills the screen with four horizontal color bands using the `FILL` instruction in a loop. The colors used are red, green, blue, and yellow, each filling one quarter of the screen.
+; DESCRIPTION: Display a object using color red at the screen.
 
 ; Colors -- fill screen with horizontal color bands
 ; Uses FILL in a loop to draw 4 color bands across the screen
 
-LDI r11, 0xFF0000
-FILL r11
-LDI r11, 0x00FF00
-FILL r11
-LDI r11, 0x0000FF
-FILL r11
-LDI r11, 0xFFFF00
-FILL r11
+LDI r5, 0xFF0000
+FILL r5
+LDI r5, 0x00FF00
+FILL r5
+LDI r5, 0x0000FF
+FILL r5
+LDI r5, 0xFFFF00
+FILL r5
 HALT

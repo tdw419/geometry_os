@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates the use of the `PIXEL_HISTORY` function to track and display the history of pixel writes at a specific location. It enables trace recording, draws three differently colored pixels at coordinates (10, 10), queries the write history, retrieves it into RAM, and displays each write as a colored bar on screen, along with a total count of entries in the log.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; pixel_history_demo.asm -- Demonstrates PIXEL_HISTORY (0x84)
 ; Time-travel debugging: write pixels, then query who wrote to them.
@@ -13,69 +13,69 @@
 ; Controls: Just watch it run -- it's a self-contained demo.
 
     ; Enable trace recording
-    LDI r3, 1
-    SNAP_TRACE r3
+    LDI r1, 1
+    SNAP_TRACE r1
 
     ; Draw red pixel at (10, 10)
-    LDI r1, 10
     LDI r12, 10
-    LDI r5, 0xFF0000
-    PSET r1, r12, r5
+    LDI r8, 10
+    LDI r4, 0xFF0000
+    PSET r12, r8, r4
 
     ; Draw green pixel at (10, 10) -- overwriting red
-    LDI r5, 0x00FF00
-    PSET r1, r12, r5
+    LDI r4, 0x00FF00
+    PSET r12, r8, r4
 
     ; Draw blue pixel at (10, 10) -- overwriting green
-    LDI r5, 0x0000FF
-    PSET r1, r12, r5
+    LDI r4, 0x0000FF
+    PSET r12, r8, r4
 
     ; Query: how many writes to pixel (10, 10)?
-    LDI r3, 1           ; mode 1 = count at pixel
-    LDI r1, 10          ; x
-    LDI r12, 10          ; y
-    PIXEL_HISTORY r3
-    ; r3 = 3 (three writes)
+    LDI r1, 1           ; mode 1 = count at pixel
+    LDI r12, 10          ; x
+    LDI r8, 10          ; y
+    PIXEL_HISTORY r1
+    ; r1 = 3 (three writes)
 
     ; Retrieve the write history into RAM at 0x1000
-    LDI r3, 2           ; mode 2 = get recent writes
-    LDI r1, 10          ; x
-    LDI r12, 10          ; y
-    LDI r5, 10          ; max_count
-    LDI r6, 0x1000      ; buffer address
-    PIXEL_HISTORY r3
-    ; r3 = 3 (entries written), RAM[0x1000..0x1011] has the data
+    LDI r1, 2           ; mode 2 = get recent writes
+    LDI r12, 10          ; x
+    LDI r8, 10          ; y
+    LDI r4, 10          ; max_count
+    LDI r15, 0x1000      ; buffer address
+    PIXEL_HISTORY r1
+    ; r1 = 3 (entries written), RAM[0x1000..0x1011] has the data
 
     ; Show total entries in log
-    LDI r3, 0           ; mode 0 = count total
-    PIXEL_HISTORY r3
-    ; r3 = 3
+    LDI r1, 0           ; mode 0 = count total
+    PIXEL_HISTORY r1
+    ; r1 = 3
 
     ; Display the history as colored bars on screen
     ; Entry 0 (newest = blue): draw bar at y=20
-    LDI r15, 0x1000      ; entry 0 base
-    LOAD r9, 12, r15     ; color field (offset 5 in entry)
-    LDI r1, 20          ; x
-    LDI r12, 20          ; y
-    RECTF r1, r12, r5, r12, r9  ; 3x3 colored square
+    LDI r3, 0x1000      ; entry 0 base
+    LOAD r13, 12, r3     ; color field (offset 5 in entry)
+    LDI r12, 20          ; x
+    LDI r8, 20          ; y
+    RECTF r12, r8, r4, r8, r13  ; 3x3 colored square
 
     ; Entry 1 (green): draw bar at y=30
-    LDI r15, 0x1006      ; entry 1 base (6 words per entry)
-    LOAD r9, 12, r15
-    LDI r12, 30
-    RECTF r1, r12, r5, r12, r9
+    LDI r3, 0x1006      ; entry 1 base (6 words per entry)
+    LOAD r13, 12, r3
+    LDI r8, 30
+    RECTF r12, r8, r4, r8, r13
 
     ; Entry 2 (oldest = red): draw bar at y=40
-    LDI r15, 0x100C      ; entry 2 base
-    LOAD r9, 12, r15
-    LDI r12, 40
-    RECTF r1, r12, r5, r12, r9
+    LDI r3, 0x100C      ; entry 2 base
+    LOAD r13, 12, r3
+    LDI r8, 40
+    RECTF r12, r8, r4, r8, r13
 
     ; Label
-    LDI r1, 50
-    LDI r12, 55
-    LDI r5, msg
-    TEXT r1, r12, r5
+    LDI r12, 50
+    LDI r8, 55
+    LDI r4, msg
+    TEXT r12, r8, r4
 
     FRAME
     HALT

@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code draws four concentric rings centered at (128, 128) with radii of 100, 75, 50, and 25 pixels, respectively. The intended colors for the rings are blue, red, green, and yellow; however, Ring 3 is incorrectly colored due to a bug in the color computation logic.
+; DESCRIPTION: Draw rectangle: pos=the screen, color=red, size=fixed size.
 
 ; concentric.asm -- Draw 4 concentric rings from center (128,128)
 ;
@@ -10,31 +10,31 @@
 ;
 ; Actual output: Ring 3 is wrong color. Agent must diagnose why.
 
-LDI r10, 128      ; center x
-LDI r9, 128      ; center y
+LDI r4, 128      ; center x
+LDI r14, 128      ; center y
 
 ; Ring 1: radius 100, blue
-LDI r15, 100
-LDI r7, 0x0000FF
-CIRCLE r10, r9, r15, r7
+LDI r1, 100
+LDI r9, 0x0000FF
+CIRCLE r4, r14, r1, r9
 
 ; Ring 2: radius 75, red
-LDI r15, 75
-LDI r7, 0xFF0000
-CIRCLE r10, r9, r15, r7
+LDI r1, 75
+LDI r9, 0xFF0000
+CIRCLE r4, r14, r1, r9
 
 ; Ring 3: radius 50, SHOULD BE green (0x00FF00)
 ; Bug: color is computed by shifting instead of loading immediate.
 ; SHL 1 on 0x7F80 gives 0xFF00, not 0x00FF00.
-LDI r15, 50
-LDI r7, 0x7F80
-LDI r12, 1
-SHL r7, r12
-CIRCLE r10, r9, r15, r7
+LDI r1, 50
+LDI r9, 0x7F80
+LDI r3, 1
+SHL r9, r3
+CIRCLE r4, r14, r1, r9
 
 ; Ring 4: radius 25, yellow
-LDI r15, 25
-LDI r7, 0xFFFF00
-CIRCLE r10, r9, r15, r7
+LDI r1, 25
+LDI r9, 0xFFFF00
+CIRCLE r4, r14, r1, r9
 
 HALT

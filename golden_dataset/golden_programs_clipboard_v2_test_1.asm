@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code tests the Clipboard Protocol version 2, evaluating functionalities such as clearing the text clipboard, respecting clip rectangles during paste operations, querying history information, and performing a full round-trip of storing, pushing to history, clearing, and restoring data. The results are visually verified through color-coded bars on the screen corresponding to each test step.
+; DESCRIPTION: Display a rectangle using color colored at the screen.
 
 ; ── clipboard_v2_test.asm ─────────────────────────────────────────
 ; Phase 221 Enhancement: Multi-Format Clipboard Protocol v2
@@ -20,262 +20,262 @@
 
 start:
     ; ── Clear screen ──
-    LDI r0, 0
-    FILL r0
+    LDI r8, 0
+    FILL r8
 
     ; ── Title ──
-    LDI r14, 2
+    LDI r15, 2
     LDI r7, 0
-    LDI r15, title
-    TEXT r14, r7, r15
+    LDI r2, title
+    TEXT r15, r7, r2
 
     ; ═══════════════════════════════════════════
     ; STEP 1: CLIP_TEXT clear (mode 3)
     ; ═══════════════════════════════════════════
     ; Store "ABC" at 0x3000
-    LDI r4, 0x3000
-    LDI r13, 65     ; 'A'
-    STORE r4, r13
-    LDI r4, 0x3001
-    LDI r13, 66     ; 'B'
-    STORE r4, r13
-    LDI r4, 0x3002
-    LDI r13, 67     ; 'C'
-    STORE r4, r13
-    LDI r4, 0x3003
-    LDI r13, 0      ; null
-    STORE r4, r13
+    LDI r13, 0x3000
+    LDI r6, 65     ; 'A'
+    STORE r13, r6
+    LDI r13, 0x3001
+    LDI r6, 66     ; 'B'
+    STORE r13, r6
+    LDI r13, 0x3002
+    LDI r6, 67     ; 'C'
+    STORE r13, r6
+    LDI r13, 0x3003
+    LDI r6, 0      ; null
+    STORE r13, r6
 
     ; Store text (mode 0)
-    LDI r13, 0
-    LDI r11, 0x3000
-    LDI r8, 3
-    CLIP_TEXT r13, r11, r8
+    LDI r6, 0
+    LDI r9, 0x3000
+    LDI r4, 3
+    CLIP_TEXT r6, r9, r4
 
     ; Clear text clipboard (mode 3)
-    LDI r13, 3
-    LDI r11, 0
-    LDI r8, 0
-    CLIP_TEXT r13, r11, r8
+    LDI r6, 3
+    LDI r9, 0
+    LDI r4, 0
+    CLIP_TEXT r6, r9, r4
 
     ; Get length (mode 2) — should be 0 after clear
-    LDI r13, 2
-    CLIP_TEXT r13, r11, r8
+    LDI r6, 2
+    CLIP_TEXT r6, r9, r4
 
     ; Draw label
-    LDI r14, 2
+    LDI r15, 2
     LDI r7, 8
-    LDI r15, step1_label
-    TEXT r14, r7, r15
+    LDI r2, step1_label
+    TEXT r15, r7, r2
 
     ; Green bar = text clear works
-    LDI r10, 0x00FF00
-    LDI r1, 2
-    LDI r4, 16
+    LDI r12, 0x00FF00
+    LDI r5, 2
+    LDI r13, 16
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
     ; STEP 2: CLIP_PASTE respects CLIPSET
     ; ═══════════════════════════════════════════
     ; Draw 8-pixel red bar at row 0
-    LDI r10, 0xFF0000
-    LDI r1, 0
-    LDI r4, 0
-    LDI r9, 8
+    LDI r12, 0xFF0000
+    LDI r5, 0
+    LDI r13, 0
+    LDI r10, 8
 step2_draw:
-    PSET r1, r4, r10
-    ADDI r1, 1
-    SUBI r9, 1
-    JNZ r9, step2_draw
+    PSET r5, r13, r12
+    ADDI r5, 1
+    SUBI r10, 1
+    JNZ r10, step2_draw
 
     ; Copy 8x1 region to clipboard
-    LDI r13, 0
-    LDI r11, 0
-    LDI r8, 8
-    LDI r5, 1
-    CLIP_COPY r13, r11, r8, r5
+    LDI r6, 0
+    LDI r9, 0
+    LDI r4, 8
+    LDI r1, 1
+    CLIP_COPY r6, r9, r4, r1
 
     ; Set clip rect: columns 2-5 (4px wide, full height)
-    LDI r13, 2
-    LDI r11, 0
-    LDI r8, 4
-    LDI r5, 256
-    CLIPSET r13, r11, r8, r5
+    LDI r6, 2
+    LDI r9, 0
+    LDI r4, 4
+    LDI r1, 256
+    CLIPSET r6, r9, r4, r1
 
     ; Paste at (0, 32) — only columns 2-5 should be red
-    LDI r13, 0
-    LDI r11, 32
-    CLIP_PASTE r13, r11
+    LDI r6, 0
+    LDI r9, 32
+    CLIP_PASTE r6, r9
 
     ; Clear clip rect
     CLIPCLR
 
     ; Draw label
-    LDI r14, 2
+    LDI r15, 2
     LDI r7, 24
-    LDI r15, step2_label
-    TEXT r14, r7, r15
+    LDI r2, step2_label
+    TEXT r15, r7, r2
 
     ; Yellow bar at y=33 (below paste row to preserve red paste pixels)
-    LDI r10, 0xFFFF00
-    LDI r1, 2
-    LDI r4, 33
+    LDI r12, 0xFFFF00
+    LDI r5, 2
+    LDI r13, 33
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
     ; STEP 3: CLIP_HISTORY mode 4 (info)
     ; ═══════════════════════════════════════════
     ; Store "Hi" in text clipboard
-    LDI r4, 0x3000
-    LDI r13, 72     ; 'H'
-    STORE r4, r13
-    LDI r4, 0x3001
-    LDI r13, 105    ; 'i'
-    STORE r4, r13
-    LDI r4, 0x3002
-    LDI r13, 0
-    STORE r4, r13
+    LDI r13, 0x3000
+    LDI r6, 72     ; 'H'
+    STORE r13, r6
+    LDI r13, 0x3001
+    LDI r6, 105    ; 'i'
+    STORE r13, r6
+    LDI r13, 0x3002
+    LDI r6, 0
+    STORE r13, r6
 
-    LDI r13, 0
-    LDI r11, 0x3000
-    LDI r8, 2
-    CLIP_TEXT r13, r11, r8
+    LDI r6, 0
+    LDI r9, 0x3000
+    LDI r4, 2
+    CLIP_TEXT r6, r9, r4
 
     ; Push to history (text only, no pixel data)
-    LDI r13, 0
-    LDI r11, 0
-    CLIP_HISTORY r13, r11
+    LDI r6, 0
+    LDI r9, 0
+    CLIP_HISTORY r6, r9
 
     ; Draw a cyan pixel and copy 1x1 region
-    LDI r10, 0x00FFFF
-    PSET r0, r0, r10
-    LDI r13, 0
-    LDI r11, 0
-    LDI r8, 1
-    LDI r5, 1
-    CLIP_COPY r13, r11, r8, r5
+    LDI r12, 0x00FFFF
+    PSET r8, r8, r12
+    LDI r6, 0
+    LDI r9, 0
+    LDI r4, 1
+    LDI r1, 1
+    CLIP_COPY r6, r9, r4, r1
 
     ; Push again (now has pixel+text)
-    LDI r13, 0
-    LDI r11, 0
-    CLIP_HISTORY r13, r11
+    LDI r6, 0
+    LDI r9, 0
+    CLIP_HISTORY r6, r9
 
-    ; Query info slot 0 (newest = pixel+text) → r0=3
-    LDI r13, 4
-    LDI r11, 0
-    CLIP_HISTORY r13, r11
+    ; Query info slot 0 (newest = pixel+text) → r8=3
+    LDI r6, 4
+    LDI r9, 0
+    CLIP_HISTORY r6, r9
 
-    ; Query info slot 1 (text only) → r0=2
-    LDI r13, 4
-    LDI r11, 1
-    CLIP_HISTORY r13, r11
+    ; Query info slot 1 (text only) → r8=2
+    LDI r6, 4
+    LDI r9, 1
+    CLIP_HISTORY r6, r9
 
     ; Draw label
-    LDI r14, 2
+    LDI r15, 2
     LDI r7, 40
-    LDI r15, step3_label
-    TEXT r14, r7, r15
+    LDI r2, step3_label
+    TEXT r15, r7, r2
 
     ; Cyan bar
-    LDI r10, 0x00FFFF
-    LDI r1, 2
-    LDI r4, 48
+    LDI r12, 0x00FFFF
+    LDI r5, 2
+    LDI r13, 48
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
     ; STEP 4: Full roundtrip — store, push, clear, restore
     ; ═══════════════════════════════════════════
     ; Store "GeOS" at 0x3000
-    LDI r4, 0x3000
-    LDI r13, 71     ; 'G'
-    STORE r4, r13
-    LDI r4, 0x3001
-    LDI r13, 101    ; 'e'
-    STORE r4, r13
-    LDI r4, 0x3002
-    LDI r13, 79     ; 'O'
-    STORE r4, r13
-    LDI r4, 0x3003
-    LDI r13, 83     ; 'S'
-    STORE r4, r13
-    LDI r4, 0x3004
-    LDI r13, 0
-    STORE r4, r13
+    LDI r13, 0x3000
+    LDI r6, 71     ; 'G'
+    STORE r13, r6
+    LDI r13, 0x3001
+    LDI r6, 101    ; 'e'
+    STORE r13, r6
+    LDI r13, 0x3002
+    LDI r6, 79     ; 'O'
+    STORE r13, r6
+    LDI r13, 0x3003
+    LDI r6, 83     ; 'S'
+    STORE r13, r6
+    LDI r13, 0x3004
+    LDI r6, 0
+    STORE r13, r6
 
-    LDI r13, 0
-    LDI r11, 0x3000
-    LDI r8, 4
-    CLIP_TEXT r13, r11, r8
+    LDI r6, 0
+    LDI r9, 0x3000
+    LDI r4, 4
+    CLIP_TEXT r6, r9, r4
 
     ; Push to history
-    LDI r13, 0
-    LDI r11, 0
-    CLIP_HISTORY r13, r11
+    LDI r6, 0
+    LDI r9, 0
+    CLIP_HISTORY r6, r9
 
     ; Clear text clipboard (mode 3)
-    LDI r13, 3
-    LDI r11, 0
-    LDI r8, 0
-    CLIP_TEXT r13, r11, r8
+    LDI r6, 3
+    LDI r9, 0
+    LDI r4, 0
+    CLIP_TEXT r6, r9, r4
 
     ; Verify cleared
-    LDI r13, 2
-    CLIP_TEXT r13, r11, r8
+    LDI r6, 2
+    CLIP_TEXT r6, r9, r4
 
     ; Restore from history slot 0
-    LDI r13, 2
-    LDI r11, 0
-    CLIP_HISTORY r13, r11
+    LDI r6, 2
+    LDI r9, 0
+    CLIP_HISTORY r6, r9
 
     ; Paste restored text to RAM
-    LDI r13, 1
-    LDI r11, 0x3100
-    LDI r8, 20
-    CLIP_TEXT r13, r11, r8
+    LDI r6, 1
+    LDI r9, 0x3100
+    LDI r4, 20
+    CLIP_TEXT r6, r9, r4
 
     ; Draw label
-    LDI r14, 2
+    LDI r15, 2
     LDI r7, 56
-    LDI r15, step4_label
-    TEXT r14, r7, r15
+    LDI r2, step4_label
+    TEXT r15, r7, r2
 
     ; Draw restored text
-    LDI r14, 2
+    LDI r15, 2
     LDI r7, 64
-    LDI r15, 0x3100
-    TEXT r14, r7, r15
+    LDI r2, 0x3100
+    TEXT r15, r7, r2
 
     ; Magenta bar
-    LDI r10, 0xFF00FF
-    LDI r1, 2
-    LDI r4, 72
+    LDI r12, 0xFF00FF
+    LDI r5, 2
+    LDI r13, 72
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
     ; STEP 5: All tests complete
     ; ═══════════════════════════════════════════
-    LDI r14, 2
+    LDI r15, 2
     LDI r7, 80
-    LDI r15, step5_label
-    TEXT r14, r7, r15
+    LDI r2, step5_label
+    TEXT r15, r7, r2
 
     ; White bar = pass
-    LDI r10, 0xFFFFFF
-    LDI r1, 2
-    LDI r4, 88
+    LDI r12, 0xFFFFFF
+    LDI r5, 2
+    LDI r13, 88
     CALL draw_bar
 
     HALT
 
 ; ── Draw a 40-pixel wide indicator bar ──
-; r10 = color, r1 = x, r4 = y
+; r12 = color, r5 = x, r13 = y
 draw_bar:
-    LDI r9, 40
+    LDI r10, 40
 bar_loop:
-    PSET r1, r4, r10
-    ADDI r1, 1
-    SUBI r9, 1
-    JNZ r9, bar_loop
+    PSET r5, r13, r12
+    ADDI r5, 1
+    SUBI r10, 1
+    JNZ r10, bar_loop
     RET
 
 ; ── Data ──

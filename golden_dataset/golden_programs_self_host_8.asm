@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates a self-hosting pipeline where it writes assembly source code to RAM character by character, assembles the code at runtime using an ASM opcode, checks for errors, and executes the assembled bytecode. The generated program includes instructions like LDI, MOV, ADD, AND, CMP, BLT, PSET, and HALT, all executed within a virtual machine environment.
+; DESCRIPTION: Geometry OS program to draw a colored line.
 
 ; self_host.asm -- Enhanced Self-Hosting Pixel Assembler (Phase 70)
 ;
@@ -11,565 +11,565 @@
 ; The generated program uses: #define, labels, LDI, MOV, ADD, AND,
 ; CMP, BLT, PSET, HALT -- all assembled from inside the VM.
 
-LDI r0, 0x0800       ; destination for source text
+LDI r12, 0x0800       ; destination for source text
 
 ; Write "#define W 256"
-LDI r8, 35
+LDI r2, 35
 CALL w
-LDI r8, 100
+LDI r2, 100
 CALL w
-LDI r8, 101
+LDI r2, 101
 CALL w
-LDI r8, 102
+LDI r2, 102
 CALL w
-LDI r8, 105
+LDI r2, 105
 CALL w
-LDI r8, 110
+LDI r2, 110
 CALL w
-LDI r8, 101
+LDI r2, 101
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 87
+LDI r2, 87
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 50
+LDI r2, 50
 CALL w
-LDI r8, 53
+LDI r2, 53
 CALL w
-LDI r8, 54
+LDI r2, 54
 CALL w
-LDI r8, 10
-CALL w
-
-; Write "LDI r10, 0"
-LDI r8, 76
-CALL w
-LDI r8, 68
-CALL w
-LDI r8, 73
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 53
-CALL w
-LDI r8, 44
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 48
-CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "LDI r14, 1"
-LDI r8, 76
+; Write "LDI r1, 0"
+LDI r2, 76
 CALL w
-LDI r8, 68
+LDI r2, 68
 CALL w
-LDI r8, 73
+LDI r2, 73
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 55
+LDI r2, 53
 CALL w
-LDI r8, 44
+LDI r2, 44
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 49
+LDI r2, 48
 CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "LDI r11, W"
-LDI r8, 76
+; Write "LDI r13, 1"
+LDI r2, 76
 CALL w
-LDI r8, 68
+LDI r2, 68
 CALL w
-LDI r8, 73
+LDI r2, 73
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 56
+LDI r2, 55
 CALL w
-LDI r8, 44
+LDI r2, 44
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 87
+LDI r2, 49
 CALL w
-LDI r8, 10
+LDI r2, 10
+CALL w
+
+; Write "LDI r15, W"
+LDI r2, 76
+CALL w
+LDI r2, 68
+CALL w
+LDI r2, 73
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 56
+CALL w
+LDI r2, 44
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 87
+CALL w
+LDI r2, 10
 CALL w
 
 ; Write "loop:"
-LDI r8, 108
+LDI r2, 108
 CALL w
-LDI r8, 111
+LDI r2, 111
 CALL w
-LDI r8, 111
+LDI r2, 111
 CALL w
-LDI r8, 112
+LDI r2, 112
 CALL w
-LDI r8, 58
+LDI r2, 58
 CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "  LDI r8, 0"
-LDI r8, 32
+; Write "  LDI r2, 0"
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 76
+LDI r2, 76
 CALL w
-LDI r8, 68
+LDI r2, 68
 CALL w
-LDI r8, 73
+LDI r2, 73
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 50
+LDI r2, 50
 CALL w
-LDI r8, 44
+LDI r2, 44
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 48
+LDI r2, 48
 CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
 ; Write "  xloop:"
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 120
+LDI r2, 120
 CALL w
-LDI r8, 108
+LDI r2, 108
 CALL w
-LDI r8, 111
+LDI r2, 111
 CALL w
-LDI r8, 111
+LDI r2, 111
 CALL w
-LDI r8, 112
+LDI r2, 112
 CALL w
-LDI r8, 58
+LDI r2, 58
 CALL w
-LDI r8, 10
-CALL w
-
-; Write "    MOV r15, r10"
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 77
-CALL w
-LDI r8, 79
-CALL w
-LDI r8, 86
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 51
-CALL w
-LDI r8, 44
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 53
-CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "    ADD r15, r8"
-LDI r8, 32
+; Write "    MOV r3, r1"
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 65
+LDI r2, 77
 CALL w
-LDI r8, 68
+LDI r2, 79
 CALL w
-LDI r8, 68
+LDI r2, 86
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 51
+LDI r2, 51
 CALL w
-LDI r8, 44
+LDI r2, 44
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 50
+LDI r2, 53
 CALL w
-LDI r8, 10
-CALL w
-
-; Write "    LDI r3, 255"
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 76
-CALL w
-LDI r8, 68
-CALL w
-LDI r8, 73
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 57
-CALL w
-LDI r8, 44
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 50
-CALL w
-LDI r8, 53
-CALL w
-LDI r8, 53
-CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "    AND r15, r3"
-LDI r8, 32
+; Write "    ADD r3, r2"
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 65
+LDI r2, 65
 CALL w
-LDI r8, 78
+LDI r2, 68
 CALL w
-LDI r8, 68
+LDI r2, 68
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 51
+LDI r2, 51
 CALL w
-LDI r8, 44
+LDI r2, 44
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 57
+LDI r2, 50
 CALL w
-LDI r8, 10
-CALL w
-
-; Write "    PSET r8, r10, r15"
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 80
-CALL w
-LDI r8, 83
-CALL w
-LDI r8, 69
-CALL w
-LDI r8, 84
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 50
-CALL w
-LDI r8, 44
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 53
-CALL w
-LDI r8, 44
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 51
-CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "    ADD r8, r14"
-LDI r8, 32
+; Write "    LDI r6, 255"
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 65
+LDI r2, 76
 CALL w
-LDI r8, 68
+LDI r2, 68
 CALL w
-LDI r8, 68
+LDI r2, 73
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 50
+LDI r2, 57
 CALL w
-LDI r8, 44
+LDI r2, 44
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 50
 CALL w
-LDI r8, 55
+LDI r2, 53
 CALL w
-LDI r8, 10
+LDI r2, 53
 CALL w
-
-; Write "    CMP r8, r11"
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 67
-CALL w
-LDI r8, 77
-CALL w
-LDI r8, 80
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 50
-CALL w
-LDI r8, 44
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 56
-CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "    BLT r1, xloop"
-LDI r8, 32
+; Write "    AND r3, r6"
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 66
+LDI r2, 65
 CALL w
-LDI r8, 76
+LDI r2, 78
 CALL w
-LDI r8, 84
+LDI r2, 68
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 114
+LDI r2, 114
 CALL w
-LDI r8, 48
+LDI r2, 51
 CALL w
-LDI r8, 44
+LDI r2, 44
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 120
+LDI r2, 114
 CALL w
-LDI r8, 108
+LDI r2, 57
 CALL w
-LDI r8, 111
-CALL w
-LDI r8, 111
-CALL w
-LDI r8, 112
-CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "  ADD r10, r14"
-LDI r8, 32
+; Write "    PSET r2, r1, r3"
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 65
+LDI r2, 32
 CALL w
-LDI r8, 68
+LDI r2, 32
 CALL w
-LDI r8, 68
+LDI r2, 80
 CALL w
-LDI r8, 32
+LDI r2, 83
 CALL w
-LDI r8, 114
+LDI r2, 69
 CALL w
-LDI r8, 53
+LDI r2, 84
 CALL w
-LDI r8, 44
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 114
 CALL w
-LDI r8, 114
+LDI r2, 50
 CALL w
-LDI r8, 55
+LDI r2, 44
 CALL w
-LDI r8, 10
+LDI r2, 32
 CALL w
-
-; Write "  CMP r10, r11"
-LDI r8, 32
+LDI r2, 114
 CALL w
-LDI r8, 32
+LDI r2, 53
 CALL w
-LDI r8, 67
+LDI r2, 44
 CALL w
-LDI r8, 77
+LDI r2, 32
 CALL w
-LDI r8, 80
+LDI r2, 114
 CALL w
-LDI r8, 32
+LDI r2, 51
 CALL w
-LDI r8, 114
-CALL w
-LDI r8, 53
-CALL w
-LDI r8, 44
-CALL w
-LDI r8, 32
-CALL w
-LDI r8, 114
-CALL w
-LDI r8, 56
-CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
-; Write "  BLT r1, loop"
-LDI r8, 32
+; Write "    ADD r2, r13"
+LDI r2, 32
 CALL w
-LDI r8, 32
+LDI r2, 32
 CALL w
-LDI r8, 66
+LDI r2, 32
 CALL w
-LDI r8, 76
+LDI r2, 32
 CALL w
-LDI r8, 84
+LDI r2, 65
 CALL w
-LDI r8, 32
+LDI r2, 68
 CALL w
-LDI r8, 114
+LDI r2, 68
 CALL w
-LDI r8, 48
+LDI r2, 32
 CALL w
-LDI r8, 44
+LDI r2, 114
 CALL w
-LDI r8, 32
+LDI r2, 50
 CALL w
-LDI r8, 108
+LDI r2, 44
 CALL w
-LDI r8, 111
+LDI r2, 32
 CALL w
-LDI r8, 111
+LDI r2, 114
 CALL w
-LDI r8, 112
+LDI r2, 55
 CALL w
-LDI r8, 10
+LDI r2, 10
+CALL w
+
+; Write "    CMP r2, r15"
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 67
+CALL w
+LDI r2, 77
+CALL w
+LDI r2, 80
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 50
+CALL w
+LDI r2, 44
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 56
+CALL w
+LDI r2, 10
+CALL w
+
+; Write "    BLT r7, xloop"
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 66
+CALL w
+LDI r2, 76
+CALL w
+LDI r2, 84
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 48
+CALL w
+LDI r2, 44
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 120
+CALL w
+LDI r2, 108
+CALL w
+LDI r2, 111
+CALL w
+LDI r2, 111
+CALL w
+LDI r2, 112
+CALL w
+LDI r2, 10
+CALL w
+
+; Write "  ADD r1, r13"
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 65
+CALL w
+LDI r2, 68
+CALL w
+LDI r2, 68
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 53
+CALL w
+LDI r2, 44
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 55
+CALL w
+LDI r2, 10
+CALL w
+
+; Write "  CMP r1, r15"
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 67
+CALL w
+LDI r2, 77
+CALL w
+LDI r2, 80
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 53
+CALL w
+LDI r2, 44
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 56
+CALL w
+LDI r2, 10
+CALL w
+
+; Write "  BLT r7, loop"
+LDI r2, 32
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 66
+CALL w
+LDI r2, 76
+CALL w
+LDI r2, 84
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 114
+CALL w
+LDI r2, 48
+CALL w
+LDI r2, 44
+CALL w
+LDI r2, 32
+CALL w
+LDI r2, 108
+CALL w
+LDI r2, 111
+CALL w
+LDI r2, 111
+CALL w
+LDI r2, 112
+CALL w
+LDI r2, 10
 CALL w
 
 ; Write "HALT"
-LDI r8, 72
+LDI r2, 72
 CALL w
-LDI r8, 65
+LDI r2, 65
 CALL w
-LDI r8, 76
+LDI r2, 76
 CALL w
-LDI r8, 84
+LDI r2, 84
 CALL w
-LDI r8, 10
+LDI r2, 10
 CALL w
 
 ; Null-terminate the source text
-LDI r8, 0
+LDI r2, 0
 CALL w
 
 ; Assemble the source text
-LDI r10, 0x0800
-LDI r13, 0x1000
-ASM r10, r13
+LDI r1, 0x0800
+LDI r0, 0x1000
+ASM r1, r0
 
 ; Check for assembly error
-LDI r10, 0xFFD
-LOAD r14, r10
-LDI r11, 0xFFFFFFFF
-CMP r14, r11
-JZ r1, asm_error
+LDI r1, 0xFFD
+LOAD r13, r1
+LDI r15, 0xFFFFFFFF
+CMP r13, r15
+JZ r7, asm_error
 
 ; Run the compiled code at 0x1000
 JMP 0x1000
 
 asm_error:
-    LDI r1, 0xFF0000
-    FILL r1
+    LDI r7, 0xFF0000
+    FILL r7
     HALT
 
-; ---- Subroutine: write character r8 at address in r0, advance r0 ----
+; ---- Subroutine: write character r2 at address in r12, advance r12 ----
 w:
-    STORE r0, r8
-    LDI r15, 1
-    ADD r0, r15
+    STORE r12, r2
+    LDI r3, 1
+    ADD r12, r3
     RET

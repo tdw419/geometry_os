@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a simple add/subtract calculator with text display. It reads user input from the keyboard for digits and operators (+, -, =), performs arithmetic operations based on the entered values, converts the result to a string, and displays "X+Y=Z" or "X-Y=Z" on the screen before halting.
+; DESCRIPTION: Render a red object at the screen.
 
 ; CALCULATOR: Add/subtract calculator with text display
 ;
@@ -12,20 +12,20 @@
 ; After pressing =, displays "X+Y=Z" or "X-Y=Z" and halts.
 ;
 ; Register allocation:
-;   r8  = CMP result (clobbered by CMP)
-;   r14  = state (0=first, 1=op entered, 2=second)
-;   r7  = first number accumulator
-;   r3  = operator (43='+', 45='-')
-;   r4  = second number accumulator
-;   r1  = result / number to convert
-;   r15  = 0xFFFF (keyboard port)
-;   r12  = key value
+;   r6  = CMP result (clobbered by CMP)
+;   r3  = state (0=first, 1=op entered, 2=second)
+;   r14  = first number accumulator
+;   r9  = operator (43='+', 45='-')
+;   r11  = second number accumulator
+;   r2  = result / number to convert
+;   r10  = 0xFFFF (keyboard port)
+;   r8  = key value
 ;   r0  = 48 (ASCII '0') -- constant
-;   r6  = 10 -- constant
-;   r5 = 0 -- constant
-;   r10 = 1 -- constant
-;   r11-r2 = temps
-;   r13 = text buffer pointer
+;   r12  = 10 -- constant
+;   r1 = 0 -- constant
+;   r13 = 1 -- constant
+;   r4-r15 = temps
+;   r5 = text buffer pointer
 ;   r31 = return address (CALL/RET)
 ;
 ; RAM layout:
@@ -39,210 +39,210 @@
 
 ; ── Constants ──────────────────────────────────────────────────
     LDI r0, 48
-    LDI r6, 10
-    LDI r5, 0
-    LDI r10, 1
-    LDI r15, 0xFFFF
+    LDI r12, 10
+    LDI r1, 0
+    LDI r13, 1
+    LDI r10, 0xFFFF
 
 ; ── Initialize state ──────────────────────────────────────────
-    LDI r14, 0
-    LDI r7, 0
     LDI r3, 0
-    LDI r4, 0
+    LDI r14, 0
+    LDI r9, 0
+    LDI r11, 0
 
 ; ── Main keyboard poll loop ──────────────────────────────────
 poll:
-    LOAD r12, r15
-    CMP r12, r5
-    JZ r8, poll
-    LDI r11, 0x0370
-    STORE r11, r12
-    LDI r12, 0
-    STORE r15, r12
-    LOAD r12, r11
+    LOAD r8, r10
+    CMP r8, r1
+    JZ r6, poll
+    LDI r4, 0x0370
+    STORE r4, r8
+    LDI r8, 0
+    STORE r10, r8
+    LOAD r8, r4
 
     ; Check Q (quit)
-    LDI r11, 81
-    CMP r12, r11
-    JNZ r8, chk_eq
+    LDI r4, 81
+    CMP r8, r4
+    JNZ r6, chk_eq
     HALT
 
 chk_eq:
     ; Check = (compute)
-    LDI r11, 61
-    CMP r12, r11
-    JNZ r8, chk_dig
+    LDI r4, 61
+    CMP r8, r4
+    JNZ r6, chk_dig
     JMP compute
 
 chk_dig:
     ; Check if key is digit (48-57)
-    LDI r11, 48
-    CMP r12, r11
-    ADD r8, r10
-    JZ r8, chk_op
-    LDI r11, 57
-    CMP r12, r11
-    LDI r9, 1
-    CMP r8, r9
-    JZ r8, chk_op
-    ; Is a digit: r12 = digit value
-    SUB r12, r0
+    LDI r4, 48
+    CMP r8, r4
+    ADD r6, r13
+    JZ r6, chk_op
+    LDI r4, 57
+    CMP r8, r4
+    LDI r7, 1
+    CMP r6, r7
+    JZ r6, chk_op
+    ; Is a digit: r8 = digit value
+    SUB r8, r0
     ; Branch on state
-    CMP r14, r5
-    JZ r8, dig_first
-    ; State 1 or 2: accumulate in r4
-    MUL r4, r6
-    ADD r4, r12
-    LDI r14, 2
+    CMP r3, r1
+    JZ r6, dig_first
+    ; State 1 or 2: accumulate in r11
+    MUL r11, r12
+    ADD r11, r8
+    LDI r3, 2
     JMP poll
 
 dig_first:
-    MUL r7, r6
-    ADD r7, r12
+    MUL r14, r12
+    ADD r14, r8
     JMP poll
 
 chk_op:
     ; Check + (43)
-    LDI r11, 43
-    CMP r12, r11
-    JNZ r8, chk_min
-    CMP r14, r5
-    JNZ r8, poll
-    LDI r3, 43
-    LDI r14, 1
+    LDI r4, 43
+    CMP r8, r4
+    JNZ r6, chk_min
+    CMP r3, r1
+    JNZ r6, poll
+    LDI r9, 43
+    LDI r3, 1
     JMP poll
 
 chk_min:
     ; Check - (45)
-    LDI r11, 45
-    CMP r12, r11
-    JNZ r8, poll
-    CMP r14, r5
-    JNZ r8, poll
-    LDI r3, 45
-    LDI r14, 1
+    LDI r4, 45
+    CMP r8, r4
+    JNZ r6, poll
+    CMP r3, r1
+    JNZ r6, poll
+    LDI r9, 45
+    LDI r3, 1
     JMP poll
 
 ; ── Compute result ────────────────────────────────────────────
 compute:
-    XOR r1, r1
-    ADD r1, r7
-    LDI r11, 43
-    CMP r3, r11
-    JZ r8, do_add
-    SUB r1, r4
+    XOR r2, r2
+    ADD r2, r14
+    LDI r4, 43
+    CMP r9, r4
+    JZ r6, do_add
+    SUB r2, r11
     JMP build
 
 do_add:
-    ADD r1, r4
+    ADD r2, r11
 
 ; ── Build display string and render ──────────────────────────
 build:
     ; Save result to RAM
-    LDI r11, 0x0380
-    STORE r11, r1
+    LDI r4, 0x0380
+    STORE r4, r2
     ; Convert first number to string at 0x0300
-    LDI r13, 0x0300
-    XOR r1, r1
-    ADD r1, r7
+    LDI r5, 0x0300
+    XOR r2, r2
+    ADD r2, r14
     CALL nts
     ; Append operator character
-    STORE r13, r3
-    ADD r13, r10
+    STORE r5, r9
+    ADD r5, r13
     ; Convert second number to string
-    XOR r1, r1
-    ADD r1, r4
+    XOR r2, r2
+    ADD r2, r11
     CALL nts
     ; Append '='
-    LDI r11, 61
-    STORE r13, r11
-    ADD r13, r10
+    LDI r4, 61
+    STORE r5, r4
+    ADD r5, r13
     ; Convert result to string
-    LDI r11, 0x0380
-    LOAD r1, r11
+    LDI r4, 0x0380
+    LOAD r2, r4
     CALL nts
     ; Null-terminate
-    LDI r11, 0
-    STORE r13, r11
+    LDI r4, 0
+    STORE r5, r4
     ; Render text at screen (0, 0)
-    LDI r11, 0x0300
-    TEXT r5, r5, r11
+    LDI r4, 0x0300
+    TEXT r1, r1, r4
     HALT
 
 ; ── num_to_str subroutine ────────────────────────────────────
-; Input:  r1 = number to convert, r13 = buffer address
-; Output: digits written to buffer, r13 advanced past string
-; Clobbers: r8, r11, r9, r2
+; Input:  r2 = number to convert, r5 = buffer address
+; Output: digits written to buffer, r5 advanced past string
+; Clobbers: r6, r4, r7, r15
 ; Uses RAM: 0x0350 (rev buf), 0x0360 (count), 0x0362 (quotient), 0x0364 (ptr)
 nts:
-    CMP r1, r5
-    JNZ r8, nts_l1
+    CMP r2, r1
+    JNZ r6, nts_l1
     ; Handle zero
-    LDI r11, 48
-    STORE r13, r11
-    ADD r13, r10
+    LDI r4, 48
+    STORE r5, r4
+    ADD r5, r13
     RET
 
 nts_l1:
     ; Init reversed buffer and counter
-    LDI r2, 0x0350
-    LDI r11, 0x0364
-    STORE r11, r2
-    LDI r9, 0
-    LDI r11, 0x0360
-    STORE r11, r9
+    LDI r15, 0x0350
+    LDI r4, 0x0364
+    STORE r4, r15
+    LDI r7, 0
+    LDI r4, 0x0360
+    STORE r4, r7
 
 nts_l2:
     ; Loop: extract digits from right
-    CMP r1, r5
-    JZ r8, nts_r1
+    CMP r2, r1
+    JZ r6, nts_r1
     ; quotient = number / 10
-    XOR r9, r9
-    ADD r9, r1
-    DIV r9, r6
+    XOR r7, r7
+    ADD r7, r2
+    DIV r7, r12
     ; Save quotient
-    LDI r11, 0x0362
-    STORE r11, r9
+    LDI r4, 0x0362
+    STORE r4, r7
     ; remainder = number - quotient * 10
-    XOR r11, r11
-    ADD r11, r9
-    MUL r11, r6
-    SUB r1, r11
+    XOR r4, r4
+    ADD r4, r7
+    MUL r4, r12
+    SUB r2, r4
     ; Convert to ASCII
-    ADD r1, r0
+    ADD r2, r0
     ; Store in reversed buffer
-    LDI r11, 0x0364
-    LOAD r2, r11
-    STORE r2, r1
-    ADD r2, r10
-    LDI r11, 0x0364
-    STORE r11, r2
+    LDI r4, 0x0364
+    LOAD r15, r4
+    STORE r15, r2
+    ADD r15, r13
+    LDI r4, 0x0364
+    STORE r4, r15
     ; Increment digit count
-    LDI r11, 0x0360
-    LOAD r9, r11
-    ADD r9, r10
-    STORE r11, r9
+    LDI r4, 0x0360
+    LOAD r7, r4
+    ADD r7, r13
+    STORE r4, r7
     ; number = quotient
-    LDI r11, 0x0362
-    LOAD r1, r11
+    LDI r4, 0x0362
+    LOAD r2, r4
     JMP nts_l2
 
 nts_r1:
     ; Reverse: copy digits from buffer to output in correct order
-    LDI r11, 0x0360
-    LOAD r2, r11
-    LDI r9, 0x0350
+    LDI r4, 0x0360
+    LOAD r15, r4
+    LDI r7, 0x0350
 
 nts_r2:
-    CMP r2, r5
-    JZ r8, nts_end
-    SUB r2, r10
-    XOR r11, r11
-    ADD r11, r9
-    ADD r11, r2
-    LOAD r11, r11
-    STORE r13, r11
-    ADD r13, r10
+    CMP r15, r1
+    JZ r6, nts_end
+    SUB r15, r13
+    XOR r4, r4
+    ADD r4, r7
+    ADD r4, r15
+    LOAD r4, r4
+    STORE r5, r4
+    ADD r5, r13
     JMP nts_r2
 
 nts_end:

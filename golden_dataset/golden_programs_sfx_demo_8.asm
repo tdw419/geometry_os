@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code plays a sequence of sound effects using various waveforms (sine, square, triangle, sawtooth, and noise) with different frequencies and durations. Each sound effect is accompanied by a visual bar on screen to demonstrate the functionality of the NOTE opcode across all waveform types.
+; DESCRIPTION: Draw square: pos=the screen, color=colored, size=fixed size.
 
 ; sfx_demo.asm -- Retro sound effects catalog
 ;
@@ -9,89 +9,89 @@
 ; Waveforms: 0=sine, 1=square, 2=triangle, 3=sawtooth, 4=noise
 ;
 ; Registers:
-;   r14  = waveform type
-;   r4  = frequency (Hz)
-;   r10  = duration (ms)
-;   r9 = current sfx index
-;   r2 = total sfx count
+;   r1  = waveform type
+;   r12  = frequency (Hz)
+;   r9  = duration (ms)
+;   r2 = current sfx index
+;   r6 = total sfx count
 ;   r20 = scratch
 
 ; ── init ────────────────────────────────────────────────────────
 LDI r30, 0xFF00   ; stack pointer
 
 ; ── SFX 0: sine A4 ─────────────────────────────────────────────
-  LDI r12, 0x000033
-  FILL r12
-  LDI r14, 0       ; sine
-  LDI r4, 440     ; A4
-  LDI r10, 300     ; 300ms
-  NOTE r14, r4, r10
+  LDI r10, 0x000033
+  FILL r10
+  LDI r1, 0       ; sine
+  LDI r12, 440     ; A4
+  LDI r9, 300     ; 300ms
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 1: square A5 ───────────────────────────────────────────
-  LDI r14, 1       ; square
-  LDI r4, 880     ; A5
-  LDI r10, 150     ; 150ms
-  NOTE r14, r4, r10
+  LDI r1, 1       ; square
+  LDI r12, 880     ; A5
+  LDI r9, 150     ; 150ms
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 2: square bass A2 ──────────────────────────────────────
-  LDI r14, 1       ; square
-  LDI r4, 110     ; A2
-  LDI r10, 400     ; 400ms
-  NOTE r14, r4, r10
+  LDI r1, 1       ; square
+  LDI r12, 110     ; A2
+  LDI r9, 400     ; 400ms
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 3: triangle E5 ─────────────────────────────────────────
-  LDI r14, 2       ; triangle
-  LDI r4, 660     ; E5
-  LDI r10, 250     ; 250ms
-  NOTE r14, r4, r10
+  LDI r1, 2       ; triangle
+  LDI r12, 660     ; E5
+  LDI r9, 250     ; 250ms
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 4: sawtooth A3 ─────────────────────────────────────────
-  LDI r14, 3       ; sawtooth
-  LDI r4, 220     ; A3
-  LDI r10, 350     ; 350ms
-  NOTE r14, r4, r10
+  LDI r1, 3       ; sawtooth
+  LDI r12, 220     ; A3
+  LDI r9, 350     ; 350ms
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 5: noise burst ─────────────────────────────────────────
-  LDI r14, 4       ; noise
-  LDI r4, 100
-  LDI r10, 200     ; 200ms
-  NOTE r14, r4, r10
+  LDI r1, 4       ; noise
+  LDI r12, 100
+  LDI r9, 200     ; 200ms
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 6: sine laser sweep ────────────────────────────────────
-  LDI r14, 0       ; sine
-  LDI r4, 1200    ; high freq
-  LDI r10, 500     ; long
-  NOTE r14, r4, r10
+  LDI r1, 0       ; sine
+  LDI r12, 1200    ; high freq
+  LDI r9, 500     ; long
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 7: noise percussion ────────────────────────────────────
-  LDI r14, 4       ; noise
-  LDI r4, 80
-  LDI r10, 80      ; short
-  NOTE r14, r4, r10
+  LDI r1, 4       ; noise
+  LDI r12, 80
+  LDI r9, 80      ; short
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 8: square alarm ────────────────────────────────────────
-  LDI r14, 1       ; square
-  LDI r4, 2000    ; very high
-  LDI r10, 100     ; 100ms
-  NOTE r14, r4, r10
+  LDI r1, 1       ; square
+  LDI r12, 2000    ; very high
+  LDI r9, 100     ; 100ms
+  NOTE r1, r12, r9
   FRAME
 
 ; ── SFX 9: triangle bass A1 ────────────────────────────────────
-  LDI r14, 2       ; triangle
-  LDI r4, 55      ; A1
-  LDI r10, 600     ; 600ms
-  NOTE r14, r4, r10
+  LDI r1, 2       ; triangle
+  LDI r12, 55      ; A1
+  LDI r9, 600     ; 600ms
+  NOTE r1, r12, r9
   FRAME
 
 ; ── done ────────────────────────────────────────────────────────
-  LDI r12, 0
-  FILL r12
+  LDI r10, 0
+  FILL r10
   HALT

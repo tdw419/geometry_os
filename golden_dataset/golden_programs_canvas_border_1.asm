@@ -1,1364 +1,1364 @@
-; DESCRIPTION: The assembly code writes a series of strings to a buffer starting at address 0x8000, forming a colorful 4-sided border. It then assembles this buffer into executable code and runs it.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; canvas_border.asm
 ; Self-modifying demo - writes a colorful 4-sided border to canvas
 ; Writes a program to the canvas at 0x8000, then ASMSELF+RUNNEXT.
 
-  LDI r12, 0x8000    ; canvas buffer start
-  LDI r2, 1         ; increment
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 50      ; '2'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 50      ; '2'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 53      ; '5'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 54      ; '6'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 120      ; 'x'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 116      ; 't'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 111      ; 'o'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 112      ; 'p'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 58
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 80      ; 'P'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 83      ; 'S'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 69      ; 'E'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 67      ; 'C'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 77      ; 'M'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 80      ; 'P'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 50      ; '2'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 66      ; 'B'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 116      ; 't'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 111      ; 'o'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 112      ; 'p'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 120      ; 'x'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 98      ; 'b'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 111      ; 'o'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 116      ; 't'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 58
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 80      ; 'P'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 83      ; 'S'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 69      ; 'E'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 50      ; '2'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 53      ; '5'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 53      ; '5'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 67      ; 'C'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 77      ; 'M'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 80      ; 'P'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 50      ; '2'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 66      ; 'B'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 98      ; 'b'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 111      ; 'o'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 116      ; 't'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 120      ; 'x'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 108      ; 'l'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 101      ; 'e'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 102      ; 'f'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 116      ; 't'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 58
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 80      ; 'P'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 83      ; 'S'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 69      ; 'E'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 67      ; 'C'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 77      ; 'M'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 80      ; 'P'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 50      ; '2'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 66      ; 'B'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 108      ; 'l'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 101      ; 'e'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 102      ; 'f'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 116      ; 't'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 120      ; 'x'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 70      ; 'F'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 105      ; 'i'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 103      ; 'g'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 104      ; 'h'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 116      ; 't'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 58
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 80      ; 'P'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 83      ; 'S'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 69      ; 'E'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 73      ; 'I'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 50      ; '2'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 53      ; '5'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 53      ; '5'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 68      ; 'D'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 51      ; '3'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 67      ; 'C'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 77      ; 'M'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 80      ; 'P'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 49      ; '1'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 50      ; '2'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 66      ; 'B'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 48      ; '0'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 44
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 32
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 114      ; 'r'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 105      ; 'i'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 103      ; 'g'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 104      ; 'h'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 116      ; 't'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 10
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 72      ; 'H'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 65      ; 'A'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 76      ; 'L'
-  STORE r12, r3
-  ADD r12, r2
-  LDI r3, 84      ; 'T'
-  STORE r12, r3
-  ADD r12, r2
+  LDI r6, 0x8000    ; canvas buffer start
+  LDI r14, 1         ; increment
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 50      ; '2'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 50      ; '2'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 53      ; '5'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 54      ; '6'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 120      ; 'x'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 116      ; 't'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 111      ; 'o'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 112      ; 'p'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 58
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 80      ; 'P'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 83      ; 'S'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 69      ; 'E'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 67      ; 'C'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 77      ; 'M'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 80      ; 'P'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 50      ; '2'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 66      ; 'B'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 116      ; 't'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 111      ; 'o'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 112      ; 'p'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 120      ; 'x'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 98      ; 'b'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 111      ; 'o'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 116      ; 't'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 58
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 80      ; 'P'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 83      ; 'S'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 69      ; 'E'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 50      ; '2'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 53      ; '5'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 53      ; '5'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 67      ; 'C'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 77      ; 'M'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 80      ; 'P'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 50      ; '2'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 66      ; 'B'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 98      ; 'b'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 111      ; 'o'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 116      ; 't'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 120      ; 'x'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 108      ; 'l'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 101      ; 'e'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 102      ; 'f'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 116      ; 't'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 58
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 80      ; 'P'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 83      ; 'S'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 69      ; 'E'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 67      ; 'C'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 77      ; 'M'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 80      ; 'P'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 50      ; '2'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 66      ; 'B'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 108      ; 'l'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 101      ; 'e'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 102      ; 'f'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 116      ; 't'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 120      ; 'x'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 70      ; 'F'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 105      ; 'i'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 103      ; 'g'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 104      ; 'h'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 116      ; 't'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 58
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 80      ; 'P'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 83      ; 'S'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 69      ; 'E'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 73      ; 'I'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 50      ; '2'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 53      ; '5'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 53      ; '5'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 68      ; 'D'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 51      ; '3'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 67      ; 'C'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 77      ; 'M'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 80      ; 'P'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 49      ; '1'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 50      ; '2'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 66      ; 'B'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 48      ; '0'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 44
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 32
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 114      ; 'r'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 105      ; 'i'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 103      ; 'g'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 104      ; 'h'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 116      ; 't'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 10
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 72      ; 'H'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 65      ; 'A'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 76      ; 'L'
+  STORE r6, r10
+  ADD r6, r14
+  LDI r10, 84      ; 'T'
+  STORE r6, r10
+  ADD r6, r14
   ; Null-terminate
-  LDI r3, 0
-  STORE r12, r3
+  LDI r10, 0
+  STORE r6, r10
 
   ; Assemble the canvas text and run it
   ASMSELF

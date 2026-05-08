@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates bit manipulation operations on an 8-bit flag register by visually setting, clearing, inverting, and testing individual bits. It draws the state of the register as colored blocks on screen, illustrating the effects of BSET, BCLR, BNOT, and BTST instructions through green, red, blue, and yellow highlighting.
+; DESCRIPTION: Render a red object at the screen.
 
 ; bit_manipulation_demo.asm -- Visual demo of BNOT, BSET, BCLR, BTST
 ;
@@ -7,111 +7,111 @@
 ; Bottom row (y=70): BNOT inverts register, BTST highlights bit 2
 ;
 ; Register conventions:
-;   r14 = flag register value
-;   r0 = bit position counter (0-7)
-;   r4 = x position
-;   r11 = y position
-;   r15 = block width (20)
+;   r12 = flag register value
+;   r1 = bit position counter (0-7)
+;   r10 = x position
+;   r8 = y position
+;   r9 = block width (20)
 ;   r7 = block height (20)
 ;   r17 = constant 1 (increment)
 
 ; --- Initialize constants ---
-LDI r14, 0
-LDI r15, 20
+LDI r12, 0
+LDI r9, 20
 LDI r7, 20
 LDI r17, 1
 
 ; === Phase 1: BSET all 8 bits, draw green blocks ===
-LDI r0, 0
-LDI r4, 20
-LDI r11, 20
+LDI r1, 0
+LDI r10, 20
+LDI r8, 20
 
 set_loop:
-  MOV r18, r0
-  BSET r14, r18
+  MOV r18, r1
+  BSET r12, r18
   LDI r16, 0x00CC44
-  RECTF r4, r11, r15, r7, r16
-  ADD r4, r15
-  ADD r4, r15
-  ADD r0, r17
+  RECTF r10, r8, r9, r7, r16
+  ADD r10, r9
+  ADD r10, r9
+  ADD r1, r17
   LDI r18, 8
-  CMP r0, r18
-  BLT r3, set_loop
+  CMP r1, r18
+  BLT r11, set_loop
 
 ; Store: all bits set = 0xFF = 255
 LDI r18, 0x3000
-STORE r18, r14
+STORE r18, r12
 
 ; === Phase 2: BCLR odd bits (1,3,5,7), draw red ===
-LDI r0, 1
-LDI r4, 60
+LDI r1, 1
+LDI r10, 60
 
 clr_loop:
-  MOV r18, r0
-  BCLR r14, r18
+  MOV r18, r1
+  BCLR r12, r18
   LDI r16, 0xCC2222
-  RECTF r4, r11, r15, r7, r16
-  ADD r4, r15
-  ADD r4, r15
-  ADD r4, r15
-  ADD r4, r15
-  ADD r0, r17
-  ADD r0, r17
+  RECTF r10, r8, r9, r7, r16
+  ADD r10, r9
+  ADD r10, r9
+  ADD r10, r9
+  ADD r10, r9
+  ADD r1, r17
+  ADD r1, r17
   LDI r18, 8
-  CMP r0, r18
-  BLT r3, clr_loop
+  CMP r1, r18
+  BLT r11, clr_loop
 
 ; Store: bits 0,2,4,6 set = 0x55 = 85
 LDI r18, 0x3001
-STORE r18, r14
+STORE r18, r12
 
 ; === Phase 3: BNOT -- invert register, draw bottom row ===
-LDI r11, 70
-LDI r0, 0
-LDI r4, 20
+LDI r8, 70
+LDI r1, 0
+LDI r10, 20
 
-BNOT r14
+BNOT r12
 
 inv_draw:
-  MOV r18, r0
-  BTST r14, r18
-  JZ r3, inv_clear
+  MOV r18, r1
+  BTST r12, r18
+  JZ r11, inv_clear
   LDI r16, 0x2266CC
-  RECTF r4, r11, r15, r7, r16
+  RECTF r10, r8, r9, r7, r16
   JMP inv_next
 inv_clear:
   LDI r16, 0x111111
-  RECTF r4, r11, r15, r7, r16
+  RECTF r10, r8, r9, r7, r16
 inv_next:
-  ADD r4, r15
-  ADD r4, r15
-  ADD r0, r17
+  ADD r10, r9
+  ADD r10, r9
+  ADD r1, r17
   LDI r18, 8
-  CMP r0, r18
-  BLT r3, inv_draw
+  CMP r1, r18
+  BLT r11, inv_draw
 
 ; Store: inverted 0x55 = 0xAA = 170
 LDI r18, 0x3002
-STORE r18, r14
+STORE r18, r12
 
 ; === Phase 4: BTST bit 2 highlight with yellow border ===
 ; Bit 2 block is at x = 20 + 2*40 = 100
-LDI r4, 100
-LDI r11, 70
+LDI r10, 100
+LDI r8, 70
 LDI r16, 0xFFFF00
-RECTF r4, r11, r15, r7, r16
+RECTF r10, r8, r9, r7, r16
 
 ; Inner fill: bit 2 of 0xAA is set (0xAA = 10101010), so blue
-LDI r4, 102
-LDI r11, 72
+LDI r10, 102
+LDI r8, 72
 LDI r18, 16
 LDI r16, 0x2266CC
-RECTF r4, r11, r18, r18, r16
+RECTF r10, r8, r18, r18, r16
 
 ; Store BTST result: bit 2 of 0xAA = 1
 LDI r18, 2
-BTST r14, r18
+BTST r12, r18
 LDI r18, 0x3003
-STORE r18, r3
+STORE r18, r11
 
 HALT

@@ -4764,7 +4764,7 @@ phases:
   _claimed_at: 1778265183
 - id: phase-279
   title: GeOS Program -- Platformer Game with Physics
-  status: planned
+  status: in_progress
   goal: Build a side-scrolling platformer game demonstrating advanced collision detection
     and physics simulation in the VM.
   description: 'A Mario-style platformer with gravity, jumping, horizontal scrolling,
@@ -4792,6 +4792,8 @@ phases:
     validation: cargo test --lib test_platformer
   - description: Player responds to jump input within 5 frames
     validation: Manual verification via MCP or visual test
+  _claimed_by: worker-0
+  _claimed_at: 1778267968
 - id: phase-280
   title: GeOS VM -- String Library Opcodes (STRLEN, STRCMP, STRCPY, STRCAT)
   status: planned

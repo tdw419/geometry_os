@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code is a test program that verifies the functionality of several standard library functions including `strlen`, `strcpy`, `strcmp`, `memset`, `itoa`, and prints results using `print_str` and `print_int`. It uses predefined test strings and checks the correctness of each function, displaying "PASS" or "FAIL" messages for each test.
+; DESCRIPTION: Geometry OS program to draw a red rectangle.
 
 ; stdlib_test.asm -- Phase 31: Test program using standard library functions
 ;
@@ -39,8 +39,8 @@ str_buf:
 .org 0x000
 
     ; Initialize screen and cursor
-    LDI r8, 0
-    FILL r8
+    LDI r6, 0
+    FILL r6
 
     CALL stdio_init
 
@@ -52,12 +52,12 @@ str_buf:
     ; ── Test 1: strlen ──
     LDI r0, str_hello
     CALL strlen
-    ; r8 should be 5 (length of "Hello")
-    LDI r15, 5
-    CMP r8, r15
-    LDI r1, 0
-    CMP r8, r1             ; check if CMP(str_result, 5) == 0
-    JZ r8, test1_pass
+    ; r6 should be 5 (length of "Hello")
+    LDI r2, 5
+    CMP r6, r2
+    LDI r12, 0
+    CMP r6, r12             ; check if CMP(str_result, 5) == 0
+    JZ r6, test1_pass
     LDI r0, fail_1
     CALL print_str
     CALL print_newline
@@ -70,16 +70,16 @@ test1_pass:
     ; ── Test 2: strcpy ──
 test2:
     LDI r0, str_buf        ; destination
-    LDI r15, str_hello      ; source
+    LDI r2, str_hello      ; source
     CALL strcpy
     ; Verify by calling strlen on the copy
     LDI r0, str_buf
     CALL strlen
-    LDI r15, 5
-    CMP r8, r15
-    LDI r1, 0
-    CMP r8, r1
-    JZ r8, test2_pass
+    LDI r2, 5
+    CMP r6, r2
+    LDI r12, 0
+    CMP r6, r12
+    JZ r6, test2_pass
     LDI r0, fail_2
     CALL print_str
     CALL print_newline
@@ -93,13 +93,13 @@ test2_pass:
 test3:
     ; First copy "Hello" to buf, then compare buf with str_hello
     LDI r0, str_buf
-    LDI r15, str_hello
+    LDI r2, str_hello
     CALL strcpy
     LDI r0, str_buf
-    LDI r15, str_hello
+    LDI r2, str_hello
     CALL strcmp
-    ; r8 should be 0 (equal)
-    JZ r8, test3_pass
+    ; r6 should be 0 (equal)
+    JZ r6, test3_pass
     LDI r0, fail_3
     CALL print_str
     CALL print_newline
@@ -112,16 +112,16 @@ test3_pass:
     ; ── Test 4: itoa ──
 test4:
     LDI r0, 42
-    LDI r15, str_buf
+    LDI r2, str_buf
     CALL itoa
     ; Verify: buf should be "42"
     LDI r0, str_buf
     CALL strlen
-    LDI r15, 2
-    CMP r8, r15
-    LDI r1, 0
-    CMP r8, r1
-    JZ r8, test4_pass
+    LDI r2, 2
+    CMP r6, r2
+    LDI r12, 0
+    CMP r6, r12
+    JZ r6, test4_pass
     LDI r0, fail_4
     CALL print_str
     CALL print_newline
@@ -135,28 +135,28 @@ test4_pass:
 test5:
     ; Clear buffer, then memset with value 0x41 ('A') for 3 words
     LDI r0, str_buf
-    LDI r15, 4              ; clear 4 words
-    LDI r1, 0
+    LDI r2, 4              ; clear 4 words
+    LDI r12, 0
     CALL memset
     ; Now set first 3 bytes to 'A'
     LDI r0, str_buf
-    LDI r15, 3
-    LDI r1, 65             ; 'A'
+    LDI r2, 3
+    LDI r12, 65             ; 'A'
     CALL memset
     ; Null terminate
-    LDI r12, str_buf
-    LDI r1, 3
-    ADD r12, r1
-    LDI r8, 0
-    STORE r12, r8
+    LDI r13, str_buf
+    LDI r12, 3
+    ADD r13, r12
+    LDI r6, 0
+    STORE r13, r6
     ; Check strlen == 3
     LDI r0, str_buf
     CALL strlen
-    LDI r15, 3
-    CMP r8, r15
-    LDI r1, 0
-    CMP r8, r1
-    JZ r8, test5_pass
+    LDI r2, 3
+    CMP r6, r2
+    LDI r12, 0
+    CMP r6, r12
+    JZ r6, test5_pass
     LDI r0, fail_5
     CALL print_str
     CALL print_newline

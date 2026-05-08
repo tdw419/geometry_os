@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a layered sound effects demo that simulates audio mixing by playing overlapping BEEP and NOTE calls. It features a walking rhythm with low thuds and an ambient tone overlay, controlled via keyboard inputs for tempo adjustment and waveform changes, with visual indicators on the screen.
+; DESCRIPTION: Display a object using color red at the screen.
 
 ; sfx_mixer.asm -- Layered Sound Effects Demo
 ; Demonstrates overlapping BEEP and NOTE calls to simulate audio mixing.
@@ -17,222 +17,222 @@
 ;   0x240C frame_counter
 
 ; ── Init ───────────────────────────────────────────────────────
-LDI r8, 15
-LDI r1, 0x2400
-STORE r1, r8           ; tempo = 15 frames between steps
+LDI r3, 15
+LDI r9, 0x2400
+STORE r9, r3           ; tempo = 15 frames between steps
 
-LDI r8, 0
-LDI r1, 0x2404
-STORE r1, r8           ; ambient_wave = 0 (sine)
+LDI r3, 0
+LDI r9, 0x2404
+STORE r9, r3           ; ambient_wave = 0 (sine)
 
-LDI r8, 0
-LDI r1, 0x2408
-STORE r1, r8           ; step_phase = 0 (left foot)
+LDI r3, 0
+LDI r9, 0x2408
+STORE r9, r3           ; step_phase = 0 (left foot)
 
-LDI r8, 0
-LDI r1, 0x240C
-STORE r1, r8           ; frame_counter = 0
+LDI r3, 0
+LDI r9, 0x240C
+STORE r9, r3           ; frame_counter = 0
 
 ; ── Draw title screen ──────────────────────────────────────────
-LDI r8, 0x000000
-FILL r8                ; clear screen black
+LDI r3, 0x000000
+FILL r3                ; clear screen black
 
-LDI r8, 0x00FF00
-LDI r9, 80
-LDI r11, 20
-LDI r1, 0x2500
-LDI r8, 83             ; 'S'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 70             ; 'F'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 88             ; 'X'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 95             ; '_'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 77             ; 'M'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 73             ; 'I'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 88             ; 'X'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 69             ; 'E'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 82             ; 'R'
-STORE r1, r8
-ADD r1, r15
-LDI r8, 0              ; null terminator
-STORE r1, r8
-LDI r1, 0x2500
-TEXT r9, r11, r1
+LDI r3, 0x00FF00
+LDI r15, 80
+LDI r10, 20
+LDI r9, 0x2500
+LDI r3, 83             ; 'S'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 70             ; 'F'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 88             ; 'X'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 95             ; '_'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 77             ; 'M'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 73             ; 'I'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 88             ; 'X'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 69             ; 'E'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 82             ; 'R'
+STORE r9, r3
+ADD r9, r5
+LDI r3, 0              ; null terminator
+STORE r9, r3
+LDI r9, 0x2500
+TEXT r15, r10, r9
 
 ; Instructions
-LDI r1, 0x2520
-LDI r8, 87
-STORE r1, r8
-ADD r1, r15
-LDI r8, 47
-STORE r1, r8
-ADD r1, r15
-LDI r8, 83
-STORE r1, r8
-ADD r1, r15
-LDI r8, 32
-STORE r1, r8
-ADD r1, r15
-LDI r8, 61
-STORE r1, r8
-ADD r1, r15
-LDI r8, 32
-STORE r1, r8
-ADD r1, r15
-LDI r8, 84
-STORE r1, r8
-ADD r1, r15
-LDI r8, 69
-STORE r1, r8
-ADD r1, r15
-LDI r8, 77
-STORE r1, r8
-ADD r1, r15
-LDI r8, 80
-STORE r1, r8
-ADD r1, r15
-LDI r8, 79
-STORE r1, r8
-ADD r1, r15
-LDI r8, 0
-STORE r1, r8
-LDI r9, 80
-LDI r11, 40
-LDI r1, 0x2520
-TEXT r9, r11, r1
+LDI r9, 0x2520
+LDI r3, 87
+STORE r9, r3
+ADD r9, r5
+LDI r3, 47
+STORE r9, r3
+ADD r9, r5
+LDI r3, 83
+STORE r9, r3
+ADD r9, r5
+LDI r3, 32
+STORE r9, r3
+ADD r9, r5
+LDI r3, 61
+STORE r9, r3
+ADD r9, r5
+LDI r3, 32
+STORE r9, r3
+ADD r9, r5
+LDI r3, 84
+STORE r9, r3
+ADD r9, r5
+LDI r3, 69
+STORE r9, r3
+ADD r9, r5
+LDI r3, 77
+STORE r9, r3
+ADD r9, r5
+LDI r3, 80
+STORE r9, r3
+ADD r9, r5
+LDI r3, 79
+STORE r9, r3
+ADD r9, r5
+LDI r3, 0
+STORE r9, r3
+LDI r15, 80
+LDI r10, 40
+LDI r9, 0x2520
+TEXT r15, r10, r9
 
 ; A/D line
-LDI r1, 0x2540
-LDI r8, 65
-STORE r1, r8
-ADD r1, r15
-LDI r8, 47
-STORE r1, r8
-ADD r1, r15
-LDI r8, 68
-STORE r1, r8
-ADD r1, r15
-LDI r8, 32
-STORE r1, r8
-ADD r1, r15
-LDI r8, 61
-STORE r1, r8
-ADD r1, r15
-LDI r8, 32
-STORE r1, r8
-ADD r1, r15
-LDI r8, 87
-STORE r1, r8
-ADD r1, r15
-LDI r8, 65
-STORE r1, r8
-ADD r1, r15
-LDI r8, 86
-STORE r1, r8
-ADD r1, r15
-LDI r8, 69
-STORE r1, r8
-ADD r1, r15
-LDI r8, 0
-STORE r1, r8
-LDI r9, 80
-LDI r11, 50
-LDI r1, 0x2540
-TEXT r9, r11, r1
+LDI r9, 0x2540
+LDI r3, 65
+STORE r9, r3
+ADD r9, r5
+LDI r3, 47
+STORE r9, r3
+ADD r9, r5
+LDI r3, 68
+STORE r9, r3
+ADD r9, r5
+LDI r3, 32
+STORE r9, r3
+ADD r9, r5
+LDI r3, 61
+STORE r9, r3
+ADD r9, r5
+LDI r3, 32
+STORE r9, r3
+ADD r9, r5
+LDI r3, 87
+STORE r9, r3
+ADD r9, r5
+LDI r3, 65
+STORE r9, r3
+ADD r9, r5
+LDI r3, 86
+STORE r9, r3
+ADD r9, r5
+LDI r3, 69
+STORE r9, r3
+ADD r9, r5
+LDI r3, 0
+STORE r9, r3
+LDI r15, 80
+LDI r10, 50
+LDI r9, 0x2540
+TEXT r15, r10, r9
 
 ; Q line
-LDI r1, 0x2560
-LDI r8, 81
-STORE r1, r8
-ADD r1, r15
-LDI r8, 32
-STORE r1, r8
-ADD r1, r15
-LDI r8, 61
-STORE r1, r8
-ADD r1, r15
-LDI r8, 32
-STORE r1, r8
-ADD r1, r15
-LDI r8, 81
-STORE r1, r8
-ADD r1, r15
-LDI r8, 85
-STORE r1, r8
-ADD r1, r15
-LDI r8, 73
-STORE r1, r8
-ADD r1, r15
-LDI r8, 84
-STORE r1, r8
-ADD r1, r15
-LDI r8, 0
-STORE r1, r8
-LDI r9, 80
-LDI r11, 60
-LDI r1, 0x2560
-TEXT r9, r11, r1
+LDI r9, 0x2560
+LDI r3, 81
+STORE r9, r3
+ADD r9, r5
+LDI r3, 32
+STORE r9, r3
+ADD r9, r5
+LDI r3, 61
+STORE r9, r3
+ADD r9, r5
+LDI r3, 32
+STORE r9, r3
+ADD r9, r5
+LDI r3, 81
+STORE r9, r3
+ADD r9, r5
+LDI r3, 85
+STORE r9, r3
+ADD r9, r5
+LDI r3, 73
+STORE r9, r3
+ADD r9, r5
+LDI r3, 84
+STORE r9, r3
+ADD r9, r5
+LDI r3, 0
+STORE r9, r3
+LDI r15, 80
+LDI r10, 60
+LDI r9, 0x2560
+TEXT r15, r10, r9
 
 ; ── Main Loop ──────────────────────────────────────────────────
-LDI r15, 1              ; constant 1
-LDI r6, 0xFFE          ; TICKS port
+LDI r5, 1              ; constant 1
+LDI r4, 0xFFE          ; TICKS port
 LDI r12, 0x2400         ; tempo addr
-LDI r7, 0x2404        ; ambient_wave addr
-LDI r5, 0x2408        ; step_phase addr
-LDI r4, 0x240C        ; frame_counter addr
+LDI r13, 0x2404        ; ambient_wave addr
+LDI r8, 0x2408        ; step_phase addr
+LDI r2, 0x240C        ; frame_counter addr
 
 main_loop:
     FRAME
-    LDI r8, 0x000000
-    FILL r8            ; clear screen
+    LDI r3, 0x000000
+    FILL r3            ; clear screen
 
     ; Increment frame counter
-    LDI r1, 0x240C
-    LDI r8, 0
-    LOAD r8, r1
-    ADD r8, r15
-    STORE r1, r8
+    LDI r9, 0x240C
+    LDI r3, 0
+    LOAD r3, r9
+    ADD r3, r5
+    STORE r9, r3
 
     ; ── Read keyboard ──────────────────────────────────────────
-    IKEY r10            ; r10 = key (0 if none)
+    IKEY r11            ; r11 = key (0 if none)
 
     ; Q = quit
-    LDI r8, 81
-    CMP r10, r8
+    LDI r3, 81
+    CMP r11, r3
     JZ r0, do_quit
 
     ; W = increase tempo (decrease delay)
-    LDI r8, 87
-    CMP r10, r8
+    LDI r3, 87
+    CMP r11, r3
     JZ r0, tempo_up
 
     ; S = decrease tempo (increase delay)
-    LDI r8, 83
-    CMP r10, r8
+    LDI r3, 83
+    CMP r11, r3
     JZ r0, tempo_down
 
     ; A = prev waveform
-    LDI r8, 65
-    CMP r10, r8
+    LDI r3, 65
+    CMP r11, r3
     JZ r0, wave_prev
 
     ; D = next waveform
-    LDI r8, 68
-    CMP r10, r8
+    LDI r3, 68
+    CMP r11, r3
     JZ r0, wave_next
 
     JMP check_step
@@ -241,104 +241,104 @@ do_quit:
     HALT
 
 tempo_up:
-    LDI r1, 0x2400
-    LDI r8, 0
-    LOAD r8, r1
-    LDI r14, 5
-    CMP r8, r14
+    LDI r9, 0x2400
+    LDI r3, 0
+    LOAD r3, r9
+    LDI r7, 5
+    CMP r3, r7
     BLT r0, check_step  ; min tempo = 5
-    LDI r14, 2
-    SUB r8, r14
-    STORE r1, r8
+    LDI r7, 2
+    SUB r3, r7
+    STORE r9, r3
     JMP check_step
 
 tempo_down:
-    LDI r1, 0x2400
-    LDI r8, 0
-    LOAD r8, r1
-    LDI r14, 60
-    CMP r8, r14
+    LDI r9, 0x2400
+    LDI r3, 0
+    LOAD r3, r9
+    LDI r7, 60
+    CMP r3, r7
     BGE r0, check_step  ; max tempo = 60
-    LDI r14, 2
-    ADD r8, r14
-    STORE r1, r8
+    LDI r7, 2
+    ADD r3, r7
+    STORE r9, r3
     JMP check_step
 
 wave_prev:
-    LDI r1, 0x2404
-    LDI r8, 0
-    LOAD r8, r1
-    JZ r8, check_step  ; already at 0
-    LDI r14, 1
-    SUB r8, r14
-    STORE r1, r8
+    LDI r9, 0x2404
+    LDI r3, 0
+    LOAD r3, r9
+    JZ r3, check_step  ; already at 0
+    LDI r7, 1
+    SUB r3, r7
+    STORE r9, r3
     JMP check_step
 
 wave_next:
-    LDI r1, 0x2404
-    LDI r8, 0
-    LOAD r8, r1
-    LDI r14, 3
-    CMP r8, r14
+    LDI r9, 0x2404
+    LDI r3, 0
+    LOAD r3, r9
+    LDI r7, 3
+    CMP r3, r7
     BGE r0, check_step ; max wave = 3 (sawtooth)
-    LDI r14, 1
-    ADD r8, r14
-    STORE r1, r8
+    LDI r7, 1
+    ADD r3, r7
+    STORE r9, r3
     JMP check_step
 
     ; ── Step Logic ─────────────────────────────────────────────
 check_step:
     ; Read TICKS
-    LOAD r10, r6
+    LOAD r11, r4
     ; Read tempo
-    LDI r1, 0x2400
-    LDI r8, 0
-    LOAD r8, r1
+    LDI r9, 0x2400
+    LDI r3, 0
+    LOAD r3, r9
     ; ticks % tempo
-    MOV r14, r10
-    LDI r2, 0
-    CMP r8, r2
+    MOV r7, r11
+    LDI r1, 0
+    CMP r3, r1
     JZ r0, do_step      ; tempo=0 means step every frame
     CALL mod16
-    ; r14 = ticks % tempo, check if 0
-    JZ r14, do_step
+    ; r7 = ticks % tempo, check if 0
+    JZ r7, do_step
     JMP do_ambient
 
 do_step:
     ; Play footstep BEEP
-    LDI r1, 0x2408
-    LDI r8, 0
-    LOAD r8, r1         ; r8 = step_phase (0=left, 1=right)
+    LDI r9, 0x2408
+    LDI r3, 0
+    LOAD r3, r9         ; r3 = step_phase (0=left, 1=right)
 
     ; Left foot: 80Hz thud, 50ms
-    JZ r8, left_foot
+    JZ r3, left_foot
 
     ; Right foot: 120Hz thud, 40ms
-    LDI r8, 120
-    LDI r14, 40
-    BEEP r8, r14
+    LDI r3, 120
+    LDI r7, 40
+    BEEP r3, r7
     JMP toggle_phase
 
 left_foot:
-    LDI r8, 80
-    LDI r14, 50
-    BEEP r8, r14
+    LDI r3, 80
+    LDI r7, 50
+    BEEP r3, r7
 
 toggle_phase:
-    LDI r1, 0x2408
-    LDI r8, 0
-    LOAD r8, r1
-    LDI r14, 1
-    XOR r8, r14          ; toggle 0<->1
-    STORE r1, r8
+    LDI r9, 0x2408
+    LDI r3, 0
+    LOAD r3, r9
+    LDI r7, 1
+    XOR r3, r7          ; toggle 0<->1
+    STORE r9, r3
 
     ; Draw step indicator
-    LDI r8, 0x2408
-    LDI r2, 0
-    LOAD r2, r8         ; r2 = phase
-    LDI r8, 0xFF4444    ; red dot for left
-    LDI r1, 0x44FF44    ; green dot for right
-    JZ r2, draw_left
+    LDI r3, 0x2408
+    LDI r1, 0
+    LOAD r1, r3         ; r1 = phase
+    LDI r3, 0xFF4444    ; red dot for left
+    LDI r9, 0x44FF44    ; green dot for right
+    JZ r1, draw_left
     PSETI 140, 90, 0x44FF44
     JMP do_ambient
 
@@ -348,84 +348,84 @@ draw_left:
     ; ── Ambient Tone ───────────────────────────────────────────
 do_ambient:
     ; Play ambient NOTE every 120 frames
-    LOAD r10, r4       ; r10 = frame_counter
-    LDI r8, 120
-    CALL mod16          ; r14 = frame_counter % 120
-    JZ r14, play_ambient
+    LOAD r11, r2       ; r11 = frame_counter
+    LDI r3, 120
+    CALL mod16          ; r7 = frame_counter % 120
+    JZ r7, play_ambient
     JMP draw_hud
 
 play_ambient:
     ; NOTE wave_reg, freq_reg, dur_reg
     ; Read ambient wave from 0x2404
-    LDI r1, 0x2404
-    LDI r8, 0
-    LOAD r8, r1         ; r8 = waveform type
+    LDI r9, 0x2404
+    LDI r3, 0
+    LOAD r3, r9         ; r3 = waveform type
 
-    LDI r14, 220         ; A3 = 220Hz
-    LDI r2, 200         ; 200ms
+    LDI r7, 220         ; A3 = 220Hz
+    LDI r1, 200         ; 200ms
 
     ; NOTE opcode: 0x7E, wave_reg, freq_reg, dur_reg
     ; We need to set regs and emit the opcode via RAM
     ; Actually NOTE is an opcode, use it directly
     ; But assembler handles NOTE as a mnemonic
-    ; r8=wave, r14=freq, r2=dur already set
-    NOTE r8, r14, r2
+    ; r3=wave, r7=freq, r1=dur already set
+    NOTE r3, r7, r1
 
     ; ── Draw HUD ───────────────────────────────────────────────
 draw_hud:
     ; Draw tempo bar
-    LDI r1, 0x2400
-    LDI r8, 0
-    LOAD r8, r1         ; r8 = tempo
+    LDI r9, 0x2400
+    LDI r3, 0
+    LOAD r3, r9         ; r3 = tempo
     ; Bar at y=100, width = tempo * 3
-    LDI r9, 20
-    LDI r11, 100
-    MOV r7, r8
-    LDI r2, 3
-    MUL r7, r2         ; r7 = tempo * 3 (bar width)
-    LDI r5, 30         ; bar height
+    LDI r15, 20
+    LDI r10, 100
+    MOV r13, r3
+    LDI r1, 3
+    MUL r13, r1         ; r13 = tempo * 3 (bar width)
+    LDI r8, 30         ; bar height
     LDI r12, 0x336699    ; steel blue
-    RECTF r9, r11, r7, r5, r12
+    RECTF r15, r10, r13, r8, r12
 
     ; Tempo label
-    LDI r1, 0x2580
-    LDI r8, 84
-    STORE r1, r8
-    ADD r1, r15
-    LDI r8, 58
-    STORE r1, r8
-    ADD r1, r15
-    LDI r8, 77
-    STORE r1, r8
-    ADD r1, r15
-    LDI r8, 80
-    STORE r1, r8
-    ADD r1, r15
-    LDI r8, 79
-    STORE r1, r8
-    ADD r1, r15
-    LDI r8, 58
-    STORE r1, r8
-    ADD r1, r15
-    LDI r8, 0
-    STORE r1, r8
-    LDI r9, 20
-    LDI r11, 140
-    LDI r1, 0x2580
-    TEXT r9, r11, r1
+    LDI r9, 0x2580
+    LDI r3, 84
+    STORE r9, r3
+    ADD r9, r5
+    LDI r3, 58
+    STORE r9, r3
+    ADD r9, r5
+    LDI r3, 77
+    STORE r9, r3
+    ADD r9, r5
+    LDI r3, 80
+    STORE r9, r3
+    ADD r9, r5
+    LDI r3, 79
+    STORE r9, r3
+    ADD r9, r5
+    LDI r3, 58
+    STORE r9, r3
+    ADD r9, r5
+    LDI r3, 0
+    STORE r9, r3
+    LDI r15, 20
+    LDI r10, 140
+    LDI r9, 0x2580
+    TEXT r15, r10, r9
 
     ; Waveform indicator
-    LDI r1, 0x2404
-    LDI r8, 0
-    LOAD r8, r1         ; waveform type
+    LDI r9, 0x2404
+    LDI r3, 0
+    LOAD r3, r9         ; waveform type
     ; Draw colored rectangle for current wave
     ; 0=sine(cyan), 1=square(yellow), 2=triangle(magenta), 3=sawtooth(orange)
-    JZ r8, wave_sine
-    LDI r14, 1
-    CMP r8, r14
+    JZ r3, wave_sine
+    LDI r7, 1
+    CMP r3, r7
     JZ r0, wave_square
-    LDI r14, 2
-    CMP r8, r14
+    LDI r7, 2
+    CMP r3, r7
     JZ r0, wave_triangle
     JMP wave_saw
 
@@ -448,27 +448,27 @@ wave_saw:
 hud_done:
     JMP main_loop
 
-    ; ── Helper: mod16 (r14 = r10 % r8) ─────────────────────────
-    ; r10 = dividend, r8 = divisor
-    ; Returns r14 = remainder
-    ; Clobbers r3, r13
+    ; ── Helper: mod16 (r7 = r11 % r3) ─────────────────────────
+    ; r11 = dividend, r3 = divisor
+    ; Returns r7 = remainder
+    ; Clobbers r14, r6
 mod16:
     PUSH r31
-    PUSH r8
     PUSH r3
-    PUSH r13
-    MOV r14, r10
-    MOV r3, r8          ; r3 = divisor
-    LDI r13, 0           ; r13 = quotient
+    PUSH r14
+    PUSH r6
+    MOV r7, r11
+    MOV r14, r3          ; r14 = divisor
+    LDI r6, 0           ; r6 = quotient
 mod_loop:
-    CMP r14, r3
+    CMP r7, r14
     BLT r0, mod_done
-    SUB r14, r3
-    ADD r13, r15
+    SUB r7, r14
+    ADD r6, r5
     JMP mod_loop
 mod_done:
-    POP r13
+    POP r6
+    POP r14
     POP r3
-    POP r8
     POP r31
     RET

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an interactive in-VM visualization layer for an autonomous development system driven by an Oracle. It initializes the environment, displays a title and prompt, and enters a loop where it waits for user input to trigger decision-making via a large language model (LLM). The program visualizes the Oracle's thought process in real-time and handles different states such as idle, thinking, and displaying results, with options to retry or go back.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; oracle_autodev.asm -- LLM Oracle Architect for autonomous development
 ;
@@ -17,59 +17,59 @@
 ;   0x3900-0x391F: Oracle prompt (built at runtime)
 ;
 ; Registers:
-;   r11: CMP result (reserved)
-;   r15: Key input
-;   r6: Constant 1
-;   r8: State (0=idle, 1=thinking, 2=result)
+;   r2: CMP result (reserved)
+;   r1: Key input
+;   r5: Constant 1
+;   r14: State (0=idle, 1=thinking, 2=result)
 
 ; ===== Initialize =====
-LDI r6, 1
-LDI r8, 0            ; state: idle
+LDI r5, 1
+LDI r14, 0            ; state: idle
 
 ; Title
-LDI r2, 0x3800
-STRO r2, "ORACLE ARCHITECT v1.0"
+LDI r15, 0x3800
+STRO r15, "ORACLE ARCHITECT v1.0"
 
 ; Build the Oracle prompt
-LDI r2, 0x3900
-STRO r2, "You are the Geometry OS Oracle. Read the roadmap state below. Which planned phase to build next? Reply with just the phase ID and a one-line reason."
+LDI r15, 0x3900
+STRO r15, "You are the Geometry OS Oracle. Read the roadmap state below. Which planned phase to build next? Reply with just the phase ID and a one-line reason."
 
 ; Status
-LDI r2, 0x3700
-STRO r2, "SPACE=ask Oracle"
+LDI r15, 0x3700
+STRO r15, "SPACE=ask Oracle"
 
 ; ===== Main Loop =====
 main_loop:
-    FILL r11
+    FILL r2
 
     ; -- Title bar --
-    LDI r2, 0x1A0066    ; oracle purple
-    LDI r12, 0
+    LDI r15, 0x1A0066    ; oracle purple
     LDI r7, 0
-    LDI r0, 256
+    LDI r8, 0
+    LDI r3, 256
     LDI r16, 8
-    RECTF r12, r7, r0, r16, r2
+    RECTF r7, r8, r3, r16, r15
 
     ; Title text
-    LDI r12, 2
-    LDI r7, 1
-    LDI r0, 0x3800
-    TEXT r12, r7, r0
+    LDI r7, 2
+    LDI r8, 1
+    LDI r3, 0x3800
+    TEXT r7, r8, r3
 
     ; -- Separator --
-    LDI r2, 0x333355
-    LDI r12, 0
-    LDI r7, 9
-    LDI r0, 256
+    LDI r15, 0x333355
+    LDI r7, 0
+    LDI r8, 9
+    LDI r3, 256
     LDI r16, 1
-    RECTF r12, r7, r0, r16, r2
+    RECTF r7, r8, r3, r16, r15
 
     ; -- State dispatch --
-    JNZ r8, not_idle
+    JNZ r14, not_idle
     JMP state_idle
 not_idle:
     LDI r20, 1
-    SUB r20, r8, r20
+    SUB r20, r14, r20
     JNZ r20, not_thinking
     JMP state_thinking
 not_thinking:
@@ -77,81 +77,81 @@ not_thinking:
 
 state_idle:
     ; Show roadmap summary
-    LDI r12, 2
-    LDI r7, 12
-    LDI r0, 0x3000
-    TEXT r12, r7, r0
+    LDI r7, 2
+    LDI r8, 12
+    LDI r3, 0x3000
+    TEXT r7, r8, r3
 
     ; Status
-    LDI r12, 2
-    LDI r7, 28
-    LDI r0, 0x3700
-    TEXT r12, r7, r0
+    LDI r7, 2
+    LDI r8, 28
+    LDI r3, 0x3700
+    TEXT r7, r8, r3
 
     ; Wait for SPACE
-    IKEY r15
-    LDI r2, 32
-    CMP r15, r2
-    JNZ r11, main_loop
+    IKEY r1
+    LDI r15, 32
+    CMP r1, r15
+    JNZ r2, main_loop
 
     ; SPACE pressed -- call Oracle
-    LDI r8, 1
-    LDI r2, 0x3700
-    STRO r2, "Oracle thinking..."
+    LDI r14, 1
+    LDI r15, 0x3700
+    STRO r15, "Oracle thinking..."
     JMP main_loop
 
 state_thinking:
     ; Call LLM: prompt from 0x3900, response to 0x3300, max 768 bytes
-    LDI r9, 0x3900
-    LDI r14, 0x3300
-    LDI r13, 768
-    LLM r9, r14, r13
+    LDI r10, 0x3900
+    LDI r12, 0x3300
+    LDI r0, 768
+    LLM r10, r12, r0
 
-    ; r11 = response length (0 = error)
-    JNZ r11, oracle_ok
+    ; r2 = response length (0 = error)
+    JNZ r2, oracle_ok
 
     ; Oracle failed
-    LDI r8, 0
-    LDI r2, 0x3700
-    STRO r2, "Oracle silent. SPACE=retry"
+    LDI r14, 0
+    LDI r15, 0x3700
+    STRO r15, "Oracle silent. SPACE=retry"
     JMP main_loop
 
 oracle_ok:
-    LDI r8, 2
-    LDI r2, 0x3700
-    STRO r2, "SPACE=again  ESC=back"
+    LDI r14, 2
+    LDI r15, 0x3700
+    STRO r15, "SPACE=again  ESC=back"
     JMP main_loop
 
 state_result:
     ; Show the Oracle's response
-    LDI r12, 2
-    LDI r7, 12
-    LDI r0, 0x3300
-    TEXT r12, r7, r0
+    LDI r7, 2
+    LDI r8, 12
+    LDI r3, 0x3300
+    TEXT r7, r8, r3
 
     ; Status
-    LDI r12, 2
-    LDI r7, 28
-    LDI r0, 0x3700
-    TEXT r12, r7, r0
+    LDI r7, 2
+    LDI r8, 28
+    LDI r3, 0x3700
+    TEXT r7, r8, r3
 
     ; Wait for key
-    IKEY r15
-    LDI r2, 32
-    CMP r15, r2
-    JNZ r11, check_esc
+    IKEY r1
+    LDI r15, 32
+    CMP r1, r15
+    JNZ r2, check_esc
     ; SPACE = ask again
-    LDI r8, 1
-    LDI r2, 0x3700
-    STRO r2, "Oracle thinking..."
+    LDI r14, 1
+    LDI r15, 0x3700
+    STRO r15, "Oracle thinking..."
     JMP main_loop
 
 check_esc:
-    LDI r2, 27
-    CMP r15, r2
-    JNZ r11, main_loop
+    LDI r15, 27
+    CMP r1, r15
+    JNZ r2, main_loop
     ; ESC = back to idle
-    LDI r8, 0
-    LDI r2, 0x3700
-    STRO r2, "SPACE=ask Oracle"
+    LDI r14, 0
+    LDI r15, 0x3700
+    STRO r15, "SPACE=ask Oracle"
     JMP main_loop

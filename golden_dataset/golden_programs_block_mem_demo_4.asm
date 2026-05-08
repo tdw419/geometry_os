@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates the use of MEMSET and MEMCPY opcodes to create a checkerboard pattern in memory without using loops. It first fills a source pattern area with alternating colors (green and blue) using MEMSET, then copies this pattern to a screen buffer using MEMCPY. The code also includes tests for overlap-safe copying and renders the patterns to the screen using RECTF. Finally, it displays text labels "MEMCPY" and "MEMSET".
+; DESCRIPTION: Draws a green rectangle at the screen with fixed size.
 
 ; block_mem_demo.asm -- Demonstrate MEMSET and MEMCPY opcodes
 ; MEMSET fills a region with a value, MEMCPY copies regions (overlap-safe)
@@ -11,117 +11,117 @@
 
 ; First, use MEMSET to fill a source pattern area with alternating values
 ; Pattern: two 16-word rows, one filled with color1, one with color2
-LDI r3, 0x7000        ; pattern base
-LDI r13, 0x00FF00      ; green
-LDI r8, 16           ; 16 words per row
-MEMSET r3, r13, r8     ; row 0 = green
+LDI r7, 0x7000        ; pattern base
+LDI r9, 0x00FF00      ; green
+LDI r11, 16           ; 16 words per row
+MEMSET r7, r9, r11     ; row 0 = green
 
-LDI r3, 0x7010        ; next row (16 words later)
-LDI r13, 0x0000FF      ; blue
-MEMSET r3, r13, r8     ; row 1 = blue
+LDI r7, 0x7010        ; next row (16 words later)
+LDI r9, 0x0000FF      ; blue
+MEMSET r7, r9, r11     ; row 1 = blue
 
 ; Now use MEMCPY to duplicate this 2-row pattern across screen rows
 ; Each screen row is 256 pixels, but we use RECTF for that
 ; This demo just shows the pattern in the top-left corner
 
 ; Copy the pattern to a display area at 0x7400
-LDI r3, 0x7400        ; dst
-LDI r13, 0x7000        ; src
-LDI r8, 32           ; copy both rows (32 words)
-MEMCPY r3, r13, r8
+LDI r7, 0x7400        ; dst
+LDI r9, 0x7000        ; src
+LDI r11, 32           ; copy both rows (32 words)
+MEMCPY r7, r9, r11
 
 ; Verify: overwrite first word of source with red, then MEMCPY again
 ; The overlap-safe copy should handle this correctly
-LDI r6, 0xFF0000      ; red
-LDI r0, 0x7000
-STORE r0, r6          ; overwrite pattern[0] with red
+LDI r15, 0xFF0000      ; red
+LDI r12, 0x7000
+STORE r12, r15          ; overwrite pattern[0] with red
 
 ; Forward overlap test: copy pattern to itself shifted by 1
-LDI r3, 0x7001        ; dst (overlap with src)
-LDI r13, 0x7000        ; src
-LDI r8, 16           ; len
-MEMCPY r3, r13, r8     ; overlap-safe: copies backward internally
+LDI r7, 0x7001        ; dst (overlap with src)
+LDI r9, 0x7000        ; src
+LDI r11, 16           ; len
+MEMCPY r7, r9, r11     ; overlap-safe: copies backward internally
 
 ; Now render the patterns to screen using RECTF
 ; Green row at y=0
-LDI r11, 0
-LDI r7, 0
-LDI r5, 256
-LDI r12, 16
-LDI r2, 0x00FF00
-RECTF r11, r7, r5, r12, r2
+LDI r4, 0
+LDI r5, 0
+LDI r13, 256
+LDI r14, 16
+LDI r6, 0x00FF00
+RECTF r4, r5, r13, r14, r6
 
 ; Blue row at y=16
-LDI r7, 16
-LDI r2, 0x0000FF
-RECTF r11, r7, r5, r12, r2
+LDI r5, 16
+LDI r6, 0x0000FF
+RECTF r4, r5, r13, r14, r6
 
 ; Red row at y=32 (the modified pattern)
-LDI r7, 32
-LDI r2, 0xFF0000
-RECTF r11, r7, r5, r12, r2
+LDI r5, 32
+LDI r6, 0xFF0000
+RECTF r4, r5, r13, r14, r6
 
 ; Green row at y=48
-LDI r7, 48
-LDI r2, 0x00FF00
-RECTF r11, r7, r5, r12, r2
+LDI r5, 48
+LDI r6, 0x00FF00
+RECTF r4, r5, r13, r14, r6
 
 ; Blue row at y=64
-LDI r7, 64
-LDI r2, 0x0000FF
-RECTF r11, r7, r5, r12, r2
+LDI r5, 64
+LDI r6, 0x0000FF
+RECTF r4, r5, r13, r14, r6
 
 ; Text label
-LDI r11, 10
-LDI r7, 100
-LDI r5, 0x7400
-LDI r12, 77           ; M
-STORE r5, r12
-LDI r12, 69           ; E
-LDI r15, 0x7401
-STORE r15, r12
-LDI r12, 77           ; M
-LDI r15, 0x7402
-STORE r15, r12
-LDI r12, 67           ; C
-LDI r15, 0x7403
-STORE r15, r12
-LDI r12, 80           ; P
-LDI r15, 0x7404
-STORE r15, r12
-LDI r12, 89           ; Y
-LDI r15, 0x7405
-STORE r15, r12
-LDI r12, 0            ; null terminator
-LDI r15, 0x7406
-STORE r15, r12
-TEXT r11, r7, r5
+LDI r4, 10
+LDI r5, 100
+LDI r13, 0x7400
+LDI r14, 77           ; M
+STORE r13, r14
+LDI r14, 69           ; E
+LDI r8, 0x7401
+STORE r8, r14
+LDI r14, 77           ; M
+LDI r8, 0x7402
+STORE r8, r14
+LDI r14, 67           ; C
+LDI r8, 0x7403
+STORE r8, r14
+LDI r14, 80           ; P
+LDI r8, 0x7404
+STORE r8, r14
+LDI r14, 89           ; Y
+LDI r8, 0x7405
+STORE r8, r14
+LDI r14, 0            ; null terminator
+LDI r8, 0x7406
+STORE r8, r14
+TEXT r4, r5, r13
 
 ; MEMSET label
-LDI r11, 10
-LDI r7, 120
-LDI r12, 77           ; M
-LDI r15, 0x7410
-STORE r15, r12
-LDI r12, 69           ; E
-LDI r15, 0x7411
-STORE r15, r12
-LDI r12, 77           ; M
-LDI r15, 0x7412
-STORE r15, r12
-LDI r12, 83           ; S
-LDI r15, 0x7413
-STORE r15, r12
-LDI r12, 69           ; E
-LDI r15, 0x7414
-STORE r15, r12
-LDI r12, 84           ; T
-LDI r15, 0x7415
-STORE r15, r12
-LDI r12, 0
-LDI r15, 0x7416
-STORE r15, r12
-LDI r5, 0x7410
-TEXT r11, r7, r5
+LDI r4, 10
+LDI r5, 120
+LDI r14, 77           ; M
+LDI r8, 0x7410
+STORE r8, r14
+LDI r14, 69           ; E
+LDI r8, 0x7411
+STORE r8, r14
+LDI r14, 77           ; M
+LDI r8, 0x7412
+STORE r8, r14
+LDI r14, 83           ; S
+LDI r8, 0x7413
+STORE r8, r14
+LDI r14, 69           ; E
+LDI r8, 0x7414
+STORE r8, r14
+LDI r14, 84           ; T
+LDI r8, 0x7415
+STORE r8, r14
+LDI r14, 0
+LDI r8, 0x7416
+STORE r8, r14
+LDI r13, 0x7410
+TEXT r4, r5, r13
 
 HALT

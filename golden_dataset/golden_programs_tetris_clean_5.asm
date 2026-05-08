@@ -1,4 +1,4 @@
-; DESCRIPTION: The assembly code implements a Tetris game for the Geometry OS. The game features a play area of 10 columns and 20 rows, with controls for moving pieces left/right, rotating, soft dropping, hard dropping, and restarting the game. It initializes piece data, colors, and game state, then enters a main loop where it handles input, updates piece positions, checks for collisions, locks settled pieces onto the board, clears full lines, and spawns new pieces. The game also includes drawing routines to render the board, pieces, score, lines cleared, level, and next piece preview on a 256x256 screen.
+; DESCRIPTION: A red line centered at the screen with fixed size.
 
 ; tetris.asm -- Tetris for Geometry OS
 ;
@@ -92,46 +92,46 @@ restart:
   CALL init_colors
 
   ; clear board
-  LDI r0, 0
-  LDI r9, 160          ; 10 * 20 = 200 cells... wait, 10*20=200
+  LDI r4, 0
+  LDI r10, 160          ; 10 * 20 = 200 cells... wait, 10*20=200
   ; actually 10 cols * 20 rows = 200
 clear_board:
-  LDI r6, 0x4000
-  ADD r6, r0
-  LDI r4, 0
-  STORE r6, r4
-  LDI r1, 1
-  ADD r0, r1
+  LDI r12, 0x4000
+  ADD r12, r4
+  LDI r9, 0
+  STORE r12, r9
+  LDI r7, 1
+  ADD r4, r7
   LDI r11, 200
-  CMP r0, r11
-  BLT r5, clear_board
+  CMP r4, r11
+  BLT r14, clear_board
 
   ; reset game state
-  LDI r4, 0
-  LDI r6, 0x40D4
-  STORE r6, r4           ; score = 0
-  LDI r4, 0
-  LDI r6, 0x40D5
-  STORE r6, r4           ; lines_cleared = 0
-  LDI r4, 0
-  LDI r6, 0x40D6
-  STORE r6, r4           ; game_over = 0
-  LDI r4, 0
-  LDI r6, 0x40D8
-  STORE r6, r4           ; soft_drop = 0
-  LDI r4, 0
-  LDI r6, 0x40D9
-  STORE r6, r4           ; drop_counter = 0
-  LDI r4, 0
-  LDI r6, 0x40DA
-  STORE r6, r4           ; level = 0
+  LDI r9, 0
+  LDI r12, 0x40D4
+  STORE r12, r9           ; score = 0
+  LDI r9, 0
+  LDI r12, 0x40D5
+  STORE r12, r9           ; lines_cleared = 0
+  LDI r9, 0
+  LDI r12, 0x40D6
+  STORE r12, r9           ; game_over = 0
+  LDI r9, 0
+  LDI r12, 0x40D8
+  STORE r12, r9           ; soft_drop = 0
+  LDI r9, 0
+  LDI r12, 0x40D9
+  STORE r12, r9           ; drop_counter = 0
+  LDI r9, 0
+  LDI r12, 0x40DA
+  STORE r12, r9           ; level = 0
 
   ; pick first and next piece
-  RAND r4
-  LDI r8, 7
-  MOD r4, r8
-  LDI r6, 0x40D7
-  STORE r6, r4           ; next_piece
+  RAND r9
+  LDI r2, 7
+  MOD r9, r2
+  LDI r12, 0x40D7
+  STORE r12, r9           ; next_piece
   CALL spawn_piece
 
 ; -- main loop ------------------------------------------------------
@@ -139,479 +139,479 @@ clear_board:
 init_pieces:
   ; Piece 0 (I)
   ; rot0: rows 0,1,2,3 = 0,0,15,0 (XXXX in row 2)
-  LDI r6, 0x4100
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4101
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4102
-  LDI r4, 15
-  STORE r6, r4
-  LDI r6, 0x4103
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4100
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4101
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4102
+  LDI r9, 15
+  STORE r12, r9
+  LDI r12, 0x4103
+  LDI r9, 0
+  STORE r12, r9
   ; rot1: rows = 4,4,4,4 (.X.. each row = 0100 = 4)
-  LDI r6, 0x4104
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x4105
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x4106
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x4107
-  LDI r4, 4
-  STORE r6, r4
+  LDI r12, 0x4104
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x4105
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x4106
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x4107
+  LDI r9, 4
+  STORE r12, r9
   ; rot2: rows = 0,0,15,0
-  LDI r6, 0x4108
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4109
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x410A
-  LDI r4, 15
-  STORE r6, r4
-  LDI r6, 0x410B
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4108
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4109
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x410A
+  LDI r9, 15
+  STORE r12, r9
+  LDI r12, 0x410B
+  LDI r9, 0
+  STORE r12, r9
   ; rot3: rows = 2,2,2,2 (..X. = 0010 = 2)
-  LDI r6, 0x410C
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x410D
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x410E
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x410F
-  LDI r4, 2
-  STORE r6, r4
+  LDI r12, 0x410C
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x410D
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x410E
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x410F
+  LDI r9, 2
+  STORE r12, r9
 
   ; Piece 1 (O)
   ; all rotations: 6,6,0,0 (.XX. = 0110 = 6)
-  LDI r0, 0x4140
+  LDI r4, 0x4140
 ip_o_loop:
-  LDI r4, 6
-  STORE r0, r4
-  LDI r1, 1
-  ADD r0, r1
-  LDI r4, 6
-  STORE r0, r4
-  LDI r1, 1
-  ADD r0, r1
-  LDI r4, 0
-  STORE r0, r4
-  LDI r1, 1
-  ADD r0, r1
-  LDI r4, 0
-  STORE r0, r4
-  LDI r1, 1
-  ADD r0, r1
+  LDI r9, 6
+  STORE r4, r9
+  LDI r7, 1
+  ADD r4, r7
+  LDI r9, 6
+  STORE r4, r9
+  LDI r7, 1
+  ADD r4, r7
+  LDI r9, 0
+  STORE r4, r9
+  LDI r7, 1
+  ADD r4, r7
+  LDI r9, 0
+  STORE r4, r9
+  LDI r7, 1
+  ADD r4, r7
   LDI r11, 0x4160
-  CMP r0, r11
-  BLT r5, ip_o_loop
+  CMP r4, r11
+  BLT r14, ip_o_loop
 
   ; Piece 2 (T)
   ; rot0: 2,7,0,0 (.X. XXX .... ....)
-  LDI r6, 0x4180
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x4181
-  LDI r4, 7
-  STORE r6, r4
-  LDI r6, 0x4282
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4283
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4180
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x4181
+  LDI r9, 7
+  STORE r12, r9
+  LDI r12, 0x4282
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4283
+  LDI r9, 0
+  STORE r12, r9
   ; rot1: 2,3,2,0 (.X. .XX .X. ....)
-  LDI r6, 0x4284
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x4285
-  LDI r4, 3
-  STORE r6, r4
-  LDI r6, 0x4286
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x4287
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4284
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x4285
+  LDI r9, 3
+  STORE r12, r9
+  LDI r12, 0x4286
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x4287
+  LDI r9, 0
+  STORE r12, r9
   ; rot2: 0,7,2,0 (.... XXX .X. ....)
-  LDI r6, 0x4288
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4289
-  LDI r4, 7
-  STORE r6, r4
-  LDI r6, 0x428A
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x428B
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4288
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4289
+  LDI r9, 7
+  STORE r12, r9
+  LDI r12, 0x428A
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x428B
+  LDI r9, 0
+  STORE r12, r9
   ; rot3: 2,6,2,0 (X.. .XX .X. ....)
-  LDI r6, 0x428C
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x428D
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x428E
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x428F
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x428C
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x428D
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x428E
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x428F
+  LDI r9, 0
+  STORE r12, r9
 
   ; Piece 3 (S)
   ; rot0: 3,3,0,0  (..XX .XX. .... ....) -- wait let me recalculate
   ; .XX. = 0110 = 6, XX.. = 1100 = 12
   ; rot0: 6,3,0,0
-  LDI r6, 0x41C0
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x41C1
-  LDI r4, 3
-  STORE r6, r4
-  LDI r6, 0x41C2
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x41C3
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x41C0
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x41C1
+  LDI r9, 3
+  STORE r12, r9
+  LDI r12, 0x41C2
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x41C3
+  LDI r9, 0
+  STORE r12, r9
   ; rot1: 2,3,1,0  (.X. .XX ..X. ....)
-  LDI r6, 0x41C4
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x41C5
-  LDI r4, 3
-  STORE r6, r4
-  LDI r6, 0x41C6
-  LDI r4, 1
-  STORE r6, r4
-  LDI r6, 0x41C7
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x41C4
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x41C5
+  LDI r9, 3
+  STORE r12, r9
+  LDI r12, 0x41C6
+  LDI r9, 1
+  STORE r12, r9
+  LDI r12, 0x41C7
+  LDI r9, 0
+  STORE r12, r9
   ; rot2: 0,6,3,0  (.... .XX. ..XX ....)
-  LDI r6, 0x41C8
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x41C9
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x41CA
-  LDI r4, 3
-  STORE r6, r4
-  LDI r6, 0x41CB
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x41C8
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x41C9
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x41CA
+  LDI r9, 3
+  STORE r12, r9
+  LDI r12, 0x41CB
+  LDI r9, 0
+  STORE r12, r9
   ; rot3: 2,6,4,0  (X.. .XX XX.. ....)
-  LDI r6, 0x41CC
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x41CD
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x41CE
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x41CF
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x41CC
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x41CD
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x41CE
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x41CF
+  LDI r9, 0
+  STORE r12, r9
 
   ; Piece 4 (Z)
   ; rot0: 3,6,0,0  (..XX .XX. .... ....)
-  LDI r6, 0x4300
-  LDI r4, 3
-  STORE r6, r4
-  LDI r6, 0x4301
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x4302
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4303
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4300
+  LDI r9, 3
+  STORE r12, r9
+  LDI r12, 0x4301
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x4302
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4303
+  LDI r9, 0
+  STORE r12, r9
   ; rot1: 1,3,2,0  (..X. .XX. .X.. ....)
-  LDI r6, 0x4304
-  LDI r4, 1
-  STORE r6, r4
-  LDI r6, 0x4305
-  LDI r4, 3
-  STORE r6, r4
-  LDI r6, 0x4306
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x4307
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4304
+  LDI r9, 1
+  STORE r12, r9
+  LDI r12, 0x4305
+  LDI r9, 3
+  STORE r12, r9
+  LDI r12, 0x4306
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x4307
+  LDI r9, 0
+  STORE r12, r9
   ; rot2: 0,3,6,0  (.... ..XX .XX. ....)
-  LDI r6, 0x4308
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4309
-  LDI r4, 3
-  STORE r6, r4
-  LDI r6, 0x430A
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x430B
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4308
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4309
+  LDI r9, 3
+  STORE r12, r9
+  LDI r12, 0x430A
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x430B
+  LDI r9, 0
+  STORE r12, r9
   ; rot3: 4,6,2,0  (XX.. .XX. .X.. ....)
-  LDI r6, 0x420C
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x420D
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x420E
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x420F
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x420C
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x420D
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x420E
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x420F
+  LDI r9, 0
+  STORE r12, r9
 
   ; Piece 5 (L)
   ; rot0: 1,1,3,0  (X.. X.. .XX. ....)
-  LDI r6, 0x4240
-  LDI r4, 1
-  STORE r6, r4
-  LDI r6, 0x4241
-  LDI r4, 1
-  STORE r6, r4
-  LDI r6, 0x4242
-  LDI r4, 3
-  STORE r6, r4
-  LDI r6, 0x4243
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4240
+  LDI r9, 1
+  STORE r12, r9
+  LDI r12, 0x4241
+  LDI r9, 1
+  STORE r12, r9
+  LDI r12, 0x4242
+  LDI r9, 3
+  STORE r12, r9
+  LDI r12, 0x4243
+  LDI r9, 0
+  STORE r12, r9
   ; rot1: 2,2,6,0  (.X. .X. .XX. ....)
-  LDI r6, 0x4244
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x4245
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x4246
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x4247
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4244
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x4245
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x4246
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x4247
+  LDI r9, 0
+  STORE r12, r9
   ; rot2: 0,7,4,0  (.... XXX. XX.. ....)
-  LDI r6, 0x4248
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4249
-  LDI r4, 7
-  STORE r6, r4
-  LDI r6, 0x424A
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x424B
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4248
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4249
+  LDI r9, 7
+  STORE r12, r9
+  LDI r12, 0x424A
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x424B
+  LDI r9, 0
+  STORE r12, r9
   ; rot3: 2,6,2,0  (.X. .XX. .X. ....)
-  LDI r6, 0x424C
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x424D
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x424E
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x424F
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x424C
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x424D
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x424E
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x424F
+  LDI r9, 0
+  STORE r12, r9
 
   ; Piece 6 (J)
   ; rot0: 4,4,6,0  (XX.. XX.. .XX. ....)
-  LDI r6, 0x4280
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x4281
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x4182
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x4183
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4280
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x4281
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x4182
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x4183
+  LDI r9, 0
+  STORE r12, r9
   ; rot1: 6,2,2,0  (.XX. .X.. .X.. ....)
-  LDI r6, 0x4184
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x4185
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x4186
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x4187
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4184
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x4185
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x4186
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x4187
+  LDI r9, 0
+  STORE r12, r9
   ; rot2: 0,7,1,0  (.... .XXX ..X. ....)
-  LDI r6, 0x4188
-  LDI r4, 0
-  STORE r6, r4
-  LDI r6, 0x4189
-  LDI r4, 7
-  STORE r6, r4
-  LDI r6, 0x418A
-  LDI r4, 1
-  STORE r6, r4
-  LDI r6, 0x418B
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x4188
+  LDI r9, 0
+  STORE r12, r9
+  LDI r12, 0x4189
+  LDI r9, 7
+  STORE r12, r9
+  LDI r12, 0x418A
+  LDI r9, 1
+  STORE r12, r9
+  LDI r12, 0x418B
+  LDI r9, 0
+  STORE r12, r9
   ; rot3: 2,6,4,0  (.X. .XX. XX.. ....)
-  LDI r6, 0x418C
-  LDI r4, 2
-  STORE r6, r4
-  LDI r6, 0x418D
-  LDI r4, 6
-  STORE r6, r4
-  LDI r6, 0x418E
-  LDI r4, 4
-  STORE r6, r4
-  LDI r6, 0x418F
-  LDI r4, 0
-  STORE r6, r4
+  LDI r12, 0x418C
+  LDI r9, 2
+  STORE r12, r9
+  LDI r12, 0x418D
+  LDI r9, 6
+  STORE r12, r9
+  LDI r12, 0x418E
+  LDI r9, 4
+  STORE r12, r9
+  LDI r12, 0x418F
+  LDI r9, 0
+  STORE r12, r9
 
   RET
 
 ; -- Piece colors (stored at 0x42C0, one per piece) ----------------
 ; 0=I cyan, 1=O yellow, 2=T purple, 3=S green, 4=Z red, 5=L orange, 6=J blue
 init_colors:
-  LDI r6, 0x42C0
-  LDI r4, 0x00CCCC     ; I - cyan
-  STORE r6, r4
-  LDI r6, 0x42C1
-  LDI r4, 0xCCCC00     ; O - yellow
-  STORE r6, r4
-  LDI r6, 0x42C2
-  LDI r4, 0xAA00CC     ; T - purple
-  STORE r6, r4
-  LDI r6, 0x42C3
-  LDI r4, 0x00CC44     ; S - green
-  STORE r6, r4
-  LDI r6, 0x42C4
-  LDI r4, 0xCC2200     ; Z - red
-  STORE r6, r4
-  LDI r6, 0x42C5
-  LDI r4, 0xFF8800     ; L - orange
-  STORE r6, r4
-  LDI r6, 0x42C6
-  LDI r4, 0x2244CC     ; J - blue
-  STORE r6, r4
+  LDI r12, 0x42C0
+  LDI r9, 0x00CCCC     ; I - cyan
+  STORE r12, r9
+  LDI r12, 0x42C1
+  LDI r9, 0xCCCC00     ; O - yellow
+  STORE r12, r9
+  LDI r12, 0x42C2
+  LDI r9, 0xAA00CC     ; T - purple
+  STORE r12, r9
+  LDI r12, 0x42C3
+  LDI r9, 0x00CC44     ; S - green
+  STORE r12, r9
+  LDI r12, 0x42C4
+  LDI r9, 0xCC2200     ; Z - red
+  STORE r12, r9
+  LDI r12, 0x42C5
+  LDI r9, 0xFF8800     ; L - orange
+  STORE r12, r9
+  LDI r12, 0x42C6
+  LDI r9, 0x2244CC     ; J - blue
+  STORE r12, r9
   RET
 
 ; -- init / restart -------------------------------------------------
 game_loop:
   ; check game over
-  LDI r6, 0x40D6
-  LOAD r4, r6
-  JNZ r4, game_over_screen
+  LDI r12, 0x40D6
+  LOAD r9, r12
+  JNZ r9, game_over_screen
 
   ; read keyboard
-  IKEY r10
+  IKEY r1
 
   ; A/a = move left
   LDI r11, 65
-  CMP r10, r11
-  JZ r5, do_left
+  CMP r1, r11
+  JZ r14, do_left
   LDI r11, 97
-  CMP r10, r11
-  JZ r5, do_left
+  CMP r1, r11
+  JZ r14, do_left
 
   ; D/d = move right
   LDI r11, 68
-  CMP r10, r11
-  JZ r5, do_right
+  CMP r1, r11
+  JZ r14, do_right
   LDI r11, 100
-  CMP r10, r11
-  JZ r5, do_right
+  CMP r1, r11
+  JZ r14, do_right
 
   ; W/w = rotate
   LDI r11, 87
-  CMP r10, r11
-  JZ r5, do_rotate
+  CMP r1, r11
+  JZ r14, do_rotate
   LDI r11, 119
-  CMP r10, r11
-  JZ r5, do_rotate
+  CMP r1, r11
+  JZ r14, do_rotate
 
   ; S/s = soft drop
   LDI r11, 83
-  CMP r10, r11
-  JZ r5, do_soft_drop
+  CMP r1, r11
+  JZ r14, do_soft_drop
   LDI r11, 115
-  CMP r10, r11
-  JZ r5, do_soft_drop
+  CMP r1, r11
+  JZ r14, do_soft_drop
 
   ; Space = hard drop
   LDI r11, 32
-  CMP r10, r11
-  JZ r5, do_hard_drop
+  CMP r1, r11
+  JZ r14, do_hard_drop
 
   ; R/r = restart
   LDI r11, 82
-  CMP r10, r11
-  JZ r5, restart
+  CMP r1, r11
+  JZ r14, restart
   LDI r11, 114
-  CMP r10, r11
-  JZ r5, restart
+  CMP r1, r11
+  JZ r14, restart
 
 after_input:
   ; auto-drop: check tick counter
   ; Normal speed: drop every 15 frames. Soft drop: every 3 frames.
-  LDI r6, 0x40D9
-  LOAD r4, r6           ; drop_counter
-  LDI r1, 1
-  ADD r4, r1
-  LDI r6, 0x40D9
-  STORE r6, r4
+  LDI r12, 0x40D9
+  LOAD r9, r12           ; drop_counter
+  LDI r7, 1
+  ADD r9, r7
+  LDI r12, 0x40D9
+  STORE r12, r9
 
   ; check threshold
-  LDI r6, 0x40D8
-  LOAD r8, r6           ; soft_drop flag
-  JNZ r8, soft_thresh
+  LDI r12, 0x40D8
+  LOAD r2, r12           ; soft_drop flag
+  JNZ r2, soft_thresh
   
   ; normal threshold based on level: max(2, 15 - level)
-  LDI r6, 0x40DA
-  LOAD r15, r6           ; r15 = level
+  LDI r12, 0x40DA
+  LOAD r6, r12           ; r6 = level
   LDI r11, 15
-  SUB r11, r15            ; r11 = 15 - level
+  SUB r11, r6            ; r11 = 15 - level
   
   ; clamp at 2
-  LDI r10, 2
-  CMP r11, r10
-  BGE r5, speed_ok
+  LDI r1, 2
+  CMP r11, r1
+  BGE r14, speed_ok
   LDI r11, 2
 speed_ok:
-  LDI r6, 0x40D9
-  LOAD r4, r6
-  CMP r4, r11
-  BLT r5, no_drop
+  LDI r12, 0x40D9
+  LOAD r9, r12
+  CMP r9, r11
+  BLT r14, no_drop
   JMP do_drop
 soft_thresh:
-  LDI r6, 0x40D9
-  LOAD r4, r6
+  LDI r12, 0x40D9
+  LOAD r9, r12
   LDI r11, 3
-  CMP r4, r11
-  BLT r5, no_drop
+  CMP r9, r11
+  BLT r14, no_drop
 do_drop:
-  LDI r4, 0
-  LDI r6, 0x40D9
-  STORE r6, r4           ; reset counter
+  LDI r9, 0
+  LDI r12, 0x40D9
+  STORE r12, r9           ; reset counter
   CALL try_move_down
   JMP draw_and_loop
 no_drop:
@@ -620,115 +620,115 @@ no_drop:
 ; -- input handlers -------------------------------------------------
 do_left:
   PUSH r31
-  LDI r6, 0x40D1
-  LOAD r4, r6           ; piece_x
-  LDI r1, 1
-  SUB r4, r1
+  LDI r12, 0x40D1
+  LOAD r9, r12           ; piece_x
+  LDI r7, 1
+  SUB r9, r7
   ; try at new position
-  LDI r6, 0x40D1
-  STORE r6, r4
+  LDI r12, 0x40D1
+  STORE r12, r9
   CALL check_collision
-  JNZ r4, left_ok       ; no collision, keep move
+  JNZ r9, left_ok       ; no collision, keep move
   ; collision: revert
-  LDI r6, 0x40D1
-  LOAD r4, r6
-  LDI r1, 1
-  ADD r4, r1
-  LDI r6, 0x40D1
-  STORE r6, r4
+  LDI r12, 0x40D1
+  LOAD r9, r12
+  LDI r7, 1
+  ADD r9, r7
+  LDI r12, 0x40D1
+  STORE r12, r9
 left_ok:
   ; move sound
-  LDI r1, 440
+  LDI r7, 440
   LDI r11, 20
-  BEEP r1, r11
+  BEEP r7, r11
   POP r31
   JMP after_input
 
 do_right:
   PUSH r31
-  LDI r6, 0x40D1
-  LOAD r4, r6
-  LDI r1, 1
-  ADD r4, r1
-  LDI r6, 0x40D1
-  STORE r6, r4
+  LDI r12, 0x40D1
+  LOAD r9, r12
+  LDI r7, 1
+  ADD r9, r7
+  LDI r12, 0x40D1
+  STORE r12, r9
   CALL check_collision
-  JNZ r4, right_ok
+  JNZ r9, right_ok
   ; revert
-  LDI r6, 0x40D1
-  LOAD r4, r6
-  LDI r1, 1
-  SUB r4, r1
-  LDI r6, 0x40D1
-  STORE r6, r4
+  LDI r12, 0x40D1
+  LOAD r9, r12
+  LDI r7, 1
+  SUB r9, r7
+  LDI r12, 0x40D1
+  STORE r12, r9
 right_ok:
   ; move sound
-  LDI r1, 440
+  LDI r7, 440
   LDI r11, 20
-  BEEP r1, r11
+  BEEP r7, r11
   POP r31
   JMP after_input
 
 do_rotate:
   PUSH r31
-  LDI r6, 0x40D3
-  LOAD r4, r6           ; piece_rot
-  LDI r1, 1
-  ADD r4, r1
+  LDI r12, 0x40D3
+  LOAD r9, r12           ; piece_rot
+  LDI r7, 1
+  ADD r9, r7
   LDI r11, 4
-  MOD r4, r11
-  LDI r6, 0x40D3
-  STORE r6, r4
+  MOD r9, r11
+  LDI r12, 0x40D3
+  STORE r12, r9
   CALL check_collision
-  JNZ r4, rot_ok
+  JNZ r9, rot_ok
   ; revert rotation
-  LDI r6, 0x40D3
-  LOAD r4, r6
-  LDI r1, 3
-  ADD r4, r1
+  LDI r12, 0x40D3
+  LOAD r9, r12
+  LDI r7, 3
+  ADD r9, r7
   LDI r11, 4
-  MOD r4, r11
-  LDI r6, 0x40D3
-  STORE r6, r4
+  MOD r9, r11
+  LDI r12, 0x40D3
+  STORE r12, r9
 rot_ok:
   ; rotate sound
-  LDI r1, 660
+  LDI r7, 660
   LDI r11, 20
-  BEEP r1, r11
+  BEEP r7, r11
   POP r31
   JMP after_input
 
 do_soft_drop:
-  LDI r4, 1
-  LDI r6, 0x40D8
-  STORE r6, r4
+  LDI r9, 1
+  LDI r12, 0x40D8
+  STORE r12, r9
   JMP after_input
 
 do_hard_drop:
   PUSH r31
   ; hard drop sound (start)
-  LDI r1, 440
+  LDI r7, 440
   LDI r11, 50
-  BEEP r1, r11
+  BEEP r7, r11
 hd_loop:
   ; move down until collision
-  LDI r6, 0x40D2
-  LOAD r4, r6           ; piece_y
-  LDI r1, 1
-  ADD r4, r1
-  LDI r6, 0x40D2
-  STORE r6, r4
+  LDI r12, 0x40D2
+  LOAD r9, r12           ; piece_y
+  LDI r7, 1
+  ADD r9, r7
+  LDI r12, 0x40D2
+  STORE r12, r9
   CALL check_collision
-  JZ r4, hd_done        ; collision detected, piece at final pos
+  JZ r9, hd_done        ; collision detected, piece at final pos
   JMP hd_loop
 hd_done:
   ; revert the last move (we moved into collision)
-  LDI r6, 0x40D2
-  LOAD r4, r6
-  LDI r1, 1
-  SUB r4, r1
-  LDI r6, 0x40D2
-  STORE r6, r4
+  LDI r12, 0x40D2
+  LOAD r9, r12
+  LDI r7, 1
+  SUB r9, r7
+  LDI r12, 0x40D2
+  STORE r12, r9
   CALL lock_piece
   CALL clear_lines
   CALL spawn_piece
@@ -740,21 +740,21 @@ hd_done:
 ; -----------------------------------------------------------------
 try_move_down:
   PUSH r31
-  LDI r6, 0x40D2
-  LOAD r4, r6           ; piece_y
-  LDI r1, 1
-  ADD r4, r1
-  LDI r6, 0x40D2
-  STORE r6, r4
+  LDI r12, 0x40D2
+  LOAD r9, r12           ; piece_y
+  LDI r7, 1
+  ADD r9, r7
+  LDI r12, 0x40D2
+  STORE r12, r9
   CALL check_collision
-  JNZ r4, tmd_ok        ; no collision, piece moved down
+  JNZ r9, tmd_ok        ; no collision, piece moved down
   ; collision: revert and lock
-  LDI r6, 0x40D2
-  LOAD r4, r6
-  LDI r1, 1
-  SUB r4, r1
-  LDI r6, 0x40D2
-  STORE r6, r4
+  LDI r12, 0x40D2
+  LOAD r9, r12
+  LDI r7, 1
+  SUB r9, r7
+  LDI r12, 0x40D2
+  STORE r12, r9
   CALL lock_piece
   CALL clear_lines
   CALL spawn_piece
@@ -764,218 +764,218 @@ tmd_ok:
 
 ; -----------------------------------------------------------------
 ; SUBROUTINE: check_collision
-;   Returns r4 = 0 if collision, 1 if no collision
+;   Returns r9 = 0 if collision, 1 if no collision
 ;   Checks current piece position against board and walls
 ; -----------------------------------------------------------------
 check_collision:
   ; load piece info
-  LDI r6, 0x40D0
-  LOAD r0, r6          ; current_piece index
-  LDI r6, 0x40D1
-  LOAD r9, r6          ; piece_x
-  LDI r6, 0x40D2
-  LOAD r12, r6          ; piece_y
-  LDI r6, 0x40D3
-  LOAD r7, r6          ; piece_rot
+  LDI r12, 0x40D0
+  LOAD r4, r12          ; current_piece index
+  LDI r12, 0x40D1
+  LOAD r10, r12          ; piece_x
+  LDI r12, 0x40D2
+  LOAD r8, r12          ; piece_y
+  LDI r12, 0x40D3
+  LOAD r3, r12          ; piece_rot
 
   ; compute piece data address: 0x4100 + piece * 64 + rot * 16
-  LDI r4, 0
-  ADD r4, r0
-  LDI r1, 64
-  MUL r4, r1
-  LDI r1, 0x4100
-  ADD r4, r1
-  LDI r1, 0
-  ADD r1, r7
+  LDI r9, 0
+  ADD r9, r4
+  LDI r7, 64
+  MUL r9, r7
+  LDI r7, 0x4100
+  ADD r9, r7
+  LDI r7, 0
+  ADD r7, r3
   LDI r11, 16
-  MUL r1, r11
-  ADD r4, r1            ; r4 = base address of rotation data
+  MUL r7, r11
+  ADD r9, r7            ; r9 = base address of rotation data
 
-  LDI r13, 0            ; row counter (0-3)
+  LDI r5, 0            ; row counter (0-3)
 cc_row:
   ; load row bitmap
-  LDI r6, 0
-  ADD r6, r4
-  ADD r6, r13
-  LOAD r14, r6          ; r14 = row bitmap
+  LDI r12, 0
+  ADD r12, r9
+  ADD r12, r5
+  LOAD r15, r12          ; r15 = row bitmap
 
   LDI r16, 0            ; col counter (0-3)
 cc_col:
   ; check bit 3-col (MSB = leftmost in 4-bit field)
   ; we want bit at position (3 - col)
-  LDI r6, 3
-  LDI r1, 0
-  ADD r1, r16
-  SUB r6, r1            ; r6 = 3 - col
-  ; shift right by r6, AND with 1
-  LDI r1, 0
-  ADD r1, r14
+  LDI r12, 3
+  LDI r7, 0
+  ADD r7, r16
+  SUB r12, r7            ; r12 = 3 - col
+  ; shift right by r12, AND with 1
+  LDI r7, 0
+  ADD r7, r15
   LDI r11, 0
-  ADD r11, r6
-  SHR r1, r11            ; r1 = bitmap >> (3-col)
+  ADD r11, r12
+  SHR r7, r11            ; r7 = bitmap >> (3-col)
   LDI r11, 1
-  AND r1, r11            ; r1 = bit
+  AND r7, r11            ; r7 = bit
 
-  JZ r1, cc_next        ; empty cell, skip
+  JZ r7, cc_next        ; empty cell, skip
 
   ; check bounds
   ; board col = piece_x + col, must be 0..9
-  LDI r6, 0
-  ADD r6, r9
-  ADD r6, r16           ; board col
+  LDI r12, 0
+  ADD r12, r10
+  ADD r12, r16           ; board col
   LDI r11, 0
-  CMP r6, r11
-  BLT r5, cc_collision
+  CMP r12, r11
+  BLT r14, cc_collision
   LDI r11, 10
-  CMP r6, r11
-  BGE r5, cc_collision
+  CMP r12, r11
+  BGE r14, cc_collision
 
   ; board row = piece_y + row, must be 0..19
-  LDI r6, 0
-  ADD r6, r12
-  ADD r6, r13           ; board row
+  LDI r12, 0
+  ADD r12, r8
+  ADD r12, r5           ; board row
   LDI r11, 20
-  CMP r6, r11
-  BGE r5, cc_collision
+  CMP r12, r11
+  BGE r14, cc_collision
   ; row < 0 (unsigned underflow) -- let it go (piece above board is ok)
 
   ; check board cell (only if row < 20)
-  LDI r6, 0
-  ADD r6, r12
-  ADD r6, r13
+  LDI r12, 0
+  ADD r12, r8
+  ADD r12, r5
   LDI r11, 20
-  CMP r6, r11
-  BGE r5, cc_next       ; above board, ok
+  CMP r12, r11
+  BGE r14, cc_next       ; above board, ok
   ; board[row * 10 + col]
-  LDI r1, 0
-  ADD r1, r12
-  ADD r1, r13
+  LDI r7, 0
+  ADD r7, r8
+  ADD r7, r5
   LDI r11, 10
-  MUL r1, r11
+  MUL r7, r11
   LDI r11, 0
-  ADD r11, r9
+  ADD r11, r10
   ADD r11, r16
-  ADD r1, r11            ; board index
-  LDI r6, 0x4000
-  ADD r6, r1
-  LOAD r1, r6           ; board cell
-  JNZ r1, cc_collision  ; occupied = collision
+  ADD r7, r11            ; board index
+  LDI r12, 0x4000
+  ADD r12, r7
+  LOAD r7, r12           ; board cell
+  JNZ r7, cc_collision  ; occupied = collision
 
 cc_next:
-  LDI r1, 1
-  ADD r16, r1
+  LDI r7, 1
+  ADD r16, r7
   LDI r11, 4
   CMP r16, r11
-  BLT r5, cc_col
+  BLT r14, cc_col
 
-  LDI r1, 1
-  ADD r13, r1
+  LDI r7, 1
+  ADD r5, r7
   LDI r11, 4
-  CMP r13, r11
-  BLT r5, cc_row
+  CMP r5, r11
+  BLT r14, cc_row
 
   ; no collision
-  LDI r4, 1
+  LDI r9, 1
   RET
 
 cc_collision:
-  LDI r4, 0
+  LDI r9, 0
   RET
 
 ; -----------------------------------------------------------------
 ; SUBROUTINE: lock_piece -- write piece into board
 ; -----------------------------------------------------------------
 lock_piece:
-  LDI r6, 0x40D0
-  LOAD r0, r6          ; piece index
-  LDI r6, 0x40D1
-  LOAD r9, r6          ; piece_x
-  LDI r6, 0x40D2
-  LOAD r12, r6          ; piece_y
-  LDI r6, 0x40D3
-  LOAD r7, r6          ; piece_rot
+  LDI r12, 0x40D0
+  LOAD r4, r12          ; piece index
+  LDI r12, 0x40D1
+  LOAD r10, r12          ; piece_x
+  LDI r12, 0x40D2
+  LOAD r8, r12          ; piece_y
+  LDI r12, 0x40D3
+  LOAD r3, r12          ; piece_rot
 
   ; get piece color
-  LDI r6, 0x42C0
-  ADD r6, r0
-  LOAD r20, r6          ; r20 = color
+  LDI r12, 0x42C0
+  ADD r12, r4
+  LOAD r20, r12          ; r20 = color
 
   ; compute piece data address
-  LDI r4, 0
-  ADD r4, r0
-  LDI r1, 64
-  MUL r4, r1
-  LDI r1, 0x4100
-  ADD r4, r1
-  LDI r1, 0
-  ADD r1, r7
+  LDI r9, 0
+  ADD r9, r4
+  LDI r7, 64
+  MUL r9, r7
+  LDI r7, 0x4100
+  ADD r9, r7
+  LDI r7, 0
+  ADD r7, r3
   LDI r11, 16
-  MUL r1, r11
-  ADD r4, r1
+  MUL r7, r11
+  ADD r9, r7
 
-  LDI r13, 0
+  LDI r5, 0
 lp_row:
-  LDI r6, 0
-  ADD r6, r4
-  ADD r6, r13
-  LOAD r14, r6
+  LDI r12, 0
+  ADD r12, r9
+  ADD r12, r5
+  LOAD r15, r12
 
   LDI r16, 0
 lp_col:
   ; extract bit
-  LDI r6, 3
-  LDI r1, 0
-  ADD r1, r16
-  SUB r6, r1
-  LDI r1, 0
-  ADD r1, r14
+  LDI r12, 3
+  LDI r7, 0
+  ADD r7, r16
+  SUB r12, r7
+  LDI r7, 0
+  ADD r7, r15
   LDI r11, 0
-  ADD r11, r6
-  SHR r1, r11
+  ADD r11, r12
+  SHR r7, r11
   LDI r11, 1
-  AND r1, r11
+  AND r7, r11
 
-  JZ r1, lp_next
+  JZ r7, lp_next
 
   ; bounds check
-  LDI r6, 0
-  ADD r6, r12
-  ADD r6, r13           ; row
+  LDI r12, 0
+  ADD r12, r8
+  ADD r12, r5           ; row
   LDI r11, 20
-  CMP r6, r11
-  BGE r5, lp_next
+  CMP r12, r11
+  BGE r14, lp_next
 
   ; write color to board
-  LDI r1, 0
-  ADD r1, r12
-  ADD r1, r13
+  LDI r7, 0
+  ADD r7, r8
+  ADD r7, r5
   LDI r11, 10
-  MUL r1, r11
+  MUL r7, r11
   LDI r11, 0
-  ADD r11, r9
+  ADD r11, r10
   ADD r11, r16
-  ADD r1, r11
-  LDI r6, 0x4000
-  ADD r6, r1
-  STORE r6, r20
+  ADD r7, r11
+  LDI r12, 0x4000
+  ADD r12, r7
+  STORE r12, r20
 
 lp_next:
-  LDI r1, 1
-  ADD r16, r1
+  LDI r7, 1
+  ADD r16, r7
   LDI r11, 4
   CMP r16, r11
-  BLT r5, lp_col
+  BLT r14, lp_col
 
-  LDI r1, 1
-  ADD r13, r1
+  LDI r7, 1
+  ADD r5, r7
   LDI r11, 4
-  CMP r13, r11
-  BLT r5, lp_row
+  CMP r5, r11
+  BLT r14, lp_row
 
   ; lock sound
-  LDI r1, 330
+  LDI r7, 330
   LDI r11, 30
-  BEEP r1, r11
+  BEEP r7, r11
 
   RET
 
@@ -988,125 +988,125 @@ clear_lines:
   LDI r25, 0            ; lines cleared this turn
 
   ; scan from bottom row (row 19) to top (row 0)
-  LDI r13, 19
+  LDI r5, 19
 cl_row:
   ; check if row is full
   LDI r16, 0
-  LDI r14, 1             ; assume full
+  LDI r15, 1             ; assume full
 
   ; check 10 cells
-  LDI r0, 0
+  LDI r4, 0
 cl_check:
-  LDI r1, 0
-  ADD r1, r13
+  LDI r7, 0
+  ADD r7, r5
   LDI r11, 10
-  MUL r1, r11
-  ADD r1, r0
-  LDI r6, 0x4000
-  ADD r6, r1
-  LOAD r4, r6
-  JZ r4, cl_not_full     ; empty cell = not full
-  LDI r1, 1
-  ADD r0, r1
+  MUL r7, r11
+  ADD r7, r4
+  LDI r12, 0x4000
+  ADD r12, r7
+  LOAD r9, r12
+  JZ r9, cl_not_full     ; empty cell = not full
+  LDI r7, 1
+  ADD r4, r7
   LDI r11, 10
-  CMP r0, r11
-  BLT r5, cl_check
+  CMP r4, r11
+  BLT r14, cl_check
   ; all 10 cells occupied = full row
   JMP cl_do_clear
 
 cl_not_full:
-  LDI r1, 1
-  SUB r13, r1
+  LDI r7, 1
+  SUB r5, r7
   LDI r11, 0
   ; use BLT with signed comparison: if row < 0, unsigned wraps, but
-  ; we compare with 0 as unsigned. If r13 was 0 and we subtract 1,
+  ; we compare with 0 as unsigned. If r5 was 0 and we subtract 1,
   ; it becomes 0xFFFFFFFF which is >= 0. So we need a different approach.
-  ; Use CMP: if r13 < 0 (as signed), CMP with 0 would show BLT.
-  ; But we use unsigned CMP. Let's just check if r13 > 19 or == 0xFFFFFFFF.
-  ; Actually: CMP r13, r11 where r11=0 and using BLT: unsigned 0xFFFFFFFF > 0,
+  ; Use CMP: if r5 < 0 (as signed), CMP with 0 would show BLT.
+  ; But we use unsigned CMP. Let's just check if r5 > 19 or == 0xFFFFFFFF.
+  ; Actually: CMP r5, r11 where r11=0 and using BLT: unsigned 0xFFFFFFFF > 0,
   ; so BLT won't trigger. We need a different sentinel.
-  ; Fix: check if r13 < 0 by checking if r13 >= 0x80000000 (sign bit set)
+  ; Fix: check if r5 < 0 by checking if r5 >= 0x80000000 (sign bit set)
   LDI r11, 0x80000000
-  CMP r13, r11
-  BGE r5, cl_done        ; sign bit set = underflow = done
+  CMP r5, r11
+  BGE r14, cl_done        ; sign bit set = underflow = done
   JMP cl_row
 
 cl_do_clear:
   ; shift all rows above this one down by 1
-  ; row r13 is full: copy row r13-1 to r13, r13-2 to r13-1, etc.
-  LDI r14, 0             ; src row = r13 - 1
-  LDI r1, 1
-  SUB r14, r13
-  LDI r1, 1
-  ; wait, r14 = r13, then subtract 1
-  LDI r14, 0
-  ADD r14, r13
+  ; row r5 is full: copy row r5-1 to r5, r5-2 to r5-1, etc.
+  LDI r15, 0             ; src row = r5 - 1
+  LDI r7, 1
+  SUB r15, r5
+  LDI r7, 1
+  ; wait, r15 = r5, then subtract 1
+  LDI r15, 0
+  ADD r15, r5
 
 cl_shift:
-  ; src_row = r14 - 1
-  LDI r1, 0
-  ADD r1, r14
+  ; src_row = r15 - 1
+  LDI r7, 0
+  ADD r7, r15
   LDI r11, 1
-  SUB r1, r11            ; r1 = src_row = r14 - 1
+  SUB r7, r11            ; r7 = src_row = r15 - 1
   ; if src_row < 0 (sign bit), we're at top, clear row 0 and stop
   LDI r11, 0x80000000
-  CMP r1, r11
-  BGE r5, cl_clear_top
+  CMP r7, r11
+  BGE r14, cl_clear_top
 
-  ; copy src_row to r14
-  LDI r0, 0
+  ; copy src_row to r15
+  LDI r4, 0
 cl_copy:
   ; src: board[src_row * 10 + col]
-  LDI r6, 0
-  ADD r6, r1
+  LDI r12, 0
+  ADD r12, r7
   LDI r11, 10
-  MUL r6, r11
-  ADD r6, r0
-  LDI r10, 0x4000
-  ADD r10, r6
-  LOAD r4, r10           ; src cell
+  MUL r12, r11
+  ADD r12, r4
+  LDI r1, 0x4000
+  ADD r1, r12
+  LOAD r9, r1           ; src cell
 
-  ; dst: board[r14 * 10 + col]
-  LDI r6, 0
-  ADD r6, r14
+  ; dst: board[r15 * 10 + col]
+  LDI r12, 0
+  ADD r12, r15
   LDI r11, 10
-  MUL r6, r11
-  ADD r6, r0
-  LDI r10, 0x4000
-  ADD r10, r6
-  STORE r10, r4          ; dst cell
+  MUL r12, r11
+  ADD r12, r4
+  LDI r1, 0x4000
+  ADD r1, r12
+  STORE r1, r9          ; dst cell
 
   LDI r11, 1
-  ADD r0, r11
-  LDI r10, 10
-  CMP r0, r10
-  BLT r5, cl_copy
+  ADD r4, r11
+  LDI r1, 10
+  CMP r4, r1
+  BLT r14, cl_copy
 
   LDI r11, 1
-  SUB r14, r11
-  ; check if r14 went below 0
+  SUB r15, r11
+  ; check if r15 went below 0
   LDI r11, 0x80000000
-  CMP r14, r11
-  BGE r5, cl_clear_top
+  CMP r15, r11
+  BGE r14, cl_clear_top
   JMP cl_shift
 
 cl_clear_top:
   ; clear row 0
-  LDI r0, 0
-cl_clr:
-  LDI r6, 0x4000
-  ADD r6, r0
   LDI r4, 0
-  STORE r6, r4
-  LDI r1, 1
-  ADD r0, r1
+cl_clr:
+  LDI r12, 0x4000
+  ADD r12, r4
+  LDI r9, 0
+  STORE r12, r9
+  LDI r7, 1
+  ADD r4, r7
   LDI r11, 10
-  CMP r0, r11
-  BLT r5, cl_clr
+  CMP r4, r11
+  BLT r14, cl_clr
 
   ; increment lines cleared this turn
-  LDI r1, 1
-  ADD r25, r1
+  LDI r7, 1
+  ADD r25, r7
 
   ; continue scanning from same row (shifted rows might also be full)
   JMP cl_row
@@ -1116,61 +1116,61 @@ cl_done:
   JZ r25, cl_ret
   
   ; Update score based on r25
-  LDI r6, 0x40D4
-  LOAD r4, r6           ; r4 = current score
+  LDI r12, 0x40D4
+  LOAD r9, r12           ; r9 = current score
   
   LDI r11, 1
   CMP r25, r11
-  JZ r5, score_1
+  JZ r14, score_1
   
   LDI r11, 2
   CMP r25, r11
-  JZ r5, score_2
+  JZ r14, score_2
   
   LDI r11, 3
   CMP r25, r11
-  JZ r5, score_3
+  JZ r14, score_3
   
   ; 4 lines (Tetris)
-  LDI r1, 800
-  ADD r4, r1
+  LDI r7, 800
+  ADD r9, r7
   JMP score_stored
 
 score_1:
-  LDI r1, 100
-  ADD r4, r1
+  LDI r7, 100
+  ADD r9, r7
   JMP score_stored
 score_2:
-  LDI r1, 300
-  ADD r4, r1
+  LDI r7, 300
+  ADD r9, r7
   JMP score_stored
 score_3:
-  LDI r1, 500
-  ADD r4, r1
+  LDI r7, 500
+  ADD r9, r7
 
 score_stored:
-  LDI r6, 0x40D4
-  STORE r6, r4
+  LDI r12, 0x40D4
+  STORE r12, r9
   
   ; Clear sound
-  LDI r1, 880
+  LDI r7, 880
   LDI r11, 100
-  BEEP r1, r11
+  BEEP r7, r11
 
   ; Update total lines_cleared
-  LDI r6, 0x40D5
-  LOAD r4, r6
-  ADD r4, r25
-  LDI r6, 0x40D5
-  STORE r6, r4
+  LDI r12, 0x40D5
+  LOAD r9, r12
+  ADD r9, r25
+  LDI r12, 0x40D5
+  STORE r12, r9
   
   ; Update level = total_lines / 10
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 10
-  DIV r8, r15
-  LDI r6, 0x40DA
-  STORE r6, r8
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 10
+  DIV r2, r6
+  LDI r12, 0x40DA
+  STORE r12, r2
 
 cl_ret:
   POP r31
@@ -1182,54 +1182,54 @@ cl_ret:
 spawn_piece:
   PUSH r31
   ; copy next_piece to current_piece
-  LDI r6, 0x40D7
-  LOAD r4, r6
-  LDI r6, 0x40D0
-  STORE r6, r4           ; current_piece = next_piece
+  LDI r12, 0x40D7
+  LOAD r9, r12
+  LDI r12, 0x40D0
+  STORE r12, r9           ; current_piece = next_piece
 
   ; pick new next_piece
-  RAND r4
-  LDI r8, 7
-  MOD r4, r8
-  LDI r6, 0x40D7
-  STORE r6, r4
+  RAND r9
+  LDI r2, 7
+  MOD r9, r2
+  LDI r12, 0x40D7
+  STORE r12, r9
 
   ; reset piece state
-  LDI r4, 3             ; start at column 3 (centered)
-  LDI r6, 0x40D1
-  STORE r6, r4           ; piece_x = 3
-  LDI r4, 0
-  LDI r6, 0x40D2
-  STORE r6, r4           ; piece_y = 0 (top)
-  LDI r4, 0
-  LDI r6, 0x40D3
-  STORE r6, r4           ; piece_rot = 0
-  LDI r4, 0
-  LDI r6, 0x40D9
-  STORE r6, r4           ; drop_counter = 0
+  LDI r9, 3             ; start at column 3 (centered)
+  LDI r12, 0x40D1
+  STORE r12, r9           ; piece_x = 3
+  LDI r9, 0
+  LDI r12, 0x40D2
+  STORE r12, r9           ; piece_y = 0 (top)
+  LDI r9, 0
+  LDI r12, 0x40D3
+  STORE r12, r9           ; piece_rot = 0
+  LDI r9, 0
+  LDI r12, 0x40D9
+  STORE r12, r9           ; drop_counter = 0
 
   ; check if new piece collides immediately = game over
   CALL check_collision
-  JNZ r4, sp_ok
+  JNZ r9, sp_ok
   ; collision at spawn = game over
-  LDI r4, 1
-  LDI r6, 0x40D6
-  STORE r6, r4
+  LDI r9, 1
+  LDI r12, 0x40D6
+  STORE r12, r9
   ; game over sound
-  LDI r1, 110
+  LDI r7, 110
   LDI r11, 300
-  BEEP r1, r11
+  BEEP r7, r11
 sp_ok:
   POP r31
   RET
 
 ; -- game over screen ---------------------------------------------
 game_over_screen:
-  LDI r4, 0x220000
-  FILL r4
+  LDI r9, 0x220000
+  FILL r9
   FRAME
-  IKEY r10
-  JZ r10, game_over_screen
+  IKEY r1
+  JZ r1, game_over_screen
   JMP restart
 
 ; -- draw ---------------------------------------------------------
@@ -1243,79 +1243,79 @@ draw_and_loop:
 ; -----------------------------------------------------------------
 draw_frame:
   ; dark background
-  LDI r4, 0x000811
-  FILL r4
+  LDI r9, 0x000811
+  FILL r9
 
   ; draw board cells
-  LDI r13, 0            ; row
+  LDI r5, 0            ; row
 df_brow:
   LDI r16, 0            ; col
 df_bcol:
   ; board[row * 10 + col]
-  LDI r1, 0
-  ADD r1, r13
+  LDI r7, 0
+  ADD r7, r5
   LDI r11, 10
-  MUL r1, r11
-  ADD r1, r16
-  LDI r6, 0x4000
-  ADD r6, r1
-  LOAD r20, r6          ; cell color (0=empty)
+  MUL r7, r11
+  ADD r7, r16
+  LDI r12, 0x4000
+  ADD r12, r7
+  LOAD r20, r12          ; cell color (0=empty)
 
   JZ r20, df_bskip
 
   ; pixel x = 10 + col * 12
-  LDI r1, 0
-  ADD r1, r16
+  LDI r7, 0
+  ADD r7, r16
   LDI r11, 12
-  MUL r1, r11
+  MUL r7, r11
   LDI r11, 10
-  ADD r1, r11            ; px_x
+  ADD r7, r11            ; px_x
 
   ; pixel y = 8 + row * 12
   LDI r11, 0
-  ADD r11, r13
-  LDI r10, 12
-  MUL r11, r10
-  LDI r10, 8
-  ADD r11, r10            ; px_y
+  ADD r11, r5
+  LDI r1, 12
+  MUL r11, r1
+  LDI r1, 8
+  ADD r11, r1            ; px_y
 
   LDI r21, 11           ; width (12-1 for 1px gap)
   LDI r22, 11           ; height
-  RECTF r1, r11, r21, r22, r20
+  RECTF r7, r11, r21, r22, r20
 
 df_bskip:
-  LDI r1, 1
-  ADD r16, r1
+  LDI r7, 1
+  ADD r16, r7
   LDI r11, 10
   CMP r16, r11
-  BLT r5, df_bcol
+  BLT r14, df_bcol
 
-  LDI r1, 1
-  ADD r13, r1
+  LDI r7, 1
+  ADD r5, r7
   LDI r11, 20
-  CMP r13, r11
-  BLT r5, df_brow
+  CMP r5, r11
+  BLT r14, df_brow
 
   ; draw current piece
   CALL draw_piece
 
   ; draw board border
   ; left edge: x=9, y=8, w=1, h=240
-  LDI r1, 9
+  LDI r7, 9
   LDI r11, 8
-  LDI r10, 1
-  LDI r3, 240
-  LDI r2, 0x555555
-  RECTF r1, r11, r10, r3, r2
+  LDI r1, 1
+  LDI r13, 240
+  LDI r0, 0x555555
+  RECTF r7, r11, r1, r13, r0
   ; right edge: x=130, y=8, w=1, h=240
-  LDI r1, 130
-  RECTF r1, r11, r10, r3, r2
+  LDI r7, 130
+  RECTF r7, r11, r1, r13, r0
   ; bottom edge: x=9, y=248, w=122, h=1
-  LDI r1, 9
+  LDI r7, 9
   LDI r11, 248
-  LDI r10, 122
-  LDI r3, 1
-  RECTF r1, r11, r10, r3, r2
+  LDI r1, 122
+  LDI r13, 1
+  RECTF r7, r11, r1, r13, r0
 
   ; draw score
   CALL draw_score
@@ -1335,102 +1335,102 @@ df_bskip:
 ; SUBROUTINE: draw_piece -- draw current falling piece
 ; -----------------------------------------------------------------
 draw_piece:
-  LDI r6, 0x40D6
-  LOAD r4, r6
-  JNZ r4, dp_ret         ; game over, don't draw piece
+  LDI r12, 0x40D6
+  LOAD r9, r12
+  JNZ r9, dp_ret         ; game over, don't draw piece
 
-  LDI r6, 0x40D0
-  LOAD r0, r6
-  LDI r6, 0x40D1
-  LOAD r9, r6
-  LDI r6, 0x40D2
-  LOAD r12, r6
-  LDI r6, 0x40D3
-  LOAD r7, r6
+  LDI r12, 0x40D0
+  LOAD r4, r12
+  LDI r12, 0x40D1
+  LOAD r10, r12
+  LDI r12, 0x40D2
+  LOAD r8, r12
+  LDI r12, 0x40D3
+  LOAD r3, r12
 
   ; get color
-  LDI r6, 0x42C0
-  ADD r6, r0
-  LOAD r20, r6
+  LDI r12, 0x42C0
+  ADD r12, r4
+  LOAD r20, r12
 
   ; compute data address
-  LDI r4, 0
-  ADD r4, r0
-  LDI r1, 64
-  MUL r4, r1
-  LDI r1, 0x4100
-  ADD r4, r1
-  LDI r1, 0
-  ADD r1, r7
+  LDI r9, 0
+  ADD r9, r4
+  LDI r7, 64
+  MUL r9, r7
+  LDI r7, 0x4100
+  ADD r9, r7
+  LDI r7, 0
+  ADD r7, r3
   LDI r11, 16
-  MUL r1, r11
-  ADD r4, r1
+  MUL r7, r11
+  ADD r9, r7
 
-  LDI r13, 0
+  LDI r5, 0
 dp_row:
-  LDI r6, 0
-  ADD r6, r4
-  ADD r6, r13
-  LOAD r14, r6
+  LDI r12, 0
+  ADD r12, r9
+  ADD r12, r5
+  LOAD r15, r12
 
   LDI r16, 0
 dp_col:
   ; extract bit
-  LDI r6, 3
-  LDI r1, 0
-  ADD r1, r16
-  SUB r6, r1
-  LDI r1, 0
-  ADD r1, r14
-  LDI r11, 0
-  ADD r11, r6
-  SHR r1, r11
-  LDI r11, 1
-  AND r1, r11
-
-  JZ r1, dp_next
-
-  ; only draw if on screen (row >= 0)
-  LDI r6, 0
-  ADD r6, r12
-  ADD r6, r13           ; board row
-  LDI r11, 20
-  CMP r6, r11
-  BGE r5, dp_next
-
-  ; pixel coords
-  LDI r1, 0
-  ADD r1, r9
-  ADD r1, r16
-  LDI r11, 12
-  MUL r1, r11
-  LDI r11, 10
-  ADD r1, r11            ; px_x
-
+  LDI r12, 3
+  LDI r7, 0
+  ADD r7, r16
+  SUB r12, r7
+  LDI r7, 0
+  ADD r7, r15
   LDI r11, 0
   ADD r11, r12
-  ADD r11, r13
-  LDI r10, 12
-  MUL r11, r10
-  LDI r10, 8
-  ADD r11, r10            ; px_y
+  SHR r7, r11
+  LDI r11, 1
+  AND r7, r11
+
+  JZ r7, dp_next
+
+  ; only draw if on screen (row >= 0)
+  LDI r12, 0
+  ADD r12, r8
+  ADD r12, r5           ; board row
+  LDI r11, 20
+  CMP r12, r11
+  BGE r14, dp_next
+
+  ; pixel coords
+  LDI r7, 0
+  ADD r7, r10
+  ADD r7, r16
+  LDI r11, 12
+  MUL r7, r11
+  LDI r11, 10
+  ADD r7, r11            ; px_x
+
+  LDI r11, 0
+  ADD r11, r8
+  ADD r11, r5
+  LDI r1, 12
+  MUL r11, r1
+  LDI r1, 8
+  ADD r11, r1            ; px_y
 
   LDI r21, 11
   LDI r22, 11
-  RECTF r1, r11, r21, r22, r20
+  RECTF r7, r11, r21, r22, r20
 
 dp_next:
-  LDI r1, 1
-  ADD r16, r1
+  LDI r7, 1
+  ADD r16, r7
   LDI r11, 4
   CMP r16, r11
-  BLT r5, dp_col
+  BLT r14, dp_col
 
-  LDI r1, 1
-  ADD r13, r1
+  LDI r7, 1
+  ADD r5, r7
   LDI r11, 4
-  CMP r13, r11
-  BLT r5, dp_row
+  CMP r5, r11
+  BLT r14, dp_row
 
 dp_ret:
   RET
@@ -1440,116 +1440,116 @@ dp_ret:
 ; -----------------------------------------------------------------
 draw_score:
   ; score text "SCORE:" at 0x4200..0x4205
-  LDI r6, 0x4300
-  LDI r4, 83
-  STORE r6, r4
-  LDI r6, 0x4301
-  LDI r4, 67
-  STORE r6, r4
-  LDI r6, 0x4302
-  LDI r4, 79
-  STORE r6, r4
-  LDI r6, 0x4303
-  LDI r4, 82
-  STORE r6, r4
-  LDI r6, 0x4304
-  LDI r4, 69
-  STORE r6, r4
-  LDI r6, 0x4305
-  LDI r4, 58
-  STORE r6, r4
+  LDI r12, 0x4300
+  LDI r9, 83
+  STORE r12, r9
+  LDI r12, 0x4301
+  LDI r9, 67
+  STORE r12, r9
+  LDI r12, 0x4302
+  LDI r9, 79
+  STORE r12, r9
+  LDI r12, 0x4303
+  LDI r9, 82
+  STORE r12, r9
+  LDI r12, 0x4304
+  LDI r9, 69
+  STORE r12, r9
+  LDI r12, 0x4305
+  LDI r9, 58
+  STORE r12, r9
 
   ; convert score to 5 digits
-  LDI r6, 0x40D4
-  LOAD r4, r6           ; score
+  LDI r12, 0x40D4
+  LOAD r9, r12           ; score
 
   ; ten-thousands
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 10000
-  DIV r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4306
-  STORE r6, r8
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 10000
+  DIV r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4306
+  STORE r12, r2
 
   ; thousands
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 10000
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 10000
   LDI r11, 0
-  ADD r11, r6
+  ADD r11, r12
   LOAD r11, r11
-  LDI r1, 48
-  SUB r11, r1
-  MUL r11, r15
-  SUB r8, r11
-  LDI r15, 1000
-  DIV r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4307
-  STORE r6, r8
+  LDI r7, 48
+  SUB r11, r7
+  MUL r11, r6
+  SUB r2, r11
+  LDI r6, 1000
+  DIV r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4307
+  STORE r12, r2
 
   ; hundreds
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 10000
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 10000
   LDI r11, 0
-  ADD r11, r6
+  ADD r11, r12
   LOAD r11, r11
-  LDI r1, 48
-  SUB r11, r1
-  MUL r11, r15
-  LDI r6, 0x4307
-  LOAD r10, r6
-  LDI r1, 48
-  SUB r10, r1
-  LDI r15, 1000
-  MUL r10, r15
-  ADD r11, r10
-  SUB r8, r11
-  LDI r15, 100
-  DIV r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4308
-  STORE r6, r8
+  LDI r7, 48
+  SUB r11, r7
+  MUL r11, r6
+  LDI r12, 0x4307
+  LOAD r1, r12
+  LDI r7, 48
+  SUB r1, r7
+  LDI r6, 1000
+  MUL r1, r6
+  ADD r11, r1
+  SUB r2, r11
+  LDI r6, 100
+  DIV r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4308
+  STORE r12, r2
 
   ; tens
-  LDI r8, 0
-  ADD r8, r4
+  LDI r2, 0
+  ADD r2, r9
   ; subtract (10000*tth + 1000*th + 100*h)
   ; simpler: score mod 100 / 10
-  LDI r15, 100
-  MOD r8, r15
-  LDI r15, 10
-  DIV r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4309
-  STORE r6, r8
+  LDI r6, 100
+  MOD r2, r6
+  LDI r6, 10
+  DIV r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4309
+  STORE r12, r2
 
   ; ones
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 10
-  MOD r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x430A
-  STORE r6, r8
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 10
+  MOD r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x430A
+  STORE r12, r2
 
   ; null terminator
-  LDI r4, 0
-  LDI r6, 0x430B
-  STORE r6, r4
+  LDI r9, 0
+  LDI r12, 0x430B
+  STORE r12, r9
 
   ; render
-  LDI r1, 138
+  LDI r7, 138
   LDI r11, 10
-  LDI r10, 0x4300
-  TEXT r1, r11, r10
+  LDI r1, 0x4300
+  TEXT r7, r11, r1
 
   RET
 
@@ -1558,70 +1558,70 @@ draw_score:
 ; -----------------------------------------------------------------
 draw_lines:
   ; "LINES:" at 0x4210..0x4215
-  LDI r6, 0x4310
-  LDI r4, 76
-  STORE r6, r4
-  LDI r6, 0x4311
-  LDI r4, 73
-  STORE r6, r4
-  LDI r6, 0x4312
-  LDI r4, 78
-  STORE r6, r4
-  LDI r6, 0x4313
-  LDI r4, 69
-  STORE r6, r4
-  LDI r6, 0x4314
-  LDI r4, 83
-  STORE r6, r4
-  LDI r6, 0x4315
-  LDI r4, 58
-  STORE r6, r4
+  LDI r12, 0x4310
+  LDI r9, 76
+  STORE r12, r9
+  LDI r12, 0x4311
+  LDI r9, 73
+  STORE r12, r9
+  LDI r12, 0x4312
+  LDI r9, 78
+  STORE r12, r9
+  LDI r12, 0x4313
+  LDI r9, 69
+  STORE r12, r9
+  LDI r12, 0x4314
+  LDI r9, 83
+  STORE r12, r9
+  LDI r12, 0x4315
+  LDI r9, 58
+  STORE r12, r9
 
   ; lines count (max 999)
-  LDI r6, 0x40D5
-  LOAD r4, r6
+  LDI r12, 0x40D5
+  LOAD r9, r12
 
   ; hundreds
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 100
-  DIV r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4316
-  STORE r6, r8
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 100
+  DIV r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4316
+  STORE r12, r2
 
   ; tens
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 100
-  MOD r8, r15
-  LDI r15, 10
-  DIV r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4317
-  STORE r6, r8
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 100
+  MOD r2, r6
+  LDI r6, 10
+  DIV r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4317
+  STORE r12, r2
 
   ; ones
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 10
-  MOD r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4318
-  STORE r6, r8
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 10
+  MOD r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4318
+  STORE r12, r2
 
   ; null terminator
-  LDI r4, 0
-  LDI r6, 0x4319
-  STORE r6, r4
+  LDI r9, 0
+  LDI r12, 0x4319
+  STORE r12, r9
 
-  LDI r1, 138
+  LDI r7, 138
   LDI r11, 26
-  LDI r10, 0x4310
-  TEXT r1, r11, r10
+  LDI r1, 0x4310
+  TEXT r7, r11, r1
 
   RET
 
@@ -1630,98 +1630,98 @@ draw_lines:
 ; -----------------------------------------------------------------
 draw_next:
   ; "NEXT:" label
-  LDI r6, 0x4320
-  LDI r4, 78
-  STORE r6, r4
-  LDI r6, 0x4321
-  LDI r4, 69
-  STORE r6, r4
-  LDI r6, 0x4322
-  LDI r4, 88
-  STORE r6, r4
-  LDI r6, 0x4323
-  LDI r4, 84
-  STORE r6, r4
-  LDI r6, 0x4324
-  LDI r4, 58
-  STORE r6, r4
+  LDI r12, 0x4320
+  LDI r9, 78
+  STORE r12, r9
+  LDI r12, 0x4321
+  LDI r9, 69
+  STORE r12, r9
+  LDI r12, 0x4322
+  LDI r9, 88
+  STORE r12, r9
+  LDI r12, 0x4323
+  LDI r9, 84
+  STORE r12, r9
+  LDI r12, 0x4324
+  LDI r9, 58
+  STORE r12, r9
 
-  LDI r1, 138
+  LDI r7, 138
   LDI r11, 50
-  LDI r10, 0x4320
-  TEXT r1, r11, r10
+  LDI r1, 0x4320
+  TEXT r7, r11, r1
 
   ; draw the next piece in preview area
-  LDI r6, 0x40D7
-  LOAD r0, r6          ; next piece index
+  LDI r12, 0x40D7
+  LOAD r4, r12          ; next piece index
 
   ; get color
-  LDI r6, 0x42C0
-  ADD r6, r0
-  LOAD r20, r6
+  LDI r12, 0x42C0
+  ADD r12, r4
+  LOAD r20, r12
 
   ; draw rotation 0
-  LDI r4, 0
-  ADD r4, r0
-  LDI r1, 64
-  MUL r4, r1
-  LDI r1, 0x4100
-  ADD r4, r1            ; r4 = base address
+  LDI r9, 0
+  ADD r9, r4
+  LDI r7, 64
+  MUL r9, r7
+  LDI r7, 0x4100
+  ADD r9, r7            ; r9 = base address
 
-  LDI r13, 0
+  LDI r5, 0
 dn_row:
-  LDI r6, 0
-  ADD r6, r4
-  ADD r6, r13
-  LOAD r14, r6
+  LDI r12, 0
+  ADD r12, r9
+  ADD r12, r5
+  LOAD r15, r12
 
   LDI r16, 0
 dn_col:
-  LDI r6, 3
-  LDI r1, 0
-  ADD r1, r16
-  SUB r6, r1
-  LDI r1, 0
-  ADD r1, r14
+  LDI r12, 3
+  LDI r7, 0
+  ADD r7, r16
+  SUB r12, r7
+  LDI r7, 0
+  ADD r7, r15
   LDI r11, 0
-  ADD r11, r6
-  SHR r1, r11
+  ADD r11, r12
+  SHR r7, r11
   LDI r11, 1
-  AND r1, r11
+  AND r7, r11
 
-  JZ r1, dn_next
+  JZ r7, dn_next
 
   ; preview at x=148, y=66, 8px per cell
-  LDI r1, 0
-  ADD r1, r16
+  LDI r7, 0
+  ADD r7, r16
   LDI r11, 8
-  MUL r1, r11
+  MUL r7, r11
   LDI r11, 148
-  ADD r1, r11
+  ADD r7, r11
 
   LDI r11, 0
-  ADD r11, r13
-  LDI r10, 8
-  MUL r11, r10
-  LDI r10, 66
-  ADD r11, r10
+  ADD r11, r5
+  LDI r1, 8
+  MUL r11, r1
+  LDI r1, 66
+  ADD r11, r1
 
   LDI r21, 7
   LDI r22, 7
-  RECTF r1, r11, r21, r22, r20
+  RECTF r7, r11, r21, r22, r20
 
 dn_next:
-  LDI r1, 1
-  ADD r16, r1
+  LDI r7, 1
+  ADD r16, r7
   LDI r11, 4
   CMP r16, r11
-  BLT r5, dn_col
+  BLT r14, dn_col
 
-  LDI r1, 1
-  ADD r13, r1
+  LDI r7, 1
+  ADD r5, r7
   LDI r11, 4
-  CMP r13, r11
-  BLT r5, dn_row
+  CMP r5, r11
+  BLT r14, dn_row
 
   RET
 
@@ -1730,56 +1730,56 @@ dn_next:
 ; -----------------------------------------------------------------
 draw_level:
   ; "LEVEL:" at 0x4330..0x4335
-  LDI r6, 0x4330
-  LDI r4, 76
-  STORE r6, r4 ; L
-  LDI r6, 0x4331
-  LDI r4, 69
-  STORE r6, r4 ; E
-  LDI r6, 0x4332
-  LDI r4, 86
-  STORE r6, r4 ; V
-  LDI r6, 0x4333
-  LDI r4, 69
-  STORE r6, r4 ; E
-  LDI r6, 0x4334
-  LDI r4, 76
-  STORE r6, r4 ; L
-  LDI r6, 0x4335
-  LDI r4, 58
-  STORE r6, r4 ; :
+  LDI r12, 0x4330
+  LDI r9, 76
+  STORE r12, r9 ; L
+  LDI r12, 0x4331
+  LDI r9, 69
+  STORE r12, r9 ; E
+  LDI r12, 0x4332
+  LDI r9, 86
+  STORE r12, r9 ; V
+  LDI r12, 0x4333
+  LDI r9, 69
+  STORE r12, r9 ; E
+  LDI r12, 0x4334
+  LDI r9, 76
+  STORE r12, r9 ; L
+  LDI r12, 0x4335
+  LDI r9, 58
+  STORE r12, r9 ; :
   
-  LDI r6, 0x40DA
-  LOAD r4, r6 ; level
+  LDI r12, 0x40DA
+  LOAD r9, r12 ; level
   
   ; tens
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 10
-  DIV r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4336
-  STORE r6, r8
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 10
+  DIV r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4336
+  STORE r12, r2
   
   ; ones
-  LDI r8, 0
-  ADD r8, r4
-  LDI r15, 10
-  MOD r8, r15
-  LDI r1, 48
-  ADD r8, r1
-  LDI r6, 0x4337
-  STORE r6, r8
+  LDI r2, 0
+  ADD r2, r9
+  LDI r6, 10
+  MOD r2, r6
+  LDI r7, 48
+  ADD r2, r7
+  LDI r12, 0x4337
+  STORE r12, r2
   
   ; null
-  LDI r4, 0
-  LDI r6, 0x4338
-  STORE r6, r4
+  LDI r9, 0
+  LDI r12, 0x4338
+  STORE r12, r9
   
   ; render
-  LDI r1, 138
+  LDI r7, 138
   LDI r11, 50
-  LDI r10, 0x4330
-  TEXT r1, r11, r10
+  LDI r1, 0x4330
+  TEXT r7, r11, r1
   RET

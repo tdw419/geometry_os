@@ -1,4 +1,4 @@
-; DESCRIPTION: This assembly code initializes an interactive disassembler for Geometry OS that reads bytecode from RAM, uses an opcode-to-mnemonic lookup table to decode instructions, and displays them with register operands. It supports scrolling through the decoded instructions using arrow keys and shows 16 instructions at a time on the screen.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; disasm.asm -- Interactive Disassembler for Geometry OS
 ;
@@ -33,7 +33,7 @@
 #define MNEM_BUF  0x6602
 
 LDI r30, 0xFD00
-LDI r0, 1
+LDI r6, 1
 
 ; =========================================
 ; Init opcode mnemonic table
@@ -44,21 +44,21 @@ LDI r0, 1
 ; opcode 0x00 = "HALT"
 LDI r20, OP_TABLE
 LDI r21, 0             ; offset 0
-MUL r21, r0
+MUL r21, r6
 ADD r20, r21           ; skip to entry 0
 STRO r20, "HALT"
 
 ; opcode 0x01 = "NOP "
 LDI r20, OP_TABLE
 LDI r21, 4
-MUL r21, r0
+MUL r21, r6
 ADD r20, r21
 STRO r20, "NOP "
 
 ; opcode 0x02 = "FRAM"
 LDI r20, OP_TABLE
 LDI r21, 8
-MUL r21, r0
+MUL r21, r6
 ADD r20, r21
 STRO r20, "FRAM"
 
@@ -186,45 +186,45 @@ STRO r20, "IKEY"
 ; Init view state
 ; =========================================
 LDI r20, VIEW_ADDR
-LDI r7, 0              ; Start at address 0
-STORE r20, r7
+LDI r12, 0              ; Start at address 0
+STORE r20, r12
 LDI r20, ROW_SCROLL
-LDI r7, 0
-STORE r20, r7
+LDI r12, 0
+STORE r20, r12
 
 ; =========================================
 ; Pre-load some demo bytecode at 0x0000 area
-; (A small program: LDI r0, 1; LDI r7, 0x2000; STORE r7, r0; HALT)
+; (A small program: LDI r6, 1; LDI r12, 0x2000; STORE r12, r6; HALT)
 ; We write directly into RAM at the start
 ; =========================================
 LDI r20, 0
 LDI r21, 0x10          ; LDI
 STORE r20, r21
-ADD r20, r0
-LDI r21, 1             ; r0
+ADD r20, r6
+LDI r21, 1             ; r6
 STORE r20, r21
-ADD r20, r0
+ADD r20, r6
 LDI r21, 1             ; imm=1
 STORE r20, r21
-ADD r20, r0
+ADD r20, r6
 LDI r21, 0x10          ; LDI
 STORE r20, r21
-ADD r20, r0
-LDI r21, 2             ; r7
+ADD r20, r6
+LDI r21, 2             ; r12
 STORE r20, r21
-ADD r20, r0
+ADD r20, r6
 LDI r21, 0x2000        ; imm=0x2000
 STORE r20, r21
-ADD r20, r0
+ADD r20, r6
 LDI r21, 0x12          ; STORE
 STORE r20, r21
-ADD r20, r0
-LDI r21, 2             ; addr_reg=r7
+ADD r20, r6
+LDI r21, 2             ; addr_reg=r12
 STORE r20, r21
-ADD r20, r0
-LDI r21, 1             ; val_reg=r0
+ADD r20, r6
+LDI r21, 1             ; val_reg=r6
 STORE r20, r21
-ADD r20, r0
+ADD r20, r6
 LDI r21, 0x00          ; HALT
 STORE r20, r21
 
@@ -232,38 +232,38 @@ STORE r20, r21
 ; MAIN LOOP
 ; =========================================
 main_loop:
-  IKEY r13
+  IKEY r8
 
   ; Up (38) = scroll up
-  LDI r15, 38
-  CMP r13, r15
-  JZ r10, do_up
+  LDI r7, 38
+  CMP r8, r7
+  JZ r9, do_up
 
   ; Down (40) = scroll down
-  LDI r15, 40
-  CMP r13, r15
-  JZ r10, do_down
+  LDI r7, 40
+  CMP r8, r7
+  JZ r9, do_down
 
   JMP do_draw
 
 do_up:
   LDI r20, ROW_SCROLL
-  LOAD r7, r20
-  LDI r15, 0
-  CMP r7, r15
-  JZ r10, do_draw
-  SUB r7, r0
-  STORE r20, r7
+  LOAD r12, r20
+  LDI r7, 0
+  CMP r12, r7
+  JZ r9, do_draw
+  SUB r12, r6
+  STORE r20, r12
   JMP do_draw
 
 do_down:
   LDI r20, ROW_SCROLL
-  LOAD r7, r20
-  ADD r7, r0
-  LDI r15, 50
-  CMP r7, r15
-  BGE r10, do_draw
-  STORE r20, r7
+  LOAD r12, r20
+  ADD r12, r6
+  LDI r7, 50
+  CMP r12, r7
+  BGE r9, do_draw
+  STORE r20, r12
   JMP do_draw
 
 ; =========================================
@@ -271,194 +271,194 @@ do_down:
 ; =========================================
 do_draw:
   ; Background
-  LDI r9, 0x080810
-  FILL r9
+  LDI r0, 0x080810
+  FILL r0
 
   ; Title bar
-  LDI r9, 0
+  LDI r0, 0
   LDI r4, 0
-  LDI r8, 256
-  LDI r5, 16
-  LDI r12, 0x2A2A00
-  RECTF r9, r4, r8, r5, r12
+  LDI r5, 256
+  LDI r3, 16
+  LDI r13, 0x2A2A00
+  RECTF r0, r4, r5, r3, r13
 
   LDI r20, BUF
   STRO r20, "Disassembler"
-  LDI r9, 50
+  LDI r0, 50
   LDI r4, 3
-  LDI r8, BUF
-  LDI r5, 0xFFFFFF
-  LDI r12, 0x2A2A00
-  DRAWTEXT r9, r4, r8, r5, r12
+  LDI r5, BUF
+  LDI r3, 0xFFFFFF
+  LDI r13, 0x2A2A00
+  DRAWTEXT r0, r4, r5, r3, r13
 
   ; Compute start address
   LDI r20, VIEW_ADDR
-  LOAD r6, r20
+  LOAD r10, r20
   LDI r20, ROW_SCROLL
-  LOAD r14, r20
-  LDI r15, 16
-  MUL r14, r15
-  ADD r6, r14
+  LOAD r11, r20
+  LDI r7, 16
+  MUL r11, r7
+  ADD r10, r11
 
   ; Draw 14 disassembly rows
-  LDI r2, 0
-  LDI r3, 22
+  LDI r14, 0
+  LDI r1, 22
 
 disasm_row:
-  ; Read opcode at r6
-  LOAD r7, r6
+  ; Read opcode at r10
+  LOAD r12, r10
 
   ; Build line: "ADDR: MNEM  operands"
   ; First, address prefix (4 hex digits)
   LDI r21, BUF
 
   ; Extract 4 hex digits from address (low 16 bits)
-  MOV r14, r6
+  MOV r11, r10
   LDI r16, 12
-  SHR r14, r16
+  SHR r11, r16
   LDI r16, 0xF
-  AND r14, r16
+  AND r11, r16
   LDI r16, 48
-  ADD r14, r16
+  ADD r11, r16
   LDI r16, 10
-  CMP r14, r16
-  BLT r10, hi_ok1
-  ADDI r14, 7
+  CMP r11, r16
+  BLT r9, hi_ok1
+  ADDI r11, 7
 hi_ok1:
-  STORE r21, r14
-  ADD r21, r0
+  STORE r21, r11
+  ADD r21, r6
 
-  MOV r14, r6
+  MOV r11, r10
   LDI r16, 8
-  SHR r14, r16
+  SHR r11, r16
   LDI r16, 0xF
-  AND r14, r16
+  AND r11, r16
   LDI r16, 48
-  ADD r14, r16
+  ADD r11, r16
   LDI r16, 10
-  CMP r14, r16
-  BLT r10, hi_ok2
-  ADDI r14, 7
+  CMP r11, r16
+  BLT r9, hi_ok2
+  ADDI r11, 7
 hi_ok2:
-  STORE r21, r14
-  ADD r21, r0
+  STORE r21, r11
+  ADD r21, r6
 
-  MOV r14, r6
+  MOV r11, r10
   LDI r16, 4
-  SHR r14, r16
+  SHR r11, r16
   LDI r16, 0xF
-  AND r14, r16
+  AND r11, r16
   LDI r16, 48
-  ADD r14, r16
+  ADD r11, r16
   LDI r16, 10
-  CMP r14, r16
-  BLT r10, hi_ok3
-  ADDI r14, 7
+  CMP r11, r16
+  BLT r9, hi_ok3
+  ADDI r11, 7
 hi_ok3:
-  STORE r21, r14
-  ADD r21, r0
+  STORE r21, r11
+  ADD r21, r6
 
-  MOV r14, r6
+  MOV r11, r10
   LDI r16, 0xF
-  AND r14, r16
+  AND r11, r16
   LDI r16, 48
-  ADD r14, r16
+  ADD r11, r16
   LDI r16, 10
-  CMP r14, r16
-  BLT r10, hi_ok4
-  ADDI r14, 7
+  CMP r11, r16
+  BLT r9, hi_ok4
+  ADDI r11, 7
 hi_ok4:
-  STORE r21, r14
-  ADD r21, r0
+  STORE r21, r11
+  ADD r21, r6
 
   ; ": "
   LDI r16, 58
   STORE r21, r16
-  ADD r21, r0
+  ADD r21, r6
   LDI r16, 32
   STORE r21, r16
-  ADD r21, r0
+  ADD r21, r6
 
   ; Lookup opcode mnemonic from table
   ; OP_TABLE[opcode * 4] = 4 ASCII chars
-  MOV r14, r7           ; r14 = opcode
+  MOV r11, r12           ; r11 = opcode
   LDI r16, 4
-  MUL r14, r16          ; offset in table
+  MUL r11, r16          ; offset in table
   LDI r16, OP_TABLE
-  ADD r16, r14          ; r16 = table entry address
+  ADD r16, r11          ; r16 = table entry address
 
   ; Read 4 chars and copy to output
   LDI r25, 0
 copy_mnem:
   LOAD r24, r16
-  CMP r24, r0
-  BLT r10, mnem_space
+  CMP r24, r6
+  BLT r9, mnem_space
   STORE r21, r24
   JMP mnem_next
 mnem_space:
   LDI r24, 32
   STORE r21, r24
 mnem_next:
-  ADD r21, r0
-  ADD r16, r0
-  ADD r25, r0
+  ADD r21, r6
+  ADD r16, r6
+  ADD r25, r6
   LDI r24, 4
   CMP r25, r24
-  BLT r10, copy_mnem
+  BLT r9, copy_mnem
 
   ; Space before operands
   LDI r24, 32
   STORE r21, r24
-  ADD r21, r0
+  ADD r21, r6
 
   ; Show first operand (reg number or address)
   ; For simplicity, just show the raw word as hex
-  ADD r6, r0
-  LOAD r7, r6
+  ADD r10, r6
+  LOAD r12, r10
   ; Show as "rN" if the opcode uses registers
-  MOV r14, r7
+  MOV r11, r12
   LDI r16, 31
-  CMP r14, r16
-  BGE r10, show_hex_arg
+  CMP r11, r16
+  BGE r9, show_hex_arg
   ; Register operand: show "rN"
   LDI r16, 114         ; 'r'
   STORE r21, r16
-  ADD r21, r0
+  ADD r21, r6
   LDI r16, 48
-  ADD r14, r16
-  STORE r21, r14
-  ADD r21, r0
+  ADD r11, r16
+  STORE r21, r11
+  ADD r21, r6
   JMP arg_done
 
 show_hex_arg:
   ; Show as hex byte
-  MOV r14, r7
+  MOV r11, r12
   LDI r16, 4
-  SHR r14, r16
+  SHR r11, r16
   LDI r16, 0xF
-  AND r14, r16
+  AND r11, r16
   LDI r16, 48
-  ADD r14, r16
+  ADD r11, r16
   LDI r16, 10
-  CMP r14, r16
-  BLT r10, hx_ok1
-  ADDI r14, 7
+  CMP r11, r16
+  BLT r9, hx_ok1
+  ADDI r11, 7
 hx_ok1:
-  STORE r21, r14
-  ADD r21, r0
+  STORE r21, r11
+  ADD r21, r6
 
-  MOV r14, r7
+  MOV r11, r12
   LDI r16, 0xF
-  AND r14, r16
+  AND r11, r16
   LDI r16, 48
-  ADD r14, r16
+  ADD r11, r16
   LDI r16, 10
-  CMP r14, r16
-  BLT r10, hx_ok2
-  ADDI r14, 7
+  CMP r11, r16
+  BLT r9, hx_ok2
+  ADDI r11, 7
 hx_ok2:
-  STORE r21, r14
-  ADD r21, r0
+  STORE r21, r11
+  ADD r21, r6
 
 arg_done:
   ; Null terminate
@@ -466,42 +466,42 @@ arg_done:
   STORE r21, r24
 
   ; Draw line
-  LDI r9, 4
-  MOV r4, r3
-  LDI r8, BUF
-  LDI r5, 0xCCCCCC
-  LDI r12, 0x080810
-  DRAWTEXT r9, r4, r8, r5, r12
+  LDI r0, 4
+  MOV r4, r1
+  LDI r5, BUF
+  LDI r3, 0xCCCCCC
+  LDI r13, 0x080810
+  DRAWTEXT r0, r4, r5, r3, r13
 
   ; Advance: each instruction is 1-6 words
   ; For simplicity, advance by 3 (most common instruction length)
-  LDI r15, 2
-  ADD r6, r15          ; skip past opcode + first operand
+  LDI r7, 2
+  ADD r10, r7          ; skip past opcode + first operand
 
   ; Next row
-  LDI r15, 14
-  ADD r3, r15
-  ADD r2, r0
-  LDI r15, 14
-  CMP r2, r15
-  BLT r10, disasm_row
+  LDI r7, 14
+  ADD r1, r7
+  ADD r14, r6
+  LDI r7, 14
+  CMP r14, r7
+  BLT r9, disasm_row
 
   ; Status bar
-  LDI r9, 0
+  LDI r0, 0
   LDI r4, 236
-  LDI r8, 256
-  LDI r5, 20
-  LDI r12, 0x1A1A2E
-  RECTF r9, r4, r8, r5, r12
+  LDI r5, 256
+  LDI r3, 20
+  LDI r13, 0x1A1A2E
+  RECTF r0, r4, r5, r3, r13
 
   LDI r20, BUF
   STRO r20, "Up/Dn:Scroll through bytecode"
-  LDI r9, 4
+  LDI r0, 4
   LDI r4, 238
-  LDI r8, BUF
-  LDI r5, 0x888888
-  LDI r12, 0x1A1A2E
-  DRAWTEXT r9, r4, r8, r5, r12
+  LDI r5, BUF
+  LDI r3, 0x888888
+  LDI r13, 0x1A1A2E
+  DRAWTEXT r0, r4, r5, r3, r13
 
   FRAME
   JMP main_loop

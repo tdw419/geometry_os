@@ -20,7 +20,8 @@ from train_opcode_llm import OpcodeGPT, generate_asm
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("prompt", type=str, help="Natural language prompt (e.g., '; Draw a red circle')")
-    parser.add_argument("--checkpoint", default="pixelflow/bilingual_llm_ckpt.pt")
+    parser.add_argument("--checkpoint", default="pixelflow/bilingual_llm_v8_ckpt.pt")
+
     parser.add_argument("--tokenizer", default="pixelflow/bilingual_tokenizer_v4")
     parser.add_argument("--max-tokens", type=int, default=256)
     parser.add_argument("--temp", type=float, default=0.7)

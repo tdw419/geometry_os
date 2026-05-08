@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code renders a visual counter demonstration on row y=200 of the screen. It displays two representations: a spatial bar using 100 green pixels from x=10 to x=109, which can be visually counted by the model due to its length; and a chromatic pixel at (50,200) where the blue channel's intensity represents the counter value, which is not distinguishable for values like 99 vs. 100 by visual inspection.
+; DESCRIPTION: Geometry OS program to draw a green object.
 
 ; ==========================================================
 ; BOUNDARY DEMO: Semantic Labeling vs. Chromatic Arithmetic
@@ -11,21 +11,21 @@
 ;     decompose blue=99 vs blue=100 by eye.
 ; ==========================================================
 
-LDI r5, 0x000000      ; clear color
-FILL r5               ; wipe screen
-LDI r5, 0             ; counter
+LDI r2, 0x000000      ; clear color
+FILL r2               ; wipe screen
+LDI r2, 0             ; counter
 LDI r10, 10            ; bar X-offset
 LDI r7, 50            ; chromatic pixel X
 LDI r14, 200           ; Y row (below terminal text band)
-LDI r6, 0x00FF00     ; bar color: green
+LDI r0, 0x00FF00     ; bar color: green
 
 loop:
-    ADD  r11, r10, r5   ; bar_x = 10 + counter
-    PSET r11, r14, r6  ; spatial bar pixel
-    PSET r7,  r14, r5   ; chromatic pixel (blue=counter)
-    ADDI r5, 1
-    CMPI r5, 100
-    JZ   r2, done
+    ADD  r13, r10, r2   ; bar_x = 10 + counter
+    PSET r13, r14, r0  ; spatial bar pixel
+    PSET r7,  r14, r2   ; chromatic pixel (blue=counter)
+    ADDI r2, 1
+    CMPI r2, 100
+    JZ   r11, done
     FRAME
     JMP  loop
 

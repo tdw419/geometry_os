@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code simulates a crash by initializing a debug mailbox, updating its heartbeat five times, and then halting execution to draw a red 'X' on the screen, effectively stopping further updates. This is used to test the watchdog/recovery system.
+; DESCRIPTION: Draws a red object at the screen with fixed size.
 
 ; flatliner.asm -- Test program that simulates a crash
 ;
@@ -27,11 +27,11 @@ FILL r15
 LDI r20, 0x1000
 STRO r20, "Flatliner"
 LDI r0, 10
-LDI r1, 10
-LDI r6, 0x1000
-LDI r11, 0xFF0000
+LDI r7, 10
+LDI r1, 0x1000
+LDI r4, 0xFF0000
 LDI r10, 0x2A0A0A
-DRAWTEXT r0, r1, r6, r11, r10
+DRAWTEXT r0, r7, r1, r4, r10
 
 ; Initialize debug mailbox
 LDI r15, 0xDB9900
@@ -74,10 +74,10 @@ crash_now:
     ; Draw a red X to show we're "dead"
     LDI r15, 0xFF0000
     LDI r0, 50
+    LDI r7, 50
     LDI r1, 50
-    LDI r6, 50
-    LDI r11, 50
-    RECTF r0, r1, r6, r11, r15
+    LDI r4, 50
+    RECTF r0, r7, r1, r4, r15
 
 dead_loop:
     ; Infinite loop with no FRAME -- the heartbeat stops updating

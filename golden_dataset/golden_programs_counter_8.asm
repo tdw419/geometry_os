@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an interactive counter application with increment and decrement buttons. It uses arithmetic operations to update the counter value and displays it on the screen, handling user input through hit detection for button clicks.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; counter.asm -- Interactive Counter App for Geometry OS
 ;
@@ -10,18 +10,18 @@
 ;   0x200-0x20F  scratch buffer for number text (null-terminated)
 ;
 ; Registers:
-;   r10  - scratch / CMP result (clobbered by CMPI)
-;   r13  - constant 1 (reloaded as needed)
-;   r1  - scratch
-;   r12  - scratch
-;   r7  - color
-;   r5  - divisor (10, 100)
-;   r9 - counter value / hit query result
-;   r11 - hundreds digit
-;   r3 - hundreds * 100
-;   r14 - remainder after hundreds
-;   r15 - tens digit
-;   r4 - ones digit
+;   r5  - scratch / CMP result (clobbered by CMPI)
+;   r2  - constant 1 (reloaded as needed)
+;   r4  - scratch
+;   r11  - scratch
+;   r13  - color
+;   r9  - divisor (10, 100)
+;   r3 - counter value / hit query result
+;   r7 - hundreds digit
+;   r1 - hundreds * 100
+;   r15 - remainder after hundreds
+;   r12 - tens digit
+;   r6 - ones digit
 ;   r20 - RAM pointer
 ;
 ; NOTE: The assembler's label detector uses line.find(':'), so we
@@ -31,186 +31,186 @@
 #define SCRATCH 0x200
 
 ; ── INIT ──────────────────────────────────────
-LDI r13, 1
+LDI r2, 1
 
 ; counter = 0
 LDI r20, COUNT
-LDI r1, 0
-STORE r20, r1
+LDI r4, 0
+STORE r20, r4
 
 ; Fill screen dark
-LDI r1, 0x1A1A2E
-FILL r1
+LDI r4, 0x1A1A2E
+FILL r4
 
 ; Register hit regions
-LDI r13, 60
-LDI r1, 150
-LDI r12, 40
-LDI r2, 40
-HITSET r13, r1, r12, r2, 1       ; [+] button, id=1
+LDI r2, 60
+LDI r4, 150
+LDI r11, 40
+LDI r8, 40
+HITSET r2, r4, r11, r8, 1       ; [+] button, id=1
 
-LDI r13, 156
-LDI r1, 150
-LDI r12, 40
-LDI r2, 40
-HITSET r13, r1, r12, r2, 2       ; [-] button, id=2
+LDI r2, 156
+LDI r4, 150
+LDI r11, 40
+LDI r8, 40
+HITSET r2, r4, r11, r8, 2       ; [-] button, id=2
 
 ; ── MAIN LOOP ─────────────────────────────────
 main_loop:
-    LDI r13, 1
+    LDI r2, 1
 
     ; ── DRAW ──
 
     ; Clear screen
-    LDI r1, 0x1A1A2E
-    FILL r1
+    LDI r4, 0x1A1A2E
+    FILL r4
 
     ; Draw [+] button (green)
-    LDI r13, 60
-    LDI r1, 150
-    LDI r12, 40
-    LDI r2, 40
-    LDI r7, 0x2ECC71
-    RECTF r13, r1, r12, r2, r7
+    LDI r2, 60
+    LDI r4, 150
+    LDI r11, 40
+    LDI r8, 40
+    LDI r13, 0x2ECC71
+    RECTF r2, r4, r11, r8, r13
 
     ; Draw [-] button (red)
-    LDI r13, 156
-    LDI r1, 150
-    LDI r12, 40
-    LDI r2, 40
-    LDI r7, 0xE74C3C
-    RECTF r13, r1, r12, r2, r7
+    LDI r2, 156
+    LDI r4, 150
+    LDI r11, 40
+    LDI r8, 40
+    LDI r13, 0xE74C3C
+    RECTF r2, r4, r11, r8, r13
 
     ; "+" label at center of green button
     LDI r20, SCRATCH
-    LDI r1, 43           ; '+'
-    STORE r20, r1
-    LDI r1, 0
-    ADD r20, r13
-    STORE r20, r1        ; null terminate
+    LDI r4, 43           ; '+'
+    STORE r20, r4
+    LDI r4, 0
+    ADD r20, r2
+    STORE r20, r4        ; null terminate
 
-    LDI r13, 75
-    LDI r1, 162
-    LDI r12, SCRATCH
-    TEXT r13, r1, r12
+    LDI r2, 75
+    LDI r4, 162
+    LDI r11, SCRATCH
+    TEXT r2, r4, r11
 
     ; "-" label at center of red button
     LDI r20, SCRATCH
-    LDI r1, 45           ; '-'
-    STORE r20, r1
-    LDI r1, 0
-    ADD r20, r13
-    STORE r20, r1
+    LDI r4, 45           ; '-'
+    STORE r20, r4
+    LDI r4, 0
+    ADD r20, r2
+    STORE r20, r4
 
-    LDI r13, 171
-    LDI r1, 162
-    LDI r12, SCRATCH
-    TEXT r13, r1, r12
+    LDI r2, 171
+    LDI r4, 162
+    LDI r11, SCRATCH
+    TEXT r2, r4, r11
 
     ; ── Render counter value ──
     ; Build "Count XXX" in scratch buffer (no colon to avoid label misparse)
-    ; Restore r13 = 1 (clobbered by button label rendering)
-    LDI r13, 1
+    ; Restore r2 = 1 (clobbered by button label rendering)
+    LDI r2, 1
     ; "Count " = 67 111 117 110 116 32
     LDI r20, SCRATCH
-    LDI r1, 67            ; 'C'
-    STORE r20, r1
-    ADD r20, r13
-    LDI r1, 111           ; 'o'
-    STORE r20, r1
-    ADD r20, r13
-    LDI r1, 117           ; 'u'
-    STORE r20, r1
-    ADD r20, r13
-    LDI r1, 110           ; 'n'
-    STORE r20, r1
-    ADD r20, r13
-    LDI r1, 116           ; 't'
-    STORE r20, r1
-    ADD r20, r13
-    LDI r1, 32            ; ' '
-    STORE r20, r1
-    ADD r20, r13
+    LDI r4, 67            ; 'C'
+    STORE r20, r4
+    ADD r20, r2
+    LDI r4, 111           ; 'o'
+    STORE r20, r4
+    ADD r20, r2
+    LDI r4, 117           ; 'u'
+    STORE r20, r4
+    ADD r20, r2
+    LDI r4, 110           ; 'n'
+    STORE r20, r4
+    ADD r20, r2
+    LDI r4, 116           ; 't'
+    STORE r20, r4
+    ADD r20, r2
+    LDI r4, 32            ; ' '
+    STORE r20, r4
+    ADD r20, r2
 
     ; Load counter
-    LDI r1, COUNT
-    LOAD r9, r1          ; r9 = counter value
+    LDI r4, COUNT
+    LOAD r3, r4          ; r3 = counter value
 
-    ; Hundreds: r9 / 100
-    LDI r5, 100
-    LDI r11, 0
-    ADD r11, r9          ; r11 = counter
-    DIV r11, r5           ; r11 = hundreds digit
-    LDI r1, 48
-    ADD r1, r11           ; ASCII '0' + hundreds
-    STORE r20, r1
-    ADD r20, r13           ; advance pointer
+    ; Hundreds: r3 / 100
+    LDI r9, 100
+    LDI r7, 0
+    ADD r7, r3          ; r7 = counter
+    DIV r7, r9           ; r7 = hundreds digit
+    LDI r4, 48
+    ADD r4, r7           ; ASCII '0' + hundreds
+    STORE r20, r4
+    ADD r20, r2           ; advance pointer
 
     ; Remainder = counter - hundreds*100
-    LDI r3, 0
-    ADD r3, r11          ; r3 = hundreds
-    LDI r1, 100
-    MUL r3, r1           ; r3 = hundreds * 100
-    LDI r14, 0
-    ADD r14, r9          ; r14 = counter
-    SUB r14, r3          ; r14 = remainder (0..99)
+    LDI r1, 0
+    ADD r1, r7          ; r1 = hundreds
+    LDI r4, 100
+    MUL r1, r4           ; r1 = hundreds * 100
+    LDI r15, 0
+    ADD r15, r3          ; r15 = counter
+    SUB r15, r1          ; r15 = remainder (0..99)
 
     ; Tens: remainder / 10
-    LDI r5, 10
-    LDI r15, 0
-    ADD r15, r14          ; r15 = remainder
-    DIV r15, r5           ; r15 = tens digit
-    LDI r1, 48
-    ADD r1, r15           ; ASCII '0' + tens
-    STORE r20, r1
-    ADD r20, r13
+    LDI r9, 10
+    LDI r12, 0
+    ADD r12, r15          ; r12 = remainder
+    DIV r12, r9           ; r12 = tens digit
+    LDI r4, 48
+    ADD r4, r12           ; ASCII '0' + tens
+    STORE r20, r4
+    ADD r20, r2
 
     ; Ones: remainder % 10
-    LDI r4, 0
-    ADD r4, r14          ; r4 = remainder
-    LDI r5, 10
-    MOD r4, r5           ; r4 = ones digit
-    LDI r1, 48
-    ADD r1, r4           ; ASCII '0' + ones
-    STORE r20, r1
-    ADD r20, r13
+    LDI r6, 0
+    ADD r6, r15          ; r6 = remainder
+    LDI r9, 10
+    MOD r6, r9           ; r6 = ones digit
+    LDI r4, 48
+    ADD r4, r6           ; ASCII '0' + ones
+    STORE r20, r4
+    ADD r20, r2
 
     ; Null terminate
-    LDI r1, 0
-    STORE r20, r1
+    LDI r4, 0
+    STORE r20, r4
 
     ; Render counter text centered
-    LDI r13, 70
-    LDI r1, 80
-    LDI r12, SCRATCH
-    TEXT r13, r1, r12
+    LDI r2, 70
+    LDI r4, 80
+    LDI r11, SCRATCH
+    TEXT r2, r4, r11
 
     ; ── FRAME ──
     FRAME
 
     ; ── HIT CHECK ──
-    HITQ r9
-    JZ r9, main_loop     ; no click → loop
+    HITQ r3
+    JZ r3, main_loop     ; no click → loop
 
-    ; r9 = hit region id
-    CMPI r9, 1
-    JNZ r10, check_minus
+    ; r3 = hit region id
+    CMPI r3, 1
+    JNZ r5, check_minus
 
     ; id=1 → increment
     LDI r20, COUNT
-    LOAD r1, r20
-    LDI r13, 1
-    ADD r1, r13
-    STORE r20, r1
+    LOAD r4, r20
+    LDI r2, 1
+    ADD r4, r2
+    STORE r20, r4
     JMP main_loop
 
 check_minus:
-    CMPI r9, 2
-    JNZ r10, main_loop    ; unknown id → ignore
+    CMPI r3, 2
+    JNZ r5, main_loop    ; unknown id → ignore
     ; id=2 → decrement
     LDI r20, COUNT
-    LOAD r1, r20
-    LDI r13, 1
-    SUB r1, r13
-    STORE r20, r1
+    LOAD r4, r20
+    LDI r2, 1
+    SUB r4, r2
+    STORE r20, r4
     JMP main_loop

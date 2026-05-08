@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a TCP client that connects to an echo server on `127.0.0.1:8888`, sends the message "Hello from Geometry OS!", receives the echoed message, and displays it on the screen. If the connection fails, it displays an error message.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; net_demo.asm -- TCP Networking Demo for Geometry OS
 ; Connects to an echo server, sends a message, receives the echo, displays it.
@@ -18,251 +18,251 @@
 #define PORT         8888
 
   ; Draw title
-  LDI r6, 10
-  LDI r7, 10
-  LDI r14, title
-  TEXT r6, r7, r14
+  LDI r13, 10
+  LDI r10, 10
+  LDI r3, title
+  TEXT r13, r10, r3
 
   ; Draw "Connecting..." message
-  LDI r6, 10
-  LDI r7, 30
-  LDI r14, msg_connecting
-  TEXT r6, r7, r14
+  LDI r13, 10
+  LDI r10, 30
+  LDI r3, msg_connecting
+  TEXT r13, r10, r3
 
   ; Store IP address string at 0x7000
-  LDI r6, IP_ADDR
-  LDI r7, 49        ; '1'
-  STORE r6, r7
-  LDI r7, 50        ; '2'
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x7002 = '2'
-  LDI r7, 55        ; '7'
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x7003 = '7'
-  LDI r7, 46        ; '.'
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x7004 = '.'
-  LDI r7, 48        ; '0'
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x7005 = '0'
-  LDI r7, 46        ; '.'
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x7006 = '.'
-  LDI r7, 48        ; '0'
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x7007 = '0'
-  LDI r7, 46        ; '.'
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x7008 = '.'
-  LDI r7, 49        ; '1'
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x7009 = '1'
-  LDI r7, 0         ; null terminator
-  LDI r14, IP_ADDR
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  ADD r14, r14, r6
-  STORE r14, r7      ; 0x700A = null
+  LDI r13, IP_ADDR
+  LDI r10, 49        ; '1'
+  STORE r13, r10
+  LDI r10, 50        ; '2'
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x7002 = '2'
+  LDI r10, 55        ; '7'
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x7003 = '7'
+  LDI r10, 46        ; '.'
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x7004 = '.'
+  LDI r10, 48        ; '0'
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x7005 = '0'
+  LDI r10, 46        ; '.'
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x7006 = '.'
+  LDI r10, 48        ; '0'
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x7007 = '0'
+  LDI r10, 46        ; '.'
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x7008 = '.'
+  LDI r10, 49        ; '1'
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x7009 = '1'
+  LDI r10, 0         ; null terminator
+  LDI r3, IP_ADDR
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  ADD r3, r3, r13
+  STORE r3, r10      ; 0x700A = null
 
   ; CONNECT addr_reg, port_reg, fd_reg
-  LDI r6, IP_ADDR
-  LDI r7, PORT
-  CONNECT r6, r7, r14
+  LDI r13, IP_ADDR
+  LDI r10, PORT
+  CONNECT r13, r10, r3
 
-  ; Check if connect succeeded (r10 == 0)
-  CMP r10, r10
+  ; Check if connect succeeded (r12 == 0)
+  CMP r12, r12
   JNZ connect_fail
 
   ; Draw "Connected!" message
-  LDI r6, 10
-  LDI r7, 40
-  LDI r14, msg_connected
-  TEXT r6, r7, r14
+  LDI r13, 10
+  LDI r10, 40
+  LDI r3, msg_connected
+  TEXT r13, r10, r3
 
   ; Store "Hello from Geometry OS!" in send buffer
-  LDI r6, SEND_BUF
-  LDI r7, 72        ; 'H'
-  STORE r6, r7
-  LDI r7, 101       ; 'e'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'e'
-  LDI r7, 108       ; 'l'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'l'
-  LDI r7, 108       ; 'l'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'l'
-  LDI r7, 111       ; 'o'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'o'
-  LDI r7, 32        ; ' '
-  ADD r6, r6, r14
-  STORE r6, r7      ; ' '
-  LDI r7, 102       ; 'f'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'f'
-  LDI r7, 114       ; 'r'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'r'
-  LDI r7, 111       ; 'o'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'o'
-  LDI r7, 109       ; 'm'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'm'
-  LDI r7, 32        ; ' '
-  ADD r6, r6, r14
-  STORE r6, r7      ; ' '
-  LDI r7, 71        ; 'G'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'G'
-  LDI r7, 101       ; 'e'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'e'
-  LDI r7, 111       ; 'o'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'o'
-  LDI r7, 109       ; 'm'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'm'
-  LDI r7, 101       ; 'e'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'e'
-  LDI r7, 116       ; 't'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 't'
-  LDI r7, 114       ; 'r'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'r'
-  LDI r7, 121       ; 'y'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'y'
-  LDI r7, 32        ; ' '
-  ADD r6, r6, r14
-  STORE r6, r7      ; ' '
-  LDI r7, 79        ; 'O'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'O'
-  LDI r7, 83        ; 'S'
-  ADD r6, r6, r14
-  STORE r6, r7      ; 'S'
-  LDI r7, 33        ; '!'
-  ADD r6, r6, r14
-  STORE r6, r7      ; '!'
+  LDI r13, SEND_BUF
+  LDI r10, 72        ; 'H'
+  STORE r13, r10
+  LDI r10, 101       ; 'e'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'e'
+  LDI r10, 108       ; 'l'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'l'
+  LDI r10, 108       ; 'l'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'l'
+  LDI r10, 111       ; 'o'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'o'
+  LDI r10, 32        ; ' '
+  ADD r13, r13, r3
+  STORE r13, r10      ; ' '
+  LDI r10, 102       ; 'f'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'f'
+  LDI r10, 114       ; 'r'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'r'
+  LDI r10, 111       ; 'o'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'o'
+  LDI r10, 109       ; 'm'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'm'
+  LDI r10, 32        ; ' '
+  ADD r13, r13, r3
+  STORE r13, r10      ; ' '
+  LDI r10, 71        ; 'G'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'G'
+  LDI r10, 101       ; 'e'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'e'
+  LDI r10, 111       ; 'o'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'o'
+  LDI r10, 109       ; 'm'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'm'
+  LDI r10, 101       ; 'e'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'e'
+  LDI r10, 116       ; 't'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 't'
+  LDI r10, 114       ; 'r'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'r'
+  LDI r10, 121       ; 'y'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'y'
+  LDI r10, 32        ; ' '
+  ADD r13, r13, r3
+  STORE r13, r10      ; ' '
+  LDI r10, 79        ; 'O'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'O'
+  LDI r10, 83        ; 'S'
+  ADD r13, r13, r3
+  STORE r13, r10      ; 'S'
+  LDI r10, 33        ; '!'
+  ADD r13, r13, r3
+  STORE r13, r10      ; '!'
 
   ; Draw "Sent:" message
-  LDI r6, 10
-  LDI r7, 50
-  LDI r14, msg_sent
-  TEXT r6, r7, r14
+  LDI r13, 10
+  LDI r10, 50
+  LDI r3, msg_sent
+  TEXT r13, r10, r3
 
   ; Draw the sent message
-  LDI r6, 50
-  LDI r7, 50
-  LDI r14, SEND_BUF
-  TEXT r6, r7, r14
+  LDI r13, 50
+  LDI r10, 50
+  LDI r3, SEND_BUF
+  TEXT r13, r10, r3
 
   ; SOCKSEND fd_reg, buf_reg, len_reg, sent_reg
-  ; r14 = fd from CONNECT
-  LDI r6, SEND_BUF
-  LDI r7, 23        ; length of "Hello from Geometry OS!"
-  SOCKSEND r14, r6, r7, r4
+  ; r3 = fd from CONNECT
+  LDI r13, SEND_BUF
+  LDI r10, 23        ; length of "Hello from Geometry OS!"
+  SOCKSEND r3, r13, r10, r1
 
   ; Wait a moment for echo (100 frames = ~1.6 seconds)
-  LDI r15, 100
+  LDI r2, 100
 wait_loop:
   FRAME
-  SUB r15, r15, r14
-  CMP r15, r14
+  SUB r2, r2, r3
+  CMP r2, r3
   JNZ wait_loop
-  CMP r15, r14
+  CMP r2, r3
   JZ wait_done
   JMP wait_loop
 
 wait_done:
   ; SOCKRECV fd_reg, buf_reg, max_len_reg, recv_reg
-  LDI r6, RECV_BUF
-  LDI r7, 200
-  SOCKRECV r14, r6, r7, r4
+  LDI r13, RECV_BUF
+  LDI r10, 200
+  SOCKRECV r3, r13, r10, r1
 
   ; Draw "Received:" message
-  LDI r6, 10
-  LDI r7, 60
-  LDI r14, msg_recv
-  TEXT r6, r7, r14
+  LDI r13, 10
+  LDI r10, 60
+  LDI r3, msg_recv
+  TEXT r13, r10, r3
 
   ; Draw the received message
-  LDI r6, 60
-  LDI r7, 60
-  LDI r14, RECV_BUF
-  TEXT r6, r7, r14
+  LDI r13, 60
+  LDI r10, 60
+  LDI r3, RECV_BUF
+  TEXT r13, r10, r3
 
   ; Disconnect
-  DISCONNECT r14
+  DISCONNECT r3
 
   ; Draw "Done!" message
-  LDI r6, 10
-  LDI r7, 80
-  LDI r14, msg_done
-  TEXT r6, r7, r14
+  LDI r13, 10
+  LDI r10, 80
+  LDI r3, msg_done
+  TEXT r13, r10, r3
 
   HALT
 
 connect_fail:
   ; Draw error message
-  LDI r6, 10
-  LDI r7, 40
-  LDI r14, msg_error
-  TEXT r6, r7, r14
+  LDI r13, 10
+  LDI r10, 40
+  LDI r3, msg_error
+  TEXT r13, r10, r3
   HALT
 
 title:
@@ -272,7 +272,7 @@ msg_connecting:
   TEXTI "Connecting to 127.0.0.1:8888..."
 
 msg_connected:
-  TEXTI "Connected! (fd stored in r14)"
+  TEXTI "Connected! (fd stored in r3)"
 
 msg_sent:
   TEXTI "Sent:"

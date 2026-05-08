@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code implements a terminal interface named "Hermes Agent Terminal" that interacts with an AI using the HERMES opcode (0xA8). It maintains session continuity through the VM's session ID tracking, handles basic text input and output, supports commands like `/clear` and `/help`, and displays multiline responses from the AI. The code manages a text buffer for displaying content and a scratch buffer for temporary data processing, using predefined memory regions for these purposes.
+; DESCRIPTION: Draw line: pos=the screen, color=red, size=fixed size.
 
 ; hermes_term.asm -- Hermes Agent Terminal for Geometry OS
 ;
@@ -16,9 +16,9 @@
 ;   0x5800-0x5FFF  Response buffer (2048 chars)
 ;
 ; Registers:
-;   r11: Result (reserved)
-;   r15: Constant 1
-;   r13: Key input
+;   r13: Result (reserved)
+;   r3: Constant 1
+;   r10: Key input
 ;   r30: Stack pointer (SP)
 
 #define COLS 42
@@ -34,67 +34,67 @@
 ; =========================================
 ; INIT
 ; =========================================
-LDI r15, 1
+LDI r3, 1
 LDI r30, 0xFD00   ; Stack pointer
 
 ; Clear screen
-LDI r11, 0x080812
-FILL r11
+LDI r13, 0x080812
+FILL r13
 
 ; Clear text buffer to spaces
 LDI r20, BUF
-LDI r2, 32
+LDI r6, 32
 clear_buf_init:
-    STORE r20, r2
-    ADD r20, r15
+    STORE r20, r6
+    ADD r20, r3
     CMPI r20, BUF_END
-    BLT r11, clear_buf_init
+    BLT r13, clear_buf_init
 
 ; Init cursor and blink
 LDI r20, CUR_COL
-LDI r11, 0
-STORE r20, r11
+LDI r13, 0
+STORE r20, r13
 LDI r20, CUR_ROW
-STORE r20, r11
+STORE r20, r13
 LDI r20, BLINK
-STORE r20, r11
+STORE r20, r13
 
 ; Title bar
+LDI r3, 0
 LDI r15, 0
-LDI r10, 0
-LDI r9, 256
-LDI r14, 16
-LDI r13, 0x1A0033
-RECTF r15, r10, r9, r14, r13
+LDI r12, 256
+LDI r1, 16
+LDI r10, 0x1A0033
+RECTF r3, r15, r12, r1, r10
 
 ; Title text "Hermes Terminal"
 LDI r20, SCRATCH
 STRO r20, "Hermes Terminal"
+LDI r3, 4
 LDI r15, 4
-LDI r10, 4
-LDI r9, SCRATCH
-LDI r14, 0x00FF00  ; green
-LDI r13, 0x1A0033  ; match title bar
-DRAWTEXT r15, r10, r9, r14, r13
+LDI r12, SCRATCH
+LDI r1, 0x00FF00  ; green
+LDI r10, 0x1A0033  ; match title bar
+DRAWTEXT r3, r15, r12, r1, r10
 
 ; Close button hit region
-LDI r15, 220
-LDI r10, 0
-LDI r9, 36
-LDI r14, 16
-HITSET r15, r10, r9, r14, 99
+LDI r3, 220
+LDI r15, 0
+LDI r12, 36
+LDI r1, 16
+HITSET r3, r15, r12, r1, 99
 
-LDI r15, 1
+LDI r3, 1
 
 ; Welcome messages
 LDI r20, SCRATCH
 STRO r20, "Hermes Terminal v2.0"
 CALL write_line_to_buf
-LDI r15, 1
+LDI r3, 1
 LDI r20, SCRATCH
 STRO r20, "Native Agent Bridge Active."
 CALL write_line_to_buf
-LDI r15, 1
+LDI r3, 1
 
 CALL write_prompt
 JMP main_loop
@@ -103,13 +103,13 @@ JMP main_loop
 ; MAIN LOOP
 ; =========================================
 main_loop:
-    LDI r15, 1
+    LDI r3, 1
 
     ; Blink counter
     LDI r20, BLINK
-    LOAD r11, r20
-    ADD r11, r15
-    STORE r20, r11
+    LOAD r13, r20
+    ADD r13, r3
+    STORE r20, r13
 
     ; Render
     CALL render
@@ -117,8 +117,8 @@ main_loop:
     FRAME
 
     ; Read key
-    IKEY r13
-    JZ r13, main_loop
+    IKEY r10
+    JZ r10, main_loop
 
     ; Handle key
     CALL handle_key
@@ -129,23 +129,23 @@ main_loop:
 ; =========================================
 render:
     PUSH r31
-    LDI r15, 1
+    LDI r3, 1
 
     ; Clear content area
-    LDI r15, 0
-    LDI r10, 16
-    LDI r9, 256
-    LDI r14, 240
-    LDI r13, 0x080812
-    RECTF r15, r10, r9, r14, r13
+    LDI r3, 0
+    LDI r15, 16
+    LDI r12, 256
+    LDI r1, 240
+    LDI r10, 0x080812
+    RECTF r3, r15, r12, r1, r10
 
     ; Row loop
-    LDI r15, 1
-    LDI r7, 8            ; CHAR_H
+    LDI r3, 1
+    LDI r11, 8            ; CHAR_H
     LDI r5, 6            ; CHAR_W
     LDI r0, 0           ; row counter
-    LDI r4, BUF         ; buffer pointer
-    LDI r6, 16          ; y = TITLE_H
+    LDI r9, BUF         ; buffer pointer
+    LDI r2, 16          ; y = TITLE_H
 
 render_row:
     ; Copy COLS chars from buffer to temporary display scratch
@@ -153,68 +153,68 @@ render_row:
     LDI r16, 0x6000
     LDI r17, 0
 copy_col:
-    LOAD r2, r4
-    STORE r16, r2
-    ADD r4, r15
-    ADD r16, r15
-    ADD r17, r15
+    LOAD r6, r9
+    STORE r16, r6
+    ADD r9, r3
+    ADD r16, r3
+    ADD r17, r3
     CMPI r17, COLS
     BLT r17, copy_col
 
     ; Null terminate
-    LDI r11, 0
-    STORE r16, r11
+    LDI r13, 0
+    STORE r16, r13
 
     ; Color based on content
-    LDI r12, 0xCCCCCC  ; default light gray
+    LDI r4, 0xCCCCCC  ; default light gray
 
     ; Check if row starts with '>' (user prompt) -> green
     LDI r16, 0x6000
-    LOAD r2, r16
-    CMPI r2, 62         ; '>'
-    JNZ r11, render_text_default
-    LDI r12, 0x44FF44  ; green for user input
+    LOAD r6, r16
+    CMPI r6, 62         ; '>'
+    JNZ r13, render_text_default
+    LDI r4, 0x44FF44  ; green for user input
     JMP render_text
 
 render_text_default:
-    LDI r12, 0x00FFFF  ; cyan for AI responses
+    LDI r4, 0x00FFFF  ; cyan for AI responses
 
 render_text:
-    ; DRAWTEXT x=0, y=r6, addr=0x6000, fg=r12, bg=0 (transparent)
-    LDI r15, 0
-    LDI r1, 0x6000
-    LDI r8, 0         ; bg = transparent
-    DRAWTEXT r15, r6, r1, r12, r8
+    ; DRAWTEXT x=0, y=r2, addr=0x6000, fg=r4, bg=0 (transparent)
+    LDI r3, 0
+    LDI r8, 0x6000
+    LDI r14, 0         ; bg = transparent
+    DRAWTEXT r3, r2, r8, r4, r14
 
-    LDI r15, 1
+    LDI r3, 1
 
-    ADD r6, r7          ; y += 8
-    ADD r0, r15          ; row++
+    ADD r2, r11          ; y += 8
+    ADD r0, r3          ; row++
     CMPI r0, ROWS
     BLT r0, render_row
 
     ; Cursor (blink)
     LDI r20, BLINK
-    LOAD r11, r20
-    LDI r3, 8
-    AND r11, r3
-    CMPI r11, 4
-    BLT r11, draw_cursor
+    LOAD r13, r20
+    LDI r7, 8
+    AND r13, r7
+    CMPI r13, 4
+    BLT r13, draw_cursor
     JMP cursor_done
 
 draw_cursor:
     LDI r20, CUR_COL
-    LOAD r11, r20
-    MUL r11, r5           ; x = col * 6
+    LOAD r13, r20
+    MUL r13, r5           ; x = col * 6
     LDI r20, CUR_ROW
-    LOAD r10, r20
-    MUL r10, r7           ; row * 8
-    LDI r9, 16
-    ADD r10, r9           ; y = 16 + row*8
-    LDI r9, 6
-    LDI r14, 8
-    LDI r13, 0x44FF44
-    RECTF r11, r10, r9, r14, r13
+    LOAD r15, r20
+    MUL r15, r11           ; row * 8
+    LDI r12, 16
+    ADD r15, r12           ; y = 16 + row*8
+    LDI r12, 6
+    LDI r1, 8
+    LDI r10, 0x44FF44
+    RECTF r13, r15, r12, r1, r10
 
 cursor_done:
     POP r31
@@ -222,48 +222,48 @@ cursor_done:
 
 ; =========================================
 ; HANDLE_KEY
-; r13 = key
+; r10 = key
 ; =========================================
 handle_key:
     PUSH r31
-    LDI r15, 1
+    LDI r3, 1
 
-    CMPI r13, 13
-    JNZ r11, check_bs
+    CMPI r10, 13
+    JNZ r13, check_bs
     JMP do_enter
 
 check_bs:
-    CMPI r13, 8
-    JNZ r11, check_del
+    CMPI r10, 8
+    JNZ r13, check_del
     JMP do_backspace
 
 check_del:
-    CMPI r13, 127
-    JNZ r11, do_char
+    CMPI r10, 127
+    JNZ r13, do_char
     JMP do_backspace
 
 do_char:
     ; buf[row*COLS + col] = key
     LDI r20, CUR_ROW
-    LOAD r10, r20
-    LDI r9, COLS
-    MUL r10, r9           ; r10 = row * COLS
+    LOAD r15, r20
+    LDI r12, COLS
+    MUL r15, r12           ; r15 = row * COLS
     LDI r20, CUR_COL
-    LOAD r11, r20
-    ADD r10, r11           ; r10 = row*COLS + col
+    LOAD r13, r20
+    ADD r15, r13           ; r15 = row*COLS + col
     LDI r20, BUF
-    ADD r20, r10          ; r20 = BUF + offset
-    STORE r20, r13        ; write char
+    ADD r20, r15          ; r20 = BUF + offset
+    STORE r20, r10        ; write char
 
     ; col++
     LDI r20, CUR_COL
-    LOAD r11, r20
-    ADD r11, r15
-    STORE r20, r11
+    LOAD r13, r20
+    ADD r13, r3
+    STORE r20, r13
 
     ; If col >= COLS, wrap
-    CMPI r11, COLS
-    JNZ r11, hk_ret
+    CMPI r13, COLS
+    JNZ r13, hk_ret
     CALL do_newline
     JMP hk_ret
 
@@ -278,62 +278,62 @@ do_enter:
     CALL do_newline
 
     ; 3. Check for / commands
-    LDI r15, 1
+    LDI r3, 1
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 47         ; '/'
-    JNZ r11, call_hermes_ai  ; not a command, call AI
+    JNZ r13, call_hermes_ai  ; not a command, call AI
 
     ; Check /help
-    ADD r20, r15
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 104        ; 'h'
-    JNZ r11, try_clear_cmd
-    ADD r20, r15
+    JNZ r13, try_clear_cmd
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r11, try_clear_cmd
-    ADD r20, r15
+    JNZ r13, try_clear_cmd
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r11, try_clear_cmd
-    ADD r20, r15
+    JNZ r13, try_clear_cmd
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 112        ; 'p'
-    JNZ r11, try_clear_cmd
-    ADD r20, r15
+    JNZ r13, try_clear_cmd
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r11, call_hermes_ai
+    JNZ r13, call_hermes_ai
     JMP cmd_help
 
 try_clear_cmd:
     ; Check /clear
     LDI r20, SCRATCH
-    ADD r20, r15           ; skip '/'
+    ADD r20, r3           ; skip '/'
     LOAD r22, r20
     CMPI r22, 99         ; 'c'
-    JNZ r11, call_hermes_ai
-    ADD r20, r15
+    JNZ r13, call_hermes_ai
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r11, call_hermes_ai
-    ADD r20, r15
+    JNZ r13, call_hermes_ai
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r11, call_hermes_ai
-    ADD r20, r15
+    JNZ r13, call_hermes_ai
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r11, call_hermes_ai
-    ADD r20, r15
+    JNZ r13, call_hermes_ai
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 114        ; 'r'
-    JNZ r11, call_hermes_ai
-    ADD r20, r15
+    JNZ r13, call_hermes_ai
+    ADD r20, r3
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r11, call_hermes_ai
+    JNZ r13, call_hermes_ai
     JMP cmd_clear
 
     ; If not a known command, just call AI
@@ -343,30 +343,30 @@ try_clear_cmd:
 ; COMMANDS
 ; =========================================
 cmd_help:
-    LDI r15, 1
+    LDI r3, 1
     LDI r20, SCRATCH
     STRO r20, "/help /clear"
     CALL write_line_to_buf
-    LDI r15, 1
+    LDI r3, 1
     CALL write_prompt
     JMP hk_ret
 
 cmd_clear:
-    LDI r15, 1
+    LDI r3, 1
     ; Clear text buffer to spaces
     LDI r20, BUF
-    LDI r2, 32
+    LDI r6, 32
 clear_buf_cmd:
-    STORE r20, r2
-    ADD r20, r15
+    STORE r20, r6
+    ADD r20, r3
     CMPI r20, BUF_END
-    BLT r11, clear_buf_cmd
+    BLT r13, clear_buf_cmd
     ; Reset cursor
     LDI r20, CUR_COL
-    LDI r11, 0
-    STORE r20, r11
+    LDI r13, 0
+    STORE r20, r13
     LDI r20, CUR_ROW
-    STORE r20, r11
+    STORE r20, r13
     CALL write_prompt
     JMP hk_ret
 
@@ -375,31 +375,31 @@ clear_buf_cmd:
 ; Call the HERMES opcode and process response
 ; =========================================
 call_hermes_ai:
-    LDI r15, 1
+    LDI r3, 1
 
     ; Show "thinking" indicator
     LDI r20, SCRATCH
     STRO r20, "..."
     CALL write_line_to_buf
-    LDI r15, 1
+    LDI r3, 1
     CALL render  ; Force render to show "..."
     FRAME
 
     ; HERMES prompt_addr_reg, response_addr_reg, max_len_reg
     ; prompt is in SCRATCH, we'll put response in RECV_BUF
-    LDI r10, SCRATCH
-    LDI r9, RECV_BUF
-    LDI r14, 2048
-    HERMES r10, r9, r14
+    LDI r15, SCRATCH
+    LDI r12, RECV_BUF
+    LDI r1, 2048
+    HERMES r15, r12, r1
 
     ; Remove the "..." line (actually just overwrite it)
     ; We'll scroll up once to clear the "..." before writing response
     ; Wait, write_line_to_buf already advanced the row.
     ; Let's just write the response.
 
-    ; If r11 == 0, something went wrong
-    CMPI r11, 0
-    JZ r11, hermes_failed
+    ; If r13 == 0, something went wrong
+    CMPI r13, 0
+    JZ r13, hermes_failed
 
     ; Process the multiline response in RECV_BUF
     CALL process_response_buffer
@@ -411,7 +411,7 @@ hermes_failed:
     CALL write_line_to_buf
 
 call_hermes_done:
-    LDI r15, 1
+    LDI r3, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -421,45 +421,45 @@ call_hermes_done:
 ; =========================================
 process_response_buffer:
     PUSH r31
-    LDI r15, 1
+    LDI r3, 1
 
     LDI r20, RECV_BUF
     LDI r21, SCRATCH      ; build current line into SCRATCH
     LDI r22, 0            ; char count
 
 prb_loop:
-    LOAD r11, r20
-    JZ r11, prb_final      ; end of response
+    LOAD r13, r20
+    JZ r13, prb_final      ; end of response
 
-    CMPI r11, 10           ; newline
-    JZ r11, prb_newline
+    CMPI r13, 10           ; newline
+    JZ r13, prb_newline
 
     ; Store char (max 40)
     CMPI r22, 40
-    BGE r11, prb_skip
-    STORE r21, r11
-    ADD r21, r15
+    BGE r13, prb_skip
+    STORE r21, r13
+    ADD r21, r3
     ADDI r22, 1
 prb_skip:
-    ADD r20, r15
+    ADD r20, r3
     JMP prb_loop
 
 prb_newline:
-    LDI r11, 0
-    STORE r21, r11         ; null terminate
+    LDI r13, 0
+    STORE r21, r13         ; null terminate
     CALL write_line_to_buf
-    LDI r15, 1
+    LDI r3, 1
     LDI r21, SCRATCH
     LDI r22, 0
-    ADD r20, r15
+    ADD r20, r3
     JMP prb_loop
 
 prb_final:
     ; Handle last line if any
     CMPI r22, 0
-    JZ r11, prb_ret
-    LDI r11, 0
-    STORE r21, r11
+    JZ r13, prb_ret
+    LDI r13, 0
+    STORE r21, r13
     CALL write_line_to_buf
 
 prb_ret:
@@ -471,21 +471,21 @@ prb_ret:
 ; =========================================
 write_prompt:
     PUSH r31
-    LDI r15, 1
+    LDI r3, 1
     LDI r20, CUR_ROW
-    LOAD r10, r20
-    LDI r9, COLS
-    MUL r10, r9
+    LOAD r15, r20
+    LDI r12, COLS
+    MUL r15, r12
     LDI r20, BUF
-    ADD r20, r10
-    LDI r11, 62           ; '>'
-    STORE r20, r11
     ADD r20, r15
-    LDI r11, 32           ; ' '
-    STORE r20, r11
+    LDI r13, 62           ; '>'
+    STORE r20, r13
+    ADD r20, r3
+    LDI r13, 32           ; ' '
+    STORE r20, r13
     LDI r20, CUR_COL
-    LDI r11, 2
-    STORE r20, r11
+    LDI r13, 2
+    STORE r20, r13
     POP r31
     RET
 
@@ -494,36 +494,36 @@ write_prompt:
 ; =========================================
 extract_cmd:
     PUSH r31
-    LDI r15, 1
+    LDI r3, 1
 
     LDI r20, CUR_ROW
-    LOAD r2, r20
-    LDI r3, COLS
-    MUL r2, r3
+    LOAD r6, r20
+    LDI r7, COLS
+    MUL r6, r7
 
     LDI r20, CUR_COL
-    LOAD r3, r20
+    LOAD r7, r20
 
     LDI r20, BUF
-    ADD r20, r2
-    ADD r20, r15
-    ADD r20, r15           ; skip "> "
+    ADD r20, r6
+    ADD r20, r3
+    ADD r20, r3           ; skip "> "
 
     LDI r21, SCRATCH
     LDI r22, 2
 ec_loop:
-    CMP r22, r3
-    BGE r11, ec_done
-    LOAD r11, r20
-    STORE r21, r11
-    ADD r20, r15
-    ADD r21, r15
-    ADD r22, r15
+    CMP r22, r7
+    BGE r13, ec_done
+    LOAD r13, r20
+    STORE r21, r13
+    ADD r20, r3
+    ADD r21, r3
+    ADD r22, r3
     JMP ec_loop
 
 ec_done:
-    LDI r11, 0
-    STORE r21, r11
+    LDI r13, 0
+    STORE r21, r13
     POP r31
     RET
 
@@ -532,23 +532,23 @@ ec_done:
 ; =========================================
 write_line_to_buf:
     PUSH r31
-    LDI r15, 1
+    LDI r3, 1
 
     LDI r20, CUR_ROW
-    LOAD r10, r20
-    LDI r9, COLS
-    MUL r10, r9
+    LOAD r15, r20
+    LDI r12, COLS
+    MUL r15, r12
     LDI r20, BUF
-    ADD r20, r10
+    ADD r20, r15
 
     LDI r21, SCRATCH
 
 wlb_loop:
-    LOAD r11, r21
-    JZ r11, wlb_done
-    STORE r20, r11
-    ADD r20, r15
-    ADD r21, r15
+    LOAD r13, r21
+    JZ r13, wlb_done
+    STORE r20, r13
+    ADD r20, r3
+    ADD r21, r3
     JMP wlb_loop
 
 wlb_done:
@@ -560,48 +560,48 @@ wlb_done:
 ; DO_BACKSPACE
 ; =========================================
 do_backspace:
-    LDI r15, 1
+    LDI r3, 1
     LDI r20, CUR_COL
-    LOAD r11, r20
-    CMPI r11, 2
-    JZ r11, hk_ret
+    LOAD r13, r20
+    CMPI r13, 2
+    JZ r13, hk_ret
 
-    SUBI r11, 1
-    STORE r20, r11
+    SUBI r13, 1
+    STORE r20, r13
 
     LDI r20, CUR_ROW
-    LOAD r10, r20
-    LDI r9, COLS
-    MUL r10, r9
+    LOAD r15, r20
+    LDI r12, COLS
+    MUL r15, r12
     LDI r20, CUR_COL
-    LOAD r11, r20
-    ADD r10, r11
+    LOAD r13, r20
+    ADD r15, r13
     LDI r20, BUF
-    ADD r20, r10
-    LDI r11, 32
-    STORE r20, r11
+    ADD r20, r15
+    LDI r13, 32
+    STORE r20, r13
     JMP hk_ret
 
 ; =========================================
 ; DO_NEWLINE
 ; =========================================
 do_newline:
-    LDI r15, 1
+    LDI r3, 1
     LDI r20, CUR_COL
-    LDI r11, 0
-    STORE r20, r11
+    LDI r13, 0
+    STORE r20, r13
     LDI r20, CUR_ROW
-    LOAD r2, r20
-    ADD r2, r15
-    CMPI r2, ROWS
-    BLT r11, dn_store
+    LOAD r6, r20
+    ADD r6, r3
+    CMPI r6, ROWS
+    BLT r13, dn_store
     PUSH r31
     CALL scroll_up
     POP r31
     LDI r20, CUR_ROW
-    LDI r2, 29
+    LDI r6, 29
 dn_store:
-    STORE r20, r2
+    STORE r20, r6
     RET
 
 ; =========================================
@@ -609,54 +609,54 @@ dn_store:
 ; =========================================
 scroll_up:
     PUSH r31
-    LDI r15, 1
+    LDI r3, 1
     LDI r0, 0
 scroll_loop:
     CMPI r0, 29
-    BGE r11, scroll_clear
+    BGE r13, scroll_clear
 
     LDI r20, BUF
-    LDI r11, 0
-    ADD r11, r0
-    ADD r11, r15
-    LDI r4, COLS
-    MUL r11, r4
-    ADD r20, r11
+    LDI r13, 0
+    ADD r13, r0
+    ADD r13, r3
+    LDI r9, COLS
+    MUL r13, r9
+    ADD r20, r13
 
     LDI r21, BUF
-    LDI r11, 0
-    ADD r11, r0
-    LDI r4, COLS
-    MUL r11, r4
-    ADD r21, r11
+    LDI r13, 0
+    ADD r13, r0
+    LDI r9, COLS
+    MUL r13, r9
+    ADD r21, r13
 
     LDI r22, 0
 scroll_copy:
-    LOAD r11, r20
-    STORE r21, r11
-    ADD r20, r15
-    ADD r21, r15
-    ADD r22, r15
+    LOAD r13, r20
+    STORE r21, r13
+    ADD r20, r3
+    ADD r21, r3
+    ADD r22, r3
     CMPI r22, COLS
     BLT r22, scroll_copy
 
-    ADD r0, r15
+    ADD r0, r3
     JMP scroll_loop
 
 scroll_clear:
     LDI r20, BUF
-    LDI r2, 29
-    LDI r4, COLS
-    MUL r2, r4
-    ADD r20, r2
-    LDI r2, 32
+    LDI r6, 29
+    LDI r9, COLS
+    MUL r6, r9
+    ADD r20, r6
+    LDI r6, 32
     LDI r22, 0
 scroll_clr_loop:
-    STORE r20, r2
-    ADD r20, r15
-    ADD r22, r15
+    STORE r20, r6
+    ADD r20, r3
+    ADD r22, r3
     CMPI r22, COLS
-    BLT r11, scroll_clr_loop
+    BLT r13, scroll_clr_loop
 
     POP r31
     RET

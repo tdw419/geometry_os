@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates screen sharing functionality by connecting to a listening Geometry OS instance and sending screen content as pixel protocol frames. It first draws a test pattern on the screen, then establishes a connection to a specified IP address and port, and sends each row of the screen as a sequence of pixels using the `NET_SEND` instruction. If any part of the transmission fails, it displays an error message; otherwise, it indicates successful completion with a green screen.
+; DESCRIPTION: Display a object using color green at the screen.
 
 ; net_share.asm -- Screen Sharing Demo (Phase 71: Pixel Network Protocol)
 ;
@@ -12,83 +12,83 @@
 ; Usage: Load on the sender side. Start a receiver with net_chat.asm or
 ; a custom listener first.
 
-LDI r3, 0x7000       ; IP address string location
-LDI r0, 49            ; '1'
-STORE r3, r0
-LDI r3, 0x7001
-LDI r0, 50            ; '2'
-STORE r3, r0
-LDI r3, 0x7002
-LDI r0, 55            ; '7'
-STORE r3, r0
-LDI r3, 0x7003
-LDI r0, 46            ; '.'
-STORE r3, r0
-LDI r3, 0x7004
-LDI r0, 48            ; '0'
-STORE r3, r0
-LDI r3, 0x7005
-LDI r0, 46            ; '.'
-STORE r3, r0
-LDI r3, 0x7006
-LDI r0, 48            ; '0'
-STORE r3, r0
-LDI r3, 0x7007
-LDI r0, 46            ; '.'
-STORE r3, r0
-LDI r3, 0x7008
-LDI r0, 49            ; '1'
-STORE r3, r0
-LDI r3, 0x7009
-LDI r0, 0             ; null terminator
-STORE r3, r0
+LDI r8, 0x7000       ; IP address string location
+LDI r13, 49            ; '1'
+STORE r8, r13
+LDI r8, 0x7001
+LDI r13, 50            ; '2'
+STORE r8, r13
+LDI r8, 0x7002
+LDI r13, 55            ; '7'
+STORE r8, r13
+LDI r8, 0x7003
+LDI r13, 46            ; '.'
+STORE r8, r13
+LDI r8, 0x7004
+LDI r13, 48            ; '0'
+STORE r8, r13
+LDI r8, 0x7005
+LDI r13, 46            ; '.'
+STORE r8, r13
+LDI r8, 0x7006
+LDI r13, 48            ; '0'
+STORE r8, r13
+LDI r8, 0x7007
+LDI r13, 46            ; '.'
+STORE r8, r13
+LDI r8, 0x7008
+LDI r13, 49            ; '1'
+STORE r8, r13
+LDI r8, 0x7009
+LDI r13, 0             ; null terminator
+STORE r8, r13
 
 ; Draw a test pattern on screen before sharing
-LDI r1, 0             ; y = 0
-LDI r5, 1             ; increment
-LDI r10, 256           ; limit
-LDI r8, 0xFF0000      ; start color (red)
+LDI r11, 0             ; y = 0
+LDI r12, 1             ; increment
+LDI r0, 256           ; limit
+LDI r14, 0xFF0000      ; start color (red)
 
 draw_loop:
-  LDI r15, 0           ; x = 0
+  LDI r10, 0           ; x = 0
 
 x_loop:
   ; Color = (y * 256 + x) << 8 for a gradient
-  MOV r9, r1
-  MUL r9, r10
-  ADD r9, r15
-  SHL r9, r5
-  PSET r15, r1, r9
-  ADD r15, r5
-  CMP r15, r10
-  BLT r13, x_loop
-  ADD r1, r5
-  CMP r1, r10
-  BLT r13, draw_loop
+  MOV r7, r11
+  MUL r7, r0
+  ADD r7, r10
+  SHL r7, r12
+  PSET r10, r11, r7
+  ADD r10, r12
+  CMP r10, r0
+  BLT r2, x_loop
+  ADD r11, r12
+  CMP r11, r0
+  BLT r2, draw_loop
 
 ; Now share the screen
 ; Step 1: Connect to peer
-LDI r12, 0x7000        ; IP address
-LDI r0, 3839          ; port (ascii_world terminal port)
-CONNECT r12, r0, r9    ; r9 = fd
+LDI r3, 0x7000        ; IP address
+LDI r13, 3839          ; port (ascii_world terminal port)
+CONNECT r3, r13, r7    ; r7 = fd
 
 ; Check if connection succeeded
-LDI r7, 0
-CMP r13, r7
-JNZ r13, connected     ; r13 = 0 on success
+LDI r1, 0
+CMP r2, r1
+JNZ r2, connected     ; r2 = 0 on success
 
 ; Connection failed - show red screen
-LDI r8, 0xFF0000
-FILL r8
+LDI r14, 0xFF0000
+FILL r14
 HALT
 
 connected:
-MOV r7, r9            ; r7 = connection fd
+MOV r1, r7            ; r1 = connection fd
 
 ; Send screen as rows (256 pixels per row = 1 NET_SEND per row)
-LDI r1, 0             ; y = 0
-LDI r5, 1             ; increment
-LDI r10, 256           ; limit
+LDI r11, 0             ; y = 0
+LDI r12, 1             ; increment
+LDI r0, 256           ; limit
 
 send_loop:
   ; Screen row address = screen buffer base
@@ -97,38 +97,38 @@ send_loop:
 
   ; For this demo, we'll construct the pixel data in RAM at 0x8000
   ; Copy one row of screen to RAM[0x8000..0x80FF]
-  LDI r15, 0
-  LDI r3, 0x8000
-  LDI r11, 0x10000     ; screen buffer base (conceptual)
+  LDI r10, 0
+  LDI r8, 0x8000
+  LDI r15, 0x10000     ; screen buffer base (conceptual)
 
 copy_row:
   ; Use SCREENP to read each pixel, then store in RAM
   ; Actually, for simplicity, just send data from RAM region
   ; In a real scenario, the screen buffer is accessible
-  ADD r15, r5
-  CMP r15, r10
-  BLT r13, copy_row
+  ADD r10, r12
+  CMP r10, r0
+  BLT r2, copy_row
 
-  ; NET_SEND r3, r10, r7 -- send 256 words from 0x8000 to connection r7
-  NET_SEND r3, r10, r7
+  ; NET_SEND r8, r0, r1 -- send 256 words from 0x8000 to connection r1
+  NET_SEND r8, r0, r1
 
   ; Check send result
-  LDI r11, 0
-  CMP r13, r11
-  JZ r13, send_failed
+  LDI r15, 0
+  CMP r2, r15
+  JZ r2, send_failed
 
-  ADD r1, r5
-  CMP r1, r10
-  BLT r13, send_loop
+  ADD r11, r12
+  CMP r11, r0
+  BLT r2, send_loop
 
 ; Done - show green
-LDI r8, 0x00FF00
-FILL r8
+LDI r14, 0x00FF00
+FILL r14
 HALT
 
 send_failed:
   ; Show yellow to indicate partial send
-  LDI r8, 0xFFFF00
-  FILL r8
-  DISCONNECT r7
+  LDI r14, 0xFFFF00
+  FILL r14
+  DISCONNECT r1
   HALT

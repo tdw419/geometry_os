@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a system information panel displaying version, opcode count, RAM size, screen dimensions, process count, uptime in frames, and color palette. It sets up a palette table, draws the background, title bar, info panel, separators, footer text, and a color palette bar. The code includes an `int_to_str` subroutine to convert integer values to strings for display.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; about.asm -- System Information Panel for Geometry OS
 ;
@@ -27,7 +27,7 @@
 
 ; Init stack
 LDI r30, 0xFD00
-LDI r2, 1
+LDI r9, 1
 
 ; =========================================
 ; Init palette table in RAM (15 colors)
@@ -36,59 +36,59 @@ LDI r20, PAL
 
 LDI r21, 0xFF0000
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0xFF4400
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0xFF8800
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0xFFCC00
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0xFFFF00
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0x88FF00
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0x00FF44
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0x00FFAA
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0x00FFFF
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0x0088FF
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0x0044FF
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0x4400FF
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0x8800FF
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0xCC00FF
 STORE r20, r21
-ADD r20, r2
+ADD r20, r9
 
 LDI r21, 0xFF00AA
 STORE r20, r21
@@ -96,36 +96,36 @@ STORE r20, r21
 ; =========================================
 ; Draw background
 ; =========================================
-LDI r2, 0x0D1B2A
-FILL r2
+LDI r9, 0x0D1B2A
+FILL r9
 
 ; Title bar
-LDI r2, 0
-LDI r0, 0
-LDI r5, 256
-LDI r13, 24
-LDI r9, 0x1B3A5C
-RECTF r2, r0, r5, r13, r9
+LDI r9, 0
+LDI r7, 0
+LDI r0, 256
+LDI r4, 24
+LDI r5, 0x1B3A5C
+RECTF r9, r7, r0, r4, r5
 
 ; Title text
 LDI r20, BUF
 STRO r20, "About Geometry OS"
-LDI r2, 64
-LDI r0, 6
-LDI r5, BUF
-LDI r13, 0xFFFFFF
-LDI r9, 0x1B3A5C
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 64
+LDI r7, 6
+LDI r0, BUF
+LDI r4, 0xFFFFFF
+LDI r5, 0x1B3A5C
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; =========================================
 ; Info panel background
 ; =========================================
-LDI r2, 12
-LDI r0, 28
-LDI r5, 232
-LDI r13, 188
-LDI r9, 0x141428
-RECTF r2, r0, r5, r13, r9
+LDI r9, 12
+LDI r7, 28
+LDI r0, 232
+LDI r4, 188
+LDI r5, 0x141428
+RECTF r9, r7, r0, r4, r5
 
 ; =========================================
 ; Info lines (label on left, value on right)
@@ -134,262 +134,262 @@ RECTF r2, r0, r5, r13, r9
 ; -- Version --
 LDI r20, BUF
 STRO r20, "Version"
-LDI r2, 24
-LDI r0, 36
-LDI r5, BUF
-LDI r13, 0x8888CC
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 24
+LDI r7, 36
+LDI r0, BUF
+LDI r4, 0x8888CC
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 LDI r20, BUF
 STRO r20, "v1.0.0"
-LDI r2, 140
-LDI r0, 36
-LDI r5, BUF
-LDI r13, 0xFFFFFF
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 140
+LDI r7, 36
+LDI r0, BUF
+LDI r4, 0xFFFFFF
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; -- Opcodes --
 LDI r20, BUF
 STRO r20, "Opcodes"
-LDI r2, 24
-LDI r0, 54
-LDI r5, BUF
-LDI r13, 0x8888CC
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 24
+LDI r7, 54
+LDI r0, BUF
+LDI r4, 0x8888CC
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 LDI r20, BUF
 STRO r20, "113"
-LDI r2, 140
-LDI r0, 54
-LDI r5, BUF
-LDI r13, 0xFFFFFF
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 140
+LDI r7, 54
+LDI r0, BUF
+LDI r4, 0xFFFFFF
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; -- Registers --
 LDI r20, BUF
 STRO r20, "Registers"
-LDI r2, 24
-LDI r0, 72
-LDI r5, BUF
-LDI r13, 0x8888CC
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 24
+LDI r7, 72
+LDI r0, BUF
+LDI r4, 0x8888CC
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 LDI r20, BUF
-STRO r20, "32 (r8-r31)"
-LDI r2, 140
-LDI r0, 72
-LDI r5, BUF
-LDI r13, 0xFFFFFF
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+STRO r20, "32 (r3-r31)"
+LDI r9, 140
+LDI r7, 72
+LDI r0, BUF
+LDI r4, 0xFFFFFF
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; -- RAM --
 LDI r20, BUF
 STRO r20, "RAM"
-LDI r2, 24
-LDI r0, 90
-LDI r5, BUF
-LDI r13, 0x8888CC
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 24
+LDI r7, 90
+LDI r0, BUF
+LDI r4, 0x8888CC
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 LDI r20, BUF
 STRO r20, "65536 x u32 (64K)"
-LDI r2, 140
-LDI r0, 90
-LDI r5, BUF
-LDI r13, 0xFFFFFF
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 140
+LDI r7, 90
+LDI r0, BUF
+LDI r4, 0xFFFFFF
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; -- Screen --
 LDI r20, BUF
 STRO r20, "Screen"
-LDI r2, 24
-LDI r0, 108
-LDI r5, BUF
-LDI r13, 0x8888CC
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 24
+LDI r7, 108
+LDI r0, BUF
+LDI r4, 0x8888CC
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 LDI r20, BUF
 STRO r20, "256 x 256 pixels"
-LDI r2, 140
-LDI r0, 108
-LDI r5, BUF
-LDI r13, 0xFFFFFF
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 140
+LDI r7, 108
+LDI r0, BUF
+LDI r4, 0xFFFFFF
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; -- Colors --
 LDI r20, BUF
 STRO r20, "Colors"
-LDI r2, 24
-LDI r0, 126
-LDI r5, BUF
-LDI r13, 0x8888CC
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 24
+LDI r7, 126
+LDI r0, BUF
+LDI r4, 0x8888CC
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 LDI r20, BUF
 STRO r20, "24-bit RGB (16M)"
-LDI r2, 140
-LDI r0, 126
-LDI r5, BUF
-LDI r13, 0xFFFFFF
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 140
+LDI r7, 126
+LDI r0, BUF
+LDI r4, 0xFFFFFF
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; -- Uptime (read TICKS and display) --
 LDI r20, BUF
 STRO r20, "Uptime"
-LDI r2, 24
-LDI r0, 144
-LDI r5, BUF
-LDI r13, 0x8888CC
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 24
+LDI r7, 144
+LDI r0, BUF
+LDI r4, 0x8888CC
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; Read TICKS counter
 LDI r20, TICKS
-LOAD r10, r20            ; r10 = frame count
+LOAD r11, r20            ; r11 = frame count
 
 ; Convert to decimal string
 LDI r20, NUMBUF
 CALL int_to_str
 
-LDI r2, 140
-LDI r0, 144
-LDI r5, NUMBUF
-LDI r13, 0x44FF44
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 140
+LDI r7, 144
+LDI r0, NUMBUF
+LDI r4, 0x44FF44
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; Append " frames"
 LDI r20, BUF
 STRO r20, " frames"
-LDI r2, 180
-LDI r0, 144
-LDI r5, BUF
-LDI r13, 0x44FF44
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 180
+LDI r7, 144
+LDI r0, BUF
+LDI r4, 0x44FF44
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; =========================================
 ; Separator line
 ; =========================================
-LDI r2, 24
-LDI r0, 168
-LDI r5, 208
-LDI r13, 1
-LDI r9, 0x333366
-RECTF r2, r0, r5, r13, r9
+LDI r9, 24
+LDI r7, 168
+LDI r0, 208
+LDI r4, 1
+LDI r5, 0x333366
+RECTF r9, r7, r0, r4, r5
 
 ; =========================================
 ; Footer text
 ; =========================================
 LDI r20, BUF
 STRO r20, "Geometry OS -- Pixel VM"
-LDI r2, 48
-LDI r0, 174
-LDI r5, BUF
-LDI r13, 0x6666AA
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 48
+LDI r7, 174
+LDI r0, BUF
+LDI r4, 0x6666AA
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 LDI r20, BUF
 STRO r20, "github.com/tdw419/geometry-os"
-LDI r2, 36
-LDI r0, 188
-LDI r5, BUF
-LDI r13, 0x4488BB
-LDI r9, 0x141428
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 36
+LDI r7, 188
+LDI r0, BUF
+LDI r4, 0x4488BB
+LDI r5, 0x141428
+DRAWTEXT r9, r7, r0, r4, r5
 
 ; =========================================
 ; Color palette bar (bottom decoration)
 ; =========================================
-LDI r2, 0
-LDI r0, 218
-LDI r5, 256
-LDI r13, 38
-LDI r9, 0x0A0A1A
-RECTF r2, r0, r5, r13, r9
+LDI r9, 0
+LDI r7, 218
+LDI r0, 256
+LDI r4, 38
+LDI r5, 0x0A0A1A
+RECTF r9, r7, r0, r4, r5
 
 ; Draw 15 color squares
-LDI r7, 8       ; x start
-LDI r6, 226    ; y
-LDI r14, 0      ; index
-LDI r3, 15     ; count
+LDI r8, 8       ; x start
+LDI r2, 226    ; y
+LDI r1, 0      ; index
+LDI r13, 15     ; count
 
 pal_loop:
     ; Load color from palette table
     LDI r20, PAL
-    ADD r20, r14
+    ADD r20, r1
     LOAD r22, r20
 
     ; Draw square
-    MOV r2, r7
-    MOV r0, r6
-    LDI r5, 14
-    LDI r13, 14
-    MOV r9, r22
-    RECTF r2, r0, r5, r13, r9
+    MOV r9, r8
+    MOV r7, r2
+    LDI r0, 14
+    LDI r4, 14
+    MOV r5, r22
+    RECTF r9, r7, r0, r4, r5
 
     ; Advance x
-    LDI r10, 16
-    ADD r7, r10
+    LDI r11, 16
+    ADD r8, r11
 
     ; Next index
-    LDI r10, 1
-    ADD r14, r10
+    LDI r11, 1
+    ADD r1, r11
 
     ; Check if done
-    CMP r14, r3
-    BLT r8, pal_loop
+    CMP r1, r13
+    BLT r3, pal_loop
 
 ; Palette label
 LDI r20, BUF
 STRO r20, "Color Palette"
-LDI r2, 80
-LDI r0, 244
-LDI r5, BUF
-LDI r13, 0x666688
-LDI r9, 0x0A0A1A
-DRAWTEXT r2, r0, r5, r13, r9
+LDI r9, 80
+LDI r7, 244
+LDI r0, BUF
+LDI r4, 0x666688
+LDI r5, 0x0A0A1A
+DRAWTEXT r9, r7, r0, r4, r5
 
 HALT
 
 ; =========================================
 ; int_to_str subroutine
-; Converts r10 (u32) to decimal string at r20
-; Destroys r10-r19. Returns string null-terminated.
+; Converts r11 (u32) to decimal string at r20
+; Destroys r11-r19. Returns string null-terminated.
 ; =========================================
 int_to_str:
     PUSH r31
     LDI r16, 0          ; digit count
 
     ; Check if zero
-    JZ r10, its_zero
+    JZ r11, its_zero
 
     ; Extract digits in reverse onto stack
 its_loop:
-    MOV r18, r10
+    MOV r18, r11
     LDI r17, 10
-    MOD r18, r17        ; r18 = digit (r10 % 10)
+    MOD r18, r17        ; r18 = digit (r11 % 10)
     LDI r19, 48
     ADD r18, r19        ; ASCII '0' + digit
     PUSH r18             ; save digit
     LDI r17, 10
-    DIV r10, r17        ; r10 = r10 / 10
+    DIV r11, r17        ; r11 = r11 / 10
     LDI r19, 1
     ADD r16, r19        ; digit count++
-    JNZ r10, its_loop
+    JNZ r11, its_loop
 
     ; Pop digits into buffer in correct order
 its_write:

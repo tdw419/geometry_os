@@ -1,15 +1,15 @@
-; DESCRIPTION: This GeOS assembly code tests the safety of registers during operations like INC (increment) and DEC (decrement). It initializes specific values in registers `r2` and `r5`, sets a variable `score` to 100 using the SET instruction, increments `score` by one, decrements it back to 100, and finally halts while ensuring that the original values in `r2` and `r5` remain unchanged.
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ; preprocessor_advanced_test.asm
 ; Test register safety and INC/DEC
 
 VAR score 0x4000
 
-; Set r2 and r5 to specific values
-LDI r2, 0x1234
-LDI r5, 0x5678
+; Set r6 and r7 to specific values
+LDI r6, 0x1234
+LDI r7, 0x5678
 
-; Use SET - should use r28/r29, not r2/r5
+; Use SET - should use r28/r29, not r6/r7
 SET score, 100
 
 ; Use INC
@@ -20,8 +20,8 @@ INC score
 DEC score
 ; score should be back to 100
 
-; Verify r2 and r5 are untouched
-; r2 should be 0x1234, r5 should be 0x5678
+; Verify r6 and r7 are untouched
+; r6 should be 0x1234, r7 should be 0x5678
 GET r0, score
 
 HALT

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates timeline forking by drawing a blue gradient on the top rows of the screen. After saving a snapshot, it checks the snapshot count to distinguish between two timelines: one that draws red and restores to the original state, and another that draws green and halts. The snapshots vector survives across forks, allowing the program to track which timeline is executing.
+; DESCRIPTION: Draws a red line at the screen with fixed size.
 
 ; fork_demo.asm -- Phase 38d: Timeline Forking Demo
 ;
@@ -13,37 +13,37 @@
 ;     timeline 2: draw green, wait, halt
 
     ; --- Draw blue gradient on top rows (0..199) ---
-    LDI r6, 0
+    LDI r4, 0
 .draw_blue:
-    LDI r11, 200
-    CMP r6, r11
-    BGE r3, .blue_done
-    LDI r13, 0
+    LDI r14, 200
+    CMP r4, r14
+    BGE r11, .blue_done
+    LDI r1, 0
 .draw_blue_x:
-    LDI r12, 256
-    CMP r13, r12
-    BGE r3, .blue_next
-    MOV r14, r6
-    SHLI r14, 16
-    ORI r14, 0xFF000000
-    PSET r13, r6, r14
-    ADDI r13, 1
+    LDI r8, 256
+    CMP r1, r8
+    BGE r11, .blue_next
+    MOV r10, r4
+    SHLI r10, 16
+    ORI r10, 0xFF000000
+    PSET r1, r4, r10
+    ADDI r1, 1
     JMP .draw_blue_x
 .blue_next:
-    ADDI r6, 1
+    ADDI r4, 1
     JMP .draw_blue
 .blue_done:
 
     ; --- Save snapshot ---
     ; This is the FORK POINT. After restore, execution resumes here.
-    LDI r9, 0             ; mode = save
-    FORK r9
-    ; r3 = slot index
+    LDI r15, 0             ; mode = save
+    FORK r15
+    ; r11 = slot index
     ; After restore from this snapshot, PC = right here.
 
     ; --- Which timeline? Check snapshot count ---
-    LDI r9, 2             ; mode = list count
-    FORK r9
+    LDI r15, 2             ; mode = list count
+    FORK r15
     ; Timeline 1: count = 1 (just saved our first snapshot)
     ; Timeline 2: count = 1 (snapshot from timeline 1 survived restore)
     ; ... damn, both return 1.
@@ -54,81 +54,81 @@
     ; timeline 1 is still there. So count goes to 2 on timeline 2.
     ; That's how we distinguish!
 
-    LDI r12, 2
-    CMP r3, r12
-    JZ r3, timeline2      ; count >= 2: we're on timeline 2
+    LDI r8, 2
+    CMP r11, r8
+    JZ r11, timeline2      ; count >= 2: we're on timeline 2
 
     ; --- TIMELINE 1: Draw red, wait, restore ---
 
     ; Draw red on bottom (200..255)
-    LDI r14, 0xFFFF0000
-    LDI r6, 200
+    LDI r10, 0xFFFF0000
+    LDI r4, 200
 .draw_red:
-    LDI r11, 256
-    CMP r6, r11
-    BGE r3, .red_done
-    LDI r13, 0
+    LDI r14, 256
+    CMP r4, r14
+    BGE r11, .red_done
+    LDI r1, 0
 .draw_red_x:
-    LDI r12, 256
-    CMP r13, r12
-    BGE r3, .red_next
-    PSET r13, r6, r14
-    ADDI r13, 1
+    LDI r8, 256
+    CMP r1, r8
+    BGE r11, .red_next
+    PSET r1, r4, r10
+    ADDI r1, 1
     JMP .draw_red_x
 .red_next:
-    ADDI r6, 1
+    ADDI r4, 1
     JMP .draw_red
 .red_done:
 
     ; Wait 30 frames to show the red
-    LDI r12, 30
+    LDI r8, 30
     CALL wait_frames
 
     ; Restore snapshot (blue-only state)
     ; After restore: PC = right after the save. Count is still 1 (from T1).
     ; Save runs again -> count becomes 2. List returns 2 -> timeline 2.
-    LDI r9, 1             ; mode = restore
-    LDI r13, 0             ; slot 0
-    FORK r9
+    LDI r15, 1             ; mode = restore
+    LDI r1, 0             ; slot 0
+    FORK r15
 
     HALT                   ; unreachable
 
 timeline2:
     ; --- TIMELINE 2: Draw green on bottom ---
-    LDI r14, 0xFF00FF00
-    LDI r6, 200
+    LDI r10, 0xFF00FF00
+    LDI r4, 200
 .draw_green:
-    LDI r11, 256
-    CMP r6, r11
-    BGE r3, .green_done
-    LDI r13, 0
+    LDI r14, 256
+    CMP r4, r14
+    BGE r11, .green_done
+    LDI r1, 0
 .draw_green_x:
-    LDI r12, 256
-    CMP r13, r12
-    BGE r3, .green_next
-    PSET r13, r6, r14
-    ADDI r13, 1
+    LDI r8, 256
+    CMP r1, r8
+    BGE r11, .green_next
+    PSET r1, r4, r10
+    ADDI r1, 1
     JMP .draw_green_x
 .green_next:
-    ADDI r6, 1
+    ADDI r4, 1
     JMP .draw_green
 .green_done:
 
     ; Show alternate timeline
-    LDI r12, 60
+    LDI r8, 60
     CALL wait_frames
     HALT
 
 ; --- Subroutines ---
 
-; wait_frames: wait for r12 FRAME opcodes
+; wait_frames: wait for r8 FRAME opcodes
 wait_frames:
-    PUSH r12
+    PUSH r8
 .wait_loop:
     FRAME
-    SUBI r12, 1
-    JZ r12, .wait_done
+    SUBI r8, 1
+    JZ r8, .wait_done
     JMP .wait_loop
 .wait_done:
-    POP r12
+    POP r8
     RET

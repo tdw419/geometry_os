@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a scrolling fire animation by repeatedly scrolling the screen up by one pixel and drawing a new row of embers at y=254 with varying brightness and color. The ember's brightness is calculated based on its x-position and a frame counter, and it skips drawing if below a certain threshold, creating a dynamic and flickering flame effect.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; fire.asm -- scrolling fire animation using SCROLL + FRAME
 ;
@@ -7,50 +7,50 @@
 ;   2. Draw a new ember row at y=254 with position-varied orange/red
 ;   3. FRAME -- display this state and continue
 ;
-; r7 = x counter  r9 = y (254)  r15 = frame counter
-; r6 = scroll amt  r3 = 256
+; r11 = x counter  r6 = y (254)  r15 = frame counter
+; r7 = scroll amt  r9 = 256
 
-LDI r9, 254
-LDI r6, 1
-LDI r3, 256
+LDI r6, 254
+LDI r7, 1
+LDI r9, 256
 
 frame_loop:
-  SCROLL r6
+  SCROLL r7
 
-  LDI r7, 0
+  LDI r11, 0
 
 ember_loop:
   ; brightness = (x * 7 + frame) & 0xFF
-  LDI r14, 7
-  MUL r14, r7
-  ADD r14, r15
-  LDI r4, 0xFF
-  AND r14, r4
+  LDI r12, 7
+  MUL r12, r11
+  ADD r12, r15
+  LDI r3, 0xFF
+  AND r12, r3
 
   ; threshold: skip if brightness < 64
-  LDI r4, 64
-  CMP r14, r4
-  BLT r8, next_x
+  LDI r3, 64
+  CMP r12, r3
+  BLT r0, next_x
 
   ; green = brightness >> 1, red = 0xFF
-  LDI r4, 2
-  DIV r14, r4
-  LDI r4, 8
-  SHL r14, r4
-  LDI r4, 0xFF0000
-  OR r14, r4
+  LDI r3, 2
+  DIV r12, r3
+  LDI r3, 8
+  SHL r12, r3
+  LDI r3, 0xFF0000
+  OR r12, r3
 
-  PSET r7, r9, r14
+  PSET r11, r6, r12
 
 next_x:
-  LDI r4, 1
-  ADD r7, r4
-  CMP r7, r3
-  JZ r8, end_row
+  LDI r3, 1
+  ADD r11, r3
+  CMP r11, r9
+  JZ r0, end_row
   JMP ember_loop
 
 end_row:
-  LDI r4, 1
-  ADD r15, r4
+  LDI r3, 1
+  ADD r15, r3
   FRAME
   JMP frame_loop

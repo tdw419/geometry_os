@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a display with a dark blue title bar labeled "Alpine Linux Live Tile" and green borders around the terminal area. It provides usage instructions for hypervisor commands such as `hypervisor_boot`, `hypervisor_status`, and others, rendered in text at specific coordinates on the screen.
+; DESCRIPTION: Draw object: pos=the screen, color=red, size=fixed size.
 
 ; alpine_tile.asm -- Alpine Linux Live Tile (Phase 123)
 ;
@@ -14,48 +14,48 @@
 ;   hypervisor_kill                     (clean up)
 
 ; Title bar
-LDI r15, 0x000033   ; dark blue
-LDI r5, 0
-LDI r4, 0
-LDI r13, 256
-LDI r6, 16
-RECTF r5, r4, r13, r6, r15
+LDI r11, 0x000033   ; dark blue
+LDI r3, 0
+LDI r15, 0
+LDI r10, 256
+LDI r4, 16
+RECTF r3, r15, r10, r4, r11
 
 ; Title text
-LDI r11, 0x3000
-STRO r11, "Alpine Linux Live Tile"
-LDI r7, 3
+LDI r6, 0x3000
+STRO r6, "Alpine Linux Live Tile"
+LDI r12, 3
 LDI r16, 4
-TEXT r7, r16, r11
+TEXT r12, r16, r6
 
 ; Status text
-LDI r11, 0x3100
-STRO r11, "Use: hypervisor_boot"
-LDI r7, 2
+LDI r6, 0x3100
+STRO r6, "Use: hypervisor_boot"
+LDI r12, 2
 LDI r16, 20
-TEXT r7, r16, r11
+TEXT r12, r16, r6
 
-LDI r11, 0x3200
-STRO r11, "Status: hypervisor_status"
-LDI r7, 2
+LDI r6, 0x3200
+STRO r6, "Status: hypervisor_status"
+LDI r12, 2
 LDI r16, 28
-TEXT r7, r16, r11
+TEXT r12, r16, r6
 
 ; Draw a frame around the terminal area
-LDI r15, 0x00FF00   ; green frame
-LDI r5, 0
-LDI r4, 16
-LDI r13, 256
-LDI r6, 1
-RECTF r5, r4, r13, r6, r15  ; top border
-LDI r4, 255
-RECTF r5, r4, r13, r6, r15  ; bottom border
-LDI r5, 0
-LDI r4, 16
-LDI r13, 1
-LDI r6, 240
-RECTF r5, r4, r13, r6, r15  ; left border
-LDI r5, 255
-RECTF r5, r4, r13, r6, r15  ; right border
+LDI r11, 0x00FF00   ; green frame
+LDI r3, 0
+LDI r15, 16
+LDI r10, 256
+LDI r4, 1
+RECTF r3, r15, r10, r4, r11  ; top border
+LDI r15, 255
+RECTF r3, r15, r10, r4, r11  ; bottom border
+LDI r3, 0
+LDI r15, 16
+LDI r10, 1
+LDI r4, 240
+RECTF r3, r15, r10, r4, r11  ; left border
+LDI r3, 255
+RECTF r3, r15, r10, r4, r11  ; right border
 
 HALT

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code draws a colorful 4x4 checkerboard pattern in the top-left corner of the screen. It then copies a 16x16 region from the top-left to the clipboard and pastes it at three different locations on the screen, demonstrating pixel sharing. Additionally, it renders the text "CLIP" at the top and draws a green border around the original pattern.
+; DESCRIPTION: Geometry OS program to draw a green object.
 
 ; clip_pixel_demo.asm -- Phase 204: CLIP_COPY/CLIP_PASTE opcode demo
 ;
@@ -13,105 +13,105 @@
 ;   Pastes clipboard contents at (x, y) on screen
 
 ; --- Draw a colorful 4x4 checkerboard pattern in the top-left ---
-LDI r9, 1
-LDI r15, 0             ; x counter
-LDI r3, 0             ; y counter
-LDI r4, 4             ; tile size (4x4 pixels per tile)
-LDI r8, 8             ; 8x8 tiles = 32x32 pixel pattern
+LDI r4, 1
+LDI r3, 0             ; x counter
+LDI r8, 0             ; y counter
+LDI r6, 4             ; tile size (4x4 pixels per tile)
+LDI r9, 8             ; 8x8 tiles = 32x32 pixel pattern
 LDI r20, 0             ; loop y counter
 
 draw_pattern:
-  LDI r15, 0           ; reset x counter
+  LDI r3, 0           ; reset x counter
 
 draw_row:
   ; Compute color based on tile position
   ; XOR x/4 and y/4 to get checkerboard
-  MOV r6, r15
+  MOV r5, r3
   LDI r16, 2
-  SHR r6, r16          ; r6 = x / 4
+  SHR r5, r16          ; r5 = x / 4
   MOV r17, r20
   SHR r17, r16          ; r17 = y / 4
-  XOR r6, r17          ; r6 = (x/4) XOR (y/4)
+  XOR r5, r17          ; r5 = (x/4) XOR (y/4)
 
-  ; r6=0 -> red, r6!=0 -> blue
+  ; r5=0 -> red, r5!=0 -> blue
   LDI r16, 0xFF0000     ; red
-  JZ r6, set_color
+  JZ r5, set_color
   LDI r16, 0x0000FF     ; blue
 
 set_color:
-  PSET r15, r20, r16    ; draw pixel
+  PSET r3, r20, r16    ; draw pixel
 
-  ADD r15, r9           ; x++
-  CMP r15, r8
+  ADD r3, r4           ; x++
+  CMP r3, r9
   BLT r10, draw_row      ; if x < 32, continue row
 
-  ADD r20, r9           ; y++
-  CMP r20, r8
+  ADD r20, r4           ; y++
+  CMP r20, r9
   BLT r10, draw_pattern  ; if y < 32, continue
 
 ; --- Now copy a 16x16 region from (0,0) to clipboard ---
-LDI r5, 0              ; x = 0
-LDI r13, 0              ; y = 0
-LDI r7, 16             ; w = 16
+LDI r7, 0              ; x = 0
+LDI r2, 0              ; y = 0
+LDI r11, 16             ; w = 16
 LDI r14, 16             ; h = 16
-CLIP_COPY r5, r13, r7, r14
+CLIP_COPY r7, r2, r11, r14
 
 ; --- Paste it at 3 different locations ---
 ; Paste 1: offset (40, 10)
-LDI r2, 40
-LDI r12, 10
-CLIP_PASTE r2, r12
+LDI r12, 40
+LDI r13, 10
+CLIP_PASTE r12, r13
 
 ; Paste 2: offset (100, 50)
-LDI r2, 100
-LDI r12, 50
-CLIP_PASTE r2, r12
+LDI r12, 100
+LDI r13, 50
+CLIP_PASTE r12, r13
 
 ; Paste 3: offset (200, 120) -- near bottom-right edge
-LDI r2, 200
-LDI r12, 120
-CLIP_PASTE r2, r12
+LDI r12, 200
+LDI r13, 120
+CLIP_PASTE r12, r13
 
 ; --- Draw a label: "CLIP" text at the top ---
 ; Store "CLIP" string at 0x2000
-LDI r6, 0x2000
+LDI r5, 0x2000
 LDI r16, 67             ; 'C'
-STORE r6, r16
-ADD r6, r9
+STORE r5, r16
+ADD r5, r4
 LDI r16, 76             ; 'L'
-STORE r6, r16
-ADD r6, r9
+STORE r5, r16
+ADD r5, r4
 LDI r16, 73             ; 'I'
-STORE r6, r16
-ADD r6, r9
+STORE r5, r16
+ADD r5, r4
 LDI r16, 80             ; 'P'
-STORE r6, r16
+STORE r5, r16
 
 ; Render text at (4, 40) with white color
-LDI r3, 0x2000         ; text address
-LDI r4, 4              ; x = 4
-LDI r1, 40             ; y = 40
-LDI r8, 0xFFFFFF       ; white
-TEXT r4, r1, r3
+LDI r8, 0x2000         ; text address
+LDI r6, 4              ; x = 4
+LDI r0, 40             ; y = 40
+LDI r9, 0xFFFFFF       ; white
+TEXT r6, r0, r8
 
 ; --- Draw green border around original pattern ---
-LDI r5, 0xFF0000
-LDI r15, 0
+LDI r7, 0xFF0000
 LDI r3, 0
-LDI r4, 32
-LDI r1, 2
-LDI r8, 32
-LDI r6, 0x00FF00       ; green border
+LDI r8, 0
+LDI r6, 32
+LDI r0, 2
+LDI r9, 32
+LDI r5, 0x00FF00       ; green border
 
-RECTF r15, r3, r4, r1, r6     ; top border
-LDI r3, 30
-RECTF r15, r3, r4, r1, r6     ; bottom border
-LDI r15, 0
+RECTF r3, r8, r6, r0, r5     ; top border
+LDI r8, 30
+RECTF r3, r8, r6, r0, r5     ; bottom border
 LDI r3, 0
-LDI r4, 2
-LDI r1, 32
-RECTF r15, r3, r4, r1, r6     ; left border
-LDI r15, 30
-RECTF r15, r3, r4, r1, r6     ; right border
+LDI r8, 0
+LDI r6, 2
+LDI r0, 32
+RECTF r3, r8, r6, r0, r5     ; left border
+LDI r3, 30
+RECTF r3, r8, r6, r0, r5     ; right border
 
 HALT

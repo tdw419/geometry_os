@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code draws a red/blue checkerboard and a green gradient strip on the screen, copies these patterns to the clipboard using `CLIP_COPY`, and then pastes them at different locations using `CLIP_PASTE`. The demonstration showcases cross-region pixel sharing between programs.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; clipboard_pixel_demo.asm -- Phase 204: Pixel Clipboard Demo
 ;
@@ -12,94 +12,94 @@
 
 ; --- Draw a 4x4 checkerboard at (10, 10) ---
 LDI r4, 1              ; constant 1 for increments
-LDI r15, 0xFF0000       ; red
+LDI r11, 0xFF0000       ; red
 LDI r5, 0x0000FF       ; blue
-LDI r0, 10            ; x
-LDI r7, 10            ; y
-LDI r1, 0             ; col
-LDI r10, 0             ; row
-LDI r6, 4             ; width
-LDI r14, 4             ; height
+LDI r6, 10            ; x
+LDI r2, 10            ; y
+LDI r12, 0             ; col
+LDI r15, 0             ; row
+LDI r14, 4             ; width
+LDI r13, 4             ; height
 
 draw_checker:
   ; Determine color: if (row + col) is odd, use blue, else red
-  MOV r20, r1
-  ADD r20, r10
+  MOV r20, r12
+  ADD r20, r15
   LDI r21, 1
   AND r20, r21
   JZ r20, use_red
-  PSET r0, r7, r5
+  PSET r6, r2, r5
   JMP next_cell
 use_red:
-  PSET r0, r7, r15
+  PSET r6, r2, r11
 next_cell:
-  ADD r0, r4          ; x++
-  ADD r1, r4          ; col++
+  ADD r6, r4          ; x++
+  ADD r12, r4          ; col++
   LDI r20, 4
-  CMP r1, r20
-  BLT r2, same_row
-  LDI r0, 10
-  LDI r1, 0
-  ADD r7, r4          ; y++
-  ADD r10, r4          ; row++
+  CMP r12, r20
+  BLT r10, same_row
+  LDI r6, 10
+  LDI r12, 0
+  ADD r2, r4          ; y++
+  ADD r15, r4          ; row++
 same_row:
   LDI r20, 4
-  CMP r10, r20
-  BLT r2, draw_checker
+  CMP r15, r20
+  BLT r10, draw_checker
 
 ; --- Copy the 4x4 checkerboard to clipboard ---
-LDI r15, 10            ; x
+LDI r11, 10            ; x
 LDI r5, 10            ; y
-LDI r13, 4             ; w
-LDI r9, 4             ; h
-CLIP_COPY r15, r5, r13, r9
+LDI r8, 4             ; w
+LDI r7, 4             ; h
+CLIP_COPY r11, r5, r8, r7
 
 ; --- Paste it at (130, 130) ---
-LDI r11, 130
-LDI r8, 130
-CLIP_PASTE r11, r8
+LDI r1, 130
+LDI r9, 130
+CLIP_PASTE r1, r9
 
 ; --- Draw a horizontal green gradient strip at (10, 50) ---
 ; 8 pixels: brightness increases from 0x001000 to 0x080000
-LDI r0, 10            ; x
-LDI r7, 50            ; y
-LDI r1, 0             ; col index
+LDI r6, 10            ; x
+LDI r2, 50            ; y
+LDI r12, 0             ; col index
 LDI r20, 0x001000      ; base green step
 
 draw_gradient:
   MOV r21, r20         ; color = base * (col+1)
-  ADD r21, r1
-  PSET r0, r7, r21
-  ADD r0, r4          ; x++
-  ADD r1, r4          ; col++
-  LDI r10, 8
-  CMP r1, r10
-  BLT r2, draw_gradient
+  ADD r21, r12
+  PSET r6, r2, r21
+  ADD r6, r4          ; x++
+  ADD r12, r4          ; col++
+  LDI r15, 8
+  CMP r12, r15
+  BLT r10, draw_gradient
 
 ; --- Copy the gradient strip ---
-LDI r15, 10            ; x
+LDI r11, 10            ; x
 LDI r5, 50            ; y
-LDI r13, 8             ; w
-LDI r9, 1             ; h
-CLIP_COPY r15, r5, r13, r9
+LDI r8, 8             ; w
+LDI r7, 1             ; h
+CLIP_COPY r11, r5, r8, r7
 
 ; --- Paste gradient at (10, 70) ---
-LDI r11, 10
-LDI r8, 70
-CLIP_PASTE r11, r8
+LDI r1, 10
+LDI r9, 70
+CLIP_PASTE r1, r9
 
 ; --- Paste same gradient at (10, 90) ---
-LDI r8, 90
-CLIP_PASTE r11, r8
+LDI r9, 90
+CLIP_PASTE r1, r9
 
 ; --- Copy checkerboard again and paste at (50, 130) ---
-LDI r15, 10
+LDI r11, 10
 LDI r5, 10
-LDI r13, 4
-LDI r9, 4
-CLIP_COPY r15, r5, r13, r9
-LDI r11, 50
-LDI r8, 130
-CLIP_PASTE r11, r8
+LDI r8, 4
+LDI r7, 4
+CLIP_COPY r11, r5, r8, r7
+LDI r1, 50
+LDI r9, 130
+CLIP_PASTE r1, r9
 
 HALT

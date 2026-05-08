@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a batch neural network inference for an XOR problem using matrix multiplication (MATMUL). It processes four XOR inputs simultaneously in batches, computes the hidden layer with ReLU activation, and outputs predictions, displaying them on screen with visual feedback indicating correctness.
+; DESCRIPTION: Geometry OS program to draw a red rectangle.
 
 ; neural_network.asm -- Batch Neural Network Inference using MATMUL
 ; Phase 260: Demonstrates MATMUL opcode for 2-layer XOR network
@@ -27,120 +27,120 @@
 
 ; === Load Input Batch (4x2 matrix, all XOR combinations) ===
 ; Row 0: [0, 0] -> expected 0
-LDI r0, 0
-LDI r6, 0x2000
-STORE r6, r0
-LDI r6, 0x2001
-STORE r6, r0
+LDI r10, 0
+LDI r8, 0x2000
+STORE r8, r10
+LDI r8, 0x2001
+STORE r8, r10
 ; Row 1: [0, 1] -> expected 1
-LDI r0, 0
-LDI r6, 0x2002
-STORE r6, r0
-LDI r0, 0x00010000
-LDI r6, 0x2003
-STORE r6, r0
+LDI r10, 0
+LDI r8, 0x2002
+STORE r8, r10
+LDI r10, 0x00010000
+LDI r8, 0x2003
+STORE r8, r10
 ; Row 2: [1, 0] -> expected 1
-LDI r0, 0x00010000
-LDI r6, 0x2004
-STORE r6, r0
-LDI r0, 0
-LDI r6, 0x2005
-STORE r6, r0
+LDI r10, 0x00010000
+LDI r8, 0x2004
+STORE r8, r10
+LDI r10, 0
+LDI r8, 0x2005
+STORE r8, r10
 ; Row 3: [1, 1] -> expected 0
-LDI r0, 0x00010000
-LDI r6, 0x2006
-STORE r6, r0
-LDI r6, 0x2007
-STORE r6, r0
+LDI r10, 0x00010000
+LDI r8, 0x2006
+STORE r8, r10
+LDI r8, 0x2007
+STORE r8, r10
 
 ; === Load Layer 1 Weights (4x2) ===
 ; Same weights as nn_demo.asm
-LDI r0, 0x00006F34
-LDI r6, 0x2020
-STORE r6, r0
-LDI r0, 0xFFFFF315
-LDI r6, 0x2021
-STORE r6, r0
-LDI r0, 0xFFFFDC9B
-LDI r6, 0x2022
-STORE r6, r0
-LDI r0, 0xFFFFC410
-LDI r6, 0x2023
-STORE r6, r0
-LDI r0, 0x00014EB5
-LDI r6, 0x2024
-STORE r6, r0
-LDI r0, 0x00014BF9
-LDI r6, 0x2025
-STORE r6, r0
-LDI r0, 0x00014D00
-LDI r6, 0x2026
-STORE r6, r0
-LDI r0, 0x0001434E
-LDI r6, 0x2027
-STORE r6, r0
+LDI r10, 0x00006F34
+LDI r8, 0x2020
+STORE r8, r10
+LDI r10, 0xFFFFF315
+LDI r8, 0x2021
+STORE r8, r10
+LDI r10, 0xFFFFDC9B
+LDI r8, 0x2022
+STORE r8, r10
+LDI r10, 0xFFFFC410
+LDI r8, 0x2023
+STORE r8, r10
+LDI r10, 0x00014EB5
+LDI r8, 0x2024
+STORE r8, r10
+LDI r10, 0x00014BF9
+LDI r8, 0x2025
+STORE r8, r10
+LDI r10, 0x00014D00
+LDI r8, 0x2026
+STORE r8, r10
+LDI r10, 0x0001434E
+LDI r8, 0x2027
+STORE r8, r10
 
 ; === Load Layer 1 Bias (4) ===
-LDI r0, 0xFFFFF00B
-LDI r6, 0x2080
-STORE r6, r0
-LDI r0, 0x00000000
-LDI r6, 0x2081
-STORE r6, r0
-LDI r0, 0xFFFEB407
-LDI r6, 0x2082
-STORE r6, r0
-LDI r0, 0x00000000
-LDI r6, 0x2083
-STORE r6, r0
+LDI r10, 0xFFFFF00B
+LDI r8, 0x2080
+STORE r8, r10
+LDI r10, 0x00000000
+LDI r8, 0x2081
+STORE r8, r10
+LDI r10, 0xFFFEB407
+LDI r8, 0x2082
+STORE r8, r10
+LDI r10, 0x00000000
+LDI r8, 0x2083
+STORE r8, r10
 
 ; === Load Layer 2 Weights (1x4) ===
-LDI r0, 0xFFFFF6B5
-LDI r6, 0x2200
-STORE r6, r0
-LDI r0, 0x00006237
-LDI r6, 0x2201
-STORE r6, r0
-LDI r0, 0xFFFE74D0
-LDI r6, 0x2202
-STORE r6, r0
-LDI r0, 0x0000CAB5
-LDI r6, 0x2203
-STORE r6, r0
+LDI r10, 0xFFFFF6B5
+LDI r8, 0x2200
+STORE r8, r10
+LDI r10, 0x00006237
+LDI r8, 0x2201
+STORE r8, r10
+LDI r10, 0xFFFE74D0
+LDI r8, 0x2202
+STORE r8, r10
+LDI r10, 0x0000CAB5
+LDI r8, 0x2203
+STORE r8, r10
 
 ; === Load Layer 2 Bias ===
-LDI r0, 0x00000000
-LDI r6, 0x2240
-STORE r6, r0
+LDI r10, 0x00000000
+LDI r8, 0x2240
+STORE r8, r10
 
 ; === Clear screen (dark blue background) ===
-LDI r1, 0
-LDI r0, 0
-LDI r13, 256
-LDI r14, 256
-LDI r2, 0x00101828
-RECTF r1, r0, r13, r14, r2
+LDI r15, 0
+LDI r10, 0
+LDI r12, 256
+LDI r4, 256
+LDI r6, 0x00101828
+RECTF r15, r10, r12, r4, r6
 
 ; === Draw title bar ===
-LDI r1, 0
-LDI r0, 10
-LDI r13, 256
-LDI r14, 20
-LDI r2, 0x00224466
-RECTF r1, r0, r13, r14, r2
+LDI r15, 0
+LDI r10, 10
+LDI r12, 256
+LDI r4, 20
+LDI r6, 0x00224466
+RECTF r15, r10, r12, r4, r6
 
 ; Title text: "XOR Neural Network (MATMUL)"
-LDI r0, 0x3000
-STRO r0, "XOR Neural Network"
-LDI r13, 30
-LDI r14, 12
-LDI r0, 0x3000
-TEXT r13, r14, r0
-LDI r0, 0x3000
-STRO r0, "(MATMUL Batch)"
-LDI r13, 100
-LDI r0, 0x3000
-TEXT r13, r14, r0
+LDI r10, 0x3000
+STRO r10, "XOR Neural Network"
+LDI r12, 30
+LDI r4, 12
+LDI r10, 0x3000
+TEXT r12, r4, r10
+LDI r10, 0x3000
+STRO r10, "(MATMUL Batch)"
+LDI r12, 100
+LDI r10, 0x3000
+TEXT r12, r4, r10
 
 ; ============================================
 ; LAYER 1: Batch forward pass using MATMUL
@@ -159,83 +159,83 @@ TEXT r13, r14, r0
 
 ; Build W1_transposed (2x4) from W1 (4x2)
 ; W1_T[0][0] = W1[0][0] = 0x00006F34
-LDI r0, 0x00006F34
-LDI r6, 0x2040
-STORE r6, r0
+LDI r10, 0x00006F34
+LDI r8, 0x2040
+STORE r8, r10
 ; W1_T[0][1] = W1[1][0] = 0xFFFFDC9B
-LDI r0, 0xFFFFDC9B
-LDI r6, 0x2041
-STORE r6, r0
+LDI r10, 0xFFFFDC9B
+LDI r8, 0x2041
+STORE r8, r10
 ; W1_T[0][2] = W1[2][0] = 0x00014EB5
-LDI r0, 0x00014EB5
-LDI r6, 0x2042
-STORE r6, r0
+LDI r10, 0x00014EB5
+LDI r8, 0x2042
+STORE r8, r10
 ; W1_T[0][3] = W1[3][0] = 0x00014D00
-LDI r0, 0x00014D00
-LDI r6, 0x2043
-STORE r6, r0
+LDI r10, 0x00014D00
+LDI r8, 0x2043
+STORE r8, r10
 ; W1_T[1][0] = W1[0][1] = 0xFFFFF315
-LDI r0, 0xFFFFF315
-LDI r6, 0x2044
-STORE r6, r0
+LDI r10, 0xFFFFF315
+LDI r8, 0x2044
+STORE r8, r10
 ; W1_T[1][1] = W1[1][1] = 0xFFFFC410
-LDI r0, 0xFFFFC410
-LDI r6, 0x2045
-STORE r6, r0
+LDI r10, 0xFFFFC410
+LDI r8, 0x2045
+STORE r8, r10
 ; W1_T[1][2] = W1[2][1] = 0x00014BF9
-LDI r0, 0x00014BF9
-LDI r6, 0x2046
-STORE r6, r0
+LDI r10, 0x00014BF9
+LDI r8, 0x2046
+STORE r8, r10
 ; W1_T[1][3] = W1[3][1] = 0x0001434E
-LDI r0, 0x0001434E
-LDI r6, 0x2047
-STORE r6, r0
+LDI r10, 0x0001434E
+LDI r8, 0x2047
+STORE r8, r10
 
 ; MATMUL dst=0x2100, A=0x2000(input 4x2), B=0x2040(W1_T 2x4), M=4, N=4, K=2
-LDI r0, 0x2100
-LDI r13, 0x2000
-LDI r14, 0x2040
-LDI r2, 4
-LDI r5, 4
-LDI r12, 2
-MATMUL r0, r13, r14, r2, r5, r12
+LDI r10, 0x2100
+LDI r12, 0x2000
+LDI r4, 0x2040
+LDI r6, 4
+LDI r0, 4
+LDI r2, 2
+MATMUL r10, r12, r4, r6, r0, r2
 
 ; Add bias and apply RELU to each hidden neuron
 ; Hidden is 4x4 matrix (4 samples, 4 hidden neurons each)
 ; We need to add bias[j] to Hidden[i][j] for all i, then RELU
-LDI r10, 0
+LDI r11, 0
 bias_relu_loop:
-    CMPI r10, 4
-    JZ r1, layer2_batch
-    ; Process row i, column j where j = r10
-    ; For each sample row (0..3)
-    LDI r11, 0
-sample_loop:
     CMPI r11, 4
-    JZ r1, next_bias
+    JZ r15, layer2_batch
+    ; Process row i, column j where j = r11
+    ; For each sample row (0..3)
+    LDI r13, 0
+sample_loop:
+    CMPI r13, 4
+    JZ r15, next_bias
     ; addr = 0x2100 + row*4 + col
-    LDI r7, 0x2100
-    LDI r0, 4
-    MUL r0, r11
-    ADD r7, r0
-    ADD r7, r10
-    LOAD r6, r7
+    LDI r5, 0x2100
+    LDI r10, 4
+    MUL r10, r13
+    ADD r5, r10
+    ADD r5, r11
+    LOAD r8, r5
     ; Add bias[col]
-    LDI r15, 0x2080
-    ADD r15, r10
-    LOAD r3, r15
-    ADD r6, r3
+    LDI r3, 0x2080
+    ADD r3, r11
+    LOAD r1, r3
+    ADD r8, r1
     ; RELU
-    RELU r6
+    RELU r8
     ; Store back
-    STORE r7, r6
+    STORE r5, r8
     ; Next sample row
-    LDI r0, 1
-    ADD r11, r0
+    LDI r10, 1
+    ADD r13, r10
     JMP sample_loop
 next_bias:
-    LDI r0, 1
-    ADD r10, r0
+    LDI r10, 1
+    ADD r11, r10
     JMP bias_relu_loop
 
 ; ============================================
@@ -246,61 +246,61 @@ next_bias:
 ; ============================================
 layer2_batch:
 ; Build W2_transposed (4x1) from W2 (1x4)
-LDI r0, 0xFFFFF6B5
-LDI r6, 0x2220
-STORE r6, r0
-LDI r0, 0x00006237
-LDI r6, 0x2221
-STORE r6, r0
-LDI r0, 0xFFFE74D0
-LDI r6, 0x2222
-STORE r6, r0
-LDI r0, 0x0000CAB5
-LDI r6, 0x2223
-STORE r6, r0
+LDI r10, 0xFFFFF6B5
+LDI r8, 0x2220
+STORE r8, r10
+LDI r10, 0x00006237
+LDI r8, 0x2221
+STORE r8, r10
+LDI r10, 0xFFFE74D0
+LDI r8, 0x2222
+STORE r8, r10
+LDI r10, 0x0000CAB5
+LDI r8, 0x2223
+STORE r8, r10
 
 ; MATMUL dst=0x2300, A=0x2100(hidden 4x4), B=0x2220(W2_T 4x1), M=4, N=1, K=4
-LDI r0, 0x2300
-LDI r13, 0x2100
-LDI r14, 0x2220
+LDI r10, 0x2300
+LDI r12, 0x2100
+LDI r4, 0x2220
+LDI r6, 4
+LDI r0, 1
 LDI r2, 4
-LDI r5, 1
-LDI r12, 4
-MATMUL r0, r13, r14, r2, r5, r12
+MATMUL r10, r12, r4, r6, r0, r2
 
 ; Add output bias to each sample
-LDI r10, 0x2300
-LOAD r11, r10
-LDI r7, 0x2240
-LOAD r6, r7
-ADD r11, r6
-STORE r10, r11
+LDI r11, 0x2300
+LOAD r13, r11
+LDI r5, 0x2240
+LOAD r8, r5
+ADD r13, r8
+STORE r11, r13
 
 ; ============================================
 ; Display results: 4 boxes
 ; ============================================
 ; Expected outputs: [0, 1, 1, 0]
 ; For each sample, check sign of output[i]
-LDI r10, 0
+LDI r11, 0
 
 display_loop:
-    CMPI r10, 4
-    JZ r1, done_display
+    CMPI r11, 4
+    JZ r15, done_display
 
     ; Load output[i]
-    LDI r11, 0x2300
-    ADD r11, r10
-    LOAD r7, r11
+    LDI r13, 0x2300
+    ADD r13, r11
+    LOAD r5, r13
 
     ; Classify: sign bit -> negative=0, positive=1
-    LDI r0, 0x80000000
-    AND r0, r7
-    CMPI r0, 0
-    JNZ r1, pred_zero
+    LDI r10, 0x80000000
+    AND r10, r5
+    CMPI r10, 0
+    JNZ r15, pred_zero
 
     ; Check if exactly zero
-    CMPI r7, 0
-    JZ r1, pred_zero
+    CMPI r5, 0
+    JZ r15, pred_zero
 
     ; Positive -> prediction = 1
     LDI r22, 1
@@ -311,18 +311,18 @@ pred_zero:
 
 check_correct:
     ; Determine expected: sample 0->0, 1->1, 2->1, 3->0
-    CMPI r10, 0
-    JNZ r1, chk1
+    CMPI r11, 0
+    JNZ r15, chk1
     LDI r21, 0
     JMP do_draw
 chk1:
-    CMPI r10, 1
-    JNZ r1, chk2
+    CMPI r11, 1
+    JNZ r15, chk2
     LDI r21, 1
     JMP do_draw
 chk2:
-    CMPI r10, 2
-    JNZ r1, chk3
+    CMPI r11, 2
+    JNZ r15, chk3
     LDI r21, 1
     JMP do_draw
 chk3:
@@ -330,89 +330,89 @@ chk3:
 
 do_draw:
     ; Box position: x = 16 + i*58
-    LDI r0, 58
-    MUL r0, r10
-    LDI r13, 16
-    ADD r0, r13
+    LDI r10, 58
+    MUL r10, r11
+    LDI r12, 16
+    ADD r10, r12
 
     ; Color: green if correct, red if wrong
     SUB r22, r21
     JZ r22, is_correct
-    LDI r2, 0x00CC2222
+    LDI r6, 0x00CC2222
     JMP draw_box
 is_correct:
-    LDI r2, 0x0022CC22
+    LDI r6, 0x0022CC22
 
 draw_box:
     ; Draw result box
-    LDI r13, 80
-    LDI r14, 44
-    LDI r5, 70
-    RECTF r0, r13, r14, r5, r2
+    LDI r12, 80
+    LDI r4, 44
+    LDI r0, 70
+    RECTF r10, r12, r4, r0, r6
 
     ; Draw input label
-    LDI r0, 0x3000
-    CMPI r10, 0
-    JNZ r1, lb1
-    STRO r0, "0,0"
+    LDI r10, 0x3000
+    CMPI r11, 0
+    JNZ r15, lb1
+    STRO r10, "0,0"
     JMP show_label
 lb1:
-    CMPI r10, 1
-    JNZ r1, lb2
-    STRO r0, "0,1"
+    CMPI r11, 1
+    JNZ r15, lb2
+    STRO r10, "0,1"
     JMP show_label
 lb2:
-    CMPI r10, 2
-    JNZ r1, lb3
-    STRO r0, "1,0"
+    CMPI r11, 2
+    JNZ r15, lb3
+    STRO r10, "1,0"
     JMP show_label
 lb3:
-    STRO r0, "1,1"
+    STRO r10, "1,1"
 
 show_label:
-    ; x position for text (already in r7), y=85
-    LDI r0, 0x3000
-    LDI r14, 85
-    TEXT r7, r14, r0
+    ; x position for text (already in r5), y=85
+    LDI r10, 0x3000
+    LDI r4, 85
+    TEXT r5, r4, r10
 
     ; Draw prediction text
-    LDI r0, 0x3000
+    LDI r10, 0x3000
     CMPI r22, 0
-    JNZ r1, show_one
-    STRO r0, "= 0"
+    JNZ r15, show_one
+    STRO r10, "= 0"
     JMP show_pred
 show_one:
-    STRO r0, "= 1"
+    STRO r10, "= 1"
 
 show_pred:
-    LDI r7, 58
-    MUL r7, r10
-    LDI r6, 16
-    ADD r7, r6
-    LDI r6, 2
-    ADD r7, r6
-    LDI r14, 110
-    LDI r0, 0x3000
-    TEXT r7, r14, r0
+    LDI r5, 58
+    MUL r5, r11
+    LDI r8, 16
+    ADD r5, r8
+    LDI r8, 2
+    ADD r5, r8
+    LDI r4, 110
+    LDI r10, 0x3000
+    TEXT r5, r4, r10
 
     ; Next sample
-    LDI r0, 1
-    ADD r10, r0
+    LDI r10, 1
+    ADD r11, r10
     JMP display_loop
 
 done_display:
 ; Draw legend at bottom
-LDI r0, 0x3000
-STRO r0, "Green=correct  Red=wrong"
-LDI r13, 30
-LDI r14, 200
-LDI r0, 0x3000
-TEXT r13, r14, r0
+LDI r10, 0x3000
+STRO r10, "Green=correct  Red=wrong"
+LDI r12, 30
+LDI r4, 200
+LDI r10, 0x3000
+TEXT r12, r4, r10
 
 ; Show frame and wait
 FRAME
 wait:
-    IKEY r1
-    CMPI r1, 0
-    JZ r1, wait
+    IKEY r15
+    CMPI r15, 0
+    JZ r15, wait
     HALT

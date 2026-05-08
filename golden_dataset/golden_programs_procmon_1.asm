@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code in `procmon.asm` serves as a process monitor for the Geometry OS, displaying all running processes with their PID, state, program counter (PC), priority, and memory pages. It provides interactive functionality to scroll through processes using the W/S keys, kill a selected process with K, or quit the application with Q. The code updates every frame by calling NPROC and PROCINFO opcodes to fetch process information and renders it on screen.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; procmon.asm -- Process Monitor for Geometry OS (Phase 140)
 ;
@@ -33,278 +33,278 @@
 
 ; Init
 LDI r30, 0xFD00
-LDI r3, 1
+LDI r2, 1
 
 ; Init selected PID
-LDI r7, 0
+LDI r5, 0
 LDI r20, SEL_PID
-STORE r20, r7
+STORE r20, r5
 
 ; =========================================
 ; Main loop
 ; =========================================
 main_loop:
     ; Clear screen
-    LDI r3, C_BG
-    FILL r3
+    LDI r2, C_BG
+    FILL r2
 
     ; Title bar
-    LDI r3, 0
-    LDI r6, 0
-    LDI r12, 256
-    LDI r11, 20
-    LDI r10, C_TITLE
-    RECTF r3, r6, r12, r11, r10
+    LDI r2, 0
+    LDI r9, 0
+    LDI r11, 256
+    LDI r13, 20
+    LDI r3, C_TITLE
+    RECTF r2, r9, r11, r13, r3
 
     ; Title
     LDI r20, BUF
     STRO r20, "Process Monitor"
-    LDI r3, 56
-    LDI r6, 4
-    LDI r12, BUF
-    LDI r11, C_FG
-    LDI r10, C_TITLE
-    DRAWTEXT r3, r6, r12, r11, r10
+    LDI r2, 56
+    LDI r9, 4
+    LDI r11, BUF
+    LDI r13, C_FG
+    LDI r3, C_TITLE
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Column headers
     LDI r20, BUF
     STRO r20, "PID State  PC    Pri Pg"
-    LDI r3, 4
-    LDI r6, 22
-    LDI r12, BUF
-    LDI r11, C_LABEL
-    LDI r10, 0
-    DRAWTEXT r3, r6, r12, r11, r10
+    LDI r2, 4
+    LDI r9, 22
+    LDI r11, BUF
+    LDI r13, C_LABEL
+    LDI r3, 0
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Separator line
-    LDI r3, 4
-    LDI r6, 32
-    LDI r12, 248
-    LDI r11, 1
-    LDI r10, C_LABEL
-    RECTF r3, r6, r12, r11, r10
+    LDI r2, 4
+    LDI r9, 32
+    LDI r11, 248
+    LDI r13, 1
+    LDI r3, C_LABEL
+    RECTF r2, r9, r11, r13, r3
 
     ; Get process count
     NPROC
-    MOV r0, r15          ; r0 = total count
+    MOV r10, r14          ; r10 = total count
 
     ; Draw process rows (up to 10 visible)
-    LDI r1, 0           ; current PID
+    LDI r4, 0           ; current PID
 row_loop:
-    CMP r1, r0
-    BGE r15, rows_done
+    CMP r4, r10
+    BGE r14, rows_done
 
     ; Compute screen Y: 36 + PID * 18
-    LDI r7, 18
-    MOV r26, r1
-    MUL r26, r7
-    ADD r26, r7         ; r7 still 18, so add 36 total
+    LDI r5, 18
+    MOV r26, r4
+    MUL r26, r5
+    ADD r26, r5         ; r5 still 18, so add 36 total
     ; Actually: 36 + pid*18
-    LDI r7, 36
-    ADD r26, r7
+    LDI r5, 36
+    ADD r26, r5
 
     ; Check if off screen
-    LDI r7, 230
-    CMP r26, r7
-    BGE r15, rows_done
+    LDI r5, 230
+    CMP r26, r5
+    BGE r14, rows_done
 
     ; Check if selected
     LDI r20, SEL_PID
     LOAD r25, r20
-    CMP r1, r25
-    JNZ r15, not_sel
+    CMP r4, r25
+    JNZ r14, not_sel
 
     ; Highlight row
-    LDI r3, 4
-    MOV r6, r26
-    LDI r12, 248
-    LDI r11, 16
-    LDI r10, C_SEL
-    RECTF r3, r6, r12, r11, r10
+    LDI r2, 4
+    MOV r9, r26
+    LDI r11, 248
+    LDI r13, 16
+    LDI r3, C_SEL
+    RECTF r2, r9, r11, r13, r3
     JMP draw_pid
 
 not_sel:
     ; Normal row
-    LDI r3, 4
-    MOV r6, r26
-    LDI r12, 248
-    LDI r11, 16
-    LDI r10, 0x141428
-    RECTF r3, r6, r12, r11, r10
+    LDI r2, 4
+    MOV r9, r26
+    LDI r11, 248
+    LDI r13, 16
+    LDI r3, 0x141428
+    RECTF r2, r9, r11, r13, r3
 
 draw_pid:
     ; Draw PID number
-    MOV r14, r1
+    MOV r15, r4
     LDI r20, BUF
     CALL int_to_str
-    LDI r3, 8
-    LDI r7, 4
-    MOV r6, r26
-    ADD r6, r7
-    LDI r12, BUF
-    LDI r11, C_CYAN
-    LDI r10, 0
-    DRAWTEXT r3, r6, r12, r11, r10
+    LDI r2, 8
+    LDI r5, 4
+    MOV r9, r26
+    ADD r9, r5
+    LDI r11, BUF
+    LDI r13, C_CYAN
+    LDI r3, 0
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Get state (field 0)
-    MOV r3, r1
-    LDI r6, 0
-    PROCINFO r3, r6
-    MOV r14, r15
+    MOV r2, r4
+    LDI r9, 0
+    PROCINFO r2, r9
+    MOV r15, r14
 
     ; Draw state name
     LDI r20, BUF
-    LDI r7, 0
-    CMP r14, r7
-    JNZ r15, chk_s1
+    LDI r5, 0
+    CMP r15, r5
+    JNZ r14, chk_s1
     STRO r20, "Ready"
-    LDI r7, C_GREEN
+    LDI r5, C_GREEN
     JMP draw_st
 chk_s1:
-    LDI r7, 1
-    CMP r14, r7
-    JNZ r15, chk_s2
+    LDI r5, 1
+    CMP r15, r5
+    JNZ r14, chk_s2
     STRO r20, "Run"
-    LDI r7, C_GREEN
+    LDI r5, C_GREEN
     JMP draw_st
 chk_s2:
-    LDI r7, 2
-    CMP r14, r7
-    JNZ r15, chk_s3
+    LDI r5, 2
+    CMP r15, r5
+    JNZ r14, chk_s3
     STRO r20, "Sleep"
-    LDI r7, C_YELLOW
+    LDI r5, C_YELLOW
     JMP draw_st
 chk_s3:
-    LDI r7, 3
-    CMP r14, r7
-    JNZ r15, chk_s4
+    LDI r5, 3
+    CMP r15, r5
+    JNZ r14, chk_s4
     STRO r20, "Block"
-    LDI r7, C_YELLOW
+    LDI r5, C_YELLOW
     JMP draw_st
 chk_s4:
-    LDI r7, 4
-    CMP r14, r7
-    JNZ r15, chk_s5
+    LDI r5, 4
+    CMP r15, r5
+    JNZ r14, chk_s5
     STRO r20, "Zombie"
-    LDI r7, C_RED
+    LDI r5, C_RED
     JMP draw_st
 chk_s5:
     STRO r20, "???"
-    LDI r7, C_GRAY
+    LDI r5, C_GRAY
 
 draw_st:
-    LDI r3, 38
+    LDI r2, 38
     LDI r16, 4
-    MOV r6, r26
-    ADD r6, r16
-    LDI r12, BUF
-    MOV r11, r7
-    LDI r10, 0
-    DRAWTEXT r3, r6, r12, r11, r10
+    MOV r9, r26
+    ADD r9, r16
+    LDI r11, BUF
+    MOV r13, r5
+    LDI r3, 0
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Get PC (field 1)
-    MOV r3, r1
-    LDI r6, 1
-    PROCINFO r3, r6
-    MOV r14, r15
+    MOV r2, r4
+    LDI r9, 1
+    PROCINFO r2, r9
+    MOV r15, r14
 
     ; Draw PC as decimal
     LDI r20, BUF
     CALL int_to_str
-    LDI r3, 88
+    LDI r2, 88
     LDI r16, 4
-    MOV r6, r26
-    ADD r6, r16
-    LDI r12, BUF
-    LDI r11, C_FG
-    LDI r10, 0
-    DRAWTEXT r3, r6, r12, r11, r10
+    MOV r9, r26
+    ADD r9, r16
+    LDI r11, BUF
+    LDI r13, C_FG
+    LDI r3, 0
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Get priority (field 2)
-    MOV r3, r1
-    LDI r6, 2
-    PROCINFO r3, r6
-    MOV r14, r15
+    MOV r2, r4
+    LDI r9, 2
+    PROCINFO r2, r9
+    MOV r15, r14
     LDI r20, BUF
     CALL int_to_str
-    LDI r3, 150
+    LDI r2, 150
     LDI r16, 4
-    MOV r6, r26
-    ADD r6, r16
-    LDI r12, BUF
-    LDI r11, C_FG
-    LDI r10, 0
-    DRAWTEXT r3, r6, r12, r11, r10
+    MOV r9, r26
+    ADD r9, r16
+    LDI r11, BUF
+    LDI r13, C_FG
+    LDI r3, 0
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Get pages (field 4)
-    MOV r3, r1
-    LDI r6, 4
-    PROCINFO r3, r6
-    MOV r14, r15
+    MOV r2, r4
+    LDI r9, 4
+    PROCINFO r2, r9
+    MOV r15, r14
     LDI r20, BUF
     CALL int_to_str
-    LDI r3, 180
+    LDI r2, 180
     LDI r16, 4
-    MOV r6, r26
-    ADD r6, r16
-    LDI r12, BUF
-    LDI r11, C_FG
-    LDI r10, 0
-    DRAWTEXT r3, r6, r12, r11, r10
+    MOV r9, r26
+    ADD r9, r16
+    LDI r11, BUF
+    LDI r13, C_FG
+    LDI r3, 0
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Next PID
-    LDI r7, 1
-    ADD r1, r7
+    LDI r5, 1
+    ADD r4, r5
     JMP row_loop
 
 rows_done:
     ; Footer bar
-    LDI r3, 0
-    LDI r6, 236
-    LDI r12, 256
-    LDI r11, 20
-    LDI r10, C_TITLE
-    RECTF r3, r6, r12, r11, r10
+    LDI r2, 0
+    LDI r9, 236
+    LDI r11, 256
+    LDI r13, 20
+    LDI r3, C_TITLE
+    RECTF r2, r9, r11, r13, r3
 
     ; Footer help
     LDI r20, BUF
     STRO r20, "W/S:Scroll K:Kill Q:Quit"
-    LDI r3, 16
-    LDI r6, 242
-    LDI r12, BUF
-    LDI r11, C_GRAY
-    LDI r10, C_TITLE
-    DRAWTEXT r3, r6, r12, r11, r10
+    LDI r2, 16
+    LDI r9, 242
+    LDI r11, BUF
+    LDI r13, C_GRAY
+    LDI r3, C_TITLE
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Process count
-    MOV r14, r0
+    MOV r15, r10
     LDI r20, BUF
     STRO r20, "Total:"
-    LDI r3, 200
-    LDI r6, 242
-    LDI r12, BUF
-    LDI r11, C_GRAY
-    LDI r10, C_TITLE
-    DRAWTEXT r3, r6, r12, r11, r10
+    LDI r2, 200
+    LDI r9, 242
+    LDI r11, BUF
+    LDI r13, C_GRAY
+    LDI r3, C_TITLE
+    DRAWTEXT r2, r9, r11, r13, r3
 
-    MOV r14, r0
+    MOV r15, r10
     LDI r20, NUMBUF
     CALL int_to_str
-    LDI r3, 235
-    LDI r6, 242
-    LDI r12, NUMBUF
-    LDI r11, C_CYAN
-    LDI r10, C_TITLE
-    DRAWTEXT r3, r6, r12, r11, r10
+    LDI r2, 235
+    LDI r9, 242
+    LDI r11, NUMBUF
+    LDI r13, C_CYAN
+    LDI r3, C_TITLE
+    DRAWTEXT r2, r9, r11, r13, r3
 
     ; Handle input
-    IKEY r7
-    JZ r7, no_input
+    IKEY r5
+    JZ r5, no_input
 
     ; W = 87 (scroll up / prev)
     LDI r16, 87
-    CMP r7, r16
-    JNZ r15, chk_s_down
+    CMP r5, r16
+    JNZ r14, chk_s_down
     LDI r20, SEL_PID
     LOAD r16, r20
     JZ r16, no_input
@@ -316,34 +316,34 @@ rows_done:
 chk_s_down:
     ; S = 83 (scroll down / next)
     LDI r16, 83
-    CMP r7, r16
-    JNZ r15, chk_kill
+    CMP r5, r16
+    JNZ r14, chk_kill
     LDI r20, SEL_PID
     LOAD r16, r20
     LDI r17, 1
     ADD r16, r17
-    CMP r16, r0
-    BGE r15, no_input
+    CMP r16, r10
+    BGE r14, no_input
     STORE r20, r16
     JMP no_input
 
 chk_kill:
     ; K = 75 (kill)
     LDI r16, 75
-    CMP r7, r16
-    JNZ r15, chk_quit
+    CMP r5, r16
+    JNZ r14, chk_quit
     LDI r20, SEL_PID
     LOAD r16, r20
     JZ r16, no_input
-    MOV r3, r16
-    KILL r3
+    MOV r2, r16
+    KILL r2
     JMP no_input
 
 chk_quit:
     ; Q = 81 (quit)
     LDI r16, 81
-    CMP r7, r16
-    JNZ r15, no_input
+    CMP r5, r16
+    JNZ r14, no_input
     HALT
 
 no_input:
@@ -353,29 +353,29 @@ no_input:
 
 ; =========================================
 ; int_to_str subroutine
-; Converts r14 (u32) to decimal string at r20
-; Returns null-terminated. r15 = buffer start.
-; Clobbers r14-r19.
+; Converts r15 (u32) to decimal string at r20
+; Returns null-terminated. r14 = buffer start.
+; Clobbers r15-r19.
 ; =========================================
 int_to_str:
     PUSH r31
     PUSH r20
     LDI r16, 0
 
-    JZ r14, its_zero
+    JZ r15, its_zero
 
 its_loop:
-    MOV r18, r14
+    MOV r18, r15
     LDI r17, 10
     MOD r18, r17
     LDI r19, 48
     ADD r18, r19
     PUSH r18
     LDI r17, 10
-    DIV r14, r17
+    DIV r15, r17
     LDI r19, 1
     ADD r16, r19
-    JNZ r14, its_loop
+    JNZ r15, its_loop
 
 its_write:
     POP r18
@@ -388,7 +388,7 @@ its_write:
 
     LDI r18, 0
     STORE r20, r18
-    POP r15
+    POP r14
     POP r31
     RET
 
@@ -399,6 +399,6 @@ its_zero:
     ADD r20, r19
     LDI r18, 0
     STORE r20, r18
-    POP r15
+    POP r14
     POP r31
     RET

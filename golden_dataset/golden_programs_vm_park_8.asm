@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code sets up a virtual machine park demonstration, spawning three hypervisor-managed virtual machines (VMs) running different operating systems (Linux RISC-V, Linux x86, and a bare-metal RISC-V loop). It configures each VM with specific parameters, resumes them for background execution, manages their time-slice budgets, and visually represents their states on the screen. The program halts while maintaining all VMs in an active running state.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; vm_park.asm -- Phase 87: VM Park Demo
 ; Map region with 3 hypervisor buildings: Linux RISC-V, Linux x86, and a bare-metal RISC-V loop.
@@ -20,122 +20,122 @@
 ;   0x7820 - VM status RAM area
 
 ; ── Constants ──
-LDI r5, 1              ; increment
+LDI r0, 1              ; increment
 
 ; ── Write VM config strings to RAM ──
 ; VM 1: Linux RISC-V (Native mode)
-LDI r10, 0x7000
-STRO r10, "arch=riscv64 kernel=Image ram=256M mode=native"
+LDI r11, 0x7000
+STRO r11, "arch=riscv64 kernel=Image ram=256M mode=native"
 
 ; VM 2: Linux x86 (QEMU mode)
-LDI r10, 0x7100
-STRO r10, "arch=x86_64 kernel=bzImage ram=512M mode=qemu"
+LDI r11, 0x7100
+STRO r11, "arch=x86_64 kernel=bzImage ram=512M mode=qemu"
 
 ; VM 3: Bare-metal RISC-V loop (Native mode)
-LDI r10, 0x7200
-STRO r10, "arch=riscv32 kernel=loop.bin ram=64M mode=native"
+LDI r11, 0x7200
+STRO r11, "arch=riscv32 kernel=loop.bin ram=64M mode=native"
 
 ; ── Spawn 3 VMs ──
-LDI r9, 0             ; window_id = 0
+LDI r8, 0             ; window_id = 0
 
-LDI r10, 0x7000
-VM_SPAWN r10, r9      ; VM 1 -> r6 = 1
-LDI r2, 0x7810
-STORE r2, r6          ; save VM ID 1
+LDI r11, 0x7000
+VM_SPAWN r11, r8      ; VM 1 -> r12 = 1
+LDI r10, 0x7810
+STORE r10, r12          ; save VM ID 1
 
-LDI r10, 0x7100
-VM_SPAWN r10, r9      ; VM 2 -> r6 = 2
-LDI r2, 0x7811
-STORE r2, r6          ; save VM ID 2
+LDI r11, 0x7100
+VM_SPAWN r11, r8      ; VM 2 -> r12 = 2
+LDI r10, 0x7811
+STORE r10, r12          ; save VM ID 2
 
-LDI r10, 0x7200
-VM_SPAWN r10, r9      ; VM 3 -> r6 = 3
-LDI r2, 0x7812
-STORE r2, r6          ; save VM ID 3
+LDI r11, 0x7200
+VM_SPAWN r11, r8      ; VM 3 -> r12 = 3
+LDI r10, 0x7812
+STORE r10, r12          ; save VM ID 3
 
 ; ── Set budgets: VM1=2000, VM2=1500, VM3=500 per frame ──
-LDI r2, 0x7810
-LOAD r10, r2          ; r10 = VM 1 ID
-LDI r8, 2000
-VM_SET_BUDGET r10, r8
+LDI r10, 0x7810
+LOAD r11, r10          ; r11 = VM 1 ID
+LDI r14, 2000
+VM_SET_BUDGET r11, r14
 
-LDI r2, 0x7811
-LOAD r10, r2          ; r10 = VM 2 ID
-LDI r8, 1500
-VM_SET_BUDGET r10, r8
+LDI r10, 0x7811
+LOAD r11, r10          ; r11 = VM 2 ID
+LDI r14, 1500
+VM_SET_BUDGET r11, r14
 
-LDI r2, 0x7812
-LOAD r10, r2          ; r10 = VM 3 ID
-LDI r8, 500
-VM_SET_BUDGET r10, r8
+LDI r10, 0x7812
+LOAD r11, r10          ; r11 = VM 3 ID
+LDI r14, 500
+VM_SET_BUDGET r11, r14
 
 ; ── Resume all VMs (start running) ──
-LDI r2, 0x7810
-LOAD r10, r2
-VM_RESUME r10
+LDI r10, 0x7810
+LOAD r11, r10
+VM_RESUME r11
 
-LDI r2, 0x7811
-LOAD r10, r2
-VM_RESUME r10
+LDI r10, 0x7811
+LOAD r11, r10
+VM_RESUME r11
 
-LDI r2, 0x7812
-LOAD r10, r2
-VM_RESUME r10
+LDI r10, 0x7812
+LOAD r11, r10
+VM_RESUME r11
 
 ; ── Draw the VM Park ──
 ; Background: dark blue
-LDI r10, 0x001030
-FILL r10
+LDI r11, 0x001030
+FILL r11
 
 ; Building 1 (left): Red border - Linux RISC-V
-LDI r10, 20
-LDI r9, 60
-LDI r2, 60
-LDI r8, 80
-LDI r15, 0xFF4444
-RECTF r10, r9, r2, r8, r15
+LDI r11, 20
+LDI r8, 60
+LDI r10, 60
+LDI r14, 80
+LDI r2, 0xFF4444
+RECTF r11, r8, r10, r14, r2
 
 ; Building 2 (center): Green border - Linux x86
-LDI r10, 100
-LDI r9, 50
-LDI r2, 60
-LDI r8, 90
-LDI r15, 0x44FF44
-RECTF r10, r9, r2, r8, r15
+LDI r11, 100
+LDI r8, 50
+LDI r10, 60
+LDI r14, 90
+LDI r2, 0x44FF44
+RECTF r11, r8, r10, r14, r2
 
 ; Building 3 (right): Blue border - Bare-metal RISC-V
-LDI r10, 180
-LDI r9, 65
-LDI r2, 50
-LDI r8, 75
-LDI r15, 0x4488FF
-RECTF r10, r9, r2, r8, r15
+LDI r11, 180
+LDI r8, 65
+LDI r10, 50
+LDI r14, 75
+LDI r2, 0x4488FF
+RECTF r11, r8, r10, r14, r2
 
 ; ── Status labels: show VM state as colored dots ──
 ; VM 1 status dot (green = running)
-LDI r2, 0x7810
-LOAD r10, r2
-VM_STATUS r10
-; r6 = 1 (Running), draw green dot
-LDI r15, 0x00FF00
+LDI r10, 0x7810
+LOAD r11, r10
+VM_STATUS r11
+; r12 = 1 (Running), draw green dot
+LDI r2, 0x00FF00
 PSETI 45, 55, 0x00FF00
 
 ; VM 2 status dot
-LDI r2, 0x7811
-LOAD r10, r2
-VM_STATUS r10
+LDI r10, 0x7811
+LOAD r11, r10
+VM_STATUS r11
 PSETI 125, 45, 0x00FF00
 
 ; VM 3 status dot
-LDI r2, 0x7812
-LOAD r10, r2
-VM_STATUS r10
+LDI r10, 0x7812
+LOAD r11, r10
+VM_STATUS r11
 PSETI 200, 60, 0x00FF00
 
 ; ── List all VMs to RAM at 0x7820 ──
-LDI r10, 0x7820
-VM_LIST r10
-; r6 = 3 VMs listed
+LDI r11, 0x7820
+VM_LIST r11
+; r12 = 3 VMs listed
 
 ; ── Done: HALT with all 3 VMs running in background ──
 HALT

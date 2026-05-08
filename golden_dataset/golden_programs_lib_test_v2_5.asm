@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code is a comprehensive test suite for library functions, including new additions like `atoi`, `strncpy`, `memchr`, and `lerp`, as well as regression tests for existing functions. The tests are organized into sections for both new and existing functions, with results stored in RAM addresses 0xF80-0xFAF, where each byte represents the pass (1) or fail (0) status of a test. The code initializes by setting up the stack pointer and defining helper routines to store test results based on comparisons. It then proceeds through a series of tests that call various library functions with specific inputs and compare their outputs against expected values, using conditional branches and result storage mechanisms to record each test's outcome.
+; DESCRIPTION: Draw object: pos=the screen, color=red, size=fixed size.
 
 ; lib_test_v2.asm -- Extended library test suite (v1.1.0)
 ;
@@ -25,30 +25,30 @@
 
 ; ═══════════════════════════════════════════════════════════════
 ; Helpers: test result storage
-;   _check_result: r10==0 → store 1 (pass), else store 0 (fail)
+;   _check_result: r15==0 → store 1 (pass), else store 0 (fail)
 ;     Use after CMP to check equality, or directly for "expected==0"
-;   _check_neq: r10!=0 → store 1 (pass), else store 0 (fail)
+;   _check_neq: r15!=0 → store 1 (pass), else store 0 (fail)
 ;     Use for "expected nonzero" checks
-;   Both use r0 as the result address (set BEFORE calling)
+;   Both use r13 as the result address (set BEFORE calling)
 ; ═══════════════════════════════════════════════════════════════
 _check_result:
-    JZ r10, _cr_pass
-    LDI r10, 0
-    STORE r0, r10
+    JZ r15, _cr_pass
+    LDI r15, 0
+    STORE r13, r15
     RET
 _cr_pass:
-    LDI r10, 1
-    STORE r0, r10
+    LDI r15, 1
+    STORE r13, r15
     RET
 
 _check_neq:
-    JZ r10, _cne_fail
-    LDI r10, 1
-    STORE r0, r10
+    JZ r15, _cne_fail
+    LDI r15, 1
+    STORE r13, r15
     RET
 _cne_fail:
-    LDI r10, 0
-    STORE r0, r10
+    LDI r15, 0
+    STORE r13, r15
     RET
 
 ; ═══════════════════════════════════════════════════════════════
@@ -56,101 +56,101 @@ _cne_fail:
 ; ═══════════════════════════════════════════════════════════════
 
 ; T1: strlen("Hello") == 5
-    LDI r1, str_hello
+    LDI r14, str_hello
     CALL strlen
-    LDI r0, 0xF80
-    LDI r15, 5
-    CMP r10, r15
+    LDI r13, 0xF80
+    LDI r0, 5
+    CMP r15, r0
     CALL _check_result
 
 ; T2: strcmp("Hello","Hello") == 0
-    LDI r1, str_hello
-    LDI r15, str_hello
+    LDI r14, str_hello
+    LDI r0, str_hello
     CALL strcmp
-    LDI r0, 0xF81
+    LDI r13, 0xF81
     CALL _check_result
 
 ; T3: strcpy + strlen round-trip
-    LDI r1, buf_a
-    LDI r15, str_hello
+    LDI r14, buf_a
+    LDI r0, str_hello
     CALL strcpy
-    LDI r1, buf_a
+    LDI r14, buf_a
     CALL strlen
-    LDI r0, 0xF82
-    LDI r15, 5
-    CMP r10, r15
+    LDI r13, 0xF82
+    LDI r0, 5
+    CMP r15, r0
     CALL _check_result
 
 ; T4: abs(-42) == 42
-    LDI r1, 0xFFFFFFD6
+    LDI r14, 0xFFFFFFD6
     CALL abs
-    LDI r0, 0xF83
-    LDI r15, 42
-    CMP r10, r15
+    LDI r13, 0xF83
+    LDI r0, 42
+    CMP r15, r0
     CALL _check_result
 
 ; T5: min(3,7) == 3
-    LDI r1, 3
-    LDI r15, 7
+    LDI r14, 3
+    LDI r0, 7
     CALL min
-    LDI r0, 0xF84
-    LDI r15, 3
-    CMP r10, r15
+    LDI r13, 0xF84
+    LDI r0, 3
+    CMP r15, r0
     CALL _check_result
 
 ; T6: max(3,7) == 7
-    LDI r1, 3
-    LDI r15, 7
+    LDI r14, 3
+    LDI r0, 7
     CALL max
-    LDI r0, 0xF85
-    LDI r15, 7
-    CMP r10, r15
+    LDI r13, 0xF85
+    LDI r0, 7
+    CMP r15, r0
     CALL _check_result
 
 ; T7: clamp(0, 1, 10) == 1
-    LDI r1, 0
-    LDI r15, 1
-    LDI r4, 10
+    LDI r14, 0
+    LDI r0, 1
+    LDI r3, 10
     CALL clamp
-    LDI r0, 0xF86
-    LDI r15, 1
-    CMP r10, r15
+    LDI r13, 0xF86
+    LDI r0, 1
+    CMP r15, r0
     CALL _check_result
 
 ; T8: sqrt_approx(144) == 12
-    LDI r1, 144
+    LDI r14, 144
     CALL sqrt_approx
-    LDI r0, 0xF87
-    LDI r15, 12
-    CMP r10, r15
+    LDI r13, 0xF87
+    LDI r0, 12
+    CMP r15, r0
     CALL _check_result
 
 ; T9: rect_overlap(same) == 1
-    LDI r1, 0
-    LDI r15, 0
-    LDI r4, 10
-    LDI r13, 10
-    LDI r12, 0
     LDI r14, 0
-    LDI r8, 10
-    LDI r6, 10
+    LDI r0, 0
+    LDI r3, 10
+    LDI r2, 10
+    LDI r8, 0
+    LDI r10, 0
+    LDI r1, 10
+    LDI r9, 10
     CALL rect_overlap
-    LDI r0, 0xF88
-    LDI r15, 1
-    CMP r10, r15
+    LDI r13, 0xF88
+    LDI r0, 1
+    CMP r15, r0
     CALL _check_result
 
 ; T10: point_in_rect(5,5 in [0,0,10,10]) == 1
-    LDI r1, 5
-    LDI r15, 5
-    LDI r4, 0
-    LDI r13, 0
-    LDI r12, 10
-    LDI r14, 10
+    LDI r14, 5
+    LDI r0, 5
+    LDI r3, 0
+    LDI r2, 0
+    LDI r8, 10
+    LDI r10, 10
     CALL point_in_rect
-    LDI r0, 0xF89
-    LDI r15, 1
-    CMP r10, r15
+    LDI r13, 0xF89
+    LDI r0, 1
+    CMP r15, r0
     CALL _check_result
 
 ; ═══════════════════════════════════════════════════════════════
@@ -158,47 +158,47 @@ _cne_fail:
 ; ═══════════════════════════════════════════════════════════════
 
 ; T11: atoi("42") == 42
-    LDI r1, str_42
+    LDI r14, str_42
     CALL atoi
-    LDI r0, 0xF8A
-    LDI r15, 42
-    CMP r10, r15
+    LDI r13, 0xF8A
+    LDI r0, 42
+    CMP r15, r0
     CALL _check_result
 
 ; T12: atoi("0") == 0
-    LDI r1, str_0
+    LDI r14, str_0
     CALL atoi
-    LDI r0, 0xF8B
+    LDI r13, 0xF8B
     CALL _check_result
 
 ; T13: atoi("123") == 123
-    LDI r1, str_123
+    LDI r14, str_123
     CALL atoi
-    LDI r0, 0xF8C
-    LDI r15, 123
-    CMP r10, r15
+    LDI r13, 0xF8C
+    LDI r0, 123
+    CMP r15, r0
     CALL _check_result
 
 ; T14: atoi("1000") == 1000
-    LDI r1, str_1000
+    LDI r14, str_1000
     CALL atoi
-    LDI r0, 0xF8D
-    LDI r15, 1000
-    CMP r10, r15
+    LDI r13, 0xF8D
+    LDI r0, 1000
+    CMP r15, r0
     CALL _check_result
 
 ; T15: atoi("") == 0 (empty string)
-    LDI r1, buf_empty
+    LDI r14, buf_empty
     CALL atoi
-    LDI r0, 0xF8E
+    LDI r13, 0xF8E
     CALL _check_result
 
 ; T16: atoi("5") == 5 (single digit)
-    LDI r1, str_5
+    LDI r14, str_5
     CALL atoi
-    LDI r0, 0xF8F
-    LDI r15, 5
-    CMP r10, r15
+    LDI r13, 0xF8F
+    LDI r0, 5
+    CMP r15, r0
     CALL _check_result
 
 ; ═══════════════════════════════════════════════════════════════
@@ -206,84 +206,84 @@ _cne_fail:
 ; ═══════════════════════════════════════════════════════════════
 
 ; T17: strncpy("Hello", 3) → buf[0..2] = H,e,l, buf[3] = 0
-    LDI r1, buf_b
-    LDI r15, str_hello
-    LDI r4, 4
+    LDI r14, buf_b
+    LDI r0, str_hello
+    LDI r3, 4
     CALL strncpy
     ; Check buf_b[3] == 0 (null-padded)
-    LDI r0, buf_b
-    LDI r10, 3
-    ADD r0, r10
-    LOAD r10, r0
-    LDI r0, 0xF90
+    LDI r13, buf_b
+    LDI r15, 3
+    ADD r13, r15
+    LOAD r15, r13
+    LDI r13, 0xF90
     CALL _check_result
 
 ; T18: strncpy exact length "Hi" → strlen == 2
-    LDI r1, buf_c
-    LDI r15, str_hi
-    LDI r4, 2
+    LDI r14, buf_c
+    LDI r0, str_hi
+    LDI r3, 2
     CALL strncpy
-    LDI r1, buf_c
+    LDI r14, buf_c
     CALL strlen
-    LDI r0, 0xF91
-    LDI r15, 2
-    CMP r10, r15
+    LDI r13, 0xF91
+    LDI r0, 2
+    CMP r15, r0
     CALL _check_result
 
 ; T19: strncpy with count > strlen: "Hi" into 5 slots, strlen == 2
-    LDI r1, buf_c
-    LDI r15, str_hi
-    LDI r4, 5
+    LDI r14, buf_c
+    LDI r0, str_hi
+    LDI r3, 5
     CALL strncpy
-    LDI r1, buf_c
+    LDI r14, buf_c
     CALL strlen
-    LDI r0, 0xF92
-    LDI r15, 2
-    CMP r10, r15
+    LDI r13, 0xF92
+    LDI r0, 2
+    CMP r15, r0
     CALL _check_result
 
 ; T20: strncpy count == 0 is no-op
     ; Pre-fill buf_c with 'Z' at [0]
-    LDI r0, buf_c
-    LDI r10, 90             ; 'Z'
-    STORE r0, r10
-    LDI r0, buf_c
-    LDI r10, 1
-    ADD r0, r10
-    LDI r10, 0
-    STORE r0, r10           ; null at [1]
-    LDI r1, buf_c
-    LDI r15, str_hello
-    LDI r4, 0
+    LDI r13, buf_c
+    LDI r15, 90             ; 'Z'
+    STORE r13, r15
+    LDI r13, buf_c
+    LDI r15, 1
+    ADD r13, r15
+    LDI r15, 0
+    STORE r13, r15           ; null at [1]
+    LDI r14, buf_c
+    LDI r0, str_hello
+    LDI r3, 0
     CALL strncpy
     ; buf_c[0] should still be 'Z' (90)
-    LDI r0, buf_c
-    LOAD r10, r0
-    LDI r0, 0xF93
-    LDI r15, 90
-    CMP r10, r15
+    LDI r13, buf_c
+    LOAD r15, r13
+    LDI r13, 0xF93
+    LDI r0, 90
+    CMP r15, r0
     CALL _check_result
 
 ; T21: strncpy empty src null-pads: "" into 3 slots
-    LDI r1, buf_c
-    LDI r15, buf_empty
-    LDI r4, 3
+    LDI r14, buf_c
+    LDI r0, buf_empty
+    LDI r3, 3
     CALL strncpy
-    LDI r1, buf_c
+    LDI r14, buf_c
     CALL strlen
-    LDI r0, 0xF94
+    LDI r13, 0xF94
     CALL _check_result     ; strlen("") == 0
 
 ; T22: strncpy preserves content: copy "AB" then check strlen
-    LDI r1, buf_c
-    LDI r15, str_ab
-    LDI r4, 2
+    LDI r14, buf_c
+    LDI r0, str_ab
+    LDI r3, 2
     CALL strncpy
-    LDI r1, buf_c
+    LDI r14, buf_c
     CALL strlen
-    LDI r0, 0xF95
-    LDI r15, 2
-    CMP r10, r15
+    LDI r13, 0xF95
+    LDI r0, 2
+    CMP r15, r0
     CALL _check_result
 
 ; ═══════════════════════════════════════════════════════════════
@@ -291,51 +291,51 @@ _cne_fail:
 ; ═══════════════════════════════════════════════════════════════
 
 ; T23: memchr("Hello", 5, 'l') → nonzero (found at index 2)
-    LDI r1, str_hello
-    LDI r15, 5
-    LDI r4, 108            ; 'l'
+    LDI r14, str_hello
+    LDI r0, 5
+    LDI r3, 108            ; 'l'
     CALL memchr
-    LDI r0, 0xF96
+    LDI r13, 0xF96
     CALL _check_neq        ; nonzero = found
 
 ; T24: memchr("Hello", 5, 'H') → nonzero (found at start)
-    LDI r1, str_hello
-    LDI r15, 5
-    LDI r4, 72             ; 'H'
+    LDI r14, str_hello
+    LDI r0, 5
+    LDI r3, 72             ; 'H'
     CALL memchr
-    LDI r0, 0xF97
+    LDI r13, 0xF97
     CALL _check_neq
 
 ; T25: memchr("Hello", 5, 'z') → 0 (not found)
-    LDI r1, str_hello
-    LDI r15, 5
-    LDI r4, 122            ; 'z'
+    LDI r14, str_hello
+    LDI r0, 5
+    LDI r3, 122            ; 'z'
     CALL memchr
-    LDI r0, 0xF98
+    LDI r13, 0xF98
     CALL _check_result     ; 0 = not found
 
 ; T26: memchr count==0 → 0
-    LDI r1, str_hello
-    LDI r15, 0
-    LDI r4, 72             ; 'H'
+    LDI r14, str_hello
+    LDI r0, 0
+    LDI r3, 72             ; 'H'
     CALL memchr
-    LDI r0, 0xF99
+    LDI r13, 0xF99
     CALL _check_result
 
 ; T27: memchr("AAAA", 4, 65) → nonzero (found at start)
-    LDI r1, str_aaaa
-    LDI r15, 4
-    LDI r4, 65             ; 'A'
+    LDI r14, str_aaaa
+    LDI r0, 4
+    LDI r3, 65             ; 'A'
     CALL memchr
-    LDI r0, 0xF9A
+    LDI r13, 0xF9A
     CALL _check_neq
 
 ; T28: memchr single element match
-    LDI r1, str_5
-    LDI r15, 1
-    LDI r4, 53             ; '5'
+    LDI r14, str_5
+    LDI r0, 1
+    LDI r3, 53             ; '5'
     CALL memchr
-    LDI r0, 0xF9B
+    LDI r13, 0xF9B
     CALL _check_neq
 
 ; ═══════════════════════════════════════════════════════════════
@@ -343,65 +343,65 @@ _cne_fail:
 ; ═══════════════════════════════════════════════════════════════
 
 ; T29: lerp(0, 100, 0, 100) == 0 (t=0 → a)
-    LDI r1, 0
-    LDI r15, 100
-    LDI r4, 0
-    LDI r13, 100
+    LDI r14, 0
+    LDI r0, 100
+    LDI r3, 0
+    LDI r2, 100
     CALL lerp
-    LDI r0, 0xF9C
+    LDI r13, 0xF9C
     CALL _check_result
 
 ; T30: lerp(0, 100, 100, 100) == 100 (t=scale → b)
-    LDI r1, 0
-    LDI r15, 100
-    LDI r4, 100
-    LDI r13, 100
+    LDI r14, 0
+    LDI r0, 100
+    LDI r3, 100
+    LDI r2, 100
     CALL lerp
-    LDI r0, 0xF9D
-    LDI r15, 100
-    CMP r10, r15
+    LDI r13, 0xF9D
+    LDI r0, 100
+    CMP r15, r0
     CALL _check_result
 
 ; T31: lerp(0, 100, 50, 100) == 50 (t=half → midpoint)
-    LDI r1, 0
-    LDI r15, 100
-    LDI r4, 50
-    LDI r13, 100
+    LDI r14, 0
+    LDI r0, 100
+    LDI r3, 50
+    LDI r2, 100
     CALL lerp
-    LDI r0, 0xF9E
-    LDI r15, 50
-    CMP r10, r15
+    LDI r13, 0xF9E
+    LDI r0, 50
+    CMP r15, r0
     CALL _check_result
 
 ; T32: lerp(10, 20, 25, 100) == 12 (a=10, b=20, t=25/100=0.25 → 12.5→12)
-    LDI r1, 10
-    LDI r15, 20
-    LDI r4, 25
-    LDI r13, 100
+    LDI r14, 10
+    LDI r0, 20
+    LDI r3, 25
+    LDI r2, 100
     CALL lerp
-    LDI r0, 0xF9F
-    LDI r15, 12
-    CMP r10, r15
+    LDI r13, 0xF9F
+    LDI r0, 12
+    CMP r15, r0
     CALL _check_result
 
 ; T33: lerp(0, 256, 128, 256) == 128 (8-bit fraction, exact midpoint)
-    LDI r1, 0
-    LDI r15, 256
-    LDI r4, 128
-    LDI r13, 256
+    LDI r14, 0
+    LDI r0, 256
+    LDI r3, 128
+    LDI r2, 256
     CALL lerp
-    LDI r0, 0xFA0
-    LDI r15, 128
-    CMP r10, r15
+    LDI r13, 0xFA0
+    LDI r0, 128
+    CMP r15, r0
     CALL _check_result
 
 ; T34: lerp(0, 0, 50, 100) == 0 (a==b → always a)
-    LDI r1, 0
-    LDI r15, 0
-    LDI r4, 50
-    LDI r13, 100
+    LDI r14, 0
+    LDI r0, 0
+    LDI r3, 50
+    LDI r2, 100
     CALL lerp
-    LDI r0, 0xFA1
+    LDI r13, 0xFA1
     CALL _check_result
 
 ; ═══════════════════════════════════════════════════════════════
@@ -409,74 +409,74 @@ _cne_fail:
 ; ═══════════════════════════════════════════════════════════════
 
 ; T35: point_in_circle(3,4 on edge of r=5) == 1
-    LDI r1, 3
-    LDI r15, 4
-    LDI r4, 0
-    LDI r13, 0
-    LDI r12, 5
+    LDI r14, 3
+    LDI r0, 4
+    LDI r3, 0
+    LDI r2, 0
+    LDI r8, 5
     CALL point_in_circle
-    LDI r0, 0xFA2
-    LDI r15, 1
-    CMP r10, r15
+    LDI r13, 0xFA2
+    LDI r0, 1
+    CMP r15, r0
     CALL _check_result
 
 ; T36: circles_overlap(overlap, dist=8, sum_r=10) == 1
-    LDI r1, 0
-    LDI r15, 0
-    LDI r4, 5
-    LDI r13, 8
-    LDI r12, 0
-    LDI r14, 5
+    LDI r14, 0
+    LDI r0, 0
+    LDI r3, 5
+    LDI r2, 8
+    LDI r8, 0
+    LDI r10, 5
     CALL circles_overlap
-    LDI r0, 0xFA3
-    LDI r15, 1
-    CMP r10, r15
+    LDI r13, 0xFA3
+    LDI r0, 1
+    CMP r15, r0
     CALL _check_result
 
 ; T37: point_in_triangle(5,5 in (0,0)(10,0)(0,10)) == 1
-    LDI r1, 5
-    LDI r15, 5
-    LDI r4, 0
-    LDI r13, 0
-    LDI r12, 10
-    LDI r14, 0
-    LDI r8, 0
-    LDI r6, 10
+    LDI r14, 5
+    LDI r0, 5
+    LDI r3, 0
+    LDI r2, 0
+    LDI r8, 10
+    LDI r10, 0
+    LDI r1, 0
+    LDI r9, 10
     CALL point_in_triangle
-    LDI r0, 0xFA4
-    LDI r15, 1
-    CMP r10, r15
+    LDI r13, 0xFA4
+    LDI r0, 1
+    CMP r15, r0
     CALL _check_result
 
 ; T38: itoa/atoi round-trip: itoa(999) → atoi → 999
-    LDI r1, 999
-    LDI r15, buf_d
+    LDI r14, 999
+    LDI r0, buf_d
     CALL itoa
-    LDI r1, buf_d
+    LDI r14, buf_d
     CALL atoi
-    LDI r0, 0xFA5
-    LDI r15, 999
-    CMP r10, r15
+    LDI r13, 0xFA5
+    LDI r0, 999
+    CMP r15, r0
     CALL _check_result
 
 ; T39: itoa/atoi round-trip: itoa(0) → atoi → 0
-    LDI r1, 0
-    LDI r15, buf_d
+    LDI r14, 0
+    LDI r0, buf_d
     CALL itoa
-    LDI r1, buf_d
+    LDI r14, buf_d
     CALL atoi
-    LDI r0, 0xFA6
+    LDI r13, 0xFA6
     CALL _check_result
 
 ; T40: dist2(0,0, 3,4) == 25
-    LDI r1, 0
-    LDI r15, 0
-    LDI r4, 3
-    LDI r13, 4
+    LDI r14, 0
+    LDI r0, 0
+    LDI r3, 3
+    LDI r2, 4
     CALL dist2
-    LDI r0, 0xFA7
-    LDI r15, 25
-    CMP r10, r15
+    LDI r13, 0xFA7
+    LDI r0, 25
+    CMP r15, r0
     CALL _check_result
 
 ; ═══════════════════════════════════════════════════════════════

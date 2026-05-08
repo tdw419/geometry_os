@@ -1,4 +1,4 @@
-; DESCRIPTION: The `pixel_vm.asm` code implements a virtual machine (VM) that executes instructions encoded as pixels in screen memory. Each pixel represents an instruction with its opcode and operands extracted from the RGBA channels, allowing the VM to perform operations like loading/storing values, arithmetic, comparisons, and conditional jumps, while maintaining its state visible on the screen.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; pixel_vm.asm -- A VM that runs inside the VM, with all state visible as pixels.
 ;
@@ -31,17 +31,17 @@
 ; back to screen[] so every state change is visible.
 ;
 ; GeOS register allocation:
-;   r3  = GeOS zero/flag (CMP sets this)
-;   r2  = pixel-VM PC (instruction index)
-;   r15  = fetched pixel-instruction (raw u32)
-;   r7  = decoded opcode (R channel, bits 31-24)
-;   r13  = decoded operand1 (G channel, bits 23-16)
-;   r8  = decoded operand2 (B channel, bits 15-8)
-;   r14  = base address of pixel program in screen (0x10000)
-;   r4  = base address of pixel registers in screen (0x10100)
-;   r10  = base address of pixel data memory in screen (0x10200)
-;   r1  = pixel-VM flag register (0=equal, 1=not-equal from CMPI)
-;   r12-r5 = temp
+;   r8  = GeOS zero/flag (CMP sets this)
+;   r10  = pixel-VM PC (instruction index)
+;   r0  = fetched pixel-instruction (raw u32)
+;   r12  = decoded opcode (R channel, bits 31-24)
+;   r9  = decoded operand1 (G channel, bits 23-16)
+;   r5  = decoded operand2 (B channel, bits 15-8)
+;   r2  = base address of pixel program in screen (0x10000)
+;   r6  = base address of pixel registers in screen (0x10100)
+;   r15  = base address of pixel data memory in screen (0x10200)
+;   r13  = pixel-VM flag register (0=equal, 1=not-equal from CMPI)
+;   r1-r7 = temp
 
 ; ── Constants ──────────────────────────────────────────────
 #define SCREEN_BASE     0x10000
@@ -63,169 +63,169 @@
 
 ; ── Main ───────────────────────────────────────────────────
     LDI r30, 0xFD00
-    LDI r14, PV_PROG_BASE
-    LDI r4, PV_REG_BASE
-    LDI r10, PV_DATA_BASE
-    LDI r2, 0              ; pixel-VM PC = 0
-    LDI r1, 0              ; pixel-VM flag = 0
+    LDI r2, PV_PROG_BASE
+    LDI r6, PV_REG_BASE
+    LDI r15, PV_DATA_BASE
+    LDI r10, 0              ; pixel-VM PC = 0
+    LDI r13, 0              ; pixel-VM flag = 0
 
 pv_loop:
     ; ── Fetch: screen[PV_PROG_BASE + PC] ──
-    MOV r12, r14
-    ADD r12, r2            ; r12 = PV_PROG_BASE + PC
-    LOAD r15, r12           ; r15 = pixel-instruction u32
+    MOV r1, r2
+    ADD r1, r10            ; r1 = PV_PROG_BASE + PC
+    LOAD r0, r1           ; r0 = pixel-instruction u32
 
-    ; ── Decode R channel (opcode): (r15 >> 24) & 0xFF ──
-    LDI r9, 24
-    MOV r7, r15
-    SHR r7, r9
-    ANDI r7, 0xFF
+    ; ── Decode R channel (opcode): (r0 >> 24) & 0xFF ──
+    LDI r14, 24
+    MOV r12, r0
+    SHR r12, r14
+    ANDI r12, 0xFF
 
-    ; ── Decode G channel (operand1): (r15 >> 16) & 0xFF ──
-    LDI r9, 16
-    MOV r13, r15
-    SHR r13, r9
-    ANDI r13, 0xFF
+    ; ── Decode G channel (operand1): (r0 >> 16) & 0xFF ──
+    LDI r14, 16
+    MOV r9, r0
+    SHR r9, r14
+    ANDI r9, 0xFF
 
-    ; ── Decode B channel (operand2): (r15 >> 8) & 0xFF ──
-    LDI r9, 8
-    MOV r8, r15
-    SHR r8, r9
-    ANDI r8, 0xFF
+    ; ── Decode B channel (operand2): (r0 >> 8) & 0xFF ──
+    LDI r14, 8
+    MOV r5, r0
+    SHR r5, r14
+    ANDI r5, 0xFF
 
     ; ── Dispatch on opcode ──
-    CMPI r7, PV_HALT
-    CMPI r3, 0
-    JZ r3, pv_halt
+    CMPI r12, PV_HALT
+    CMPI r8, 0
+    JZ r8, pv_halt
 
-    CMPI r7, PV_LOADI
-    CMPI r3, 0
-    JZ r3, pv_op_loadi
+    CMPI r12, PV_LOADI
+    CMPI r8, 0
+    JZ r8, pv_op_loadi
 
-    CMPI r7, PV_ADD
-    CMPI r3, 0
-    JZ r3, pv_op_add
+    CMPI r12, PV_ADD
+    CMPI r8, 0
+    JZ r8, pv_op_add
 
-    CMPI r7, PV_SUB
-    CMPI r3, 0
-    JZ r3, pv_op_sub
+    CMPI r12, PV_SUB
+    CMPI r8, 0
+    JZ r8, pv_op_sub
 
-    CMPI r7, PV_MUL
-    CMPI r3, 0
-    JZ r3, pv_op_mul
+    CMPI r12, PV_MUL
+    CMPI r8, 0
+    JZ r8, pv_op_mul
 
-    CMPI r7, PV_STORE
-    CMPI r3, 0
-    JZ r3, pv_op_store
+    CMPI r12, PV_STORE
+    CMPI r8, 0
+    JZ r8, pv_op_store
 
-    CMPI r7, PV_LOAD
-    CMPI r3, 0
-    JZ r3, pv_op_load
+    CMPI r12, PV_LOAD
+    CMPI r8, 0
+    JZ r8, pv_op_load
 
-    CMPI r7, PV_CMPI
-    CMPI r3, 0
-    JZ r3, pv_op_cmpi
+    CMPI r12, PV_CMPI
+    CMPI r8, 0
+    JZ r8, pv_op_cmpi
 
-    CMPI r7, PV_JNZ
-    CMPI r3, 0
-    JZ r3, pv_op_jnz
+    CMPI r12, PV_JNZ
+    CMPI r8, 0
+    JZ r8, pv_op_jnz
 
     ; Unknown opcode -- skip
     JMP pv_next
 
 ; ── LOADI reg, imm: pv_regs[operand1] = operand2 ──────────
 pv_op_loadi:
-    MOV r12, r4
-    ADD r12, r13            ; r12 = PV_REG_BASE + reg
-    STORE r12, r8          ; screen[PV_REG_BASE + reg] = imm
+    MOV r1, r6
+    ADD r1, r9            ; r1 = PV_REG_BASE + reg
+    STORE r1, r5          ; screen[PV_REG_BASE + reg] = imm
     JMP pv_next
 
 ; ── ADD dest, src: pv_regs[dest] += pv_regs[src] ─────────
 pv_op_add:
-    MOV r12, r4
-    ADD r12, r13            ; addr of pv_regs[dest]
-    LOAD r6, r12          ; r6 = pv_regs[dest]
-    MOV r0, r4
-    ADD r0, r8            ; addr of pv_regs[src]
-    LOAD r11, r0          ; r11 = pv_regs[src]
-    ADD r6, r11
-    STORE r12, r6         ; pv_regs[dest] = result
+    MOV r1, r6
+    ADD r1, r9            ; addr of pv_regs[dest]
+    LOAD r3, r1          ; r3 = pv_regs[dest]
+    MOV r4, r6
+    ADD r4, r5            ; addr of pv_regs[src]
+    LOAD r11, r4          ; r11 = pv_regs[src]
+    ADD r3, r11
+    STORE r1, r3         ; pv_regs[dest] = result
     JMP pv_next
 
 ; ── SUB dest, src ─────────────────────────────────────────
 pv_op_sub:
-    MOV r12, r4
-    ADD r12, r13
-    LOAD r6, r12
-    MOV r0, r4
-    ADD r0, r8
-    LOAD r11, r0
-    SUB r6, r11
-    STORE r12, r6
+    MOV r1, r6
+    ADD r1, r9
+    LOAD r3, r1
+    MOV r4, r6
+    ADD r4, r5
+    LOAD r11, r4
+    SUB r3, r11
+    STORE r1, r3
     JMP pv_next
 
 ; ── MUL dest, src ─────────────────────────────────────────
 pv_op_mul:
-    MOV r12, r4
-    ADD r12, r13
-    LOAD r6, r12
-    MOV r0, r4
-    ADD r0, r8
-    LOAD r11, r0
-    MUL r6, r11
-    STORE r12, r6
+    MOV r1, r6
+    ADD r1, r9
+    LOAD r3, r1
+    MOV r4, r6
+    ADD r4, r5
+    LOAD r11, r4
+    MUL r3, r11
+    STORE r1, r3
     JMP pv_next
 
 ; ── STORE reg, addr: pv_data[operand2] = pv_regs[operand1] ─
 pv_op_store:
-    MOV r12, r4
-    ADD r12, r13            ; addr of pv_regs[reg]
-    LOAD r6, r12          ; r6 = pv_regs[reg]
-    MOV r0, r10
-    ADD r0, r8            ; addr of pv_data[addr]
-    STORE r0, r6         ; pv_data[addr] = pv_regs[reg]
+    MOV r1, r6
+    ADD r1, r9            ; addr of pv_regs[reg]
+    LOAD r3, r1          ; r3 = pv_regs[reg]
+    MOV r4, r15
+    ADD r4, r5            ; addr of pv_data[addr]
+    STORE r4, r3         ; pv_data[addr] = pv_regs[reg]
     JMP pv_next
 
 ; ── LOAD reg, addr: pv_regs[operand1] = pv_data[operand2] ─
 pv_op_load:
-    MOV r12, r10
-    ADD r12, r8            ; addr of pv_data[addr]
-    LOAD r6, r12          ; r6 = pv_data[addr]
-    MOV r0, r4
-    ADD r0, r13            ; addr of pv_regs[reg]
-    STORE r0, r6         ; pv_regs[reg] = pv_data[addr]
+    MOV r1, r15
+    ADD r1, r5            ; addr of pv_data[addr]
+    LOAD r3, r1          ; r3 = pv_data[addr]
+    MOV r4, r6
+    ADD r4, r9            ; addr of pv_regs[reg]
+    STORE r4, r3         ; pv_regs[reg] = pv_data[addr]
     JMP pv_next
 
 ; ── CMPI reg, imm: flag = (pv_regs[reg] == imm) ? 0 : 1 ─
 pv_op_cmpi:
-    MOV r12, r4
-    ADD r12, r13            ; addr of pv_regs[reg]
-    LOAD r6, r12          ; r6 = pv_regs[reg]
-    ; Compare r6 with operand2 (r8)
-    ; GeOS CMP sets r3: 0=equal, 1=less, 2=greater
-    CMP r6, r8
-    ; If r3 == 0, values are equal -> pixel flag = 0
-    ; If r3 != 0, values differ -> pixel flag = 1
-    CMPI r3, 0
-    CMPI r3, 0              ; double-negation: r3 was 0 means equal
-    JZ r3, pv_cmpi_eq
-    LDI r1, 1              ; flag = 1 (not equal)
+    MOV r1, r6
+    ADD r1, r9            ; addr of pv_regs[reg]
+    LOAD r3, r1          ; r3 = pv_regs[reg]
+    ; Compare r3 with operand2 (r5)
+    ; GeOS CMP sets r8: 0=equal, 1=less, 2=greater
+    CMP r3, r5
+    ; If r8 == 0, values are equal -> pixel flag = 0
+    ; If r8 != 0, values differ -> pixel flag = 1
+    CMPI r8, 0
+    CMPI r8, 0              ; double-negation: r8 was 0 means equal
+    JZ r8, pv_cmpi_eq
+    LDI r13, 1              ; flag = 1 (not equal)
     JMP pv_next
 pv_cmpi_eq:
-    LDI r1, 0              ; flag = 0 (equal)
+    LDI r13, 0              ; flag = 0 (equal)
     JMP pv_next
 
 ; ── JNZ addr: if flag != 0, PC = operand2 ─────────────────
 pv_op_jnz:
-    CMPI r1, 0             ; is pixel flag zero?
-    CMPI r3, 0              ; r3=0 means flag was 0
-    JZ r3, pv_next         ; flag is 0, don't jump
-    MOV r2, r8             ; PC = operand2
+    CMPI r13, 0             ; is pixel flag zero?
+    CMPI r8, 0              ; r8=0 means flag was 0
+    JZ r8, pv_next         ; flag is 0, don't jump
+    MOV r10, r5             ; PC = operand2
     JMP pv_loop            ; fetch from new PC (skip PC++)
 
 ; ── Next instruction ──────────────────────────────────────
 pv_next:
-    ADDI r2, 1             ; PC++
+    ADDI r10, 1             ; PC++
     JMP pv_loop
 
 pv_halt:

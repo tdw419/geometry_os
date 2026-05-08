@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a network packet viewer that reads from the `/dev/net` device, displays a scrolling log of packets with hex data and rate statistics, and simulates traffic by writing random data to the net port. The interface includes a title bar, a scrolling packet log area, and a status bar showing packet count and rate.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; netmon.asm -- Phase 141: Network Packet Viewer
 ;
@@ -18,104 +18,104 @@
 
 ; == INIT ==
     LDI r9, 1
-    LDI r15, 0
-    LDI r4, 0             ; total packets
-    LDI r14, 0            ; rate counter
-    LDI r1, 0            ; displayed rate
-    LDI r6, 0            ; buffer head (0-31)
+    LDI r1, 0
+    LDI r0, 0             ; total packets
+    LDI r10, 0            ; rate counter
+    LDI r14, 0            ; displayed rate
+    LDI r8, 0            ; buffer head (0-31)
     LDI r22, 0x5000       ; packet buffer (32 entries, 4 words each)
     LDI r23, 32           ; max packets
 
     ; Open /dev/net
-    LDI r10, net_path
-    LDI r3, 0
-    OPEN r10, r3
-    MOV r8, r7            ; r8 = net fd
+    LDI r3, net_path
+    LDI r13, 0
+    OPEN r3, r13
+    MOV r7, r6            ; r7 = net fd
 
 ; == MAIN LOOP ==
 main_loop:
     ; Dark background
-    LDI r10, 0x080810
-    FILL r10
+    LDI r3, 0x080810
+    FILL r3
 
     ; == SIMULATE PACKETS (every ~32 frames) ==
-    LDI r10, 0xFFE
-    LOAD r10, r10
-    LDI r3, 31
-    AND r10, r3
-    LDI r3, 15
-    CMP r10, r3
-    JNZ r7, no_sim
-    RAND r10
-    LDI r3, 0xFFC
-    STORE r3, r10
+    LDI r3, 0xFFE
+    LOAD r3, r3
+    LDI r13, 31
+    AND r3, r13
+    LDI r13, 15
+    CMP r3, r13
+    JNZ r6, no_sim
+    RAND r3
+    LDI r13, 0xFFC
+    STORE r13, r3
 no_sim:
 
     ; == READ FROM /dev/net ==
-    LDI r10, 0xFFC
-    LDI r3, 1
-    READ r8, r10, r3
-    LDI r10, 0
-    CMP r7, r10
-    JZ r7, no_pkt
+    LDI r3, 0xFFC
+    LDI r13, 1
+    READ r7, r3, r13
+    LDI r3, 0
+    CMP r6, r3
+    JZ r6, no_pkt
 
     ; Store packet
-    LDI r10, 0xFFC
-    LOAD r24, r10           ; data word
+    LDI r3, 0xFFC
+    LOAD r24, r3           ; data word
 
     ; Buffer[head*4 + 0] = data
-    MOV r10, r6
-    LDI r3, 2
-    SHL r10, r3
-    MOV r3, r22
-    ADD r3, r10
-    STORE r3, r24
+    MOV r3, r8
+    LDI r13, 2
+    SHL r3, r13
+    MOV r13, r22
+    ADD r13, r3
+    STORE r13, r24
 
     ; Buffer[head*4 + 1] = top byte (for color)
-    MOV r10, r9
-    ADD r3, r10
-    MOV r12, r24
-    LDI r5, 24
-    SHR r12, r5             ; top byte
-    STORE r3, r12
+    MOV r3, r9
+    ADD r13, r3
+    MOV r11, r24
+    LDI r15, 24
+    SHR r11, r15             ; top byte
+    STORE r13, r11
 
     ; Buffer[head*4 + 2] = TICKS at receipt
-    MOV r10, r9
-    ADD r3, r10
-    LDI r12, 0xFFE
-    LOAD r12, r12
-    STORE r3, r12
+    MOV r3, r9
+    ADD r13, r3
+    LDI r11, 0xFFE
+    LOAD r11, r11
+    STORE r13, r11
 
     ; Advance head
-    ADD r6, r9
-    LDI r10, 32
-    CMP r6, r10
-    BLT r7, no_wrap
-    LDI r6, 0
+    ADD r8, r9
+    LDI r3, 32
+    CMP r8, r3
+    BLT r6, no_wrap
+    LDI r8, 0
 no_wrap:
-    ADD r4, r9
-    ADD r14, r9
+    ADD r0, r9
+    ADD r10, r9
 
 no_pkt:
     ; == RATE UPDATE ==
-    LDI r10, 0xFFE
-    LOAD r11, r10
-    LDI r10, 63
-    AND r11, r10
-    LDI r10, 2
-    CMP r11, r10
-    BGE r7, no_rate
-    MOV r1, r14
-    LDI r14, 0
+    LDI r3, 0xFFE
+    LOAD r2, r3
+    LDI r3, 63
+    AND r2, r3
+    LDI r3, 2
+    CMP r2, r3
+    BGE r6, no_rate
+    MOV r14, r10
+    LDI r10, 0
 no_rate:
 
     ; == TITLE BAR ==
-    LDI r10, 0
     LDI r3, 0
-    LDI r12, 256
-    LDI r5, 14
-    LDI r13, 0x003366
-    RECTF r10, r3, r12, r5, r13
+    LDI r13, 0
+    LDI r11, 256
+    LDI r15, 14
+    LDI r5, 0x003366
+    RECTF r3, r13, r11, r15, r5
 
     LDI r16, 4
     LDI r17, 3
@@ -125,13 +125,13 @@ no_rate:
     DRAWTEXT r16, r17, r18, r19, r20
 
     ; Net status indicator
-    LDI r10, 0xE003
+    LDI r3, 0xE003
+    LDI r13, 0
+    LDI r11, 0
+    IOCTL r3, r13, r11
     LDI r3, 0
-    LDI r12, 0
-    IOCTL r10, r3, r12
-    LDI r10, 0
-    CMP r7, r10
-    JZ r7, net_down_label
+    CMP r6, r3
+    JZ r6, net_down_label
 
     ; Net status indicator
     LDI r16, 90
@@ -157,76 +157,76 @@ pkt_draw:
     LDI r17, 16            ; start y
 
 pkt_row:
-    LDI r10, 0
-    CMP r4, r10
-    JZ r7, show_empty
+    LDI r3, 0
+    CMP r0, r3
+    JZ r6, show_empty
 
     ; Determine entry index
-    LDI r10, 28
-    CMP r4, r10
-    BGE r7, full_buf
+    LDI r3, 28
+    CMP r0, r3
+    BGE r6, full_buf
     ; Partial: show rows 0..total-1
-    CMP r25, r4
-    BLT r7, do_draw_entry
+    CMP r25, r0
+    BLT r6, do_draw_entry
     JMP skip_row
 
 full_buf:
     ; entry = (head - 28 + row) & 31
-    MOV r10, r6
-    LDI r3, 28
-    SUB r10, r3
-    ADD r10, r25
-    LDI r3, 31
-    AND r10, r3
+    MOV r3, r8
+    LDI r13, 28
+    SUB r3, r13
+    ADD r3, r25
+    LDI r13, 31
+    AND r3, r13
 
 do_draw_entry:
-    ; r10 = entry index
-    LDI r3, 2
-    SHL r10, r3             ; entry * 4
-    MOV r12, r22
-    ADD r12, r10             ; buffer base + offset
+    ; r3 = entry index
+    LDI r13, 2
+    SHL r3, r13             ; entry * 4
+    MOV r11, r22
+    ADD r11, r3             ; buffer base + offset
 
     ; Load color byte (word 1)
-    MOV r3, r12
-    ADD r3, r9
-    LOAD r13, r3           ; color index (top byte of data)
+    MOV r13, r11
+    ADD r13, r9
+    LOAD r5, r13           ; color index (top byte of data)
 
     ; Generate color from the byte: hue mapping
     ; Use top 3 bits for hue channel selection
-    LDI r5, 0xE0
-    AND r13, r5            ; top 3 bits
-    LDI r5, 5
-    SHR r13, r5            ; shift to bits 8-10 range
+    LDI r15, 0xE0
+    AND r5, r15            ; top 3 bits
+    LDI r15, 5
+    SHR r5, r15            ; shift to bits 8-10 range
     ; Create a visible color
-    LDI r5, 0x44
-    OR r13, r5             ; ensure minimum brightness
+    LDI r15, 0x44
+    OR r5, r15             ; ensure minimum brightness
 
     ; Draw row bar
-    LDI r10, 2
-    LDI r3, 256
-    LDI r5, 7
-    RECTF r10, r17, r3, r5, r13
+    LDI r3, 2
+    LDI r13, 256
+    LDI r15, 7
+    RECTF r3, r17, r13, r15, r5
 
     ; Draw a bright accent line on left
-    MOV r10, r12
-    LOAD r0, r10           ; data word
-    LDI r11, 16
-    SHR r0, r11
-    LDI r11, 0xF
-    AND r0, r11
-    LDI r11, 2
-    MUL r0, r11
-    ADD r0, r9             ; width = 3..33
-    LDI r11, 0x00CCFF      ; cyan accent
-    RECTF r10, r17, r0, r5, r11
+    MOV r3, r11
+    LOAD r4, r3           ; data word
+    LDI r2, 16
+    SHR r4, r2
+    LDI r2, 0xF
+    AND r4, r2
+    LDI r2, 2
+    MUL r4, r2
+    ADD r4, r9             ; width = 3..33
+    LDI r2, 0x00CCFF      ; cyan accent
+    RECTF r3, r17, r4, r15, r2
 
 skip_row:
-    LDI r10, 8
-    ADD r17, r10
+    LDI r3, 8
+    ADD r17, r3
     ADD r25, r9
-    LDI r10, 28
-    CMP r25, r10
-    BLT r7, pkt_row
+    LDI r3, 28
+    CMP r25, r3
+    BLT r6, pkt_row
     JMP draw_stat
 
 show_empty:
@@ -239,74 +239,74 @@ show_empty:
 
 draw_stat:
     ; == STATUS BAR ==
-    LDI r10, 0
-    LDI r3, 242
-    LDI r12, 256
-    LDI r5, 14
-    LDI r13, 0x002244
-    RECTF r10, r3, r12, r5, r13
+    LDI r3, 0
+    LDI r13, 242
+    LDI r11, 256
+    LDI r15, 14
+    LDI r5, 0x002244
+    RECTF r3, r13, r11, r15, r5
 
     ; Build "PKT:N" at 0x6000
-    LDI r10, 0x6000
-    LDI r13, 80            ; 'P'
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 75
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 84
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 58
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 32
-    STORE r10, r13
-    ADD r10, r9
+    LDI r3, 0x6000
+    LDI r5, 80            ; 'P'
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 75
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 84
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 58
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 32
+    STORE r3, r5
+    ADD r3, r9
 
-    ; Decimal convert r4
-    MOV r3, r4
-    LDI r12, 0x6020
-    LDI r13, 0
-    STORE r12, r13
-    ; Special case: if r4 == 0, write '0'
-    LDI r13, 0
-    CMP r3, r13
-    JNZ r7, dec_nonzero
-    LDI r13, 48
-    SUB r12, r9
-    STORE r12, r13
+    ; Decimal convert r0
+    MOV r13, r0
+    LDI r11, 0x6020
+    LDI r5, 0
+    STORE r11, r5
+    ; Special case: if r0 == 0, write '0'
+    LDI r5, 0
+    CMP r13, r5
+    JNZ r6, dec_nonzero
+    LDI r5, 48
+    SUB r11, r9
+    STORE r11, r5
     JMP dec_copy
 dec_nonzero:
     LDI r27, 10
-    MOV r28, r3
+    MOV r28, r13
     DIV r28, r27
     MUL r28, r27
-    MOV r29, r3
+    MOV r29, r13
     SUB r29, r28
     LDI r28, 48
     ADD r29, r28
-    SUB r12, r9
-    STORE r12, r29
+    SUB r11, r9
+    STORE r11, r29
     LDI r28, 10
-    DIV r3, r28
+    DIV r13, r28
     LDI r28, 0
-    CMP r3, r28
-    JNZ r7, dec_nonzero
+    CMP r13, r28
+    JNZ r6, dec_nonzero
 dec_copy:
-    LDI r10, 0x6005
+    LDI r3, 0x6005
 dec_cp:
-    LOAD r3, r12
+    LOAD r13, r11
     LDI r27, 0
-    CMP r3, r27
-    JZ r7, dec_cp_done
-    STORE r10, r3
-    ADD r10, r9
-    ADD r12, r9
+    CMP r13, r27
+    JZ r6, dec_cp_done
+    STORE r3, r13
+    ADD r3, r9
+    ADD r11, r9
     JMP dec_cp
 dec_cp_done:
-    LDI r13, 0
-    STORE r10, r13
+    LDI r5, 0
+    STORE r3, r5
 
     LDI r16, 4
     LDI r17, 244
@@ -316,74 +316,74 @@ dec_cp_done:
     DRAWTEXT r16, r17, r18, r19, r20
 
     ; Build "RATE:N/s" at 0x6030
-    LDI r10, 0x6030
-    LDI r13, 82
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 65
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 84
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 69
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 58
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 32
-    STORE r10, r13
-    ADD r10, r9
+    LDI r3, 0x6030
+    LDI r5, 82
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 65
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 84
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 69
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 58
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 32
+    STORE r3, r5
+    ADD r3, r9
 
-    ; Decimal convert r1
-    MOV r3, r1
-    LDI r12, 0x6050
-    LDI r13, 0
-    STORE r12, r13
-    LDI r13, 0
-    CMP r3, r13
-    JNZ r7, rdec_nonzero
-    LDI r13, 48
-    SUB r12, r9
-    STORE r12, r13
+    ; Decimal convert r14
+    MOV r13, r14
+    LDI r11, 0x6050
+    LDI r5, 0
+    STORE r11, r5
+    LDI r5, 0
+    CMP r13, r5
+    JNZ r6, rdec_nonzero
+    LDI r5, 48
+    SUB r11, r9
+    STORE r11, r5
     JMP rdec_copy
 rdec_nonzero:
     LDI r27, 10
-    MOV r28, r3
+    MOV r28, r13
     DIV r28, r27
     MUL r28, r27
-    MOV r29, r3
+    MOV r29, r13
     SUB r29, r28
     LDI r28, 48
     ADD r29, r28
-    SUB r12, r9
-    STORE r12, r29
+    SUB r11, r9
+    STORE r11, r29
     LDI r28, 10
-    DIV r3, r28
+    DIV r13, r28
     LDI r28, 0
-    CMP r3, r28
-    JNZ r7, rdec_nonzero
+    CMP r13, r28
+    JNZ r6, rdec_nonzero
 rdec_copy:
-    LDI r10, 0x6037
+    LDI r3, 0x6037
 rdec_cp:
-    LOAD r3, r12
+    LOAD r13, r11
     LDI r27, 0
-    CMP r3, r27
-    JZ r7, rdec_done
-    STORE r10, r3
-    ADD r10, r9
-    ADD r12, r9
+    CMP r13, r27
+    JZ r6, rdec_done
+    STORE r3, r13
+    ADD r3, r9
+    ADD r11, r9
     JMP rdec_cp
 rdec_done:
-    LDI r13, 47
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 115
-    STORE r10, r13
-    ADD r10, r9
-    LDI r13, 0
-    STORE r10, r13
+    LDI r5, 47
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 115
+    STORE r3, r5
+    ADD r3, r9
+    LDI r5, 0
+    STORE r3, r5
 
     LDI r16, 130
     LDI r17, 244

@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code implements a procedural maze generator using depth-first search with backtracking. It generates a solvable maze on a 256x256 screen grid of 16x16 cells, where each cell is 16 pixels by 16 pixels. The algorithm starts at the top-left corner (0,0), marks visited cells, and removes walls to create passages, backtracking when no unvisited neighbors are available until all cells are visited. The maze is then drawn with white walls and black passages, while green markers indicate the entrance and exit.
+; DESCRIPTION: Geometry OS program to draw a green object.
 
 ; maze_gen.asm -- procedural maze generator (static, non-interactive)
 ;
@@ -20,348 +20,348 @@
 ;   0x5000-0x51FF: backtrack stack (up to 256 entries)
 ;
 ; Register convention:
-;   r11  = 1
-;   r0  = 16 (grid size)
-;   r1  = 16 (cell size in pixels)
-;   r6 = current cell index
-;   r9 = current cx
-;   r12 = current cy
-;   r13 = visited count
-;   r7 = 256 (total cells)
+;   r3  = 1
+;   r6  = 16 (grid size)
+;   r10  = 16 (cell size in pixels)
+;   r7 = current cell index
+;   r12 = current cx
+;   r14 = current cy
+;   r9 = visited count
+;   r8 = 256 (total cells)
 ;   r20 = stack pointer
 
 ; === Constants ===
-LDI r11, 1
-LDI r0, 16
-LDI r1, 16
-LDI r7, 256
+LDI r3, 1
+LDI r6, 16
+LDI r10, 16
+LDI r8, 256
 LDI r20, 0             ; stack top (empty)
 
 ; === Initialize all walls (set all to 1 = wall exists) ===
 ; Horizontal walls: 17 rows * 16 cols = 272 entries at 0x4100
-LDI r6, 0
-LDI r14, 0x4100
+LDI r7, 0
+LDI r15, 0x4100
 LDI r16, 272
 init_hwalls:
   LDI r17, 1
-  STORE r14, r17
-  ADD r14, r11
-  ADD r6, r11
-  CMP r6, r16
-  BLT r2, init_hwalls
+  STORE r15, r17
+  ADD r15, r3
+  ADD r7, r3
+  CMP r7, r16
+  BLT r11, init_hwalls
 
 ; Vertical walls: 16 rows * 17 cols = 272 entries at 0x4300
-LDI r6, 0
-LDI r14, 0x4300
+LDI r7, 0
+LDI r15, 0x4300
 init_vwalls:
   LDI r17, 1
-  STORE r14, r17
-  ADD r14, r11
-  ADD r6, r11
-  CMP r6, r16
-  BLT r2, init_vwalls
+  STORE r15, r17
+  ADD r15, r3
+  ADD r7, r3
+  CMP r7, r16
+  BLT r11, init_vwalls
 
 ; === Clear visited flags ===
-LDI r6, 0
-LDI r14, 0x4000
+LDI r7, 0
+LDI r15, 0x4000
 init_visited:
   LDI r17, 0
-  STORE r14, r17
-  ADD r14, r11
-  ADD r6, r11
-  CMP r6, r7
-  BLT r2, init_visited
+  STORE r15, r17
+  ADD r15, r3
+  ADD r7, r3
+  CMP r7, r8
+  BLT r11, init_visited
 
 ; === Start maze generation ===
-LDI r6, 0             ; current cell = 0
-LDI r9, 0             ; cx = 0
-LDI r12, 0             ; cy = 0
-LDI r13, 1             ; visited_count = 1
+LDI r7, 0             ; current cell = 0
+LDI r12, 0             ; cx = 0
+LDI r14, 0             ; cy = 0
+LDI r9, 1             ; visited_count = 1
 
 ; Mark (0,0) visited
-LDI r14, 0x4000
-STORE r14, r11          ; visited[0] = 1
+LDI r15, 0x4000
+STORE r15, r3          ; visited[0] = 1
 
 ; === Main generation loop ===
 gen_loop:
   ; Check if all cells visited
-  CMP r13, r7
-  BGE r2, gen_done
+  CMP r9, r8
+  BGE r11, gen_done
 
   ; --- Try UP: cy > 0 and visited[cx + (cy-1)*16] == 0 ---
-  LDI r14, 0
-  CMP r12, r14
-  JZ r2, try_down
+  LDI r15, 0
+  CMP r14, r15
+  JZ r11, try_down
 
-  MOV r14, r12
-  SUB r14, r11
-  MUL r14, r0
-  ADD r14, r9
+  MOV r15, r14
+  SUB r15, r3
+  MUL r15, r6
+  ADD r15, r12
   LDI r16, 0x4000
-  ADD r16, r14
+  ADD r16, r15
   LOAD r16, r16
   JNZ r16, try_down
 
   ; Remove h_wall[cy][cx]
-  MOV r14, r12
-  MUL r14, r0
-  ADD r14, r9
+  MOV r15, r14
+  MUL r15, r6
+  ADD r15, r12
   LDI r16, 0x4100
-  ADD r16, r14
+  ADD r16, r15
   LDI r17, 0
   STORE r16, r17
 
   ; Push current
   LDI r16, 0x5000
   ADD r16, r20
-  STORE r16, r6
-  ADD r20, r11
+  STORE r16, r7
+  ADD r20, r3
 
   ; Move UP: cy--
-  SUB r12, r11
-  MOV r6, r12
-  MUL r6, r0
-  ADD r6, r9
+  SUB r14, r3
+  MOV r7, r14
+  MUL r7, r6
+  ADD r7, r12
   LDI r16, 0x4000
-  ADD r16, r6
-  STORE r16, r11
-  ADD r13, r11
+  ADD r16, r7
+  STORE r16, r3
+  ADD r9, r3
   JMP gen_loop
 
 try_down:
   ; --- Try DOWN: cy < 15 and visited[cx + (cy+1)*16] == 0 ---
-  LDI r14, 15
-  CMP r12, r14
-  BGE r2, try_left
+  LDI r15, 15
+  CMP r14, r15
+  BGE r11, try_left
 
-  MOV r14, r12
-  ADD r14, r11
-  MUL r14, r0
-  ADD r14, r9
+  MOV r15, r14
+  ADD r15, r3
+  MUL r15, r6
+  ADD r15, r12
   LDI r16, 0x4000
-  ADD r16, r14
+  ADD r16, r15
   LOAD r16, r16
   JNZ r16, try_left
 
   ; Remove h_wall[cy+1][cx]
-  MOV r14, r12
-  ADD r14, r11
-  MUL r14, r0
-  ADD r14, r9
+  MOV r15, r14
+  ADD r15, r3
+  MUL r15, r6
+  ADD r15, r12
   LDI r16, 0x4100
-  ADD r16, r14
+  ADD r16, r15
   LDI r17, 0
   STORE r16, r17
 
   ; Push current
   LDI r16, 0x5000
   ADD r16, r20
-  STORE r16, r6
-  ADD r20, r11
+  STORE r16, r7
+  ADD r20, r3
 
   ; Move DOWN: cy++
-  ADD r12, r11
-  MOV r6, r12
-  MUL r6, r0
-  ADD r6, r9
+  ADD r14, r3
+  MOV r7, r14
+  MUL r7, r6
+  ADD r7, r12
   LDI r16, 0x4000
-  ADD r16, r6
-  STORE r16, r11
-  ADD r13, r11
+  ADD r16, r7
+  STORE r16, r3
+  ADD r9, r3
   JMP gen_loop
 
 try_left:
   ; --- Try LEFT: cx > 0 and visited[(cx-1) + cy*16] == 0 ---
-  LDI r14, 0
-  CMP r9, r14
-  JZ r2, try_right
+  LDI r15, 0
+  CMP r12, r15
+  JZ r11, try_right
 
-  MOV r14, r9
-  SUB r14, r11
-  MOV r16, r12
-  MUL r16, r0
-  ADD r16, r14
+  MOV r15, r12
+  SUB r15, r3
+  MOV r16, r14
+  MUL r16, r6
+  ADD r16, r15
   LDI r17, 0x4000
   ADD r17, r16
   LOAD r17, r17
   JNZ r17, try_right
 
   ; Remove v_wall[cy][cx]
-  MOV r14, r12
+  MOV r15, r14
   LDI r16, 17
-  MUL r14, r16
-  ADD r14, r9
+  MUL r15, r16
+  ADD r15, r12
   LDI r16, 0x4300
-  ADD r16, r14
+  ADD r16, r15
   LDI r17, 0
   STORE r16, r17
 
   ; Push current
   LDI r16, 0x5000
   ADD r16, r20
-  STORE r16, r6
-  ADD r20, r11
+  STORE r16, r7
+  ADD r20, r3
 
   ; Move LEFT: cx--
-  SUB r9, r11
-  MOV r6, r12
-  MUL r6, r0
-  ADD r6, r9
+  SUB r12, r3
+  MOV r7, r14
+  MUL r7, r6
+  ADD r7, r12
   LDI r16, 0x4000
-  ADD r16, r6
-  STORE r16, r11
-  ADD r13, r11
+  ADD r16, r7
+  STORE r16, r3
+  ADD r9, r3
   JMP gen_loop
 
 try_right:
   ; --- Try RIGHT: cx < 15 and visited[(cx+1) + cy*16] == 0 ---
-  LDI r14, 15
-  CMP r9, r14
-  BGE r2, backtrack
+  LDI r15, 15
+  CMP r12, r15
+  BGE r11, backtrack
 
-  MOV r14, r9
-  ADD r14, r11
-  MOV r16, r12
-  MUL r16, r0
-  ADD r16, r14
+  MOV r15, r12
+  ADD r15, r3
+  MOV r16, r14
+  MUL r16, r6
+  ADD r16, r15
   LDI r17, 0x4000
   ADD r17, r16
   LOAD r17, r17
   JNZ r17, backtrack
 
   ; Remove v_wall[cy][cx+1]
-  MOV r14, r12
+  MOV r15, r14
   LDI r16, 17
-  MUL r14, r16
-  MOV r16, r9
-  ADD r16, r11
-  ADD r14, r16
+  MUL r15, r16
+  MOV r16, r12
+  ADD r16, r3
+  ADD r15, r16
   LDI r16, 0x4300
-  ADD r16, r14
+  ADD r16, r15
   LDI r17, 0
   STORE r16, r17
 
   ; Push current
   LDI r16, 0x5000
   ADD r16, r20
-  STORE r16, r6
-  ADD r20, r11
+  STORE r16, r7
+  ADD r20, r3
 
   ; Move RIGHT: cx++
-  ADD r9, r11
-  MOV r6, r12
-  MUL r6, r0
-  ADD r6, r9
+  ADD r12, r3
+  MOV r7, r14
+  MUL r7, r6
+  ADD r7, r12
   LDI r16, 0x4000
-  ADD r16, r6
-  STORE r16, r11
-  ADD r13, r11
+  ADD r16, r7
+  STORE r16, r3
+  ADD r9, r3
   JMP gen_loop
 
 backtrack:
   ; Pop from stack
-  LDI r14, 0
-  CMP r20, r14
-  JZ r2, gen_done       ; stack empty, maze complete
+  LDI r15, 0
+  CMP r20, r15
+  JZ r11, gen_done       ; stack empty, maze complete
 
-  SUB r20, r11
+  SUB r20, r3
   LDI r16, 0x5000
   ADD r16, r20
-  LOAD r6, r16
+  LOAD r7, r16
 
   ; Recover cx, cy from index
-  MOV r14, r6
+  MOV r15, r7
   LDI r16, 16
-  MOD r14, r16
-  MOV r9, r14          ; cx = index % 16
-  MOV r14, r6
+  MOD r15, r16
+  MOV r12, r15          ; cx = index % 16
+  MOV r15, r7
   LDI r16, 16
-  DIV r14, r16
-  MOV r12, r14          ; cy = index / 16
+  DIV r15, r16
+  MOV r14, r15          ; cy = index / 16
   JMP gen_loop
 
 gen_done:
   ; === Draw the maze ===
-  LDI r5, 0xFFFFFF      ; white for walls
+  LDI r13, 0xFFFFFF      ; white for walls
 
   ; Draw horizontal walls: 17 rows of 16
-  LDI r6, 0            ; ry
+  LDI r7, 0            ; ry
 
 draw_hwalls:
-  LDI r9, 0            ; cx
+  LDI r12, 0            ; cx
 
 draw_hw_col:
-  MOV r14, r6
-  MUL r14, r0
-  ADD r14, r9
+  MOV r15, r7
+  MUL r15, r6
+  ADD r15, r12
   LDI r16, 0x4100
-  ADD r16, r14
+  ADD r16, r15
   LOAD r16, r16
   JZ r16, draw_hw_next
 
-  MOV r16, r9
-  MUL r16, r1           ; x = cx*16
-  MOV r17, r6
-  MUL r17, r1           ; y = ry*16
+  MOV r16, r12
+  MUL r16, r10           ; x = cx*16
+  MOV r17, r7
+  MUL r17, r10           ; y = ry*16
   LDI r18, 16
   LDI r19, 1
-  RECTF r16, r17, r18, r19, r5
+  RECTF r16, r17, r18, r19, r13
 
 draw_hw_next:
-  ADD r9, r11
-  CMP r9, r0
-  BLT r2, draw_hw_col
+  ADD r12, r3
+  CMP r12, r6
+  BLT r11, draw_hw_col
 
-  ADD r6, r11
-  LDI r14, 17
-  CMP r6, r14
-  BLT r2, draw_hwalls
+  ADD r7, r3
+  LDI r15, 17
+  CMP r7, r15
+  BLT r11, draw_hwalls
 
   ; Draw vertical walls: 16 rows of 17
-  LDI r6, 0            ; cy
+  LDI r7, 0            ; cy
 
 draw_vwalls:
-  LDI r9, 0            ; cx
+  LDI r12, 0            ; cx
 
 draw_vw_col:
-  MOV r14, r6
+  MOV r15, r7
   LDI r16, 17
-  MUL r14, r16
-  ADD r14, r9
+  MUL r15, r16
+  ADD r15, r12
   LDI r16, 0x4300
-  ADD r16, r14
+  ADD r16, r15
   LOAD r16, r16
   JZ r16, draw_vw_next
 
-  MOV r16, r9
-  MUL r16, r1           ; x = cx*16
-  MOV r17, r6
-  MUL r17, r1           ; y = cy*16
+  MOV r16, r12
+  MUL r16, r10           ; x = cx*16
+  MOV r17, r7
+  MUL r17, r10           ; y = cy*16
   LDI r18, 1
   LDI r19, 16
-  RECTF r16, r17, r18, r19, r5
+  RECTF r16, r17, r18, r19, r13
 
 draw_vw_next:
-  ADD r9, r11
-  LDI r14, 17
-  CMP r9, r14
-  BLT r2, draw_vw_col
+  ADD r12, r3
+  LDI r15, 17
+  CMP r12, r15
+  BLT r11, draw_vw_col
 
-  ADD r6, r11
-  CMP r6, r0
-  BLT r2, draw_vwalls
+  ADD r7, r3
+  CMP r7, r6
+  BLT r11, draw_vwalls
 
   ; Entrance marker (green rect in cell 0,0)
-  LDI r5, 0x00FF00
+  LDI r13, 0x00FF00
   LDI r16, 1
   LDI r17, 1
   LDI r18, 14
   LDI r19, 14
-  RECTF r16, r17, r18, r19, r5
+  RECTF r16, r17, r18, r19, r13
 
   ; Exit marker (green rect in cell 15,15)
   LDI r16, 241
   LDI r17, 241
-  RECTF r16, r17, r18, r19, r5
+  RECTF r16, r17, r18, r19, r13
 
   HALT

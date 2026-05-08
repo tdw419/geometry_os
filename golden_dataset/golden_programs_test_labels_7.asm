@@ -1,27 +1,27 @@
-; DESCRIPTION: This GeOS assembly code initializes registers and enters a loop where it generates random numbers, performs modular arithmetic to categorize them, and stores the results in memory. The loop continues until a specific condition is met, at which point the program halts.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; Test label resolution
-    LDI r8, 1
+    LDI r13, 1
     LDI r20, 64
 loop_start:
-    RAND r1
-    LDI r14, 3
-    MOD r1, r14
-    CMPI r1, 0
-    JNZ r6, mid_case
-    CMPI r1, 1
-    JNZ r6, dark_case
-    LDI r1, 1
+    RAND r6
+    LDI r9, 3
+    MOD r6, r9
+    CMPI r6, 0
+    JNZ r7, mid_case
+    CMPI r6, 1
+    JNZ r7, dark_case
+    LDI r6, 1
     JMP store_it
 mid_case:
-    LDI r1, 2
+    LDI r6, 2
     JMP store_it
 dark_case:
-    LDI r1, 3
+    LDI r6, 3
 store_it:
-    STORE r20, r1
-    ADD r20, r8
-    SUB r21, r8
+    STORE r20, r6
+    ADD r20, r13
+    SUB r21, r13
     CMPI r21, 0
-    JNZ r6, loop_start
+    JNZ r7, loop_start
     HALT

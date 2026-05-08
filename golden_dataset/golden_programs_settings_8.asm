@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a settings panel for theme selection, volume control, and configuration display. It uses RECTF to draw panels, DRAWTEXT for colored text rendering, and IKEY for input handling. The RAM layout manages the current theme ID, volume level, cursor position, key repeat speed, and a scratch buffer for text operations. The code supports navigation using W/S (up/down) to move the selection cursor and A/D/Enter to change settings values, with Escape exiting the panel.
+; DESCRIPTION: Draws a red rectangle at the screen with fixed size.
 
 ; settings.asm -- Settings Panel for Geometry OS
 ; Phase 77: Theme selection, volume control, config display
@@ -181,7 +181,7 @@ main_loop:
     LDI r21, THEMES
     ADD r21, r22            ; ptr to theme colors
 
-    LOAD r3, r21           ; bg color
+    LOAD r2, r21           ; bg color
     ADDI r21, 1
     LOAD r16, r21           ; fg color
     ADDI r21, 1
@@ -190,57 +190,57 @@ main_loop:
     LOAD r18, r21           ; panel color
 
     ; Clear with bg
-    FILL r3
+    FILL r2
 
     ; ── Title bar ──
-    LDI r1, 0
-    LDI r8, 0
-    LDI r13, 256
-    LDI r10, 24
-    RECTF r1, r8, r13, r10, r17
+    LDI r7, 0
+    LDI r9, 0
+    LDI r1, 256
+    LDI r14, 24
+    RECTF r7, r9, r1, r14, r17
 
     ; Title text
     LDI r20, SCRATCH
     STRO r20, "SETTINGS"
-    LDI r1, 0
-    LDI r8, 6
-    LDI r13, SCRATCH
-    LDI r10, 0             ; fg=black on accent
-    LDI r6, 0
-    DRAWTEXT r1, r8, r13, r10, r6
+    LDI r7, 0
+    LDI r9, 6
+    LDI r1, SCRATCH
+    LDI r14, 0             ; fg=black on accent
+    LDI r13, 0
+    DRAWTEXT r7, r9, r1, r14, r13
 
     ; ── Settings Panel ──
     ; Panel background
-    LDI r1, 16
-    LDI r8, 32
-    LDI r13, 224
-    LDI r10, 192
-    RECTF r1, r8, r13, r10, r18
+    LDI r7, 16
+    LDI r9, 32
+    LDI r1, 224
+    LDI r14, 192
+    RECTF r7, r9, r1, r14, r18
 
     ; Load cursor position
     LDI r20, CURSOR
     LOAD r23, r20
 
     ; ── Draw Theme option (row 0) ──
-    LDI r1, 24
-    LDI r8, 44
+    LDI r7, 24
+    LDI r9, 44
     CMPI r23, 0
-    JNZ r11, not_sel0
+    JNZ r12, not_sel0
     ; Highlight selected row
-    LDI r1, 17
-    LDI r8, 40
-    LDI r13, 222
-    LDI r10, 28
-    RECTF r1, r8, r13, r10, r17
-    LDI r1, 24
-    LDI r8, 44
+    LDI r7, 17
+    LDI r9, 40
+    LDI r1, 222
+    LDI r14, 28
+    RECTF r7, r9, r1, r14, r17
+    LDI r7, 24
+    LDI r9, 44
 not_sel0:
     LDI r20, SCRATCH
     STRO r20, "Theme"
-    LDI r1, 24
-    LDI r8, 44
-    LDI r13, SCRATCH
-    DRAWTEXT r1, r8, r13, r16, r3
+    LDI r7, 24
+    LDI r9, 44
+    LDI r1, SCRATCH
+    DRAWTEXT r7, r9, r1, r16, r2
 
     ; Theme value (0-7)
     LDI r20, THEME
@@ -254,12 +254,12 @@ not_sel0:
     ADDI r20, 1
     LDI r21, 0
     STORE r20, r21          ; null terminator
-    LDI r1, 140
-    LDI r8, 44
-    LDI r13, SCRATCH
-    ADDI r13, 10
-    LDI r10, 0xFFAA00       ; gold for value
-    DRAWTEXT r1, r8, r13, r10, r3
+    LDI r7, 140
+    LDI r9, 44
+    LDI r1, SCRATCH
+    ADDI r1, 10
+    LDI r14, 0xFFAA00       ; gold for value
+    DRAWTEXT r7, r9, r1, r14, r2
 
     ; Theme name
     LDI r20, THEME
@@ -268,88 +268,88 @@ not_sel0:
     ADDI r20, 20
     ; Dispatch on theme id
     CMPI r22, 0
-    JNZ r11, tnot0
+    JNZ r12, tnot0
     STRO r20, "Dark"
     JMP tname_done
 tnot0:
     CMPI r22, 1
-    JNZ r11, tnot1
+    JNZ r12, tnot1
     STRO r20, "Ocean"
     JMP tname_done
 tnot1:
     CMPI r22, 2
-    JNZ r11, tnot2
+    JNZ r12, tnot2
     STRO r20, "Forest"
     JMP tname_done
 tnot2:
     CMPI r22, 3
-    JNZ r11, tnot3
+    JNZ r12, tnot3
     STRO r20, "Sunset"
     JMP tname_done
 tnot3:
     CMPI r22, 4
-    JNZ r11, tnot4
+    JNZ r12, tnot4
     STRO r20, "Mono"
     JMP tname_done
 tnot4:
     CMPI r22, 5
-    JNZ r11, tnot5
+    JNZ r12, tnot5
     STRO r20, "Vaporwave"
     JMP tname_done
 tnot5:
     CMPI r22, 6
-    JNZ r11, tnot6
+    JNZ r12, tnot6
     STRO r20, "Amber"
     JMP tname_done
 tnot6:
     STRO r20, "Matrix"
 tname_done:
-    LDI r1, 160
-    LDI r8, 44
-    LDI r13, SCRATCH
-    ADDI r13, 20
-    LDI r10, 0x808080
-    DRAWTEXT r1, r8, r13, r10, r3
+    LDI r7, 160
+    LDI r9, 44
+    LDI r1, SCRATCH
+    ADDI r1, 20
+    LDI r14, 0x808080
+    DRAWTEXT r7, r9, r1, r14, r2
 
     ; ── Draw Volume option (row 1) ──
-    LDI r1, 24
-    LDI r8, 84
+    LDI r7, 24
+    LDI r9, 84
     CMPI r23, 1
-    JNZ r11, not_sel1
-    LDI r1, 17
-    LDI r8, 80
-    LDI r13, 222
-    LDI r10, 28
-    RECTF r1, r8, r13, r10, r17
-    LDI r1, 24
-    LDI r8, 84
+    JNZ r12, not_sel1
+    LDI r7, 17
+    LDI r9, 80
+    LDI r1, 222
+    LDI r14, 28
+    RECTF r7, r9, r1, r14, r17
+    LDI r7, 24
+    LDI r9, 84
 not_sel1:
     LDI r20, SCRATCH
     STRO r20, "Volume"
-    LDI r1, 24
-    LDI r8, 84
-    LDI r13, SCRATCH
-    DRAWTEXT r1, r8, r13, r16, r3
+    LDI r7, 24
+    LDI r9, 84
+    LDI r1, SCRATCH
+    DRAWTEXT r7, r9, r1, r16, r2
 
     ; Volume bar
     LDI r20, VOLUME
     LOAD r22, r20
     ; Bar background
-    LDI r1, 140
-    LDI r8, 86
-    LDI r13, 80
-    LDI r10, 12
-    LDI r6, 0x303030
-    RECTF r1, r8, r13, r10, r6
+    LDI r7, 140
+    LDI r9, 86
+    LDI r1, 80
+    LDI r14, 12
+    LDI r13, 0x303030
+    RECTF r7, r9, r1, r14, r13
     ; Bar fill (volume / 100 * 80)
-    LDI r6, 80
-    MUL r22, r6
-    LDI r6, 100
-    DIV r22, r6            ; fill_width = vol * 80 / 100
-    LDI r1, 140
-    LDI r8, 86
-    LDI r10, 12
-    RECTF r1, r8, r22, r10, r17
+    LDI r13, 80
+    MUL r22, r13
+    LDI r13, 100
+    DIV r22, r13            ; fill_width = vol * 80 / 100
+    LDI r7, 140
+    LDI r9, 86
+    LDI r14, 12
+    RECTF r7, r9, r22, r14, r17
 
     ; Volume number
     LDI r20, VOLUME
@@ -358,8 +358,8 @@ not_sel1:
     ADDI r20, 30
     LDI r21, 48
     ; tens digit
-    LDI r6, 10
-    DIV r22, r6
+    LDI r13, 10
+    DIV r22, r13
     ADD r21, r22
     STORE r20, r21
     ADDI r20, 1
@@ -367,81 +367,81 @@ not_sel1:
     LDI r21, 48
     LDI r22, VOLUME
     LOAD r22, r22
-    LDI r6, 10
-    MOD r22, r6
+    LDI r13, 10
+    MOD r22, r13
     ADD r21, r22
     STORE r20, r21
     ADDI r20, 1
     LDI r21, 0
     STORE r20, r21
-    LDI r1, 226
-    LDI r8, 84
-    LDI r13, SCRATCH
-    ADDI r13, 30
-    LDI r10, 0xFFAA00
-    DRAWTEXT r1, r8, r13, r10, r3
+    LDI r7, 226
+    LDI r9, 84
+    LDI r1, SCRATCH
+    ADDI r1, 30
+    LDI r14, 0xFFAA00
+    DRAWTEXT r7, r9, r1, r14, r2
 
     ; ── Draw Key Repeat option (row 2) ──
-    LDI r1, 24
-    LDI r8, 124
+    LDI r7, 24
+    LDI r9, 124
     CMPI r23, 2
-    JNZ r11, not_sel2
-    LDI r1, 17
-    LDI r8, 120
-    LDI r13, 222
-    LDI r10, 28
-    RECTF r1, r8, r13, r10, r17
-    LDI r1, 24
-    LDI r8, 124
+    JNZ r12, not_sel2
+    LDI r7, 17
+    LDI r9, 120
+    LDI r1, 222
+    LDI r14, 28
+    RECTF r7, r9, r1, r14, r17
+    LDI r7, 24
+    LDI r9, 124
 not_sel2:
     LDI r20, SCRATCH
     STRO r20, "Key Repeat"
-    LDI r1, 24
-    LDI r8, 124
-    LDI r13, SCRATCH
-    DRAWTEXT r1, r8, r13, r16, r3
+    LDI r7, 24
+    LDI r9, 124
+    LDI r1, SCRATCH
+    DRAWTEXT r7, r9, r1, r16, r2
 
     ; Key repeat dots (1-5)
     LDI r20, KEYREPT
     LOAD r22, r20
     ; Draw N filled dots
-    LDI r1, 140
-    LDI r8, 128
-    LDI r6, 0
+    LDI r7, 140
+    LDI r9, 128
+    LDI r13, 0
 repeat_dots:
-    CMP r6, r22
-    BGE r11, dots_done
-    LDI r13, 10
-    LDI r10, 10
-    RECTF r1, r8, r13, r10, r17
-    ADDI r1, 14
-    ADDI r6, 1
+    CMP r13, r22
+    BGE r12, dots_done
+    LDI r1, 10
+    LDI r14, 10
+    RECTF r7, r9, r1, r14, r17
+    ADDI r7, 14
+    ADDI r13, 1
     JMP repeat_dots
 dots_done:
     ; Draw (5-N) empty dots
-    LDI r6, 0
+    LDI r13, 0
 empty_dots:
-    CMP r6, r22
-    BLT r11, skip_dot
-    LDI r13, 10
-    LDI r10, 10
-    RECTF r1, r8, r13, r10, r6
+    CMP r13, r22
+    BLT r12, skip_dot
+    LDI r1, 10
+    LDI r14, 10
+    RECTF r7, r9, r1, r14, r13
     ; Use panel bg for empty dots
-    RECTF r1, r8, r13, r10, r18
-    ADDI r1, 14
+    RECTF r7, r9, r1, r14, r18
+    ADDI r7, 14
 skip_dot:
-    ADDI r6, 1
-    LDI r3, 5
-    CMP r6, r3
-    BLT r11, empty_dots
+    ADDI r13, 1
+    LDI r2, 5
+    CMP r13, r2
+    BLT r12, empty_dots
 
-    ; Reload theme colors (r3-r18 were clobbered)
+    ; Reload theme colors (r2-r18 were clobbered)
     LDI r20, THEME
     LOAD r22, r20
     SHLI r22, 2
     LDI r21, THEMES
     ADD r21, r22
-    LOAD r3, r21
+    LOAD r2, r21
     ADDI r21, 1
     LOAD r16, r21
     ADDI r21, 1
@@ -450,47 +450,47 @@ skip_dot:
     LOAD r18, r21
 
     ; ── Preview swatch ──
-    LDI r1, 24
-    LDI r8, 164
-    LDI r13, 208
-    LDI r10, 48
-    RECTF r1, r8, r13, r10, r18
+    LDI r7, 24
+    LDI r9, 164
+    LDI r1, 208
+    LDI r14, 48
+    RECTF r7, r9, r1, r14, r18
 
     ; Draw 4 small color swatches
-    LDI r1, 32
-    LDI r8, 170
-    LDI r13, 40
-    LDI r10, 36
-    RECTF r1, r8, r13, r10, r3  ; bg
-    ADDI r1, 48
-    RECTF r1, r8, r13, r10, r16  ; fg
-    ADDI r1, 48
-    RECTF r1, r8, r13, r10, r17  ; accent
-    ADDI r1, 48
-    RECTF r1, r8, r13, r10, r18  ; panel
+    LDI r7, 32
+    LDI r9, 170
+    LDI r1, 40
+    LDI r14, 36
+    RECTF r7, r9, r1, r14, r2  ; bg
+    ADDI r7, 48
+    RECTF r7, r9, r1, r14, r16  ; fg
+    ADDI r7, 48
+    RECTF r7, r9, r1, r14, r17  ; accent
+    ADDI r7, 48
+    RECTF r7, r9, r1, r14, r18  ; panel
 
     ; Swatch labels
     LDI r20, SCRATCH
     STRO r20, "BG   FG   ACC  PAN"
-    LDI r1, 32
-    LDI r8, 210
-    LDI r13, SCRATCH
-    DRAWTEXT r1, r8, r13, r16, r3
+    LDI r7, 32
+    LDI r9, 210
+    LDI r1, SCRATCH
+    DRAWTEXT r7, r9, r1, r16, r2
 
     ; ── Help text at bottom ──
-    LDI r1, 0
-    LDI r8, 236
-    LDI r13, 256
-    LDI r10, 20
-    RECTF r1, r8, r13, r10, r17
+    LDI r7, 0
+    LDI r9, 236
+    LDI r1, 256
+    LDI r14, 20
+    RECTF r7, r9, r1, r14, r17
     LDI r20, SCRATCH
     STRO r20, "W/S Move  A/D Change  Esc Exit"
-    LDI r1, 16
-    LDI r8, 240
-    LDI r13, SCRATCH
-    LDI r10, 0             ; black on accent
-    LDI r6, 0
-    DRAWTEXT r1, r8, r13, r10, r6
+    LDI r7, 16
+    LDI r9, 240
+    LDI r1, SCRATCH
+    LDI r14, 0             ; black on accent
+    LDI r13, 0
+    DRAWTEXT r7, r9, r1, r14, r13
 
     FRAME
     JMP main_loop
@@ -503,13 +503,13 @@ handle_key:
 
     ; Escape
     CMPI r25, 27
-    JNZ r11, not_esc
+    JNZ r12, not_esc
     HALT
 not_esc:
 
     ; W (up)
     CMPI r25, 87
-    JNZ r11, not_up
+    JNZ r12, not_up
     LDI r20, CURSOR
     LOAD r22, r20
     JZ r22, main_loop       ; already at top
@@ -520,11 +520,11 @@ not_up:
 
     ; S (down)
     CMPI r25, 83
-    JNZ r11, not_down
+    JNZ r12, not_down
     LDI r20, CURSOR
     LOAD r22, r20
     CMPI r22, 2
-    BGE r11, main_loop       ; already at bottom
+    BGE r12, main_loop       ; already at bottom
     ADDI r22, 1
     STORE r20, r22
     JMP main_loop
@@ -533,18 +533,18 @@ not_down:
     ; A (left/decrease) or D (right/increase)
     LDI r26, 0              ; 0=decrease, 1=increase
     CMPI r25, 68
-    JNZ r11, check_left
+    JNZ r12, check_left
     LDI r26, 1
     JMP do_change
 check_left:
     CMPI r25, 65
-    JNZ r11, check_enter
+    JNZ r12, check_enter
     LDI r26, 0
     JMP do_change
 check_enter:
     ; Enter = toggle/change based on cursor
     CMPI r25, 13
-    JNZ r11, key_done
+    JNZ r12, key_done
     LDI r26, 1
     ; Fall through to do_change
 
@@ -554,14 +554,14 @@ do_change:
 
     ; Cursor 0: theme (0-7)
     CMPI r23, 0
-    JNZ r11, not_theme
+    JNZ r12, not_theme
     LDI r20, THEME
     LOAD r22, r20
     CMPI r26, 1
-    JNZ r11, theme_dec
+    JNZ r12, theme_dec
     ADDI r22, 1
     CMPI r22, 8
-    BLT r11, theme_store
+    BLT r12, theme_store
     LDI r22, 0
     JMP theme_store
 theme_dec:
@@ -574,14 +574,14 @@ not_theme:
 
     ; Cursor 1: volume (0-100)
     CMPI r23, 1
-    JNZ r11, not_volume
+    JNZ r12, not_volume
     LDI r20, VOLUME
     LOAD r22, r20
     CMPI r26, 1
-    JNZ r11, vol_dec
+    JNZ r12, vol_dec
     ADDI r22, 10
     CMPI r22, 100
-    BLT r11, vol_store
+    BLT r12, vol_store
     LDI r22, 100
     JMP vol_store
 vol_dec:
@@ -596,15 +596,15 @@ not_volume:
     LDI r20, KEYREPT
     LOAD r22, r20
     CMPI r26, 1
-    JNZ r11, kr_dec
+    JNZ r12, kr_dec
     ADDI r22, 1
     CMPI r22, 6
-    BLT r11, kr_store
+    BLT r12, kr_store
     LDI r22, 5
     JMP kr_store
 kr_dec:
     CMPI r22, 2
-    BLT r11, kr_store
+    BLT r12, kr_store
     SUBI r22, 1
 kr_store:
     STORE r20, r22

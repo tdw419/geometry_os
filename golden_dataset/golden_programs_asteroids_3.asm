@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a classic Asteroids arcade game. It initializes the game environment, handles player input for ship movement and shooting, updates positions of bullets and asteroids, checks for collisions, spawns new waves of asteroids, and renders the game state including the ship, asteroids, bullets, and HUD. The game includes features like scoring, lives management, wave progression, and a restart option upon game over.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; asteroids.asm -- Classic Asteroids arcade game for Geometry OS
 ; Controls: A/D=rotate, W=thrust, Space=shoot, R=restart
@@ -24,35 +24,35 @@ restart:
 ; ── SINE TABLE (triangle wave -126..+126) ──────────────
 build_sine:
   LDI r20, 0x3000
-  LDI r10, 0
+  LDI r2, 0
 sin_lp:
-  CMPI r10, 64
-  BLT r2, sq01
-  CMPI r10, 192
-  BLT r2, sq23
+  CMPI r2, 64
+  BLT r14, sq01
+  CMPI r2, 192
+  BLT r14, sq23
   ; sq45: 192..255 ramp from -126 toward 0
   LDI r19, 256
-  SUB r19, r10
+  SUB r19, r2
   SHLI r19, 1
   NEG r19
   JMP sin_st
 sq23:
   ; 64..191 ramp from 126 down to -126
   LDI r19, 128
-  SUB r19, r10
+  SUB r19, r2
   SHLI r19, 1
   JMP sin_st
 sq01:
   ; 0..63 ramp from 0 to 126
-  MOV r19, r10
+  MOV r19, r2
   SHLI r19, 1
 sin_st:
   MOV r21, r20
-  ADD r21, r10
+  ADD r21, r2
   STORE r21, r19
-  ADDI r10, 1
-  CMPI r10, 256
-  BLT r2, sin_lp
+  ADDI r2, 1
+  CMPI r2, 256
+  BLT r14, sin_lp
   RET
 
 ; ── INIT GAME ───────────────────────────────────────────
@@ -60,64 +60,64 @@ sin_st:
 ;              0x2005=lives 0x2006=score 0x2007=wave 0x2008=dead
 ;              0x2009=cooldown 0x200A=invuln 0x200B=bul_idx 0x200C=ast_cnt
 init_game:
-  LDI r12, 0x2000
-  LDI r3, 128
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 0
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 3
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 0
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 1
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 0
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
+  LDI r4, 0x2000
+  LDI r10, 128
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 0
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 3
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 0
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 1
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 0
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
   ; Clear bullets (16 words at 0x4200)
   LDI r20, 0x4200
   LDI r21, 16
-  LDI r3, 0
+  LDI r10, 0
 clr_bul:
-  STORE r20, r3
+  STORE r20, r10
   ADDI r20, 1
   SUBI r21, 1
   JNZ r21, clr_bul
   ; Clear asteroids (40 words at 0x4000)
   LDI r20, 0x4000
   LDI r21, 40
-  LDI r3, 0
+  LDI r10, 0
 clr_ast:
-  STORE r20, r3
+  STORE r20, r10
   ADDI r20, 1
   SUBI r21, 1
   JNZ r21, clr_ast
   ; Mark all asteroid slots as empty (size=255)
   LDI r20, 0x4000
   LDI r21, 8
-  LDI r3, 255
+  LDI r10, 255
 mk_empty:
   MOV r22, r20
   ADDI r22, 4
-  STORE r22, r3
+  STORE r22, r10
   ADDI r20, 5
   SUBI r21, 1
   JNZ r21, mk_empty
@@ -130,24 +130,24 @@ mk_empty:
 ; ── SPAWN WAVE ──────────────────────────────────────────
 spawn_wave:
   ; wave = min(current_wave + 1, 8) asteroids
-  LDI r12, 0x2007
-  LOAD r3, r12
-  ADDI r3, 1
-  LDI r13, 8
-  CMP r3, r13
-  BLT r2, sw_ok
-  LDI r3, 8
+  LDI r4, 0x2007
+  LOAD r10, r4
+  ADDI r10, 1
+  LDI r15, 8
+  CMP r10, r15
+  BLT r14, sw_ok
+  LDI r10, 8
 sw_ok:
-  MOV r21, r3
-  LDI r12, 0x200C
-  STORE r12, r3
+  MOV r21, r10
+  LDI r4, 0x200C
+  STORE r4, r10
 sw_lp:
   JZ r21, sw_done
   ; Find empty asteroid slot
   LDI r22, 0
 sw_find:
   CMPI r22, 40
-  BLT r2, sw_chk
+  BLT r14, sw_chk
   JMP sw_done
 sw_chk:
   LDI r23, 0x4000
@@ -155,7 +155,7 @@ sw_chk:
   ADDI r23, 4
   LOAD r24, r23
   CMPI r24, 255
-  JZ r2, sw_found
+  JZ r14, sw_found
   ADDI r22, 5
   JMP sw_find
 sw_found:
@@ -163,58 +163,58 @@ sw_found:
   LDI r23, 0x4000
   ADD r23, r22
   ; Random position on edges
-  RAND r3
-  ANDI r3, 0xFF
-  CMPI r3, 32
-  BLT r2, sx_ok
-  CMPI r3, 224
-  BLT r2, sx_ok2
-  LDI r3, 32
+  RAND r10
+  ANDI r10, 0xFF
+  CMPI r10, 32
+  BLT r14, sx_ok
+  CMPI r10, 224
+  BLT r14, sx_ok2
+  LDI r10, 32
   JMP sx_done
 sx_ok2:
-  LDI r3, 224
+  LDI r10, 224
   JMP sx_done
 sx_ok:
-  RAND r5
-  ANDI r5, 0xFF
-  CMPI r5, 32
-  BLT r2, sy_ok
-  CMPI r5, 224
-  BLT r2, sy_ok2
-  LDI r5, 32
+  RAND r0
+  ANDI r0, 0xFF
+  CMPI r0, 32
+  BLT r14, sy_ok
+  CMPI r0, 224
+  BLT r14, sy_ok2
+  LDI r0, 32
   JMP sy_done
 sy_ok2:
-  LDI r5, 224
+  LDI r0, 224
   JMP sy_done
 sy_ok:
 sy_done:
 sx_done:
   ; Random velocity (-2 to +1)
-  RAND r11
-  ANDI r11, 3
-  LDI r13, 1
-  SUB r11, r13
+  RAND r1
+  ANDI r1, 3
+  LDI r15, 1
+  SUB r1, r15
   RAND r7
   ANDI r7, 3
-  SUB r7, r13
+  SUB r7, r15
   ; Store asteroid
-  STORE r23, r3
+  STORE r23, r10
   LDI r23, 0x4000
   ADD r23, r22
   ADDI r23, 1
-  STORE r23, r5
+  STORE r23, r0
   ADDI r23, 1
-  STORE r23, r11
+  STORE r23, r1
   ADDI r23, 1
   STORE r23, r7
   ADDI r23, 1
-  LDI r3, 0
-  STORE r23, r3
+  LDI r10, 0
+  STORE r23, r10
   ; Increment ast_count
-  LDI r12, 0x200C
-  LOAD r3, r12
-  ADDI r3, 1
-  STORE r12, r3
+  LDI r4, 0x200C
+  LOAD r10, r4
+  ADDI r10, 1
+  STORE r4, r10
   SUBI r21, 1
   JMP sw_lp
 sw_done:
@@ -222,44 +222,44 @@ sw_done:
 
 ; ── MAIN GAME LOOP ─────────────────────────────────────
 game_loop:
-  LDI r12, 0x2008
-  LOAD r3, r12
-  JNZ r3, game_over
+  LDI r4, 0x2008
+  LOAD r10, r4
+  JNZ r10, game_over
   ; Read input
-  IKEY r0
-  CMPI r0, 65
-  JZ r2, rot_l
-  CMPI r0, 97
-  JZ r2, rot_l
-  CMPI r0, 68
-  JZ r2, rot_r
-  CMPI r0, 100
-  JZ r2, rot_r
-  CMPI r0, 87
-  JZ r2, do_thrust
-  CMPI r0, 119
-  JZ r2, do_thrust
-  CMPI r0, 32
-  JZ r2, do_shoot
+  IKEY r6
+  CMPI r6, 65
+  JZ r14, rot_l
+  CMPI r6, 97
+  JZ r14, rot_l
+  CMPI r6, 68
+  JZ r14, rot_r
+  CMPI r6, 100
+  JZ r14, rot_r
+  CMPI r6, 87
+  JZ r14, do_thrust
+  CMPI r6, 119
+  JZ r14, do_thrust
+  CMPI r6, 32
+  JZ r14, do_shoot
   JMP no_input
 rot_l:
-  LDI r12, 0x2002
-  LOAD r3, r12
-  ADDI r3, 240
-  ANDI r3, 0xFF
-  STORE r12, r3
+  LDI r4, 0x2002
+  LOAD r10, r4
+  ADDI r10, 240
+  ANDI r10, 0xFF
+  STORE r4, r10
   JMP no_input
 rot_r:
-  LDI r12, 0x2002
-  LOAD r3, r12
-  ADDI r3, 16
-  ANDI r3, 0xFF
-  STORE r12, r3
+  LDI r4, 0x2002
+  LOAD r10, r4
+  ADDI r10, 16
+  ANDI r10, 0xFF
+  STORE r4, r10
   JMP no_input
 do_thrust:
   ; Add velocity in ship's facing direction
-  LDI r12, 0x2002
-  LOAD r16, r12
+  LDI r4, 0x2002
+  LOAD r16, r4
   ; cos = sine(angle + 64)
   MOV r17, r16
   ADDI r17, 64
@@ -272,36 +272,36 @@ do_thrust:
   ADD r17, r16
   LOAD r17, r17
   ; Scale by 1/8 (shift right 3)
-  SAR r18, r3
-  LDI r3, 3
-  SAR r18, r3
-  SAR r17, r3
+  SAR r18, r10
+  LDI r10, 3
+  SAR r18, r10
+  SAR r17, r10
   ; Add to velocity
-  LDI r12, 0x2003
-  LOAD r3, r12
-  ADD r3, r18
-  STORE r12, r3
-  LDI r12, 0x2004
-  LOAD r3, r12
-  ADD r3, r17
-  STORE r12, r3
+  LDI r4, 0x2003
+  LOAD r10, r4
+  ADD r10, r18
+  STORE r4, r10
+  LDI r4, 0x2004
+  LOAD r10, r4
+  ADD r10, r17
+  STORE r4, r10
   JMP no_input
 do_shoot:
   ; Check cooldown
-  LDI r12, 0x2009
-  LOAD r3, r12
-  JNZ r3, no_input
-  LDI r3, 15
-  STORE r12, r3
+  LDI r4, 0x2009
+  LOAD r10, r4
+  JNZ r10, no_input
+  LDI r10, 15
+  STORE r4, r10
   ; Get bullet slot index
-  LDI r12, 0x200B
-  LOAD r22, r12
+  LDI r4, 0x200B
+  LOAD r22, r4
   SHLI r22, 2
   LDI r23, 0x4200
   ADD r23, r22
   ; Get ship angle
-  LDI r12, 0x2002
-  LOAD r16, r12
+  LDI r4, 0x2002
+  LOAD r16, r4
   ; cos = sine(angle + 64), sin = sine(angle)
   MOV r17, r16
   ADDI r17, 64
@@ -315,24 +315,24 @@ do_shoot:
   ; Bullet velocity = direction * 3/4
   SHLI r18, 1
   ADD r18, r18
-  LDI r3, 4
-  SAR r18, r3
+  LDI r10, 4
+  SAR r18, r10
   SHLI r17, 1
   ADD r17, r17
-  SAR r17, r3
+  SAR r17, r10
   ; Bullet start position = ship pos + direction * 12
-  LDI r12, 0x2000
-  LOAD r27, r12
+  LDI r4, 0x2000
+  LOAD r27, r4
   SHLI r18, 1
   ADD r18, r18
-  LDI r3, 5
-  SAR r18, r3
+  LDI r10, 5
+  SAR r18, r10
   ADD r27, r18
-  LDI r12, 0x2001
-  LOAD r28, r12
+  LDI r4, 0x2001
+  LOAD r28, r4
   SHLI r17, 1
   ADD r17, r17
-  SAR r17, r3
+  SAR r17, r10
   ADD r28, r17
   ; Store bullet: x, y, vx, vy
   STORE r23, r27
@@ -343,39 +343,39 @@ do_shoot:
   ADDI r23, 1
   STORE r23, r17
   ; Advance bullet index
-  LDI r12, 0x200B
-  LOAD r3, r12
-  ADDI r3, 1
-  ANDI r3, 3
-  STORE r12, r3
+  LDI r4, 0x200B
+  LOAD r10, r4
+  ADDI r10, 1
+  ANDI r10, 3
+  STORE r4, r10
 no_input:
   ; Decrement cooldown
-  LDI r12, 0x2009
-  LOAD r3, r12
-  JZ r3, cd_ok
-  SUBI r3, 1
-  STORE r12, r3
+  LDI r4, 0x2009
+  LOAD r10, r4
+  JZ r10, cd_ok
+  SUBI r10, 1
+  STORE r4, r10
 cd_ok:
   ; Decrement invulnerability
-  LDI r12, 0x200A
-  LOAD r3, r12
-  JZ r3, inv_ok
-  SUBI r3, 1
-  STORE r12, r3
+  LDI r4, 0x200A
+  LOAD r10, r4
+  JZ r10, inv_ok
+  SUBI r10, 1
+  STORE r4, r10
 inv_ok:
   ; Update ship position
-  LDI r12, 0x2000
-  LOAD r3, r12
-  LDI r13, 0x2003
-  LOAD r5, r13
-  ADD r3, r5
-  STORE r12, r3
-  LDI r12, 0x2001
-  LOAD r3, r12
-  LDI r13, 0x2004
-  LOAD r5, r13
-  ADD r3, r5
-  STORE r12, r3
+  LDI r4, 0x2000
+  LOAD r10, r4
+  LDI r15, 0x2003
+  LOAD r0, r15
+  ADD r10, r0
+  STORE r4, r10
+  LDI r4, 0x2001
+  LOAD r10, r4
+  LDI r15, 0x2004
+  LOAD r0, r15
+  ADD r10, r0
+  STORE r4, r10
   ; Wrap ship
   CALL wrap_xy_ship
   ; Update bullets
@@ -385,20 +385,20 @@ inv_ok:
   ; Check collisions
   CALL check_collisions
   ; Check if all asteroids destroyed -> next wave
-  LDI r12, 0x200C
-  LOAD r3, r12
-  JNZ r3, draw_start
-  LDI r12, 0x2007
-  LOAD r3, r12
-  ADDI r3, 1
-  STORE r12, r3
+  LDI r4, 0x200C
+  LOAD r10, r4
+  JNZ r10, draw_start
+  LDI r4, 0x2007
+  LOAD r10, r4
+  ADDI r10, 1
+  STORE r4, r10
   PUSH r31
   CALL spawn_wave
   POP r31
 draw_start:
   ; Clear screen
-  LDI r15, 0
-  FILL r15
+  LDI r12, 0
+  FILL r12
   ; Draw everything
   CALL draw_asteroids
   CALL draw_bullets
@@ -409,19 +409,19 @@ draw_start:
 
 ; ── WRAP SHIP POSITION ─────────────────────────────────
 wrap_xy_ship:
-  LDI r12, 0x2000
-  LOAD r3, r12
-  CMPI r3, 256
-  BLT r2, ws_y
-  SUBI r3, 256
-  STORE r12, r3
+  LDI r4, 0x2000
+  LOAD r10, r4
+  CMPI r10, 256
+  BLT r14, ws_y
+  SUBI r10, 256
+  STORE r4, r10
 ws_y:
-  LDI r12, 0x2001
-  LOAD r3, r12
-  CMPI r3, 256
-  BLT r2, ws_done
-  SUBI r3, 256
-  STORE r12, r3
+  LDI r4, 0x2001
+  LOAD r10, r4
+  CMPI r10, 256
+  BLT r14, ws_done
+  SUBI r10, 256
+  STORE r4, r10
 ws_done:
   RET
 
@@ -431,36 +431,36 @@ update_bullets:
   LDI r21, 4
 ub_lp:
   JZ r21, ub_done
-  ; Load bullet: x(r3), y(r5), vx(r11), vy(r12)
-  LOAD r3, r20
+  ; Load bullet: x(r10), y(r0), vx(r1), vy(r4)
+  LOAD r10, r20
   MOV r22, r20
   ADDI r22, 1
-  LOAD r5, r22
+  LOAD r0, r22
   ADDI r22, 1
-  LOAD r11, r22
+  LOAD r1, r22
   ADDI r22, 1
-  LOAD r12, r22
+  LOAD r4, r22
   ; Check if off screen (x>=256 or y>=256)
-  CMPI r3, 256
-  BLT r2, ub_ychk
+  CMPI r10, 256
+  BLT r14, ub_ychk
   ; Off screen - mark inactive (set x=0xFFFF)
-  LDI r13, 0xFFFF
-  STORE r20, r13
+  LDI r15, 0xFFFF
+  STORE r20, r15
   JMP ub_next
 ub_ychk:
-  CMPI r5, 256
-  BLT r2, ub_move
-  LDI r13, 0xFFFF
-  STORE r20, r13
+  CMPI r0, 256
+  BLT r14, ub_move
+  LDI r15, 0xFFFF
+  STORE r20, r15
   JMP ub_next
 ub_move:
   ; Update position
-  ADD r3, r11
-  STORE r20, r3
+  ADD r10, r1
+  STORE r20, r10
   MOV r22, r20
   ADDI r22, 1
-  ADD r5, r12
-  STORE r22, r5
+  ADD r0, r4
+  STORE r22, r0
 ub_next:
   ADDI r20, 4
   SUBI r21, 1
@@ -479,23 +479,23 @@ ua_lp:
   ADDI r22, 4
   LOAD r23, r22
   CMPI r23, 255
-  JZ r2, ua_next
-  ; Load x(r3), y(r5), vx(r11), vy(r12)
-  LOAD r3, r20
+  JZ r14, ua_next
+  ; Load x(r10), y(r0), vx(r1), vy(r4)
+  LOAD r10, r20
   MOV r22, r20
   ADDI r22, 1
-  LOAD r5, r22
+  LOAD r0, r22
   ADDI r22, 1
-  LOAD r11, r22
+  LOAD r1, r22
   ADDI r22, 1
-  LOAD r12, r22
+  LOAD r4, r22
   ; Move
-  ADD r3, r11
-  STORE r20, r3
+  ADD r10, r1
+  STORE r20, r10
   MOV r22, r20
   ADDI r22, 1
-  ADD r5, r12
-  STORE r22, r5
+  ADD r0, r4
+  STORE r22, r0
 ua_next:
   ADDI r20, 5
   SUBI r21, 1
@@ -510,20 +510,20 @@ wa_lp:
   ADDI r22, 4
   LOAD r23, r22
   CMPI r23, 255
-  JZ r2, wa_next
-  LOAD r3, r20
-  CMPI r3, 256
-  BLT r2, wa_ay
-  SUBI r3, 256
-  STORE r20, r3
+  JZ r14, wa_next
+  LOAD r10, r20
+  CMPI r10, 256
+  BLT r14, wa_ay
+  SUBI r10, 256
+  STORE r20, r10
 wa_ay:
   MOV r22, r20
   ADDI r22, 1
-  LOAD r3, r22
-  CMPI r3, 256
-  BLT r2, wa_nx
-  SUBI r3, 256
-  STORE r22, r3
+  LOAD r10, r22
+  CMPI r10, 256
+  BLT r14, wa_nx
+  SUBI r10, 256
+  STORE r22, r10
 wa_nx:
 wa_next:
   ADDI r20, 5
@@ -540,13 +540,13 @@ check_collisions:
 cb_blp:
   JZ r21, cb_ship
   ; Load bullet x, y
-  LOAD r10, r20
+  LOAD r2, r20
   MOV r22, r20
   ADDI r22, 1
-  LOAD r1, r22
+  LOAD r5, r22
   ; Check if bullet is active (x < 256)
-  CMPI r10, 256
-  BLT r2, cb_astlp
+  CMPI r2, 256
+  BLT r14, cb_astlp
   JMP cb_bnext
 cb_astlp:
   LDI r23, 0x4000
@@ -558,89 +558,89 @@ cb_alp:
   ADDI r25, 4
   LOAD r26, r25
   CMPI r26, 255
-  JZ r2, cb_anext
+  JZ r14, cb_anext
   ; Load asteroid x, y, size
-  LOAD r3, r23
+  LOAD r10, r23
   MOV r25, r23
   ADDI r25, 1
-  LOAD r5, r25
+  LOAD r0, r25
   ; Distance squared
-  MOV r0, r10
-  SUB r0, r3
-  MUL r0, r0
-  MOV r14, r1
-  SUB r14, r5
-  MUL r14, r14
-  ADD r0, r14
+  MOV r6, r2
+  SUB r6, r10
+  MUL r6, r6
+  MOV r3, r5
+  SUB r3, r0
+  MUL r3, r3
+  ADD r6, r3
   ; Collision radius depends on size
   CMPI r26, 2
-  JZ r2, cb_sz0
+  JZ r14, cb_sz0
   CMPI r26, 1
-  JZ r2, cb_sz1
-  LDI r13, 900
-  CMP r0, r13
-  BLT r2, cb_hit
+  JZ r14, cb_sz1
+  LDI r15, 900
+  CMP r6, r15
+  BLT r14, cb_hit
   JMP cb_anext
 cb_sz0:
-  LDI r13, 625
-  CMP r0, r13
-  BLT r2, cb_hit
+  LDI r15, 625
+  CMP r6, r15
+  BLT r14, cb_hit
   JMP cb_anext
 cb_sz1:
-  LDI r13, 400
-  CMP r0, r13
-  BLT r2, cb_hit
+  LDI r15, 400
+  CMP r6, r15
+  BLT r14, cb_hit
   JMP cb_anext
 cb_hit:
   ; Destroy asteroid (set size=255)
   MOV r25, r23
   ADDI r25, 4
-  LDI r13, 255
-  STORE r25, r13
+  LDI r15, 255
+  STORE r25, r15
   ; Deactivate bullet (set x=0xFFFF)
-  LDI r13, 0xFFFF
-  STORE r20, r13
+  LDI r15, 0xFFFF
+  STORE r20, r15
   ; Add score
   CMPI r26, 2
-  JZ r2, cb_sc0
+  JZ r14, cb_sc0
   CMPI r26, 1
-  JZ r2, cb_sc1
-  LDI r13, 100
+  JZ r14, cb_sc1
+  LDI r15, 100
   JMP cb_addsc
 cb_sc0:
-  LDI r13, 25
+  LDI r15, 25
   JMP cb_addsc
 cb_sc1:
-  LDI r13, 50
+  LDI r15, 50
 cb_addsc:
-  LDI r12, 0x2006
-  LOAD r3, r12
-  ADD r3, r13
-  STORE r12, r3
+  LDI r4, 0x2006
+  LOAD r10, r4
+  ADD r10, r15
+  STORE r4, r10
   ; Decrement ast_count
-  LDI r12, 0x200C
-  LOAD r3, r12
-  SUBI r3, 1
-  STORE r12, r3
+  LDI r4, 0x200C
+  LOAD r10, r4
+  SUBI r10, 1
+  STORE r4, r10
   ; Split if not small (size != 2)
   CMPI r26, 2
-  JZ r2, cb_nosplit
+  JZ r14, cb_nosplit
   ; Determine child size
   CMPI r26, 0
-  JZ r2, cb_sp_lg
-  LDI r3, 2
+  JZ r14, cb_sp_lg
+  LDI r10, 2
   JMP cb_do_sp
 cb_sp_lg:
-  LDI r3, 1
+  LDI r10, 1
 cb_do_sp:
   PUSH r31
   CALL spawn_children
   POP r31
 cb_nosplit:
   ; Sound effect
-  LDI r8, 440
-  LDI r4, 80
-  BEEP r8, r4
+  LDI r11, 440
+  LDI r13, 80
+  BEEP r11, r13
   JMP cb_alp
 cb_anext:
   ADDI r23, 5
@@ -654,14 +654,14 @@ cb_bnext:
   ; Ship-asteroid collisions
 cb_ship:
   ; Check invulnerability
-  LDI r12, 0x200A
-  LOAD r3, r12
-  JNZ r3, cb_done
+  LDI r4, 0x200A
+  LOAD r10, r4
+  JNZ r10, cb_done
   ; Load ship x, y
-  LDI r12, 0x2000
-  LOAD r10, r12
-  LDI r12, 0x2001
-  LOAD r1, r12
+  LDI r4, 0x2000
+  LOAD r2, r4
+  LDI r4, 0x2001
+  LOAD r5, r4
   LDI r23, 0x4000
   LDI r24, 8
 cs_lp:
@@ -670,56 +670,56 @@ cs_lp:
   ADDI r25, 4
   LOAD r26, r25
   CMPI r26, 255
-  JZ r2, cs_next
-  LOAD r3, r23
+  JZ r14, cs_next
+  LOAD r10, r23
   MOV r25, r23
   ADDI r25, 1
-  LOAD r5, r25
-  MOV r0, r10
-  SUB r0, r3
-  MUL r0, r0
-  MOV r14, r1
-  SUB r14, r5
-  MUL r14, r14
-  ADD r0, r14
-  LDI r13, 484
-  CMP r0, r13
-  BLT r2, cs_die
+  LOAD r0, r25
+  MOV r6, r2
+  SUB r6, r10
+  MUL r6, r6
+  MOV r3, r5
+  SUB r3, r0
+  MUL r3, r3
+  ADD r6, r3
+  LDI r15, 484
+  CMP r6, r15
+  BLT r14, cs_die
   JMP cs_next
 cs_die:
   ; Lose a life
-  LDI r12, 0x2005
-  LOAD r3, r12
-  SUBI r3, 1
-  STORE r12, r3
+  LDI r4, 0x2005
+  LOAD r10, r4
+  SUBI r10, 1
+  STORE r4, r10
   ; Sound
-  LDI r8, 220
-  LDI r4, 200
-  BEEP r8, r4
+  LDI r11, 220
+  LDI r13, 200
+  BEEP r11, r13
   ; Check game over
-  JNZ r3, cs_over
+  JNZ r10, cs_over
   ; Respawn at center
-  LDI r12, 0x2000
-  LDI r3, 128
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 0
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
-  ADDI r12, 1
-  STORE r12, r3
+  LDI r4, 0x2000
+  LDI r10, 128
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 0
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
+  ADDI r4, 1
+  STORE r4, r10
   ; Invulnerability
-  LDI r12, 0x200A
-  LDI r3, 120
-  STORE r12, r3
+  LDI r4, 0x200A
+  LDI r10, 120
+  STORE r4, r10
   JMP cb_done
 cs_over:
-  LDI r12, 0x2008
-  LDI r3, 1
-  STORE r12, r3
+  LDI r4, 0x2008
+  LDI r10, 1
+  STORE r4, r10
   JMP cb_done
 cs_next:
   ADDI r23, 5
@@ -729,24 +729,24 @@ cb_done:
   RET
 
 ; ── SPAWN CHILDREN (after asteroid destruction) ──────────
-; r3 = asteroid x (from LOAD r3, r23), r5 = asteroid y
+; r10 = asteroid x (from LOAD r10, r23), r0 = asteroid y
 ; Actually we need to reload - the registers may be clobbered
-; Stack: child_size in r3
+; Stack: child_size in r10
 spawn_children:
   ; Reload parent position from the asteroid slot we just hit
   ; r23 still points to the asteroid base
-  LOAD r13, r23
+  LOAD r15, r23
   MOV r22, r23
   ADDI r22, 1
   LOAD r7, r22
   ; Random velocities for child 1
-  RAND r5
-  ANDI r5, 3
-  LDI r11, 1
-  SUB r5, r11
   RAND r0
   ANDI r0, 3
-  SUB r0, r11
+  LDI r1, 1
+  SUB r0, r1
+  RAND r6
+  ANDI r6, 3
+  SUB r6, r1
   ; Find empty slot for child 1
   LDI r20, 0x4000
   LDI r21, 8
@@ -756,27 +756,27 @@ sp_f1:
   ADDI r22, 4
   LOAD r23, r22
   CMPI r23, 255
-  JZ r2, sp_s1
+  JZ r14, sp_s1
   ADDI r20, 5
   SUBI r21, 1
   JMP sp_f1
 sp_s1:
-  STORE r20, r13
+  STORE r20, r15
   ADDI r20, 1
   STORE r20, r7
   ADDI r20, 1
-  STORE r20, r5
-  ADDI r20, 1
   STORE r20, r0
   ADDI r20, 1
-  STORE r20, r3
-  LDI r12, 0x200C
-  LOAD r14, r12
-  ADDI r14, 1
-  STORE r12, r14
+  STORE r20, r6
+  ADDI r20, 1
+  STORE r20, r10
+  LDI r4, 0x200C
+  LOAD r3, r4
+  ADDI r3, 1
+  STORE r4, r3
   ; Child 2: opposite velocities
-  NEG r5
   NEG r0
+  NEG r6
   LDI r20, 0x4000
   LDI r21, 8
 sp_f2:
@@ -785,39 +785,39 @@ sp_f2:
   ADDI r22, 4
   LOAD r23, r22
   CMPI r23, 255
-  JZ r2, sp_s2
+  JZ r14, sp_s2
   ADDI r20, 5
   SUBI r21, 1
   JMP sp_f2
 sp_s2:
-  STORE r20, r13
+  STORE r20, r15
   ADDI r20, 1
   STORE r20, r7
   ADDI r20, 1
-  STORE r20, r5
-  ADDI r20, 1
   STORE r20, r0
   ADDI r20, 1
-  STORE r20, r3
-  LDI r12, 0x200C
-  LOAD r14, r12
-  ADDI r14, 1
-  STORE r12, r14
+  STORE r20, r6
+  ADDI r20, 1
+  STORE r20, r10
+  LDI r4, 0x200C
+  LOAD r3, r4
+  ADDI r3, 1
+  STORE r4, r3
 sp_done:
   RET
 
 ; ── DRAW SHIP ───────────────────────────────────────────
 draw_ship:
   ; Check invulnerability blink
-  LDI r12, 0x200A
-  LOAD r3, r12
-  JZ r3, ds_draw
-  ANDI r3, 8
-  JNZ r3, ds_skip
+  LDI r4, 0x200A
+  LOAD r10, r4
+  JZ r10, ds_draw
+  ANDI r10, 8
+  JNZ r10, ds_skip
 ds_draw:
   ; Load angle
-  LDI r12, 0x2002
-  LOAD r16, r12
+  LDI r4, 0x2002
+  LOAD r16, r4
   ; cos = sine(angle + 64)
   MOV r17, r16
   ADDI r17, 64
@@ -830,21 +830,21 @@ ds_draw:
   ADD r17, r16
   LOAD r17, r17
   ; Load ship position
-  LDI r12, 0x2000
-  LOAD r8, r12
-  LDI r12, 0x2001
-  LOAD r4, r12
+  LDI r4, 0x2000
+  LOAD r11, r4
+  LDI r4, 0x2001
+  LOAD r13, r4
   ; Nose: pos + dir * 15
   LDI r19, 15
   MOV r21, r19
   MUL r21, r18
   LDI r22, 7
   SAR r21, r22
-  ADD r21, r8
+  ADD r21, r11
   MOV r23, r19
   MUL r23, r17
   SAR r23, r22
-  ADD r23, r4
+  ADD r23, r13
   ; Left wing: pos + rotate(dir, -100deg) * 10
   ; angle - 100 = angle + 156 (mod 256)
   MOV r24, r16
@@ -865,11 +865,11 @@ ds_draw:
   MOV r28, r19
   MUL r28, r27
   SAR r28, r22
-  ADD r28, r8
+  ADD r28, r11
   MOV r29, r19
   MUL r29, r25
   SAR r29, r22
-  ADD r29, r4
+  ADD r29, r13
   ; Right wing: pos + rotate(dir, +100deg) * 10
   ; angle + 100
   MOV r24, r16
@@ -885,19 +885,19 @@ ds_draw:
   ADD r27, r26
   LOAD r27, r27
   LDI r19, 10
-  MOV r3, r19
-  MUL r3, r27
-  SAR r3, r22
-  ADD r3, r8
-  MOV r5, r19
-  MUL r5, r25
-  SAR r5, r22
-  ADD r5, r4
+  MOV r10, r19
+  MUL r10, r27
+  SAR r10, r22
+  ADD r10, r11
+  MOV r0, r19
+  MUL r0, r25
+  SAR r0, r22
+  ADD r0, r13
   ; Draw triangle
-  LDI r11, 0x00FF00
-  LINE r21, r23, r28, r29, r11
-  LINE r28, r29, r3, r5, r11
-  LINE r3, r5, r21, r23, r11
+  LDI r1, 0x00FF00
+  LINE r21, r23, r28, r29, r1
+  LINE r28, r29, r10, r0, r1
+  LINE r10, r0, r21, r23, r1
 ds_skip:
   RET
 
@@ -912,33 +912,33 @@ da_lp:
   ADDI r22, 4
   LOAD r23, r22
   CMPI r23, 255
-  JZ r2, da_next
+  JZ r14, da_next
   ; Load x, y, size
-  LOAD r3, r20
+  LOAD r10, r20
   MOV r22, r20
   ADDI r22, 1
-  LOAD r5, r22
+  LOAD r0, r22
   ADDI r22, 4
   LOAD r23, r22
   ; Draw circle based on size
   CMPI r23, 0
-  JZ r2, da_large
+  JZ r14, da_large
   CMPI r23, 1
-  JZ r2, da_med
+  JZ r14, da_med
   ; small
-  LDI r12, 5
-  LDI r13, 0x888888
-  CIRCLE r3, r5, r12, r13
+  LDI r4, 5
+  LDI r15, 0x888888
+  CIRCLE r10, r0, r4, r15
   JMP da_next
 da_large:
-  LDI r12, 18
-  LDI r13, 0xAAAAAA
-  CIRCLE r3, r5, r12, r13
+  LDI r4, 18
+  LDI r15, 0xAAAAAA
+  CIRCLE r10, r0, r4, r15
   JMP da_next
 da_med:
-  LDI r12, 10
-  LDI r13, 0xCCCCCC
-  CIRCLE r3, r5, r12, r13
+  LDI r4, 10
+  LDI r15, 0xCCCCCC
+  CIRCLE r10, r0, r4, r15
 da_next:
   ADDI r20, 5
   SUBI r21, 1
@@ -953,21 +953,21 @@ draw_bullets:
 db_lp:
   JZ r21, db_done
   ; Load bullet x, y
-  LOAD r3, r20
+  LOAD r10, r20
   MOV r22, r20
   ADDI r22, 1
-  LOAD r5, r22
+  LOAD r0, r22
   ; Only draw if on screen
-  CMPI r3, 256
-  BLT r2, db_ychk
+  CMPI r10, 256
+  BLT r14, db_ychk
   JMP db_next
 db_ychk:
-  CMPI r5, 256
-  BLT r2, db_draw
+  CMPI r0, 256
+  BLT r14, db_draw
   JMP db_next
 db_draw:
-  LDI r11, 0xFFFFFF
-  PSET r3, r5, r11
+  LDI r1, 0xFFFFFF
+  PSET r10, r0, r1
 db_next:
   ADDI r20, 4
   SUBI r21, 1
@@ -978,181 +978,181 @@ db_done:
 ; ── DRAW HUD ────────────────────────────────────────────
 draw_hud:
   ; Score text
-  LDI r12, 0x5000
-  LDI r3, 83
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 67
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 79
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 82
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 69
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 58
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 32
-  STORE r12, r3
-  ADDI r12, 1
+  LDI r4, 0x5000
+  LDI r10, 83
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 67
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 79
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 82
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 69
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 58
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 32
+  STORE r4, r10
+  ADDI r4, 1
   ; Score number (6 digits)
-  LDI r13, 0x2006
-  LOAD r15, r13
+  LDI r15, 0x2006
+  LOAD r12, r15
   LDI r7, 100000
-  DIV r3, r7
-  ADDI r3, 48
-  STORE r12, r3
-  MOD r15, r7
-  ADDI r12, 1
+  DIV r10, r7
+  ADDI r10, 48
+  STORE r4, r10
+  MOD r12, r7
+  ADDI r4, 1
   LDI r7, 10000
-  DIV r3, r7
-  ADDI r3, 48
-  STORE r12, r3
-  MOD r15, r7
-  ADDI r12, 1
+  DIV r10, r7
+  ADDI r10, 48
+  STORE r4, r10
+  MOD r12, r7
+  ADDI r4, 1
   LDI r7, 1000
-  DIV r3, r7
-  ADDI r3, 48
-  STORE r12, r3
-  MOD r15, r7
-  ADDI r12, 1
+  DIV r10, r7
+  ADDI r10, 48
+  STORE r4, r10
+  MOD r12, r7
+  ADDI r4, 1
   LDI r7, 100
-  DIV r3, r7
-  ADDI r3, 48
-  STORE r12, r3
-  MOD r15, r7
-  ADDI r12, 1
+  DIV r10, r7
+  ADDI r10, 48
+  STORE r4, r10
+  MOD r12, r7
+  ADDI r4, 1
   LDI r7, 10
-  DIV r3, r7
-  ADDI r3, 48
-  STORE r12, r3
-  MOD r15, r7
-  ADDI r15, 48
-  ADDI r12, 1
-  STORE r12, r15
-  ADDI r12, 1
-  LDI r3, 0
-  STORE r12, r3
+  DIV r10, r7
+  ADDI r10, 48
+  STORE r4, r10
+  MOD r12, r7
+  ADDI r12, 48
+  ADDI r4, 1
+  STORE r4, r12
+  ADDI r4, 1
+  LDI r10, 0
+  STORE r4, r10
   ; Render "SCORE: NNNNNN"
-  LDI r10, 2
-  LDI r1, 2
-  LDI r9, 0x5000
-  TEXT r10, r1, r9
+  LDI r2, 2
+  LDI r5, 2
+  LDI r8, 0x5000
+  TEXT r2, r5, r8
   ; Lives text
-  LDI r12, 0x5010
-  LDI r3, 76
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 73
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 86
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 69
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 83
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 58
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 32
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r13, 0x2005
-  LOAD r3, r13
-  ADDI r3, 48
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 0
-  STORE r12, r3
-  LDI r10, 200
-  LDI r1, 2
-  LDI r9, 0x5010
-  TEXT r10, r1, r9
+  LDI r4, 0x5010
+  LDI r10, 76
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 73
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 86
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 69
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 83
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 58
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 32
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r15, 0x2005
+  LOAD r10, r15
+  ADDI r10, 48
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 0
+  STORE r4, r10
+  LDI r2, 200
+  LDI r5, 2
+  LDI r8, 0x5010
+  TEXT r2, r5, r8
   ; Wave text
-  LDI r12, 0x5020
-  LDI r3, 87
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 65
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 86
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 69
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 58
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 32
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r13, 0x2007
-  LOAD r3, r13
-  ADDI r3, 48
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 0
-  STORE r12, r3
-  LDI r10, 2
-  LDI r1, 14
-  LDI r9, 0x5020
-  TEXT r10, r1, r9
+  LDI r4, 0x5020
+  LDI r10, 87
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 65
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 86
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 69
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 58
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 32
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r15, 0x2007
+  LOAD r10, r15
+  ADDI r10, 48
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 0
+  STORE r4, r10
+  LDI r2, 2
+  LDI r5, 14
+  LDI r8, 0x5020
+  TEXT r2, r5, r8
   RET
 
 ; ── GAME OVER ───────────────────────────────────────────
 game_over:
-  LDI r15, 0
-  FILL r15
+  LDI r12, 0
+  FILL r12
   ; "GAME OVER" text
-  LDI r12, 0x5000
-  LDI r3, 71
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 65
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 77
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 69
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 32
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 79
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 86
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 69
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 82
-  STORE r12, r3
-  ADDI r12, 1
-  LDI r3, 0
-  STORE r12, r3
-  LDI r10, 68
-  LDI r1, 110
-  LDI r9, 0x5000
-  TEXT r10, r1, r9
+  LDI r4, 0x5000
+  LDI r10, 71
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 65
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 77
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 69
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 32
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 79
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 86
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 69
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 82
+  STORE r4, r10
+  ADDI r4, 1
+  LDI r10, 0
+  STORE r4, r10
+  LDI r2, 68
+  LDI r5, 110
+  LDI r8, 0x5000
+  TEXT r2, r5, r8
   FRAME
-  IKEY r0
-  CMPI r0, 82
-  JZ r2, restart
-  CMPI r0, 114
-  JZ r2, restart
+  IKEY r6
+  CMPI r6, 82
+  JZ r14, restart
+  CMPI r6, 114
+  JZ r14, restart
   JMP game_over

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a screen with a demo pattern consisting of colored rectangles. It captures screenshots when the 'S' key is pressed and saves them to the VFS with names formatted as "shot_N.img", where N is an incrementing counter. After capturing, it displays a green indicator in the top-right corner for approximately one second before returning to the demo pattern.
+; DESCRIPTION: Render a red rectangle at the screen.
 
 ; screenshot.asm -- Screenshot capture utility
 ;
@@ -8,93 +8,93 @@
 
 ; ── Draw demo pattern first ──
 ; Blue background
-LDI r1, 0x000044
-FILL r1
+LDI r10, 0x000044
+FILL r10
 ; Red rectangle top-left
-LDI r1, 10
-LDI r9, 10
-LDI r14, 60
-LDI r12, 40
-LDI r5, 0xFF0000
-RECTF r1, r9, r14, r12, r5
+LDI r10, 10
+LDI r8, 10
+LDI r4, 60
+LDI r5, 40
+LDI r2, 0xFF0000
+RECTF r10, r8, r4, r5, r2
 ; Green rectangle top-right
-LDI r1, 180
-LDI r9, 10
-LDI r14, 60
-LDI r12, 40
-LDI r5, 0x00FF00
-RECTF r1, r9, r14, r12, r5
+LDI r10, 180
+LDI r8, 10
+LDI r4, 60
+LDI r5, 40
+LDI r2, 0x00FF00
+RECTF r10, r8, r4, r5, r2
 ; Yellow rectangle center
-LDI r1, 100
-LDI r9, 100
-LDI r14, 56
-LDI r12, 56
-LDI r5, 0xFFFF00
-RECTF r1, r9, r14, r12, r5
+LDI r10, 100
+LDI r8, 100
+LDI r4, 56
+LDI r5, 56
+LDI r2, 0xFFFF00
+RECTF r10, r8, r4, r5, r2
 
 ; ── Screenshot counter in RAM[0x7000] ──
-LDI r15, 1
-LDI r4, 0x7000
+LDI r9, 1
+LDI r13, 0x7000
 LDI r16, 0
-STORE r4, r16
+STORE r13, r16
 
-; ── Overlay timer in r0 ──
-LDI r0, 0
+; ── Overlay timer in r14 ──
+LDI r14, 0
 
 ; ── Main loop ──
 main_loop:
-    IKEY r2           ; read key
+    IKEY r0           ; read key
     LDI r20, 83        ; 'S' key code
-    CMP r2, r20
-    JZ r1, do_screenshot
+    CMP r0, r20
+    JZ r10, do_screenshot
     JMP check_overlay
 
 do_screenshot:
     ; Build filename "shot_N.img" in RAM at 0x2000
     CALL write_filename
 
-    ; SCRSHOT - path addr in r9 (set by write_filename)
-    SCRSHOT r9
+    ; SCRSHOT - path addr in r8 (set by write_filename)
+    SCRSHOT r8
 
     ; Increment shot counter
-    LDI r4, 0x7000
-    LOAD r16, r4
-    ADD r16, r15
-    STORE r4, r16
+    LDI r13, 0x7000
+    LOAD r16, r13
+    ADD r16, r9
+    STORE r13, r16
 
     ; Set overlay timer (60 frames ~ 1 second)
-    LDI r0, 60
+    LDI r14, 60
     JMP check_overlay
 
 check_overlay:
     ; Show green indicator if timer > 0
     LDI r20, 0
-    CMP r0, r20
-    JZ r1, skip_overlay
+    CMP r14, r20
+    JZ r10, skip_overlay
 
     ; Draw green rectangle in top-right as "saved" indicator
-    LDI r1, 230
-    LDI r9, 2
-    LDI r14, 24
-    LDI r12, 8
-    LDI r5, 0x00FF00
-    RECTF r1, r9, r14, r12, r5
-    SUB r0, r15         ; timer--
+    LDI r10, 230
+    LDI r8, 2
+    LDI r4, 24
+    LDI r5, 8
+    LDI r2, 0x00FF00
+    RECTF r10, r8, r4, r5, r2
+    SUB r14, r9         ; timer--
 
     JMP do_frame
 
 skip_overlay:
     ; Redraw demo area where overlay was (restore blue background)
     LDI r20, 0
-    CMP r0, r20
-    JNZ r1, do_frame   ; still showing overlay
+    CMP r14, r20
+    JNZ r10, do_frame   ; still showing overlay
     ; Clear overlay area with background color
-    LDI r1, 230
-    LDI r9, 2
-    LDI r14, 24
-    LDI r12, 8
-    LDI r5, 0x000044
-    RECTF r1, r9, r14, r12, r5
+    LDI r10, 230
+    LDI r8, 2
+    LDI r4, 24
+    LDI r5, 8
+    LDI r2, 0x000044
+    RECTF r10, r8, r4, r5, r2
 
 do_frame:
     FRAME
@@ -103,46 +103,46 @@ do_frame:
 ; ── Write filename "shot_N.img" to RAM at 0x2000 ──
 write_filename:
     PUSH r31
-    LDI r9, 0x2000
+    LDI r8, 0x2000
     ; "shot_"
-    LDI r3, 115       ; 's'
-    STORE r9, r3
-    ADD r9, r15
-    LDI r3, 104       ; 'h'
-    STORE r9, r3
-    ADD r9, r15
-    LDI r3, 111       ; 'o'
-    STORE r9, r3
-    ADD r9, r15
-    LDI r3, 116       ; 't'
-    STORE r9, r3
-    ADD r9, r15
-    LDI r3, 95        ; '_'
-    STORE r9, r3
-    ADD r9, r15
+    LDI r7, 115       ; 's'
+    STORE r8, r7
+    ADD r8, r9
+    LDI r7, 104       ; 'h'
+    STORE r8, r7
+    ADD r8, r9
+    LDI r7, 111       ; 'o'
+    STORE r8, r7
+    ADD r8, r9
+    LDI r7, 116       ; 't'
+    STORE r8, r7
+    ADD r8, r9
+    LDI r7, 95        ; '_'
+    STORE r8, r7
+    ADD r8, r9
     ; Append shot counter as digit
-    LDI r4, 0x7000
-    LOAD r16, r4
-    LDI r3, 48         ; '0'
-    ADD r3, r16
-    STORE r9, r3
-    ADD r9, r15
+    LDI r13, 0x7000
+    LOAD r16, r13
+    LDI r7, 48         ; '0'
+    ADD r7, r16
+    STORE r8, r7
+    ADD r8, r9
     ; ".img"
-    LDI r3, 46         ; '.'
-    STORE r9, r3
-    ADD r9, r15
-    LDI r3, 105        ; 'i'
-    STORE r9, r3
-    ADD r9, r15
-    LDI r3, 109        ; 'm'
-    STORE r9, r3
-    ADD r9, r15
-    LDI r3, 103        ; 'g'
-    STORE r9, r3
-    ADD r9, r15
-    LDI r3, 0          ; null terminator
-    STORE r9, r3
-    ; Restore r9 to point to start of filename
-    LDI r9, 0x2000
+    LDI r7, 46         ; '.'
+    STORE r8, r7
+    ADD r8, r9
+    LDI r7, 105        ; 'i'
+    STORE r8, r7
+    ADD r8, r9
+    LDI r7, 109        ; 'm'
+    STORE r8, r7
+    ADD r8, r9
+    LDI r7, 103        ; 'g'
+    STORE r8, r7
+    ADD r8, r9
+    LDI r7, 0          ; null terminator
+    STORE r8, r7
+    ; Restore r8 to point to start of filename
+    LDI r8, 0x2000
     POP r31
     RET

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a mouse-driven color picker interface. It displays a preview box with an outline and fills it with the selected color, features RGB sliders for adjusting color components, and includes a palette of predefined colors for selection. The code uses GeOS opcodes such as `RECT` for drawing outlines, `RECTF` for filling areas, and `FRAME` for creating an animation loop, along with mouse interaction through `MOUSEQ` and `HITQ`.
+; DESCRIPTION: Display a rectangle using color red at the screen.
 
 ; color_picker.asm -- Mouse-Driven Color Picker for Geometry OS
 ;
@@ -35,362 +35,362 @@
 
 start:
     ; Initialize color to red
-    LDI r15, 0xFF0000
+    LDI r14, 0xFF0000
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, RED_ADDR
-    STORE r15, r21
-    LDI r15, 0
+    STORE r14, r21
+    LDI r14, 0
     LDI r21, GREEN_ADDR
-    STORE r15, r21
+    STORE r14, r21
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
 
 frame_loop:
     ; Clear screen
-    LDI r10, 0x1A1A2E
-    FILL r10
+    LDI r2, 0x1A1A2E
+    FILL r2
 
     ; Title
-    LDI r15, STR_ADDR
-    STRO r15, "Color Picker"
-    LDI r15, 90
-    LDI r9, 8
-    LDI r4, STR_ADDR
-    TEXT r15, r9, r4
+    LDI r14, STR_ADDR
+    STRO r14, "Color Picker"
+    LDI r14, 90
+    LDI r5, 8
+    LDI r1, STR_ADDR
+    TEXT r14, r5, r1
 
     ; Preview box - outline using RECT
-    LDI r15, PREVIEW_X
-    LDI r9, PREVIEW_Y
-    LDI r4, PREVIEW_SZ
-    LDI r3, PREVIEW_SZ
-    LDI r10, 0xAAAAAA
-    RECT r15, r9, r4, r3, r10
+    LDI r14, PREVIEW_X
+    LDI r5, PREVIEW_Y
+    LDI r1, PREVIEW_SZ
+    LDI r7, PREVIEW_SZ
+    LDI r2, 0xAAAAAA
+    RECT r14, r5, r1, r7, r2
 
     ; Preview fill using RECTF
     LDI r21, COLOR_ADDR
-    LOAD r10, r21
-    RECTF r15, r9, r4, r3, r10
+    LOAD r2, r21
+    RECTF r14, r5, r1, r7, r2
 
     ; Re-draw outline on top of fill
-    LDI r10, 0xAAAAAA
-    RECT r15, r9, r4, r3, r10
+    LDI r2, 0xAAAAAA
+    RECT r14, r5, r1, r7, r2
 
     ; --- Red slider ---
-    LDI r15, SLIDER_X
-    LDI r9, R_SLIDER_Y
-    LDI r4, SLIDER_W
-    LDI r3, SLIDER_H
-    LDI r10, 0xFF0000
-    RECT r15, r9, r4, r3, r10
+    LDI r14, SLIDER_X
+    LDI r5, R_SLIDER_Y
+    LDI r1, SLIDER_W
+    LDI r7, SLIDER_H
+    LDI r2, 0xFF0000
+    RECT r14, r5, r1, r7, r2
 
-    LDI r15, STR_ADDR
-    STRO r15, "R"
-    LDI r15, 15
-    LDI r9, R_SLIDER_Y
-    LDI r4, STR_ADDR
-    TEXT r15, r9, r4
+    LDI r14, STR_ADDR
+    STRO r14, "R"
+    LDI r14, 15
+    LDI r5, R_SLIDER_Y
+    LDI r1, STR_ADDR
+    TEXT r14, r5, r1
 
     ; Red slider fill
     LDI r21, RED_ADDR
-    LOAD r15, r21
-    LDI r9, 255
-    MUL r15, r9
-    LDI r9, SLIDER_W
-    DIV r15, r9
-    LDI r4, SLIDER_X
-    LDI r1, 30
-    ADD r4, r1
-    LDI r3, R_SLIDER_Y
-    LDI r1, 1
-    ADD r3, r1
-    LDI r10, 0xFF4444
-    RECTF r4, r3, r15, r10, r10
+    LOAD r14, r21
+    LDI r5, 255
+    MUL r14, r5
+    LDI r5, SLIDER_W
+    DIV r14, r5
+    LDI r1, SLIDER_X
+    LDI r9, 30
+    ADD r1, r9
+    LDI r7, R_SLIDER_Y
+    LDI r9, 1
+    ADD r7, r9
+    LDI r2, 0xFF4444
+    RECTF r1, r7, r14, r2, r2
 
     ; --- Green slider ---
-    LDI r15, SLIDER_X
-    LDI r9, G_SLIDER_Y
-    LDI r4, SLIDER_W
-    LDI r3, SLIDER_H
-    LDI r10, 0x00FF00
-    RECT r15, r9, r4, r3, r10
+    LDI r14, SLIDER_X
+    LDI r5, G_SLIDER_Y
+    LDI r1, SLIDER_W
+    LDI r7, SLIDER_H
+    LDI r2, 0x00FF00
+    RECT r14, r5, r1, r7, r2
 
-    LDI r15, STR_ADDR
-    STRO r15, "G"
-    LDI r15, 15
-    LDI r9, G_SLIDER_Y
-    LDI r4, STR_ADDR
-    TEXT r15, r9, r4
+    LDI r14, STR_ADDR
+    STRO r14, "G"
+    LDI r14, 15
+    LDI r5, G_SLIDER_Y
+    LDI r1, STR_ADDR
+    TEXT r14, r5, r1
 
     ; Green slider fill
     LDI r21, GREEN_ADDR
-    LOAD r15, r21
-    LDI r9, 255
-    MUL r15, r9
-    LDI r9, SLIDER_W
-    DIV r15, r9
-    LDI r4, SLIDER_X
-    ADD r4, r1
-    LDI r3, G_SLIDER_Y
-    ADD r3, r1
-    LDI r10, 0x44FF44
-    RECTF r4, r3, r15, r10, r10
+    LOAD r14, r21
+    LDI r5, 255
+    MUL r14, r5
+    LDI r5, SLIDER_W
+    DIV r14, r5
+    LDI r1, SLIDER_X
+    ADD r1, r9
+    LDI r7, G_SLIDER_Y
+    ADD r7, r9
+    LDI r2, 0x44FF44
+    RECTF r1, r7, r14, r2, r2
 
     ; --- Blue slider ---
-    LDI r15, SLIDER_X
-    LDI r9, B_SLIDER_Y
-    LDI r4, SLIDER_W
-    LDI r3, SLIDER_H
-    LDI r10, 0x0000FF
-    RECT r15, r9, r4, r3, r10
+    LDI r14, SLIDER_X
+    LDI r5, B_SLIDER_Y
+    LDI r1, SLIDER_W
+    LDI r7, SLIDER_H
+    LDI r2, 0x0000FF
+    RECT r14, r5, r1, r7, r2
 
-    LDI r15, STR_ADDR
-    STRO r15, "B"
-    LDI r15, 15
-    LDI r9, B_SLIDER_Y
-    LDI r4, STR_ADDR
-    TEXT r15, r9, r4
+    LDI r14, STR_ADDR
+    STRO r14, "B"
+    LDI r14, 15
+    LDI r5, B_SLIDER_Y
+    LDI r1, STR_ADDR
+    TEXT r14, r5, r1
 
     ; Blue slider fill
     LDI r21, BLUE_ADDR
-    LOAD r15, r21
-    LDI r9, 255
-    MUL r15, r9
-    LDI r9, SLIDER_W
-    DIV r15, r9
-    LDI r4, SLIDER_X
-    ADD r4, r1
-    LDI r3, B_SLIDER_Y
-    ADD r3, r1
-    LDI r10, 0x4444FF
-    RECTF r4, r3, r15, r10, r10
+    LOAD r14, r21
+    LDI r5, 255
+    MUL r14, r5
+    LDI r5, SLIDER_W
+    DIV r14, r5
+    LDI r1, SLIDER_X
+    ADD r1, r9
+    LDI r7, B_SLIDER_Y
+    ADD r7, r9
+    LDI r2, 0x4444FF
+    RECTF r1, r7, r14, r2, r2
 
     ; --- Palette (8 swatches) ---
-    LDI r5, 10
-    LDI r0, PAL_Y
-    LDI r12, 20
-    LDI r11, 20
+    LDI r11, 10
+    LDI r13, PAL_Y
+    LDI r8, 20
+    LDI r0, 20
     LDI r20, 0
 
 pal_loop:
     CMPI r20, 0
-    JNZ r7, not_p0
-    LDI r10, 0xFF0000
+    JNZ r4, not_p0
+    LDI r2, 0xFF0000
     JMP pal_draw
 not_p0:
     CMPI r20, 1
-    JNZ r7, not_p1
-    LDI r10, 0x00FF00
+    JNZ r4, not_p1
+    LDI r2, 0x00FF00
     JMP pal_draw
 not_p1:
     CMPI r20, 2
-    JNZ r7, not_p2
-    LDI r10, 0x0000FF
+    JNZ r4, not_p2
+    LDI r2, 0x0000FF
     JMP pal_draw
 not_p2:
     CMPI r20, 3
-    JNZ r7, not_p3
-    LDI r10, 0xFFFF00
+    JNZ r4, not_p3
+    LDI r2, 0xFFFF00
     JMP pal_draw
 not_p3:
     CMPI r20, 4
-    JNZ r7, not_p4
-    LDI r10, 0xFF00FF
+    JNZ r4, not_p4
+    LDI r2, 0xFF00FF
     JMP pal_draw
 not_p4:
     CMPI r20, 5
-    JNZ r7, not_p5
-    LDI r10, 0x00FFFF
+    JNZ r4, not_p5
+    LDI r2, 0x00FFFF
     JMP pal_draw
 not_p5:
     CMPI r20, 6
-    JNZ r7, not_p6
-    LDI r10, 0xFFFFFF
+    JNZ r4, not_p6
+    LDI r2, 0xFFFFFF
     JMP pal_draw
 not_p6:
     CMPI r20, 7
-    JNZ r7, pal_done
-    LDI r10, 0xFF8800
+    JNZ r4, pal_done
+    LDI r2, 0xFF8800
     JMP pal_draw
 
 pal_draw:
-    RECTF r5, r0, r12, r11, r10
-    LDI r2, 0x888888
-    RECT r5, r0, r12, r11, r2
-    LDI r1, 25
-    ADD r5, r1
-    LDI r1, 1
-    ADD r20, r1
+    RECTF r11, r13, r8, r0, r2
+    LDI r12, 0x888888
+    RECT r11, r13, r8, r0, r12
+    LDI r9, 25
+    ADD r11, r9
+    LDI r9, 1
+    ADD r20, r9
     CMPI r20, 8
-    BLT r7, pal_loop
+    BLT r4, pal_loop
 
 pal_done:
     ; --- Hit regions for palette ---
-    LDI r5, 10
-    LDI r0, PAL_Y
-    LDI r12, 20
-    LDI r11, 20
-    HITSET r5, r0, r12, r11, 1
-    LDI r1, 25
-    ADD r5, r1
-    HITSET r5, r0, r12, r11, 2
-    ADD r5, r1
-    HITSET r5, r0, r12, r11, 3
-    ADD r5, r1
-    HITSET r5, r0, r12, r11, 4
-    ADD r5, r1
-    HITSET r5, r0, r12, r11, 5
-    ADD r5, r1
-    HITSET r5, r0, r12, r11, 6
-    ADD r5, r1
-    HITSET r5, r0, r12, r11, 7
-    ADD r5, r1
-    HITSET r5, r0, r12, r11, 8
+    LDI r11, 10
+    LDI r13, PAL_Y
+    LDI r8, 20
+    LDI r0, 20
+    HITSET r11, r13, r8, r0, 1
+    LDI r9, 25
+    ADD r11, r9
+    HITSET r11, r13, r8, r0, 2
+    ADD r11, r9
+    HITSET r11, r13, r8, r0, 3
+    ADD r11, r9
+    HITSET r11, r13, r8, r0, 4
+    ADD r11, r9
+    HITSET r11, r13, r8, r0, 5
+    ADD r11, r9
+    HITSET r11, r13, r8, r0, 6
+    ADD r11, r9
+    HITSET r11, r13, r8, r0, 7
+    ADD r11, r9
+    HITSET r11, r13, r8, r0, 8
 
     ; Hit regions for sliders
-    LDI r5, SLIDER_X
-    LDI r12, SLIDER_W
-    LDI r11, SLIDER_H
-    LDI r0, R_SLIDER_Y
-    HITSET r5, r0, r12, r11, 10
-    LDI r0, G_SLIDER_Y
-    HITSET r5, r0, r12, r11, 11
-    LDI r0, B_SLIDER_Y
-    HITSET r5, r0, r12, r11, 12
+    LDI r11, SLIDER_X
+    LDI r8, SLIDER_W
+    LDI r0, SLIDER_H
+    LDI r13, R_SLIDER_Y
+    HITSET r11, r13, r8, r0, 10
+    LDI r13, G_SLIDER_Y
+    HITSET r11, r13, r8, r0, 11
+    LDI r13, B_SLIDER_Y
+    HITSET r11, r13, r8, r0, 12
 
     ; Query mouse and hits
-    MOUSEQ r2
-    HITQ r14
+    MOUSEQ r12
+    HITQ r15
 
     ; Handle palette clicks (IDs 1-8)
-    CMPI r14, 1
-    JNZ r7, chk_p2
-    LDI r15, 0xFF0000
+    CMPI r15, 1
+    JNZ r4, chk_p2
+    LDI r14, 0xFF0000
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, RED_ADDR
-    STORE r15, r21
-    LDI r15, 0
+    STORE r14, r21
+    LDI r14, 0
     LDI r21, GREEN_ADDR
-    STORE r15, r21
+    STORE r14, r21
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
     JMP click_done
 
 chk_p2:
-    CMPI r14, 2
-    JNZ r7, chk_p3
-    LDI r15, 0x00FF00
+    CMPI r15, 2
+    JNZ r4, chk_p3
+    LDI r14, 0x00FF00
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 0
+    STORE r14, r21
+    LDI r14, 0
     LDI r21, RED_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, GREEN_ADDR
-    STORE r15, r21
+    STORE r14, r21
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
     JMP click_done
 
 chk_p3:
-    CMPI r14, 3
-    JNZ r7, chk_p4
-    LDI r15, 0x0000FF
+    CMPI r15, 3
+    JNZ r4, chk_p4
+    LDI r14, 0x0000FF
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 0
+    STORE r14, r21
+    LDI r14, 0
     LDI r21, RED_ADDR
-    STORE r15, r21
+    STORE r14, r21
     LDI r21, GREEN_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
     JMP click_done
 
 chk_p4:
-    CMPI r14, 4
-    JNZ r7, chk_p5
-    LDI r15, 0xFFFF00
+    CMPI r15, 4
+    JNZ r4, chk_p5
+    LDI r14, 0xFFFF00
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, RED_ADDR
-    STORE r15, r21
+    STORE r14, r21
     LDI r21, GREEN_ADDR
-    STORE r15, r21
-    LDI r15, 0
+    STORE r14, r21
+    LDI r14, 0
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
     JMP click_done
 
 chk_p5:
-    CMPI r14, 5
-    JNZ r7, chk_p6
-    LDI r15, 0xFF00FF
+    CMPI r15, 5
+    JNZ r4, chk_p6
+    LDI r14, 0xFF00FF
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, RED_ADDR
-    STORE r15, r21
-    LDI r15, 0
+    STORE r14, r21
+    LDI r14, 0
     LDI r21, GREEN_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
     JMP click_done
 
 chk_p6:
-    CMPI r14, 6
-    JNZ r7, chk_p7
-    LDI r15, 0x00FFFF
+    CMPI r15, 6
+    JNZ r4, chk_p7
+    LDI r14, 0x00FFFF
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 0
+    STORE r14, r21
+    LDI r14, 0
     LDI r21, RED_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, GREEN_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
     JMP click_done
 
 chk_p7:
-    CMPI r14, 7
-    JNZ r7, chk_p8
-    LDI r15, 0xFFFFFF
+    CMPI r15, 7
+    JNZ r4, chk_p8
+    LDI r14, 0xFFFFFF
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, RED_ADDR
-    STORE r15, r21
+    STORE r14, r21
     LDI r21, GREEN_ADDR
-    STORE r15, r21
+    STORE r14, r21
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
     JMP click_done
 
 chk_p8:
-    CMPI r14, 8
-    JNZ r7, click_done
-    LDI r15, 0xFF8800
+    CMPI r15, 8
+    JNZ r4, click_done
+    LDI r14, 0xFF8800
     LDI r21, COLOR_ADDR
-    STORE r15, r21
-    LDI r15, 255
+    STORE r14, r21
+    LDI r14, 255
     LDI r21, RED_ADDR
-    STORE r15, r21
-    LDI r15, 136
+    STORE r14, r21
+    LDI r14, 136
     LDI r21, GREEN_ADDR
-    STORE r15, r21
-    LDI r15, 0
+    STORE r14, r21
+    LDI r14, 0
     LDI r21, BLUE_ADDR
-    STORE r15, r21
+    STORE r14, r21
 
 click_done:
     FRAME

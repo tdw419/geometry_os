@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code draws three colored pixels on the screen, copies the first ten screen pixels to RAM, verifies the copied values against expected colors, and then draws a green diagonal line if the verification passes or a red diagonal line if it fails.
+; DESCRIPTION: Draws a red line at the screen with fixed size.
 
 ; screen_copy.asm -- Screen buffer LOAD readback demo
 ; Phase 219: Copy screen pixels to RAM via LOAD/STORE loop, verify consistency.
@@ -13,86 +13,86 @@
 ;   0x2000-0x2009: copied screen pixels (first 10)
 
 ; ── Draw 3 test pixels on screen ──
-LDI r15, 0x10000          ; screen[0] = pixel (0, 0)
-LDI r12, 0xFF0000          ; red
-STORE r15, r12
+LDI r8, 0x10000          ; screen[0] = pixel (0, 0)
+LDI r0, 0xFF0000          ; red
+STORE r8, r0
 
-LDI r15, 0x10001          ; screen[1] = pixel (1, 0)
-LDI r12, 0x00FF00          ; green
-STORE r15, r12
+LDI r8, 0x10001          ; screen[1] = pixel (1, 0)
+LDI r0, 0x00FF00          ; green
+STORE r8, r0
 
-LDI r15, 0x10002          ; screen[2] = pixel (2, 0)
-LDI r12, 0x0000FF          ; blue
-STORE r15, r12
+LDI r8, 0x10002          ; screen[2] = pixel (2, 0)
+LDI r0, 0x0000FF          ; blue
+STORE r8, r0
 
 ; ── Bulk copy first 10 screen pixels to RAM ──
-LDI r8, 0x10000          ; source: screen base
+LDI r14, 0x10000          ; source: screen base
 LDI r10, 0x2000           ; dest: RAM at 0x2000
-LDI r1, 10               ; count: 10 pixels
+LDI r5, 10               ; count: 10 pixels
 COPY_LOOP:
-LOAD r2, r8              ; r2 = screen[i]
-STORE r10, r2             ; ram[dest] = r2
-ADDI r8, 1               ; source++
+LOAD r11, r14              ; r11 = screen[i]
+STORE r10, r11             ; ram[dest] = r11
+ADDI r14, 1               ; source++
 ADDI r10, 1               ; dest++
-SUBI r1, 1               ; count--
-CMPI r1, 0               ; compare count to 0
-JNZ r11, COPY_LOOP        ; loop while count > 0
+SUBI r5, 1               ; count--
+CMPI r5, 0               ; compare count to 0
+JNZ r13, COPY_LOOP        ; loop while count > 0
 
 ; ── Verify pixel 0 is red (0xFF0000) ──
-LDI r14, 0x2000
-LOAD r7, r14              ; r7 = ram[0x2000] (copied from screen[0])
+LDI r6, 0x2000
+LOAD r7, r6              ; r7 = ram[0x2000] (copied from screen[0])
 CMPI r7, 0xFF0000
-JNZ r11, FAIL
+JNZ r13, FAIL
 
 ; ── Verify pixel 1 is green (0x00FF00) ──
-LDI r14, 0x2001
-LOAD r7, r14
+LDI r6, 0x2001
+LOAD r7, r6
 CMPI r7, 0x00FF00
-JNZ r11, FAIL
+JNZ r13, FAIL
 
 ; ── Verify pixel 2 is blue (0x0000FF) ──
-LDI r14, 0x2002
-LOAD r7, r14
+LDI r6, 0x2002
+LOAD r7, r6
 CMPI r7, 0x0000FF
-JNZ r11, FAIL
+JNZ r13, FAIL
 
 ; ── Verify pixels 3-9 are zero (black/empty) ──
-LDI r1, 7                ; check 7 more pixels
-LDI r14, 0x2003           ; start at pixel 3
+LDI r5, 7                ; check 7 more pixels
+LDI r6, 0x2003           ; start at pixel 3
 ZERO_CHECK:
-LOAD r7, r14
+LOAD r7, r6
 CMPI r7, 0
-JNZ r11, FAIL
-ADDI r14, 1
-SUBI r1, 1
-CMPI r1, 0
-JNZ r11, ZERO_CHECK
+JNZ r13, FAIL
+ADDI r6, 1
+SUBI r5, 1
+CMPI r5, 0
+JNZ r13, ZERO_CHECK
 
 ; ── PASS: draw green diagonal at (2,2)-(4,4) ──
-LDI r15, 2
-LDI r12, 2
-LDI r2, 0x00FF00
-PSET r15, r12, r2
-LDI r15, 3
-LDI r12, 3
-PSET r15, r12, r2
-LDI r15, 4
-LDI r12, 4
-PSET r15, r12, r2
+LDI r8, 2
+LDI r0, 2
+LDI r11, 0x00FF00
+PSET r8, r0, r11
+LDI r8, 3
+LDI r0, 3
+PSET r8, r0, r11
+LDI r8, 4
+LDI r0, 4
+PSET r8, r0, r11
 JMP DONE
 
 ; ── FAIL: draw red diagonal at (2,2)-(4,4) ──
 FAIL:
-LDI r15, 2
-LDI r12, 2
-LDI r2, 0xFF0000
-PSET r15, r12, r2
-LDI r15, 3
-LDI r12, 3
-PSET r15, r12, r2
-LDI r15, 4
-LDI r12, 4
-PSET r15, r12, r2
+LDI r8, 2
+LDI r0, 2
+LDI r11, 0xFF0000
+PSET r8, r0, r11
+LDI r8, 3
+LDI r0, 3
+PSET r8, r0, r11
+LDI r8, 4
+LDI r0, 4
+PSET r8, r0, r11
 
 DONE:
 HALT

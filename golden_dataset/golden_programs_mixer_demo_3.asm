@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates a multi-process interprocess communication (IPC) system for concurrent audio playback. It spawns a mixer daemon and two child processes: one for playing a melody on channel 0 and another for playing a bass line on channel 1. The mixer receives notes from both processes, stores them in a channel table, and plays the sounds using the `BEEP` instruction.
+; DESCRIPTION: A colored line centered at the screen with fixed size.
 
 ; mixer_demo.asm -- Multi-Channel Music Demo (Phase 99)
 ;
@@ -22,38 +22,38 @@
 
     ; ── Spawn melody player on channel 0 ──
     ; Share mixer PID via shared RAM (0xF00)
-    LDI r15, 0xF00
-    STORE r15, r1           ; RAM[0xF00] = mixer PID
-    LDI r9, melody_child
-    SPAWN r9
+    LDI r13, 0xF00
+    STORE r13, r1           ; RAM[0xF00] = mixer PID
+    LDI r7, melody_child
+    SPAWN r7
 
     ; ── Parent: play bass line on channel 1 ──
     ; Bass: C3, G3, A3, F3
-    LDI r7, 1               ; channel 1
-    LDI r10, 131             ; C3
-    LDI r3, 600
-    LDI r6, 70
+    LDI r15, 1               ; channel 1
+    LDI r6, 131             ; C3
+    LDI r11, 600
+    LDI r0, 70
     MSGSND r1
     FRAME
 
-    LDI r7, 1
-    LDI r10, 196             ; G3
-    LDI r3, 600
-    LDI r6, 70
+    LDI r15, 1
+    LDI r6, 196             ; G3
+    LDI r11, 600
+    LDI r0, 70
     MSGSND r1
     FRAME
 
-    LDI r7, 1
-    LDI r10, 220             ; A3
-    LDI r3, 600
-    LDI r6, 70
+    LDI r15, 1
+    LDI r6, 220             ; A3
+    LDI r11, 600
+    LDI r0, 70
     MSGSND r1
     FRAME
 
-    LDI r7, 1
-    LDI r10, 175             ; F3
-    LDI r3, 800
-    LDI r6, 80
+    LDI r15, 1
+    LDI r6, 175             ; F3
+    LDI r11, 800
+    LDI r0, 80
     MSGSND r1
     FRAME
 
@@ -76,24 +76,24 @@ melody_child:
     LOAD r1, r1             ; r1 = mixer PID
 
     ; Play melody on channel 0
-    LDI r7, 0               ; channel 0
-    LDI r10, 523             ; C5
-    LDI r3, 300
-    LDI r6, 90
+    LDI r15, 0               ; channel 0
+    LDI r6, 523             ; C5
+    LDI r11, 300
+    LDI r0, 90
     MSGSND r1
     FRAME
 
-    LDI r7, 0
-    LDI r10, 587             ; D5
-    LDI r3, 300
-    LDI r6, 90
+    LDI r15, 0
+    LDI r6, 587             ; D5
+    LDI r11, 300
+    LDI r0, 90
     MSGSND r1
     FRAME
 
-    LDI r7, 0
-    LDI r10, 659             ; E5
-    LDI r3, 300
-    LDI r6, 90
+    LDI r15, 0
+    LDI r6, 659             ; E5
+    LDI r11, 300
+    LDI r0, 90
     MSGSND r1
     FRAME
 
@@ -103,43 +103,43 @@ melody_child:
 .org 0x800
 mixer_daemon:
     LDI r30, 0xFF00         ; SP
-    LDI r2, 1               ; constant 1
-    LDI r14, 4               ; max channels
-    LDI r0, 0x200           ; channel table base
+    LDI r8, 1               ; constant 1
+    LDI r5, 4               ; max channels
+    LDI r3, 0x200           ; channel table base
 
     ; Initialize channel table
-    LDI r15, 0
-    LDI r8, 0x200
-    LDI r11, 0x210
+    LDI r13, 0
+    LDI r10, 0x200
+    LDI r14, 0x210
 mix_init:
-    STORE r8, r15
-    ADD r8, r2
-    CMP r8, r11
-    BLT r12, mix_init
+    STORE r10, r13
+    ADD r10, r8
+    CMP r10, r14
+    BLT r9, mix_init
 
 mixer_loop:
-    MSGRCV                  ; r12=sender, r7=channel, r10=freq, r3=dur, r6=vol
-    CMP r7, r14
-    BGE r12, mixer_loop      ; skip invalid channel
+    MSGRCV                  ; r9=sender, r15=channel, r6=freq, r11=dur, r0=vol
+    CMP r15, r5
+    BGE r9, mixer_loop      ; skip invalid channel
 
     ; Store in channel table
-    MOV r15, r7
-    LDI r5, 4
-    MUL r15, r5
-    ADD r15, r0
-    STORE r15, r10           ; freq
-    MOV r5, r15
-    ADD r5, r2
-    STORE r5, r3           ; dur
-    MOV r5, r15
-    LDI r8, 2
-    ADD r5, r8
-    STORE r5, r6           ; vol
-    MOV r5, r15
-    LDI r8, 3
-    ADD r5, r8
-    STORE r5, r2           ; active = 1
+    MOV r13, r15
+    LDI r4, 4
+    MUL r13, r4
+    ADD r13, r3
+    STORE r13, r6           ; freq
+    MOV r4, r13
+    ADD r4, r8
+    STORE r4, r11           ; dur
+    MOV r4, r13
+    LDI r10, 2
+    ADD r4, r10
+    STORE r4, r0           ; vol
+    MOV r4, r13
+    LDI r10, 3
+    ADD r4, r10
+    STORE r4, r8           ; active = 1
 
-    BEEP r10, r3
+    BEEP r6, r11
     FRAME
     JMP mixer_loop

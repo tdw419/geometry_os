@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a 3D starfield zoom effect where stars stream towards the viewer from a central vanishing point using perspective projection. The algorithm manages a pool of 128 stars stored in RAM, updating their positions and drawing them on the screen each frame with decreasing depth, resulting in a dynamic visual experience.
+; DESCRIPTION: Render a red object at the screen.
 
 ; starfield.asm -- 3D starfield zoom effect
 ;
@@ -17,30 +17,30 @@
 ;
 ; Register convention (main loop):
 ;   r13  = 1
-;   r8  = 128 (screen center)
-;   r12 = star index (0-127)
-;   r7 = 128 (star count)
-;   r11 = 0x4000 (star pool base)
-;   r5 = frame counter
-;   r3 = 256 (projection scale)
+;   r10  = 128 (screen center)
+;   r2 = star index (0-127)
+;   r6 = 128 (star count)
+;   r7 = 0x4000 (star pool base)
+;   r8 = frame counter
+;   r11 = 256 (projection scale)
 ;   r15 = current star base address
 
 ; === Initialize star pool ===
 LDI r13, 1
-LDI r8, 128
-LDI r7, 128
-LDI r11, 0x4000
-LDI r3, 64             ; projection scale (smaller = wider FOV)
-LDI r5, 0
+LDI r10, 128
+LDI r6, 128
+LDI r7, 0x4000
+LDI r11, 64             ; projection scale (smaller = wider FOV)
+LDI r8, 0
 
-LDI r12, 0               ; star index
+LDI r2, 0               ; star index
 
 init_loop:
   ; r15 = 0x4000 + index * 3
-  MOV r15, r12
+  MOV r15, r2
   LDI r16, 3
   MUL r15, r16
-  ADD r15, r11            ; r15 = &star[index]
+  ADD r15, r7            ; r15 = &star[index]
 
   ; x = (RAND & 0x7F) - 64  -> range -64..63
   RAND r16
@@ -70,9 +70,9 @@ init_loop:
   ADD r17, r13             ; base+2
   STORE r17, r16          ; star.z at base+2
 
-  ADD r12, r13
-  CMP r12, r7
-  BLT r2, init_loop
+  ADD r2, r13
+  CMP r2, r6
+  BLT r0, init_loop
 
 ; === Main animation loop ===
 frame_loop:
@@ -80,14 +80,14 @@ frame_loop:
   LDI r15, 0
   FILL r15
 
-  LDI r12, 0              ; star index
+  LDI r2, 0              ; star index
 
 star_loop:
   ; r15 = 0x4000 + index * 3
-  MOV r15, r12
+  MOV r15, r2
   LDI r16, 3
   MUL r15, r16
-  ADD r15, r11            ; r15 = &star[index]
+  ADD r15, r7            ; r15 = &star[index]
 
   ; Load z from base+2
   MOV r16, r15
@@ -103,9 +103,9 @@ star_loop:
 
   ; Project: sx = x * 256 / z + 128
   MOV r18, r17
-  MUL r18, r3            ; r18 = x * 256
+  MUL r18, r11            ; r18 = x * 256
   DIV r18, r16            ; r18 = x * 256 / z
-  ADD r18, r8             ; r18 = sx
+  ADD r18, r10             ; r18 = sx
 
   ; Load y from base+1
   MOV r19, r15
@@ -114,9 +114,9 @@ star_loop:
 
   ; Project: sy = y * 256 / z + 128
   MOV r20, r19
-  MUL r20, r3            ; r20 = y * 256
+  MUL r20, r11            ; r20 = y * 256
   DIV r20, r16            ; r20 = y * 256 / z
-  ADD r20, r8             ; r20 = sy
+  ADD r20, r10             ; r20 = sy
 
   ; Bounds check sx: must be 0..255
   ; Check negative via SAR 31
@@ -127,7 +127,7 @@ star_loop:
 
   LDI r21, 256
   CMP r18, r21
-  BGE r2, recycle_star    ; sx >= 256 -> off screen
+  BGE r0, recycle_star    ; sx >= 256 -> off screen
 
   ; Bounds check sy
   LDI r21, 31
@@ -137,7 +137,7 @@ star_loop:
 
   LDI r21, 256
   CMP r20, r21
-  BGE r2, recycle_star
+  BGE r0, recycle_star
 
   ; Brightness: 255 - z (closer = brighter)
   LDI r21, 255
@@ -167,7 +167,7 @@ star_loop:
   ; If z <= 2, recycle (avoid z going to 0 which causes div-by-zero next frame)
   LDI r22, 2
   CMP r21, r22
-  BLT r2, recycle_star_z  ; z < 2 -> recycle
+  BLT r0, recycle_star_z  ; z < 2 -> recycle
 
   STORE r16, r21          ; save new z
   JMP next_star
@@ -201,11 +201,11 @@ recycle_star_z:
   STORE r18, r17          ; star.z = 255
 
 next_star:
-  ADD r12, r13
-  CMP r12, r7
-  BLT r2, star_loop
+  ADD r2, r13
+  CMP r2, r6
+  BLT r0, star_loop
 
   ; Next frame
-  ADD r5, r13
+  ADD r8, r13
   FRAME
   JMP frame_loop

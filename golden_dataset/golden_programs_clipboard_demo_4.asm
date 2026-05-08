@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates a multi-format clipboard and history system, showcasing functionalities such as storing and pasting text, pushing snapshots to history, handling ring buffer overflow with an 8-slot capacity, and clearing the history. It visually verifies these operations through colored bars representing different states.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; ── clipboard_demo.asm ─────────────────────────────────────────────
 ; Phase 221: Multi-Format Clipboard & History Demo
@@ -13,239 +13,239 @@
 
 start:
     ; ── Clear screen ──
-    LDI r5, 0
-    FILL r5
+    LDI r3, 0
+    FILL r3
 
     ; ── Title bar ──
-    LDI r0, 2
-    LDI r2, 0
-    LDI r1, title
-    TEXT r0, r2, r1
+    LDI r7, 2
+    LDI r9, 0
+    LDI r6, title
+    TEXT r7, r9, r6
 
     ; ═══════════════════════════════════════════
     ; STEP 1: Text clipboard — store "Hello"
     ; ═══════════════════════════════════════════
     ; Write "Hello" to RAM at 0x3000
-    LDI r12, 0x3000
-    LDI r13, 72            ; 'H'
-    STORE r12, r13
-    LDI r12, 0x3001
-    LDI r13, 101           ; 'e'
-    STORE r12, r13
-    LDI r12, 0x3002
-    LDI r13, 108           ; 'l'
-    STORE r12, r13
-    LDI r12, 0x3003
-    LDI r13, 108           ; 'l'
-    STORE r12, r13
-    LDI r12, 0x3004
-    LDI r13, 111           ; 'o'
-    STORE r12, r13
-    LDI r12, 0x3005
-    LDI r13, 0             ; null terminator
-    STORE r12, r13
+    LDI r13, 0x3000
+    LDI r1, 72            ; 'H'
+    STORE r13, r1
+    LDI r13, 0x3001
+    LDI r1, 101           ; 'e'
+    STORE r13, r1
+    LDI r13, 0x3002
+    LDI r1, 108           ; 'l'
+    STORE r13, r1
+    LDI r13, 0x3003
+    LDI r1, 108           ; 'l'
+    STORE r13, r1
+    LDI r13, 0x3004
+    LDI r1, 111           ; 'o'
+    STORE r13, r1
+    LDI r13, 0x3005
+    LDI r1, 0             ; null terminator
+    STORE r13, r1
 
     ; CLIP_TEXT mode=0 (store), addr=0x3000, len=5
-    LDI r13, 0             ; mode: store
-    LDI r4, 0x3000        ; source addr
-    LDI r8, 5             ; length
-    CLIP_TEXT r13, r4, r8
+    LDI r1, 0             ; mode: store
+    LDI r11, 0x3000        ; source addr
+    LDI r4, 5             ; length
+    CLIP_TEXT r1, r11, r4
 
     ; Draw label for step 1
-    LDI r0, 2
-    LDI r2, 16
-    LDI r1, step1_label
-    TEXT r0, r2, r1
+    LDI r7, 2
+    LDI r9, 16
+    LDI r6, step1_label
+    TEXT r7, r9, r6
 
     ; Paste "Hello" from text clipboard to 0x3100, then draw
-    LDI r13, 1             ; mode: paste
-    LDI r4, 0x3100        ; dest addr
-    LDI r8, 20            ; max len
-    CLIP_TEXT r13, r4, r8
-    LDI r0, 2
-    LDI r2, 24
-    LDI r1, 0x3100
-    TEXT r0, r2, r1
+    LDI r1, 1             ; mode: paste
+    LDI r11, 0x3100        ; dest addr
+    LDI r4, 20            ; max len
+    CLIP_TEXT r1, r11, r4
+    LDI r7, 2
+    LDI r9, 24
+    LDI r6, 0x3100
+    TEXT r7, r9, r6
 
     ; Visual indicator bar (green = text stored)
-    LDI r9, 0x00FF00
-    LDI r6, 2
-    LDI r12, 32
+    LDI r5, 0x00FF00
+    LDI r0, 2
+    LDI r13, 32
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
     ; STEP 2: Push to history, store "World"
     ; ═══════════════════════════════════════════
     ; Push current clipboard state to history
-    LDI r13, 0             ; mode: push
-    LDI r4, 0             ; slot (unused for push)
-    CLIP_HISTORY r13, r4
+    LDI r1, 0             ; mode: push
+    LDI r11, 0             ; slot (unused for push)
+    CLIP_HISTORY r1, r11
 
     ; Write "World" to RAM at 0x3000
-    LDI r12, 0x3000
-    LDI r13, 87            ; 'W'
-    STORE r12, r13
-    LDI r12, 0x3001
-    LDI r13, 111           ; 'o'
-    STORE r12, r13
-    LDI r12, 0x3002
-    LDI r13, 114           ; 'r'
-    STORE r12, r13
-    LDI r12, 0x3003
-    LDI r13, 108           ; 'l'
-    STORE r12, r13
-    LDI r12, 0x3004
-    LDI r13, 100           ; 'd'
-    STORE r12, r13
-    LDI r12, 0x3005
-    LDI r13, 0
-    STORE r12, r13
+    LDI r13, 0x3000
+    LDI r1, 87            ; 'W'
+    STORE r13, r1
+    LDI r13, 0x3001
+    LDI r1, 111           ; 'o'
+    STORE r13, r1
+    LDI r13, 0x3002
+    LDI r1, 114           ; 'r'
+    STORE r13, r1
+    LDI r13, 0x3003
+    LDI r1, 108           ; 'l'
+    STORE r13, r1
+    LDI r13, 0x3004
+    LDI r1, 100           ; 'd'
+    STORE r13, r1
+    LDI r13, 0x3005
+    LDI r1, 0
+    STORE r13, r1
 
     ; Store "World" in text clipboard
-    LDI r13, 0
-    LDI r4, 0x3000
-    LDI r8, 5
-    CLIP_TEXT r13, r4, r8
+    LDI r1, 0
+    LDI r11, 0x3000
+    LDI r4, 5
+    CLIP_TEXT r1, r11, r4
 
     ; Draw label for step 2
-    LDI r0, 2
-    LDI r2, 48
-    LDI r1, step2_label
-    TEXT r0, r2, r1
+    LDI r7, 2
+    LDI r9, 48
+    LDI r6, step2_label
+    TEXT r7, r9, r6
 
     ; Paste "World"
-    LDI r13, 1
-    LDI r4, 0x3100
-    LDI r8, 20
-    CLIP_TEXT r13, r4, r8
-    LDI r0, 2
-    LDI r2, 56
-    LDI r1, 0x3100
-    TEXT r0, r2, r1
+    LDI r1, 1
+    LDI r11, 0x3100
+    LDI r4, 20
+    CLIP_TEXT r1, r11, r4
+    LDI r7, 2
+    LDI r9, 56
+    LDI r6, 0x3100
+    TEXT r7, r9, r6
 
     ; Visual indicator bar (yellow = history + new text)
-    LDI r9, 0xFFFF00
-    LDI r6, 2
-    LDI r12, 64
+    LDI r5, 0xFFFF00
+    LDI r0, 2
+    LDI r13, 64
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
     ; STEP 3: Restore "Hello" from history
     ; ═══════════════════════════════════════════
-    LDI r13, 2             ; mode: restore
-    LDI r4, 0             ; slot 0 = newest = "Hello"
-    CLIP_HISTORY r13, r4
+    LDI r1, 2             ; mode: restore
+    LDI r11, 0             ; slot 0 = newest = "Hello"
+    CLIP_HISTORY r1, r11
 
     ; Draw label for step 3
-    LDI r0, 2
-    LDI r2, 80
-    LDI r1, step3_label
-    TEXT r0, r2, r1
+    LDI r7, 2
+    LDI r9, 80
+    LDI r6, step3_label
+    TEXT r7, r9, r6
 
     ; Paste restored text
-    LDI r13, 1
-    LDI r4, 0x3100
-    LDI r8, 20
-    CLIP_TEXT r13, r4, r8
-    LDI r0, 2
-    LDI r2, 88
-    LDI r1, 0x3100
-    TEXT r0, r2, r1
+    LDI r1, 1
+    LDI r11, 0x3100
+    LDI r4, 20
+    CLIP_TEXT r1, r11, r4
+    LDI r7, 2
+    LDI r9, 88
+    LDI r6, 0x3100
+    TEXT r7, r9, r6
 
     ; Visual indicator bar (cyan = restored)
-    LDI r9, 0x00FFFF
-    LDI r6, 2
-    LDI r12, 96
+    LDI r5, 0x00FFFF
+    LDI r0, 2
+    LDI r13, 96
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
     ; STEP 4: Fill history ring buffer (10 pushes)
     ; ═══════════════════════════════════════════
-    LDI r11, 0            ; loop counter
+    LDI r2, 0            ; loop counter
 
 fill_loop:
     ; Store counter as text digit "0"-"9"
-    LDI r12, 0x3000
-    LDI r13, 48            ; '0'
-    ADD r13, r11
-    STORE r12, r13
-    LDI r12, 0x3001
-    LDI r13, 0
-    STORE r12, r13
+    LDI r13, 0x3000
+    LDI r1, 48            ; '0'
+    ADD r1, r2
+    STORE r13, r1
+    LDI r13, 0x3001
+    LDI r1, 0
+    STORE r13, r1
 
     ; Store in text clipboard
-    LDI r13, 0
-    LDI r4, 0x3000
-    LDI r8, 1
-    CLIP_TEXT r13, r4, r8
+    LDI r1, 0
+    LDI r11, 0x3000
+    LDI r4, 1
+    CLIP_TEXT r1, r11, r4
 
     ; Push to history
-    LDI r13, 0
-    LDI r4, 0
-    CLIP_HISTORY r13, r4
+    LDI r1, 0
+    LDI r11, 0
+    CLIP_HISTORY r1, r11
 
-    ADDI r11, 1
-    LDI r3, 10
-    CMP r11, r3
-    BLT r5, fill_loop
+    ADDI r2, 1
+    LDI r14, 10
+    CMP r2, r14
+    BLT r3, fill_loop
 
     ; Draw label for step 4
-    LDI r0, 2
-    LDI r2, 112
-    LDI r1, step4_label
-    TEXT r0, r2, r1
+    LDI r7, 2
+    LDI r9, 112
+    LDI r6, step4_label
+    TEXT r7, r9, r6
 
     ; Restore oldest surviving entry (should be "2")
-    LDI r13, 2             ; restore
-    LDI r4, 7             ; oldest slot
-    CLIP_HISTORY r13, r4
+    LDI r1, 2             ; restore
+    LDI r11, 7             ; oldest slot
+    CLIP_HISTORY r1, r11
 
-    LDI r13, 1
-    LDI r4, 0x3100
-    LDI r8, 20
-    CLIP_TEXT r13, r4, r8
-    LDI r0, 2
-    LDI r2, 120
-    LDI r1, 0x3100
-    TEXT r0, r2, r1
+    LDI r1, 1
+    LDI r11, 0x3100
+    LDI r4, 20
+    CLIP_TEXT r1, r11, r4
+    LDI r7, 2
+    LDI r9, 120
+    LDI r6, 0x3100
+    TEXT r7, r9, r6
 
     ; Visual indicator bar (magenta = ring buffer)
-    LDI r9, 0xFF00FF
-    LDI r6, 2
-    LDI r12, 128
+    LDI r5, 0xFF00FF
+    LDI r0, 2
+    LDI r13, 128
     CALL draw_bar
 
     ; ═══════════════════════════════════════════
     ; STEP 5: Clear history
     ; ═══════════════════════════════════════════
-    LDI r13, 3             ; mode: clear
-    LDI r4, 0
-    CLIP_HISTORY r13, r4
+    LDI r1, 3             ; mode: clear
+    LDI r11, 0
+    CLIP_HISTORY r1, r11
 
     ; Draw label for step 5
-    LDI r0, 2
-    LDI r2, 144
-    LDI r1, step5_label
-    TEXT r0, r2, r1
+    LDI r7, 2
+    LDI r9, 144
+    LDI r6, step5_label
+    TEXT r7, r9, r6
 
     ; Visual indicator bar (white = cleared)
-    LDI r9, 0xFFFFFF
-    LDI r6, 2
-    LDI r12, 160
+    LDI r5, 0xFFFFFF
+    LDI r0, 2
+    LDI r13, 160
     CALL draw_bar
 
     ; ── Done ──
     HALT
 
 ; ── Draw a 40-pixel wide indicator bar ──
-; r9 = color, r6 = x, r12 = y
+; r5 = color, r0 = x, r13 = y
 draw_bar:
-    LDI r15, 40           ; width
+    LDI r8, 40           ; width
 bar_loop:
-    PSET r6, r12, r9
-    ADDI r6, 1
-    SUBI r15, 1
-    JNZ r15, bar_loop
+    PSET r0, r13, r5
+    ADDI r0, 1
+    SUBI r8, 1
+    JNZ r8, bar_loop
     RET
 
 ; ── Data ──

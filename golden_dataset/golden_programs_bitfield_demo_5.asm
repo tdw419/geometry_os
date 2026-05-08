@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates the use of bitfield extraction (BFE) and insertion (BFI) opcodes by packing RGB color channels into a single 32-bit value, extracting each channel, reassembling them in swapped order (BGR to RGB), and then drawing colored rectangles to visualize the transformation. It also includes examples of extracting individual bits from a byte and using BFE/BFI to create a stripe pattern based on bit values.
+; DESCRIPTION: Draw rectangle: pos=the screen, color=red, size=fixed size.
 
 ; bitfield_demo.asm -- Demonstrates BFE and BFI opcodes
 ; Extracts RGB channels from a packed color and reassembles them swapped (BGR->RGB)
@@ -6,49 +6,49 @@
 ; BFI rd, src, width, lsb -- insert bits
 
 ; Pack a color: R=0xAA, G=0xBB, B=0xCC into 0xAABBCC
-LDI r10, 0xAA        ; R channel
-LDI r11, 8           ; shift amount
-SHL r10, r11          ; r10 = 0x0000AA00 (R at bits 8-15)
-LDI r14, 0xBB        ; G channel
-OR r10, r14           ; r10 = 0x0000AABB (R+G)
-LDI r11, 16
-SHL r10, r11          ; r10 = 0xAABB0000 (R+G shifted up)
-LDI r14, 0xCC        ; B channel
-OR r10, r14           ; r10 = 0xAABBCC (packed: R=bits16-23, G=bits8-15, B=bits0-7)
+LDI r0, 0xAA        ; R channel
+LDI r8, 8           ; shift amount
+SHL r0, r8          ; r0 = 0x0000AA00 (R at bits 8-15)
+LDI r12, 0xBB        ; G channel
+OR r0, r12           ; r0 = 0x0000AABB (R+G)
+LDI r8, 16
+SHL r0, r8          ; r0 = 0xAABB0000 (R+G shifted up)
+LDI r12, 0xCC        ; B channel
+OR r0, r12           ; r0 = 0xAABBCC (packed: R=bits16-23, G=bits8-15, B=bits0-7)
 
 ; Now extract each channel using BFE
-; BFE r12, r10, r15, r7 -- extract 8 bits at lsb=16 from r10 -> R
-LDI r15, 8           ; width = 8
-LDI r7, 16          ; lsb = 16
-BFE r12, r10, r15, r7  ; r12 = 0xAA (red channel)
+; BFE r5, r0, r4, r6 -- extract 8 bits at lsb=16 from r0 -> R
+LDI r4, 8           ; width = 8
+LDI r6, 16          ; lsb = 16
+BFE r5, r0, r4, r6  ; r5 = 0xAA (red channel)
 
-; BFE r3, r10, r15, r13 -- extract 8 bits at lsb=8 from r10 -> G
+; BFE r9, r0, r4, r13 -- extract 8 bits at lsb=8 from r0 -> G
 LDI r13, 8           ; lsb = 8
-BFE r3, r10, r15, r13  ; r3 = 0xBB (green channel)
+BFE r9, r0, r4, r13  ; r9 = 0xBB (green channel)
 
-; BFE r6, r10, r9, r4 -- extract 8 bits at lsb=0 from r10 -> B
-LDI r9, 8          ; width = 8
-LDI r4, 0          ; lsb = 0
-BFE r6, r10, r9, r4 ; r6 = 0xCC (blue channel)
+; BFE r1, r0, r15, r14 -- extract 8 bits at lsb=0 from r0 -> B
+LDI r15, 8          ; width = 8
+LDI r14, 0          ; lsb = 0
+BFE r1, r0, r15, r14 ; r1 = 0xCC (blue channel)
 
 ; Now reassemble as BGR: B at bits 16-23, G at bits 8-15, R at bits 0-7
-LDI r0, 0          ; start with 0
+LDI r2, 0          ; start with 0
 
-; Insert B (r6) at bits 16-23
-LDI r8, 8          ; width = 8
-LDI r1, 16         ; lsb = 16
-MOV r2, r6         ; src = blue
-BFI r0, r2, r8, r1 ; r0 = 0x00CC0000
+; Insert B (r1) at bits 16-23
+LDI r7, 8          ; width = 8
+LDI r3, 16         ; lsb = 16
+MOV r10, r1         ; src = blue
+BFI r2, r10, r7, r3 ; r2 = 0x00CC0000
 
-; Insert G (r3) at bits 8-15
-LDI r1, 8          ; lsb = 8
-MOV r2, r3         ; src = green
-BFI r0, r2, r8, r1 ; r0 = 0x00CCBB00
+; Insert G (r9) at bits 8-15
+LDI r3, 8          ; lsb = 8
+MOV r10, r9         ; src = green
+BFI r2, r10, r7, r3 ; r2 = 0x00CCBB00
 
-; Insert R (r12) at bits 0-7
-LDI r1, 0          ; lsb = 0
-MOV r2, r12         ; src = red
-BFI r0, r2, r8, r1 ; r0 = 0x00CCBBAA (BGR swapped!)
+; Insert R (r5) at bits 0-7
+LDI r3, 0          ; lsb = 0
+MOV r10, r5         ; src = red
+BFI r2, r10, r7, r3 ; r2 = 0x00CCBBAA (BGR swapped!)
 
 ; Draw colored rectangles showing the transformation
 ; Original color (AABBCC) as a 32x32 rect at (10, 10)
@@ -56,29 +56,29 @@ LDI r20, 10
 LDI r21, 10
 LDI r22, 32
 LDI r23, 32
-RECTF r20, r21, r22, r23, r10  ; original
+RECTF r20, r21, r22, r23, r0  ; original
 
 ; Swapped color (CCBBAA) as a 32x32 rect at (60, 10)
 LDI r20, 60
 LDI r21, 10
-RECTF r20, r21, r22, r23, r0 ; swapped
+RECTF r20, r21, r22, r23, r2 ; swapped
 
 ; Also demonstrate: extract single bits from a byte
 ; Create a pattern byte 0b10101010 = 0xAA
 LDI r16, 0xAA
 
 ; Extract bit 0 (should be 0)
-LDI r15, 1
-LDI r7, 0
-BFE r17, r16, r15, r7  ; r17 = bit 0 of 0xAA = 0
+LDI r4, 1
+LDI r6, 0
+BFE r17, r16, r4, r6  ; r17 = bit 0 of 0xAA = 0
 
 ; Extract bit 1 (should be 1)
-LDI r7, 1
-BFE r18, r16, r15, r7  ; r18 = bit 1 of 0xAA = 1
+LDI r6, 1
+BFE r18, r16, r4, r6  ; r18 = bit 1 of 0xAA = 1
 
 ; Extract bit 7 (should be 1)
-LDI r7, 7
-BFE r19, r16, r15, r7  ; r19 = bit 7 of 0xAA = 1
+LDI r6, 7
+BFE r19, r16, r4, r6  ; r19 = bit 7 of 0xAA = 1
 
 ; Draw individual bits as 8x8 pixels at bottom of screen
 ; Bit 7 (r19=1) -> white pixel at (10, 200)
@@ -106,17 +106,17 @@ stripe_loop:
   ; Color palette in RAM at 0x7000
   ; Skip -- use CMP/BLT chain for 4 colors instead
   CMP r27, r25
-  BLT r5, stripe_red
+  BLT r11, stripe_red
 
   ; r27 >= 2
   LDI r28, 3
   CMP r27, r28
-  BLT r5, stripe_green
+  BLT r11, stripe_green
 
   ; r27 >= 3
   LDI r28, 4
   CMP r27, r28
-  BLT r5, stripe_blue
+  BLT r11, stripe_blue
 
   ; r27 >= 4 (shouldn't happen with 2-bit mask, but safe)
   JMP stripe_black
@@ -148,6 +148,6 @@ stripe_draw:
 
   ; Loop: check if x >= 200
   CMP r21, r22
-  BLT r5, stripe_loop
+  BLT r11, stripe_loop
 
 HALT

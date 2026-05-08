@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an interactive AI Oracle system where users can ask questions about the world. The LLM opcode is used to send map-aware prompts to an external AI, which responds with concise answers displayed on the screen. The code manages memory buffers for context, user input, and responses, handles user input through a main loop, and processes key presses for asking questions, clearing input, and exiting.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; oracle.asm -- Map-aware AI Oracle building
 ; Walk in, ask questions about the world. The LLM knows your position and
@@ -15,121 +15,121 @@
 ;   0x3E00-0x3FFF: Temp digit buffer / scratch
 ;
 ; Registers:
-;   r10: CMP result (reserved)
-;   r2: Key input
-;   r15: Prompt addr (0x3900)
-;   r11: Response addr (0x3300)
-;   r14: Max response length (768)
-;   r12: Constant 1
+;   r2: CMP result (reserved)
+;   r13: Key input
+;   r8: Prompt addr (0x3900)
+;   r12: Response addr (0x3300)
+;   r9: Max response length (768)
+;   r5: Constant 1
 ;   r0: Constant 9 (Tab)
-;   r9: Constant 10 (Enter)
-;   r4: Constant 8 (Backspace)
-;   r1: Constant 27 (Escape)
-;   r3-r20: scratch
+;   r6: Constant 10 (Enter)
+;   r15: Constant 8 (Backspace)
+;   r4: Constant 27 (Escape)
+;   r10-r20: scratch
 
 ; ===== Initialize =====
-LDI r15, 0x3900          ; full prompt addr
-LDI r11, 0x3300          ; response buffer
-LDI r14, 768             ; max response length
-LDI r12, 1
+LDI r8, 0x3900          ; full prompt addr
+LDI r12, 0x3300          ; response buffer
+LDI r9, 768             ; max response length
+LDI r5, 1
 LDI r0, 9               ; Tab
-LDI r9, 10              ; Enter
-LDI r4, 8              ; Backspace
-LDI r1, 27             ; Escape
+LDI r6, 10              ; Enter
+LDI r15, 8              ; Backspace
+LDI r4, 27             ; Escape
 
 ; Build map context prefix
 CALL build_context
 
 ; Clear user input and response
-LDI r3, 0x3100
+LDI r10, 0x3100
 LDI r16, 256
 CALL clear_buf
-LDI r3, 0x3300
+LDI r10, 0x3300
 LDI r16, 768
 CALL clear_buf
 
 ; Status
-LDI r3, 0x3700
-STRO r3, "Tab=Ask  Esc=Exit  Enter=Clear"
+LDI r10, 0x3700
+STRO r10, "Tab=Ask  Esc=Exit  Enter=Clear"
 
 ; ===== Main Loop =====
 main_loop:
-    FILL r10
+    FILL r2
 
     ; -- Title bar --
-    LDI r3, 0x1A0033   ; dark purple
-    LDI r6, 0
-    LDI r5, 0
-    LDI r7, 256
+    LDI r10, 0x1A0033   ; dark purple
+    LDI r1, 0
+    LDI r7, 0
+    LDI r14, 256
     LDI r16, 14
-    RECTF r6, r5, r7, r16, r3
+    RECTF r1, r7, r14, r16, r10
 
-    LDI r3, 0x3800
-    STRO r3, "Oracle - AI Guide"
-    LDI r6, 4
-    LDI r5, 3
-    LDI r7, 0x3800
-    TEXT r6, r5, r7
+    LDI r10, 0x3800
+    STRO r10, "Oracle - AI Guide"
+    LDI r1, 4
+    LDI r7, 3
+    LDI r14, 0x3800
+    TEXT r1, r7, r14
 
     ; -- Context info line --
-    LDI r6, 4
-    LDI r5, 16
-    LDI r7, 0x3000
-    TEXT r6, r5, r7
+    LDI r1, 4
+    LDI r7, 16
+    LDI r14, 0x3000
+    TEXT r1, r7, r14
 
     ; -- Separator --
-    LDI r3, 0x333344
-    LDI r6, 0
-    LDI r5, 28
-    LDI r7, 256
+    LDI r10, 0x333344
+    LDI r1, 0
+    LDI r7, 28
+    LDI r14, 256
     LDI r16, 1
-    RECTF r6, r5, r7, r16, r3
+    RECTF r1, r7, r14, r16, r10
 
     ; -- User input --
-    LDI r6, 4
-    LDI r5, 32
-    LDI r7, 0x3100
-    TEXT r6, r5, r7
+    LDI r1, 4
+    LDI r7, 32
+    LDI r14, 0x3100
+    TEXT r1, r7, r14
 
     ; -- Response area --
-    LDI r6, 4
-    LDI r5, 48
+    LDI r1, 4
+    LDI r7, 48
     CALL draw_response
 
     ; -- Status bar --
-    LDI r3, 0x111122
-    LDI r6, 0
-    LDI r5, 248
-    LDI r7, 256
+    LDI r10, 0x111122
+    LDI r1, 0
+    LDI r7, 248
+    LDI r14, 256
     LDI r16, 8
-    RECTF r6, r5, r7, r16, r3
-    LDI r6, 4
-    LDI r5, 248
-    LDI r3, 0x3700
-    TEXT r6, r5, r3
+    RECTF r1, r7, r14, r16, r10
+    LDI r1, 4
+    LDI r7, 248
+    LDI r10, 0x3700
+    TEXT r1, r7, r10
 
     ; -- Input --
-    IKEY r2
-    LDI r3, 0
-    ADD r3, r2
-    JZ r3, ml_continue
+    IKEY r13
+    LDI r10, 0
+    ADD r10, r13
+    JZ r10, ml_continue
 
-    CMP r2, r1
-    JZ r10, done
-    CMP r2, r0
-    JZ r10, send_to_llm
-    CMP r2, r9
-    JZ r10, handle_enter
-    CMP r2, r4
-    JZ r10, handle_backspace
+    CMP r13, r4
+    JZ r2, done
+    CMP r13, r0
+    JZ r2, send_to_llm
+    CMP r13, r6
+    JZ r2, handle_enter
+    CMP r13, r15
+    JZ r2, handle_backspace
 
     ; Regular char: append to input buffer
-    LDI r3, 0x3100
+    LDI r10, 0x3100
     CALL find_null
-    LDI r6, 0x32FF
-    CMP r3, r6
-    BGE r10, ml_continue
-    STORE r3, r2
+    LDI r1, 0x32FF
+    CMP r10, r1
+    BGE r2, ml_continue
+    STORE r10, r13
 
 ml_continue:
     FRAME
@@ -138,8 +138,8 @@ ml_continue:
 ; ===== Send to LLM =====
 send_to_llm:
     ; Status: thinking
-    LDI r3, 0x3700
-    STRO r3, "Thinking..."
+    LDI r10, 0x3700
+    STRO r10, "Thinking..."
 
     ; Build full prompt at 0x3900:
     ;   1. Copy context from 0x3000
@@ -154,10 +154,10 @@ send_to_llm:
 
     ; Step 2: append \n\nQuestion:
     SUBI r19, 1         ; back over null
-    LDI r3, 10
-    STORE r19, r3
+    LDI r10, 10
+    STORE r19, r10
     ADDI r19, 1
-    STORE r19, r3
+    STORE r19, r10
     ADDI r19, 1
     STRO r19, "Question: "
     CALL advance_to_null
@@ -168,53 +168,53 @@ send_to_llm:
 
     ; Step 4: append \n\nAnswer concisely.
     SUBI r19, 1
-    LDI r3, 10
-    STORE r19, r3
+    LDI r10, 10
+    STORE r19, r10
     ADDI r19, 1
-    STORE r19, r3
+    STORE r19, r10
     ADDI r19, 1
     STRO r19, "Answer concisely."
     CALL advance_to_null
 
     ; Call LLM: reads from 0x3900, writes to 0x3300
-    LDI r15, 0x3900
-    LLM r15, r11, r14
+    LDI r8, 0x3900
+    LLM r8, r12, r9
 
     ; Clear input
-    LDI r3, 0x3100
+    LDI r10, 0x3100
     LDI r16, 256
     CALL clear_buf
 
     ; Restore status
-    LDI r3, 0x3700
-    STRO r3, "Tab=Ask  Esc=Exit  Enter=Clear"
+    LDI r10, 0x3700
+    STRO r10, "Tab=Ask  Esc=Exit  Enter=Clear"
 
     JMP ml_continue
 
 ; ===== Handle Enter: clear input + response =====
 handle_enter:
-    LDI r3, 0x3100
+    LDI r10, 0x3100
     LDI r16, 256
     CALL clear_buf
-    LDI r3, 0x3300
+    LDI r10, 0x3300
     LDI r16, 768
     CALL clear_buf
     JMP ml_continue
 
 ; ===== Handle Backspace =====
 handle_backspace:
-    LDI r3, 0x3100
+    LDI r10, 0x3100
     CALL find_null
-    LDI r6, 0x3100
-    CMP r3, r6
-    JZ r10, ml_continue
-    SUBI r3, 1
-    LDI r6, 0
-    STORE r3, r6
+    LDI r1, 0x3100
+    CMP r10, r1
+    JZ r2, ml_continue
+    SUBI r10, 1
+    LDI r1, 0
+    STORE r10, r1
     JMP ml_continue
 
 ; ===== Build context string at 0x3000 =====
-; Uses r19 as output pointer, r3-r18 as scratch
+; Uses r19 as output pointer, r10-r18 as scratch
 build_context:
     PUSH r31
     LDI r19, 0x3000
@@ -224,10 +224,10 @@ build_context:
     CALL advance_to_null
 
     ; Player X from RAM[0x7808]
-    LDI r3, 0x7808
-    LOAD r6, r3
-    LDI r3, 0
-    ADD r3, r6
+    LDI r10, 0x7808
+    LOAD r1, r10
+    LDI r10, 0
+    ADD r10, r1
     CALL write_decimal
 
     ; ","
@@ -236,10 +236,10 @@ build_context:
     CALL advance_to_null
 
     ; Player Y from RAM[0x7809]
-    LDI r3, 0x7809
-    LOAD r6, r3
-    LDI r3, 0
-    ADD r3, r6
+    LDI r10, 0x7809
+    LOAD r1, r10
+    LDI r10, 0
+    ADD r10, r1
     CALL write_decimal
 
     ; ") "
@@ -248,95 +248,95 @@ build_context:
     CALL advance_to_null
 
     ; Check nearby building
-    LDI r3, 0x7588
-    LOAD r6, r3
-    LDI r5, 1
-    CMP r6, r5
-    JNZ r10, no_nearby
+    LDI r10, 0x7588
+    LOAD r1, r10
+    LDI r7, 1
+    CMP r1, r7
+    JNZ r2, no_nearby
 
     ; "Near: "
     STRO r19, "Near: "
     CALL advance_to_null
 
     ; Read building name: index at 0x7584
-    LDI r3, 0x7584
-    LOAD r7, r3        ; r7 = building index
-    LDI r5, 4
-    MUL r7, r5
-    LDI r5, 0x7500
-    ADD r7, r5         ; r7 = 0x7500 + index*4
-    ADDI r7, 3          ; offset to name_addr field
-    LOAD r16, r7        ; r16 = name string address
+    LDI r10, 0x7584
+    LOAD r14, r10        ; r14 = building index
+    LDI r7, 4
+    MUL r14, r7
+    LDI r7, 0x7500
+    ADD r14, r7         ; r14 = 0x7500 + index*4
+    ADDI r14, 3          ; offset to name_addr field
+    LOAD r16, r14        ; r16 = name string address
     ; Copy name chars to output
-    LDI r3, 0
+    LDI r10, 0
 copy_bname:
     MOV r17, r16
-    ADD r17, r3
-    LOAD r6, r17
+    ADD r17, r10
+    LOAD r1, r17
     LDI r18, 0
-    CMP r6, r18
-    JZ r10, ctx_done
-    STORE r19, r6
+    CMP r1, r18
+    JZ r2, ctx_done
+    STORE r19, r1
     ADDI r19, 1
-    ADDI r3, 1
+    ADDI r10, 1
     JMP copy_bname
 
 no_nearby:
     STRO r19, "Explore the world!"
 
 ctx_done:
-    LDI r3, 0
-    STORE r19, r3
+    LDI r10, 0
+    STORE r19, r10
     POP r31
     RET
 
 ; ===== Write decimal to string at r19 =====
-; r3 = number to write
+; r10 = number to write
 write_decimal:
     PUSH r31
-    PUSH r3
-    LDI r6, 0
-    CMP r3, r6
-    JNZ r10, wd_nonzero
-    LDI r6, 48
-    STORE r19, r6
+    PUSH r10
+    LDI r1, 0
+    CMP r10, r1
+    JNZ r2, wd_nonzero
+    LDI r1, 48
+    STORE r19, r1
     ADDI r19, 1
     JMP wd_done
 
 wd_nonzero:
-    LDI r5, 0x3E00     ; temp digit buffer
-    LDI r7, 0          ; digit count
+    LDI r7, 0x3E00     ; temp digit buffer
+    LDI r14, 0          ; digit count
 wd_loop:
-    LDI r6, 0
-    CMP r3, r6
-    JZ r10, wd_reverse
-    LDI r6, 10
-    MOV r16, r3
-    MOD r16, r6
+    LDI r1, 0
+    CMP r10, r1
+    JZ r2, wd_reverse
+    LDI r1, 10
+    MOV r16, r10
+    MOD r16, r1
     ADDI r16, 48
-    STORE r5, r16
-    ADDI r5, 1
+    STORE r7, r16
     ADDI r7, 1
-    DIV r3, r6
+    ADDI r14, 1
+    DIV r10, r1
     JMP wd_loop
 
 wd_reverse:
-    SUBI r5, 1
+    SUBI r7, 1
 wd_rev_loop:
-    LDI r6, 0
-    CMP r7, r6
-    JZ r10, wd_done
-    LOAD r16, r5
+    LDI r1, 0
+    CMP r14, r1
+    JZ r2, wd_done
+    LOAD r16, r7
     STORE r19, r16
     ADDI r19, 1
-    SUBI r5, 1
     SUBI r7, 1
+    SUBI r14, 1
     JMP wd_rev_loop
 
 wd_done:
-    LDI r3, 0
-    STORE r19, r3
-    POP r3
+    LDI r10, 0
+    STORE r19, r10
+    POP r10
     POP r31
     RET
 
@@ -344,10 +344,10 @@ wd_done:
 advance_to_null:
     PUSH r31
 adv_loop:
-    LOAD r3, r19
-    LDI r6, 0
-    CMP r3, r6
-    JZ r10, adv_done
+    LOAD r10, r19
+    LDI r1, 0
+    CMP r10, r1
+    JZ r2, adv_done
     ADDI r19, 1
     JMP adv_loop
 adv_done:
@@ -358,61 +358,61 @@ adv_done:
 copy_until_null:
     PUSH r31
 cun_loop:
-    LOAD r3, r18
-    LDI r6, 0
-    CMP r3, r6
-    JZ r10, cun_done
-    STORE r19, r3
+    LOAD r10, r18
+    LDI r1, 0
+    CMP r10, r1
+    JZ r2, cun_done
+    STORE r19, r10
     ADDI r18, 1
     ADDI r19, 1
     JMP cun_loop
 cun_done:
-    LDI r3, 0
-    STORE r19, r3
+    LDI r10, 0
+    STORE r19, r10
     POP r31
     RET
 
-; ===== Find null terminator at r3 =====
+; ===== Find null terminator at r10 =====
 find_null:
     PUSH r31
 fn_loop:
-    LOAD r16, r3
-    LDI r6, 0
-    CMP r16, r6
-    JZ r10, fn_done
-    ADDI r3, 1
+    LOAD r16, r10
+    LDI r1, 0
+    CMP r16, r1
+    JZ r2, fn_done
+    ADDI r10, 1
     JMP fn_loop
 fn_done:
     POP r31
     RET
 
-; ===== Clear buffer: r3=start, r16=count =====
+; ===== Clear buffer: r10=start, r16=count =====
 clear_buf:
     PUSH r31
-    PUSH r3
+    PUSH r10
     PUSH r16
-    LDI r6, 0
+    LDI r1, 0
 cb_loop:
     JZ r16, cb_done
-    STORE r3, r6
-    ADDI r3, 1
+    STORE r10, r1
+    ADDI r10, 1
     SUBI r16, 1
     JMP cb_loop
 cb_done:
     POP r16
-    POP r3
+    POP r10
     POP r31
     RET
 
 ; ===== Draw response text =====
-; r6 = start x, r5 = start y
+; r1 = start x, r7 = start y
 ; Delegates to TEXT opcode, which wraps at column ~250 and handles \n.
 draw_response:
     PUSH r31
-    PUSH r3
-    LDI r3, 0x3300     ; response buffer
-    TEXT r6, r5, r3
-    POP r3
+    PUSH r10
+    LDI r10, 0x3300     ; response buffer
+    TEXT r1, r7, r10
+    POP r10
     POP r31
     RET
 

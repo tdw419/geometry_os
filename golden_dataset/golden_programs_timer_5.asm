@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a countdown timer with an alarm feature. The timer is controlled via keyboard inputs to set minutes (1-9), start/pause the timer, and reset it. It uses frame timing for accurate second increments and plays an alarm sound when the timer reaches zero. The timer's state and time are displayed on the screen, along with status messages indicating whether the timer is running or paused.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; timer.asm -- Countdown Timer with Alarm for Geometry OS
 ;
@@ -33,140 +33,140 @@
 #define TXT_BUF     0x5000
 
 ; ── INIT ──────────────────────────────────────────
-    LDI r0, 1
-    LDI r5, 0
+    LDI r4, 1
+    LDI r6, 0
 
     ; Default timer = 60 seconds = 6000 centiseconds (1 minute)
     LDI r20, TIMER_CS
-    LDI r1, 6000
-    STORE r20, r1
+    LDI r0, 6000
+    STORE r20, r0
     LDI r20, INIT_TIME
-    STORE r20, r1
+    STORE r20, r0
 
     LDI r20, RUNNING
-    STORE r20, r5
+    STORE r20, r6
     LDI r20, FRAME_ACC
-    STORE r20, r5
+    STORE r20, r6
     LDI r20, ALARMED
-    STORE r20, r5
+    STORE r20, r6
 
     ; Init stack
     LDI r30, 0xFD00
 
 ; ── MAIN LOOP ─────────────────────────────────────
 main_loop:
-    LDI r0, 1
+    LDI r4, 1
 
     ; Read keyboard
-    IKEY r8
+    IKEY r15
 
     ; Check for digit keys 1-9 to set minutes
-    CMPI r8, 49         ; '1'
-    BLT r13, not_digit
-    CMPI r8, 57         ; '9'
-    BGE r13, not_digit
+    CMPI r15, 49         ; '1'
+    BLT r9, not_digit
+    CMPI r15, 57         ; '9'
+    BGE r9, not_digit
 
     ; Set timer to (key - 48) minutes = (key - 48) * 6000 cs
-    SUBI r8, 48         ; minutes (1-9)
-    LDI r12, 6000
-    MUL r8, r12          ; total cs
+    SUBI r15, 48         ; minutes (1-9)
+    LDI r11, 6000
+    MUL r15, r11          ; total cs
     LDI r20, TIMER_CS
-    STORE r20, r8
+    STORE r20, r15
     LDI r20, INIT_TIME
-    STORE r20, r8
+    STORE r20, r15
     LDI r20, ALARMED
-    LDI r5, 0
-    STORE r20, r5
+    LDI r6, 0
+    STORE r20, r6
     JMP main_loop
 
 not_digit:
     ; Space (32) = start/pause
-    CMPI r8, 32
-    JNZ r13, not_space
+    CMPI r15, 32
+    JNZ r9, not_space
 
     ; Don't start if timer is 0 and alarm was triggered
     LDI r20, ALARMED
-    LOAD r12, r20
-    CMPI r12, 1
-    JZ r13, main_loop
+    LOAD r11, r20
+    CMPI r11, 1
+    JZ r9, main_loop
 
     ; Toggle running
     LDI r20, RUNNING
-    LOAD r12, r20
-    CMPI r12, 0
-    JNZ r13, was_running
-    LDI r12, 1
-    STORE r20, r12
+    LOAD r11, r20
+    CMPI r11, 0
+    JNZ r9, was_running
+    LDI r11, 1
+    STORE r20, r11
     JMP main_loop
 was_running:
-    LDI r12, 0
-    STORE r20, r12
+    LDI r11, 0
+    STORE r20, r11
     JMP main_loop
 
 not_space:
     ; R (82) = reset
-    CMPI r8, 82
-    JNZ r13, not_reset
-    LDI r5, 0
+    CMPI r15, 82
+    JNZ r9, not_reset
+    LDI r6, 0
     LDI r20, RUNNING
-    STORE r20, r5
+    STORE r20, r6
     LDI r20, FRAME_ACC
-    STORE r20, r5
+    STORE r20, r6
     LDI r20, ALARMED
-    STORE r20, r5
+    STORE r20, r6
     ; Restore initial time
     LDI r20, INIT_TIME
-    LOAD r1, r20
+    LOAD r0, r20
     LDI r20, TIMER_CS
-    STORE r20, r1
+    STORE r20, r0
     JMP main_loop
 
 not_reset:
     ; Update timer if running
     LDI r20, RUNNING
-    LOAD r12, r20
-    CMPI r12, 0
-    JZ r13, skip_update
+    LOAD r11, r20
+    CMPI r11, 0
+    JZ r9, skip_update
 
     ; frame_acc++
     LDI r20, FRAME_ACC
-    LOAD r12, r20
-    ADDI r12, 1
-    STORE r20, r12
+    LOAD r11, r20
+    ADDI r11, 1
+    STORE r20, r11
 
     ; Check if 60 frames passed
-    CMPI r12, 60
-    BLT r13, skip_update
+    CMPI r11, 60
+    BLT r9, skip_update
 
     ; Reset frame acc
-    LDI r12, 0
+    LDI r11, 0
     LDI r20, FRAME_ACC
-    STORE r20, r12
+    STORE r20, r11
 
     ; timer_cs -= 100
     LDI r20, TIMER_CS
-    LOAD r12, r20
-    SUBI r12, 100
-    STORE r20, r12
+    LOAD r11, r20
+    SUBI r11, 100
+    STORE r20, r11
 
     ; Check if timer reached 0
-    CMPI r12, 0
-    BGE r13, skip_update  ; still positive, keep going
+    CMPI r11, 0
+    BGE r9, skip_update  ; still positive, keep going
 
     ; Timer hit zero - stop and alarm
-    LDI r12, 0
+    LDI r11, 0
     LDI r20, TIMER_CS
-    STORE r20, r12
+    STORE r20, r11
     LDI r20, RUNNING
-    STORE r20, r12
-    LDI r12, 1
+    STORE r20, r11
+    LDI r11, 1
     LDI r20, ALARMED
-    STORE r20, r12
+    STORE r20, r11
 
     ; Play alarm sound (880Hz, 500ms)
-    LDI r14, 880
-    LDI r11, 500
-    BEEP r14, r11
+    LDI r5, 880
+    LDI r1, 500
+    BEEP r5, r1
 
 skip_update:
     ; Render
@@ -178,152 +178,152 @@ skip_update:
 ; ── RENDER ────────────────────────────────────────
 render:
     PUSH r31
-    LDI r0, 1
+    LDI r4, 1
 
     ; Background
-    LDI r5, 0x1A0A2E
-    FILL r5
+    LDI r6, 0x1A0A2E
+    FILL r6
 
     ; Title bar
-    LDI r5, 0x2A1A3E
-    LDI r1, 0
-    LDI r2, 0
-    LDI r8, 256
-    LDI r12, 24
-    RECTF r1, r2, r8, r12, r5
+    LDI r6, 0x2A1A3E
+    LDI r0, 0
+    LDI r10, 0
+    LDI r15, 256
+    LDI r11, 24
+    RECTF r0, r10, r15, r11, r6
 
     ; Title text
     LDI r20, TXT_BUF
     STRO r20, "TIMER"
-    LDI r1, 100
-    LDI r2, 6
+    LDI r0, 100
+    LDI r10, 6
     LDI r20, TXT_BUF
-    TEXT r1, r2, r20
+    TEXT r0, r10, r20
 
     ; Main display panel
-    LDI r5, 0x0A0616
-    LDI r1, 30
-    LDI r2, 40
-    LDI r8, 196
-    LDI r12, 80
-    RECTF r1, r2, r8, r12, r5
+    LDI r6, 0x0A0616
+    LDI r0, 30
+    LDI r10, 40
+    LDI r15, 196
+    LDI r11, 80
+    RECTF r0, r10, r15, r11, r6
 
     ; Compute time from centiseconds
     LDI r20, TIMER_CS
-    LOAD r14, r20
+    LOAD r5, r20
 
     ; Minutes = timer / 6000
-    LDI r11, 6000
-    MOV r6, r14
-    DIV r6, r11
+    LDI r1, 6000
+    MOV r7, r5
+    DIV r7, r1
 
     ; Remaining = timer % 6000
-    MOV r3, r14
-    MOD r3, r11
+    MOV r14, r5
+    MOD r14, r1
 
     ; Seconds = remaining / 100
-    LDI r7, 100
-    MOV r10, r3
-    DIV r10, r7
+    LDI r3, 100
+    MOV r8, r14
+    DIV r8, r3
 
     ; Centiseconds = remaining % 100
-    MOV r16, r3
-    MOD r16, r7
+    MOV r16, r14
+    MOD r16, r3
 
     ; Build MM:SS.CC string
     LDI r20, TXT_BUF
-    MOV r6, r6
+    MOV r7, r7
     CALL fmt_2digit
-    LDI r5, 0x3A       ; ':'
-    STORE r20, r5
+    LDI r6, 0x3A       ; ':'
+    STORE r20, r6
     ADDI r20, 1
-    MOV r6, r10
+    MOV r7, r8
     CALL fmt_2digit
-    LDI r5, 0x2E       ; '.'
-    STORE r20, r5
+    LDI r6, 0x2E       ; '.'
+    STORE r20, r6
     ADDI r20, 1
-    MOV r6, r16
+    MOV r7, r16
     CALL fmt_2digit
-    LDI r5, 0
-    STORE r20, r5
+    LDI r6, 0
+    STORE r20, r6
 
     ; Draw time - green normally, red when alarm
     LDI r20, ALARMED
-    LOAD r12, r20
-    CMPI r12, 1
-    JNZ r13, time_normal
-    LDI r8, 0xFF2222   ; red when alarm
+    LOAD r11, r20
+    CMPI r11, 1
+    JNZ r9, time_normal
+    LDI r15, 0xFF2222   ; red when alarm
     JMP draw_time
 time_normal:
-    LDI r8, 0x00FF00   ; green normally
+    LDI r15, 0x00FF00   ; green normally
 draw_time:
-    LDI r1, 60
-    LDI r2, 65
+    LDI r0, 60
+    LDI r10, 65
     LDI r20, TXT_BUF
-    DRAWTEXT r1, r2, r20, r8, r8
+    DRAWTEXT r0, r10, r20, r15, r15
 
     ; Status panel
-    LDI r5, 0x0D0D1A
-    LDI r1, 30
-    LDI r2, 130
-    LDI r8, 196
-    LDI r12, 50
-    RECTF r1, r2, r8, r12, r5
+    LDI r6, 0x0D0D1A
+    LDI r0, 30
+    LDI r10, 130
+    LDI r15, 196
+    LDI r11, 50
+    RECTF r0, r10, r15, r11, r6
 
     ; Show state text
     LDI r20, ALARMED
-    LOAD r12, r20
-    CMPI r12, 1
-    JNZ r13, not_alarm_show
+    LOAD r11, r20
+    CMPI r11, 1
+    JNZ r9, not_alarm_show
 
     ; "ALARM!" text
     LDI r20, TXT_BUF
     STRO r20, "ALARM!"
-    LDI r1, 85
-    LDI r2, 145
-    LDI r8, 0xFF4444
-    DRAWTEXT r1, r2, r20, r8, r8
+    LDI r0, 85
+    LDI r10, 145
+    LDI r15, 0xFF4444
+    DRAWTEXT r0, r10, r20, r15, r15
     JMP status_done
 
 not_alarm_show:
     LDI r20, RUNNING
-    LOAD r12, r20
-    CMPI r12, 0
-    JNZ r13, timer_running
+    LOAD r11, r20
+    CMPI r11, 0
+    JNZ r9, timer_running
 
     ; "PAUSED" text
     LDI r20, TXT_BUF
     STRO r20, "Press 1-9 or Space"
-    LDI r1, 45
-    LDI r2, 145
-    LDI r8, 0x888888
-    DRAWTEXT r1, r2, r20, r8, r8
+    LDI r0, 45
+    LDI r10, 145
+    LDI r15, 0x888888
+    DRAWTEXT r0, r10, r20, r15, r15
     JMP status_done
 
 timer_running:
     LDI r20, TXT_BUF
     STRO r20, "COUNTING DOWN..."
-    LDI r1, 50
-    LDI r2, 145
-    LDI r8, 0x44FF44
-    DRAWTEXT r1, r2, r20, r8, r8
+    LDI r0, 50
+    LDI r10, 145
+    LDI r15, 0x44FF44
+    DRAWTEXT r0, r10, r20, r15, r15
 
 status_done:
     ; Bottom info bar
-    LDI r5, 0x0A0A1A
-    LDI r1, 0
-    LDI r2, 220
-    LDI r8, 256
-    LDI r12, 36
-    RECTF r1, r2, r8, r12, r5
+    LDI r6, 0x0A0A1A
+    LDI r0, 0
+    LDI r10, 220
+    LDI r15, 256
+    LDI r11, 36
+    RECTF r0, r10, r15, r11, r6
 
     ; Controls hint
     LDI r20, TXT_BUF
     STRO r20, "1-9:mins  Space:start  R:reset"
-    LDI r1, 20
-    LDI r2, 228
-    LDI r8, 0x666666
-    DRAWTEXT r1, r2, r20, r8, r8
+    LDI r0, 20
+    LDI r10, 228
+    LDI r15, 0x666666
+    DRAWTEXT r0, r10, r20, r15, r15
 
     POP r31
     RET
@@ -332,9 +332,9 @@ status_done:
 fmt_2digit:
     PUSH r31
     LDI r21, 10
-    MOV r22, r6
+    MOV r22, r7
     DIV r22, r21
-    MOV r23, r6
+    MOV r23, r7
     MOD r23, r21
     ADDI r22, 0x30
     STORE r20, r22

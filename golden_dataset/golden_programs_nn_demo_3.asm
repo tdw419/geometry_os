@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates a forward pass of a 2-4-1 neural network trained to solve the XOR problem using fixed-point 16.16 arithmetic. The code loads weights and biases for two layers, performs matrix-vector multiplication (MATVEC) and Rectified Linear Unit (RELU) activation, and displays the results on the screen with green indicating correct predictions and red indicating incorrect ones for the four XOR test cases.
+; DESCRIPTION: Draw rectangle: pos=the screen, color=red, size=fixed size.
 
 ; nn_demo.asm -- XOR Neural Network Forward Pass Demo
 ; Phase 79: Demonstrates MATVEC and RELU opcodes
@@ -20,71 +20,71 @@
 ; 0x1400: Final output (1)
 
 ; --- Load Layer 1 Weights (4x2) ---
-LDI r0, 0x00006F34
-LDI r10, 0x1100
-STORE r10, r0
-LDI r0, 0xFFFFF315
-LDI r10, 0x1101
-STORE r10, r0
-LDI r0, 0xFFFFDC9B
-LDI r10, 0x1102
-STORE r10, r0
-LDI r0, 0xFFFFC410
-LDI r10, 0x1103
-STORE r10, r0
-LDI r0, 0x00014EB5
-LDI r10, 0x1104
-STORE r10, r0
-LDI r0, 0x00014BF9
-LDI r10, 0x1105
-STORE r10, r0
-LDI r0, 0x00014D00
-LDI r10, 0x1106
-STORE r10, r0
-LDI r0, 0x0001434E
-LDI r10, 0x1107
-STORE r10, r0
+LDI r3, 0x00006F34
+LDI r9, 0x1100
+STORE r9, r3
+LDI r3, 0xFFFFF315
+LDI r9, 0x1101
+STORE r9, r3
+LDI r3, 0xFFFFDC9B
+LDI r9, 0x1102
+STORE r9, r3
+LDI r3, 0xFFFFC410
+LDI r9, 0x1103
+STORE r9, r3
+LDI r3, 0x00014EB5
+LDI r9, 0x1104
+STORE r9, r3
+LDI r3, 0x00014BF9
+LDI r9, 0x1105
+STORE r9, r3
+LDI r3, 0x00014D00
+LDI r9, 0x1106
+STORE r9, r3
+LDI r3, 0x0001434E
+LDI r9, 0x1107
+STORE r9, r3
 
 ; --- Load Layer 1 Bias (4) ---
-LDI r0, 0xFFFFF00B
-LDI r10, 0x1160
-STORE r10, r0
-LDI r0, 0x00000000
-LDI r10, 0x1161
-STORE r10, r0
-LDI r0, 0xFFFEB407
-LDI r10, 0x1162
-STORE r10, r0
-LDI r0, 0x00000000
-LDI r10, 0x1163
-STORE r10, r0
+LDI r3, 0xFFFFF00B
+LDI r9, 0x1160
+STORE r9, r3
+LDI r3, 0x00000000
+LDI r9, 0x1161
+STORE r9, r3
+LDI r3, 0xFFFEB407
+LDI r9, 0x1162
+STORE r9, r3
+LDI r3, 0x00000000
+LDI r9, 0x1163
+STORE r9, r3
 
 ; --- Load Layer 2 Weights (1x4) ---
-LDI r0, 0xFFFFF6B5
-LDI r10, 0x1300
-STORE r10, r0
-LDI r0, 0x00006237
-LDI r10, 0x1301
-STORE r10, r0
-LDI r0, 0xFFFE74D0
-LDI r10, 0x1302
-STORE r10, r0
-LDI r0, 0x0000CAB5
-LDI r10, 0x1303
-STORE r10, r0
+LDI r3, 0xFFFFF6B5
+LDI r9, 0x1300
+STORE r9, r3
+LDI r3, 0x00006237
+LDI r9, 0x1301
+STORE r9, r3
+LDI r3, 0xFFFE74D0
+LDI r9, 0x1302
+STORE r9, r3
+LDI r3, 0x0000CAB5
+LDI r9, 0x1303
+STORE r9, r3
 
 ; --- Load Layer 2 Bias ---
-LDI r0, 0x00000000
-LDI r10, 0x1340
-STORE r10, r0
+LDI r3, 0x00000000
+LDI r9, 0x1340
+STORE r9, r3
 
 ; --- Clear screen ---
-LDI r14, 0
 LDI r0, 0
-LDI r8, 256
-LDI r6, 256
-LDI r15, 0x00181818
-RECTF r14, r0, r8, r6, r15
+LDI r3, 0
+LDI r11, 256
+LDI r10, 256
+LDI r8, 0x00181818
+RECTF r0, r3, r11, r10, r8
 
 ; --- r20 = test case index ---
 LDI r20, 0
@@ -96,45 +96,45 @@ run_all:
     ; Set inputs and expected output
     CMPI r20, 0
     JNZ r20, case1
-    LDI r0, 0
-    LDI r10, 0x1000
-    STORE r10, r0
-    LDI r10, 0x1001
-    STORE r10, r0
+    LDI r3, 0
+    LDI r9, 0x1000
+    STORE r9, r3
+    LDI r9, 0x1001
+    STORE r9, r3
     LDI r21, 0
     JMP do_forward
 
 case1:
     CMPI r20, 1
     JNZ r20, case2
-    LDI r0, 0
-    LDI r10, 0x1000
-    STORE r10, r0
-    LDI r0, 0x00010000
-    LDI r10, 0x1001
-    STORE r10, r0
+    LDI r3, 0
+    LDI r9, 0x1000
+    STORE r9, r3
+    LDI r3, 0x00010000
+    LDI r9, 0x1001
+    STORE r9, r3
     LDI r21, 1
     JMP do_forward
 
 case2:
     CMPI r20, 2
     JNZ r20, case3
-    LDI r0, 0x00010000
-    LDI r10, 0x1000
-    STORE r10, r0
-    LDI r0, 0
-    LDI r10, 0x1001
-    STORE r10, r0
+    LDI r3, 0x00010000
+    LDI r9, 0x1000
+    STORE r9, r3
+    LDI r3, 0
+    LDI r9, 0x1001
+    STORE r9, r3
     LDI r21, 1
     JMP do_forward
 
 case3:
-    LDI r0, 0x00010000
-    LDI r10, 0x1000
-    STORE r10, r0
-    LDI r0, 0x00010000
-    LDI r10, 0x1001
-    STORE r10, r0
+    LDI r3, 0x00010000
+    LDI r9, 0x1000
+    STORE r9, r3
+    LDI r3, 0x00010000
+    LDI r9, 0x1001
+    STORE r9, r3
     LDI r21, 0
 
 ; ============================================
@@ -142,73 +142,73 @@ case3:
 ; ============================================
 do_forward:
     ; Layer 1: MATVEC (4 rows x 2 cols) * input(2) -> hidden(4)
-    LDI r0, 0x1100
-    LDI r8, 0x1000
-    LDI r6, 0x1200
-    LDI r15, 4
-    LDI r2, 2
-    MATVEC r0, r8, r6, r15, r2
+    LDI r3, 0x1100
+    LDI r11, 0x1000
+    LDI r10, 0x1200
+    LDI r8, 4
+    LDI r1, 2
+    MATVEC r3, r11, r10, r8, r1
 
     ; Add bias + RELU for each hidden neuron
-    LDI r11, 0
+    LDI r12, 0
 act_loop:
-    CMPI r11, 4
-    JZ r11, layer2
+    CMPI r12, 4
+    JZ r12, layer2
 
     ; Load hidden[i]
-    LDI r1, 0x1200
-    ADD r1, r11
-    LOAD r3, r1
+    LDI r6, 0x1200
+    ADD r6, r12
+    LOAD r5, r6
 
     ; Add bias[i]
-    LDI r1, 0x1160
-    ADD r1, r11
-    LOAD r7, r1
-    ADD r3, r7
+    LDI r6, 0x1160
+    ADD r6, r12
+    LOAD r7, r6
+    ADD r5, r7
 
     ; RELU
-    RELU r3
+    RELU r5
 
     ; Store back
-    LDI r1, 0x1200
-    ADD r1, r11
-    STORE r1, r3
+    LDI r6, 0x1200
+    ADD r6, r12
+    STORE r6, r5
 
     ; i++
-    LDI r0, 1
-    ADD r11, r0
+    LDI r3, 1
+    ADD r12, r3
     JMP act_loop
 
 layer2:
     ; Layer 2: MATVEC (1 row x 4 cols) * hidden(4) -> output(1)
-    LDI r0, 0x1300
-    LDI r8, 0x1200
-    LDI r6, 0x1400
-    LDI r15, 1
-    LDI r2, 4
-    MATVEC r0, r8, r6, r15, r2
+    LDI r3, 0x1300
+    LDI r11, 0x1200
+    LDI r10, 0x1400
+    LDI r8, 1
+    LDI r1, 4
+    MATVEC r3, r11, r10, r8, r1
 
     ; Add output bias
-    LDI r1, 0x1400
-    LOAD r3, r1
-    LDI r1, 0x1340
-    LOAD r7, r1
-    ADD r3, r7
-    LDI r1, 0x1400
-    STORE r1, r3
+    LDI r6, 0x1400
+    LOAD r5, r6
+    LDI r6, 0x1340
+    LOAD r7, r6
+    ADD r5, r7
+    LDI r6, 0x1400
+    STORE r6, r5
 
     ; Classify: sign bit check -> positive = 1, negative/zero = 0
-    LDI r1, 0x1400
-    LOAD r3, r1
+    LDI r6, 0x1400
+    LOAD r5, r6
     ; Check top bit: if set, value is negative
-    LDI r0, 0x80000000
-    AND r0, r3
-    CMPI r0, 0
-    JNZ r0, is_zero
+    LDI r3, 0x80000000
+    AND r3, r5
+    CMPI r3, 0
+    JNZ r3, is_zero
 
     ; Value is non-negative. Is it exactly 0?
-    CMPI r3, 0
-    JNZ r3, is_one
+    CMPI r5, 0
+    JNZ r5, is_one
 
 is_zero:
     LDI r22, 0
@@ -221,34 +221,34 @@ is_one:
 ; ============================================
 show:
     ; Position: x = 20 + r20*60
-    LDI r0, 60
-    MUL r0, r20
-    LDI r8, 20
-    ADD r0, r8
+    LDI r3, 60
+    MUL r3, r20
+    LDI r11, 20
+    ADD r3, r11
 
     ; Color: green if prediction == expected
     SUB r22, r21
     JZ r22, green
-    LDI r15, 0x00FF0000
+    LDI r8, 0x00FF0000
     JMP draw
 green:
-    LDI r15, 0x0000FF00
+    LDI r8, 0x0000FF00
 draw:
-    LDI r8, 108
-    LDI r6, 40
-    LDI r2, 40
-    RECTF r0, r8, r6, r2, r15
+    LDI r11, 108
+    LDI r10, 40
+    LDI r1, 40
+    RECTF r3, r11, r10, r1, r8
 
     ; Next test
-    LDI r0, 1
-    ADD r20, r0
+    LDI r3, 1
+    ADD r20, r3
     CMPI r20, 4
     JNZ r20, run_all
 
 ; === Done: show frame, wait for key ===
 FRAME
 wait:
-    IKEY r14
-    CMPI r14, 0
-    JZ r14, wait
+    IKEY r0
+    CMPI r0, 0
+    JZ r0, wait
     HALT

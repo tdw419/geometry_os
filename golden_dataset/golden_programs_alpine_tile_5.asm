@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a display with a dark blue title bar labeled "Alpine Linux Live Tile" and green borders around the terminal area. It provides usage instructions for hypervisor commands such as `hypervisor_boot`, `hypervisor_status`, and others, rendered in text at specific coordinates on the screen.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; alpine_tile.asm -- Alpine Linux Live Tile (Phase 123)
 ;
@@ -14,48 +14,48 @@
 ;   hypervisor_kill                     (clean up)
 
 ; Title bar
-LDI r4, 0x000033   ; dark blue
-LDI r10, 0
-LDI r13, 0
-LDI r5, 256
-LDI r2, 16
-RECTF r10, r13, r5, r2, r4
+LDI r3, 0x000033   ; dark blue
+LDI r6, 0
+LDI r15, 0
+LDI r1, 256
+LDI r14, 16
+RECTF r6, r15, r1, r14, r3
 
 ; Title text
-LDI r8, 0x3000
-STRO r8, "Alpine Linux Live Tile"
-LDI r7, 3
+LDI r7, 0x3000
+STRO r7, "Alpine Linux Live Tile"
+LDI r8, 3
 LDI r16, 4
-TEXT r7, r16, r8
+TEXT r8, r16, r7
 
 ; Status text
-LDI r8, 0x3100
-STRO r8, "Use: hypervisor_boot"
-LDI r7, 2
+LDI r7, 0x3100
+STRO r7, "Use: hypervisor_boot"
+LDI r8, 2
 LDI r16, 20
-TEXT r7, r16, r8
+TEXT r8, r16, r7
 
-LDI r8, 0x3200
-STRO r8, "Status: hypervisor_status"
-LDI r7, 2
+LDI r7, 0x3200
+STRO r7, "Status: hypervisor_status"
+LDI r8, 2
 LDI r16, 28
-TEXT r7, r16, r8
+TEXT r8, r16, r7
 
 ; Draw a frame around the terminal area
-LDI r4, 0x00FF00   ; green frame
-LDI r10, 0
-LDI r13, 16
-LDI r5, 256
-LDI r2, 1
-RECTF r10, r13, r5, r2, r4  ; top border
-LDI r13, 255
-RECTF r10, r13, r5, r2, r4  ; bottom border
-LDI r10, 0
-LDI r13, 16
-LDI r5, 1
-LDI r2, 240
-RECTF r10, r13, r5, r2, r4  ; left border
-LDI r10, 255
-RECTF r10, r13, r5, r2, r4  ; right border
+LDI r3, 0x00FF00   ; green frame
+LDI r6, 0
+LDI r15, 16
+LDI r1, 256
+LDI r14, 1
+RECTF r6, r15, r1, r14, r3  ; top border
+LDI r15, 255
+RECTF r6, r15, r1, r14, r3  ; bottom border
+LDI r6, 0
+LDI r15, 16
+LDI r1, 1
+LDI r14, 240
+RECTF r6, r15, r1, r14, r3  ; left border
+LDI r6, 255
+RECTF r6, r15, r1, r14, r3  ; right border
 
 HALT

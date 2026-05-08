@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an interactive fractal renderer that generates and displays L-system fractals based on user input. It supports five preset fractal patterns (Koch Snowflake, Sierpinski Triangle, Dragon Curve, Fern, and Tree) and allows users to switch between these presets and adjust the iteration count using keyboard inputs. The program uses a string expansion engine to generate fractal strings iteratively according to L-system rules and renders them using turtle graphics on a screen buffer.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; lsystem.asm -- L-System Fractal Generator
 ; Interactive fractal renderer with 5 presets
@@ -34,43 +34,43 @@ main_loop:
   CALL do_render
   CALL draw_info
   FRAME
-  IKEY r10
-  JZ r10, main_loop
+  IKEY r1
+  JZ r1, main_loop
 
   ; key 1
-  LDI r5, 49
-  CMP r10, r5
-  JZ r1, key_1
+  LDI r13, 49
+  CMP r1, r13
+  JZ r2, key_1
   ; key 2
-  LDI r5, 50
-  CMP r10, r5
-  JZ r1, key_2
+  LDI r13, 50
+  CMP r1, r13
+  JZ r2, key_2
   ; key 3
-  LDI r5, 51
-  CMP r10, r5
-  JZ r1, key_3
+  LDI r13, 51
+  CMP r1, r13
+  JZ r2, key_3
   ; key 4
-  LDI r5, 52
-  CMP r10, r5
-  JZ r1, key_4
+  LDI r13, 52
+  CMP r1, r13
+  JZ r2, key_4
   ; key 5
-  LDI r5, 53
-  CMP r10, r5
-  JZ r1, key_5
+  LDI r13, 53
+  CMP r1, r13
+  JZ r2, key_5
   ; + or =
-  LDI r5, 43
-  CMP r10, r5
-  JZ r1, key_plus
-  LDI r5, 61
-  CMP r10, r5
-  JZ r1, key_plus
+  LDI r13, 43
+  CMP r1, r13
+  JZ r2, key_plus
+  LDI r13, 61
+  CMP r1, r13
+  JZ r2, key_plus
   ; - or _
-  LDI r5, 45
-  CMP r10, r5
-  JZ r1, key_minus
-  LDI r5, 95
-  CMP r10, r5
-  JZ r1, key_minus
+  LDI r13, 45
+  CMP r1, r13
+  JZ r2, key_minus
+  LDI r13, 95
+  CMP r1, r13
+  JZ r2, key_minus
 
   JMP main_loop
 
@@ -100,24 +100,24 @@ key_5:
   POP r31
   JMP key_regen
 key_plus:
-  LDI r2, 0x5501
-  LOAD r0, r2
-  LDI r6, 8
-  CMP r0, r6
-  BGE r1, main_loop
-  LDI r6, 1
-  ADD r0, r6
-  STORE r2, r0
+  LDI r5, 0x5501
+  LOAD r3, r5
+  LDI r9, 8
+  CMP r3, r9
+  BGE r2, main_loop
+  LDI r9, 1
+  ADD r3, r9
+  STORE r5, r3
   JMP key_regen
 key_minus:
-  LDI r2, 0x5501
-  LOAD r0, r2
-  LDI r6, 1
-  CMP r0, r6
-  BLT r1, main_loop
-  LDI r6, 1
-  SUB r0, r6
-  STORE r2, r0
+  LDI r5, 0x5501
+  LOAD r3, r5
+  LDI r9, 1
+  CMP r3, r9
+  BLT r2, main_loop
+  LDI r9, 1
+  SUB r3, r9
+  STORE r5, r3
   JMP key_regen
 key_regen:
   PUSH r31
@@ -133,443 +133,443 @@ key_regen:
 
 build_trig_tables:
   ; cos_table at 0x7000
-  LDI r2, 0x7000
-  LDI r9, 256
-  STORE r2, r9
-  LDI r2, 0x7001
-  LDI r9, 181
-  STORE r2, r9
-  LDI r2, 0x7002
-  LDI r9, 0
-  STORE r2, r9
-  LDI r2, 0x7003
-  LDI r9, 0xFFFF73
-  STORE r2, r9
-  LDI r2, 0x7004
-  LDI r9, 0xFFFFFF00
-  STORE r2, r9
-  LDI r2, 0x7005
-  LDI r9, 0xFFFF73
-  STORE r2, r9
-  LDI r2, 0x7006
-  LDI r9, 0
-  STORE r2, r9
-  LDI r2, 0x7007
-  LDI r9, 181
-  STORE r2, r9
+  LDI r5, 0x7000
+  LDI r4, 256
+  STORE r5, r4
+  LDI r5, 0x7001
+  LDI r4, 181
+  STORE r5, r4
+  LDI r5, 0x7002
+  LDI r4, 0
+  STORE r5, r4
+  LDI r5, 0x7003
+  LDI r4, 0xFFFF73
+  STORE r5, r4
+  LDI r5, 0x7004
+  LDI r4, 0xFFFFFF00
+  STORE r5, r4
+  LDI r5, 0x7005
+  LDI r4, 0xFFFF73
+  STORE r5, r4
+  LDI r5, 0x7006
+  LDI r4, 0
+  STORE r5, r4
+  LDI r5, 0x7007
+  LDI r4, 181
+  STORE r5, r4
   ; sin_table at 0x7010
-  LDI r2, 0x7010
-  LDI r9, 0
-  STORE r2, r9
-  LDI r2, 0x7011
-  LDI r9, 181
-  STORE r2, r9
-  LDI r2, 0x7012
-  LDI r9, 256
-  STORE r2, r9
-  LDI r2, 0x7013
-  LDI r9, 181
-  STORE r2, r9
-  LDI r2, 0x7014
-  LDI r9, 0
-  STORE r2, r9
-  LDI r2, 0x7015
-  LDI r9, 0xFFFF73
-  STORE r2, r9
-  LDI r2, 0x7016
-  LDI r9, 0xFFFFFF00
-  STORE r2, r9
-  LDI r2, 0x7017
-  LDI r9, 0xFFFF73
-  STORE r2, r9
+  LDI r5, 0x7010
+  LDI r4, 0
+  STORE r5, r4
+  LDI r5, 0x7011
+  LDI r4, 181
+  STORE r5, r4
+  LDI r5, 0x7012
+  LDI r4, 256
+  STORE r5, r4
+  LDI r5, 0x7013
+  LDI r4, 181
+  STORE r5, r4
+  LDI r5, 0x7014
+  LDI r4, 0
+  STORE r5, r4
+  LDI r5, 0x7015
+  LDI r4, 0xFFFF73
+  STORE r5, r4
+  LDI r5, 0x7016
+  LDI r4, 0xFFFFFF00
+  STORE r5, r4
+  LDI r5, 0x7017
+  LDI r4, 0xFFFF73
+  STORE r5, r4
   RET
 
 ; ==== Preset: Koch Snowflake ====
 init_koch:
-  LDI r9, 1
-  LDI r2, 0x5500
-  STORE r2, r9
+  LDI r4, 1
+  LDI r5, 0x5500
+  STORE r5, r4
   ; axiom: F--F--F (at 0x5000)
-  LDI r2, 0x5000
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5001
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5002
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5003
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5004
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5005
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5006
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5007
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5000
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5001
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5002
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5003
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5004
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5005
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5006
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5007
+  LDI r4, 0
+  STORE r5, r4
   ; rule F -> F+F--F+F (at 0x5100)
   CALL store_koch_f
   ; params
-  LDI r9, 5
-  LDI r2, 0x5502
-  STORE r2, r9
-  LDI r9, 10920
-  LDI r2, 0x5503
-  STORE r2, r9
-  LDI r9, 0x00AAFF
-  LDI r2, 0x5504
-  STORE r2, r9
-  LDI r9, 3
-  LDI r2, 0x5501
-  STORE r2, r9
+  LDI r4, 5
+  LDI r5, 0x5502
+  STORE r5, r4
+  LDI r4, 10920
+  LDI r5, 0x5503
+  STORE r5, r4
+  LDI r4, 0x00AAFF
+  LDI r5, 0x5504
+  STORE r5, r4
+  LDI r4, 3
+  LDI r5, 0x5501
+  STORE r5, r4
   RET
 
 store_koch_f:
-  LDI r2, 0x5100
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5101
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5102
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5103
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5104
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5105
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5106
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5107
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5108
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5100
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5101
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5102
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5103
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5104
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5105
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5106
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5107
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5108
+  LDI r4, 0
+  STORE r5, r4
   RET
 
 ; ==== Preset: Sierpinski Triangle ====
 init_sierpinski:
-  LDI r9, 2
-  LDI r2, 0x5500
-  STORE r2, r9
+  LDI r4, 2
+  LDI r5, 0x5500
+  STORE r5, r4
   ; axiom: F-G-G
-  LDI r2, 0x5000
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5001
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5002
-  LDI r9, 71
-  STORE r2, r9
-  LDI r2, 0x5003
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5004
-  LDI r9, 71
-  STORE r2, r9
-  LDI r2, 0x5005
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5000
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5001
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5002
+  LDI r4, 71
+  STORE r5, r4
+  LDI r5, 0x5003
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5004
+  LDI r4, 71
+  STORE r5, r4
+  LDI r5, 0x5005
+  LDI r4, 0
+  STORE r5, r4
   ; rule F -> F-G+F+G-F (at 0x5100)
-  LDI r2, 0x5100
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5101
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5102
-  LDI r9, 71
-  STORE r2, r9
-  LDI r2, 0x5103
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5104
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5105
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5106
-  LDI r9, 71
-  STORE r2, r9
-  LDI r2, 0x5107
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5108
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5109
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5100
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5101
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5102
+  LDI r4, 71
+  STORE r5, r4
+  LDI r5, 0x5103
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5104
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5105
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5106
+  LDI r4, 71
+  STORE r5, r4
+  LDI r5, 0x5107
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5108
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5109
+  LDI r4, 0
+  STORE r5, r4
   ; rule G -> GG (at 0x5200)
-  LDI r2, 0x5200
-  LDI r9, 71
-  STORE r2, r9
-  LDI r2, 0x5201
-  LDI r9, 71
-  STORE r2, r9
-  LDI r2, 0x5202
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5200
+  LDI r4, 71
+  STORE r5, r4
+  LDI r5, 0x5201
+  LDI r4, 71
+  STORE r5, r4
+  LDI r5, 0x5202
+  LDI r4, 0
+  STORE r5, r4
   ; params
-  LDI r9, 5
-  LDI r2, 0x5502
-  STORE r2, r9
-  LDI r9, 21840
-  LDI r2, 0x5503
-  STORE r2, r9
-  LDI r9, 0xFF6644
-  LDI r2, 0x5504
-  STORE r2, r9
-  LDI r9, 5
-  LDI r2, 0x5501
-  STORE r2, r9
+  LDI r4, 5
+  LDI r5, 0x5502
+  STORE r5, r4
+  LDI r4, 21840
+  LDI r5, 0x5503
+  STORE r5, r4
+  LDI r4, 0xFF6644
+  LDI r5, 0x5504
+  STORE r5, r4
+  LDI r4, 5
+  LDI r5, 0x5501
+  STORE r5, r4
   RET
 
 ; ==== Preset: Dragon Curve ====
 init_dragon:
-  LDI r9, 3
-  LDI r2, 0x5500
-  STORE r2, r9
+  LDI r4, 3
+  LDI r5, 0x5500
+  STORE r5, r4
   ; axiom: FX
-  LDI r2, 0x5000
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5001
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5002
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5000
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5001
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5002
+  LDI r4, 0
+  STORE r5, r4
   ; rule X -> X+YF+ (at 0x5300)
-  LDI r2, 0x5300
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5301
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5302
-  LDI r9, 89
-  STORE r2, r9
-  LDI r2, 0x5303
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5304
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5305
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5300
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5301
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5302
+  LDI r4, 89
+  STORE r5, r4
+  LDI r5, 0x5303
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5304
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5305
+  LDI r4, 0
+  STORE r5, r4
   ; rule Y -> -FX-Y (at 0x5400)
-  LDI r2, 0x5400
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5401
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5402
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5403
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5404
-  LDI r9, 89
-  STORE r2, r9
-  LDI r2, 0x5405
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5400
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5401
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5402
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5403
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5404
+  LDI r4, 89
+  STORE r5, r4
+  LDI r5, 0x5405
+  LDI r4, 0
+  STORE r5, r4
   ; params
-  LDI r9, 4
-  LDI r2, 0x5502
-  STORE r2, r9
-  LDI r9, 16380
-  LDI r2, 0x5503
-  STORE r2, r9
-  LDI r9, 0xFF2244
-  LDI r2, 0x5504
-  STORE r2, r9
-  LDI r9, 8
-  LDI r2, 0x5501
-  STORE r2, r9
+  LDI r4, 4
+  LDI r5, 0x5502
+  STORE r5, r4
+  LDI r4, 16380
+  LDI r5, 0x5503
+  STORE r5, r4
+  LDI r4, 0xFF2244
+  LDI r5, 0x5504
+  STORE r5, r4
+  LDI r4, 8
+  LDI r5, 0x5501
+  STORE r5, r4
   RET
 
 ; ==== Preset: Fern ====
 init_fern:
-  LDI r9, 4
-  LDI r2, 0x5500
-  STORE r2, r9
+  LDI r4, 4
+  LDI r5, 0x5500
+  STORE r5, r4
   ; axiom: X
-  LDI r2, 0x5000
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5001
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5000
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5001
+  LDI r4, 0
+  STORE r5, r4
   ; rule X -> F+[[X]-X]-F[-FX]+X (at 0x5300)
-  LDI r2, 0x5300
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5301
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5302
-  LDI r9, 91
-  STORE r2, r9
-  LDI r2, 0x5303
-  LDI r9, 91
-  STORE r2, r9
-  LDI r2, 0x5304
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5305
-  LDI r9, 93
-  STORE r2, r9
-  LDI r2, 0x5306
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5307
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5308
-  LDI r9, 93
-  STORE r2, r9
-  LDI r2, 0x5309
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x530A
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x530B
-  LDI r9, 91
-  STORE r2, r9
-  LDI r2, 0x530C
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x530D
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x530E
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x530F
-  LDI r9, 93
-  STORE r2, r9
-  LDI r2, 0x5310
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5311
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5312
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5300
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5301
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5302
+  LDI r4, 91
+  STORE r5, r4
+  LDI r5, 0x5303
+  LDI r4, 91
+  STORE r5, r4
+  LDI r5, 0x5304
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5305
+  LDI r4, 93
+  STORE r5, r4
+  LDI r5, 0x5306
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5307
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5308
+  LDI r4, 93
+  STORE r5, r4
+  LDI r5, 0x5309
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x530A
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x530B
+  LDI r4, 91
+  STORE r5, r4
+  LDI r5, 0x530C
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x530D
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x530E
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x530F
+  LDI r4, 93
+  STORE r5, r4
+  LDI r5, 0x5310
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5311
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5312
+  LDI r4, 0
+  STORE r5, r4
   ; rule F -> FF (at 0x5100)
-  LDI r2, 0x5100
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5101
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5102
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5100
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5101
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5102
+  LDI r4, 0
+  STORE r5, r4
   ; params
-  LDI r9, 3
-  LDI r2, 0x5502
-  STORE r2, r9
-  LDI r9, 4550
-  LDI r2, 0x5503
-  STORE r2, r9
-  LDI r9, 0x22CC44
-  LDI r2, 0x5504
-  STORE r2, r9
-  LDI r9, 4
-  LDI r2, 0x5501
-  STORE r2, r9
+  LDI r4, 3
+  LDI r5, 0x5502
+  STORE r5, r4
+  LDI r4, 4550
+  LDI r5, 0x5503
+  STORE r5, r4
+  LDI r4, 0x22CC44
+  LDI r5, 0x5504
+  STORE r5, r4
+  LDI r4, 4
+  LDI r5, 0x5501
+  STORE r5, r4
   RET
 
 ; ==== Preset: Tree ====
 init_tree:
-  LDI r9, 5
-  LDI r2, 0x5500
-  STORE r2, r9
+  LDI r4, 5
+  LDI r5, 0x5500
+  STORE r5, r4
   ; axiom: X
-  LDI r2, 0x5000
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5001
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5000
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5001
+  LDI r4, 0
+  STORE r5, r4
   ; rule X -> F[+X][-X] (at 0x5300)
-  LDI r2, 0x5300
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5301
-  LDI r9, 91
-  STORE r2, r9
-  LDI r2, 0x5302
-  LDI r9, 43
-  STORE r2, r9
-  LDI r2, 0x5303
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5304
-  LDI r9, 93
-  STORE r2, r9
-  LDI r2, 0x5305
-  LDI r9, 91
-  STORE r2, r9
-  LDI r2, 0x5306
-  LDI r9, 45
-  STORE r2, r9
-  LDI r2, 0x5307
-  LDI r9, 88
-  STORE r2, r9
-  LDI r2, 0x5308
-  LDI r9, 93
-  STORE r2, r9
-  LDI r2, 0x5309
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5300
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5301
+  LDI r4, 91
+  STORE r5, r4
+  LDI r5, 0x5302
+  LDI r4, 43
+  STORE r5, r4
+  LDI r5, 0x5303
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5304
+  LDI r4, 93
+  STORE r5, r4
+  LDI r5, 0x5305
+  LDI r4, 91
+  STORE r5, r4
+  LDI r5, 0x5306
+  LDI r4, 45
+  STORE r5, r4
+  LDI r5, 0x5307
+  LDI r4, 88
+  STORE r5, r4
+  LDI r5, 0x5308
+  LDI r4, 93
+  STORE r5, r4
+  LDI r5, 0x5309
+  LDI r4, 0
+  STORE r5, r4
   ; rule F -> FF (at 0x5100)
-  LDI r2, 0x5100
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5101
-  LDI r9, 70
-  STORE r2, r9
-  LDI r2, 0x5102
-  LDI r9, 0
-  STORE r2, r9
+  LDI r5, 0x5100
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5101
+  LDI r4, 70
+  STORE r5, r4
+  LDI r5, 0x5102
+  LDI r4, 0
+  STORE r5, r4
   ; params
-  LDI r9, 4
-  LDI r2, 0x5502
-  STORE r2, r9
-  LDI r9, 5460
-  LDI r2, 0x5503
-  STORE r2, r9
-  LDI r9, 0x44AA22
-  LDI r2, 0x5504
-  STORE r2, r9
-  LDI r9, 5
-  LDI r2, 0x5501
-  STORE r2, r9
+  LDI r4, 4
+  LDI r5, 0x5502
+  STORE r5, r4
+  LDI r4, 5460
+  LDI r5, 0x5503
+  STORE r5, r4
+  LDI r4, 0x44AA22
+  LDI r5, 0x5504
+  STORE r5, r4
+  LDI r4, 5
+  LDI r5, 0x5501
+  STORE r5, r4
   RET
 
 ; ==== String Expansion Engine ====
@@ -578,160 +578,160 @@ init_tree:
 do_expand:
   PUSH r31
   ; copy axiom (0x5000) to source buffer (0x2000)
-  LDI r10, 0x5000
-  LDI r5, 0x2000
+  LDI r1, 0x5000
+  LDI r13, 0x2000
 copy_axiom_lp:
-  LDI r12, 0
-  ADD r12, r10
-  LOAD r7, r12
-  JZ r7, axiom_copied
-  LDI r12, 0
-  ADD r12, r5
-  STORE r12, r7
-  LDI r7, 1
-  ADD r10, r7
-  ADD r5, r7
+  LDI r15, 0
+  ADD r15, r1
+  LOAD r0, r15
+  JZ r0, axiom_copied
+  LDI r15, 0
+  ADD r15, r13
+  STORE r15, r0
+  LDI r0, 1
+  ADD r1, r0
+  ADD r13, r0
   JMP copy_axiom_lp
 axiom_copied:
-  LDI r7, 0
-  LDI r12, 0
-  ADD r12, r5
-  STORE r12, r7
+  LDI r0, 0
+  LDI r15, 0
+  ADD r15, r13
+  STORE r15, r0
 
   ; get iteration count
-  LDI r3, 0
-  LDI r13, 0x5501
-  LOAD r13, r13
+  LDI r6, 0
+  LDI r11, 0x5501
+  LOAD r11, r11
 
 expand_iter_lp:
-  CMP r3, r13
-  BGE r1, expand_done
+  CMP r6, r11
+  BGE r2, expand_done
 
   ; expand: read 0x2000, write 0x3000
-  LDI r10, 0x2000
-  LDI r5, 0x3000
+  LDI r1, 0x2000
+  LDI r13, 0x3000
 exp_char_lp:
-  LDI r12, 0
-  ADD r12, r10
-  LOAD r7, r12
-  JZ r7, exp_copy_back
+  LDI r15, 0
+  ADD r15, r1
+  LOAD r0, r15
+  JZ r0, exp_copy_back
 
   ; check F
-  LDI r12, 70
-  CMP r7, r12
-  JZ r1, exp_f
+  LDI r15, 70
+  CMP r0, r15
+  JZ r2, exp_f
   ; check G
-  LDI r12, 71
-  CMP r7, r12
-  JZ r1, exp_g
+  LDI r15, 71
+  CMP r0, r15
+  JZ r2, exp_g
   ; check X
-  LDI r12, 88
-  CMP r7, r12
-  JZ r1, exp_x
+  LDI r15, 88
+  CMP r0, r15
+  JZ r2, exp_x
   ; check Y
-  LDI r12, 89
-  CMP r7, r12
-  JZ r1, exp_y
+  LDI r15, 89
+  CMP r0, r15
+  JZ r2, exp_y
 
   ; no rule -- copy char directly
-  LDI r12, 0
-  ADD r12, r5
-  STORE r12, r7
-  LDI r7, 1
-  ADD r5, r7
-  LDI r7, 1
-  ADD r10, r7
+  LDI r15, 0
+  ADD r15, r13
+  STORE r15, r0
+  LDI r0, 1
+  ADD r13, r0
+  LDI r0, 1
+  ADD r1, r0
   JMP exp_char_lp
 
 exp_f:
-  LDI r7, 1
-  ADD r10, r7
-  LDI r7, 0x5100
-  LDI r12, 0x5505
-  STORE r12, r7
+  LDI r0, 1
+  ADD r1, r0
+  LDI r0, 0x5100
+  LDI r15, 0x5505
+  STORE r15, r0
   CALL copy_rule
   JMP exp_char_lp
 
 exp_g:
-  LDI r7, 1
-  ADD r10, r7
-  LDI r7, 0x5200
-  LDI r12, 0x5505
-  STORE r12, r7
+  LDI r0, 1
+  ADD r1, r0
+  LDI r0, 0x5200
+  LDI r15, 0x5505
+  STORE r15, r0
   CALL copy_rule
   JMP exp_char_lp
 
 exp_x:
-  LDI r7, 1
-  ADD r10, r7
-  LDI r7, 0x5300
-  LDI r12, 0x5505
-  STORE r12, r7
+  LDI r0, 1
+  ADD r1, r0
+  LDI r0, 0x5300
+  LDI r15, 0x5505
+  STORE r15, r0
   CALL copy_rule
   JMP exp_char_lp
 
 exp_y:
-  LDI r7, 1
-  ADD r10, r7
-  LDI r7, 0x5400
-  LDI r12, 0x5505
-  STORE r12, r7
+  LDI r0, 1
+  ADD r1, r0
+  LDI r0, 0x5400
+  LDI r15, 0x5505
+  STORE r15, r0
   CALL copy_rule
   JMP exp_char_lp
 
 exp_copy_back:
   ; null-terminate output
-  LDI r7, 0
-  LDI r12, 0
-  ADD r12, r5
-  STORE r12, r7
+  LDI r0, 0
+  LDI r15, 0
+  ADD r15, r13
+  STORE r15, r0
   ; overflow check
-  LDI r12, 0x3FFF
-  CMP r5, r12
-  BGE r1, expand_done
+  LDI r15, 0x3FFF
+  CMP r13, r15
+  BGE r2, expand_done
   ; copy 0x3000 back to 0x2000
-  LDI r10, 0x3000
-  LDI r5, 0x2000
+  LDI r1, 0x3000
+  LDI r13, 0x2000
 cp_back_lp:
-  LDI r12, 0
-  ADD r12, r10
-  LOAD r7, r12
-  JZ r7, cp_back_done
-  LDI r12, 0
-  ADD r12, r5
-  STORE r12, r7
-  LDI r7, 1
-  ADD r10, r7
-  ADD r5, r7
+  LDI r15, 0
+  ADD r15, r1
+  LOAD r0, r15
+  JZ r0, cp_back_done
+  LDI r15, 0
+  ADD r15, r13
+  STORE r15, r0
+  LDI r0, 1
+  ADD r1, r0
+  ADD r13, r0
   JMP cp_back_lp
 cp_back_done:
-  LDI r7, 0
-  LDI r12, 0
-  ADD r12, r5
-  STORE r12, r7
-  LDI r7, 1
-  ADD r3, r7
+  LDI r0, 0
+  LDI r15, 0
+  ADD r15, r13
+  STORE r15, r0
+  LDI r0, 1
+  ADD r6, r0
   JMP expand_iter_lp
 
 expand_done:
   POP r31
   RET
 
-; Copy rule string from RAM[0x5505] to output at r5
-; Advances r5 past copied chars
+; Copy rule string from RAM[0x5505] to output at r13
+; Advances r13 past copied chars
 copy_rule:
-  LDI r12, 0x5505
-  LOAD r18, r12      ; r18 = rule base address
+  LDI r15, 0x5505
+  LOAD r18, r15      ; r18 = rule base address
 cp_rule_lp:
-  LDI r12, 0
-  ADD r12, r18
-  LOAD r19, r12      ; r19 = rule char
+  LDI r15, 0
+  ADD r15, r18
+  LOAD r19, r15      ; r19 = rule char
   JZ r19, cp_rule_done
-  LDI r12, 0
-  ADD r12, r5
-  STORE r12, r19
+  LDI r15, 0
+  ADD r15, r13
+  STORE r15, r19
   LDI r19, 1
-  ADD r5, r19
+  ADD r13, r19
   ADD r18, r19
   JMP cp_rule_lp
 cp_rule_done:
@@ -745,155 +745,155 @@ do_render:
   FILL r21
 
   ; init turtle
-  LDI r10, 128
-  LDI r5, 128
-  LDI r12, 0
+  LDI r1, 128
+  LDI r13, 128
+  LDI r15, 0
 
   ; load params
-  LDI r2, 0x5504
-  LOAD r3, r2       ; color
-  LDI r2, 0x5503
-  LOAD r13, r2       ; angle increment
-  LDI r2, 0x5502
-  LOAD r16, r2       ; line length
+  LDI r5, 0x5504
+  LOAD r6, r5       ; color
+  LDI r5, 0x5503
+  LOAD r11, r5       ; angle increment
+  LDI r5, 0x5502
+  LOAD r16, r5       ; line length
 
   ; position adjustments per preset
-  LDI r2, 0x5500
-  LOAD r17, r2
+  LDI r5, 0x5500
+  LOAD r17, r5
   LDI r18, 1
   CMP r17, r18
-  JZ r1, pos_koch
+  JZ r2, pos_koch
   LDI r18, 2
   CMP r17, r18
-  JZ r1, pos_sierp
+  JZ r2, pos_sierp
   LDI r18, 3
   CMP r17, r18
-  JZ r1, pos_drag
+  JZ r2, pos_drag
   LDI r18, 4
   CMP r17, r18
-  JZ r1, pos_fern
+  JZ r2, pos_fern
   ; preset 5 tree
-  LDI r5, 240
-  LDI r12, 54600
+  LDI r13, 240
+  LDI r15, 54600
   JMP pos_done
 
 pos_koch:
-  LDI r10, 20
-  LDI r5, 180
-  LDI r12, 54600
+  LDI r1, 20
+  LDI r13, 180
+  LDI r15, 54600
   JMP pos_done
 pos_sierp:
-  LDI r10, 30
-  LDI r5, 200
-  LDI r12, 0
+  LDI r1, 30
+  LDI r13, 200
+  LDI r15, 0
   JMP pos_done
 pos_drag:
-  LDI r10, 128
-  LDI r5, 128
-  LDI r12, 0
+  LDI r1, 128
+  LDI r13, 128
+  LDI r15, 0
   JMP pos_done
 pos_fern:
-  LDI r10, 128
-  LDI r5, 240
-  LDI r12, 54600
+  LDI r1, 128
+  LDI r13, 240
+  LDI r15, 54600
   JMP pos_done
 pos_done:
 
   ; iterate over expanded string at 0x2000
   LDI r20, 0x2000
 turtle_lp:
-  LDI r2, 0
-  ADD r2, r20
-  LOAD r0, r2
-  JZ r0, turtle_done
+  LDI r5, 0
+  ADD r5, r20
+  LOAD r3, r5
+  JZ r3, turtle_done
 
   ; F = forward + draw
-  LDI r2, 70
-  CMP r0, r2
-  JZ r1, t_fwd
+  LDI r5, 70
+  CMP r3, r5
+  JZ r2, t_fwd
   ; G = forward no draw
-  LDI r2, 71
-  CMP r0, r2
-  JZ r1, t_move
+  LDI r5, 71
+  CMP r3, r5
+  JZ r2, t_move
   ; + = turn left
-  LDI r2, 43
-  CMP r0, r2
-  JZ r1, t_left
+  LDI r5, 43
+  CMP r3, r5
+  JZ r2, t_left
   ; - = turn right
-  LDI r2, 45
-  CMP r0, r2
-  JZ r1, t_right
+  LDI r5, 45
+  CMP r3, r5
+  JZ r2, t_right
   ; [ = push
-  LDI r2, 91
-  CMP r0, r2
-  JZ r1, t_push
+  LDI r5, 91
+  CMP r3, r5
+  JZ r2, t_push
   ; ] = pop
-  LDI r2, 93
-  CMP r0, r2
-  JZ r1, t_pop
+  LDI r5, 93
+  CMP r3, r5
+  JZ r2, t_pop
 
-  LDI r2, 1
-  ADD r20, r2
+  LDI r5, 1
+  ADD r20, r5
   JMP turtle_lp
 
 t_fwd:
   CALL compute_end
-  LINE r10, r5, r21, r22, r3
-  MOV r10, r21
-  MOV r5, r22
-  LDI r2, 1
-  ADD r20, r2
+  LINE r1, r13, r21, r22, r6
+  MOV r1, r21
+  MOV r13, r22
+  LDI r5, 1
+  ADD r20, r5
   JMP turtle_lp
 
 t_move:
   CALL compute_end
-  MOV r10, r21
-  MOV r5, r22
-  LDI r2, 1
-  ADD r20, r2
+  MOV r1, r21
+  MOV r13, r22
+  LDI r5, 1
+  ADD r20, r5
   JMP turtle_lp
 
 t_left:
-  ADD r12, r13
-  LDI r2, 65536
-  CMP r12, r2
-  BLT r1, t_left_done
-  SUB r12, r2
+  ADD r15, r11
+  LDI r5, 65536
+  CMP r15, r5
+  BLT r2, t_left_done
+  SUB r15, r5
 t_left_done:
-  LDI r2, 1
-  ADD r20, r2
+  LDI r5, 1
+  ADD r20, r5
   JMP turtle_lp
 
 t_right:
-  SUB r12, r13
+  SUB r15, r11
   ; If angle underflowed (bit 31 set), add 65536
-  LDI r2, 31
-  MOV r23, r12
-  SHR r23, r2       ; r23 = sign bit
+  LDI r5, 31
+  MOV r23, r15
+  SHR r23, r5       ; r23 = sign bit
   JZ r23, t_right_done
-  LDI r2, 65536
-  ADD r12, r2
+  LDI r5, 65536
+  ADD r15, r5
 t_right_done:
-  LDI r2, 1
-  ADD r20, r2
+  LDI r5, 1
+  ADD r20, r5
   JMP turtle_lp
 
 t_push:
-  PUSH r10
-  PUSH r5
-  PUSH r12
+  PUSH r1
+  PUSH r13
+  PUSH r15
   PUSH r31
-  LDI r2, 1
-  ADD r20, r2
+  LDI r5, 1
+  ADD r20, r5
   JMP turtle_lp
 
 t_pop:
   POP r31
-  POP r12
-  POP r5
-  POP r10
-  LDI r2, 1
-  ADD r20, r2
+  POP r15
+  POP r13
+  POP r1
+  LDI r5, 1
+  ADD r20, r5
   JMP turtle_lp
 
 turtle_done:
@@ -901,12 +901,12 @@ turtle_done:
   RET
 
 ; ==== Compute Endpoint ====
-; r10=x, r5=y, r12=angle(0-65535), r16=line_length
+; r1=x, r13=y, r15=angle(0-65535), r16=line_length
 ; Output: r21=x1, r22=y1
 compute_end:
   PUSH r31
   ; sector = angle >> 13 (gives 0-7)
-  MOV r21, r12
+  MOV r21, r15
   LDI r22, 13
   SHR r21, r22
 
@@ -924,14 +924,14 @@ compute_end:
   MUL r21, r24
   LDI r23, 256
   DIV r21, r23
-  ADD r21, r10
+  ADD r21, r1
 
   ; y1 = y - (length * sin) / 256 (y inverted)
   MOV r22, r16
   MUL r22, r25
   LDI r23, 256
   DIV r22, r23
-  SUB r22, r5
+  SUB r22, r13
 
   POP r31
   RET
@@ -940,24 +940,24 @@ compute_end:
 draw_info:
   PUSH r31
   ; colored bar at top
-  LDI r2, 0x5504
-  LOAD r0, r2
-  LDI r9, 0
-  LDI r2, 0
-  LDI r6, 256
-  LDI r8, 6
-  RECTF r9, r2, r6, r8, r0
+  LDI r5, 0x5504
+  LOAD r3, r5
+  LDI r4, 0
+  LDI r5, 0
+  LDI r9, 256
+  LDI r10, 6
+  RECTF r4, r5, r9, r10, r3
   ; iteration dots
-  LDI r2, 0x5501
-  LOAD r10, r2
-  LDI r9, 0
-  LDI r2, 12
-  LDI r6, 10
+  LDI r5, 0x5501
+  LOAD r1, r5
+  LDI r4, 0
+  LDI r5, 12
+  LDI r9, 10
 info_lp:
-  CMP r9, r10
-  BGE r1, info_done
-  PSET r9, r2, r0
-  ADD r9, r6
+  CMP r4, r1
+  BGE r2, info_done
+  PSET r4, r5, r3
+  ADD r4, r9
   JMP info_lp
 info_done:
   POP r31

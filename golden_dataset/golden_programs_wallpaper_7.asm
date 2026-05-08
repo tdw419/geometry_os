@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a procedural wallpaper generator capable of producing various full-screen patterns including gradients, plasma effects, diamonds, stripes, and noise. It uses a sine table for color calculations, supports frame animation through input handling, and allows pattern selection via key presses. The code manages RAM layout for storing the sine table, current pattern ID, and frame counter, ensuring efficient rendering and user interaction within the Geometry OS environment.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; wallpaper.asm -- Procedural Wallpaper Generator for Geometry OS
 ; Phase 77 demo: generates full-screen procedural wallpaper patterns
@@ -38,19 +38,19 @@ start:
     ; Parabolic cosine: 255 - 127 * (i-128)^2 / 16384
     ; Range 128-255, never zero
     LDI r16, SINE         ; table base
-    LDI r5, 256          ; count
-    LDI r15, 1             ; increment
-    LDI r8, 0            ; index
+    LDI r6, 256          ; count
+    LDI r10, 1             ; increment
+    LDI r13, 0            ; index
 
 build_sine:
     LDI r18, 128
-    CMP r8, r18
-    BGE r9, above_128
+    CMP r13, r18
+    BGE r4, above_128
     MOV r17, r18
-    SUB r17, r8          ; delta = 128 - i
+    SUB r17, r13          ; delta = 128 - i
     JMP do_square
 above_128:
-    MOV r17, r8
+    MOV r17, r13
     SUB r17, r18          ; delta = i - 128
 do_square:
     MUL r17, r17          ; delta^2
@@ -61,11 +61,11 @@ do_square:
     LDI r18, 255
     SUB r18, r17          ; val = 255 - result
     MOV r19, r16
-    ADD r19, r8
+    ADD r19, r13
     STORE r19, r18
-    ADD r8, r15
-    CMP r8, r5
-    BLT r9, build_sine
+    ADD r13, r10
+    CMP r13, r6
+    BLT r4, build_sine
 
 ; =========================================
 ; MAIN LOOP
@@ -82,8 +82,8 @@ main_loop:
     STORE r20, r22
 
     ; Clear screen
-    LDI r8, 0
-    FILL r8
+    LDI r13, 0
+    FILL r13
 
     ; Load current pattern
     LDI r20, PATTERN
@@ -91,13 +91,13 @@ main_loop:
 
     ; Dispatch pattern
     CMPI r23, 0
-    JZ r9, pat_gradient
+    JZ r4, pat_gradient
     CMPI r23, 1
-    JZ r9, pat_plasma
+    JZ r4, pat_plasma
     CMPI r23, 2
-    JZ r9, pat_diamonds
+    JZ r4, pat_diamonds
     CMPI r23, 3
-    JZ r9, pat_stripes
+    JZ r4, pat_stripes
     ; default: noise
     JMP pat_noise
 
@@ -106,10 +106,10 @@ handle_key:
     ; 49 = '1', 50 = '2', etc.
     LDI r20, 49
     CMP r25, r20
-    BLT r9, key_exit
+    BLT r4, key_exit
     LDI r20, 53
     CMP r25, r20
-    BGE r9, key_exit
+    BGE r4, key_exit
     ; key 1-5: set pattern 0-4
     SUBI r25, 49
     LDI r20, PATTERN
@@ -121,282 +121,282 @@ key_exit:
 ; ── Pattern 0: Horizontal Gradient ────────────
 ; Smooth gradient cycling through hue by column
 pat_gradient:
-    LDI r3, 0             ; y = 0
-    LDI r6, 1
-    LDI r4, 256
+    LDI r0, 0             ; y = 0
+    LDI r2, 1
+    LDI r9, 256
 
 gy_loop:
-    LDI r1, 0             ; x = 0
+    LDI r7, 0             ; x = 0
 
 gx_loop:
     ; Color = sine-based gradient by x
     ; R = sine[x], G = sine[(x+85) & 0xFF], B = sine[(x+170) & 0xFF]
-    MOV r10, r1
-    LDI r0, SINE
-    ADD r0, r10
-    LOAD r2, r0           ; R = sine[x]
-    ANDI r2, 0xFF
+    MOV r5, r7
+    LDI r12, SINE
+    ADD r12, r5
+    LOAD r3, r12           ; R = sine[x]
+    ANDI r3, 0xFF
 
-    MOV r10, r1
-    ADDI r10, 85
-    ANDI r10, 0xFF
-    LDI r0, SINE
-    ADD r0, r10
-    LOAD r13, r0           ; G = sine[(x+85) & 0xFF]
-    ANDI r13, 0xFF
-
-    MOV r10, r1
-    ADDI r10, 170
-    ANDI r10, 0xFF
-    LDI r0, SINE
-    ADD r0, r10
-    LOAD r11, r0           ; B = sine[(x+170) & 0xFF]
+    MOV r5, r7
+    ADDI r5, 85
+    ANDI r5, 0xFF
+    LDI r12, SINE
+    ADD r12, r5
+    LOAD r11, r12           ; G = sine[(x+85) & 0xFF]
     ANDI r11, 0xFF
 
+    MOV r5, r7
+    ADDI r5, 170
+    ANDI r5, 0xFF
+    LDI r12, SINE
+    ADD r12, r5
+    LOAD r1, r12           ; B = sine[(x+170) & 0xFF]
+    ANDI r1, 0xFF
+
     ; Pack RGB
-    SHLI r2, 16            ; R << 16
-    SHLI r13, 8             ; G << 8
-    OR r2, r13
-    OR r2, r11              ; packed color
+    SHLI r3, 16            ; R << 16
+    SHLI r11, 8             ; G << 8
+    OR r3, r11
+    OR r3, r1              ; packed color
 
-    PSET r1, r3, r2
+    PSET r7, r0, r3
 
-    ADD r1, r6
-    CMPI r1, 256
-    BLT r9, gx_loop
+    ADD r7, r2
+    CMPI r7, 256
+    BLT r4, gx_loop
 
-    ADD r3, r6
-    CMPI r3, 256
-    BLT r9, gy_loop
+    ADD r0, r2
+    CMPI r0, 256
+    BLT r4, gy_loop
     JMP frame_end
 
 ; ── Pattern 1: Plasma ─────────────────────────
 ; Animated plasma using sine table with time offset
 pat_plasma:
-    LDI r3, 0             ; y
-    LDI r6, 1
-    LDI r4, 256
+    LDI r0, 0             ; y
+    LDI r2, 1
+    LDI r9, 256
     ; Animation offset from frame counter
     LDI r20, FRAMES
-    LOAD r12, r20
-    SHRI r12, 2            ; slow animation
+    LOAD r15, r20
+    SHRI r15, 2            ; slow animation
 
 py_loop:
-    LDI r1, 0             ; x
+    LDI r7, 0             ; x
 
 px_loop:
     ; v1 = sine[(x + anim) & 0xFF]
-    MOV r10, r1
-    ADD r10, r12
-    ANDI r10, 0xFF
-    LDI r0, SINE
-    ADD r0, r10
-    LOAD r2, r0
-    ANDI r2, 0xFF
+    MOV r5, r7
+    ADD r5, r15
+    ANDI r5, 0xFF
+    LDI r12, SINE
+    ADD r12, r5
+    LOAD r3, r12
+    ANDI r3, 0xFF
 
     ; v2 = sine[(y + anim*2) & 0xFF]
-    MOV r10, r3
-    MOV r14, r12
-    SHLI r14, 1
-    ADD r10, r14
-    ANDI r10, 0xFF
-    LDI r0, SINE
-    ADD r0, r10
-    LOAD r13, r0
-    ANDI r13, 0xFF
+    MOV r5, r0
+    MOV r8, r15
+    SHLI r8, 1
+    ADD r5, r8
+    ANDI r5, 0xFF
+    LDI r12, SINE
+    ADD r12, r5
+    LOAD r11, r12
+    ANDI r11, 0xFF
 
     ; v = (v1 + v2) >> 1
-    ADD r2, r13
-    SHRI r2, 1
+    ADD r3, r11
+    SHRI r3, 1
 
     ; R = sine[v], G = sine[(v+85) & 0xFF], B = sine[(v+170) & 0xFF]
-    LDI r0, SINE
-    ADD r0, r2
-    LOAD r11, r0
-    ANDI r11, 0xFF
-    SHLI r11, 16            ; R << 16
+    LDI r12, SINE
+    ADD r12, r3
+    LOAD r1, r12
+    ANDI r1, 0xFF
+    SHLI r1, 16            ; R << 16
 
-    ADDI r2, 85
-    ANDI r2, 0xFF
-    LDI r0, SINE
-    ADD r0, r2
-    LOAD r7, r0
-    ANDI r7, 0xFF
-    SHLI r7, 8             ; G << 8
+    ADDI r3, 85
+    ANDI r3, 0xFF
+    LDI r12, SINE
+    ADD r12, r3
+    LOAD r14, r12
+    ANDI r14, 0xFF
+    SHLI r14, 8             ; G << 8
 
-    ADDI r2, 85
-    ANDI r2, 0xFF
-    LDI r0, SINE
-    ADD r0, r2
-    LOAD r15, r0
-    ANDI r15, 0xFF
+    ADDI r3, 85
+    ANDI r3, 0xFF
+    LDI r12, SINE
+    ADD r12, r3
+    LOAD r10, r12
+    ANDI r10, 0xFF
 
-    OR r11, r7
-    OR r11, r15              ; packed color
-    PSET r1, r3, r11
+    OR r1, r14
+    OR r1, r10              ; packed color
+    PSET r7, r0, r1
 
-    ADDI r1, 1
-    CMPI r1, 256
-    BLT r9, px_loop
+    ADDI r7, 1
+    CMPI r7, 256
+    BLT r4, px_loop
 
-    ADDI r3, 1
-    CMPI r3, 256
-    BLT r9, py_loop
+    ADDI r0, 1
+    CMPI r0, 256
+    BLT r4, py_loop
     JMP frame_end
 
 ; ── Pattern 2: Diamond Pattern ────────────────
 ; Concentric diamonds with animated phase
 pat_diamonds:
-    LDI r3, 0             ; y
-    LDI r6, 1
+    LDI r0, 0             ; y
+    LDI r2, 1
     LDI r20, FRAMES
-    LOAD r12, r20
-    SHRI r12, 3
+    LOAD r15, r20
+    SHRI r15, 3
 
 dy_loop:
-    LDI r1, 0             ; x
+    LDI r7, 0             ; x
 
 dx_loop:
     ; Manhattan distance from center
-    MOV r10, r1
-    SUBI r10, 128
-    MOV r0, r3
-    SUBI r0, 128
-    ADD r10, r0           ; dist = |x-128| + |y-128|
-    ADD r10, r12           ; animated phase
-    ANDI r10, 0xFF
+    MOV r5, r7
+    SUBI r5, 128
+    MOV r12, r0
+    SUBI r12, 128
+    ADD r5, r12           ; dist = |x-128| + |y-128|
+    ADD r5, r15           ; animated phase
+    ANDI r5, 0xFF
 
     ; Color from sine table
-    LDI r0, SINE
-    ADD r0, r10
-    LOAD r2, r0
-    ANDI r2, 0xFF
+    LDI r12, SINE
+    ADD r12, r5
+    LOAD r3, r12
+    ANDI r3, 0xFF
 
     ; Create diamond color (cyan-ish)
-    SHLI r2, 8             ; green channel
-    ORI r2, 0x80           ; some blue
-    SHLI r2, 8             ; shift to R position
-    ORI r2, 0x4040         ; some G + B
+    SHLI r3, 8             ; green channel
+    ORI r3, 0x80           ; some blue
+    SHLI r3, 8             ; shift to R position
+    ORI r3, 0x4040         ; some G + B
 
-    PSET r1, r3, r2
+    PSET r7, r0, r3
 
-    ADDI r1, 1
-    CMPI r1, 256
-    BLT r9, dx_loop
+    ADDI r7, 1
+    CMPI r7, 256
+    BLT r4, dx_loop
 
-    ADDI r3, 1
-    CMPI r3, 256
-    BLT r9, dy_loop
+    ADDI r0, 1
+    CMPI r0, 256
+    BLT r4, dy_loop
     JMP frame_end
 
 ; ── Pattern 3: Animated Stripes ───────────────
 ; Diagonal stripes with color cycling
 pat_stripes:
-    LDI r3, 0             ; y
-    LDI r6, 1
+    LDI r0, 0             ; y
+    LDI r2, 1
     LDI r20, FRAMES
-    LOAD r12, r20
-    SHRI r12, 2
+    LOAD r15, r20
+    SHRI r15, 2
 
 sy_loop:
-    LDI r1, 0             ; x
+    LDI r7, 0             ; x
 
 sx_loop:
     ; stripe = (x + y + anim) / 16 % 4
-    MOV r10, r1
-    ADD r10, r3
-    ADD r10, r12
-    LDI r0, 16
-    DIV r10, r0
-    LDI r0, 4
-    MOD r10, r0           ; stripe index 0-3
+    MOV r5, r7
+    ADD r5, r0
+    ADD r5, r15
+    LDI r12, 16
+    DIV r5, r12
+    LDI r12, 4
+    MOD r5, r12           ; stripe index 0-3
 
     ; 4 stripe colors
-    CMPI r10, 0
-    JNZ r9, s1
-    LDI r2, 0x1A1A2E       ; dark navy
+    CMPI r5, 0
+    JNZ r4, s1
+    LDI r3, 0x1A1A2E       ; dark navy
     JMP s_draw
 s1:
-    CMPI r10, 1
-    JNZ r9, s2
-    LDI r2, 0x16213E       ; dark blue
+    CMPI r5, 1
+    JNZ r4, s2
+    LDI r3, 0x16213E       ; dark blue
     JMP s_draw
 s2:
-    CMPI r10, 2
-    JNZ r9, s3
-    LDI r2, 0x0F3460       ; medium blue
+    CMPI r5, 2
+    JNZ r4, s3
+    LDI r3, 0x0F3460       ; medium blue
     JMP s_draw
 s3:
-    LDI r2, 0x533483       ; purple
+    LDI r3, 0x533483       ; purple
 
 s_draw:
-    PSET r1, r3, r2
+    PSET r7, r0, r3
 
-    ADDI r1, 1
-    CMPI r1, 256
-    BLT r9, sx_loop
+    ADDI r7, 1
+    CMPI r7, 256
+    BLT r4, sx_loop
 
-    ADDI r3, 1
-    CMPI r3, 256
-    BLT r9, sy_loop
+    ADDI r0, 1
+    CMPI r0, 256
+    BLT r4, sy_loop
     JMP frame_end
 
 ; ── Pattern 4: Noise Dither ───────────────────
 ; Random dithered pattern with slow drift
 pat_noise:
-    LDI r3, 0             ; y
-    LDI r6, 1
+    LDI r0, 0             ; y
+    LDI r2, 1
     LDI r20, FRAMES
-    LOAD r12, r20
-    SHRI r12, 4            ; very slow drift
+    LOAD r15, r20
+    SHRI r15, 4            ; very slow drift
 
 ny_loop:
-    LDI r1, 0             ; x
+    LDI r7, 0             ; x
 
 nx_loop:
     ; Hash: x*374761393 XOR y*668265263
     ; Use simpler hash to avoid overflow issues
     ; hash = (x * 31 + y * 17 + anim * 7) & 0xFF
-    MOV r10, r1
-    LDI r0, 31
-    MUL r10, r0
-    MOV r0, r3
-    LDI r14, 17
-    MUL r0, r14
-    ADD r10, r0
-    LDI r0, 7
-    MOV r14, r12
-    MUL r14, r0
-    ADD r10, r14
-    ANDI r10, 0xFF
+    MOV r5, r7
+    LDI r12, 31
+    MUL r5, r12
+    MOV r12, r0
+    LDI r8, 17
+    MUL r12, r8
+    ADD r5, r12
+    LDI r12, 7
+    MOV r8, r15
+    MUL r8, r12
+    ADD r5, r8
+    ANDI r5, 0xFF
 
     ; Map to dark colors (0x10-0x30 per channel)
-    LDI r0, 0x1F
-    AND r10, r0
-    ADDI r10, 0x10         ; base 0x10
+    LDI r12, 0x1F
+    AND r5, r12
+    ADDI r5, 0x10         ; base 0x10
     ; Make it a blue-ish color
-    SHLI r10, 4            ; multiply
-    ANDI r10, 0xFF
-    ADDI r10, 0x10
+    SHLI r5, 4            ; multiply
+    ANDI r5, 0xFF
+    ADDI r5, 0x10
     ; Pack as RGB: mostly blue
-    MOV r2, r10
-    SHLI r2, 16            ; R
-    MOV r13, r10
-    SHRI r13, 1
-    SHLI r13, 8             ; G (half)
-    OR r2, r13
-    OR r2, r10             ; B (full)
-    ORI r2, 0x101020       ; minimum base
+    MOV r3, r5
+    SHLI r3, 16            ; R
+    MOV r11, r5
+    SHRI r11, 1
+    SHLI r11, 8             ; G (half)
+    OR r3, r11
+    OR r3, r5             ; B (full)
+    ORI r3, 0x101020       ; minimum base
 
-    PSET r1, r3, r2
+    PSET r7, r0, r3
 
-    ADDI r1, 1
-    CMPI r1, 256
-    BLT r9, nx_loop
+    ADDI r7, 1
+    CMPI r7, 256
+    BLT r4, nx_loop
 
-    ADDI r3, 1
-    CMPI r3, 256
-    BLT r9, ny_loop
+    ADDI r0, 1
+    CMPI r0, 256
+    BLT r4, ny_loop
     JMP frame_end
 
 ; ── Frame end ──────────────────────────────────

@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code simulates a crash by initializing a debug mailbox, updating its heartbeat five times, and then halting execution to draw a red 'X' on the screen, effectively stopping further updates. This is used to test the watchdog/recovery system.
+; DESCRIPTION: Display a object using color red at the screen.
 
 ; flatliner.asm -- Test program that simulates a crash
 ;
@@ -16,68 +16,68 @@
 #define DEBUG_HEARTBEAT  0x0C27
 #define DEBUG_CHECKPOINT 0x0C28
 
-LDI r11, 1
+LDI r10, 1
 LDI r30, 0xFD00
 
 ; Fill with dark red
-LDI r15, 0x2A0A0A
-FILL r15
+LDI r6, 0x2A0A0A
+FILL r6
 
 ; Draw "FLATLINER" label
 LDI r20, 0x1000
 STRO r20, "Flatliner"
-LDI r11, 10
+LDI r10, 10
 LDI r2, 10
-LDI r1, 0x1000
-LDI r0, 0xFF0000
-LDI r6, 0x2A0A0A
-DRAWTEXT r11, r2, r1, r0, r6
+LDI r7, 0x1000
+LDI r3, 0xFF0000
+LDI r1, 0x2A0A0A
+DRAWTEXT r10, r2, r7, r3, r1
 
 ; Initialize debug mailbox
-LDI r15, 0xDB9900
+LDI r6, 0xDB9900
 LDI r20, DEBUG_MAGIC
-STORE r20, r15
+STORE r20, r6
 
 GETPID
 LDI r20, DEBUG_CHILD_PID
-STORE r20, r15
+STORE r20, r6
 
-LDI r15, 0
+LDI r6, 0
 LDI r20, DEBUG_HEARTBEAT
-STORE r20, r15
+STORE r20, r6
 
 ; Counter: update heartbeat 5 times then crash
-LDI r6, 5
+LDI r1, 5
 
 beat_loop:
     FRAME
 
     ; Update heartbeat
     LDI r20, DEBUG_HEARTBEAT
-    LOAD r15, r20
-    ADDI r15, 1
-    STORE r20, r15
+    LOAD r6, r20
+    ADDI r6, 1
+    STORE r20, r6
 
     ; Update checkpoint
     LDI r20, DEBUG_CHECKPOINT
-    LDI r15, beat_loop
-    STORE r20, r15
+    LDI r6, beat_loop
+    STORE r20, r6
 
     ; Decrement counter
-    SUBI r6, 1
-    CMPI r6, 0
-    JZ r15, crash_now
+    SUBI r1, 1
+    CMPI r1, 0
+    JZ r6, crash_now
     JMP beat_loop
 
 crash_now:
     ; Simulate a crash: just halt (no more FRAME, no more heartbeat updates)
     ; Draw a red X to show we're "dead"
-    LDI r15, 0xFF0000
-    LDI r11, 50
+    LDI r6, 0xFF0000
+    LDI r10, 50
     LDI r2, 50
-    LDI r1, 50
-    LDI r0, 50
-    RECTF r11, r2, r1, r0, r15
+    LDI r7, 50
+    LDI r3, 50
+    RECTF r10, r2, r7, r3, r6
 
 dead_loop:
     ; Infinite loop with no FRAME -- the heartbeat stops updating

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an infinite-scrolling procedural terrain system. The terrain is generated using a two-level hash function, with the coarse hash determining the biome and the fine hash placing structures within each tile. The system supports scrolling via arrow keys or WASD and includes features like animated water tiles, day/night tint based on camera position, biome-aware pattern overlays, and color variations using a BPE/LINEAR method. The viewport is 64x64 tiles (256x256 pixels), with a pulsing white/yellow crosshair at the center representing the player's position. A minimap overlay in the top-right corner provides an overview of the surrounding terrain.
+; DESCRIPTION: Geometry OS program to draw a white line.
 
 ; infinite_map.asm -- Infinite scrolling procedural terrain (v10)
 ;
@@ -51,97 +51,97 @@
 ;   deadlands(27-28), bioluminescent(29-30), void(31)
 
 ; ===== Constants =====
-LDI r15, 1               ; constant 1
-LDI r7, 64              ; TILES per axis
-LDI r11, 4               ; TILE_SIZE pixels
-LDI r6, 0xFFB          ; key bitmask port
-LDI r8, 0x7800         ; camera_x address
-LDI r3, 0x7801         ; camera_y address
-LDI r1, 0x7802         ; frame_counter address
+LDI r0, 1               ; constant 1
+LDI r13, 64              ; TILES per axis
+LDI r1, 4               ; TILE_SIZE pixels
+LDI r15, 0xFFB          ; key bitmask port
+LDI r3, 0x7800         ; camera_x address
+LDI r7, 0x7801         ; camera_y address
+LDI r10, 0x7802         ; frame_counter address
 
 ; ===== Pattern Table (32 entries at 0x7900-0x791F) =====
 ; 3-bit pattern per biome: 0=horiz 1=vert 2=center 3=corner 4=diag\ 5=diag/ 6=topedge 7=dither
 LDI r20, 0x7900
 LDI r17, 0              ; water(0) -> horizontal
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; water(1) -> horizontal
-ADD r20, r15
+ADD r20, r0
 LDI r17, 4
 STORE r20, r17           ; beach(2) -> diagonal\ (wave wash)
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0
 STORE r20, r17           ; desert(3) -> horizontal
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; desert(4) -> horizontal
-ADD r20, r15
+ADD r20, r0
 LDI r17, 2
 STORE r20, r17           ; oasis(5) -> center
-ADD r20, r15
+ADD r20, r0
 LDI r17, 7
 STORE r20, r17           ; grass(6) -> dither (grass clumps)
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; grass(7) -> dither
-ADD r20, r15
+ADD r20, r0
 LDI r17, 4
 STORE r20, r17           ; swamp(8) -> diagonal\ (murky)
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; swamp(9) -> diagonal\
-ADD r20, r15
+ADD r20, r0
 LDI r17, 5
 STORE r20, r17           ; forest(10) -> diagonal/ (canopy)
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; forest(11) -> diagonal/
-ADD r20, r15
+ADD r20, r0
 LDI r17, 2
 STORE r20, r17           ; mushroom(12) -> center
-ADD r20, r15
+ADD r20, r0
 LDI r17, 1
 STORE r20, r17           ; mountain(13) -> vertical
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; mountain(14) -> vertical
-ADD r20, r15
+ADD r20, r0
 LDI r17, 7
 STORE r20, r17           ; tundra(15) -> dither (frost scatter)
-ADD r20, r15
+ADD r20, r0
 LDI r17, 3
 STORE r20, r17           ; lava(16) -> corner
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; lava(17) -> corner
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; volcanic(18) -> corner
-ADD r20, r15
+ADD r20, r0
 LDI r17, 6
 STORE r20, r17           ; snow(19) -> top edge (drift tops)
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; snow(20) -> top edge
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; snow(21) -> top edge
-ADD r20, r15
+ADD r20, r0
 LDI r17, 5
 STORE r20, r17           ; coral(22) -> diagonal/ (branching)
-ADD r20, r15
+ADD r20, r0
 LDI r17, 1
 STORE r20, r17           ; ruins(23) -> vertical (pillar)
-ADD r20, r15
+ADD r20, r0
 LDI r17, 4
 STORE r20, r17           ; crystal(24) -> diagonal\ (facets)
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; crystal(25) -> diagonal\
-ADD r20, r15
+ADD r20, r0
 LDI r17, 3
 STORE r20, r17           ; ash(26) -> corner
-ADD r20, r15
+ADD r20, r0
 LDI r17, 7
 STORE r20, r17           ; deadlands(27) -> dither (debris)
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; deadlands(28) -> dither
-ADD r20, r15
+ADD r20, r0
 LDI r17, 2
 STORE r20, r17           ; biolum(29) -> center
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; biolum(30) -> center
-ADD r20, r15
+ADD r20, r0
 LDI r17, 3
 STORE r20, r17           ; void(31) -> corner
 
@@ -150,97 +150,97 @@ STORE r20, r17           ; void(31) -> corner
 LDI r20, 0x7A00
 LDI r17, 0x000044
 STORE r20, r17           ; 0: deep ocean
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x0000BB
 STORE r20, r17           ; 1: shallow water
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xC2B280
 STORE r20, r17           ; 2: beach sand
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xDDBB44
 STORE r20, r17           ; 3: desert sand
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xCCAA33
 STORE r20, r17           ; 4: desert dunes
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x22AA55
 STORE r20, r17           ; 5: oasis
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x33AA33
 STORE r20, r17           ; 6: grass light
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x228822
 STORE r20, r17           ; 7: grass dark
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x336633
 STORE r20, r17           ; 8: swamp light
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x224422
 STORE r20, r17           ; 9: swamp dark
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x116611
 STORE r20, r17           ; 10: forest light
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x004400
 STORE r20, r17           ; 11: forest dark
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xAA6688
 STORE r20, r17           ; 12: mushroom
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x888899
 STORE r20, r17           ; 13: mountain rock
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x666677
 STORE r20, r17           ; 14: mountain snow
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xAABBCC
 STORE r20, r17           ; 15: tundra
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xFF3300
 STORE r20, r17           ; 16: lava flowing
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x332222
 STORE r20, r17           ; 17: lava cooled
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x442211
 STORE r20, r17           ; 18: volcanic
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xCCCCEE
 STORE r20, r17           ; 19: snow light
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xDDEEFF
 STORE r20, r17           ; 20: snow ice
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xFFFFFF
 STORE r20, r17           ; 21: snow peak
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x3377AA
 STORE r20, r17           ; 22: coral
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x776655
 STORE r20, r17           ; 23: ruins
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x1A3333
 STORE r20, r17           ; 24: crystal dark
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x2A5555
 STORE r20, r17           ; 25: crystal dense
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x444444
 STORE r20, r17           ; 26: ash
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x554433
 STORE r20, r17           ; 27: deadlands light
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x332211
 STORE r20, r17           ; 28: deadlands dark
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x338866
 STORE r20, r17           ; 29: biolum light
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x226644
 STORE r20, r17           ; 30: biolum dark
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x110022
 STORE r20, r17           ; 31: void
 
@@ -252,49 +252,49 @@ STORE r20, r17           ; 31: void
 LDI r20, 0x7B00
 LDI r17, 0x000000    ; 0: neutral
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x040404    ; 1: all brighten +4
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x080808    ; 2: all brighten +8
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x0C0C0C    ; 3: all brighten +12
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x080008    ; 4: warm shift (R+B)
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x000808    ; 5: cool shift (G+B)
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x080800    ; 6: gold shift (R+G)
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x0C0400    ; 7: red bias
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x000C04    ; 8: teal bias
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x040C00    ; 9: green bias
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0xF80404    ; 10: R-dark (wrap subtract 8 from R)
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x04F804    ; 11: G-dark (wrap subtract 8 from G)
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x0404F8    ; 12: B-dark (wrap subtract 8 from B)
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x0C0800    ; 13: warm heavy (R+G bias)
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x000C08    ; 14: cool heavy (G+B bias)
 STORE r20, r17
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x08040C    ; 15: balanced violet
 STORE r20, r17
 
@@ -303,85 +303,85 @@ STORE r20, r17
 LDI r20, 0x7C00
 LDI r17, 0x000055
 STORE r20, r17           ; 0: dim water
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 1: dim water
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x554422
 STORE r20, r17           ; 2: dim beach
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x665522
 STORE r20, r17           ; 3: dim desert
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 4: dim desert
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x225533
 STORE r20, r17           ; 5: dim oasis
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x225500
 STORE r20, r17           ; 6: dim grass
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 7: dim grass
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x1A2200
 STORE r20, r17           ; 8: dim swamp
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 9: dim swamp
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x113300
 STORE r20, r17           ; 10: dim forest
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 11: dim forest
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x441144
 STORE r20, r17           ; 12: dim mushroom
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x444444
 STORE r20, r17           ; 13: dim mountain
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 14: dim mountain
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x445566
 STORE r20, r17           ; 15: dim tundra
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x551100
 STORE r20, r17           ; 16: dim lava
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 17: dim lava
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x331100
 STORE r20, r17           ; 18: dim volcanic
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x8888AA
 STORE r20, r17           ; 19: dim snow
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 20: dim snow
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 21: dim snow
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x224466
 STORE r20, r17           ; 22: dim coral
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x443322
 STORE r20, r17           ; 23: dim ruins
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x113333
 STORE r20, r17           ; 24: dim crystal
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 25: dim crystal
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x222222
 STORE r20, r17           ; 26: dim ash
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x1A1008
 STORE r20, r17           ; 27: dim deadlands
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 28: dim deadlands
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x003322
 STORE r20, r17           ; 29: dim biolum
-ADD r20, r15
+ADD r20, r0
 STORE r20, r17           ; 30: dim biolum
-ADD r20, r15
+ADD r20, r0
 LDI r17, 0x0A0011
 STORE r20, r17           ; 31: dim void
 
@@ -389,23 +389,23 @@ STORE r20, r17           ; 31: dim void
 main_loop:
 
 ; --- Increment frame counter ---
-LOAD r17, r1
-ADD r17, r15
-STORE r1, r17          ; frame_counter++
+LOAD r17, r10
+ADD r17, r0
+STORE r10, r17          ; frame_counter++
 
 ; --- Read camera position ---
-LOAD r10, r8           ; r10 = camera_x
-LOAD r12, r3           ; r12 = camera_y
+LOAD r11, r3           ; r11 = camera_x
+LOAD r12, r7           ; r12 = camera_y
 
 ; --- Read key bitmask ---
-LOAD r16, r6           ; r16 = key bitmask
+LOAD r16, r15           ; r16 = key bitmask
 
 ; --- Process Up (bit 0) ---
 MOV r17, r16
 LDI r18, 1
 AND r17, r18
 JZ r17, no_up
-SUB r12, r15
+SUB r12, r0
 no_up:
 
 ; --- Process Down (bit 1) ---
@@ -413,7 +413,7 @@ MOV r17, r16
 LDI r18, 2
 AND r17, r18
 JZ r17, no_down
-ADD r12, r15
+ADD r12, r0
 no_down:
 
 ; --- Process Left (bit 2) ---
@@ -421,7 +421,7 @@ MOV r17, r16
 LDI r18, 4
 AND r17, r18
 JZ r17, no_left
-SUB r10, r15
+SUB r11, r0
 no_left:
 
 ; --- Process Right (bit 3) ---
@@ -429,7 +429,7 @@ MOV r17, r16
 LDI r18, 8
 AND r17, r18
 JZ r17, no_right
-ADD r10, r15
+ADD r11, r0
 no_right:
 
 ; --- Process Up+Right diagonal (bit 4) ---
@@ -437,8 +437,8 @@ MOV r17, r16
 LDI r18, 16
 AND r17, r18
 JZ r17, no_ur
-SUB r12, r15
-ADD r10, r15
+SUB r12, r0
+ADD r11, r0
 no_ur:
 
 ; --- Process Down+Right diagonal (bit 5) ---
@@ -446,8 +446,8 @@ MOV r17, r16
 LDI r18, 32
 AND r17, r18
 JZ r17, no_dr
-ADD r12, r15
-ADD r10, r15
+ADD r12, r0
+ADD r11, r0
 no_dr:
 
 ; --- Process Down+Left diagonal (bit 6) ---
@@ -455,8 +455,8 @@ MOV r17, r16
 LDI r18, 64
 AND r17, r18
 JZ r17, no_dl
-ADD r12, r15
-SUB r10, r15
+ADD r12, r0
+SUB r11, r0
 no_dl:
 
 ; --- Process Up+Left diagonal (bit 7) ---
@@ -464,13 +464,13 @@ MOV r17, r16
 LDI r18, 128
 AND r17, r18
 JZ r17, no_ul
-SUB r12, r15
-SUB r10, r15
+SUB r12, r0
+SUB r11, r0
 no_ul:
 
 ; --- Store updated camera ---
-STORE r8, r10
-STORE r3, r12
+STORE r3, r11
+STORE r7, r12
 
 ; --- Clear screen to black ---
 LDI r17, 0
@@ -481,14 +481,14 @@ FILL r17
 ; zone = (camera_x >> 4) & 0xF  ->  16 zones across the world
 ; West  (zone 0-7): negate zone*0x0808 so ADD performs subtraction
 ; East  (zone 8-15): (zone-8)*0x080000, ADD boosts red
-MOV r18, r10
+MOV r18, r11
 LDI r19, 4
 SHR r18, r19           ; camera_x >> 4
 LDI r19, 0xF
 AND r18, r19           ; zone = 0..15
 LDI r19, 8
 CMP r18, r19
-BGE r5, pre_tint_warm  ; zone >= 8 -> east
+BGE r8, pre_tint_warm  ; zone >= 8 -> east
 LDI r19, 0x0808
 MUL r18, r19
 NEG r18                ; negate: ADD will subtract (cool/west tint)
@@ -502,70 +502,70 @@ MOV r23, r18           ; r23 = tint offset (positive, warm/east)
 pre_tint_done:
 
 ; ===== Render Viewport =====
-; r10 = camera_x, r12 = camera_y
+; r11 = camera_x, r12 = camera_y
 ; r22 = frame_counter (loaded once)
 ; r23 = precomputed tint offset (sign-encoded: negative=west, positive=east)
 ; r25 = screen_y accumulator, r26 = screen_x accumulator
 ; 64x64 tile loop: ty=0..63, tx=0..63
 ; Per tile: coarse hash -> biome, fine hash -> structure check, color -> RECTF
 
-LOAD r22, r1           ; r22 = frame_counter (load once for whole frame)
-LDI r4, 0               ; ty = 0
+LOAD r22, r10           ; r22 = frame_counter (load once for whole frame)
+LDI r2, 0               ; ty = 0
 LDI r25, 0              ; screen_y = 0 (accumulator, replaces ty*4 multiply)
 
 render_y:
-  LDI r0, 0             ; tx = 0
+  LDI r5, 0             ; tx = 0
   LDI r26, 0            ; screen_x = 0 (accumulator, replaces tx*4 multiply)
 
   render_x:
     ; All 64x64 tiles are on-screen (64*4=256 = screen size), no bounds check needed.
 
     ; World coordinates
-    MOV r9, r10
-    ADD r9, r0           ; r9 = world_x = camera_x + tx
-    MOV r2, r12
-    ADD r2, r4           ; r2 = world_y = camera_y + ty
+    MOV r9, r11
+    ADD r9, r5           ; r9 = world_x = camera_x + tx
+    MOV r14, r12
+    ADD r14, r2           ; r14 = world_y = camera_y + ty
 
     ; ---- Coarse hash for contiguous biomes ----
     ; Zone size = 8 tiles (>> 3) = 32x32 pixel biome patches
-    MOV r13, r9
+    MOV r4, r9
     LDI r18, 3
-    SHR r13, r18          ; r13 = world_x >> 3 (coarse_x)
+    SHR r4, r18          ; r4 = world_x >> 3 (coarse_x)
     LDI r18, 99001
-    MUL r13, r18          ; r13 = coarse_x * 99001
+    MUL r4, r18          ; r4 = coarse_x * 99001
 
-    MOV r14, r2
+    MOV r6, r14
     LDI r18, 3
-    SHR r14, r18          ; r14 = world_y >> 3 (coarse_y)
+    SHR r6, r18          ; r6 = world_y >> 3 (coarse_y)
     LDI r18, 79007
-    MUL r14, r18          ; r14 = coarse_y * 79007
+    MUL r6, r18          ; r6 = coarse_y * 79007
 
-    XOR r13, r14           ; r13 = coarse_hash
+    XOR r4, r6           ; r4 = coarse_hash
 
     ; Mix: multiply by a large prime to spread bits into upper positions
     LDI r18, 1103515245
-    MUL r13, r18          ; r13 = coarse_hash * mixing_prime
+    MUL r4, r18          ; r4 = coarse_hash * mixing_prime
 
     ; Extract top 5 bits: biome type 0..31
     LDI r18, 27
-    SHR r13, r18          ; r13 = biome_type (0..31)
+    SHR r4, r18          ; r4 = biome_type (0..31)
 
     ; ---- Fine hash for structure placement ----
-    MOV r14, r9
+    MOV r6, r9
     LDI r18, 374761393
-    MUL r14, r18          ; r14 = world_x * big_prime
-    MOV r21, r2
+    MUL r6, r18          ; r6 = world_x * big_prime
+    MOV r21, r14
     LDI r18, 668265263
     MUL r21, r18         ; r21 = world_y * big_prime
-    XOR r14, r21          ; r14 = fine_hash
+    XOR r6, r21          ; r6 = fine_hash
 
     ; Structure if fine_hash & 0xFF == 0x2A (1/256 tiles, ~16 per screen)
     LDI r18, 0xFF
-    MOV r21, r14
+    MOV r21, r6
     AND r21, r18
     LDI r18, 42
     CMP r21, r18
-    JNZ r5, no_struct
+    JNZ r8, no_struct
 
     ; Override with structure color based on biome
     ; water(0-1)->wave, beach(2)->hut, desert(3-4)->cactus,
@@ -576,62 +576,62 @@ render_y:
     ; crystal(24-25)->cluster, ash(26)->geyser, deadlands(27-28)->bone,
     ; bioluminescent(29-30)->spore, void(31)->spark
     LDI r18, 2
-    CMP r13, r18
-    BLT r5, struct_water       ; 0-1 water
+    CMP r4, r18
+    BLT r8, struct_water       ; 0-1 water
     LDI r18, 3
-    CMP r13, r18
-    BLT r5, struct_land        ; 2 beach hut
+    CMP r4, r18
+    BLT r8, struct_land        ; 2 beach hut
     LDI r18, 5
-    CMP r13, r18
-    BLT r5, struct_desert      ; 3-4 desert cactus
+    CMP r4, r18
+    BLT r8, struct_desert      ; 3-4 desert cactus
     LDI r18, 6
-    CMP r13, r18
-    BLT r5, struct_oasis       ; 5 oasis palm
+    CMP r4, r18
+    BLT r8, struct_oasis       ; 5 oasis palm
     LDI r18, 8
-    CMP r13, r18
-    BLT r5, struct_land        ; 6-7 grass hut
+    CMP r4, r18
+    BLT r8, struct_land        ; 6-7 grass hut
     LDI r18, 10
-    CMP r13, r18
-    BLT r5, struct_swamp       ; 8-9 swamp lily
+    CMP r4, r18
+    BLT r8, struct_swamp       ; 8-9 swamp lily
     LDI r18, 12
-    CMP r13, r18
-    BLT r5, struct_land        ; 10-11 forest hut
+    CMP r4, r18
+    BLT r8, struct_land        ; 10-11 forest hut
     LDI r18, 13
-    CMP r13, r18
-    BLT r5, struct_mushroom    ; 12 mushroom cap
+    CMP r4, r18
+    BLT r8, struct_mushroom    ; 12 mushroom cap
     LDI r18, 15
-    CMP r13, r18
-    BLT r5, struct_mountain    ; 13-14
+    CMP r4, r18
+    BLT r8, struct_mountain    ; 13-14
     LDI r18, 16
-    CMP r13, r18
-    BLT r5, struct_tundra      ; 15 tundra frost
+    CMP r4, r18
+    BLT r8, struct_tundra      ; 15 tundra frost
     LDI r18, 18
-    CMP r13, r18
-    BLT r5, struct_lava        ; 16-17 lava ember
+    CMP r4, r18
+    BLT r8, struct_lava        ; 16-17 lava ember
     LDI r18, 19
-    CMP r13, r18
-    BLT r5, struct_volcanic    ; 18 volcanic vent
+    CMP r4, r18
+    BLT r8, struct_volcanic    ; 18 volcanic vent
     LDI r18, 22
-    CMP r13, r18
-    BLT r5, struct_snow        ; 19-21 snow crystal
+    CMP r4, r18
+    BLT r8, struct_snow        ; 19-21 snow crystal
     LDI r18, 23
-    CMP r13, r18
-    BLT r5, struct_coral       ; 22 coral anemone
+    CMP r4, r18
+    BLT r8, struct_coral       ; 22 coral anemone
     LDI r18, 24
-    CMP r13, r18
-    BLT r5, struct_ruins       ; 23 ruins pillar
+    CMP r4, r18
+    BLT r8, struct_ruins       ; 23 ruins pillar
     LDI r18, 26
-    CMP r13, r18
-    BLT r5, struct_crystal     ; 24-25 crystal cluster
+    CMP r4, r18
+    BLT r8, struct_crystal     ; 24-25 crystal cluster
     LDI r18, 27
-    CMP r13, r18
-    BLT r5, struct_ash         ; 26 ash geyser
+    CMP r4, r18
+    BLT r8, struct_ash         ; 26 ash geyser
     LDI r18, 29
-    CMP r13, r18
-    BLT r5, struct_dead        ; 27-28 deadlands bone
+    CMP r4, r18
+    BLT r8, struct_dead        ; 27-28 deadlands bone
     LDI r18, 31
-    CMP r13, r18
-    BLT r5, struct_biolum      ; 29-30 bioluminescent spore
+    CMP r4, r18
+    BLT r8, struct_biolum      ; 29-30 bioluminescent spore
     JMP struct_void            ; 31 void spark
 
 struct_water:
@@ -671,7 +671,7 @@ struct_lava:
     LDI r17, 0xFF8800    ; ember (orange)
     ; -- ember pulse: blue flicker based on frame + world_y
     MOV r20, r22
-    ADD r20, r2           ; frame_counter + world_y
+    ADD r20, r14           ; frame_counter + world_y
     LDI r18, 7
     AND r20, r18          ; & 7 -> 0..7
     ADD r17, r20          ; subtle blue channel flicker
@@ -724,16 +724,16 @@ struct_void:
 no_struct:
     ; ---- Biome -> Color via lookup table ----
     LDI r17, 0x7A00
-    ADD r17, r13           ; r17 = &color_table[biome_type]
+    ADD r17, r4           ; r17 = &color_table[biome_type]
     LOAD r17, r17         ; r17 = base color
 
     ; Water shimmer: biome 0-1 get animated blue channel
     LDI r18, 2
-    CMP r13, r18
-    BGE r5, no_struct_not_water
+    CMP r4, r18
+    BGE r8, no_struct_not_water
     MOV r21, r22          ; frame_counter
     ADD r21, r9           ; + world_x
-    ADD r21, r2           ; + world_y
+    ADD r21, r14           ; + world_y
     LDI r18, 0x1F
     AND r21, r18          ; shimmer = 0..31
     ADD r17, r21
@@ -745,7 +745,7 @@ no_struct_not_water:
 
     ; Nibble 0 (bits 0-3): first BPE pair lookup
     LDI r18, 0x7B00
-    MOV r19, r14
+    MOV r19, r6
     ANDI r19, 0xF
     ADD r18, r19
     LOAD r18, r18
@@ -753,7 +753,7 @@ no_struct_not_water:
 
     ; Nibble 1 (bits 4-7): second BPE pair lookup
     LDI r18, 0x7B00
-    MOV r19, r14
+    MOV r19, r6
     LDI r20, 4
     SHR r19, r20
     ANDI r19, 0xF
@@ -765,12 +765,12 @@ no_struct_not_water:
 do_rect:
     ADD r17, r23
     ; Use screen position accumulators (no multiply needed)
-    RECTF r26, r25, r11, r11, r17  ; fill 4x4 rect with color
+    RECTF r26, r25, r1, r1, r17  ; fill 4x4 rect with color
 
     ; ---- Biome-aware pattern overlay (1 accent pixel per tile) ----
     ; Look up pattern type from boot-initialized table
     LDI r18, 0x7900
-    ADD r18, r13           ; r18 = pattern_table[biome_type]
+    ADD r18, r4           ; r18 = pattern_table[biome_type]
     LOAD r18, r18         ; r18 = pattern type (0-3)
 
     ; Accent color: brighten base + animate via frame_counter
@@ -789,22 +789,22 @@ do_rect:
     JZ r18, pat_horiz      ; pattern 0 = horizontal accent
     LDI r20, 1
     CMP r18, r20
-    JZ r5, pat_vert        ; pattern 1 = vertical accent
+    JZ r8, pat_vert        ; pattern 1 = vertical accent
     LDI r20, 2
     CMP r18, r20
-    JZ r5, pat_center      ; pattern 2 = center dot
+    JZ r8, pat_center      ; pattern 2 = center dot
     LDI r20, 3
     CMP r18, r20
-    JZ r5, pat_corner      ; pattern 3 = corner spark
+    JZ r8, pat_corner      ; pattern 3 = corner spark
     LDI r20, 4
     CMP r18, r20
-    JZ r5, pat_diag_bl     ; pattern 4 = diagonal backslash
+    JZ r8, pat_diag_bl     ; pattern 4 = diagonal backslash
     LDI r20, 5
     CMP r18, r20
-    JZ r5, pat_diag_fw     ; pattern 5 = diagonal forward slash
+    JZ r8, pat_diag_fw     ; pattern 5 = diagonal forward slash
     LDI r20, 6
     CMP r18, r20
-    JZ r5, pat_topedge     ; pattern 6 = top edge
+    JZ r8, pat_topedge     ; pattern 6 = top edge
     JMP pat_dither          ; pattern 7 = dither scatter
 
 pat_horiz:
@@ -815,11 +815,11 @@ pat_horiz:
     MOV r18, r26
     LDI r21, 1
     ADD r18, r21          ; default col = screen_x + 1
-    MOV r21, r14
+    MOV r21, r6
     LDI r17, 1
     AND r21, r17          ; fine_hash & 1
     JZ r21, pat_h_draw
-    ADD r18, r15           ; col = screen_x + 2
+    ADD r18, r0           ; col = screen_x + 2
 pat_h_draw:
     PSET r18, r20, r19
     JMP next_tile
@@ -829,7 +829,7 @@ pat_vert:
     MOV r18, r26
     LDI r21, 2
     ADD r18, r21          ; x = screen_x + 2 (middle col)
-    MOV r21, r14
+    MOV r21, r6
     LDI r17, 1
     AND r21, r17          ; fine_hash & 1
     JZ r21, pat_v_hi
@@ -852,12 +852,12 @@ pat_center:
     ADD r18, r21          ; x = screen_x + 1
     MOV r20, r25
     ADD r20, r21          ; y = screen_y + 1
-    MOV r21, r14
+    MOV r21, r6
     LDI r17, 1
     AND r21, r17          ; fine_hash & 1
     JZ r21, pat_c_draw
-    ADD r18, r15           ; x = screen_x + 2
-    ADD r20, r15           ; y = screen_y + 2
+    ADD r18, r0           ; x = screen_x + 2
+    ADD r20, r0           ; y = screen_y + 2
 pat_c_draw:
     PSET r18, r20, r19
     JMP next_tile
@@ -866,7 +866,7 @@ pat_corner:
     ; Corner spark: pixel at (screen_x + 1 or 2, screen_y + 0 or 3)
     MOV r18, r26
     MOV r20, r25
-    MOV r21, r14
+    MOV r21, r6
     LDI r17, 1
     AND r21, r17          ; fine_hash & 1
     JZ r21, pat_cr_tl
@@ -890,12 +890,12 @@ pat_diag_bl:
     LDI r21, 1
     ADD r18, r21          ; x = screen_x + 1
     ADD r20, r21          ; y = screen_y + 1
-    MOV r21, r14
+    MOV r21, r6
     LDI r17, 1
     AND r21, r17          ; fine_hash & 1
     JZ r21, pat_dbl_draw
-    ADD r18, r15           ; x = screen_x + 2
-    ADD r20, r15           ; y = screen_y + 2
+    ADD r18, r0           ; x = screen_x + 2
+    ADD r20, r0           ; y = screen_y + 2
 pat_dbl_draw:
     PSET r18, r20, r19
     JMP next_tile
@@ -904,7 +904,7 @@ pat_diag_fw:
     ; Diagonal forward slash: pixel at (3,1) or (1,3)
     MOV r18, r26
     MOV r20, r25
-    MOV r21, r14
+    MOV r21, r6
     LDI r17, 1
     AND r21, r17          ; fine_hash & 1
     JZ r21, pat_dfw_lo
@@ -928,11 +928,11 @@ pat_topedge:
     MOV r20, r25          ; y = screen_y + 0
     LDI r21, 1
     ADD r18, r21          ; x = screen_x + 1
-    MOV r21, r14
+    MOV r21, r6
     LDI r17, 1
     AND r21, r17          ; fine_hash & 1
     JZ r21, pat_te_draw
-    ADD r18, r15           ; x = screen_x + 2
+    ADD r18, r0           ; x = screen_x + 2
 pat_te_draw:
     PSET r18, r20, r19
     JMP next_tile
@@ -941,16 +941,16 @@ pat_dither:
     ; Dither scatter: pixel at one of 4 positions based on fine_hash bits 0-1
     MOV r18, r26
     MOV r20, r25
-    MOV r21, r14
+    MOV r21, r6
     LDI r17, 3
     AND r21, r17          ; fine_hash & 3 = position index (0-3)
     JZ r21, pat_di_a
     LDI r17, 1
     CMP r21, r17
-    JZ r5, pat_di_b
+    JZ r8, pat_di_b
     LDI r17, 2
     CMP r21, r17
-    JZ r5, pat_di_c
+    JZ r8, pat_di_c
     JMP pat_di_d
 pat_di_a:
     LDI r21, 1
@@ -979,18 +979,18 @@ pat_di_draw:
 
     ; ---- Next tile ----
 next_tile:
-    ADD r0, r15           ; tx++
-    ADD r26, r11          ; screen_x += TILE_SIZE
-    MOV r18, r0
-    SUB r18, r7          ; tx - 64
+    ADD r5, r0           ; tx++
+    ADD r26, r1          ; screen_x += TILE_SIZE
+    MOV r18, r5
+    SUB r18, r13          ; tx - 64
     JZ r18, next_row
     JMP render_x
 
 next_row:
-    ADD r4, r15           ; ty++
-    ADD r25, r11          ; screen_y += TILE_SIZE
-    MOV r18, r4
-    SUB r18, r7          ; ty - 64
+    ADD r2, r0           ; ty++
+    ADD r25, r1          ; screen_y += TILE_SIZE
+    MOV r18, r2
+    SUB r18, r13          ; ty - 64
     JZ r18, frame_end
     JMP render_y
 
@@ -1001,7 +1001,7 @@ frame_end:
 ; Draw a pulsing crosshair at pixel (127,127) -- center of the 256x256 screen.
 ; Four arms radiate from center with a 1px gap so terrain shows through.
 ; Color pulses between white and yellow based on frame_counter bit 4.
-LOAD r17, r1           ; r17 = frame_counter
+LOAD r17, r10           ; r17 = frame_counter
 LDI r18, 16
 AND r17, r18            ; frame_counter & 16 -> toggles every 16 frames
 JZ r17, cursor_white
@@ -1014,82 +1014,82 @@ LDI r18, 1              ; thin dimension (1px)
 LDI r19, 3              ; arm length (3px)
 ; Top arm: (127, 124) 1x3
 LDI r9, 127
-LDI r2, 124
-RECTF r9, r2, r18, r19, r17
+LDI r14, 124
+RECTF r9, r14, r18, r19, r17
 ; Bottom arm: (127, 128) 1x3
-LDI r2, 128
-RECTF r9, r2, r18, r19, r17
+LDI r14, 128
+RECTF r9, r14, r18, r19, r17
 ; Left arm: (124, 127) 3x1
 LDI r9, 124
-LDI r2, 127
-RECTF r9, r2, r19, r18, r17
+LDI r14, 127
+RECTF r9, r14, r19, r18, r17
 ; Right arm: (128, 127) 3x1
 LDI r9, 128
-RECTF r9, r2, r19, r18, r17
+RECTF r9, r14, r19, r18, r17
 
 ; ===== Minimap Overlay (16x16, top-right corner) =====
 ; Shows biome overview: samples every 4th tile in a 64x64 area centered on camera.
 ; Screen coords: x=240..255, y=0..15
 
-LDI r4, 0               ; my = 0
+LDI r2, 0               ; my = 0
 mm_y:
-  LDI r0, 0             ; mx = 0
+  LDI r5, 0             ; mx = 0
   mm_x:
     ; World tile: camera_x + mx*4, camera_y + my*4
-    MOV r9, r0
+    MOV r9, r5
     LDI r18, 4
     MUL r9, r18          ; r9 = mx * 4
-    ADD r9, r10          ; r9 = world_x
-
-    MOV r2, r4
-    LDI r18, 4
-    MUL r2, r18          ; r2 = my * 4
-    ADD r2, r12          ; r2 = world_y
-
-    ; Coarse hash for biome
-    MOV r13, r9
-    LDI r18, 3
-    SHR r13, r18          ; r13 = world_x >> 3
-    LDI r18, 99001
-    MUL r13, r18
+    ADD r9, r11          ; r9 = world_x
 
     MOV r14, r2
-    LDI r18, 3
-    SHR r14, r18          ; r14 = world_y >> 3
-    LDI r18, 79007
-    MUL r14, r18
+    LDI r18, 4
+    MUL r14, r18          ; r14 = my * 4
+    ADD r14, r12          ; r14 = world_y
 
-    XOR r13, r14
+    ; Coarse hash for biome
+    MOV r4, r9
+    LDI r18, 3
+    SHR r4, r18          ; r4 = world_x >> 3
+    LDI r18, 99001
+    MUL r4, r18
+
+    MOV r6, r14
+    LDI r18, 3
+    SHR r6, r18          ; r6 = world_y >> 3
+    LDI r18, 79007
+    MUL r6, r18
+
+    XOR r4, r6
     LDI r18, 1103515245
-    MUL r13, r18
+    MUL r4, r18
     LDI r18, 27
-    SHR r13, r18          ; biome 0..31
+    SHR r4, r18          ; biome 0..31
 
     ; Load dim color from table (0x7C00 + biome_index)
     LDI r17, 0x7C00
-    ADD r17, r13
+    ADD r17, r4
     LOAD r17, r17
 
 mm_draw:
     ; Screen pos: x = 240 + mx, y = my
-    MOV r9, r0
+    MOV r9, r5
     LDI r18, 240
     ADD r9, r18
-    PSET r9, r4, r17
+    PSET r9, r2, r17
 
     ; mx++
-    ADD r0, r15
+    ADD r5, r0
     LDI r18, 16
-    MOV r19, r0
+    MOV r19, r5
     SUB r19, r18
     JZ r19, mm_next_row
     JMP mm_x
 
 mm_next_row:
     ; my++
-    ADD r4, r15
+    ADD r2, r0
     LDI r18, 16
-    MOV r19, r4
+    MOV r19, r2
     SUB r19, r18
     JZ r19, mm_border
     JMP mm_y
@@ -1102,26 +1102,26 @@ LDI r19, 16             ; long dimension
 
 ; Top: (240,0) 16x1
 LDI r9, 240
-LDI r2, 0
-RECTF r9, r2, r19, r18, r17
+LDI r14, 0
+RECTF r9, r14, r19, r18, r17
 
 ; Bottom: (240,15) 16x1
-LDI r2, 15
-RECTF r9, r2, r19, r18, r17
+LDI r14, 15
+RECTF r9, r14, r19, r18, r17
 
 ; Left: (240,0) 1x16
-LDI r2, 0
-RECTF r9, r2, r18, r19, r17
+LDI r14, 0
+RECTF r9, r14, r18, r19, r17
 
 ; Right: (255,0) 1x16
 LDI r9, 255
-RECTF r9, r2, r18, r19, r17
+RECTF r9, r14, r18, r19, r17
 
 ; --- Player dot (white, center) ---
 LDI r9, 248             ; 240 + 8
-LDI r2, 8
+LDI r14, 8
 LDI r17, 0xFFFFFF
-PSET r9, r2, r17
+PSET r9, r14, r17
 
     FRAME
     JMP main_loop

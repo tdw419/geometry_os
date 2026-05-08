@@ -1,4 +1,4 @@
-; DESCRIPTION: The assembly code demonstrates the AI Vision Bridge functionality by drawing red bars on the screen, taking a checksum of the initial state, modifying the screen with a blue square, taking another checksum after modification, and making a mock call to the vision API with the prompt "desc". The program uses specific opcodes and registers to handle these tasks.
+; DESCRIPTION: A red square centered at the screen with fixed size.
 
 ; ai_vision.asm -- Phase 88: AI Vision Bridge demo
 ;
@@ -11,82 +11,82 @@
 ; modifies the screen, takes another checksum, and calls the vision API.
 
 ; ── Draw red bars ──
-LDI r5, 1
-LDI r11, 0xFF0000   ; red
-LDI r2, 0          ; y = 0
-LDI r3, 256        ; screen width
-LDI r10, 32         ; bar spacing
+LDI r6, 1
+LDI r8, 0xFF0000   ; red
+LDI r1, 0          ; y = 0
+LDI r7, 256        ; screen width
+LDI r3, 32         ; bar spacing
 
 draw_loop:
-  LDI r12, 0        ; x = 0
+  LDI r14, 0        ; x = 0
   draw_row:
-    PSET r12, r2, r11
-    ADD r12, r5     ; x++
-    CMP r12, r3
+    PSET r14, r1, r8
+    ADD r14, r6     ; x++
+    CMP r14, r7
     BLT r13, draw_row
-  ADD r2, r5       ; y++
-  CMP r2, r10
+  ADD r1, r6       ; y++
+  CMP r1, r3
   BLT r13, draw_loop
 
 ; ── Get checksum before (op=1) ──
-LDI r6, 1
-AI_AGENT r6       ; r13 = checksum
-MOV r14, r13        ; save in r14
+LDI r10, 1
+AI_AGENT r10       ; r13 = checksum
+MOV r0, r13        ; save in r0
 
 ; ── Modify screen -- blue square ──
-LDI r11, 0x0000FF   ; blue
-LDI r2, 100
-LDI r10, 156
+LDI r8, 0x0000FF   ; blue
+LDI r1, 100
+LDI r3, 156
 
 fill_y:
-  LDI r12, 100
+  LDI r14, 100
   fill_x:
-    PSET r12, r2, r11
-    ADD r12, r5
-    CMP r12, r10
+    PSET r14, r1, r8
+    ADD r14, r6
+    CMP r14, r3
     BLT r13, fill_x
-  ADD r2, r5
-  CMP r2, r10
+  ADD r1, r6
+  CMP r1, r3
   BLT r13, fill_y
 
 ; ── Get checksum after (op=1) ──
-LDI r6, 1
-AI_AGENT r6       ; r13 = new checksum
-MOV r8, r13        ; save in r8
+LDI r10, 1
+AI_AGENT r10       ; r13 = new checksum
+MOV r15, r13        ; save in r15
 
 ; ── Vision API call with mock (op=3) ──
 ; Write prompt string "desc" to RAM at 0x5000
-LDI r0, 0x5000
-LDI r6, 0x64      ; 'd'
-STORE r0, r6
-LDI r9, 0x65      ; 'e'
-MOV r6, r0
-ADD r6, r5
-STORE r6, r9
-LDI r9, 0x73      ; 's'
-MOV r6, r0
-ADD r6, r5
-ADD r6, r5
-STORE r6, r9
-LDI r9, 0x63      ; 'c'
-MOV r6, r0
-ADD r6, r5
-ADD r6, r5
-ADD r6, r5
-STORE r6, r9
-MOV r6, r0
-ADD r6, r5
-ADD r6, r5
-ADD r6, r5
-ADD r6, r5
-LDI r9, 0
-STORE r6, r9
+LDI r4, 0x5000
+LDI r10, 0x64      ; 'd'
+STORE r4, r10
+LDI r12, 0x65      ; 'e'
+MOV r10, r4
+ADD r10, r6
+STORE r10, r12
+LDI r12, 0x73      ; 's'
+MOV r10, r4
+ADD r10, r6
+ADD r10, r6
+STORE r10, r12
+LDI r12, 0x63      ; 'c'
+MOV r10, r4
+ADD r10, r6
+ADD r10, r6
+ADD r10, r6
+STORE r10, r12
+MOV r10, r4
+ADD r10, r6
+ADD r10, r6
+ADD r10, r6
+ADD r10, r6
+LDI r12, 0
+STORE r10, r12
 
 ; Set up registers for vision API
-LDI r6, 3         ; op=3 (vision API)
-MOV r4, r0       ; prompt addr
-LDI r14, 0x6000    ; response addr
-LDI r8, 256       ; max response length
-AI_AGENT r6       ; r13 = response length
+LDI r10, 3         ; op=3 (vision API)
+MOV r11, r4       ; prompt addr
+LDI r0, 0x6000    ; response addr
+LDI r15, 256       ; max response length
+AI_AGENT r10       ; r13 = response length
 
 HALT

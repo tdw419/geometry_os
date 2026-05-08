@@ -1,18 +1,18 @@
-; DESCRIPTION: This GeOS assembly code writes the string "PIXELS DRIVE PIXELS" to a canvas grid starting at memory address 0x8000 by sequentially loading characters from the string and storing them into consecutive memory locations in the canvas RAM. The process continues until it reaches the null terminator of the string, at which point the program halts execution.
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ; canvas_grid_writer.asm
 ; Writes "PIXELS DRIVE PIXELS" to the canvas grid using STORE to 0x8000+
 
-  LDI r3, 0x8000    ; Start of canvas RAM
-  LDI r8, string    ; Address of our string
-  LDI r1, 1         ; Increment
+  LDI r11, 0x8000    ; Start of canvas RAM
+  LDI r15, string    ; Address of our string
+  LDI r4, 1         ; Increment
   
 loop:
-  LOAD r2, r8       ; Load char from string
-  JZ r2, done       ; End of string?
-  STORE r3, r2      ; Store to canvas RAM
-  ADD r3, r1        ; Next canvas cell
-  ADD r8, r1        ; Next char in string
+  LOAD r12, r15       ; Load char from string
+  JZ r12, done       ; End of string?
+  STORE r11, r12      ; Store to canvas RAM
+  ADD r11, r4        ; Next canvas cell
+  ADD r15, r4        ; Next char in string
   JMP loop
 
 done:

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code creates a minimalistic GUI with a dark grey background, a title bar with the text "Hello", and an OK button. The code fills the screen with pixels, defines semantic regions for interaction (specifically for the OK button), and queries cursor interactions to return the ID of the clicked region.
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ; hello_window.asm -- Token-to-Pixel GUI "Hello World"
 ;
@@ -21,70 +21,70 @@
 ;   - A host that calls vm.push_mouse(x, y) and re-runs HITQ gets the id back
 
 ; --- background fill (dark grey) ---
-LDI r4, 0x202020
-FILL r4
+LDI r3, 0x202020
+FILL r3
 
 ; --- title bar: RECTF at (0,0) 256x30, colour #555555 ---
+LDI r6, 0
 LDI r10, 0
-LDI r13, 0
-LDI r1, 256
-LDI r7, 30
-LDI r14, 0x555555
-RECTF r10, r13, r1, r7, r14
+LDI r2, 256
+LDI r13, 30
+LDI r11, 0x555555
+RECTF r6, r10, r2, r13, r11
 
 ; --- title text "Hello" at (100, 10) ---
-LDI r8, 0x2000
-LDI r4, 72         ; H
-STORE r8, r4
-LDI r8, 0x2001
-LDI r4, 101        ; e
-STORE r8, r4
-LDI r8, 0x2002
-LDI r4, 108        ; l
-STORE r8, r4
-LDI r8, 0x2003
-LDI r4, 108        ; l
-STORE r8, r4
-LDI r8, 0x2004
-LDI r4, 111        ; o
-STORE r8, r4
-LDI r8, 0x2005
-LDI r4, 0          ; NUL
-STORE r8, r4
-LDI r10, 100
-LDI r13, 10
 LDI r1, 0x2000
-TEXT r10, r13, r1
+LDI r3, 72         ; H
+STORE r1, r3
+LDI r1, 0x2001
+LDI r3, 101        ; e
+STORE r1, r3
+LDI r1, 0x2002
+LDI r3, 108        ; l
+STORE r1, r3
+LDI r1, 0x2003
+LDI r3, 108        ; l
+STORE r1, r3
+LDI r1, 0x2004
+LDI r3, 111        ; o
+STORE r1, r3
+LDI r1, 0x2005
+LDI r3, 0          ; NUL
+STORE r1, r3
+LDI r6, 100
+LDI r10, 10
+LDI r2, 0x2000
+TEXT r6, r10, r2
 
 ; --- OK button body: RECTF at (88, 110) 80x28, colour #2266FF ---
-LDI r10, 88
-LDI r13, 110
-LDI r1, 80
-LDI r7, 28
-LDI r14, 0x2266FF
-RECTF r10, r13, r1, r7, r14
+LDI r6, 88
+LDI r10, 110
+LDI r2, 80
+LDI r13, 28
+LDI r11, 0x2266FF
+RECTF r6, r10, r2, r13, r11
 
 ; --- register the same rect as hit-region id=1 ---
-; r10..r7 still hold x,y,w,h from the RECTF above
-HITSET r10, r13, r1, r7, 1
+; r6..r13 still hold x,y,w,h from the RECTF above
+HITSET r6, r10, r2, r13, 1
 
 ; --- button label "OK" at (120, 118) ---
-LDI r8, 0x2010
-LDI r4, 79         ; O
-STORE r8, r4
-LDI r8, 0x2011
-LDI r4, 75         ; K
-STORE r8, r4
-LDI r8, 0x2012
-LDI r4, 0
-STORE r8, r4
-LDI r10, 120
-LDI r13, 118
 LDI r1, 0x2010
-TEXT r10, r13, r1
+LDI r3, 79         ; O
+STORE r1, r3
+LDI r1, 0x2011
+LDI r3, 75         ; K
+STORE r1, r3
+LDI r1, 0x2012
+LDI r3, 0
+STORE r1, r3
+LDI r6, 120
+LDI r10, 118
+LDI r2, 0x2010
+TEXT r6, r10, r2
 
-; --- demo: query cursor, put matched id in r2 ---
-; (Host sets cursor via vm.push_mouse(x,y); without that, r2 = 0.)
-HITQ r2
+; --- demo: query cursor, put matched id in r14 ---
+; (Host sets cursor via vm.push_mouse(x,y); without that, r14 = 0.)
+HITQ r14
 
 HALT

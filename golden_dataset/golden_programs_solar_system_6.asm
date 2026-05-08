@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a solar system simulation with interactive features including orbital mechanics, zoom, and pan. It constructs a sine table for trigonometric calculations, sets up star positions, and defines planet properties such as distance, angle, speed, size, and color. The main loop handles user input for controls, updates the view state, draws stars and planets, and includes an interactive zoom bar display.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; solar_system.asm -- Solar System Simulator for Geometry OS
 ;
@@ -32,7 +32,7 @@ boot:
 
 build_sin:
   CMP r21, r23
-  BGE r7, sin_above
+  BGE r15, sin_above
   MOV r25, r23
   SUB r25, r21
   JMP sin_sq
@@ -51,7 +51,7 @@ sin_sq:
   STORE r27, r26
   ADDI r21, 1
   CMP r21, r22
-  BLT r7, build_sin
+  BLT r15, build_sin
 
   ; Initialize star positions at 0x3200 (16 stars)
   ; Use simple spread positions
@@ -331,11 +331,11 @@ sin_sq:
 
 ; ── MAIN LOOP ─────────────────────────────────────────────
 main_loop:
-  IKEY r8
+  IKEY r14
 
   ; Clear screen to dark space
-  LDI r8, 0x000510
-  FILL r8
+  LDI r14, 0x000510
+  FILL r14
 
   ; Load view state
   LDI r22, 0x3400
@@ -348,51 +348,51 @@ main_loop:
   LOAD r25, r25
 
   ; Handle input
-  IKEY r8
-  JZ r8, no_input
+  IKEY r14
+  JZ r14, no_input
 
-  CMPI r8, 87
-  JNZ r8, chk_s
+  CMPI r14, 87
+  JNZ r14, chk_s
   ADDI r22, 16
   JMP no_input
 chk_s:
-  CMPI r8, 83
-  JNZ r8, chk_a
+  CMPI r14, 83
+  JNZ r14, chk_a
   SUBI r22, 16
-  LDI r14, 32
-  CMP r22, r14
-  BGE r7, no_input
-  MOV r22, r14
+  LDI r7, 32
+  CMP r22, r7
+  BGE r15, no_input
+  MOV r22, r7
   JMP no_input
 chk_a:
-  CMPI r8, 65
-  JNZ r8, chk_d
+  CMPI r14, 65
+  JNZ r14, chk_d
   SUBI r23, 4
   JMP no_input
 chk_d:
-  CMPI r8, 68
-  JNZ r8, chk_q
+  CMPI r14, 68
+  JNZ r14, chk_q
   ADDI r23, 4
   JMP no_input
 chk_q:
-  CMPI r8, 81
-  JNZ r8, chk_e
+  CMPI r14, 81
+  JNZ r14, chk_e
   SUBI r24, 4
   JMP no_input
 chk_e:
-  CMPI r8, 69
-  JNZ r8, chk_sp
+  CMPI r14, 69
+  JNZ r14, chk_sp
   ADDI r24, 4
   JMP no_input
 chk_sp:
-  CMPI r8, 32
-  JNZ r8, chk_r
-  LDI r14, 1
-  XOR r25, r14
+  CMPI r14, 32
+  JNZ r14, chk_r
+  LDI r7, 1
+  XOR r25, r7
   JMP no_input
 chk_r:
-  CMPI r8, 82
-  JNZ r8, no_input
+  CMPI r14, 82
+  JNZ r14, no_input
   LDI r22, 256
   LDI r23, 0
   LDI r24, 0
@@ -412,15 +412,15 @@ no_input:
   LDI r20, 0x3200
   LDI r21, 0
 stars_lp:
-  LOAD r14, r20
+  LOAD r7, r20
   ADDI r20, 1
-  LOAD r4, r20
+  LOAD r13, r20
   ADDI r20, 1
-  LDI r13, 0x444455
-  PSET r14, r4, r13
+  LDI r9, 0x444455
+  PSET r7, r13, r9
   ADDI r21, 1
   CMPI r21, 16
-  BLT r7, stars_lp
+  BLT r15, stars_lp
 
   ; ── Draw planets ──
   LDI r20, 0x3500
@@ -429,15 +429,15 @@ stars_lp:
 
 planets_lp:
   MOV r21, r20
-  LOAD r14, r21
-  ADDI r21, 1
-  LOAD r4, r21
+  LOAD r7, r21
   ADDI r21, 1
   LOAD r13, r21
   ADDI r21, 1
-  LOAD r1, r21
+  LOAD r9, r21
   ADDI r21, 1
-  LOAD r0, r21
+  LOAD r11, r21
+  ADDI r21, 1
+  LOAD r3, r21
   ADDI r21, 1
 
   ; Sun (index 0)
@@ -445,72 +445,72 @@ planets_lp:
   JNZ r27, not_sun
 
   ; Sun screen position
-  LDI r15, 128
-  ADD r15, r23
+  LDI r2, 128
+  ADD r2, r23
   LDI r16, 128
   ADD r16, r24
 
   ; Sun glow (8 points at radius 6)
   LDI r17, 6
-  LDI r13, 0x332200
-  MOV r18, r15
+  LDI r9, 0x332200
+  MOV r18, r2
   MOV r19, r16
   SUB r19, r17
-  PSET r18, r19, r13
+  PSET r18, r19, r9
   ADD r19, r17
   ADD r19, r17
-  PSET r18, r19, r13
+  PSET r18, r19, r9
   SUB r18, r17
   MOV r19, r16
-  PSET r18, r19, r13
+  PSET r18, r19, r9
   ADD r18, r17
   ADD r18, r17
-  PSET r18, r19, r13
+  PSET r18, r19, r9
   ; Diagonals at radius 5
   LDI r17, 5
-  MOV r18, r15
+  MOV r18, r2
   SUB r18, r17
   MOV r19, r16
   SUB r19, r17
-  PSET r18, r19, r13
+  PSET r18, r19, r9
   ADD r18, r17
   ADD r18, r17
-  PSET r18, r19, r13
+  PSET r18, r19, r9
   SUB r18, r17
   SUB r18, r17
   ADD r19, r17
   ADD r19, r17
-  PSET r18, r19, r13
+  PSET r18, r19, r9
   ADD r18, r17
   ADD r18, r17
-  PSET r18, r19, r13
+  PSET r18, r19, r9
   ; Sun core (cross pattern)
-  LDI r13, 0xFFFF00
-  PSET r15, r16, r13
-  MOV r18, r15
+  LDI r9, 0xFFFF00
+  PSET r2, r16, r9
+  MOV r18, r2
   ADDI r18, 1
-  PSET r18, r16, r13
-  MOV r18, r15
+  PSET r18, r16, r9
+  MOV r18, r2
   SUBI r18, 1
-  PSET r18, r16, r13
+  PSET r18, r16, r9
   MOV r19, r16
   ADDI r19, 1
-  PSET r15, r19, r13
+  PSET r2, r19, r9
   MOV r19, r16
   SUBI r19, 1
-  PSET r15, r19, r13
+  PSET r2, r19, r9
 
   JMP next_planet
 
 not_sun:
   ; ── Draw orbit ring (32 dots) ──
   CMPI r25, 0
-  JZ r7, skip_orbit
+  JZ r15, skip_orbit
 
   ; Orbit radius = distance * zoom / 256
-  MOV r15, r14
-  MUL r15, r22
-  SHRI r15, 8
+  MOV r2, r7
+  MUL r2, r22
+  SHRI r2, 8
 
   LDI r21, 0
 orbit_lp:
@@ -530,14 +530,14 @@ orbit_lp:
   LOAD r29, r30
 
   ; sx = 128 + center_x + sin * radius / 128
-  MUL r28, r15
+  MUL r28, r2
   SHRI r28, 7
   LDI r18, 128
   ADD r18, r23
   ADD r18, r28
 
   ; sy = 128 + center_y + cos * radius / 128
-  MUL r29, r15
+  MUL r29, r2
   SHRI r29, 7
   LDI r19, 128
   ADD r19, r24
@@ -556,22 +556,22 @@ orbit_lp:
   SHRI r30, 8
   JNZ r30, orb_skip
 
-  LDI r13, 0x111122
-  PSET r18, r19, r13
+  LDI r9, 0x111122
+  PSET r18, r19, r9
 
 orb_skip:
   ADDI r21, 16
   CMPI r21, 256
-  BLT r7, orbit_lp
+  BLT r15, orbit_lp
 
 skip_orbit:
   ; ── Planet position via trig ──
-  MOV r28, r4
+  MOV r28, r13
   ANDI r28, 0xFF
   LDI r29, 0x3000
   ADD r29, r28
   LOAD r28, r29             ; sin(angle)
-  ADD r29, r4
+  ADD r29, r13
   ADDI r29, 64
   ANDI r29, 0xFF
   LDI r30, 0x3000
@@ -579,10 +579,10 @@ skip_orbit:
   LOAD r29, r30             ; cos(angle)
 
   ; world_x = sin * distance / 128
-  MUL r28, r14
+  MUL r28, r7
   SHRI r28, 7
   ; world_y = cos * distance / 128
-  MUL r29, r14
+  MUL r29, r7
   SHRI r29, 7
 
   ; screen_x = 128 + pan_x + world_x * zoom / 256
@@ -600,9 +600,9 @@ skip_orbit:
 
   ; Bounds check
   CMPI r18, 256
-  BGE r7, upd_angle
+  BGE r15, upd_angle
   CMPI r19, 256
-  BGE r7, upd_angle
+  BGE r15, upd_angle
   LDI r28, 31
   MOV r30, r18
   SAR r30, r28
@@ -612,56 +612,56 @@ skip_orbit:
   JNZ r30, upd_angle
 
   ; Draw planet
-  PSET r18, r19, r0
+  PSET r18, r19, r3
 
   ; Larger planets get extra pixels
-  CMPI r1, 3
-  BLT r7, upd_angle
+  CMPI r11, 3
+  BLT r15, upd_angle
   MOV r28, r18
   ADDI r28, 1
-  PSET r28, r19, r0
+  PSET r28, r19, r3
   MOV r28, r18
   SUBI r28, 1
-  PSET r28, r19, r0
-  CMPI r1, 5
-  BLT r7, upd_angle
+  PSET r28, r19, r3
+  CMPI r11, 5
+  BLT r15, upd_angle
   MOV r28, r19
   ADDI r28, 1
-  PSET r18, r28, r0
+  PSET r18, r28, r3
   MOV r28, r19
   SUBI r28, 1
-  PSET r18, r28, r0
+  PSET r18, r28, r3
 
 upd_angle:
-  ADD r4, r13
-  ANDI r4, 0xFF
+  ADD r13, r9
+  ANDI r13, 0xFF
   MOV r21, r20
   ADDI r21, 1
-  STORE r21, r4
+  STORE r21, r13
 
 next_planet:
   ADDI r20, 6
   ADDI r27, 1
   CMP r27, r26
-  BLT r7, planets_lp
+  BLT r15, planets_lp
 
   ; ── HUD: zoom bar ──
   LDI r20, 0x3400
   LOAD r20, r20
   SUBI r20, 32
-  LDI r14, 480
-  DIV r20, r14
+  LDI r7, 480
+  DIV r20, r7
   CMPI r20, 40
-  BLT r7, hud_ok
+  BLT r15, hud_ok
   LDI r20, 40
 hud_ok:
   LDI r21, 0
   LDI r22, 2
-  LDI r13, 0x00FF88
+  LDI r9, 0x00FF88
 hud_lp:
   CMP r21, r20
-  BGE r7, hud_done
-  PSET r21, r22, r13
+  BGE r15, hud_done
+  PSET r21, r22, r9
   ADDI r21, 1
   JMP hud_lp
 hud_done:

@@ -4734,7 +4734,7 @@ phases:
   _claimed_at: 1778264216
 - id: phase-278
   title: GeOS VM -- ops_memory.rs and scheduler.rs Unit Tests
-  status: planned
+  status: in_progress
   goal: Add unit tests for memory opcodes and process scheduler (both currently 0
     tests).
   description: LOAD/STORE with canvas buffer interception (0x8000-0x8FFF), PUSH/POP
@@ -4760,6 +4760,8 @@ phases:
       >= 30
   - description: All tests pass
     validation: cargo test --lib ops_memory scheduler
+  _claimed_by: worker-0
+  _claimed_at: 1778265183
 - id: phase-279
   title: GeOS Program -- Platformer Game with Physics
   status: planned

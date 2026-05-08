@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a graphical user interface (GUI) calculator application. It handles mouse input to detect button clicks, performs arithmetic operations such as addition, subtraction, multiplication, and division, and updates the display accordingly. The calculator features a 256x256 pixel canvas with buttons arranged in a grid, and it uses RAM for storing various states and temporary values during computation.
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ; gui_calc.asm -- GUI Calculator App for Geometry OS
 ;
@@ -29,15 +29,15 @@
 ;   0x628 = buffer pointer temp
 ;
 ; Register allocation:
-;   r14  = constant 1 (reloaded as needed)
-;   r11  = scratch
-;   r5  = scratch
-;   r1  = scratch
-;   r13  = scratch (colors, values)
+;   r3  = constant 1 (reloaded as needed)
 ;   r15  = scratch
-;   r2 = mouse X from MOUSEQ
+;   r14  = scratch
+;   r0  = scratch
+;   r2  = scratch (colors, values)
+;   r7  = scratch
+;   r5 = mouse X from MOUSEQ
 ;   r8 = mouse Y from MOUSEQ
-;   r10 = hit query result
+;   r6 = hit query result
 ;   r20 = RAM pointer
 ;   r21 = digit conversion scratch
 ;   r22 = temp
@@ -64,36 +64,36 @@
 #define DIG_PTR    0x628
 
 ; ── INIT ──────────────────────────────────────────
-    LDI r14, 1
+    LDI r3, 1
 
 ; Display value = 0
     LDI r20, DISP_VAL
-    LDI r11, 0
-    STORE r20, r11
+    LDI r15, 0
+    STORE r20, r15
 
 ; Accumulator = 0
     LDI r20, ACCUM
-    STORE r20, r11
+    STORE r20, r15
 
 ; Operator = none (0)
     LDI r20, OPER
-    STORE r20, r11
+    STORE r20, r15
 
 ; State = entering first number (0)
     LDI r20, STATE
-    STORE r20, r11
+    STORE r20, r15
 
 ; New entry = no (0)
     LDI r20, NEW_ENTRY
-    STORE r20, r11
+    STORE r20, r15
 
 ; Tick = 0
     LDI r20, TICK
-    STORE r20, r11
+    STORE r20, r15
 
 ; Fill screen dark
-    LDI r11, 0x1A1A2E
-    FILL r11
+    LDI r15, 0x1A1A2E
+    FILL r15
 
 ; ── Register all button hit regions ──
 ; Button grid: 4 cols x 5 rows
@@ -101,219 +101,219 @@
 ; Start: x=20, y=70
 
 ; Row 0: C  /  *  -
-    LDI r14, 20
-    LDI r11, 70
-    LDI r5, 48
-    LDI r1, 38
-    HITSET r14, r11, r5, r1, 1
+    LDI r3, 20
+    LDI r15, 70
+    LDI r14, 48
+    LDI r0, 38
+    HITSET r3, r15, r14, r0, 1
 
-    LDI r14, 72
-    HITSET r14, r11, r5, r1, 2
+    LDI r3, 72
+    HITSET r3, r15, r14, r0, 2
 
-    LDI r14, 124
-    HITSET r14, r11, r5, r1, 3
+    LDI r3, 124
+    HITSET r3, r15, r14, r0, 3
 
-    LDI r14, 176
-    HITSET r14, r11, r5, r1, 4
+    LDI r3, 176
+    HITSET r3, r15, r14, r0, 4
 
 ; Row 1: 7  8  9  +
-    LDI r14, 20
-    LDI r11, 112
-    HITSET r14, r11, r5, r1, 5
+    LDI r3, 20
+    LDI r15, 112
+    HITSET r3, r15, r14, r0, 5
 
-    LDI r14, 72
-    HITSET r14, r11, r5, r1, 6
+    LDI r3, 72
+    HITSET r3, r15, r14, r0, 6
 
-    LDI r14, 124
-    HITSET r14, r11, r5, r1, 7
+    LDI r3, 124
+    HITSET r3, r15, r14, r0, 7
 
-    LDI r14, 176
-    HITSET r14, r11, r5, r1, 8
+    LDI r3, 176
+    HITSET r3, r15, r14, r0, 8
 
 ; Row 2: 4  5  6  =
-    LDI r14, 20
-    LDI r11, 154
-    HITSET r14, r11, r5, r1, 9
+    LDI r3, 20
+    LDI r15, 154
+    HITSET r3, r15, r14, r0, 9
 
-    LDI r14, 72
-    HITSET r14, r11, r5, r1, 10
+    LDI r3, 72
+    HITSET r3, r15, r14, r0, 10
 
-    LDI r14, 124
-    HITSET r14, r11, r5, r1, 11
+    LDI r3, 124
+    HITSET r3, r15, r14, r0, 11
 
-    LDI r14, 176
-    HITSET r14, r11, r5, r1, 12
+    LDI r3, 176
+    HITSET r3, r15, r14, r0, 12
 
 ; Row 3: 1  2  3  (empty)
-    LDI r14, 20
-    LDI r11, 196
-    HITSET r14, r11, r5, r1, 13
+    LDI r3, 20
+    LDI r15, 196
+    HITSET r3, r15, r14, r0, 13
 
-    LDI r14, 72
-    HITSET r14, r11, r5, r1, 14
+    LDI r3, 72
+    HITSET r3, r15, r14, r0, 14
 
-    LDI r14, 124
-    HITSET r14, r11, r5, r1, 15
+    LDI r3, 124
+    HITSET r3, r15, r14, r0, 15
 
 ; Row 4: 0 (wide)  .  (empty)
 ; Button 0 spans 2 cols: 100x38
-    LDI r14, 20
-    LDI r11, 238
-    LDI r5, 100
-    LDI r1, 16
-    HITSET r14, r11, r5, r1, 16
+    LDI r3, 20
+    LDI r15, 238
+    LDI r14, 100
+    LDI r0, 16
+    HITSET r3, r15, r14, r0, 16
 
-    LDI r14, 124
-    LDI r5, 48
-    LDI r1, 16
-    HITSET r14, r11, r5, r1, 17
+    LDI r3, 124
+    LDI r14, 48
+    LDI r0, 16
+    HITSET r3, r15, r14, r0, 17
 
 ; ── MAIN LOOP ─────────────────────────────────────
 main_loop:
-    LDI r14, 1
+    LDI r3, 1
 
 ; Increment tick
     LDI r20, TICK
-    LOAD r11, r20
-    ADD r11, r14
-    STORE r20, r11
+    LOAD r15, r20
+    ADD r15, r3
+    STORE r20, r15
 
 ; Read mouse
-    MOUSEQ r2
+    MOUSEQ r5
 
 ; Query hit regions
-    HITQ r10
-    JZ r10, draw_ui
+    HITQ r6
+    JZ r6, draw_ui
 
 ; Handle button clicks
-    CMPI r10, 1
-    JZ r7, btn_clear
+    CMPI r6, 1
+    JZ r13, btn_clear
 
-    CMPI r10, 2
-    JZ r7, btn_div
+    CMPI r6, 2
+    JZ r13, btn_div
 
-    CMPI r10, 3
-    JZ r7, btn_mul
+    CMPI r6, 3
+    JZ r13, btn_mul
 
-    CMPI r10, 4
-    JZ r7, btn_sub
+    CMPI r6, 4
+    JZ r13, btn_sub
 
-    CMPI r10, 5
-    JZ r7, btn_7
+    CMPI r6, 5
+    JZ r13, btn_7
 
-    CMPI r10, 6
-    JZ r7, btn_8
+    CMPI r6, 6
+    JZ r13, btn_8
 
-    CMPI r10, 7
-    JZ r7, btn_9
+    CMPI r6, 7
+    JZ r13, btn_9
 
-    CMPI r10, 8
-    JZ r7, btn_add
+    CMPI r6, 8
+    JZ r13, btn_add
 
-    CMPI r10, 9
-    JZ r7, btn_4
+    CMPI r6, 9
+    JZ r13, btn_4
 
-    CMPI r10, 10
-    JZ r7, btn_5
+    CMPI r6, 10
+    JZ r13, btn_5
 
-    CMPI r10, 11
-    JZ r7, btn_6
+    CMPI r6, 11
+    JZ r13, btn_6
 
-    CMPI r10, 12
-    JZ r7, btn_eq
+    CMPI r6, 12
+    JZ r13, btn_eq
 
-    CMPI r10, 13
-    JZ r7, btn_1
+    CMPI r6, 13
+    JZ r13, btn_1
 
-    CMPI r10, 14
-    JZ r7, btn_2
+    CMPI r6, 14
+    JZ r13, btn_2
 
-    CMPI r10, 15
-    JZ r7, btn_3
+    CMPI r6, 15
+    JZ r13, btn_3
 
-    CMPI r10, 16
-    JZ r7, btn_0
+    CMPI r6, 16
+    JZ r13, btn_0
 
-    CMPI r10, 17
-    JZ r7, btn_dot
+    CMPI r6, 17
+    JZ r13, btn_dot
 
     JMP draw_ui
 
 ; ── Digit buttons ──────────────────────────────────
 ; Each digit: if new_entry, clear display first, then append digit
 btn_0:
-    LDI r14, 1
+    LDI r3, 1
     LDI r20, NEW_ENTRY
-    LOAD r11, r20
-    CMPI r11, 1
-    JZ r7, do_0_clear
+    LOAD r15, r20
+    CMPI r15, 1
+    JZ r13, do_0_clear
     JMP do_0_append
 do_0_clear:
     LDI r20, DISP_VAL
-    LDI r11, 0
-    STORE r20, r11
+    LDI r15, 0
+    STORE r20, r15
     LDI r20, NEW_ENTRY
-    STORE r20, r11
+    STORE r20, r15
 do_0_append:
     LDI r20, DISP_VAL
-    LOAD r11, r20
-    LDI r5, 10
-    MUL r11, r5
-    STORE r20, r11
+    LOAD r15, r20
+    LDI r14, 10
+    MUL r15, r14
+    STORE r20, r15
     JMP draw_ui
 
 btn_1:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 1
+    LDI r15, 1
     JMP enter_digit_finish
 
 btn_2:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 2
+    LDI r15, 2
     JMP enter_digit_finish
 
 btn_3:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 3
+    LDI r15, 3
     JMP enter_digit_finish
 
 btn_4:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 4
+    LDI r15, 4
     JMP enter_digit_finish
 
 btn_5:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 5
+    LDI r15, 5
     JMP enter_digit_finish
 
 btn_6:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 6
+    LDI r15, 6
     JMP enter_digit_finish
 
 btn_7:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 7
+    LDI r15, 7
     JMP enter_digit_finish
 
 btn_8:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 8
+    LDI r15, 8
     JMP enter_digit_finish
 
 btn_9:
-    LDI r14, 1
+    LDI r3, 1
     CALL enter_digit_start
-    LDI r11, 9
+    LDI r15, 9
     JMP enter_digit_finish
 
 btn_dot:
@@ -323,95 +323,95 @@ btn_dot:
 
 ; enter_digit_start: if new_entry, clear display value
 enter_digit_start:
-    LDI r14, 1
+    LDI r3, 1
     LDI r20, NEW_ENTRY
-    LOAD r11, r20
-    CMPI r11, 1
-    JZ r7, eds_clear
+    LOAD r15, r20
+    CMPI r15, 1
+    JZ r13, eds_clear
     RET
 eds_clear:
     LDI r20, DISP_VAL
-    LDI r11, 0
-    STORE r20, r11
+    LDI r15, 0
+    STORE r20, r15
     LDI r20, NEW_ENTRY
-    STORE r20, r11
-    LDI r14, 1
+    STORE r20, r15
+    LDI r3, 1
     RET
 
-; enter_digit_finish: r11=digit value, multiply display by 10 and add digit
+; enter_digit_finish: r15=digit value, multiply display by 10 and add digit
 enter_digit_finish:
-    LDI r14, 1
+    LDI r3, 1
     LDI r20, DISP_VAL
-    LOAD r5, r20
-    LDI r1, 10
-    MUL r5, r1
-    ADD r5, r11
-    STORE r20, r5
+    LOAD r14, r20
+    LDI r0, 10
+    MUL r14, r0
+    ADD r14, r15
+    STORE r20, r14
     JMP draw_ui
 
 ; ── Operator buttons ───────────────────────────────
 btn_add:
-    LDI r14, 1
+    LDI r3, 1
     LDI r20, OPER
-    LDI r11, 1
-    STORE r20, r11
+    LDI r15, 1
+    STORE r20, r15
     CALL save_accum_and_set_state
     JMP draw_ui
 
 btn_sub:
-    LDI r14, 1
+    LDI r3, 1
     LDI r20, OPER
-    LDI r11, 2
-    STORE r20, r11
+    LDI r15, 2
+    STORE r20, r15
     CALL save_accum_and_set_state
     JMP draw_ui
 
 btn_mul:
-    LDI r14, 1
+    LDI r3, 1
     LDI r20, OPER
-    LDI r11, 3
-    STORE r20, r11
+    LDI r15, 3
+    STORE r20, r15
     CALL save_accum_and_set_state
     JMP draw_ui
 
 btn_div:
-    LDI r14, 1
+    LDI r3, 1
     LDI r20, OPER
-    LDI r11, 4
-    STORE r20, r11
+    LDI r15, 4
+    STORE r20, r15
     CALL save_accum_and_set_state
     JMP draw_ui
 
 ; save_accum_and_set_state: save display to accumulator, set state=2, new_entry=1
 save_accum_and_set_state:
-    LDI r14, 1
+    LDI r3, 1
     ; If state is 2 (entering second), compute pending first
     LDI r20, STATE
-    LOAD r11, r20
-    CMPI r11, 2
-    JNZ r7, sas_set
+    LOAD r15, r20
+    CMPI r15, 2
+    JNZ r13, sas_set
     ; Compute pending operation
     CALL do_compute
 sas_set:
     ; Save display to accumulator
     LDI r20, DISP_VAL
-    LOAD r11, r20
+    LOAD r15, r20
     LDI r20, ACCUM
-    STORE r20, r11
+    STORE r20, r15
     ; Set state = 2 (entering second number)
     LDI r20, STATE
-    LDI r11, 2
-    STORE r20, r11
+    LDI r15, 2
+    STORE r20, r15
     ; Set new_entry = 1
     LDI r20, NEW_ENTRY
-    LDI r11, 1
-    STORE r20, r11
-    LDI r14, 1
+    LDI r15, 1
+    STORE r20, r15
+    LDI r3, 1
     RET
 
 ; ── Equals button ──────────────────────────────────
 btn_eq:
-    LDI r14, 1
+    LDI r3, 1
     CALL do_compute
     JMP draw_ui
 
@@ -419,504 +419,504 @@ btn_eq:
 ; accumulator OP display_val -> display_val
 ; Then set state=0, new_entry=1
 do_compute:
-    LDI r14, 1
+    LDI r3, 1
     ; Check if there is an operator
     LDI r20, OPER
-    LOAD r11, r20
-    CMPI r11, 0
-    JZ r7, dc_done
+    LOAD r15, r20
+    CMPI r15, 0
+    JZ r13, dc_done
     ; Load accumulator and display
     LDI r20, ACCUM
-    LOAD r5, r20
+    LOAD r14, r20
     LDI r20, DISP_VAL
-    LOAD r1, r20
+    LOAD r0, r20
     ; Branch on operator
-    CMPI r11, 1
-    JZ r7, dc_add
-    CMPI r11, 2
-    JZ r7, dc_sub
-    CMPI r11, 3
-    JZ r7, dc_mul
-    CMPI r11, 4
-    JZ r7, dc_div
+    CMPI r15, 1
+    JZ r13, dc_add
+    CMPI r15, 2
+    JZ r13, dc_sub
+    CMPI r15, 3
+    JZ r13, dc_mul
+    CMPI r15, 4
+    JZ r13, dc_div
     JMP dc_done
 
 dc_add:
-    ADD r5, r1
+    ADD r14, r0
     JMP dc_store
 
 dc_sub:
-    SUB r5, r1
+    SUB r14, r0
     JMP dc_store
 
 dc_mul:
-    MUL r5, r1
+    MUL r14, r0
     JMP dc_store
 
 dc_div:
-    CMPI r1, 0
-    JZ r7, dc_done
-    DIV r5, r1
+    CMPI r0, 0
+    JZ r13, dc_done
+    DIV r14, r0
 
 dc_store:
     LDI r20, DISP_VAL
-    STORE r20, r5
+    STORE r20, r14
     ; Clear operator
     LDI r20, OPER
-    LDI r11, 0
-    STORE r20, r11
+    LDI r15, 0
+    STORE r20, r15
 
 dc_done:
     ; Set state=0, new_entry=1
     LDI r20, STATE
-    LDI r11, 0
-    STORE r20, r11
+    LDI r15, 0
+    STORE r20, r15
     LDI r20, NEW_ENTRY
-    LDI r11, 1
-    STORE r20, r11
-    LDI r14, 1
+    LDI r15, 1
+    STORE r20, r15
+    LDI r3, 1
     RET
 
 ; ── Clear button ───────────────────────────────────
 btn_clear:
-    LDI r14, 1
+    LDI r3, 1
     LDI r20, DISP_VAL
-    LDI r11, 0
-    STORE r20, r11
+    LDI r15, 0
+    STORE r20, r15
     LDI r20, ACCUM
-    STORE r20, r11
+    STORE r20, r15
     LDI r20, OPER
-    STORE r20, r11
+    STORE r20, r15
     LDI r20, STATE
-    STORE r20, r11
+    STORE r20, r15
     LDI r20, NEW_ENTRY
-    STORE r20, r11
+    STORE r20, r15
     JMP draw_ui
 
 ; ── DRAW UI ────────────────────────────────────────
 draw_ui:
-    LDI r14, 1
+    LDI r3, 1
 
     ; Redraw background
-    LDI r11, 0x1A1A2E
-    FILL r11
+    LDI r15, 0x1A1A2E
+    FILL r15
 
     ; ── Display area ──
-    LDI r14, 20
-    LDI r11, 20
-    LDI r5, 216
-    LDI r1, 40
-    LDI r13, 0x0F3460
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 20
+    LDI r15, 20
+    LDI r14, 216
+    LDI r0, 40
+    LDI r2, 0x0F3460
+    RECTF r3, r15, r14, r0, r2
 
     ; Convert display value to string
     LDI r20, DISP_VAL
-    LOAD r13, r20
+    LOAD r2, r20
     LDI r20, TXT_BUF
     CALL num_to_str
 
     ; Render display text (right-aligned at x=220, y=32)
-    LDI r14, 220
-    LDI r11, 32
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r3, 220
+    LDI r15, 32
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; ── Draw buttons ──
     ; Row 0: C(1) /(2) *(3) -(4)
-    LDI r14, 20
-    LDI r11, 70
-    LDI r5, 48
-    LDI r1, 38
-    LDI r13, 0xE74C3C
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 20
+    LDI r15, 70
+    LDI r14, 48
+    LDI r0, 38
+    LDI r2, 0xE74C3C
+    RECTF r3, r15, r14, r0, r2
     ; "C" label
     LDI r20, TXT_BUF
-    LDI r11, 67
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 40
-    LDI r11, 82
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 67
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 40
+    LDI r15, 82
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; / button (orange)
-    LDI r14, 72
-    LDI r11, 70
-    LDI r13, 0xFF8800
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 72
+    LDI r15, 70
+    LDI r2, 0xFF8800
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 47
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 92
-    LDI r11, 82
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 47
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 92
+    LDI r15, 82
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; * button (orange)
-    LDI r14, 124
-    LDI r11, 70
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 124
+    LDI r15, 70
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 42
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 144
-    LDI r11, 82
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 42
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 144
+    LDI r15, 82
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; - button (orange)
-    LDI r14, 176
-    LDI r11, 70
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 176
+    LDI r15, 70
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 45
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 196
-    LDI r11, 82
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 45
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 196
+    LDI r15, 82
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; Row 1: 7(5) 8(6) 9(7) +(8)
-    LDI r14, 20
-    LDI r11, 112
-    LDI r5, 48
-    LDI r1, 38
-    LDI r13, 0x2C3E50
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 20
+    LDI r15, 112
+    LDI r14, 48
+    LDI r0, 38
+    LDI r2, 0x2C3E50
+    RECTF r3, r15, r14, r0, r2
     ; "7"
     LDI r20, TXT_BUF
-    LDI r11, 55
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 40
-    LDI r11, 124
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 55
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 40
+    LDI r15, 124
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
-    LDI r14, 72
-    LDI r11, 112
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 72
+    LDI r15, 112
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 56
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 92
-    LDI r11, 124
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 56
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 92
+    LDI r15, 124
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
-    LDI r14, 124
-    LDI r11, 112
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 124
+    LDI r15, 112
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 57
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 144
-    LDI r11, 124
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 57
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 144
+    LDI r15, 124
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; + button (green)
-    LDI r14, 176
-    LDI r11, 112
-    LDI r13, 0x27AE60
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 176
+    LDI r15, 112
+    LDI r2, 0x27AE60
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 43
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 196
-    LDI r11, 124
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 43
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 196
+    LDI r15, 124
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; Row 2: 4(9) 5(10) 6(11) =(12)
-    LDI r14, 20
-    LDI r11, 154
-    LDI r5, 48
-    LDI r1, 38
-    LDI r13, 0x2C3E50
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 20
+    LDI r15, 154
+    LDI r14, 48
+    LDI r0, 38
+    LDI r2, 0x2C3E50
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 52
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 40
-    LDI r11, 166
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 52
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 40
+    LDI r15, 166
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
-    LDI r14, 72
-    LDI r11, 154
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 72
+    LDI r15, 154
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 53
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 92
-    LDI r11, 166
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 53
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 92
+    LDI r15, 166
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
-    LDI r14, 124
-    LDI r11, 154
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 124
+    LDI r15, 154
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 54
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 144
-    LDI r11, 166
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 54
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 144
+    LDI r15, 166
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; = button (green)
-    LDI r14, 176
-    LDI r11, 154
-    LDI r13, 0x27AE60
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 176
+    LDI r15, 154
+    LDI r2, 0x27AE60
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 61
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 196
-    LDI r11, 166
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 61
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 196
+    LDI r15, 166
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; Row 3: 1(13) 2(14) 3(15) (empty)
-    LDI r14, 20
-    LDI r11, 196
-    LDI r5, 48
-    LDI r1, 38
-    LDI r13, 0x2C3E50
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 20
+    LDI r15, 196
+    LDI r14, 48
+    LDI r0, 38
+    LDI r2, 0x2C3E50
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 49
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 40
-    LDI r11, 208
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 49
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 40
+    LDI r15, 208
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
-    LDI r14, 72
-    LDI r11, 196
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 72
+    LDI r15, 196
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 50
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 92
-    LDI r11, 208
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 50
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 92
+    LDI r15, 208
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
-    LDI r14, 124
-    LDI r11, 196
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 124
+    LDI r15, 196
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 51
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 144
-    LDI r11, 208
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 51
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 144
+    LDI r15, 208
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; Row 4: 0(16, wide) .(17) (empty)
-    LDI r14, 20
-    LDI r11, 238
-    LDI r5, 100
-    LDI r1, 16
-    LDI r13, 0x2C3E50
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 20
+    LDI r15, 238
+    LDI r14, 100
+    LDI r0, 16
+    LDI r2, 0x2C3E50
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 48
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 60
-    LDI r11, 242
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 48
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 60
+    LDI r15, 242
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
-    LDI r14, 124
-    LDI r11, 238
-    LDI r5, 48
-    LDI r1, 16
-    LDI r13, 0x2C3E50
-    RECTF r14, r11, r5, r1, r13
+    LDI r3, 124
+    LDI r15, 238
+    LDI r14, 48
+    LDI r0, 16
+    LDI r2, 0x2C3E50
+    RECTF r3, r15, r14, r0, r2
     LDI r20, TXT_BUF
-    LDI r11, 46
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 144
-    LDI r11, 242
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 46
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 144
+    LDI r15, 242
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
     ; ── Title ──
     LDI r20, TXT_BUF
-    LDI r11, 71
-    STORE r20, r11
-    LDI r11, 85
-    ADD r20, r14
-    STORE r20, r11
-    LDI r11, 73
-    ADD r20, r14
-    STORE r20, r11
-    LDI r11, 32
-    ADD r20, r14
-    STORE r20, r11
-    LDI r11, 67
-    ADD r20, r14
-    STORE r20, r11
-    LDI r11, 65
-    ADD r20, r14
-    STORE r20, r11
-    LDI r11, 76
-    ADD r20, r14
-    STORE r20, r11
-    LDI r11, 0
-    ADD r20, r14
-    STORE r20, r11
-    LDI r14, 80
-    LDI r11, 5
-    LDI r5, TXT_BUF
-    TEXT r14, r11, r5
+    LDI r15, 71
+    STORE r20, r15
+    LDI r15, 85
+    ADD r20, r3
+    STORE r20, r15
+    LDI r15, 73
+    ADD r20, r3
+    STORE r20, r15
+    LDI r15, 32
+    ADD r20, r3
+    STORE r20, r15
+    LDI r15, 67
+    ADD r20, r3
+    STORE r20, r15
+    LDI r15, 65
+    ADD r20, r3
+    STORE r20, r15
+    LDI r15, 76
+    ADD r20, r3
+    STORE r20, r15
+    LDI r15, 0
+    ADD r20, r3
+    STORE r20, r15
+    LDI r3, 80
+    LDI r15, 5
+    LDI r14, TXT_BUF
+    TEXT r3, r15, r14
 
 do_frame:
     FRAME
     JMP main_loop
 
 ; ── num_to_str subroutine ──────────────────────────
-; Input:  r13 = number, r20 = buffer address
+; Input:  r2 = number, r20 = buffer address
 ; Output: null-terminated string at r20, r20 advanced
-; Clobbers: r7, r11, r5, r1, r21, r22
+; Clobbers: r13, r15, r14, r0, r21, r22
 ; Uses RAM: DIG_BUF(0x600), DIG_COUNT(0x620), DIG_QUOT(0x624), DIG_PTR(0x628)
 num_to_str:
-    LDI r14, 1
-    CMPI r13, 0
-    JNZ r7, nts_loop1
+    LDI r3, 1
+    CMPI r2, 0
+    JNZ r13, nts_loop1
 
     ; Handle zero
-    LDI r11, 48
-    STORE r20, r11
-    ADD r20, r14
-    LDI r11, 0
-    STORE r20, r11
+    LDI r15, 48
+    STORE r20, r15
+    ADD r20, r3
+    LDI r15, 0
+    STORE r20, r15
     RET
 
 nts_loop1:
     ; Init reversed buffer
     LDI r22, DIG_BUF
-    LDI r11, DIG_PTR
-    STORE r11, r22
+    LDI r15, DIG_PTR
+    STORE r15, r22
     LDI r21, 0
-    LDI r11, DIG_COUNT
-    STORE r11, r21
+    LDI r15, DIG_COUNT
+    STORE r15, r21
 
 nts_loop2:
-    CMPI r13, 0
-    JZ r7, nts_rev1
+    CMPI r2, 0
+    JZ r13, nts_rev1
 
-    ; r5 = r13 / 10
-    LDI r5, 0
-    ADD r5, r13
-    LDI r1, 10
-    DIV r5, r1
-    LDI r11, DIG_QUOT
-    STORE r11, r5
+    ; r14 = r2 / 10
+    LDI r14, 0
+    ADD r14, r2
+    LDI r0, 10
+    DIV r14, r0
+    LDI r15, DIG_QUOT
+    STORE r15, r14
 
-    ; r13 = r13 - r5*10 (remainder)
-    LDI r11, 0
-    ADD r11, r5
-    MUL r11, r1
-    SUB r13, r11
+    ; r2 = r2 - r14*10 (remainder)
+    LDI r15, 0
+    ADD r15, r14
+    MUL r15, r0
+    SUB r2, r15
     ; Convert to ASCII
-    LDI r11, 48
-    ADD r13, r11
+    LDI r15, 48
+    ADD r2, r15
 
     ; Store in reversed buffer
-    LDI r11, DIG_PTR
-    LOAD r22, r11
-    STORE r22, r13
-    ADD r22, r14
-    LDI r11, DIG_PTR
-    STORE r11, r22
+    LDI r15, DIG_PTR
+    LOAD r22, r15
+    STORE r22, r2
+    ADD r22, r3
+    LDI r15, DIG_PTR
+    STORE r15, r22
 
     ; Increment count
-    LDI r11, DIG_COUNT
-    LOAD r21, r11
-    ADD r21, r14
-    LDI r11, DIG_COUNT
-    STORE r11, r21
+    LDI r15, DIG_COUNT
+    LOAD r21, r15
+    ADD r21, r3
+    LDI r15, DIG_COUNT
+    STORE r15, r21
 
-    ; r13 = quotient
-    LDI r11, DIG_QUOT
-    LOAD r13, r11
+    ; r2 = quotient
+    LDI r15, DIG_QUOT
+    LOAD r2, r15
     JMP nts_loop2
 
 nts_rev1:
     ; Reverse digits into output buffer
-    LDI r11, DIG_COUNT
-    LOAD r21, r11
+    LDI r15, DIG_COUNT
+    LOAD r21, r15
     LDI r22, DIG_BUF
 
 nts_rev2:
     CMPI r21, 0
-    JZ r7, nts_end
-    SUB r21, r14
+    JZ r13, nts_end
+    SUB r21, r3
     ; Load digit from reversed buffer
-    LDI r11, 0
-    ADD r11, r22
-    ADD r11, r21
-    LOAD r11, r11
+    LDI r15, 0
+    ADD r15, r22
+    ADD r15, r21
+    LOAD r15, r15
     ; Store to output buffer
-    STORE r20, r11
-    ADD r20, r14
+    STORE r20, r15
+    ADD r20, r3
     JMP nts_rev2
 
 nts_end:
-    LDI r11, 0
-    STORE r20, r11
-    LDI r14, 1
+    LDI r15, 0
+    STORE r20, r15
+    LDI r3, 1
     RET

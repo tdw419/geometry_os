@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code creates a window and uses the WINSYS VFS_BLIT operation to visualize the filesystem contents by encoding each file as RGBA pixels, effectively displaying files as colored patterns on the desktop. The window is positioned at coordinates (160, 32) with dimensions 64x64 pixels, and it enters an infinite loop where it continuously yields control, keeping the window open and the filesystem visualization updated.
+; DESCRIPTION: Draws a red object at the screen with fixed size.
 
 ; vfs_viewer.asm -- VFS Pixel Surface Viewer
 ;
@@ -14,21 +14,21 @@
 ; The user can SEE their files as colored patterns on the desktop.
 
 ; Window parameters
-LDI r15, 160       ; x = 160 (right side of desktop)
-LDI r14, 32        ; y = 32 (below taskbar)
-LDI r4, 64        ; w = 64 pixels wide
+LDI r4, 160       ; x = 160 (right side of desktop)
+LDI r0, 32        ; y = 32 (below taskbar)
+LDI r10, 64        ; w = 64 pixels wide
 LDI r9, 64        ; h = 64 pixels tall
-LDI r2, 0         ; title_addr = 0 (no title)
-LDI r8, 0         ; WINSYS op=0 (CREATE)
-WINSYS r8
+LDI r14, 0         ; title_addr = 0 (no title)
+LDI r12, 0         ; WINSYS op=0 (CREATE)
+WINSYS r12
 
-; Save window id (r10 has result)
-MOV r1, r10
+; Save window id (r8 has result)
+MOV r2, r8
 
 ; VFS_BLIT: Paint the filesystem into the window
-MOV r10, r1       ; window id
-LDI r8, 8         ; WINSYS op=8 (VFS_BLIT)
-WINSYS r8
+MOV r8, r2       ; window id
+LDI r12, 8         ; WINSYS op=8 (VFS_BLIT)
+WINSYS r12
 
 ; Spin loop showing the window.
 ; The files are now visible as pixels on the desktop.

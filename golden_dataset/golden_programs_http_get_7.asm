@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an HTTP client library for fetching web pages over HTTP/1.0. It provides subroutines to parse URLs, establish TCP connections, send HTTP GET requests, receive responses, strip headers from the response, and manage connections. The library uses specific memory regions for storing URL components, buffers for request and response data, and connection details.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; http_get.asm -- HTTP Client Library for Geometry OS
 ;
@@ -26,12 +26,12 @@
 ;   6. CALL http_strip_headers -- separates body from headers
 ;
 ; Register conventions:
-;   r11-r5  -- subroutine arguments/temp (caller-saved)
+;   r7-r2  -- subroutine arguments/temp (caller-saved)
 ;   r15-r19  -- subroutine local vars (caller-saved)
 ;   r20-r29  -- preserved across calls if needed (callee-saved by convention)
 ;   r30 = SP (grows down from 0xFF00)
 ;   r31 = LR (link register)
-;   r12  = CMP result (DO NOT USE as general register!)
+;   r4  = CMP result (DO NOT USE as general register!)
 
 #define URL_BUF      0x6000
 #define HOST_BUF     0x6100
@@ -61,109 +61,109 @@ url_parse:
   PUSH r31
 
   ; Set constants FIRST
-  LDI r9, 1           ; increment constant
+  LDI r0, 1           ; increment constant
 
   ; Initialize port to 80 (default)
-  LDI r11, 80
-  LDI r6, PORT_CELL
-  STORE r6, r11
+  LDI r7, 80
+  LDI r5, PORT_CELL
+  STORE r5, r7
 
   ; Initialize path to "/" followed by null
-  LDI r6, PATH_BUF
-  LDI r11, 47         ; '/'
-  STORE r6, r11
-  LDI r11, 0
-  ADD r6, r9         ; r6 = PATH_BUF + 1
-  STORE r6, r11      ; path[1] = null
+  LDI r5, PATH_BUF
+  LDI r7, 47         ; '/'
+  STORE r5, r7
+  LDI r7, 0
+  ADD r5, r0         ; r5 = PATH_BUF + 1
+  STORE r5, r7      ; path[1] = null
 
   ; ── Phase 1: Copy host part until ':' or '/' or null ──
-  LDI r11, URL_BUF    ; src = URL start
-  LDI r6, HOST_BUF   ; dst = host buffer
-  LDI r0, 0          ; host_len = 0
+  LDI r7, URL_BUF    ; src = URL start
+  LDI r5, HOST_BUF   ; dst = host buffer
+  LDI r1, 0          ; host_len = 0
 
 url_parse_host_loop:
   ; Load char from URL
-  LOAD r14, r11       ; r14 = url[pos]
+  LOAD r14, r7       ; r14 = url[pos]
 
   ; Check null -- end of URL
   JZ r14, url_parse_done
 
   ; Check '/' -- start of path
-  LDI r5, 47         ; '/'
-  CMP r14, r5
-  JZ r12, url_parse_path_start
+  LDI r2, 47         ; '/'
+  CMP r14, r2
+  JZ r4, url_parse_path_start
 
   ; Check ':' -- start of port
-  LDI r5, 58         ; ':'
-  CMP r14, r5
-  JZ r12, url_parse_port
+  LDI r2, 58         ; ':'
+  CMP r14, r2
+  JZ r4, url_parse_port
 
   ; Copy char to host buffer
-  STORE r6, r14
-  ADD r11, r9          ; src++
-  ADD r6, r9          ; dst++
-  ADD r0, r9          ; host_len++
+  STORE r5, r14
+  ADD r7, r0          ; src++
+  ADD r5, r0          ; dst++
+  ADD r1, r0          ; host_len++
   JMP url_parse_host_loop
 
 url_parse_port:
   ; Skip the ':'
-  ADD r11, r9
+  ADD r7, r0
 
   ; Null-terminate host
   LDI r14, 0
-  STORE r6, r14
+  STORE r5, r14
 
   ; Parse port number
-  LDI r6, 0          ; port = 0
+  LDI r5, 0          ; port = 0
 
 url_parse_port_loop:
-  LOAD r14, r11
+  LOAD r14, r7
   JZ r14, url_parse_port_done
 
   ; Check '/' -- start of path
-  LDI r5, 47
-  CMP r14, r5
-  JNZ r12, url_parse_port_digit
+  LDI r2, 47
+  CMP r14, r2
+  JNZ r4, url_parse_port_digit
 
   ; Found '/' after port -- save port first, then copy path
-  LDI r5, PORT_CELL
-  STORE r5, r6
+  LDI r2, PORT_CELL
+  STORE r2, r5
   JMP url_parse_path_start
 
 url_parse_port_digit:
   ; port = port * 10 + (char - '0')
-  LDI r5, 10
-  MUL r6, r5        ; port *= 10
-  LDI r5, 48         ; '0'
-  SUB r14, r5        ; digit = char - '0'
-  ADD r6, r14        ; port += digit
+  LDI r2, 10
+  MUL r5, r2        ; port *= 10
+  LDI r2, 48         ; '0'
+  SUB r14, r2        ; digit = char - '0'
+  ADD r5, r14        ; port += digit
 
-  ADD r11, r9
+  ADD r7, r0
   JMP url_parse_port_loop
 
 url_parse_port_done:
   ; Store port
   LDI r14, PORT_CELL
-  STORE r14, r6
+  STORE r14, r5
   JMP url_parse_done
 
 url_parse_path_start:
   ; Null-terminate host (safe even if already done)
-  ; r6 might be host dst ptr or port value -- use r0 (host_len) instead
+  ; r5 might be host dst ptr or port value -- use r1 (host_len) instead
   LDI r14, HOST_BUF
-  ADD r14, r0         ; r14 = HOST_BUF + host_len
-  LDI r5, 0
-  STORE r14, r5       ; null-terminate host
+  ADD r14, r1         ; r14 = HOST_BUF + host_len
+  LDI r2, 0
+  STORE r14, r2       ; null-terminate host
 
   ; Copy remaining URL to path buffer
-  LDI r6, PATH_BUF   ; dst = path buffer
+  LDI r5, PATH_BUF   ; dst = path buffer
 
 url_parse_path_loop:
-  LOAD r14, r11       ; char from URL
+  LOAD r14, r7       ; char from URL
   JZ r14, url_parse_done
-  STORE r6, r14      ; copy to path
-  ADD r11, r9
-  ADD r6, r9
+  STORE r5, r14      ; copy to path
+  ADD r7, r0
+  ADD r5, r0
   JMP url_parse_path_loop
 
 url_parse_done:
@@ -175,28 +175,28 @@ url_parse_done:
 ; http_connect -- Connect to the parsed host:port
 ;
 ; Input:  HOST_BUF, PORT_CELL
-; Output: FD_CELL = connection fd, r12 = 0 on success
+; Output: FD_CELL = connection fd, r4 = 0 on success
 ; ═══════════════════════════════════════════════
 http_connect:
   PUSH r31
 
-  LDI r11, HOST_BUF   ; addr_reg = pointer to host string
-  LDI r6, PORT_CELL
-  LOAD r6, r6       ; port_reg = port number
+  LDI r7, HOST_BUF   ; addr_reg = pointer to host string
+  LDI r5, PORT_CELL
+  LOAD r5, r5       ; port_reg = port number
 
   ; We need to load host address and port into registers
   ; CONNECT addr_reg, port_reg, fd_reg
   ; But CONNECT reads from RAM[addr_reg] as IP string
   ; We need a temp register for the fd output
-  LDI r0, FD_CELL    ; will store fd here
+  LDI r1, FD_CELL    ; will store fd here
 
-  ; CONNECT r11, r6, r0  -- but we need to use register numbers
-  ; r11=addr, r6=port, r0=fd_out
-  CONNECT r11, r6, r0
+  ; CONNECT r7, r5, r1  -- but we need to use register numbers
+  ; r7=addr, r5=port, r1=fd_out
+  CONNECT r7, r5, r1
 
   ; Store fd to RAM
   LDI r14, FD_CELL
-  STORE r14, r0
+  STORE r14, r1
 
   POP r31
   RET
@@ -206,7 +206,7 @@ http_connect:
 ; http_send_get -- Build and send HTTP GET request
 ;
 ; Input:  HOST_BUF, PATH_BUF, FD_CELL
-; Output: Request sent via TCP, r12 = 0 on success
+; Output: Request sent via TCP, r4 = 0 on success
 ;
 ; Builds: "GET /path HTTP/1.0\r\nHost: host\r\n\r\n"
 ; ═══════════════════════════════════════════════
@@ -214,144 +214,144 @@ http_send_get:
   PUSH r31
 
   ; Build request string in REQ_BUF (0x6400)
-  LDI r11, REQ_BUF    ; dst = request buffer
-  LDI r9, 1           ; increment
+  LDI r7, REQ_BUF    ; dst = request buffer
+  LDI r0, 1           ; increment
 
   ; ── "GET " ──
-  LDI r6, 71         ; 'G'
-  STORE r11, r6
-  ADD r11, r9
-  LDI r6, 69         ; 'E'
-  STORE r11, r6
-  ADD r11, r9
-  LDI r6, 84         ; 'T'
-  STORE r11, r6
-  ADD r11, r9
-  LDI r6, 32         ; ' '
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 71         ; 'G'
+  STORE r7, r5
+  ADD r7, r0
+  LDI r5, 69         ; 'E'
+  STORE r7, r5
+  ADD r7, r0
+  LDI r5, 84         ; 'T'
+  STORE r7, r5
+  ADD r7, r0
+  LDI r5, 32         ; ' '
+  STORE r7, r5
+  ADD r7, r0
 
   ; ── Copy path ──
-  LDI r6, PATH_BUF
+  LDI r5, PATH_BUF
 http_send_path_loop:
-  LOAD r0, r6       ; char from path
-  JZ r0, http_send_path_done
-  STORE r11, r0
-  ADD r11, r9
-  ADD r6, r9
+  LOAD r1, r5       ; char from path
+  JZ r1, http_send_path_done
+  STORE r7, r1
+  ADD r7, r0
+  ADD r5, r0
   JMP http_send_path_loop
 
 http_send_path_done:
   ; ── " HTTP/1.0\r\nHost: " ──
   ; ' '
-  LDI r6, 32
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 32
+  STORE r7, r5
+  ADD r7, r0
   ; 'H'
-  LDI r6, 72
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 72
+  STORE r7, r5
+  ADD r7, r0
   ; 'T'
-  LDI r6, 84
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 84
+  STORE r7, r5
+  ADD r7, r0
   ; 'T'
-  LDI r6, 84
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 84
+  STORE r7, r5
+  ADD r7, r0
   ; 'P'
-  LDI r6, 80
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 80
+  STORE r7, r5
+  ADD r7, r0
   ; '/'
-  LDI r6, 47
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 47
+  STORE r7, r5
+  ADD r7, r0
   ; '1'
-  LDI r6, 49
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 49
+  STORE r7, r5
+  ADD r7, r0
   ; '.'
-  LDI r6, 46
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 46
+  STORE r7, r5
+  ADD r7, r0
   ; '0'
-  LDI r6, 48
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 48
+  STORE r7, r5
+  ADD r7, r0
   ; '\r'
-  LDI r6, 13
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 13
+  STORE r7, r5
+  ADD r7, r0
   ; '\n'
-  LDI r6, 10
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 10
+  STORE r7, r5
+  ADD r7, r0
   ; 'H'
-  LDI r6, 72
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 72
+  STORE r7, r5
+  ADD r7, r0
   ; 'o'
-  LDI r6, 111
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 111
+  STORE r7, r5
+  ADD r7, r0
   ; 's'
-  LDI r6, 115
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 115
+  STORE r7, r5
+  ADD r7, r0
   ; 't'
-  LDI r6, 116
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 116
+  STORE r7, r5
+  ADD r7, r0
   ; ':'
-  LDI r6, 58
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 58
+  STORE r7, r5
+  ADD r7, r0
   ; ' '
-  LDI r6, 32
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 32
+  STORE r7, r5
+  ADD r7, r0
 
   ; ── Copy host ──
-  LDI r6, HOST_BUF
+  LDI r5, HOST_BUF
 http_send_host_loop:
-  LOAD r0, r6
-  JZ r0, http_send_host_done
-  STORE r11, r0
-  ADD r11, r9
-  ADD r6, r9
+  LOAD r1, r5
+  JZ r1, http_send_host_done
+  STORE r7, r1
+  ADD r7, r0
+  ADD r5, r0
   JMP http_send_host_loop
 
 http_send_host_done:
   ; ── "\r\n\r\n" (end of headers) ──
-  LDI r6, 13         ; '\r'
-  STORE r11, r6
-  ADD r11, r9
-  LDI r6, 10         ; '\n'
-  STORE r11, r6
-  ADD r11, r9
-  LDI r6, 13         ; '\r'
-  STORE r11, r6
-  ADD r11, r9
-  LDI r6, 10         ; '\n'
-  STORE r11, r6
-  ADD r11, r9
+  LDI r5, 13         ; '\r'
+  STORE r7, r5
+  ADD r7, r0
+  LDI r5, 10         ; '\n'
+  STORE r7, r5
+  ADD r7, r0
+  LDI r5, 13         ; '\r'
+  STORE r7, r5
+  ADD r7, r0
+  LDI r5, 10         ; '\n'
+  STORE r7, r5
+  ADD r7, r0
 
   ; Null-terminate request for safety
-  LDI r6, 0
-  STORE r11, r6
+  LDI r5, 0
+  STORE r7, r5
 
   ; ── Calculate request length ──
-  LDI r6, REQ_BUF
-  SUB r11, r6        ; r11 = request length (dst - base)
+  LDI r5, REQ_BUF
+  SUB r7, r5        ; r7 = request length (dst - base)
 
   ; ── Send via TCP ──
-  LDI r6, FD_CELL
-  LOAD r6, r6       ; r6 = fd
-  LDI r0, REQ_BUF    ; r0 = buf addr
-  ; r11 = length
+  LDI r5, FD_CELL
+  LOAD r5, r5       ; r5 = fd
+  LDI r1, REQ_BUF    ; r1 = buf addr
+  ; r7 = length
   ; SOCKSEND fd_reg, buf_reg, len_reg, sent_reg
-  SOCKSEND r6, r0, r11, r14
+  SOCKSEND r5, r1, r7, r14
 
   POP r31
   RET
@@ -369,67 +369,67 @@ http_send_host_done:
 http_recv_response:
   PUSH r31
 
-  LDI r11, 0          ; total_received = 0
-  LDI r9, 1           ; increment
+  LDI r7, 0          ; total_received = 0
+  LDI r0, 1           ; increment
 
   ; Store initial body_len = 0
-  LDI r6, BODY_LEN
-  STORE r6, r11
+  LDI r5, BODY_LEN
+  STORE r5, r7
 
 http_recv_loop:
   ; Check if buffer is full
-  LDI r6, RESP_MAX
-  CMP r11, r6
-  BGE r12, http_recv_done
+  LDI r5, RESP_MAX
+  CMP r7, r5
+  BGE r4, http_recv_done
 
   ; Calculate remaining buffer space
-  LDI r6, RESP_MAX
-  SUB r6, r11        ; remaining = RESP_MAX - total
+  LDI r5, RESP_MAX
+  SUB r5, r7        ; remaining = RESP_MAX - total
 
   ; SOCKRECV fd, buf_addr, remaining, received
-  LDI r0, FD_CELL
-  LOAD r0, r0       ; r0 = fd
+  LDI r1, FD_CELL
+  LOAD r1, r1       ; r1 = fd
 
   ; Calculate write address: RESP_BUF + total_received
   LDI r14, RESP_BUF
-  ADD r14, r11        ; r14 = buf addr
+  ADD r14, r7        ; r14 = buf addr
 
-  ; r6 = remaining (max_len)
-  SOCKRECV r0, r14, r6, r5
+  ; r5 = remaining (max_len)
+  SOCKRECV r1, r14, r5, r2
 
   ; Check result
-  ; r12 = status: 0=OK, 6=would_block, 7=closed
-  JZ r12, http_recv_got_data
+  ; r4 = status: 0=OK, 6=would_block, 7=closed
+  JZ r4, http_recv_got_data
 
   ; Connection closed -- done
-  LDI r6, 7          ; NET_ERR_CONNECTION_CLOSED
-  CMP r12, r6
-  JZ r12, http_recv_done
+  LDI r5, 7          ; NET_ERR_CONNECTION_CLOSED
+  CMP r4, r5
+  JZ r4, http_recv_done
 
   ; Would block -- yield a frame and retry
   FRAME
   JMP http_recv_loop
 
 http_recv_got_data:
-  ; r5 = bytes received
-  ADD r11, r5        ; total += received
+  ; r2 = bytes received
+  ADD r7, r2        ; total += received
 
   ; Update body_len
-  LDI r6, BODY_LEN
-  STORE r6, r11
+  LDI r5, BODY_LEN
+  STORE r5, r7
 
   ; Check if received 0 bytes (shouldn't happen, but safety)
-  JZ r5, http_recv_done
+  JZ r2, http_recv_done
 
   ; Continue reading
   JMP http_recv_loop
 
 http_recv_done:
   ; Null-terminate response buffer at total_received position
-  LDI r6, RESP_BUF
-  ADD r6, r11
-  LDI r0, 0
-  STORE r6, r0
+  LDI r5, RESP_BUF
+  ADD r5, r7
+  LDI r1, 0
+  STORE r5, r1
 
   POP r31
   RET
@@ -451,122 +451,122 @@ http_strip_headers:
 
   ; ── Parse status code from first line ──
   ; Status is at offset 9 (after "HTTP/1.0 ")
-  LDI r11, RESP_BUF
-  LDI r9, 1
-  LDI r6, 9
-  ADD r11, r6        ; r11 points to status code digits
+  LDI r7, RESP_BUF
+  LDI r0, 1
+  LDI r5, 9
+  ADD r7, r5        ; r7 points to status code digits
 
   ; Parse 3-digit status: code = d1*100 + d2*10 + d3
-  LOAD r0, r11       ; first digit
-  LDI r6, 48
-  SUB r0, r6        ; d1 = char - '0'
-  LDI r6, 100
-  MUL r0, r6        ; d1 * 100
+  LOAD r1, r7       ; first digit
+  LDI r5, 48
+  SUB r1, r5        ; d1 = char - '0'
+  LDI r5, 100
+  MUL r1, r5        ; d1 * 100
   LDI r14, STATUS_CELL
-  STORE r14, r0      ; partial status
+  STORE r14, r1      ; partial status
 
-  ADD r11, r9
-  LOAD r0, r11       ; second digit
-  LDI r6, 48
-  SUB r0, r6        ; d2 = char - '0'
-  LDI r6, 10
-  MUL r0, r6        ; d2 * 10
+  ADD r7, r0
+  LOAD r1, r7       ; second digit
+  LDI r5, 48
+  SUB r1, r5        ; d2 = char - '0'
+  LDI r5, 10
+  MUL r1, r5        ; d2 * 10
   LDI r14, STATUS_CELL
   LOAD r14, r14
-  ADD r14, r0
-  LDI r0, STATUS_CELL
-  STORE r0, r14      ; status += d2*10
+  ADD r14, r1
+  LDI r1, STATUS_CELL
+  STORE r1, r14      ; status += d2*10
 
-  ADD r11, r9
-  LOAD r0, r11       ; third digit
-  LDI r6, 48
-  SUB r0, r6        ; d3 = char - '0'
+  ADD r7, r0
+  LOAD r1, r7       ; third digit
+  LDI r5, 48
+  SUB r1, r5        ; d3 = char - '0'
   LDI r14, STATUS_CELL
   LOAD r14, r14
-  ADD r14, r0
-  LDI r0, STATUS_CELL
-  STORE r0, r14      ; status += d3
+  ADD r14, r1
+  LDI r1, STATUS_CELL
+  STORE r1, r14      ; status += d3
 
   ; ── Find \r\n\r\n delimiter ──
-  LDI r11, RESP_BUF   ; scan position
-  LDI r6, BODY_LEN
-  LOAD r6, r6       ; response length
-  LDI r0, 0          ; bytes scanned
+  LDI r7, RESP_BUF   ; scan position
+  LDI r5, BODY_LEN
+  LOAD r5, r5       ; response length
+  LDI r1, 0          ; bytes scanned
 
 http_strip_scan:
   ; Check if we've scanned enough (need at least 4 more bytes for \r\n\r\n)
-  CMP r0, r6
-  BGE r12, http_strip_no_body
+  CMP r1, r5
+  BGE r4, http_strip_no_body
 
   ; Check for \r\n\r\n pattern
-  LOAD r14, r11       ; char[pos]
-  LDI r5, 13         ; '\r'
-  CMP r14, r5
-  JNZ r12, http_strip_next
+  LOAD r14, r7       ; char[pos]
+  LDI r2, 13         ; '\r'
+  CMP r14, r2
+  JNZ r4, http_strip_next
 
   ; Found \r, check \n\r\n
-  MOV r15, r11
-  ADD r15, r9
+  MOV r15, r7
+  ADD r15, r0
   LOAD r14, r15       ; char[pos+1]
-  LDI r5, 10         ; '\n'
-  CMP r14, r5
-  JNZ r12, http_strip_next
+  LDI r2, 10         ; '\n'
+  CMP r14, r2
+  JNZ r4, http_strip_next
 
-  ADD r15, r9
+  ADD r15, r0
   LOAD r14, r15       ; char[pos+2]
-  LDI r5, 13         ; '\r'
-  CMP r14, r5
-  JNZ r12, http_strip_next
+  LDI r2, 13         ; '\r'
+  CMP r14, r2
+  JNZ r4, http_strip_next
 
-  ADD r15, r9
+  ADD r15, r0
   LOAD r14, r15       ; char[pos+3]
-  LDI r5, 10         ; '\n'
-  CMP r14, r5
-  JNZ r12, http_strip_next
+  LDI r2, 10         ; '\n'
+  CMP r14, r2
+  JNZ r4, http_strip_next
 
   ; Found \r\n\r\n at pos! Body starts at pos+4
-  ADD r11, r9
-  ADD r11, r9
-  ADD r11, r9
-  ADD r11, r9          ; r11 = body start
+  ADD r7, r0
+  ADD r7, r0
+  ADD r7, r0
+  ADD r7, r0          ; r7 = body start
 
   ; Copy body to BODY_BUF
   LDI r14, BODY_BUF   ; dst
   LDI r15, 0          ; body count
 
 http_strip_copy:
-  LOAD r5, r11       ; char from body
-  JZ r5, http_strip_copy_done
-  STORE r14, r5      ; copy to body buffer
-  ADD r11, r9
-  ADD r14, r9
-  ADD r15, r9
+  LOAD r2, r7       ; char from body
+  JZ r2, http_strip_copy_done
+  STORE r14, r2      ; copy to body buffer
+  ADD r7, r0
+  ADD r14, r0
+  ADD r15, r0
   JMP http_strip_copy
 
 http_strip_copy_done:
   ; Null-terminate body
-  LDI r5, 0
-  STORE r14, r5
+  LDI r2, 0
+  STORE r14, r2
 
   ; Update BODY_LEN to actual body length
-  LDI r11, BODY_LEN
-  STORE r11, r15
+  LDI r7, BODY_LEN
+  STORE r7, r15
 
   POP r31
   RET
 
 http_strip_next:
-  ADD r11, r9
-  ADD r0, r9
+  ADD r7, r0
+  ADD r1, r0
   JMP http_strip_scan
 
 http_strip_no_body:
   ; No body found -- set body_len = 0, null-terminate body buf
-  LDI r11, BODY_BUF
-  LDI r6, 0
-  STORE r11, r6
-  LDI r11, BODY_LEN
-  STORE r11, r6
+  LDI r7, BODY_BUF
+  LDI r5, 0
+  STORE r7, r5
+  LDI r7, BODY_LEN
+  STORE r7, r5
 
   POP r31
   RET
@@ -577,9 +577,9 @@ http_strip_no_body:
 ; ═══════════════════════════════════════════════
 http_close:
   PUSH r31
-  LDI r11, FD_CELL
-  LOAD r11, r11
-  DISCONNECT r11
+  LDI r7, FD_CELL
+  LOAD r7, r7
+  DISCONNECT r7
   POP r31
   RET
 
@@ -589,7 +589,7 @@ http_close:
 ;
 ; Input:  URL string at URL_BUF (0x6000)
 ; Output: BODY_BUF (0x9000), BODY_LEN, STATUS_CELL
-;         r12 = 0 on success
+;         r4 = 0 on success
 ;
 ; This is the main entry point combining all steps.
 ; ═══════════════════════════════════════════════
@@ -602,14 +602,14 @@ http_get:
   ; Step 2: Connect
   CALL http_connect
 
-  ; Check connection result (r12 should be NET_OK = 0)
-  JNZ r12, http_get_fail
+  ; Check connection result (r4 should be NET_OK = 0)
+  JNZ r4, http_get_fail
 
   ; Step 3: Send GET request
   CALL http_send_get
 
   ; Check send result
-  JNZ r12, http_get_close_fail
+  JNZ r4, http_get_close_fail
 
   ; Step 4: Receive response
   CALL http_recv_response
@@ -621,7 +621,7 @@ http_get:
   CALL http_close
 
   ; Success
-  LDI r12, 0
+  LDI r4, 0
   POP r31
   RET
 
@@ -629,6 +629,6 @@ http_get_close_fail:
   CALL http_close
 
 http_get_fail:
-  ; r12 already has error code
+  ; r4 already has error code
   POP r31
   RET

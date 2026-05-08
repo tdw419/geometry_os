@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a real-time particle physics sandbox simulation. It includes gravity effects, wall collisions with damping, interactive particle spawning via keyboard inputs, and velocity-based coloring of particles. The program uses memory-mapped I/O for state management and handles user controls to adjust gravity direction and reset the simulation.
+; DESCRIPTION: Render a colored rectangle at the screen.
 
 ; particle_sandbox.asm -- Particle Physics Sandbox
 ;
@@ -20,7 +20,7 @@
 ;   0x7803 = frame_counter
 
 ; ===== Constants =====
-LDI r14, 1
+LDI r1, 1
 LDI r21, 4               ; words per particle
 LDI r22, 128             ; max particles
 LDI r23, 0x7000          ; particle table base
@@ -32,54 +32,54 @@ LDI r30, 0xFF00          ; initialize stack pointer
 
 ; ===== Build Speed-to-Color Table (16 entries at 0x7600) =====
 ; Speed 0=blue(slow) .. 7=green .. 11=yellow .. 15=red(fast)
-LDI r7, 0x7600
-LDI r12, 0x0000FF         ; 0 - blue
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0x0022FF         ; 1 - blue-cyan
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0x0066FF         ; 2 - cyan
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0x00AAFF         ; 3 - cyan-green
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0x00FFAA         ; 4 - green-cyan
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0x00FF66         ; 5 - green
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0x00FF22         ; 6 - green-yellow
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0x44FF00         ; 7 - yellow-green
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0x88FF00         ; 8 - yellow
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0xCCFF00         ; 9 - yellow
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0xFFFF00         ; 10 - yellow-orange
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0xFFAA00         ; 11 - orange
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0xFF6600         ; 12 - orange
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0xFF2200         ; 13 - red-orange
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0xFF0000         ; 14 - red
-STORE r7, r12
-ADD r7, r14
-LDI r12, 0xFF0044         ; 15 - red-pink
-STORE r7, r12
+LDI r13, 0x7600
+LDI r5, 0x0000FF         ; 0 - blue
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0x0022FF         ; 1 - blue-cyan
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0x0066FF         ; 2 - cyan
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0x00AAFF         ; 3 - cyan-green
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0x00FFAA         ; 4 - green-cyan
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0x00FF66         ; 5 - green
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0x00FF22         ; 6 - green-yellow
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0x44FF00         ; 7 - yellow-green
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0x88FF00         ; 8 - yellow
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0xCCFF00         ; 9 - yellow
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0xFFFF00         ; 10 - yellow-orange
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0xFFAA00         ; 11 - orange
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0xFF6600         ; 12 - orange
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0xFF2200         ; 13 - red-orange
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0xFF0000         ; 14 - red
+STORE r13, r5
+ADD r13, r1
+LDI r5, 0xFF0044         ; 15 - red-pink
+STORE r13, r5
 
 ; ===== Initialize State =====
 LDI r18, 0
@@ -90,8 +90,8 @@ STORE r26, r18            ; particle_count = 0
 STORE r27, r18            ; frame_counter = 0
 
 ; ===== Initial Burst =====
-LDI r13, 128
-LDI r1, 128
+LDI r14, 128
+LDI r2, 128
 CALL spawn_burst
 
 ; Set gravity down
@@ -104,7 +104,7 @@ STORE r25, r18
 main_loop:
   ; Increment frame counter
   LOAD r18, r27
-  ADD r18, r14
+  ADD r18, r1
   STORE r27, r18
 
   ; Read keyboard
@@ -113,61 +113,61 @@ main_loop:
   ; Space = spawn at center
   LDI r18, 32
   CMP r19, r18
-  JZ r6, do_spawn
+  JZ r7, do_spawn
 
   ; W = gravity up
   LDI r18, 87
   CMP r19, r18
-  JZ r6, grav_up
+  JZ r7, grav_up
   LDI r18, 119
   CMP r19, r18
-  JZ r6, grav_up
+  JZ r7, grav_up
 
   ; S = gravity down
   LDI r18, 83
   CMP r19, r18
-  JZ r6, grav_down
+  JZ r7, grav_down
   LDI r18, 115
   CMP r19, r18
-  JZ r6, grav_down
+  JZ r7, grav_down
 
   ; A = gravity left
   LDI r18, 65
   CMP r19, r18
-  JZ r6, grav_left
+  JZ r7, grav_left
   LDI r18, 97
   CMP r19, r18
-  JZ r6, grav_left
+  JZ r7, grav_left
 
   ; D = gravity right
   LDI r18, 68
   CMP r19, r18
-  JZ r6, grav_right
+  JZ r7, grav_right
   LDI r18, 100
   CMP r19, r18
-  JZ r6, grav_right
+  JZ r7, grav_right
 
   ; R = reset
   LDI r18, 82
   CMP r19, r18
-  JZ r6, do_reset
+  JZ r7, do_reset
   LDI r18, 114
   CMP r19, r18
-  JZ r6, do_reset
+  JZ r7, do_reset
 
   ; G = zero gravity
   LDI r18, 71
   CMP r19, r18
-  JZ r6, grav_zero
+  JZ r7, grav_zero
   LDI r18, 103
   CMP r19, r18
-  JZ r6, grav_zero
+  JZ r7, grav_zero
 
   JMP after_input
 
 do_spawn:
-  LDI r13, 128
-  LDI r1, 128
+  LDI r14, 128
+  LDI r2, 128
   CALL spawn_burst
   JMP after_input
 
@@ -216,188 +216,188 @@ after_input:
   SCROLL r18
 
   ; ===== Update and Render =====
-  LOAD r15, r26           ; particle_count
-  JZ r15, draw_hud
+  LOAD r10, r26           ; particle_count
+  JZ r10, draw_hud
 
-  LDI r10, 0              ; index = 0
+  LDI r4, 0              ; index = 0
 
 update_loop:
   ; Address = base + index * 4
-  MOV r7, r23
-  MOV r12, r10
+  MOV r13, r23
+  MOV r5, r4
   LDI r18, 4
-  MUL r12, r18
-  ADD r7, r12
+  MUL r5, r18
+  ADD r13, r5
 
   ; Load particle
-  LOAD r9, r7            ; x
-  ADD r7, r14
-  LOAD r8, r7            ; y
-  ADD r7, r14
-  LOAD r3, r7            ; vx
-  ADD r7, r14
-  LOAD r4, r7            ; vy
+  LOAD r12, r13            ; x
+  ADD r13, r1
+  LOAD r8, r13            ; y
+  ADD r13, r1
+  LOAD r9, r13            ; vx
+  ADD r13, r1
+  LOAD r11, r13            ; vy
 
   ; Apply gravity
-  PUSH r6
+  PUSH r7
   LOAD r18, r24
-  ADD r3, r18             ; vx += gx
+  ADD r9, r18             ; vx += gx
   LOAD r18, r25
-  ADD r4, r18             ; vy += gy
-  POP r6
+  ADD r11, r18             ; vy += gy
+  POP r7
 
   ; Update position
-  ADD r9, r3              ; x += vx
-  ADD r8, r4              ; y += vy
+  ADD r12, r9              ; x += vx
+  ADD r8, r11              ; y += vy
 
   ; Bounce off walls with damping
   CALL bounce_particle
 
   ; Store updated state
-  MOV r7, r23
-  MOV r12, r10
+  MOV r13, r23
+  MOV r5, r4
   LDI r18, 4
-  MUL r12, r18
-  ADD r7, r12
+  MUL r5, r18
+  ADD r13, r5
 
-  STORE r7, r9           ; x
-  ADD r7, r14
-  STORE r7, r8           ; y
-  ADD r7, r14
-  STORE r7, r3           ; vx
-  ADD r7, r14
-  STORE r7, r4           ; vy
+  STORE r13, r12           ; x
+  ADD r13, r1
+  STORE r13, r8           ; y
+  ADD r13, r1
+  STORE r13, r9           ; vx
+  ADD r13, r1
+  STORE r13, r11           ; vy
 
   ; Color by speed
   CALL compute_color
 
   ; Draw 2x2 particle
-  PSET r9, r8, r11
-  MOV r18, r9
-  ADD r18, r14
-  PSET r18, r8, r11
+  PSET r12, r8, r0
+  MOV r18, r12
+  ADD r18, r1
+  PSET r18, r8, r0
   MOV r18, r8
-  ADD r18, r14
-  PSET r9, r18, r11
-  MOV r18, r9
-  ADD r18, r14
-  PSET r18, r18, r11
+  ADD r18, r1
+  PSET r12, r18, r0
+  MOV r18, r12
+  ADD r18, r1
+  PSET r18, r18, r0
 
   ; Next particle
-  ADD r10, r14
-  CMP r10, r15
-  BLT r6, update_loop
+  ADD r4, r1
+  CMP r4, r10
+  BLT r7, update_loop
 
 draw_hud:
   ; Draw gravity arrow indicator at top-right
   LOAD r18, r24           ; gx
   LOAD r19, r25           ; gy
   LDI r20, 245            ; arrow center x
-  LDI r9, 12              ; arrow center y
+  LDI r12, 12              ; arrow center y
   LDI r21, 0xFFFF00       ; yellow
 
-  PUSH r6
+  PUSH r7
   LDI r22, 0
 
   ; Check if gravity_y nonzero
   CMP r19, r22
-  JZ r6, hud_check_gx
-  BGE r6, hud_arrow_down
+  JZ r7, hud_check_gx
+  BGE r7, hud_arrow_down
 
   ; Up arrow
-  LDI r9, 8
-  PSET r20, r9, r21
-  ADD r9, r14
-  PSET r20, r9, r21
-  ADD r9, r14
-  PSET r20, r9, r21
-  ADD r9, r14
-  PSET r20, r9, r21
-  ADD r9, r14
-  PSET r20, r9, r21
-  LDI r9, 8
+  LDI r12, 8
+  PSET r20, r12, r21
+  ADD r12, r1
+  PSET r20, r12, r21
+  ADD r12, r1
+  PSET r20, r12, r21
+  ADD r12, r1
+  PSET r20, r12, r21
+  ADD r12, r1
+  PSET r20, r12, r21
+  LDI r12, 8
   LDI r8, 244
-  PSET r8, r9, r21
+  PSET r8, r12, r21
   LDI r8, 246
-  PSET r8, r9, r21
+  PSET r8, r12, r21
   JMP hud_done
 
 hud_arrow_down:
-  LDI r9, 12
-  PSET r20, r9, r21
-  ADD r9, r14
-  PSET r20, r9, r21
-  ADD r9, r14
-  PSET r20, r9, r21
-  ADD r9, r14
-  PSET r20, r9, r21
-  ADD r9, r14
-  PSET r20, r9, r21
-  LDI r9, 16
+  LDI r12, 12
+  PSET r20, r12, r21
+  ADD r12, r1
+  PSET r20, r12, r21
+  ADD r12, r1
+  PSET r20, r12, r21
+  ADD r12, r1
+  PSET r20, r12, r21
+  ADD r12, r1
+  PSET r20, r12, r21
+  LDI r12, 16
   LDI r8, 244
-  PSET r8, r9, r21
+  PSET r8, r12, r21
   LDI r8, 246
-  PSET r8, r9, r21
+  PSET r8, r12, r21
   JMP hud_done
 
 hud_check_gx:
   CMP r18, r22
-  JZ r6, hud_dot
+  JZ r7, hud_dot
 
   ; Left arrow
-  LDI r9, 241
-  PSET r9, r20, r21
-  ADD r9, r14
-  PSET r9, r20, r21
-  ADD r9, r14
-  PSET r9, r20, r21
-  ADD r9, r14
-  PSET r9, r20, r21
-  ADD r9, r14
-  PSET r9, r20, r21
-  LDI r9, 241
+  LDI r12, 241
+  PSET r12, r20, r21
+  ADD r12, r1
+  PSET r12, r20, r21
+  ADD r12, r1
+  PSET r12, r20, r21
+  ADD r12, r1
+  PSET r12, r20, r21
+  ADD r12, r1
+  PSET r12, r20, r21
+  LDI r12, 241
   LDI r8, 11
-  PSET r9, r8, r21
+  PSET r12, r8, r21
   LDI r8, 13
-  PSET r9, r8, r21
+  PSET r12, r8, r21
   JMP hud_done
 
 hud_dot:
   PSET r20, r20, r21
 
 hud_done:
-  POP r6
+  POP r7
 
   FRAME
   JMP main_loop
 
 ; ===== Subroutine: bounce_particle =====
-; Bounces particle (r9=x, r8=y, r3=vx, r4=vy) off screen edges
-; Modifies r9, r8, r3, r4 in place
+; Bounces particle (r12=x, r8=y, r9=vx, r11=vy) off screen edges
+; Modifies r12, r8, r9, r11 in place
 bounce_particle:
   PUSH r31
-  PUSH r6
+  PUSH r7
 
   ; Right wall (x > 254)
   LDI r18, 254
-  CMP r9, r18
-  BLT r6, bp_x_low
-  LDI r9, 254
-  CALL damp_neg          ; negate and damp r3
+  CMP r12, r18
+  BLT r7, bp_x_low
+  LDI r12, 254
+  CALL damp_neg          ; negate and damp r9
 bp_x_low:
   ; Left wall (x as signed < 0)
-  MOV r18, r9
+  MOV r18, r12
   LDI r19, 0
   CMP r18, r19
-  BGE r6, bp_y_high
-  LDI r9, 0
+  BGE r7, bp_y_high
+  LDI r12, 0
   CALL damp_neg
 
 bp_y_high:
   ; Bottom wall (y > 254)
   LDI r18, 254
   CMP r8, r18
-  BLT r6, bp_y_low
+  BLT r7, bp_y_low
   LDI r8, 254
   CALL damp_neg_vy
 
@@ -405,103 +405,103 @@ bp_y_low:
   MOV r18, r8
   LDI r19, 0
   CMP r18, r19
-  BGE r6, bp_done
+  BGE r7, bp_done
   LDI r8, 0
   CALL damp_neg_vy
 
 bp_done:
-  POP r6
+  POP r7
   POP r31
   RET
 
 ; ===== Subroutine: damp_neg =====
-; Negate r3 and apply damping (lose 1 from absolute value)
+; Negate r9 and apply damping (lose 1 from absolute value)
 damp_neg:
-  PUSH r6
-  NEG r3
-  ; Dampen: reduce |r3| by 1
+  PUSH r7
+  NEG r9
+  ; Dampen: reduce |r9| by 1
   LDI r18, 0
-  CMP r3, r18
-  BGE r6, dn_pos
-  ; r3 is negative: negate, sub 1, if 0 set to 0, else negate back
-  NEG r3
-  SUB r3, r14
-  JZ r3, dn_zero
-  NEG r3
+  CMP r9, r18
+  BGE r7, dn_pos
+  ; r9 is negative: negate, sub 1, if 0 set to 0, else negate back
+  NEG r9
+  SUB r9, r1
+  JZ r9, dn_zero
+  NEG r9
   JMP dn_done
 dn_pos:
-  SUB r3, r14
-  JZ r3, dn_zero
+  SUB r9, r1
+  JZ r9, dn_zero
   JMP dn_done
 dn_zero:
-  LDI r3, 0
+  LDI r9, 0
 dn_done:
-  POP r6
+  POP r7
   RET
 
 ; ===== Subroutine: damp_neg_vy =====
-; Negate r4 and apply damping
+; Negate r11 and apply damping
 damp_neg_vy:
-  PUSH r6
-  NEG r4
+  PUSH r7
+  NEG r11
   LDI r18, 0
-  CMP r4, r18
-  BGE r6, dv_pos
-  NEG r4
-  SUB r4, r14
-  JZ r4, dv_zero
-  NEG r4
+  CMP r11, r18
+  BGE r7, dv_pos
+  NEG r11
+  SUB r11, r1
+  JZ r11, dv_zero
+  NEG r11
   JMP dv_done
 dv_pos:
-  SUB r4, r14
-  JZ r4, dv_zero
+  SUB r11, r1
+  JZ r11, dv_zero
   JMP dv_done
 dv_zero:
-  LDI r4, 0
+  LDI r11, 0
 dv_done:
-  POP r6
+  POP r7
   RET
 
 ; ===== Subroutine: compute_color =====
-; Sets r11 = color based on particle velocity (r3=vx, r4=vy)
+; Sets r0 = color based on particle velocity (r9=vx, r11=vy)
 compute_color:
-  PUSH r6
+  PUSH r7
   ; speed = |vx| + |vy|, clamped to 0..15
-  MOV r18, r3
+  MOV r18, r9
   LDI r19, 0
   CMP r18, r19
-  BGE r6, cc_vx_pos
+  BGE r7, cc_vx_pos
   NEG r18
 cc_vx_pos:
-  MOV r2, r18
+  MOV r6, r18
 
-  MOV r18, r4
+  MOV r18, r11
   LDI r19, 0
   CMP r18, r19
-  BGE r6, cc_vy_pos
+  BGE r7, cc_vy_pos
   NEG r18
 cc_vy_pos:
-  ADD r2, r18
+  ADD r6, r18
 
   ; Clamp to 15
   LDI r18, 15
-  CMP r2, r18
-  BLT r6, cc_lookup
-  MOV r2, r18
+  CMP r6, r18
+  BLT r7, cc_lookup
+  MOV r6, r18
 
 cc_lookup:
   LDI r18, 0x7600
-  ADD r18, r2
-  LOAD r11, r18
+  ADD r18, r6
+  LOAD r0, r18
 
-  POP r6
+  POP r7
   RET
 
 ; ===== Subroutine: spawn_burst =====
-; Spawns 8 particles at (r13, r1) with random velocities
+; Spawns 8 particles at (r14, r2) with random velocities
 spawn_burst:
   PUSH r31
-  PUSH r6
+  PUSH r7
 
   LDI r16, 8
 
@@ -509,14 +509,14 @@ sb_loop:
   LOAD r18, r26
   LDI r17, 128
   CMP r18, r17
-  BGE r6, sb_done
+  BGE r7, sb_done
 
   ; Address = base + count * 4
-  MOV r7, r23
-  MOV r12, r18
+  MOV r13, r23
+  MOV r5, r18
   LDI r17, 4
-  MUL r12, r17
-  ADD r7, r12
+  MUL r5, r17
+  ADD r13, r5
 
   ; x = center + random(-8..7)
   RAND r17
@@ -524,48 +524,48 @@ sb_loop:
   AND r17, r18
   LDI r18, 8
   SUB r17, r18
-  MOV r18, r13
+  MOV r18, r14
   ADD r18, r17
-  STORE r7, r18
+  STORE r13, r18
 
   ; y = center + random(-8..7)
-  ADD r7, r14
+  ADD r13, r1
   RAND r17
   LDI r18, 15
   AND r17, r18
   LDI r18, 8
   SUB r17, r18
-  MOV r18, r1
+  MOV r18, r2
   ADD r18, r17
-  STORE r7, r18
+  STORE r13, r18
 
   ; vx = random(-3..4)
-  ADD r7, r14
+  ADD r13, r1
   RAND r17
   LDI r18, 7
   AND r17, r18
   LDI r18, 3
   SUB r17, r18
-  STORE r7, r17
+  STORE r13, r17
 
   ; vy = random(-5..2)
-  ADD r7, r14
+  ADD r13, r1
   RAND r17
   LDI r18, 7
   AND r17, r18
   LDI r18, 5
   SUB r17, r18
-  STORE r7, r17
+  STORE r13, r17
 
   ; Increment count
   LOAD r18, r26
-  ADD r18, r14
+  ADD r18, r1
   STORE r26, r18
 
-  SUB r16, r14
+  SUB r16, r1
   JNZ r16, sb_loop
 
 sb_done:
-  POP r6
+  POP r7
   POP r31
   RET

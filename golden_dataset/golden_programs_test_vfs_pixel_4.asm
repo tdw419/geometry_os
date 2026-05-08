@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code reads the magic number and file count from memory-mapped I/O at address 0x7000_0000. If the magic number matches 'PXFS', it checks if there are any files by examining the first file's index pixel, then exits with a success status; otherwise, it exits with a failure status.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 # programs/test_vfs_pixel.asm -- Test for Pixel VFS Surface
 #

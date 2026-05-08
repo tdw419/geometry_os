@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates the use of wall-clock timers and alarms by visualizing elapsed time with a vertical bar and marking an alarm event. It uses `TMR_GET` to measure time intervals, `TMR_WAIT` for delays, and `ALARM_SET` to trigger an action after a specified timeout. The program also shows the last hexadecimal digit of the elapsed milliseconds as dots on the screen.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; timer_demo.asm -- Phase 222: Wall-Clock Timer & Alarm Demo
 ; Demonstrates TMR_GET, TMR_WAIT, ALARM_SET, ALARM_CLR
@@ -9,57 +9,57 @@
 ;   - Dot row: last hex digit of elapsed ms
 
 ; --- Part 1: TMR_GET baseline ---
-TMR_GET r9
+TMR_GET r13
 
 ; --- Part 2: TMR_WAIT 200ms ---
-IMM r5, 200
-TMR_WAIT r5
+IMM r12, 200
+TMR_WAIT r12
 
 ; --- Part 3: TMR_GET again, compute delta ---
-TMR_GET r10
-SUB r1, r10, r9
+TMR_GET r5
+SUB r7, r5, r13
 
 ; --- Part 4: Visualize elapsed time as vertical bar ---
-; Bar at x=2, height = min(r1/10, 30), color=4 (blue)
-DIV r2, r1, 10
-IMM r7, 30
-CMP r2, r7
-JGE r2, r7, cap_height
+; Bar at x=2, height = min(r7/10, 30), color=4 (blue)
+DIV r0, r7, 10
+IMM r9, 30
+CMP r0, r9
+JGE r0, r9, cap_height
 JMP draw_bar
 cap_height:
-MOV r2, r7
+MOV r0, r9
 draw_bar:
-IMM r12, 2       ; x
-IMM r3, 0      ; y
+IMM r1, 2       ; x
+IMM r10, 0      ; y
 bar_loop:
-CMP r2, 0
-JEQ r2, 0, bar_done
-PXL r12, r3, 4
-INC r3
-DEC r2
+CMP r0, 0
+JEQ r0, 0, bar_done
+PXL r1, r10, 4
+INC r10
+DEC r0
 JMP bar_loop
 bar_done:
 
 ; --- Part 5: Set alarm for 100ms, writes 99 to RAM[0xF00] ---
-IMM r13, 100    ; delay ms
-IMM r11, 0xF00  ; RAM address
-IMM r8, 99     ; value to write
-ALARM_SET r13, r11, r8
+IMM r11, 100    ; delay ms
+IMM r4, 0xF00  ; RAM address
+IMM r14, 99     ; value to write
+ALARM_SET r11, r4, r14
 
 ; --- Part 6: Spin until alarm fires ---
 alarm_wait:
 FRAME
-LOAD r14, 0xF00
-CMP r14, 99
-JNE r14, 99, alarm_wait
+LOAD r6, 0xF00
+CMP r6, 99
+JNE r6, 99, alarm_wait
 
 ; --- Part 7: Alarm fired! Mark success ---
-IMM r15, 5      ; x
+IMM r2, 5      ; x
 IMM r16, 20     ; y (bottom area)
-PXL r15, r16, 2 ; green pixel
+PXL r2, r16, 2 ; green pixel
 
 ; --- Part 8: Show last hex digit of elapsed ms as dots ---
-AND r20, r1, 0xF
+AND r20, r7, 0xF
 IMM r21, 8      ; start x for dots
 IMM r22, 20     ; y (same row as alarm marker)
 dot_loop:

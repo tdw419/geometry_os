@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code demonstrates the use of variable-width font rendering with the VWTXT opcode and switches between different font modes using the FONT_SELECT opcode. It displays various text strings in different colors, backgrounds, and styles to showcase the capabilities of proportional fonts compared to fixed-width fonts.
+; DESCRIPTION: Display a object using color red at the screen.
 
 ; vw_font_demo.asm -- Phase 210: Variable-width font demo
 ; Demonstrates VWTXT (0xDB) and FONT_SELECT (0xDC) opcodes
@@ -14,67 +14,67 @@
 ;   3 = medium 5x7
 
 ; === Section 1: VWTXT title ===
-LDI r14, 8           ; x = 8
-LDI r7, 5           ; y = 5
-LDI r3, title       ; addr
-LDI r0, 0x00FF00    ; fg = green
-LDI r8, 0           ; bg = transparent
-VWTXT r14, r7, r3, r0, r8
+LDI r6, 8           ; x = 8
+LDI r1, 5           ; y = 5
+LDI r15, title       ; addr
+LDI r8, 0x00FF00    ; fg = green
+LDI r4, 0           ; bg = transparent
+VWTXT r6, r1, r15, r8, r4
 
 ; === Section 2: Compare fixed vs variable ===
 ; Render "MMMMMMMMMM" with VWTXT (proportional)
-LDI r14, 8
-LDI r7, 25
-LDI r3, wide_text
-LDI r0, 0xFF8800    ; fg = orange
-LDI r8, 0x222244    ; bg = dark blue
-VWTXT r14, r7, r3, r0, r8
+LDI r6, 8
+LDI r1, 25
+LDI r15, wide_text
+LDI r8, 0xFF8800    ; fg = orange
+LDI r4, 0x222244    ; bg = dark blue
+VWTXT r6, r1, r15, r8, r4
 
 ; Render "iiiiiiiiii" with VWTXT (proportional, narrow)
-LDI r14, 8
-LDI r7, 40
-LDI r3, narrow_text
-LDI r0, 0x00CCFF    ; fg = cyan
-LDI r8, 0x222244    ; bg = dark blue
-VWTXT r14, r7, r3, r0, r8
+LDI r6, 8
+LDI r1, 40
+LDI r15, narrow_text
+LDI r8, 0x00CCFF    ; fg = cyan
+LDI r4, 0x222244    ; bg = dark blue
+VWTXT r6, r1, r15, r8, r4
 
 ; === Section 3: FONT_SELECT switches TEXT opcode ===
-LDI r13, 1
-FONT_SELECT r13       ; switch to variable-width for TEXT
+LDI r12, 1
+FONT_SELECT r12       ; switch to variable-width for TEXT
 
-LDI r14, 8
-LDI r7, 60
-LDI r3, font_select_test
-LDI r0, 0xFFFF00    ; fg = yellow
-TEXT r14, r7, r3
+LDI r6, 8
+LDI r1, 60
+LDI r15, font_select_test
+LDI r8, 0xFFFF00    ; fg = yellow
+TEXT r6, r1, r15
 
 ; Reset to default
-LDI r13, 0
-FONT_SELECT r13
+LDI r12, 0
+FONT_SELECT r12
 
 ; === Section 4: Background fill demo ===
-LDI r14, 8
-LDI r7, 85
-LDI r3, bg_demo
-LDI r0, 0xFFFFFF    ; fg = white
-LDI r8, 0x004400    ; bg = dark green
-VWTXT r14, r7, r3, r0, r8
+LDI r6, 8
+LDI r1, 85
+LDI r15, bg_demo
+LDI r8, 0xFFFFFF    ; fg = white
+LDI r4, 0x004400    ; bg = dark green
+VWTXT r6, r1, r15, r8, r4
 
 ; === Section 5: Mixed content paragraph ===
-LDI r14, 8
-LDI r7, 110
-LDI r3, paragraph
-LDI r0, 0xCCCCCC    ; fg = light gray
-LDI r8, 0
-VWTXT r14, r7, r3, r0, r8
+LDI r6, 8
+LDI r1, 110
+LDI r15, paragraph
+LDI r8, 0xCCCCCC    ; fg = light gray
+LDI r4, 0
+VWTXT r6, r1, r15, r8, r4
 
 ; === Section 6: Word wrap demonstration ===
-LDI r14, 8
-LDI r7, 150
-LDI r3, wrap_text
-LDI r0, 0xFF66FF    ; fg = magenta
-LDI r8, 0
-VWTXT r14, r7, r3, r0, r8
+LDI r6, 8
+LDI r1, 150
+LDI r15, wrap_text
+LDI r8, 0xFF66FF    ; fg = magenta
+LDI r4, 0
+VWTXT r6, r1, r15, r8, r4
 
 HALT
 

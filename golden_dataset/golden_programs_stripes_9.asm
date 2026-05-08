@@ -1,50 +1,50 @@
-; DESCRIPTION: This GeOS assembly code draws alternating horizontal stripes of 16 pixels each, starting with red (0xFF0000) and toggling to blue (0x0000FF), across the entire screen. The drawing is performed using the PSET function with a register-based approach, iterating through each pixel in the defined stripe height and width.
+; DESCRIPTION: Render a red object at the screen.
 
 ; HORIZONTAL_STRIPES -- Draw alternating horizontal stripes
 ; Each stripe is 16 pixels tall, alternating red (0xFF0000) and blue (0x0000FF)
 ; Uses PSET (register-based) for all drawing
 ; Test: rows 0-15 = red, rows 16-31 = blue, rows 32-47 = red, etc.
 
-LDI r5, 0            ; r5 = y counter
-LDI r7, 1            ; increment
-LDI r12, 256          ; limit
-LDI r11, 0xFF00FF     ; toggle mask (red XOR blue)
-LDI r0, 16           ; stripe height
-LDI r15, 0            ; stripe pixel counter
+LDI r8, 0            ; r8 = y counter
+LDI r1, 1            ; increment
+LDI r9, 256          ; limit
+LDI r12, 0xFF00FF     ; toggle mask (red XOR blue)
+LDI r10, 16           ; stripe height
+LDI r14, 0            ; stripe pixel counter
 LDI r13, 0xFF0000     ; current color (start red)
 
 y_loop:
-  LDI r2, 0          ; r2 = x counter
+  LDI r5, 0          ; r5 = x counter
 
 x_loop:
-  PSET r2, r5, r13    ; pixel at (x, y) with current color
-  ADD r2, r7          ; x++
-  LDI r9, 0
-  ADD r9, r2
-  SUB r9, r12
-  JZ r9, next_row
+  PSET r5, r8, r13    ; pixel at (x, y) with current color
+  ADD r5, r1          ; x++
+  LDI r4, 0
+  ADD r4, r5
+  SUB r4, r9
+  JZ r4, next_row
   JMP x_loop
 
 next_row:
-  ADD r5, r7          ; y++
-  ADD r15, r7          ; stripe pixel counter++
-  LDI r9, 0
-  ADD r9, r15
-  SUB r9, r0
-  JNZ r9, check_y
+  ADD r8, r1          ; y++
+  ADD r14, r1          ; stripe pixel counter++
+  LDI r4, 0
+  ADD r4, r14
+  SUB r4, r10
+  JNZ r4, check_y
   ; Toggle color and reset counter
-  LDI r15, 0
-  LDI r9, 0
-  ADD r9, r13
-  XOR r9, r11
+  LDI r14, 0
+  LDI r4, 0
+  ADD r4, r13
+  XOR r4, r12
   LDI r13, 0
-  ADD r13, r9
+  ADD r13, r4
 
 check_y:
-  LDI r9, 0
-  ADD r9, r5
-  SUB r9, r12
-  JZ r9, done
+  LDI r4, 0
+  ADD r4, r8
+  SUB r4, r9
+  JZ r4, done
   JMP y_loop
 
 done:

@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code implements a classic plasma effect by filling a 256x256 screen with smoothly animated color waves. It uses a precomputed sine table and phase-shifted lookups per pixel to generate the vibrant visual patterns, updating the phases for each frame to create an animated appearance.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; plasma.asm -- classic plasma demo effect
 ;
@@ -16,9 +16,9 @@
 ;   PSET x, y, (r << 16) | (g << 8) | b
 ;
 ; Register convention:
-;   r2 = y counter         r12 = x counter
-;   r3 = phase1 (animates) r4 = phase2 (animates) r1 = phase3 (animates)
-;   r11 = 256 (limit)       r8  = 1 (increment)
+;   r1 = y counter         r0 = x counter
+;   r12 = phase1 (animates) r7 = phase2 (animates) r15 = phase3 (animates)
+;   r5 = 256 (limit)       r13  = 1 (increment)
 ;   r16 = sine table base   r17 = temp / color accum
 ;   r18-r23 = temps for sine lookups
 ;   r24 = frame counter
@@ -29,14 +29,14 @@
 ; We precompute this as data using LDI+STORE
 
 LDI r16, 0x2000        ; sine table base address
-LDI r11, 256           ; limit
+LDI r5, 256           ; limit
 
 ; Sine table: hand-computed 32-entry base pattern, then repeat with offset
 ; Using quarter-wave symmetry: sin(0)=128, sin(32)=255, sin(64)=128, sin(96)=1, sin(128)=128...
 ; Full 256-entry table built from a 64-entry repeating pattern
 
-LDI r8, 1
-LDI r2, 0             ; table index
+LDI r13, 1
+LDI r1, 0             ; table index
 
 ; Build sine table: 128 + 127*sin(2*pi*i/256)
 ; Using the identity: for 256 points, we can compute with a simple
@@ -58,12 +58,12 @@ LDI r2, 0             ; table index
 ; (i-128)^2 for i=128: 0 -> 255 ✓
 ; This is a cosine, not sine, but works great for plasma!
 
-LDI r2, 0
-LDI r8, 1
+LDI r1, 0
+LDI r13, 1
 
 build_sine:
   ; Compute val = 255 - 127 * (i - 128)^2 / 16384
-  MOV r17, r2         ; r17 = i
+  MOV r17, r1         ; r17 = i
   LDI r18, 128
   SUB r17, r18         ; r17 = i - 128 (signed!)
   
@@ -79,17 +79,17 @@ build_sine:
   ; if i < 128: delta = 128 - i
   ; if i >= 128: delta = i - 128
   LDI r18, 128
-  CMP r2, r18
-  BGE r9, above_128
+  CMP r1, r18
+  BGE r3, above_128
   
   ; Below 128: delta = 128 - i
   MOV r17, r18
-  SUB r17, r2        ; r17 = 128 - i
+  SUB r17, r1        ; r17 = 128 - i
   JMP do_square
   
 above_128:
   ; At or above 128: delta = i - 128
-  MOV r17, r2
+  MOV r17, r1
   SUB r17, r18        ; r17 = i - 128
   ; (r17 = 0 when i = 128, fine)
   
@@ -108,48 +108,48 @@ do_square:
   
   ; Store in table
   MOV r19, r16        ; r19 = table base
-  ADD r19, r2        ; r19 = base + index
+  ADD r19, r1        ; r19 = base + index
   STORE r19, r18      ; table[i] = val
   
-  ADD r2, r8          ; i++
-  CMP r2, r11
-  BLT r9, build_sine
+  ADD r1, r13          ; i++
+  CMP r1, r5
+  BLT r3, build_sine
 
 ; === Main animation loop ===
-LDI r3, 0             ; phase1
-LDI r4, 0             ; phase2
-LDI r1, 0             ; phase3
+LDI r12, 0             ; phase1
+LDI r7, 0             ; phase2
+LDI r15, 0             ; phase3
 LDI r24, 0             ; frame counter
-LDI r8, 1
-LDI r11, 256
+LDI r13, 1
+LDI r5, 256
 
 frame_loop:
-  LDI r2, 0           ; y = 0
+  LDI r1, 0           ; y = 0
   
 y_loop:
-  LDI r12, 0           ; x = 0
+  LDI r0, 0           ; x = 0
   
 x_loop:
   ; v1 = sin_table[(x + phase1) & 0xFF]
-  MOV r17, r12
-  ADD r17, r3         ; x + phase1
+  MOV r17, r0
+  ADD r17, r12         ; x + phase1
   LDI r18, 0xFF
   AND r17, r18         ; & 0xFF
   ADD r17, r16         ; table base + index
   LOAD r17, r17        ; r17 = v1
   
   ; v2 = sin_table[(y + phase2) & 0xFF]
-  MOV r18, r2
-  ADD r18, r4         ; y + phase2
+  MOV r18, r1
+  ADD r18, r7         ; y + phase2
   LDI r19, 0xFF
   AND r18, r19         ; & 0xFF
   ADD r18, r16         ; table base + index
   LOAD r18, r18        ; r18 = v2
   
   ; v3 = sin_table[((x + y) + phase3) & 0xFF]
-  MOV r19, r12
-  ADD r19, r2         ; x + y
-  ADD r19, r1         ; + phase3
+  MOV r19, r0
+  ADD r19, r1         ; x + y
+  ADD r19, r15         ; + phase3
   LDI r20, 0xFF
   AND r19, r20         ; & 0xFF
   ADD r19, r16         ; table base + index
@@ -193,24 +193,24 @@ x_loop:
   OR r21, r22          ; R<<16 | G<<8
   OR r21, r23          ; | B
   
-  PSET r12, r2, r21   ; draw pixel
+  PSET r0, r1, r21   ; draw pixel
   
   ; x++
-  ADD r12, r8
-  CMP r12, r11
-  BLT r9, x_loop
+  ADD r0, r13
+  CMP r0, r5
+  BLT r3, x_loop
   
   ; y++
-  ADD r2, r8
-  CMP r2, r11
-  BLT r9, y_loop
+  ADD r1, r13
+  CMP r1, r5
+  BLT r3, y_loop
 
   ; Advance phases for animation
   LDI r17, 2
-  ADD r3, r17         ; phase1 += 2
+  ADD r12, r17         ; phase1 += 2
   LDI r17, 3
-  ADD r4, r17         ; phase2 += 3
-  ADD r1, r8          ; phase3 += 1
+  ADD r7, r17         ; phase2 += 3
+  ADD r15, r13          ; phase3 += 1
   
   FRAME
   JMP frame_loop

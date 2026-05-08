@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an interactive command shell with built-in commands like help, echo, ls, cat, ps, kill, export, clear, rm, and cp. It supports external program execution via EXEC, pipe operations (cmd1 | cmd2), output redirection (cmd > file), input redirection (cmd < file), and maintains a prompt display.
+; DESCRIPTION: Draws a red rectangle at the screen with fixed size.
 
 ; shell.asm -- Phase 29: Interactive command shell for Geometry OS
 ;
@@ -34,81 +34,81 @@
 ; ═══════════════════════════════════════════════════════════════
 ; Initialize shell
 ; ═══════════════════════════════════════════════════════════════
-    LDI r2, 0
-    FILL r2               ; clear screen to black
-    LDI r7, 0x1201
-    LDI r2, 20
-    STORE r7, r2          ; prompt y starts at line 20
-    LDI r7, 0x1207
-    LDI r2, 0
-    STORE r7, r2          ; pipe mode = 0
-    LDI r7, 0x1205
-    STORE r7, r2          ; redirect mode = 0
+    LDI r6, 0
+    FILL r6               ; clear screen to black
+    LDI r4, 0x1201
+    LDI r6, 20
+    STORE r4, r6          ; prompt y starts at line 20
+    LDI r4, 0x1207
+    LDI r6, 0
+    STORE r4, r6          ; pipe mode = 0
+    LDI r4, 0x1205
+    STORE r4, r6          ; redirect mode = 0
 
     ; Write help text to buffer at 0x1300
-    LDI r7, 0x1300
-    LDI r2, 104       ; h
-    STORE r7, r2
-    LDI r7, 0x1301
-    LDI r2, 101       ; e
-    STORE r7, r2
-    LDI r7, 0x1302
-    LDI r2, 108       ; l
-    STORE r7, r2
-    LDI r7, 0x1303
-    LDI r2, 112       ; p
-    STORE r7, r2
-    LDI r7, 0x1304
-    LDI r2, 0
-    STORE r7, r2
+    LDI r4, 0x1300
+    LDI r6, 104       ; h
+    STORE r4, r6
+    LDI r4, 0x1301
+    LDI r6, 101       ; e
+    STORE r4, r6
+    LDI r4, 0x1302
+    LDI r6, 108       ; l
+    STORE r4, r6
+    LDI r4, 0x1303
+    LDI r6, 112       ; p
+    STORE r4, r6
+    LDI r4, 0x1304
+    LDI r6, 0
+    STORE r4, r6
 
 ; ═══════════════════════════════════════════════════════════════
 ; Main loop: display prompt, read command, execute
 ; ═══════════════════════════════════════════════════════════════
 main_loop:
     ; Display prompt "> " at current y position
-    LDI r7, 0x1201         ; r7 = prompt y addr
-    LOAD r6, r7            ; r6 = y position
-    LDI r3, 2              ; x = 2
-    LDI r4, prompt_str
-    TEXT r3, r6, r4
+    LDI r4, 0x1201         ; r4 = prompt y addr
+    LOAD r1, r4            ; r1 = y position
+    LDI r14, 2              ; x = 2
+    LDI r13, prompt_str
+    TEXT r14, r1, r13
 
     ; Read a line of input
-    LDI r2, 0x0200         ; buf addr
-    LDI r6, 200            ; max len
-    LDI r3, 0x1200         ; pos addr
-    LDI r7, 0x1200
-    LDI r4, 0
-    STORE r7, r4           ; reset position
+    LDI r6, 0x0200         ; buf addr
+    LDI r1, 200            ; max len
+    LDI r14, 0x1200         ; pos addr
+    LDI r4, 0x1200
+    LDI r13, 0
+    STORE r4, r13           ; reset position
 
 readln_loop:
-    READLN r2, r6, r3
-    CMP r2, r4             ; r2 == 0 means still reading
-    JZ r2, readln_loop
+    READLN r6, r1, r14
+    CMP r6, r13             ; r6 == 0 means still reading
+    JZ r6, readln_loop
 
-    ; r2 > 0 means line complete (Enter pressed)
+    ; r6 > 0 means line complete (Enter pressed)
     ; Check if line is empty
-    JZ r2, main_loop       ; empty line, loop
+    JZ r6, main_loop       ; empty line, loop
 
     ; Parse and execute the command
     CALL parse_command
     CALL execute_command
 
     ; Scroll down prompt position
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
 
     ; If y > 240, scroll screen and reset
-    LDI r2, 240
-    CMP r6, r2
-    BLT r6, main_loop
-    LDI r2, 10
-    SCROLL r2
-    LDI r6, 20
-    STORE r7, r6
+    LDI r6, 240
+    CMP r1, r6
+    BLT r1, main_loop
+    LDI r6, 10
+    SCROLL r6
+    LDI r1, 20
+    STORE r4, r1
     JMP main_loop
 
 ; ═══════════════════════════════════════════════════════════════
@@ -118,272 +118,272 @@ readln_loop:
 ; Also sets pipe mode (0x1207) and redirect mode (0x1205)
 ; ═══════════════════════════════════════════════════════════════
 parse_command:
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
+    PUSH r2
 
     ; Reset pipe mode and redirect mode
-    LDI r7, 0x1207
-    LDI r2, 0
-    STORE r7, r2
-    LDI r7, 0x1205
-    STORE r7, r2
+    LDI r4, 0x1207
+    LDI r6, 0
+    STORE r4, r6
+    LDI r4, 0x1205
+    STORE r4, r6
 
     ; Skip leading spaces
-    LDI r10, 0x0200       ; src pointer
+    LDI r12, 0x0200       ; src pointer
 skip_spaces:
-    LOAD r2, r10
-    JZ r2, parse_done      ; empty string
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, skip_spaces     ; skip space
+    LOAD r6, r12
+    JZ r6, parse_done      ; empty string
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, skip_spaces     ; skip space
 
     ; Copy command name until space or null
-    LDI r8, 0x0400       ; dest for command name
+    LDI r3, 0x0400       ; dest for command name
 copy_cmd:
-    LOAD r2, r10
-    JZ r2, parse_cmd_done
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, parse_cmd_done
+    LOAD r6, r12
+    JZ r6, parse_cmd_done
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, parse_cmd_done
     ; Check for pipe character '|' (124)
-    LDI r6, 124
-    CMP r2, r6
-    JZ r2, parse_pipe_found
+    LDI r1, 124
+    CMP r6, r1
+    JZ r6, parse_pipe_found
     ; Check for '>' (62)
-    LDI r6, 62
-    CMP r2, r6
-    JZ r2, parse_redirect_out
+    LDI r1, 62
+    CMP r6, r1
+    JZ r6, parse_redirect_out
     ; Check for '<' (60)
-    LDI r6, 60
-    CMP r2, r6
-    JZ r2, parse_redirect_in
-    STORE r8, r2
-    ADD r10, r4            ; r4 is still 0 from earlier... let's use r6
+    LDI r1, 60
+    CMP r6, r1
+    JZ r6, parse_redirect_in
+    STORE r3, r6
+    ADD r12, r13            ; r13 is still 0 from earlier... let's use r1
     ; Actually need to increment properly
-    LDI r6, 1
-    ADD r10, r6
-    LDI r6, 1
-    ADD r8, r6
+    LDI r1, 1
+    ADD r12, r1
+    LDI r1, 1
+    ADD r3, r1
     JMP copy_cmd
 
 parse_cmd_done:
     ; Null terminate command
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
 
     ; Skip spaces after command
-    LOAD r2, r10
-    JZ r2, parse_arg_done  ; no argument
+    LOAD r6, r12
+    JZ r6, parse_arg_done  ; no argument
 skip_arg_spaces:
-    LOAD r2, r10
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, skip_arg_spaces_inc
+    LOAD r6, r12
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, skip_arg_spaces_inc
     JMP copy_arg_start
 skip_arg_spaces_inc:
-    LDI r6, 1
-    ADD r10, r6
+    LDI r1, 1
+    ADD r12, r1
     JMP skip_arg_spaces
 
 copy_arg_start:
     ; Copy argument until null
-    LDI r8, 0x0600       ; dest for argument
+    LDI r3, 0x0600       ; dest for argument
 copy_arg:
-    LOAD r2, r10
-    JZ r2, parse_arg_done
+    LOAD r6, r12
+    JZ r6, parse_arg_done
     ; Check for pipe
-    LDI r6, 124
-    CMP r2, r6
-    JZ r2, parse_pipe_found_arg
+    LDI r1, 124
+    CMP r6, r1
+    JZ r6, parse_pipe_found_arg
     ; Check for redirect
-    LDI r6, 62
-    CMP r2, r6
-    JZ r2, parse_redirect_out_arg
-    LDI r6, 60
-    CMP r2, r6
-    JZ r2, parse_redirect_in_arg
-    STORE r8, r2
-    LDI r6, 1
-    ADD r10, r6
-    ADD r8, r6
+    LDI r1, 62
+    CMP r6, r1
+    JZ r6, parse_redirect_out_arg
+    LDI r1, 60
+    CMP r6, r1
+    JZ r6, parse_redirect_in_arg
+    STORE r3, r6
+    LDI r1, 1
+    ADD r12, r1
+    ADD r3, r1
     JMP copy_arg
 
 parse_arg_done:
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
     JMP parse_done
 
 parse_pipe_found:
     ; Null terminate command
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
     ; Set pipe mode
-    LDI r7, 0x1207
-    LDI r2, 1
-    STORE r7, r2
-    ; Skip pipe char and spaces
+    LDI r4, 0x1207
     LDI r6, 1
-    ADD r10, r6
+    STORE r4, r6
+    ; Skip pipe char and spaces
+    LDI r1, 1
+    ADD r12, r1
 skip_pipe_spaces:
-    LOAD r2, r10
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, skip_pipe_spaces_inc
+    LOAD r6, r12
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, skip_pipe_spaces_inc
     JMP copy_pipe_cmd
 skip_pipe_spaces_inc:
-    LDI r6, 1
-    ADD r10, r6
+    LDI r1, 1
+    ADD r12, r1
     JMP skip_pipe_spaces
 
 copy_pipe_cmd:
     ; Copy second command to pipe buffer at 0x1400
-    LDI r8, 0x1400
+    LDI r3, 0x1400
 copy_pipe_loop:
-    LOAD r2, r10
-    JZ r2, parse_pipe_done
-    STORE r8, r2
-    LDI r6, 1
-    ADD r10, r6
-    ADD r8, r6
+    LOAD r6, r12
+    JZ r6, parse_pipe_done
+    STORE r3, r6
+    LDI r1, 1
+    ADD r12, r1
+    ADD r3, r1
     JMP copy_pipe_loop
 parse_pipe_done:
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
     JMP parse_done
 
 parse_pipe_found_arg:
     ; Null terminate argument
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
     ; Set pipe mode
-    LDI r7, 0x1207
-    LDI r2, 1
-    STORE r7, r2
-    ; Skip pipe char and spaces
+    LDI r4, 0x1207
     LDI r6, 1
-    ADD r10, r6
+    STORE r4, r6
+    ; Skip pipe char and spaces
+    LDI r1, 1
+    ADD r12, r1
 skip_pipe_spaces2:
-    LOAD r2, r10
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, skip_pipe_spaces2_inc
+    LOAD r6, r12
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, skip_pipe_spaces2_inc
     JMP copy_pipe_cmd2
 skip_pipe_spaces2_inc:
-    LDI r6, 1
-    ADD r10, r6
+    LDI r1, 1
+    ADD r12, r1
     JMP skip_pipe_spaces2
 
 copy_pipe_cmd2:
-    LDI r8, 0x1400
+    LDI r3, 0x1400
 copy_pipe_loop2:
-    LOAD r2, r10
-    JZ r2, parse_done2
-    STORE r8, r2
-    LDI r6, 1
-    ADD r10, r6
-    ADD r8, r6
+    LOAD r6, r12
+    JZ r6, parse_done2
+    STORE r3, r6
+    LDI r1, 1
+    ADD r12, r1
+    ADD r3, r1
     JMP copy_pipe_loop2
 parse_done2:
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
     JMP parse_done
 
 parse_redirect_out:
     ; Null terminate command
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
     ; Check for >> (append)
-    LDI r6, 1
-    ADD r10, r6
-    LOAD r2, r10
-    LDI r6, 62
-    CMP r2, r6
-    JZ r2, redirect_append
+    LDI r1, 1
+    ADD r12, r1
+    LOAD r6, r12
+    LDI r1, 62
+    CMP r6, r1
+    JZ r6, redirect_append
     ; Single > = write (mode 1)
-    LDI r7, 0x1205
-    LDI r2, 1
-    STORE r7, r2
+    LDI r4, 0x1205
+    LDI r6, 1
+    STORE r4, r6
     JMP skip_redir_spaces
 redirect_append:
-    LDI r7, 0x1205
-    LDI r2, 2
-    STORE r7, r2
-    LDI r6, 1
-    ADD r10, r6
+    LDI r4, 0x1205
+    LDI r6, 2
+    STORE r4, r6
+    LDI r1, 1
+    ADD r12, r1
     JMP skip_redir_spaces
 
 parse_redirect_out_arg:
     ; Null terminate argument
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
+    LDI r1, 1
+    ADD r12, r1
+    LOAD r6, r12
+    LDI r1, 62
+    CMP r6, r1
+    JZ r6, redirect_append2
+    LDI r4, 0x1205
     LDI r6, 1
-    ADD r10, r6
-    LOAD r2, r10
-    LDI r6, 62
-    CMP r2, r6
-    JZ r2, redirect_append2
-    LDI r7, 0x1205
-    LDI r2, 1
-    STORE r7, r2
+    STORE r4, r6
     JMP skip_redir_spaces
 redirect_append2:
-    LDI r7, 0x1205
-    LDI r2, 2
-    STORE r7, r2
-    LDI r6, 1
-    ADD r10, r6
+    LDI r4, 0x1205
+    LDI r6, 2
+    STORE r4, r6
+    LDI r1, 1
+    ADD r12, r1
     JMP skip_redir_spaces
 
 parse_redirect_in:
-    LDI r2, 0
-    STORE r8, r2
-    LDI r7, 0x1205
-    LDI r2, 3
-    STORE r7, r2
-    LDI r6, 1
-    ADD r10, r6
+    LDI r6, 0
+    STORE r3, r6
+    LDI r4, 0x1205
+    LDI r6, 3
+    STORE r4, r6
+    LDI r1, 1
+    ADD r12, r1
     JMP skip_redir_spaces
 
 parse_redirect_in_arg:
-    LDI r2, 0
-    STORE r8, r2
-    LDI r7, 0x1205
-    LDI r2, 3
-    STORE r7, r2
-    LDI r6, 1
-    ADD r10, r6
+    LDI r6, 0
+    STORE r3, r6
+    LDI r4, 0x1205
+    LDI r6, 3
+    STORE r4, r6
+    LDI r1, 1
+    ADD r12, r1
     JMP skip_redir_spaces
 
 skip_redir_spaces:
-    LOAD r2, r10
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, skip_redir_spaces_inc
+    LOAD r6, r12
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, skip_redir_spaces_inc
     JMP copy_redir_file
 skip_redir_spaces_inc:
-    LDI r6, 1
-    ADD r10, r6
+    LDI r1, 1
+    ADD r12, r1
     JMP skip_redir_spaces
 
 copy_redir_file:
     ; Copy redirect filename to argument buffer (0x0600)
-    LDI r8, 0x0600
+    LDI r3, 0x0600
 copy_redir_loop:
-    LOAD r2, r10
-    JZ r2, parse_done
-    STORE r8, r2
-    LDI r6, 1
-    ADD r10, r6
-    ADD r8, r6
+    LOAD r6, r12
+    JZ r6, parse_done
+    STORE r3, r6
+    LDI r1, 1
+    ADD r12, r1
+    ADD r3, r1
     JMP copy_redir_loop
 
 parse_done:
-    POP r13
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     RET
 
 ; ═══════════════════════════════════════════════════════════════
@@ -391,2367 +391,2367 @@ parse_done:
 ; Command at 0x0400, argument at 0x0600
 ; ═══════════════════════════════════════════════════════════════
 execute_command:
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
 
     ; Check for empty command
-    LDI r7, 0x0400
-    LOAD r2, r7
-    JZ r2, exec_done
+    LDI r4, 0x0400
+    LOAD r6, r4
+    JZ r6, exec_done
 
     ; Compare command with known built-ins
     ; help
     CALL cmd_is_help
-    JNZ r2, do_help
+    JNZ r6, do_help
 
     ; echo
     CALL cmd_is_echo
-    JNZ r2, do_echo
+    JNZ r6, do_echo
 
     ; ls
     CALL cmd_is_ls
-    JNZ r2, do_ls
+    JNZ r6, do_ls
 
     ; cat
     CALL cmd_is_cat
-    JNZ r2, do_cat
+    JNZ r6, do_cat
 
     ; ps
     CALL cmd_is_ps
-    JNZ r2, do_ps
+    JNZ r6, do_ps
 
     ; kill
     CALL cmd_is_kill
-    JNZ r2, do_kill
+    JNZ r6, do_kill
 
     ; export
     CALL cmd_is_export
-    JNZ r2, do_export
+    JNZ r6, do_export
 
     ; clear
     CALL cmd_is_clear
-    JNZ r2, do_clear
+    JNZ r6, do_clear
 
     ; rm
     CALL cmd_is_rm
-    JNZ r2, do_rm
+    JNZ r6, do_rm
 
     ; cp
     CALL cmd_is_cp
-    JNZ r2, do_cp
+    JNZ r6, do_cp
 
     ; hypervisor
     CALL cmd_is_hypervisor
-    JNZ r2, do_hypervisor
+    JNZ r6, do_hypervisor
 
     ; edit
     CALL cmd_is_edit
-    JNZ r2, do_edit
+    JNZ r6, do_edit
 
     ; save
     CALL cmd_is_save
-    JNZ r2, do_save
+    JNZ r6, do_save
 
     ; grep
     CALL cmd_is_grep
-    JNZ r2, do_grep
+    JNZ r6, do_grep
 
     ; head
     CALL cmd_is_head
-    JNZ r2, do_head
+    JNZ r6, do_head
 
     ; tail
     CALL cmd_is_tail
-    JNZ r2, do_tail
+    JNZ r6, do_tail
 
     ; wc
     CALL cmd_is_wc
-    JNZ r2, do_wc
+    JNZ r6, do_wc
 
     ; date
     CALL cmd_is_date
-    JNZ r2, do_date
+    JNZ r6, do_date
 
     ; Not a built-in -- try EXEC
     JMP do_exec
 
 exec_done:
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     RET
 
 ; ── Command comparison helpers ────────────────────────────────
-; Each sets r2=1 if match, r2=0 if not
+; Each sets r6=1 if match, r6=0 if not
 
 cmd_is_help:
-    LDI r7, 0x0400
-    LDI r2, 104       ; h
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cmd_help_n
-    LDI r7, 0x0401
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cmd_help_n
-    LDI r7, 0x0402
-    LDI r2, 108       ; l
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cmd_help_n
-    LDI r7, 0x0403
-    LDI r2, 112       ; p
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cmd_help_n
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cmd_help_n
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 104       ; h
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cmd_help_n
+    LDI r4, 0x0401
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cmd_help_n
+    LDI r4, 0x0402
+    LDI r6, 108       ; l
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cmd_help_n
+    LDI r4, 0x0403
+    LDI r6, 112       ; p
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cmd_help_n
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cmd_help_n
+    LDI r6, 1
     RET
 cmd_help_n:
-    LDI r2, 0
+    LDI r6, 0
     RET
 
 cmd_is_echo:
-    LDI r7, 0x0400
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 99        ; c
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 104       ; h
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 111       ; o
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 99        ; c
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 104       ; h
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 111       ; o
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_ls:
-    LDI r7, 0x0400
-    LDI r2, 108       ; l
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 115       ; s
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 108       ; l
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 115       ; s
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_cat:
-    LDI r7, 0x0400
-    LDI r2, 99        ; c
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 97        ; a
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 116       ; t
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 99        ; c
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 97        ; a
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 116       ; t
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_ps:
-    LDI r7, 0x0400
-    LDI r2, 112       ; p
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 115       ; s
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 112       ; p
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 115       ; s
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_kill:
-    LDI r7, 0x0400
-    LDI r2, 107       ; k
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 105       ; i
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 108       ; l
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 108       ; l
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 107       ; k
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 105       ; i
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 108       ; l
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 108       ; l
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_export:
-    LDI r7, 0x0400
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 120       ; x
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 112       ; p
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 111       ; o
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 114       ; r
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0405
-    LDI r2, 116       ; t
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0406
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 120       ; x
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 112       ; p
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 111       ; o
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 114       ; r
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0405
+    LDI r6, 116       ; t
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0406
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_clear:
-    LDI r7, 0x0400
-    LDI r2, 99        ; c
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 108       ; l
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 97        ; a
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 114       ; r
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0405
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 99        ; c
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 108       ; l
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 97        ; a
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 114       ; r
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0405
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_rm:
-    LDI r7, 0x0400
-    LDI r2, 114       ; r
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 109       ; m
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 114       ; r
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 109       ; m
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_cp:
-    LDI r7, 0x0400
-    LDI r2, 99        ; c
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 112       ; p
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 99        ; c
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 112       ; p
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_hypervisor:
-    LDI r7, 0x0400
-    LDI r2, 104       ; h
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 121       ; y
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 112       ; p
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 114       ; r
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0405
-    LDI r2, 118       ; v
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0406
-    LDI r2, 105       ; i
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0407
-    LDI r2, 115       ; s
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0408
-    LDI r2, 111       ; o
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0409
-    LDI r2, 114       ; r
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x040A
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 104       ; h
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 121       ; y
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 112       ; p
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 114       ; r
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0405
+    LDI r6, 118       ; v
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0406
+    LDI r6, 105       ; i
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0407
+    LDI r6, 115       ; s
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0408
+    LDI r6, 111       ; o
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0409
+    LDI r6, 114       ; r
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x040A
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_edit:
-    LDI r7, 0x0400
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 100       ; d
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 105       ; i
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 116       ; t
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 100       ; d
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 105       ; i
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 116       ; t
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_save:
-    LDI r7, 0x0400
-    LDI r2, 115       ; s
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 97        ; a
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 118       ; v
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 115       ; s
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 97        ; a
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 118       ; v
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_grep:
-    LDI r7, 0x0400
-    LDI r2, 103       ; g
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 114       ; r
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 112       ; p
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 103       ; g
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 114       ; r
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 112       ; p
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_head:
-    LDI r7, 0x0400
-    LDI r2, 104       ; h
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 97        ; a
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 100       ; d
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 104       ; h
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 97        ; a
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 100       ; d
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_tail:
-    LDI r7, 0x0400
-    LDI r2, 116       ; t
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 97        ; a
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 105       ; i
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 108       ; l
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 116       ; t
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 97        ; a
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 105       ; i
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 108       ; l
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_wc:
-    LDI r7, 0x0400
-    LDI r2, 119       ; w
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 99        ; c
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 119       ; w
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 99        ; c
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cmd_is_date:
-    LDI r7, 0x0400
-    LDI r2, 100       ; d
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0401
-    LDI r2, 97        ; a
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0402
-    LDI r2, 116       ; t
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0403
-    LDI r2, 101       ; e
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r7, 0x0404
-    LDI r2, 0
-    LOAD r6, r7
-    CMP r2, r6
-    JNZ r2, cno
-    LDI r2, 1
+    LDI r4, 0x0400
+    LDI r6, 100       ; d
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0401
+    LDI r6, 97        ; a
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0402
+    LDI r6, 116       ; t
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0403
+    LDI r6, 101       ; e
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r4, 0x0404
+    LDI r6, 0
+    LOAD r1, r4
+    CMP r6, r1
+    JNZ r6, cno
+    LDI r6, 1
     RET
 
 cno:
-    LDI r2, 0
+    LDI r6, 0
     RET
 
 ; ── Built-in command implementations ──────────────────────────
 
 do_help:
     ; Display available commands
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r3, 2
-    LDI r4, help_text
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r14, 2
+    LDI r13, help_text
+    TEXT r14, r1, r13
     JMP exec_done
 
 do_echo:
     ; Print the argument
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, 0x0600
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, 0x0600
+    TEXT r14, r1, r13
     JMP exec_done
 
 do_ls:
     ; List files using LS opcode
-    LDI r6, 0x0800
-    LS r6                  ; list files into buffer at 0x0800
-    ; r2 = number of files
+    LDI r1, 0x0800
+    LS r1                  ; list files into buffer at 0x0800
+    ; r6 = number of files
     ; Display each filename
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, 0x0800
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, 0x0800
+    TEXT r14, r1, r13
     JMP exec_done
 
 do_cat:
     ; Read and display a file
     ; Argument (filename) at 0x0600
-    LDI r6, 0x0600       ; filename addr
-    LDI r3, 0            ; mode = read
-    OPEN r6, r3           ; r2 = fd
+    LDI r1, 0x0600       ; filename addr
+    LDI r14, 0            ; mode = read
+    OPEN r1, r14           ; r6 = fd
     ; Check for error
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JZ r2, exec_done      ; error, skip
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JZ r6, exec_done      ; error, skip
 
-    MOV r0, r2            ; save fd in r0
-    LDI r4, 0x1000        ; read buffer
-    LDI r1, 200           ; max bytes
-    READ r0, r4, r1       ; r2 = bytes read
+    MOV r8, r6            ; save fd in r8
+    LDI r13, 0x1000        ; read buffer
+    LDI r5, 200           ; max bytes
+    READ r8, r13, r5       ; r6 = bytes read
     ; Null terminate
-    LDI r15, 200
-    CMP r2, r15
-    BLT r2, cat_term_ok
-    LDI r2, 200
+    LDI r10, 200
+    CMP r6, r10
+    BLT r6, cat_term_ok
+    LDI r6, 200
 cat_term_ok:
-    LDI r15, 0x1000
-    ADD r2, r15
-    LDI r12, 0
-    STORE r2, r12
+    LDI r10, 0x1000
+    ADD r6, r10
+    LDI r7, 0
+    STORE r6, r7
     ; Display
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, 0x1000
-    TEXT r3, r6, r4
-    CLOSE r0
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, 0x1000
+    TEXT r14, r1, r13
+    CLOSE r8
     JMP exec_done
 
 do_ps:
     ; Display process info
     ; For now, show PID count and current PID
     GETPID
-    MOV r0, r2            ; save our PID
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
+    MOV r8, r6            ; save our PID
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
     ; Show "PID: N" using register value
     ; Write PID as text at 0x1500
-    LDI r7, 0x1500
-    LDI r2, 80            ; P
-    STORE r7, r2
-    LDI r7, 0x1501
-    LDI r2, 73            ; I
-    STORE r7, r2
-    LDI r7, 0x1502
-    LDI r2, 68            ; D
-    STORE r7, r2
-    LDI r7, 0x1503
-    LDI r2, 58            ; :
-    STORE r7, r2
-    LDI r7, 0x1504
-    LDI r2, 32            ; space
-    STORE r7, r2
-    ; Convert PID to decimal digits
-    LDI r7, 0x1505
-    LDI r6, 48            ; '0'
-    ADD r2, r6
-    STORE r7, r2
-    LDI r7, 0x1506
-    LDI r2, 0
-    STORE r7, r2
-    LDI r3, 4
     LDI r4, 0x1500
-    TEXT r3, r6, r4
+    LDI r6, 80            ; P
+    STORE r4, r6
+    LDI r4, 0x1501
+    LDI r6, 73            ; I
+    STORE r4, r6
+    LDI r4, 0x1502
+    LDI r6, 68            ; D
+    STORE r4, r6
+    LDI r4, 0x1503
+    LDI r6, 58            ; :
+    STORE r4, r6
+    LDI r4, 0x1504
+    LDI r6, 32            ; space
+    STORE r4, r6
+    ; Convert PID to decimal digits
+    LDI r4, 0x1505
+    LDI r1, 48            ; '0'
+    ADD r6, r1
+    STORE r4, r6
+    LDI r4, 0x1506
+    LDI r6, 0
+    STORE r4, r6
+    LDI r14, 4
+    LDI r13, 0x1500
+    TEXT r14, r1, r13
     JMP exec_done
 
 do_kill:
     ; Kill a process by PID
     ; Argument should be a number -- simplified: just echo "kill"
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r4, kill_msg
-    LDI r3, 4
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r13, kill_msg
+    LDI r14, 4
+    TEXT r14, r1, r13
     JMP exec_done
 
 do_export:
     ; Set environment variable
     ; Argument format: KEY=VALUE
     ; For simplicity, just acknowledge
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r4, export_msg
-    LDI r3, 4
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r13, export_msg
+    LDI r14, 4
+    TEXT r14, r1, r13
     JMP exec_done
 
 do_clear:
-    LDI r2, 0
-    FILL r2
-    LDI r7, 0x1201
-    LDI r2, 20
-    STORE r7, r2
+    LDI r6, 0
+    FILL r6
+    LDI r4, 0x1201
+    LDI r6, 20
+    STORE r4, r6
     JMP exec_done
 
 do_rm:
     ; Delete a file: rm <filename>
     ; Argument (filename) at 0x0600
-    LDI r7, 0x0600
-    LOAD r2, r7
-    JZ r2, rm_usage
+    LDI r4, 0x0600
+    LOAD r6, r4
+    JZ r6, rm_usage
     ; Copy arg to a clean buffer at 0x1600
     LDI r9, 0x0600
-    LDI r8, 0x1600
+    LDI r3, 0x1600
 rm_copy:
-    LOAD r2, r9
-    JZ r2, rm_copy_done
-    STORE r8, r2
-    LDI r2, 1
-    ADD r9, r2
-    ADD r8, r2
+    LOAD r6, r9
+    JZ r6, rm_copy_done
+    STORE r3, r6
+    LDI r6, 1
+    ADD r9, r6
+    ADD r3, r6
     JMP rm_copy
 rm_copy_done:
-    LDI r2, 0
-    STORE r8, r2      ; null terminate
-    ; UNLINK r6 where r6 = 0x1600
-    LDI r6, 0x1600
-    UNLINK r6
-    ; r2 = 0 on success, 0xFFFFFFFF on error
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JNZ r2, rm_ok
+    LDI r6, 0
+    STORE r3, r6      ; null terminate
+    ; UNLINK r1 where r1 = 0x1600
+    LDI r1, 0x1600
+    UNLINK r1
+    ; r6 = 0 on success, 0xFFFFFFFF on error
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JNZ r6, rm_ok
     ; Print error
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r3, 8          ; "rm: error"
-    LDI r4, 0x1700
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r14, 8          ; "rm: error"
+    LDI r13, 0x1700
     ; Store "rm: error" message
-    LDI r7, 0x1700
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1701
-    LDI r2, 109        ; m
-    STORE r7, r2
-    LDI r7, 0x1702
-    LDI r2, 58         ; :
-    STORE r7, r2
-    LDI r7, 0x1703
-    LDI r2, 32         ; space
-    STORE r7, r2
-    LDI r7, 0x1704
-    LDI r2, 101        ; e
-    STORE r7, r2
-    LDI r7, 0x1705
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1706
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1707
-    LDI r2, 111        ; o
-    STORE r7, r2
-    LDI r7, 0x1708
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1709
-    LDI r2, 0
-    STORE r7, r2
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r3, 9
     LDI r4, 0x1700
-    TEXT r3, r6, r4
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1701
+    LDI r6, 109        ; m
+    STORE r4, r6
+    LDI r4, 0x1702
+    LDI r6, 58         ; :
+    STORE r4, r6
+    LDI r4, 0x1703
+    LDI r6, 32         ; space
+    STORE r4, r6
+    LDI r4, 0x1704
+    LDI r6, 101        ; e
+    STORE r4, r6
+    LDI r4, 0x1705
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1706
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1707
+    LDI r6, 111        ; o
+    STORE r4, r6
+    LDI r4, 0x1708
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1709
+    LDI r6, 0
+    STORE r4, r6
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r14, 9
+    LDI r13, 0x1700
+    TEXT r14, r1, r13
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
     JMP exec_done
 rm_ok:
     JMP exec_done
 rm_usage:
     ; Print "rm <file>"
-    LDI r7, 0x1700
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1701
-    LDI r2, 109        ; m
-    STORE r7, r2
-    LDI r7, 0x1702
-    LDI r2, 32         ; space
-    STORE r7, r2
-    LDI r7, 0x1703
-    LDI r2, 60         ; <
-    STORE r7, r2
-    LDI r7, 0x1704
-    LDI r2, 102        ; f
-    STORE r7, r2
-    LDI r7, 0x1705
-    LDI r2, 105        ; i
-    STORE r7, r2
-    LDI r7, 0x1706
-    LDI r2, 108        ; l
-    STORE r7, r2
-    LDI r7, 0x1707
-    LDI r2, 101        ; e
-    STORE r7, r2
-    LDI r7, 0x1708
-    LDI r2, 62         ; >
-    STORE r7, r2
-    LDI r7, 0x1709
-    LDI r2, 0
-    STORE r7, r2
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r3, 9
     LDI r4, 0x1700
-    TEXT r3, r6, r4
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1701
+    LDI r6, 109        ; m
+    STORE r4, r6
+    LDI r4, 0x1702
+    LDI r6, 32         ; space
+    STORE r4, r6
+    LDI r4, 0x1703
+    LDI r6, 60         ; <
+    STORE r4, r6
+    LDI r4, 0x1704
+    LDI r6, 102        ; f
+    STORE r4, r6
+    LDI r4, 0x1705
+    LDI r6, 105        ; i
+    STORE r4, r6
+    LDI r4, 0x1706
+    LDI r6, 108        ; l
+    STORE r4, r6
+    LDI r4, 0x1707
+    LDI r6, 101        ; e
+    STORE r4, r6
+    LDI r4, 0x1708
+    LDI r6, 62         ; >
+    STORE r4, r6
+    LDI r4, 0x1709
+    LDI r6, 0
+    STORE r4, r6
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r14, 9
+    LDI r13, 0x1700
+    TEXT r14, r1, r13
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
     JMP exec_done
 
 do_cp:
     ; Copy a file: cp <src> <dst>
     ; Arguments at 0x0600, separated by space
     ; Parse second argument from 0x0600 into 0x1800
-    LDI r7, 0x0600
-    LOAD r2, r7
-    JZ r2, cp_usage
+    LDI r4, 0x0600
+    LOAD r6, r4
+    JZ r6, cp_usage
     ; Find space separator
     LDI r9, 0x0600
 cp_find_space:
-    LOAD r2, r9
-    JZ r2, cp_usage    ; no space found -- need 2 args
-    LDI r6, 32         ; space
-    CMP r2, r6
-    JZ r2, cp_found_space
-    LDI r2, 1
-    ADD r9, r2
+    LOAD r6, r9
+    JZ r6, cp_usage    ; no space found -- need 2 args
+    LDI r1, 32         ; space
+    CMP r6, r1
+    JZ r6, cp_found_space
+    LDI r6, 1
+    ADD r9, r6
     JMP cp_find_space
 cp_found_space:
     ; Skip the space, copy rest to 0x1800
-    LDI r2, 1
-    ADD r9, r2
-    LDI r8, 0x1800
+    LDI r6, 1
+    ADD r9, r6
+    LDI r3, 0x1800
 cp_copy_dst:
-    LOAD r2, r9
-    JZ r2, cp_copy_dst_done
-    STORE r8, r2
-    LDI r2, 1
-    ADD r9, r2
-    ADD r8, r2
+    LOAD r6, r9
+    JZ r6, cp_copy_dst_done
+    STORE r3, r6
+    LDI r6, 1
+    ADD r9, r6
+    ADD r3, r6
     JMP cp_copy_dst
 cp_copy_dst_done:
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
     ; Null-terminate the source filename (replace space with 0)
     LDI r9, 0x0600
-    LDI r8, 0x1600
+    LDI r3, 0x1600
 cp_copy_src:
-    LOAD r2, r9
-    JZ r2, cp_src_done
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, cp_src_terminate
-    STORE r8, r2
-    LDI r2, 1
-    ADD r9, r2
-    ADD r8, r2
+    LOAD r6, r9
+    JZ r6, cp_src_done
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, cp_src_terminate
+    STORE r3, r6
+    LDI r6, 1
+    ADD r9, r6
+    ADD r3, r6
     JMP cp_copy_src
 cp_src_terminate:
-    LDI r2, 0
-    STORE r8, r2
+    LDI r6, 0
+    STORE r3, r6
     JMP cp_do_copy
 cp_src_done:
-    STORE r8, r2
+    STORE r3, r6
 cp_do_copy:
-    ; FCOPY r6, r3 where r6=0x1600 (src), r3=0x1800 (dst)
-    LDI r6, 0x1600
-    LDI r3, 0x1800
-    FCOPY r6, r3
+    ; FCOPY r1, r14 where r1=0x1600 (src), r14=0x1800 (dst)
+    LDI r1, 0x1600
+    LDI r14, 0x1800
+    FCOPY r1, r14
     ; Check result
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JNZ r2, cp_ok
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JNZ r6, cp_ok
     ; Print error
-    LDI r7, 0x1700
-    LDI r2, 99         ; c
-    STORE r7, r2
-    LDI r7, 0x1701
-    LDI r2, 112        ; p
-    STORE r7, r2
-    LDI r7, 0x1702
-    LDI r2, 58         ; :
-    STORE r7, r2
-    LDI r7, 0x1703
-    LDI r2, 32         ; space
-    STORE r7, r2
-    LDI r7, 0x1704
-    LDI r2, 101        ; e
-    STORE r7, r2
-    LDI r7, 0x1705
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1706
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1707
-    LDI r2, 111        ; o
-    STORE r7, r2
-    LDI r7, 0x1708
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1709
-    LDI r2, 0
-    STORE r7, r2
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r3, 9
     LDI r4, 0x1700
-    TEXT r3, r6, r4
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
+    LDI r6, 99         ; c
+    STORE r4, r6
+    LDI r4, 0x1701
+    LDI r6, 112        ; p
+    STORE r4, r6
+    LDI r4, 0x1702
+    LDI r6, 58         ; :
+    STORE r4, r6
+    LDI r4, 0x1703
+    LDI r6, 32         ; space
+    STORE r4, r6
+    LDI r4, 0x1704
+    LDI r6, 101        ; e
+    STORE r4, r6
+    LDI r4, 0x1705
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1706
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1707
+    LDI r6, 111        ; o
+    STORE r4, r6
+    LDI r4, 0x1708
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1709
+    LDI r6, 0
+    STORE r4, r6
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r14, 9
+    LDI r13, 0x1700
+    TEXT r14, r1, r13
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
     JMP exec_done
 cp_ok:
     JMP exec_done
 cp_usage:
-    LDI r7, 0x1700
-    LDI r2, 99         ; c
-    STORE r7, r2
-    LDI r7, 0x1701
-    LDI r2, 112        ; p
-    STORE r7, r2
-    LDI r7, 0x1702
-    LDI r2, 32         ; space
-    STORE r7, r2
-    LDI r7, 0x1703
-    LDI r2, 60         ; <
-    STORE r7, r2
-    LDI r7, 0x1704
-    LDI r2, 115        ; s
-    STORE r7, r2
-    LDI r7, 0x1705
-    LDI r2, 114        ; r
-    STORE r7, r2
-    LDI r7, 0x1706
-    LDI r2, 99        ; c
-    STORE r7, r2
-    LDI r7, 0x1707
-    LDI r2, 62         ; >
-    STORE r7, r2
-    LDI r7, 0x1708
-    LDI r2, 32         ; space
-    STORE r7, r2
-    LDI r7, 0x1709
-    LDI r2, 60         ; <
-    STORE r7, r2
-    LDI r7, 0x170A
-    LDI r2, 100        ; d
-    STORE r7, r2
-    LDI r7, 0x170B
-    LDI r2, 115        ; s
-    STORE r7, r2
-    LDI r7, 0x170C
-    LDI r2, 116        ; t
-    STORE r7, r2
-    LDI r7, 0x170D
-    LDI r2, 62         ; >
-    STORE r7, r2
-    LDI r7, 0x170E
-    LDI r2, 0
-    STORE r7, r2
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r3, 14
     LDI r4, 0x1700
-    TEXT r3, r6, r4
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
+    LDI r6, 99         ; c
+    STORE r4, r6
+    LDI r4, 0x1701
+    LDI r6, 112        ; p
+    STORE r4, r6
+    LDI r4, 0x1702
+    LDI r6, 32         ; space
+    STORE r4, r6
+    LDI r4, 0x1703
+    LDI r6, 60         ; <
+    STORE r4, r6
+    LDI r4, 0x1704
+    LDI r6, 115        ; s
+    STORE r4, r6
+    LDI r4, 0x1705
+    LDI r6, 114        ; r
+    STORE r4, r6
+    LDI r4, 0x1706
+    LDI r6, 99        ; c
+    STORE r4, r6
+    LDI r4, 0x1707
+    LDI r6, 62         ; >
+    STORE r4, r6
+    LDI r4, 0x1708
+    LDI r6, 32         ; space
+    STORE r4, r6
+    LDI r4, 0x1709
+    LDI r6, 60         ; <
+    STORE r4, r6
+    LDI r4, 0x170A
+    LDI r6, 100        ; d
+    STORE r4, r6
+    LDI r4, 0x170B
+    LDI r6, 115        ; s
+    STORE r4, r6
+    LDI r4, 0x170C
+    LDI r6, 116        ; t
+    STORE r4, r6
+    LDI r4, 0x170D
+    LDI r6, 62         ; >
+    STORE r4, r6
+    LDI r4, 0x170E
+    LDI r6, 0
+    STORE r4, r6
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r14, 14
+    LDI r13, 0x1700
+    TEXT r14, r1, r13
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
     JMP exec_done
 
 do_hypervisor:
-    PUSH r8
+    PUSH r3
     PUSH r9
     ; Check if argument exists
-    LDI r7, 0x0600
-    LOAD r2, r7
-    JZ r2, hypervisor_usage
+    LDI r4, 0x0600
+    LOAD r6, r4
+    JZ r6, hypervisor_usage
 
     ; Copy argument (0x0600) to config buffer (0x1B00)
     LDI r9, 0x0600       ; src
-    LDI r8, 0x1B00       ; dst
+    LDI r3, 0x1B00       ; dst
 hypervisor_copy:
-    LOAD r2, r9
-    JZ r2, hypervisor_copy_done
-    STORE r8, r2
-    LDI r2, 1
-    ADD r9, r2
-    ADD r8, r2
+    LOAD r6, r9
+    JZ r6, hypervisor_copy_done
+    STORE r3, r6
+    LDI r6, 1
+    ADD r9, r6
+    ADD r3, r6
     JMP hypervisor_copy
 hypervisor_copy_done:
-    LDI r2, 0
-    STORE r8, r2         ; null terminate
+    LDI r6, 0
+    STORE r3, r6         ; null terminate
 
     ; Call HYPERVISOR with config buffer address
-    LDI r2, 0x1B00
-    HYPERVISOR r2
+    LDI r6, 0x1B00
+    HYPERVISOR r6
 
     ; Check result: 0 = success, 0xFFFFFFFF = error, 0xFFFFFFFD = missing arch
-    JZ r2, hypervisor_ok
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JZ r2, hypervisor_err
+    JZ r6, hypervisor_ok
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JZ r6, hypervisor_err
     ; Missing arch or other error
     JMP hypervisor_err
 
 hypervisor_ok:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
     ; Display "hypervisor started" message
-    LDI r3, 4
-    LDI r4, hypervisor_ok_msg
-    TEXT r3, r6, r4
+    LDI r14, 4
+    LDI r13, hypervisor_ok_msg
+    TEXT r14, r1, r13
     JMP hypervisor_done
 
 hypervisor_usage:
     ; No argument -- show usage
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, hypervisor_usage_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, hypervisor_usage_msg
+    TEXT r14, r1, r13
     JMP hypervisor_done
 
 hypervisor_err:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, hypervisor_err_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, hypervisor_err_msg
+    TEXT r14, r1, r13
     JMP hypervisor_done
 
 hypervisor_done:
     POP r9
-    POP r8
+    POP r3
     JMP exec_done
 
 do_edit:
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
+    PUSH r2
 
     ; Check for argument
-    LDI r7, 0x0600
-    LOAD r2, r7
-    JZ r2, edit_usage
+    LDI r4, 0x0600
+    LOAD r6, r4
+    JZ r6, edit_usage
 
     ; Open file for reading
-    LDI r6, 0x0600       ; filename addr
-    LDI r3, 0            ; mode = read
-    OPEN r6, r3           ; r2 = fd
+    LDI r1, 0x0600       ; filename addr
+    LDI r14, 0            ; mode = read
+    OPEN r1, r14           ; r6 = fd
     ; Check for error
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JZ r2, edit_err      ; file not found
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JZ r6, edit_err      ; file not found
 
-    MOV r0, r2            ; save fd in r0
+    MOV r8, r6            ; save fd in r8
 
     ; Read file content into buffer at 0x2000
-    LDI r4, 0x2000        ; read buffer (8KB, up to row 127 * 32 cols)
-    LDI r1, 4096          ; max words to read
-    READ r0, r4, r1       ; r2 = bytes read
+    LDI r13, 0x2000        ; read buffer (8KB, up to row 127 * 32 cols)
+    LDI r5, 4096          ; max words to read
+    READ r8, r13, r5       ; r6 = bytes read
 
     ; Close the file
-    CLOSE r0
+    CLOSE r8
 
     ; Null terminate at position bytes_read
-    LDI r15, 0x2000
-    ADD r15, r2            ; r15 = buffer + bytes_read
-    LDI r12, 0
-    STORE r15, r12          ; null terminator
+    LDI r10, 0x2000
+    ADD r10, r6            ; r10 = buffer + bytes_read
+    LDI r7, 0
+    STORE r10, r7          ; null terminator
 
     ; Display file content on screen, line by line
     ; Each line is up to 32 chars, separated by newline (10) or null
-    LDI r5, 0x2000       ; source pointer
-    LDI r11, 4            ; y position (start near top)
-    LDI r13, 0            ; line buffer index
+    LDI r0, 0x2000       ; source pointer
+    LDI r15, 4            ; y position (start near top)
+    LDI r2, 0            ; line buffer index
 
 edit_line_loop:
-    LOAD r2, r5
-    JZ r2, edit_done      ; null = end of file
+    LOAD r6, r0
+    JZ r6, edit_done      ; null = end of file
 
     ; Check for newline (10)
-    LDI r6, 10
-    CMP r2, r6
-    JZ r2, edit_newline
+    LDI r1, 10
+    CMP r6, r1
+    JZ r6, edit_newline
 
     ; Store char in line buffer at 0x2100 + index
     LDI r9, 0x2100
-    ADD r9, r13
-    STORE r9, r2
+    ADD r9, r2
+    STORE r9, r6
 
-    LDI r6, 1
-    ADD r5, r6           ; advance source
-    ADD r13, r6           ; advance line index
+    LDI r1, 1
+    ADD r0, r1           ; advance source
+    ADD r2, r1           ; advance line index
 
     ; Check if line is 32 chars (screen width at 8px font)
-    LDI r6, 32
-    CMP r13, r6
-    JZ r2, edit_line_full
+    LDI r1, 32
+    CMP r2, r1
+    JZ r6, edit_line_full
     JMP edit_line_loop
 
 edit_newline:
     ; Null-terminate current line
     LDI r9, 0x2100
-    ADD r9, r13
-    LDI r2, 0
-    STORE r9, r2
+    ADD r9, r2
+    LDI r6, 0
+    STORE r9, r6
 
     ; Display line at y position
-    LDI r3, 4             ; x = 4
-    LDI r4, 0x2100        ; line buffer
-    TEXT r3, r11, r4      ; render text at (4, y)
+    LDI r14, 4             ; x = 4
+    LDI r13, 0x2100        ; line buffer
+    TEXT r14, r15, r13      ; render text at (4, y)
 
     ; Advance to next line
-    LDI r6, 1
-    ADD r5, r6           ; skip the newline char
-    ADD r11, r6           ; next y position
-    LDI r13, 0            ; reset line buffer index
+    LDI r1, 1
+    ADD r0, r1           ; skip the newline char
+    ADD r15, r1           ; next y position
+    LDI r2, 0            ; reset line buffer index
     JMP edit_line_loop
 
 edit_line_full:
     ; Null-terminate
     LDI r9, 0x2100
-    ADD r9, r13
-    LDI r2, 0
-    STORE r9, r2
+    ADD r9, r2
+    LDI r6, 0
+    STORE r9, r6
 
     ; Display line
-    LDI r3, 4
-    LDI r4, 0x2100
-    TEXT r3, r11, r4
+    LDI r14, 4
+    LDI r13, 0x2100
+    TEXT r14, r15, r13
 
     ; Next line (no source advance since char was already stored)
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
-    LDI r13, 0
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
+    LDI r2, 0
     JMP edit_line_loop
 
 edit_done:
     ; Null-terminate last line if there's content
-    JZ r13, edit_show_msg
+    JZ r2, edit_show_msg
     LDI r9, 0x2100
-    ADD r9, r13
-    LDI r2, 0
-    STORE r9, r2
-    LDI r3, 4
-    LDI r4, 0x2100
-    TEXT r3, r11, r4
+    ADD r9, r2
+    LDI r6, 0
+    STORE r9, r6
+    LDI r14, 4
+    LDI r13, 0x2100
+    TEXT r14, r15, r13
 
 edit_show_msg:
     ; Show "[edit: filename]" at bottom
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, edit_ok_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, edit_ok_msg
+    TEXT r14, r1, r13
     JMP edit_cleanup
 
 edit_usage:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, edit_usage_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, edit_usage_msg
+    TEXT r14, r1, r13
     JMP edit_cleanup
 
 edit_err:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, edit_err_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, edit_err_msg
+    TEXT r14, r1, r13
 
 edit_cleanup:
-    POP r13
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 do_save:
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
+    PUSH r2
 
     ; Check for argument
-    LDI r7, 0x0600
-    LOAD r2, r7
-    JZ r2, save_usage
+    LDI r4, 0x0600
+    LOAD r6, r4
+    JZ r6, save_usage
 
     ; Open file for writing (mode 1 = write/create)
-    LDI r6, 0x0600       ; filename addr
-    LDI r3, 1            ; mode = write
-    OPEN r6, r3           ; r2 = fd
+    LDI r1, 0x0600       ; filename addr
+    LDI r14, 1            ; mode = write
+    OPEN r1, r14           ; r6 = fd
     ; Check for error
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JZ r2, save_err      ; could not create file
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JZ r6, save_err      ; could not create file
 
-    MOV r0, r2            ; save fd in r0
+    MOV r8, r6            ; save fd in r8
 
     ; Calculate content length from edit buffer at 0x2000
     ; Scan for null terminator
-    LDI r5, 0x2000
-    LDI r11, 0            ; length counter
+    LDI r0, 0x2000
+    LDI r15, 0            ; length counter
 save_scan:
-    LOAD r2, r5
-    JZ r2, save_scan_done
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
+    LOAD r6, r0
+    JZ r6, save_scan_done
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
     JMP save_scan
 
 save_scan_done:
     ; If nothing to save, show message
-    JZ r11, save_empty
+    JZ r15, save_empty
 
     ; Write content to file
-    LDI r6, 0x2000        ; buffer addr
-    MOV r3, r6             ; fd_reg = r0 already
+    LDI r1, 0x2000        ; buffer addr
+    MOV r14, r1             ; fd_reg = r8 already
     ; WRITE fd_reg, buf_reg, len_reg
-    MOV r6, r0             ; r6 = fd
-    LDI r3, 0x2000         ; buf addr
-    MOV r4, r11            ; length
-    WRITE r6, r3, r4       ; r2 = bytes written
+    MOV r1, r8             ; r1 = fd
+    LDI r14, 0x2000         ; buf addr
+    MOV r13, r15            ; length
+    WRITE r1, r14, r13       ; r6 = bytes written
 
-    CLOSE r0               ; close file
+    CLOSE r8               ; close file
 
     ; Show "[saved: N bytes]" message
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, save_ok_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, save_ok_msg
+    TEXT r14, r1, r13
     JMP save_cleanup
 
 save_empty:
-    CLOSE r0
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, save_empty_msg
-    TEXT r3, r6, r4
+    CLOSE r8
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, save_empty_msg
+    TEXT r14, r1, r13
     JMP save_cleanup
 
 save_usage:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, save_usage_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, save_usage_msg
+    TEXT r14, r1, r13
     JMP save_cleanup
 
 save_err:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, save_err_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, save_err_msg
+    TEXT r14, r1, r13
 
 save_cleanup:
-    POP r13
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 do_grep:
     ; grep <pattern> <file> -- search file for lines containing pattern
     ; Argument at 0x0600 is "pattern file"
     ; We need to split: first word = pattern, second word = filename
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
-    PUSH r11
-    PUSH r5
+    PUSH r2
+    PUSH r15
+    PUSH r0
 
     ; Parse argument: find first space to split pattern from filename
     ; Store pattern at 0x2200, filename at 0x2300
-    LDI r5, 0x0600      ; arg pointer
-    LDI r11, 0x2200      ; pattern buffer
-    LDI r13, 0           ; pattern length
+    LDI r0, 0x0600      ; arg pointer
+    LDI r15, 0x2200      ; pattern buffer
+    LDI r2, 0           ; pattern length
 
 grep_parse_pat:
-    LOAD r2, r5
-    JZ r2, grep_no_file   ; no space found, error
-    LDI r6, 32            ; space
-    CMP r2, r6
-    JZ r2, grep_copy_file
-    STORE r11, r2
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
-    ADD r13, r6
+    LOAD r6, r0
+    JZ r6, grep_no_file   ; no space found, error
+    LDI r1, 32            ; space
+    CMP r6, r1
+    JZ r6, grep_copy_file
+    STORE r15, r6
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
+    ADD r2, r1
     JMP grep_parse_pat
 
 grep_copy_file:
     ; Skip the space
-    LDI r6, 1
-    ADD r5, r6
+    LDI r1, 1
+    ADD r0, r1
     ; Copy filename to 0x2300
-    LDI r11, 0x2300
+    LDI r15, 0x2300
 
 grep_copy_file_loop:
-    LOAD r2, r5
-    JZ r2, grep_have_file
-    STORE r11, r2
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
+    LOAD r6, r0
+    JZ r6, grep_have_file
+    STORE r15, r6
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
     JMP grep_copy_file_loop
 
 grep_have_file:
-    LDI r2, 0
-    STORE r11, r2         ; null terminate filename
+    LDI r6, 0
+    STORE r15, r6         ; null terminate filename
     ; Null terminate pattern
-    LDI r11, 0x2200
-    ADD r11, r13
-    STORE r11, r2
+    LDI r15, 0x2200
+    ADD r15, r2
+    STORE r15, r6
 
     ; Check pattern length > 0
-    JZ r13, grep_err
-
-    ; Open file
-    LDI r6, 0x2300       ; filename addr
-    LDI r3, 0            ; mode = read
-    OPEN r6, r3           ; r2 = fd
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
     JZ r2, grep_err
 
-    MOV r0, r2            ; save fd
+    ; Open file
+    LDI r1, 0x2300       ; filename addr
+    LDI r14, 0            ; mode = read
+    OPEN r1, r14           ; r6 = fd
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JZ r6, grep_err
+
+    MOV r8, r6            ; save fd
 
     ; Read file content into 0x2000
-    LDI r4, 0x2000
-    LDI r1, 400           ; max bytes to read
-    READ r0, r4, r1
-    CLOSE r0
+    LDI r13, 0x2000
+    LDI r5, 400           ; max bytes to read
+    READ r8, r13, r5
+    CLOSE r8
 
     ; Null terminate at read position
-    LDI r15, 0x2000
-    ADD r15, r2
-    LDI r12, 0
-    STORE r15, r12
+    LDI r10, 0x2000
+    ADD r10, r6
+    LDI r7, 0
+    STORE r10, r7
 
     ; Scan file line by line, check if each line contains the pattern
     ; Line buffer at 0x2400, max 64 chars
     ; Save file pointer at 0x2380 (pattern_len * 4 + pattern_buf end)
     ; Actually, save at 0x23FF (safe scratch)
-    LDI r5, 0x2000       ; file pointer
+    LDI r0, 0x2000       ; file pointer
     LDI r9, 0            ; match count
 
 grep_line_loop:
     ; Save file pointer to scratch
-    MOV r14, r5           ; r14 = saved file ptr
+    MOV r11, r0           ; r11 = saved file ptr
 
-    LOAD r2, r5
-    JZ r2, grep_done       ; end of file
+    LOAD r6, r0
+    JZ r6, grep_done       ; end of file
 
     ; Copy line to buffer at 0x2400, track length
-    LDI r11, 0x2400
-    LDI r13, 0            ; line length
+    LDI r15, 0x2400
+    LDI r2, 0            ; line length
 
 grep_copy_line:
-    LOAD r2, r5
-    JZ r2, grep_check_line     ; end of file, check this line
-    LDI r6, 10                 ; newline
-    CMP r2, r6
-    JZ r2, grep_advance_nl
-    STORE r11, r2
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
-    ADD r13, r6
-    LDI r6, 64
-    CMP r13, r6
-    JZ r2, grep_check_line
+    LOAD r6, r0
+    JZ r6, grep_check_line     ; end of file, check this line
+    LDI r1, 10                 ; newline
+    CMP r6, r1
+    JZ r6, grep_advance_nl
+    STORE r15, r6
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
+    ADD r2, r1
+    LDI r1, 64
+    CMP r2, r1
+    JZ r6, grep_check_line
     JMP grep_copy_line
 
 grep_advance_nl:
-    LDI r6, 1
-    ADD r5, r6             ; skip newline
+    LDI r1, 1
+    ADD r0, r1             ; skip newline
 
 grep_check_line:
     ; Null terminate line buffer
-    LDI r2, 0
-    STORE r11, r2
+    LDI r6, 0
+    STORE r15, r6
 
     ; Compute pattern length (scan 0x2200 for null)
-    LDI r8, 0
-    LDI r10, 0x2200
+    LDI r3, 0
+    LDI r12, 0x2200
 
 grep_scan_pat_len:
-    LOAD r2, r10
-    JZ r2, grep_have_pat_len
-    LDI r6, 1
-    ADD r10, r6
-    ADD r8, r6
+    LOAD r6, r12
+    JZ r6, grep_have_pat_len
+    LDI r1, 1
+    ADD r12, r1
+    ADD r3, r1
     JMP grep_scan_pat_len
 
 grep_have_pat_len:
-    ; r8 = pattern length, r13 = line length
+    ; r3 = pattern length, r2 = line length
     ; Skip if line shorter than pattern
-    CMP r13, r8
-    BLT r2, grep_next_line
+    CMP r2, r3
+    BLT r6, grep_next_line
 
     ; Simple substring search: check each starting position
-    ; r13 - r8 = max starting position
-    SUB r13, r8           ; r13 = max_start (line_len - pat_len)
+    ; r2 - r3 = max starting position
+    SUB r2, r3           ; r2 = max_start (line_len - pat_len)
 
 grep_search_pos:
-    ; r11 = current position in line (0x2400 + offset)
+    ; r15 = current position in line (0x2400 + offset)
     ; Use offset tracking instead of absolute address comparison
-    LDI r7, 0              ; search offset
+    LDI r4, 0              ; search offset
 
 grep_search_pos2:
-    CMP r7, r13            ; offset vs max_start
-    BGE r2, grep_next_line
+    CMP r4, r2            ; offset vs max_start
+    BGE r6, grep_next_line
 
-    ; Compare pattern with line at offset r7
-    LDI r10, 0x2400
-    ADD r10, r7            ; r10 = line_base + offset
+    ; Compare pattern with line at offset r4
+    LDI r12, 0x2400
+    ADD r12, r4            ; r12 = line_base + offset
     LDI r9, 0x2200        ; pattern start
-    LDI r6, 0              ; chars matched
+    LDI r1, 0              ; chars matched
 
 grep_cmp_loop:
-    LOAD r2, r10
-    LOAD r3, r9
-    CMP r2, r3
-    JNZ r2, grep_no_match_here
+    LOAD r6, r12
+    LOAD r14, r9
+    CMP r6, r14
+    JNZ r6, grep_no_match_here
     ; Match so far
-    LDI r4, 1
-    ADD r10, r4
-    ADD r9, r4
-    ADD r6, r4             ; count matched chars
-    CMP r6, r8            ; matched vs pattern_len
-    BLT r2, grep_cmp_loop
+    LDI r13, 1
+    ADD r12, r13
+    ADD r9, r13
+    ADD r1, r13             ; count matched chars
+    CMP r1, r3            ; matched vs pattern_len
+    BLT r6, grep_cmp_loop
     JMP grep_found_match
 
 grep_no_match_here:
-    LDI r4, 1
-    ADD r7, r4             ; advance offset
+    LDI r13, 1
+    ADD r4, r13             ; advance offset
     JMP grep_search_pos2
 
 grep_found_match:
     ; Display the matching line
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, 0x2400
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, 0x2400
+    TEXT r14, r1, r13
 
 grep_next_line:
-    ; Restore file pointer from r14
-    MOV r5, r14
+    ; Restore file pointer from r11
+    MOV r0, r11
     JMP grep_line_loop
 
 grep_no_file:
     ; Missing filename argument
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, grep_usage
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, grep_usage
+    TEXT r14, r1, r13
     JMP grep_cleanup
 
 grep_err:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, grep_err_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, grep_err_msg
+    TEXT r14, r1, r13
     JMP grep_cleanup
 
 grep_done:
-    POP r5
-    POP r11
-    POP r13
+    POP r0
+    POP r15
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 grep_cleanup:
-    POP r5
-    POP r11
-    POP r13
+    POP r0
+    POP r15
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 do_head:
     ; head <file> [N] -- display first N lines (default 10)
     ; Argument at 0x0600 is "file N"
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
-    PUSH r11
-    PUSH r5
+    PUSH r2
+    PUSH r15
+    PUSH r0
 
     ; Parse: filename at 0x0600, optional number after space
     ; Copy filename to 0x2200, check for trailing number
-    LDI r5, 0x0600
-    LDI r11, 0x2200
+    LDI r0, 0x0600
+    LDI r15, 0x2200
 
 head_copy_name:
-    LOAD r2, r5
-    JZ r2, head_name_done
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, head_parse_n
-    STORE r11, r2
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
+    LOAD r6, r0
+    JZ r6, head_name_done
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, head_parse_n
+    STORE r15, r6
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
     JMP head_copy_name
 
 head_parse_n:
     ; Skip space
-    LDI r6, 1
-    ADD r5, r6
+    LDI r1, 1
+    ADD r0, r1
     ; Parse number (single digit 1-9 for simplicity)
-    LDI r8, 10           ; default N = 10
-    LOAD r2, r5
-    JZ r2, head_name_done  ; no number, use default
+    LDI r3, 10           ; default N = 10
+    LOAD r6, r0
+    JZ r6, head_name_done  ; no number, use default
     ; Subtract '0' (48) to get digit
-    LDI r6, 48
-    SUB r2, r6
+    LDI r1, 48
+    SUB r6, r1
     ; If result is 1-9, use it; else default 10
-    LDI r6, 1
-    CMP r2, r6
-    BLT r2, head_name_done
-    LDI r6, 9
-    CMP r2, r6
-    BGE r2, head_name_done
-    MOV r8, r2           ; use parsed N
+    LDI r1, 1
+    CMP r6, r1
+    BLT r6, head_name_done
+    LDI r1, 9
+    CMP r6, r1
+    BGE r6, head_name_done
+    MOV r3, r6           ; use parsed N
 
 head_name_done:
-    LDI r2, 0
-    STORE r11, r2         ; null terminate filename
+    LDI r6, 0
+    STORE r15, r6         ; null terminate filename
 
     ; Check for empty filename
-    LDI r11, 0x2200
-    LOAD r2, r11
-    JZ r2, head_err
+    LDI r15, 0x2200
+    LOAD r6, r15
+    JZ r6, head_err
 
     ; Open file
-    LDI r6, 0x2200
-    LDI r3, 0
-    OPEN r6, r3
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JZ r2, head_err
+    LDI r1, 0x2200
+    LDI r14, 0
+    OPEN r1, r14
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JZ r6, head_err
 
-    MOV r0, r2
-    LDI r4, 0x2000
-    LDI r1, 400
-    READ r0, r4, r1
-    CLOSE r0
+    MOV r8, r6
+    LDI r13, 0x2000
+    LDI r5, 400
+    READ r8, r13, r5
+    CLOSE r8
 
     ; Null terminate
-    LDI r15, 0x2000
-    ADD r15, r2
-    LDI r12, 0
-    STORE r15, r12
+    LDI r10, 0x2000
+    ADD r10, r6
+    LDI r7, 0
+    STORE r10, r7
 
     ; Display first N lines
-    LDI r5, 0x2000       ; file pointer
-    LDI r11, 0x2400       ; line buffer
+    LDI r0, 0x2000       ; file pointer
+    LDI r15, 0x2400       ; line buffer
     LDI r9, 0            ; line count
-    LDI r13, 0            ; chars in line
+    LDI r2, 0            ; chars in line
 
 head_read_line:
-    LOAD r2, r5
-    JZ r2, head_done      ; end of file
+    LOAD r6, r0
+    JZ r6, head_done      ; end of file
 
-    LDI r6, 10
-    CMP r2, r6
-    JZ r2, head_print_line
+    LDI r1, 10
+    CMP r6, r1
+    JZ r6, head_print_line
 
-    STORE r11, r2
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
-    ADD r13, r6
-    LDI r6, 32
-    CMP r13, r6
-    BLT r2, head_read_line
+    STORE r15, r6
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
+    ADD r2, r1
+    LDI r1, 32
+    CMP r2, r1
+    BLT r6, head_read_line
     ; Line too long, print what we have
     JMP head_print_line
 
 head_print_line:
     ; Null terminate
-    LDI r2, 0
-    STORE r11, r2
+    LDI r6, 0
+    STORE r15, r6
     ; Display
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, 0x2400
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, 0x2400
+    TEXT r14, r1, r13
 
     ; Increment line count, check limit
-    LDI r6, 1
-    ADD r9, r6
-    CMP r9, r8
-    BGE r2, head_done
+    LDI r1, 1
+    ADD r9, r1
+    CMP r9, r3
+    BGE r6, head_done
 
     ; Skip newline if present
-    LOAD r2, r5
-    LDI r6, 10
-    CMP r2, r6
-    JZ r2, head_skip_nl
+    LOAD r6, r0
+    LDI r1, 10
+    CMP r6, r1
+    JZ r6, head_skip_nl
     JMP head_reset_line
 
 head_skip_nl:
-    LDI r6, 1
-    ADD r5, r6
+    LDI r1, 1
+    ADD r0, r1
 
 head_reset_line:
-    LDI r11, 0x2400
-    LDI r13, 0
+    LDI r15, 0x2400
+    LDI r2, 0
     JMP head_read_line
 
 head_done:
-    POP r5
-    POP r11
-    POP r13
+    POP r0
+    POP r15
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 head_err:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, head_usage_msg
-    TEXT r3, r6, r4
-    POP r5
-    POP r11
-    POP r13
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, head_usage_msg
+    TEXT r14, r1, r13
+    POP r0
+    POP r15
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 do_tail:
     ; tail <file> [N] -- display last N lines (default 10)
     ; Strategy: read whole file, count newlines, display last N
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
-    PUSH r11
-    PUSH r5
+    PUSH r2
+    PUSH r15
+    PUSH r0
 
     ; Parse: filename at 0x0600, optional number
-    LDI r5, 0x0600
-    LDI r11, 0x2200
+    LDI r0, 0x0600
+    LDI r15, 0x2200
 
 tail_copy_name:
-    LOAD r2, r5
-    JZ r2, tail_name_done
-    LDI r6, 32
-    CMP r2, r6
-    JZ r2, tail_parse_n
-    STORE r11, r2
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
+    LOAD r6, r0
+    JZ r6, tail_name_done
+    LDI r1, 32
+    CMP r6, r1
+    JZ r6, tail_parse_n
+    STORE r15, r6
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
     JMP tail_copy_name
 
 tail_parse_n:
-    LDI r6, 1
-    ADD r5, r6
-    LDI r8, 10           ; default N = 10
-    LOAD r2, r5
-    JZ r2, tail_name_done
-    LDI r6, 48
-    SUB r2, r6
-    LDI r6, 1
-    CMP r2, r6
-    BLT r2, tail_name_done
-    LDI r6, 9
-    CMP r2, r6
-    BGE r2, tail_name_done
-    MOV r8, r2
+    LDI r1, 1
+    ADD r0, r1
+    LDI r3, 10           ; default N = 10
+    LOAD r6, r0
+    JZ r6, tail_name_done
+    LDI r1, 48
+    SUB r6, r1
+    LDI r1, 1
+    CMP r6, r1
+    BLT r6, tail_name_done
+    LDI r1, 9
+    CMP r6, r1
+    BGE r6, tail_name_done
+    MOV r3, r6
 
 tail_name_done:
-    LDI r2, 0
-    STORE r11, r2
+    LDI r6, 0
+    STORE r15, r6
 
-    LDI r11, 0x2200
-    LOAD r2, r11
-    JZ r2, tail_err
+    LDI r15, 0x2200
+    LOAD r6, r15
+    JZ r6, tail_err
 
     ; Open and read file
-    LDI r6, 0x2200
-    LDI r3, 0
-    OPEN r6, r3
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JZ r2, tail_err
+    LDI r1, 0x2200
+    LDI r14, 0
+    OPEN r1, r14
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JZ r6, tail_err
 
-    MOV r0, r2
-    LDI r4, 0x2000
-    LDI r1, 400
-    READ r0, r4, r1
-    CLOSE r0
+    MOV r8, r6
+    LDI r13, 0x2000
+    LDI r5, 400
+    READ r8, r13, r5
+    CLOSE r8
 
-    LDI r15, 0x2000
-    ADD r15, r2
-    LDI r12, 0
-    STORE r15, r12
+    LDI r10, 0x2000
+    ADD r10, r6
+    LDI r7, 0
+    STORE r10, r7
 
     ; Count total lines
-    LDI r5, 0x2000
+    LDI r0, 0x2000
     LDI r9, 1            ; line count (at least 1)
 
 tail_count_lines:
-    LOAD r2, r5
-    JZ r2, tail_count_done
-    LDI r6, 10
-    CMP r2, r6
-    JNZ r2, tail_count_next
-    LDI r6, 1
-    ADD r9, r6           ; increment line count
+    LOAD r6, r0
+    JZ r6, tail_count_done
+    LDI r1, 10
+    CMP r6, r1
+    JNZ r6, tail_count_next
+    LDI r1, 1
+    ADD r9, r1           ; increment line count
 tail_count_next:
-    LDI r6, 1
-    ADD r5, r6
+    LDI r1, 1
+    ADD r0, r1
     JMP tail_count_lines
 
 tail_count_done:
     ; Compute start line: total_lines - N (but min 1)
-    MOV r11, r9           ; total_lines
-    SUB r11, r8           ; total - N
-    LDI r6, 1
-    CMP r11, r6
-    BGE r2, tail_skip_ok
-    MOV r11, r6            ; at least line 1
+    MOV r15, r9           ; total_lines
+    SUB r15, r3           ; total - N
+    LDI r1, 1
+    CMP r15, r1
+    BGE r6, tail_skip_ok
+    MOV r15, r1            ; at least line 1
 
 tail_skip_ok:
     ; Skip to start line
-    LDI r5, 0x2000
+    LDI r0, 0x2000
     LDI r9, 1             ; current line
 
 tail_skip_loop:
-    CMP r9, r11
-    BGE r2, tail_display   ; reached start line
+    CMP r9, r15
+    BGE r6, tail_display   ; reached start line
 
 tail_skip_next:
-    LOAD r2, r5
-    JZ r2, tail_done       ; end of file
-    LDI r6, 10
-    CMP r2, r6
-    JNZ r2, tail_skip_adv
-    LDI r6, 1
-    ADD r9, r6            ; next line on newline
+    LOAD r6, r0
+    JZ r6, tail_done       ; end of file
+    LDI r1, 10
+    CMP r6, r1
+    JNZ r6, tail_skip_adv
+    LDI r1, 1
+    ADD r9, r1            ; next line on newline
 tail_skip_adv:
-    LDI r6, 1
-    ADD r5, r6
+    LDI r1, 1
+    ADD r0, r1
     JMP tail_skip_loop
 
 tail_display:
     ; Display remaining lines
-    LDI r11, 0x2400       ; line buffer
-    LDI r13, 0            ; chars in line
+    LDI r15, 0x2400       ; line buffer
+    LDI r2, 0            ; chars in line
 
 tail_read_char:
-    LOAD r2, r5
-    JZ r2, tail_flush
-    LDI r6, 10
-    CMP r2, r6
-    JZ r2, tail_flush
+    LOAD r6, r0
+    JZ r6, tail_flush
+    LDI r1, 10
+    CMP r6, r1
+    JZ r6, tail_flush
 
-    STORE r11, r2
-    LDI r6, 1
-    ADD r5, r6
-    ADD r11, r6
-    ADD r13, r6
-    LDI r6, 32
-    CMP r13, r6
-    BLT r2, tail_read_char
+    STORE r15, r6
+    LDI r1, 1
+    ADD r0, r1
+    ADD r15, r1
+    ADD r2, r1
+    LDI r1, 32
+    CMP r2, r1
+    BLT r6, tail_read_char
     JMP tail_flush
 
 tail_flush:
-    LDI r2, 0
-    STORE r11, r2
+    LDI r6, 0
+    STORE r15, r6
     ; Display line
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, 0x2400
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, 0x2400
+    TEXT r14, r1, r13
 
     ; Check if we consumed a newline
-    LOAD r2, r5
-    LDI r6, 10
-    CMP r2, r6
-    JZ r2, tail_skip_newline
+    LOAD r6, r0
+    LDI r1, 10
+    CMP r6, r1
+    JZ r6, tail_skip_newline
 
 tail_reset:
-    LDI r11, 0x2400
-    LDI r13, 0
-    LOAD r2, r5
-    JZ r2, tail_done
+    LDI r15, 0x2400
+    LDI r2, 0
+    LOAD r6, r0
+    JZ r6, tail_done
     JMP tail_read_char
 
 tail_skip_newline:
-    LDI r6, 1
-    ADD r5, r6
+    LDI r1, 1
+    ADD r0, r1
     JMP tail_reset
 
 tail_done:
-    POP r5
-    POP r11
-    POP r13
+    POP r0
+    POP r15
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 tail_err:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, tail_usage_msg
-    TEXT r3, r6, r4
-    POP r5
-    POP r11
-    POP r13
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, tail_usage_msg
+    TEXT r14, r1, r13
+    POP r0
+    POP r15
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 do_wc:
     ; wc <file> -- count lines, words, and bytes
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
-    PUSH r11
-    PUSH r5
+    PUSH r2
+    PUSH r15
+    PUSH r0
 
     ; Check for argument
-    LDI r7, 0x0600
-    LOAD r2, r7
-    JZ r2, wc_err
+    LDI r4, 0x0600
+    LOAD r6, r4
+    JZ r6, wc_err
 
     ; Open file
-    LDI r6, 0x0600
-    LDI r3, 0
-    OPEN r6, r3
-    LDI r6, 0xFFFFFFFF
-    CMP r2, r6
-    JZ r2, wc_err
+    LDI r1, 0x0600
+    LDI r14, 0
+    OPEN r1, r14
+    LDI r1, 0xFFFFFFFF
+    CMP r6, r1
+    JZ r6, wc_err
 
-    MOV r0, r2
-    LDI r4, 0x2000
-    LDI r1, 400
-    READ r0, r4, r1
-    MOV r13, r2           ; save byte count
-    CLOSE r0
+    MOV r8, r6
+    LDI r13, 0x2000
+    LDI r5, 400
+    READ r8, r13, r5
+    MOV r2, r6           ; save byte count
+    CLOSE r8
 
     ; Null terminate
-    LDI r15, 0x2000
-    ADD r15, r2
-    LDI r12, 0
-    STORE r15, r12
+    LDI r10, 0x2000
+    ADD r10, r6
+    LDI r7, 0
+    STORE r10, r7
 
     ; Count lines and words
-    LDI r5, 0x2000       ; file pointer
+    LDI r0, 0x2000       ; file pointer
     LDI r9, 0            ; line count
-    LDI r8, 0            ; word count
-    LDI r10, 0            ; prev was space (1=yes, 0=no)
+    LDI r3, 0            ; word count
+    LDI r12, 0            ; prev was space (1=yes, 0=no)
 
 wc_scan:
-    LOAD r2, r5
-    JZ r2, wc_format      ; end of file
+    LOAD r6, r0
+    JZ r6, wc_format      ; end of file
 
     ; Count newlines
-    LDI r6, 10
-    CMP r2, r6
-    JNZ r2, wc_not_nl
-    LDI r6, 1
-    ADD r9, r6           ; line++
-    LDI r10, 1            ; prev = space
+    LDI r1, 10
+    CMP r6, r1
+    JNZ r6, wc_not_nl
+    LDI r1, 1
+    ADD r9, r1           ; line++
+    LDI r12, 1            ; prev = space
     JMP wc_next
 
 wc_not_nl:
     ; Count words: space or other whitespace transitions
-    LDI r6, 32            ; space
-    CMP r2, r6
-    JNZ r2, wc_not_space
-    LDI r10, 1            ; prev = space
+    LDI r1, 32            ; space
+    CMP r6, r1
+    JNZ r6, wc_not_space
+    LDI r12, 1            ; prev = space
     JMP wc_next
 
 wc_not_space:
     ; If prev was space and current is not, it is a new word
-    LDI r6, 1
-    CMP r10, r6
-    JNZ r2, wc_next
-    ADD r8, r6           ; word++
-    LDI r10, 0            ; prev = not space
+    LDI r1, 1
+    CMP r12, r1
+    JNZ r6, wc_next
+    ADD r3, r1           ; word++
+    LDI r12, 0            ; prev = not space
 
 wc_next:
-    LDI r6, 1
-    ADD r5, r6
+    LDI r1, 1
+    ADD r0, r1
     JMP wc_scan
 
 wc_format:
     ; Build output string at 0x2400: "N N N"
     ; Format: lines words bytes
-    LDI r11, 0x2400
+    LDI r15, 0x2400
 
     ; Convert lines (r9) to decimal
     CALL wc_utoa
     ; Add space
-    LDI r2, 32
-    STORE r11, r2
-    LDI r6, 1
-    ADD r11, r6
+    LDI r6, 32
+    STORE r15, r6
+    LDI r1, 1
+    ADD r15, r1
 
-    ; Convert words (r8) to decimal
-    MOV r5, r8
+    ; Convert words (r3) to decimal
+    MOV r0, r3
     CALL wc_utoa
     ; Add space
-    LDI r2, 32
-    STORE r11, r2
-    LDI r6, 1
-    ADD r11, r6
+    LDI r6, 32
+    STORE r15, r6
+    LDI r1, 1
+    ADD r15, r1
 
-    ; Convert bytes (r13) to decimal
-    MOV r5, r13
+    ; Convert bytes (r2) to decimal
+    MOV r0, r2
     CALL wc_utoa
     ; Null terminate
-    LDI r2, 0
-    STORE r11, r2
+    LDI r6, 0
+    STORE r15, r6
 
     ; Display
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, 0x2400
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, 0x2400
+    TEXT r14, r1, r13
     JMP wc_cleanup
 
 wc_utoa:
-    ; Convert r5 to decimal, write to buffer at r11
-    ; Modifies r5, does not change r11 (caller manages it)
-    PUSH r10
+    ; Convert r0 to decimal, write to buffer at r15
+    ; Modifies r0, does not change r15 (caller manages it)
+    PUSH r12
     ; Handle 0 case
-    JNZ r5, wc_utoa_nonzero
-    LDI r2, 48            ; '0'
-    STORE r11, r2
-    LDI r6, 1
-    ADD r11, r6
-    POP r10
+    JNZ r0, wc_utoa_nonzero
+    LDI r6, 48            ; '0'
+    STORE r15, r6
+    LDI r1, 1
+    ADD r15, r1
+    POP r12
     RET
 
 wc_utoa_nonzero:
     ; Find number of digits by repeated division
-    LDI r10, 0            ; digit count
+    LDI r12, 0            ; digit count
     LDI r9, 10
-    MOV r8, r5          ; temp copy
+    MOV r3, r0          ; temp copy
 
 wc_count_digits:
-    JZ r8, wc_do_digits
-    LDI r6, 10
-    DIV r8, r6
-    LDI r6, 1
-    ADD r10, r6
+    JZ r3, wc_do_digits
+    LDI r1, 10
+    DIV r3, r1
+    LDI r1, 1
+    ADD r12, r1
     JMP wc_count_digits
 
 wc_do_digits:
-    ; r10 = digit count. We need to write digits from most significant.
+    ; r12 = digit count. We need to write digits from most significant.
     ; Write digits to a temp area at 0x2500, then copy in order.
     LDI r9, 0x2500       ; temp digit buffer
-    LDI r8, 0            ; digit index
-    MOV r5, r8          ; restore original? No, r5 was modified.
+    LDI r3, 0            ; digit index
+    MOV r0, r3          ; restore original? No, r0 was modified.
     ; Actually we need to re-do the conversion. Let me use a simpler approach:
     ; Write digits in reverse order, then reverse them.
     ; Even simpler: since max bytes ~400, max 3 digits. Handle up to 999.
-    POP r10
-    PUSH r10
-    PUSH r8
+    POP r12
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
+    PUSH r2
 
-    ; Save r11 (output pointer)
-    MOV r13, r11
+    ; Save r15 (output pointer)
+    MOV r2, r15
 
     ; Write digits in reverse at 0x2500
     LDI r9, 0x2500
-    LDI r8, 0            ; digit count
+    LDI r3, 0            ; digit count
 
 wc_div_loop:
-    JZ r5, wc_rev_digits
-    LDI r6, 10
-    DIV r5, r6
-    LDI r6, 48            ; '0'
-    ADD r2, r6            ; r2 = digit char
-    STORE r9, r2
-    LDI r6, 1
-    ADD r9, r6
-    ADD r8, r6
+    JZ r0, wc_rev_digits
+    LDI r1, 10
+    DIV r0, r1
+    LDI r1, 48            ; '0'
+    ADD r6, r1            ; r6 = digit char
+    STORE r9, r6
+    LDI r1, 1
+    ADD r9, r1
+    ADD r3, r1
     JMP wc_div_loop
 
 wc_rev_digits:
-    ; r8 = digit count at 0x2500 (reversed)
+    ; r3 = digit count at 0x2500 (reversed)
     ; Copy in reverse order to output
-    JZ r8, wc_utoa_done
-    LDI r6, 1
-    SUB r8, r6
+    JZ r3, wc_utoa_done
+    LDI r1, 1
+    SUB r3, r1
     LDI r9, 0x2500
-    ADD r9, r8
-    LOAD r2, r9
-    STORE r13, r2
-    LDI r6, 1
-    ADD r13, r6
+    ADD r9, r3
+    LOAD r6, r9
+    STORE r2, r6
+    LDI r1, 1
+    ADD r2, r1
     JMP wc_rev_digits
 
 wc_utoa_done:
-    MOV r11, r13          ; update output pointer
-    POP r13
+    MOV r15, r2          ; update output pointer
+    POP r2
     POP r9
-    POP r8
-    POP r10
-    POP r10
+    POP r3
+    POP r12
+    POP r12
     RET
 
 wc_err:
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, wc_usage_msg
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, wc_usage_msg
+    TEXT r14, r1, r13
 wc_cleanup:
-    POP r5
-    POP r11
-    POP r13
+    POP r0
+    POP r15
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 do_date:
     ; Display ticks since boot (proxy for uptime)
-    PUSH r10
-    PUSH r8
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
+    PUSH r2
 
     ; Read TICKS from RAM[0xFFE]
-    LDI r7, 0xFFE
-    LOAD r5, r7           ; r5 = ticks
+    LDI r4, 0xFFE
+    LOAD r0, r4           ; r0 = ticks
 
     ; Build output: "ticks: NNNN" at 0x2400
-    LDI r11, 0x2400
+    LDI r15, 0x2400
     ; Write "ticks: "
-    LDI r2, 116           ; t
-    STORE r11, r2
-    LDI r6, 1
-    ADD r11, r6
-    LDI r2, 105           ; i
-    STORE r11, r2
-    ADD r11, r6
-    LDI r2, 99            ; c
-    STORE r11, r2
-    ADD r11, r6
-    LDI r2, 107           ; k
-    STORE r11, r2
-    ADD r11, r6
-    LDI r2, 115           ; s
-    STORE r11, r2
-    ADD r11, r6
-    LDI r2, 58            ; :
-    STORE r11, r2
-    ADD r11, r6
-    LDI r2, 32            ; space
-    STORE r11, r2
-    ADD r11, r6
+    LDI r6, 116           ; t
+    STORE r15, r6
+    LDI r1, 1
+    ADD r15, r1
+    LDI r6, 105           ; i
+    STORE r15, r6
+    ADD r15, r1
+    LDI r6, 99            ; c
+    STORE r15, r6
+    ADD r15, r1
+    LDI r6, 107           ; k
+    STORE r15, r6
+    ADD r15, r1
+    LDI r6, 115           ; s
+    STORE r15, r6
+    ADD r15, r1
+    LDI r6, 58            ; :
+    STORE r15, r6
+    ADD r15, r1
+    LDI r6, 32            ; space
+    STORE r15, r6
+    ADD r15, r1
 
     ; Convert ticks to decimal
     CALL date_utoa
 
     ; Null terminate
-    LDI r2, 0
-    STORE r11, r2
+    LDI r6, 0
+    STORE r15, r6
 
     ; Display
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r3, 4
-    LDI r4, 0x2400
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r14, 4
+    LDI r13, 0x2400
+    TEXT r14, r1, r13
 
-    POP r13
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     JMP exec_done
 
 date_utoa:
-    ; Convert r5 to decimal, write to buffer at r11
-    PUSH r10
-    PUSH r8
+    ; Convert r0 to decimal, write to buffer at r15
+    PUSH r12
+    PUSH r3
     PUSH r9
-    PUSH r13
+    PUSH r2
 
-    MOV r13, r11
+    MOV r2, r15
 
     ; Handle 0
-    JNZ r5, date_nonzero
-    LDI r2, 48
-    STORE r11, r2
-    LDI r6, 1
-    ADD r11, r6
-    POP r13
+    JNZ r0, date_nonzero
+    LDI r6, 48
+    STORE r15, r6
+    LDI r1, 1
+    ADD r15, r1
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     RET
 
 date_nonzero:
     ; Write digits in reverse at 0x2600
     LDI r9, 0x2600
-    LDI r8, 0
+    LDI r3, 0
 
 date_div:
-    JZ r5, date_rev
-    LDI r6, 10
-    DIV r5, r6
-    LDI r6, 48
-    ADD r2, r6
-    STORE r9, r2
-    LDI r6, 1
-    ADD r9, r6
-    ADD r8, r6
+    JZ r0, date_rev
+    LDI r1, 10
+    DIV r0, r1
+    LDI r1, 48
+    ADD r6, r1
+    STORE r9, r6
+    LDI r1, 1
+    ADD r9, r1
+    ADD r3, r1
     JMP date_div
 
 date_rev:
-    JZ r8, date_done
-    LDI r6, 1
-    SUB r8, r6
+    JZ r3, date_done
+    LDI r1, 1
+    SUB r3, r1
     LDI r9, 0x2600
-    ADD r9, r8
-    LOAD r2, r9
-    STORE r13, r2
-    LDI r6, 1
-    ADD r13, r6
+    ADD r9, r3
+    LOAD r6, r9
+    STORE r2, r6
+    LDI r1, 1
+    ADD r2, r1
     JMP date_rev
 
 date_done:
-    MOV r11, r13
-    POP r13
+    MOV r15, r2
+    POP r2
     POP r9
-    POP r8
-    POP r10
+    POP r3
+    POP r12
     RET
 
 do_exec:
     ; Execute external program via EXEC
     ; Command name at 0x0400
-    LDI r6, 0x0400
-    EXEC r6               ; r2 = PID or error
+    LDI r1, 0x0400
+    EXEC r1               ; r6 = PID or error
     ; Check for error
-    LDI r3, 0xFFFFFFFF
-    CMP r2, r3
-    JZ r2, exec_error
+    LDI r14, 0xFFFFFFFF
+    CMP r6, r14
+    JZ r6, exec_error
 
     ; Save PID
-    LDI r7, 0x1202
-    STORE r7, r2
+    LDI r4, 0x1202
+    STORE r4, r6
 
     ; Wait for child to complete
 exec_wait:
-    LDI r6, 0x1202
-    LOAD r6, r7
-    WAITPID r6
-    JZ r2, exec_wait     ; still running
+    LDI r1, 0x1202
+    LOAD r1, r4
+    WAITPID r1
+    JZ r6, exec_wait     ; still running
 
     ; Check for pipe mode
-    LDI r7, 0x1207
-    LOAD r2, r7
-    LDI r6, 1
-    CMP r2, r6
-    JZ r2, exec_pipe
+    LDI r4, 0x1207
+    LOAD r6, r4
+    LDI r1, 1
+    CMP r6, r1
+    JZ r6, exec_pipe
 
     JMP exec_done
 
 exec_pipe:
     ; Execute second command from pipe buffer
-    LDI r6, 0x1400
-    EXEC r6
-    LDI r7, 0x1202
-    STORE r7, r2
+    LDI r1, 0x1400
+    EXEC r1
+    LDI r4, 0x1202
+    STORE r4, r6
 exec_pipe_wait:
-    LDI r6, 0x1202
-    LOAD r6, r7
-    WAITPID r6
-    JZ r2, exec_pipe_wait
+    LDI r1, 0x1202
+    LOAD r1, r4
+    WAITPID r1
+    JZ r6, exec_pipe_wait
     JMP exec_done
 
 exec_error:
     ; Display "command not found"
-    LDI r7, 0x1201
-    LOAD r6, r7
-    LDI r2, 12
-    ADD r6, r2
-    STORE r7, r6
-    LDI r4, not_found_msg
-    LDI r3, 4
-    TEXT r3, r6, r4
+    LDI r4, 0x1201
+    LOAD r1, r4
+    LDI r6, 12
+    ADD r1, r6
+    STORE r4, r1
+    LDI r13, not_found_msg
+    LDI r14, 4
+    TEXT r14, r1, r13
     JMP exec_done
 
 ; ═══════════════════════════════════════════════════════════════

@@ -1,74 +1,74 @@
-; DESCRIPTION: This GeOS assembly code generates a diagonal pattern across a screen by iterating over x and y coordinates. Each pixel's color is determined based on the sum of its coordinates modulo 6, cycling through a rainbow palette from red to purple. The pattern repeats until it reaches the specified limit (256).
+; DESCRIPTION: Draws a red object at the screen with fixed size.
 
 ; RAINBOW -- Diagonal pattern
-LDI r14, 0      ; x
-LDI r6, 0      ; y
-LDI r12, 256    ; limit
-LDI r2, 0      ; color (temp)
-LDI r4, 1      ; increment
-LDI r15, 6      ; color count
+LDI r13, 0      ; x
+LDI r14, 0      ; y
+LDI r5, 256    ; limit
+LDI r8, 0      ; color (temp)
+LDI r10, 1      ; increment
+LDI r0, 6      ; color count
 
 loop_y:
-  LDI r14, 0    ; x = 0
+  LDI r13, 0    ; x = 0
 loop_x:
   ; color = (x + y) % 6
-  LDI r0, 0
-  ADD r0, r14   ; temp = x
-  ADD r0, r6   ; temp = x + y
-  MOD r0, r15   ; temp = (x + y) % 6
+  LDI r4, 0
+  ADD r4, r13   ; temp = x
+  ADD r4, r14   ; temp = x + y
+  MOD r4, r0   ; temp = (x + y) % 6
   
-  ; select color from index in r0
+  ; select color from index in r4
   ; 0: red, 1: orange, 2: yellow, 3: green, 4: blue, 5: purple
-  LDI r7, 0
-  CMP r0, r7
-  JZ r9, set_red
+  LDI r9, 0
+  CMP r4, r9
+  JZ r12, set_red
   
-  LDI r7, 1
-  CMP r0, r7
-  JZ r9, set_orange
+  LDI r9, 1
+  CMP r4, r9
+  JZ r12, set_orange
   
-  LDI r7, 2
-  CMP r0, r7
-  JZ r9, set_yellow
+  LDI r9, 2
+  CMP r4, r9
+  JZ r12, set_yellow
   
-  LDI r7, 3
-  CMP r0, r7
-  JZ r9, set_green
+  LDI r9, 3
+  CMP r4, r9
+  JZ r12, set_green
   
-  LDI r7, 4
-  CMP r0, r7
-  JZ r9, set_blue
+  LDI r9, 4
+  CMP r4, r9
+  JZ r12, set_blue
   
   ; else purple
-  LDI r2, 0x800080
+  LDI r8, 0x800080
   JMP draw
 
 set_red:
-  LDI r2, 0xFF0000
+  LDI r8, 0xFF0000
   JMP draw
 set_orange:
-  LDI r2, 0xFFA500
+  LDI r8, 0xFFA500
   JMP draw
 set_yellow:
-  LDI r2, 0xFFFF00
+  LDI r8, 0xFFFF00
   JMP draw
 set_green:
-  LDI r2, 0x00FF00
+  LDI r8, 0x00FF00
   JMP draw
 set_blue:
-  LDI r2, 0x0000FF
+  LDI r8, 0x0000FF
 
 draw:
-  PSET r14, r6, r2
-  ADD r14, r4   ; x++
-  CMP r14, r12
-  JZ r9, next_y
+  PSET r13, r14, r8
+  ADD r13, r10   ; x++
+  CMP r13, r5
+  JZ r12, next_y
   JMP loop_x
 
 next_y:
-  ADD r6, r4   ; y++
-  CMP r6, r12
-  JZ r9, done
+  ADD r14, r10   ; y++
+  CMP r14, r5
+  JZ r12, done
   JMP loop_y
 
 done:

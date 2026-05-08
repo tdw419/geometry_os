@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a basic text editor with features such as opening, editing, saving files, searching, replacing text, and navigating through the file using keyboard inputs. It supports multiple buffers, allowing users to switch between different files or scratch buffers. The editor handles cursor movement, text insertion, deletion, scrolling, and rendering the screen with a title bar, content area, and hint bar for user instructions.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; nano_editor.asm -- Nano-like Text Editor for Geometry OS
 ; Phase 139 -- Daily Driver Text Editor App
@@ -107,65 +107,65 @@
 ; INIT
 ; =========================================
     LDI r30, 0xFE00
-    LDI r13, 1
+    LDI r3, 1
 
     ; Clear metadata
-    LDI r3, R_NL
+    LDI r5, R_NL
     LDI r14, 0
-    STORE r3, r14
-    LDI r3, R_DIRTY
-    STORE r3, r14
-    LDI r3, R_CL
-    STORE r3, r14
-    LDI r3, R_CC
-    STORE r3, r14
-    LDI r3, R_SC
-    STORE r3, r14
-    LDI r3, R_BS
-    STORE r3, r14
+    STORE r5, r14
+    LDI r5, R_DIRTY
+    STORE r5, r14
+    LDI r5, R_CL
+    STORE r5, r14
+    LDI r5, R_CC
+    STORE r5, r14
+    LDI r5, R_SC
+    STORE r5, r14
+    LDI r5, R_BS
+    STORE r5, r14
 
     ; Set filename
-    LDI r3, R_FN
-    STRO r3, "~/.geos_notes.txt"
+    LDI r5, R_FN
+    STRO r5, "~/.geos_notes.txt"
 
     ; Init prompt state
-    LDI r3, R_PM
+    LDI r5, R_PM
     LDI r14, 0
-    STORE r3, r14
-    LDI r3, R_SLEN
-    STORE r3, r14
-    LDI r3, R_SML
+    STORE r5, r14
+    LDI r5, R_SLEN
+    STORE r5, r14
+    LDI r5, R_SML
     LDI r14, 0xFFFFFFFF
-    STORE r3, r14
-    LDI r3, R_SMC
+    STORE r5, r14
+    LDI r5, R_SMC
     LDI r14, 0
-    STORE r3, r14
-    LDI r3, R_GNUM
-    STORE r3, r14
+    STORE r5, r14
+    LDI r5, R_GNUM
+    STORE r5, r14
 
     ; Init multi-buffer state
-    LDI r3, R_BACT
+    LDI r5, R_BACT
     LDI r14, 0
-    STORE r3, r14              ; active_buf = 0
-    LDI r3, R_BCNT
+    STORE r5, r14              ; active_buf = 0
+    LDI r5, R_BCNT
     LDI r14, 1
-    STORE r3, r14              ; buf_count = 1
+    STORE r5, r14              ; buf_count = 1
 
     ; Copy default filename to buffer 0 slot
-    LDI r11, R_B0FN
+    LDI r10, R_B0FN
     LDI r16, R_FN
 ib_copy_fn:
     LOAD r17, r16
-    STORE r11, r17
+    STORE r10, r17
     LDI r17, 0
     CMP r17, r16
     ; Check if we just copied a null
     LOAD r17, r16
     LDI r18, 0
     CMP r17, r18
-    JZ r2, ib_fn_done
+    JZ r15, ib_fn_done
     LDI r17, 1
-    ADD r11, r17
+    ADD r10, r17
     ADD r16, r17
     JMP ib_copy_fn
 ib_fn_done:
@@ -177,32 +177,32 @@ ib_fn_done:
     CALL build_lines
 
     ; If line_count == 0, ensure at least 1 line
-    LDI r3, R_NL
-    LOAD r3, r3
+    LDI r5, R_NL
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, main_loop
+    CMP r5, r14
+    JNZ r15, main_loop
 
     ; Force 1 empty line
-    LDI r3, R_NL
+    LDI r5, R_NL
     LDI r14, 1
-    STORE r3, r14
-    LDI r3, LS
+    STORE r5, r14
+    LDI r5, LS
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
 ; =========================================
 ; MAIN LOOP
 ; =========================================
 main_loop:
     ; Clear screen
-    LDI r7, C_BG
-    FILL r7
+    LDI r4, C_BG
+    FILL r4
 
     ; Read keyboard
-    IKEY r9
-    LDI r0, 0xFFB
-    LOAD r0, r0
+    IKEY r1
+    LDI r9, 0xFFB
+    LOAD r9, r9
 
     ; Handle input
     CALL handle_input
@@ -223,35 +223,35 @@ load_file:
     PUSH r31
 
     ; FSOPEN path, mode=0 (read)
-    LDI r3, R_FN
+    LDI r5, R_FN
     LDI r14, 0
-    FSOPEN r3, r14
+    FSOPEN r5, r14
 
-    ; Check error (r2 >= 0x80000000)
-    LDI r3, 0x80000000
-    CMP r2, r3
-    BGE r2, lf_done
+    ; Check error (r15 >= 0x80000000)
+    LDI r5, 0x80000000
+    CMP r15, r5
+    BGE r15, lf_done
 
     ; Save handle
-    MOV r20, r2
+    MOV r20, r15
 
     ; FSREAD handle, FB, 8192
     LDI r14, FB
     LDI r8, FB_MAX
     FSREAD r20, r14, r8
-    MOV r21, r2
+    MOV r21, r15
 
     ; FSCLOSE
     FSCLOSE r20
 
     ; Check read result
-    LDI r3, 0x80000000
-    CMP r21, r3
-    BGE r2, lf_done
+    LDI r5, 0x80000000
+    CMP r21, r5
+    BGE r15, lf_done
 
     ; Save buffer size
-    LDI r3, R_BS
-    STORE r3, r21
+    LDI r5, R_BS
+    STORE r5, r21
 
 lf_done:
     POP r31
@@ -264,15 +264,15 @@ save_file:
     PUSH r31
 
     ; FSOPEN path, mode=1 (write/create)
-    LDI r3, R_FN
+    LDI r5, R_FN
     LDI r14, 1
-    FSOPEN r3, r14
+    FSOPEN r5, r14
 
-    LDI r3, 0x80000000
-    CMP r2, r3
-    BGE r2, sf_done
+    LDI r5, 0x80000000
+    CMP r15, r5
+    BGE r15, sf_done
 
-    MOV r20, r2
+    MOV r20, r15
 
     ; FSWRITE handle, FB, buf_size
     LDI r14, FB
@@ -284,9 +284,9 @@ save_file:
     FSCLOSE r20
 
     ; Clear dirty flag
-    LDI r3, R_DIRTY
+    LDI r5, R_DIRTY
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
 sf_done:
     POP r31
@@ -298,177 +298,177 @@ sf_done:
 ; =========================================
 build_lines:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
     ; line_starts[0] = 0
-    LDI r3, LS
+    LDI r5, LS
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
     ; line_count = 1
-    LDI r3, R_NL
+    LDI r5, R_NL
     LDI r14, 1
-    STORE r3, r14
+    STORE r5, r14
 
     ; buf_size
-    LDI r3, R_BS
-    LOAD r3, r3
+    LDI r5, R_BS
+    LOAD r5, r5
 
     ; If buf_size == 0, done
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, bl_done
+    CMP r5, r14
+    JZ r15, bl_done
 
     ; Scan with offset counter
     LDI r8, 0
 
 bl_scan:
-    CMP r8, r3
-    BGE r2, bl_done
+    CMP r8, r5
+    BGE r15, bl_done
 
     ; Load byte at FB + offset
-    LDI r10, FB
-    ADD r10, r8
-    LOAD r10, r10
-    LDI r12, 10
-    CMP r10, r12
-    JNZ r2, bl_next
+    LDI r0, FB
+    ADD r0, r8
+    LOAD r0, r0
+    LDI r2, 10
+    CMP r0, r2
+    JNZ r15, bl_next
 
     ; Found newline -- next line starts at offset + 1
-    LDI r12, LS
-    LDI r11, R_NL
-    LOAD r11, r11
-    ADD r12, r11
+    LDI r2, LS
+    LDI r10, R_NL
+    LOAD r10, r10
+    ADD r2, r10
     LDI r16, 1
     ADD r16, r8
-    STORE r12, r16
+    STORE r2, r16
 
     ; line_count++
-    ADD r11, r13
-    LDI r12, R_NL
-    STORE r12, r11
+    ADD r10, r3
+    LDI r2, R_NL
+    STORE r2, r10
 
 bl_next:
-    ADD r8, r13
+    ADD r8, r3
     JMP bl_scan
 
 bl_done:
-    POP r13
+    POP r3
     POP r31
     RET
 
 ; =========================================
 ; HANDLE INPUT
-; r9 = IKEY key, r0 = arrow bitmask
+; r1 = IKEY key, r9 = arrow bitmask
 ; =========================================
 handle_input:
     PUSH r31
+    PUSH r1
     PUSH r9
-    PUSH r0
 
     ; Check if in prompt mode
-    LDI r3, R_PM
-    LOAD r3, r3
+    LDI r5, R_PM
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, hi_prompt
+    CMP r5, r14
+    JNZ r15, hi_prompt
 
     ; Check arrow bitmask first
-    MOV r3, r0
+    MOV r5, r9
 
     ; bit 0 = up
     LDI r14, 1
-    MOV r8, r3
+    MOV r8, r5
     AND r8, r14
     JNZ r8, hi_up
 
     ; bit 1 = down
     LDI r14, 2
-    MOV r8, r3
+    MOV r8, r5
     AND r8, r14
     JNZ r8, hi_down
 
     ; bit 2 = left
     LDI r14, 4
-    MOV r8, r3
+    MOV r8, r5
     AND r8, r14
     JNZ r8, hi_left
 
     ; bit 3 = right
     LDI r14, 8
-    MOV r8, r3
+    MOV r8, r5
     AND r8, r14
     JNZ r8, hi_right
 
     ; Check IKEY key
-    MOV r14, r9
+    MOV r14, r1
     LDI r8, 0
     CMP r14, r8
-    JZ r2, hi_done
+    JZ r15, hi_done
 
     ; Ctrl+Q (17)?
     LDI r8, 17
     CMP r14, r8
-    JZ r2, hi_quit
+    JZ r15, hi_quit
 
     ; Ctrl+O (15)? -- Save file
     LDI r8, 15
     CMP r14, r8
-    JZ r2, hi_save
+    JZ r15, hi_save
 
     ; Ctrl+R (18)? -- Replace
     LDI r8, 18
     CMP r14, r8
-    JZ r2, hi_replace
+    JZ r15, hi_replace
 
     ; Ctrl+S (19)? -- Incremental search
     LDI r8, 19
     CMP r14, r8
-    JZ r2, hi_incsearch
+    JZ r15, hi_incsearch
 
     ; Ctrl+F (6)? -- Find next match
     LDI r8, 6
     CMP r14, r8
-    JZ r2, hi_search
+    JZ r15, hi_search
 
     ; Ctrl+G (7)?
     LDI r8, 7
     CMP r14, r8
-    JZ r2, hi_goto
+    JZ r15, hi_goto
 
     ; Ctrl+B (2)? -- switch buffer
     LDI r8, 2
     CMP r14, r8
-    JZ r2, hi_buf_switch
+    JZ r15, hi_buf_switch
 
     ; Ctrl+N (14)? -- new buffer
     LDI r8, 14
     CMP r14, r8
-    JZ r2, hi_buf_new
+    JZ r15, hi_buf_new
 
     ; Escape (27) -- clear search match
     LDI r8, 27
     CMP r14, r8
-    JZ r2, hi_clear_match
+    JZ r15, hi_clear_match
 
     ; Backspace (8)?
     LDI r8, 8
     CMP r14, r8
-    JZ r2, hi_bksp
+    JZ r15, hi_bksp
 
     ; Enter (10)?
     LDI r8, 10
     CMP r14, r8
-    JZ r2, hi_enter
+    JZ r15, hi_enter
 
     ; Printable (32-126)?
     LDI r8, 32
     CMP r14, r8
-    BLT r2, hi_done
+    BLT r15, hi_done
     LDI r8, 127
     CMP r14, r8
-    BGE r2, hi_done
+    BGE r15, hi_done
 
     ; Insert printable char
     CALL insert_char
@@ -516,248 +516,248 @@ hi_buf_new:
     CALL new_buf
     JMP hi_done
 hi_clear_match:
-    LDI r3, R_SML
+    LDI r5, R_SML
     LDI r14, 0xFFFFFFFF
-    STORE r3, r14
+    STORE r5, r14
     JMP hi_done
 
 ; =========================================
 ; PROMPT MODE HANDLER
 ; =========================================
 hi_prompt:
-    MOV r14, r9
+    MOV r14, r1
     LDI r8, 0
     CMP r14, r8
-    JZ r2, hi_done
+    JZ r15, hi_done
 
     ; Escape (27) -- cancel prompt
     LDI r8, 27
     CMP r14, r8
-    JZ r2, hp_cancel
+    JZ r15, hp_cancel
 
     ; Enter (10) -- execute prompt
     LDI r8, 10
     CMP r14, r8
-    JZ r2, hp_execute
+    JZ r15, hp_execute
 
     ; Backspace (8) -- delete last char
     LDI r8, 8
     CMP r14, r8
-    JZ r2, hp_bksp
+    JZ r15, hp_bksp
 
     ; Printable (32-126)?
     LDI r8, 32
     CMP r14, r8
-    BLT r2, hi_done
+    BLT r15, hi_done
     LDI r8, 127
     CMP r14, r8
-    BGE r2, hi_done
+    BGE r15, hi_done
 
     ; Add char to prompt
-    LDI r3, R_PM
-    LOAD r3, r3              ; prompt mode
+    LDI r5, R_PM
+    LOAD r5, r5              ; prompt mode
     LDI r8, 1
-    CMP r3, r8
-    JZ r2, hp_add_search
+    CMP r5, r8
+    JZ r15, hp_add_search
 
     ; Mode 3 (inc search) -- same as mode 1
     LDI r8, 3
-    CMP r3, r8
-    JZ r2, hp_add_search
+    CMP r5, r8
+    JZ r15, hp_add_search
 
     ; Mode 4 (replace) -- check sub-mode
     LDI r8, 4
-    CMP r3, r8
-    JNZ r2, hp_add_goto
+    CMP r5, r8
+    JNZ r15, hp_add_goto
 
-    LDI r3, R_RSM
-    LOAD r3, r3
+    LDI r5, R_RSM
+    LOAD r5, r5
     LDI r8, 1
-    CMP r3, r8
-    JNZ r2, hp_add_search
+    CMP r5, r8
+    JNZ r15, hp_add_search
 
     ; Replace sub-mode 1 -- add to replace string
-    LDI r13, 1
-    LDI r3, R_RLEN
-    LOAD r3, r3
+    LDI r3, 1
+    LDI r5, R_RLEN
+    LOAD r5, r5
     LDI r8, 40
-    CMP r3, r8
-    BGE r2, hi_done
+    CMP r5, r8
+    BGE r15, hi_done
 
     LDI r8, R_REPL
-    ADD r8, r3
-    STORE r8, r9
-    ADD r3, r13
+    ADD r8, r5
+    STORE r8, r1
+    ADD r5, r3
     LDI r8, R_RLEN
-    STORE r8, r3
+    STORE r8, r5
     JMP hi_done
 
 hp_add_goto:
 
     ; Goto mode -- accumulate digit
     LDI r14, 48                ; '0'
-    SUB r9, r14                ; digit value (assumes 0-9 input)
+    SUB r1, r14                ; digit value (assumes 0-9 input)
     LDI r8, 0
-    CMP r9, r8
-    BLT r2, hi_done
+    CMP r1, r8
+    BLT r15, hi_done
     LDI r8, 9
-    CMP r9, r8
-    BGE r2, hi_done            ; not a digit
+    CMP r1, r8
+    BGE r15, hi_done            ; not a digit
 
     ; gnum = gnum * 10 + digit
-    LDI r3, R_GNUM
-    LOAD r3, r3
+    LDI r5, R_GNUM
+    LOAD r5, r5
     LDI r8, 10
-    MUL r3, r8
-    ADD r3, r9
+    MUL r5, r8
+    ADD r5, r1
     LDI r8, R_GNUM
-    STORE r8, r3
+    STORE r8, r5
     JMP hi_done
 
 hp_add_search:
     ; Add char to search string (modes 1, 3, and 4-sub0 share this)
-    LDI r13, 1                  ; increment constant
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r3, 1                  ; increment constant
+    LDI r5, R_SLEN
+    LOAD r5, r5
     LDI r8, 40                ; max 40 chars
-    CMP r3, r8
-    BGE r2, hi_done
+    CMP r5, r8
+    BGE r15, hi_done
 
     LDI r8, R_SEARCH
-    ADD r8, r3
-    STORE r8, r9              ; search_buf[slen] = char
-    ADD r3, r13
+    ADD r8, r5
+    STORE r8, r1              ; search_buf[slen] = char
+    ADD r5, r3
     LDI r8, R_SLEN
-    STORE r8, r3             ; slen++
+    STORE r8, r5             ; slen++
 
     ; Incremental search -- auto-search on each keystroke
     LDI r8, R_PM
     LOAD r8, r8
-    LDI r10, 3
-    CMP r8, r10
-    JZ r2, hp_auto_search
+    LDI r0, 3
+    CMP r8, r0
+    JZ r15, hp_auto_search
 
     ; Replace mode sub 0 -- also auto-search
-    LDI r10, 4
-    CMP r8, r10
-    JNZ r2, hi_done
+    LDI r0, 4
+    CMP r8, r0
+    JNZ r15, hi_done
 
     ; Check replace sub-mode
     LDI r8, R_RSM
     LOAD r8, r8
-    LDI r10, 0
-    CMP r8, r10
-    JNZ r2, hi_done
+    LDI r0, 0
+    CMP r8, r0
+    JNZ r15, hi_done
 
 hp_auto_search:
     CALL do_search
     JMP hi_done
 
 hp_bksp:
-    LDI r3, R_PM
-    LOAD r3, r3
+    LDI r5, R_PM
+    LOAD r5, r5
 
     ; Check for replace sub-mode 1 (replace input)
     LDI r8, 4
-    CMP r3, r8
-    JNZ r2, hp_bksp_not_repl1
+    CMP r5, r8
+    JNZ r15, hp_bksp_not_repl1
     LDI r8, R_RSM
     LOAD r8, r8
-    LDI r10, 1
-    CMP r8, r10
-    JNZ r2, hp_bksp_not_repl1
+    LDI r0, 1
+    CMP r8, r0
+    JNZ r15, hp_bksp_not_repl1
 
     ; Replace string backspace
-    LDI r13, 1
-    LDI r3, R_RLEN
-    LOAD r3, r3
+    LDI r3, 1
+    LDI r5, R_RLEN
+    LOAD r5, r5
     LDI r8, 0
-    CMP r3, r8
-    JZ r2, hi_done
-    SUB r3, r13
+    CMP r5, r8
+    JZ r15, hi_done
+    SUB r5, r3
     LDI r8, R_RLEN
-    STORE r8, r3
+    STORE r8, r5
     LDI r8, R_REPL
-    ADD r8, r3
-    LDI r10, 0
-    STORE r8, r10
+    ADD r8, r5
+    LDI r0, 0
+    STORE r8, r0
     JMP hi_done
 
 hp_bksp_not_repl1:
     LDI r8, 1
-    CMP r3, r8
-    JZ r2, hp_bksp_search
+    CMP r5, r8
+    JZ r15, hp_bksp_search
 
     ; Also handle inc search (mode 3) backspace same as search (mode 1)
     LDI r8, 3
-    CMP r3, r8
-    JZ r2, hp_bksp_search
+    CMP r5, r8
+    JZ r15, hp_bksp_search
 
     ; Replace mode sub 0 -- search input backspace
     LDI r8, 4
-    CMP r3, r8
-    JNZ r2, hp_bksp_goto
+    CMP r5, r8
+    JNZ r15, hp_bksp_goto
     LDI r8, R_RSM
     LOAD r8, r8
-    LDI r10, 0
-    CMP r8, r10
-    JNZ r2, hp_bksp_goto
+    LDI r0, 0
+    CMP r8, r0
+    JNZ r15, hp_bksp_goto
     JMP hp_bksp_search
 
 hp_bksp_goto:
-    LDI r3, R_GNUM
-    LOAD r3, r3
+    LDI r5, R_GNUM
+    LOAD r5, r5
     LDI r8, 10
-    DIV r3, r8
+    DIV r5, r8
     LDI r8, R_GNUM
-    STORE r8, r3
+    STORE r8, r5
     JMP hi_done
 
 hp_bksp_search:
-    LDI r13, 1                  ; decrement constant
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r3, 1                  ; decrement constant
+    LDI r5, R_SLEN
+    LOAD r5, r5
     LDI r8, 0
-    CMP r3, r8
-    JZ r2, hi_done
-    SUB r3, r13
+    CMP r5, r8
+    JZ r15, hi_done
+    SUB r5, r3
     LDI r8, R_SLEN
-    STORE r8, r3             ; slen--
+    STORE r8, r5             ; slen--
     LDI r8, R_SEARCH
-    ADD r8, r3
-    LDI r10, 0
-    STORE r8, r10             ; null terminate
+    ADD r8, r5
+    LDI r0, 0
+    STORE r8, r0             ; null terminate
     JMP hi_done
 
 hp_execute:
-    LDI r3, R_PM
-    LOAD r3, r3
+    LDI r5, R_PM
+    LOAD r5, r5
     LDI r8, 1
-    CMP r3, r8
-    JZ r2, hp_do_search
+    CMP r5, r8
+    JZ r15, hp_do_search
 
     ; Mode 3 -- incremental search: exit prompt, keep highlights
     LDI r8, 3
-    CMP r3, r8
-    JZ r2, hp_cancel
+    CMP r5, r8
+    JZ r15, hp_cancel
 
     ; Mode 4 -- replace
     LDI r8, 4
-    CMP r3, r8
-    JNZ r2, hp_do_goto
+    CMP r5, r8
+    JNZ r15, hp_do_goto
 
     ; Handle replace sub-modes
-    LDI r3, R_RSM
-    LOAD r3, r3
+    LDI r5, R_RSM
+    LOAD r5, r5
     LDI r8, 0
-    CMP r3, r8
-    JZ r2, hp_repl_to_replace
+    CMP r5, r8
+    JZ r15, hp_repl_to_replace
     LDI r8, 1
-    CMP r3, r8
-    JZ r2, hp_repl_to_confirm
+    CMP r5, r8
+    JZ r15, hp_repl_to_confirm
     LDI r8, 2
-    CMP r3, r8
-    JNZ r2, hp_cancel
+    CMP r5, r8
+    JNZ r15, hp_cancel
 
     ; Confirm sub-mode -- execute replace
     CALL do_replace
@@ -765,16 +765,16 @@ hp_execute:
 
 hp_repl_to_replace:
     ; Search input done -- move to replace input
-    LDI r3, R_RSM
+    LDI r5, R_RSM
     LDI r14, 1
-    STORE r3, r14
+    STORE r5, r14
     JMP hi_done
 
 hp_repl_to_confirm:
     ; Replace input done -- move to confirm
-    LDI r3, R_RSM
+    LDI r5, R_RSM
     LDI r14, 2
-    STORE r3, r14
+    STORE r5, r14
     JMP hi_done
 
     ; Execute goto
@@ -786,14 +786,14 @@ hp_do_search:
     ; Fall through to cancel (exit prompt mode)
 
 hp_cancel:
-    LDI r3, R_PM
+    LDI r5, R_PM
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
     JMP hi_done
 
 hi_done:
-    POP r0
     POP r9
+    POP r1
     POP r31
     RET
 
@@ -802,24 +802,24 @@ hi_done:
 ; =========================================
 cursor_up:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, cu_done
+    CMP r5, r14
+    JZ r15, cu_done
 
-    SUB r3, r13
+    SUB r5, r3
     LDI r8, R_CL
-    STORE r8, r3
+    STORE r8, r5
 
     CALL clamp_col
     CALL scroll_adj
 
 cu_done:
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -828,26 +828,26 @@ cu_done:
 ; =========================================
 cursor_down:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, R_NL
     LOAD r14, r14
-    SUB r14, r13
-    CMP r3, r14
-    BGE r2, cd_done
+    SUB r14, r3
+    CMP r5, r14
+    BGE r15, cd_done
 
-    ADD r3, r13
+    ADD r5, r3
     LDI r8, R_CL
-    STORE r8, r3
+    STORE r8, r5
 
     CALL clamp_col
     CALL scroll_adj
 
 cd_done:
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -856,36 +856,36 @@ cd_done:
 ; =========================================
 cursor_left:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
-    LDI r3, R_CC
-    LOAD r3, r3
+    LDI r5, R_CC
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, cl_dec
+    CMP r5, r14
+    JNZ r15, cl_dec
 
     ; At col 0 -- move to end of previous line
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, cl_done
+    CMP r5, r14
+    JZ r15, cl_done
 
-    SUB r3, r13
+    SUB r5, r3
     LDI r8, R_CL
-    STORE r8, r3
+    STORE r8, r5
     CALL clamp_end
     CALL scroll_adj
     JMP cl_done
 
 cl_dec:
-    SUB r3, r13
+    SUB r5, r3
     LDI r8, R_CC
-    STORE r8, r3
+    STORE r8, r5
 
 cl_done:
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -894,43 +894,43 @@ cl_done:
 ; =========================================
 cursor_right:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
     ; Get current line length
     CALL get_llen
-    MOV r3, r2
+    MOV r5, r15
 
     LDI r14, R_CC
     LOAD r14, r14
-    CMP r14, r3
-    BLT r2, cr_inc
+    CMP r14, r5
+    BLT r15, cr_inc
 
     ; At end of line -- move to start of next line
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, R_NL
     LOAD r14, r14
-    SUB r14, r13
-    CMP r3, r14
-    BGE r2, cr_done
+    SUB r14, r3
+    CMP r5, r14
+    BGE r15, cr_done
 
-    ADD r3, r13
+    ADD r5, r3
     LDI r8, R_CL
-    STORE r8, r3
-    LDI r3, R_CC
+    STORE r8, r5
+    LDI r5, R_CC
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
     CALL scroll_adj
     JMP cr_done
 
 cr_inc:
-    ADD r14, r13
+    ADD r14, r3
     LDI r8, R_CC
     STORE r8, r14
 
 cr_done:
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -939,29 +939,29 @@ cr_done:
 ; =========================================
 clamp_col:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
     CALL get_llen
-    MOV r3, r2
+    MOV r5, r15
 
     LDI r14, R_CC
     LOAD r14, r14
-    CMP r14, r3
-    BLT r2, cc_ok
+    CMP r14, r5
+    BLT r15, cc_ok
 
     ; cur_col >= line_len, clamp
     LDI r8, R_CC
-    STORE r8, r3
+    STORE r8, r5
     ; If line_len == 0, set to 0
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, cc_ok
+    CMP r5, r14
+    JNZ r15, cc_ok
     LDI r8, R_CC
     STORE r8, r14
 
 cc_ok:
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -970,56 +970,56 @@ cc_ok:
 ; =========================================
 clamp_end:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
     CALL get_llen
-    MOV r3, r2
+    MOV r5, r15
 
     LDI r14, R_CC
-    STORE r14, r3
+    STORE r14, r5
     ; If line_len is 0, that's fine (col = 0)
 
-    POP r13
+    POP r3
     POP r31
     RET
 
 ; =========================================
-; GET LINE LENGTH -- returns in r2
+; GET LINE LENGTH -- returns in r15
 ; Length excludes trailing newline
 ; =========================================
 get_llen:
-    PUSH r13
     PUSH r3
+    PUSH r5
     PUSH r14
     PUSH r8
-    LDI r13, 1
+    LDI r3, 1
 
     ; Get cur_line
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
 
     ; Get line_starts[cur_line]
     LDI r14, LS
-    ADD r14, r3
+    ADD r14, r5
     LOAD r14, r14
 
     ; Is this the last line?
     LDI r8, R_NL
     LOAD r8, r8
-    MOV r10, r3
-    ADD r10, r13
-    CMP r10, r8
-    BGE r2, gll_last
+    MOV r0, r5
+    ADD r0, r3
+    CMP r0, r8
+    BGE r15, gll_last
 
     ; Not last: len = line_starts[next] - line_starts[cur] - 1
     LDI r8, LS
+    ADD r8, r5
     ADD r8, r3
-    ADD r8, r13
     LOAD r8, r8
     SUB r8, r14
-    SUB r8, r13
-    MOV r2, r8
+    SUB r8, r3
+    MOV r15, r8
     JMP gll_done
 
 gll_last:
@@ -1027,13 +1027,13 @@ gll_last:
     LDI r8, R_BS
     LOAD r8, r8
     SUB r8, r14
-    MOV r2, r8
+    MOV r15, r8
 
 gll_done:
     POP r8
     POP r14
+    POP r5
     POP r3
-    POP r13
     RET
 
 ; =========================================
@@ -1041,127 +1041,127 @@ gll_done:
 ; =========================================
 scroll_adj:
     PUSH r31
-    PUSH r13
     PUSH r3
+    PUSH r5
     PUSH r14
-    LDI r13, 1
+    LDI r3, 1
 
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, R_SC
     LOAD r14, r14
 
     ; cur_line < scroll_off? scroll up
-    CMP r3, r14
-    BLT r2, sa_up
+    CMP r5, r14
+    BLT r15, sa_up
 
     ; cur_line >= scroll_off + VIS? scroll down
     LDI r8, VIS
     ADD r8, r14
-    CMP r3, r8
-    BLT r2, sa_done
+    CMP r5, r8
+    BLT r15, sa_done
 
     ; scroll_off = cur_line - VIS + 1
-    MOV r8, r3
-    LDI r10, VIS
-    SUB r8, r10
-    ADD r8, r13
-    LDI r10, R_SC
-    STORE r10, r8
+    MOV r8, r5
+    LDI r0, VIS
+    SUB r8, r0
+    ADD r8, r3
+    LDI r0, R_SC
+    STORE r0, r8
     JMP sa_done
 
 sa_up:
     LDI r8, R_SC
-    STORE r8, r3
+    STORE r8, r5
 
 sa_done:
     POP r14
+    POP r5
     POP r3
-    POP r13
     POP r31
     RET
 
 ; =========================================
 ; INSERT CHAR
-; Insert the key (from r9) at cursor position
+; Insert the key (from r1) at cursor position
 ; =========================================
 insert_char:
     PUSH r31
-    PUSH r13
-    PUSH r9
+    PUSH r3
+    PUSH r1
     PUSH r20
-    LDI r13, 1
+    LDI r3, 1
 
     ; Check buffer space
-    LDI r3, R_BS
-    LOAD r3, r3
+    LDI r5, R_BS
+    LOAD r5, r5
     LDI r14, FB_MAX
-    CMP r3, r14
-    BGE r2, ic_full
+    CMP r5, r14
+    BGE r15, ic_full
 
     ; Get cursor position (offset in buffer)
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, LS
-    ADD r14, r3
+    ADD r14, r5
     LOAD r14, r14
     LDI r8, R_CC
     LOAD r8, r8
     ADD r14, r8            ; r14 = cursor_pos (offset)
 
     ; Shift buffer right from buf_size down to cursor_pos
-    LDI r10, R_BS
-    LOAD r10, r10           ; r10 = buf_size (shift counter)
+    LDI r0, R_BS
+    LOAD r0, r0           ; r0 = buf_size (shift counter)
 
 ic_shift:
-    CMP r10, r14
-    BLT r2, ic_write
-    JZ r2, ic_write
+    CMP r0, r14
+    BLT r15, ic_write
+    JZ r15, ic_write
 
     ; Copy buf[offset-1] to buf[offset]  -- shift right
-    LDI r12, FB
-    ADD r12, r10
-    SUB r12, r13             ; source = FB + offset - 1
-    LOAD r11, r12
-    LDI r12, FB
-    ADD r12, r10            ; dest = FB + offset
-    STORE r12, r11
+    LDI r2, FB
+    ADD r2, r0
+    SUB r2, r3             ; source = FB + offset - 1
+    LOAD r10, r2
+    LDI r2, FB
+    ADD r2, r0            ; dest = FB + offset
+    STORE r2, r10
 
-    SUB r10, r13
+    SUB r0, r3
     JMP ic_shift
 
 ic_write:
     ; Write char at cursor_pos
-    LDI r12, FB
-    ADD r12, r14
-    STORE r12, r9           ; buf[cursor_pos] = key char
+    LDI r2, FB
+    ADD r2, r14
+    STORE r2, r1           ; buf[cursor_pos] = key char
 
     ; buf_size++
-    LDI r3, R_BS
-    LOAD r3, r3
-    ADD r3, r13
+    LDI r5, R_BS
+    LOAD r5, r5
+    ADD r5, r3
     LDI r14, R_BS
-    STORE r14, r3
+    STORE r14, r5
 
     ; cur_col++
-    LDI r3, R_CC
-    LOAD r3, r3
-    ADD r3, r13
+    LDI r5, R_CC
+    LOAD r5, r5
+    ADD r5, r3
     LDI r14, R_CC
-    STORE r14, r3
+    STORE r14, r5
 
     ; Set dirty
-    LDI r3, R_DIRTY
+    LDI r5, R_DIRTY
     LDI r14, 1
-    STORE r3, r14
+    STORE r5, r14
 
     ; Rebuild lines
     CALL build_lines
 
 ic_full:
     POP r20
-    POP r9
-    POP r13
+    POP r1
+    POP r3
     POP r31
     RET
 
@@ -1171,89 +1171,89 @@ ic_full:
 ; =========================================
 do_backspace:
     PUSH r31
-    PUSH r13
+    PUSH r3
     PUSH r20
-    LDI r13, 1
+    LDI r3, 1
 
     ; Get cursor position
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, LS
-    ADD r14, r3
+    ADD r14, r5
     LOAD r14, r14
     LDI r8, R_CC
     LOAD r8, r8
     ADD r14, r8            ; r14 = cursor_pos
 
     ; If cursor_pos == 0, nothing to delete
-    LDI r10, 0
-    CMP r14, r10
-    JZ r2, db_done
+    LDI r0, 0
+    CMP r14, r0
+    JZ r15, db_done
 
     ; Delete at cursor_pos - 1
-    SUB r14, r13             ; r14 = delete_pos
+    SUB r14, r3             ; r14 = delete_pos
 
     ; Shift left: copy [delete_pos+1 .. buf_size-1] to [delete_pos .. buf_size-2]
-    LDI r10, R_BS
-    LOAD r10, r10
-    MOV r12, r14            ; r12 = current position
+    LDI r0, R_BS
+    LOAD r0, r0
+    MOV r2, r14            ; r2 = current position
 
 db_shift:
-    MOV r11, r12
-    ADD r11, r13             ; r11 = r12 + 1
-    CMP r11, r10
-    BGE r2, db_shift_done
+    MOV r10, r2
+    ADD r10, r3             ; r10 = r2 + 1
+    CMP r10, r0
+    BGE r15, db_shift_done
 
-    ; Copy buf[r12+1] to buf[r12]
+    ; Copy buf[r2+1] to buf[r2]
     LDI r16, FB
-    ADD r16, r11
+    ADD r16, r10
     LOAD r17, r16
     LDI r16, FB
-    ADD r16, r12
+    ADD r16, r2
     STORE r16, r17
 
-    ADD r12, r13
+    ADD r2, r3
     JMP db_shift
 
 db_shift_done:
     ; buf_size--
-    LDI r3, R_BS
-    LOAD r3, r3
-    SUB r3, r13
-    LDI r11, R_BS
-    STORE r11, r3
+    LDI r5, R_BS
+    LOAD r5, r5
+    SUB r5, r3
+    LDI r10, R_BS
+    STORE r10, r5
 
     ; Adjust cursor
-    LDI r3, R_CC
-    LOAD r3, r3
+    LDI r5, R_CC
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, db_col_dec
+    CMP r5, r14
+    JNZ r15, db_col_dec
 
     ; cur_col was 0 -- deleted a newline, join with prev line
-    LDI r3, R_CL
-    LOAD r3, r3
-    SUB r3, r13
+    LDI r5, R_CL
+    LOAD r5, r5
+    SUB r5, r3
     LDI r14, R_CL
-    STORE r14, r3
+    STORE r14, r5
     CALL build_lines
     CALL clamp_end
     JMP db_dirty
 
 db_col_dec:
-    SUB r3, r13
+    SUB r5, r3
     LDI r14, R_CC
-    STORE r14, r3
+    STORE r14, r5
     CALL build_lines
 
 db_dirty:
-    LDI r3, R_DIRTY
+    LDI r5, R_DIRTY
     LDI r14, 1
-    STORE r3, r14
+    STORE r5, r14
 
 db_done:
     POP r20
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -1263,83 +1263,83 @@ db_done:
 ; =========================================
 insert_newline:
     PUSH r31
-    PUSH r13
+    PUSH r3
     PUSH r20
-    LDI r13, 1
+    LDI r3, 1
 
     ; Check buffer space
-    LDI r3, R_BS
-    LOAD r3, r3
+    LDI r5, R_BS
+    LOAD r5, r5
     LDI r14, FB_MAX
-    CMP r3, r14
-    BGE r2, inl_done
+    CMP r5, r14
+    BGE r15, inl_done
 
     ; Get cursor position
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, LS
-    ADD r14, r3
+    ADD r14, r5
     LOAD r14, r14
     LDI r8, R_CC
     LOAD r8, r8
     ADD r14, r8            ; r14 = cursor_pos
 
     ; Shift buffer right (same as insert_char)
-    LDI r10, R_BS
-    LOAD r10, r10
+    LDI r0, R_BS
+    LOAD r0, r0
 
 inl_shift:
-    CMP r10, r14
-    BLT r2, inl_write
-    JZ r2, inl_write
+    CMP r0, r14
+    BLT r15, inl_write
+    JZ r15, inl_write
 
-    LDI r12, FB
-    ADD r12, r10
-    SUB r12, r13
-    LOAD r11, r12
-    LDI r12, FB
-    ADD r12, r10
-    STORE r12, r11
+    LDI r2, FB
+    ADD r2, r0
+    SUB r2, r3
+    LOAD r10, r2
+    LDI r2, FB
+    ADD r2, r0
+    STORE r2, r10
 
-    SUB r10, r13
+    SUB r0, r3
     JMP inl_shift
 
 inl_write:
     ; Write newline char
-    LDI r12, FB
-    ADD r12, r14
-    LDI r11, 10
-    STORE r12, r11
+    LDI r2, FB
+    ADD r2, r14
+    LDI r10, 10
+    STORE r2, r10
 
     ; buf_size++
-    LDI r3, R_BS
-    LOAD r3, r3
-    ADD r3, r13
+    LDI r5, R_BS
+    LOAD r5, r5
+    ADD r5, r3
     LDI r14, R_BS
-    STORE r14, r3
+    STORE r14, r5
 
     ; cur_line++, cur_col = 0
-    LDI r3, R_CL
-    LOAD r3, r3
-    ADD r3, r13
+    LDI r5, R_CL
+    LOAD r5, r5
+    ADD r5, r3
     LDI r14, R_CL
-    STORE r14, r3
+    STORE r14, r5
 
-    LDI r3, R_CC
+    LDI r5, R_CC
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
     ; Set dirty
-    LDI r3, R_DIRTY
+    LDI r5, R_DIRTY
     LDI r14, 1
-    STORE r3, r14
+    STORE r5, r14
 
     CALL build_lines
     CALL scroll_adj
 
 inl_done:
     POP r20
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -1350,71 +1350,71 @@ render_title:
     PUSH r31
 
     ; Bar background
-    LDI r13, 0
-    LDI r7, 0
-    LDI r5, 256
-    LDI r6, 12
-    LDI r9, C_BAR
-    RECTF r13, r7, r5, r6, r9
+    LDI r3, 0
+    LDI r4, 0
+    LDI r6, 256
+    LDI r11, 12
+    LDI r1, C_BAR
+    RECTF r3, r4, r6, r11, r1
 
     ; Filename
-    LDI r3, 4
+    LDI r5, 4
     LDI r14, 2
     LDI r8, R_FN
-    LDI r10, C_TITLE
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_TITLE
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
     ; Buffer indicator (show active buffer number)
-    LDI r3, R_BCNT
-    LOAD r3, r3
+    LDI r5, R_BCNT
+    LOAD r5, r5
     LDI r14, 1
-    CMP r3, r14
-    JZ r2, rt_nomod             ; only 1 buffer, skip indicator
+    CMP r5, r14
+    JZ r15, rt_nomod             ; only 1 buffer, skip indicator
 
     ; Show "[1]" or "[2]" in cyan
-    LDI r3, R_BACT
-    LOAD r3, r3
+    LDI r5, R_BACT
+    LOAD r5, r5
     LDI r14, 48                  ; '0'
-    ADD r3, r14                 ; ascii digit
+    ADD r5, r14                 ; ascii digit
     LDI r14, 1
-    ADD r3, r14                 ; 1-based
-    LDI r11, R_SCR
+    ADD r5, r14                 ; 1-based
+    LDI r10, R_SCR
     LDI r16, 91                  ; '['
-    STORE r11, r16
+    STORE r10, r16
     LDI r16, 1
-    ADD r11, r16
-    STORE r11, r3
+    ADD r10, r16
+    STORE r10, r5
     LDI r16, 1
-    ADD r11, r16
+    ADD r10, r16
     LDI r16, 93                  ; ']'
-    STORE r11, r16
+    STORE r10, r16
     LDI r16, 1
-    ADD r11, r16
+    ADD r10, r16
     LDI r16, 0
-    STORE r11, r16
-    LDI r3, 180
+    STORE r10, r16
+    LDI r5, 180
     LDI r14, 2
     LDI r8, R_SCR
-    LDI r10, C_GREEN
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_GREEN
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
     ; Modified indicator
-    LDI r3, R_DIRTY
-    LOAD r3, r3
+    LDI r5, R_DIRTY
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rt_nomod
+    CMP r5, r14
+    JZ r15, rt_nomod
 
-    LDI r3, R_SCR
-    STRO r3, " *"
-    LDI r3, 200
+    LDI r5, R_SCR
+    STRO r5, " *"
+    LDI r5, 200
     LDI r14, 2
     LDI r8, R_SCR
-    LDI r10, C_AMBER
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_AMBER
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
 rt_nomod:
     POP r31
@@ -1425,12 +1425,12 @@ rt_nomod:
 ; =========================================
 render_content:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
     ; scroll_off
-    LDI r3, R_SC
-    LOAD r3, r3
+    LDI r5, R_SC
+    LOAD r5, r5
 
     ; Loop i = 0..VIS-1
     LDI r14, 0
@@ -1438,59 +1438,59 @@ render_content:
 rc_loop:
     LDI r8, VIS
     CMP r14, r8
-    BGE r2, rc_done
+    BGE r15, rc_done
 
     ; line_num = scroll_off + i
-    MOV r8, r3
+    MOV r8, r5
     ADD r8, r14
 
     ; y position = 14 + i * 8
-    MOV r10, r14
-    LDI r12, LH
-    MUL r10, r12
-    LDI r12, 14
-    ADD r10, r12            ; r10 = y
+    MOV r0, r14
+    LDI r2, LH
+    MUL r0, r2
+    LDI r2, 14
+    ADD r0, r2            ; r0 = y
 
     ; Check line_num < line_count
-    LDI r12, R_NL
-    LOAD r12, r12
-    CMP r8, r12
-    BGE r2, rc_next
+    LDI r2, R_NL
+    LOAD r2, r2
+    CMP r8, r2
+    BGE r15, rc_next
 
     ; Highlight current line
-    LDI r12, R_CL
-    LOAD r12, r12
-    CMP r8, r12
-    JNZ r2, rc_no_hl
+    LDI r2, R_CL
+    LOAD r2, r2
+    CMP r8, r2
+    JNZ r15, rc_no_hl
 
-    LDI r12, 0
-    LDI r11, 256
+    LDI r2, 0
+    LDI r10, 256
     LDI r16, LH
     LDI r17, C_CURLN
-    RECTF r12, r10, r11, r16, r17
+    RECTF r2, r0, r10, r16, r17
 
 rc_no_hl:
     ; Get line_start offset
-    LDI r12, LS
-    ADD r12, r8
-    LOAD r12, r12            ; r12 = line_start (offset)
+    LDI r2, LS
+    ADD r2, r8
+    LOAD r2, r2            ; r2 = line_start (offset)
 
     ; Copy line to scratch (up to COLS chars, stop at newline)
-    LDI r11, R_SCR           ; scratch dest
+    LDI r10, R_SCR           ; scratch dest
     LDI r16, 0               ; col counter
 
 rc_copy:
     LDI r17, COLS
     CMP r16, r17
-    BGE r2, rc_copy_end
+    BGE r15, rc_copy_end
 
     ; Check buffer bounds
-    MOV r17, r12
+    MOV r17, r2
     ADD r17, r16             ; r17 = line_start + col
     LDI r18, R_BS
     LOAD r18, r18
     CMP r17, r18
-    BGE r2, rc_copy_end
+    BGE r15, rc_copy_end
 
     ; Load char
     LDI r18, FB
@@ -1500,32 +1500,32 @@ rc_copy:
     ; Check newline
     LDI r19, 10
     CMP r18, r19
-    JZ r2, rc_copy_end
+    JZ r15, rc_copy_end
 
     ; Store in scratch
-    STORE r11, r18
-    ADD r11, r13
-    ADD r16, r13
+    STORE r10, r18
+    ADD r10, r3
+    ADD r16, r3
     JMP rc_copy
 
 rc_copy_end:
     ; Null terminate
     LDI r17, 0
-    STORE r11, r17
+    STORE r10, r17
 
     ; Draw the line
     LDI r17, 0
     LDI r18, R_SCR
     LDI r19, C_FG
     LDI r20, 0
-    DRAWTEXT r17, r10, r18, r19, r20
+    DRAWTEXT r17, r0, r18, r19, r20
 
 rc_next:
-    ADD r14, r13
+    ADD r14, r3
     JMP rc_loop
 
 rc_done:
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -1534,28 +1534,28 @@ rc_done:
 ; =========================================
 render_cursor:
     PUSH r31
-    PUSH r13
-    LDI r13, 1
+    PUSH r3
+    LDI r3, 1
 
     ; Check if cursor line is visible
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, R_SC
     LOAD r14, r14
-    SUB r3, r14             ; r3 = cur_line - scroll_off
+    SUB r5, r14             ; r5 = cur_line - scroll_off
 
     LDI r14, 0
-    CMP r3, r14
-    BLT r2, rcur_done
+    CMP r5, r14
+    BLT r15, rcur_done
     LDI r14, VIS
-    CMP r3, r14
-    BGE r2, rcur_done
+    CMP r5, r14
+    BGE r15, rcur_done
 
     ; y = 14 + (cur_line - scroll_off) * 8
     LDI r14, LH
-    MUL r3, r14
+    MUL r5, r14
     LDI r14, 14
-    ADD r3, r14             ; r3 = y
+    ADD r5, r14             ; r5 = y
 
     ; x = cur_col * 6
     LDI r14, R_CC
@@ -1565,12 +1565,12 @@ render_cursor:
 
     ; Draw cursor block
     LDI r8, 6
-    LDI r10, LH
-    LDI r12, C_SEL
-    RECTF r14, r3, r8, r10, r12
+    LDI r0, LH
+    LDI r2, C_SEL
+    RECTF r14, r5, r8, r0, r2
 
 rcur_done:
-    POP r13
+    POP r3
     POP r31
     RET
 
@@ -1581,391 +1581,391 @@ render_hints:
     PUSH r31
 
     ; Bar background
-    LDI r13, 0
-    LDI r7, 240
-    LDI r5, 256
-    LDI r6, 16
-    LDI r9, C_BAR
-    RECTF r13, r7, r5, r6, r9
+    LDI r3, 0
+    LDI r4, 240
+    LDI r6, 256
+    LDI r11, 16
+    LDI r1, C_BAR
+    RECTF r3, r4, r6, r11, r1
 
     ; Check if in prompt mode
-    LDI r3, R_PM
-    LOAD r3, r3
+    LDI r5, R_PM
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, rh_prompt
+    CMP r5, r14
+    JNZ r15, rh_prompt
 
     ; Normal hints
-    LDI r3, R_SCR
-    STRO r3, "^S:Save ^Q:Quit ^F:Find ^G:Goto ^B:Buf ^N:New"
-    LDI r3, 4
+    LDI r5, R_SCR
+    STRO r5, "^S:Save ^Q:Quit ^F:Find ^G:Goto ^B:Buf ^N:New"
+    LDI r5, 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_HINT
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_HINT
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
     JMP rh_ln
 
 rh_prompt:
     ; Search prompt (mode 1)
     LDI r14, 1
-    CMP r3, r14
-    JZ r2, rh_do_search_prompt
+    CMP r5, r14
+    JZ r15, rh_do_search_prompt
 
     ; Incremental search prompt (mode 3)
     LDI r14, 3
-    CMP r3, r14
-    JZ r2, rh_incsearch_prompt
+    CMP r5, r14
+    JZ r15, rh_incsearch_prompt
 
     ; Replace prompt (mode 4)
     LDI r14, 4
-    CMP r3, r14
-    JZ r2, rh_replace_prompt
+    CMP r5, r14
+    JZ r15, rh_replace_prompt
 
     ; Goto prompt (mode 2)
     JMP rh_goto_prompt
 
 rh_do_search_prompt:
 
-    LDI r3, R_SCR
-    STRO r3, "Search: "
-    LDI r3, 4
+    LDI r5, R_SCR
+    STRO r5, "Search: "
+    LDI r5, 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_AMBER
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_AMBER
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
     ; Show search text after "Search: " (8 chars)
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r5, R_SLEN
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rh_ln
+    CMP r5, r14
+    JZ r15, rh_ln
 
     ; Copy search string to scratch
-    LDI r3, R_SCR
-    STRO r3, "                                        "
-    LDI r11, R_SCR
+    LDI r5, R_SCR
+    STRO r5, "                                        "
+    LDI r10, R_SCR
     LDI r16, 0
 
 rh_scopy:
-    LDI r13, 1
+    LDI r3, 1
     LDI r17, R_SLEN
     LOAD r17, r17
     CMP r16, r17
-    BGE r2, rh_scopy_done
+    BGE r15, rh_scopy_done
     LDI r17, R_SEARCH
     ADD r17, r16
     LOAD r17, r17
-    STORE r11, r17
-    ADD r11, r13
-    ADD r16, r13
+    STORE r10, r17
+    ADD r10, r3
+    ADD r16, r3
     JMP rh_scopy
 
 rh_scopy_done:
     LDI r17, 0
-    STORE r11, r17
-    LDI r3, 52             ; x = 8 chars * 6px + 4
+    STORE r10, r17
+    LDI r5, 52             ; x = 8 chars * 6px + 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_FG
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_FG
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
     JMP rh_ln
 
 rh_incsearch_prompt:
     ; Incremental search prompt (mode 3)
-    LDI r3, R_SCR
-    STRO r3, "ISearch: "
-    LDI r3, 4
+    LDI r5, R_SCR
+    STRO r5, "ISearch: "
+    LDI r5, 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_GREEN
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_GREEN
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
     ; Show search text (reuse rh_scopy pattern)
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r5, R_SLEN
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rh_inc_status
+    CMP r5, r14
+    JZ r15, rh_inc_status
 
-    LDI r3, R_SCR
-    STRO r3, "                                        "
-    LDI r11, R_SCR
+    LDI r5, R_SCR
+    STRO r5, "                                        "
+    LDI r10, R_SCR
     LDI r16, 0
 
 rh_iscopy:
-    LDI r13, 1
+    LDI r3, 1
     LDI r17, R_SLEN
     LOAD r17, r17
     CMP r16, r17
-    BGE r2, rh_iscopy_done
+    BGE r15, rh_iscopy_done
     LDI r17, R_SEARCH
     ADD r17, r16
     LOAD r17, r17
-    STORE r11, r17
-    ADD r11, r13
-    ADD r16, r13
+    STORE r10, r17
+    ADD r10, r3
+    ADD r16, r3
     JMP rh_iscopy
 
 rh_iscopy_done:
     LDI r17, 0
-    STORE r11, r17
-    LDI r3, 52
+    STORE r10, r17
+    LDI r5, 52
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_FG
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_FG
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
 rh_inc_status:
     ; Show match count or "no match"
-    LDI r3, R_SML
-    LOAD r3, r3
+    LDI r5, R_SML
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rh_ln
+    CMP r5, r14
+    JZ r15, rh_ln
     LDI r14, 0xFFFFFFFF
-    CMP r3, r14
-    JNZ r2, rh_ln
+    CMP r5, r14
+    JNZ r15, rh_ln
 
     ; No match found
-    LDI r3, R_SCR
-    STRO r3, " [no match]"
-    LDI r3, 150
+    LDI r5, R_SCR
+    STRO r5, " [no match]"
+    LDI r5, 150
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_HINT
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_HINT
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
     JMP rh_ln
 
 rh_replace_prompt:
     ; Replace prompt (mode 4) -- show different text per sub-mode
-    LDI r3, R_RSM
-    LOAD r3, r3
+    LDI r5, R_RSM
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rh_repl_search
+    CMP r5, r14
+    JZ r15, rh_repl_search
 
     LDI r14, 1
-    CMP r3, r14
-    JZ r2, rh_repl_replace
+    CMP r5, r14
+    JZ r15, rh_repl_replace
 
     ; Sub-mode 2: confirm
-    LDI r3, R_SCR
-    STRO r3, "Replace all? (y=yes, n=no) "
-    LDI r3, 4
+    LDI r5, R_SCR
+    STRO r5, "Replace all? (y=yes, n=no) "
+    LDI r5, 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_REPL
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_REPL
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
     JMP rh_ln
 
 rh_repl_search:
     ; Sub-mode 0: search input
-    LDI r3, R_SCR
-    STRO r3, "Find: "
-    LDI r3, 4
+    LDI r5, R_SCR
+    STRO r5, "Find: "
+    LDI r5, 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_AMBER
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_AMBER
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
     ; Show search text
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r5, R_SLEN
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rh_ln
+    CMP r5, r14
+    JZ r15, rh_ln
 
-    LDI r3, R_SCR
-    STRO r3, "                                        "
-    LDI r11, R_SCR
+    LDI r5, R_SCR
+    STRO r5, "                                        "
+    LDI r10, R_SCR
     LDI r16, 0
 
 rh_rscopy:
-    LDI r13, 1
+    LDI r3, 1
     LDI r17, R_SLEN
     LOAD r17, r17
     CMP r16, r17
-    BGE r2, rh_rscopy_done
+    BGE r15, rh_rscopy_done
     LDI r17, R_SEARCH
     ADD r17, r16
     LOAD r17, r17
-    STORE r11, r17
-    ADD r11, r13
-    ADD r16, r13
+    STORE r10, r17
+    ADD r10, r3
+    ADD r16, r3
     JMP rh_rscopy
 
 rh_rscopy_done:
     LDI r17, 0
-    STORE r11, r17
-    LDI r3, 28
+    STORE r10, r17
+    LDI r5, 28
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_FG
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_FG
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
     JMP rh_ln
 
 rh_repl_replace:
     ; Sub-mode 1: replace input
-    LDI r3, R_SCR
-    STRO r3, "Replace: "
-    LDI r3, 4
+    LDI r5, R_SCR
+    STRO r5, "Replace: "
+    LDI r5, 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_REPL
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_REPL
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
     ; Show replace text
-    LDI r3, R_RLEN
-    LOAD r3, r3
+    LDI r5, R_RLEN
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rh_ln
+    CMP r5, r14
+    JZ r15, rh_ln
 
-    LDI r3, R_SCR
-    STRO r3, "                                        "
-    LDI r11, R_SCR
+    LDI r5, R_SCR
+    STRO r5, "                                        "
+    LDI r10, R_SCR
     LDI r16, 0
 
 rh_rrcopy:
-    LDI r13, 1
+    LDI r3, 1
     LDI r17, R_RLEN
     LOAD r17, r17
     CMP r16, r17
-    BGE r2, rh_rrcopy_done
+    BGE r15, rh_rrcopy_done
     LDI r17, R_REPL
     ADD r17, r16
     LOAD r17, r17
-    STORE r11, r17
-    ADD r11, r13
-    ADD r16, r13
+    STORE r10, r17
+    ADD r10, r3
+    ADD r16, r3
     JMP rh_rrcopy
 
 rh_rrcopy_done:
     LDI r17, 0
-    STORE r11, r17
-    LDI r3, 52
+    STORE r10, r17
+    LDI r5, 52
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_FG
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_FG
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
     JMP rh_ln
 
 rh_goto_prompt:
     ; Goto prompt
-    LDI r3, R_SCR
-    STRO r3, "Goto line: "
-    LDI r3, 4
+    LDI r5, R_SCR
+    STRO r5, "Goto line: "
+    LDI r5, 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_AMBER
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_AMBER
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
     ; Show number
-    LDI r3, R_GNUM
-    LOAD r3, r3
+    LDI r5, R_GNUM
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rh_show_zero
+    CMP r5, r14
+    JZ r15, rh_show_zero
 
     ; Convert number to decimal string
-    LDI r13, 1                  ; increment constant
-    LDI r3, R_GNUM
-    LOAD r3, r3
+    LDI r3, 1                  ; increment constant
+    LDI r5, R_GNUM
+    LOAD r5, r5
     LDI r14, R_SCR
     LDI r8, 0
     STRO r14, "                                        "
-    LDI r11, R_SCR
-    ADD r11, r8            ; points to end of number string
+    LDI r10, R_SCR
+    ADD r10, r8            ; points to end of number string
     LDI r16, 10
 
 rh_ndiv:
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, rh_ndone
-    MOV r17, r3            ; save value before MOD
+    CMP r5, r14
+    JZ r15, rh_ndone
+    MOV r17, r5            ; save value before MOD
     LDI r14, 10
-    MOD r3, r14            ; r3 = value % 10 (digit)
+    MOD r5, r14            ; r5 = value % 10 (digit)
     LDI r8, 48
-    ADD r3, r8            ; digit char
-    STORE r11, r3
-    ADD r11, r13
+    ADD r5, r8            ; digit char
+    STORE r10, r5
+    ADD r10, r3
     LDI r14, 10
     DIV r17, r14            ; r17 = value / 10 (quotient)
-    MOV r3, r17            ; r3 = quotient for next iteration
+    MOV r5, r17            ; r5 = quotient for next iteration
     JMP rh_ndiv
 
 rh_ndone:
     ; Reverse the string in place
-    ; r11 points past last digit, r8 = R_SCR was start
-    ; Actually we need to reverse from R_SCR to r11-1
-    LDI r3, R_SCR
-    MOV r14, r11
-    SUB r14, r13             ; r14 = last digit position
+    ; r10 points past last digit, r8 = R_SCR was start
+    ; Actually we need to reverse from R_SCR to r10-1
+    LDI r5, R_SCR
+    MOV r14, r10
+    SUB r14, r3             ; r14 = last digit position
     LDI r8, 0
-    CMP r3, r14
-    BGE r2, rh_nshow        ; 0 or 1 digits, no reversal needed
+    CMP r5, r14
+    BGE r15, rh_nshow        ; 0 or 1 digits, no reversal needed
 
 rh_rev:
-    CMP r3, r14
-    BGE r2, rh_nshow
-    LOAD r8, r3
-    LOAD r10, r14
-    STORE r3, r10
+    CMP r5, r14
+    BGE r15, rh_nshow
+    LOAD r8, r5
+    LOAD r0, r14
+    STORE r5, r0
     STORE r14, r8
-    ADD r3, r13
-    SUB r14, r13
+    ADD r5, r3
+    SUB r14, r3
     JMP rh_rev
 
 rh_nshow:
     ; Null terminate
-    LDI r3, 0
-    STORE r11, r3
-    LDI r3, 64             ; x = 10 chars * 6px + 4
+    LDI r5, 0
+    STORE r10, r5
+    LDI r5, 64             ; x = 10 chars * 6px + 4
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_FG
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_FG
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
     JMP rh_ln
 
 rh_show_zero:
-    LDI r3, R_SCR
+    LDI r5, R_SCR
     LDI r14, 48             ; '0'
-    STORE r3, r14
+    STORE r5, r14
     LDI r14, 0
-    ADD r3, r13
-    STORE r3, r14
-    LDI r3, 64
+    ADD r5, r3
+    STORE r5, r14
+    LDI r5, 64
     LDI r14, 242
     LDI r8, R_SCR
-    LDI r10, C_FG
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_FG
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
     JMP rh_ln
 
 rh_ln:
     ; Line/col info
-    LDI r3, R_SCR
-    STRO r3, "Ln:"
-    LDI r3, 4
+    LDI r5, R_SCR
+    STRO r5, "Ln:"
+    LDI r5, 4
     LDI r14, 250
     LDI r8, R_SCR
-    LDI r10, C_GREEN
-    LDI r12, C_BAR
-    DRAWTEXT r3, r14, r8, r10, r12
+    LDI r0, C_GREEN
+    LDI r2, C_BAR
+    DRAWTEXT r5, r14, r8, r0, r2
 
     POP r31
     RET
@@ -1977,23 +1977,23 @@ enter_search:
     PUSH r31
 
     ; If already have search string, do find-next instead
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r5, R_SLEN
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, es_next
+    CMP r5, r14
+    JNZ r15, es_next
 
     ; Enter prompt mode
-    LDI r3, R_PM
+    LDI r5, R_PM
     LDI r14, 1
-    STORE r3, r14
+    STORE r5, r14
 
     ; Clear search string
-    LDI r3, R_SLEN
+    LDI r5, R_SLEN
     LDI r14, 0
-    STORE r3, r14
-    LDI r3, R_SEARCH
-    STORE r3, r14
+    STORE r5, r14
+    LDI r5, R_SEARCH
+    STORE r5, r14
 
     POP r31
     RET
@@ -2008,16 +2008,16 @@ enter_incsearch:
     PUSH r31
 
     ; Enter incremental search mode (prompt mode 3)
-    LDI r3, R_PM
+    LDI r5, R_PM
     LDI r14, 3
-    STORE r3, r14
+    STORE r5, r14
 
     ; Clear search string
-    LDI r3, R_SLEN
+    LDI r5, R_SLEN
     LDI r14, 0
-    STORE r3, r14
-    LDI r3, R_SEARCH
-    STORE r3, r14
+    STORE r5, r14
+    LDI r5, R_SEARCH
+    STORE r5, r14
 
     POP r31
     RET
@@ -2026,26 +2026,26 @@ enter_replace:
     PUSH r31
 
     ; Enter replace mode (prompt mode 4, sub-mode 0 = search input)
-    LDI r3, R_PM
+    LDI r5, R_PM
     LDI r14, 4
-    STORE r3, r14
+    STORE r5, r14
 
     ; Clear search string
-    LDI r3, R_SLEN
+    LDI r5, R_SLEN
     LDI r14, 0
-    STORE r3, r14
-    LDI r3, R_SEARCH
-    STORE r3, r14
+    STORE r5, r14
+    LDI r5, R_SEARCH
+    STORE r5, r14
 
     ; Clear replace string
-    LDI r3, R_RLEN
-    STORE r3, r14
-    LDI r3, R_REPL
-    STORE r3, r14
+    LDI r5, R_RLEN
+    STORE r5, r14
+    LDI r5, R_REPL
+    STORE r5, r14
 
     ; Reset sub-mode
-    LDI r3, R_RSM
-    STORE r3, r14
+    LDI r5, R_RSM
+    STORE r5, r14
 
     POP r31
     RET
@@ -2056,14 +2056,14 @@ enter_replace:
 enter_goto:
     PUSH r31
 
-    LDI r3, R_PM
+    LDI r5, R_PM
     LDI r14, 2
-    STORE r3, r14
+    STORE r5, r14
 
     ; Clear goto number
-    LDI r3, R_GNUM
+    LDI r5, R_GNUM
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
     POP r31
     RET
@@ -2074,76 +2074,76 @@ enter_goto:
 ; =========================================
 do_search:
     PUSH r31
-    PUSH r13
-    PUSH r9
     PUSH r3
+    PUSH r1
+    PUSH r5
     PUSH r14
     PUSH r8
+    PUSH r0
+    PUSH r2
     PUSH r10
-    PUSH r12
-    PUSH r11
     PUSH r16
     PUSH r17
     PUSH r18
-    LDI r13, 1
+    LDI r3, 1
 
     ; Get search length
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r5, R_SLEN
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, ds_done          ; empty string, skip
+    CMP r5, r14
+    JZ r15, ds_done          ; empty string, skip
 
     ; Start position: cursor_pos + 1 (search forward from after cursor)
-    LDI r3, R_CL
-    LOAD r3, r3
+    LDI r5, R_CL
+    LOAD r5, r5
     LDI r14, LS
-    ADD r14, r3
+    ADD r14, r5
     LOAD r14, r14
     LDI r8, R_CC
     LOAD r8, r8
     ADD r14, r8            ; r14 = cursor offset
-    ADD r14, r13             ; start one past cursor
+    ADD r14, r3             ; start one past cursor
 
     ; Check bounds
-    LDI r10, R_BS
-    LOAD r10, r10
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r0, R_BS
+    LOAD r0, r0
+    LDI r5, R_SLEN
+    LOAD r5, r5
 
 ds_outer:
     ; Check if remaining buffer is long enough
-    MOV r12, r14
-    ADD r12, r3             ; end of potential match
-    CMP r12, r10
-    BGE r2, ds_not_found
+    MOV r2, r14
+    ADD r2, r5             ; end of potential match
+    CMP r2, r0
+    BGE r15, ds_not_found
 
     ; Try matching at position r14
-    LDI r11, 0               ; match offset
+    LDI r10, 0               ; match offset
 
 ds_inner:
-    CMP r11, r3
-    BGE r2, ds_found
+    CMP r10, r5
+    BGE r15, ds_found
 
     ; Load buffer char
     LDI r16, FB
     ADD r16, r14
-    ADD r16, r11
+    ADD r16, r10
     LOAD r16, r16
 
     ; Load search char
     LDI r17, R_SEARCH
-    ADD r17, r11
+    ADD r17, r10
     LOAD r17, r17
 
     CMP r16, r17
-    JNZ r2, ds_no_match
+    JNZ r15, ds_no_match
 
-    ADD r11, r13
+    ADD r10, r3
     JMP ds_inner
 
 ds_no_match:
-    ADD r14, r13
+    ADD r14, r3
     JMP ds_outer
 
 ds_found:
@@ -2152,60 +2152,60 @@ ds_found:
     ; Find which line this offset belongs to
     LDI r8, R_NL
     LOAD r8, r8            ; line count
-    LDI r12, 0               ; line index
+    LDI r2, 0               ; line index
 
 ds_find_line:
-    CMP r12, r8
-    BGE r2, ds_not_found
+    CMP r2, r8
+    BGE r15, ds_not_found
 
-    LDI r11, LS
-    ADD r11, r12
-    LOAD r11, r11            ; line_starts[line]
+    LDI r10, LS
+    ADD r10, r2
+    LOAD r10, r10            ; line_starts[line]
 
     ; Check next line start
-    MOV r16, r12
-    ADD r16, r13
+    MOV r16, r2
+    ADD r16, r3
     CMP r16, r8
-    BGE r2, ds_last_line
+    BGE r15, ds_last_line
 
     LDI r17, LS
     ADD r17, r16
     LOAD r17, r17            ; line_starts[line+1]
 
     ; r14 >= line_starts[line] AND r14 < line_starts[line+1]
-    CMP r14, r11
-    BLT r2, ds_fl_next
+    CMP r14, r10
+    BLT r15, ds_fl_next
     CMP r14, r17
-    BGE r2, ds_fl_next
+    BGE r15, ds_fl_next
 
     ; Found the line
     ; col = r14 - line_starts[line]
-    SUB r14, r11             ; col = offset - line_start
-    MOV r3, r12             ; line
+    SUB r14, r10             ; col = offset - line_start
+    MOV r5, r2             ; line
     JMP ds_set_match
 
 ds_fl_next:
-    ADD r12, r13
+    ADD r2, r3
     JMP ds_find_line
 
 ds_last_line:
-    CMP r14, r11
-    BLT r2, ds_not_found
+    CMP r14, r10
+    BLT r15, ds_not_found
     ; It is on the last line
-    SUB r14, r11
-    MOV r3, r12
+    SUB r14, r10
+    MOV r5, r2
     JMP ds_set_match
 
 ds_set_match:
     ; Set cursor to match position
-    LDI r11, R_CL
-    STORE r11, r3           ; cursor line
-    LDI r11, R_CC
-    STORE r11, r14           ; cursor col
-    LDI r11, R_SML
-    STORE r11, r3           ; match line
-    LDI r11, R_SMC
-    STORE r11, r14           ; match col
+    LDI r10, R_CL
+    STORE r10, r5           ; cursor line
+    LDI r10, R_CC
+    STORE r10, r14           ; cursor col
+    LDI r10, R_SML
+    STORE r10, r5           ; match line
+    LDI r10, R_SMC
+    STORE r10, r14           ; match col
 
     ; Adjust scroll
     CALL scroll_adj
@@ -2213,87 +2213,87 @@ ds_set_match:
 
 ds_not_found:
     ; Clear match indicator
-    LDI r3, R_SML
+    LDI r5, R_SML
     LDI r14, 0xFFFFFFFF
-    STORE r3, r14
+    STORE r5, r14
 
 ds_done:
     POP r18
     POP r17
     POP r16
-    POP r11
-    POP r12
     POP r10
+    POP r2
+    POP r0
     POP r8
     POP r14
+    POP r5
+    POP r1
     POP r3
-    POP r9
-    POP r13
     POP r31
     RET
 
 ; =========================================
 ; DO REPLACE -- replace all occurrences of search with replace
-; Uses: r13-r18, modifies buffer in-place
+; Uses: r3-r18, modifies buffer in-place
 ; Strategy: scan buffer for matches, build new buffer with replacements
 ; =========================================
 do_replace:
     PUSH r31
-    PUSH r13
-    PUSH r9
     PUSH r3
+    PUSH r1
+    PUSH r5
     PUSH r14
     PUSH r8
+    PUSH r0
+    PUSH r2
     PUSH r10
-    PUSH r12
-    PUSH r11
     PUSH r16
     PUSH r17
     PUSH r18
     PUSH r19
     PUSH r20
-    LDI r13, 1
+    LDI r3, 1
 
     ; Get search length
-    LDI r3, R_SLEN
-    LOAD r3, r3
+    LDI r5, R_SLEN
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, dr_done          ; empty search, skip
+    CMP r5, r14
+    JZ r15, dr_done          ; empty search, skip
 
     ; Get replace length
     LDI r14, R_RLEN
     LOAD r14, r14
 
     ; If replace == search, nothing to do
-    CMP r3, r14
-    JZ r2, dr_done
+    CMP r5, r14
+    JZ r15, dr_done
 
     ; Get buffer size
-    LDI r10, R_BS
-    LOAD r10, r10
+    LDI r0, R_BS
+    LOAD r0, r0
 
     ; Start scanning from position 0
-    LDI r12, 0               ; scan position
+    LDI r2, 0               ; scan position
     LDI r19, 0               ; match count
 
 dr_scan:
     ; Check if remaining buffer is long enough for search
-    MOV r11, r12
-    ADD r11, r3
-    CMP r11, r10
-    BGE r2, dr_scan_done
+    MOV r10, r2
+    ADD r10, r5
+    CMP r10, r0
+    BGE r15, dr_scan_done
 
-    ; Try matching at position r12
+    ; Try matching at position r2
     LDI r16, 0               ; match offset
 
 dr_match:
-    CMP r16, r3
-    BGE r2, dr_found
+    CMP r16, r5
+    BGE r15, dr_found
 
     ; Load buffer char
     LDI r17, FB
-    ADD r17, r12
+    ADD r17, r2
     ADD r17, r16
     LOAD r17, r17
 
@@ -2303,75 +2303,75 @@ dr_match:
     LOAD r18, r18
 
     CMP r17, r18
-    JNZ r2, dr_no_match
+    JNZ r15, dr_no_match
 
-    ADD r16, r13
+    ADD r16, r3
     JMP dr_match
 
 dr_no_match:
-    ADD r12, r13
+    ADD r2, r3
     JMP dr_scan
 
 dr_found:
-    ; Found match at r12
-    ADD r19, r13              ; match count++
+    ; Found match at r2
+    ADD r19, r3              ; match count++
 
     ; Calculate size delta: replace_len - search_len
     MOV r20, r14
-    SUB r20, r3             ; delta (signed)
+    SUB r20, r5             ; delta (signed)
 
     ; Case 1: replace shorter or same -- shift left, overwrite
-    LDI r11, 0
-    CMP r20, r11
-    BGE r2, dr_grow
+    LDI r10, 0
+    CMP r20, r10
+    BGE r15, dr_grow
 
     ; Shrink: move remainder left
-    ; Source: FB[r12+search_len] to FB[buf_size]
-    ; Dest: FB[r12+replace_len]
-    PUSH r12                 ; save match position for write loop
-    MOV r16, r12
-    ADD r16, r3             ; source start (after match)
-    MOV r17, r12
+    ; Source: FB[r2+search_len] to FB[buf_size]
+    ; Dest: FB[r2+replace_len]
+    PUSH r2                 ; save match position for write loop
+    MOV r16, r2
+    ADD r16, r5             ; source start (after match)
+    MOV r17, r2
     ADD r17, r14             ; dest start (after replace)
     ; Copy from end to start to avoid overwrite
-    ; Remaining = buf_size - (r12 + search_len)
-    MOV r18, r10
+    ; Remaining = buf_size - (r2 + search_len)
+    MOV r18, r0
     SUB r18, r16             ; remaining count
 
 dr_shrink_loop:
-    LDI r11, 0
-    CMP r18, r11
-    JZ r2, dr_shrink_done
+    LDI r10, 0
+    CMP r18, r10
+    JZ r15, dr_shrink_done
 
     ; Source addr = FB + source_start + (remaining - 1)
     ; i.e. FB + r16 + r18 - 1
-    MOV r11, r16
-    ADD r11, r18
-    SUB r11, r13
+    MOV r10, r16
+    ADD r10, r18
+    SUB r10, r3
     LDI r8, FB
-    ADD r8, r11
+    ADD r8, r10
     LOAD r8, r8           ; r8 = char from source
 
     ; Dest addr = FB + dest_start + (remaining - 1)
     ; i.e. FB + r17 + r18 - 1
-    MOV r11, r17
-    ADD r11, r18
-    SUB r11, r13
-    LDI r12, FB
-    ADD r11, r12            ; r11 = dest address
-    STORE r11, r8          ; store char
+    MOV r10, r17
+    ADD r10, r18
+    SUB r10, r3
+    LDI r2, FB
+    ADD r10, r2            ; r10 = dest address
+    STORE r10, r8          ; store char
 
-    SUB r18, r13
+    SUB r18, r3
     JMP dr_shrink_loop
 
 dr_shrink_done:
-    POP r12                  ; restore match position
+    POP r2                  ; restore match position
     ; Write replace string
     LDI r16, 0               ; i
 dr_write_shrink:
     CMP r16, r14
-    BGE r2, dr_after_shrink
-    MOV r17, r12
+    BGE r15, dr_after_shrink
+    MOV r17, r2
     ADD r17, r16
     LDI r18, FB
     ADD r18, r17
@@ -2379,68 +2379,68 @@ dr_write_shrink:
     ADD r17, r16
     LOAD r17, r17
     STORE r18, r17
-    ADD r16, r13
+    ADD r16, r3
     JMP dr_write_shrink
 
 dr_after_shrink:
     ; Update buffer size
     LDI r16, R_BS
-    LOAD r17, r10
+    LOAD r17, r0
     ADD r17, r20             ; buf_size + delta
     STORE r16, r17
-    MOV r10, r17             ; update local
+    MOV r0, r17             ; update local
 
     ; Update scan position (past the replacement)
-    MOV r12, r16
-    ADD r12, r14             ; skip past replace
+    MOV r2, r16
+    ADD r2, r14             ; skip past replace
     JMP dr_scan
 
 dr_grow:
     ; Replace is longer -- check if buffer has room
     ; Max buffer is FB + 2000
-    LDI r11, 2000
-    CMP r10, r11
-    BGE r2, dr_scan_done     ; buffer full, stop
+    LDI r10, 2000
+    CMP r0, r10
+    BGE r15, dr_scan_done     ; buffer full, stop
 
     ; Move remainder right to make room
     ; Source end: FB[buf_size-1], Dest end: FB[buf_size+delta-1]
-    PUSH r12                 ; save match position for write loop
-    MOV r18, r10             ; remaining count = buf_size
-    LDI r11, 0
+    PUSH r2                 ; save match position for write loop
+    MOV r18, r0             ; remaining count = buf_size
+    LDI r10, 0
 
 dr_grow_loop:
-    LDI r11, 0
-    CMP r18, r11
-    JZ r2, dr_grow_done
+    LDI r10, 0
+    CMP r18, r10
+    JZ r15, dr_grow_done
 
-    ; Source index = buf_size - remaining = r10 - r18
-    ; Source addr = FB + r10 - r18
-    MOV r11, r10
-    SUB r11, r18
+    ; Source index = buf_size - remaining = r0 - r18
+    ; Source addr = FB + r0 - r18
+    MOV r10, r0
+    SUB r10, r18
     LDI r8, FB
-    ADD r8, r11
+    ADD r8, r10
     LOAD r8, r8           ; r8 = char from source
 
-    ; Dest index = source_index + delta = r10 - r18 + r20
-    ; Dest addr = FB + r10 - r18 + r20
-    MOV r11, r10
-    SUB r11, r18
-    ADD r11, r20
-    LDI r12, FB
-    ADD r11, r12            ; r11 = dest address
-    STORE r11, r8          ; store char
+    ; Dest index = source_index + delta = r0 - r18 + r20
+    ; Dest addr = FB + r0 - r18 + r20
+    MOV r10, r0
+    SUB r10, r18
+    ADD r10, r20
+    LDI r2, FB
+    ADD r10, r2            ; r10 = dest address
+    STORE r10, r8          ; store char
 
-    SUB r18, r13
+    SUB r18, r3
     JMP dr_grow_loop
 
 dr_grow_done:
-    POP r12                  ; restore match position
+    POP r2                  ; restore match position
     ; Write replace string
     LDI r16, 0
 dr_write_grow:
     CMP r16, r14
-    BGE r2, dr_after_grow
-    MOV r17, r12
+    BGE r15, dr_after_grow
+    MOV r17, r2
     ADD r17, r16
     LDI r18, FB
     ADD r18, r17
@@ -2448,29 +2448,29 @@ dr_write_grow:
     ADD r17, r16
     LOAD r17, r17
     STORE r18, r17
-    ADD r16, r13
+    ADD r16, r3
     JMP dr_write_grow
 
 dr_after_grow:
     ; Update buffer size
     LDI r16, R_BS
-    LOAD r17, r10
+    LOAD r17, r0
     ADD r17, r20             ; buf_size + delta
     STORE r16, r17
-    MOV r10, r17
+    MOV r0, r17
 
     ; Update scan position
-    MOV r12, r16
-    ADD r12, r14
+    MOV r2, r16
+    ADD r2, r14
     JMP dr_scan
 
 dr_scan_done:
     ; Rebuild line starts (call insert_newline which rebuilds)
     ; Actually we need to rebuild the line structure
     ; Set dirty flag
-    LDI r3, R_DIRTY
+    LDI r5, R_DIRTY
     LDI r14, 1
-    STORE r3, r14
+    STORE r5, r14
 
     ; Rebuild line starts by scanning buffer for newlines
     CALL rebuild_lines
@@ -2485,14 +2485,14 @@ dr_done:
     POP r18
     POP r17
     POP r16
-    POP r11
-    POP r12
     POP r10
+    POP r2
+    POP r0
     POP r8
     POP r14
+    POP r5
+    POP r1
     POP r3
-    POP r9
-    POP r13
     POP r31
     RET
 
@@ -2502,64 +2502,64 @@ dr_done:
 ; =========================================
 rebuild_lines:
     PUSH r31
-    PUSH r13
     PUSH r3
+    PUSH r5
     PUSH r14
     PUSH r8
-    PUSH r10
-    PUSH r12
-    LDI r13, 1
+    PUSH r0
+    PUSH r2
+    LDI r3, 1
 
-    LDI r10, R_BS
-    LOAD r10, r10            ; buffer size
-    LDI r12, 0               ; position
-    LDI r3, 0               ; line count
+    LDI r0, R_BS
+    LOAD r0, r0            ; buffer size
+    LDI r2, 0               ; position
+    LDI r5, 0               ; line count
 
     ; First line always starts at 0
     LDI r14, LS
     LDI r8, 0
     STORE r14, r8
-    ADD r3, r13              ; line count = 1
+    ADD r5, r3              ; line count = 1
 
 rl_scan:
-    CMP r12, r10
-    BGE r2, rl_done
+    CMP r2, r0
+    BGE r15, rl_done
 
     ; Load char
     LDI r14, FB
-    ADD r14, r12
+    ADD r14, r2
     LOAD r14, r14
 
     ; Check for newline (10)
     LDI r8, 10
     CMP r14, r8
-    JNZ r2, rl_next
+    JNZ r15, rl_next
 
     ; Found newline -- next line starts at pos+1
-    ADD r12, r13
+    ADD r2, r3
     ; Store line start
     LDI r14, LS
-    ADD r14, r3
-    STORE r14, r12
-    ADD r3, r13
+    ADD r14, r5
+    STORE r14, r2
+    ADD r5, r3
 
     JMP rl_scan
 
 rl_next:
-    ADD r12, r13
+    ADD r2, r3
     JMP rl_scan
 
 rl_done:
     ; Store line count
     LDI r14, R_NL
-    STORE r14, r3
+    STORE r14, r5
 
-    POP r12
-    POP r10
+    POP r2
+    POP r0
     POP r8
     POP r14
+    POP r5
     POP r3
-    POP r13
     POP r31
     RET
 
@@ -2568,37 +2568,37 @@ rl_done:
 ; =========================================
 do_goto:
     PUSH r31
-    PUSH r13
     PUSH r3
+    PUSH r5
     PUSH r14
     PUSH r8
-    LDI r13, 1
+    LDI r3, 1
 
     ; Get target line (user enters 1-based, we use 0-based)
-    LDI r3, R_GNUM
-    LOAD r3, r3
+    LDI r5, R_GNUM
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JZ r2, dg_done          ; goto line 0 = noop
+    CMP r5, r14
+    JZ r15, dg_done          ; goto line 0 = noop
 
     ; Convert to 0-based
-    SUB r3, r13
+    SUB r5, r3
     LDI r14, 0
-    CMP r3, r14
-    BLT r2, dg_done         ; negative, invalid
+    CMP r5, r14
+    BLT r15, dg_done         ; negative, invalid
 
     ; Clamp to last line
     LDI r8, R_NL
     LOAD r8, r8
-    SUB r8, r13             ; last valid line index
-    CMP r3, r8
-    BLT r2, dg_ok
-    MOV r3, r8            ; clamp
+    SUB r8, r3             ; last valid line index
+    CMP r5, r8
+    BLT r15, dg_ok
+    MOV r5, r8            ; clamp
 
 dg_ok:
     ; Set cursor line
     LDI r14, R_CL
-    STORE r14, r3
+    STORE r14, r5
     LDI r14, R_CC
     LDI r8, 0
     STORE r14, r8          ; col = 0
@@ -2608,14 +2608,14 @@ dg_ok:
 
 dg_done:
     ; Reset goto number
-    LDI r3, R_GNUM
+    LDI r5, R_GNUM
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
     POP r8
     POP r14
+    POP r5
     POP r3
-    POP r13
     POP r31
     RET
 
@@ -2626,31 +2626,31 @@ dg_done:
 ; =========================================
 switch_buf:
     PUSH r31
-    PUSH r13
     PUSH r3
+    PUSH r5
     PUSH r14
     PUSH r8
+    PUSH r0
+    PUSH r2
     PUSH r10
-    PUSH r12
-    PUSH r11
     PUSH r16
-    LDI r13, 1
+    LDI r3, 1
 
     ; Check buf_count > 1
-    LDI r3, R_BCNT
-    LOAD r3, r3
+    LDI r5, R_BCNT
+    LOAD r5, r5
     LDI r14, 1
-    CMP r3, r14
-    JZ r2, sb_done              ; only 1 buffer, no switch
+    CMP r5, r14
+    JZ r15, sb_done              ; only 1 buffer, no switch
 
     ; Get current active buffer
-    LDI r3, R_BACT
-    LOAD r3, r3               ; 0 or 1
+    LDI r5, R_BACT
+    LOAD r5, r5               ; 0 or 1
 
     ; Save current cursor state to active buffer's slot
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, sb_save1
+    CMP r5, r14
+    JNZ r15, sb_save1
 
 sb_save0:
     ; Save buf 0 cursor state
@@ -2693,45 +2693,45 @@ sb_autosave:
     LOAD r14, r14
     LDI r8, 0
     CMP r14, r8
-    JZ r2, sb_no_save
+    JZ r15, sb_no_save
     CALL save_file
 
 sb_no_save:
     ; Toggle active buffer
-    LDI r3, R_BACT
-    LOAD r3, r3
+    LDI r5, R_BACT
+    LOAD r5, r5
     LDI r14, 1
-    XOR r3, r14                ; toggle 0 <-> 1
+    XOR r5, r14                ; toggle 0 <-> 1
     LDI r14, R_BACT
-    STORE r14, r3              ; save new active
+    STORE r14, r5              ; save new active
 
     ; Copy new buffer's filename to R_FN
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, sb_fn1
+    CMP r5, r14
+    JNZ r15, sb_fn1
 
 sb_fn0:
     ; Copy buf 0 filename to R_FN
-    LDI r11, R_B0FN
+    LDI r10, R_B0FN
     JMP sb_fn_copy
 
 sb_fn1:
     ; Copy buf 1 filename to R_FN
-    LDI r11, R_B1FN
+    LDI r10, R_B1FN
 
 sb_fn_copy:
     LDI r16, R_FN
 sb_fn_loop:
-    LOAD r17, r11
+    LOAD r17, r10
     STORE r16, r17
     LDI r17, 0
-    CMP r17, r11
-    LOAD r17, r11
+    CMP r17, r10
+    LOAD r17, r10
     LDI r18, 0
     CMP r17, r18
-    JZ r2, sb_fn_done
-    ADD r11, r13
-    ADD r16, r13
+    JZ r15, sb_fn_done
+    ADD r10, r3
+    ADD r16, r3
     JMP sb_fn_loop
 
 sb_fn_done:
@@ -2742,26 +2742,26 @@ sb_fn_done:
     CALL build_lines
 
     ; If line_count == 0, ensure at least 1 line
-    LDI r3, R_NL
-    LOAD r3, r3
+    LDI r5, R_NL
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, sb_restore
+    CMP r5, r14
+    JNZ r15, sb_restore
 
-    LDI r3, R_NL
+    LDI r5, R_NL
     LDI r14, 1
-    STORE r3, r14
-    LDI r3, LS
+    STORE r5, r14
+    LDI r5, LS
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
 sb_restore:
     ; Restore cursor state from new buffer's slot
-    LDI r3, R_BACT
-    LOAD r3, r3
+    LDI r5, R_BACT
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, sb_rest1
+    CMP r5, r14
+    JNZ r15, sb_rest1
 
 sb_rest0:
     LDI r14, R_B0CL
@@ -2798,18 +2798,18 @@ sb_rest1:
 
 sb_done:
     ; Clear dirty flag
-    LDI r3, R_DIRTY
+    LDI r5, R_DIRTY
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
     POP r16
-    POP r11
-    POP r12
     POP r10
+    POP r2
+    POP r0
     POP r8
     POP r14
+    POP r5
     POP r3
-    POP r13
     POP r31
     RET
 
@@ -2818,21 +2818,21 @@ sb_done:
 ; =========================================
 new_buf:
     PUSH r31
-    PUSH r13
     PUSH r3
+    PUSH r5
     PUSH r14
-    PUSH r11
+    PUSH r10
     PUSH r16
     PUSH r17
     PUSH r18
-    LDI r13, 1
+    LDI r3, 1
 
     ; Check if already have 2 buffers
-    LDI r3, R_BCNT
-    LOAD r3, r3
+    LDI r5, R_BCNT
+    LOAD r5, r5
     LDI r14, 2
-    CMP r3, r14
-    BGE r2, nb_switch           ; already 2 buffers, just switch
+    CMP r5, r14
+    BGE r15, nb_switch           ; already 2 buffers, just switch
 
     ; Save current cursor state to buffer 0 slot
     LDI r14, R_CL
@@ -2855,45 +2855,45 @@ new_buf:
     LOAD r14, r14
     LDI r8, 0
     CMP r14, r8
-    JZ r2, nb_no_save
+    JZ r15, nb_no_save
     CALL save_file
 
 nb_no_save:
     ; Set buffer 1 filename to scratch file
-    LDI r11, R_B1FN
-    STRO r11, "~/.geos_scratch.txt"
+    LDI r10, R_B1FN
+    STRO r10, "~/.geos_scratch.txt"
 
     ; Set buf_count = 2
-    LDI r3, R_BCNT
+    LDI r5, R_BCNT
     LDI r14, 2
-    STORE r3, r14
+    STORE r5, r14
 
     ; Set active_buf = 1
-    LDI r3, R_BACT
+    LDI r5, R_BACT
     LDI r14, 1
-    STORE r3, r14
+    STORE r5, r14
 
     ; Copy new filename to R_FN
-    LDI r11, R_B1FN
+    LDI r10, R_B1FN
     LDI r16, R_FN
 nb_fn_copy:
-    LOAD r17, r11
+    LOAD r17, r10
     STORE r16, r17
     LDI r17, 0
-    CMP r17, r11
-    LOAD r17, r11
+    CMP r17, r10
+    LOAD r17, r10
     LDI r18, 0
     CMP r17, r18
-    JZ r2, nb_fn_done
-    ADD r11, r13
-    ADD r16, r13
+    JZ r15, nb_fn_done
+    ADD r10, r3
+    ADD r16, r3
     JMP nb_fn_copy
 
 nb_fn_done:
     ; Clear buffer
-    LDI r3, R_BS
+    LDI r5, R_BS
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
     ; Load file (may not exist -- that is OK)
     CALL load_file
@@ -2902,42 +2902,42 @@ nb_fn_done:
     CALL build_lines
 
     ; Ensure at least 1 line
-    LDI r3, R_NL
-    LOAD r3, r3
+    LDI r5, R_NL
+    LOAD r5, r5
     LDI r14, 0
-    CMP r3, r14
-    JNZ r2, nb_reset_cursor
+    CMP r5, r14
+    JNZ r15, nb_reset_cursor
 
-    LDI r3, R_NL
+    LDI r5, R_NL
     LDI r14, 1
-    STORE r3, r14
-    LDI r3, LS
+    STORE r5, r14
+    LDI r5, LS
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
 nb_reset_cursor:
     ; Reset cursor for new buffer
-    LDI r3, R_CL
+    LDI r5, R_CL
     LDI r14, 0
-    STORE r3, r14
-    LDI r3, R_CC
-    STORE r3, r14
-    LDI r3, R_SC
-    STORE r3, r14
+    STORE r5, r14
+    LDI r5, R_CC
+    STORE r5, r14
+    LDI r5, R_SC
+    STORE r5, r14
 
     ; Save initial cursor for buffer 1
-    LDI r3, R_B1CL
+    LDI r5, R_B1CL
     LDI r14, 0
-    STORE r3, r14
-    LDI r3, R_B1CC
-    STORE r3, r14
-    LDI r3, R_B1SC
-    STORE r3, r14
+    STORE r5, r14
+    LDI r5, R_B1CC
+    STORE r5, r14
+    LDI r5, R_B1SC
+    STORE r5, r14
 
     ; Clear dirty flag
-    LDI r3, R_DIRTY
+    LDI r5, R_DIRTY
     LDI r14, 0
-    STORE r3, r14
+    STORE r5, r14
 
     JMP nb_done
 
@@ -2949,9 +2949,9 @@ nb_done:
     POP r18
     POP r17
     POP r16
-    POP r11
+    POP r10
     POP r14
+    POP r5
     POP r3
-    POP r13
     POP r31
     RET

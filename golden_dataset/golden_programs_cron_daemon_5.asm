@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a frame-based cron daemon that reads a schedule from the virtual file system (VFS) and spawns programs at regular intervals defined in a crontab file. The crontab format specifies intervals and program names, and the daemon manages up to eight scheduled entries, checking each frame to determine if a program should be executed.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; cron_daemon.asm -- Phase 101: Cron Daemon
 ;
@@ -24,69 +24,69 @@
 ; ═══════════════════════════════════════════════════════════════
 ; Phase 1: Initialize
     ; Clear screen
-    LDI r13, 0
-    FILL r13
+    LDI r8, 0
+    FILL r8
 
     ; Initialize stack pointer
     LDI r30, 0xFF00
 
     ; Write "crontab" filename to 0x1000
-    LDI r3, 0x1000
-    LDI r6, 99
-    STORE r3, r6
-    LDI r3, 0x1001
-    LDI r6, 114
-    STORE r3, r6
-    LDI r3, 0x1002
-    LDI r6, 111
-    STORE r3, r6
-    LDI r3, 0x1003
-    LDI r6, 110
-    STORE r3, r6
-    LDI r3, 0x1004
-    LDI r6, 116
-    STORE r3, r6
-    LDI r3, 0x1005
-    LDI r6, 97
-    STORE r3, r6
-    LDI r3, 0x1006
-    LDI r6, 98
-    STORE r3, r6
-    LDI r3, 0x1007
-    LDI r6, 0
-    STORE r3, r6
+    LDI r12, 0x1000
+    LDI r4, 99
+    STORE r12, r4
+    LDI r12, 0x1001
+    LDI r4, 114
+    STORE r12, r4
+    LDI r12, 0x1002
+    LDI r4, 111
+    STORE r12, r4
+    LDI r12, 0x1003
+    LDI r4, 110
+    STORE r12, r4
+    LDI r12, 0x1004
+    LDI r4, 116
+    STORE r12, r4
+    LDI r12, 0x1005
+    LDI r4, 97
+    STORE r12, r4
+    LDI r12, 0x1006
+    LDI r4, 98
+    STORE r12, r4
+    LDI r12, 0x1007
+    LDI r4, 0
+    STORE r12, r4
 
     ; Clear schedule table (512 words at 0x4000)
-    LDI r3, 0x4000
-    LDI r1, 0
-    LDI r5, 0x4200
+    LDI r12, 0x4000
+    LDI r11, 0
+    LDI r3, 0x4200
 clear_table:
-    STORE r3, r1
-    LDI r14, 1
-    ADD r3, r14
-    CMP r3, r5
-    BLT r13, clear_table
+    STORE r12, r11
+    LDI r6, 1
+    ADD r12, r6
+    CMP r12, r3
+    BLT r8, clear_table
 
     ; ═══════════════════════════════════════════════════════════════
     ; Phase 2: Read and parse crontab
     ; ═══════════════════════════════════════════════════════════════
 read_crontab:
-    LDI r15, 0x1000
-    LDI r12, 0
-    OPEN r15, r12
-    MOV r8, r13
+    LDI r9, 0x1000
+    LDI r0, 0
+    OPEN r9, r0
+    MOV r7, r8
 
     ; Check error
-    LDI r3, 0xFFFFFFFF
-    CMP r8, r3
-    JZ r13, no_crontab
+    LDI r12, 0xFFFFFFFF
+    CMP r7, r12
+    JZ r8, no_crontab
 
     ; Read into 0x2000
-    LDI r9, 0x2000
-    LDI r11, 512
-    READ r8, r9, r11
+    LDI r5, 0x2000
+    LDI r13, 512
+    READ r7, r5, r13
 
-    CLOSE r8
+    CLOSE r7
 
     ; Parse entries
     CALL parse_crontab
@@ -97,34 +97,34 @@ no_crontab:
     ; ═══════════════════════════════════════════════════════════════
 main_loop:
     ; Get current TICKS
-    LDI r3, 0xFFE
-    LOAD r3, r3
+    LDI r12, 0xFFE
+    LOAD r12, r12
 
     ; Check each entry (max 8)
-    LDI r6, 0
+    LDI r4, 0
 check_entry:
     ; Entry base = 0x4000 + index * 64
-    MOV r1, r6
-    LDI r14, 64
-    MUL r1, r14       ; r1 = index * 64
-    LDI r14, 0x4000
-    ADD r1, r14       ; r1 = 0x4000 + index * 64
+    MOV r11, r4
+    LDI r6, 64
+    MUL r11, r6       ; r11 = index * 64
+    LDI r6, 0x4000
+    ADD r11, r6       ; r11 = 0x4000 + index * 64
 
     ; interval = entry[0]
-    LOAD r10, r1
-    JZ r10, next_entry
+    LOAD r14, r11
+    JZ r14, next_entry
 
     ; last_run = entry[1]
-    MOV r5, r1
+    MOV r3, r11
     LDI r16, 1
-    ADD r5, r16
-    LOAD r16, r5
+    ADD r3, r16
+    LOAD r16, r3
 
     ; elapsed = ticks - last_run
-    MOV r17, r3
+    MOV r17, r12
     SUB r17, r16
-    CMP r17, r10
-    BLT r13, next_entry
+    CMP r17, r14
+    BLT r8, next_entry
 
     ; Time to spawn! Copy name to 0x5000
     PUSH r31
@@ -132,28 +132,28 @@ check_entry:
     POP r31
 
     ; EXEC
-    LDI r15, 0x5000
-    EXEC r15
+    LDI r9, 0x5000
+    EXEC r9
 
     ; Update last_run
-    STORE r5, r3
+    STORE r3, r12
 
 next_entry:
-    LDI r14, 1
-    ADD r6, r14
-    LDI r14, 8
-    CMP r6, r14
-    BLT r13, check_entry
+    LDI r6, 1
+    ADD r4, r6
+    LDI r6, 8
+    CMP r4, r6
+    BLT r8, check_entry
 
     ; Check reload flag
-    LDI r3, 0xFA0
-    LOAD r3, r3
-    LDI r6, 0x43524F
-    CMP r3, r6
-    JNZ r13, skip_reload
-    LDI r3, 0xFA0
-    LDI r6, 0
-    STORE r3, r6
+    LDI r12, 0xFA0
+    LOAD r12, r12
+    LDI r4, 0x43524F
+    CMP r12, r4
+    JNZ r8, skip_reload
+    LDI r12, 0xFA0
+    LDI r4, 0
+    STORE r12, r4
     JMP read_crontab
 
 skip_reload:
@@ -166,78 +166,78 @@ skip_reload:
 parse_crontab:
     PUSH r31
 
-    LDI r3, 0x2000    ; source ptr
-    LDI r6, 0         ; entry index (0..7)
+    LDI r12, 0x2000    ; source ptr
+    LDI r4, 0         ; entry index (0..7)
 
 parse_line:
     ; Skip whitespace/newlines
 skip_ws:
-    LOAD r1, r3
-    JZ r1, parse_done ; null = end
-    LDI r14, 10
-    CMP r1, r14
-    JZ r13, advance_skip
-    LDI r14, 13
-    CMP r1, r14
-    JZ r13, advance_skip
-    LDI r14, 32
-    CMP r1, r14
-    JNZ r13, try_digit
+    LOAD r11, r12
+    JZ r11, parse_done ; null = end
+    LDI r6, 10
+    CMP r11, r6
+    JZ r8, advance_skip
+    LDI r6, 13
+    CMP r11, r6
+    JZ r8, advance_skip
+    LDI r6, 32
+    CMP r11, r6
+    JNZ r8, try_digit
 advance_skip:
-    LDI r14, 1
-    ADD r3, r14
+    LDI r6, 1
+    ADD r12, r6
     JMP skip_ws
 
 try_digit:
     ; Check if it's a digit (48-57)
-    LDI r14, 48
-    CMP r1, r14
-    BLT r13, skip_line  ; < '0' -> skip line
-    LDI r14, 58
-    CMP r1, r14
-    BGE r13, skip_line  ; > '9' -> skip line
+    LDI r6, 48
+    CMP r11, r6
+    BLT r8, skip_line  ; < '0' -> skip line
+    LDI r6, 58
+    CMP r11, r6
+    BGE r8, skip_line  ; > '9' -> skip line
 
-    ; Parse decimal number into r10
-    LDI r10, 0
-    LDI r5, 10
+    ; Parse decimal number into r14
+    LDI r14, 0
+    LDI r3, 10
 parse_digit:
-    ; r1 already loaded
+    ; r11 already loaded
     ; Check digit range
     LDI r16, 48
-    CMP r1, r16
-    BLT r13, got_interval
+    CMP r11, r16
+    BLT r8, got_interval
     LDI r16, 58
-    CMP r1, r16
-    BGE r13, got_interval
+    CMP r11, r16
+    BGE r8, got_interval
 
-    ; r10 = r10 * 10 + (digit - 48)
-    MUL r10, r5
+    ; r14 = r14 * 10 + (digit - 48)
+    MUL r14, r3
     LDI r16, 48
-    SUB r1, r16
-    ADD r10, r1
+    SUB r11, r16
+    ADD r14, r11
 
-    LDI r14, 1
-    ADD r3, r14
-    LOAD r1, r3
+    LDI r6, 1
+    ADD r12, r6
+    LOAD r11, r12
     JMP parse_digit
 
 got_interval:
     ; Skip space after interval
-    LDI r14, 32
-    CMP r1, r14
-    JNZ r13, skip_line  ; no space after interval = malformed
-    LDI r14, 1
-    ADD r3, r14       ; skip space
+    LDI r6, 32
+    CMP r11, r6
+    JNZ r8, skip_line  ; no space after interval = malformed
+    LDI r6, 1
+    ADD r12, r6       ; skip space
 
     ; Compute entry base
-    LDI r5, 64
-    MOV r16, r6
-    MUL r16, r5
+    LDI r3, 64
+    MOV r16, r4
+    MUL r16, r3
     LDI r17, 0x4000
     ADD r16, r17       ; r16 = entry base
 
     ; Store interval
-    STORE r16, r10
+    STORE r16, r14
 
     ; Store last_run = 0
     MOV r17, r16
@@ -253,23 +253,23 @@ got_interval:
     LDI r19, 0         ; name len
 
 copy_name_char:
-    LOAD r1, r3
-    JZ r1, end_copy_name
-    LDI r14, 10
-    CMP r1, r14
-    JZ r13, end_copy_name
-    LDI r14, 13
-    CMP r1, r14
-    JZ r13, end_copy_name
+    LOAD r11, r12
+    JZ r11, end_copy_name
+    LDI r6, 10
+    CMP r11, r6
+    JZ r8, end_copy_name
+    LDI r6, 13
+    CMP r11, r6
+    JZ r8, end_copy_name
 
-    STORE r17, r1
-    LDI r14, 1
-    ADD r3, r14
-    ADD r17, r14
-    ADD r19, r14
+    STORE r17, r11
+    LDI r6, 1
+    ADD r12, r6
+    ADD r17, r6
+    ADD r19, r6
     LDI r20, 56
     CMP r19, r20
-    BGE r13, end_copy_name
+    BGE r8, end_copy_name
     JMP copy_name_char
 
 end_copy_name:
@@ -280,28 +280,28 @@ end_copy_name:
     STORE r17, r19
 
     ; Next entry
-    LDI r14, 1
-    ADD r6, r14
-    LDI r14, 8
-    CMP r6, r14
-    BGE r13, parse_done
+    LDI r6, 1
+    ADD r4, r6
+    LDI r6, 8
+    CMP r4, r6
+    BGE r8, parse_done
 
     ; Fall through to skip rest of line
 
 skip_line:
     ; Skip to next newline or null
-    LOAD r1, r3
-    JZ r1, parse_done
-    LDI r14, 10
-    CMP r1, r14
-    JZ r13, skip_newline
-    LDI r14, 1
-    ADD r3, r14
+    LOAD r11, r12
+    JZ r11, parse_done
+    LDI r6, 10
+    CMP r11, r6
+    JZ r8, skip_newline
+    LDI r6, 1
+    ADD r12, r6
     JMP skip_line
 
 skip_newline:
-    LDI r14, 1
-    ADD r3, r14
+    LDI r6, 1
+    ADD r12, r6
     JMP parse_line
 
 parse_done:
@@ -310,19 +310,19 @@ parse_done:
 
 ; ═══════════════════════════════════════════════════════════════
 ; copy_name: Copy entry name to 0x5000 for EXEC
-; Input: r1 = entry base, r16 clobbered
+; Input: r11 = entry base, r16 clobbered
 ; ═══════════════════════════════════════════════════════════════
 copy_name:
     PUSH r31
 
     ; Get name_len at offset 2
-    MOV r16, r1
+    MOV r16, r11
     LDI r17, 2
     ADD r16, r17
     LOAD r17, r16      ; r17 = name length
 
     ; Copy name from offset 4
-    MOV r16, r1
+    MOV r16, r11
     LDI r18, 4
     ADD r16, r18
     LDI r18, 0x5000
@@ -330,7 +330,7 @@ copy_name:
 
 cpn_loop:
     CMP r19, r17
-    BGE r13, cpn_done
+    BGE r8, cpn_done
     LOAD r20, r16
     STORE r18, r20
     LDI r20, 1

@@ -88,7 +88,7 @@ def train(args):
         n_batches = 0
         t0 = time.time()
 
-        for x, y in loader:
+        for i, (x, y) in enumerate(loader):
             x, y = x.to(device), y.to(device)
             logits, loss = model(x, y)
             optimizer.zero_grad()
@@ -98,6 +98,8 @@ def train(args):
             scheduler.step()
             total_loss += loss.item()
             n_batches += 1
+            if (i + 1) % 100 == 0:
+                print(f"  Batch {i+1}/{len(loader)}  loss={loss.item():.4f}")
 
         avg_loss = total_loss / n_batches
         elapsed = time.time() - t0

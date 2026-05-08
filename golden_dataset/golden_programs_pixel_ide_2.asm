@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code sets up a simple pixel-based Integrated Development Environment (IDE) with three windowed panes: an editor pane for source code text, a build pane for assembly status, and an output pane for program execution results. It uses the WINSYS system calls to create and manage these windows, drawing titles and content into each using pixel manipulation instructions. The IDE also assembles and runs a simple program directly from RAM.
+; DESCRIPTION: Render a colored rectangle at the screen.
 
 ; pixel_ide.asm -- Windowed IDE Demo (Phase 70)
 ;
@@ -13,206 +13,206 @@
 
 ; ---- Constants ----
 LDI r20, 0x9000       ; title string storage
-LDI r1, 1
-LDI r11, 0
+LDI r12, 1
+LDI r0, 0
 
 ; ---- Write title strings to RAM ----
 
 ; "Editor" at 0x9000
-LDI r6, 0x9000
-LDI r14, 69; STORE r6, r14; ADD r6, r1
-LDI r14, 100; STORE r6, r14; ADD r6, r1
-LDI r14, 105; STORE r6, r14; ADD r6, r1
-LDI r14, 116; STORE r6, r14; ADD r6, r1
-LDI r14, 111; STORE r6, r14; ADD r6, r1
-LDI r14, 114; STORE r6, r14; ADD r6, r1
-LDI r14, 0; STORE r6, r14
+LDI r7, 0x9000
+LDI r8, 69; STORE r7, r8; ADD r7, r12
+LDI r8, 100; STORE r7, r8; ADD r7, r12
+LDI r8, 105; STORE r7, r8; ADD r7, r12
+LDI r8, 116; STORE r7, r8; ADD r7, r12
+LDI r8, 111; STORE r7, r8; ADD r7, r12
+LDI r8, 114; STORE r7, r8; ADD r7, r12
+LDI r8, 0; STORE r7, r8
 
 ; "Build" at 0x9010
-LDI r6, 0x9010
-LDI r14, 66; STORE r6, r14; ADD r6, r1
-LDI r14, 117; STORE r6, r14; ADD r6, r1
-LDI r14, 105; STORE r6, r14; ADD r6, r1
-LDI r14, 108; STORE r6, r14; ADD r6, r1
-LDI r14, 100; STORE r6, r14; ADD r6, r1
-LDI r14, 0; STORE r6, r14
+LDI r7, 0x9010
+LDI r8, 66; STORE r7, r8; ADD r7, r12
+LDI r8, 117; STORE r7, r8; ADD r7, r12
+LDI r8, 105; STORE r7, r8; ADD r7, r12
+LDI r8, 108; STORE r7, r8; ADD r7, r12
+LDI r8, 100; STORE r7, r8; ADD r7, r12
+LDI r8, 0; STORE r7, r8
 
 ; "Output" at 0x9020
-LDI r6, 0x9020
-LDI r14, 79; STORE r6, r14; ADD r6, r1
-LDI r14, 117; STORE r6, r14; ADD r6, r1
-LDI r14, 116; STORE r6, r14; ADD r6, r1
-LDI r14, 112; STORE r6, r14; ADD r6, r1
-LDI r14, 117; STORE r6, r14; ADD r6, r1
-LDI r14, 116; STORE r6, r14; ADD r6, r1
-LDI r14, 0; STORE r6, r14
+LDI r7, 0x9020
+LDI r8, 79; STORE r7, r8; ADD r7, r12
+LDI r8, 117; STORE r7, r8; ADD r7, r12
+LDI r8, 116; STORE r7, r8; ADD r7, r12
+LDI r8, 112; STORE r7, r8; ADD r7, r12
+LDI r8, 117; STORE r7, r8; ADD r7, r12
+LDI r8, 116; STORE r7, r8; ADD r7, r12
+LDI r8, 0; STORE r7, r8
 
 ; ---- Write source code text to RAM for display ----
-; "LDI r6, 42" at 0x9030
-LDI r6, 0x9030
-LDI r14, 76; STORE r6, r14; ADD r6, r1
-LDI r14, 68; STORE r6, r14; ADD r6, r1
-LDI r14, 73; STORE r6, r14; ADD r6, r1
-LDI r14, 32; STORE r6, r14; ADD r6, r1
-LDI r14, 114; STORE r6, r14; ADD r6, r1
-LDI r14, 49; STORE r6, r14; ADD r6, r1
-LDI r14, 44; STORE r6, r14; ADD r6, r1
-LDI r14, 32; STORE r6, r14; ADD r6, r1
-LDI r14, 52; STORE r6, r14; ADD r6, r1
-LDI r14, 50; STORE r6, r14; ADD r6, r1
-LDI r14, 10; STORE r6, r14; ADD r6, r1
-LDI r14, 72; STORE r6, r14; ADD r6, r1
-LDI r14, 65; STORE r6, r14; ADD r6, r1
-LDI r14, 76; STORE r6, r14; ADD r6, r1
-LDI r14, 84; STORE r6, r14; ADD r6, r1
-LDI r14, 0; STORE r6, r14
+; "LDI r7, 42" at 0x9030
+LDI r7, 0x9030
+LDI r8, 76; STORE r7, r8; ADD r7, r12
+LDI r8, 68; STORE r7, r8; ADD r7, r12
+LDI r8, 73; STORE r7, r8; ADD r7, r12
+LDI r8, 32; STORE r7, r8; ADD r7, r12
+LDI r8, 114; STORE r7, r8; ADD r7, r12
+LDI r8, 49; STORE r7, r8; ADD r7, r12
+LDI r8, 44; STORE r7, r8; ADD r7, r12
+LDI r8, 32; STORE r7, r8; ADD r7, r12
+LDI r8, 52; STORE r7, r8; ADD r7, r12
+LDI r8, 50; STORE r7, r8; ADD r7, r12
+LDI r8, 10; STORE r7, r8; ADD r7, r12
+LDI r8, 72; STORE r7, r8; ADD r7, r12
+LDI r8, 65; STORE r7, r8; ADD r7, r12
+LDI r8, 76; STORE r7, r8; ADD r7, r12
+LDI r8, 84; STORE r7, r8; ADD r7, r12
+LDI r8, 0; STORE r7, r8
 
 ; "OK: 3 words" at 0x9050
-LDI r6, 0x9050
-LDI r14, 79; STORE r6, r14; ADD r6, r1
-LDI r14, 75; STORE r6, r14; ADD r6, r1
-LDI r14, 58; STORE r6, r14; ADD r6, r1
-LDI r14, 32; STORE r6, r14; ADD r6, r1
-LDI r14, 51; STORE r6, r14; ADD r6, r1
-LDI r14, 32; STORE r6, r14; ADD r6, r1
-LDI r14, 119; STORE r6, r14; ADD r6, r1
-LDI r14, 111; STORE r6, r14; ADD r6, r1
-LDI r14, 114; STORE r6, r14; ADD r6, r1
-LDI r14, 100; STORE r6, r14; ADD r6, r1
-LDI r14, 115; STORE r6, r14; ADD r6, r1
-LDI r14, 0; STORE r6, r14
+LDI r7, 0x9050
+LDI r8, 79; STORE r7, r8; ADD r7, r12
+LDI r8, 75; STORE r7, r8; ADD r7, r12
+LDI r8, 58; STORE r7, r8; ADD r7, r12
+LDI r8, 32; STORE r7, r8; ADD r7, r12
+LDI r8, 51; STORE r7, r8; ADD r7, r12
+LDI r8, 32; STORE r7, r8; ADD r7, r12
+LDI r8, 119; STORE r7, r8; ADD r7, r12
+LDI r8, 111; STORE r7, r8; ADD r7, r12
+LDI r8, 114; STORE r7, r8; ADD r7, r12
+LDI r8, 100; STORE r7, r8; ADD r7, r12
+LDI r8, 115; STORE r7, r8; ADD r7, r12
+LDI r8, 0; STORE r7, r8
 
 ; ---- Create three windows ----
 
 ; Window 1: Editor (top-left) -- x=8, y=8, w=118, h=100
-LDI r6, 8
-LDI r14, 8
-LDI r7, 118
-LDI r2, 100
-LDI r9, 0x9000
-LDI r5, 0
-WINSYS r5
-; r4 = window_id for editor (should be 1)
+LDI r7, 8
+LDI r8, 8
+LDI r2, 118
+LDI r3, 100
+LDI r6, 0x9000
+LDI r14, 0
+WINSYS r14
+; r11 = window_id for editor (should be 1)
 
 ; Save editor window id
-MOV r15, r4
+MOV r5, r11
 
 ; Window 2: Build (top-right) -- x=130, y=8, w=118, h=100
-LDI r6, 130
-LDI r14, 8
-LDI r7, 118
-LDI r2, 100
-LDI r9, 0x9010
-LDI r5, 0
-WINSYS r5
-MOV r8, r4
+LDI r7, 130
+LDI r8, 8
+LDI r2, 118
+LDI r3, 100
+LDI r6, 0x9010
+LDI r14, 0
+WINSYS r14
+MOV r1, r11
 
 ; Window 3: Output (bottom) -- x=8, y=116, w=240, h=132
-LDI r6, 8
-LDI r14, 116
-LDI r7, 240
-LDI r2, 132
-LDI r9, 0x9020
-LDI r5, 0
-WINSYS r5
-MOV r0, r4
+LDI r7, 8
+LDI r8, 116
+LDI r2, 240
+LDI r3, 132
+LDI r6, 0x9020
+LDI r14, 0
+WINSYS r14
+MOV r15, r11
 
 ; ---- Draw editor window content ----
 ; Fill editor with dark blue background
-LDI r12, 0x000022
-LDI r3, 0
+LDI r4, 0x000022
+LDI r9, 0
 
 ; Draw source code text into editor window
-; Row 1: "LDI r6, 42" -- draw as green pixels
-LDI r10, 0x00CC00
+; Row 1: "LDI r7, 42" -- draw as green pixels
+LDI r13, 0x00CC00
 LDI r16, 2
 LDI r17, 4
 
 ; Draw 'L' in editor
-LDI r3, 76
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 68
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 73
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 32
-WPIXEL r15, r16, r17, r3
-ADD r16, r1
-LDI r3, 114
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 49
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 44
-WPIXEL r15, r16, r17, r3
-ADD r16, r1
-LDI r3, 32
-WPIXEL r15, r16, r17, r3
-ADD r16, r1
-LDI r3, 52
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 50
-WPIXEL r15, r16, r17, r10
+LDI r9, 76
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 68
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 73
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 32
+WPIXEL r5, r16, r17, r9
+ADD r16, r12
+LDI r9, 114
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 49
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 44
+WPIXEL r5, r16, r17, r9
+ADD r16, r12
+LDI r9, 32
+WPIXEL r5, r16, r17, r9
+ADD r16, r12
+LDI r9, 52
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 50
+WPIXEL r5, r16, r17, r13
 
 ; Row 2: "HALT" in editor
 LDI r16, 2
 LDI r17, 6
-LDI r3, 72
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 65
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 76
-WPIXEL r15, r16, r17, r10
-ADD r16, r1
-LDI r3, 84
-WPIXEL r15, r16, r17, r10
+LDI r9, 72
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 65
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 76
+WPIXEL r5, r16, r17, r13
+ADD r16, r12
+LDI r9, 84
+WPIXEL r5, r16, r17, r13
 
 ; ---- Draw build window content ----
 ; Green "OK" text
-LDI r10, 0x00FF00
+LDI r13, 0x00FF00
 LDI r16, 2
 LDI r17, 4
-LDI r3, 79
-WPIXEL r8, r16, r17, r10
-ADD r16, r1
-LDI r3, 75
-WPIXEL r8, r16, r17, r10
+LDI r9, 79
+WPIXEL r1, r16, r17, r13
+ADD r16, r12
+LDI r9, 75
+WPIXEL r1, r16, r17, r13
 
 ; "3 words" in yellow below
-LDI r10, 0xFFFF00
+LDI r13, 0xFFFF00
 LDI r16, 2
 LDI r17, 8
-LDI r3, 51
-WPIXEL r8, r16, r17, r10
-ADD r16, r1
-LDI r3, 32
-WPIXEL r8, r16, r17, r3
-ADD r16, r1
-LDI r3, 119
-WPIXEL r8, r16, r17, r10
-ADD r16, r1
-LDI r3, 111
-WPIXEL r8, r16, r17, r10
-ADD r16, r1
-LDI r3, 114
-WPIXEL r8, r16, r17, r10
-ADD r16, r1
-LDI r3, 100
-WPIXEL r8, r16, r17, r10
-ADD r16, r1
-LDI r3, 115
-WPIXEL r8, r16, r17, r10
+LDI r9, 51
+WPIXEL r1, r16, r17, r13
+ADD r16, r12
+LDI r9, 32
+WPIXEL r1, r16, r17, r9
+ADD r16, r12
+LDI r9, 119
+WPIXEL r1, r16, r17, r13
+ADD r16, r12
+LDI r9, 111
+WPIXEL r1, r16, r17, r13
+ADD r16, r12
+LDI r9, 114
+WPIXEL r1, r16, r17, r13
+ADD r16, r12
+LDI r9, 100
+WPIXEL r1, r16, r17, r13
+ADD r16, r12
+LDI r9, 115
+WPIXEL r1, r16, r17, r13
 
 ; ---- Draw output window content ----
 ; Draw a colored bar to show "execution result"
-LDI r10, 0x4444FF
+LDI r13, 0x4444FF
 LDI r16, 0
 LDI r17, 10
 LDI r18, 240
@@ -220,81 +220,81 @@ LDI r19, 0
 
 output_bar:
   CMP r16, r18
-  BGE r4, output_done
-  WPIXEL r0, r16, r17, r10
-  ADD r16, r1
+  BGE r11, output_done
+  WPIXEL r15, r16, r17, r13
+  ADD r16, r12
   JMP output_bar
 
 output_done:
 
 ; Also draw a smaller green result bar
-LDI r10, 0x00FF00
+LDI r13, 0x00FF00
 LDI r16, 80
 LDI r17, 20
 LDI r19, 0
 
 output_green:
   CMP r16, r19
-  BGE r4, output_gdone
+  BGE r11, output_gdone
   ; Check: r19 = 160
   LDI r20, 160
   CMP r16, r20
-  BGE r4, output_gdone
-  WPIXEL r0, r16, r17, r10
-  ADD r16, r1
+  BGE r11, output_gdone
+  WPIXEL r15, r16, r17, r13
+  ADD r16, r12
   JMP output_green
 
 output_gdone:
 
 ; ---- Assemble the actual source code and run it ----
-; Write "LDI r6, 42\nHALT\n" to 0x0800
-LDI r6, 0x0800
+; Write "LDI r7, 42\nHALT\n" to 0x0800
+LDI r7, 0x0800
 
-LDI r14, 76
+LDI r8, 76
 CALL wr
-LDI r14, 68
+LDI r8, 68
 CALL wr
-LDI r14, 73
+LDI r8, 73
 CALL wr
-LDI r14, 32
+LDI r8, 32
 CALL wr
-LDI r14, 114
+LDI r8, 114
 CALL wr
-LDI r14, 49
+LDI r8, 49
 CALL wr
-LDI r14, 44
+LDI r8, 44
 CALL wr
-LDI r14, 32
+LDI r8, 32
 CALL wr
-LDI r14, 52
+LDI r8, 52
 CALL wr
-LDI r14, 50
+LDI r8, 50
 CALL wr
-LDI r14, 10
+LDI r8, 10
 CALL wr
-LDI r14, 72
+LDI r8, 72
 CALL wr
-LDI r14, 65
+LDI r8, 65
 CALL wr
-LDI r14, 76
+LDI r8, 76
 CALL wr
-LDI r14, 84
+LDI r8, 84
 CALL wr
-LDI r14, 10
+LDI r8, 10
 CALL wr
-LDI r14, 0
+LDI r8, 0
 CALL wr
 
 ; Assemble it
-LDI r9, 0x0800
-LDI r5, 0x1000
-ASM r9, r5
+LDI r6, 0x0800
+LDI r14, 0x1000
+ASM r6, r14
 
 ; Run it
 JMP 0x1000
 
 ; ---- Subroutine: write char to RAM ----
 wr:
-    STORE r6, r14
-    ADD r6, r1
+    STORE r7, r8
+    ADD r7, r12
     RET

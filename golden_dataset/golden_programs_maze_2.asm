@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a randomized maze generation and player navigation system. The game features a 31x31 grid-based maze rendered on a 256x256 screen, where the player navigates using WASD keys to move and R to restart with a new maze. Collision detection is based on reading pixel colors at wall centers. The maze generation uses a depth-first search (DFS) algorithm stored in a stack, and the game loop handles user input and updates the display accordingly.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; maze.asm -- Randomly generated maze with player navigation
 ;
@@ -44,20 +44,20 @@ restart:
   CALL generate_maze     ; randomized DFS backtracker
 
   ; Set player at (0,0)
-  LDI r15, 0
-  LDI r6, 0x5310
-  STORE r6, r15
-  LDI r6, 0x5311
-  STORE r6, r15
-  LDI r6, 0x5313
-  STORE r6, r15           ; old_px = 0
-  LDI r6, 0x5314
-  STORE r6, r15           ; old_py = 0
+  LDI r4, 0
+  LDI r2, 0x5310
+  STORE r2, r4
+  LDI r2, 0x5311
+  STORE r2, r4
+  LDI r2, 0x5313
+  STORE r2, r4           ; old_px = 0
+  LDI r2, 0x5314
+  STORE r2, r4           ; old_py = 0
 
   ; won = 0
-  LDI r15, 0
-  LDI r6, 0x5312
-  STORE r6, r15
+  LDI r4, 0
+  LDI r2, 0x5312
+  STORE r2, r4
 
   ; Render maze, goal, player
   CALL render_maze
@@ -68,53 +68,53 @@ restart:
 
 game_loop:
   ; Check win
-  LDI r6, 0x5312
-  LOAD r15, r6
-  JNZ r15, win_screen
+  LDI r2, 0x5312
+  LOAD r4, r2
+  JNZ r4, win_screen
 
   ; Read keyboard
-  IKEY r3
-  JZ r3, idle           ; no key, just frame
+  IKEY r9
+  JZ r9, idle           ; no key, just frame
 
   ; W = up
-  LDI r7, 87
-  CMP r3, r7
-  JZ r5, try_up
-  LDI r7, 119
-  CMP r3, r7
-  JZ r5, try_up
+  LDI r12, 87
+  CMP r9, r12
+  JZ r0, try_up
+  LDI r12, 119
+  CMP r9, r12
+  JZ r0, try_up
 
   ; S = down
-  LDI r7, 83
-  CMP r3, r7
-  JZ r5, try_down
-  LDI r7, 115
-  CMP r3, r7
-  JZ r5, try_down
+  LDI r12, 83
+  CMP r9, r12
+  JZ r0, try_down
+  LDI r12, 115
+  CMP r9, r12
+  JZ r0, try_down
 
   ; A = left
-  LDI r7, 65
-  CMP r3, r7
-  JZ r5, try_left
-  LDI r7, 97
-  CMP r3, r7
-  JZ r5, try_left
+  LDI r12, 65
+  CMP r9, r12
+  JZ r0, try_left
+  LDI r12, 97
+  CMP r9, r12
+  JZ r0, try_left
 
   ; D = right
-  LDI r7, 68
-  CMP r3, r7
-  JZ r5, try_right
-  LDI r7, 100
-  CMP r3, r7
-  JZ r5, try_right
+  LDI r12, 68
+  CMP r9, r12
+  JZ r0, try_right
+  LDI r12, 100
+  CMP r9, r12
+  JZ r0, try_right
 
   ; R = restart
-  LDI r7, 82
-  CMP r3, r7
-  JZ r5, restart
-  LDI r7, 114
-  CMP r3, r7
-  JZ r5, restart
+  LDI r12, 82
+  CMP r9, r12
+  JZ r0, restart
+  LDI r12, 114
+  CMP r9, r12
+  JZ r0, restart
 
   JMP idle
 
@@ -125,103 +125,103 @@ game_loop:
 ;                      left(16*px+7, 16*py+15) right(16*px+23, 16*py+15)
 
 try_up:
-  LDI r6, 0x5310
-  LOAD r8, r6           ; r8 = px
-  LDI r6, 0x5311
-  LOAD r2, r6           ; r2 = py
-  LDI r4, 4
-  SHL r8, r4            ; r8 = px*16
-  LDI r4, 15
-  ADD r8, r4            ; r8 = px*16+15
-  LDI r4, 4
-  SHL r2, r4            ; r2 = py*16
-  LDI r4, 7
-  ADD r2, r4            ; r2 = py*16+7
-  PEEK r8, r2, r15       ; r15 = pixel at wall center
-  LDI r4, 0x4466AA
-  CMP r15, r4
-  JZ r5, idle           ; wall found, block
+  LDI r2, 0x5310
+  LOAD r15, r2           ; r15 = px
+  LDI r2, 0x5311
+  LOAD r8, r2           ; r8 = py
+  LDI r6, 4
+  SHL r15, r6            ; r15 = px*16
+  LDI r6, 15
+  ADD r15, r6            ; r15 = px*16+15
+  LDI r6, 4
+  SHL r8, r6            ; r8 = py*16
+  LDI r6, 7
+  ADD r8, r6            ; r8 = py*16+7
+  PEEK r15, r8, r4       ; r4 = pixel at wall center
+  LDI r6, 0x4466AA
+  CMP r4, r6
+  JZ r0, idle           ; wall found, block
   CALL save_old_pos
-  LDI r6, 0x5311
-  LOAD r15, r6
-  LDI r4, 1
-  SUB r15, r4
-  STORE r6, r15
+  LDI r2, 0x5311
+  LOAD r4, r2
+  LDI r6, 1
+  SUB r4, r6
+  STORE r2, r4
   JMP after_move
 
 try_down:
-  LDI r6, 0x5310
-  LOAD r8, r6           ; r8 = px
-  LDI r6, 0x5311
-  LOAD r2, r6           ; r2 = py
-  LDI r4, 4
-  SHL r8, r4            ; r8 = px*16
-  LDI r4, 15
-  ADD r8, r4            ; r8 = px*16+15
-  LDI r4, 4
-  SHL r2, r4            ; r2 = py*16
-  LDI r4, 23
-  ADD r2, r4            ; r2 = py*16+23
-  PEEK r8, r2, r15       ; r15 = pixel at wall center
-  LDI r4, 0x4466AA
-  CMP r15, r4
-  JZ r5, idle           ; wall found, block
+  LDI r2, 0x5310
+  LOAD r15, r2           ; r15 = px
+  LDI r2, 0x5311
+  LOAD r8, r2           ; r8 = py
+  LDI r6, 4
+  SHL r15, r6            ; r15 = px*16
+  LDI r6, 15
+  ADD r15, r6            ; r15 = px*16+15
+  LDI r6, 4
+  SHL r8, r6            ; r8 = py*16
+  LDI r6, 23
+  ADD r8, r6            ; r8 = py*16+23
+  PEEK r15, r8, r4       ; r4 = pixel at wall center
+  LDI r6, 0x4466AA
+  CMP r4, r6
+  JZ r0, idle           ; wall found, block
   CALL save_old_pos
-  LDI r6, 0x5311
-  LOAD r15, r6
-  LDI r4, 1
-  ADD r15, r4
-  STORE r6, r15
+  LDI r2, 0x5311
+  LOAD r4, r2
+  LDI r6, 1
+  ADD r4, r6
+  STORE r2, r4
   JMP after_move
 
 try_left:
-  LDI r6, 0x5310
-  LOAD r8, r6           ; r8 = px
-  LDI r6, 0x5311
-  LOAD r2, r6           ; r2 = py
-  LDI r4, 4
-  SHL r8, r4            ; r8 = px*16
-  LDI r4, 7
-  ADD r8, r4            ; r8 = px*16+7
-  LDI r4, 4
-  SHL r2, r4            ; r2 = py*16
-  LDI r4, 15
-  ADD r2, r4            ; r2 = py*16+15
-  PEEK r8, r2, r15       ; r15 = pixel at wall center
-  LDI r4, 0x4466AA
-  CMP r15, r4
-  JZ r5, idle           ; wall found, block
+  LDI r2, 0x5310
+  LOAD r15, r2           ; r15 = px
+  LDI r2, 0x5311
+  LOAD r8, r2           ; r8 = py
+  LDI r6, 4
+  SHL r15, r6            ; r15 = px*16
+  LDI r6, 7
+  ADD r15, r6            ; r15 = px*16+7
+  LDI r6, 4
+  SHL r8, r6            ; r8 = py*16
+  LDI r6, 15
+  ADD r8, r6            ; r8 = py*16+15
+  PEEK r15, r8, r4       ; r4 = pixel at wall center
+  LDI r6, 0x4466AA
+  CMP r4, r6
+  JZ r0, idle           ; wall found, block
   CALL save_old_pos
-  LDI r6, 0x5310
-  LOAD r15, r6
-  LDI r4, 1
-  SUB r15, r4
-  STORE r6, r15
+  LDI r2, 0x5310
+  LOAD r4, r2
+  LDI r6, 1
+  SUB r4, r6
+  STORE r2, r4
   JMP after_move
 
 try_right:
-  LDI r6, 0x5310
-  LOAD r8, r6           ; r8 = px
-  LDI r6, 0x5311
-  LOAD r2, r6           ; r2 = py
-  LDI r4, 4
-  SHL r8, r4            ; r8 = px*16
-  LDI r4, 23
-  ADD r8, r4            ; r8 = px*16+23
-  LDI r4, 4
-  SHL r2, r4            ; r2 = py*16
-  LDI r4, 15
-  ADD r2, r4            ; r2 = py*16+15
-  PEEK r8, r2, r15       ; r15 = pixel at wall center
-  LDI r4, 0x4466AA
-  CMP r15, r4
-  JZ r5, idle           ; wall found, block
+  LDI r2, 0x5310
+  LOAD r15, r2           ; r15 = px
+  LDI r2, 0x5311
+  LOAD r8, r2           ; r8 = py
+  LDI r6, 4
+  SHL r15, r6            ; r15 = px*16
+  LDI r6, 23
+  ADD r15, r6            ; r15 = px*16+23
+  LDI r6, 4
+  SHL r8, r6            ; r8 = py*16
+  LDI r6, 15
+  ADD r8, r6            ; r8 = py*16+15
+  PEEK r15, r8, r4       ; r4 = pixel at wall center
+  LDI r6, 0x4466AA
+  CMP r4, r6
+  JZ r0, idle           ; wall found, block
   CALL save_old_pos
-  LDI r6, 0x5310
-  LOAD r15, r6
-  LDI r4, 1
-  ADD r15, r4
-  STORE r6, r15
+  LDI r2, 0x5310
+  LOAD r4, r2
+  LDI r6, 1
+  ADD r4, r6
+  STORE r2, r4
   JMP after_move
 
 after_move:
@@ -229,22 +229,22 @@ after_move:
   CALL draw_goal
   CALL draw_player
   ; Check win -- player at (14,14)?
-  LDI r6, 0x5310
-  LOAD r15, r6
-  LDI r6, 0x5311
-  LOAD r2, r6
-  LDI r4, 14
-  CMP r15, r4
-  JNZ r5, idle
-  CMP r2, r4
-  JNZ r5, idle
-  LDI r15, 1
-  LDI r6, 0x5312
-  STORE r6, r15
+  LDI r2, 0x5310
+  LOAD r4, r2
+  LDI r2, 0x5311
+  LOAD r8, r2
+  LDI r6, 14
+  CMP r4, r6
+  JNZ r0, idle
+  CMP r8, r6
+  JNZ r0, idle
+  LDI r4, 1
+  LDI r2, 0x5312
+  STORE r2, r4
   ; Play victory sound -- ascending tone
-  LDI r9, 440
-  LDI r7, 200
-  BEEP r9, r7
+  LDI r14, 440
+  LDI r12, 200
+  BEEP r14, r12
 
 idle:
   FRAME
@@ -253,25 +253,25 @@ idle:
 ; ── Win Screen ───────────────────────────────────────────────────
 
 win_screen:
-  LDI r15, 0x003300     ; dark green
-  FILL r15
-  LDI r12, 0x5320
-  LDI r1, 90
-  LDI r0, 110
-  TEXT r1, r0, r12
-  LDI r12, 0x5330
-  LDI r1, 90
-  LDI r0, 140
-  TEXT r1, r0, r12
+  LDI r4, 0x003300     ; dark green
+  FILL r4
+  LDI r3, 0x5320
+  LDI r5, 90
+  LDI r10, 110
+  TEXT r5, r10, r3
+  LDI r3, 0x5330
+  LDI r5, 90
+  LDI r10, 140
+  TEXT r5, r10, r3
   FRAME
-  IKEY r3
-  JZ r3, win_screen
-  LDI r7, 82
-  CMP r3, r7
-  JZ r5, restart
-  LDI r7, 114
-  CMP r3, r7
-  JZ r5, restart
+  IKEY r9
+  JZ r9, win_screen
+  LDI r12, 82
+  CMP r9, r12
+  JZ r0, restart
+  LDI r12, 114
+  CMP r9, r12
+  JZ r0, restart
   JMP win_screen
 
 ; ─────────────────────────────────────────────────────────────────
@@ -280,96 +280,96 @@ win_screen:
 
 ; ── init_grid -- set all 31 rows to 0xFFFFFFFF ──────────────────
 init_grid:
-  LDI r12, 0
+  LDI r3, 0
 ig_loop:
-  LDI r6, 0x5000
-  ADD r6, r12
-  LDI r15, 0xFFFFFFFF
-  STORE r6, r15
-  LDI r9, 1
-  ADD r12, r9
-  LDI r7, 31
-  CMP r12, r7
-  BLT r5, ig_loop
+  LDI r2, 0x5000
+  ADD r2, r3
+  LDI r4, 0xFFFFFFFF
+  STORE r2, r4
+  LDI r14, 1
+  ADD r3, r14
+  LDI r12, 31
+  CMP r3, r12
+  BLT r0, ig_loop
   RET
 
 ; ── clear_visited -- zero 225 bytes at 0x5100 ──────────────────
 clear_visited:
-  LDI r12, 0
+  LDI r3, 0
 cv_loop:
-  LDI r6, 0x5100
-  ADD r6, r12
-  LDI r15, 0
-  STORE r6, r15
-  LDI r9, 1
-  ADD r12, r9
-  LDI r7, 225
-  CMP r12, r7
-  BLT r5, cv_loop
+  LDI r2, 0x5100
+  ADD r2, r3
+  LDI r4, 0
+  STORE r2, r4
+  LDI r14, 1
+  ADD r3, r14
+  LDI r12, 225
+  CMP r3, r12
+  BLT r0, cv_loop
   RET
 
 ; ── init_sp -- set dfs stack pointer to 0 ──────────────────────
 init_sp:
-  LDI r15, 0
-  LDI r6, 0x5300
-  STORE r6, r15
+  LDI r4, 0
+  LDI r2, 0x5300
+  STORE r2, r4
   RET
 
 ; ── init_text -- store text strings in RAM ──────────────────────
 init_text:
   ; "YOU WIN!" at 0x5320
-  LDI r6, 0x5320
-  LDI r15, 89
-  STORE r6, r15
-  LDI r6, 0x5321
-  LDI r15, 79
-  STORE r6, r15
-  LDI r6, 0x5322
-  LDI r15, 85
-  STORE r6, r15
-  LDI r6, 0x5323
-  LDI r15, 32
-  STORE r6, r15
-  LDI r6, 0x5324
-  LDI r15, 87
-  STORE r6, r15
-  LDI r6, 0x5325
-  LDI r15, 73
-  STORE r6, r15
-  LDI r6, 0x5326
-  LDI r15, 78
-  STORE r6, r15
-  LDI r6, 0x5327
-  LDI r15, 33
-  STORE r6, r15
-  LDI r6, 0x5328
-  LDI r15, 0
-  STORE r6, r15
+  LDI r2, 0x5320
+  LDI r4, 89
+  STORE r2, r4
+  LDI r2, 0x5321
+  LDI r4, 79
+  STORE r2, r4
+  LDI r2, 0x5322
+  LDI r4, 85
+  STORE r2, r4
+  LDI r2, 0x5323
+  LDI r4, 32
+  STORE r2, r4
+  LDI r2, 0x5324
+  LDI r4, 87
+  STORE r2, r4
+  LDI r2, 0x5325
+  LDI r4, 73
+  STORE r2, r4
+  LDI r2, 0x5326
+  LDI r4, 78
+  STORE r2, r4
+  LDI r2, 0x5327
+  LDI r4, 33
+  STORE r2, r4
+  LDI r2, 0x5328
+  LDI r4, 0
+  STORE r2, r4
   ; "PRESS R" at 0x5330
-  LDI r6, 0x5330
-  LDI r15, 80
-  STORE r6, r15
-  LDI r6, 0x5331
-  LDI r15, 82
-  STORE r6, r15
-  LDI r6, 0x5332
-  LDI r15, 69
-  STORE r6, r15
-  LDI r6, 0x5333
-  LDI r15, 83
-  STORE r6, r15
-  LDI r6, 0x5334
-  LDI r15, 83
-  STORE r6, r15
-  LDI r6, 0x5335
-  LDI r15, 32
-  STORE r6, r15
-  LDI r6, 0x5336
-  LDI r15, 82
-  STORE r6, r15
-  LDI r6, 0x5337
-  LDI r15, 0
-  STORE r6, r15
+  LDI r2, 0x5330
+  LDI r4, 80
+  STORE r2, r4
+  LDI r2, 0x5331
+  LDI r4, 82
+  STORE r2, r4
+  LDI r2, 0x5332
+  LDI r4, 69
+  STORE r2, r4
+  LDI r2, 0x5333
+  LDI r4, 83
+  STORE r2, r4
+  LDI r2, 0x5334
+  LDI r4, 83
+  STORE r2, r4
+  LDI r2, 0x5335
+  LDI r4, 32
+  STORE r2, r4
+  LDI r2, 0x5336
+  LDI r4, 82
+  STORE r2, r4
+  LDI r2, 0x5337
+  LDI r4, 0
+  STORE r2, r4
   RET
 
 ; ── generate_maze -- randomized DFS backtracker ─────────────────
@@ -382,9 +382,9 @@ generate_maze:
   LDI r21, 1
 
   ; Mark cell (0,0) visited -- visited[0] = 1
-  LDI r6, 0x5100
-  LDI r15, 1
-  STORE r6, r15
+  LDI r2, 0x5100
+  LDI r4, 1
+  STORE r2, r4
 
   ; Clear starting cell in grid
   CALL clear_grid_pos
@@ -413,13 +413,13 @@ try_dir:
   ; 0=north (gy-=2), 1=east (gx+=2), 2=south (gy+=2), 3=west (gx-=2)
   LDI r29, 0
   CMP r28, r29
-  JZ r5, d_north
+  JZ r0, d_north
   LDI r29, 1
   CMP r28, r29
-  JZ r5, d_east
+  JZ r0, d_east
   LDI r29, 2
   CMP r28, r29
-  JZ r5, d_south
+  JZ r0, d_south
   ; 3=west
   LDI r29, 2
   SUB r23, r29
@@ -443,16 +443,16 @@ check_nb:
   ; Bounds: 1 <= gx <= 29 and 1 <= gy <= 29
   LDI r29, 1
   CMP r23, r29
-  BLT r5, next_d
+  BLT r0, next_d
   LDI r29, 30
   CMP r23, r29
-  BGE r5, next_d
+  BGE r0, next_d
   LDI r29, 1
   CMP r24, r29
-  BLT r5, next_d
+  BLT r0, next_d
   LDI r29, 30
   CMP r24, r29
-  BGE r5, next_d
+  BGE r0, next_d
 
   ; Check visited -- cell_index = ((gy-1)>>1)*15 + ((gx-1)>>1)
   LDI r28, 0
@@ -471,10 +471,10 @@ check_nb:
   SHR r29, r22
   ADD r28, r29
 
-  LDI r6, 0x5100
-  ADD r6, r28
-  LOAD r15, r6
-  JNZ r15, next_d
+  LDI r2, 0x5100
+  ADD r2, r28
+  LOAD r4, r2
+  JNZ r4, next_d
 
   ; Found valid unvisited neighbor
   CALL dfs_push
@@ -494,7 +494,7 @@ check_nb:
 
   PUSH r20
   PUSH r21
-  LDI r9, 0
+  LDI r14, 0
   ADD r20, r28
   ADD r21, r29
   CALL clear_grid_pos
@@ -502,7 +502,7 @@ check_nb:
   POP r20
 
   ; Move to neighbor
-  LDI r9, 0
+  LDI r14, 0
   ADD r20, r23
   ADD r21, r24
 
@@ -522,10 +522,10 @@ check_nb:
   LDI r22, 1
   SHR r29, r22
   ADD r28, r29
-  LDI r6, 0x5100
-  ADD r6, r28
-  LDI r15, 1
-  STORE r6, r15
+  LDI r2, 0x5100
+  ADD r2, r28
+  LDI r4, 1
+  STORE r2, r4
 
   ; Clear new cell in grid
   CALL clear_grid_pos
@@ -537,12 +537,12 @@ next_d:
   ADD r27, r29
   LDI r29, 4
   CMP r27, r29
-  BLT r5, try_dir
+  BLT r0, try_dir
 
   ; Backtrack
   CALL dfs_pop
-  JNZ r15, dfs_done
-  LDI r9, 0
+  JNZ r4, dfs_done
+  LDI r14, 0
   ADD r20, r23
   ADD r21, r24
   JMP dfs_loop
@@ -553,225 +553,225 @@ dfs_done:
 
 ; ── dfs_push -- push (r20, r21) to stack ────────────────────────
 dfs_push:
-  LDI r6, 0x5300
-  LOAD r12, r6
-  LDI r15, 0
-  ADD r15, r20
-  LDI r4, 8
-  SHL r15, r4
-  OR r15, r21
-  LDI r6, 0x5200
-  ADD r6, r12
-  STORE r6, r15
-  LDI r6, 0x5300
-  LOAD r12, r6
-  LDI r4, 1
-  ADD r12, r4
-  LDI r6, 0x5300
-  STORE r6, r12
+  LDI r2, 0x5300
+  LOAD r3, r2
+  LDI r4, 0
+  ADD r4, r20
+  LDI r6, 8
+  SHL r4, r6
+  OR r4, r21
+  LDI r2, 0x5200
+  ADD r2, r3
+  STORE r2, r4
+  LDI r2, 0x5300
+  LOAD r3, r2
+  LDI r6, 1
+  ADD r3, r6
+  LDI r2, 0x5300
+  STORE r2, r3
   RET
 
 ; ── dfs_pop -- pop from stack ───────────────────────────────────
-; Sets r23=gx, r24=gy. r15=1 if empty.
+; Sets r23=gx, r24=gy. r4=1 if empty.
 dfs_pop:
-  LDI r6, 0x5300
-  LOAD r12, r6
-  LDI r4, 0
-  CMP r12, r4
-  JZ r5, sp_empty
-  LDI r4, 1
-  SUB r12, r4
-  LDI r6, 0x5300
-  STORE r6, r12
-  LDI r6, 0x5200
-  ADD r6, r12
-  LOAD r15, r6
-  LDI r4, 0xFF
+  LDI r2, 0x5300
+  LOAD r3, r2
+  LDI r6, 0
+  CMP r3, r6
+  JZ r0, sp_empty
+  LDI r6, 1
+  SUB r3, r6
+  LDI r2, 0x5300
+  STORE r2, r3
+  LDI r2, 0x5200
+  ADD r2, r3
+  LOAD r4, r2
+  LDI r6, 0xFF
   LDI r23, 0
-  ADD r23, r15
-  AND r23, r4
-  LDI r4, 8
+  ADD r23, r4
+  AND r23, r6
+  LDI r6, 8
   LDI r24, 0
-  ADD r24, r15
-  SHR r24, r4
-  LDI r15, 0
+  ADD r24, r4
+  SHR r24, r6
+  LDI r4, 0
   RET
 sp_empty:
-  LDI r15, 1
+  LDI r4, 1
   RET
 
 ; ── clear_grid_pos -- clear bit at (r20, r21) ───────────────────
 clear_grid_pos:
-  LDI r6, 0x5000
-  LDI r4, 4
-  LDI r12, 0
-  ADD r12, r21
-  MUL r12, r4
-  ADD r6, r12
-  LOAD r15, r6
-  LDI r4, 1
-  LDI r12, 0
-  ADD r12, r20
-  SHL r4, r12
+  LDI r2, 0x5000
+  LDI r6, 4
+  LDI r3, 0
+  ADD r3, r21
+  MUL r3, r6
+  ADD r2, r3
+  LOAD r4, r2
+  LDI r6, 1
+  LDI r3, 0
+  ADD r3, r20
+  SHL r6, r3
   LDI r22, 0xFFFFFFFF
-  XOR r4, r22
-  AND r15, r4
-  LDI r6, 0x5000
-  LDI r4, 4
-  LDI r12, 0
-  ADD r12, r21
-  MUL r12, r4
-  ADD r6, r12
-  STORE r6, r15
+  XOR r6, r22
+  AND r4, r6
+  LDI r2, 0x5000
+  LDI r6, 4
+  LDI r3, 0
+  ADD r3, r21
+  MUL r3, r6
+  ADD r2, r3
+  STORE r2, r4
   RET
 
-; ── check_wall -- check grid (r8=col, r2=row) for wall ─────────
-; Returns r15 = bit value (0=passage, nonzero=wall)
+; ── check_wall -- check grid (r15=col, r8=row) for wall ─────────
+; Returns r4 = bit value (0=passage, nonzero=wall)
 check_wall:
-  LDI r6, 0x5000
-  LDI r4, 4
-  MUL r2, r4
-  ADD r6, r2
-  LOAD r15, r6
-  LDI r4, 1
-  SHL r4, r8
-  AND r15, r4
+  LDI r2, 0x5000
+  LDI r6, 4
+  MUL r8, r6
+  ADD r2, r8
+  LOAD r4, r2
+  LDI r6, 1
+  SHL r6, r15
+  AND r4, r6
   RET
 
 ; ── save_old_pos -- save player pos to old ─────────────────────
 save_old_pos:
-  LDI r6, 0x5310
-  LOAD r15, r6
-  LDI r6, 0x5313
-  STORE r6, r15
-  LDI r6, 0x5311
-  LOAD r15, r6
-  LDI r6, 0x5314
-  STORE r6, r15
+  LDI r2, 0x5310
+  LOAD r4, r2
+  LDI r2, 0x5313
+  STORE r2, r4
+  LDI r2, 0x5311
+  LOAD r4, r2
+  LDI r2, 0x5314
+  STORE r2, r4
   RET
 
 ; ── render_maze -- draw all wall cells ──────────────────────────
 render_maze:
-  LDI r15, 0x001020     ; dark background
-  FILL r15
-  LDI r12, 0            ; gy
+  LDI r4, 0x001020     ; dark background
+  FILL r4
+  LDI r3, 0            ; gy
 rm_row:
-  LDI r1, 0            ; gx
+  LDI r5, 0            ; gx
 rm_col:
-  LDI r6, 0x5000
-  LDI r4, 4
-  LDI r0, 0
-  ADD r0, r12
-  MUL r0, r4
-  ADD r6, r0
-  LOAD r15, r6
-  LDI r4, 1
-  LDI r0, 0
-  ADD r0, r1
-  SHL r4, r0
-  AND r15, r4
-  JZ r15, rm_skip
+  LDI r2, 0x5000
+  LDI r6, 4
+  LDI r10, 0
+  ADD r10, r3
+  MUL r10, r6
+  ADD r2, r10
+  LOAD r4, r2
+  LDI r6, 1
+  LDI r10, 0
+  ADD r10, r5
+  SHL r6, r10
+  AND r4, r6
+  JZ r4, rm_skip
   ; pixel (4 + gx*8, 4 + gy*8)
-  LDI r2, 0
-  ADD r2, r1
-  LDI r4, 8
-  MUL r2, r4
-  LDI r4, 4
-  ADD r2, r4
   LDI r8, 0
-  ADD r8, r12
-  LDI r4, 8
-  MUL r8, r4
-  LDI r4, 4
-  ADD r8, r4
+  ADD r8, r5
+  LDI r6, 8
+  MUL r8, r6
+  LDI r6, 4
+  ADD r8, r6
+  LDI r15, 0
+  ADD r15, r3
+  LDI r6, 8
+  MUL r15, r6
+  LDI r6, 4
+  ADD r15, r6
   LDI r22, 8
   LDI r23, 8
   LDI r24, 0x4466AA    ; blue-gray wall
-  RECTF r2, r8, r22, r23, r24
+  RECTF r8, r15, r22, r23, r24
 rm_skip:
-  LDI r4, 1
-  ADD r1, r4
-  LDI r4, 31
-  CMP r1, r4
-  BLT r5, rm_col
-  LDI r4, 1
-  ADD r12, r4
-  LDI r4, 31
-  CMP r12, r4
-  BLT r5, rm_row
+  LDI r6, 1
+  ADD r5, r6
+  LDI r6, 31
+  CMP r5, r6
+  BLT r0, rm_col
+  LDI r6, 1
+  ADD r3, r6
+  LDI r6, 31
+  CMP r3, r6
+  BLT r0, rm_row
   RET
 
 ; ── draw_goal -- green square at cell (14,14) ──────────────────
 ; Cell (14,14) -> grid (29,29) -> pixel (236, 236)
 draw_goal:
-  LDI r2, 237
   LDI r8, 237
+  LDI r15, 237
   LDI r22, 6
   LDI r23, 6
   LDI r24, 0x00CC44
-  RECTF r2, r8, r22, r23, r24
+  RECTF r8, r15, r22, r23, r24
   RET
 
 ; ── draw_player -- yellow square at current position ────────────
 draw_player:
-  LDI r6, 0x5310
-  LOAD r15, r6
-  LDI r6, 0x5311
-  LOAD r2, r6
-  LDI r4, 2
-  MUL r15, r4
-  LDI r4, 1
-  ADD r15, r4
-  LDI r4, 2
-  MUL r2, r4
-  LDI r4, 1
-  ADD r2, r4
-  LDI r4, 8
-  MUL r15, r4
-  LDI r4, 4
-  ADD r15, r4
-  LDI r4, 1
-  ADD r15, r4
-  LDI r4, 8
-  MUL r2, r4
-  LDI r4, 4
-  ADD r2, r4
-  LDI r4, 1
-  ADD r2, r4
+  LDI r2, 0x5310
+  LOAD r4, r2
+  LDI r2, 0x5311
+  LOAD r8, r2
+  LDI r6, 2
+  MUL r4, r6
+  LDI r6, 1
+  ADD r4, r6
+  LDI r6, 2
+  MUL r8, r6
+  LDI r6, 1
+  ADD r8, r6
+  LDI r6, 8
+  MUL r4, r6
+  LDI r6, 4
+  ADD r4, r6
+  LDI r6, 1
+  ADD r4, r6
+  LDI r6, 8
+  MUL r8, r6
+  LDI r6, 4
+  ADD r8, r6
+  LDI r6, 1
+  ADD r8, r6
   LDI r22, 6
   LDI r23, 6
   LDI r24, 0xCCCC00
-  RECTF r15, r2, r22, r23, r24
+  RECTF r4, r8, r22, r23, r24
   RET
 
 ; ── erase_player -- draw floor color at old position ────────────
 erase_player:
-  LDI r6, 0x5313
-  LOAD r15, r6
-  LDI r6, 0x5314
-  LOAD r2, r6
-  LDI r4, 2
-  MUL r15, r4
-  LDI r4, 1
-  ADD r15, r4
-  LDI r4, 2
-  MUL r2, r4
-  LDI r4, 1
-  ADD r2, r4
-  LDI r4, 8
-  MUL r15, r4
-  LDI r4, 4
-  ADD r15, r4
-  LDI r4, 1
-  ADD r15, r4
-  LDI r4, 8
-  MUL r2, r4
-  LDI r4, 4
-  ADD r2, r4
-  LDI r4, 1
-  ADD r2, r4
+  LDI r2, 0x5313
+  LOAD r4, r2
+  LDI r2, 0x5314
+  LOAD r8, r2
+  LDI r6, 2
+  MUL r4, r6
+  LDI r6, 1
+  ADD r4, r6
+  LDI r6, 2
+  MUL r8, r6
+  LDI r6, 1
+  ADD r8, r6
+  LDI r6, 8
+  MUL r4, r6
+  LDI r6, 4
+  ADD r4, r6
+  LDI r6, 1
+  ADD r4, r6
+  LDI r6, 8
+  MUL r8, r6
+  LDI r6, 4
+  ADD r8, r6
+  LDI r6, 1
+  ADD r8, r6
   LDI r22, 6
   LDI r23, 6
   LDI r24, 0x001020
-  RECTF r15, r2, r22, r23, r24
+  RECTF r4, r8, r22, r23, r24
   RET

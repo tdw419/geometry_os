@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code draws a series of concentric rectangles on the screen, starting from an outermost red rectangle and progressively shrinking inward with each subsequent rectangle colored green, blue, yellow, magenta, cyan, and finally white at the center. Each rectangle is inset by 20 pixels compared to its predecessor.
+; DESCRIPTION: Display a rectangle using color red at the screen.
 
 ; NESTED_RECTS -- Draw concentric rectangles from outside in
 ; Outer = red, inner = green, innermost = blue
@@ -6,59 +6,59 @@
 ; Test: visible nested colored rectangles
 
 ; Outer red rectangle
-LDI r2, 0
-LDI r11, 0
-LDI r12, 256
-LDI r3, 256
-LDI r9, 0xFF0000
-RECTF r2, r11, r12, r3, r9
+LDI r7, 0
+LDI r1, 0
+LDI r11, 256
+LDI r5, 256
+LDI r12, 0xFF0000
+RECTF r7, r1, r11, r5, r12
 
 ; Green rectangle (20px inset)
-LDI r2, 20
-LDI r11, 20
-LDI r12, 216
-LDI r3, 216
-LDI r9, 0x00FF00
-RECTF r2, r11, r12, r3, r9
+LDI r7, 20
+LDI r1, 20
+LDI r11, 216
+LDI r5, 216
+LDI r12, 0x00FF00
+RECTF r7, r1, r11, r5, r12
 
 ; Blue rectangle (40px inset)
-LDI r2, 40
-LDI r11, 40
-LDI r12, 176
-LDI r3, 176
-LDI r9, 0x0000FF
-RECTF r2, r11, r12, r3, r9
+LDI r7, 40
+LDI r1, 40
+LDI r11, 176
+LDI r5, 176
+LDI r12, 0x0000FF
+RECTF r7, r1, r11, r5, r12
 
 ; Yellow rectangle (60px inset)
-LDI r2, 60
-LDI r11, 60
-LDI r12, 136
-LDI r3, 136
-LDI r9, 0xFFFF00
-RECTF r2, r11, r12, r3, r9
+LDI r7, 60
+LDI r1, 60
+LDI r11, 136
+LDI r5, 136
+LDI r12, 0xFFFF00
+RECTF r7, r1, r11, r5, r12
 
 ; Magenta rectangle (80px inset)
-LDI r2, 80
-LDI r11, 80
-LDI r12, 96
-LDI r3, 96
-LDI r9, 0xFF00FF
-RECTF r2, r11, r12, r3, r9
+LDI r7, 80
+LDI r1, 80
+LDI r11, 96
+LDI r5, 96
+LDI r12, 0xFF00FF
+RECTF r7, r1, r11, r5, r12
 
 ; Cyan rectangle (100px inset)
-LDI r2, 100
-LDI r11, 100
-LDI r12, 56
-LDI r3, 56
-LDI r9, 0x00FFFF
-RECTF r2, r11, r12, r3, r9
+LDI r7, 100
+LDI r1, 100
+LDI r11, 56
+LDI r5, 56
+LDI r12, 0x00FFFF
+RECTF r7, r1, r11, r5, r12
 
 ; White center (120px inset)
-LDI r2, 120
-LDI r11, 120
-LDI r12, 16
-LDI r3, 16
-LDI r9, 0xFFFFFF
-RECTF r2, r11, r12, r3, r9
+LDI r7, 120
+LDI r1, 120
+LDI r11, 16
+LDI r5, 16
+LDI r12, 0xFFFFFF
+RECTF r7, r1, r11, r5, r12
 
 HALT

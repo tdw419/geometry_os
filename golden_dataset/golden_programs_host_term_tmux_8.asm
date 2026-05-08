@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a multi-tab terminal interface similar to tmux. It manages up to four tabs, each running an independent bash process in a pseudo-terminal (PTY). The system uses shared memory buffers for input and output handling, processes ANSI escape sequences for text formatting, and provides functionality to switch between tabs using specific key combinations.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; host_term_tmux.asm -- Multi-tab Terminal (tmux-like) for Geometry OS
 ;
@@ -22,8 +22,8 @@
 ;   0x9000+tab*0x600  Tab text buffers (42*26 = 1092 cells each)
 ;
 ; Registers:
-;   r8  CMP/result
-;   r4  constant 1
+;   r2  CMP/result
+;   r11  constant 1
 ;   r28 current tab index (live copy)
 ;   r30 stack pointer
 
@@ -83,134 +83,134 @@
 ; =========================================
 ; INIT
 ; =========================================
-LDI r4, 1
+LDI r11, 1
 LDI r30, 0xFD00
 
 ; Dark background
-LDI r8, 0x0A0A0A
-FILL r8
+LDI r2, 0x0A0A0A
+FILL r2
 
 ; Initialize all 4 tab metadata: PTY=0xFFFF (unused), rest=0
-LDI r3, 0
+LDI r5, 0
 init_tabs_loop:
     ; PTY handle = 0xFFFF (unused)
     LDI r20, TAB_META
-    MOV r21, r3
-    LDI r5, 32
-    MUL r21, r5
+    MOV r21, r5
+    LDI r15, 32
+    MUL r21, r15
     ADD r20, r21
-    LDI r8, 0xFFFF
-    STORE r20, r8
+    LDI r2, 0xFFFF
+    STORE r20, r2
 
     ; CUR_COL = 0
     MOV r22, r20
-    ADD r22, r4
-    LDI r8, 0
-    STORE r22, r8
+    ADD r22, r11
+    LDI r2, 0
+    STORE r22, r2
 
     ; CUR_ROW = 0
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LDI r8, 0
-    STORE r22, r8
+    LDI r15, 2
+    ADD r22, r15
+    LDI r2, 0
+    STORE r22, r2
 
     ; ANSI_STATE = 0
     MOV r22, r20
-    LDI r5, 3
-    ADD r22, r5
-    LDI r8, 0
-    STORE r22, r8
+    LDI r15, 3
+    ADD r22, r15
+    LDI r2, 0
+    STORE r22, r2
 
     ; CONNECTED = 0
     MOV r22, r20
-    LDI r5, 4
-    ADD r22, r5
-    LDI r8, 0
-    STORE r22, r8
+    LDI r15, 4
+    ADD r22, r15
+    LDI r2, 0
+    STORE r22, r2
 
     ; BLINK = 0
     MOV r22, r20
-    LDI r5, 5
-    ADD r22, r5
-    LDI r8, 0
-    STORE r22, r8
+    LDI r15, 5
+    ADD r22, r15
+    LDI r2, 0
+    STORE r22, r2
 
-    ADD r3, r4
-    CMPI r3, 4
-    BLT r8, init_tabs_loop
+    ADD r5, r11
+    CMPI r5, 4
+    BLT r2, init_tabs_loop
 
 ; Clear all 4 tab text buffers to spaces
-LDI r3, 0
+LDI r5, 0
 clear_tabs_buf:
-    ; Get buffer base for tab r3
+    ; Get buffer base for tab r5
     CALL get_tab_buf_base
     ; r20 = buffer base
-    LDI r2, 32
-    LDI r7, TAB_BUF_CELLS
+    LDI r10, 32
+    LDI r8, TAB_BUF_CELLS
     MOV r21, r20
-    LDI r5, TAB_BUF_CELLS
-    ADD r21, r5
+    LDI r15, TAB_BUF_CELLS
+    ADD r21, r15
 ctb_loop:
-    STORE r20, r2
-    ADD r20, r4
+    STORE r20, r10
+    ADD r20, r11
     CMP r20, r21
-    BLT r8, ctb_loop
+    BLT r2, ctb_loop
 
-    ADD r3, r4
-    CMPI r3, 4
-    BLT r8, clear_tabs_buf
+    ADD r5, r11
+    CMPI r5, 4
+    BLT r2, clear_tabs_buf
 
 ; Empty cmd string for PTYOPEN
 LDI r20, CMD_BUF
-LDI r8, 0
-STORE r20, r8
+LDI r2, 0
+STORE r20, r2
 
 ; Set active tab = 0
 LDI r20, ACTIVE_TAB
-LDI r8, 0
-STORE r20, r8
+LDI r2, 0
+STORE r20, r2
 
 ; =========================================
 ; SPAWN INITIAL TAB (tab 0)
 ; =========================================
-LDI r3, 0
+LDI r5, 0
 CALL spawn_tab
 
 ; =========================================
 ; STARTUP DRAIN for tab 0
 ; =========================================
 LDI r20, ACTIVE_TAB
-LDI r8, 0
-STORE r20, r8
+LDI r2, 0
+STORE r20, r2
 LDI r28, 0
 
 LDI r22, 0          ; frame counter
 LDI r23, 40         ; max startup frames
 
 startup_drain:
-    LDI r3, 0
+    LDI r5, 0
     CALL drain_tab
     CALL render_active_tab
     CALL draw_tab_bar
     FRAME
-    ADD r22, r4
+    ADD r22, r11
     CMPI r22, 40
-    BLT r8, startup_drain
+    BLT r2, startup_drain
 
 ; =========================================
 ; MAIN LOOP
 ; =========================================
 main_loop:
-    LDI r4, 1
+    LDI r11, 1
 
     ; Drain ALL tabs (background buffering)
-    LDI r3, 0
+    LDI r5, 0
 drain_all_loop:
     CALL drain_tab
-    ADD r3, r4
-    CMPI r3, 4
-    BLT r8, drain_all_loop
+    ADD r5, r11
+    CMPI r5, 4
+    BLT r2, drain_all_loop
 
     ; Load active tab
     LDI r20, ACTIVE_TAB
@@ -226,33 +226,33 @@ drain_all_loop:
     FRAME
 
     ; Read keystroke
-    IKEY r0
-    JZ r0, main_loop
+    IKEY r14
+    JZ r14, main_loop
 
     ; Check tab switch keys
     CALL check_tab_switch
-    ; r8 = 1 if tab was switched (consumed the key)
-    CMPI r8, 1
-    JZ r8, main_loop
+    ; r2 = 1 if tab was switched (consumed the key)
+    CMPI r2, 1
+    JZ r2, main_loop
 
     ; Check Ctrl+Shift+T (new tab)
-    CMPI r0, CS_T
-    JNZ r8, check_close
+    CMPI r14, CS_T
+    JNZ r2, check_close
     CALL open_new_tab
     JMP main_loop
 
 check_close:
     ; Check Ctrl+Shift+W (close tab)
-    CMPI r0, CS_W
-    JNZ r8, send_to_pty
+    CMPI r14, CS_W
+    JNZ r2, send_to_pty
     CALL close_active_tab
     JMP main_loop
 
 send_to_pty:
     ; Send key to active tab's PTY
     CALL translate_key
-    CMPI r8, 0
-    JZ r8, main_loop
+    CMPI r2, 0
+    JZ r2, main_loop
 
     ; Get active tab's PTY handle
     LDI r20, ACTIVE_TAB
@@ -260,35 +260,35 @@ send_to_pty:
     CALL get_tab_pty
     ; r20 = PTY handle
     ; Check if handle is valid
-    LDI r5, 0xFFFF
-    CMP r20, r5
-    JZ r8, main_loop
+    LDI r15, 0xFFFF
+    CMP r20, r15
+    JZ r2, main_loop
 
     ; PTYWRITE handle, send_buf, len
-    MOV r2, r20       ; handle
-    LDI r5, SEND_BUF
-    ; r8 = byte count from translate_key
-    PTYWRITE r2, r5, r8
+    MOV r10, r20       ; handle
+    LDI r15, SEND_BUF
+    ; r2 = byte count from translate_key
+    PTYWRITE r10, r15, r2
     JMP main_loop
 
 ; =========================================
-; GET_TAB_BUF_BASE -- return buffer address for tab r3
+; GET_TAB_BUF_BASE -- return buffer address for tab r5
 ; Returns: r20 = buffer base address
-; Clobbers: r5
+; Clobbers: r15
 ; =========================================
 get_tab_buf_base:
-    CMPI r3, 0
-    JNZ r8, gtbb_t1
+    CMPI r5, 0
+    JNZ r2, gtbb_t1
     LDI r20, TAB0_BUF
     RET
 gtbb_t1:
-    CMPI r3, 1
-    JNZ r8, gtbb_t2
+    CMPI r5, 1
+    JNZ r2, gtbb_t2
     LDI r20, TAB1_BUF
     RET
 gtbb_t2:
-    CMPI r3, 2
-    JNZ r8, gtbb_t3
+    CMPI r5, 2
+    JNZ r2, gtbb_t3
     LDI r20, TAB2_BUF
     RET
 gtbb_t3:
@@ -296,20 +296,20 @@ gtbb_t3:
     RET
 
 ; =========================================
-; GET_TAB_META -- return metadata base for tab r3
+; GET_TAB_META -- return metadata base for tab r5
 ; Returns: r20 = metadata base address
-; Clobbers: r5
+; Clobbers: r15
 ; =========================================
 get_tab_meta:
     LDI r20, TAB_META
-    MOV r5, r3
+    MOV r15, r5
     LDI r21, 32
-    MUL r5, r21
-    ADD r20, r5
+    MUL r15, r21
+    ADD r20, r15
     RET
 
 ; =========================================
-; GET_TAB_PTY -- get PTY handle for tab r3
+; GET_TAB_PTY -- get PTY handle for tab r5
 ; Returns: r20 = PTY handle (0xFFFF if unused)
 ; =========================================
 get_tab_pty:
@@ -318,33 +318,33 @@ get_tab_pty:
     RET
 
 ; =========================================
-; SPAWN_TAB -- spawn bash in PTY for tab r3
-; Uses: CMD_BUF, r0, r3
+; SPAWN_TAB -- spawn bash in PTY for tab r5
+; Uses: CMD_BUF, r14, r5
 ; =========================================
 spawn_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; PTYOPEN cmd_addr, handle_reg
-    LDI r0, CMD_BUF
-    LDI r5, 10
-    PTYOPEN r0, r5
+    LDI r14, CMD_BUF
+    LDI r15, 10
+    PTYOPEN r14, r15
 
     ; Check success
-    CMPI r8, 0
-    JNZ r8, st_fail
+    CMPI r2, 0
+    JNZ r2, st_fail
 
     ; Store handle in tab metadata
     CALL get_tab_meta
     ; r20 = meta base
-    STORE r20, r5    ; store handle (r5 from PTYOPEN result)
+    STORE r20, r15    ; store handle (r15 from PTYOPEN result)
 
     ; Mark connected
     MOV r22, r20
-    LDI r5, 4
-    ADD r22, r5
-    LDI r8, 1
-    STORE r22, r8
+    LDI r15, 4
+    ADD r22, r15
+    LDI r2, 1
+    STORE r22, r2
 
     JMP st_done
 st_fail:
@@ -354,94 +354,94 @@ st_done:
     RET
 
 ; =========================================
-; DRAIN_TAB -- read PTY output for tab r3, process through ANSI
+; DRAIN_TAB -- read PTY output for tab r5, process through ANSI
 ; =========================================
 drain_tab:
     PUSH r31
-    PUSH r3
-    LDI r4, 1
+    PUSH r5
+    LDI r11, 1
 
     ; Get PTY handle
     CALL get_tab_pty
     ; r20 = PTY handle
 
     ; Check if slot is in use
-    LDI r5, 0xFFFF
-    CMP r20, r5
-    JZ r8, dt_skip
+    LDI r15, 0xFFFF
+    CMP r20, r15
+    JZ r2, dt_skip
 
     ; PTYREAD handle, recv_buf, max_len
-    MOV r2, r20
-    LDI r5, RECV_BUF
+    MOV r10, r20
+    LDI r15, RECV_BUF
     LDI r9, 512
-    PTYREAD r2, r5, r9
-    MOV r9, r8
+    PTYREAD r10, r15, r9
+    MOV r9, r2
 
     ; Check for closed
-    LDI r5, 0xFFFFFFFF
-    CMP r9, r5
-    JNZ r8, dt_process
+    LDI r15, 0xFFFFFFFF
+    CMP r9, r15
+    JNZ r2, dt_process
 
     ; Mark disconnected
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 4
-    ADD r22, r5
-    LDI r8, 0
-    STORE r22, r8
+    LDI r15, 4
+    ADD r22, r15
+    LDI r2, 0
+    STORE r22, r2
     JMP dt_skip
 
 dt_process:
     ; Process each byte through ANSI state machine for this tab
     CMPI r9, 0
-    JZ r8, dt_skip
+    JZ r2, dt_skip
 
-    LDI r13, 0
+    LDI r4, 0
 dt_byte_loop:
-    CMP r13, r9
-    BGE r8, dt_skip
+    CMP r4, r9
+    BGE r2, dt_skip
 
     LDI r20, RECV_BUF
-    ADD r20, r13
-    LOAD r0, r20
+    ADD r20, r4
+    LOAD r14, r20
     CALL process_byte_tab
-    ADD r13, r4
+    ADD r4, r11
     JMP dt_byte_loop
 
 dt_skip:
-    POP r3
+    POP r5
     POP r31
     RET
 
 ; =========================================
-; PROCESS_BYTE_TAB -- process byte r0 for tab r3
+; PROCESS_BYTE_TAB -- process byte r14 for tab r5
 ; Uses tab-specific ANSI state and cursor
 ; =========================================
 process_byte_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; Load ANSI state for this tab
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 3
-    ADD r22, r5
-    LOAD r11, r22
+    LDI r15, 3
+    ADD r22, r15
+    LOAD r12, r22
 
     ; State: NORMAL
-    CMPI r11, ANS_NORMAL
-    JNZ r8, pbt_check_esc
+    CMPI r12, ANS_NORMAL
+    JNZ r2, pbt_check_esc
 
-    CMPI r0, 27
-    JNZ r8, pbt_normal_byte
+    CMPI r14, 27
+    JNZ r2, pbt_normal_byte
 
     ; Saw ESC
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 3
-    ADD r22, r5
-    LDI r8, ANS_ESC
-    STORE r22, r8
+    LDI r15, 3
+    ADD r22, r15
+    LDI r2, ANS_ESC
+    STORE r22, r2
     JMP pbt_ret
 
 pbt_normal_byte:
@@ -449,117 +449,117 @@ pbt_normal_byte:
     JMP pbt_ret
 
 pbt_check_esc:
-    CMPI r11, ANS_ESC
-    JNZ r8, pbt_check_csi
+    CMPI r12, ANS_ESC
+    JNZ r2, pbt_check_csi
 
-    CMPI r0, 91
-    JNZ r8, pbt_esc_other
+    CMPI r14, 91
+    JNZ r2, pbt_esc_other
 
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 3
-    ADD r22, r5
-    LDI r8, ANS_CSI
-    STORE r22, r8
+    LDI r15, 3
+    ADD r22, r15
+    LDI r2, ANS_CSI
+    STORE r22, r2
     JMP pbt_ret
 
 pbt_esc_other:
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 3
-    ADD r22, r5
-    LDI r8, ANS_NORMAL
-    STORE r22, r8
+    LDI r15, 3
+    ADD r22, r15
+    LDI r2, ANS_NORMAL
+    STORE r22, r2
     JMP pbt_ret
 
 pbt_check_csi:
-    CMPI r11, ANS_CSI
-    JNZ r8, pbt_reset
+    CMPI r12, ANS_CSI
+    JNZ r2, pbt_reset
 
     ; CSI terminator
-    CMPI r0, 64
-    BLT r8, pbt_ret
+    CMPI r14, 64
+    BLT r2, pbt_ret
 
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 3
-    ADD r22, r5
-    LDI r8, ANS_NORMAL
-    STORE r22, r8
+    LDI r15, 3
+    ADD r22, r15
+    LDI r2, ANS_NORMAL
+    STORE r22, r2
     JMP pbt_ret
 
 pbt_reset:
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 3
-    ADD r22, r5
-    LDI r8, ANS_NORMAL
-    STORE r22, r8
+    LDI r15, 3
+    ADD r22, r15
+    LDI r2, ANS_NORMAL
+    STORE r22, r2
 
 pbt_ret:
     POP r31
     RET
 
 ; =========================================
-; APPEND_BYTE_TAB -- append r0 to tab r3's text buffer
+; APPEND_BYTE_TAB -- append r14 to tab r5's text buffer
 ; =========================================
 append_byte_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; Newline
-    CMPI r0, 10
-    JNZ r8, abt_check_cr
+    CMPI r14, 10
+    JNZ r2, abt_check_cr
     CALL do_newline_tab
     JMP abt_ret
 
 abt_check_cr:
-    CMPI r0, 13
-    JNZ r8, abt_check_print
+    CMPI r14, 13
+    JNZ r2, abt_check_print
     ; col = 0
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 1
-    ADD r22, r5
-    LDI r8, 0
-    STORE r22, r8
+    LDI r15, 1
+    ADD r22, r15
+    LDI r2, 0
+    STORE r22, r2
     JMP abt_ret
 
 abt_check_print:
-    CMPI r0, 32
-    BLT r8, abt_ret
-    CMPI r0, 127
-    BGE r8, abt_ret
+    CMPI r14, 32
+    BLT r2, abt_ret
+    CMPI r14, 127
+    BGE r2, abt_ret
 
-    ; buf[row*COLS + col] = r0
+    ; buf[row*COLS + col] = r14
     CALL get_tab_meta
     ; r20 = meta base
     MOV r21, r20
-    LDI r5, 2
-    ADD r21, r5
-    LOAD r12, r21     ; r12 = CUR_ROW
-    LDI r10, COLS
-    MUL r12, r10
+    LDI r15, 2
+    ADD r21, r15
+    LOAD r0, r21     ; r0 = CUR_ROW
+    LDI r13, COLS
+    MUL r0, r13
     MOV r21, r20
-    LDI r5, 1
-    ADD r21, r5
-    LOAD r8, r21     ; r8 = CUR_COL
-    ADD r12, r8
+    LDI r15, 1
+    ADD r21, r15
+    LOAD r2, r21     ; r2 = CUR_COL
+    ADD r0, r2
 
     CALL get_tab_buf_base
-    ADD r20, r12
-    STORE r20, r0
+    ADD r20, r0
+    STORE r20, r14
 
     ; col++
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 1
-    ADD r22, r5
-    LOAD r8, r22
-    ADD r8, r4
-    STORE r22, r8
-    CMPI r8, COLS
-    JNZ r8, abt_ret
+    LDI r15, 1
+    ADD r22, r15
+    LOAD r2, r22
+    ADD r2, r11
+    STORE r22, r2
+    CMPI r2, COLS
+    JNZ r2, abt_ret
     CALL do_newline_tab
 
 abt_ret:
@@ -567,182 +567,182 @@ abt_ret:
     RET
 
 ; =========================================
-; DO_NEWLINE_TAB -- newline for tab r3
+; DO_NEWLINE_TAB -- newline for tab r5
 ; =========================================
 do_newline_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; col = 0
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 1
-    ADD r22, r5
-    LDI r8, 0
-    STORE r22, r8
+    LDI r15, 1
+    ADD r22, r15
+    LDI r2, 0
+    STORE r22, r2
 
     ; row++
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LOAD r2, r22
-    ADD r2, r4
-    CMPI r2, ROWS
-    BLT r8, dnt_store
+    LDI r15, 2
+    ADD r22, r15
+    LOAD r10, r22
+    ADD r10, r11
+    CMPI r10, ROWS
+    BLT r2, dnt_store
     CALL scroll_up_tab
-    LDI r2, 25       ; ROWS-1
+    LDI r10, 25       ; ROWS-1
 dnt_store:
     ; Re-get meta (scroll_up_tab may have changed r20)
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    STORE r22, r2
+    LDI r15, 2
+    ADD r22, r15
+    STORE r22, r10
 
     POP r31
     RET
 
 ; =========================================
-; SCROLL_UP_TAB -- scroll text buffer for tab r3
+; SCROLL_UP_TAB -- scroll text buffer for tab r5
 ; =========================================
 scroll_up_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; Shift rows 1..(ROWS-1) up to 0..(ROWS-2), clear last row
-    PUSH r3
-    LDI r1, 0
+    PUSH r5
+    LDI r7, 0
 sut_loop:
-    CMPI r1, 25     ; ROWS-1
-    BGE r8, sut_clear
+    CMPI r7, 25     ; ROWS-1
+    BGE r2, sut_clear
 
     ; src = BUF + (row+1)*COLS
     CALL get_tab_buf_base
-    MOV r21, r1
-    ADD r21, r4
-    LDI r5, COLS
-    MUL r21, r5
+    MOV r21, r7
+    ADD r21, r11
+    LDI r15, COLS
+    MUL r21, r15
     ADD r20, r21     ; r20 = src
 
     ; dst = BUF + row*COLS
     CALL get_tab_buf_base
-    MOV r22, r1
-    LDI r5, COLS
-    MUL r22, r5
+    MOV r22, r7
+    LDI r15, COLS
+    MUL r22, r15
     ADD r21, r22     ; r21 = dst
 
     ; Copy COLS cells
-    LDI r15, 0
+    LDI r6, 0
 sut_copy:
-    LOAD r8, r20
-    STORE r21, r8
-    ADD r20, r4
-    ADD r21, r4
-    ADD r15, r4
-    CMPI r15, COLS
-    BLT r8, sut_copy
+    LOAD r2, r20
+    STORE r21, r2
+    ADD r20, r11
+    ADD r21, r11
+    ADD r6, r11
+    CMPI r6, COLS
+    BLT r2, sut_copy
 
-    ADD r1, r4
+    ADD r7, r11
     JMP sut_loop
 
 sut_clear:
     ; Clear last row
     CALL get_tab_buf_base
-    LDI r5, 25
+    LDI r15, 25
     LDI r22, COLS
-    MUL r5, r22
-    ADD r20, r5
-    LDI r2, 32
-    LDI r6, 0
+    MUL r15, r22
+    ADD r20, r15
+    LDI r10, 32
+    LDI r1, 0
 scut_loop:
-    STORE r20, r2
-    ADD r20, r4
-    ADD r6, r4
-    CMPI r6, COLS
-    BLT r8, scut_loop
+    STORE r20, r10
+    ADD r20, r11
+    ADD r1, r11
+    CMPI r1, COLS
+    BLT r2, scut_loop
 
-    POP r3
+    POP r5
     POP r31
     RET
 
 ; =========================================
-; CHECK_TAB_SWITCH -- check if r0 is a tab switch key
-; Returns: r8 = 1 if handled, 0 if not
+; CHECK_TAB_SWITCH -- check if r14 is a tab switch key
+; Returns: r2 = 1 if handled, 0 if not
 ; =========================================
 check_tab_switch:
     PUSH r31
 
     ; Ctrl+1 or Alt+1 -> tab 0
-    CMPI r0, CTRL_1
-    JZ r8, cts_tab0
-    CMPI r0, ALT_1
-    JZ r8, cts_tab0
+    CMPI r14, CTRL_1
+    JZ r2, cts_tab0
+    CMPI r14, ALT_1
+    JZ r2, cts_tab0
 
     ; Ctrl+2 or Alt+2 -> tab 1
-    CMPI r0, CTRL_2
-    JZ r8, cts_tab1
-    CMPI r0, ALT_2
-    JZ r8, cts_tab1
+    CMPI r14, CTRL_2
+    JZ r2, cts_tab1
+    CMPI r14, ALT_2
+    JZ r2, cts_tab1
 
     ; Ctrl+3 or Alt+3 -> tab 2
-    CMPI r0, CTRL_3
-    JZ r8, cts_tab2
-    CMPI r0, ALT_3
-    JZ r8, cts_tab2
+    CMPI r14, CTRL_3
+    JZ r2, cts_tab2
+    CMPI r14, ALT_3
+    JZ r2, cts_tab2
 
     ; Ctrl+4 or Alt+4 -> tab 3
-    CMPI r0, CTRL_4
-    JZ r8, cts_tab3
-    CMPI r0, ALT_4
-    JZ r8, cts_tab3
+    CMPI r14, CTRL_4
+    JZ r2, cts_tab3
+    CMPI r14, ALT_4
+    JZ r2, cts_tab3
 
     ; Not a tab switch
-    LDI r8, 0
+    LDI r2, 0
     JMP cts_ret
 
 cts_tab0:
-    LDI r8, 0
+    LDI r2, 0
     CALL switch_to_tab
-    LDI r8, 1
+    LDI r2, 1
     JMP cts_ret
 cts_tab1:
-    LDI r8, 1
+    LDI r2, 1
     CALL switch_to_tab
-    LDI r8, 1
+    LDI r2, 1
     JMP cts_ret
 cts_tab2:
-    LDI r8, 2
+    LDI r2, 2
     CALL switch_to_tab
-    LDI r8, 1
+    LDI r2, 1
     JMP cts_ret
 cts_tab3:
-    LDI r8, 3
+    LDI r2, 3
     CALL switch_to_tab
-    LDI r8, 1
+    LDI r2, 1
 
 cts_ret:
     POP r31
     RET
 
 ; =========================================
-; SWITCH_TO_TAB -- switch to tab r8
+; SWITCH_TO_TAB -- switch to tab r2
 ; Only switches if that tab has a PTY
 ; =========================================
 switch_to_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; Check if tab has a PTY
-    MOV r3, r8
+    MOV r5, r2
     CALL get_tab_pty
     ; r20 = PTY handle
-    LDI r5, 0xFFFF
-    CMP r20, r5
-    JZ r8, st_skip
+    LDI r15, 0xFFFF
+    CMP r20, r15
+    JZ r2, st_skip
 
     ; Switch
     LDI r20, ACTIVE_TAB
-    STORE r20, r3
+    STORE r20, r5
 
 st_skip:
     POP r31
@@ -753,18 +753,18 @@ st_skip:
 ; =========================================
 open_new_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; Find first unused tab
-    LDI r3, 0
+    LDI r5, 0
 ont_loop:
     CALL get_tab_pty
-    LDI r5, 0xFFFF
-    CMP r20, r5
-    JZ r8, ont_found
-    ADD r3, r4
-    CMPI r3, 4
-    BLT r8, ont_loop
+    LDI r15, 0xFFFF
+    CMP r20, r15
+    JZ r2, ont_found
+    ADD r5, r11
+    CMPI r5, 4
+    BLT r2, ont_loop
     ; All tabs full, skip
     JMP ont_done
 
@@ -772,7 +772,7 @@ ont_found:
     CALL spawn_tab
     ; Switch to new tab
     LDI r20, ACTIVE_TAB
-    STORE r20, r3
+    STORE r20, r5
 
 ont_done:
     POP r31
@@ -783,10 +783,10 @@ ont_done:
 ; =========================================
 close_active_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     LDI r20, ACTIVE_TAB
-    LOAD r3, r20
+    LOAD r5, r20
 
     ; Get PTY handle
     CALL get_tab_pty
@@ -794,34 +794,34 @@ close_active_tab:
 
     ; PTYCLOSE handle_reg
     ; We need the handle in a register for PTYCLOSE
-    MOV r5, r20
-    PTYCLOSE r5
+    MOV r15, r20
+    PTYCLOSE r15
 
     ; Clear tab metadata
     CALL get_tab_meta
-    LDI r8, 0xFFFF
-    STORE r20, r8      ; PTY = unused
+    LDI r2, 0xFFFF
+    STORE r20, r2      ; PTY = unused
     MOV r22, r20
-    LDI r5, 4
-    ADD r22, r5
-    LDI r8, 0
-    STORE r22, r8      ; CONNECTED = 0
+    LDI r15, 4
+    ADD r22, r15
+    LDI r2, 0
+    STORE r22, r2      ; CONNECTED = 0
 
     ; Find another active tab to switch to
-    LDI r3, 0
+    LDI r5, 0
 cat_find:
-    CMPI r3, 4
-    BGE r8, cat_done
+    CMPI r5, 4
+    BGE r2, cat_done
     CALL get_tab_pty
-    LDI r5, 0xFFFF
-    CMP r20, r5
-    JNZ r8, cat_switch
-    ADD r3, r4
+    LDI r15, 0xFFFF
+    CMP r20, r15
+    JNZ r2, cat_switch
+    ADD r5, r11
     JMP cat_find
 
 cat_switch:
     LDI r20, ACTIVE_TAB
-    STORE r20, r3
+    STORE r20, r5
 
 cat_done:
     POP r31
@@ -829,198 +829,198 @@ cat_done:
 
 ; =========================================
 ; TRANSLATE_KEY -- translate IKEY code to PTY byte(s)
-; Fills SEND_BUF, returns byte count in r8
-; r0 = raw IKEY value
+; Fills SEND_BUF, returns byte count in r2
+; r14 = raw IKEY value
 ; =========================================
 translate_key:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; Printable ASCII (32-126)
-    CMPI r0, 32
-    BLT r8, tk_special
-    CMPI r0, 127
-    BGE r8, tk_special
+    CMPI r14, 32
+    BLT r2, tk_special
+    CMPI r14, 127
+    BGE r2, tk_special
     LDI r20, SEND_BUF
-    STORE r20, r0
-    LDI r8, 1
+    STORE r20, r14
+    LDI r2, 1
     JMP tk_ret
 
 tk_special:
     ; Enter (0x0D) -> \n (10)
-    CMPI r0, 13
-    JNZ r8, tk_bs
+    CMPI r14, 13
+    JNZ r2, tk_bs
     LDI r20, SEND_BUF
-    LDI r8, 10
-    STORE r20, r8
-    LDI r8, 1
+    LDI r2, 10
+    STORE r20, r2
+    LDI r2, 1
     JMP tk_ret
 
 tk_bs:
     ; Backspace (0x08) -> DEL (0x7F)
-    CMPI r0, 8
-    JNZ r8, tk_del
+    CMPI r14, 8
+    JNZ r2, tk_del
     LDI r20, SEND_BUF
-    LDI r8, 127
-    STORE r20, r8
-    LDI r8, 1
+    LDI r2, 127
+    STORE r20, r2
+    LDI r2, 1
     JMP tk_ret
 
 tk_del:
-    CMPI r0, 127
-    JNZ r8, tk_tab
+    CMPI r14, 127
+    JNZ r2, tk_tab
     LDI r20, SEND_BUF
-    LDI r8, 127
-    STORE r20, r8
-    LDI r8, 1
+    LDI r2, 127
+    STORE r20, r2
+    LDI r2, 1
     JMP tk_ret
 
 tk_tab:
-    CMPI r0, 9
-    JNZ r8, tk_ctrl_c
+    CMPI r14, 9
+    JNZ r2, tk_ctrl_c
     LDI r20, SEND_BUF
-    LDI r8, 9
-    STORE r20, r8
-    LDI r8, 1
+    LDI r2, 9
+    STORE r20, r2
+    LDI r2, 1
     JMP tk_ret
 
 tk_ctrl_c:
-    CMPI r0, 3
-    JNZ r8, tk_ctrl_d
+    CMPI r14, 3
+    JNZ r2, tk_ctrl_d
     LDI r20, SEND_BUF
-    LDI r8, 3
-    STORE r20, r8
-    LDI r8, 1
+    LDI r2, 3
+    STORE r20, r2
+    LDI r2, 1
     JMP tk_ret
 
 tk_ctrl_d:
-    CMPI r0, 4
-    JNZ r8, tk_escape
+    CMPI r14, 4
+    JNZ r2, tk_escape
     LDI r20, SEND_BUF
-    LDI r8, 4
-    STORE r20, r8
-    LDI r8, 1
+    LDI r2, 4
+    STORE r20, r2
+    LDI r2, 1
     JMP tk_ret
 
 tk_escape:
-    CMPI r0, 27
-    JNZ r8, tk_arrow_up
+    CMPI r14, 27
+    JNZ r2, tk_arrow_up
     LDI r20, SEND_BUF
-    LDI r8, 27
-    STORE r20, r8
-    LDI r8, 1
+    LDI r2, 27
+    STORE r20, r2
+    LDI r2, 1
     JMP tk_ret
 
 tk_arrow_up:
-    CMPI r0, KEY_UP
-    JNZ r8, tk_arrow_down
+    CMPI r14, KEY_UP
+    JNZ r2, tk_arrow_down
     LDI r20, SEND_BUF
-    LDI r8, 27
-    STORE r20, r8
+    LDI r2, 27
+    STORE r20, r2
     MOV r22, r20
-    ADD r22, r4
-    LDI r8, 91
-    STORE r22, r8
+    ADD r22, r11
+    LDI r2, 91
+    STORE r22, r2
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LDI r8, 65
-    STORE r22, r8
-    LDI r8, 3
+    LDI r15, 2
+    ADD r22, r15
+    LDI r2, 65
+    STORE r22, r2
+    LDI r2, 3
     JMP tk_ret
 
 tk_arrow_down:
-    CMPI r0, KEY_DOWN
-    JNZ r8, tk_arrow_right
+    CMPI r14, KEY_DOWN
+    JNZ r2, tk_arrow_right
     LDI r20, SEND_BUF
-    LDI r8, 27
-    STORE r20, r8
+    LDI r2, 27
+    STORE r20, r2
     MOV r22, r20
-    ADD r22, r4
-    LDI r8, 91
-    STORE r22, r8
+    ADD r22, r11
+    LDI r2, 91
+    STORE r22, r2
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LDI r8, 66
-    STORE r22, r8
-    LDI r8, 3
+    LDI r15, 2
+    ADD r22, r15
+    LDI r2, 66
+    STORE r22, r2
+    LDI r2, 3
     JMP tk_ret
 
 tk_arrow_right:
-    CMPI r0, KEY_RIGHT
-    JNZ r8, tk_arrow_left
+    CMPI r14, KEY_RIGHT
+    JNZ r2, tk_arrow_left
     LDI r20, SEND_BUF
-    LDI r8, 27
-    STORE r20, r8
+    LDI r2, 27
+    STORE r20, r2
     MOV r22, r20
-    ADD r22, r4
-    LDI r8, 91
-    STORE r22, r8
+    ADD r22, r11
+    LDI r2, 91
+    STORE r22, r2
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LDI r8, 67
-    STORE r22, r8
-    LDI r8, 3
+    LDI r15, 2
+    ADD r22, r15
+    LDI r2, 67
+    STORE r22, r2
+    LDI r2, 3
     JMP tk_ret
 
 tk_arrow_left:
-    CMPI r0, KEY_LEFT
-    JNZ r8, tk_home
+    CMPI r14, KEY_LEFT
+    JNZ r2, tk_home
     LDI r20, SEND_BUF
-    LDI r8, 27
-    STORE r20, r8
+    LDI r2, 27
+    STORE r20, r2
     MOV r22, r20
-    ADD r22, r4
-    LDI r8, 91
-    STORE r22, r8
+    ADD r22, r11
+    LDI r2, 91
+    STORE r22, r2
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LDI r8, 68
-    STORE r22, r8
-    LDI r8, 3
+    LDI r15, 2
+    ADD r22, r15
+    LDI r2, 68
+    STORE r22, r2
+    LDI r2, 3
     JMP tk_ret
 
 tk_home:
-    CMPI r0, KEY_HOME
-    JNZ r8, tk_end
+    CMPI r14, KEY_HOME
+    JNZ r2, tk_end
     LDI r20, SEND_BUF
-    LDI r8, 27
-    STORE r20, r8
+    LDI r2, 27
+    STORE r20, r2
     MOV r22, r20
-    ADD r22, r4
-    LDI r8, 91
-    STORE r22, r8
+    ADD r22, r11
+    LDI r2, 91
+    STORE r22, r2
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LDI r8, 72
-    STORE r22, r8
-    LDI r8, 3
+    LDI r15, 2
+    ADD r22, r15
+    LDI r2, 72
+    STORE r22, r2
+    LDI r2, 3
     JMP tk_ret
 
 tk_end:
-    CMPI r0, KEY_END
-    JNZ r8, tk_ignore
+    CMPI r14, KEY_END
+    JNZ r2, tk_ignore
     LDI r20, SEND_BUF
-    LDI r8, 27
-    STORE r20, r8
+    LDI r2, 27
+    STORE r20, r2
     MOV r22, r20
-    ADD r22, r4
-    LDI r8, 91
-    STORE r22, r8
+    ADD r22, r11
+    LDI r2, 91
+    STORE r22, r2
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LDI r8, 70
-    STORE r22, r8
-    LDI r8, 3
+    LDI r15, 2
+    ADD r22, r15
+    LDI r2, 70
+    STORE r22, r2
+    LDI r2, 3
     JMP tk_ret
 
 tk_ignore:
-    LDI r8, 0
+    LDI r2, 0
 
 tk_ret:
     POP r31
@@ -1033,119 +1033,119 @@ tk_ret:
 ; =========================================
 draw_tab_bar:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; Tab bar background (10px tall at bottom)
-    LDI r4, 0
-    LDI r12, 246
-    LDI r10, 256
-    LDI r11, 10
-    LDI r0, 0x1A1A2E
-    RECTF r4, r12, r10, r11, r0
+    LDI r11, 0
+    LDI r0, 246
+    LDI r13, 256
+    LDI r12, 10
+    LDI r14, 0x1A1A2E
+    RECTF r11, r0, r13, r12, r14
 
     ; Load active tab
     LDI r20, ACTIVE_TAB
     LOAD r28, r20
 
     ; Draw each tab
-    LDI r3, 0
-    LDI r1, 0       ; x position for tab label
+    LDI r5, 0
+    LDI r7, 0       ; x position for tab label
 
 dtb_loop:
     ; Check if tab is active
-    MOV r14, r3
+    MOV r3, r5
     LDI r20, ACTIVE_TAB
-    LOAD r8, r20
-    CMP r14, r8
-    JZ r8, dtb_active
+    LOAD r2, r20
+    CMP r3, r2
+    JZ r2, dtb_active
 
     ; Inactive tab colors
-    LDI r6, 0x888888
-    LDI r7, 0x1A1A2E
+    LDI r1, 0x888888
+    LDI r8, 0x1A1A2E
     JMP dtb_draw
 
 dtb_active:
-    LDI r6, 0xFFFFFF
-    LDI r7, 0x333355
+    LDI r1, 0xFFFFFF
+    LDI r8, 0x333355
 
 dtb_draw:
     ; Draw tab background (highlight box)
-    ; x = r1, y = 246, w = 60, h = 8
-    MOV r4, r1
-    LDI r12, 247
-    LDI r10, 58
-    LDI r11, 8
-    RECTF r4, r12, r10, r11, r7
+    ; x = r7, y = 246, w = 60, h = 8
+    MOV r11, r7
+    LDI r0, 247
+    LDI r13, 58
+    LDI r12, 8
+    RECTF r11, r0, r13, r12, r8
 
     ; Build label in SCRATCH: "N:label"
     LDI r20, SCRATCH
     ; Tab number character: 49='1', 50='2', etc.
-    LDI r8, 49
-    ADD r8, r3
-    STORE r20, r8
-    ADD r20, r4
-    LDI r8, 58     ; ':'
-    STORE r20, r8
-    ADD r20, r4
+    LDI r2, 49
+    ADD r2, r5
+    STORE r20, r2
+    ADD r20, r11
+    LDI r2, 58     ; ':'
+    STORE r20, r2
+    ADD r20, r11
 
     ; Check if tab has PTY
-    PUSH r3
+    PUSH r5
     CALL get_tab_pty
     ; r20 = handle (but we need to re-derive meta...)
     ; Actually r20 is PTY handle from get_tab_pty
-    LDI r5, 0xFFFF
-    CMP r20, r5
-    POP r3
-    JZ r8, dtb_empty
+    LDI r15, 0xFFFF
+    CMP r20, r15
+    POP r5
+    JZ r2, dtb_empty
 
     ; Check connected
-    PUSH r3
+    PUSH r5
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 4
-    ADD r22, r5
-    LOAD r8, r22
-    POP r3
-    JZ r8, dtb_dead
+    LDI r15, 4
+    ADD r22, r15
+    LOAD r2, r22
+    POP r5
+    JZ r2, dtb_dead
 
     ; Label = "bash"
     LDI r20, SCRATCH
-    LDI r5, 2
-    ADD r20, r5
+    LDI r15, 2
+    ADD r20, r15
     STRO r20, "bash"
     JMP dtb_render
 
 dtb_dead:
     LDI r20, SCRATCH
-    LDI r5, 2
-    ADD r20, r5
+    LDI r15, 2
+    ADD r20, r15
     STRO r20, "dead"
     JMP dtb_render
 
 dtb_empty:
     LDI r20, SCRATCH
-    LDI r5, 2
-    ADD r20, r5
+    LDI r15, 2
+    ADD r20, r15
     STRO r20, "---"
 
 dtb_render:
     ; Draw label with SMALLTEXT
-    MOV r4, r1
-    ADD r4, r4        ; x + 2
-    LDI r12, 248
-    LDI r10, SCRATCH
-    SMALLTEXT r4, r12, r10, r6, r7
+    MOV r11, r7
+    ADD r11, r11        ; x + 2
+    LDI r0, 248
+    LDI r13, SCRATCH
+    SMALLTEXT r11, r0, r13, r1, r8
 
     ; Advance x position
-    LDI r5, 62
-    ADD r1, r5
+    LDI r15, 62
+    ADD r7, r15
 
-    ADD r3, r4
-    CMPI r3, 4
-    BLT r8, dtb_loop
+    ADD r5, r11
+    CMPI r5, 4
+    BLT r2, dtb_loop
 
-    ; Restore r4
-    LDI r4, 1
+    ; Restore r11
+    LDI r11, 1
 
     POP r31
     RET
@@ -1155,147 +1155,147 @@ dtb_render:
 ; =========================================
 render_active_tab:
     PUSH r31
-    LDI r4, 1
+    LDI r11, 1
 
     ; Clear content area (y=0 to y=246)
-    LDI r4, 0
-    LDI r12, 0
-    LDI r10, 256
-    LDI r11, 246
-    LDI r0, 0x0A0A0A
-    RECTF r4, r12, r10, r11, r0
+    LDI r11, 0
+    LDI r0, 0
+    LDI r13, 256
+    LDI r12, 246
+    LDI r14, 0x0A0A0A
+    RECTF r11, r0, r13, r12, r14
 
     ; Title bar background
-    LDI r4, 0
-    LDI r12, 0
-    LDI r10, 256
-    LDI r11, 10
-    LDI r0, 0x1A1A2E
-    RECTF r4, r12, r10, r11, r0
+    LDI r11, 0
+    LDI r0, 0
+    LDI r13, 256
+    LDI r12, 10
+    LDI r14, 0x1A1A2E
+    RECTF r11, r0, r13, r12, r14
 
     ; Title: "tmux [tab N]"
     LDI r20, SCRATCH
     STRO r20, "tmux [tab "
     ; Find end
-    LDI r3, 0
+    LDI r5, 0
 rat_find_end:
-    LDI r5, SCRATCH
-    ADD r5, r3
-    LOAD r8, r5
-    JZ r8, rat_append_num
-    ADD r3, r4
+    LDI r15, SCRATCH
+    ADD r15, r5
+    LOAD r2, r15
+    JZ r2, rat_append_num
+    ADD r5, r11
     JMP rat_find_end
 
 rat_append_num:
     LDI r20, ACTIVE_TAB
-    LOAD r8, r20
-    LDI r5, 49
-    ADD r8, r5
+    LOAD r2, r20
+    LDI r15, 49
+    ADD r2, r15
     LDI r20, SCRATCH
-    ADD r20, r3
-    STORE r20, r8
-    ADD r3, r4
+    ADD r20, r5
+    STORE r20, r2
+    ADD r5, r11
     LDI r20, SCRATCH
-    ADD r20, r3
-    LDI r8, 93     ; ']'
-    STORE r20, r8
-    ADD r3, r4
+    ADD r20, r5
+    LDI r2, 93     ; ']'
+    STORE r20, r2
+    ADD r5, r11
     LDI r20, SCRATCH
-    ADD r20, r3
-    LDI r8, 0
-    STORE r20, r8
+    ADD r20, r5
+    LDI r2, 0
+    STORE r20, r2
 
     ; Draw title
-    LDI r4, 2
-    LDI r12, 1
-    LDI r10, SCRATCH
-    LDI r11, 0x44DD44
-    LDI r0, 0x1A1A2E
-    DRAWTEXT r4, r12, r10, r11, r0
+    LDI r11, 2
+    LDI r0, 1
+    LDI r13, SCRATCH
+    LDI r12, 0x44DD44
+    LDI r14, 0x1A1A2E
+    DRAWTEXT r11, r0, r13, r12, r14
 
     ; Render text buffer
     LDI r20, ACTIVE_TAB
-    LOAD r3, r20
+    LOAD r5, r20
 
     CALL get_tab_buf_base
-    MOV r14, r20      ; r14 = buf pointer
-    LDI r1, 10       ; y position (start after title bar)
-    LDI r4, 1
-    LDI r15, 0  ; row counter
+    MOV r3, r20      ; r3 = buf pointer
+    LDI r7, 10       ; y position (start after title bar)
+    LDI r11, 1
+    LDI r6, 0  ; row counter
 
 rat_row:
     ; Copy COLS chars to scratch for rendering
     LDI r16, SCRATCH
     LDI r17, 0
 rat_copy_col:
-    LOAD r2, r14
-    STORE r16, r2
-    ADD r14, r4
-    ADD r16, r4
-    ADD r17, r4
+    LOAD r10, r3
+    STORE r16, r10
+    ADD r3, r11
+    ADD r16, r11
+    ADD r17, r11
     CMPI r17, COLS
-    BLT r8, rat_copy_col
-    LDI r8, 0
-    STORE r16, r8      ; null-terminate
+    BLT r2, rat_copy_col
+    LDI r2, 0
+    STORE r16, r2      ; null-terminate
 
     ; Render with SMALLTEXT
-    LDI r4, 0
-    LDI r15, SCRATCH
-    LDI r6, 0xBBBBBB
-    LDI r7, 0
-    SMALLTEXT r4, r1, r15, r6, r7
+    LDI r11, 0
+    LDI r6, SCRATCH
+    LDI r1, 0xBBBBBB
+    LDI r8, 0
+    SMALLTEXT r11, r7, r6, r1, r8
 
-    LDI r4, 1
+    LDI r11, 1
     ; Advance y by 6
-    ADD r1, r4
-    ADD r1, r4
-    ADD r1, r4
-    ADD r1, r4
-    ADD r1, r4
-    ADD r1, r4
+    ADD r7, r11
+    ADD r7, r11
+    ADD r7, r11
+    ADD r7, r11
+    ADD r7, r11
+    ADD r7, r11
 
-    ADD r15, r4
-    CMPI r15, ROWS
-    BLT r15, rat_row
+    ADD r6, r11
+    CMPI r6, ROWS
+    BLT r6, rat_row
 
     ; Cursor blink for active tab
     LDI r20, ACTIVE_TAB
-    LOAD r3, r20
+    LOAD r5, r20
     CALL get_tab_meta
     ; Blink counter
     MOV r22, r20
-    LDI r5, 5
-    ADD r22, r5
-    LOAD r8, r22
-    ADD r8, r4
-    STORE r22, r8
-    LDI r5, 8
-    AND r8, r5
-    CMPI r8, 4
-    BGE r8, cursor_skip
+    LDI r15, 5
+    ADD r22, r15
+    LOAD r2, r22
+    ADD r2, r11
+    STORE r22, r2
+    LDI r15, 8
+    AND r2, r15
+    CMPI r2, 4
+    BGE r2, cursor_skip
 
     ; Draw cursor
     CALL get_tab_meta
     MOV r22, r20
-    LDI r5, 1
-    ADD r22, r5
-    LOAD r8, r22     ; CUR_COL
-    LDI r5, 3
-    MUL r8, r5
+    LDI r15, 1
+    ADD r22, r15
+    LOAD r2, r22     ; CUR_COL
+    LDI r15, 3
+    MUL r2, r15
     MOV r22, r20
-    LDI r5, 2
-    ADD r22, r5
-    LOAD r12, r22     ; CUR_ROW
-    LDI r5, 6
-    MUL r12, r5
-    LDI r5, 10
-    ADD r12, r5       ; + title bar offset
-    LDI r10, 2
-    LDI r11, 5
-    LDI r0, 0x44FF44
-    RECTF r8, r12, r10, r11, r0
+    LDI r15, 2
+    ADD r22, r15
+    LOAD r0, r22     ; CUR_ROW
+    LDI r15, 6
+    MUL r0, r15
+    LDI r15, 10
+    ADD r0, r15       ; + title bar offset
+    LDI r13, 2
+    LDI r12, 5
+    LDI r14, 0x44FF44
+    RECTF r2, r0, r13, r12, r14
 
 cursor_skip:
-    LDI r4, 1
+    LDI r11, 1
     POP r31
     RET

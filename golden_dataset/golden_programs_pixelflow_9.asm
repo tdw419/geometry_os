@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a neural network visualizer that connects to a pixelflow server via a socket. It displays weight matrices as pixel patterns and generated text on the screen, with interactive features for switching modes and scrolling through content.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; pixelflow.asm -- Neural network visualizer for Geometry OS
 ; Connects to pixelflow server via /tmp/pixelflow.sock
@@ -19,14 +19,14 @@
 
 START:
     ; Init mode to weights view
-    LDI r6, 1
-    LDI r10, MODE
-    STORE r10, r6
+    LDI r13, 1
+    LDI r0, MODE
+    STORE r0, r13
     
     ; Init scroll
-    LDI r6, 0
-    LDI r10, SCROLL
-    STORE r10, r6
+    LDI r13, 0
+    LDI r0, SCROLL
+    STORE r0, r13
     
     ; Title
     LDI r20, STATUS_BUF
@@ -34,76 +34,76 @@ START:
 
 main_loop:
     ; Clear screen
-    LDI r3, 0x111122
-    FILL r3
+    LDI r10, 0x111122
+    FILL r10
 
     ; Draw header bar
-    LDI r4, 0x00FF00     ; green header
-    LDI r10, 0
-    LDI r14, 0
-    LDI r11, 256
-    LDI r0, 16
-    RECTF r10, r14, r11, r0, r4
+    LDI r14, 0x00FF00     ; green header
+    LDI r0, 0
+    LDI r4, 0
+    LDI r3, 256
+    LDI r9, 16
+    RECTF r0, r4, r3, r9, r14
 
     ; Title text
-    LDI r10, 4
-    LDI r14, 2
-    LDI r9, STATUS_BUF
-    DRAWTEXT r10, r14, r9, r16, r4
+    LDI r0, 4
+    LDI r4, 2
+    LDI r8, STATUS_BUF
+    DRAWTEXT r0, r4, r8, r16, r14
 
     ; Draw weight visualization area (green border)
-    LDI r4, 0x00FF00
-    LDI r10, 4
-    LDI r14, 20
-    LDI r11, 248
-    LDI r0, 180
-    RECTF r10, r14, r11, r0, r4
+    LDI r14, 0x00FF00
+    LDI r0, 4
+    LDI r4, 20
+    LDI r3, 248
+    LDI r9, 180
+    RECTF r0, r4, r3, r9, r14
 
     ; Inner area (dark)
-    LDI r4, 0x0A0A1A
-    LDI r10, 6
-    LDI r14, 22
-    LDI r11, 244
-    LDI r0, 176
-    RECTF r10, r14, r11, r0, r4
+    LDI r14, 0x0A0A1A
+    LDI r0, 6
+    LDI r4, 22
+    LDI r3, 244
+    LDI r9, 176
+    RECTF r0, r4, r3, r9, r14
 
     ; Draw simulated weight pattern (diagonal stripes = placeholder)
     ; In real version, this reads from pixelflow server
-    LDI r4, 0x334455
-    LDI r13, 8            ; y start
+    LDI r14, 0x334455
+    LDI r11, 8            ; y start
     draw_row_loop:
-        LDI r15, 10       ; x start
+        LDI r1, 10       ; x start
         draw_col_loop:
             ; Compute color based on position (simulated weight heatmap)
             ; Blue channel = position-based pattern
-            MOV r1, r15
-            ADD r1, r13
-            LDI r2, 0xFF
-            AND r1, r2       ; mod 256
-            SHLI r1, 16       ; blue channel
-            OR r1, r4        ; mix with base
+            MOV r2, r1
+            ADD r2, r11
+            LDI r5, 0xFF
+            AND r2, r5       ; mod 256
+            SHLI r2, 16       ; blue channel
+            OR r2, r14        ; mix with base
             
             ; Draw 2x2 pixel block
-            LDI r10, 2
-            RECTF r15, r13, r10, r10, r1
+            LDI r0, 2
+            RECTF r1, r11, r0, r0, r2
             
-            ADDI r15, 3
-            LDI r9, 250
-            CMP r15, r9
-            BLT r5, draw_col_loop
+            ADDI r1, 3
+            LDI r8, 250
+            CMP r1, r8
+            BLT r12, draw_col_loop
         
-        ADDI r13, 3
-        LDI r9, 198
-        CMP r13, r9
-        BLT r5, draw_row_loop
+        ADDI r11, 3
+        LDI r8, 198
+        CMP r11, r8
+        BLT r12, draw_row_loop
 
     ; Draw logits bar chart at bottom
-    LDI r4, 0x444444
-    LDI r10, 4
-    LDI r14, 204
-    LDI r11, 248
-    LDI r0, 40
-    RECTF r10, r14, r11, r0, r4
+    LDI r14, 0x444444
+    LDI r0, 4
+    LDI r4, 204
+    LDI r3, 248
+    LDI r9, 40
+    RECTF r0, r4, r3, r9, r14
 
     ; Simulated logits bars (5 bars)
     LDI r16, 0       ; bar counter
@@ -112,74 +112,74 @@ main_loop:
         SHLI r16, 5
         LDI r17, 0x00FF00
         ADD r17, r16     ; shift hue
-        MOV r4, r17
+        MOV r14, r17
         
         ; Bar position
-        LDI r6, 1
+        LDI r13, 1
         SHLI r16, 5       ; x = counter * 32
-        ADD r16, r6      ; +1
-        ADD r16, r6      ; +1 = +2
-        LDI r10, 8       ; x start
-        ADD r10, r16
+        ADD r16, r13      ; +1
+        ADD r16, r13      ; +1 = +2
+        LDI r0, 8       ; x start
+        ADD r0, r16
         
         ; Bar height (simulated)
-        LDI r14, 230
-        LDI r11, 20      ; bar width
-        LDI r0, 10      ; bar height (would be logits)
+        LDI r4, 230
+        LDI r3, 20      ; bar width
+        LDI r9, 10      ; bar height (would be logits)
         
-        RECTF r10, r14, r11, r0, r4
+        RECTF r0, r4, r3, r9, r14
         
         ADDI r16, 1
-        LDI r9, 8
-        CMP r16, r9
-        BLT r5, bar_loop
+        LDI r8, 8
+        CMP r16, r8
+        BLT r12, bar_loop
 
     ; Status text at bottom
-    LDI r10, 4
-    LDI r14, 246
-    LDI r9, STATUS_BUF
-    DRAWTEXT r10, r14, r9, r16, r3
+    LDI r0, 4
+    LDI r4, 246
+    LDI r8, STATUS_BUF
+    DRAWTEXT r0, r4, r8, r16, r10
 
     ; Render frame
     FRAME
     
     ; Check for key input
-    IKEY r4
-    JZ r4, main_loop
+    IKEY r14
+    JZ r14, main_loop
     
     ; ESC = exit
-    LDI r9, 27
-    CMPI r4, 27
-    JZ r5, exit_app
+    LDI r8, 27
+    CMPI r14, 27
+    JZ r12, exit_app
     
     ; Tab = switch mode
-    LDI r9, 9
-    CMPI r4, 9
-    JNZ r5, main_loop
+    LDI r8, 9
+    CMPI r14, 9
+    JNZ r12, main_loop
     
     ; Toggle mode
-    LDI r10, MODE
-    LOAD r14, r10
-    LDI r6, 1
-    ADD r14, r6
-    LDI r9, 3
-    CMPI r14, 3
-    BLT r5, store_mode
-    LDI r14, 0
+    LDI r0, MODE
+    LOAD r4, r0
+    LDI r13, 1
+    ADD r4, r13
+    LDI r8, 3
+    CMPI r4, 3
+    BLT r12, store_mode
+    LDI r4, 0
     store_mode:
-    STORE r10, r14
+    STORE r0, r4
     
     ; Update status text
     LDI r20, STATUS_BUF
-    LDI r10, MODE
-    LOAD r14, r10
-    CMPI r14, 0
-    JNZ r5, try_logits
+    LDI r0, MODE
+    LOAD r4, r0
+    CMPI r4, 0
+    JNZ r12, try_logits
     STRO r20, "MODE: WEIGHTS"
     JMP main_loop
     try_logits:
-    CMPI r14, 1
-    JNZ r5, try_gen
+    CMPI r4, 1
+    JNZ r12, try_gen
     STRO r20, "MODE: LOGITS"
     JMP main_loop
     try_gen:

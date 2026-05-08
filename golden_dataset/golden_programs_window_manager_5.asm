@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a window manager for Geometry OS with two windows: a terminal (PTY) and a system monitor. The terminal is focusable and draggable, receives keyboard input when focused, and renders PTY output as vertical bars. The system monitor updates periodically to show activity indicators and redraws pixel art text "GEOS". The code manages window interactions, handles mouse events for dragging and closing windows, and ensures responsiveness by limiting data reads from the PTY.
+; DESCRIPTION: Geometry OS program to draw a red object.
 
 ; window_manager.asm -- Geometry OS Desktop Shell
 ;
@@ -59,70 +59,70 @@ LDI r13, 1
 LDI r30, 0xFD00
 
 ; Clear screen
-LDI r7, 0x0A0A0A
-FILL r7
+LDI r3, 0x0A0A0A
+FILL r3
 
 ; Desktop background (256 x 240)
 LDI r13, 0
-LDI r14, 0
+LDI r5, 0
 LDI r11, 256
-LDI r6, 240
-LDI r1, COL_DESKTOP
-RECTF r13, r14, r11, r6, r1
+LDI r1, 240
+LDI r2, COL_DESKTOP
+RECTF r13, r5, r11, r1, r2
 
 ; Taskbar (256 x 16)
 LDI r13, 0
-LDI r14, 240
+LDI r5, 240
 LDI r11, 256
-LDI r6, 16
-LDI r1, COL_TASKBAR
-RECTF r13, r14, r11, r6, r1
+LDI r1, 16
+LDI r2, COL_TASKBAR
+RECTF r13, r5, r11, r1, r2
 
 ; Taskbar label
 LDI r20, TEMP_AREA
 STRO r20, "Geometry OS"
 LDI r13, 4
-LDI r14, 243
+LDI r5, 243
 LDI r11, TEMP_AREA
-LDI r6, COL_GREEN
-LDI r1, COL_TASKBAR
-SMALLTEXT r13, r14, r11, r6, r1
+LDI r1, COL_GREEN
+LDI r2, COL_TASKBAR
+SMALLTEXT r13, r5, r11, r1, r2
 
 ; Init all variables to 0
 LDI r20, TERM_WIN
-LDI r7, 0
-STORE r20, r7
+LDI r3, 0
+STORE r20, r3
 LDI r20, SYSMON_WIN
-STORE r20, r7
+STORE r20, r3
 LDI r20, FOCUSED_WIN
-STORE r20, r7
+STORE r20, r3
 LDI r20, FRAME_COUNT
-STORE r20, r7
+STORE r20, r3
 LDI r20, DRAG_WIN
-STORE r20, r7
+STORE r20, r3
 LDI r20, BLINK_COUNT
-STORE r20, r7
+STORE r20, r3
 LDI r20, TERM_CUR_X
-LDI r7, 0
-STORE r20, r7
+LDI r3, 0
+STORE r20, r3
 LDI r20, TERM_CUR_Y
-LDI r7, 0
-STORE r20, r7
+LDI r3, 0
+STORE r20, r3
 
 ; ANSI escape state: 0 = normal, 1 = in escape sequence
 LDI r20, ANSI_ESCAPE
-LDI r7, 0
-STORE r20, r7
+LDI r3, 0
+STORE r20, r3
 
 ; PTY handle init to invalid
 LDI r20, PTY_HANDLE
-LDI r7, 0xFFFF
-STORE r20, r7
+LDI r3, 0xFFFF
+STORE r20, r3
 
 ; Dirty sysmon = start dirty
 LDI r20, DIRTY_SYSMON
-LDI r7, 1
-STORE r20, r7
+LDI r3, 1
+STORE r20, r3
 
 ; =========================================
 ; PREPARE TITLE STRINGS (separate addresses!)
@@ -142,33 +142,33 @@ STRO r20, "Monitor"
 
 ; Terminal: x=4, y=6, w=180, h=168
 LDI r13, 4
-LDI r14, 6
+LDI r5, 6
 LDI r11, 180
-LDI r6, 168
-LDI r1, TITLE_TERM
-LDI r7, 0
-WINSYS r7
-; r7 = window_id
+LDI r1, 168
+LDI r2, TITLE_TERM
+LDI r3, 0
+WINSYS r3
+; r3 = window_id
 LDI r20, TERM_WIN
-STORE r20, r7
+STORE r20, r3
 
 ; Monitor: x=192, y=6, w=60, h=100
 LDI r13, 192
-LDI r14, 6
+LDI r5, 6
 LDI r11, 60
-LDI r6, 100
-LDI r1, TITLE_MON
-LDI r7, 0
-WINSYS r7
-; r7 = window_id
+LDI r1, 100
+LDI r2, TITLE_MON
+LDI r3, 0
+WINSYS r3
+; r3 = window_id
 LDI r20, SYSMON_WIN
-STORE r20, r7
+STORE r20, r3
 
 ; Focus terminal by default
 LDI r20, FOCUSED_WIN
-LDI r7, TERM_WIN
-LOAD r7, r7
-STORE r20, r7
+LDI r3, TERM_WIN
+LOAD r3, r3
+STORE r20, r3
 
 ; =========================================
 ; OPEN PTY FOR TERMINAL
@@ -176,13 +176,13 @@ STORE r20, r7
 
 ; Null-terminate send buffer
 LDI r20, PTY_SEND
-LDI r7, 0
-STORE r20, r7
+LDI r3, 0
+STORE r20, r3
 
 ; Open PTY: PTYOPEN cmd_addr_reg, handle_reg
-LDI r1, PTY_SEND
-PTYOPEN r1, r0
-; r0 = slot index (handle), r7 = status
+LDI r2, PTY_SEND
+PTYOPEN r2, r0
+; r0 = slot index (handle), r3 = status
 
 ; Store handle
 LDI r20, PTY_HANDLE
@@ -193,16 +193,16 @@ LDI r28, 0
 ADD r28, r0
 
 ; Set PTY size 24x80
-LDI r9, 24
-LDI r2, 80
-PTYSIZE r28, r9, r2
+LDI r12, 24
+LDI r9, 80
+PTYSIZE r28, r12, r9
 
 ; Send "clear" to PTY
 LDI r20, PTY_SEND
 STRO r20, "clear\n"
-LDI r10, PTY_SEND
-LDI r3, 6
-PTYWRITE r28, r10, r3
+LDI r8, PTY_SEND
+LDI r4, 6
+PTYWRITE r28, r8, r4
 
 LDI r13, 1
 
@@ -220,34 +220,34 @@ main_loop:
 
     ; Increment counters
     LDI r20, BLINK_COUNT
-    LOAD r7, r20
-    ADD r7, r13
-    STORE r20, r7
+    LOAD r3, r20
+    ADD r3, r13
+    STORE r20, r3
 
     LDI r20, FRAME_COUNT
-    LOAD r7, r20
-    ADD r7, r13
-    STORE r20, r7
+    LOAD r3, r20
+    ADD r3, r13
+    STORE r20, r3
 
     FRAME
 
     ; Keyboard -> PTY if terminal focused
-    IKEY r1
-    JZ r1, main_loop
+    IKEY r2
+    JZ r2, main_loop
 
     LDI r20, FOCUSED_WIN
-    LOAD r7, r20
+    LOAD r3, r20
     LDI r20, TERM_WIN
     LOAD r20, r20
-    CMP r7, r20
-    JNZ r7, main_loop
+    CMP r3, r20
+    JNZ r3, main_loop
 
     ; Forward key to PTY
     LDI r20, PTY_SEND
-    STORE r20, r1
-    LDI r10, PTY_SEND
-    LDI r3, 1
-    PTYWRITE r28, r10, r3
+    STORE r20, r2
+    LDI r8, PTY_SEND
+    LDI r4, 1
+    PTYWRITE r28, r8, r4
     JMP main_loop
 
 ; =========================================
@@ -257,101 +257,101 @@ handle_mouse:
     PUSH r31
     LDI r13, 1
 
-    MOUSEQ r1
-    ; r1=mx, r10=my, r3=btn
+    MOUSEQ r2
+    ; r2=mx, r8=my, r4=btn
 
     ; Click (btn==2)
-    CMPI r3, 2
-    JNZ r7, hm_check_drag
+    CMPI r4, 2
+    JNZ r3, hm_check_drag
 
-    ; WINSYS HITTEST (op=4): r7=win_id, r13=hit_type
-    LDI r7, 4
-    WINSYS r7
-    CMPI r7, 0
-    JZ r7, hm_clear_drag
+    ; WINSYS HITTEST (op=4): r3=win_id, r13=hit_type
+    LDI r3, 4
+    WINSYS r3
+    CMPI r3, 0
+    JZ r3, hm_clear_drag
 
     ; hit_type 3 = close button
     CMPI r13, 3
-    JNZ r7, hm_check_title
+    JNZ r3, hm_check_title
     ; Destroy window
-    LDI r7, 1
-    WINSYS r7
+    LDI r3, 1
+    WINSYS r3
     ; Clear focus if we closed the focused window
     LDI r20, FOCUSED_WIN
-    LDI r7, 0
-    STORE r20, r7
+    LDI r3, 0
+    STORE r20, r3
     JMP hm_done
 
 hm_check_title:
     ; hit_type 1 = title bar
     CMPI r13, 1
-    JNZ r7, hm_check_body
+    JNZ r3, hm_check_body
 
     ; Focus + bring to front
     LDI r20, FOCUSED_WIN
-    STORE r20, r7
-    LDI r7, 2
-    WINSYS r7
+    STORE r20, r3
+    LDI r3, 2
+    WINSYS r3
 
     ; Start drag: save win_id and mouse offset
     LDI r20, DRAG_WIN
-    LDI r7, FOCUSED_WIN
-    LOAD r7, r7
-    STORE r20, r7
+    LDI r3, FOCUSED_WIN
+    LOAD r3, r3
+    STORE r20, r3
 
     ; Get window position via WINFO (op=6)
-    LDI r7, 6
+    LDI r3, 6
     LDI r13, TEMP_AREA
-    WINSYS r7
+    WINSYS r3
     ; TEMP_AREA[0]=x, TEMP_AREA[1]=y
     LDI r20, TEMP_AREA
-    LOAD r5, r20
-    ADD r20, r13
     LOAD r15, r20
-    SUB r5, r1
-    SUB r15, r10
+    ADD r20, r13
+    LOAD r6, r20
+    SUB r15, r2
+    SUB r6, r8
     LDI r20, DRAG_OX
-    STORE r20, r5
-    LDI r20, DRAG_OY
     STORE r20, r15
+    LDI r20, DRAG_OY
+    STORE r20, r6
     JMP hm_done
 
 hm_check_body:
     ; hit_type 2 = body -> focus only
     LDI r20, FOCUSED_WIN
-    STORE r20, r7
-    LDI r7, 2
-    WINSYS r7
+    STORE r20, r3
+    LDI r3, 2
+    WINSYS r3
     JMP hm_done
 
 hm_check_drag:
     ; btn==1 (held down) -> drag if active
-    CMPI r3, 1
-    JNZ r7, hm_clear_drag
+    CMPI r4, 1
+    JNZ r3, hm_clear_drag
 
     LDI r20, DRAG_WIN
-    LOAD r7, r20
-    CMPI r7, 0
-    JZ r7, hm_clear_drag
+    LOAD r3, r20
+    CMPI r3, 0
+    JZ r3, hm_clear_drag
 
     ; Move window: new_pos = mouse - offset
     LDI r20, DRAG_OX
-    LOAD r5, r20
-    LDI r20, DRAG_OY
     LOAD r15, r20
-    SUB r1, r5
-    SUB r10, r15
-    ; WINSYS MOVETO (op=5): r7=win_id, r13=new_x, r14=new_y
+    LDI r20, DRAG_OY
+    LOAD r6, r20
+    SUB r2, r15
+    SUB r8, r6
+    ; WINSYS MOVETO (op=5): r3=win_id, r13=new_x, r5=new_y
     LDI r11, 5
-    LDI r7, DRAG_WIN
-    LOAD r7, r7
+    LDI r3, DRAG_WIN
+    LOAD r3, r3
     WINSYS r11
     JMP hm_done
 
 hm_clear_drag:
     LDI r20, DRAG_WIN
-    LDI r7, 0
-    STORE r20, r7
+    LDI r3, 0
+    STORE r20, r3
 
 hm_done:
     POP r31
@@ -366,177 +366,177 @@ drain_pty:
 
     ; Check terminal window exists
     LDI r20, TERM_WIN
-    LOAD r7, r20
-    CMPI r7, 0
-    JZ r7, dp_done
+    LOAD r3, r20
+    CMPI r3, 0
+    JZ r3, dp_done
 
     ; Check PTY is valid
     LDI r20, PTY_HANDLE
-    LOAD r7, r20
-    CMPI r7, 0xFFFF
-    JZ r7, dp_done
+    LOAD r3, r20
+    CMPI r3, 0xFFFF
+    JZ r3, dp_done
 
     ; Read from PTY (max 16 bytes per frame to stay responsive)
-    LDI r10, PTY_RECV
-    LDI r3, 16
-    PTYREAD r28, r10, r3
-    MOV r5, r7
+    LDI r8, PTY_RECV
+    LDI r4, 16
+    PTYREAD r28, r8, r4
+    MOV r15, r3
     ; 0 = no data, 0xFFFFFFFF = PTY closed -> skip
-    CMPI r5, 0
-    JZ r7, dp_done
-    CMPI r5, 0
-    ; r5 != 0 here. Check for error (0xFFFFFFFF = -1 = all bits set)
-    ; Use AND to check: if r5 == 0xFFFFFFFF, AND with itself stays same
-    ; Simpler: just check if r5 > 4096 (our max read)
-    LDI r7, 4097
-    CMP r5, r7
-    BGE r7, dp_done
+    CMPI r15, 0
+    JZ r3, dp_done
+    CMPI r15, 0
+    ; r15 != 0 here. Check for error (0xFFFFFFFF = -1 = all bits set)
+    ; Use AND to check: if r15 == 0xFFFFFFFF, AND with itself stays same
+    ; Simpler: just check if r15 > 4096 (our max read)
+    LDI r3, 4097
+    CMP r15, r3
+    BGE r3, dp_done
 
-    LDI r15, 0
+    LDI r6, 0
 
 dp_loop:
-    CMP r15, r5
-    BGE r7, dp_done
+    CMP r6, r15
+    BGE r3, dp_done
 
     ; Load byte
     LDI r20, PTY_RECV
-    ADD r20, r15
-    LOAD r1, r20
+    ADD r20, r6
+    LOAD r2, r20
 
     ; --- ANSI escape stripping (two-state) ---
     ; State 0 = normal, State 1 = saw ESC, State 2 = saw ESC[ (CSI)
     ; Check if we're in an escape sequence
     LDI r20, ANSI_ESCAPE
-    LOAD r7, r20
-    CMPI r7, 0
-    JNZ r7, dp_in_escape
+    LOAD r3, r20
+    CMPI r3, 0
+    JNZ r3, dp_in_escape
 
     ; State 0: normal mode, check for ESC
 dp_check_esc:
-    CMPI r1, 27
-    JNZ r7, dp_normal
+    CMPI r2, 27
+    JNZ r3, dp_normal
     ; Saw ESC -> state 1
     LDI r20, ANSI_ESCAPE
-    LDI r7, 1
-    STORE r20, r7
+    LDI r3, 1
+    STORE r20, r3
     JMP dp_next
 
 dp_in_escape:
     ; State 1 or 2
-    CMPI r7, 2
-    JZ r7, dp_csi_mode
+    CMPI r3, 2
+    JZ r3, dp_csi_mode
 
     ; State 1: saw ESC, check for CSI introducer '['
-    CMPI r1, 0x5B
-    JZ r7, dp_enter_csi
+    CMPI r2, 0x5B
+    JZ r3, dp_enter_csi
     ; Not '[', check for single-char escape terminator (0x40-0x7E)
-    CMPI r1, 0x40
-    BLT r7, dp_next
-    CMPI r1, 0x7F
-    BGE r7, dp_next
+    CMPI r2, 0x40
+    BLT r3, dp_next
+    CMPI r2, 0x7F
+    BGE r3, dp_next
     ; Terminator found (e.g. ESC M), clear state
     LDI r20, ANSI_ESCAPE
-    LDI r7, 0
-    STORE r20, r7
+    LDI r3, 0
+    STORE r20, r3
     JMP dp_next
 
 dp_enter_csi:
     ; Saw ESC[, enter CSI mode (state 2)
     LDI r20, ANSI_ESCAPE
-    LDI r7, 2
-    STORE r20, r7
+    LDI r3, 2
+    STORE r20, r3
     JMP dp_next
 
 dp_csi_mode:
     ; State 2: in CSI sequence, skip params until final byte (0x40-0x7E)
-    CMPI r1, 0x40
-    BLT r7, dp_next
-    CMPI r1, 0x7F
-    BGE r7, dp_next
+    CMPI r2, 0x40
+    BLT r3, dp_next
+    CMPI r2, 0x7F
+    BGE r3, dp_next
     ; Final byte found, clear escape state
     LDI r20, ANSI_ESCAPE
-    LDI r7, 0
-    STORE r20, r7
+    LDI r3, 0
+    STORE r20, r3
     JMP dp_next
 
 dp_normal:
     ; Newline?
-    CMPI r1, 10
-    JZ r7, dp_newline
+    CMPI r2, 10
+    JZ r3, dp_newline
 
     ; Carriage return?
-    CMPI r1, 13
-    JZ r7, dp_next
+    CMPI r2, 13
+    JZ r3, dp_next
 
     ; Skip non-printable (< 32)
-    CMPI r1, 32
-    BLT r7, dp_next
+    CMPI r2, 32
+    BLT r3, dp_next
 
     ; Skip DEL and above (> 126)
-    CMPI r1, 127
-    BGE r7, dp_next
+    CMPI r2, 127
+    BGE r3, dp_next
 
     ; Printable! Draw vertical bar: height = byte - 30, cap at 80
-    SUB r1, r13
-    SUB r1, r13
-    LDI r3, 80
-    CMP r1, r3
-    BLT r7, dp_height_ok
-    MOV r1, r3
+    SUB r2, r13
+    SUB r2, r13
+    LDI r4, 80
+    CMP r2, r4
+    BLT r3, dp_height_ok
+    MOV r2, r4
 
 dp_height_ok:
     ; Read cursor position
     LDI r20, TERM_CUR_X
     LOAD r0, r20
     LDI r20, TERM_CUR_Y
-    LOAD r9, r20
+    LOAD r12, r20
 
     ; Check if we've gone past window width (180)
     CMPI r0, 170
-    BGE r7, dp_newline
+    BGE r3, dp_newline
 
     ; Draw bar pixels -- save r13 (used as constant 1)
     MOV r18, r13
-    LDI r2, 0
+    LDI r9, 0
 
 dp_bar:
-    CMP r2, r1
-    BGE r7, dp_after_bar
+    CMP r9, r2
+    BGE r3, dp_after_bar
 
     ; WPIXEL win_id, x, y, color
-    LDI r7, TERM_WIN
-    LOAD r7, r7
+    LDI r3, TERM_WIN
+    LOAD r3, r3
     MOV r13, r0
-    MOV r14, r9
-    ADD r14, r2
+    MOV r5, r12
+    ADD r5, r9
     ; Color: bright green
     LDI r11, 0x22CC22
-    WPIXEL r7, r13, r14, r11
+    WPIXEL r3, r13, r5, r11
 
-    ADD r2, r18
+    ADD r9, r18
     LDI r13, 1
     JMP dp_bar
 
 dp_after_bar:
     ; Advance x cursor
     LDI r20, TERM_CUR_X
-    LOAD r7, r20
-    ADD r7, r13
-    STORE r20, r7
+    LOAD r3, r20
+    ADD r3, r13
+    STORE r20, r3
     JMP dp_next
 
 dp_newline:
     ; Reset x, advance y
     LDI r20, TERM_CUR_X
-    LDI r7, 0
-    STORE r20, r7
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, TERM_CUR_Y
-    LOAD r7, r20
-    ADD r7, r13
-    STORE r20, r7
+    LOAD r3, r20
+    ADD r3, r13
+    STORE r20, r3
 
 dp_next:
-    ADD r15, r13
+    ADD r6, r13
     LDI r13, 1
     JMP dp_loop
 
@@ -553,93 +553,93 @@ update_sysmon:
 
     ; Check window exists
     LDI r20, SYSMON_WIN
-    LOAD r7, r20
-    CMPI r7, 0
-    JZ r7, us_done
+    LOAD r3, r20
+    CMPI r3, 0
+    JZ r3, us_done
 
     ; Check dirty flag
     LDI r20, DIRTY_SYSMON
-    LOAD r7, r20
-    CMPI r7, 0
-    JZ r7, us_done
+    LOAD r3, r20
+    CMPI r3, 0
+    JZ r3, us_done
 
     ; Clear dirty
     LDI r20, DIRTY_SYSMON
-    LDI r7, 0
-    STORE r20, r7
+    LDI r3, 0
+    STORE r20, r3
 
     ; Heartbeat bar (frame % 50), cyan, at y=2
     LDI r20, FRAME_COUNT
-    LOAD r1, r20
-    LDI r10, 50
-    MOD r1, r10
-    LDI r9, 0
+    LOAD r2, r20
+    LDI r8, 50
+    MOD r2, r8
+    LDI r12, 0
 
 us_bar:
-    CMP r9, r1
-    BGE r7, us_dots
-    LDI r7, SYSMON_WIN
-    LOAD r7, r7
-    MOV r13, r9
-    LDI r14, 2
+    CMP r12, r2
+    BGE r3, us_dots
+    LDI r3, SYSMON_WIN
+    LOAD r3, r3
+    MOV r13, r12
+    LDI r5, 2
     LDI r11, COL_CYAN
-    WPIXEL r7, r13, r14, r11
+    WPIXEL r3, r13, r5, r11
     LDI r13, 1
-    ADD r9, r13
+    ADD r12, r13
     JMP us_bar
 
 us_dots:
     ; Dot row (frame % 16), yellow, at y=8
     LDI r20, FRAME_COUNT
-    LOAD r1, r20
-    LDI r10, 16
-    MOD r1, r10
-    LDI r9, 0
+    LOAD r2, r20
+    LDI r8, 16
+    MOD r2, r8
+    LDI r12, 0
 
 us_dot_loop:
-    CMP r9, r1
-    BGE r7, us_draw_text
-    LDI r7, SYSMON_WIN
-    LOAD r7, r7
-    MOV r13, r9
-    LDI r14, 8
+    CMP r12, r2
+    BGE r3, us_draw_text
+    LDI r3, SYSMON_WIN
+    LOAD r3, r3
+    MOV r13, r12
+    LDI r5, 8
     LDI r11, COL_YELLOW
-    WPIXEL r7, r13, r14, r11
+    WPIXEL r3, r13, r5, r11
     LDI r13, 1
-    ADD r9, r13
+    ADD r12, r13
     JMP us_dot_loop
 
 us_draw_text:
     ; "GEOS" pixel art at (5, 25)
-    LDI r12, 5
+    LDI r14, 5
     LDI r16, 25
     CALL pxl_G
-    ADD r12, r13
-    ADD r12, r13
-    ADD r12, r13
-    ADD r12, r13
+    ADD r14, r13
+    ADD r14, r13
+    ADD r14, r13
+    ADD r14, r13
     CALL pxl_E
-    ADD r12, r13
-    ADD r12, r13
-    ADD r12, r13
-    ADD r12, r13
+    ADD r14, r13
+    ADD r14, r13
+    ADD r14, r13
+    ADD r14, r13
     CALL pxl_O
-    ADD r12, r13
-    ADD r12, r13
-    ADD r12, r13
-    ADD r12, r13
+    ADD r14, r13
+    ADD r14, r13
+    ADD r14, r13
+    ADD r14, r13
     CALL pxl_S
 
     ; Redirty every 30 frames
     LDI r20, BLINK_COUNT
-    LOAD r7, r20
-    LDI r10, 30
-    MOD r7, r10
-    CMPI r7, 0
-    JNZ r7, us_done
+    LOAD r3, r20
+    LDI r8, 30
+    MOD r3, r8
+    CMPI r3, 0
+    JNZ r3, us_done
     LDI r20, DIRTY_SYSMON
-    LDI r7, 1
-    STORE r20, r7
+    LDI r3, 1
+    STORE r20, r3
 
 us_done:
     POP r31
@@ -654,32 +654,32 @@ update_taskbar:
 
     ; Only every 10 frames
     LDI r20, FRAME_COUNT
-    LOAD r7, r20
-    LDI r10, 10
-    MOD r7, r10
-    CMPI r7, 0
-    JNZ r7, ut_done
+    LOAD r3, r20
+    LDI r8, 10
+    MOD r3, r8
+    CMPI r3, 0
+    JNZ r3, ut_done
 
     ; Bar width = frame % 100 at y=249
     LDI r20, FRAME_COUNT
-    LOAD r1, r20
-    LDI r10, 100
-    MOD r1, r10
-    ; Save loop limit in r18 (r1 will be clobbered by color LDI)
-    MOV r18, r1
-    LDI r9, 0
+    LOAD r2, r20
+    LDI r8, 100
+    MOD r2, r8
+    ; Save loop limit in r18 (r2 will be clobbered by color LDI)
+    MOV r18, r2
+    LDI r12, 0
 
 ut_bar:
-    CMP r9, r18
-    BGE r7, ut_done
-    MOV r13, r9
-    LDI r14, 249
+    CMP r12, r18
+    BGE r3, ut_done
+    MOV r13, r12
+    LDI r5, 249
     LDI r11, 1
-    LDI r6, 5
-    LDI r1, 0x444466
-    RECTF r13, r14, r11, r6, r1
+    LDI r1, 5
+    LDI r2, 0x444466
+    RECTF r13, r5, r11, r1, r2
     LDI r13, 1
-    ADD r9, r13
+    ADD r12, r13
     JMP ut_bar
 
 ut_done:
@@ -688,43 +688,43 @@ ut_done:
 
 ; =========================================
 ; PIXEL LETTER ROUTINES (3x5 each)
-; Draw at (r12, r16) in sysmon window, green
+; Draw at (r14, r16) in sysmon window, green
 ; =========================================
 
 pxl_G:
     PUSH r31
     LDI r13, 1
-    LDI r7, SYSMON_WIN
-    LOAD r7, r7
+    LDI r3, SYSMON_WIN
+    LOAD r3, r3
     LDI r11, COL_GREEN
-    MOV r13, r12
-    MOV r14, r16
-    WPIXEL r7, r13, r14, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r14, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r14, r11
+    MOV r13, r14
+    MOV r5, r16
+    WPIXEL r3, r13, r5, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r5, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r5, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
-    SUB r12, r13
-    SUB r12, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
+    SUB r14, r13
+    SUB r14, r13
     SUB r16, r13
     SUB r16, r13
     SUB r16, r13
@@ -735,38 +735,38 @@ pxl_G:
 pxl_E:
     PUSH r31
     LDI r13, 1
-    LDI r7, SYSMON_WIN
-    LOAD r7, r7
+    LDI r3, SYSMON_WIN
+    LOAD r3, r3
     LDI r11, COL_GREEN
-    MOV r13, r12
-    MOV r14, r16
-    WPIXEL r7, r13, r14, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r14, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r14, r11
+    MOV r13, r14
+    MOV r5, r16
+    WPIXEL r3, r13, r5, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r5, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r5, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
-    SUB r12, r13
-    SUB r12, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
+    SUB r14, r13
+    SUB r14, r13
     SUB r16, r13
     SUB r16, r13
     SUB r16, r13
@@ -777,47 +777,47 @@ pxl_E:
 pxl_O:
     PUSH r31
     LDI r13, 1
-    LDI r7, SYSMON_WIN
-    LOAD r7, r7
+    LDI r3, SYSMON_WIN
+    LOAD r3, r3
     LDI r11, COL_GREEN
-    MOV r13, r12
-    MOV r14, r16
-    WPIXEL r7, r13, r14, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r14, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r14, r11
+    MOV r13, r14
+    MOV r5, r16
+    WPIXEL r3, r13, r5, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r5, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r5, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
-    SUB r12, r13
-    SUB r12, r13
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
+    SUB r14, r13
+    SUB r14, r13
     SUB r16, r13
     SUB r16, r13
     SUB r16, r13
@@ -828,32 +828,32 @@ pxl_O:
 pxl_S:
     PUSH r31
     LDI r13, 1
-    LDI r7, SYSMON_WIN
-    LOAD r7, r7
+    LDI r3, SYSMON_WIN
+    LOAD r3, r3
     LDI r11, COL_GREEN
-    MOV r13, r12
-    MOV r14, r16
-    ADD r12, r13
-    WPIXEL r7, r12, r14, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r14, r11
+    MOV r13, r14
+    MOV r5, r16
+    ADD r14, r13
+    WPIXEL r3, r14, r5, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r5, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
     ADD r16, r13
-    SUB r12, r13
-    SUB r12, r13
-    WPIXEL r7, r12, r16, r11
-    ADD r12, r13
-    WPIXEL r7, r12, r16, r11
-    SUB r12, r13
+    SUB r14, r13
+    SUB r14, r13
+    WPIXEL r3, r14, r16, r11
+    ADD r14, r13
+    WPIXEL r3, r14, r16, r11
+    SUB r14, r13
     SUB r16, r13
     SUB r16, r13
     SUB r16, r13

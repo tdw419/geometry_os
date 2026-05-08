@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a display with a dark blue title bar labeled "Alpine Linux Live Tile" and green borders around the terminal area. It provides usage instructions for hypervisor commands such as `hypervisor_boot`, `hypervisor_status`, and others, rendered in text at specific coordinates on the screen.
+; DESCRIPTION: Geometry OS program to draw a red object.
 
 ; alpine_tile.asm -- Alpine Linux Live Tile (Phase 123)
 ;
@@ -14,48 +14,48 @@
 ;   hypervisor_kill                     (clean up)
 
 ; Title bar
-LDI r8, 0x000033   ; dark blue
-LDI r6, 0
-LDI r3, 0
-LDI r5, 256
-LDI r11, 16
-RECTF r6, r3, r5, r11, r8
+LDI r9, 0x000033   ; dark blue
+LDI r2, 0
+LDI r15, 0
+LDI r8, 256
+LDI r4, 16
+RECTF r2, r15, r8, r4, r9
 
 ; Title text
-LDI r2, 0x3000
-STRO r2, "Alpine Linux Live Tile"
-LDI r7, 3
+LDI r1, 0x3000
+STRO r1, "Alpine Linux Live Tile"
+LDI r6, 3
 LDI r16, 4
-TEXT r7, r16, r2
+TEXT r6, r16, r1
 
 ; Status text
-LDI r2, 0x3100
-STRO r2, "Use: hypervisor_boot"
-LDI r7, 2
+LDI r1, 0x3100
+STRO r1, "Use: hypervisor_boot"
+LDI r6, 2
 LDI r16, 20
-TEXT r7, r16, r2
+TEXT r6, r16, r1
 
-LDI r2, 0x3200
-STRO r2, "Status: hypervisor_status"
-LDI r7, 2
+LDI r1, 0x3200
+STRO r1, "Status: hypervisor_status"
+LDI r6, 2
 LDI r16, 28
-TEXT r7, r16, r2
+TEXT r6, r16, r1
 
 ; Draw a frame around the terminal area
-LDI r8, 0x00FF00   ; green frame
-LDI r6, 0
-LDI r3, 16
-LDI r5, 256
-LDI r11, 1
-RECTF r6, r3, r5, r11, r8  ; top border
-LDI r3, 255
-RECTF r6, r3, r5, r11, r8  ; bottom border
-LDI r6, 0
-LDI r3, 16
-LDI r5, 1
-LDI r11, 240
-RECTF r6, r3, r5, r11, r8  ; left border
-LDI r6, 255
-RECTF r6, r3, r5, r11, r8  ; right border
+LDI r9, 0x00FF00   ; green frame
+LDI r2, 0
+LDI r15, 16
+LDI r8, 256
+LDI r4, 1
+RECTF r2, r15, r8, r4, r9  ; top border
+LDI r15, 255
+RECTF r2, r15, r8, r4, r9  ; bottom border
+LDI r2, 0
+LDI r15, 16
+LDI r8, 1
+LDI r4, 240
+RECTF r2, r15, r8, r4, r9  ; left border
+LDI r2, 255
+RECTF r2, r15, r8, r4, r9  ; right border
 
 HALT

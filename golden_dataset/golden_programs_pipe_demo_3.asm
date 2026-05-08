@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates inter-process communication (IPC) using pipes. It creates a pipe, writes five values into it, reads them back, and displays the result on screen by showing the text "PIPE IPC OK" and drawing a green line to indicate success.
+; DESCRIPTION: A green line centered at the screen with fixed size.
 
 ; pipe_demo.asm -- Phase 27 IPC Demo
 ; Demonstrates pipes, MSGSND/MSGRCV, and blocking I/O
@@ -14,7 +14,7 @@
 .org 0x100
 
 ; === Phase 1: Create a pipe ===
-PIPE r9, r7          ; r9 = read_fd (0x8000+idx), r7 = write_fd (0xC000+idx)
+PIPE r15, r5          ; r15 = read_fd (0x8000+idx), r5 = write_fd (0xC000+idx)
 
 ; === Phase 2: Write 5 values into the pipe ===
 LDI r13, 42           ; value 1
@@ -30,32 +30,32 @@ STORE r24, r13
 
 ; WRITE write_fd, buf_addr, len
 LDI r13, 20           ; buf_addr = 0x14 (r20)
-LDI r3, 5            ; len = 5
-WRITE r7, r13, r3     ; write 5 words to pipe
+LDI r4, 5            ; len = 5
+WRITE r5, r13, r4     ; write 5 words to pipe
 
 ; === Phase 3: Read 5 values back from the pipe ===
 LDI r13, 30           ; buf_addr = 0x1E (r30)
-LDI r3, 5            ; len = 5
-READ r9, r13, r3      ; read 5 words from pipe
+LDI r4, 5            ; len = 5
+READ r15, r13, r4      ; read 5 words from pipe
 
 ; === Phase 4: Display result on screen ===
-LDI r4, 10          ; x position
-LDI r11, 10          ; y position
+LDI r0, 10          ; x position
+LDI r7, 10          ; y position
 FILL 0               ; clear screen (black)
 
 ; Show "IPC OK" text
-LDI r4, 100
-LDI r11, 120
+LDI r0, 100
+LDI r7, 120
 LDI r1, msg
-TEXT r4, r11, [r1]
+TEXT r0, r7, [r1]
 
 ; Draw a green line to indicate success
-LDI r4, 100
-LDI r11, 130
+LDI r0, 100
+LDI r7, 130
 LDI r1, 156
-LDI r5, 130
-LDI r10, 0x00FF00    ; green
-LINE r4, r11, r1, r5, r10
+LDI r12, 130
+LDI r6, 0x00FF00    ; green
+LINE r0, r7, r1, r12, r6
 
 HALT
 

@@ -1,4 +1,4 @@
-; DESCRIPTION: This assembly code initializes a virtual environment with a map containing a hypervisor building. It handles player movement, rendering of the terrain and building, proximity checks, and creates a window when the player enters the building to simulate booting a Linux system using a hypervisor. The code manages memory for configuration strings, window titles, player position, and flags, and uses WINSYS and HYPERVISOR instructions to create and configure the virtual environment.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; linux_building.asm -- Hypervisor Building Demo (Phase 86)
 ; Demonstrates: player sees hypervisor building on map, enters it,
@@ -21,13 +21,13 @@
 ;   0x7584  - nearby_bldg_ptr
 
 ; ===== Constants =====
-LDI r0, 1
-LDI r12, 64
-LDI r13, 4              ; tile size
-LDI r11, 0xFFB          ; key bitmask port
-LDI r3, 0x7FFE        ; frame_counter (TICKS)
-LDI r14, 0             ; player_x (will init)
-LDI r2, 0             ; player_y (will init)
+LDI r10, 1
+LDI r1, 64
+LDI r11, 4              ; tile size
+LDI r8, 0xFFB          ; key bitmask port
+LDI r2, 0x7FFE        ; frame_counter (TICKS)
+LDI r4, 0             ; player_x (will init)
+LDI r9, 0             ; player_y (will init)
 
 ; ===== Initialize Config String at 0x2000 =====
 LDI r20, 0x2000
@@ -96,17 +96,17 @@ STORE r17, r18         ; window_id = 0
 main_loop:
 
 ; Increment frame counter
-LOAD r17, r3
-ADD r17, r0
-STORE r3, r17
+LOAD r17, r2
+ADD r17, r10
+STORE r2, r17
 
 ; --- Read key bitmask ---
-LOAD r16, r11
+LOAD r16, r8
 
 ; --- Process movement ---
 ; Throttle to ~7.5 moves/sec
 LDI r17, 7
-LOAD r18, r3
+LOAD r18, r2
 AND r18, r17
 JNZ r18, skip_move
 
@@ -120,7 +120,7 @@ LDI r18, 0
 STORE r17, r18
 LDI r17, 0x7809
 LOAD r18, r17
-SUB r18, r0
+SUB r18, r10
 STORE r17, r18
 no_up:
 
@@ -134,7 +134,7 @@ LDI r18, 1
 STORE r17, r18
 LDI r17, 0x7809
 LOAD r18, r17
-ADD r18, r0
+ADD r18, r10
 STORE r17, r18
 no_down:
 
@@ -148,7 +148,7 @@ LDI r18, 2
 STORE r17, r18
 LDI r17, 0x7808
 LOAD r18, r17
-SUB r18, r0
+SUB r18, r10
 STORE r17, r18
 no_left:
 
@@ -162,7 +162,7 @@ LDI r18, 3
 STORE r17, r18
 LDI r17, 0x7808
 LOAD r18, r17
-ADD r18, r0
+ADD r18, r10
 STORE r17, r18
 no_right:
 
@@ -170,41 +170,41 @@ skip_move:
 
 ; --- Re-read player position ---
 LDI r18, 0x7808
-LOAD r14, r18
+LOAD r4, r18
 LDI r18, 0x7809
-LOAD r2, r18
+LOAD r9, r18
 
 ; --- Compute camera ---
 LDI r17, 32
-MOV r18, r14
+MOV r18, r4
 SUB r18, r17
 LDI r17, 0x7800
 STORE r17, r18
 LDI r17, 32
-MOV r18, r2
+MOV r18, r9
 SUB r18, r17
 LDI r17, 0x7801
 STORE r17, r18
 
 ; ===== Render Scene =====
-FILL r6                ; clear screen to black
+FILL r7                ; clear screen to black
 
 ; --- Draw terrain (simple gradient) ---
-LDI r11, 0
-LDI r5, 0
-LDI r1, 0x1A3A1A     ; dark green
+LDI r8, 0
+LDI r12, 0
+LDI r6, 0x1A3A1A     ; dark green
 y_loop:
-  LDI r5, 0
+  LDI r12, 0
   x_loop:
-    PSET r5, r11, r1
-    ADD r5, r0
+    PSET r12, r8, r6
+    ADD r12, r10
     LDI r17, 256
-    CMP r5, r17
-    BLT r6, x_loop
-  ADD r11, r0
+    CMP r12, r17
+    BLT r7, x_loop
+  ADD r8, r10
   LDI r17, 256
-  CMP r11, r17
-  BLT r6, y_loop
+  CMP r8, r17
+  BLT r7, y_loop
 
 ; --- Draw Building ---
 PUSH r31
@@ -215,9 +215,9 @@ LDI r17, 0
 
 bldg_loop:
   MOV r22, r20
-  LOAD r4, r22         ; bldg world_x
+  LOAD r15, r22         ; bldg world_x
   ADDI r22, 1
-  LOAD r10, r22         ; bldg world_y
+  LOAD r0, r22         ; bldg world_y
   ADDI r22, 1
   LOAD r25, r22        ; type_color
   ADDI r22, 1
@@ -225,14 +225,14 @@ bldg_loop:
   ; Screen coords
   LDI r18, 0x7800
   LOAD r27, r18
-  MOV r28, r4
+  MOV r28, r15
   SUB r28, r27
   LDI r18, 4
   MUL r28, r18         ; screen_x
 
   LDI r18, 0x7801
   LOAD r27, r18
-  MOV r29, r10
+  MOV r29, r0
   SUB r29, r27
   LDI r18, 4
   MUL r29, r18         ; screen_y
@@ -278,7 +278,7 @@ bldg_loop:
   LOAD r27, r18
   LDI r18, 0x7809
   LOAD r18, r18
-  MOV r22, r4
+  MOV r22, r15
   ADDI r22, 3
   MOV r23, r27
   SUB r23, r22
@@ -294,9 +294,9 @@ dx_ok:
 dx_abs:
   LDI r24, 5
   CMP r23, r24
-  BGE r6, bldg_next
+  BGE r7, bldg_next
 
-  MOV r22, r10
+  MOV r22, r0
   ADDI r22, 4
   MOV r23, r18
   SUB r23, r22
@@ -312,7 +312,7 @@ dy_ok:
 dy_abs:
   LDI r24, 5
   CMP r23, r24
-  BGE r6, bldg_next
+  BGE r7, bldg_next
 
   ; Nearby
   LDI r17, 1
@@ -324,7 +324,7 @@ bldg_next:
   ADDI r17, 1
   MOV r22, r17
   CMP r22, r21
-  BLT r6, bldg_loop
+  BLT r7, bldg_loop
 POP r31
 
 ; --- Draw Player (blue square at center) ---
@@ -365,54 +365,54 @@ LDI r17, 0x7810
 LOAD r18, r17
 JNZ r18, already_open  ; window already created
 
-; WINSYS op=0: create window (r8=x, r15=y, r4=w, r10=h, r9=title_addr)
+; WINSYS op=0: create window (r3=x, r13=y, r15=w, r0=h, r5=title_addr)
 LDI r17, 0x94
-LDI r18, 1             ; op_reg = r8, set r8=0 (op=0=create)
-LDI r8, 0              ; op = 0 (create)
-LDI r15, 16             ; x = 16
-LDI r4, 16             ; y = 16
-LDI r10, 200            ; w = 200
-LDI r9, 150            ; h = 150
-LDI r7, 0x2100         ; title_addr = "Linux Terminal"
-STORE r7, r7           ; ensure title exists
+LDI r18, 1             ; op_reg = r3, set r3=0 (op=0=create)
+LDI r3, 0              ; op = 0 (create)
+LDI r13, 16             ; x = 16
+LDI r15, 16             ; y = 16
+LDI r0, 200            ; w = 200
+LDI r5, 150            ; h = 150
+LDI r14, 0x2100         ; title_addr = "Linux Terminal"
+STORE r14, r14           ; ensure title exists
 
 ; Call WINSYS via inline bytecode simulation
 ; We need to use the opcode directly -- use a RAM-based approach
 ; Write the WINSYS create instruction to RAM and execute it
-LDI r11, 0x3000
-LDI r5, 0x94          ; WINSYS opcode
-STORE r11, r5
-ADDI r11, 1
-LDI r5, 1             ; op_reg = r8
-STORE r11, r5
-LDI r11, 0x3000
+LDI r8, 0x3000
+LDI r12, 0x94          ; WINSYS opcode
+STORE r8, r12
+ADDI r8, 1
+LDI r12, 1             ; op_reg = r3
+STORE r8, r12
+LDI r8, 0x3000
 CALL do_winsys_create
 JMP after_create
 
 do_winsys_create:
   ; Set up registers for WINSYS create
-  LDI r8, 0             ; op = 0 (create)
-  LDI r15, 16            ; x
-  LDI r4, 16            ; y
-  LDI r10, 200           ; w
-  LDI r9, 150           ; h
-  LDI r7, 0x2100        ; title addr
+  LDI r3, 0             ; op = 0 (create)
+  LDI r13, 16            ; x
+  LDI r15, 16            ; y
+  LDI r0, 200           ; w
+  LDI r5, 150           ; h
+  LDI r14, 0x2100        ; title addr
 
   ; Use WINSYS instruction directly
-  WINSYS r8
-  ; r6 = window_id (returned by create)
-  LDI r11, 0x7810
-  STORE r11, r6         ; save window_id
+  WINSYS r3
+  ; r7 = window_id (returned by create)
+  LDI r8, 0x7810
+  STORE r8, r7         ; save window_id
   RET
 
 after_create:
 
 ; Now configure HYPERVISOR to target this window
-LDI r11, 0x7810
-LOAD r11, r11          ; r11 = window_id
-LDI r5, 0x2000        ; config string addr
-HYPERVISOR r5, r11    ; boot hypervisor, target window
-; r6 = 0 on success
+LDI r8, 0x7810
+LOAD r8, r8          ; r8 = window_id
+LDI r12, 0x2000        ; config string addr
+HYPERVISOR r12, r8    ; boot hypervisor, target window
+; r7 = 0 on success
 
 ; Show status
 LDI r17, 0x7820
@@ -420,7 +420,7 @@ STRO r17, "HYPERVISOR: booting..."
 LDI r18, 80
 LDI r19, 200
 LDI r20, 0x88FF88
-DRAWTEXT r18, r19, r17, r20, r6
+DRAWTEXT r18, r19, r17, r20, r7
 
 JMP enter_done
 
@@ -431,7 +431,7 @@ STRO r17, "HYPERVISOR: running"
 LDI r18, 80
 LDI r19, 200
 LDI r20, 0x88FF88
-DRAWTEXT r18, r19, r17, r20, r6
+DRAWTEXT r18, r19, r17, r20, r7
 
 enter_done:
 no_enter:

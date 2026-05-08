@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code plays the melody "Mary Had a Little Lamb" using a square wave tone. Each note is accompanied by a visual bar that changes color to represent the frequency of the note being played, with synchronization achieved through the `FRAME` command after each note.
+; DESCRIPTION: Draws a colored square at the screen with fixed size.
 
 ; music_demo.asm -- Simple melody with visual accompany
 ;
@@ -9,10 +9,10 @@
 ;         E4 D4 C4 D4 E4 E4 E4 E4  D4 D4 E4 D4 C4
 ;
 ; Registers:
-;   r11  = waveform (1 = square)
-;   r10  = frequency (Hz)
-;   r8  = duration (ms)
-;   r7 = bar color
+;   r9  = waveform (1 = square)
+;   r3  = frequency (Hz)
+;   r12  = duration (ms)
+;   r5 = bar color
 ;   r20 = scratch
 
 ; ── constants ─────────────────────────────────────────────────────
@@ -30,173 +30,173 @@ LDI r30, 0xFF00    ; stack pointer
 ; ── Melody: E D C D | E E E(h) | D D D(h) | E G G(h) ────────────
 
 ; Bar 1: E4 D4 C4 D4
-  LDI r11, WF_SQUARE
-  LDI r10, FREQ_E4
-  LDI r8, DUR_Q
-  LDI r7, 0x00FFFF
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r9, WF_SQUARE
+  LDI r3, FREQ_E4
+  LDI r12, DUR_Q
+  LDI r5, 0x00FFFF
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_D4
-  LDI r8, DUR_Q
-  LDI r7, 0x00CCCC
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_D4
+  LDI r12, DUR_Q
+  LDI r5, 0x00CCCC
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_C4
-  LDI r8, DUR_Q
-  LDI r7, 0x009999
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_C4
+  LDI r12, DUR_Q
+  LDI r5, 0x009999
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_D4
-  LDI r8, DUR_Q
-  LDI r7, 0x00CCCC
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_D4
+  LDI r12, DUR_Q
+  LDI r5, 0x00CCCC
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
 ; Bar 2: E4 E4 E4(half)
-  LDI r10, FREQ_E4
-  LDI r8, DUR_Q
-  LDI r7, 0x00FFFF
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_E4
+  LDI r12, DUR_Q
+  LDI r5, 0x00FFFF
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_E4
-  LDI r8, DUR_Q
-  NOTE r11, r10, r8
+  LDI r3, FREQ_E4
+  LDI r12, DUR_Q
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r8, DUR_H
-  NOTE r11, r10, r8
+  LDI r12, DUR_H
+  NOTE r9, r3, r12
   FRAME
 
 ; Bar 3: D4 D4 D4(half)
-  LDI r10, FREQ_D4
-  LDI r8, DUR_Q
-  LDI r7, 0x00CCCC
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_D4
+  LDI r12, DUR_Q
+  LDI r5, 0x00CCCC
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r8, DUR_Q
-  NOTE r11, r10, r8
+  LDI r12, DUR_Q
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r8, DUR_H
-  NOTE r11, r10, r8
+  LDI r12, DUR_H
+  NOTE r9, r3, r12
   FRAME
 
 ; Bar 4: E4 G4 G4(half)
-  LDI r10, FREQ_E4
-  LDI r8, DUR_Q
-  LDI r7, 0x00FFFF
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_E4
+  LDI r12, DUR_Q
+  LDI r5, 0x00FFFF
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_G4
-  LDI r8, DUR_Q
-  LDI r7, 0x00FF99
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_G4
+  LDI r12, DUR_Q
+  LDI r5, 0x00FF99
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r8, DUR_H
-  NOTE r11, r10, r8
+  LDI r12, DUR_H
+  NOTE r9, r3, r12
   FRAME
 
 ; ── Melody part 2: E D C D | E E E E(h) | D D E D | C(h) ───────
 
 ; Bar 5: E4 D4 C4 D4
-  LDI r10, FREQ_E4
-  LDI r8, DUR_Q
-  LDI r7, 0x00FFFF
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_E4
+  LDI r12, DUR_Q
+  LDI r5, 0x00FFFF
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_D4
-  LDI r8, DUR_Q
-  LDI r7, 0x00CCCC
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_D4
+  LDI r12, DUR_Q
+  LDI r5, 0x00CCCC
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_C4
-  LDI r8, DUR_Q
-  LDI r7, 0x009999
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_C4
+  LDI r12, DUR_Q
+  LDI r5, 0x009999
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_D4
-  LDI r8, DUR_Q
-  LDI r7, 0x00CCCC
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_D4
+  LDI r12, DUR_Q
+  LDI r5, 0x00CCCC
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
 ; Bar 6: E4 E4 E4 E4(half)
-  LDI r10, FREQ_E4
-  LDI r8, DUR_Q
-  LDI r7, 0x00FFFF
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_E4
+  LDI r12, DUR_Q
+  LDI r5, 0x00FFFF
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r8, DUR_Q
-  NOTE r11, r10, r8
+  LDI r12, DUR_Q
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r8, DUR_Q
-  NOTE r11, r10, r8
+  LDI r12, DUR_Q
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r8, DUR_H
-  NOTE r11, r10, r8
+  LDI r12, DUR_H
+  NOTE r9, r3, r12
   FRAME
 
 ; Bar 7: D4 D4 E4 D4
-  LDI r10, FREQ_D4
-  LDI r8, DUR_Q
-  LDI r7, 0x00CCCC
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_D4
+  LDI r12, DUR_Q
+  LDI r5, 0x00CCCC
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r8, DUR_Q
-  NOTE r11, r10, r8
+  LDI r12, DUR_Q
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_E4
-  LDI r8, DUR_Q
-  LDI r7, 0x00FFFF
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_E4
+  LDI r12, DUR_Q
+  LDI r5, 0x00FFFF
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
-  LDI r10, FREQ_D4
-  LDI r8, DUR_Q
-  LDI r7, 0x00CCCC
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_D4
+  LDI r12, DUR_Q
+  LDI r5, 0x00CCCC
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
 ; Bar 8: C4(half) -- final note
-  LDI r10, FREQ_C4
-  LDI r8, DUR_H
-  LDI r7, 0x009999
-  FILL r7
-  NOTE r11, r10, r8
+  LDI r3, FREQ_C4
+  LDI r12, DUR_H
+  LDI r5, 0x009999
+  FILL r5
+  NOTE r9, r3, r12
   FRAME
 
 ; ── done ────────────────────────────────────────────────────────
-  LDI r7, 0
-  FILL r7
+  LDI r5, 0
+  FILL r5
   HALT

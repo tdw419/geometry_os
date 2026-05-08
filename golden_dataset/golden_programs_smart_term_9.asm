@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code implements a terminal interface with AI assistance. It allows users to type text and press Tab to send prompts to an external AI, displaying the response on screen. The code manages memory buffers for input, responses, and status messages, uses registers for various purposes including cursor position and constants, and includes functions for drawing text, handling keyboard input, and interacting with the AI via a specific opcode.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; smart_term.asm -- Terminal with AI assist
 ; Type text, press Tab to ask the LLM, response appears on screen.
@@ -10,114 +10,114 @@
 ;   0x2500-0x25FF: Status line text
 ;
 ; Registers:
-;   r9: CMP result (reserved)
-;   r8: Key input from IKEY
-;   r0: Cursor position (offset into input buffer)
-;   r1: Input buffer base (0x2000)
+;   r7: CMP result (reserved)
+;   r4: Key input from IKEY
+;   r13: Cursor position (offset into input buffer)
+;   r12: Input buffer base (0x2000)
 ;   r6: Response buffer base (0x2100)
-;   r2: Max response length (256)
-;   r15: Response length (from LLM opcode)
-;   r14: Constant 1
-;   r4: Constant 9 (Tab ASCII)
-;   r5: Constant 10 (Enter/LF)
-;   r12: Constant 8 (Backspace)
-;   r11: Constant 27 (Escape)
-;   r13: Loop temp
-;   r3: Screen Y for text rendering
-;   r7: Constant 32 (space)
-;   r10: Tick counter for blinking cursor
+;   r3: Max response length (256)
+;   r2: Response length (from LLM opcode)
+;   r8: Constant 1
+;   r11: Constant 9 (Tab ASCII)
+;   r15: Constant 10 (Enter/LF)
+;   r10: Constant 8 (Backspace)
+;   r1: Constant 27 (Escape)
+;   r0: Loop temp
+;   r9: Screen Y for text rendering
+;   r14: Constant 32 (space)
+;   r5: Tick counter for blinking cursor
 ;   r16: Color for prompt text
 
 ; Initialize constants
-LDI r1, 0x2000          ; input buffer base
+LDI r12, 0x2000          ; input buffer base
 LDI r6, 0x2100          ; response buffer base
-LDI r2, 256             ; max response length
-LDI r14, 1
-LDI r4, 9               ; Tab
-LDI r5, 10              ; LF
-LDI r12, 8              ; Backspace
-LDI r11, 27             ; Escape
-LDI r7, 32             ; Space
-LDI r10, 0              ; tick counter
+LDI r3, 256             ; max response length
+LDI r8, 1
+LDI r11, 9               ; Tab
+LDI r15, 10              ; LF
+LDI r10, 8              ; Backspace
+LDI r1, 27             ; Escape
+LDI r14, 32             ; Space
+LDI r5, 0              ; tick counter
 LDI r16, 0x00FF00       ; green color for prompt
 
 ; Write title bar
-LDI r13, 0
+LDI r0, 0
 CALL draw_title
 
 ; Write prompt indicator "> " at top
-LDI r13, 0x2000
-LDI r3, 0
+LDI r0, 0x2000
+LDI r9, 0
 CALL clear_input
 
 ; Write status line
-LDI r13, 0x2500
-LDI r3, 0x00FFFF       ; cyan
-LDI r7, 28             ; screen Y position
+LDI r0, 0x2500
+LDI r9, 0x00FFFF       ; cyan
+LDI r14, 28             ; screen Y position
 CALL write_status
 
 ; Main loop
 main_loop:
-    FILL r9             ; clear screen (black)
+    FILL r7             ; clear screen (black)
     ; Redraw on every frame
 
     ; Draw title
     CALL draw_title
 
     ; Draw input prompt "> " in green
-    LDI r13, 0x00FF00   ; green
-    LDI r3, 2           ; x
-    LDI r7, 4           ; y (below title)
-    LDI r10, 0x2000      ; input buffer
+    LDI r0, 0x00FF00   ; green
+    LDI r9, 2           ; x
+    LDI r14, 4           ; y (below title)
+    LDI r5, 0x2000      ; input buffer
     CALL draw_text_line
 
     ; Draw response in white below input
-    LDI r13, 0xFFFFFF   ; white
-    LDI r3, 2           ; x
-    LDI r7, 6           ; y (below prompt)
-    LDI r10, 0x2100      ; response buffer
+    LDI r0, 0xFFFFFF   ; white
+    LDI r9, 2           ; x
+    LDI r14, 6           ; y (below prompt)
+    LDI r5, 0x2100      ; response buffer
     CALL draw_text_line
 
     ; Draw status bar
-    LDI r13, 0x00FFFF   ; cyan
-    LDI r3, 2           ; x
-    LDI r7, 28          ; y (bottom area)
-    LDI r10, 0x2500      ; status buffer
+    LDI r0, 0x00FFFF   ; cyan
+    LDI r9, 2           ; x
+    LDI r14, 28          ; y (bottom area)
+    LDI r5, 0x2500      ; status buffer
     CALL draw_text_line
 
     ; Read keyboard
-    IKEY r8
-    LDI r13, 0
-    ADD r13, r8
-    JZ r13, main_loop_continue
+    IKEY r4
+    LDI r0, 0
+    ADD r0, r4
+    JZ r0, main_loop_continue
 
     ; Check Escape
-    CMP r8, r11
-    JZ r9, done
+    CMP r4, r1
+    JZ r7, done
 
     ; Check Tab (send to LLM)
-    CMP r8, r4
-    JZ r9, send_to_llm
+    CMP r4, r11
+    JZ r7, send_to_llm
 
     ; Check Enter (clear input)
-    CMP r8, r5
-    JZ r9, handle_enter
+    CMP r4, r15
+    JZ r7, handle_enter
 
     ; Check Backspace
-    CMP r8, r12
-    JZ r9, handle_backspace
+    CMP r4, r10
+    JZ r7, handle_backspace
 
     ; Regular character - store in input buffer
     ; Find end of current input (null terminator)
-    LDI r13, 0x2000
+    LDI r0, 0x2000
     CALL find_end
-    ; r13 = address of null terminator
+    ; r0 = address of null terminator
     ; Check buffer not full
-    LDI r3, 0x20FF
-    CMP r13, r3
-    BGE r9, main_loop_continue
+    LDI r9, 0x20FF
+    CMP r0, r9
+    BGE r7, main_loop_continue
     ; Store character
-    STORE r13, r8
+    STORE r0, r4
 
 main_loop_continue:
     FRAME
@@ -126,149 +126,149 @@ main_loop_continue:
 ; --- Send prompt to LLM ---
 send_to_llm:
     ; Update status to "Thinking..."
-    LDI r13, 0x2500
-    LDI r3, 84           ; 'T'
-    STORE r13, r3
-    LDI r3, 104          ; 'h'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 105          ; 'i'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 110          ; 'n'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 107          ; 'k'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 105          ; 'i'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 110          ; 'n'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 103          ; 'g'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 46           ; '.'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 46           ; '.'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 46           ; '.'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 0            ; null terminate
-    ADD r13, r14
-    STORE r13, r3
+    LDI r0, 0x2500
+    LDI r9, 84           ; 'T'
+    STORE r0, r9
+    LDI r9, 104          ; 'h'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 105          ; 'i'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 110          ; 'n'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 107          ; 'k'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 105          ; 'i'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 110          ; 'n'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 103          ; 'g'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 46           ; '.'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 46           ; '.'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 46           ; '.'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 0            ; null terminate
+    ADD r0, r8
+    STORE r0, r9
 
     ; Call LLM opcode: LLM prompt_addr, response_addr, max_len
-    LLM r1, r6, r2
+    LLM r12, r6, r3
 
-    ; r9 = response length
+    ; r7 = response length
     ; Clear input buffer for next prompt
-    LDI r13, 0x2000
+    LDI r0, 0x2000
     CALL clear_input
 
     ; Update status
-    LDI r13, 0x2500
-    LDI r3, 68            ; 'D'
-    STORE r13, r3
-    LDI r3, 111           ; 'o'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 110           ; 'n'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 101           ; 'e'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 46            ; '.'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 0
-    ADD r13, r14
-    STORE r13, r3
+    LDI r0, 0x2500
+    LDI r9, 68            ; 'D'
+    STORE r0, r9
+    LDI r9, 111           ; 'o'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 110           ; 'n'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 101           ; 'e'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 46            ; '.'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 0
+    ADD r0, r8
+    STORE r0, r9
 
     JMP main_loop_continue
 
 ; --- Handle Enter: clear input and response ---
 handle_enter:
-    LDI r13, 0x2000
+    LDI r0, 0x2000
     CALL clear_input
-    LDI r13, 0x2100
+    LDI r0, 0x2100
     CALL clear_input
     JMP main_loop_continue
 
 ; --- Handle Backspace ---
 handle_backspace:
-    LDI r13, 0x2000
+    LDI r0, 0x2000
     CALL find_end
     ; If at buffer start, ignore
-    LDI r3, 0x2000
-    CMP r13, r3
-    JZ r9, main_loop_continue
+    LDI r9, 0x2000
+    CMP r0, r9
+    JZ r7, main_loop_continue
     ; Go back one and null-terminate
-    SUB r13, r14
-    LDI r3, 0
-    STORE r13, r3
+    SUB r0, r8
+    LDI r9, 0
+    STORE r0, r9
     JMP main_loop_continue
 
 ; --- Draw title bar ---
 draw_title:
     PUSH r31
     ; Draw title background
-    LDI r13, 0x222244     ; dark purple
-    LDI r3, 0
-    LDI r7, 0
-    LDI r10, 256
+    LDI r0, 0x222244     ; dark purple
+    LDI r9, 0
+    LDI r14, 0
+    LDI r5, 256
     LDI r16, 12
-    RECTF r3, r7, r10, r16, r13
+    RECTF r9, r14, r5, r16, r0
 
     ; Draw "Smart Terminal - Press Tab for AI, Esc to quit"
     ; Use TEXT opcode to render title
     ; Title is stored inline -- write it to RAM first
-    LDI r13, 0x2600
-    LDI r3, 83           ; 'S'
-    STORE r13, r3
-    LDI r3, 109          ; 'm'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 97           ; 'a'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 114          ; 'r'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 116          ; 't'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 32           ; ' '
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 84           ; 'T'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 101          ; 'e'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 114          ; 'r'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 109          ; 'm'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 0            ; null terminate
-    ADD r13, r14
-    STORE r13, r3
+    LDI r0, 0x2600
+    LDI r9, 83           ; 'S'
+    STORE r0, r9
+    LDI r9, 109          ; 'm'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 97           ; 'a'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 114          ; 'r'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 116          ; 't'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 32           ; ' '
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 84           ; 'T'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 101          ; 'e'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 114          ; 'r'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 109          ; 'm'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 0            ; null terminate
+    ADD r0, r8
+    STORE r0, r9
 
     ; Render with TEXT opcode
-    LDI r13, 0x2600       ; source addr
-    LDI r3, 4            ; x
-    LDI r7, 2            ; y
-    LDI r10, 0xFFFF00     ; yellow
-    TEXT r3, r7, r13
+    LDI r0, 0x2600       ; source addr
+    LDI r9, 4            ; x
+    LDI r14, 2            ; y
+    LDI r5, 0xFFFF00     ; yellow
+    TEXT r9, r14, r0
 
     POP r31
     RET
@@ -277,119 +277,119 @@ draw_title:
 write_status:
     ; "Tab=AI  Esc=Quit  Enter=Clear"
     PUSH r31
-    LDI r13, 0x2500
-    LDI r3, 84           ; 'T'
-    STORE r13, r3
-    LDI r3, 97           ; 'a'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 98           ; 'b'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 61           ; '='
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 65           ; 'A'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 73           ; 'I'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 32           ; ' '
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 32           ; ' '
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 69           ; 'E'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 115          ; 's'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 99           ; 'c'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 61           ; '='
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 81           ; 'Q'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 117          ; 'u'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 105          ; 'i'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 116          ; 't'
-    ADD r13, r14
-    STORE r13, r3
-    LDI r3, 0            ; null terminate
-    ADD r13, r14
-    STORE r13, r3
+    LDI r0, 0x2500
+    LDI r9, 84           ; 'T'
+    STORE r0, r9
+    LDI r9, 97           ; 'a'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 98           ; 'b'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 61           ; '='
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 65           ; 'A'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 73           ; 'I'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 32           ; ' '
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 32           ; ' '
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 69           ; 'E'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 115          ; 's'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 99           ; 'c'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 61           ; '='
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 81           ; 'Q'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 117          ; 'u'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 105          ; 'i'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 116          ; 't'
+    ADD r0, r8
+    STORE r0, r9
+    LDI r9, 0            ; null terminate
+    ADD r0, r8
+    STORE r0, r9
     POP r31
     RET
 
 ; --- Draw text line from RAM buffer ---
-; r13 = color, r3 = screen x, r7 = screen y, r10 = RAM addr
+; r0 = color, r9 = screen x, r14 = screen y, r5 = RAM addr
 draw_text_line:
     PUSH r31
-    PUSH r10
-    PUSH r13
+    PUSH r5
+    PUSH r0
 draw_text_loop:
-    LOAD r16, r10
-    LDI r13, 0
-    CMP r16, r13
-    JZ r9, draw_text_done
-    PSET r3, r7, r13
-    ADD r3, r14
-    ADD r10, r14
+    LOAD r16, r5
+    LDI r0, 0
+    CMP r16, r0
+    JZ r7, draw_text_done
+    PSET r9, r14, r0
+    ADD r9, r8
+    ADD r5, r8
     JMP draw_text_loop
 draw_text_done:
-    POP r13
-    POP r10
+    POP r0
+    POP r5
     POP r31
     RET
 
 ; --- Find null terminator in buffer ---
-; r13 = start address. Returns r13 = address of null.
+; r0 = start address. Returns r0 = address of null.
 find_end:
     PUSH r31
-    PUSH r14
+    PUSH r8
 find_end_loop:
-    LOAD r16, r13
-    LDI r3, 0
-    CMP r16, r3
-    JZ r9, find_end_done
-    ADD r13, r14
+    LOAD r16, r0
+    LDI r9, 0
+    CMP r16, r9
+    JZ r7, find_end_done
+    ADD r0, r8
     JMP find_end_loop
 find_end_done:
-    POP r14
+    POP r8
     POP r31
     RET
 
 ; --- Clear input buffer (fill with 0) ---
-; r13 = buffer start address
+; r0 = buffer start address
 clear_input:
     PUSH r31
-    PUSH r14
-    PUSH r13
-    LDI r3, 0
+    PUSH r8
+    PUSH r0
+    LDI r9, 0
     LDI r16, 256           ; max clear length
 clear_loop:
-    STORE r13, r3
-    ADD r13, r14
-    LDI r7, 0
-    ADD r7, r13
-    LDI r10, 0x2100
+    STORE r0, r9
+    ADD r0, r8
+    LDI r14, 0
+    ADD r14, r0
+    LDI r5, 0x2100
     ; Only clear up to response buffer size
-    CMP r7, r10
-    BGE r9, clear_done
+    CMP r14, r5
+    BGE r7, clear_done
     JMP clear_loop
 clear_done:
-    POP r13
-    POP r14
+    POP r0
+    POP r8
     POP r31
     RET
 

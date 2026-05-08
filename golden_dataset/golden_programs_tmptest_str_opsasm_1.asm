@@ -1,6 +1,6 @@
-; DESCRIPTION: This GeOS assembly code loads a memory address into register r3, stores the string "hello" at that address, calculates the length of the stored string, and then halts execution.
+; DESCRIPTION: Display a object using color red at the screen.
 
-LDI r3, 0x3000
-STRO r3, "hello"
-STRLEN r3
+LDI r6, 0x3000
+STRO r6, "hello"
+STRLEN r6
 HALT

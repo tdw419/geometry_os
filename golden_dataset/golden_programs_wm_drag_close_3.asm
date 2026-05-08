@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a window manager that controls three windows on the screen. It supports dragging windows by clicking and holding the title bar, closing windows by clicking the close button in the top-right corner of the title bar, and re-tiling the remaining windows after one is closed. The system uses various registers to track window states, handle mouse and keyboard inputs, and manage drawing operations.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; wm_drag_close.asm -- Window Manager with drag, close, and re-tiling (Phase 95)
 ;
@@ -14,10 +14,10 @@
 ;   Press Q to quit
 ;
 ; ── Register Layout ──────────────────────────────────────────────
-;   r3  = constant 1
+;   r9  = constant 1
 ;   r20 = constant 0
-;   r4-r9 = window IDs (0 if closed)
-;   r7 = dragging window id (0 = none)
+;   r12-r11 = window IDs (0 if closed)
+;   r0 = dragging window id (0 = none)
 ;   r16 = drag offset X
 ;   r17 = drag offset Y
 ;   r18 = animation counter
@@ -27,49 +27,49 @@
 ; ──────────────────────────────────────────────────────────────────
 
 ; ── Constants ──
-LDI r3, 1
+LDI r9, 1
 LDI r20, 0
 LDI r30, 0xFF00
 
 ; ── Store title strings in RAM ──
-LDI r15, 0x2000
-STRO r15, "Draw"
-LDI r15, 0x2020
-STRO r15, "Status"
-LDI r15, 0x2040
-STRO r15, "Colors"
+LDI r8, 0x2000
+STRO r8, "Draw"
+LDI r8, 0x2020
+STRO r8, "Status"
+LDI r8, 0x2040
+STRO r8, "Colors"
 
 ; ── Create 3 windows ──
 
 ; Window 1 "Draw" at (16, 16), 100x80
-LDI r1, 16
-LDI r6, 16
-LDI r5, 100
-LDI r11, 80
-LDI r12, 0x2000
-LDI r15, 0
-WINSYS r15
-MOV r4, r10
+LDI r7, 16
+LDI r13, 16
+LDI r3, 100
+LDI r5, 80
+LDI r15, 0x2000
+LDI r8, 0
+WINSYS r8
+MOV r12, r1
 
 ; Window 2 "Status" at (136, 16), 100x80
-LDI r1, 136
-LDI r6, 16
-LDI r5, 100
-LDI r11, 80
-LDI r12, 0x2020
-LDI r15, 0
-WINSYS r15
-MOV r8, r10
+LDI r7, 136
+LDI r13, 16
+LDI r3, 100
+LDI r5, 80
+LDI r15, 0x2020
+LDI r8, 0
+WINSYS r8
+MOV r10, r1
 
 ; Window 3 "Colors" at (76, 110), 100x80
-LDI r1, 76
-LDI r6, 110
-LDI r5, 100
-LDI r11, 80
-LDI r12, 0x2040
-LDI r15, 0
-WINSYS r15
-MOV r9, r10
+LDI r7, 76
+LDI r13, 110
+LDI r3, 100
+LDI r5, 80
+LDI r15, 0x2040
+LDI r8, 0
+WINSYS r8
+MOV r11, r1
 
 ; ── Draw initial window contents ──
 CALL draw_win1_content
@@ -77,7 +77,7 @@ CALL draw_win2_content
 CALL draw_win3_content
 
 ; ── Drag state ──
-LDI r7, 0
+LDI r0, 0
 LDI r16, 0
 LDI r17, 0
 LDI r18, 0
@@ -95,31 +95,31 @@ main_loop:
   IKEY r24
   LDI r25, 81       ; 'Q'
   CMP r24, r25
-  JZ r10, quit
+  JZ r1, quit
 
   ; ── Handle mouse click ──
   LDI r25, 2
   CMP r23, r25      ; btn == 2 (click)?
-  BGE r10, check_drag
+  BGE r1, check_drag
 
   ; Fresh click -- do hittest
-  LDI r15, 4         ; op=4 (hittest)
-  WINSYS r15         ; r10=win_id, r1=hit_type
+  LDI r8, 4         ; op=4 (hittest)
+  WINSYS r8         ; r1=win_id, r7=hit_type
 
   ; If no hit, skip
-  JZ r10, no_click_action
+  JZ r1, no_click_action
 
   ; Bring clicked window to front
-  LDI r15, 2         ; op=2 (bring to front)
-  WINSYS r15
+  LDI r8, 2         ; op=2 (bring to front)
+  WINSYS r8
 
   ; Save hit window id for later
-  MOV r28, r10       ; r28 = hit_win_id
+  MOV r28, r1       ; r28 = hit_win_id
 
   ; ── Get window info for close button check ──
-  LDI r1, 0x9000    ; winfo dest addr
-  LDI r15, 6         ; op=6 (winfo)
-  WINSYS r15
+  LDI r7, 0x9000    ; winfo dest addr
+  LDI r8, 6         ; op=6 (winfo)
+  WINSYS r8
 
   ; Read window x, y, w from winfo output
   LDI r25, 0x9000
@@ -132,51 +132,51 @@ main_loop:
   ; close_x = win_x + win_w - 12
   MOV r29, r25
   ADD r29, r27
-  LDI r15, 12
-  SUB r29, r15       ; r29 = close_x
+  LDI r8, 12
+  SUB r29, r8       ; r29 = close_x
 
   ; Check if mouse is in close button area:
   ;   mx >= close_x AND mx < close_x + 10 AND my >= win_y AND my < win_y + 12
 
   ; Check mx >= close_x
   CMP r21, r29
-  BLT r10, start_drag_check    ; mx < close_x, not on close button
+  BLT r1, start_drag_check    ; mx < close_x, not on close button
 
   ; Check mx < close_x + 10
-  MOV r15, r29
+  MOV r8, r29
   LDI r25, 10
-  ADD r15, r25       ; r15 = close_x + 10
-  CMP r21, r15
-  BGE r10, start_drag_check    ; mx >= close_x + 10, not on close button
+  ADD r8, r25       ; r8 = close_x + 10
+  CMP r21, r8
+  BGE r1, start_drag_check    ; mx >= close_x + 10, not on close button
 
   ; Check my >= win_y AND my < win_y + 12
   ; (r26 = win_y, already loaded)
   CMP r22, r26
-  BLT r10, start_drag_check    ; my < win_y
+  BLT r1, start_drag_check    ; my < win_y
   LDI r25, 12
   ADD r25, r26       ; win_y + 12
   CMP r22, r25
-  BGE r10, start_drag_check    ; my >= win_y + 12
+  BGE r1, start_drag_check    ; my >= win_y + 12
 
   ; ── Close button clicked! Destroy the window ──
-  MOV r10, r28       ; restore hit window id
-  LDI r15, 1         ; op=1 (destroy)
-  WINSYS r15
+  MOV r1, r28       ; restore hit window id
+  LDI r8, 1         ; op=1 (destroy)
+  WINSYS r8
 
   ; Clear the window id from our tracking
-  CMP r4, r28
-  JZ r10, closed_w1
-  CMP r8, r28
-  JZ r10, closed_w2
-  LDI r9, 0
+  CMP r12, r28
+  JZ r1, closed_w1
+  CMP r10, r28
+  JZ r1, closed_w2
+  LDI r11, 0
   JMP do_retile
 
 closed_w1:
-  LDI r4, 0
+  LDI r12, 0
   JMP do_retile
 
 closed_w2:
-  LDI r8, 0
+  LDI r10, 0
 
 do_retile:
   CALL retile_windows
@@ -184,22 +184,22 @@ do_retile:
 
   ; ── Start drag (title bar hit, not close button) ──
 start_drag_check:
-  ; Re-do hittest for hit_type (r1 was overwritten by winfo)
-  LDI r15, 4
-  WINSYS r15          ; r10=win_id, r1=hit_type
+  ; Re-do hittest for hit_type (r7 was overwritten by winfo)
+  LDI r8, 4
+  WINSYS r8          ; r1=win_id, r7=hit_type
 
   ; Check hit type -- title bar (1) = start drag
   LDI r25, 1
-  CMP r1, r25
-  JNZ r10, no_click_action
+  CMP r7, r25
+  JNZ r1, no_click_action
 
   ; Start dragging
-  MOV r7, r10
+  MOV r0, r1
 
   ; Get window info for drag offset
-  LDI r1, 0x9000
-  LDI r15, 6
-  WINSYS r15
+  LDI r7, 0x9000
+  LDI r8, 6
+  WINSYS r8
 
   ; drag_ox = mouse_x - win_x
   LDI r25, 0x9000
@@ -219,24 +219,24 @@ start_drag_check:
 
 check_drag:
   ; If not dragging, skip
-  JZ r7, no_click_action
+  JZ r0, no_click_action
 
   ; If button released (btn=0), stop dragging
   JZ r23, stop_drag
 
   ; Still dragging -- move window to mouse position
-  MOV r10, r7       ; win_id
-  MOV r1, r21
-  SUB r1, r16       ; new_x = mx - drag_ox
-  MOV r6, r22
-  SUB r6, r17       ; new_y = my - drag_oy
-  LDI r15, 5         ; op=5 (moveto)
-  WINSYS r15
+  MOV r1, r0       ; win_id
+  MOV r7, r21
+  SUB r7, r16       ; new_x = mx - drag_ox
+  MOV r13, r22
+  SUB r13, r17       ; new_y = my - drag_oy
+  LDI r8, 5         ; op=5 (moveto)
+  WINSYS r8
 
   JMP no_click_action
 
 stop_drag:
-  LDI r7, 0
+  LDI r0, 0
   JMP no_click_action
 
 no_click_action:
@@ -247,24 +247,24 @@ no_click_action:
   LDI r27, 7
   AND r26, r27
   JNZ r26, skip_update
-  ADD r18, r3
+  ADD r18, r9
   CALL draw_win2_content
   CALL draw_win3_content
 skip_update:
 
   ; ── Draw all window frames ──
-  JZ r4, skip_frame1
-  MOV r10, r4
+  JZ r12, skip_frame1
+  MOV r1, r12
   CALL draw_window_frame
 skip_frame1:
 
-  JZ r8, skip_frame2
-  MOV r10, r8
+  JZ r10, skip_frame2
+  MOV r1, r10
   CALL draw_window_frame
 skip_frame2:
 
-  JZ r9, skip_frame3
-  MOV r10, r9
+  JZ r11, skip_frame3
+  MOV r1, r11
   CALL draw_window_frame
 skip_frame3:
 
@@ -279,187 +279,187 @@ quit:
 ; ══════════════════════════════════════════════════════════════════
 retile_windows:
   PUSH r31
-  PUSH r10
   PUSH r1
-  PUSH r6
+  PUSH r7
+  PUSH r13
+  PUSH r3
   PUSH r5
-  PUSH r11
-  PUSH r12
   PUSH r15
+  PUSH r8
 
   ; Count active windows
-  LDI r5, 0
-  JZ r4, ret_cnt2
-  ADD r5, r3
+  LDI r3, 0
+  JZ r12, ret_cnt2
+  ADD r3, r9
 ret_cnt2:
-  JZ r8, ret_cnt3
-  ADD r5, r3
+  JZ r10, ret_cnt3
+  ADD r3, r9
 ret_cnt3:
-  JZ r9, ret_done_cnt
-  ADD r5, r3
+  JZ r11, ret_done_cnt
+  ADD r3, r9
 ret_done_cnt:
 
   ; If 0 windows, nothing to tile
-  JZ r5, retile_done
+  JZ r3, retile_done
 
   ; Compute tile width = 240 / count
-  LDI r11, 240
-  DIV r11, r5        ; r11 = tile_width
+  LDI r5, 240
+  DIV r5, r3        ; r5 = tile_width
   LDI r25, 8
-  MOV r12, r25       ; r12 = current_x (start at 8)
+  MOV r15, r25       ; r15 = current_x (start at 8)
 
   ; Tile window 1
-  JZ r4, retile_w2
-  MOV r10, r4
+  JZ r12, retile_w2
   MOV r1, r12
-  LDI r6, 16
-  LDI r15, 5
-  WINSYS r15
-  ADD r12, r11
+  MOV r7, r15
+  LDI r13, 16
+  LDI r8, 5
+  WINSYS r8
+  ADD r15, r5
 retile_w2:
 
   ; Tile window 2
-  JZ r8, retile_w3
-  MOV r10, r8
-  MOV r1, r12
-  LDI r6, 16
-  LDI r15, 5
-  WINSYS r15
-  ADD r12, r11
+  JZ r10, retile_w3
+  MOV r1, r10
+  MOV r7, r15
+  LDI r13, 16
+  LDI r8, 5
+  WINSYS r8
+  ADD r15, r5
 retile_w3:
 
   ; Tile window 3
-  JZ r9, retile_done
-  MOV r10, r9
-  MOV r1, r12
-  LDI r6, 16
-  LDI r15, 5
-  WINSYS r15
+  JZ r11, retile_done
+  MOV r1, r11
+  MOV r7, r15
+  LDI r13, 16
+  LDI r8, 5
+  WINSYS r8
 
 retile_done:
+  POP r8
   POP r15
-  POP r12
-  POP r11
   POP r5
-  POP r6
+  POP r3
+  POP r13
+  POP r7
   POP r1
-  POP r10
   POP r31
   RET
 
 ; ══════════════════════════════════════════════════════════════════
 ; ── Draw Window Frame (title bar + border + close button) ──
-; r10 = win_id
+; r1 = win_id
 ; ══════════════════════════════════════════════════════════════════
 draw_window_frame:
   PUSH r31
-  PUSH r10
   PUSH r1
-  PUSH r6
+  PUSH r7
+  PUSH r13
+  PUSH r3
   PUSH r5
-  PUSH r11
-  PUSH r12
   PUSH r15
+  PUSH r8
 
   ; Get window info
-  LDI r1, 0x9000
-  LDI r15, 6         ; WINFO
-  WINSYS r15
-  JZ r10, frame_done  ; window not found
+  LDI r7, 0x9000
+  LDI r8, 6         ; WINFO
+  WINSYS r8
+  JZ r1, frame_done  ; window not found
 
   ; Read winfo output
   LDI r25, 0x9000
-  LOAD r6, r25      ; win_x
+  LOAD r13, r25      ; win_x
   LDI r25, 0x9001
-  LOAD r5, r25      ; win_y
+  LOAD r3, r25      ; win_y
   LDI r25, 0x9002
-  LOAD r11, r25      ; win_w
+  LOAD r5, r25      ; win_w
   LDI r25, 0x9003
-  LOAD r12, r25      ; win_h
+  LOAD r15, r25      ; win_h
 
   ; ── Title bar (12px tall, dark purple) ──
-  LDI r1, 0x444488
-  MOV r15, r5         ; y = win_y
+  LDI r7, 0x444488
+  MOV r8, r3         ; y = win_y
 title_y:
-  MOV r10, r6         ; x = win_x
+  MOV r1, r13         ; x = win_x
 title_x:
-  PSET r10, r15, r1
-  ADD r10, r3
-  MOV r25, r6
-  ADD r25, r11        ; x limit
-  CMP r10, r25
-  BLT r10, title_x
-  ADD r15, r3
+  PSET r1, r8, r7
+  ADD r1, r9
+  MOV r25, r13
+  ADD r25, r5        ; x limit
+  CMP r1, r25
+  BLT r1, title_x
+  ADD r8, r9
   LDI r25, 12
-  ADD r25, r5        ; y limit (win_y + 12)
-  CMP r15, r25
-  BLT r10, title_y
+  ADD r25, r3        ; y limit (win_y + 12)
+  CMP r8, r25
+  BLT r1, title_y
 
   ; ── Close button (red 8x8 at top-right of title bar) ──
   ; Position: x = win_x + win_w - 11, y = win_y + 2
-  MOV r25, r6
-  ADD r25, r11
+  MOV r25, r13
+  ADD r25, r5
   LDI r26, 11
   SUB r25, r26       ; close_x = win_x + win_w - 11
   LDI r26, 2
-  ADD r26, r5        ; close_y = win_y + 2
+  ADD r26, r3        ; close_y = win_y + 2
 
-  LDI r1, 0xCC2222   ; red
+  LDI r7, 0xCC2222   ; red
   MOV r27, r26       ; y counter
 close_y:
-  MOV r10, r25        ; x counter
+  MOV r1, r25        ; x counter
 close_x:
-  PSET r10, r27, r1
-  ADD r10, r3
+  PSET r1, r27, r7
+  ADD r1, r9
   MOV r28, r25
   LDI r29, 8
   ADD r28, r29
-  CMP r10, r28
-  BLT r10, close_x
-  ADD r27, r3
+  CMP r1, r28
+  BLT r1, close_x
+  ADD r27, r9
   MOV r28, r26
   LDI r29, 8
   ADD r28, r29
   CMP r27, r28
-  BLT r10, close_y
+  BLT r1, close_y
 
   ; ── Border outline (gray) ──
-  LDI r1, 0x888888
+  LDI r7, 0x888888
   ; Left + right edges
-  MOV r10, r5         ; y = win_y
+  MOV r1, r3         ; y = win_y
 border_y:
-  PSET r6, r10, r1    ; left edge
-  MOV r25, r6
-  ADD r25, r11
-  SUB r25, r3        ; right edge x
-  PSET r25, r10, r1
-  ADD r10, r3
-  MOV r25, r5
-  ADD r25, r12
-  CMP r10, r25
-  BLT r10, border_y
+  PSET r13, r1, r7    ; left edge
+  MOV r25, r13
+  ADD r25, r5
+  SUB r25, r9        ; right edge x
+  PSET r25, r1, r7
+  ADD r1, r9
+  MOV r25, r3
+  ADD r25, r15
+  CMP r1, r25
+  BLT r1, border_y
 
   ; Bottom edge
-  MOV r10, r5
-  ADD r10, r12
-  SUB r10, r3         ; bottom y
-  MOV r15, r6         ; x = win_x
+  MOV r1, r3
+  ADD r1, r15
+  SUB r1, r9         ; bottom y
+  MOV r8, r13         ; x = win_x
 bottom_x:
-  PSET r15, r10, r1
-  ADD r15, r3
-  MOV r25, r6
-  ADD r25, r11
-  CMP r15, r25
-  BLT r10, bottom_x
+  PSET r8, r1, r7
+  ADD r8, r9
+  MOV r25, r13
+  ADD r25, r5
+  CMP r8, r25
+  BLT r1, bottom_x
 
 frame_done:
+  POP r8
   POP r15
-  POP r12
-  POP r11
   POP r5
-  POP r6
+  POP r3
+  POP r13
+  POP r7
   POP r1
-  POP r10
   POP r31
   RET
 
@@ -468,58 +468,58 @@ frame_done:
 ; ══════════════════════════════════════════════════════════════════
 draw_win1_content:
   PUSH r31
-  PUSH r10
+  PUSH r1
 
-  MOV r10, r4       ; win_id
-  JZ r10, dw1_done
+  MOV r1, r12       ; win_id
+  JZ r1, dw1_done
 
   ; Fill with dark green
-  LDI r5, 0x003300
-  LDI r11, 0
+  LDI r3, 0x003300
+  LDI r5, 0
 fill1_loop:
-  LDI r15, 0
+  LDI r8, 0
 fill1_x:
-  WPIXEL r10, r15, r11, r5
-  ADD r15, r3
+  WPIXEL r1, r8, r5, r3
+  ADD r8, r9
   LDI r25, 100
-  CMP r15, r25
-  BLT r10, fill1_x
-  ADD r11, r3
+  CMP r8, r25
+  BLT r1, fill1_x
+  ADD r5, r9
   LDI r25, 80
-  CMP r11, r25
-  BLT r10, fill1_loop
+  CMP r5, r25
+  BLT r1, fill1_loop
 
   ; Draw a bright green H
-  LDI r5, 0x00FF00
-  LDI r11, 30
-  LDI r15, 40
+  LDI r3, 0x00FF00
+  LDI r5, 30
+  LDI r8, 40
 h_left:
-  WPIXEL r10, r15, r11, r5
-  ADD r11, r3
+  WPIXEL r1, r8, r5, r3
+  ADD r5, r9
   LDI r25, 60
-  CMP r11, r25
-  BLT r10, h_left
+  CMP r5, r25
+  BLT r1, h_left
 
-  LDI r11, 30
-  LDI r15, 50
+  LDI r5, 30
+  LDI r8, 50
 h_right:
-  WPIXEL r10, r15, r11, r5
-  ADD r11, r3
+  WPIXEL r1, r8, r5, r3
+  ADD r5, r9
   LDI r25, 60
-  CMP r11, r25
-  BLT r10, h_right
+  CMP r5, r25
+  BLT r1, h_right
 
-  LDI r11, 44
-  LDI r15, 40
+  LDI r5, 44
+  LDI r8, 40
 h_bar:
-  WPIXEL r10, r15, r11, r5
-  ADD r15, r3
+  WPIXEL r1, r8, r5, r3
+  ADD r8, r9
   LDI r25, 51
-  CMP r15, r25
-  BLT r10, h_bar
+  CMP r8, r25
+  BLT r1, h_bar
 
 dw1_done:
-  POP r10
+  POP r1
   POP r31
   RET
 
@@ -528,45 +528,45 @@ dw1_done:
 ; ══════════════════════════════════════════════════════════════════
 draw_win2_content:
   PUSH r31
-  PUSH r10
+  PUSH r1
 
-  MOV r10, r8       ; win_id
-  JZ r10, dw2_done
+  MOV r1, r10       ; win_id
+  JZ r1, dw2_done
 
   ; Fill with dark blue
-  LDI r5, 0x000044
-  LDI r11, 0
+  LDI r3, 0x000044
+  LDI r5, 0
 fill2_loop:
-  LDI r15, 0
+  LDI r8, 0
 fill2_x:
-  WPIXEL r10, r15, r11, r5
-  ADD r15, r3
+  WPIXEL r1, r8, r5, r3
+  ADD r8, r9
   LDI r25, 100
-  CMP r15, r25
-  BLT r10, fill2_x
-  ADD r11, r3
+  CMP r8, r25
+  BLT r1, fill2_x
+  ADD r5, r9
   LDI r25, 80
-  CMP r11, r25
-  BLT r10, fill2_loop
+  CMP r5, r25
+  BLT r1, fill2_loop
 
   ; Draw counter bar
-  LDI r5, 0xFFFFFF
-  LDI r11, 40
-  MOV r12, r18
+  LDI r3, 0xFFFFFF
+  LDI r5, 40
+  MOV r15, r18
   LDI r25, 90
-  MOD r12, r25
-  ADD r12, r3
-  LDI r15, 5
+  MOD r15, r25
+  ADD r15, r9
+  LDI r8, 5
 bar_loop:
-  CMP r15, r12
-  BGE r10, bar_done
-  WPIXEL r10, r15, r11, r5
-  ADD r15, r3
+  CMP r8, r15
+  BGE r1, bar_done
+  WPIXEL r1, r8, r5, r3
+  ADD r8, r9
   JMP bar_loop
 bar_done:
 
 dw2_done:
-  POP r10
+  POP r1
   POP r31
   RET
 
@@ -575,52 +575,52 @@ dw2_done:
 ; ══════════════════════════════════════════════════════════════════
 draw_win3_content:
   PUSH r31
-  PUSH r10
   PUSH r1
-  PUSH r6
+  PUSH r7
+  PUSH r13
 
-  MOV r10, r9       ; win_id
-  JZ r10, dw3_done
+  MOV r1, r11       ; win_id
+  JZ r1, dw3_done
 
   ; Get ticks for animation
   LDI r25, 0xFFE
   LOAD r26, r25     ; ticks
 
   ; Fill with animated stripes
-  LDI r11, 0
+  LDI r5, 0
 stripe_y:
-  LDI r15, 0
+  LDI r8, 0
 stripe_x:
-  MOV r1, r15
-  ADD r1, r26
+  MOV r7, r8
+  ADD r7, r26
   LDI r25, 31
-  AND r1, r25
+  AND r7, r25
   LDI r25, 3
-  MUL r1, r25
+  MUL r7, r25
   LDI r25, 8
-  SHL r1, r25
-  MOV r5, r11
-  LDI r6, 7
-  AND r5, r6
+  SHL r7, r25
+  MOV r3, r5
+  LDI r13, 7
+  AND r3, r13
   LDI r25, 16
-  SHL r5, r25
-  OR r1, r5
-  MOV r5, r1
+  SHL r3, r25
+  OR r7, r3
+  MOV r3, r7
 
-  WPIXEL r10, r15, r11, r5
-  ADD r15, r3
+  WPIXEL r1, r8, r5, r3
+  ADD r8, r9
   LDI r25, 100
-  CMP r15, r25
-  BLT r10, stripe_x
+  CMP r8, r25
+  BLT r1, stripe_x
 
-  ADD r11, r3
+  ADD r5, r9
   LDI r25, 80
-  CMP r11, r25
-  BLT r10, stripe_y
+  CMP r5, r25
+  BLT r1, stripe_y
 
 dw3_done:
-  POP r6
+  POP r13
+  POP r7
   POP r1
-  POP r10
   POP r31
   RET

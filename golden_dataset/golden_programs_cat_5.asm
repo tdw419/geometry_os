@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code reads the contents of "hello.txt" from the virtual filesystem (VFS) and displays it on the screen at coordinates (2, 10). It uses the OPEN, READ, CLOSE opcodes to handle file operations. If the file doesn't exist, the program halts cleanly without displaying anything.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; cat.asm -- Read a file and display its contents on screen
 ; Opens "hello.txt" from the VFS and renders it using TEXT opcode.
@@ -9,66 +9,66 @@
 ; If the file doesn't exist, the program displays nothing and halts cleanly.
 
 ; ── Store filename "hello.txt" at 0x1000 (one ASCII byte per RAM cell) ──
-LDI r3, 0x1000
-LDI r8, 104      ; h
-STORE r3, r8
-LDI r3, 0x1001
-LDI r8, 101      ; e
-STORE r3, r8
-LDI r3, 0x1002
-LDI r8, 108      ; l
-STORE r3, r8
-LDI r3, 0x1003
-LDI r8, 108      ; l
-STORE r3, r8
-LDI r3, 0x1004
-LDI r8, 111      ; o
-STORE r3, r8
-LDI r3, 0x1005
-LDI r8, 46       ; .
-STORE r3, r8
-LDI r3, 0x1006
-LDI r8, 116      ; t
-STORE r3, r8
-LDI r3, 0x1007
-LDI r8, 120      ; x
-STORE r3, r8
-LDI r3, 0x1008
-LDI r8, 116      ; t
-STORE r3, r8
-LDI r3, 0x1009
-LDI r8, 0        ; null terminator
-STORE r3, r8
+LDI r12, 0x1000
+LDI r7, 104      ; h
+STORE r12, r7
+LDI r12, 0x1001
+LDI r7, 101      ; e
+STORE r12, r7
+LDI r12, 0x1002
+LDI r7, 108      ; l
+STORE r12, r7
+LDI r12, 0x1003
+LDI r7, 108      ; l
+STORE r12, r7
+LDI r12, 0x1004
+LDI r7, 111      ; o
+STORE r12, r7
+LDI r12, 0x1005
+LDI r7, 46       ; .
+STORE r12, r7
+LDI r12, 0x1006
+LDI r7, 116      ; t
+STORE r12, r7
+LDI r12, 0x1007
+LDI r7, 120      ; x
+STORE r12, r7
+LDI r12, 0x1008
+LDI r7, 116      ; t
+STORE r12, r7
+LDI r12, 0x1009
+LDI r7, 0        ; null terminator
+STORE r12, r7
 
 ; ── Open file for reading (mode 0 = read) ──
-LDI r15, 0x1000   ; r15 = pointer to filename
-LDI r6, 0        ; r6 = mode (read)
-OPEN r15, r6       ; r8 = file descriptor (or 0xFFFFFFFF on error)
+LDI r1, 0x1000   ; r1 = pointer to filename
+LDI r5, 0        ; r5 = mode (read)
+OPEN r1, r5       ; r7 = file descriptor (or 0xFFFFFFFF on error)
 
 ; ── Save fd, then read up to 200 bytes ──
-MOV r2, r8       ; r2 = saved fd
-LDI r11, 0x2000   ; r11 = read buffer address
-LDI r10, 200      ; r10 = max bytes to read
-READ r2, r11, r10  ; r8 = bytes actually read
+MOV r3, r7       ; r3 = saved fd
+LDI r2, 0x2000   ; r2 = read buffer address
+LDI r14, 200      ; r14 = max bytes to read
+READ r3, r2, r14  ; r7 = bytes actually read
 
 ; ── Null-terminate the buffer ──
-; Clamp bytes_read to avoid overflow on error (r8 = 0xFFFFFFFF)
-LDI r9, 200
-CMP r8, r9
-BLT r8, do_terminate
-LDI r8, 200
+; Clamp bytes_read to avoid overflow on error (r7 = 0xFFFFFFFF)
+LDI r0, 200
+CMP r7, r0
+BLT r7, do_terminate
+LDI r7, 200
 do_terminate:
-LDI r9, 0x2000   ; buffer start
-ADD r8, r9       ; r8 = buffer start + bytes_read = end address
-LDI r7, 0
-STORE r8, r7     ; write null terminator
+LDI r0, 0x2000   ; buffer start
+ADD r7, r0       ; r7 = buffer start + bytes_read = end address
+LDI r9, 0
+STORE r7, r9     ; write null terminator
 
 ; ── Display file contents using TEXT opcode ──
-LDI r15, 2        ; x position
-LDI r6, 10       ; y position
-LDI r11, 0x2000   ; pointer to string buffer
-TEXT r15, r6, r11
+LDI r1, 2        ; x position
+LDI r5, 10       ; y position
+LDI r2, 0x2000   ; pointer to string buffer
+TEXT r1, r5, r2
 
 ; ── Close the file ──
-CLOSE r2
+CLOSE r3
 HALT

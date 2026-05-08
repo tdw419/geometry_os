@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a persistent taskbar at the bottom of the screen for a desktop environment. The taskbar includes a Start button, running process icons, a frame counter (clock), and supports clickable regions for menu interactions. It manages process listing, mouse input, text rendering, file listing, and maintains state in specific RAM locations.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; taskbar.asm -- Desktop Taskbar for Geometry OS
 ;
@@ -40,103 +40,103 @@
 ; INIT
 ; ==========================================
 LDI r30, 0xFD00           ; stack pointer
-LDI r8, 1
-LDI r4, 0                 ; zero constant
+LDI r5, 1
+LDI r2, 0                 ; zero constant
 
 ; Clear state
 LDI r20, MENU_OPEN
-STORE r20, r4
+STORE r20, r2
 LDI r20, SCROLL_OFF
-STORE r20, r4
+STORE r20, r2
 LDI r20, SEL_INDEX
-STORE r20, r4
+STORE r20, r2
 
 ; ==========================================
 ; MAIN LOOP
 ; ==========================================
 main_loop:
   ; -- Draw desktop area (above taskbar) --
-  LDI r14, 0x181828
-  FILL r14
+  LDI r0, 0x181828
+  FILL r0
 
   ; -- Draw taskbar background --
-  LDI r14, 0x2D2D3D        ; dark blue-gray
-  LDI r7, 0
-  LDI r9, TBAR_Y
-  LDI r13, 256
-  LDI r12, TBAR_H
-  RECTF r7, r9, r13, r12, r14
+  LDI r0, 0x2D2D3D        ; dark blue-gray
+  LDI r11, 0
+  LDI r15, TBAR_Y
+  LDI r3, 256
+  LDI r1, TBAR_H
+  RECTF r11, r15, r3, r1, r0
 
   ; -- Draw Start button --
-  LDI r14, 0x4444AA         ; blue
-  LDI r7, 1
-  LDI r9, TBAR_Y
-  ADDI r9, 1
-  LDI r13, 46
-  LDI r12, 14
-  RECTF r7, r9, r13, r12, r14
+  LDI r0, 0x4444AA         ; blue
+  LDI r11, 1
+  LDI r15, TBAR_Y
+  ADDI r15, 1
+  LDI r3, 46
+  LDI r1, 14
+  RECTF r11, r15, r3, r1, r0
 
   ; Write "Start" to STR_BUF
-  LDI r7, STR_BUF
-  LDI r14, 83               ; S
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 116              ; t
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 97               ; a
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 114              ; r
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 116              ; t
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 0                ; null
-  STORE r7, r14
+  LDI r11, STR_BUF
+  LDI r0, 83               ; S
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 116              ; t
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 97               ; a
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 114              ; r
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 116              ; t
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 0                ; null
+  STORE r11, r0
 
   ; Draw Start text
-  LDI r7, 8
-  LDI r9, TBAR_Y
-  ADDI r9, 4
-  LDI r13, STR_BUF
-  LDI r12, 0xFFFFFF
-  LDI r6, 0
-  DRAWTEXT r7, r9, r13, r12, r6
+  LDI r11, 8
+  LDI r15, TBAR_Y
+  ADDI r15, 4
+  LDI r3, STR_BUF
+  LDI r1, 0xFFFFFF
+  LDI r14, 0
+  DRAWTEXT r11, r15, r3, r1, r14
 
   ; -- Get running processes via PROCLS --
-  LDI r7, PID_BUF
-  PROCLS r7
-  ; r14 = process count
+  LDI r11, PID_BUF
+  PROCLS r11
+  ; r0 = process count
   LDI r20, PROC_COUNT
-  STORE r20, r14
+  STORE r20, r0
 
   ; -- Draw process count on taskbar as "P:N" --
-  LDI r7, STR_BUF
-  LDI r14, 80               ; P
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 58               ; :
-  STORE r7, r14
-  ADD r7, r8
+  LDI r11, STR_BUF
+  LDI r0, 80               ; P
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 58               ; :
+  STORE r11, r0
+  ADD r11, r5
   ; Convert process count to ASCII digit
   LDI r20, PROC_COUNT
   LOAD r20, r20
-  LDI r14, 48               ; 0
-  ADD r14, r20
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 0
-  STORE r7, r14
+  LDI r0, 48               ; 0
+  ADD r0, r20
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 0
+  STORE r11, r0
 
-  LDI r7, 52
-  LDI r9, TBAR_Y
-  ADDI r9, 4
-  LDI r13, STR_BUF
-  LDI r12, 0x00FF00
-  LDI r6, 0
-  DRAWTEXT r7, r9, r13, r12, r6
+  LDI r11, 52
+  LDI r15, TBAR_Y
+  ADDI r15, 4
+  LDI r3, STR_BUF
+  LDI r1, 0x00FF00
+  LDI r14, 0
+  DRAWTEXT r11, r15, r3, r1, r14
 
   ; -- Draw frame counter (clock) at right side --
   ; TICKS / 60 = seconds, seconds / 60 = minutes
@@ -148,14 +148,14 @@ main_loop:
   DIV r20, r21              ; minutes
   LDI r21, 10
   MOD r20, r21              ; minutes mod 10
-  LDI r14, 48
-  ADD r14, r20               ; ASCII digit for minutes
-  LDI r7, STR_BUF
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 58                ; :
-  STORE r7, r14
-  ADD r7, r8
+  LDI r0, 48
+  ADD r0, r20               ; ASCII digit for minutes
+  LDI r11, STR_BUF
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 58                ; :
+  STORE r11, r0
+  ADD r11, r5
   ; seconds
   LDI r20, 0xFFE
   LOAD r20, r20
@@ -163,133 +163,133 @@ main_loop:
   DIV r20, r21              ; total seconds
   LDI r21, 10
   MOD r20, r21              ; seconds mod 10
-  LDI r14, 48
-  ADD r14, r20
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 0
-  STORE r7, r14
+  LDI r0, 48
+  ADD r0, r20
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 0
+  STORE r11, r0
 
-  LDI r7, 232
-  LDI r9, TBAR_Y
-  ADDI r9, 4
-  LDI r13, STR_BUF
-  LDI r12, 0xAAAAFF
-  LDI r6, 0
-  DRAWTEXT r7, r9, r13, r12, r6
+  LDI r11, 232
+  LDI r15, TBAR_Y
+  ADDI r15, 4
+  LDI r3, STR_BUF
+  LDI r1, 0xAAAAFF
+  LDI r14, 0
+  DRAWTEXT r11, r15, r3, r1, r14
 
   ; -- Register hit region for Start button --
-  LDI r7, 1               ; x
-  LDI r9, TBAR_Y
-  ADDI r9, 1              ; y
-  LDI r13, 46              ; w
-  LDI r12, 14              ; h
-  HITSET r7, r9, r13, r12, 1
+  LDI r11, 1               ; x
+  LDI r15, TBAR_Y
+  ADDI r15, 1              ; y
+  LDI r3, 46              ; w
+  LDI r1, 14              ; h
+  HITSET r11, r15, r3, r1, 1
 
   ; -- Check mouse --
-  MOUSEQ r7                ; r7=mx, r9=my, r13=btn
+  MOUSEQ r11                ; r11=mx, r15=my, r3=btn
 
   ; Check for click (btn==2)
-  LDI r12, 2
-  CMP r13, r12
+  LDI r1, 2
+  CMP r3, r1
   BNE_check:
   ; BNE not available -- use JNZ on difference
-  MOV r2, r13
-  SUB r2, r12              ; r2 = btn - 2
-  JNZ r2, no_click
+  MOV r7, r3
+  SUB r7, r1              ; r7 = btn - 2
+  JNZ r7, no_click
 
   ; Something was clicked -- check what
-  HITQ r6                  ; r6 = hit region id
+  HITQ r14                  ; r14 = hit region id
 
   ; Start button (id==1)?
-  LDI r2, 1
-  CMP r6, r2
-  JNZ r14, check_menu_click
+  LDI r7, 1
+  CMP r14, r7
+  JNZ r0, check_menu_click
 
   ; Toggle menu
   LDI r20, MENU_OPEN
   LOAD r21, r20
-  LDI r2, 1
-  CMP r21, r2
-  JNZ r14, open_menu
+  LDI r7, 1
+  CMP r21, r7
+  JNZ r0, open_menu
   ; Close menu
-  LDI r14, 0
-  STORE r20, r14
+  LDI r0, 0
+  STORE r20, r0
   JMP no_click
 
 open_menu:
-  LDI r14, 1
-  STORE r20, r14
+  LDI r0, 1
+  STORE r20, r0
   ; Refresh file list
-  LDI r7, FILE_BUF
-  LS r7
+  LDI r11, FILE_BUF
+  LS r11
   LDI r20, FILE_COUNT
-  STORE r20, r14
+  STORE r20, r0
   LDI r20, SCROLL_OFF
-  LDI r14, 0
-  STORE r20, r14
+  LDI r0, 0
+  STORE r20, r0
   LDI r20, SEL_INDEX
-  STORE r20, r14
+  STORE r20, r0
   JMP no_click
 
 check_menu_click:
-  ; Menu item (id >= 10)? If r6 < 10, skip
-  LDI r2, 10
-  CMP r6, r2
-  BLT r14, no_click
+  ; Menu item (id >= 10)? If r14 < 10, skip
+  LDI r7, 10
+  CMP r14, r7
+  BLT r0, no_click
 
   ; Close menu on selection
   LDI r20, MENU_OPEN
-  LDI r14, 0
-  STORE r20, r14
+  LDI r0, 0
+  STORE r20, r0
   JMP no_click
 
 no_click:
   ; -- Draw menu if open --
   LDI r20, MENU_OPEN
   LOAD r20, r20
-  LDI r2, 1
-  CMP r20, r2
-  JNZ r14, skip_menu
+  LDI r7, 1
+  CMP r20, r7
+  JNZ r0, skip_menu
 
   ; Menu background
-  LDI r14, 0x303050
-  LDI r7, 0
-  LDI r9, 144
-  LDI r13, 120
-  LDI r12, 96
-  RECTF r7, r9, r13, r12, r14
+  LDI r0, 0x303050
+  LDI r11, 0
+  LDI r15, 144
+  LDI r3, 120
+  LDI r1, 96
+  RECTF r11, r15, r3, r1, r0
 
   ; Menu border
-  LDI r14, 0x6666AA
-  LDI r7, 0
-  LDI r9, 144
-  LDI r13, 120
-  LDI r12, 96
-  RECT r7, r9, r13, r12, r14
+  LDI r0, 0x6666AA
+  LDI r11, 0
+  LDI r15, 144
+  LDI r3, 120
+  LDI r1, 96
+  RECT r11, r15, r3, r1, r0
 
   ; Menu title "Apps"
-  LDI r7, STR_BUF
-  LDI r14, 65                ; A
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 112               ; p
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 112               ; p
-  STORE r7, r14
-  ADD r7, r8
-  LDI r14, 115               ; s
-  STORE r7, r14
-  ADD r7, r8
+  LDI r11, STR_BUF
+  LDI r0, 65                ; A
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 112               ; p
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 112               ; p
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 115               ; s
+  STORE r11, r0
+  ADD r11, r5
+  LDI r0, 0
+  STORE r11, r0
+  LDI r11, 4
+  LDI r15, 148
+  LDI r3, STR_BUF
+  LDI r1, 0xFFFFFF
   LDI r14, 0
-  STORE r7, r14
-  LDI r7, 4
-  LDI r9, 148
-  LDI r13, STR_BUF
-  LDI r12, 0xFFFFFF
-  LDI r6, 0
-  DRAWTEXT r7, r9, r13, r12, r6
+  DRAWTEXT r11, r15, r3, r1, r14
 
   ; Draw file list entries (up to 4 visible)
   LDI r22, 0                ; visible entry counter
@@ -300,9 +300,9 @@ no_click:
 
 draw_entries:
   CMP r22, r23
-  BGE r14, entries_done
-  CMP r20, r4
-  JZ r14, entries_done
+  BGE r0, entries_done
+  CMP r20, r2
+  JZ r0, entries_done
 
   ; Copy filename to STR_BUF
   LDI r25, STR_BUF
@@ -311,29 +311,29 @@ copy_name:
   LOAD r27, r24
   STORE r25, r27
   JZ r27, name_done
-  ADD r24, r8
-  ADD r25, r8
+  ADD r24, r5
+  ADD r25, r5
   SUBI r26, 1
   JZ r26, name_done
   JMP copy_name
 
 name_done:
   ; Draw filename
-  LDI r7, 4
-  LDI r9, 164
-  MOV r13, r22
+  LDI r11, 4
+  LDI r15, 164
+  MOV r3, r22
   LDI r28, 14
-  MUL r13, r28
-  ADD r9, r13              ; y = 164 + entry * 14
-  LDI r13, STR_BUF
-  LDI r12, 0xCCCCFF
-  LDI r6, 0
-  DRAWTEXT r7, r9, r13, r12, r6
+  MUL r3, r28
+  ADD r15, r3              ; y = 164 + entry * 14
+  LDI r3, STR_BUF
+  LDI r1, 0xCCCCFF
+  LDI r14, 0
+  DRAWTEXT r11, r15, r3, r1, r14
 
   ; Advance r24 past null
   LOAD r27, r24
   JNZ r27, no_adv
-  ADD r24, r8
+  ADD r24, r5
 no_adv:
 
   ADDI r22, 1
@@ -342,11 +342,11 @@ no_adv:
 
 entries_done:
   ; Menu background hit region
-  LDI r7, 0
-  LDI r9, 144
-  LDI r13, 120
-  LDI r12, 96
-  HITSET r7, r9, r13, r12, 5
+  LDI r11, 0
+  LDI r15, 144
+  LDI r3, 120
+  LDI r1, 96
+  HITSET r11, r15, r3, r1, 5
 
 skip_menu:
   FRAME

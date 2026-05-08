@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code draws a horizontal blue gradient across the screen by iterating through each column (x) and setting the pixel color based on the x-coordinate value, using PSET for dynamic coordinates. The blue channel intensity varies from 0x00 at column 0 to 0xFF at column 255.
+; DESCRIPTION: A blue object centered at the screen with fixed size.
 
 ; GRADIENT -- Draw a horizontal blue gradient across the screen
 ; Each column x gets color = x (blue channel only)
@@ -6,27 +6,27 @@
 ; Test: column 0 = 0x00, column 255 = 0xFF
 
 LDI r2, 0            ; r2 = x counter
-LDI r14, 1            ; increment
-LDI r5, 256          ; limit
+LDI r9, 1            ; increment
+LDI r15, 256          ; limit
 
 x_loop:
-  LDI r12, 0          ; r12 = y counter
+  LDI r3, 0          ; r3 = y counter
 
 y_loop:
-  PSET r2, r12, r2    ; pixel at (x, y) with color = x (r2 serves as both x and color)
-  ADD r12, r14          ; y++
-  LDI r11, 0
-  ADD r11, r12
-  SUB r11, r5
-  JZ r11, next_x
+  PSET r2, r3, r2    ; pixel at (x, y) with color = x (r2 serves as both x and color)
+  ADD r3, r9          ; y++
+  LDI r0, 0
+  ADD r0, r3
+  SUB r0, r15
+  JZ r0, next_x
   JMP y_loop
 
 next_x:
-  ADD r2, r14          ; x++
-  LDI r11, 0
-  ADD r11, r2
-  SUB r11, r5
-  JZ r11, done
+  ADD r2, r9          ; x++
+  LDI r0, 0
+  ADD r0, r2
+  SUB r0, r15
+  JZ r0, done
   JMP x_loop
 
 done:

@@ -1,10 +1,10 @@
-; DESCRIPTION: This GeOS assembly code implements a visual register and trace debugger that displays register values (r14-r31 in hex), the Program Counter (PC) counter, and entries from the trace buffer. It supports user controls for stepping through execution ('S'), continuing ('C'), resetting the trace ('R'), and toggling tracing ('T'). The code initializes a hex lookup table, sets up initial states, and enters a main loop where it reads keyboard input, handles key presses, updates the display with relevant debug information, and draws the UI frame. The `val_to_hex` subroutine converts values to hexadecimal strings for display.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; debugger.asm -- Visual Register & Trace Debugger for Geometry OS
 ;
 ; Phase 76: Debugger UI
 ;
-; Shows: register values (r14-r31 in hex), PC counter, trace buffer entries.
+; Shows: register values (r12-r31 in hex), PC counter, trace buffer entries.
 ; Controls: S=step, C=continue, R=reset trace, T=toggle trace
 ; Proves trace buffer (SNAP_TRACE / TRACE_READ) integration.
 ;
@@ -39,7 +39,7 @@
 #define FRAME_CNT 0x6600
 
 LDI r30, 0xFD00
-LDI r6, 1
+LDI r15, 1
 
 ; =========================================
 ; Init hex lookup table
@@ -48,66 +48,66 @@ LDI r6, 1
 LDI r20, HEX_TABLE
 LDI r21, 48           ; '0'
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 49
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 50
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 51
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 52
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 53
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 54
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 55
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 56
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 57
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 65           ; 'A'
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 66
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 67
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 68
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 69
 STORE r20, r21
-ADD r20, r6
+ADD r20, r15
 LDI r21, 70
 STORE r20, r21
 
 ; Init state
 LDI r20, STEP_MODE
-LDI r5, 1
-STORE r20, r5
+LDI r1, 1
+STORE r20, r1
 LDI r20, TRACE_ON
-LDI r5, 0
-STORE r20, r5
+LDI r1, 0
+STORE r20, r1
 LDI r20, FRAME_CNT
-LDI r5, 0
-STORE r20, r5
+LDI r1, 0
+STORE r20, r1
 
 ; Start trace recording
-LDI r5, 1
-SNAP_TRACE r5
+LDI r1, 1
+SNAP_TRACE r1
 
 ; =========================================
 ; MAIN LOOP
@@ -115,61 +115,61 @@ SNAP_TRACE r5
 main_loop:
   ; Increment frame counter
   LDI r20, FRAME_CNT
-  LOAD r5, r20
-  ADD r5, r6
-  STORE r20, r5
+  LOAD r1, r20
+  ADD r1, r15
+  STORE r20, r1
 
   ; Read keyboard
-  IKEY r7
+  IKEY r2
 
   ; Handle keys
-  LDI r9, 83          ; 'S' = Step mode
-  CMP r7, r9
-  JZ r14, key_step
+  LDI r14, 83          ; 'S' = Step mode
+  CMP r2, r14
+  JZ r12, key_step
 
-  LDI r9, 67          ; 'C' = Continue
-  CMP r7, r9
-  JZ r14, key_continue
+  LDI r14, 67          ; 'C' = Continue
+  CMP r2, r14
+  JZ r12, key_continue
 
-  LDI r9, 82          ; 'R' = Reset trace
-  CMP r7, r9
-  JZ r14, key_reset
+  LDI r14, 82          ; 'R' = Reset trace
+  CMP r2, r14
+  JZ r12, key_reset
 
-  LDI r9, 84          ; 'T' = Toggle trace
-  CMP r7, r9
-  JZ r14, key_trace
+  LDI r14, 84          ; 'T' = Toggle trace
+  CMP r2, r14
+  JZ r12, key_trace
 
   JMP draw_frame
 
 key_step:
   LDI r20, STEP_MODE
-  LDI r5, 1
-  STORE r20, r5
+  LDI r1, 1
+  STORE r20, r1
   JMP draw_frame
 
 key_continue:
   LDI r20, STEP_MODE
-  LDI r5, 0
-  STORE r20, r5
+  LDI r1, 0
+  STORE r20, r1
   JMP draw_frame
 
 key_reset:
   ; Clear trace
-  LDI r5, 2
-  SNAP_TRACE r5
+  LDI r1, 2
+  SNAP_TRACE r1
   ; Re-enable
   LDI r20, TRACE_ON
-  LOAD r5, r20
-  SNAP_TRACE r5
+  LOAD r1, r20
+  SNAP_TRACE r1
   JMP draw_frame
 
 key_trace:
   LDI r20, TRACE_ON
-  LOAD r5, r20
-  LDI r9, 1
-  XOR r5, r9
-  STORE r20, r5
-  SNAP_TRACE r5
+  LOAD r1, r20
+  LDI r14, 1
+  XOR r1, r14
+  STORE r20, r1
+  SNAP_TRACE r1
   JMP draw_frame
 
 ; =========================================
@@ -177,376 +177,376 @@ key_trace:
 ; =========================================
 draw_frame:
   ; Background
-  LDI r13, 0x0A0A1E
-  FILL r13
+  LDI r5, 0x0A0A1E
+  FILL r5
 
   ; Title bar
-  LDI r13, 0
-  LDI r3, 0
-  LDI r0, 256
-  LDI r8, 16
-  LDI r12, 0x8B0000
-  RECTF r13, r3, r0, r8, r12
+  LDI r5, 0
+  LDI r7, 0
+  LDI r3, 256
+  LDI r0, 16
+  LDI r4, 0x8B0000
+  RECTF r5, r7, r3, r0, r4
 
   ; Title
   LDI r20, BUF
   STRO r20, "GO Debugger"
-  LDI r13, 60
-  LDI r3, 3
-  LDI r0, BUF
-  LDI r8, 0xFFFFFF
-  LDI r12, 0x8B0000
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 60
+  LDI r7, 3
+  LDI r3, BUF
+  LDI r0, 0xFFFFFF
+  LDI r4, 0x8B0000
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; --- Trace count ---
   LDI r20, BUF
   STRO r20, "Trace entries:"
-  LDI r13, 4
-  LDI r3, 20
-  LDI r0, BUF
-  LDI r8, 0x00FFFF
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 20
+  LDI r3, BUF
+  LDI r0, 0x00FFFF
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; Query trace count (mode 0)
-  LDI r5, 0
-  TRACE_READ r5        ; r14 = count
-  MOV r10, r14           ; save count
-  CALL val_to_hex      ; convert r14 to HEX_BUF
-  LDI r13, 110
-  LDI r3, 20
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r1, 0
+  TRACE_READ r1        ; r12 = count
+  MOV r8, r12           ; save count
+  CALL val_to_hex      ; convert r12 to HEX_BUF
+  LDI r5, 110
+  LDI r7, 20
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; --- Read last trace entry (PC + opcode) ---
-  ; mode 1: r5=index, r13=dest addr -> writes 20 words
-  CMP r10, r6
-  BLT r14, no_trace_entries
+  ; mode 1: r1=index, r5=dest addr -> writes 20 words
+  CMP r8, r15
+  BLT r12, no_trace_entries
 
   ; Read last entry (index = count - 1)
-  SUB r10, r6           ; r10 = count - 1 (last index)
-  MOV r5, r10
-  LDI r13, TRACE_RD
-  LDI r1, 1
-  TRACE_READ r1        ; mode 1 read
+  SUB r8, r15           ; r8 = count - 1 (last index)
+  MOV r1, r8
+  LDI r5, TRACE_RD
+  LDI r10, 1
+  TRACE_READ r10        ; mode 1 read
 
   ; Show PC from trace entry: TRACE_RD+2 = PC
   LDI r20, BUF
   STRO r20, "Last PC:"
-  LDI r13, 4
-  LDI r3, 34
-  LDI r0, BUF
-  LDI r8, 0x00FF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 34
+  LDI r3, BUF
+  LDI r0, 0x00FF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   LDI r20, TRACE_RD
-  ADD r20, r6
-  ADD r20, r6           ; +2 = PC
-  LOAD r14, r20
+  ADD r20, r15
+  ADD r20, r15           ; +2 = PC
+  LOAD r12, r20
   CALL val_to_hex
-  LDI r13, 70
-  LDI r3, 34
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 70
+  LDI r7, 34
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; Show opcode from trace entry: TRACE_RD+19 = opcode
   LDI r20, BUF
   STRO r20, "Opcode:"
-  LDI r13, 4
-  LDI r3, 48
-  LDI r0, BUF
-  LDI r8, 0x00FF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 48
+  LDI r3, BUF
+  LDI r0, 0x00FF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   LDI r20, TRACE_RD
   LDI r21, 19
   ADD r20, r21
-  LOAD r14, r20
+  LOAD r12, r20
   CALL val_to_hex
-  LDI r13, 70
-  LDI r3, 48
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 70
+  LDI r7, 48
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
-  ; Show register r14 from trace: TRACE_RD+3 = regs[0]
+  ; Show register r12 from trace: TRACE_RD+3 = regs[0]
   LDI r20, BUF
-  STRO r20, "r14:"
-  LDI r13, 4
-  LDI r3, 62
-  LDI r0, BUF
-  LDI r8, 0x88FF88
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  STRO r20, "r12:"
+  LDI r5, 4
+  LDI r7, 62
+  LDI r3, BUF
+  LDI r0, 0x88FF88
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   LDI r20, TRACE_RD
   LDI r21, 3
   ADD r20, r21
-  LOAD r14, r20
+  LOAD r12, r20
   CALL val_to_hex
-  LDI r13, 28
-  LDI r3, 62
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 28
+  LDI r7, 62
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
-  ; Show register r6 from trace: TRACE_RD+4 = regs[1]
+  ; Show register r15 from trace: TRACE_RD+4 = regs[1]
   LDI r20, BUF
-  STRO r20, "r6:"
-  LDI r13, 100
-  LDI r3, 62
-  LDI r0, BUF
-  LDI r8, 0x88FF88
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  STRO r20, "r15:"
+  LDI r5, 100
+  LDI r7, 62
+  LDI r3, BUF
+  LDI r0, 0x88FF88
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   LDI r20, TRACE_RD
   LDI r21, 4
   ADD r20, r21
-  LOAD r14, r20
+  LOAD r12, r20
   CALL val_to_hex
-  LDI r13, 124
-  LDI r3, 62
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 124
+  LDI r7, 62
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   JMP show_stack
 
 no_trace_entries:
   LDI r20, BUF
   STRO r20, "(no trace data)"
-  LDI r13, 4
-  LDI r3, 34
-  LDI r0, BUF
-  LDI r8, 0x666666
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 34
+  LDI r3, BUF
+  LDI r0, 0x666666
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
 show_stack:
   ; --- Stack pointer (r30 = 0xFD00) ---
   LDI r20, BUF
   STRO r20, "SP: FD00"
-  LDI r13, 4
-  LDI r3, 80
-  LDI r0, BUF
-  LDI r8, 0x00FF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 80
+  LDI r3, BUF
+  LDI r0, 0x00FF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; --- Step counter (TICKS) ---
   LDI r20, BUF
   STRO r20, "Ticks:"
-  LDI r13, 4
-  LDI r3, 94
-  LDI r0, BUF
-  LDI r8, 0x00FFFF
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 94
+  LDI r3, BUF
+  LDI r0, 0x00FFFF
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   LDI r20, TICKS
-  LOAD r14, r20
+  LOAD r12, r20
   CALL val_to_hex
-  LDI r13, 52
-  LDI r3, 94
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 52
+  LDI r7, 94
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; --- Frame counter ---
   LDI r20, BUF
   STRO r20, "Frame:"
-  LDI r13, 120
-  LDI r3, 94
-  LDI r0, BUF
-  LDI r8, 0x00FFFF
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 120
+  LDI r7, 94
+  LDI r3, BUF
+  LDI r0, 0x00FFFF
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   LDI r20, FRAME_CNT
-  LOAD r14, r20
+  LOAD r12, r20
   CALL val_to_hex
-  LDI r13, 172
-  LDI r3, 94
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 172
+  LDI r7, 94
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; --- Opcode count from trace ---
   ; Count HALT opcodes (0x00) to prove TRACE_READ mode 2
   LDI r20, BUF
   STRO r20, "Opcode histogram:"
-  LDI r13, 4
-  LDI r3, 112
-  LDI r0, BUF
-  LDI r8, 0xFF88FF
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 112
+  LDI r3, BUF
+  LDI r0, 0xFF88FF
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; Count FRAME opcodes (0x02) in trace
-  LDI r5, 2            ; target opcode = FRAME
-  LDI r1, 2
-  TRACE_READ r1        ; mode 2: r14 = count of matching opcode
-  MOV r10, r14
+  LDI r1, 2            ; target opcode = FRAME
+  LDI r10, 2
+  TRACE_READ r10        ; mode 2: r12 = count of matching opcode
+  MOV r8, r12
   CALL val_to_hex
   LDI r20, BUF
   STRO r20, "FRAME:"
-  LDI r13, 4
-  LDI r3, 126
-  LDI r0, BUF
-  LDI r8, 0x88FF88
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 126
+  LDI r3, BUF
+  LDI r0, 0x88FF88
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
-  LDI r13, 60
-  LDI r3, 126
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 60
+  LDI r7, 126
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; Count IKEY opcodes (0x48)
-  LDI r5, 0x48
-  LDI r1, 2
-  TRACE_READ r1
-  MOV r10, r14
+  LDI r1, 0x48
+  LDI r10, 2
+  TRACE_READ r10
+  MOV r8, r12
   CALL val_to_hex
   LDI r20, BUF
   STRO r20, "IKEY:"
-  LDI r13, 110
-  LDI r3, 126
-  LDI r0, BUF
-  LDI r8, 0x88FF88
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 110
+  LDI r7, 126
+  LDI r3, BUF
+  LDI r0, 0x88FF88
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
-  LDI r13, 152
-  LDI r3, 126
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 152
+  LDI r7, 126
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; --- Register snapshot display ---
   LDI r20, BUF
   STRO r20, "-- Register Snapshot --"
-  LDI r13, 4
-  LDI r3, 146
-  LDI r0, BUF
-  LDI r8, 0xFFAA00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 146
+  LDI r3, BUF
+  LDI r0, 0xFFAA00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; Show current live register values using RAM stores
   ; r30 = SP (we know it's 0xFD00)
   LDI r20, BUF
   STRO r20, "r30(SP):FD00 r31(LR):"
-  LDI r13, 4
-  LDI r3, 160
-  LDI r0, BUF
-  LDI r8, 0x88FF88
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 160
+  LDI r3, BUF
+  LDI r0, 0x88FF88
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; Show LR (r31) value
-  MOV r14, r31
+  MOV r12, r31
   CALL val_to_hex
-  LDI r13, 160
-  LDI r3, 160
-  LDI r0, HEX_BUF
-  LDI r8, 0xFFFF00
-  LDI r12, 0x0A0A1E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 160
+  LDI r7, 160
+  LDI r3, HEX_BUF
+  LDI r0, 0xFFFF00
+  LDI r4, 0x0A0A1E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   ; --- Status bar ---
-  LDI r13, 0
-  LDI r3, 236
-  LDI r0, 256
-  LDI r8, 20
-  LDI r12, 0x1A1A2E
-  RECTF r13, r3, r0, r8, r12
+  LDI r5, 0
+  LDI r7, 236
+  LDI r3, 256
+  LDI r0, 20
+  LDI r4, 0x1A1A2E
+  RECTF r5, r7, r3, r0, r4
 
   ; Mode
   LDI r20, STEP_MODE
-  LOAD r10, r20
-  LDI r9, 0
-  CMP r10, r9
-  JZ r14, mode_run
+  LOAD r8, r20
+  LDI r14, 0
+  CMP r8, r14
+  JZ r12, mode_run
 
   LDI r20, BUF
   STRO r20, "[STEP]"
-  LDI r13, 4
-  LDI r3, 238
-  LDI r0, BUF
-  LDI r8, 0xFF4444
-  LDI r12, 0x1A1A2E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 238
+  LDI r3, BUF
+  LDI r0, 0xFF4444
+  LDI r4, 0x1A1A2E
+  DRAWTEXT r5, r7, r3, r0, r4
   JMP status_trace_bar
 
 mode_run:
   LDI r20, BUF
   STRO r20, "[RUN]"
-  LDI r13, 4
-  LDI r3, 238
-  LDI r0, BUF
-  LDI r8, 0x44FF44
-  LDI r12, 0x1A1A2E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 4
+  LDI r7, 238
+  LDI r3, BUF
+  LDI r0, 0x44FF44
+  LDI r4, 0x1A1A2E
+  DRAWTEXT r5, r7, r3, r0, r4
 
 status_trace_bar:
   LDI r20, TRACE_ON
-  LOAD r10, r20
-  LDI r9, 0
-  CMP r10, r9
-  JZ r14, trc_off
+  LOAD r8, r20
+  LDI r14, 0
+  CMP r8, r14
+  JZ r12, trc_off
 
   LDI r20, BUF
   STRO r20, "TRC:ON"
-  LDI r13, 70
-  LDI r3, 238
-  LDI r0, BUF
-  LDI r8, 0x44FF44
-  LDI r12, 0x1A1A2E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 70
+  LDI r7, 238
+  LDI r3, BUF
+  LDI r0, 0x44FF44
+  LDI r4, 0x1A1A2E
+  DRAWTEXT r5, r7, r3, r0, r4
   JMP hints
 
 trc_off:
   LDI r20, BUF
   STRO r20, "TRC:OFF"
-  LDI r13, 70
-  LDI r3, 238
-  LDI r0, BUF
-  LDI r8, 0x666666
-  LDI r12, 0x1A1A2E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 70
+  LDI r7, 238
+  LDI r3, BUF
+  LDI r0, 0x666666
+  LDI r4, 0x1A1A2E
+  DRAWTEXT r5, r7, r3, r0, r4
 
 hints:
   LDI r20, BUF
   STRO r20, "S:Step C:Run R:Reset T:Trace"
-  LDI r13, 140
-  LDI r3, 238
-  LDI r0, BUF
-  LDI r8, 0x888888
-  LDI r12, 0x1A1A2E
-  DRAWTEXT r13, r3, r0, r8, r12
+  LDI r5, 140
+  LDI r7, 238
+  LDI r3, BUF
+  LDI r0, 0x888888
+  LDI r4, 0x1A1A2E
+  DRAWTEXT r5, r7, r3, r0, r4
 
   FRAME
   JMP main_loop
 
 ; =========================================
-; val_to_hex: Convert r14 to 8-char hex string at HEX_BUF
-; Clobbers r15-r19
+; val_to_hex: Convert r12 to 8-char hex string at HEX_BUF
+; Clobbers r13-r19
 ; =========================================
 val_to_hex:
   PUSH r31
@@ -555,32 +555,32 @@ val_to_hex:
   LDI r22, 28
   LDI r23, 4
   LDI r24, 0xF
-  LDI r12, 1
-  LDI r15, 0
+  LDI r4, 1
+  LDI r13, 0
 
 vhex_loop:
-  MOV r11, r14
+  MOV r6, r12
   MOV r16, r22
-  SHR r11, r16
-  AND r11, r24
+  SHR r6, r16
+  AND r6, r24
 
   LDI r16, HEX_TABLE
-  ADD r16, r11
+  ADD r16, r6
   LOAD r16, r16
 
   MOV r17, r20
-  ADD r17, r15
+  ADD r17, r13
   STORE r17, r16
 
   SUB r22, r23
-  ADD r15, r12
+  ADD r13, r4
   LDI r18, 8
-  CMP r15, r18
-  BLT r14, vhex_loop
+  CMP r13, r18
+  BLT r12, vhex_loop
 
   ; Null terminate
   MOV r17, r20
-  ADD r17, r15
+  ADD r17, r13
   LDI r18, 0
   STORE r17, r18
 

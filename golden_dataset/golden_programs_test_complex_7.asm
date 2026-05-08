@@ -1,33 +1,33 @@
-; DESCRIPTION: The GeOS assembly code initializes registers and sets up a loop to generate random numbers, negate them if they are less than a threshold, sum them, and store the result. The `negate_it` subroutine handles the negation logic with nested `PUSH/POP` operations for register preservation.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; test_complex.asm -- Test RAND + nested CALL + PUSH/POP
-LDI r13, 1
+LDI r5, 1
 LDI r30, 0xFF00
 
-LDI r10, 0
-LDI r4, 100
+LDI r13, 0
+LDI r3, 100
 
 loop:
-  RAND r11
-  AND r11, r4
+  RAND r10
+  AND r10, r3
   CALL negate_it
-  ADD r10, r11
-  ADD r2, r13
-  CMP r2, r4
-  BLT r0, loop
+  ADD r13, r10
+  ADD r4, r5
+  CMP r4, r3
+  BLT r1, loop
 
-LDI r9, 0x7000
-STORE r9, r10
+LDI r0, 0x7000
+STORE r0, r13
 
 HALT
 
 negate_it:
   PUSH r31
-  PUSH r0
-  CMP r11, r13
-  BGE r0, neg_skip
-  NEG r11
+  PUSH r1
+  CMP r10, r5
+  BGE r1, neg_skip
+  NEG r10
 neg_skip:
-  POP r0
+  POP r1
   POP r31
   RET

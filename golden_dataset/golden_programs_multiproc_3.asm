@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates a simple multiprocess system where two processes run concurrently. The primary process draws a bouncing white dot in the left half of a 256x256 screen, while a spawned process simultaneously draws a bouncing red dot in the right half. Both dots bounce off the screen boundaries and share the same display buffer, with the primary process handling frame synchronization.
+; DESCRIPTION: Geometry OS program to draw a red object.
 
 ; multiproc.asm -- SPATIAL_SPAWN demo
 ;
@@ -7,106 +7,106 @@
 ; Both share the same 256x256 screen and run concurrently via SPAWN.
 ;
 ; Register layout (primary):
-;   r12 = x position
-;   r11 = y position
-;   r9 = vx (velocity x)
-;   r1 = vy (velocity y)
-;   r7 = color (white)
-;   r13 = scratch
-;   r10 = spawn address
+;   r11 = x position
+;   r10 = y position
+;   r7 = vx (velocity x)
+;   r4 = vy (velocity y)
+;   r5 = color (white)
+;   r9 = scratch
+;   r3 = spawn address
 
 ; ── init primary ──────────────────────────────────────────────────────────────
-  LDI r12, 32          ; start x = 32 (left half)
-  LDI r11, 128         ; start y = 128
-  LDI r9, 1           ; vx = +1
-  LDI r1, 1           ; vy = +1
-  LDI r7, 0xFFFFFF    ; white
+  LDI r11, 32          ; start x = 32 (left half)
+  LDI r10, 128         ; start y = 128
+  LDI r7, 1           ; vx = +1
+  LDI r4, 1           ; vy = +1
+  LDI r5, 0xFFFFFF    ; white
 
   ; spawn the red-dot process
-  LDI r10, red_proc
-  SPAWN r10
+  LDI r3, red_proc
+  SPAWN r3
 
 ; ── primary game loop ─────────────────────────────────────────────────────────
 loop:
   ; erase old pixel
-  LDI r13, 0
-  PSET r12, r11, r13
+  LDI r9, 0
+  PSET r11, r10, r9
 
   ; move
-  ADD r12, r9
-  ADD r11, r1
+  ADD r11, r7
+  ADD r10, r4
 
   ; bounce left wall (x = 0)
-  LDI r13, 0
-  CMP r12, r13
-  JNZ r13, chk_rw
-  LDI r9, 1
+  LDI r9, 0
+  CMP r11, r9
+  JNZ r9, chk_rw
+  LDI r7, 1
 chk_rw:
   ; bounce right wall of left half (x = 127)
-  LDI r13, 127
-  CMP r12, r13
-  JNZ r13, chk_tw
-  LDI r9, 0xFFFFFFFF
+  LDI r9, 127
+  CMP r11, r9
+  JNZ r9, chk_tw
+  LDI r7, 0xFFFFFFFF
 chk_tw:
   ; bounce top wall (y = 0)
-  LDI r13, 0
-  CMP r11, r13
-  JNZ r13, chk_bw
-  LDI r1, 1
+  LDI r9, 0
+  CMP r10, r9
+  JNZ r9, chk_bw
+  LDI r4, 1
 chk_bw:
   ; bounce bottom wall (y = 255)
-  LDI r13, 255
-  CMP r11, r13
-  JNZ r13, draw
-  LDI r1, 0xFFFFFFFF
+  LDI r9, 255
+  CMP r10, r9
+  JNZ r9, draw
+  LDI r4, 0xFFFFFFFF
 
 draw:
-  PSET r12, r11, r7
+  PSET r11, r10, r5
   FRAME
   JMP loop
 
 ; ── spawned process: red dot in right half ─────────────────────────────────────
 ; Spawned processes start with zeroed registers, so we initialise everything here.
 red_proc:
-  LDI r12, 196         ; start x = 196 (right half)
-  LDI r11, 64          ; start y = 64
-  LDI r9, 0xFFFFFFFF          ; vx = -1
-  LDI r1, 1           ; vy = +1
-  LDI r7, 0xFF2020    ; red
+  LDI r11, 196         ; start x = 196 (right half)
+  LDI r10, 64          ; start y = 64
+  LDI r7, 0xFFFFFFFF          ; vx = -1
+  LDI r4, 1           ; vy = +1
+  LDI r5, 0xFF2020    ; red
 
 red_loop:
   ; erase
-  LDI r13, 0
-  PSET r12, r11, r13
+  LDI r9, 0
+  PSET r11, r10, r9
 
   ; move
-  ADD r12, r9
-  ADD r11, r1
+  ADD r11, r7
+  ADD r10, r4
 
   ; bounce left wall of right half (x = 128)
-  LDI r13, 128
-  CMP r12, r13
-  JNZ r13, red_chk_rw
-  LDI r9, 1
+  LDI r9, 128
+  CMP r11, r9
+  JNZ r9, red_chk_rw
+  LDI r7, 1
 red_chk_rw:
   ; bounce right wall (x = 255)
-  LDI r13, 255
-  CMP r12, r13
-  JNZ r13, red_chk_tw
-  LDI r9, 0xFFFFFFFF
+  LDI r9, 255
+  CMP r11, r9
+  JNZ r9, red_chk_tw
+  LDI r7, 0xFFFFFFFF
 red_chk_tw:
   ; bounce top (y = 0)
-  LDI r13, 0
-  CMP r11, r13
-  JNZ r13, red_chk_bw
-  LDI r1, 1
+  LDI r9, 0
+  CMP r10, r9
+  JNZ r9, red_chk_bw
+  LDI r4, 1
 red_chk_bw:
   ; bounce bottom (y = 255)
-  LDI r13, 255
-  CMP r11, r13
-  JNZ r13, red_draw
-  LDI r1, 0xFFFFFFFF
+  LDI r9, 255
+  CMP r10, r9
+  JNZ r9, red_draw
+  LDI r4, 0xFFFFFFFF
 red_draw:
-  PSET r12, r11, r7
+  PSET r11, r10, r5
   ; No FRAME here — the primary process drives frame sync
   JMP red_loop

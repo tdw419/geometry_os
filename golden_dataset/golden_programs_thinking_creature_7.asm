@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a simple world where a red creature wanders. The creature's movement is planned in intervals of up to 15 steps, after which it queries a Large Language Model (LLM) for a new direction (N, S, E, W). The game includes player control via arrow keys to move the camera/viewport, and renders a grid-based world with different biomes.
+; DESCRIPTION: Render a red rectangle at the screen.
 
 ; thinking_creature.asm -- One LLM-driven creature on a simple world
 ;
@@ -21,13 +21,13 @@
 ;   0xFFB  key bitmask
 
 ; ===== Constants in registers =====
-LDI r1, 1                ; the ubiquitous +1
-LDI r11, 64               ; TILES per axis
-LDI r15, 4                ; tile pixels
-LDI r2, 0xFFB           ; key bitmask port
-LDI r6, 0x7800          ; camera_x addr
+LDI r0, 1                ; the ubiquitous +1
+LDI r14, 64               ; TILES per axis
+LDI r3, 4                ; tile pixels
+LDI r8, 0xFFB           ; key bitmask port
+LDI r15, 0x7800          ; camera_x addr
 LDI r9, 0x7801          ; camera_y addr
-LDI r3, 0x7802          ; frame_counter addr
+LDI r13, 0x7802          ; frame_counter addr
 LDI r28, 32              ; viewport center
 
 ; ===== Write prompt string once to 0xB000 =====
@@ -50,31 +50,31 @@ STORE r17, r18           ; plan_steps = 0 -> will trigger LLM on first update
 
 ; ===== Init camera at (0, 0) so player starts at world (32, 32) =====
 LDI r17, 0
-STORE r6, r17
+STORE r15, r17
 STORE r9, r17
-STORE r3, r17           ; frame_counter = 0
+STORE r13, r17           ; frame_counter = 0
 
 main_loop:
 LDI r28, 32              ; reload center (clobbered by subroutines)
 
 ; --- Increment frame counter ---
-LOAD r17, r3
-ADD r17, r1
-STORE r3, r17
+LOAD r17, r13
+ADD r17, r0
+STORE r13, r17
 
 ; --- Read camera ---
-LOAD r10, r6            ; camera_x
-LOAD r7, r9            ; camera_y
+LOAD r2, r15            ; camera_x
+LOAD r1, r9            ; camera_y
 
 ; --- Read keys ---
-LOAD r16, r2            ; key bitmask
+LOAD r16, r8            ; key bitmask
 
 ; Up (bit 0)
 MOV r17, r16
 LDI r18, 1
 AND r17, r18
 JZ r17, no_up
-SUB r7, r1
+SUB r1, r0
 no_up:
 
 ; Down (bit 1)
@@ -82,7 +82,7 @@ MOV r17, r16
 LDI r18, 2
 AND r17, r18
 JZ r17, no_down
-ADD r7, r1
+ADD r1, r0
 no_down:
 
 ; Left (bit 2)
@@ -90,7 +90,7 @@ MOV r17, r16
 LDI r18, 4
 AND r17, r18
 JZ r17, no_left
-SUB r10, r1
+SUB r2, r0
 no_left:
 
 ; Right (bit 3)
@@ -98,14 +98,14 @@ MOV r17, r16
 LDI r18, 8
 AND r17, r18
 JZ r17, no_right
-ADD r10, r1
+ADD r2, r0
 no_right:
 
-STORE r6, r10
-STORE r9, r7
+STORE r15, r2
+STORE r9, r1
 
 ; ===== Update creature (every 8 frames) =====
-LOAD r22, r3
+LOAD r22, r13
 LDI r17, 7
 AND r22, r17
 JNZ r22, skip_creature
@@ -128,43 +128,43 @@ LDI r17, 0
 FILL r17
 
 ; Tile grid
-LOAD r22, r3            ; frame_counter for animation
-LDI r8, 0
+LOAD r22, r13            ; frame_counter for animation
+LDI r10, 0
 
 render_y:
-  LDI r5, 0
+  LDI r6, 0
 render_x:
-    MOV r13, r10
-    ADD r13, r5           ; world_x
-    MOV r0, r7
-    ADD r0, r8           ; world_y
+    MOV r7, r2
+    ADD r7, r6           ; world_x
+    MOV r12, r1
+    ADD r12, r10           ; world_y
 
     ; Hash for biome (coarse)
-    MOV r4, r13
+    MOV r5, r7
     LDI r18, 3
-    SHR r4, r18
+    SHR r5, r18
     LDI r18, 99001
-    MUL r4, r18
-    MOV r12, r0
+    MUL r5, r18
+    MOV r11, r12
     LDI r18, 3
-    SHR r12, r18
+    SHR r11, r18
     LDI r18, 79007
-    MUL r12, r18
-    XOR r4, r12
+    MUL r11, r18
+    XOR r5, r11
     LDI r18, 1103515245
-    MUL r4, r18
+    MUL r5, r18
     LDI r18, 28
-    SHR r4, r18          ; biome 0..15
+    SHR r5, r18          ; biome 0..15
 
     LDI r18, 3
-    CMP r4, r18
-    BLT r14, tile_water
+    CMP r5, r18
+    BLT r4, tile_water
     LDI r18, 8
-    CMP r4, r18
-    BLT r14, tile_grass
+    CMP r5, r18
+    BLT r4, tile_grass
     LDI r18, 12
-    CMP r4, r18
-    BLT r14, tile_forest
+    CMP r5, r18
+    BLT r4, tile_forest
     JMP tile_rock
 
 tile_water:
@@ -180,22 +180,22 @@ tile_rock:
     LDI r17, 0x888888
 
 tile_draw:
-    MOV r13, r5
-    MUL r13, r15
-    MOV r0, r8
-    MUL r0, r15
-    RECTF r13, r0, r15, r15, r17
+    MOV r7, r6
+    MUL r7, r3
+    MOV r12, r10
+    MUL r12, r3
+    RECTF r7, r12, r3, r3, r17
 
-    ADD r5, r1
-    MOV r18, r5
-    SUB r18, r11
+    ADD r6, r0
+    MOV r18, r6
+    SUB r18, r14
     JZ r18, next_row
     JMP render_x
 
 next_row:
-    ADD r8, r1
-    MOV r18, r8
-    SUB r18, r11
+    ADD r10, r0
+    MOV r18, r10
+    SUB r18, r14
     JZ r18, render_done
     JMP render_y
 
@@ -203,17 +203,17 @@ render_done:
 
 ; --- Draw creature ---
 LDI r17, 0x7000
-LOAD r13, r17
+LOAD r7, r17
 LDI r17, 0x7001
-LOAD r0, r17
+LOAD r12, r17
 LDI r17, 0xFF3322        ; bright red
 CALL draw_entity
 
 ; --- Draw player at viewport center ---
-LDI r13, 128
-LDI r0, 128
+LDI r7, 128
+LDI r12, 128
 LDI r17, 0xFFFFFF
-RECTF r13, r0, r15, r15, r17
+RECTF r7, r12, r3, r3, r17
 
 FRAME
 JMP main_loop
@@ -221,12 +221,12 @@ JMP main_loop
 
 ; ===== Subroutine: move_creature =====
 ; Steps the creature one tile in its plan_dir, then plan_steps--.
-; Clobbers: r13, r0, r17, r18
+; Clobbers: r7, r12, r17, r18
 move_creature:
   LDI r17, 0x7000
-  LOAD r13, r17           ; world_x
+  LOAD r7, r17           ; world_x
   LDI r17, 0x7001
-  LOAD r0, r17           ; world_y
+  LOAD r12, r17           ; world_y
   LDI r17, 0x7002
   LOAD r18, r17          ; plan_dir
 
@@ -234,34 +234,34 @@ move_creature:
   JZ r18, mv_up
   LDI r19, 1
   CMP r18, r19
-  JZ r14, mv_down
+  JZ r4, mv_down
   LDI r19, 2
   CMP r18, r19
-  JZ r14, mv_left
+  JZ r4, mv_left
   JMP mv_right
 
 mv_up:
-  SUB r0, r1
+  SUB r12, r0
   JMP mv_write
 mv_down:
-  ADD r0, r1
+  ADD r12, r0
   JMP mv_write
 mv_left:
-  SUB r13, r1
+  SUB r7, r0
   JMP mv_write
 mv_right:
-  ADD r13, r1
+  ADD r7, r0
 
 mv_write:
   LDI r17, 0x7000
-  STORE r17, r13
+  STORE r17, r7
   LDI r17, 0x7001
-  STORE r17, r0
+  STORE r17, r12
 
   ; plan_steps--
   LDI r17, 0x7003
   LOAD r18, r17
-  SUB r18, r1
+  SUB r18, r0
   STORE r17, r18
   RET
 
@@ -271,10 +271,10 @@ mv_write:
 ; Falls back to a RAND direction if no recognizable letter appears.
 think_creature:
   ; r_prompt, r_response, r_max
-  LDI r13, 0xB000
-  LDI r0, 0xC000
-  LDI r4, 256
-  LLM r13, r0, r4         ; r14 = response length
+  LDI r7, 0xB000
+  LDI r12, 0xC000
+  LDI r5, 256
+  LLM r7, r12, r5         ; r4 = response length
 
   ; Default: random direction if parse fails
   RAND r20
@@ -283,7 +283,7 @@ think_creature:
 
   ; Scan response buffer for first N/S/E/W letter
   LDI r21, 0xC000        ; cursor
-  MOV r22, r14            ; remaining chars to scan
+  MOV r22, r4            ; remaining chars to scan
   JZ r22, tc_done        ; empty response -> keep random
 
 tc_scan:
@@ -292,34 +292,34 @@ tc_scan:
 
   LDI r18, 78            ; 'N'
   CMP r23, r18
-  JZ r14, tc_pick_up
+  JZ r4, tc_pick_up
   LDI r18, 110           ; 'n'
   CMP r23, r18
-  JZ r14, tc_pick_up
+  JZ r4, tc_pick_up
 
   LDI r18, 83            ; 'S'
   CMP r23, r18
-  JZ r14, tc_pick_down
+  JZ r4, tc_pick_down
   LDI r18, 115           ; 's'
   CMP r23, r18
-  JZ r14, tc_pick_down
+  JZ r4, tc_pick_down
 
   LDI r18, 69            ; 'E'
   CMP r23, r18
-  JZ r14, tc_pick_right
+  JZ r4, tc_pick_right
   LDI r18, 101           ; 'e'
   CMP r23, r18
-  JZ r14, tc_pick_right
+  JZ r4, tc_pick_right
 
   LDI r18, 87            ; 'W'
   CMP r23, r18
-  JZ r14, tc_pick_left
+  JZ r4, tc_pick_left
   LDI r18, 119           ; 'w'
   CMP r23, r18
-  JZ r14, tc_pick_left
+  JZ r4, tc_pick_left
 
-  ADD r21, r1
-  SUB r22, r1
+  ADD r21, r0
+  SUB r22, r0
   JNZ r22, tc_scan
   JMP tc_done
 
@@ -347,30 +347,30 @@ tc_done:
 
 
 ; ===== Subroutine: draw_entity =====
-; Draws a 4x4 rect at (world_x, world_y) in r13, r0 with color in r17 if on-screen.
-; Clobbers: r13, r0, r4, r12, r18
+; Draws a 4x4 rect at (world_x, world_y) in r7, r12 with color in r17 if on-screen.
+; Clobbers: r7, r12, r5, r11, r18
 draw_entity:
-  LOAD r4, r6            ; camera_x
-  MOV r12, r13
-  SUB r12, r4              ; r12 = world_x - camera_x (wraps if negative)
+  LOAD r5, r15            ; camera_x
+  MOV r11, r7
+  SUB r11, r5              ; r11 = world_x - camera_x (wraps if negative)
   LDI r18, 64
-  CMP r12, r18
-  BGE r14, de_done
-  MOV r13, r12
+  CMP r11, r18
+  BGE r4, de_done
+  MOV r7, r11
   LDI r18, 4
-  MUL r13, r18             ; pixel x
+  MUL r7, r18             ; pixel x
 
-  LOAD r4, r9            ; camera_y
-  MOV r12, r0
-  SUB r12, r4
+  LOAD r5, r9            ; camera_y
+  MOV r11, r12
+  SUB r11, r5
   LDI r18, 64
-  CMP r12, r18
-  BGE r14, de_done
-  MOV r0, r12
+  CMP r11, r18
+  BGE r4, de_done
+  MOV r12, r11
   LDI r18, 4
-  MUL r0, r18             ; pixel y
+  MUL r12, r18             ; pixel y
 
-  RECTF r13, r0, r15, r15, r17
+  RECTF r7, r12, r3, r3, r17
 
 de_done:
   RET

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a help viewer that displays keyboard shortcuts, opcode references, and shell commands from pre-loaded text in RAM. The interface is scrollable using the arrow keys, and it includes a title bar, content area background, and footer with navigation instructions. The code also demonstrates text rendering, rectangle drawing, and keyboard input handling within a loop.
+; DESCRIPTION: Draw rectangle: pos=the screen, color=colored, size=fixed size.
 
 ; help.asm -- Help Viewer for Geometry OS
 ;
@@ -22,7 +22,7 @@
 
 ; Init
 LDI r30, 0xFD00
-LDI r8, 1
+LDI r14, 1
 
 LDI r20, SCROLL
 LDI r21, 0
@@ -35,47 +35,47 @@ STORE r20, r21
 ; Main Loop
 ; =========================================
 main_loop:
-    IKEY r2
-    JZ r2, no_input
+    IKEY r7
+    JZ r7, no_input
 
     ; Up arrow (A=65) = scroll up
-    LDI r15, 65
-    CMP r2, r15
-    JZ r11, scroll_up
+    LDI r6, 65
+    CMP r7, r6
+    JZ r0, scroll_up
 
     ; Down arrow (B=66) = scroll down
-    LDI r15, 66
-    CMP r2, r15
-    JZ r11, scroll_down
+    LDI r6, 66
+    CMP r7, r6
+    JZ r0, scroll_down
 
     ; ESC (27) = quit
-    LDI r15, 27
-    CMP r2, r15
-    JZ r11, help_quit
+    LDI r6, 27
+    CMP r7, r6
+    JZ r0, help_quit
 
     JMP no_input
 
 scroll_up:
     LDI r20, SCROLL
-    LOAD r10, r20
-    JZ r10, no_input
-    LDI r15, 1
-    SUB r10, r15
-    STORE r20, r10
+    LOAD r11, r20
+    JZ r11, no_input
+    LDI r6, 1
+    SUB r11, r6
+    STORE r20, r11
     JMP no_input
 
 scroll_down:
     LDI r20, SCROLL
-    LOAD r10, r20
+    LOAD r11, r20
     LDI r20, MAXSCRL
     LOAD r16, r20
-    CMP r10, r16
-    BGE r11, no_input
+    CMP r11, r16
+    BGE r0, no_input
     LDI r20, SCROLL
-    LOAD r10, r20
-    LDI r15, 1
-    ADD r10, r15
-    STORE r20, r10
+    LOAD r11, r20
+    LDI r6, 1
+    ADD r11, r6
+    STORE r20, r11
     JMP no_input
 
 no_input:
@@ -93,94 +93,94 @@ render_help:
     PUSH r31
 
     ; Background
-    LDI r8, 0x0D1B2A
-    FILL r8
+    LDI r14, 0x0D1B2A
+    FILL r14
 
     ; Title bar
-    LDI r8, 0
     LDI r14, 0
-    LDI r0, 256
+    LDI r5, 0
+    LDI r9, 256
     LDI r12, 24
-    LDI r7, 0x1B3A5C
-    RECTF r8, r14, r0, r12, r7
+    LDI r13, 0x1B3A5C
+    RECTF r14, r5, r9, r12, r13
 
     LDI r20, BUF
     STRO r20, "Geometry OS Help"
-    LDI r8, 56
-    LDI r14, 6
-    LDI r0, BUF
+    LDI r14, 56
+    LDI r5, 6
+    LDI r9, BUF
     LDI r12, 0xFFFFFF
-    LDI r7, 0x1B3A5C
-    DRAWTEXT r8, r14, r0, r12, r7
+    LDI r13, 0x1B3A5C
+    DRAWTEXT r14, r5, r9, r12, r13
 
     ; Content area background
-    LDI r8, 8
-    LDI r14, 28
-    LDI r0, 240
+    LDI r14, 8
+    LDI r5, 28
+    LDI r9, 240
     LDI r12, 216
-    LDI r7, 0x101828
-    RECTF r8, r14, r0, r12, r7
+    LDI r13, 0x101828
+    RECTF r14, r5, r9, r12, r13
 
     ; Load scroll offset
     LDI r20, SCROLL
-    LOAD r6, r20
+    LOAD r3, r20
 
     ; Draw help lines based on scroll offset
     ; Each line is 16px apart, starting at y=34
     ; We draw up to 13 visible lines
 
     ; Line 0 (relative to scroll)
-    LDI r4, 0            ; line index
-    LDI r5, 34           ; y position
+    LDI r1, 0            ; line index
+    LDI r8, 34           ; y position
 
 help_line_loop:
     ; Check if we've drawn enough lines (13 visible)
-    LDI r10, 13
-    CMP r4, r10
-    BGE r11, help_lines_done
+    LDI r11, 13
+    CMP r1, r11
+    BGE r0, help_lines_done
 
     ; Compute which help entry to show: scroll_offset + line_index
-    MOV r10, r6
-    ADD r10, r4
+    MOV r11, r3
+    ADD r11, r1
 
     ; Dispatch on help entry index
-    JZ r10, hl_keyboard
-    LDI r15, 1
-    CMP r10, r15
-    JZ r11, hl_keys2
-    LDI r15, 2
-    CMP r10, r15
-    JZ r11, hl_opcodes1
-    LDI r15, 3
-    CMP r10, r15
-    JZ r11, hl_opcodes2
-    LDI r15, 4
-    CMP r10, r15
-    JZ r11, hl_opcodes3
-    LDI r15, 5
-    CMP r10, r15
-    JZ r11, hl_shell
-    LDI r15, 6
-    CMP r10, r15
-    JZ r11, hl_memory
-    LDI r15, 7
-    CMP r10, r15
-    JZ r11, hl_tips1
-    LDI r15, 8
-    CMP r10, r15
-    JZ r11, hl_tips2
-    LDI r15, 9
-    CMP r10, r15
-    JZ r11, hl_tips3
-    LDI r15, 10
-    CMP r10, r15
-    JZ r11, hl_tips4
-    LDI r15, 11
-    CMP r10, r15
-    JZ r11, hl_tips5
-    LDI r15, 12
-    CMP r10, r15
-    JZ r11, hl_tips6
+    JZ r11, hl_keyboard
+    LDI r6, 1
+    CMP r11, r6
+    JZ r0, hl_keys2
+    LDI r6, 2
+    CMP r11, r6
+    JZ r0, hl_opcodes1
+    LDI r6, 3
+    CMP r11, r6
+    JZ r0, hl_opcodes2
+    LDI r6, 4
+    CMP r11, r6
+    JZ r0, hl_opcodes3
+    LDI r6, 5
+    CMP r11, r6
+    JZ r0, hl_shell
+    LDI r6, 6
+    CMP r11, r6
+    JZ r0, hl_memory
+    LDI r6, 7
+    CMP r11, r6
+    JZ r0, hl_tips1
+    LDI r6, 8
+    CMP r11, r6
+    JZ r0, hl_tips2
+    LDI r6, 9
+    CMP r11, r6
+    JZ r0, hl_tips3
+    LDI r6, 10
+    CMP r11, r6
+    JZ r0, hl_tips4
+    LDI r6, 11
+    CMP r11, r6
+    JZ r0, hl_tips5
+    LDI r6, 12
+    CMP r11, r6
+    JZ r0, hl_tips6
     JMP hl_blank
 
 hl_keyboard:
@@ -233,7 +233,7 @@ hl_tips1:
 
 hl_tips2:
     LDI r20, BUF
-    STRO r20, "r11 reserved for CMP results"
+    STRO r20, "r0 reserved for CMP results"
     LDI r12, 0xAAAACC
     JMP hl_draw
 
@@ -267,36 +267,36 @@ hl_blank:
     LDI r12, 0xAAAACC
 
 hl_draw:
-    LDI r8, 16
-    MOV r14, r5
-    LDI r0, BUF
-    LDI r7, 0x101828
-    DRAWTEXT r8, r14, r0, r12, r7
+    LDI r14, 16
+    MOV r5, r8
+    LDI r9, BUF
+    LDI r13, 0x101828
+    DRAWTEXT r14, r5, r9, r12, r13
 
     ; Next line
-    LDI r10, 1
-    ADD r4, r10
-    LDI r10, 16
-    ADD r5, r10
+    LDI r11, 1
+    ADD r1, r11
+    LDI r11, 16
+    ADD r8, r11
     JMP help_line_loop
 
 help_lines_done:
     ; Footer
-    LDI r8, 0
-    LDI r14, 244
-    LDI r0, 256
+    LDI r14, 0
+    LDI r5, 244
+    LDI r9, 256
     LDI r12, 12
-    LDI r7, 0x0A0A1A
-    RECTF r8, r14, r0, r12, r7
+    LDI r13, 0x0A0A1A
+    RECTF r14, r5, r9, r12, r13
 
     LDI r20, BUF
     STRO r20, "Up/Down: Scroll  ESC: Back"
-    LDI r8, 52
-    LDI r14, 246
-    LDI r0, BUF
+    LDI r14, 52
+    LDI r5, 246
+    LDI r9, BUF
     LDI r12, 0x6666AA
-    LDI r7, 0x0A0A1A
-    DRAWTEXT r8, r14, r0, r12, r7
+    LDI r13, 0x0A0A1A
+    DRAWTEXT r14, r5, r9, r12, r13
 
     POP r31
     RET

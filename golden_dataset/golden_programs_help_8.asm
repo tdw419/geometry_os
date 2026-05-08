@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a help viewer that displays keyboard shortcuts, opcode references, and shell commands from pre-loaded text in RAM. The interface is scrollable using the arrow keys, and it includes a title bar, content area background, and footer with navigation instructions. The code also demonstrates text rendering, rectangle drawing, and keyboard input handling within a loop.
+; DESCRIPTION: Draw rectangle: pos=the screen, color=colored, size=fixed size.
 
 ; help.asm -- Help Viewer for Geometry OS
 ;
@@ -22,7 +22,7 @@
 
 ; Init
 LDI r30, 0xFD00
-LDI r4, 1
+LDI r1, 1
 
 LDI r20, SCROLL
 LDI r21, 0
@@ -35,47 +35,47 @@ STORE r20, r21
 ; Main Loop
 ; =========================================
 main_loop:
-    IKEY r0
-    JZ r0, no_input
+    IKEY r10
+    JZ r10, no_input
 
     ; Up arrow (A=65) = scroll up
-    LDI r10, 65
-    CMP r0, r10
-    JZ r14, scroll_up
+    LDI r14, 65
+    CMP r10, r14
+    JZ r9, scroll_up
 
     ; Down arrow (B=66) = scroll down
-    LDI r10, 66
-    CMP r0, r10
-    JZ r14, scroll_down
+    LDI r14, 66
+    CMP r10, r14
+    JZ r9, scroll_down
 
     ; ESC (27) = quit
-    LDI r10, 27
-    CMP r0, r10
-    JZ r14, help_quit
+    LDI r14, 27
+    CMP r10, r14
+    JZ r9, help_quit
 
     JMP no_input
 
 scroll_up:
     LDI r20, SCROLL
-    LOAD r13, r20
-    JZ r13, no_input
-    LDI r10, 1
-    SUB r13, r10
-    STORE r20, r13
+    LOAD r8, r20
+    JZ r8, no_input
+    LDI r14, 1
+    SUB r8, r14
+    STORE r20, r8
     JMP no_input
 
 scroll_down:
     LDI r20, SCROLL
-    LOAD r13, r20
+    LOAD r8, r20
     LDI r20, MAXSCRL
     LOAD r16, r20
-    CMP r13, r16
-    BGE r14, no_input
+    CMP r8, r16
+    BGE r9, no_input
     LDI r20, SCROLL
-    LOAD r13, r20
-    LDI r10, 1
-    ADD r13, r10
-    STORE r20, r13
+    LOAD r8, r20
+    LDI r14, 1
+    ADD r8, r14
+    STORE r20, r8
     JMP no_input
 
 no_input:
@@ -93,37 +93,37 @@ render_help:
     PUSH r31
 
     ; Background
-    LDI r4, 0x0D1B2A
-    FILL r4
+    LDI r1, 0x0D1B2A
+    FILL r1
 
     ; Title bar
-    LDI r4, 0
-    LDI r2, 0
-    LDI r1, 256
-    LDI r6, 24
-    LDI r11, 0x1B3A5C
-    RECTF r4, r2, r1, r6, r11
+    LDI r1, 0
+    LDI r5, 0
+    LDI r4, 256
+    LDI r3, 24
+    LDI r13, 0x1B3A5C
+    RECTF r1, r5, r4, r3, r13
 
     LDI r20, BUF
     STRO r20, "Geometry OS Help"
-    LDI r4, 56
-    LDI r2, 6
-    LDI r1, BUF
-    LDI r6, 0xFFFFFF
-    LDI r11, 0x1B3A5C
-    DRAWTEXT r4, r2, r1, r6, r11
+    LDI r1, 56
+    LDI r5, 6
+    LDI r4, BUF
+    LDI r3, 0xFFFFFF
+    LDI r13, 0x1B3A5C
+    DRAWTEXT r1, r5, r4, r3, r13
 
     ; Content area background
-    LDI r4, 8
-    LDI r2, 28
-    LDI r1, 240
-    LDI r6, 216
-    LDI r11, 0x101828
-    RECTF r4, r2, r1, r6, r11
+    LDI r1, 8
+    LDI r5, 28
+    LDI r4, 240
+    LDI r3, 216
+    LDI r13, 0x101828
+    RECTF r1, r5, r4, r3, r13
 
     ; Load scroll offset
     LDI r20, SCROLL
-    LOAD r8, r20
+    LOAD r11, r20
 
     ; Draw help lines based on scroll offset
     ; Each line is 16px apart, starting at y=34
@@ -131,172 +131,172 @@ render_help:
 
     ; Line 0 (relative to scroll)
     LDI r15, 0            ; line index
-    LDI r5, 34           ; y position
+    LDI r6, 34           ; y position
 
 help_line_loop:
     ; Check if we've drawn enough lines (13 visible)
-    LDI r13, 13
-    CMP r15, r13
-    BGE r14, help_lines_done
+    LDI r8, 13
+    CMP r15, r8
+    BGE r9, help_lines_done
 
     ; Compute which help entry to show: scroll_offset + line_index
-    MOV r13, r8
-    ADD r13, r15
+    MOV r8, r11
+    ADD r8, r15
 
     ; Dispatch on help entry index
-    JZ r13, hl_keyboard
-    LDI r10, 1
-    CMP r13, r10
-    JZ r14, hl_keys2
-    LDI r10, 2
-    CMP r13, r10
-    JZ r14, hl_opcodes1
-    LDI r10, 3
-    CMP r13, r10
-    JZ r14, hl_opcodes2
-    LDI r10, 4
-    CMP r13, r10
-    JZ r14, hl_opcodes3
-    LDI r10, 5
-    CMP r13, r10
-    JZ r14, hl_shell
-    LDI r10, 6
-    CMP r13, r10
-    JZ r14, hl_memory
-    LDI r10, 7
-    CMP r13, r10
-    JZ r14, hl_tips1
-    LDI r10, 8
-    CMP r13, r10
-    JZ r14, hl_tips2
-    LDI r10, 9
-    CMP r13, r10
-    JZ r14, hl_tips3
-    LDI r10, 10
-    CMP r13, r10
-    JZ r14, hl_tips4
-    LDI r10, 11
-    CMP r13, r10
-    JZ r14, hl_tips5
-    LDI r10, 12
-    CMP r13, r10
-    JZ r14, hl_tips6
+    JZ r8, hl_keyboard
+    LDI r14, 1
+    CMP r8, r14
+    JZ r9, hl_keys2
+    LDI r14, 2
+    CMP r8, r14
+    JZ r9, hl_opcodes1
+    LDI r14, 3
+    CMP r8, r14
+    JZ r9, hl_opcodes2
+    LDI r14, 4
+    CMP r8, r14
+    JZ r9, hl_opcodes3
+    LDI r14, 5
+    CMP r8, r14
+    JZ r9, hl_shell
+    LDI r14, 6
+    CMP r8, r14
+    JZ r9, hl_memory
+    LDI r14, 7
+    CMP r8, r14
+    JZ r9, hl_tips1
+    LDI r14, 8
+    CMP r8, r14
+    JZ r9, hl_tips2
+    LDI r14, 9
+    CMP r8, r14
+    JZ r9, hl_tips3
+    LDI r14, 10
+    CMP r8, r14
+    JZ r9, hl_tips4
+    LDI r14, 11
+    CMP r8, r14
+    JZ r9, hl_tips5
+    LDI r14, 12
+    CMP r8, r14
+    JZ r9, hl_tips6
     JMP hl_blank
 
 hl_keyboard:
     LDI r20, BUF
     STRO r20, "Keyboard Shortcuts"
-    LDI r6, 0x8888FF
+    LDI r3, 0x8888FF
     JMP hl_draw
 
 hl_keys2:
     LDI r20, BUF
     STRO r20, "F5=Run F8=Asm F6=Step ESC=Back"
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_opcodes1:
     LDI r20, BUF
     STRO r20, "Opcodes (113 total)"
-    LDI r6, 0x8888FF
+    LDI r3, 0x8888FF
     JMP hl_draw
 
 hl_opcodes2:
     LDI r20, BUF
     STRO r20, "LDI LOAD STORE MOV ADD SUB MUL"
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_opcodes3:
     LDI r20, BUF
     STRO r20, "DIV AND OR XOR SHL SHR MOD NEG"
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_shell:
     LDI r20, BUF
     STRO r20, "Shell: help ls load run edit regs"
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_memory:
     LDI r20, BUF
     STRO r20, "64K RAM  0x000-0x3FF=Source"
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_tips1:
     LDI r20, BUF
     STRO r20, "Tips"
-    LDI r6, 0x8888FF
+    LDI r3, 0x8888FF
     JMP hl_draw
 
 hl_tips2:
     LDI r20, BUF
-    STRO r20, "r14 reserved for CMP results"
-    LDI r6, 0xAAAACC
+    STRO r20, "r9 reserved for CMP results"
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_tips3:
     LDI r20, BUF
     STRO r20, "r30=SP r31=LR (CALL/RET)"
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_tips4:
     LDI r20, BUF
     STRO r20, "No colons in .asm comments"
-    LDI r6, 0xFF8888
+    LDI r3, 0xFF8888
     JMP hl_draw
 
 hl_tips5:
     LDI r20, BUF
     STRO r20, "FRAME for animation loops"
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_tips6:
     LDI r20, BUF
     STRO r20, "IKEY reads keyboard each frame"
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
     JMP hl_draw
 
 hl_blank:
     LDI r20, BUF
     STRO r20, ""
-    LDI r6, 0xAAAACC
+    LDI r3, 0xAAAACC
 
 hl_draw:
-    LDI r4, 16
-    MOV r2, r5
-    LDI r1, BUF
-    LDI r11, 0x101828
-    DRAWTEXT r4, r2, r1, r6, r11
+    LDI r1, 16
+    MOV r5, r6
+    LDI r4, BUF
+    LDI r13, 0x101828
+    DRAWTEXT r1, r5, r4, r3, r13
 
     ; Next line
-    LDI r13, 1
-    ADD r15, r13
-    LDI r13, 16
-    ADD r5, r13
+    LDI r8, 1
+    ADD r15, r8
+    LDI r8, 16
+    ADD r6, r8
     JMP help_line_loop
 
 help_lines_done:
     ; Footer
-    LDI r4, 0
-    LDI r2, 244
-    LDI r1, 256
-    LDI r6, 12
-    LDI r11, 0x0A0A1A
-    RECTF r4, r2, r1, r6, r11
+    LDI r1, 0
+    LDI r5, 244
+    LDI r4, 256
+    LDI r3, 12
+    LDI r13, 0x0A0A1A
+    RECTF r1, r5, r4, r3, r13
 
     LDI r20, BUF
     STRO r20, "Up/Down: Scroll  ESC: Back"
-    LDI r4, 52
-    LDI r2, 246
-    LDI r1, BUF
-    LDI r6, 0x6666AA
-    LDI r11, 0x0A0A1A
-    DRAWTEXT r4, r2, r1, r6, r11
+    LDI r1, 52
+    LDI r5, 246
+    LDI r4, BUF
+    LDI r3, 0x6666AA
+    LDI r13, 0x0A0A1A
+    DRAWTEXT r1, r5, r4, r3, r13
 
     POP r31
     RET

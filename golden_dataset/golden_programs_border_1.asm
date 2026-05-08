@@ -1,36 +1,36 @@
-; DESCRIPTION: This GeOS assembly code draws a green (0x00FF00) border around the screen edges using the RECTF function. The border consists of four rectangles: one at the top and bottom (each 4 pixels tall and full width), and two on the left and right (each 4 pixels wide and spanning the height minus the top and bottom borders). The center of the screen remains black.
+; DESCRIPTION: Display a rectangle using color green at the screen.
 
 ; BORDER -- Draw a colored border around the screen edges
 ; Uses RECTF to draw borders on all four sides
 ; Test: border pixels should be green (0x00FF00), center should be black
 
 ; Top border: full width, 4 pixels tall
-LDI r5, 0
-LDI r14, 0
-LDI r3, 256
-LDI r15, 4
-LDI r0, 0x00FF00
-RECTF r5, r14, r3, r15, r0
+LDI r15, 0
+LDI r3, 0
+LDI r13, 256
+LDI r8, 4
+LDI r6, 0x00FF00
+RECTF r15, r3, r13, r8, r6
 
 ; Bottom border
-LDI r5, 0
-LDI r14, 252
-LDI r3, 256
-LDI r15, 4
-RECTF r5, r14, r3, r15, r0
+LDI r15, 0
+LDI r3, 252
+LDI r13, 256
+LDI r8, 4
+RECTF r15, r3, r13, r8, r6
 
 ; Left border
-LDI r5, 0
-LDI r14, 4
+LDI r15, 0
 LDI r3, 4
-LDI r15, 248
-RECTF r5, r14, r3, r15, r0
+LDI r13, 4
+LDI r8, 248
+RECTF r15, r3, r13, r8, r6
 
 ; Right border
-LDI r5, 252
-LDI r14, 4
+LDI r15, 252
 LDI r3, 4
-LDI r15, 248
-RECTF r5, r14, r3, r15, r0
+LDI r13, 4
+LDI r8, 248
+RECTF r15, r3, r13, r8, r6
 
 HALT

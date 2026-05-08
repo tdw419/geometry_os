@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a display with a dark blue title bar labeled "Alpine Linux Live Tile" and green borders around the terminal area. It provides usage instructions for hypervisor commands such as `hypervisor_boot`, `hypervisor_status`, and others, rendered in text at specific coordinates on the screen.
+; DESCRIPTION: Draw object: pos=the screen, color=red, size=fixed size.
 
 ; alpine_tile.asm -- Alpine Linux Live Tile (Phase 123)
 ;
@@ -14,48 +14,48 @@
 ;   hypervisor_kill                     (clean up)
 
 ; Title bar
-LDI r10, 0x000033   ; dark blue
-LDI r14, 0
+LDI r11, 0x000033   ; dark blue
 LDI r8, 0
-LDI r5, 256
-LDI r0, 16
-RECTF r14, r8, r5, r0, r10
+LDI r3, 0
+LDI r6, 256
+LDI r9, 16
+RECTF r8, r3, r6, r9, r11
 
 ; Title text
-LDI r15, 0x3000
-STRO r15, "Alpine Linux Live Tile"
-LDI r13, 3
+LDI r10, 0x3000
+STRO r10, "Alpine Linux Live Tile"
+LDI r7, 3
 LDI r16, 4
-TEXT r13, r16, r15
+TEXT r7, r16, r10
 
 ; Status text
-LDI r15, 0x3100
-STRO r15, "Use: hypervisor_boot"
-LDI r13, 2
+LDI r10, 0x3100
+STRO r10, "Use: hypervisor_boot"
+LDI r7, 2
 LDI r16, 20
-TEXT r13, r16, r15
+TEXT r7, r16, r10
 
-LDI r15, 0x3200
-STRO r15, "Status: hypervisor_status"
-LDI r13, 2
+LDI r10, 0x3200
+STRO r10, "Status: hypervisor_status"
+LDI r7, 2
 LDI r16, 28
-TEXT r13, r16, r15
+TEXT r7, r16, r10
 
 ; Draw a frame around the terminal area
-LDI r10, 0x00FF00   ; green frame
-LDI r14, 0
-LDI r8, 16
-LDI r5, 256
-LDI r0, 1
-RECTF r14, r8, r5, r0, r10  ; top border
+LDI r11, 0x00FF00   ; green frame
+LDI r8, 0
+LDI r3, 16
+LDI r6, 256
+LDI r9, 1
+RECTF r8, r3, r6, r9, r11  ; top border
+LDI r3, 255
+RECTF r8, r3, r6, r9, r11  ; bottom border
+LDI r8, 0
+LDI r3, 16
+LDI r6, 1
+LDI r9, 240
+RECTF r8, r3, r6, r9, r11  ; left border
 LDI r8, 255
-RECTF r14, r8, r5, r0, r10  ; bottom border
-LDI r14, 0
-LDI r8, 16
-LDI r5, 1
-LDI r0, 240
-RECTF r14, r8, r5, r0, r10  ; left border
-LDI r14, 255
-RECTF r14, r8, r5, r0, r10  ; right border
+RECTF r8, r3, r6, r9, r11  ; right border
 
 HALT

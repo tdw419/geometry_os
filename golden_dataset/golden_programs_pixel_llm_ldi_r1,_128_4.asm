@@ -1,26 +1,26 @@
-; DESCRIPTION: The GeOS assembly code initializes memory locations with specific color values for a status bar and player bar. It sets the blue color at address 0x5500 and initializes the status bar with the color white at address 0x500, followed by setting the player bar color to red.
+; DESCRIPTION: Geometry OS program to draw a red object.
 
-LDI r10, 1
+LDI r8, 1
 LDI r20, 0x5500
-LDI r10, 0x2000
-LDI r11, 0x500
-LDI r0, 0x0000
+LDI r8, 0x2000
+LDI r2, 0x500
+LDI r5, 0x0000
 LDI r25, 0x00FF00
-STORE r20, r10
-LDI r11, 0x00FF44
-STORE r20, r15
+STORE r20, r8
+LDI r2, 0x00FF44
+STORE r20, r0
 ; Blue at 0x000000
 ; ===== Initialize status bar at 0x500
-LDI r11, 0x0000000000000000000
-LDI r10, 0xFF0000
-LDI r4, 0x000000000
-STORE r11, r15
+LDI r2, 0x0000000000000000000
+LDI r8, 0xFF0000
+LDI r15, 0x000000000
+STORE r2, r0
 ; Player bar)
-LDI r10, 0x00000000000000000000000000
-LDI r10, 0x00FF00
-LDI r10, 0xFF00000
-STORE r10, r15
-ADD r10, r10, r15
-LDI r10, 0xFF00FFFFFF   ; 0x0000000000000
-STORE r10, r
+LDI r8, 0x00000000000000000000000000
+LDI r8, 0x00FF00
+LDI r8, 0xFF00000
+STORE r8, r0
+ADD r8, r8, r0
+LDI r8, 0xFF00FFFFFF   ; 0x0000000000000
+STORE r8, r
 HALT

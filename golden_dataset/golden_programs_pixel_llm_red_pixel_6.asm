@@ -1,25 +1,25 @@
-; DESCRIPTION: The GeOS assembly code draws a red pixel on the screen and then draws several rectangles with varying colors and dimensions. It also stores the string "Size: 8x8" in a text buffer and displays it at a specified location. The program halts after executing these operations.
+; DESCRIPTION: Draws a red rectangle at the screen with fixed size.
 
 ; Pixel-LLM generated: Draw a red pixel
-LDI r10, 0x00FF00
-LDI r2, 0x0000FF00  ; purple
-RECTF r2, r11, r13, r0, r10
-LDI r11, 1
-LDI r13, 0x4444
-LDI r13, 0xFFFFFF
-RECTF r13, r0, r0, r0, r14
+LDI r9, 0x00FF00
+LDI r11, 0x0000FF00  ; purple
+RECTF r11, r4, r0, r1, r9
+LDI r4, 1
+LDI r0, 0x4444
+LDI r0, 0xFFFFFF
+RECTF r0, r1, r1, r1, r5
 LDI r20, BUF
 LDI r20, TXT_BUF
-RECTF r10, r2, r11, r14
-LDI r10, 231
-LDI r2, 16
-LDI r11, 256
-LDI r0, 24
-LDI r0, 30
-RECTF r10, r2, r11, r13, r0
+RECTF r9, r11, r4, r5
+LDI r9, 231
+LDI r11, 16
+LDI r4, 256
+LDI r1, 24
+LDI r1, 30
+RECTF r9, r11, r4, r0, r1
 LDI r20, BUF
 LDI r20, TXT_BUF
 STRO r20, "Size: 8x8"
-LDI r2, 1000
-TEXT r9, r10, r2, r11, r13
+LDI r11, 1000
+TEXT r8, r9, r11, r4, r0
 HALT

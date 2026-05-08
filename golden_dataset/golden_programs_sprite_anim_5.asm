@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates an animated sprite walk cycle using the SPRITEANIM opcode. It creates a 4-frame animation of a character walking across the screen, with each frame representing a different pose (standing, left step, mid-stride, right step), and automatically advances the frame without manual control.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; sprite_anim.asm -- Animated sprite walk cycle demo
 ; Demonstrates SPRITEANIM opcode (0xEC): auto-advancing sprite animation
@@ -16,11 +16,11 @@
 ; for deterministic vision-gate verification. No color-channel state encoding.
 
 ; -- Constants --
-LDI r6, 1              ; increment
-LDI r9, 8              ; sprite size (8x8)
-LDI r4, 248            ; screen wrap limit (256 - 8)
-LDI r11, 0xFF0000      ; red
-LDI r0, 0xFF8800      ; orange
+LDI r10, 1              ; increment
+LDI r11, 8              ; sprite size (8x8)
+LDI r3, 248            ; screen wrap limit (256 - 8)
+LDI r9, 0xFF0000      ; red
+LDI r15, 0xFF8800      ; orange
 LDI r16, 0xFFFF00      ; yellow
 LDI r17, 0x00FF00      ; green
 
@@ -32,41 +32,41 @@ LDI r17, 0x00FF00      ; green
 CALL build_sprites
 
 ; -- Register sprite sheet with SPRLOAD --
-LDI r15, 0x3000         ; base address
-LDI r8, 8              ; frame width
-LDI r10, 8              ; frame height
-LDI r5, 4              ; total frames
-SPRLOAD 0, r15, r8, r10, r5
+LDI r1, 0x3000         ; base address
+LDI r13, 8              ; frame width
+LDI r14, 8              ; frame height
+LDI r8, 4              ; total frames
+SPRLOAD 0, r1, r13, r14, r8
 
 ; -- Initialize character position --
 LDI r7, 10             ; x position
-LDI r1, 124            ; y position (center of screen)
+LDI r2, 124            ; y position (center of screen)
 
 ; -- Main animation loop --
 anim_loop:
   ; Clear previous sprite area (black = transparent area erased)
-  FILL r1, r7, r9, r9, 0
+  FILL r2, r7, r11, r11, 0
 
   ; SPRITEANIM: blit current frame, auto-advance frame counter
-  SPRITEANIM 0, r7, r1
+  SPRITEANIM 0, r7, r2
 
   ; Move character right by 2 pixels per frame
-  ADD r7, r6
-  ADD r7, r6
+  ADD r7, r10
+  ADD r7, r10
 
   ; Wrap around screen edge
-  CMP r7, r4
+  CMP r7, r3
   JLT anim_wait
   LDI r7, 0
 
 anim_wait:
   ; Wait ~50ms between frames (20 fps)
-  LDI r13, 50
-  TMR_WAIT r13
+  LDI r6, 50
+  TMR_WAIT r6
 
   ; Check for ESC key to exit
-  IKEY r14
-  CMP r14, 27
+  IKEY r0
+  CMP r0, 27
   JZ exit
   JMP anim_loop
 
@@ -81,102 +81,102 @@ exit:
 ; Total: 256 pixels at 0x3000-0x30FF.
 
 build_sprites:
-  PUSH r15
-  PUSH r8
-  PUSH r10
+  PUSH r1
+  PUSH r13
+  PUSH r14
 
   ; -- Frame 0 (0x3000): Red filled square --
   ; Simple filled rectangle = standing pose
-  LDI r15, 0x3000       ; dest addr
-  LDI r8, 64           ; pixel count
-  LDI r10, 0xFF0000     ; red
+  LDI r1, 0x3000       ; dest addr
+  LDI r13, 64           ; pixel count
+  LDI r14, 0xFF0000     ; red
   CALL fill_ram
 
   ; -- Frame 1 (0x3040): Orange L-shape --
   ; Clear first
-  LDI r15, 0x3040
-  LDI r8, 64
-  LDI r10, 0            ; transparent
+  LDI r1, 0x3040
+  LDI r13, 64
+  LDI r14, 0            ; transparent
   CALL fill_ram
   ; Left column: 8 pixels at rows 0-7, column 0
-  LDI r15, 0x3040
-  LDI r8, 8
-  LDI r10, 0xFF8800
+  LDI r1, 0x3040
+  LDI r13, 8
+  LDI r14, 0xFF8800
   CALL fill_col8
   ; Bottom row: 8 pixels at row 7
-  LDI r15, 0x3078
-  LDI r8, 8
-  LDI r10, 0xFF8800
+  LDI r1, 0x3078
+  LDI r13, 8
+  LDI r14, 0xFF8800
   CALL fill_ram
 
   ; -- Frame 2 (0x3080): Yellow horizontal bar --
   ; Clear first
-  LDI r15, 0x3080
-  LDI r8, 64
-  LDI r10, 0
+  LDI r1, 0x3080
+  LDI r13, 64
+  LDI r14, 0
   CALL fill_ram
   ; Middle rows (3,4) fully filled
-  LDI r15, 0x3098       ; row 3
-  LDI r8, 16           ; 2 rows * 8 pixels
-  LDI r10, 0xFFFF00
+  LDI r1, 0x3098       ; row 3
+  LDI r13, 16           ; 2 rows * 8 pixels
+  LDI r14, 0xFFFF00
   CALL fill_ram
   ; Vertical bar in middle column
-  LDI r15, 0x3083       ; col 3, row 0
-  LDI r8, 8            ; 8 rows, 8 apart
-  LDI r10, 0xFFFF00
+  LDI r1, 0x3083       ; col 3, row 0
+  LDI r13, 8            ; 8 rows, 8 apart
+  LDI r14, 0xFFFF00
   CALL fill_col8
   ; Also col 4
-  LDI r15, 0x3084
-  LDI r8, 8
-  LDI r10, 0xFFFF00
+  LDI r1, 0x3084
+  LDI r13, 8
+  LDI r14, 0xFFFF00
   CALL fill_col8
 
   ; -- Frame 3 (0x30C0): Green reversed-L --
   ; Clear first
-  LDI r15, 0x30C0
-  LDI r8, 64
-  LDI r10, 0
+  LDI r1, 0x30C0
+  LDI r13, 64
+  LDI r14, 0
   CALL fill_ram
   ; Right column: 8 pixels at column 7
-  LDI r15, 0x30C7
-  LDI r8, 8
-  LDI r10, 0x00FF00
+  LDI r1, 0x30C7
+  LDI r13, 8
+  LDI r14, 0x00FF00
   CALL fill_col8
   ; Bottom row
-  LDI r15, 0x30F8
-  LDI r8, 8
-  LDI r10, 0x00FF00
+  LDI r1, 0x30F8
+  LDI r13, 8
+  LDI r14, 0x00FF00
   CALL fill_ram
 
-  POP r10
-  POP r8
-  POP r15
+  POP r14
+  POP r13
+  POP r1
   RET
 
 ; =============================================
 ; fill_ram: Fill N contiguous u32 pixels in RAM
-; r15 = start address, r8 = count, r10 = color
+; r1 = start address, r13 = count, r14 = color
 ; =============================================
 fill_ram:
-  CMP r8, 0
+  CMP r13, 0
   JZ fill_done
-  STORE r15, r10
-  ADD r15, r6
-  SUB r8, r6
+  STORE r1, r14
+  ADD r1, r10
+  SUB r13, r10
   JMP fill_ram
 fill_done:
   RET
 
 ; =============================================
 ; fill_col8: Fill 8 pixels at stride 8 (vertical column)
-; r15 = start address, r8 = count (should be 8), r10 = color
+; r1 = start address, r13 = count (should be 8), r14 = color
 ; =============================================
 fill_col8:
-  CMP r8, 0
+  CMP r13, 0
   JZ col_done
-  STORE r15, r10
-  ADD r15, 8           ; stride = frame width
-  SUB r8, r6
+  STORE r1, r14
+  ADD r1, 8           ; stride = frame width
+  SUB r13, r10
   JMP fill_col8
 col_done:
   RET

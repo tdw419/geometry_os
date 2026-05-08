@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a service manager that reads configuration from `boot.cfg`, parses it to populate a service table, starts services in dependency order, monitors their status, and restarts them based on specified policies. It uses system calls for file operations and process management, ensuring robust service execution and recovery.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; init_service.asm -- Phase 97: Config-driven service manager
 ;
@@ -28,61 +28,61 @@
 ;   +35: status (0=pending, 1=running, 2=exited_ok, 3=exited_fail)
 ;
 ; Register convention:
-;   r14  = constant 1
+;   r4  = constant 1
 ;   r20 = constant 0
 ;   r30 = SP (0xFF00)
 
-LDI r14, 1
+LDI r4, 1
 LDI r20, 0
 LDI r30, 0xFF00
 
 ; ═══════════════════════════════════════════════════════════════
 ; Phase 1: Initialize
 ; ═══════════════════════════════════════════════════════════════
-LDI r13, 0
-FILL r13
+LDI r0, 0
+FILL r0
 
 ; Write boot banner
-LDI r2, 0x0300
-STRO r2, "Geometry OS init"
-LDI r1, 2
-LDI r3, 0
-LDI r15, 0x0300
-TEXT r1, r3, r15
+LDI r14, 0x0300
+STRO r14, "Geometry OS init"
+LDI r3, 2
+LDI r1, 0
+LDI r9, 0x0300
+TEXT r3, r1, r9
 
 ; ═══════════════════════════════════════════════════════════════
 ; Phase 2: Load boot.cfg from VFS
 ; ═══════════════════════════════════════════════════════════════
 ; Write cfg path to RAM
-LDI r2, 0x2000
-STRO r2, "/etc/boot.cfg"
+LDI r14, 0x2000
+STRO r14, "/etc/boot.cfg"
 
 ; Open the config file
-LDI r0, 0x2000   ; path addr
-LDI r1, 0        ; flags = O_RDONLY
-LDI r12, 0x54     ; OPEN opcode
-OPEN r0, r1
-; r13 = fd (or 0xFFFFFFFF on error)
+LDI r13, 0x2000   ; path addr
+LDI r3, 0        ; flags = O_RDONLY
+LDI r5, 0x54     ; OPEN opcode
+OPEN r13, r3
+; r0 = fd (or 0xFFFFFFFF on error)
 
 ; Check if open succeeded
 LDI r25, 0xFFFFFFFF
-CMP r13, r25
-JZ r13, no_config
+CMP r0, r25
+JZ r0, no_config
 
-MOV r6, r13       ; r6 = fd
+MOV r8, r0       ; r8 = fd
 
 ; Read config file content into 0x1800
-MOV r0, r6       ; fd
-LDI r1, 0x1800   ; buffer addr
-LDI r3, 512      ; max bytes
-LDI r12, 0x55     ; READ opcode
-READ r0, r1, r3
-; r13 = bytes read
+MOV r13, r8       ; fd
+LDI r3, 0x1800   ; buffer addr
+LDI r1, 512      ; max bytes
+LDI r5, 0x55     ; READ opcode
+READ r13, r3, r1
+; r0 = bytes read
 
 ; Close the file
-MOV r0, r6
-LDI r12, 0x57     ; CLOSE opcode
-CLOSE r0
+MOV r13, r8
+LDI r5, 0x57     ; CLOSE opcode
+CLOSE r13
 
 ; ═══════════════════════════════════════════════════════════════
 ; Phase 3: Parse boot.cfg into service table
@@ -92,55 +92,55 @@ CLOSE r0
 ; policy: 0=always, 1=onfail, 2=never
 ; dep_idx: 255=none, else prerequisite service index
 
-LDI r8, 0x1800  ; cfg read pointer
-LDI r4, 0x1000  ; service table base
-LDI r10, 0       ; service count
-LDI r11, 256     ; bytes per service entry
-LDI r5, 8       ; max services
+LDI r12, 0x1800  ; cfg read pointer
+LDI r10, 0x1000  ; service table base
+LDI r7, 0       ; service count
+LDI r6, 256     ; bytes per service entry
+LDI r11, 8       ; max services
 
 parse_line:
   ; Skip if past max services
-  CMP r10, r5
-  BGE r13, parse_done
+  CMP r7, r11
+  BGE r0, parse_done
 
   ; Check if we hit end of config (null byte)
-  MOV r7, r8
-  LOAD r7, r7   ; r7 = current char
-  JZ r7, parse_done
+  MOV r2, r12
+  LOAD r2, r2   ; r2 = current char
+  JZ r2, parse_done
 
   ; Skip whitespace/newlines (10=\n, 32=space)
   LDI r25, 10
-  CMP r7, r25
-  JZ r13, skip_char
+  CMP r2, r25
+  JZ r0, skip_char
   LDI r25, 32
-  CMP r7, r25
-  JZ r13, skip_char
+  CMP r2, r25
+  JZ r0, skip_char
 
   ; Start of a line -- parse path into service entry
-  ; Compute dest addr: r4 + r10 * r11
-  MOV r16, r10
-  MUL r16, r11
-  ADD r16, r4    ; r16 = current service entry base
+  ; Compute dest addr: r10 + r7 * r6
+  MOV r16, r7
+  MUL r16, r6
+  ADD r16, r10    ; r16 = current service entry base
 
   ; Parse path (copy chars until space or null)
   LDI r17, 0      ; char offset
 parse_path:
-  MOV r7, r8
-  LOAD r7, r7
-  JZ r7, path_done
+  MOV r2, r12
+  LOAD r2, r2
+  JZ r2, path_done
   LDI r25, 32
-  CMP r7, r25
-  JZ r13, path_done
+  CMP r2, r25
+  JZ r0, path_done
   LDI r25, 10
-  CMP r7, r25
-  JZ r13, path_done
+  CMP r2, r25
+  JZ r0, path_done
 
   ; Store char at service_base + char_offset
   MOV r18, r16
   ADD r18, r17
-  STORE r18, r7
-  ADD r17, r14     ; offset++
-  ADD r8, r14     ; advance read pointer
+  STORE r18, r2
+  ADD r17, r4     ; offset++
+  ADD r12, r4     ; advance read pointer
   JMP parse_path
 
 path_done:
@@ -151,22 +151,22 @@ path_done:
   STORE r18, r25
 
   ; Skip the space
-  MOV r7, r8
-  LOAD r7, r7
+  MOV r2, r12
+  LOAD r2, r2
   LDI r25, 32
-  CMP r7, r25
-  JNZ r13, parse_policy
-  ADD r8, r14     ; skip space
+  CMP r2, r25
+  JNZ r0, parse_policy
+  ADD r12, r4     ; skip space
 
   ; Parse restart_policy (single digit: 0, 1, 2)
 parse_policy:
-  MOV r7, r8
-  LOAD r7, r7
+  MOV r2, r12
+  LOAD r2, r2
   ; Store policy at base+32
   MOV r18, r16
   LDI r25, 32
   ADD r18, r25
-  SUB r7, r14     ; assuming digit '0'-'2', but actually we want the numeric value
+  SUB r2, r4     ; assuming digit '0'-'2', but actually we want the numeric value
   ; Wait, the char is '0'=48, '1'=49, '2'=49. Need to subtract 48.
   ; Actually, let's use numeric values in the config. If the config uses
   ; digits, we subtract 48 (ASCII '0').
@@ -174,39 +174,39 @@ parse_policy:
   ; 'a' (97) for always -> 0, 'f' (102) for onfail -> 1, 'n' (110) for never -> 2
   ; Actually let's just use digit chars and subtract 48
   LDI r25, 48
-  SUB r7, r25     ; r7 = policy value (0, 1, or 2)
+  SUB r2, r25     ; r2 = policy value (0, 1, or 2)
   MOV r18, r16
   LDI r25, 33     ; offset 33
   ADD r18, r25
-  STORE r18, r7  ; store restart_policy
+  STORE r18, r2  ; store restart_policy
 
-  ADD r8, r14     ; skip policy char
+  ADD r12, r4     ; skip policy char
   ; Skip space
-  MOV r7, r8
-  LOAD r7, r7
+  MOV r2, r12
+  LOAD r2, r2
   LDI r25, 32
-  CMP r7, r25
-  JNZ r13, parse_dep
-  ADD r8, r14
+  CMP r2, r25
+  JNZ r0, parse_dep
+  ADD r12, r4
 
   ; Parse dep_idx
 parse_dep:
-  MOV r7, r8
-  LOAD r7, r7
+  MOV r2, r12
+  LOAD r2, r2
   LDI r25, 48
-  SUB r7, r25    ; dep value
+  SUB r2, r25    ; dep value
   ; If char is 'n' (110 for "none"), use 255
   LDI r25, 110
-  MOV r18, r8
+  MOV r18, r12
   LOAD r18, r18
   CMP r18, r25
-  JNZ r13, store_dep
-  LDI r7, 255   ; no dependency
+  JNZ r0, store_dep
+  LDI r2, 255   ; no dependency
 store_dep:
   MOV r18, r16
   LDI r25, 34    ; offset 34
   ADD r18, r25
-  STORE r18, r7 ; store dep_idx
+  STORE r18, r2 ; store dep_idx
 
   ; Set initial status to pending (0) at offset 35
   MOV r18, r16
@@ -217,30 +217,30 @@ store_dep:
 
   ; Advance past remaining line chars until newline or null
 skip_rest:
-  MOV r7, r8
-  LOAD r7, r7
-  JZ r7, parse_done
+  MOV r2, r12
+  LOAD r2, r2
+  JZ r2, parse_done
   LDI r25, 10
-  CMP r7, r25
-  JZ r13, skip_char
-  ADD r8, r14
+  CMP r2, r25
+  JZ r0, skip_char
+  ADD r12, r4
   JMP skip_rest
 
 skip_char:
-  ADD r8, r14
+  ADD r12, r4
   JMP parse_line
 
 parse_done:
-  ; r10 = number of services parsed
+  ; r7 = number of services parsed
   ; If no services, spawn shell manually
-  JNZ r10, start_services
+  JNZ r7, start_services
 
 no_config:
   ; No config file -- spawn shell directly
-  LDI r2, 0x2000
-  STRO r2, "shell"
-  LDI r13, 0x2000
-  EXEC r13
+  LDI r14, 0x2000
+  STRO r14, "shell"
+  LDI r0, 0x2000
+  EXEC r0
   HALT
 
 ; ═══════════════════════════════════════════════════════════════
@@ -255,13 +255,13 @@ start_pass:
   LDI r23, 0       ; service index
 
 svc_loop:
-  CMP r23, r10
-  BGE r13, svc_pass_done
+  CMP r23, r7
+  BGE r0, svc_pass_done
 
   ; Compute service entry base
   MOV r16, r23
-  MUL r16, r11
-  ADD r16, r4
+  MUL r16, r6
+  ADD r16, r10
 
   ; Check if already running (status at offset 35)
   MOV r25, r16
@@ -270,7 +270,7 @@ svc_loop:
   LOAD r25, r25
   LDI r26, 1
   CMP r25, r26
-  JZ r13, svc_next   ; already running, skip
+  JZ r0, svc_next   ; already running, skip
 
   ; Check dependency (offset 34)
   MOV r25, r16
@@ -279,32 +279,32 @@ svc_loop:
   LOAD r25, r25     ; dep_idx
   LDI r26, 255
   CMP r25, r26
-  JZ r13, can_start  ; no dep, can start
+  JZ r0, can_start  ; no dep, can start
 
   ; Check if dependency is running (status=1 at dep's offset 35)
   MOV r26, r25      ; dep_idx
-  MUL r26, r11
-  ADD r26, r4      ; dep service base
+  MUL r26, r6
+  ADD r26, r10      ; dep service base
   LDI r27, 35
   ADD r26, r27
   LOAD r26, r26     ; dep status
   LDI r27, 1
   CMP r26, r27
-  JZ r13, can_start  ; dep is running, can start
+  JZ r0, can_start  ; dep is running, can start
   JMP svc_next       ; dep not running, skip for now
 
 can_start:
   ; Spawn the service
   ; path is at service base, use EXEC
-  MOV r13, r16       ; path addr = service base
-  EXEC r13
+  MOV r0, r16       ; path addr = service base
+  EXEC r0
 
   ; Check spawn result
   LDI r25, 0xFFA
   LOAD r25, r25     ; r25 = PID (or 0xFFFFFFFF on error)
   LDI r26, 0xFFFFFFFF
   CMP r25, r26
-  JZ r13, spawn_failed_svc
+  JZ r0, spawn_failed_svc
 
   ; Store PID at offset 32
   MOV r26, r16
@@ -320,31 +320,31 @@ can_start:
   STORE r26, r27
 
 svc_next:
-  ADD r23, r14
+  ADD r23, r4
   JMP svc_loop
 
 svc_pass_done:
-  ADD r21, r14
+  ADD r21, r4
   CMP r21, r22
-  BLT r13, start_pass
+  BLT r0, start_pass
 
 ; ═══════════════════════════════════════════════════════════════
 ; Phase 5: Supervisor loop -- monitor services, restart on crash
 ; ═══════════════════════════════════════════════════════════════
 supervisor:
-  LDI r8, 60
-  SLEEP r8        ; sleep ~1 second between checks
+  LDI r12, 60
+  SLEEP r12        ; sleep ~1 second between checks
 
   LDI r23, 0       ; service index
 
 check_loop:
-  CMP r23, r10
-  BGE r13, supervisor  ; all checked, loop back
+  CMP r23, r7
+  BGE r0, supervisor  ; all checked, loop back
 
   ; Compute service entry base
   MOV r16, r23
-  MUL r16, r11
-  ADD r16, r4
+  MUL r16, r6
+  ADD r16, r10
 
   ; Check status
   MOV r25, r16
@@ -353,18 +353,18 @@ check_loop:
   LOAD r25, r25
   LDI r26, 1
   CMP r25, r26
-  JNZ r13, check_next  ; not running, skip
+  JNZ r0, check_next  ; not running, skip
 
   ; Check if process is still alive via WAITPID
   MOV r25, r16
   LDI r26, 32
   ADD r25, r26
   LOAD r25, r25     ; PID
-  MOV r13, r25
-  WAITPID r13
+  MOV r0, r25
+  WAITPID r0
 
-  ; r13 = 0 means still running, nonzero means exited
-  JZ r13, check_next
+  ; r0 = 0 means still running, nonzero means exited
+  JZ r0, check_next
 
   ; Process exited -- check restart policy
   MOV r25, r16
@@ -375,7 +375,7 @@ check_loop:
   ; Policy 2 (never) -- mark as exited
   LDI r26, 2
   CMP r25, r26
-  JZ r13, mark_exited
+  JZ r0, mark_exited
 
   ; Policy 0 (always) or 1 (onfail) -- restart
   ; For onfail, we'd check exit code. For simplicity, always restart.
@@ -393,14 +393,14 @@ check_loop:
   STORE r25, r26   ; status = pending (will be restarted next pass)
 
   ; Re-spawn immediately
-  MOV r13, r16
-  EXEC r13
+  MOV r0, r16
+  EXEC r0
 
   LDI r25, 0xFFA
   LOAD r25, r25
   LDI r26, 0xFFFFFFFF
   CMP r25, r26
-  JZ r13, check_next  ; spawn failed
+  JZ r0, check_next  ; spawn failed
 
   ; Update PID and status
   MOV r26, r16
@@ -424,7 +424,7 @@ mark_exited:
   STORE r25, r26
 
 check_next:
-  ADD r23, r14
+  ADD r23, r4
   JMP check_loop
 
 spawn_failed_svc:

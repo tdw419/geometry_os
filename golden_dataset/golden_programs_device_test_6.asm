@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes and tests device drivers for a screen, keyboard, audio, and network interface. It opens each device file, queries their properties using IOCTL commands, and enters an interactive loop where it reads key presses from the keyboard to randomly draw pixels on the screen while emitting a beep sound through the audio device.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; device_test.asm -- Phase 28: Device Driver Abstraction demo
 ; Opens all 4 device files, uses IOCTL to query them,
@@ -27,135 +27,135 @@ result:
 ; -- Main program --
 .org 0x000
     ; Fill screen with dark blue background
-    LDI r7, 0x000033
-    FILL r7
+    LDI r10, 0x000033
+    FILL r10
 
     ; Draw title bar
-    LDI r9, 0
+    LDI r15, 0
     LDI r2, 0
-    LDI r12, 256
-    LDI r0, 16
-    LDI r7, 0x003366
-    RECTF r9, r2, r12, r0, r7
+    LDI r3, 256
+    LDI r1, 16
+    LDI r10, 0x003366
+    RECTF r15, r2, r3, r1, r10
 
     ; Draw status bar at bottom
-    LDI r9, 0
+    LDI r15, 0
     LDI r2, 240
-    LDI r12, 256
-    LDI r0, 16
-    LDI r7, 0x003366
-    RECTF r9, r2, r12, r0, r7
+    LDI r3, 256
+    LDI r1, 16
+    LDI r10, 0x003366
+    RECTF r15, r2, r3, r1, r10
 
     ; === Test 1: Open all 4 devices ===
     ; /dev/screen -> fd 0xE000
-    LDI r9, screen_path
+    LDI r15, screen_path
     LDI r2, 0
-    OPEN r9, r2
-    ; r15 = 0xE000 (screen fd)
+    OPEN r15, r2
+    ; r9 = 0xE000 (screen fd)
 
     ; /dev/keyboard -> fd 0xE001
-    LDI r9, kb_path
+    LDI r15, kb_path
     LDI r2, 0
-    OPEN r9, r2
-    ; r15 = 0xE001 (keyboard fd), save to r3
-    MOV r3, r15
+    OPEN r15, r2
+    ; r9 = 0xE001 (keyboard fd), save to r12
+    MOV r12, r9
 
     ; /dev/audio -> fd 0xE002
-    LDI r9, audio_path
+    LDI r15, audio_path
     LDI r2, 0
-    OPEN r9, r2
-    ; r15 = 0xE002 (audio fd), save to r1
-    MOV r1, r15
+    OPEN r15, r2
+    ; r9 = 0xE002 (audio fd), save to r6
+    MOV r6, r9
 
     ; /dev/net -> fd 0xE003
-    LDI r9, net_path
+    LDI r15, net_path
     LDI r2, 0
-    OPEN r9, r2
-    ; r15 = 0xE003 (net fd), save to r6
-    MOV r6, r15
+    OPEN r15, r2
+    ; r9 = 0xE003 (net fd), save to r5
+    MOV r5, r9
 
     ; === Test 2: IOCTL queries ===
     ; Get screen width (cmd=0) -- should return 256
-    LDI r5, 0xE000
-    LDI r13, 0
-    LDI r8, 0
-    IOCTL r5, r13, r8
-    ; r15 = 256 (width), store it
+    LDI r14, 0xE000
+    LDI r0, 0
+    LDI r11, 0
+    IOCTL r14, r0, r11
+    ; r9 = 256 (width), store it
     LDI r20, result
-    STORE r20, r15
+    STORE r20, r9
 
     ; Get screen height (cmd=1) -- should return 256
-    LDI r5, 0xE000
-    LDI r13, 1
-    LDI r8, 0
-    IOCTL r5, r13, r8
-    ; r15 = 256 (height)
+    LDI r14, 0xE000
+    LDI r0, 1
+    LDI r11, 0
+    IOCTL r14, r0, r11
+    ; r9 = 256 (height)
 
     ; Set keyboard echo mode to 1 (cmd=1)
-    LDI r5, 0xE001
-    LDI r13, 1
-    LDI r8, 1
-    IOCTL r5, r13, r8
-    ; r15 = 0 (success)
+    LDI r14, 0xE001
+    LDI r0, 1
+    LDI r11, 1
+    IOCTL r14, r0, r11
+    ; r9 = 0 (success)
 
     ; Set audio volume to 50 (cmd=1)
-    LDI r5, 0xE002
-    LDI r13, 1
-    LDI r8, 50
-    IOCTL r5, r13, r8
-    ; r15 = 0 (success)
+    LDI r14, 0xE002
+    LDI r0, 1
+    LDI r11, 50
+    IOCTL r14, r0, r11
+    ; r9 = 0 (success)
 
     ; Get net status (cmd=0) -- should return 1 (up)
-    LDI r5, 0xE003
-    LDI r13, 0
-    LDI r8, 0
-    IOCTL r5, r13, r8
-    ; r15 = 1 (net up)
+    LDI r14, 0xE003
+    LDI r0, 0
+    LDI r11, 0
+    IOCTL r14, r0, r11
+    ; r9 = 1 (net up)
 
     ; === Test 3: Interactive loop ===
     ; Read keyboard, draw random colored pixels
 loop:
     ; Read one key from /dev/keyboard
-    LDI r9, key_buf
+    LDI r15, key_buf
     LDI r2, 1
-    READ r3, r9, r2
-    ; r15 = bytes read (1 if key pressed, 0 if not)
+    READ r12, r15, r2
+    ; r9 = bytes read (1 if key pressed, 0 if not)
 
     ; If no key, just frame and loop
-    LDI r12, 0
-    CMP r15, r12
-    JZ r15, skip
+    LDI r3, 0
+    CMP r9, r3
+    JZ r9, skip
 
     ; Key was pressed -- generate random pixel position and color
-    RAND r15
-    LDI r12, 255
-    AND r15, r12       ; r15 = random x (0-255)
-
     RAND r9
-    AND r9, r12       ; r9 = random y (0-255)
+    LDI r3, 255
+    AND r9, r3       ; r9 = random x (0-255)
+
+    RAND r15
+    AND r15, r3       ; r15 = random y (0-255)
 
     RAND r2
-    AND r2, r12       ; r2 = random color component
+    AND r2, r3       ; r2 = random color component
 
     ; Make it brighter (add 0x111111)
-    LDI r12, 0x111111
-    ADD r2, r12
+    LDI r3, 0x111111
+    ADD r2, r3
 
     ; Draw pixel directly
-    PSETI r15, r9, r2
+    PSETI r9, r15, r2
 
     ; Also beep on keypress (via /dev/audio write)
     ; Write (freq=440, dur=50) to audio device
-    LDI r9, pixel_buf
+    LDI r15, pixel_buf
     LDI r2, 440
-    STORE r9, r2
+    STORE r15, r2
     LDI r2, 1
-    ADD r9, r2       ; r9 = pixel_buf + 1
+    ADD r15, r2       ; r15 = pixel_buf + 1
     LDI r2, 50
-    STORE r9, r2
-    LDI r9, pixel_buf
+    STORE r15, r2
+    LDI r15, pixel_buf
     LDI r2, 2
-    WRITE r1, r9, r2
+    WRITE r6, r15, r2
 
 skip:
     FRAME

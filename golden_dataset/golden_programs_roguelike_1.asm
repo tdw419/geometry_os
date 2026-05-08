@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a procedural dungeon crawler game with combat, enemies, and items. The game features a procedurally generated dungeon with rooms connected by corridors, where the player navigates using WASD controls, battles enemies, collects items, and descends deeper levels to reach the final stairs. The game includes saving and loading functionality via the VFS, undo moves, and displays HUD information such as health, attack power, and level.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; roguelike.asm -- Procedural Dungeon Crawler with Combat, Enemies, Items
 ; Controls: WASD to move, U to undo, R to regenerate dungeon
@@ -68,125 +68,125 @@
 
 restart:
   ; Clear undo history on restart
-  LDI r10, 3
-  FORK r10
+  LDI r9, 3
+  FORK r9
   ; Reset undo slot to 0
-  LDI r10, 0
-  LDI r11, UNDO_SLOT
-  STORE r11, r10
+  LDI r9, 0
+  LDI r8, UNDO_SLOT
+  STORE r8, r9
   LDI r30, 0x8000
   CALL init_tiles
   CALL init_text
-  LDI r10, 10
-  LDI r11, P_HP
-  STORE r11, r10
-  LDI r10, 10
-  LDI r11, P_MAXHP
-  STORE r11, r10
-  LDI r10, 1
-  LDI r11, P_ATK
-  STORE r11, r10
-  LDI r10, 0
-  LDI r11, KILLS
-  STORE r11, r10
-  LDI r10, 0
-  LDI r11, MSG_TIMER
-  STORE r11, r10
-  LDI r11, MSG_TEXT
-  STORE r11, r10
+  LDI r9, 10
+  LDI r8, P_HP
+  STORE r8, r9
+  LDI r9, 10
+  LDI r8, P_MAXHP
+  STORE r8, r9
+  LDI r9, 1
+  LDI r8, P_ATK
+  STORE r8, r9
+  LDI r9, 0
+  LDI r8, KILLS
+  STORE r8, r9
+  LDI r9, 0
+  LDI r8, MSG_TIMER
+  STORE r8, r9
+  LDI r8, MSG_TEXT
+  STORE r8, r9
   CALL generate_dungeon
   CALL spawn_enemies
   CALL spawn_items
   CALL render
 
 game_loop:
-  LDI r11, STATE
-  LOAD r10, r11
-  LDI r7, 2
-  CMP r10, r7
-  JZ r9, death_screen
-  LDI r11, STATE
-  LOAD r10, r11
-  LDI r7, 1
-  CMP r10, r7
-  JZ r9, descend_screen
-  LDI r11, MSG_TIMER
-  LOAD r10, r11
-  JZ r10, gl_input
-  LDI r7, 1
-  SUB r10, r7
-  LDI r11, MSG_TIMER
-  STORE r11, r10
+  LDI r8, STATE
+  LOAD r9, r8
+  LDI r1, 2
+  CMP r9, r1
+  JZ r14, death_screen
+  LDI r8, STATE
+  LOAD r9, r8
+  LDI r1, 1
+  CMP r9, r1
+  JZ r14, descend_screen
+  LDI r8, MSG_TIMER
+  LOAD r9, r8
+  JZ r9, gl_input
+  LDI r1, 1
+  SUB r9, r1
+  LDI r8, MSG_TIMER
+  STORE r8, r9
 gl_input:
-  IKEY r4
-  JZ r4, idle
-  LDI r8, 87
-  CMP r4, r8
-  JZ r9, try_up
-  LDI r8, 119
-  CMP r4, r8
-  JZ r9, try_up
-  LDI r8, 83
-  CMP r4, r8
-  JZ r9, try_down
-  LDI r8, 115
-  CMP r4, r8
-  JZ r9, try_down
-  LDI r8, 65
-  CMP r4, r8
-  JZ r9, try_left
-  LDI r8, 97
-  CMP r4, r8
-  JZ r9, try_left
-  LDI r8, 68
-  CMP r4, r8
-  JZ r9, try_right
-  LDI r8, 100
-  CMP r4, r8
-  JZ r9, try_right
-  LDI r8, 82
-  CMP r4, r8
-  JZ r9, restart
-  LDI r8, 114
-  CMP r4, r8
-  JZ r9, restart
-  LDI r8, 85
-  CMP r4, r8
-  JZ r9, try_undo
-  LDI r8, 117
-  CMP r4, r8
-  JZ r9, try_undo
-  LDI r8, 70
-  CMP r4, r8
-  JZ r9, try_save
-  LDI r8, 102
-  CMP r4, r8
-  JZ r9, try_save
-  LDI r8, 71
-  CMP r4, r8
-  JZ r9, try_load
-  LDI r8, 103
-  CMP r4, r8
-  JZ r9, try_load
+  IKEY r3
+  JZ r3, idle
+  LDI r7, 87
+  CMP r3, r7
+  JZ r14, try_up
+  LDI r7, 119
+  CMP r3, r7
+  JZ r14, try_up
+  LDI r7, 83
+  CMP r3, r7
+  JZ r14, try_down
+  LDI r7, 115
+  CMP r3, r7
+  JZ r14, try_down
+  LDI r7, 65
+  CMP r3, r7
+  JZ r14, try_left
+  LDI r7, 97
+  CMP r3, r7
+  JZ r14, try_left
+  LDI r7, 68
+  CMP r3, r7
+  JZ r14, try_right
+  LDI r7, 100
+  CMP r3, r7
+  JZ r14, try_right
+  LDI r7, 82
+  CMP r3, r7
+  JZ r14, restart
+  LDI r7, 114
+  CMP r3, r7
+  JZ r14, restart
+  LDI r7, 85
+  CMP r3, r7
+  JZ r14, try_undo
+  LDI r7, 117
+  CMP r3, r7
+  JZ r14, try_undo
+  LDI r7, 70
+  CMP r3, r7
+  JZ r14, try_save
+  LDI r7, 102
+  CMP r3, r7
+  JZ r14, try_save
+  LDI r7, 71
+  CMP r3, r7
+  JZ r14, try_load
+  LDI r7, 103
+  CMP r3, r7
+  JZ r14, try_load
   JMP idle
 
 try_up:
   CALL save_undo
-  LDI r11, P_X
-  LOAD r6, r11
-  LDI r11, P_Y
-  LOAD r10, r11
-  LDI r7, 1
-  SUB r10, r7
+  LDI r8, P_X
+  LOAD r0, r8
+  LDI r8, P_Y
+  LOAD r9, r8
+  LDI r1, 1
+  SUB r9, r1
   CALL get_tile
-  LDI r7, TILE_WALL
-  CMP r10, r7
-  JZ r9, idle
-  LDI r11, P_Y
-  LOAD r10, r11
-  LDI r7, 1
-  SUB r10, r7
-  STORE r11, r10
+  LDI r1, TILE_WALL
+  CMP r9, r1
+  JZ r14, idle
+  LDI r8, P_Y
+  LOAD r9, r8
+  LDI r1, 1
+  SUB r9, r1
+  STORE r8, r9
   CALL check_enemy_at_player
   CALL check_item_at_player
   CALL check_stairs
@@ -195,21 +195,21 @@ try_up:
 
 try_down:
   CALL save_undo
-  LDI r11, P_X
-  LOAD r6, r11
-  LDI r11, P_Y
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
+  LDI r8, P_X
+  LOAD r0, r8
+  LDI r8, P_Y
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
   CALL get_tile
-  LDI r7, TILE_WALL
-  CMP r10, r7
-  JZ r9, idle
-  LDI r11, P_Y
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
-  STORE r11, r10
+  LDI r1, TILE_WALL
+  CMP r9, r1
+  JZ r14, idle
+  LDI r8, P_Y
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
+  STORE r8, r9
   CALL check_enemy_at_player
   CALL check_item_at_player
   CALL check_stairs
@@ -218,21 +218,21 @@ try_down:
 
 try_left:
   CALL save_undo
-  LDI r11, P_X
-  LOAD r6, r11
-  LDI r11, P_Y
-  LOAD r10, r11
-  LDI r7, 1
-  SUB r10, r7
+  LDI r8, P_X
+  LOAD r0, r8
+  LDI r8, P_Y
+  LOAD r9, r8
+  LDI r1, 1
+  SUB r9, r1
   CALL get_tile
-  LDI r7, TILE_WALL
-  CMP r10, r7
-  JZ r9, idle
-  LDI r11, P_X
-  LOAD r10, r11
-  LDI r7, 1
-  SUB r10, r7
-  STORE r11, r10
+  LDI r1, TILE_WALL
+  CMP r9, r1
+  JZ r14, idle
+  LDI r8, P_X
+  LOAD r9, r8
+  LDI r1, 1
+  SUB r9, r1
+  STORE r8, r9
   CALL check_enemy_at_player
   CALL check_item_at_player
   CALL check_stairs
@@ -241,21 +241,21 @@ try_left:
 
 try_right:
   CALL save_undo
-  LDI r11, P_X
-  LOAD r6, r11
-  LDI r11, P_Y
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
+  LDI r8, P_X
+  LOAD r0, r8
+  LDI r8, P_Y
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
   CALL get_tile
-  LDI r7, TILE_WALL
-  CMP r10, r7
-  JZ r9, idle
-  LDI r11, P_X
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
-  STORE r11, r10
+  LDI r1, TILE_WALL
+  CMP r9, r1
+  JZ r14, idle
+  LDI r8, P_X
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
+  STORE r8, r9
   CALL check_enemy_at_player
   CALL check_item_at_player
   CALL check_stairs
@@ -264,9 +264,9 @@ try_right:
 
 do_move:
   CALL render
-  LDI r13, 220
-  LDI r8, 25
-  BEEP r13, r8
+  LDI r5, 220
+  LDI r7, 25
+  BEEP r5, r7
 
 idle:
   FRAME
@@ -274,165 +274,165 @@ idle:
 
 try_undo:
   ; Check if we have any undo snapshots (FORK mode 2 = list count)
-  LDI r10, 2
-  FORK r10
-  ; r9 = count of saved snapshots
-  JZ r9, idle
+  LDI r9, 2
+  FORK r9
+  ; r14 = count of saved snapshots
+  JZ r14, idle
   ; Decrement undo slot to get the slot to restore
-  LDI r11, UNDO_SLOT
-  LOAD r10, r11
-  LDI r7, 1
-  SUB r10, r7
+  LDI r8, UNDO_SLOT
+  LOAD r9, r8
+  LDI r1, 1
+  SUB r9, r1
   ; Clamp to 0 (underflow check)
-  LDI r7, 0xFFFFFFFF
-  CMP r10, r7
-  JNZ r9, undo_do_restore
-  LDI r10, 0
+  LDI r1, 0xFFFFFFFF
+  CMP r9, r1
+  JNZ r14, undo_do_restore
+  LDI r9, 0
 undo_do_restore:
-  ; r10 = slot index. FORK mode 1 restores from slot in r10.
-  LDI r11, 1
-  FORK r11
-  ; r9 = 0 on success, 0xFFFFFFFF on error
-  LDI r7, 0xFFFFFFFF
-  CMP r9, r7
-  JZ r9, idle
+  ; r9 = slot index. FORK mode 1 restores from slot in r9.
+  LDI r8, 1
+  FORK r8
+  ; r14 = 0 on success, 0xFFFFFFFF on error
+  LDI r1, 0xFFFFFFFF
+  CMP r14, r1
+  JZ r14, idle
   ; Update undo slot to the restored position
-  LDI r11, UNDO_SLOT
-  STORE r11, r10
+  LDI r8, UNDO_SLOT
+  STORE r8, r9
   ; Flash screen blue briefly for undo feedback
-  LDI r10, 0x0044AA
-  FILL r10
+  LDI r9, 0x0044AA
+  FILL r9
   CALL render
   FRAME
   JMP game_loop
 
 try_save:
   CALL save_game
-  LDI r11, MSG_TEXT
-  LDI r10, MSG_SAVED
-  STORE r11, r10
-  LDI r11, MSG_TIMER
-  LDI r10, 60
-  STORE r11, r10
+  LDI r8, MSG_TEXT
+  LDI r9, MSG_SAVED
+  STORE r8, r9
+  LDI r8, MSG_TIMER
+  LDI r9, 60
+  STORE r8, r9
   JMP idle
 
 try_load:
   CALL load_game
-  LDI r11, MSG_TEXT
-  LDI r10, MSG_LOADED
-  STORE r11, r10
-  LDI r11, MSG_TIMER
-  LDI r10, 60
-  STORE r11, r10
-  LDI r11, STATE
-  LOAD r10, r11
-  JZ r10, idle
+  LDI r8, MSG_TEXT
+  LDI r9, MSG_LOADED
+  STORE r8, r9
+  LDI r8, MSG_TIMER
+  LDI r9, 60
+  STORE r8, r9
+  LDI r8, STATE
+  LOAD r9, r8
+  JZ r9, idle
   CALL render
   JMP idle
 
 descend_screen:
-  LDI r10, 0x001a00
-  FILL r10
+  LDI r9, 0x001a00
+  FILL r9
   ; "DESCENDED!" at 0x6A10 (already in init_text)
-  LDI r15, 0x6A10
-  LDI r14, 30
+  LDI r13, 0x6A10
+  LDI r10, 30
   LDI r12, 80
-  TEXT r14, r12, r15
+  TEXT r10, r12, r13
   ; Show "FLOOR:" label then level number
-  LDI r15, MSG_FLOOR
-  LDI r14, 30
+  LDI r13, MSG_FLOOR
+  LDI r10, 30
   LDI r12, 110
-  TEXT r14, r12, r15
-  LDI r11, DLEVEL
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
-  LDI r6, 86
-  LDI r5, 110
+  TEXT r10, r12, r13
+  LDI r8, DLEVEL
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
+  LDI r0, 86
+  LDI r2, 110
   CALL draw_number
   ; Show "KILLS:" label then kill count
-  LDI r15, MSG_KILLS
-  LDI r14, 30
+  LDI r13, MSG_KILLS
+  LDI r10, 30
   LDI r12, 130
-  TEXT r14, r12, r15
-  LDI r11, KILLS
-  LOAD r10, r11
-  LDI r6, 86
-  LDI r5, 130
+  TEXT r10, r12, r13
+  LDI r8, KILLS
+  LOAD r9, r8
+  LDI r0, 86
+  LDI r2, 130
   CALL draw_number
   ; Wait for key
   FRAME
-  IKEY r4
-  JZ r4, descend_screen
+  IKEY r3
+  JZ r3, descend_screen
   ; Advance dungeon level
-  LDI r11, DLEVEL
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
-  STORE r11, r10
+  LDI r8, DLEVEL
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
+  STORE r8, r9
   ; Check win condition -- beat level 10
-  LDI r7, 10
-  CMP r10, r7
-  BLT r9, descend_continue
+  LDI r1, 10
+  CMP r9, r1
+  BLT r14, descend_continue
   JMP victory_screen
 descend_continue:
   ; Heal player: restore half of missing HP
-  LDI r11, P_MAXHP
-  LOAD r20, r11
-  LDI r11, P_HP
-  LOAD r21, r11
+  LDI r8, P_MAXHP
+  LOAD r20, r8
+  LDI r8, P_HP
+  LOAD r21, r8
   SUB r20, r21
-  LDI r7, 2
-  DIV r20, r7
+  LDI r1, 2
+  DIV r20, r1
   ADD r21, r20
-  LDI r11, P_HP
-  STORE r11, r21
+  LDI r8, P_HP
+  STORE r8, r21
   JMP restart
 
 victory_screen:
-  LDI r10, 0x1a1a00
-  FILL r10
-  LDI r15, MSG_WIN
-  LDI r14, 20
+  LDI r9, 0x1a1a00
+  FILL r9
+  LDI r13, MSG_WIN
+  LDI r10, 20
   LDI r12, 80
-  TEXT r14, r12, r15
-  LDI r15, MSG_WIN2
-  LDI r14, 40
+  TEXT r10, r12, r13
+  LDI r13, MSG_WIN2
+  LDI r10, 40
   LDI r12, 120
-  TEXT r14, r12, r15
-  LDI r13, 440
-  LDI r8, 300
-  BEEP r13, r8
+  TEXT r10, r12, r13
+  LDI r5, 440
+  LDI r7, 300
+  BEEP r5, r7
   FRAME
-  IKEY r4
-  JZ r4, victory_screen
-  LDI r10, 0
-  LDI r11, DLEVEL
-  STORE r11, r10
+  IKEY r3
+  JZ r3, victory_screen
+  LDI r9, 0
+  LDI r8, DLEVEL
+  STORE r8, r9
   JMP restart
 
 death_screen:
-  LDI r10, 0x1a0000
-  FILL r10
-  LDI r15, 0x6A50
-  LDI r14, 60
+  LDI r9, 0x1a0000
+  FILL r9
+  LDI r13, 0x6A50
+  LDI r10, 60
   LDI r12, 100
-  TEXT r14, r12, r15
-  LDI r15, 0x6A70
-  LDI r14, 50
+  TEXT r10, r12, r13
+  LDI r13, 0x6A70
+  LDI r10, 50
   LDI r12, 150
-  TEXT r14, r12, r15
-  LDI r15, 0x6A90
-  LDI r14, 50
+  TEXT r10, r12, r13
+  LDI r13, 0x6A90
+  LDI r10, 50
   LDI r12, 170
-  TEXT r14, r12, r15
-  LDI r15, 0x6AB0
-  LDI r14, 30
+  TEXT r10, r12, r13
+  LDI r13, 0x6AB0
+  LDI r10, 30
   LDI r12, 210
-  TEXT r14, r12, r15
+  TEXT r10, r12, r13
   FRAME
-  IKEY r4
-  JZ r4, death_screen
+  IKEY r3
+  JZ r3, death_screen
   JMP restart
 
 
@@ -447,12 +447,12 @@ death_screen:
 save_undo:
   PUSH r31
   ; FORK mode 0 = save snapshot to next slot
-  LDI r10, 0
-  FORK r10
-  ; r9 = slot index on success, 0xFFFFFFFF on error (max snapshots reached)
+  LDI r9, 0
+  FORK r9
+  ; r14 = slot index on success, 0xFFFFFFFF on error (max snapshots reached)
   ; Save the slot index so try_undo knows where to restore from
-  LDI r11, UNDO_SLOT
-  STORE r11, r9
+  LDI r8, UNDO_SLOT
+  STORE r8, r14
   POP r31
   RET
 
@@ -463,40 +463,40 @@ save_undo:
 save_game:
   PUSH r31
   ; Open /save.dat for writing (mode=1)
-  LDI r11, SAVE_PATH
-  LDI r10, 1
-  OPEN r11, r10
-  ; r9 = fd, 0xFFFFFFFF on error
-  LDI r7, 0xFFFFFFFF
-  CMP r9, r7
-  JZ r9, sg_fail
-  ; Save fd in r20
-  MOV r20, r9
-  ; Copy player state to SAVE_BUF (9 words starting at P_X=0x6240)
-  LDI r15, 0
-  LDI r11, SAVE_BUF
-sg_copy_lp:
-  LDI r7, P_X
-  ADD r7, r15
-  LOAD r10, r7
-  LDI r7, SAVE_BUF
-  ADD r7, r15
-  STORE r7, r10
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, 9
-  CMP r15, r8
-  BLT r9, sg_copy_lp
-  ; Write 9 words = 36 bytes
-  MOV r11, r20
-  LDI r10, SAVE_BUF
-  LDI r6, 36
-  WRITE r11, r10, r6
-  ; Close file
-  MOV r11, r20
-  CLOSE r11
-  ; r9 = 1 success indicator for caller
+  LDI r8, SAVE_PATH
   LDI r9, 1
+  OPEN r8, r9
+  ; r14 = fd, 0xFFFFFFFF on error
+  LDI r1, 0xFFFFFFFF
+  CMP r14, r1
+  JZ r14, sg_fail
+  ; Save fd in r20
+  MOV r20, r14
+  ; Copy player state to SAVE_BUF (9 words starting at P_X=0x6240)
+  LDI r13, 0
+  LDI r8, SAVE_BUF
+sg_copy_lp:
+  LDI r1, P_X
+  ADD r1, r13
+  LOAD r9, r1
+  LDI r1, SAVE_BUF
+  ADD r1, r13
+  STORE r1, r9
+  LDI r1, 1
+  ADD r13, r1
+  LDI r7, 9
+  CMP r13, r7
+  BLT r14, sg_copy_lp
+  ; Write 9 words = 36 bytes
+  MOV r8, r20
+  LDI r9, SAVE_BUF
+  LDI r0, 36
+  WRITE r8, r9, r0
+  ; Close file
+  MOV r8, r20
+  CLOSE r8
+  ; r14 = 1 success indicator for caller
+  LDI r14, 1
   POP r31
   RET
 sg_fail:
@@ -511,49 +511,49 @@ sg_fail:
 load_game:
   PUSH r31
   ; Open /save.dat for reading (mode=0)
-  LDI r11, SAVE_PATH
-  LDI r10, 0
-  OPEN r11, r10
-  ; r9 = fd, 0xFFFFFFFF on error
-  LDI r7, 0xFFFFFFFF
-  CMP r9, r7
-  JZ r9, lg_fail
+  LDI r8, SAVE_PATH
+  LDI r9, 0
+  OPEN r8, r9
+  ; r14 = fd, 0xFFFFFFFF on error
+  LDI r1, 0xFFFFFFFF
+  CMP r14, r1
+  JZ r14, lg_fail
   ; Save fd in r20
-  MOV r20, r9
+  MOV r20, r14
   ; Read 9 words = 36 bytes into SAVE_BUF
-  MOV r11, r20
-  LDI r10, SAVE_BUF
-  LDI r6, 36
-  READ r11, r10, r6
-  ; r9 = bytes read, 0 or less means error/empty
-  JZ r9, lg_close_fail
-  LDI r7, 36
-  CMP r9, r7
-  BLT r9, lg_close_fail
+  MOV r8, r20
+  LDI r9, SAVE_BUF
+  LDI r0, 36
+  READ r8, r9, r0
+  ; r14 = bytes read, 0 or less means error/empty
+  JZ r14, lg_close_fail
+  LDI r1, 36
+  CMP r14, r1
+  BLT r14, lg_close_fail
   ; Close file
-  MOV r11, r20
-  CLOSE r11
+  MOV r8, r20
+  CLOSE r8
   ; Copy from SAVE_BUF to player state
-  LDI r15, 0
+  LDI r13, 0
 lg_copy_lp:
-  LDI r7, SAVE_BUF
-  ADD r7, r15
-  LOAD r10, r7
-  LDI r7, P_X
-  ADD r7, r15
-  STORE r7, r10
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, 9
-  CMP r15, r8
-  BLT r9, lg_copy_lp
-  ; r9 = 1 success indicator for caller
-  LDI r9, 1
+  LDI r1, SAVE_BUF
+  ADD r1, r13
+  LOAD r9, r1
+  LDI r1, P_X
+  ADD r1, r13
+  STORE r1, r9
+  LDI r1, 1
+  ADD r13, r1
+  LDI r7, 9
+  CMP r13, r7
+  BLT r14, lg_copy_lp
+  ; r14 = 1 success indicator for caller
+  LDI r14, 1
   POP r31
   RET
 lg_close_fail:
-  MOV r11, r20
-  CLOSE r11
+  MOV r8, r20
+  CLOSE r8
 lg_fail:
   ; Could not open or read file -- silent fail
   POP r31
@@ -563,138 +563,138 @@ lg_fail:
 
 init_tiles:
   PUSH r31
-  PUSH r15
+  PUSH r13
   ; Floor tile (tile 1): dark brownish pixels
-  LDI r15, 0
+  LDI r13, 0
 it_fl:
-  LDI r11, TILE_BASE
-  ADD r11, r15
-  LDI r10, 0x2A2A4E
-  STORE r11, r10
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, 64
-  CMP r15, r8
-  BLT r9, it_fl
-  ; Wall tile (tile 2): checkerboard dark gray
-  LDI r15, 0
-it_wl:
-  LDI r11, TILE_BASE
+  LDI r8, TILE_BASE
+  ADD r8, r13
+  LDI r9, 0x2A2A4E
+  STORE r8, r9
+  LDI r1, 1
+  ADD r13, r1
   LDI r7, 64
-  ADD r11, r7
-  ADD r11, r15
-  LDI r10, 0
-  ADD r10, r15
-  LDI r6, 0
-  ADD r6, r15
-  LDI r7, 8
-  LDI r5, 0
-  ADD r5, r10
-  DIV r5, r7
-  LDI r7, 8
-  MOD r6, r7
-  XOR r6, r5
-  LDI r7, 1
-  AND r6, r7
-  JZ r6, it_wd
-  LDI r10, 0x5A7AAA
+  CMP r13, r7
+  BLT r14, it_fl
+  ; Wall tile (tile 2): checkerboard dark gray
+  LDI r13, 0
+it_wl:
+  LDI r8, TILE_BASE
+  LDI r1, 64
+  ADD r8, r1
+  ADD r8, r13
+  LDI r9, 0
+  ADD r9, r13
+  LDI r0, 0
+  ADD r0, r13
+  LDI r1, 8
+  LDI r2, 0
+  ADD r2, r9
+  DIV r2, r1
+  LDI r1, 8
+  MOD r0, r1
+  XOR r0, r2
+  LDI r1, 1
+  AND r0, r1
+  JZ r0, it_wd
+  LDI r9, 0x5A7AAA
   JMP it_ws
 it_wd:
-  LDI r10, 0x3A5A7A
+  LDI r9, 0x3A5A7A
 it_ws:
-  STORE r11, r10
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, 64
-  CMP r15, r8
-  BLT r9, it_wl
-  ; Stairs tile (tile 3): golden pixels
-  LDI r15, 0
-it_st:
-  LDI r11, TILE_BASE
-  LDI r7, 128
-  ADD r11, r7
-  ADD r11, r15
-  LDI r10, 0xD4A017
-  STORE r11, r10
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, 64
-  CMP r15, r8
-  BLT r9, it_st
-  ; Enemy tile (tile 4): red with dark border
-  LDI r15, 0
-it_en:
-  LDI r11, TILE_BASE
-  LDI r7, 192
-  ADD r11, r7
-  ADD r11, r15
-  LDI r10, 0
-  ADD r10, r15
-  LDI r7, 8
-  MOD r10, r7
-  LDI r6, 0
-  ADD r6, r15
+  STORE r8, r9
+  LDI r1, 1
+  ADD r13, r1
   LDI r7, 64
-  DIV r6, r7
-  LDI r7, 8
-  MOD r6, r7
-  JZ r10, it_en_b
-  LDI r7, 7
-  CMP r10, r7
+  CMP r13, r7
+  BLT r14, it_wl
+  ; Stairs tile (tile 3): golden pixels
+  LDI r13, 0
+it_st:
+  LDI r8, TILE_BASE
+  LDI r1, 128
+  ADD r8, r1
+  ADD r8, r13
+  LDI r9, 0xD4A017
+  STORE r8, r9
+  LDI r1, 1
+  ADD r13, r1
+  LDI r7, 64
+  CMP r13, r7
+  BLT r14, it_st
+  ; Enemy tile (tile 4): red with dark border
+  LDI r13, 0
+it_en:
+  LDI r8, TILE_BASE
+  LDI r1, 192
+  ADD r8, r1
+  ADD r8, r13
+  LDI r9, 0
+  ADD r9, r13
+  LDI r1, 8
+  MOD r9, r1
+  LDI r0, 0
+  ADD r0, r13
+  LDI r1, 64
+  DIV r0, r1
+  LDI r1, 8
+  MOD r0, r1
   JZ r9, it_en_b
-  JZ r6, it_en_b
-  LDI r7, 7
-  CMP r6, r7
-  JZ r9, it_en_b
-  LDI r10, 0xCC2222
+  LDI r1, 7
+  CMP r9, r1
+  JZ r14, it_en_b
+  JZ r0, it_en_b
+  LDI r1, 7
+  CMP r0, r1
+  JZ r14, it_en_b
+  LDI r9, 0xCC2222
   JMP it_en_s
 it_en_b:
-  LDI r10, 0x881111
+  LDI r9, 0x881111
 it_en_s:
-  STORE r11, r10
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, 64
-  CMP r15, r8
-  BLT r9, it_en
-  ; Item tile (tile 5): green with border
-  LDI r15, 0
-it_it:
-  LDI r11, TILE_BASE
-  LDI r7, 256
-  ADD r11, r7
-  ADD r11, r15
-  LDI r10, 0
-  ADD r10, r15
-  LDI r7, 8
-  MOD r10, r7
-  LDI r6, 0
-  ADD r6, r15
+  STORE r8, r9
+  LDI r1, 1
+  ADD r13, r1
   LDI r7, 64
-  DIV r6, r7
-  LDI r7, 8
-  MOD r6, r7
-  JZ r10, it_it_b
-  LDI r7, 7
-  CMP r10, r7
+  CMP r13, r7
+  BLT r14, it_en
+  ; Item tile (tile 5): green with border
+  LDI r13, 0
+it_it:
+  LDI r8, TILE_BASE
+  LDI r1, 256
+  ADD r8, r1
+  ADD r8, r13
+  LDI r9, 0
+  ADD r9, r13
+  LDI r1, 8
+  MOD r9, r1
+  LDI r0, 0
+  ADD r0, r13
+  LDI r1, 64
+  DIV r0, r1
+  LDI r1, 8
+  MOD r0, r1
   JZ r9, it_it_b
-  JZ r6, it_it_b
-  LDI r7, 7
-  CMP r6, r7
-  JZ r9, it_it_b
-  LDI r10, 0x22AA22
+  LDI r1, 7
+  CMP r9, r1
+  JZ r14, it_it_b
+  JZ r0, it_it_b
+  LDI r1, 7
+  CMP r0, r1
+  JZ r14, it_it_b
+  LDI r9, 0x22AA22
   JMP it_it_s
 it_it_b:
-  LDI r10, 0x116611
+  LDI r9, 0x116611
 it_it_s:
-  STORE r11, r10
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, 64
-  CMP r15, r8
-  BLT r9, it_it
-  POP r15
+  STORE r8, r9
+  LDI r1, 1
+  ADD r13, r1
+  LDI r7, 64
+  CMP r13, r7
+  BLT r14, it_it
+  POP r13
   POP r31
   RET
 
@@ -703,447 +703,447 @@ it_it_s:
 init_text:
   PUSH r31
   ; "@" at 0x6A00
-  LDI r11, 0x6A00
-  LDI r10, 64
-  STORE r11, r10
-  LDI r11, 0x6A01
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A00
+  LDI r9, 64
+  STORE r8, r9
+  LDI r8, 0x6A01
+  LDI r9, 0
+  STORE r8, r9
   ; "HP:" at 0x6A02
-  LDI r11, 0x6A02
-  LDI r10, 72
-  STORE r11, r10
-  LDI r11, 0x6A03
-  LDI r10, 80
-  STORE r11, r10
-  LDI r11, 0x6A04
-  LDI r10, 58
-  STORE r11, r10
-  LDI r11, 0x6A05
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A02
+  LDI r9, 72
+  STORE r8, r9
+  LDI r8, 0x6A03
+  LDI r9, 80
+  STORE r8, r9
+  LDI r8, 0x6A04
+  LDI r9, 58
+  STORE r8, r9
+  LDI r8, 0x6A05
+  LDI r9, 0
+  STORE r8, r9
   ; "ATK:" at 0x6A06
-  LDI r11, 0x6A06
-  LDI r10, 65
-  STORE r11, r10
-  LDI r11, 0x6A07
-  LDI r10, 84
-  STORE r11, r10
-  LDI r11, 0x6A08
-  LDI r10, 75
-  STORE r11, r10
-  LDI r11, 0x6A09
-  LDI r10, 58
-  STORE r11, r10
-  LDI r11, 0x6A0A
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A06
+  LDI r9, 65
+  STORE r8, r9
+  LDI r8, 0x6A07
+  LDI r9, 84
+  STORE r8, r9
+  LDI r8, 0x6A08
+  LDI r9, 75
+  STORE r8, r9
+  LDI r8, 0x6A09
+  LDI r9, 58
+  STORE r8, r9
+  LDI r8, 0x6A0A
+  LDI r9, 0
+  STORE r8, r9
   ; "LV:" at 0x6A0B
-  LDI r11, 0x6A0B
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6A0C
-  LDI r10, 86
-  STORE r11, r10
-  LDI r11, 0x6A0D
-  LDI r10, 58
-  STORE r11, r10
-  LDI r11, 0x6A0E
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A0B
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6A0C
+  LDI r9, 86
+  STORE r8, r9
+  LDI r8, 0x6A0D
+  LDI r9, 58
+  STORE r8, r9
+  LDI r8, 0x6A0E
+  LDI r9, 0
+  STORE r8, r9
   ; "DESCENDED!" at 0x6A10
-  LDI r11, 0x6A10
-  LDI r10, 68
-  STORE r11, r10
-  LDI r11, 0x6A11
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6A12
-  LDI r10, 83
-  STORE r11, r10
-  LDI r11, 0x6A13
-  LDI r10, 67
-  STORE r11, r10
-  LDI r11, 0x6A14
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6A15
-  LDI r10, 78
-  STORE r11, r10
-  LDI r11, 0x6A16
-  LDI r10, 68
-  STORE r11, r10
-  LDI r11, 0x6A17
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6A18
-  LDI r10, 68
-  STORE r11, r10
-  LDI r11, 0x6A19
-  LDI r10, 33
-  STORE r11, r10
-  LDI r11, 0x6A1A
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A10
+  LDI r9, 68
+  STORE r8, r9
+  LDI r8, 0x6A11
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6A12
+  LDI r9, 83
+  STORE r8, r9
+  LDI r8, 0x6A13
+  LDI r9, 67
+  STORE r8, r9
+  LDI r8, 0x6A14
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6A15
+  LDI r9, 78
+  STORE r8, r9
+  LDI r8, 0x6A16
+  LDI r9, 68
+  STORE r8, r9
+  LDI r8, 0x6A17
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6A18
+  LDI r9, 68
+  STORE r8, r9
+  LDI r8, 0x6A19
+  LDI r9, 33
+  STORE r8, r9
+  LDI r8, 0x6A1A
+  LDI r9, 0
+  STORE r8, r9
   ; "PRESS R" at 0x6A30
-  LDI r11, 0x6A30
-  LDI r10, 80
-  STORE r11, r10
-  LDI r11, 0x6A31
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6A32
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6A33
-  LDI r10, 83
-  STORE r11, r10
-  LDI r11, 0x6A34
-  LDI r10, 83
-  STORE r11, r10
-  LDI r11, 0x6A35
-  LDI r10, 32
-  STORE r11, r10
-  LDI r11, 0x6A36
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6A37
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A30
+  LDI r9, 80
+  STORE r8, r9
+  LDI r8, 0x6A31
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6A32
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6A33
+  LDI r9, 83
+  STORE r8, r9
+  LDI r8, 0x6A34
+  LDI r9, 83
+  STORE r8, r9
+  LDI r8, 0x6A35
+  LDI r9, 32
+  STORE r8, r9
+  LDI r8, 0x6A36
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6A37
+  LDI r9, 0
+  STORE r8, r9
   ; "GAME OVER" at 0x6A50
-  LDI r11, 0x6A50
-  LDI r10, 71
-  STORE r11, r10
-  LDI r11, 0x6A51
-  LDI r10, 65
-  STORE r11, r10
-  LDI r11, 0x6A52
-  LDI r10, 77
-  STORE r11, r10
-  LDI r11, 0x6A53
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6A54
-  LDI r10, 32
-  STORE r11, r10
-  LDI r11, 0x6A55
-  LDI r10, 79
-  STORE r11, r10
-  LDI r11, 0x6A56
-  LDI r10, 86
-  STORE r11, r10
-  LDI r11, 0x6A57
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6A58
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6A59
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A50
+  LDI r9, 71
+  STORE r8, r9
+  LDI r8, 0x6A51
+  LDI r9, 65
+  STORE r8, r9
+  LDI r8, 0x6A52
+  LDI r9, 77
+  STORE r8, r9
+  LDI r8, 0x6A53
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6A54
+  LDI r9, 32
+  STORE r8, r9
+  LDI r8, 0x6A55
+  LDI r9, 79
+  STORE r8, r9
+  LDI r8, 0x6A56
+  LDI r9, 86
+  STORE r8, r9
+  LDI r8, 0x6A57
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6A58
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6A59
+  LDI r9, 0
+  STORE r8, r9
   ; "KILLS:" at 0x6A70
-  LDI r11, 0x6A70
-  LDI r10, 75
-  STORE r11, r10
-  LDI r11, 0x6A71
-  LDI r10, 73
-  STORE r11, r10
-  LDI r11, 0x6A72
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6A73
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6A74
-  LDI r10, 83
-  STORE r11, r10
-  LDI r11, 0x6A75
-  LDI r10, 58
-  STORE r11, r10
-  LDI r11, 0x6A76
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A70
+  LDI r9, 75
+  STORE r8, r9
+  LDI r8, 0x6A71
+  LDI r9, 73
+  STORE r8, r9
+  LDI r8, 0x6A72
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6A73
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6A74
+  LDI r9, 83
+  STORE r8, r9
+  LDI r8, 0x6A75
+  LDI r9, 58
+  STORE r8, r9
+  LDI r8, 0x6A76
+  LDI r9, 0
+  STORE r8, r9
   ; "LEVEL:" at 0x6A90
-  LDI r11, 0x6A90
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6A91
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6A92
-  LDI r10, 86
-  STORE r11, r10
-  LDI r11, 0x6A93
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6A94
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6A95
-  LDI r10, 58
-  STORE r11, r10
-  LDI r11, 0x6A96
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6A90
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6A91
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6A92
+  LDI r9, 86
+  STORE r8, r9
+  LDI r8, 0x6A93
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6A94
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6A95
+  LDI r9, 58
+  STORE r8, r9
+  LDI r8, 0x6A96
+  LDI r9, 0
+  STORE r8, r9
   ; "PRESS R TO RETRY" at 0x6AB0
-  LDI r11, 0x6AB0
-  LDI r10, 80
-  STORE r11, r10
-  LDI r11, 0x6AB1
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6AB2
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6AB3
-  LDI r10, 83
-  STORE r11, r10
-  LDI r11, 0x6AB4
-  LDI r10, 83
-  STORE r11, r10
-  LDI r11, 0x6AB5
-  LDI r10, 32
-  STORE r11, r10
-  LDI r11, 0x6AB6
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6AB7
-  LDI r10, 32
-  STORE r11, r10
-  LDI r11, 0x6AB8
-  LDI r10, 84
-  STORE r11, r10
-  LDI r11, 0x6AB9
-  LDI r10, 79
-  STORE r11, r10
-  LDI r11, 0x6ABA
-  LDI r10, 32
-  STORE r11, r10
-  LDI r11, 0x6ABB
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6ABC
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6ABD
-  LDI r10, 84
-  STORE r11, r10
-  LDI r11, 0x6ABE
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6ABF
-  LDI r10, 89
-  STORE r11, r10
-  LDI r11, 0x6AC0
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6AB0
+  LDI r9, 80
+  STORE r8, r9
+  LDI r8, 0x6AB1
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6AB2
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6AB3
+  LDI r9, 83
+  STORE r8, r9
+  LDI r8, 0x6AB4
+  LDI r9, 83
+  STORE r8, r9
+  LDI r8, 0x6AB5
+  LDI r9, 32
+  STORE r8, r9
+  LDI r8, 0x6AB6
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6AB7
+  LDI r9, 32
+  STORE r8, r9
+  LDI r8, 0x6AB8
+  LDI r9, 84
+  STORE r8, r9
+  LDI r8, 0x6AB9
+  LDI r9, 79
+  STORE r8, r9
+  LDI r8, 0x6ABA
+  LDI r9, 32
+  STORE r8, r9
+  LDI r8, 0x6ABB
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6ABC
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6ABD
+  LDI r9, 84
+  STORE r8, r9
+  LDI r8, 0x6ABE
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6ABF
+  LDI r9, 89
+  STORE r8, r9
+  LDI r8, 0x6AC0
+  LDI r9, 0
+  STORE r8, r9
   ; Save file path "/save.dat" at 0x6AC1 (SAVE_PATH)
-  LDI r11, 0x6AC1
-  LDI r10, 47
-  STORE r11, r10
-  LDI r11, 0x6AC2
-  LDI r10, 115
-  STORE r11, r10
-  LDI r11, 0x6AC3
-  LDI r10, 97
-  STORE r11, r10
-  LDI r11, 0x6AC4
-  LDI r10, 118
-  STORE r11, r10
-  LDI r11, 0x6AC5
-  LDI r10, 101
-  STORE r11, r10
-  LDI r11, 0x6AC6
-  LDI r10, 46
-  STORE r11, r10
-  LDI r11, 0x6AC7
-  LDI r10, 100
-  STORE r11, r10
-  LDI r11, 0x6AC8
-  LDI r10, 97
-  STORE r11, r10
-  LDI r11, 0x6AC9
-  LDI r10, 116
-  STORE r11, r10
-  LDI r11, 0x6ACA
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6AC1
+  LDI r9, 47
+  STORE r8, r9
+  LDI r8, 0x6AC2
+  LDI r9, 115
+  STORE r8, r9
+  LDI r8, 0x6AC3
+  LDI r9, 97
+  STORE r8, r9
+  LDI r8, 0x6AC4
+  LDI r9, 118
+  STORE r8, r9
+  LDI r8, 0x6AC5
+  LDI r9, 101
+  STORE r8, r9
+  LDI r8, 0x6AC6
+  LDI r9, 46
+  STORE r8, r9
+  LDI r8, 0x6AC7
+  LDI r9, 100
+  STORE r8, r9
+  LDI r8, 0x6AC8
+  LDI r9, 97
+  STORE r8, r9
+  LDI r8, 0x6AC9
+  LDI r9, 116
+  STORE r8, r9
+  LDI r8, 0x6ACA
+  LDI r9, 0
+  STORE r8, r9
   ; "SAVED!" at 0x6ACB (padding to MSG_SAVED=0x6ACE -- align with defines)
   ; Actually let me check the spacing needed
   ; 0x6AC1-0x6ACA = save path "/save.dat\0" (10 bytes)
   ; MSG_SAVED = 0x6ACE, need 4 bytes of padding or re-define
   ; Let me just place strings starting at 0x6ACB
   ; "SAVED!" at 0x6ACB (6 bytes + null = 7, ends at 0x6AD1)
-  LDI r11, 0x6ACB
-  LDI r10, 83
-  STORE r11, r10
-  LDI r11, 0x6ACC
-  LDI r10, 65
-  STORE r11, r10
-  LDI r11, 0x6ACD
-  LDI r10, 86
-  STORE r11, r10
-  LDI r11, 0x6ACE
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6ACF
-  LDI r10, 68
-  STORE r11, r10
-  LDI r11, 0x6AD0
-  LDI r10, 33
-  STORE r11, r10
-  LDI r11, 0x6AD1
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6ACB
+  LDI r9, 83
+  STORE r8, r9
+  LDI r8, 0x6ACC
+  LDI r9, 65
+  STORE r8, r9
+  LDI r8, 0x6ACD
+  LDI r9, 86
+  STORE r8, r9
+  LDI r8, 0x6ACE
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6ACF
+  LDI r9, 68
+  STORE r8, r9
+  LDI r8, 0x6AD0
+  LDI r9, 33
+  STORE r8, r9
+  LDI r8, 0x6AD1
+  LDI r9, 0
+  STORE r8, r9
   ; "LOADED!" at 0x6AD2 (7 bytes + null = 8, ends at 0x6AD9)
-  LDI r11, 0x6AD2
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6AD3
-  LDI r10, 79
-  STORE r11, r10
-  LDI r11, 0x6AD4
-  LDI r10, 65
-  STORE r11, r10
-  LDI r11, 0x6AD5
-  LDI r10, 68
-  STORE r11, r10
-  LDI r11, 0x6AD6
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6AD7
-  LDI r10, 68
-  STORE r11, r10
-  LDI r11, 0x6AD8
-  LDI r10, 33
-  STORE r11, r10
-  LDI r11, 0x6AD9
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6AD2
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6AD3
+  LDI r9, 79
+  STORE r8, r9
+  LDI r8, 0x6AD4
+  LDI r9, 65
+  STORE r8, r9
+  LDI r8, 0x6AD5
+  LDI r9, 68
+  STORE r8, r9
+  LDI r8, 0x6AD6
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6AD7
+  LDI r9, 68
+  STORE r8, r9
+  LDI r8, 0x6AD8
+  LDI r9, 33
+  STORE r8, r9
+  LDI r8, 0x6AD9
+  LDI r9, 0
+  STORE r8, r9
   ; "FLOOR:" at 0x6ADA (6 bytes + null = 7, ends at 0x6AE0)
-  LDI r11, 0x6ADA
-  LDI r10, 70
-  STORE r11, r10
-  LDI r11, 0x6ADB
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6ADC
-  LDI r10, 79
-  STORE r11, r10
-  LDI r11, 0x6ADD
-  LDI r10, 79
-  STORE r11, r10
-  LDI r11, 0x6ADE
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6ADF
-  LDI r10, 58
-  STORE r11, r10
-  LDI r11, 0x6AE0
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6ADA
+  LDI r9, 70
+  STORE r8, r9
+  LDI r8, 0x6ADB
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6ADC
+  LDI r9, 79
+  STORE r8, r9
+  LDI r8, 0x6ADD
+  LDI r9, 79
+  STORE r8, r9
+  LDI r8, 0x6ADE
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6ADF
+  LDI r9, 58
+  STORE r8, r9
+  LDI r8, 0x6AE0
+  LDI r9, 0
+  STORE r8, r9
   ; "KILLS:" at 0x6AE1 (6 bytes + null = 7, ends at 0x6AE7)
-  LDI r11, 0x6AE1
-  LDI r10, 75
-  STORE r11, r10
-  LDI r11, 0x6AE2
-  LDI r10, 73
-  STORE r11, r10
-  LDI r11, 0x6AE3
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6AE4
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6AE5
-  LDI r10, 83
-  STORE r11, r10
-  LDI r11, 0x6AE6
-  LDI r10, 58
-  STORE r11, r10
-  LDI r11, 0x6AE7
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6AE1
+  LDI r9, 75
+  STORE r8, r9
+  LDI r8, 0x6AE2
+  LDI r9, 73
+  STORE r8, r9
+  LDI r8, 0x6AE3
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6AE4
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6AE5
+  LDI r9, 83
+  STORE r8, r9
+  LDI r8, 0x6AE6
+  LDI r9, 58
+  STORE r8, r9
+  LDI r8, 0x6AE7
+  LDI r9, 0
+  STORE r8, r9
   ; "VICTORY!" at 0x6AE8 (8 bytes + null = 9, ends at 0x6AF0)
-  LDI r11, 0x6AE8
-  LDI r10, 86
-  STORE r11, r10
-  LDI r11, 0x6AE9
-  LDI r10, 73
-  STORE r11, r10
-  LDI r11, 0x6AEA
-  LDI r10, 67
-  STORE r11, r10
-  LDI r11, 0x6AEB
-  LDI r10, 84
-  STORE r11, r10
-  LDI r11, 0x6AEC
-  LDI r10, 79
-  STORE r11, r10
-  LDI r11, 0x6AED
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6AEE
-  LDI r10, 89
-  STORE r11, r10
-  LDI r11, 0x6AEF
-  LDI r10, 33
-  STORE r11, r10
-  LDI r11, 0x6AF0
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6AE8
+  LDI r9, 86
+  STORE r8, r9
+  LDI r8, 0x6AE9
+  LDI r9, 73
+  STORE r8, r9
+  LDI r8, 0x6AEA
+  LDI r9, 67
+  STORE r8, r9
+  LDI r8, 0x6AEB
+  LDI r9, 84
+  STORE r8, r9
+  LDI r8, 0x6AEC
+  LDI r9, 79
+  STORE r8, r9
+  LDI r8, 0x6AED
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6AEE
+  LDI r9, 89
+  STORE r8, r9
+  LDI r8, 0x6AEF
+  LDI r9, 33
+  STORE r8, r9
+  LDI r8, 0x6AF0
+  LDI r9, 0
+  STORE r8, r9
   ; "DUNGEON CLEARED!" at 0x6AF1 (16 bytes + null = 17, ends at 0x6B01)
-  LDI r11, 0x6AF1
-  LDI r10, 68
-  STORE r11, r10
-  LDI r11, 0x6AF2
-  LDI r10, 85
-  STORE r11, r10
-  LDI r11, 0x6AF3
-  LDI r10, 78
-  STORE r11, r10
-  LDI r11, 0x6AF4
-  LDI r10, 71
-  STORE r11, r10
-  LDI r11, 0x6AF5
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6AF6
-  LDI r10, 79
-  STORE r11, r10
-  LDI r11, 0x6AF7
-  LDI r10, 78
-  STORE r11, r10
-  LDI r11, 0x6AF8
-  LDI r10, 32
-  STORE r11, r10
-  LDI r11, 0x6AF9
-  LDI r10, 67
-  STORE r11, r10
-  LDI r11, 0x6AFA
-  LDI r10, 76
-  STORE r11, r10
-  LDI r11, 0x6AFB
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6AFC
-  LDI r10, 65
-  STORE r11, r10
-  LDI r11, 0x6AFD
-  LDI r10, 82
-  STORE r11, r10
-  LDI r11, 0x6AFE
-  LDI r10, 69
-  STORE r11, r10
-  LDI r11, 0x6AFF
-  LDI r10, 68
-  STORE r11, r10
-  LDI r11, 0x6B00
-  LDI r10, 33
-  STORE r11, r10
-  LDI r11, 0x6B01
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, 0x6AF1
+  LDI r9, 68
+  STORE r8, r9
+  LDI r8, 0x6AF2
+  LDI r9, 85
+  STORE r8, r9
+  LDI r8, 0x6AF3
+  LDI r9, 78
+  STORE r8, r9
+  LDI r8, 0x6AF4
+  LDI r9, 71
+  STORE r8, r9
+  LDI r8, 0x6AF5
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6AF6
+  LDI r9, 79
+  STORE r8, r9
+  LDI r8, 0x6AF7
+  LDI r9, 78
+  STORE r8, r9
+  LDI r8, 0x6AF8
+  LDI r9, 32
+  STORE r8, r9
+  LDI r8, 0x6AF9
+  LDI r9, 67
+  STORE r8, r9
+  LDI r8, 0x6AFA
+  LDI r9, 76
+  STORE r8, r9
+  LDI r8, 0x6AFB
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6AFC
+  LDI r9, 65
+  STORE r8, r9
+  LDI r8, 0x6AFD
+  LDI r9, 82
+  STORE r8, r9
+  LDI r8, 0x6AFE
+  LDI r9, 69
+  STORE r8, r9
+  LDI r8, 0x6AFF
+  LDI r9, 68
+  STORE r8, r9
+  LDI r8, 0x6B00
+  LDI r9, 33
+  STORE r8, r9
+  LDI r8, 0x6B01
+  LDI r9, 0
+  STORE r8, r9
   POP r31
   RET
 
@@ -1152,446 +1152,446 @@ init_text:
 generate_dungeon:
   PUSH r31
   ; Fill map with walls
-  LDI r15, 0
+  LDI r13, 0
 gd_fy:
-  LDI r14, 0
-gd_fx:
-  LDI r11, MAP_BASE
-  LDI r7, MAP_W
-  MUL r7, r15
-  ADD r11, r7
-  ADD r11, r14
-  LDI r10, TILE_WALL
-  STORE r11, r10
-  LDI r7, 1
-  ADD r14, r7
-  LDI r8, MAP_W
-  CMP r14, r8
-  BLT r9, gd_fx
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, MAP_H
-  CMP r15, r8
-  BLT r9, gd_fy
-  ; Place rooms (up to 12)
   LDI r10, 0
-  LDI r11, ROOM_COUNT
-  STORE r11, r10
+gd_fx:
+  LDI r8, MAP_BASE
+  LDI r1, MAP_W
+  MUL r1, r13
+  ADD r8, r1
+  ADD r8, r10
+  LDI r9, TILE_WALL
+  STORE r8, r9
+  LDI r1, 1
+  ADD r10, r1
+  LDI r7, MAP_W
+  CMP r10, r7
+  BLT r14, gd_fx
+  LDI r1, 1
+  ADD r13, r1
+  LDI r7, MAP_H
+  CMP r13, r7
+  BLT r14, gd_fy
+  ; Place rooms (up to 12)
+  LDI r9, 0
+  LDI r8, ROOM_COUNT
+  STORE r8, r9
   LDI r25, 0
 gd_rl:
-  LDI r11, ROOM_COUNT
-  LOAD r10, r11
-  LDI r7, 12
-  CMP r10, r7
-  BGE r9, gd_rd
-  LDI r7, 100
-  CMP r25, r7
-  BGE r9, gd_rd
-  LDI r7, 1
-  ADD r25, r7
+  LDI r8, ROOM_COUNT
+  LOAD r9, r8
+  LDI r1, 12
+  CMP r9, r1
+  BGE r14, gd_rd
+  LDI r1, 100
+  CMP r25, r1
+  BGE r14, gd_rd
+  LDI r1, 1
+  ADD r25, r1
   RAND r20
-  LDI r7, 8
-  MOD r20, r7
-  LDI r7, 5
-  ADD r20, r7
+  LDI r1, 8
+  MOD r20, r1
+  LDI r1, 5
+  ADD r20, r1
   RAND r21
-  LDI r7, 6
-  MOD r21, r7
-  LDI r7, 4
-  ADD r21, r7
+  LDI r1, 6
+  MOD r21, r1
+  LDI r1, 4
+  ADD r21, r1
   RAND r22
-  LDI r7, MAP_W
+  LDI r1, MAP_W
   LDI r26, 0
   ADD r26, r20
-  SUB r7, r26
+  SUB r1, r26
   LDI r26, 2
-  SUB r7, r26
+  SUB r1, r26
   LDI r26, 1
-  ADD r7, r26
-  MOD r22, r7
-  LDI r7, 1
-  ADD r22, r7
+  ADD r1, r26
+  MOD r22, r1
+  LDI r1, 1
+  ADD r22, r1
   RAND r23
-  LDI r7, MAP_H
+  LDI r1, MAP_H
   LDI r26, 0
   ADD r26, r21
-  SUB r7, r26
+  SUB r1, r26
   LDI r26, 2
-  SUB r7, r26
+  SUB r1, r26
   LDI r26, 1
-  ADD r7, r26
-  MOD r23, r7
-  LDI r7, 1
-  ADD r23, r7
+  ADD r1, r26
+  MOD r23, r1
+  LDI r1, 1
+  ADD r23, r1
   CALL check_room_overlap
-  JNZ r10, gd_rl
+  JNZ r9, gd_rl
   CALL carve_room
-  LDI r11, ROOM_COUNT
-  LOAD r10, r11
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 0
-  ADD r7, r22
-  STORE r11, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LDI r7, 0
-  ADD r7, r23
-  STORE r11, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LDI r7, 0
-  ADD r7, r20
-  STORE r11, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LDI r7, 0
-  ADD r7, r21
-  STORE r11, r7
-  LDI r11, ROOM_COUNT
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
-  STORE r11, r10
+  LDI r8, ROOM_COUNT
+  LOAD r9, r8
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 0
+  ADD r1, r22
+  STORE r8, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LDI r1, 0
+  ADD r1, r23
+  STORE r8, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LDI r1, 0
+  ADD r1, r20
+  STORE r8, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LDI r1, 0
+  ADD r1, r21
+  STORE r8, r1
+  LDI r8, ROOM_COUNT
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
+  STORE r8, r9
   JMP gd_rl
 gd_rd:
   ; Connect rooms with L-shaped corridors
-  LDI r11, ROOM_COUNT
-  LOAD r24, r11
-  LDI r7, 2
-  CMP r24, r7
-  BLT r9, gd_cd
+  LDI r8, ROOM_COUNT
+  LOAD r24, r8
+  LDI r1, 2
+  CMP r24, r1
+  BLT r14, gd_cd
   LDI r25, 0
 gd_cl:
-  LDI r7, 1
+  LDI r1, 1
   LDI r26, 0
   ADD r26, r24
-  SUB r26, r7
+  SUB r26, r1
   CMP r25, r26
-  BGE r9, gd_cd
+  BGE r14, gd_cd
   ; Center of room i
-  MOV r10, r25
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LOAD r20, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r26, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r27, r11
-  LDI r7, 2
-  SHR r26, r7
+  MOV r9, r25
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LOAD r20, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r26, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r27, r8
+  LDI r1, 2
+  SHR r26, r1
   ADD r20, r26
-  LDI r7, 2
-  SHR r27, r7
+  LDI r1, 2
+  SHR r27, r1
   ADD r21, r27
-  LDI r11, TEMP_BASE
-  LDI r7, 0
-  ADD r7, r20
-  STORE r11, r7
-  LDI r11, TEMP_BASE
-  LDI r7, 1
-  ADD r11, r7
-  LDI r7, 0
-  ADD r7, r21
-  STORE r11, r7
+  LDI r8, TEMP_BASE
+  LDI r1, 0
+  ADD r1, r20
+  STORE r8, r1
+  LDI r8, TEMP_BASE
+  LDI r1, 1
+  ADD r8, r1
+  LDI r1, 0
+  ADD r1, r21
+  STORE r8, r1
   ; Center of room i+1
-  MOV r10, r25
-  LDI r7, 1
-  ADD r10, r7
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LOAD r20, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r26, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r27, r11
-  LDI r7, 2
-  SHR r26, r7
+  MOV r9, r25
+  LDI r1, 1
+  ADD r9, r1
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LOAD r20, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r26, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r27, r8
+  LDI r1, 2
+  SHR r26, r1
   ADD r20, r26
-  LDI r7, 2
-  SHR r27, r7
+  LDI r1, 2
+  SHR r27, r1
   ADD r21, r27
-  LDI r11, TEMP_BASE
-  LDI r7, 2
-  ADD r11, r7
-  LDI r7, 0
-  ADD r7, r20
-  STORE r11, r7
-  LDI r11, TEMP_BASE
-  LDI r7, 3
-  ADD r11, r7
-  LDI r7, 0
-  ADD r7, r21
-  STORE r11, r7
+  LDI r8, TEMP_BASE
+  LDI r1, 2
+  ADD r8, r1
+  LDI r1, 0
+  ADD r1, r20
+  STORE r8, r1
+  LDI r8, TEMP_BASE
+  LDI r1, 3
+  ADD r8, r1
+  LDI r1, 0
+  ADD r1, r21
+  STORE r8, r1
   ; Horizontal corridor
-  LDI r11, TEMP_BASE
-  LOAD r20, r11
-  LDI r11, TEMP_BASE
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r22, r11
-  LDI r11, TEMP_BASE
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r21, r11
+  LDI r8, TEMP_BASE
+  LOAD r20, r8
+  LDI r8, TEMP_BASE
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r22, r8
+  LDI r8, TEMP_BASE
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r21, r8
   CALL carve_h_corridor
   ; Vertical corridor
-  LDI r11, TEMP_BASE
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r20, r11
-  LDI r11, TEMP_BASE
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r22, r11
-  LDI r11, TEMP_BASE
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r21, r11
+  LDI r8, TEMP_BASE
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r20, r8
+  LDI r8, TEMP_BASE
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r22, r8
+  LDI r8, TEMP_BASE
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r21, r8
   CALL carve_v_corridor
-  LDI r7, 1
-  ADD r25, r7
+  LDI r1, 1
+  ADD r25, r1
   JMP gd_cl
 gd_cd:
   ; Place stairs in last room
-  LDI r11, ROOM_COUNT
-  LOAD r10, r11
-  JZ r10, gd_nr
-  LDI r7, 1
-  SUB r10, r7
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LOAD r20, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r26, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r27, r11
-  LDI r7, 2
-  SHR r26, r7
+  LDI r8, ROOM_COUNT
+  LOAD r9, r8
+  JZ r9, gd_nr
+  LDI r1, 1
+  SUB r9, r1
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LOAD r20, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r26, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r27, r8
+  LDI r1, 2
+  SHR r26, r1
   ADD r20, r26
-  LDI r7, 2
-  SHR r27, r7
+  LDI r1, 2
+  SHR r27, r1
   ADD r21, r27
-  LDI r11, STAIRS_X
-  STORE r11, r20
-  LDI r11, STAIRS_Y
-  STORE r11, r21
-  LDI r11, MAP_BASE
-  LDI r7, MAP_W
-  MUL r7, r21
-  ADD r11, r7
-  ADD r11, r20
-  LDI r10, TILE_STAIR
-  STORE r11, r10
+  LDI r8, STAIRS_X
+  STORE r8, r20
+  LDI r8, STAIRS_Y
+  STORE r8, r21
+  LDI r8, MAP_BASE
+  LDI r1, MAP_W
+  MUL r1, r21
+  ADD r8, r1
+  ADD r8, r20
+  LDI r9, TILE_STAIR
+  STORE r8, r9
 gd_nr:
   ; Place player in first room
-  LDI r11, ROOM_COUNT
-  LOAD r10, r11
-  JZ r10, gd_fb
-  LDI r11, ROOM_BASE
-  LOAD r20, r11
-  LDI r11, ROOM_BASE
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ROOM_BASE
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r26, r11
-  LDI r11, ROOM_BASE
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r27, r11
-  LDI r7, 2
-  SHR r26, r7
+  LDI r8, ROOM_COUNT
+  LOAD r9, r8
+  JZ r9, gd_fb
+  LDI r8, ROOM_BASE
+  LOAD r20, r8
+  LDI r8, ROOM_BASE
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ROOM_BASE
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r26, r8
+  LDI r8, ROOM_BASE
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r27, r8
+  LDI r1, 2
+  SHR r26, r1
   ADD r20, r26
-  LDI r7, 2
-  SHR r27, r7
+  LDI r1, 2
+  SHR r27, r1
   ADD r21, r27
-  LDI r11, P_X
-  STORE r11, r20
-  LDI r11, P_Y
-  STORE r11, r21
+  LDI r8, P_X
+  STORE r8, r20
+  LDI r8, P_Y
+  STORE r8, r21
   JMP gd_dn
 gd_fb:
-  LDI r10, 32
-  LDI r11, P_X
-  STORE r11, r10
-  LDI r10, 32
-  LDI r11, P_Y
-  STORE r11, r10
+  LDI r9, 32
+  LDI r8, P_X
+  STORE r8, r9
+  LDI r9, 32
+  LDI r8, P_Y
+  STORE r8, r9
 gd_dn:
-  LDI r10, 0
-  LDI r11, STATE
-  STORE r11, r10
+  LDI r9, 0
+  LDI r8, STATE
+  STORE r8, r9
   POP r31
   RET
 
 ; ── check_room_overlap ──────────────────────────────────────
 ; Input: r22=x, r23=y, r20=w, r21=h
-; Output: r10=0 no overlap, r10=1 overlap
+; Output: r9=0 no overlap, r9=1 overlap
 
 check_room_overlap:
-  LDI r11, ROOM_COUNT
-  LOAD r15, r11
+  LDI r8, ROOM_COUNT
+  LOAD r13, r8
+  LDI r9, 0
+  JZ r13, cro_ok
   LDI r10, 0
-  JZ r15, cro_ok
-  LDI r14, 0
 cro_lp:
-  MOV r7, r15
-  CMP r14, r7
-  BGE r9, cro_ok
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LOAD r12, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r3, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r0, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r2, r11
-  LDI r10, 0
-  ADD r10, r22
-  LDI r7, 0
-  ADD r7, r12
+  MOV r1, r13
+  CMP r10, r1
+  BGE r14, cro_ok
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LOAD r12, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r11, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r15, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r6, r8
+  LDI r9, 0
+  ADD r9, r22
+  LDI r1, 0
+  ADD r1, r12
   LDI r16, 0
-  ADD r16, r0
-  LDI r13, 1
-  ADD r16, r13
-  ADD r7, r16
-  CMP r10, r7
-  BGE r9, cro_nx
-  LDI r10, 0
-  ADD r10, r22
-  LDI r7, 0
-  ADD r7, r20
-  LDI r13, 1
-  ADD r7, r13
-  ADD r10, r7
-  LDI r7, 0
-  ADD r7, r12
-  CMP r7, r10
-  BGE r9, cro_nx
-  LDI r10, 0
-  ADD r10, r23
-  LDI r7, 0
-  ADD r7, r3
+  ADD r16, r15
+  LDI r5, 1
+  ADD r16, r5
+  ADD r1, r16
+  CMP r9, r1
+  BGE r14, cro_nx
+  LDI r9, 0
+  ADD r9, r22
+  LDI r1, 0
+  ADD r1, r20
+  LDI r5, 1
+  ADD r1, r5
+  ADD r9, r1
+  LDI r1, 0
+  ADD r1, r12
+  CMP r1, r9
+  BGE r14, cro_nx
+  LDI r9, 0
+  ADD r9, r23
+  LDI r1, 0
+  ADD r1, r11
   LDI r16, 0
-  ADD r16, r2
-  LDI r13, 1
-  ADD r16, r13
-  ADD r7, r16
-  CMP r10, r7
-  BGE r9, cro_nx
-  LDI r10, 0
-  ADD r10, r23
-  LDI r7, 0
-  ADD r7, r21
-  LDI r13, 1
-  ADD r7, r13
-  ADD r10, r7
-  LDI r7, 0
-  ADD r7, r3
-  CMP r7, r10
-  BGE r9, cro_nx
-  LDI r10, 1
+  ADD r16, r6
+  LDI r5, 1
+  ADD r16, r5
+  ADD r1, r16
+  CMP r9, r1
+  BGE r14, cro_nx
+  LDI r9, 0
+  ADD r9, r23
+  LDI r1, 0
+  ADD r1, r21
+  LDI r5, 1
+  ADD r1, r5
+  ADD r9, r1
+  LDI r1, 0
+  ADD r1, r11
+  CMP r1, r9
+  BGE r14, cro_nx
+  LDI r9, 1
   RET
 cro_nx:
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  ADD r10, r1
   JMP cro_lp
 cro_ok:
-  LDI r10, 0
+  LDI r9, 0
   RET
 
 ; ── carve_room ──────────────────────────────────────────────
 ; Input: r22=x, r23=y, r20=w, r21=h
 
 carve_room:
-  LDI r15, 0
+  LDI r13, 0
 cr_y:
-  LDI r14, 0
+  LDI r10, 0
 cr_x:
-  LDI r11, MAP_BASE
-  LDI r7, MAP_W
-  MUL r7, r23
-  ADD r11, r7
-  LDI r7, MAP_W
-  MUL r7, r15
-  ADD r11, r7
-  LDI r7, 0
-  ADD r7, r22
-  ADD r11, r7
-  ADD r11, r14
-  LDI r10, TILE_FLOOR
-  STORE r11, r10
-  LDI r7, 1
-  ADD r14, r7
-  CMP r14, r20
-  BLT r9, cr_x
-  LDI r7, 1
-  ADD r15, r7
-  CMP r15, r21
-  BLT r9, cr_y
+  LDI r8, MAP_BASE
+  LDI r1, MAP_W
+  MUL r1, r23
+  ADD r8, r1
+  LDI r1, MAP_W
+  MUL r1, r13
+  ADD r8, r1
+  LDI r1, 0
+  ADD r1, r22
+  ADD r8, r1
+  ADD r8, r10
+  LDI r9, TILE_FLOOR
+  STORE r8, r9
+  LDI r1, 1
+  ADD r10, r1
+  CMP r10, r20
+  BLT r14, cr_x
+  LDI r1, 1
+  ADD r13, r1
+  CMP r13, r21
+  BLT r14, cr_y
   RET
 
 ; ── carve_h_corridor ────────────────────────────────────────
@@ -1599,22 +1599,22 @@ cr_x:
 
 carve_h_corridor:
 ch_lp:
-  LDI r11, MAP_BASE
-  LDI r7, MAP_W
-  MUL r7, r21
-  ADD r11, r7
-  ADD r11, r20
-  LDI r10, TILE_FLOOR
-  STORE r11, r10
+  LDI r8, MAP_BASE
+  LDI r1, MAP_W
+  MUL r1, r21
+  ADD r8, r1
+  ADD r8, r20
+  LDI r9, TILE_FLOOR
+  STORE r8, r9
   CMP r20, r22
-  JZ r9, ch_dn
-  BLT r9, ch_rt
-  LDI r7, 1
-  SUB r20, r7
+  JZ r14, ch_dn
+  BLT r14, ch_rt
+  LDI r1, 1
+  SUB r20, r1
   JMP ch_lp
 ch_rt:
-  LDI r7, 1
-  ADD r20, r7
+  LDI r1, 1
+  ADD r20, r1
   JMP ch_lp
 ch_dn:
   RET
@@ -1624,59 +1624,59 @@ ch_dn:
 
 carve_v_corridor:
 cv_lp:
-  LDI r11, MAP_BASE
-  LDI r7, MAP_W
-  MUL r7, r20
-  ADD r11, r7
-  ADD r11, r21
-  LDI r10, TILE_FLOOR
-  STORE r11, r10
+  LDI r8, MAP_BASE
+  LDI r1, MAP_W
+  MUL r1, r20
+  ADD r8, r1
+  ADD r8, r21
+  LDI r9, TILE_FLOOR
+  STORE r8, r9
   CMP r20, r22
-  JZ r9, cv_dn
-  BLT r9, cv_d2
-  LDI r7, 1
-  SUB r20, r7
+  JZ r14, cv_dn
+  BLT r14, cv_d2
+  LDI r1, 1
+  SUB r20, r1
   JMP cv_lp
 cv_d2:
-  LDI r7, 1
-  ADD r20, r7
+  LDI r1, 1
+  ADD r20, r1
   JMP cv_lp
 cv_dn:
   RET
 
 ; ── get_tile ─────────────────────────────────────────────────
-; Input: r6=x, r10=y  Output: r10 = map[y*64+x]
+; Input: r0=x, r9=y  Output: r9 = map[y*64+x]
 
 get_tile:
-  LDI r7, MAP_W
-  MUL r10, r7
-  LDI r11, MAP_BASE
-  ADD r11, r10
-  ADD r11, r6
-  LOAD r10, r11
+  LDI r1, MAP_W
+  MUL r9, r1
+  LDI r8, MAP_BASE
+  ADD r8, r9
+  ADD r8, r0
+  LOAD r9, r8
   RET
 
 ; ── check_stairs ────────────────────────────────────────────
 
 check_stairs:
-  LDI r11, P_X
-  LOAD r10, r11
-  LDI r11, STAIRS_X
-  LOAD r6, r11
-  CMP r10, r6
-  JNZ r9, cs_dn
-  LDI r11, P_Y
-  LOAD r10, r11
-  LDI r11, STAIRS_Y
-  LOAD r6, r11
-  CMP r10, r6
-  JNZ r9, cs_dn
-  LDI r10, 1
-  LDI r11, STATE
-  STORE r11, r10
-  LDI r13, 660
-  LDI r8, 150
-  BEEP r13, r8
+  LDI r8, P_X
+  LOAD r9, r8
+  LDI r8, STAIRS_X
+  LOAD r0, r8
+  CMP r9, r0
+  JNZ r14, cs_dn
+  LDI r8, P_Y
+  LOAD r9, r8
+  LDI r8, STAIRS_Y
+  LOAD r0, r8
+  CMP r9, r0
+  JNZ r14, cs_dn
+  LDI r9, 1
+  LDI r8, STATE
+  STORE r8, r9
+  LDI r5, 660
+  LDI r7, 150
+  BEEP r5, r7
 cs_dn:
   RET
 
@@ -1685,70 +1685,70 @@ cs_dn:
 
 check_enemy_at_player:
   PUSH r31
-  LDI r11, ENEMY_COUNT
-  LOAD r15, r11
-  JZ r15, cep_done
-  LDI r14, 0
+  LDI r8, ENEMY_COUNT
+  LOAD r13, r8
+  JZ r13, cep_done
+  LDI r10, 0
 cep_lp:
-  MOV r7, r15
-  CMP r14, r7
-  BGE r9, cep_done
+  MOV r1, r13
+  CMP r10, r1
+  BGE r14, cep_done
   ; Load enemy x,y
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LOAD r12, r11
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r3, r11
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LOAD r12, r8
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r11, r8
   ; Compare with player position
-  LDI r11, P_X
-  LOAD r20, r11
-  LDI r11, P_Y
-  LOAD r21, r11
+  LDI r8, P_X
+  LOAD r20, r8
+  LDI r8, P_Y
+  LOAD r21, r8
   CMP r12, r20
-  JNZ r9, cep_nx
-  CMP r3, r21
-  JNZ r9, cep_nx
+  JNZ r14, cep_nx
+  CMP r11, r21
+  JNZ r14, cep_nx
   ; Combat! Player attacks enemy
-  LDI r11, P_ATK
-  LOAD r20, r11
+  LDI r8, P_ATK
+  LOAD r20, r8
   ; Subtract player ATK from enemy HP
-  LDI r11, ENEMY_BASE
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r21, r11
+  LDI r8, ENEMY_BASE
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r21, r8
   SUB r21, r20
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  STORE r11, r21
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  STORE r8, r21
   ; Check if enemy died
   JZ r21, cep_kill
   ; Enemy alive - enemy attacks back
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r20, r11
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r20, r8
   ; Enemy damage by type: 0=1, 1=1, 2=2
   LDI r21, 1
   CMP r20, r21
-  BLT r9, cep_edmg
+  BLT r14, cep_edmg
   LDI r21, 2
   CMP r20, r21
-  BLT r9, cep_edmg
+  BLT r14, cep_edmg
   LDI r21, 2
   CMP r20, r21
-  JNZ r9, cep_edmg2
+  JNZ r14, cep_edmg2
   ; Type 2 = skeleton, 2 damage
   LDI r21, 2
   JMP cep_edmg
@@ -1756,109 +1756,109 @@ cep_edmg2:
   LDI r21, 2
 cep_edmg:
   ; Subtract enemy damage from player HP
-  LDI r11, P_HP
-  LOAD r20, r11
+  LDI r8, P_HP
+  LOAD r20, r8
   SUB r20, r21
-  LDI r11, P_HP
-  STORE r11, r20
-  LDI r13, 150
-  LDI r8, 200
-  BEEP r13, r8
-  LDI r10, 30
-  LDI r11, MSG_TIMER
-  STORE r11, r10
+  LDI r8, P_HP
+  STORE r8, r20
+  LDI r5, 150
+  LDI r7, 200
+  BEEP r5, r7
+  LDI r9, 30
+  LDI r8, MSG_TIMER
+  STORE r8, r9
   ; Check if player died
-  LDI r11, P_HP
-  LOAD r10, r11
-  LDI r7, 0
-  CMP r7, r10
-  BLT r9, cep_done
+  LDI r8, P_HP
+  LOAD r9, r8
+  LDI r1, 0
+  CMP r1, r9
+  BLT r14, cep_done
   ; Player dead
-  LDI r10, 2
-  LDI r11, STATE
-  STORE r11, r10
+  LDI r9, 2
+  LDI r8, STATE
+  STORE r8, r9
   JMP cep_done
 cep_kill:
   ; Remove enemy: shift remaining enemies down
-  MOV r20, r14
+  MOV r20, r10
 cep_shift:
-  MOV r7, r15
+  MOV r1, r13
   LDI r21, 1
-  SUB r7, r21
-  CMP r20, r7
-  BGE r9, cep_shift_done
+  SUB r1, r21
+  CMP r20, r1
+  BGE r14, cep_shift_done
   ; Copy enemy[i+1] to enemy[i]
-  MOV r10, r20
-  LDI r7, 4
-  MUL r10, r7
-  MOV r0, r10
-  MOV r10, r20
-  LDI r7, 1
-  ADD r10, r7
-  LDI r7, 4
-  MUL r10, r7
-  MOV r2, r10
+  MOV r9, r20
+  LDI r1, 4
+  MUL r9, r1
+  MOV r15, r9
+  MOV r9, r20
+  LDI r1, 1
+  ADD r9, r1
+  LDI r1, 4
+  MUL r9, r1
+  MOV r6, r9
   ; Copy 4 words
-  LDI r11, ENEMY_BASE
-  ADD r11, r2
-  LOAD r21, r11
-  LDI r11, ENEMY_BASE
-  ADD r11, r0
-  STORE r11, r21
-  LDI r11, ENEMY_BASE
-  ADD r11, r2
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ENEMY_BASE
-  ADD r11, r0
-  LDI r7, 1
-  ADD r11, r7
-  STORE r11, r21
-  LDI r11, ENEMY_BASE
-  ADD r11, r2
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ENEMY_BASE
-  ADD r11, r0
-  LDI r7, 2
-  ADD r11, r7
-  STORE r11, r21
-  LDI r11, ENEMY_BASE
-  ADD r11, r2
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ENEMY_BASE
-  ADD r11, r0
-  LDI r7, 3
-  ADD r11, r7
-  STORE r11, r21
-  LDI r7, 1
-  ADD r20, r7
+  LDI r8, ENEMY_BASE
+  ADD r8, r6
+  LOAD r21, r8
+  LDI r8, ENEMY_BASE
+  ADD r8, r15
+  STORE r8, r21
+  LDI r8, ENEMY_BASE
+  ADD r8, r6
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ENEMY_BASE
+  ADD r8, r15
+  LDI r1, 1
+  ADD r8, r1
+  STORE r8, r21
+  LDI r8, ENEMY_BASE
+  ADD r8, r6
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ENEMY_BASE
+  ADD r8, r15
+  LDI r1, 2
+  ADD r8, r1
+  STORE r8, r21
+  LDI r8, ENEMY_BASE
+  ADD r8, r6
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ENEMY_BASE
+  ADD r8, r15
+  LDI r1, 3
+  ADD r8, r1
+  STORE r8, r21
+  LDI r1, 1
+  ADD r20, r1
   JMP cep_shift
 cep_shift_done:
-  LDI r7, 1
-  SUB r15, r7
-  LDI r11, ENEMY_COUNT
-  STORE r11, r15
+  LDI r1, 1
+  SUB r13, r1
+  LDI r8, ENEMY_COUNT
+  STORE r8, r13
   ; Increment kills
-  LDI r11, KILLS
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
-  STORE r11, r10
-  LDI r13, 440
-  LDI r8, 100
-  BEEP r13, r8
-  LDI r10, 30
-  LDI r11, MSG_TIMER
-  STORE r11, r10
+  LDI r8, KILLS
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
+  STORE r8, r9
+  LDI r5, 440
+  LDI r7, 100
+  BEEP r5, r7
+  LDI r9, 30
+  LDI r8, MSG_TIMER
+  STORE r8, r9
   JMP cep_done
 cep_nx:
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  ADD r10, r1
   JMP cep_lp
 cep_done:
   POP r31
@@ -1868,148 +1868,148 @@ cep_done:
 
 check_item_at_player:
   PUSH r31
-  LDI r11, ITEM_COUNT
-  LOAD r15, r11
-  JZ r15, cip_done
-  LDI r14, 0
+  LDI r8, ITEM_COUNT
+  LOAD r13, r8
+  JZ r13, cip_done
+  LDI r10, 0
 cip_lp:
-  MOV r7, r15
-  CMP r14, r7
-  BGE r9, cip_done
+  MOV r1, r13
+  CMP r10, r1
+  BGE r14, cip_done
   ; Load item x,y
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LOAD r12, r11
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r3, r11
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LOAD r12, r8
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r11, r8
   ; Compare with player position
-  LDI r11, P_X
-  LOAD r20, r11
-  LDI r11, P_Y
-  LOAD r21, r11
+  LDI r8, P_X
+  LOAD r20, r8
+  LDI r8, P_Y
+  LOAD r21, r8
   CMP r12, r20
-  JNZ r9, cip_nx
-  CMP r3, r21
-  JNZ r9, cip_nx
+  JNZ r14, cip_nx
+  CMP r11, r21
+  JNZ r14, cip_nx
   ; Pickup item! Get type and value
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r20, r11
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r21, r11
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r20, r8
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r21, r8
   ; Type 0 = health potion
   JZ r20, cip_heal
   ; Type 1 = attack scroll
-  LDI r7, 1
-  CMP r20, r7
-  JNZ r9, cip_other
+  LDI r1, 1
+  CMP r20, r1
+  JNZ r14, cip_other
   ; Attack scroll: +1 ATK
-  LDI r11, P_ATK
-  LOAD r10, r11
-  ADD r10, r21
-  STORE r11, r10
-  LDI r13, 660
-  LDI r8, 120
-  BEEP r13, r8
+  LDI r8, P_ATK
+  LOAD r9, r8
+  ADD r9, r21
+  STORE r8, r9
+  LDI r5, 660
+  LDI r7, 120
+  BEEP r5, r7
   JMP cip_remove
 cip_heal:
   ; Health potion: add value to HP, cap at max
-  LDI r11, P_HP
-  LOAD r10, r11
-  ADD r10, r21
-  LDI r11, P_MAXHP
-  LOAD r7, r11
-  CMP r10, r7
-  BLT r9, cip_heal_ok
-  MOV r10, r7
+  LDI r8, P_HP
+  LOAD r9, r8
+  ADD r9, r21
+  LDI r8, P_MAXHP
+  LOAD r1, r8
+  CMP r9, r1
+  BLT r14, cip_heal_ok
+  MOV r9, r1
 cip_heal_ok:
-  LDI r11, P_HP
-  STORE r11, r10
-  LDI r13, 880
-  LDI r8, 80
-  BEEP r13, r8
+  LDI r8, P_HP
+  STORE r8, r9
+  LDI r5, 880
+  LDI r7, 80
+  BEEP r5, r7
 cip_other:
 cip_remove:
-  LDI r10, 30
-  LDI r11, MSG_TIMER
-  STORE r11, r10
+  LDI r9, 30
+  LDI r8, MSG_TIMER
+  STORE r8, r9
   ; Remove item: shift remaining down
-  MOV r20, r14
+  MOV r20, r10
 cip_shift:
-  MOV r7, r15
+  MOV r1, r13
   LDI r21, 1
-  SUB r7, r21
-  CMP r20, r7
-  BGE r9, cip_shift_done
-  MOV r10, r20
-  LDI r7, 4
-  MUL r10, r7
-  MOV r0, r10
-  MOV r10, r20
-  LDI r7, 1
-  ADD r10, r7
-  LDI r7, 4
-  MUL r10, r7
-  MOV r2, r10
-  LDI r11, ITEM_BASE
-  ADD r11, r2
-  LOAD r21, r11
-  LDI r11, ITEM_BASE
-  ADD r11, r0
-  STORE r11, r21
-  LDI r11, ITEM_BASE
-  ADD r11, r2
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ITEM_BASE
-  ADD r11, r0
-  LDI r7, 1
-  ADD r11, r7
-  STORE r11, r21
-  LDI r11, ITEM_BASE
-  ADD r11, r2
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ITEM_BASE
-  ADD r11, r0
-  LDI r7, 2
-  ADD r11, r7
-  STORE r11, r21
-  LDI r11, ITEM_BASE
-  ADD r11, r2
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r21, r11
-  LDI r11, ITEM_BASE
-  ADD r11, r0
-  LDI r7, 3
-  ADD r11, r7
-  STORE r11, r21
-  LDI r7, 1
-  ADD r20, r7
+  SUB r1, r21
+  CMP r20, r1
+  BGE r14, cip_shift_done
+  MOV r9, r20
+  LDI r1, 4
+  MUL r9, r1
+  MOV r15, r9
+  MOV r9, r20
+  LDI r1, 1
+  ADD r9, r1
+  LDI r1, 4
+  MUL r9, r1
+  MOV r6, r9
+  LDI r8, ITEM_BASE
+  ADD r8, r6
+  LOAD r21, r8
+  LDI r8, ITEM_BASE
+  ADD r8, r15
+  STORE r8, r21
+  LDI r8, ITEM_BASE
+  ADD r8, r6
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ITEM_BASE
+  ADD r8, r15
+  LDI r1, 1
+  ADD r8, r1
+  STORE r8, r21
+  LDI r8, ITEM_BASE
+  ADD r8, r6
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ITEM_BASE
+  ADD r8, r15
+  LDI r1, 2
+  ADD r8, r1
+  STORE r8, r21
+  LDI r8, ITEM_BASE
+  ADD r8, r6
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r21, r8
+  LDI r8, ITEM_BASE
+  ADD r8, r15
+  LDI r1, 3
+  ADD r8, r1
+  STORE r8, r21
+  LDI r1, 1
+  ADD r20, r1
   JMP cip_shift
 cip_shift_done:
-  LDI r7, 1
-  SUB r15, r7
-  LDI r11, ITEM_COUNT
-  STORE r11, r15
+  LDI r1, 1
+  SUB r13, r1
+  LDI r8, ITEM_COUNT
+  STORE r8, r13
   JMP cip_done
 cip_nx:
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  ADD r10, r1
   JMP cip_lp
 cip_done:
   POP r31
@@ -2020,255 +2020,255 @@ cip_done:
 
 enemy_turn:
   PUSH r31
-  LDI r11, ENEMY_COUNT
-  LOAD r15, r11
-  JZ r15, et_done
-  LDI r11, P_X
-  LOAD r20, r11
-  LDI r11, P_Y
-  LOAD r21, r11
-  LDI r14, 0
+  LDI r8, ENEMY_COUNT
+  LOAD r13, r8
+  JZ r13, et_done
+  LDI r8, P_X
+  LOAD r20, r8
+  LDI r8, P_Y
+  LOAD r21, r8
+  LDI r10, 0
 et_lp:
-  MOV r7, r15
-  CMP r14, r7
-  BGE r9, et_done
+  MOV r1, r13
+  CMP r10, r1
+  BGE r14, et_done
   ; Load enemy x,y
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LOAD r12, r11
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r3, r11
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LOAD r12, r8
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r11, r8
   ; Calculate Manhattan distance
   MOV r22, r12
   SUB r22, r20
   ; Absolute value
-  LDI r7, 0
-  CMP r22, r7
-  BGE r9, et_absy
-  LDI r7, 0
-  SUB r22, r7
-  SUB r7, r22
-  MOV r22, r7
+  LDI r1, 0
+  CMP r22, r1
+  BGE r14, et_absy
+  LDI r1, 0
+  SUB r22, r1
+  SUB r1, r22
+  MOV r22, r1
 et_absy:
-  MOV r23, r3
+  MOV r23, r11
   SUB r23, r21
-  LDI r7, 0
-  CMP r23, r7
-  BGE r9, et_dist
-  LDI r7, 0
-  SUB r23, r7
-  SUB r7, r23
-  MOV r23, r7
+  LDI r1, 0
+  CMP r23, r1
+  BGE r14, et_dist
+  LDI r1, 0
+  SUB r23, r1
+  SUB r1, r23
+  MOV r23, r1
 et_dist:
   ADD r22, r23
   ; r22 = Manhattan distance
   ; Decide: chase (dist<=8 and random<128) or wander (random<32)
   RAND r24
-  LDI r7, 8
-  CMP r7, r22
-  BLT r9, et_wander
-  LDI r7, 128
-  CMP r24, r7
-  BGE r9, et_nx
+  LDI r1, 8
+  CMP r1, r22
+  BLT r14, et_wander
+  LDI r1, 128
+  CMP r24, r1
+  BGE r14, et_nx
   JMP et_chase
 et_wander:
-  LDI r7, 32
-  CMP r24, r7
-  BGE r9, et_nx
+  LDI r1, 32
+  CMP r24, r1
+  BGE r14, et_nx
   ; Random direction
   RAND r24
-  LDI r7, 4
-  MOD r24, r7
+  LDI r1, 4
+  MOD r24, r1
   JZ r24, et_wu
-  LDI r7, 1
-  CMP r24, r7
-  JZ r9, et_wd
-  LDI r7, 2
-  CMP r24, r7
-  JZ r9, et_wl
+  LDI r1, 1
+  CMP r24, r1
+  JZ r14, et_wd
+  LDI r1, 2
+  CMP r24, r1
+  JZ r14, et_wl
   JMP et_wr
 et_wu:
-  LDI r7, 1
-  SUB r3, r7
+  LDI r1, 1
+  SUB r11, r1
   JMP et_trymove
 et_wd:
-  LDI r7, 1
-  ADD r3, r7
+  LDI r1, 1
+  ADD r11, r1
   JMP et_trymove
 et_wl:
-  LDI r7, 1
-  SUB r12, r7
+  LDI r1, 1
+  SUB r12, r1
   JMP et_trymove
 et_wr:
-  LDI r7, 1
-  ADD r12, r7
+  LDI r1, 1
+  ADD r12, r1
   JMP et_trymove
 et_chase:
   ; Move toward player on axis with greater distance
   MOV r22, r12
   SUB r22, r20
-  LDI r7, 0
-  CMP r22, r7
-  BGE r9, et_cxpos
+  LDI r1, 0
+  CMP r22, r1
+  BGE r14, et_cxpos
   ; Player is to the right, move right
-  LDI r7, 1
-  ADD r12, r7
+  LDI r1, 1
+  ADD r12, r1
   JMP et_trymove
 et_cxpos:
   ; Player is to the left, move left
-  LDI r7, 1
-  SUB r12, r7
+  LDI r1, 1
+  SUB r12, r1
   JMP et_trymove
 et_trymove:
   ; Check bounds
-  LDI r7, 0
-  CMP r12, r7
-  BLT r9, et_nx
-  LDI r7, MAP_W
-  LDI r0, 1
-  SUB r7, r0
-  CMP r7, r12
-  BLT r9, et_nx
-  LDI r7, 0
-  CMP r3, r7
-  BLT r9, et_nx
-  LDI r7, MAP_H
-  LDI r0, 1
-  SUB r7, r0
-  CMP r7, r3
-  BLT r9, et_nx
+  LDI r1, 0
+  CMP r12, r1
+  BLT r14, et_nx
+  LDI r1, MAP_W
+  LDI r15, 1
+  SUB r1, r15
+  CMP r1, r12
+  BLT r14, et_nx
+  LDI r1, 0
+  CMP r11, r1
+  BLT r14, et_nx
+  LDI r1, MAP_H
+  LDI r15, 1
+  SUB r1, r15
+  CMP r1, r11
+  BLT r14, et_nx
   ; Check wall at new position
-  MOV r6, r12
-  MOV r10, r3
+  MOV r0, r12
+  MOV r9, r11
   CALL get_tile
-  LDI r7, TILE_WALL
-  CMP r10, r7
-  JZ r9, et_nx
+  LDI r1, TILE_WALL
+  CMP r9, r1
+  JZ r14, et_nx
   ; Check no other enemy at new position
   CALL check_enemy_pos
-  JNZ r10, et_nx
+  JNZ r9, et_nx
   ; Move enemy
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  STORE r11, r12
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  STORE r11, r3
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  STORE r8, r12
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  STORE r8, r11
   ; Check if moved onto player
-  LDI r11, P_X
-  LOAD r20, r11
-  LDI r11, P_Y
-  LOAD r21, r11
+  LDI r8, P_X
+  LOAD r20, r8
+  LDI r8, P_Y
+  LOAD r21, r8
   CMP r12, r20
-  JNZ r9, et_nx
-  CMP r3, r21
-  JNZ r9, et_nx
+  JNZ r14, et_nx
+  CMP r11, r21
+  JNZ r14, et_nx
   ; Enemy attacks player
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r20, r11
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r20, r8
   ; Damage by type
   LDI r21, 1
   CMP r20, r21
-  BLT r9, et_edmg
+  BLT r14, et_edmg
   LDI r21, 2
   CMP r20, r21
-  BLT r9, et_edmg
+  BLT r14, et_edmg
   LDI r21, 2
   CMP r20, r21
-  JNZ r9, et_edmg2
+  JNZ r14, et_edmg2
   LDI r21, 2
   JMP et_edmg
 et_edmg2:
   LDI r21, 2
 et_edmg:
-  LDI r11, P_HP
-  LOAD r20, r11
+  LDI r8, P_HP
+  LOAD r20, r8
   SUB r20, r21
-  STORE r11, r20
-  LDI r13, 150
-  LDI r8, 200
-  BEEP r13, r8
-  LDI r10, 30
-  LDI r11, MSG_TIMER
-  STORE r11, r10
+  STORE r8, r20
+  LDI r5, 150
+  LDI r7, 200
+  BEEP r5, r7
+  LDI r9, 30
+  LDI r8, MSG_TIMER
+  STORE r8, r9
   ; Check player death
-  LDI r11, P_HP
-  LOAD r10, r11
-  LDI r7, 0
-  CMP r7, r10
-  BLT r9, et_nx
-  LDI r10, 2
-  LDI r11, STATE
-  STORE r11, r10
+  LDI r8, P_HP
+  LOAD r9, r8
+  LDI r1, 0
+  CMP r1, r9
+  BLT r14, et_nx
+  LDI r9, 2
+  LDI r8, STATE
+  STORE r8, r9
 et_nx:
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  ADD r10, r1
   ; Reload enemy count in case state changed
-  LDI r11, ENEMY_COUNT
-  LOAD r15, r11
+  LDI r8, ENEMY_COUNT
+  LOAD r13, r8
   JMP et_lp
 et_done:
   POP r31
   RET
 
 ; ── check_enemy_pos ─────────────────────────────────────────
-; Check if any enemy is at position r12=x, r3=y (excluding self)
-; Returns r10=1 if occupied, r10=0 if free
-; Input: r14=self index, r12=x, r3=y
+; Check if any enemy is at position r12=x, r11=y (excluding self)
+; Returns r9=1 if occupied, r9=0 if free
+; Input: r10=self index, r12=x, r11=y
 
 check_enemy_pos:
   PUSH r31
-  LDI r11, ENEMY_COUNT
-  LOAD r15, r11
-  LDI r0, 0
+  LDI r8, ENEMY_COUNT
+  LOAD r13, r8
+  LDI r15, 0
 cep2_lp:
-  MOV r7, r15
-  CMP r0, r7
-  BGE r9, cep2_ok
-  CMP r0, r14
-  JZ r9, cep2_nx
+  MOV r1, r13
+  CMP r15, r1
+  BGE r14, cep2_ok
+  CMP r15, r10
+  JZ r14, cep2_nx
   ; Load enemy pos
-  MOV r10, r0
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LOAD r2, r11
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r16, r11
-  CMP r2, r12
-  JNZ r9, cep2_nx
-  CMP r16, r3
-  JNZ r9, cep2_nx
-  LDI r10, 1
+  MOV r9, r15
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LOAD r6, r8
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r16, r8
+  CMP r6, r12
+  JNZ r14, cep2_nx
+  CMP r16, r11
+  JNZ r14, cep2_nx
+  LDI r9, 1
   POP r31
   RET
 cep2_nx:
-  LDI r7, 1
-  ADD r0, r7
+  LDI r1, 1
+  ADD r15, r1
   JMP cep2_lp
 cep2_ok:
-  LDI r10, 0
+  LDI r9, 0
   POP r31
   RET
 
@@ -2276,138 +2276,138 @@ cep2_ok:
 
 spawn_enemies:
   PUSH r31
-  LDI r11, ROOM_COUNT
-  LOAD r15, r11
+  LDI r8, ROOM_COUNT
+  LOAD r13, r8
   ; Skip room 0 (player start room)
-  LDI r7, 1
-  CMP r7, r15
-  BGE r9, se_done
-  LDI r14, 1
+  LDI r1, 1
+  CMP r1, r13
+  BGE r14, se_done
+  LDI r10, 1
 se_rl:
-  CMP r14, r15
-  BGE r9, se_done
+  CMP r10, r13
+  BGE r14, se_done
   ; Check enemy count cap
-  LDI r11, ENEMY_COUNT
-  LOAD r20, r11
-  LDI r7, MAX_ENEMIES
-  CMP r20, r7
-  BGE r9, se_done
+  LDI r8, ENEMY_COUNT
+  LOAD r20, r8
+  LDI r1, MAX_ENEMIES
+  CMP r20, r1
+  BGE r14, se_done
   ; Number of enemies for this room: 1-3
   RAND r20
-  LDI r7, 3
-  MOD r20, r7
-  LDI r7, 1
-  ADD r20, r7
+  LDI r1, 3
+  MOD r20, r1
+  LDI r1, 1
+  ADD r20, r1
 se_el:
   ; Check cap again
-  LDI r11, ENEMY_COUNT
-  LOAD r21, r11
-  LDI r7, MAX_ENEMIES
-  CMP r21, r7
-  BGE r9, se_next
+  LDI r8, ENEMY_COUNT
+  LOAD r21, r8
+  LDI r1, MAX_ENEMIES
+  CMP r21, r1
+  BGE r14, se_next
   JZ r20, se_next
   ; Get room bounds
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LOAD r22, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r23, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r24, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r25, r11
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LOAD r22, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r23, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r24, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r25, r8
   ; Random position within room (1 inset)
   RAND r12
   ADD r12, r22
-  LDI r7, 1
-  ADD r22, r7
-  LDI r7, 1
-  SUB r24, r7
-  SUB r7, r22
-  ADD r7, r22
-  CMP r7, r22
-  MOV r7, r22
-  CMP r12, r7
-  BLT r9, se_ex
+  LDI r1, 1
+  ADD r22, r1
+  LDI r1, 1
+  SUB r24, r1
+  SUB r1, r22
+  ADD r1, r22
+  CMP r1, r22
+  MOV r1, r22
+  CMP r12, r1
+  BLT r14, se_ex
   MOV r12, r22
 se_ex:
   ; Clamp: rand % (w-2) + x + 1
-  MOV r0, r24
-  LDI r7, 1
-  SUB r0, r7
-  SUB r0, r22
-  LDI r7, 1
-  SUB r0, r7
-  JZ r0, se_ex_skip
+  MOV r15, r24
+  LDI r1, 1
+  SUB r15, r1
+  SUB r15, r22
+  LDI r1, 1
+  SUB r15, r1
+  JZ r15, se_ex_skip
   RAND r12
-  LDI r7, 0
-  ADD r7, r0
-  MOD r12, r7
-  LDI r7, 1
-  ADD r12, r7
+  LDI r1, 0
+  ADD r1, r15
+  MOD r12, r1
+  LDI r1, 1
+  ADD r12, r1
   ADD r12, r22
 se_ex_skip:
-  RAND r3
-  ADD r3, r23
-  LDI r7, 1
-  ADD r23, r7
-  LDI r7, 1
-  SUB r25, r7
-  MOV r0, r25
-  LDI r7, 1
-  SUB r0, r7
-  SUB r0, r23
-  LDI r7, 1
-  SUB r0, r7
-  JZ r0, se_ey_skip
-  RAND r3
-  LDI r7, 0
-  ADD r7, r0
-  MOD r3, r7
-  LDI r7, 1
-  ADD r3, r7
-  ADD r3, r23
+  RAND r11
+  ADD r11, r23
+  LDI r1, 1
+  ADD r23, r1
+  LDI r1, 1
+  SUB r25, r1
+  MOV r15, r25
+  LDI r1, 1
+  SUB r15, r1
+  SUB r15, r23
+  LDI r1, 1
+  SUB r15, r1
+  JZ r15, se_ey_skip
+  RAND r11
+  LDI r1, 0
+  ADD r1, r15
+  MOD r11, r1
+  LDI r1, 1
+  ADD r11, r1
+  ADD r11, r23
 se_ey_skip:
   ; Determine enemy type based on dungeon level
-  LDI r11, DLEVEL
-  LOAD r26, r11
-  LDI r7, 3
-  CMP r26, r7
-  BLT r9, se_type_rat
-  LDI r7, 6
-  CMP r26, r7
-  BLT r9, se_type_mid
+  LDI r8, DLEVEL
+  LOAD r26, r8
+  LDI r1, 3
+  CMP r26, r1
+  BLT r14, se_type_rat
+  LDI r1, 6
+  CMP r26, r1
+  BLT r14, se_type_mid
   ; Level 6+: any type
   RAND r26
-  LDI r7, 3
-  MOD r26, r7
+  LDI r1, 3
+  MOD r26, r1
   JMP se_type_set
 se_type_mid:
   ; Level 3-5: rat or goblin
   RAND r26
-  LDI r7, 2
-  MOD r26, r7
+  LDI r1, 2
+  MOD r26, r1
   JMP se_type_set
 se_type_rat:
   LDI r26, 0
 se_type_set:
   ; Set HP based on type
   JZ r26, se_hp_rat
-  LDI r7, 1
-  CMP r26, r7
-  JNZ r9, se_hp_skel
+  LDI r1, 1
+  CMP r26, r1
+  JNZ r14, se_hp_skel
   ; Goblin: hp=2
   LDI r27, 2
   JMP se_store
@@ -2418,39 +2418,39 @@ se_hp_skel:
   LDI r27, 3
 se_store:
   ; Store enemy
-  LDI r11, ENEMY_COUNT
-  LOAD r10, r11
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  STORE r11, r12
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  STORE r11, r3
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  STORE r11, r27
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  STORE r11, r26
-  LDI r11, ENEMY_COUNT
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
-  STORE r11, r10
-  LDI r7, 1
-  SUB r20, r7
+  LDI r8, ENEMY_COUNT
+  LOAD r9, r8
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  STORE r8, r12
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  STORE r8, r11
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  STORE r8, r27
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  STORE r8, r26
+  LDI r8, ENEMY_COUNT
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
+  STORE r8, r9
+  LDI r1, 1
+  SUB r20, r1
   JMP se_el
 se_next:
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  ADD r10, r1
   JMP se_rl
 se_done:
   POP r31
@@ -2460,78 +2460,78 @@ se_done:
 
 spawn_items:
   PUSH r31
-  LDI r11, ROOM_COUNT
-  LOAD r15, r11
+  LDI r8, ROOM_COUNT
+  LOAD r13, r8
   ; Start from room 1, every other room
-  LDI r14, 1
+  LDI r10, 1
 si_rl:
-  CMP r14, r15
-  BGE r9, si_done
+  CMP r10, r13
+  BGE r14, si_done
   ; Check cap
-  LDI r11, ITEM_COUNT
-  LOAD r20, r11
-  LDI r7, MAX_ITEMS
-  CMP r20, r7
-  BGE r9, si_done
+  LDI r8, ITEM_COUNT
+  LOAD r20, r8
+  LDI r1, MAX_ITEMS
+  CMP r20, r1
+  BGE r14, si_done
   ; Only spawn in every other room (odd rooms)
-  MOV r10, r14
-  LDI r7, 2
-  MOD r10, r7
-  JNZ r10, si_next
+  MOV r9, r10
+  LDI r1, 2
+  MOD r9, r1
+  JNZ r9, si_next
   ; Get room bounds
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LOAD r22, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r23, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  LOAD r24, r11
-  LDI r11, ROOM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  LOAD r25, r11
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LOAD r22, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r23, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  LOAD r24, r8
+  LDI r8, ROOM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  LOAD r25, r8
   ; Random position in room center area
-  MOV r0, r24
-  LDI r7, 1
-  SUB r0, r7
-  SUB r0, r22
-  JZ r0, si_skip
+  MOV r15, r24
+  LDI r1, 1
+  SUB r15, r1
+  SUB r15, r22
+  JZ r15, si_skip
   RAND r12
-  LDI r7, 0
-  ADD r7, r0
-  MOD r12, r7
-  LDI r7, 1
-  ADD r12, r7
+  LDI r1, 0
+  ADD r1, r15
+  MOD r12, r1
+  LDI r1, 1
+  ADD r12, r1
   ADD r12, r22
-  MOV r0, r25
-  LDI r7, 1
-  SUB r0, r7
-  SUB r0, r23
-  JZ r0, si_skip
-  RAND r3
-  LDI r7, 0
-  ADD r7, r0
-  MOD r3, r7
-  LDI r7, 1
-  ADD r3, r7
-  ADD r3, r23
+  MOV r15, r25
+  LDI r1, 1
+  SUB r15, r1
+  SUB r15, r23
+  JZ r15, si_skip
+  RAND r11
+  LDI r1, 0
+  ADD r1, r15
+  MOD r11, r1
+  LDI r1, 1
+  ADD r11, r1
+  ADD r11, r23
   ; Item type: 70% health potion, 30% attack scroll
   RAND r20
-  LDI r7, 10
-  MOD r20, r7
-  LDI r7, 7
-  CMP r20, r7
-  BGE r9, si_atk
+  LDI r1, 10
+  MOD r20, r1
+  LDI r1, 7
+  CMP r20, r1
+  BGE r14, si_atk
   ; Health potion
   LDI r20, 0
   LDI r21, 3
@@ -2541,38 +2541,38 @@ si_atk:
   LDI r20, 1
   LDI r21, 1
 si_store:
-  LDI r11, ITEM_COUNT
-  LOAD r10, r11
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  STORE r11, r12
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  STORE r11, r3
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LDI r7, 2
-  ADD r11, r7
-  STORE r11, r20
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LDI r7, 3
-  ADD r11, r7
-  STORE r11, r21
-  LDI r11, ITEM_COUNT
-  LOAD r10, r11
-  LDI r7, 1
-  ADD r10, r7
-  STORE r11, r10
+  LDI r8, ITEM_COUNT
+  LOAD r9, r8
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  STORE r8, r12
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  STORE r8, r11
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LDI r1, 2
+  ADD r8, r1
+  STORE r8, r20
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LDI r1, 3
+  ADD r8, r1
+  STORE r8, r21
+  LDI r8, ITEM_COUNT
+  LOAD r9, r8
+  LDI r1, 1
+  ADD r9, r1
+  STORE r8, r9
   JMP si_next
 si_skip:
 si_next:
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  ADD r10, r1
   JMP si_rl
 si_done:
   POP r31
@@ -2581,53 +2581,53 @@ si_done:
 ; ── compute_camera ──────────────────────────────────────────
 
 compute_camera:
-  LDI r11, P_X
-  LOAD r10, r11
-  LDI r7, 16
-  SUB r10, r7
-  LDI r11, CAM_X
-  STORE r11, r10
-  LDI r11, CAM_X
-  LOAD r10, r11
-  LDI r7, 0
-  CMP r10, r7
-  BGE r9, cam_x_hi
-  LDI r10, 0
-  LDI r11, CAM_X
-  STORE r11, r10
+  LDI r8, P_X
+  LOAD r9, r8
+  LDI r1, 16
+  SUB r9, r1
+  LDI r8, CAM_X
+  STORE r8, r9
+  LDI r8, CAM_X
+  LOAD r9, r8
+  LDI r1, 0
+  CMP r9, r1
+  BGE r14, cam_x_hi
+  LDI r9, 0
+  LDI r8, CAM_X
+  STORE r8, r9
 cam_x_hi:
-  LDI r11, CAM_X
-  LOAD r10, r11
-  LDI r7, 32
-  CMP r10, r7
-  BLT r9, cam_y_start
-  LDI r10, 32
-  LDI r11, CAM_X
-  STORE r11, r10
+  LDI r8, CAM_X
+  LOAD r9, r8
+  LDI r1, 32
+  CMP r9, r1
+  BLT r14, cam_y_start
+  LDI r9, 32
+  LDI r8, CAM_X
+  STORE r8, r9
 cam_y_start:
-  LDI r11, P_Y
-  LOAD r10, r11
-  LDI r7, 16
-  SUB r10, r7
-  LDI r11, CAM_Y
-  STORE r11, r10
-  LDI r11, CAM_Y
-  LOAD r10, r11
-  LDI r7, 0
-  CMP r10, r7
-  BGE r9, cam_y_hi
-  LDI r10, 0
-  LDI r11, CAM_Y
-  STORE r11, r10
+  LDI r8, P_Y
+  LOAD r9, r8
+  LDI r1, 16
+  SUB r9, r1
+  LDI r8, CAM_Y
+  STORE r8, r9
+  LDI r8, CAM_Y
+  LOAD r9, r8
+  LDI r1, 0
+  CMP r9, r1
+  BGE r14, cam_y_hi
+  LDI r9, 0
+  LDI r8, CAM_Y
+  STORE r8, r9
 cam_y_hi:
-  LDI r11, CAM_Y
-  LOAD r10, r11
-  LDI r7, 32
-  CMP r10, r7
-  BLT r9, cam_done
-  LDI r10, 32
-  LDI r11, CAM_Y
-  STORE r11, r10
+  LDI r8, CAM_Y
+  LOAD r9, r8
+  LDI r1, 32
+  CMP r9, r1
+  BLT r14, cam_done
+  LDI r9, 32
+  LDI r8, CAM_Y
+  STORE r8, r9
 cam_done:
   RET
 
@@ -2636,233 +2636,233 @@ cam_done:
 
 copy_viewport:
   PUSH r31
-  PUSH r15
-  PUSH r14
-  LDI r15, 0
+  PUSH r13
+  PUSH r10
+  LDI r13, 0
 cv_outer:
-  LDI r11, CAM_Y
-  LOAD r12, r11
-  ADD r12, r15
-  LDI r7, MAP_W
-  MUL r12, r7
-  LDI r11, CAM_X
-  LOAD r10, r11
-  ADD r12, r10
-  LDI r10, MAP_BASE
-  ADD r12, r10
-  LDI r3, VP_BASE
-  MOV r10, r15
-  LDI r7, VP_W
-  MUL r10, r7
-  ADD r3, r10
-  LDI r14, 0
-cv_inner:
-  MOV r11, r12
-  ADD r11, r14
-  LOAD r10, r11
-  MOV r11, r3
-  ADD r11, r14
-  STORE r11, r10
-  LDI r7, 1
-  ADD r14, r7
-  LDI r8, VP_W
-  CMP r14, r8
-  BLT r9, cv_inner
-  LDI r7, 1
-  ADD r15, r7
-  LDI r8, VP_H
-  CMP r15, r8
-  BLT r9, cv_outer
-  ; Overlay enemies
-  LDI r11, ENEMY_COUNT
-  LOAD r15, r11
-  JZ r15, cv_items
-  LDI r14, 0
-cv_en_lp:
-  MOV r7, r15
-  CMP r14, r7
-  BGE r9, cv_items
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LOAD r12, r11
-  LDI r11, ENEMY_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r3, r11
-  LDI r11, CAM_X
-  LOAD r20, r11
-  LDI r11, CAM_Y
-  LOAD r21, r11
-  CMP r12, r20
-  BLT r9, cv_en_nx
-  MOV r7, r20
-  LDI r0, VP_W
-  ADD r7, r0
-  CMP r12, r7
-  BGE r9, cv_en_nx
-  CMP r3, r21
-  BLT r9, cv_en_nx
-  MOV r7, r21
-  LDI r0, VP_H
-  ADD r7, r0
-  CMP r3, r7
-  BGE r9, cv_en_nx
-  SUB r12, r20
-  SUB r3, r21
-  MOV r10, r3
-  LDI r7, VP_W
-  MUL r10, r7
-  ADD r10, r12
+  LDI r8, CAM_Y
+  LOAD r12, r8
+  ADD r12, r13
+  LDI r1, MAP_W
+  MUL r12, r1
+  LDI r8, CAM_X
+  LOAD r9, r8
+  ADD r12, r9
+  LDI r9, MAP_BASE
+  ADD r12, r9
   LDI r11, VP_BASE
-  ADD r11, r10
-  LDI r10, TILE_ENEMY
-  STORE r11, r10
+  MOV r9, r13
+  LDI r1, VP_W
+  MUL r9, r1
+  ADD r11, r9
+  LDI r10, 0
+cv_inner:
+  MOV r8, r12
+  ADD r8, r10
+  LOAD r9, r8
+  MOV r8, r11
+  ADD r8, r10
+  STORE r8, r9
+  LDI r1, 1
+  ADD r10, r1
+  LDI r7, VP_W
+  CMP r10, r7
+  BLT r14, cv_inner
+  LDI r1, 1
+  ADD r13, r1
+  LDI r7, VP_H
+  CMP r13, r7
+  BLT r14, cv_outer
+  ; Overlay enemies
+  LDI r8, ENEMY_COUNT
+  LOAD r13, r8
+  JZ r13, cv_items
+  LDI r10, 0
+cv_en_lp:
+  MOV r1, r13
+  CMP r10, r1
+  BGE r14, cv_items
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LOAD r12, r8
+  LDI r8, ENEMY_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r11, r8
+  LDI r8, CAM_X
+  LOAD r20, r8
+  LDI r8, CAM_Y
+  LOAD r21, r8
+  CMP r12, r20
+  BLT r14, cv_en_nx
+  MOV r1, r20
+  LDI r15, VP_W
+  ADD r1, r15
+  CMP r12, r1
+  BGE r14, cv_en_nx
+  CMP r11, r21
+  BLT r14, cv_en_nx
+  MOV r1, r21
+  LDI r15, VP_H
+  ADD r1, r15
+  CMP r11, r1
+  BGE r14, cv_en_nx
+  SUB r12, r20
+  SUB r11, r21
+  MOV r9, r11
+  LDI r1, VP_W
+  MUL r9, r1
+  ADD r9, r12
+  LDI r8, VP_BASE
+  ADD r8, r9
+  LDI r9, TILE_ENEMY
+  STORE r8, r9
 cv_en_nx:
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  ADD r10, r1
   JMP cv_en_lp
 cv_items:
   ; Overlay items
-  LDI r11, ITEM_COUNT
-  LOAD r15, r11
-  JZ r15, cv_done
-  LDI r14, 0
+  LDI r8, ITEM_COUNT
+  LOAD r13, r8
+  JZ r13, cv_done
+  LDI r10, 0
 cv_it_lp:
-  MOV r7, r15
-  CMP r14, r7
-  BGE r9, cv_done
-  MOV r10, r14
-  LDI r7, 4
-  MUL r10, r7
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LOAD r12, r11
-  LDI r11, ITEM_BASE
-  ADD r11, r10
-  LDI r7, 1
-  ADD r11, r7
-  LOAD r3, r11
-  LDI r11, CAM_X
-  LOAD r20, r11
-  LDI r11, CAM_Y
-  LOAD r21, r11
+  MOV r1, r13
+  CMP r10, r1
+  BGE r14, cv_done
+  MOV r9, r10
+  LDI r1, 4
+  MUL r9, r1
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LOAD r12, r8
+  LDI r8, ITEM_BASE
+  ADD r8, r9
+  LDI r1, 1
+  ADD r8, r1
+  LOAD r11, r8
+  LDI r8, CAM_X
+  LOAD r20, r8
+  LDI r8, CAM_Y
+  LOAD r21, r8
   CMP r12, r20
-  BLT r9, cv_it_nx
-  MOV r7, r20
-  LDI r0, VP_W
-  ADD r7, r0
-  CMP r12, r7
-  BGE r9, cv_it_nx
-  CMP r3, r21
-  BLT r9, cv_it_nx
-  MOV r7, r21
-  LDI r0, VP_H
-  ADD r7, r0
-  CMP r3, r7
-  BGE r9, cv_it_nx
+  BLT r14, cv_it_nx
+  MOV r1, r20
+  LDI r15, VP_W
+  ADD r1, r15
+  CMP r12, r1
+  BGE r14, cv_it_nx
+  CMP r11, r21
+  BLT r14, cv_it_nx
+  MOV r1, r21
+  LDI r15, VP_H
+  ADD r1, r15
+  CMP r11, r1
+  BGE r14, cv_it_nx
   SUB r12, r20
-  SUB r3, r21
-  MOV r10, r3
-  LDI r7, VP_W
-  MUL r10, r7
-  ADD r10, r12
-  LDI r11, VP_BASE
-  ADD r11, r10
-  LDI r10, TILE_ITEM
-  STORE r11, r10
+  SUB r11, r21
+  MOV r9, r11
+  LDI r1, VP_W
+  MUL r9, r1
+  ADD r9, r12
+  LDI r8, VP_BASE
+  ADD r8, r9
+  LDI r9, TILE_ITEM
+  STORE r8, r9
 cv_it_nx:
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  ADD r10, r1
   JMP cv_it_lp
 cv_done:
-  POP r14
-  POP r15
+  POP r10
+  POP r13
   POP r31
   RET
 
 ; ── draw_number ─────────────────────────────────────────────
-; Input: r10=number, r6=x screen pos, r5=y screen pos
+; Input: r9=number, r0=x screen pos, r2=y screen pos
 ; Writes number as ASCII to TEMP_BASE+6, null-terminated, then TEXT
 
 draw_number:
   PUSH r31
-  PUSH r10
-  PUSH r7
-  PUSH r15
-  PUSH r11
+  PUSH r9
+  PUSH r1
+  PUSH r13
+  PUSH r8
   ; Handle zero
-  JZ r10, dn_zero
+  JZ r9, dn_zero
   ; Extract digits into TEMP_BASE (reverse order)
-  LDI r15, 0
-dn_div:
-  JZ r10, dn_rev
-  LDI r7, 10
-  LDI r11, TEMP_BASE
-  ADD r11, r15
   LDI r13, 0
-  ADD r13, r10
-  LDI r8, 10
-  MOD r13, r8
-  LDI r8, 48
-  ADD r13, r8
-  STORE r11, r13
-  LDI r8, 10
-  DIV r10, r8
-  LDI r7, 1
-  ADD r15, r7
-  LDI r7, 5
-  CMP r15, r7
-  BGE r9, dn_rev
+dn_div:
+  JZ r9, dn_rev
+  LDI r1, 10
+  LDI r8, TEMP_BASE
+  ADD r8, r13
+  LDI r5, 0
+  ADD r5, r9
+  LDI r7, 10
+  MOD r5, r7
+  LDI r7, 48
+  ADD r5, r7
+  STORE r8, r5
+  LDI r7, 10
+  DIV r9, r7
+  LDI r1, 1
+  ADD r13, r1
+  LDI r1, 5
+  CMP r13, r1
+  BGE r14, dn_rev
   JMP dn_div
 dn_rev:
   ; Reverse into TEMP_BASE+6
-  LDI r14, 0
+  LDI r10, 0
 dn_revlp:
-  LDI r7, 1
-  SUB r15, r7
-  BLT r9, dn_null
-  LDI r11, TEMP_BASE
-  ADD r11, r15
-  LOAD r12, r11
-  LDI r11, TEMP_BASE
-  LDI r7, 6
-  ADD r11, r7
-  ADD r11, r14
-  STORE r11, r12
-  LDI r7, 1
-  ADD r14, r7
+  LDI r1, 1
+  SUB r13, r1
+  BLT r14, dn_null
+  LDI r8, TEMP_BASE
+  ADD r8, r13
+  LOAD r12, r8
+  LDI r8, TEMP_BASE
+  LDI r1, 6
+  ADD r8, r1
+  ADD r8, r10
+  STORE r8, r12
+  LDI r1, 1
+  ADD r10, r1
   JMP dn_revlp
   JMP dn_null
 dn_zero:
-  LDI r11, TEMP_BASE
-  LDI r7, 6
-  ADD r11, r7
-  LDI r10, 48
-  STORE r11, r10
-  LDI r14, 1
+  LDI r8, TEMP_BASE
+  LDI r1, 6
+  ADD r8, r1
+  LDI r9, 48
+  STORE r8, r9
+  LDI r10, 1
 dn_null:
   ; Null-terminate
-  LDI r11, TEMP_BASE
-  LDI r7, 6
-  ADD r11, r7
-  ADD r11, r14
-  LDI r10, 0
-  STORE r11, r10
+  LDI r8, TEMP_BASE
+  LDI r1, 6
+  ADD r8, r1
+  ADD r8, r10
+  LDI r9, 0
+  STORE r8, r9
   ; Draw with TEXT
   ; TEXT needs registers: TEXT x_reg, y_reg, addr_reg
-  ; r6 has x, r5 has y, addr = TEMP_BASE+6
-  LDI r15, TEMP_BASE
-  LDI r7, 6
-  ADD r15, r7
-  TEXT r6, r5, r15
-  POP r11
-  POP r15
-  POP r7
-  POP r10
+  ; r0 has x, r2 has y, addr = TEMP_BASE+6
+  LDI r13, TEMP_BASE
+  LDI r1, 6
+  ADD r13, r1
+  TEXT r0, r2, r13
+  POP r8
+  POP r13
+  POP r1
+  POP r9
   POP r31
   RET
 
@@ -2870,45 +2870,45 @@ dn_null:
 
 render:
   PUSH r31
-  PUSH r15
+  PUSH r13
   CALL compute_camera
   CALL copy_viewport
   ; Clear screen to black
-  LDI r10, 0
-  FILL r10
+  LDI r9, 0
+  FILL r9
   ; Render 32x32 viewport using TILEMAP at (0,8) - leave top 8px for HUD
-  LDI r10, 0
-  LDI r6, 8
-  LDI r5, VP_BASE
-  LDI r11, TILE_BASE
-  LDI r13, VP_W
-  LDI r8, VP_H
+  LDI r9, 0
+  LDI r0, 8
+  LDI r2, VP_BASE
+  LDI r8, TILE_BASE
+  LDI r5, VP_W
+  LDI r7, VP_H
+  LDI r3, TILE_SZ
   LDI r4, TILE_SZ
-  LDI r1, TILE_SZ
-  TILEMAP r10, r6, r5, r11, r13, r8, r4, r1
+  TILEMAP r9, r0, r2, r8, r5, r7, r3, r4
   ; Draw player "@" relative to viewport
-  LDI r11, P_X
-  LOAD r10, r11
-  LDI r11, CAM_X
-  LOAD r6, r11
-  SUB r10, r6
-  LDI r7, TILE_SZ
-  MUL r10, r7
-  LDI r11, P_Y
-  LOAD r6, r11
-  LDI r11, CAM_Y
-  LOAD r5, r11
-  SUB r6, r5
-  LDI r7, TILE_SZ
-  MUL r6, r7
+  LDI r8, P_X
+  LOAD r9, r8
+  LDI r8, CAM_X
+  LOAD r0, r8
+  SUB r9, r0
+  LDI r1, TILE_SZ
+  MUL r9, r1
+  LDI r8, P_Y
+  LOAD r0, r8
+  LDI r8, CAM_Y
+  LOAD r2, r8
+  SUB r0, r2
+  LDI r1, TILE_SZ
+  MUL r0, r1
   ; Add 8px offset for HUD bar
-  LDI r7, 8
-  ADD r6, r7
-  LDI r5, 0x6A00
-  TEXT r10, r6, r5
+  LDI r1, 8
+  ADD r0, r1
+  LDI r2, 0x6A00
+  TEXT r9, r0, r2
   ; Draw HUD
   CALL draw_hud
-  POP r15
+  POP r13
   POP r31
   RET
 
@@ -2917,64 +2917,64 @@ render:
 draw_hud:
   PUSH r31
   ; "HP:" at (2, 0)
-  LDI r15, 2
-  LDI r14, 0
+  LDI r13, 2
+  LDI r10, 0
   LDI r12, 0x6A02
-  TEXT r15, r14, r12
+  TEXT r13, r10, r12
   ; HP value
-  LDI r11, P_HP
-  LOAD r10, r11
-  LDI r6, 32
-  LDI r5, 0
+  LDI r8, P_HP
+  LOAD r9, r8
+  LDI r0, 32
+  LDI r2, 0
   CALL draw_number
   ; "/"
-  LDI r11, 0x690C
-  LDI r10, 47
-  STORE r11, r10
-  LDI r11, 0x690D
-  LDI r10, 0
-  STORE r11, r10
-  LDI r15, 0x690C
-  LDI r14, 56
+  LDI r8, 0x690C
+  LDI r9, 47
+  STORE r8, r9
+  LDI r8, 0x690D
+  LDI r9, 0
+  STORE r8, r9
+  LDI r13, 0x690C
+  LDI r10, 56
   LDI r12, 0
-  TEXT r14, r12, r15
+  TEXT r10, r12, r13
   ; MAXHP value
-  LDI r11, P_MAXHP
-  LOAD r10, r11
-  LDI r6, 64
-  LDI r5, 0
+  LDI r8, P_MAXHP
+  LOAD r9, r8
+  LDI r0, 64
+  LDI r2, 0
   CALL draw_number
   ; "ATK:" at (100, 0)
-  LDI r15, 100
-  LDI r14, 0
+  LDI r13, 100
+  LDI r10, 0
   LDI r12, 0x6A06
-  TEXT r15, r14, r12
+  TEXT r13, r10, r12
   ; ATK value
-  LDI r11, P_ATK
-  LOAD r10, r11
-  LDI r6, 134
-  LDI r5, 0
+  LDI r8, P_ATK
+  LOAD r9, r8
+  LDI r0, 134
+  LDI r2, 0
   CALL draw_number
   ; "LV:" at (160, 0)
-  LDI r15, 160
-  LDI r14, 0
+  LDI r13, 160
+  LDI r10, 0
   LDI r12, 0x6A0B
-  TEXT r15, r14, r12
+  TEXT r13, r10, r12
   ; Level value
-  LDI r11, DLEVEL
-  LOAD r10, r11
-  LDI r6, 186
-  LDI r5, 0
+  LDI r8, DLEVEL
+  LOAD r9, r8
+  LDI r0, 186
+  LDI r2, 0
   CALL draw_number
   ; Show message if MSG_TIMER > 0
-  LDI r11, MSG_TIMER
-  LOAD r10, r11
-  JZ r10, dh_done
-  LDI r11, MSG_TEXT
-  LOAD r15, r11
-  LDI r14, 100
+  LDI r8, MSG_TIMER
+  LOAD r9, r8
+  JZ r9, dh_done
+  LDI r8, MSG_TEXT
+  LOAD r13, r8
+  LDI r10, 100
   LDI r12, 18
-  TEXT r14, r12, r15
+  TEXT r10, r12, r13
 dh_done:
   POP r31
   RET

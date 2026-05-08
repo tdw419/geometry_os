@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code generates concentric colored rings emanating from the center (128,128) of a 256x256 pixel display. Each pixel's color is determined by its Manhattan distance from the center, with the ring index mapped to one of six colors: red, yellow, green, cyan, blue, or magenta.
+; DESCRIPTION: Display a object using color red at the screen.
 
 ; RINGS -- Concentric colored rings emanating from center (128,128)
 ; For each pixel, compute distance from center, map to color
@@ -6,143 +6,143 @@
 ; Ring color cycles through: red, yellow, green, cyan, blue, magenta
 
 LDI r21, 0           ; r21 = y
-LDI r0, 1            ; r0 = increment
-LDI r6, 256          ; r6 = limit
-LDI r8, 128          ; r8 = center (128)
+LDI r13, 1            ; r13 = increment
+LDI r8, 256          ; r8 = limit
+LDI r12, 128          ; r12 = center (128)
 
 y_loop:
-  LDI r3, 0          ; r3 = x
+  LDI r14, 0          ; r14 = x
 
 x_loop:
   ; Compute |x - 128|
-  LDI r10, 0
-  ADD r10, r3         ; r10 = x
-  SUB r10, r8         ; r10 = x - 128
-  ; If negative (wrapped), negate: 0 - r10
-  LDI r4, 0
-  CMP r10, r4         ; r1 = sign comparison
-  ; r1 > 0 means r10 < r4 (negative)
-  ; We can't branch on sign of r1 directly... 
-  ; Use BLT: if r10 < 0, negate
+  LDI r3, 0
+  ADD r3, r14         ; r3 = x
+  SUB r3, r12         ; r3 = x - 128
+  ; If negative (wrapped), negate: 0 - r3
+  LDI r11, 0
+  CMP r3, r11         ; r7 = sign comparison
+  ; r7 > 0 means r3 < r11 (negative)
+  ; We can't branch on sign of r7 directly... 
+  ; Use BLT: if r3 < 0, negate
   LDI r20, 0
-  CMP r10, r20
-  BLT r1, abs_x_neg
+  CMP r3, r20
+  BLT r7, abs_x_neg
   JMP abs_x_done
 abs_x_neg:
-  LDI r4, 0
-  SUB r4, r10         ; r4 = -r10 = |x-128|
-  LDI r10, 0
-  ADD r10, r4         ; r10 = |x-128|
+  LDI r11, 0
+  SUB r11, r3         ; r11 = -r3 = |x-128|
+  LDI r3, 0
+  ADD r3, r11         ; r3 = |x-128|
 abs_x_done:
-  ; r10 = |x - 128|
+  ; r3 = |x - 128|
 
   ; Compute |y - 128|
-  LDI r9, 0
-  ADD r9, r21        ; r9 = y
-  SUB r9, r8         ; r9 = y - 128
-  LDI r4, 0
-  CMP r9, r4
+  LDI r0, 0
+  ADD r0, r21        ; r0 = y
+  SUB r0, r12         ; r0 = y - 128
+  LDI r11, 0
+  CMP r0, r11
   LDI r20, 0
-  CMP r9, r20
-  BLT r1, abs_y_neg
+  CMP r0, r20
+  BLT r7, abs_y_neg
   JMP abs_y_done
 abs_y_neg:
-  LDI r4, 0
-  SUB r4, r9
-  LDI r9, 0
-  ADD r9, r4
+  LDI r11, 0
+  SUB r11, r0
+  LDI r0, 0
+  ADD r0, r11
 abs_y_done:
-  ; r9 = |y - 128|
+  ; r0 = |y - 128|
 
   ; distance = |x-128| + |y-128| (Manhattan)
-  ADD r10, r9         ; r10 = distance
+  ADD r3, r0         ; r3 = distance
 
   ; Ring index = distance / 16 (integer division by repeated subtraction)
-  LDI r15, 0          ; r15 = ring index
-  LDI r11, 16         ; r11 = ring width
+  LDI r6, 0          ; r6 = ring index
+  LDI r2, 16         ; r2 = ring width
 div_loop:
-  SUB r10, r11
-  LDI r4, 0
-  CMP r10, r4
-  ; If r10 >= 0, increment ring index and continue
-  ; BLT r10 < 0 means we overshot
-  BLT r1, div_done
-  LDI r14, 1
-  ADD r15, r14
+  SUB r3, r2
+  LDI r11, 0
+  CMP r3, r11
+  ; If r3 >= 0, increment ring index and continue
+  ; BLT r3 < 0 means we overshot
+  BLT r7, div_done
+  LDI r9, 1
+  ADD r6, r9
   JMP div_loop
 div_done:
-  ; r15 = ring index (0, 1, 2, ...)
+  ; r6 = ring index (0, 1, 2, ...)
 
   ; Map ring index to color using mod 6
   ; 0=red, 1=yellow, 2=green, 3=cyan, 4=blue, 5=magenta
-  LDI r11, 6
+  LDI r2, 6
 mod_loop:
-  SUB r15, r11
-  LDI r4, 0
-  CMP r15, r4
-  BLT r1, mod_done
+  SUB r6, r2
+  LDI r11, 0
+  CMP r6, r11
+  BLT r7, mod_done
   JMP mod_loop
 mod_done:
-  ADD r15, r11         ; undo last subtraction
-  ; r15 = color index (0..5)
+  ADD r6, r2         ; undo last subtraction
+  ; r6 = color index (0..5)
 
   ; Look up color
-  JNZ r15, not_red
-  LDI r10, 0xFF0000   ; red
-  PSET r3, r21, r10
+  JNZ r6, not_red
+  LDI r3, 0xFF0000   ; red
+  PSET r14, r21, r3
   JMP next_pixel
 not_red:
-  LDI r4, 1
-  SUB r15, r4
-  JNZ r15, not_yellow
-  LDI r10, 0xFFFF00   ; yellow
-  PSET r3, r21, r10
+  LDI r11, 1
+  SUB r6, r11
+  JNZ r6, not_yellow
+  LDI r3, 0xFFFF00   ; yellow
+  PSET r14, r21, r3
   JMP next_pixel
 not_yellow:
-  LDI r4, 1
-  SUB r15, r4
-  JNZ r15, not_green
-  LDI r10, 0x00FF00   ; green
-  PSET r3, r21, r10
+  LDI r11, 1
+  SUB r6, r11
+  JNZ r6, not_green
+  LDI r3, 0x00FF00   ; green
+  PSET r14, r21, r3
   JMP next_pixel
 not_green:
-  LDI r4, 1
-  SUB r15, r4
-  JNZ r15, not_cyan
-  LDI r10, 0x00FFFF   ; cyan
-  PSET r3, r21, r10
+  LDI r11, 1
+  SUB r6, r11
+  JNZ r6, not_cyan
+  LDI r3, 0x00FFFF   ; cyan
+  PSET r14, r21, r3
   JMP next_pixel
 not_cyan:
-  LDI r4, 1
-  SUB r15, r4
-  JNZ r15, not_blue
-  LDI r10, 0x0000FF   ; blue
-  PSET r3, r21, r10
+  LDI r11, 1
+  SUB r6, r11
+  JNZ r6, not_blue
+  LDI r3, 0x0000FF   ; blue
+  PSET r14, r21, r3
   JMP next_pixel
 not_blue:
-  LDI r10, 0xFF00FF   ; magenta (default)
-  PSET r3, r21, r10
+  LDI r3, 0xFF00FF   ; magenta (default)
+  PSET r14, r21, r3
 
 next_pixel:
   ; x++
-  LDI r4, 1
-  ADD r3, r4
+  LDI r11, 1
+  ADD r14, r11
   ; If x == 256, next row
-  LDI r4, 0
-  ADD r4, r3
-  SUB r4, r6
-  JZ r4, next_row
+  LDI r11, 0
+  ADD r11, r14
+  SUB r11, r8
+  JZ r11, next_row
   JMP x_loop
 
 next_row:
   ; y++
-  LDI r4, 1
-  ADD r21, r4
+  LDI r11, 1
+  ADD r21, r11
   ; If y == 256, done
-  LDI r4, 0
-  ADD r4, r21
-  SUB r4, r6
-  JZ r4, done
+  LDI r11, 0
+  ADD r11, r21
+  SUB r11, r8
+  JZ r11, done
   JMP y_loop
 
 done:

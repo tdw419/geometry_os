@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code lists the contents of the Virtual File System (VFS) base directory by calling the LS syscall and displaying filenames as colored text on the screen. It also outputs the entry count at RAM address 0x7800.
+; DESCRIPTION: Draws a red rectangle at the screen with fixed size.
 
 ; ls.asm -- List VFS directory contents
 ;
@@ -12,96 +12,96 @@
 ;   0x7800 - entry count
 
     ; --- Fill screen dark ---
-    LDI r12, 0x000022
-    FILL r12
+    LDI r4, 0x000022
+    FILL r4
 
     ; --- Draw title bar ---
-    LDI r12, 0x000066
-    LDI r8, 0
+    LDI r4, 0x000066
+    LDI r13, 0
     LDI r16, 0
     LDI r17, 256
     LDI r18, 12
-    RECTF r8, r16, r17, r18, r12
+    RECTF r13, r16, r17, r18, r4
 
     ; --- Title text ---
     LDI r20, 0x5000
     STRO r20, "Directory:"
-    LDI r0, 4
-    LDI r15, 2
-    LDI r7, 0x5000
-    LDI r3, 0xFFFFFF
-    LDI r14, 0x000066
-    DRAWTEXT r0, r15, r7, r3, r14
+    LDI r7, 4
+    LDI r2, 2
+    LDI r3, 0x5000
+    LDI r15, 0xFFFFFF
+    LDI r0, 0x000066
+    DRAWTEXT r7, r2, r3, r15, r0
 
     ; --- Call LS to list files ---
-    LDI r5, 0x5100
-    LS r5                   ; r6 = entry count
+    LDI r10, 0x5100
+    LS r10                   ; r9 = entry count
 
     ; Store entry count at 0x7800
-    LDI r13, 0x7800
-    STORE r13, r6
-    MOV r9, r6              ; r9 = count (safe from CMP)
+    LDI r8, 0x7800
+    STORE r8, r9
+    MOV r14, r9              ; r14 = count (safe from CMP)
 
     ; --- Display filenames from LS buffer ---
     ; LS writes null-terminated filenames sequentially, extra null at end
-    LDI r15, 16             ; y start
-    LDI r7, 0x5100         ; buffer pointer
-    LDI r10, 1               ; increment
-    LDI r11, 14              ; line spacing
-    LDI r1, 232             ; y limit
+    LDI r2, 16             ; y start
+    LDI r3, 0x5100         ; buffer pointer
+    LDI r12, 1               ; increment
+    LDI r5, 14              ; line spacing
+    LDI r11, 232             ; y limit
 
 next_file:
-    CMP r15, r1
-    BGE r6, footer
+    CMP r2, r11
+    BGE r9, footer
 
     ; Read first char
-    LOAD r2, r7
-    LDI r4, 0
-    CMP r2, r4
-    JZ r6, footer
+    LOAD r1, r3
+    LDI r6, 0
+    CMP r1, r6
+    JZ r9, footer
 
     ; Draw this filename
-    LDI r0, 4
-    LDI r3, 0xCCCCCC
-    LDI r14, 0x000022
-    DRAWTEXT r0, r15, r7, r3, r14
+    LDI r7, 4
+    LDI r15, 0xCCCCCC
+    LDI r0, 0x000022
+    DRAWTEXT r7, r2, r3, r15, r0
 
     ; Advance pointer past null terminator
 skip_chars:
-    LOAD r2, r7
-    LDI r4, 0
-    CMP r2, r4
-    JZ r6, skip_done
-    ADD r7, r10
+    LOAD r1, r3
+    LDI r6, 0
+    CMP r1, r6
+    JZ r9, skip_done
+    ADD r3, r12
     JMP skip_chars
 
 skip_done:
-    ADD r7, r10             ; skip the null
-    ADD r15, r11
+    ADD r3, r12             ; skip the null
+    ADD r2, r5
     JMP next_file
 
 footer:
     ; --- Footer ---
-    LDI r12, 0x004400
-    LDI r8, 0
+    LDI r4, 0x004400
+    LDI r13, 0
     LDI r16, 244
     LDI r17, 256
     LDI r18, 12
-    RECTF r8, r16, r17, r18, r12
+    RECTF r13, r16, r17, r18, r4
 
     ; Build count string at 0x5000
     LDI r20, 0x5000
-    ADDI r9, 48             ; ASCII digit for count
-    STORE r20, r9
-    LDI r10, 1
-    ADD r20, r10
+    ADDI r14, 48             ; ASCII digit for count
+    STORE r20, r14
+    LDI r12, 1
+    ADD r20, r12
     STRO r20, " file(s)"
 
-    LDI r0, 4
-    LDI r15, 246
-    LDI r7, 0x5000
-    LDI r3, 0xFFFFFF
-    LDI r14, 0x004400
-    DRAWTEXT r0, r15, r7, r3, r14
+    LDI r7, 4
+    LDI r2, 246
+    LDI r3, 0x5000
+    LDI r15, 0xFFFFFF
+    LDI r0, 0x004400
+    DRAWTEXT r7, r2, r3, r15, r0
 
     HALT

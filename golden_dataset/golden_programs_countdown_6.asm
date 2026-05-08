@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code implements a wall-clock countdown timer using the TMR_GET and ALARM_SET opcodes. It allows users to set countdown seconds (1-9), start the countdown with spacebar, and reset with 'R'. The timer uses real-time milliseconds since VM start for accurate timing and displays the remaining time dynamically, updating in real-time.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; countdown.asm -- Wall-Clock Countdown Timer for Geometry OS
 ;
@@ -34,174 +34,174 @@
 #define ALARM_FLAG  0x4018
 
 ; ── INIT ──────────────────────────────────────────
-    LDI r1, 1
-    LDI r6, 0
+    LDI r4, 1
+    LDI r13, 0
 
     ; Default 10 seconds
     LDI r20, CD_SECONDS
-    LDI r9, 10
-    STORE r20, r9
+    LDI r2, 10
+    STORE r20, r2
 
     ; Not running
     LDI r20, RUNNING
-    STORE r20, r6
+    STORE r20, r13
 
     ; Not alarmed
     LDI r20, ALARM_FIRED
-    STORE r20, r6
+    STORE r20, r13
 
     ; Init stack
     LDI r30, 0xFD00
 
 ; ── MAIN LOOP ─────────────────────────────────────
 main_loop:
-    LDI r1, 1
+    LDI r4, 1
 
     ; Read keyboard
-    IKEY r2
+    IKEY r8
 
     ; Check for digit keys 1-9 to set seconds
-    CMPI r2, 49         ; '1'
-    BLT r7, not_digit
-    CMPI r2, 57         ; '9'
-    BGE r7, not_digit
+    CMPI r8, 49         ; '1'
+    BLT r10, not_digit
+    CMPI r8, 57         ; '9'
+    BGE r10, not_digit
 
     ; Set countdown seconds = key - 48
-    SUBI r2, 48
+    SUBI r8, 48
     LDI r20, CD_SECONDS
-    STORE r20, r2
+    STORE r20, r8
 
     ; Cancel any existing alarm
     LDI r20, ALARM_SLOT
-    LOAD r11, r20
-    CMPI r11, 0xFFFFFFFF  ; no alarm set
-    JZ r7, digit_done
-    ALARM_CLR r11
+    LOAD r14, r20
+    CMPI r14, 0xFFFFFFFF  ; no alarm set
+    JZ r10, digit_done
+    ALARM_CLR r14
 digit_done:
     ; Clear alarm slot
-    LDI r6, 0xFFFFFFFF
+    LDI r13, 0xFFFFFFFF
     LDI r20, ALARM_SLOT
-    STORE r20, r6
+    STORE r20, r13
 
     ; Reset state
-    LDI r6, 0
+    LDI r13, 0
     LDI r20, RUNNING
-    STORE r20, r6
+    STORE r20, r13
     LDI r20, ALARM_FIRED
-    STORE r20, r6
+    STORE r20, r13
 
     JMP main_loop
 
 not_digit:
     ; Space (32) = start countdown
-    CMPI r2, 32
-    JNZ r7, not_space
+    CMPI r8, 32
+    JNZ r10, not_space
 
     ; Don't start if already running or alarmed
     LDI r20, RUNNING
-    LOAD r11, r20
-    CMPI r11, 1
-    JZ r7, main_loop
+    LOAD r14, r20
+    CMPI r14, 1
+    JZ r10, main_loop
 
     LDI r20, ALARM_FIRED
-    LOAD r11, r20
-    CMPI r11, 1
-    JZ r7, main_loop
+    LOAD r14, r20
+    CMPI r14, 1
+    JZ r10, main_loop
 
     ; Record start time using TMR_GET
-    TMR_GET r10
+    TMR_GET r3
     LDI r20, START_MS
-    STORE r20, r10
+    STORE r20, r3
 
     ; Set alarm for N seconds from now
     ; ALARM_SET delay_reg, addr_reg, value_reg
     ; We store the flag at ALARM_FLAG address
     LDI r20, CD_SECONDS
-    LOAD r12, r20        ; countdown seconds
-    LDI r3, 1000
-    MUL r12, r3         ; convert to milliseconds
-    LDI r3, ALARM_FLAG  ; RAM address to write when alarm fires
-    LDI r4, 1           ; value to write (1 = fired)
-    ALARM_SET r12, r3, r4
+    LOAD r9, r20        ; countdown seconds
+    LDI r15, 1000
+    MUL r9, r15         ; convert to milliseconds
+    LDI r15, ALARM_FLAG  ; RAM address to write when alarm fires
+    LDI r0, 1           ; value to write (1 = fired)
+    ALARM_SET r9, r15, r0
 
     ; Save alarm slot
     LDI r20, ALARM_SLOT
-    STORE r20, r7        ; r7 = slot index from ALARM_SET
+    STORE r20, r10        ; r10 = slot index from ALARM_SET
 
     ; Mark running
-    LDI r6, 1
+    LDI r13, 1
     LDI r20, RUNNING
-    STORE r20, r6
+    STORE r20, r13
 
     JMP main_loop
 
 not_space:
     ; R (82) = reset
-    CMPI r2, 82
-    JNZ r7, not_reset
+    CMPI r8, 82
+    JNZ r10, not_reset
 
     ; Cancel alarm if one is active
     LDI r20, ALARM_SLOT
-    LOAD r11, r20
-    CMPI r11, 0xFFFFFFFF
-    JZ r7, reset_no_alarm
-    ALARM_CLR r11
+    LOAD r14, r20
+    CMPI r14, 0xFFFFFFFF
+    JZ r10, reset_no_alarm
+    ALARM_CLR r14
 
 reset_no_alarm:
-    LDI r6, 0
+    LDI r13, 0
     LDI r20, RUNNING
-    STORE r20, r6
+    STORE r20, r13
     LDI r20, ALARM_FIRED
-    STORE r20, r6
+    STORE r20, r13
     LDI r20, ALARM_FLAG
-    STORE r20, r6
-    LDI r6, 0xFFFFFFFF
+    STORE r20, r13
+    LDI r13, 0xFFFFFFFF
     LDI r20, ALARM_SLOT
-    STORE r20, r6
+    STORE r20, r13
 
     JMP main_loop
 
 not_reset:
     ; Check if alarm has fired (wall-clock wrote to RAM)
     LDI r20, ALARM_FLAG
-    LOAD r11, r20
-    CMPI r11, 1
-    JNZ r7, check_running
+    LOAD r14, r20
+    CMPI r14, 1
+    JNZ r10, check_running
 
     ; Alarm fired! Stop and signal
-    LDI r6, 0
+    LDI r13, 0
     LDI r20, RUNNING
-    STORE r20, r6
-    LDI r6, 1
+    STORE r20, r13
+    LDI r13, 1
     LDI r20, ALARM_FIRED
-    STORE r20, r6
+    STORE r20, r13
 
     ; Play alarm beep (880Hz, 500ms)
-    LDI r10, 880
-    LDI r12, 500
-    BEEP r10, r12
+    LDI r3, 880
+    LDI r9, 500
+    BEEP r3, r9
 
     JMP do_render
 
 check_running:
     LDI r20, RUNNING
-    LOAD r11, r20
-    CMPI r11, 1
-    JNZ r7, do_render
+    LOAD r14, r20
+    CMPI r14, 1
+    JNZ r10, do_render
 
     ; Update display: compute remaining = target - (now - start)
     ; remaining_ms = (cd_seconds * 1000) - (now - start_ms)
-    TMR_GET r10
+    TMR_GET r3
     LDI r20, START_MS
-    LOAD r12, r20
-    SUB r10, r12         ; elapsed since start
+    LOAD r9, r20
+    SUB r3, r9         ; elapsed since start
     LDI r20, CD_SECONDS
-    LOAD r12, r20
-    LDI r3, 1000
-    MUL r12, r3         ; total ms
-    SUB r12, r10         ; remaining ms
+    LOAD r9, r20
+    LDI r15, 1000
+    MUL r9, r15         ; total ms
+    SUB r9, r3         ; remaining ms
     LDI r20, TARGET_MS
-    STORE r20, r12       ; store remaining for display
+    STORE r20, r9       ; store remaining for display
 
 do_render:
     CALL render
@@ -212,202 +212,202 @@ do_render:
 ; ── RENDER ────────────────────────────────────────
 render:
     PUSH r31
-    LDI r1, 1
+    LDI r4, 1
 
     ; Background
-    LDI r6, 0x0A1628
-    FILL r6
+    LDI r13, 0x0A1628
+    FILL r13
 
     ; Title bar
-    LDI r6, 0x162840
-    LDI r9, 0
-    LDI r8, 0
-    LDI r2, 256
-    LDI r11, 24
-    RECTF r9, r8, r2, r11, r6
+    LDI r13, 0x162840
+    LDI r2, 0
+    LDI r7, 0
+    LDI r8, 256
+    LDI r14, 24
+    RECTF r2, r7, r8, r14, r13
 
     ; Title text
     LDI r20, TXT_BUF
     STRO r20, "WALL-CLOCK TIMER"
-    LDI r9, 70
-    LDI r8, 6
+    LDI r2, 70
+    LDI r7, 6
     LDI r20, TXT_BUF
-    TEXT r9, r8, r20
+    TEXT r2, r7, r20
 
     ; Main display panel
-    LDI r6, 0x0A0A16
-    LDI r9, 20
-    LDI r8, 40
-    LDI r2, 216
-    LDI r11, 80
-    RECTF r9, r8, r2, r11, r6
+    LDI r13, 0x0A0A16
+    LDI r2, 20
+    LDI r7, 40
+    LDI r8, 216
+    LDI r14, 80
+    RECTF r2, r7, r8, r14, r13
 
     ; Compute remaining seconds for display
     LDI r20, RUNNING
-    LOAD r11, r20
-    CMPI r11, 1
-    JNZ r7, show_static_time
+    LOAD r14, r20
+    CMPI r14, 1
+    JNZ r10, show_static_time
 
     ; Running: show computed remaining from wall-clock
     LDI r20, TARGET_MS
-    LOAD r10, r20
-    LDI r12, 1000
-    MOV r3, r10
-    DIV r3, r12         ; remaining whole seconds
+    LOAD r3, r20
+    LDI r9, 1000
+    MOV r15, r3
+    DIV r15, r9         ; remaining whole seconds
 
     ; Clamp to 0 (shouldn't go negative if alarm works, but safety)
-    CMPI r3, 0
-    BGE r7, have_remain
-    LDI r3, 0
+    CMPI r15, 0
+    BGE r10, have_remain
+    LDI r15, 0
 have_remain:
-    MOV r0, r3         ; seconds for display
+    MOV r6, r15         ; seconds for display
     JMP build_display
 
 show_static_time:
     ; Not running: show configured seconds
     LDI r20, CD_SECONDS
-    LOAD r0, r20
+    LOAD r6, r20
 
 build_display:
     ; Build "XXs" string
     LDI r20, TXT_BUF
-    MOV r3, r0
+    MOV r15, r6
     CALL fmt_2digit
-    LDI r6, 0x73         ; 's'
-    STORE r20, r6
+    LDI r13, 0x73         ; 's'
+    STORE r20, r13
     ADDI r20, 1
-    LDI r6, 0
-    STORE r20, r6
+    LDI r13, 0
+    STORE r20, r13
 
     ; Draw time - color depends on state
     LDI r20, ALARM_FIRED
-    LOAD r11, r20
-    CMPI r11, 1
-    JNZ r7, not_alarmed
+    LOAD r14, r20
+    CMPI r14, 1
+    JNZ r10, not_alarmed
 
     ; Flashing red when alarm
-    TMR_GET r10
-    LDI r12, 500
-    MOD r10, r12
-    CMPI r10, 250
-    BGE r7, alarm_dark
-    LDI r2, 0xFF2222
+    TMR_GET r3
+    LDI r9, 500
+    MOD r3, r9
+    CMPI r3, 250
+    BGE r10, alarm_dark
+    LDI r8, 0xFF2222
     JMP draw_timer
 alarm_dark:
-    LDI r2, 0x881111
+    LDI r8, 0x881111
     JMP draw_timer
 
 not_alarmed:
     LDI r20, RUNNING
-    LOAD r11, r20
-    CMPI r11, 1
-    JNZ r7, timer_paused
-    LDI r2, 0x00FF44     ; green when running
+    LOAD r14, r20
+    CMPI r14, 1
+    JNZ r10, timer_paused
+    LDI r8, 0x00FF44     ; green when running
     JMP draw_timer
 timer_paused:
-    LDI r2, 0xAAAAAA     ; gray when paused
+    LDI r8, 0xAAAAAA     ; gray when paused
 
 draw_timer:
-    LDI r9, 75
-    LDI r8, 65
+    LDI r2, 75
+    LDI r7, 65
     LDI r20, TXT_BUF
-    DRAWTEXT r9, r8, r20, r2, r2
+    DRAWTEXT r2, r7, r20, r8, r8
 
     ; Show wall-clock ms readout (proves TMR_GET is real)
-    TMR_GET r10
+    TMR_GET r3
     LDI r20, TXT_BUF
     STRO r20, "TMR_GET: "
     ADDI r20, 9
     CALL fmt_4hex
-    LDI r6, 0x6D         ; 'm'
-    STORE r20, r6
+    LDI r13, 0x6D         ; 'm'
+    STORE r20, r13
     ADDI r20, 1
-    LDI r6, 0x73         ; 's'
-    STORE r20, r6
+    LDI r13, 0x73         ; 's'
+    STORE r20, r13
     ADDI r20, 1
-    LDI r6, 0
-    STORE r20, r6
-    LDI r9, 20
-    LDI r8, 120
-    LDI r2, 0x556677
+    LDI r13, 0
+    STORE r20, r13
+    LDI r2, 20
+    LDI r7, 120
+    LDI r8, 0x556677
     LDI r20, TXT_BUF
-    DRAWTEXT r9, r8, r20, r2, r2
+    DRAWTEXT r2, r7, r20, r8, r8
 
     ; Status panel
-    LDI r6, 0x0D0D1A
-    LDI r9, 20
-    LDI r8, 140
-    LDI r2, 216
-    LDI r11, 40
-    RECTF r9, r8, r2, r11, r6
+    LDI r13, 0x0D0D1A
+    LDI r2, 20
+    LDI r7, 140
+    LDI r8, 216
+    LDI r14, 40
+    RECTF r2, r7, r8, r14, r13
 
     ; Show state
     LDI r20, ALARM_FIRED
-    LOAD r11, r20
-    CMPI r11, 1
-    JNZ r7, show_running_state
+    LOAD r14, r20
+    CMPI r14, 1
+    JNZ r10, show_running_state
 
     LDI r20, TXT_BUF
     STRO r20, "ALARM! Time is up!"
-    LDI r9, 50
-    LDI r8, 150
-    LDI r2, 0xFF4444
+    LDI r2, 50
+    LDI r7, 150
+    LDI r8, 0xFF4444
     LDI r20, TXT_BUF
-    DRAWTEXT r9, r8, r20, r2, r2
+    DRAWTEXT r2, r7, r20, r8, r8
     JMP status_done
 
 show_running_state:
     LDI r20, RUNNING
-    LOAD r11, r20
-    CMPI r11, 1
-    JNZ r7, show_paused_state
+    LOAD r14, r20
+    CMPI r14, 1
+    JNZ r10, show_paused_state
 
     LDI r20, TXT_BUF
     STRO r20, "Counting (wall-clock)"
-    LDI r9, 45
-    LDI r8, 150
-    LDI r2, 0x44FF44
+    LDI r2, 45
+    LDI r7, 150
+    LDI r8, 0x44FF44
     LDI r20, TXT_BUF
-    DRAWTEXT r9, r8, r20, r2, r2
+    DRAWTEXT r2, r7, r20, r8, r8
     JMP status_done
 
 show_paused_state:
     LDI r20, TXT_BUF
     STRO r20, "Press 1-9 then Space"
-    LDI r9, 45
-    LDI r8, 150
-    LDI r2, 0x888888
+    LDI r2, 45
+    LDI r7, 150
+    LDI r8, 0x888888
     LDI r20, TXT_BUF
-    DRAWTEXT r9, r8, r20, r2, r2
+    DRAWTEXT r2, r7, r20, r8, r8
 
 status_done:
     ; Bottom info bar
-    LDI r6, 0x080818
-    LDI r9, 0
-    LDI r8, 220
-    LDI r2, 256
-    LDI r11, 36
-    RECTF r9, r8, r2, r11, r6
+    LDI r13, 0x080818
+    LDI r2, 0
+    LDI r7, 220
+    LDI r8, 256
+    LDI r14, 36
+    RECTF r2, r7, r8, r14, r13
 
     LDI r20, TXT_BUF
     STRO r20, "1-9:secs Space:start R:reset"
-    LDI r9, 18
-    LDI r8, 228
-    LDI r2, 0x666666
+    LDI r2, 18
+    LDI r7, 228
+    LDI r8, 0x666666
     LDI r20, TXT_BUF
-    DRAWTEXT r9, r8, r20, r2, r2
+    DRAWTEXT r2, r7, r20, r8, r8
 
     POP r31
     RET
 
 ; ── FMT 2 DIGIT ───────────────────────────────────
-; Formats r3 (0-99) as 2 decimal chars at r20, advances r20
+; Formats r15 (0-99) as 2 decimal chars at r20, advances r20
 fmt_2digit:
     PUSH r31
     LDI r21, 10
-    MOV r22, r3
+    MOV r22, r15
     DIV r22, r21
-    MOV r23, r3
+    MOV r23, r15
     MOD r23, r21
     ADDI r22, 0x30
     STORE r20, r22
@@ -419,16 +419,16 @@ fmt_2digit:
     RET
 
 ; ── FMT 4 HEX ─────────────────────────────────────
-; Formats r10 as 4 hex chars at r20, advances r20
+; Formats r3 as 4 hex chars at r20, advances r20
 fmt_4hex:
     PUSH r31
     LDI r21, 12
 hex_loop:
-    MOV r22, r10
+    MOV r22, r3
     SHR r22, r21
     ANDI r22, 0x0F
     CMPI r22, 10
-    BLT r7, hex_digit
+    BLT r10, hex_digit
     ADDI r22, 0x37         ; 'A' - 10
     JMP hex_store
 hex_digit:
@@ -438,6 +438,6 @@ hex_store:
     ADDI r20, 1
     SUBI r21, 4
     CMPI r21, 0
-    BGE r7, hex_loop
+    BGE r10, hex_loop
     POP r31
     RET

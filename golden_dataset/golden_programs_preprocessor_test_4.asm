@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes two variables, `score` and `player_x`, at memory addresses 0x4000 and 0x4001 respectively. It sets the values of these variables to 10 and 128, then retrieves them into registers r1 and r13 for verification using the PSET instruction, which visually checks if the register contents are correct by plotting a pixel at coordinates (r13, r1).
+; DESCRIPTION: Draws a colored rectangle at the screen with fixed size.
 
 ; preprocessor_test.asm
 ; Test the new abstraction layer
@@ -11,11 +11,11 @@ SET score, 10
 SET player_x, 128
 
 ; Load back into registers
-GET r1, score
-GET r13, player_x
+GET r8, score
+GET r12, player_x
 
 ; Verify values in registers via PSET (visual check)
-; If r1=10 and r13=128, it works
-PSET r13, r1, r1
+; If r8=10 and r12=128, it works
+PSET r12, r8, r8
 
 HALT

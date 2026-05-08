@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates mouse support by drawing a blue gradient background and displaying "MOUSE TEST" in green. It continuously reads mouse coordinates and button status using the `MOUSEQ` opcode, then draws a red crosshair at the mouse position. If a button is pressed, it additionally draws a yellow dot at the cursor location. The program runs in an infinite loop, updating the display with each frame.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; Mouse Support Demo - Phase 217
 ; Demonstrates MOUSEQ and IMOUSE opcodes for GUI programs
@@ -14,58 +14,58 @@
 ; push_mouse(x, y) and push_mouse_button(button)
 
 ; ── Draw blue gradient background ──
-LDI r7, 0       ; y = 0
-LDI r11, 1        ; increment
-LDI r2, 256      ; screen width/height limit
+LDI r15, 0       ; y = 0
+LDI r14, 1        ; increment
+LDI r7, 256      ; screen width/height limit
 y_loop:
-  LDI r9, 0      ; x = 0
+  LDI r6, 0      ; x = 0
   x_loop:
-    MOV r0, r7
-    SHL r0, r11    ; r0 = y * 2 (blue gradient)
-    PSETI r9, r7, r0
-    ADD r9, r11
-    CMP r9, r2
-    BLT r13, x_loop
-  ADD r7, r11
-  CMP r7, r2
-  BLT r13, y_loop
+    MOV r8, r15
+    SHL r8, r14    ; r8 = y * 2 (blue gradient)
+    PSETI r6, r15, r8
+    ADD r6, r14
+    CMP r6, r7
+    BLT r10, x_loop
+  ADD r15, r14
+  CMP r15, r7
+  BLT r10, y_loop
 
 ; ── Draw title text ──
-LDI r13, 0x00FF00
-LDI r11, 10       ; x
-LDI r9, 5        ; y
-TEXTI r11, r9, title, 10
+LDI r10, 0x00FF00
+LDI r14, 10       ; x
+LDI r6, 5        ; y
+TEXTI r14, r6, title, 10
 
 ; ── Main loop: read mouse, draw crosshair ──
 main_loop:
-  MOUSEQ r8       ; r8=mouse_x, r12=mouse_y, r2=button
+  MOUSEQ r0       ; r0=mouse_x, r13=mouse_y, r7=button
 
   ; Draw red crosshair at mouse position (5px horizontal)
-  LDI r13, 0xFF0000
-  LDI r0, 4       ; width counter
-  LDI r10, 0       ; offset
+  LDI r10, 0xFF0000
+  LDI r8, 4       ; width counter
+  LDI r1, 0       ; offset
   draw_h:
-    PSET r8, r10, r13
-    ADD r10, r11
-    CMP r10, r0
-    BLT r13, draw_h
+    PSET r0, r1, r10
+    ADD r1, r14
+    CMP r1, r8
+    BLT r10, draw_h
 
   ; Draw red crosshair vertical (5px)
-  LDI r10, 0
+  LDI r1, 0
   draw_v:
-    PSET r10, r12, r13
-    ADD r10, r11
-    CMP r10, r0
-    BLT r13, draw_v
+    PSET r1, r13, r10
+    ADD r1, r14
+    CMP r1, r8
+    BLT r10, draw_v
 
   ; Yellow dot if button pressed
-  CMP r2, r11      ; button >= 1?
-  BLT r13, no_click
-  LDI r13, 0xFFFF00
-  ADD r0, r8
-  ADD r0, r11
-  ADD r0, r11      ; r0 = mouse_x + 2
-  PSET r0, r12, r13
+  CMP r7, r14      ; button >= 1?
+  BLT r10, no_click
+  LDI r10, 0xFFFF00
+  ADD r8, r0
+  ADD r8, r14
+  ADD r8, r14      ; r8 = mouse_x + 2
+  PSET r8, r13, r10
   no_click:
 
   FRAME

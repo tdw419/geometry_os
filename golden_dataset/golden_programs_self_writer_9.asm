@@ -1,65 +1,65 @@
-; DESCRIPTION: This GeOS assembly code writes the string "LDI r6, 42 \n HALT" to a designated area in RAM (canvas), assembles it into executable machine code using the `ASMSELF` instruction, and then runs the newly assembled program at address 0x1000.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; self_writer.asm
 ; A program that writes a NEW program to the canvas, compiles it, and runs it.
-; Generation 1: Writes "LDI r6, 42 \n HALT" to canvas.
-; Successor: Sets r6 to 42 and halts.
+; Generation 1: Writes "LDI r4, 42 \n HALT" to canvas.
+; Successor: Sets r4 to 42 and halts.
 
-  LDI r6, 0x8000    ; Start of canvas RAM
-  LDI r15, 1         ; Increment
+  LDI r4, 0x8000    ; Start of canvas RAM
+  LDI r7, 1         ; Increment
   
-  ; Write "LDI r6, 42" to canvas
-  LDI r4, 0x4C      ; 'L'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x44      ; 'D'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x49      ; 'I'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x20      ; ' '
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x72      ; 'r'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x31      ; '1'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x2C      ; ','
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x20      ; ' '
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x34      ; '4'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x32      ; '2'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x0A      ; '\n'
-  STORE r6, r4
-  ADD r6, r15
+  ; Write "LDI r4, 42" to canvas
+  LDI r0, 0x4C      ; 'L'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x44      ; 'D'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x49      ; 'I'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x20      ; ' '
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x72      ; 'r'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x31      ; '1'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x2C      ; ','
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x20      ; ' '
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x34      ; '4'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x32      ; '2'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x0A      ; '\n'
+  STORE r4, r0
+  ADD r4, r7
   
   ; Write "HALT"
-  LDI r4, 0x48      ; 'H'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x41      ; 'A'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x4C      ; 'L'
-  STORE r6, r4
-  ADD r6, r15
-  LDI r4, 0x54      ; 'T'
-  STORE r6, r4
-  ADD r6, r15
+  LDI r0, 0x48      ; 'H'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x41      ; 'A'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x4C      ; 'L'
+  STORE r4, r0
+  ADD r4, r7
+  LDI r0, 0x54      ; 'T'
+  STORE r4, r0
+  ADD r4, r7
   
   ; Null-terminate
-  LDI r4, 0
-  STORE r6, r4
+  LDI r0, 0
+  STORE r4, r0
 
   ; Assemble the canvas text
   ASMSELF

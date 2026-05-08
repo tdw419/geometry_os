@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements Conway's Game of Life on a 64x64 grid, where each cell is represented by a 4x4 pixel block on a 256x256 screen. The code initializes several patterns such as gliders, blocks, and oscillators, then repeatedly computes the next generation based on the rules of the Game of Life, storing results in a back buffer before rendering them to the screen.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; game_of_life.asm - Conway's Game of Life
 ; 64x64 grid, 4x4 pixel cells, covers full 256x256 screen
@@ -6,9 +6,9 @@
 ; The screen IS the cellular automaton -- pure pixel-driven-pixels
 
 ; ===== Constants =====
-LDI r7, 1             ; constant 1
-LDI r14, 64            ; GRID_SIZE
-LDI r9, 0x00FF00     ; alive color (green)
+LDI r10, 1             ; constant 1
+LDI r11, 64            ; GRID_SIZE
+LDI r12, 0x00FF00     ; alive color (green)
 LDI r0, 0x2000       ; back buffer base
 LDI r25, 4            ; CELL_SIZE
 
@@ -73,159 +73,159 @@ gen_loop:
 ; For each cell (x,y), count 8 neighbors via PEEK, apply Conway's rules,
 ; write result (0 or 1) to RAM back buffer at 0x2000 + y*64 + x
 
-LDI r3, 0             ; y = 0
+LDI r4, 0             ; y = 0
 
 comp_y:
-  LDI r13, 0           ; x = 0
+  LDI r8, 0           ; x = 0
 
   comp_x:
     ; Screen coordinates: screen_x = x * 4, screen_y = y * 4
-    MOV r11, r13
-    LDI r4, 2
-    SHL r11, r4         ; r11 = screen_x = x << 2
-    MOV r2, r3
-    SHL r2, r4         ; r2 = screen_y = y << 2
+    MOV r9, r8
+    LDI r14, 2
+    SHL r9, r14         ; r9 = screen_x = x << 2
+    MOV r13, r4
+    SHL r13, r14         ; r13 = screen_y = y << 2
 
     ; Back buffer address: 0x2000 + y*64 + x
-    MOV r8, r3
-    MUL r8, r14        ; r8 = y * 64
-    ADD r8, r13        ; r8 = y*64 + x
-    ADD r8, r0       ; r8 = 0x2000 + y*64 + x
+    MOV r3, r4
+    MUL r3, r11        ; r3 = y * 64
+    ADD r3, r8        ; r3 = y*64 + x
+    ADD r3, r0       ; r3 = 0x2000 + y*64 + x
 
     ; Read current cell state from screen
-    PEEK r11, r2, r12    ; r12 = pixel at (screen_x, screen_y)
+    PEEK r9, r13, r1    ; r1 = pixel at (screen_x, screen_y)
 
     ; Precompute neighbor screen coordinates (±CELL_SIZE = ±4)
-    MOV r20, r11
+    MOV r20, r9
     SUB r20, r25        ; r20 = screen_x - 4 (left neighbor column)
-    MOV r21, r11
+    MOV r21, r9
     ADD r21, r25        ; r21 = screen_x + 4 (right neighbor column)
-    MOV r22, r2
+    MOV r22, r13
     SUB r22, r25        ; r22 = screen_y - 4 (top neighbor row)
-    MOV r23, r2
+    MOV r23, r13
     ADD r23, r25        ; r23 = screen_y + 4 (bottom neighbor row)
 
     ; Count live neighbors (PEEK each, increment if non-zero)
-    LDI r10, 0           ; neighbor count = 0
+    LDI r6, 0           ; neighbor count = 0
 
-    PEEK r20, r22, r5   ; top-left     (-1,-1)
-    JZ r5, cn1
-    ADD r10, r7
+    PEEK r20, r22, r2   ; top-left     (-1,-1)
+    JZ r2, cn1
+    ADD r6, r10
     cn1:
 
-    PEEK r20, r2, r5    ; left         (-1, 0)
-    JZ r5, cn2
-    ADD r10, r7
+    PEEK r20, r13, r2    ; left         (-1, 0)
+    JZ r2, cn2
+    ADD r6, r10
     cn2:
 
-    PEEK r20, r23, r5   ; bottom-left  (-1,+1)
-    JZ r5, cn3
-    ADD r10, r7
+    PEEK r20, r23, r2   ; bottom-left  (-1,+1)
+    JZ r2, cn3
+    ADD r6, r10
     cn3:
 
-    PEEK r11, r22, r5    ; top          ( 0,-1)
-    JZ r5, cn4
-    ADD r10, r7
+    PEEK r9, r22, r2    ; top          ( 0,-1)
+    JZ r2, cn4
+    ADD r6, r10
     cn4:
 
-    PEEK r11, r23, r5    ; bottom       ( 0,+1)
-    JZ r5, cn5
-    ADD r10, r7
+    PEEK r9, r23, r2    ; bottom       ( 0,+1)
+    JZ r2, cn5
+    ADD r6, r10
     cn5:
 
-    PEEK r21, r22, r5   ; top-right    (+1,-1)
-    JZ r5, cn6
-    ADD r10, r7
+    PEEK r21, r22, r2   ; top-right    (+1,-1)
+    JZ r2, cn6
+    ADD r6, r10
     cn6:
 
-    PEEK r21, r2, r5    ; right        (+1, 0)
-    JZ r5, cn7
-    ADD r10, r7
+    PEEK r21, r13, r2    ; right        (+1, 0)
+    JZ r2, cn7
+    ADD r6, r10
     cn7:
 
-    PEEK r21, r23, r5   ; bottom-right (+1,+1)
-    JZ r5, cn8
-    ADD r10, r7
+    PEEK r21, r23, r2   ; bottom-right (+1,+1)
+    JZ r2, cn8
+    ADD r6, r10
     cn8:
 
     ; Conway's rules: alive if neighbors==3 OR (alive AND neighbors==2)
-    MOV r4, r10
-    LDI r5, 3
-    SUB r4, r5          ; r4 = neighbors - 3
-    JZ r4, gol_alive    ; n==3 -> always alive (birth or survival)
+    MOV r14, r6
+    LDI r2, 3
+    SUB r14, r2          ; r14 = neighbors - 3
+    JZ r14, gol_alive    ; n==3 -> always alive (birth or survival)
 
-    JZ r12, gol_dead    ; dead + n!=3 -> stays dead
+    JZ r1, gol_dead    ; dead + n!=3 -> stays dead
 
-    MOV r4, r10
-    LDI r5, 2
-    SUB r4, r5          ; r4 = neighbors - 2
-    JZ r4, gol_alive    ; alive + n==2 -> survives
+    MOV r14, r6
+    LDI r2, 2
+    SUB r14, r2          ; r14 = neighbors - 2
+    JZ r14, gol_alive    ; alive + n==2 -> survives
 
     ; alive + (n<2 or n>3) -> dies
     gol_dead:
-      LDI r4, 0
-      STORE r8, r4
+      LDI r14, 0
+      STORE r3, r14
       JMP cx_next
 
     gol_alive:
-      LDI r4, 1
-      STORE r8, r4
+      LDI r14, 1
+      STORE r3, r14
 
   cx_next:
-    ADD r13, r7          ; x++
-    MOV r4, r13
-    SUB r4, r14          ; x - 64
-    JZ r4, cy_next      ; row done
+    ADD r8, r10          ; x++
+    MOV r14, r8
+    SUB r14, r11          ; x - 64
+    JZ r14, cy_next      ; row done
     JMP comp_x
 
 cy_next:
-  ADD r3, r7            ; y++
-  MOV r4, r3
-  SUB r4, r14            ; y - 64
-  JZ r4, do_render      ; grid done
+  ADD r4, r10            ; y++
+  MOV r14, r4
+  SUB r14, r11            ; y - 64
+  JZ r14, do_render      ; grid done
   JMP comp_y
 
 ; --- Phase 2: Render back buffer to screen ---
 do_render:
-  LDI r4, 0
-  FILL r4               ; clear screen to black
+  LDI r14, 0
+  FILL r14               ; clear screen to black
 
-  LDI r3, 0             ; y = 0
+  LDI r4, 0             ; y = 0
 
   rend_y:
-    LDI r13, 0           ; x = 0
+    LDI r8, 0           ; x = 0
 
     rend_x:
       ; Back buffer address
-      MOV r8, r3
-      MUL r8, r14       ; y * 64
-      ADD r8, r13       ; + x
-      ADD r8, r0      ; + 0x2000
+      MOV r3, r4
+      MUL r3, r11       ; y * 64
+      ADD r3, r8       ; + x
+      ADD r3, r0      ; + 0x2000
 
       ; Load cell state from back buffer
-      LOAD r4, r8
-      JZ r4, rend_xn    ; dead cell -> skip
+      LOAD r14, r3
+      JZ r14, rend_xn    ; dead cell -> skip
 
       ; Alive: draw 4x4 rectangle at grid position
-      MOV r11, r13
-      LDI r4, 2
-      SHL r11, r4        ; screen_x = x * 4
-      MOV r2, r3
-      SHL r2, r4        ; screen_y = y * 4
-      RECTF r11, r2, r25, r25, r9
+      MOV r9, r8
+      LDI r14, 2
+      SHL r9, r14        ; screen_x = x * 4
+      MOV r13, r4
+      SHL r13, r14        ; screen_y = y * 4
+      RECTF r9, r13, r25, r25, r12
 
     rend_xn:
-      ADD r13, r7        ; x++
-      MOV r4, r13
-      SUB r4, r14        ; x - 64
-      JZ r4, rend_yn
+      ADD r8, r10        ; x++
+      MOV r14, r8
+      SUB r14, r11        ; x - 64
+      JZ r14, rend_yn
       JMP rend_x
 
     rend_yn:
-      ADD r3, r7        ; y++
-      MOV r4, r3
-      SUB r4, r14        ; y - 64
-      JZ r4, frame_done
+      ADD r4, r10        ; y++
+      MOV r14, r4
+      SUB r14, r11        ; y - 64
+      JZ r14, frame_done
       JMP rend_y
 
 frame_done:

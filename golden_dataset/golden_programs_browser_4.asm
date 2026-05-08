@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a minimal text-based web browser capable of fetching and rendering HTML pages as plain text. It utilizes defined memory segments for various buffers and state variables, including URL, host, port, path, request, response, body, and status information. The browser supports basic navigation controls such as entering URLs, scrolling content, navigating history, and quitting the application.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; browser.asm -- Text Browser v1 for Geometry OS
 ;
@@ -57,243 +57,243 @@
 #define LINE_HEIGHT  8
 
   ; Initialize
-  LDI r9, 1
+  LDI r5, 1
 
   ; Clear scroll offset
-  LDI r6, 0
-  LDI r14, SCROLL_OFF
-  STORE r14, r6
+  LDI r9, 0
+  LDI r2, SCROLL_OFF
+  STORE r2, r9
 
   ; Clear loading flag
-  LDI r14, LOADING_FLG
-  STORE r14, r6
+  LDI r2, LOADING_FLG
+  STORE r2, r9
 
   ; Clear history pointer
-  LDI r14, HIST_PTR
-  STORE r14, r6
+  LDI r2, HIST_PTR
+  STORE r2, r9
 
   ; Write default URL
-  LDI r6, URL_BUF
-  LDI r14, 108        ; 'l'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 111        ; 'o'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 99         ; 'c'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 97         ; 'a'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 108        ; 'l'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 104        ; 'h'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 111        ; 'o'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 115        ; 's'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 116        ; 't'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 58         ; ':'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 56         ; '8'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 48         ; '0'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 48         ; '0'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 48         ; '0'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 47         ; '/'
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 0          ; null
-  STORE r6, r14
+  LDI r9, URL_BUF
+  LDI r2, 108        ; 'l'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 111        ; 'o'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 99         ; 'c'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 97         ; 'a'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 108        ; 'l'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 104        ; 'h'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 111        ; 'o'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 115        ; 's'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 116        ; 't'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 58         ; ':'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 56         ; '8'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 48         ; '0'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 48         ; '0'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 48         ; '0'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 47         ; '/'
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 0          ; null
+  STORE r9, r2
 
 ; ═══════════════════════════════════════
 ; Main loop
 ; ═══════════════════════════════════════
 main_loop:
-  LDI r10, 0
-  FILL r10
+  LDI r4, 0
+  FILL r4
 
   ; Draw URL bar background (dark blue strip)
-  LDI r6, 0
-  LDI r14, URL_BAR_Y
-  LDI r5, 256
-  LDI r4, 10
-  LDI r7, 0x000080   ; dark blue
-  RECTF r6, r14, r5, r4, r7
+  LDI r9, 0
+  LDI r2, URL_BAR_Y
+  LDI r7, 256
+  LDI r15, 10
+  LDI r6, 0x000080   ; dark blue
+  RECTF r9, r2, r7, r15, r6
 
   ; Draw "URL: " label
-  LDI r6, 2
-  LDI r14, URL_BAR_Y
-  LDI r5, url_label
-  LDI r4, 0x00FFFF   ; cyan
+  LDI r9, 2
+  LDI r2, URL_BAR_Y
+  LDI r7, url_label
+  LDI r15, 0x00FFFF   ; cyan
   ; Use TEXT opcode to render label
-  TEXT r6, r14, r5
+  TEXT r9, r2, r7
 
   ; Draw URL text after "URL: " (shift right by ~40px)
-  LDI r6, 34
-  LDI r14, URL_BAR_Y
-  LDI r5, URL_BUF
-  LDI r4, 0xFFFFFF   ; white
-  TEXT r6, r14, r5
+  LDI r9, 34
+  LDI r2, URL_BAR_Y
+  LDI r7, URL_BUF
+  LDI r15, 0xFFFFFF   ; white
+  TEXT r9, r2, r7
 
   ; Draw status bar background
-  LDI r6, 0
-  LDI r14, STATUS_Y
-  LDI r5, 256
-  LDI r4, 10
-  LDI r7, 0x333333   ; dark gray
-  RECTF r6, r14, r5, r4, r7
+  LDI r9, 0
+  LDI r2, STATUS_Y
+  LDI r7, 256
+  LDI r15, 10
+  LDI r6, 0x333333   ; dark gray
+  RECTF r9, r2, r7, r15, r6
 
   ; Check loading flag
-  LDI r5, LOADING_FLG
-  LOAD r5, r5
-  JNZ r5, draw_loading
+  LDI r7, LOADING_FLG
+  LOAD r7, r7
+  JNZ r7, draw_loading
 
   ; Draw status: show response code
-  LDI r6, 2
-  LDI r14, STATUS_Y
-  LDI r5, status_idle
-  LDI r4, 0xFFFF00   ; yellow
-  TEXT r6, r14, r5
+  LDI r9, 2
+  LDI r2, STATUS_Y
+  LDI r7, status_idle
+  LDI r15, 0xFFFF00   ; yellow
+  TEXT r9, r2, r7
   JMP draw_status_done
 
 draw_loading:
-  LDI r6, 2
-  LDI r14, STATUS_Y
-  LDI r5, status_loading
-  LDI r4, 0xFF8800   ; orange
-  TEXT r6, r14, r5
+  LDI r9, 2
+  LDI r2, STATUS_Y
+  LDI r7, status_loading
+  LDI r15, 0xFF8800   ; orange
+  TEXT r9, r2, r7
 
 draw_status_done:
   ; ── Draw content area ──
   ; Render body text line by line
-  LDI r6, CONTENT_Y  ; y position
-  LDI r14, 0          ; line counter
-  LDI r5, SCROLL_OFF
-  LOAD r5, r5       ; scroll offset
-  LDI r4, BODY_BUF   ; body pointer (adjusted by scroll)
+  LDI r9, CONTENT_Y  ; y position
+  LDI r2, 0          ; line counter
+  LDI r7, SCROLL_OFF
+  LOAD r7, r7       ; scroll offset
+  LDI r15, BODY_BUF   ; body pointer (adjusted by scroll)
 
   ; Calculate start position in body based on scroll
   ; Each "line" is ~40 chars for wrapping. Approximate: skip scroll*32 chars
-  LDI r7, 32
-  LDI r3, 0          ; char offset in body
+  LDI r6, 32
+  LDI r8, 0          ; char offset in body
 scroll_skip:
-  JZ r5, scroll_done
-  ADD r3, r7         ; offset += 32
-  SUB r5, r9          ; scroll--
+  JZ r7, scroll_done
+  ADD r8, r6         ; offset += 32
+  SUB r7, r5          ; scroll--
   JMP scroll_skip
 
 scroll_done:
-  ; r4 = BODY_BUF + r3 (body start with scroll)
-  LDI r5, BODY_BUF
-  ADD r5, r3
-  MOV r4, r5
+  ; r15 = BODY_BUF + r8 (body start with scroll)
+  LDI r7, BODY_BUF
+  ADD r7, r8
+  MOV r15, r7
 
   ; Draw up to 28 lines (224px of content area / 8px per line)
-  LDI r7, 28         ; max lines to draw
+  LDI r6, 28         ; max lines to draw
 draw_line_loop:
-  JZ r7, draw_content_done
+  JZ r6, draw_content_done
 
   ; Check if we hit end of body
-  LOAD r3, r4        ; char at current body pos
-  JZ r3, draw_content_done
+  LOAD r8, r15        ; char at current body pos
+  JZ r8, draw_content_done
 
   ; Draw this line of text (up to 32 chars, TEXT opcode handles it)
-  LDI r6, 2           ; x = 2
-  ; r6 = x, current r6 = y? No, we need to track y
-  ; Use r14 for y (already set initially)
-  TEXT r6, r6, r4
+  LDI r9, 2           ; x = 2
+  ; r9 = x, current r9 = y? No, we need to track y
+  ; Use r2 for y (already set initially)
+  TEXT r9, r9, r15
 
   ; Advance body pointer by 32 chars (line width)
-  LDI r3, 32
-  ADD r4, r3
+  LDI r8, 32
+  ADD r15, r8
 
   ; Move y down
-  LDI r3, 8
-  ADD r6, r3
+  LDI r8, 8
+  ADD r9, r8
 
   ; Decrement line counter
-  SUB r7, r9
+  SUB r6, r5
   JMP draw_line_loop
 
 draw_content_done:
   ; ── Handle keyboard input ──
-  IKEY r6             ; read key
-  JZ r6, no_key
+  IKEY r9             ; read key
+  JZ r9, no_key
 
   ; Check for Enter (13) - fetch page
-  LDI r14, 13
-  CMP r6, r14
-  JZ r13, fetch_page
+  LDI r2, 13
+  CMP r9, r2
+  JZ r10, fetch_page
 
   ; Check for 'b' (98) - go back
-  LDI r14, 98
-  CMP r6, r14
-  JZ r13, go_back
+  LDI r2, 98
+  CMP r9, r2
+  JZ r10, go_back
 
   ; Check for Up arrow - scroll up
-  LDI r14, 119         ; 'w' for up
-  CMP r6, r14
-  JZ r13, scroll_up
+  LDI r2, 119         ; 'w' for up
+  CMP r9, r2
+  JZ r10, scroll_up
 
   ; Check for Down arrow - scroll down
-  LDI r14, 115         ; 's' for down
-  CMP r6, r14
-  JZ r13, scroll_down
+  LDI r2, 115         ; 's' for down
+  CMP r9, r2
+  JZ r10, scroll_down
 
   ; Check for Escape - quit
-  LDI r14, 27
-  CMP r6, r14
-  JZ r13, quit
+  LDI r2, 27
+  CMP r9, r2
+  JZ r10, quit
 
   JMP no_key
 
 scroll_up:
-  LDI r6, SCROLL_OFF
-  LOAD r6, r6
-  JZ r6, no_key       ; already at top
-  SUB r6, r9
-  LDI r14, SCROLL_OFF
-  STORE r14, r6
+  LDI r9, SCROLL_OFF
+  LOAD r9, r9
+  JZ r9, no_key       ; already at top
+  SUB r9, r5
+  LDI r2, SCROLL_OFF
+  STORE r2, r9
   JMP no_key
 
 scroll_down:
-  LDI r6, SCROLL_OFF
-  LOAD r6, r6
-  LDI r14, 50          ; max scroll
-  CMP r6, r14
-  BGE r13, no_key       ; at max
-  ADD r6, r9
-  LDI r14, SCROLL_OFF
-  STORE r14, r6
+  LDI r9, SCROLL_OFF
+  LOAD r9, r9
+  LDI r2, 50          ; max scroll
+  CMP r9, r2
+  BGE r10, no_key       ; at max
+  ADD r9, r5
+  LDI r2, SCROLL_OFF
+  STORE r2, r9
   JMP no_key
 
 fetch_page:
   ; Set loading flag
-  LDI r6, 1
-  LDI r14, LOADING_FLG
-  STORE r14, r6
+  LDI r9, 1
+  LDI r2, LOADING_FLG
+  STORE r2, r9
 
   ; Reset scroll
-  LDI r6, 0
-  LDI r14, SCROLL_OFF
-  STORE r14, r6
+  LDI r9, 0
+  LDI r2, SCROLL_OFF
+  STORE r2, r9
 
   ; Call the HTTP get library
   ; (In real usage, this would be CALL http_get)
@@ -301,20 +301,20 @@ fetch_page:
   CALL do_fetch
 
   ; Clear loading flag
-  LDI r6, 0
-  LDI r14, LOADING_FLG
-  STORE r14, r6
+  LDI r9, 0
+  LDI r2, LOADING_FLG
+  STORE r2, r9
 
   JMP no_key
 
 go_back:
   ; Decrement history pointer
-  LDI r6, HIST_PTR
-  LOAD r6, r6
-  JZ r6, no_key       ; no history
-  SUB r6, r9
-  LDI r14, HIST_PTR
-  STORE r14, r6
+  LDI r9, HIST_PTR
+  LOAD r9, r9
+  JZ r9, no_key       ; no history
+  SUB r9, r5
+  LDI r2, HIST_PTR
+  STORE r2, r9
 
   ; Restore URL from history (simplified: just go back to default)
   ; In a full implementation, would copy from history buffer to URL_BUF
@@ -335,83 +335,83 @@ no_key:
 ; ═══════════════════════════════════════════════
 do_fetch:
   PUSH r31
-  LDI r9, 1
+  LDI r5, 1
 
   ; Write mock page content to body buffer
-  LDI r6, BODY_BUF
+  LDI r9, BODY_BUF
 
   ; "Geometry OS Browser v1.0"
-  LDI r14, 71  ; G
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 101 ; e
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 111 ; o
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 109 ; m
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 101 ; e
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 116 ; t
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 114 ; r
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 121 ; y
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 32  ; (space)
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 79  ; O
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 83  ; S
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 32  ; (space)
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 66  ; B
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 114 ; r
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 111 ; o
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 119 ; w
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 115 ; s
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 101 ; e
-  STORE r6, r14
-  ADD r6, r9
-  LDI r14, 114 ; r
-  STORE r6, r14
-  ADD r6, r9
+  LDI r2, 71  ; G
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 101 ; e
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 111 ; o
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 109 ; m
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 101 ; e
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 116 ; t
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 114 ; r
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 121 ; y
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 32  ; (space)
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 79  ; O
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 83  ; S
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 32  ; (space)
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 66  ; B
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 114 ; r
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 111 ; o
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 119 ; w
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 115 ; s
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 101 ; e
+  STORE r9, r2
+  ADD r9, r5
+  LDI r2, 114 ; r
+  STORE r9, r2
+  ADD r9, r5
 
   ; Null terminate
-  LDI r14, 0
-  STORE r6, r14
+  LDI r2, 0
+  STORE r9, r2
 
   ; Set body length
-  LDI r6, BODY_LEN
-  LDI r14, 20
-  STORE r6, r14
+  LDI r9, BODY_LEN
+  LDI r2, 20
+  STORE r9, r2
 
   ; Set status = 200
-  LDI r6, STATUS_CELL
-  LDI r14, 200
-  STORE r6, r14
+  LDI r9, STATUS_CELL
+  LDI r2, 200
+  STORE r9, r2
 
   POP r31
   RET

@@ -1,6 +1,6 @@
-; DESCRIPTION: This GeOS assembly code loads a memory address into register r6, stores the string "hello" at that address, calculates the length of the stored string, and then halts execution.
+; DESCRIPTION: Geometry OS program to draw a red object.
 
-LDI r6, 0x3000
-STRO r6, "hello"
-STRLEN r6
+LDI r4, 0x3000
+STRO r4, "hello"
+STRLEN r4
 HALT

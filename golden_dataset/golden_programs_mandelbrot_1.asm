@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a Mandelbrot fractal explorer using fixed-point arithmetic. It renders a 128x128 grid of 2x2 pixel blocks, allowing users to zoom in/out and pan around the fractal with keyboard controls ('+', '-', WASD), reset the view with 'R', and quit with 'Q'. The HUD displays the current center coordinates and zoom level.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; mandelbrot.asm - Mandelbrot Fractal Explorer
 ; Fixed-point 4.12 format (scale = 4096)
@@ -16,73 +16,73 @@ LDI r20, 7
 LDI r21, 0x04000000
 
 ; === PALETTE at 0x5000 (16 escape colors) ===
-LDI r11, 0x5000
-LDI r15, 0x000066
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0x0000CC
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0x0044FF
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0x00AAFF
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0x00FFCC
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0x00FF44
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0x44FF00
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0xAAFF00
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0xFFEE00
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0xFFAA00
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0xFF4400
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0xFF0000
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0xDD0044
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0xAA00AA
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0x550077
-STORE r11, r15
-ADD r11, r13
-LDI r15, 0x220044
-STORE r11, r15
+LDI r2, 0x5000
+LDI r0, 0x000066
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0x0000CC
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0x0044FF
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0x00AAFF
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0x00FFCC
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0x00FF44
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0x44FF00
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0xAAFF00
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0xFFEE00
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0xFFAA00
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0xFF4400
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0xFF0000
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0xDD0044
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0xAA00AA
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0x550077
+STORE r2, r0
+ADD r2, r13
+LDI r0, 0x220044
+STORE r2, r0
 
 ; === VIEW PARAMS at 0x5100 ===
 ; center_re = -0.5 (fixed: -2048)
-LDI r11, 0x5100
-LDI r15, 2048
-NEG r15
-STORE r11, r15
-ADD r11, r13
+LDI r2, 0x5100
+LDI r0, 2048
+NEG r0
+STORE r2, r0
+ADD r2, r13
 ; center_im = 0.0
-LDI r15, 0
-STORE r11, r15
-ADD r11, r13
+LDI r0, 0
+STORE r2, r0
+ADD r2, r13
 ; scale = 1.5 (fixed: 6144, view width = 3.0)
-LDI r15, 6144
-STORE r11, r15
-ADD r11, r13
+LDI r0, 6144
+STORE r2, r0
+ADD r2, r13
 ; max_iter = 24
-LDI r15, 24
-STORE r11, r15
+LDI r0, 24
+STORE r2, r0
 
 ; === STACK POINTER ===
 LDI r30, 0xFF00
@@ -92,113 +92,113 @@ main_loop:
   CALL render
   CALL draw_hud
   FRAME
-  IKEY r7
-  LDI r5, 43
-  CMP r7, r5
-  JZ r6, zoom_in
-  LDI r5, 45
-  CMP r7, r5
-  JZ r6, zoom_out
-  LDI r5, 87
-  CMP r7, r5
-  JZ r6, pan_up
-  LDI r5, 83
-  CMP r7, r5
-  JZ r6, pan_down
-  LDI r5, 65
-  CMP r7, r5
-  JZ r6, pan_left
-  LDI r5, 68
-  CMP r7, r5
-  JZ r6, pan_right
-  LDI r5, 82
-  CMP r7, r5
-  JZ r6, reset_view
-  LDI r5, 81
-  CMP r7, r5
-  JZ r6, do_quit
+  IKEY r8
+  LDI r9, 43
+  CMP r8, r9
+  JZ r12, zoom_in
+  LDI r9, 45
+  CMP r8, r9
+  JZ r12, zoom_out
+  LDI r9, 87
+  CMP r8, r9
+  JZ r12, pan_up
+  LDI r9, 83
+  CMP r8, r9
+  JZ r12, pan_down
+  LDI r9, 65
+  CMP r8, r9
+  JZ r12, pan_left
+  LDI r9, 68
+  CMP r8, r9
+  JZ r12, pan_right
+  LDI r9, 82
+  CMP r8, r9
+  JZ r12, reset_view
+  LDI r9, 81
+  CMP r8, r9
+  JZ r12, do_quit
   JMP main_loop
 
 ; === INPUT HANDLERS ===
 zoom_in:
-  LDI r11, 0x5102
-  LOAD r5, r11
-  SAR r5, r17
-  STORE r11, r5
+  LDI r2, 0x5102
+  LOAD r9, r2
+  SAR r9, r17
+  STORE r2, r9
   JMP main_loop
 
 zoom_out:
-  LDI r11, 0x5102
-  LOAD r5, r11
-  SHL r5, r17
-  LDI r7, 24576
-  CMP r5, r7
-  BGE r6, main_loop
-  STORE r11, r5
+  LDI r2, 0x5102
+  LOAD r9, r2
+  SHL r9, r17
+  LDI r8, 24576
+  CMP r9, r8
+  BGE r12, main_loop
+  STORE r2, r9
   JMP main_loop
 
 pan_up:
-  LDI r11, 0x5101
-  LOAD r5, r11
-  LDI r7, 0x5102
-  LOAD r14, r7
-  SAR r14, r17
-  SAR r14, r17
-  SAR r14, r17
-  SUB r5, r14
-  STORE r11, r5
+  LDI r2, 0x5101
+  LOAD r9, r2
+  LDI r8, 0x5102
+  LOAD r3, r8
+  SAR r3, r17
+  SAR r3, r17
+  SAR r3, r17
+  SUB r9, r3
+  STORE r2, r9
   JMP main_loop
 
 pan_down:
-  LDI r11, 0x5101
-  LOAD r5, r11
-  LDI r7, 0x5102
-  LOAD r14, r7
-  SAR r14, r17
-  SAR r14, r17
-  SAR r14, r17
-  ADD r5, r14
-  STORE r11, r5
+  LDI r2, 0x5101
+  LOAD r9, r2
+  LDI r8, 0x5102
+  LOAD r3, r8
+  SAR r3, r17
+  SAR r3, r17
+  SAR r3, r17
+  ADD r9, r3
+  STORE r2, r9
   JMP main_loop
 
 pan_left:
-  LDI r11, 0x5100
-  LOAD r5, r11
-  LDI r7, 0x5102
-  LOAD r14, r7
-  SAR r14, r17
-  SAR r14, r17
-  SAR r14, r17
-  SUB r5, r14
-  STORE r11, r5
+  LDI r2, 0x5100
+  LOAD r9, r2
+  LDI r8, 0x5102
+  LOAD r3, r8
+  SAR r3, r17
+  SAR r3, r17
+  SAR r3, r17
+  SUB r9, r3
+  STORE r2, r9
   JMP main_loop
 
 pan_right:
-  LDI r11, 0x5100
-  LOAD r5, r11
-  LDI r7, 0x5102
-  LOAD r14, r7
-  SAR r14, r17
-  SAR r14, r17
-  SAR r14, r17
-  ADD r5, r14
-  STORE r11, r5
+  LDI r2, 0x5100
+  LOAD r9, r2
+  LDI r8, 0x5102
+  LOAD r3, r8
+  SAR r3, r17
+  SAR r3, r17
+  SAR r3, r17
+  ADD r9, r3
+  STORE r2, r9
   JMP main_loop
 
 reset_view:
-  LDI r11, 0x5100
-  LDI r15, 2048
-  NEG r15
-  STORE r11, r15
-  ADD r11, r13
-  LDI r15, 0
-  STORE r11, r15
-  ADD r11, r13
-  LDI r15, 6144
-  STORE r11, r15
-  ADD r11, r13
-  LDI r15, 24
-  STORE r11, r15
+  LDI r2, 0x5100
+  LDI r0, 2048
+  NEG r0
+  STORE r2, r0
+  ADD r2, r13
+  LDI r0, 0
+  STORE r2, r0
+  ADD r2, r13
+  LDI r0, 6144
+  STORE r2, r0
+  ADD r2, r13
+  LDI r0, 24
+  STORE r2, r0
   JMP main_loop
 
 do_quit:
@@ -208,82 +208,82 @@ do_quit:
 ; Renders 128x128 blocks of 2x2 pixels each
 render:
   PUSH r31
-  LDI r15, 0
-  FILL r15
-  LDI r11, 0x5100
-  LOAD r28, r11
-  ADD r11, r13
-  LOAD r29, r11
-  ADD r11, r13
-  LOAD r4, r11
-  ADD r11, r13
-  LOAD r3, r11
-  LDI r10, 0
+  LDI r0, 0
+  FILL r0
+  LDI r2, 0x5100
+  LOAD r28, r2
+  ADD r2, r13
+  LOAD r29, r2
+  ADD r2, r13
+  LOAD r4, r2
+  ADD r2, r13
+  LOAD r5, r2
+  LDI r11, 0
 y_loop:
-  LDI r12, 0
-  MOV r15, r10
-  SHL r15, r17
-  ADD r15, r13
-  SUB r15, r16
-  MUL r15, r4
-  SAR r15, r20
-  ADD r15, r29
-  MOV r0, r15
+  LDI r7, 0
+  MOV r0, r11
+  SHL r0, r17
+  ADD r0, r13
+  SUB r0, r16
+  MUL r0, r4
+  SAR r0, r20
+  ADD r0, r29
+  MOV r15, r0
 x_loop:
-  MOV r15, r12
-  SHL r15, r17
-  ADD r15, r13
-  SUB r15, r16
-  MUL r15, r4
-  SAR r15, r20
-  ADD r15, r28
-  MOV r9, r15
+  MOV r0, r7
+  SHL r0, r17
+  ADD r0, r13
+  SUB r0, r16
+  MUL r0, r4
+  SAR r0, r20
+  ADD r0, r28
+  MOV r14, r0
+  LDI r10, 0
   LDI r1, 0
-  LDI r2, 0
-  LDI r8, 0
+  LDI r6, 0
 iter:
-  MOV r15, r1
-  MUL r15, r15
-  MOV r7, r15
-  MOV r5, r2
-  MUL r5, r5
-  ADD r7, r5
-  CMP r7, r21
-  BGE r6, escaped
-  CMP r8, r3
-  BGE r6, in_set
-  SAR r15, r18
-  SAR r5, r18
-  SUB r15, r5
-  ADD r15, r9
-  MUL r1, r2
-  SAR r1, r19
-  ADD r1, r0
-  MOV r2, r1
-  MOV r1, r15
-  ADD r8, r13
+  MOV r0, r10
+  MUL r0, r0
+  MOV r8, r0
+  MOV r9, r1
+  MUL r9, r9
+  ADD r8, r9
+  CMP r8, r21
+  BGE r12, escaped
+  CMP r6, r5
+  BGE r12, in_set
+  SAR r0, r18
+  SAR r9, r18
+  SUB r0, r9
+  ADD r0, r14
+  MUL r10, r1
+  SAR r10, r19
+  ADD r10, r15
+  MOV r1, r10
+  MOV r10, r0
+  ADD r6, r13
   JMP iter
 escaped:
-  LDI r5, 15
-  AND r8, r5
-  LDI r7, 0x5000
-  ADD r8, r7
-  LOAD r11, r8
+  LDI r9, 15
+  AND r6, r9
+  LDI r8, 0x5000
+  ADD r6, r8
+  LOAD r2, r6
   JMP draw
 in_set:
-  LDI r11, 0
+  LDI r2, 0
 draw:
-  MOV r15, r12
-  SHL r15, r17
-  MOV r5, r10
-  SHL r5, r17
-  RECTF r15, r5, r17, r17, r11
-  ADD r12, r13
-  CMP r12, r16
-  BLT r6, x_loop
-  ADD r10, r13
-  CMP r10, r16
-  BLT r6, y_loop
+  MOV r0, r7
+  SHL r0, r17
+  MOV r9, r11
+  SHL r9, r17
+  RECTF r0, r9, r17, r17, r2
+  ADD r7, r13
+  CMP r7, r16
+  BLT r12, x_loop
+  ADD r11, r13
+  CMP r11, r16
+  BLT r12, y_loop
   POP r31
   RET
 
@@ -297,52 +297,52 @@ draw:
 draw_hud:
   PUSH r31
   ; Save view params we need
-  LDI r11, 0x5100
-  LOAD r22, r11       ; r22 = center_re (fixed-point)
-  ADD r11, r13
-  LOAD r23, r11       ; r23 = center_im (fixed-point)
-  ADD r11, r13
-  LOAD r24, r11       ; r24 = scale (fixed-point)
+  LDI r2, 0x5100
+  LOAD r22, r2       ; r22 = center_re (fixed-point)
+  ADD r2, r13
+  LOAD r23, r2       ; r23 = center_im (fixed-point)
+  ADD r2, r13
+  LOAD r24, r2       ; r24 = scale (fixed-point)
 
   ; === LINE 1: "RE: X.XXXX  IM: X.XXXX  Z: X.XXXX" ===
   ; Write at 0x5200
   LDI r25, 0x5200     ; buffer pointer
 
   ; "RE: "
-  LDI r15, 82
-  STORE r25, r15
+  LDI r0, 82
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 69
-  STORE r25, r15
+  LDI r0, 69
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 58
-  STORE r25, r15
+  LDI r0, 58
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
 
   ; center_re as signed decimal with 3 fractional digits
   CALL hud_fixed_to_str
 
   ; "  IM: "
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 73
-  STORE r25, r15
+  LDI r0, 73
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 77
-  STORE r25, r15
+  LDI r0, 77
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 58
-  STORE r25, r15
+  LDI r0, 58
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
 
   ; center_im as signed decimal
@@ -350,20 +350,20 @@ draw_hud:
   CALL hud_fixed_to_str
 
   ; "  Z: "
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 90
-  STORE r25, r15
+  LDI r0, 90
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 58
-  STORE r25, r15
+  LDI r0, 58
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
 
   ; scale as unsigned decimal
@@ -371,125 +371,125 @@ draw_hud:
   CALL hud_ufixed_to_str
 
   ; null terminate line 1
-  LDI r15, 0
-  STORE r25, r15
+  LDI r0, 0
+  STORE r25, r0
 
   ; === LINE 2: Controls help ===
   ; Write at 0x5280
   LDI r25, 0x5280
-  LDI r15, 91
-  STORE r25, r15
+  LDI r0, 91
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 43
-  STORE r25, r15
+  LDI r0, 43
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 47
-  STORE r25, r15
+  LDI r0, 47
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 45
-  STORE r25, r15
+  LDI r0, 45
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 93
-  STORE r25, r15
+  LDI r0, 93
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 122
-  STORE r25, r15
+  LDI r0, 122
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 111
-  STORE r25, r15
+  LDI r0, 111
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 111
-  STORE r25, r15
+  LDI r0, 111
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 109
-  STORE r25, r15
+  LDI r0, 109
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 91
-  STORE r25, r15
+  LDI r0, 91
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 87
-  STORE r25, r15
+  LDI r0, 87
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 65
-  STORE r25, r15
+  LDI r0, 65
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 83
-  STORE r25, r15
+  LDI r0, 83
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 68
-  STORE r25, r15
+  LDI r0, 68
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 93
-  STORE r25, r15
+  LDI r0, 93
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 112
-  STORE r25, r15
+  LDI r0, 112
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 97
-  STORE r25, r15
+  LDI r0, 97
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 110
-  STORE r25, r15
+  LDI r0, 110
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 91
-  STORE r25, r15
+  LDI r0, 91
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 82
-  STORE r25, r15
+  LDI r0, 82
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 93
-  STORE r25, r15
+  LDI r0, 93
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 32
-  STORE r25, r15
+  LDI r0, 32
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 114
-  STORE r25, r15
+  LDI r0, 114
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 101
-  STORE r25, r15
+  LDI r0, 101
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 115
-  STORE r25, r15
+  LDI r0, 115
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 101
-  STORE r25, r15
+  LDI r0, 101
+  STORE r25, r0
   ADD r25, r13
-  LDI r15, 116
-  STORE r25, r15
+  LDI r0, 116
+  STORE r25, r0
   ADD r25, r13
   ; null terminate
-  LDI r15, 0
-  STORE r25, r15
+  LDI r0, 0
+  STORE r25, r0
 
   ; === RENDER TEXT ON SCREEN ===
   ; Line 1 at (4, 4) in white text on dark background
-  LDI r7, 4
-  LDI r14, 4
+  LDI r8, 4
+  LDI r3, 4
   LDI r4, 0x5200
-  LDI r3, 0xFFFFFF
-  LDI r11, 0x000000
-  DRAWTEXT r7, r14, r4, r3, r11
+  LDI r5, 0xFFFFFF
+  LDI r2, 0x000000
+  DRAWTEXT r8, r3, r4, r5, r2
 
   ; Line 2 at (4, 14) in dim gray
-  LDI r7, 4
-  LDI r14, 14
+  LDI r8, 4
+  LDI r3, 14
   LDI r4, 0x5280
-  LDI r3, 0x888888
-  LDI r11, 0x000000
-  DRAWTEXT r7, r14, r4, r3, r11
+  LDI r5, 0x888888
+  LDI r2, 0x000000
+  DRAWTEXT r8, r3, r4, r5, r2
 
   POP r31
   RET
@@ -498,64 +498,64 @@ draw_hud:
 ; Converts r22 (signed 4.12 fixed-point) to decimal string at r25
 ; Format: [-]X.XXX (3 fractional digits)
 ; Advances r25 past the written characters
-; Clobbers: r12-r5
+; Clobbers: r7-r9
 hud_fixed_to_str:
   PUSH r31
   ; Check sign
-  LDI r15, 0x80000000
-  MOV r12, r22
-  AND r12, r15
-  JZ r12, hfs_positive
+  LDI r0, 0x80000000
+  MOV r7, r22
+  AND r7, r0
+  JZ r7, hfs_positive
   ; Negative: write '-', negate value
-  LDI r15, 45
-  STORE r25, r15
+  LDI r0, 45
+  STORE r25, r0
   ADD r25, r13
   NEG r22
 hfs_positive:
   ; Integer part = r22 >> 12 (arithmetic shift for sign)
-  MOV r12, r22
-  SAR r12, r18        ; r12 = integer part (signed)
+  MOV r7, r22
+  SAR r7, r18        ; r7 = integer part (signed)
   ; Write integer part using itoa-style (inline for simplicity)
-  ; Handle negative display: since we already negated, r12 >= 0
+  ; Handle negative display: since we already negated, r7 >= 0
   CALL hud_write_u32
   ; Decimal point
-  LDI r15, 46
-  STORE r25, r15
+  LDI r0, 46
+  STORE r25, r0
   ADD r25, r13
   ; Fractional part: (r22 & 0xFFF) * 1000 / 4096
-  MOV r12, r22
-  LDI r15, 0xFFF
-  AND r12, r15         ; r12 = fractional bits (0-4095)
-  LDI r15, 1000
-  MUL r12, r15         ; r12 = frac * 1000
-  LDI r15, 4096
-  DIV r12, r15         ; r12 = 3-digit fraction (0-999)
+  MOV r7, r22
+  LDI r0, 0xFFF
+  AND r7, r0         ; r7 = fractional bits (0-4095)
+  LDI r0, 1000
+  MUL r7, r0         ; r7 = frac * 1000
+  LDI r0, 4096
+  DIV r7, r0         ; r7 = 3-digit fraction (0-999)
   ; Write 3 digits, zero-padded
   ; Hundreds digit
-  LDI r15, 100
-  MOV r10, r12
-  DIV r10, r15
-  LDI r15, 48
-  ADD r10, r15
-  STORE r25, r10
+  LDI r0, 100
+  MOV r11, r7
+  DIV r11, r0
+  LDI r0, 48
+  ADD r11, r0
+  STORE r25, r11
   ADD r25, r13
   ; Tens digit
-  MOV r10, r12
-  LDI r15, 100
-  MOD r10, r15
-  LDI r15, 10
-  DIV r10, r15
-  LDI r15, 48
-  ADD r10, r15
-  STORE r25, r10
+  MOV r11, r7
+  LDI r0, 100
+  MOD r11, r0
+  LDI r0, 10
+  DIV r11, r0
+  LDI r0, 48
+  ADD r11, r0
+  STORE r25, r11
   ADD r25, r13
   ; Units digit
-  MOV r10, r12
-  LDI r15, 10
-  MOD r10, r15
-  LDI r15, 48
-  ADD r10, r15
-  STORE r25, r10
+  MOV r11, r7
+  LDI r0, 10
+  MOD r11, r0
+  LDI r0, 48
+  ADD r11, r0
+  STORE r25, r11
   ADD r25, r13
   POP r31
   RET
@@ -564,100 +564,100 @@ hfs_positive:
 ; Same as hud_fixed_to_str but no sign handling (always positive)
 hud_ufixed_to_str:
   PUSH r31
-  MOV r12, r22
-  SAR r12, r18        ; integer part
+  MOV r7, r22
+  SAR r7, r18        ; integer part
   CALL hud_write_u32
-  LDI r15, 46
-  STORE r25, r15
+  LDI r0, 46
+  STORE r25, r0
   ADD r25, r13
-  MOV r12, r22
-  LDI r15, 0xFFF
-  AND r12, r15
-  LDI r15, 1000
-  MUL r12, r15
-  LDI r15, 4096
-  DIV r12, r15
+  MOV r7, r22
+  LDI r0, 0xFFF
+  AND r7, r0
+  LDI r0, 1000
+  MUL r7, r0
+  LDI r0, 4096
+  DIV r7, r0
   ; Hundreds
-  LDI r15, 100
-  MOV r10, r12
-  DIV r10, r15
-  LDI r15, 48
-  ADD r10, r15
-  STORE r25, r10
+  LDI r0, 100
+  MOV r11, r7
+  DIV r11, r0
+  LDI r0, 48
+  ADD r11, r0
+  STORE r25, r11
   ADD r25, r13
   ; Tens
-  MOV r10, r12
-  LDI r15, 100
-  MOD r10, r15
-  LDI r15, 10
-  DIV r10, r15
-  LDI r15, 48
-  ADD r10, r15
-  STORE r25, r10
+  MOV r11, r7
+  LDI r0, 100
+  MOD r11, r0
+  LDI r0, 10
+  DIV r11, r0
+  LDI r0, 48
+  ADD r11, r0
+  STORE r25, r11
   ADD r25, r13
   ; Units
-  MOV r10, r12
-  LDI r15, 10
-  MOD r10, r15
-  LDI r15, 48
-  ADD r10, r15
-  STORE r25, r10
+  MOV r11, r7
+  LDI r0, 10
+  MOD r11, r0
+  LDI r0, 48
+  ADD r11, r0
+  STORE r25, r11
   ADD r25, r13
   POP r31
   RET
 
 ; === HUD: write unsigned 32-bit integer as decimal to r25 ===
-; r12 = value (unsigned), r25 = write pointer
+; r7 = value (unsigned), r25 = write pointer
 ; Advances r25 past written digits
-; Clobbers: r12-r5
+; Clobbers: r7-r9
 hud_write_u32:
   PUSH r31
-  PUSH r7
-  PUSH r14
+  PUSH r8
+  PUSH r3
   PUSH r4
   ; Special case: 0
-  LDI r15, 0
-  CMP r12, r15
-  JNZ r6, hwu_nonzero
-  LDI r15, 48
-  STORE r25, r15
+  LDI r0, 0
+  CMP r7, r0
+  JNZ r12, hwu_nonzero
+  LDI r0, 48
+  STORE r25, r0
   ADD r25, r13
   JMP hwu_done
 hwu_nonzero:
   ; Write digits in reverse to temp buffer at 0x5300
-  LDI r7, 0x5300    ; temp buffer
-  LDI r14, 0         ; digit count
+  LDI r8, 0x5300    ; temp buffer
+  LDI r3, 0         ; digit count
 hwu_div_loop:
-  LDI r15, 0
-  CMP r12, r15
-  JZ r6, hwu_flush
-  LDI r15, 10
-  MOV r10, r12
-  MOD r10, r15
-  LDI r15, 48
-  ADD r10, r15
-  STORE r7, r10
-  ADD r7, r13
-  ADD r14, r13
-  LDI r15, 10
-  DIV r12, r15
+  LDI r0, 0
+  CMP r7, r0
+  JZ r12, hwu_flush
+  LDI r0, 10
+  MOV r11, r7
+  MOD r11, r0
+  LDI r0, 48
+  ADD r11, r0
+  STORE r8, r11
+  ADD r8, r13
+  ADD r3, r13
+  LDI r0, 10
+  DIV r7, r0
   JMP hwu_div_loop
 hwu_flush:
   ; Reverse: write digits from end to start
-  SUB r7, r13       ; point to last digit written
+  SUB r8, r13       ; point to last digit written
 hwu_copy_loop:
-  LDI r15, 0
-  CMP r14, r15
-  JZ r6, hwu_done
-  LOAD r15, r7
-  STORE r25, r15
+  LDI r0, 0
+  CMP r3, r0
+  JZ r12, hwu_done
+  LOAD r0, r8
+  STORE r25, r0
   ADD r25, r13
-  SUB r7, r13
-  SUB r14, r13
+  SUB r8, r13
+  SUB r3, r13
   JMP hwu_copy_loop
 hwu_done:
   POP r4
-  POP r14
-  POP r7
+  POP r3
+  POP r8
   POP r31
   RET

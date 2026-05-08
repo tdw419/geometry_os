@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a simple two-layer neural network with matrix-vector multiplication (MATVEC) and ReLU activation functions. It classifies a 4x4 pixel pattern into three categories: diagonal, anti-diagonal, or other. The weights are initialized for detecting diagonal lines, and the input can be changed via keyboard inputs. The code displays the input grid, output bars representing the classification scores, and the winning category on the screen.
+; DESCRIPTION: Geometry OS program to draw a colored line.
 
 ; neural.asm -- Neural network inference running natively in Geometry OS VM
 ;
@@ -51,44 +51,44 @@ START:
 
 main_loop:
     FRAME
-    IKEY r2
-    JZ r2, main_loop
+    IKEY r9
+    JZ r9, main_loop
     
     ; 1-3 keys change input pattern
-    CMPI r2, 49    ; '1'
-    JNZ r0, try_key2
+    CMPI r9, 49    ; '1'
+    JNZ r6, try_key2
     CALL init_pattern1
     CALL forward_pass
     CALL display_results
     JMP main_loop
 
     try_key2:
-    CMPI r2, 50    ; '2'
-    JNZ r0, try_key3
+    CMPI r9, 50    ; '2'
+    JNZ r6, try_key3
     CALL init_pattern2
     CALL forward_pass
     CALL display_results
     JMP main_loop
 
     try_key3:
-    CMPI r2, 51    ; '3'
-    JNZ r0, try_space
+    CMPI r9, 51    ; '3'
+    JNZ r6, try_space
     CALL init_pattern3
     CALL forward_pass
     CALL display_results
     JMP main_loop
 
     try_space:
-    CMPI r2, 32    ; space = random input
-    JNZ r0, check_esc
+    CMPI r9, 32    ; space = random input
+    JNZ r6, check_esc
     CALL init_random
     CALL forward_pass
     CALL display_results
     JMP main_loop
 
     check_esc:
-    CMPI r2, 27
-    JZ r0, exit_app
+    CMPI r9, 27
+    JZ r6, exit_app
     JMP main_loop
 
 exit_app:
@@ -103,138 +103,138 @@ init_weights:
     LDI r20, W1_BASE
     
     ; Row 0: detects main diagonal [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
-    LDI r15, 0x00010000   ; 1.0 fp
-    LDI r9, 0x00000000   ; 0.0 fp
-    STORE r20, r15
+    LDI r0, 0x00010000   ; 1.0 fp
+    LDI r5, 0x00000000   ; 0.0 fp
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
     
     ; Row 1: anti-diagonal [0,0,0,1, 0,0,1,0, 0,1,0,0, 1,0,0,0]
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
     
     ; Remaining 6 rows: random-ish patterns
-    LDI r8, 6
+    LDI r11, 6
     fill_remaining:
-        LDI r2, 16
+        LDI r9, 16
         fill_row:
             ; Alternate between small positive and negative
-            LDI r5, 0x00008000   ; 0.5
-            STORE r20, r5
+            LDI r2, 0x00008000   ; 0.5
+            STORE r20, r2
             ADDI r20, 1
-            ADDI r2, 0xFFFF      ; r2--
-            JNZ r2, fill_row
-        ADDI r8, 0xFFFF
-        JNZ r8, fill_remaining
+            ADDI r9, 0xFFFF      ; r9--
+            JNZ r9, fill_row
+        ADDI r11, 0xFFFF
+        JNZ r11, fill_remaining
     
     ; Biases: small negative (to keep outputs near zero)
     LDI r20, B1_BASE
-    LDI r15, 0xFFFF0000  ; -1.0 fp (bias)
-    LDI r8, 8
+    LDI r0, 0xFFFF0000  ; -1.0 fp (bias)
+    LDI r11, 8
     fill_bias:
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    ADDI r8, 0xFFFF
-    JNZ r8, fill_bias
+    ADDI r11, 0xFFFF
+    JNZ r11, fill_bias
     
     ; Layer 2: 3 neurons x 8 inputs (simple identity-like)
     LDI r20, W2_BASE
     ; Class 0: activates on hidden[0]
-    LDI r15, 0x00020000   ; 2.0 fp
-    STORE r20, r15
+    LDI r0, 0x00020000   ; 2.0 fp
+    STORE r20, r0
     ADDI r20, 1
-    LDI r8, 7
+    LDI r11, 7
     zero_rest_l2_0:
-    LDI r9, 0
-    STORE r20, r9
+    LDI r5, 0
+    STORE r20, r5
     ADDI r20, 1
-    ADDI r8, 0xFFFF
-    JNZ r8, zero_rest_l2_0
+    ADDI r11, 0xFFFF
+    JNZ r11, zero_rest_l2_0
     
     ; Class 1: activates on hidden[1]
-    LDI r9, 0
-    STORE r20, r9
+    LDI r5, 0
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    LDI r8, 6
+    LDI r11, 6
     zero_rest_l2_1:
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    ADDI r8, 0xFFFF
-    JNZ r8, zero_rest_l2_1
+    ADDI r11, 0xFFFF
+    JNZ r11, zero_rest_l2_1
     
     ; Class 2: activates on hidden[2..7] sum
-    LDI r5, 6
-    LDI r4, 0x00005555   ; 1/3 fp
+    LDI r2, 6
+    LDI r14, 0x00005555   ; 1/3 fp
     fill_class2:
-    STORE r20, r4
+    STORE r20, r14
     ADDI r20, 1
-    ADDI r5, 0xFFFF
-    JNZ r5, fill_class2
-    LDI r9, 0
-    STORE r20, r9
+    ADDI r2, 0xFFFF
+    JNZ r2, fill_class2
+    LDI r5, 0
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
     
     ; Layer 2 biases
     LDI r20, B2_BASE
-    LDI r15, 0xFFFF8000  ; -0.5
-    STORE r20, r15
+    LDI r0, 0xFFFF8000  ; -0.5
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     
     RET
 
@@ -248,106 +248,106 @@ init_input:
 init_pattern1:
     ; Main diagonal: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
     LDI r20, INPUT
-    LDI r15, 0x00010000   ; 1.0
-    LDI r9, 0x00000000   ; 0.0
-    STORE r20, r15
+    LDI r0, 0x00010000   ; 1.0
+    LDI r5, 0x00000000   ; 0.0
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
     RET
 
 init_pattern2:
     ; Anti-diagonal: [0,0,0,1, 0,0,1,0, 0,1,0,0, 1,0,0,0]
     LDI r20, INPUT
-    LDI r15, 0x00010000
-    LDI r9, 0x00000000
-    STORE r20, r9
+    LDI r0, 0x00010000
+    LDI r5, 0x00000000
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
-    STORE r20, r9
+    STORE r20, r5
     ADDI r20, 1
     RET
 
 init_pattern3:
     ; All ones
     LDI r20, INPUT
-    LDI r15, 0x00010000
-    LDI r8, 16
+    LDI r0, 0x00010000
+    LDI r11, 16
     fill_ones:
-    STORE r20, r15
+    STORE r20, r0
     ADDI r20, 1
-    ADDI r8, 0xFFFF
-    JNZ r8, fill_ones
+    ADDI r11, 0xFFFF
+    JNZ r11, fill_ones
     RET
 
 init_random:
     ; Checkerboard pattern
     LDI r20, INPUT
-    LDI r15, 0x00010000
-    LDI r9, 0x00000000
-    LDI r8, 16
-    LDI r2, 0
+    LDI r0, 0x00010000
+    LDI r5, 0x00000000
+    LDI r11, 16
+    LDI r9, 0
     fill_checker:
-    AND r2, r15         ; test bit 0... rough approximation
-    LDI r5, 1
-    AND r2, r5
-    JNZ r2, store_zero
-    STORE r20, r15
+    AND r9, r0         ; test bit 0... rough approximation
+    LDI r2, 1
+    AND r9, r2
+    JNZ r9, store_zero
+    STORE r20, r0
     JMP next_checker
     store_zero:
-    STORE r20, r9
+    STORE r20, r5
     next_checker:
     ADDI r20, 1
-    ADDI r2, 1
-    ADDI r8, 0xFFFF
-    JNZ r8, fill_checker
+    ADDI r9, 1
+    ADDI r11, 0xFFFF
+    JNZ r11, fill_checker
     RET
 
 ; ========================================
@@ -355,89 +355,89 @@ init_random:
 ; ========================================
 forward_pass:
     ; Layer 1: MATVEC(weight, input, hidden, 8, 16)
-    LDI r12, W1_BASE
-    LDI r10, INPUT
-    LDI r11, HIDDEN
-    LDI r1, 8       ; rows
-    LDI r6, 16      ; cols
-    MATVEC r12, r10, r11, r1, r6
+    LDI r13, W1_BASE
+    LDI r3, INPUT
+    LDI r8, HIDDEN
+    LDI r10, 8       ; rows
+    LDI r7, 16      ; cols
+    MATVEC r13, r3, r8, r10, r7
     
     ; Add biases
-    LDI r12, B1_BASE
-    LDI r10, HIDDEN
-    LDI r8, 8
+    LDI r13, B1_BASE
+    LDI r3, HIDDEN
+    LDI r11, 8
     add_bias1:
-    LOAD r15, r12     ; bias
-    LOAD r9, r10     ; hidden[i]
-    ADD r9, r15       ; hidden[i] += bias
-    STORE r10, r9
-    ADDI r12, 1
-    ADDI r10, 1
-    ADDI r8, 0xFFFF
-    JNZ r8, add_bias1
+    LOAD r0, r13     ; bias
+    LOAD r5, r3     ; hidden[i]
+    ADD r5, r0       ; hidden[i] += bias
+    STORE r3, r5
+    ADDI r13, 1
+    ADDI r3, 1
+    ADDI r11, 0xFFFF
+    JNZ r11, add_bias1
     
     ; ReLU on hidden layer
-    LDI r10, HIDDEN
-    LDI r8, 8
+    LDI r3, HIDDEN
+    LDI r11, 8
     relu_loop:
-    LOAD r9, r10
+    LOAD r5, r3
     ; Check if negative (bit 31 set)
-    LDI r2, 0x80000000
-    AND r2, r9
-    JNZ r2, relu_zero
+    LDI r9, 0x80000000
+    AND r9, r5
+    JNZ r9, relu_zero
     JMP relu_next
     relu_zero:
-    LDI r9, 0
-    STORE r10, r9
+    LDI r5, 0
+    STORE r3, r5
     relu_next:
-    ADDI r10, 1
-    ADDI r8, 0xFFFF
-    JNZ r8, relu_loop
+    ADDI r3, 1
+    ADDI r11, 0xFFFF
+    JNZ r11, relu_loop
     
     ; Layer 2: MATVEC(weight, hidden, output, 3, 8)
-    LDI r12, W2_BASE
-    LDI r10, HIDDEN
-    LDI r11, OUTPUT
-    LDI r1, 3       ; rows
-    LDI r6, 8       ; cols
-    MATVEC r12, r10, r11, r1, r6
+    LDI r13, W2_BASE
+    LDI r3, HIDDEN
+    LDI r8, OUTPUT
+    LDI r10, 3       ; rows
+    LDI r7, 8       ; cols
+    MATVEC r13, r3, r8, r10, r7
     
     ; Add biases
-    LDI r12, B2_BASE
-    LDI r10, OUTPUT
-    LDI r8, 3
+    LDI r13, B2_BASE
+    LDI r3, OUTPUT
+    LDI r11, 3
     add_bias2:
-    LOAD r15, r12
-    LOAD r9, r10
-    ADD r9, r15
-    STORE r10, r9
-    ADDI r12, 1
-    ADDI r10, 1
-    ADDI r8, 0xFFFF
-    JNZ r8, add_bias2
+    LOAD r0, r13
+    LOAD r5, r3
+    ADD r5, r0
+    STORE r3, r5
+    ADDI r13, 1
+    ADDI r3, 1
+    ADDI r11, 0xFFFF
+    JNZ r11, add_bias2
     
     ; Find argmax
-    LDI r12, OUTPUT
-    LDI r8, 0        ; best class
-    LDI r2, 0        ; best value (as raw u32, higher = more positive)
-    LDI r5, 3        ; counter
-    LDI r4, 0        ; current index
+    LDI r13, OUTPUT
+    LDI r11, 0        ; best class
+    LDI r9, 0        ; best value (as raw u32, higher = more positive)
+    LDI r2, 3        ; counter
+    LDI r14, 0        ; current index
     argmax_loop:
-    LOAD r9, r12
-    CMP r2, r9           ; reversed: check if r2 >= r9 (i.e., r9 <= r2)
-    BGE r0, not_better   ; skip if current max >= new value
-    ; r9 >= r2 (unsigned comparison works for positive fp values)
-    MOV r2, r9
-    MOV r8, r4
+    LOAD r5, r13
+    CMP r9, r5           ; reversed: check if r9 >= r5 (i.e., r5 <= r9)
+    BGE r6, not_better   ; skip if current max >= new value
+    ; r5 >= r9 (unsigned comparison works for positive fp values)
+    MOV r9, r5
+    MOV r11, r14
     not_better:
-    ADDI r12, 1
-    ADDI r4, 1
-    ADDI r5, 0xFFFF
-    JNZ r5, argmax_loop
+    ADDI r13, 1
+    ADDI r14, 1
+    ADDI r2, 0xFFFF
+    JNZ r2, argmax_loop
     
     ; Store result
-    LDI r12, CLASS
-    STORE r12, r8
+    LDI r13, CLASS
+    STORE r13, r11
     
     RET
 
@@ -446,16 +446,16 @@ forward_pass:
 ; ========================================
 display_results:
     ; Clear screen
-    LDI r15, 0x0A0A1E
-    FILL r15
+    LDI r0, 0x0A0A1E
+    FILL r0
     
     ; Title
-    LDI r2, 0x00AA00
-    LDI r12, 0
-    LDI r10, 0
-    LDI r11, 256
-    LDI r1, 20
-    RECTF r12, r10, r11, r1, r2
+    LDI r9, 0x00AA00
+    LDI r13, 0
+    LDI r3, 0
+    LDI r8, 256
+    LDI r10, 20
+    RECTF r13, r3, r8, r10, r9
     
     LDI r20, STATUS
     STRO r20, "NEURAL NETWORK (VM NATIVE)"
@@ -466,135 +466,135 @@ display_results:
     STRO r20, "Input 4x4"
     TEXTI 4, 24, "Input 4x4:"
     
-    LDI r12, INPUT
-    LDI r10, 0        ; row counter
+    LDI r13, INPUT
+    LDI r3, 0        ; row counter
     draw_input_y:
-    LDI r11, 0        ; col counter
+    LDI r8, 0        ; col counter
     draw_input_x:
-    LOAD r9, r12      ; input value
+    LOAD r5, r13      ; input value
     
     ; Color: if value > 0.5, bright green; else dark
-    LDI r2, 0x001100   ; threshold ~0.07 in fp
-    CMP r9, r2
-    BLT r0, dim_pixel
+    LDI r9, 0x001100   ; threshold ~0.07 in fp
+    CMP r5, r9
+    BLT r6, dim_pixel
     
     ; Bright pixel
-    LDI r2, 0x00FF00
+    LDI r9, 0x00FF00
     JMP draw_pixel
     dim_pixel:
-    LDI r2, 0x112211
+    LDI r9, 0x112211
     draw_pixel:
     
     ; Position: 4 + col*12, 36 + row*12, size 10x10
-    LDI r5, 4
-    LDI r4, 12
-    MUL r4, r11       ; r4 = col * 12
-    ADD r5, r4        ; x = 4 + col*12
+    LDI r2, 4
+    LDI r14, 12
+    MUL r14, r8       ; r14 = col * 12
+    ADD r2, r14        ; x = 4 + col*12
     
-    LDI r4, 36
-    LDI r13, 12
-    MUL r13, r10       ; r13 = row * 12
-    ADD r4, r13        ; y = 36 + row*12
+    LDI r14, 36
+    LDI r12, 12
+    MUL r12, r3       ; r12 = row * 12
+    ADD r14, r12        ; y = 36 + row*12
     
-    LDI r13, 10        ; w
-    LDI r7, 10        ; h
-    RECTF r5, r4, r13, r7, r2
+    LDI r12, 10        ; w
+    LDI r1, 10        ; h
+    RECTF r2, r14, r12, r1, r9
     
-    ADDI r12, 1
-    ADDI r11, 1
-    CMPI r11, 4
-    BLT r0, draw_input_x
+    ADDI r13, 1
+    ADDI r8, 1
+    CMPI r8, 4
+    BLT r6, draw_input_x
     
-    ADDI r10, 1
-    CMPI r10, 4
-    BLT r0, draw_input_y
+    ADDI r3, 1
+    CMPI r3, 4
+    BLT r6, draw_input_y
     
     ; Draw output bars (3 classes)
     TEXTI 4, 100, "Output:"
     
-    LDI r12, OUTPUT
-    LDI r10, 0        ; class counter
+    LDI r13, OUTPUT
+    LDI r3, 0        ; class counter
     draw_output:
-    LOAD r9, r12      ; output value (fixed point)
+    LOAD r5, r13      ; output value (fixed point)
     
     ; Bar height: take high 16 bits and scale
     ; output value is 16.16 fp, extract integer part
-    LDI r2, 16
-    SHR r9, r2        ; get integer part (signed)
+    LDI r9, 16
+    SHR r5, r9        ; get integer part (signed)
     ; Clamp to 0-40 range for display
-    LDI r2, 40
-    CMP r9, r2
-    BGE r0, clamp_high
+    LDI r9, 40
+    CMP r5, r9
+    BGE r6, clamp_high
     JMP check_neg
     clamp_high:
-    MOV r9, r2
+    MOV r5, r9
     check_neg:
-    CMPI r9, 0
-    BGE r0, not_neg
-    LDI r9, 0
+    CMPI r5, 0
+    BGE r6, not_neg
+    LDI r5, 0
     not_neg:
     
     ; Color based on class
-    LDI r2, 0xFF4444  ; class 0 = red
-    CMPI r10, 1
-    JNZ r0, not_class1
-    LDI r2, 0x44FF44  ; class 1 = green
+    LDI r9, 0xFF4444  ; class 0 = red
+    CMPI r3, 1
+    JNZ r6, not_class1
+    LDI r9, 0x44FF44  ; class 1 = green
     not_class1:
-    CMPI r10, 2
-    JNZ r0, not_class2
-    LDI r2, 0x4444FF  ; class 2 = blue
+    CMPI r3, 2
+    JNZ r6, not_class2
+    LDI r9, 0x4444FF  ; class 2 = blue
     not_class2:
     
     ; Highlight winner
-    LDI r5, CLASS
-    LOAD r5, r5
-    CMP r10, r5
-    JNZ r0, not_winner
+    LDI r2, CLASS
+    LOAD r2, r2
+    CMP r3, r2
+    JNZ r6, not_winner
     ; Brighter color for winner
-    LDI r2, 0xFFFF00  ; yellow = winner
+    LDI r9, 0xFFFF00  ; yellow = winner
     not_winner:
     
     ; Bar position: 4 + class*80, 140, width 60, height = output value
-    LDI r5, 4
-    LDI r4, 80
-    MUL r4, r10
-    ADD r5, r4        ; x
-    LDI r4, 140
-    ADD r4, r9        ; y (bottom-anchored: higher value = taller bar going up)
-    LDI r13, 60        ; w
-    LDI r7, 40
-    SUB r7, r9        ; h = 40 - bar_height
-    RECTF r5, r4, r13, r7, r2
+    LDI r2, 4
+    LDI r14, 80
+    MUL r14, r3
+    ADD r2, r14        ; x
+    LDI r14, 140
+    ADD r14, r5        ; y (bottom-anchored: higher value = taller bar going up)
+    LDI r12, 60        ; w
+    LDI r1, 40
+    SUB r1, r5        ; h = 40 - bar_height
+    RECTF r2, r14, r12, r1, r9
     
     ; Class label (fixed x positions)
-    CMPI r10, 0
-    JNZ r0, label1
+    CMPI r3, 0
+    JNZ r6, label1
     TEXTI 20, 185, "diag"
     JMP next_output
     label1:
-    CMPI r10, 1
-    JNZ r0, label2
+    CMPI r3, 1
+    JNZ r6, label2
     TEXTI 100, 185, "anti"
     JMP next_output
     label2:
     TEXTI 180, 185, "other"
     
     next_output:
-    ADDI r12, 1
-    ADDI r10, 1
-    CMPI r10, 3
-    BLT r0, draw_output
+    ADDI r13, 1
+    ADDI r3, 1
+    CMPI r3, 3
+    BLT r6, draw_output
     
     ; Winner text
-    LDI r12, CLASS
-    LOAD r10, r12
-    CMPI r10, 0
-    JNZ r0, win1
+    LDI r13, CLASS
+    LOAD r3, r13
+    CMPI r3, 0
+    JNZ r6, win1
     TEXTI 4, 210, "Winner: DIAGONAL"
     JMP done_display
     win1:
-    CMPI r10, 1
-    JNZ r0, win2
+    CMPI r3, 1
+    JNZ r6, win2
     TEXTI 4, 210, "Winner: ANTI-DIAG"
     JMP done_display
     win2:

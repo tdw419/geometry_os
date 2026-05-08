@@ -1,7 +1,7 @@
-; DESCRIPTION: This GeOS assembly code initializes a sandbox environment for particle simulations by setting up a color table at memory address 0x7600 with three colors (blue, green, red) and initializing state variables at addresses 0x7800 to 0x7803. It then verifies the setup by loading values from the color table into registers.
+; DESCRIPTION: Display a object using color red at the screen.
 
 ; test_sandbox_init.asm -- Just the init section of particle sandbox
-LDI r8, 1
+LDI r7, 1
 LDI r21, 4
 LDI r22, 128
 LDI r23, 0x7000
@@ -11,15 +11,15 @@ LDI r26, 0x7802
 LDI r27, 0x7803
 
 ; Build color table (16 entries at 0x7600)
-LDI r7, 0x7600
-LDI r12, 0x0000FF
-STORE r7, r12
-ADD r7, r8
-LDI r12, 0x00FF00
-STORE r7, r12
-ADD r7, r8
-LDI r12, 0xFF0000
-STORE r7, r12
+LDI r6, 0x7600
+LDI r11, 0x0000FF
+STORE r6, r11
+ADD r6, r7
+LDI r11, 0x00FF00
+STORE r6, r11
+ADD r6, r7
+LDI r11, 0xFF0000
+STORE r6, r11
 
 ; Init state
 LDI r18, 0
@@ -30,11 +30,11 @@ STORE r26, r18
 STORE r27, r18
 
 ; Verify
-LDI r7, 0x7600
-LOAD r1, r7
-ADD r7, r8
-LOAD r9, r7
-ADD r7, r8
-LOAD r0, r7
+LDI r6, 0x7600
+LOAD r4, r6
+ADD r6, r7
+LOAD r5, r6
+ADD r6, r7
+LOAD r14, r6
 
 HALT

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an AI chat terminal within the Geometry OS environment. It connects to a cloud-based AI service (ZAI) using the LLM opcode (0x9C) to send user messages and receive responses. The terminal maintains a conversation history, allowing users to scroll through past interactions. Users can execute commands like `/run` to compile and run AI-generated code in a sandboxed environment with restricted capabilities. The system includes features such as automatic recovery from child process failures and debug commands to inspect the spawned processes.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; ai_terminal.asm -- AI Chat Terminal for Geometry OS
 ;
@@ -25,9 +25,9 @@
 ;   0x7600-0x762F  Sandbox pattern strings ("/tmp/*", "/lib/*")
 ;
 ; Registers:
-;   r4: CMP result (reserved)
-;   r7: Constant 1 (must reload after ops that clobber)
-;   r13: Key input
+;   r3: CMP result (reserved)
+;   r10: Constant 1 (must reload after ops that clobber)
+;   r11: Key input
 ;   r30: Stack pointer (SP)
 
 #define COLS 42
@@ -67,30 +67,30 @@
 ; =========================================
 ; INIT
 ; =========================================
-LDI r7, 1
+LDI r10, 1
 LDI r30, 0xFD00   ; Stack pointer
 
 ; Clear screen
-LDI r4, 0x0A0A14
-FILL r4
+LDI r3, 0x0A0A14
+FILL r3
 
 ; Clear text buffer to spaces
 LDI r20, BUF
-LDI r12, 32
+LDI r0, 32
 clear_buf_init:
-    STORE r20, r12
-    ADD r20, r7
+    STORE r20, r0
+    ADD r20, r10
     CMPI r20, BUF_END
-    BLT r4, clear_buf_init
+    BLT r3, clear_buf_init
 
 ; Init cursor and blink
 LDI r20, CUR_COL
-LDI r4, 0
-STORE r20, r4
+LDI r3, 0
+STORE r20, r3
 LDI r20, CUR_ROW
-STORE r20, r4
+STORE r20, r3
 LDI r20, BLINK
-STORE r20, r4
+STORE r20, r3
 
 ; Clear prompt/response/history buffers
 LDI r8, PROMPT_BUF
@@ -110,16 +110,16 @@ CALL clear_buf
 
 ; Init history metadata
 LDI r20, CMD_HIST_COUNT
-LDI r4, 0
-STORE r20, r4
+LDI r3, 0
+STORE r20, r3
 LDI r20, CMD_HIST_NAV
-STORE r20, r4
+STORE r20, r3
 
 ; Init context tracking
 LDI r20, CTX_TURNS
-STORE r20, r4
+STORE r20, r3
 LDI r20, CTX_CHARS
-STORE r20, r4
+STORE r20, r3
 
 ; Request asm_dev system prompt for every LLM call from this app.
 ; RAM[0x7820] = 1 tells build_llm_system_prompt() to send the GeoOS
@@ -127,78 +127,78 @@ STORE r20, r4
 ; NOTE: Must be set AFTER clearing CMD_HIST_BASE (0x7700, 336 words)
 ; because that range overlaps 0x7820.
 LDI r20, 0x7820
-LDI r4, 1
-STORE r20, r4
+LDI r3, 1
+STORE r20, r3
 
 ; Title bar
-LDI r7, 0
-LDI r0, 0
+LDI r10, 0
+LDI r5, 0
 LDI r14, 256
 LDI r1, 16
-LDI r13, 0x1A0033
-RECTF r7, r0, r14, r1, r13
+LDI r11, 0x1A0033
+RECTF r10, r5, r14, r1, r11
 
 ; Title text "AI Terminal - ZAI"
 LDI r20, SCRATCH
 STRO r20, "AI Terminal - ZAI"
-LDI r7, 4
-LDI r0, 4
+LDI r10, 4
+LDI r5, 4
 LDI r14, SCRATCH
 LDI r1, 0x00FF00  ; green
-LDI r13, 0x1A0033  ; match title bar
-DRAWTEXT r7, r0, r14, r1, r13
+LDI r11, 0x1A0033  ; match title bar
+DRAWTEXT r10, r5, r14, r1, r11
 
 ; Status indicator dot (green = connected)
-LDI r7, 230
-LDI r0, 4
+LDI r10, 230
+LDI r5, 4
 LDI r14, 8
 LDI r1, 8
-LDI r13, 0x00FF00
-RECTF r7, r0, r14, r1, r13
+LDI r11, 0x00FF00
+RECTF r10, r5, r14, r1, r11
 
 ; Close button hit region
-LDI r7, 220
-LDI r0, 0
+LDI r10, 220
+LDI r5, 0
 LDI r14, 36
 LDI r1, 16
-HITSET r7, r0, r14, r1, 99
+HITSET r10, r5, r14, r1, 99
 
-LDI r7, 1
+LDI r10, 1
 
 ; Write prompt "> " at buffer row 0
 LDI r20, BUF
-LDI r4, 62           ; '>'
-STORE r20, r4
-ADD r20, r7
-LDI r4, 32           ; ' '
-STORE r20, r4
+LDI r3, 62           ; '>'
+STORE r20, r3
+ADD r20, r10
+LDI r3, 32           ; ' '
+STORE r20, r3
 
 ; Set cursor to col 2
 LDI r20, CUR_COL
-LDI r4, 2
-STORE r20, r4
+LDI r3, 2
+STORE r20, r3
 
 ; Init watchdog
 LDI r20, WATCHDOG_TIMER
-LDI r4, 60
-STORE r20, r4
+LDI r3, 60
+STORE r20, r3
 LDI r20, WATCHDOG_STRIKES
-LDI r4, 0
-STORE r20, r4
+LDI r3, 0
+STORE r20, r3
 
 ; Welcome message
 LDI r20, SCRATCH
 STRO r20, "AI Terminal v1.0"
 CALL write_line_to_buf
-LDI r7, 1
+LDI r10, 1
 LDI r20, SCRATCH
 STRO r20, "Type a message, Enter to send"
 CALL write_line_to_buf
-LDI r7, 1
+LDI r10, 1
 LDI r20, SCRATCH
 STRO r20, "/help for commands"
 CALL write_line_to_buf
-LDI r7, 1
+LDI r10, 1
 
 ; Write prompt on new line
 CALL write_prompt
@@ -207,16 +207,16 @@ CALL write_prompt
 ; MAIN LOOP
 ; =========================================
 main_loop:
-    LDI r7, 1
+    LDI r10, 1
 
     ; Watchdog
     CALL check_watchdog
 
     ; Blink counter
     LDI r20, BLINK
-    LOAD r4, r20
-    ADD r4, r7
-    STORE r20, r4
+    LOAD r3, r20
+    ADD r3, r10
+    STORE r20, r3
 
     ; Render
     CALL render
@@ -224,8 +224,8 @@ main_loop:
     FRAME
 
     ; Read key
-    IKEY r13
-    JZ r13, main_loop
+    IKEY r11
+    JZ r11, main_loop
 
     ; Handle key
     CALL handle_key
@@ -236,15 +236,15 @@ main_loop:
 ; =========================================
 render:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Clear content area
-    LDI r7, 0
-    LDI r0, 16
+    LDI r10, 0
+    LDI r5, 16
     LDI r14, 256
     LDI r1, 240
-    LDI r13, 0x0A0A14
-    RECTF r7, r0, r14, r1, r13
+    LDI r11, 0x0A0A14
+    RECTF r10, r5, r14, r1, r11
 
     ; Redraw title bar with context info
     PUSH r31
@@ -252,11 +252,11 @@ render:
     POP r31
 
     ; Row loop
-    LDI r7, 1
-    LDI r2, 8            ; CHAR_H
-    LDI r9, 6            ; CHAR_W
-    LDI r15, 0           ; row counter
-    LDI r5, BUF         ; buffer pointer
+    LDI r10, 1
+    LDI r6, 8            ; CHAR_H
+    LDI r2, 6            ; CHAR_W
+    LDI r12, 0           ; row counter
+    LDI r7, BUF         ; buffer pointer
     LDI r8, 16          ; y = TITLE_H
 
 render_row:
@@ -264,90 +264,90 @@ render_row:
     LDI r16, SCRATCH
     LDI r17, 0
 copy_col:
-    LOAD r12, r5
-    STORE r16, r12
-    ADD r5, r7
-    ADD r16, r7
-    ADD r17, r7
+    LOAD r0, r7
+    STORE r16, r0
+    ADD r7, r10
+    ADD r16, r10
+    ADD r17, r10
     CMPI r17, COLS
     BLT r17, copy_col
 
     ; Null terminate
-    LDI r4, 0
-    STORE r16, r4
+    LDI r3, 0
+    STORE r16, r3
 
     ; Color based on content
-    LDI r6, 0xCCCCCC  ; default light gray
+    LDI r9, 0xCCCCCC  ; default light gray
 
     ; Check if row starts with '>' (user prompt) -> green
     LDI r16, SCRATCH
-    LOAD r12, r16
-    CMPI r12, 62         ; '>'
-    JNZ r4, check_ai_prefix
-    LDI r6, 0x44FF44  ; green for user input
+    LOAD r0, r16
+    CMPI r0, 62         ; '>'
+    JNZ r3, check_ai_prefix
+    LDI r9, 0x44FF44  ; green for user input
     JMP render_text
 
 check_ai_prefix:
     ; Check if row starts with 'A' + 'I' + ':' (AI response) -> cyan
     LDI r16, SCRATCH
-    LOAD r12, r16
-    CMPI r12, 65         ; 'A'
-    JNZ r4, render_text_default
-    ADD r16, r7
-    LOAD r12, r16
-    CMPI r12, 73         ; 'I'
-    JNZ r4, render_text_default
-    ADD r16, r7
-    LOAD r12, r16
-    CMPI r12, 58         ; ':'
-    JNZ r4, render_text_default
-    LDI r6, 0x00FFFF  ; cyan for AI response
+    LOAD r0, r16
+    CMPI r0, 65         ; 'A'
+    JNZ r3, render_text_default
+    ADD r16, r10
+    LOAD r0, r16
+    CMPI r0, 73         ; 'I'
+    JNZ r3, render_text_default
+    ADD r16, r10
+    LOAD r0, r16
+    CMPI r0, 58         ; ':'
+    JNZ r3, render_text_default
+    LDI r9, 0x00FFFF  ; cyan for AI response
     JMP render_text
 
 render_text_default:
     ; Check for '/' commands -> yellow
     LDI r16, SCRATCH
-    LOAD r12, r16
-    CMPI r12, 47         ; '/'
-    JNZ r4, render_text
-    LDI r6, 0xFFFF44  ; yellow for commands
+    LOAD r0, r16
+    CMPI r0, 47         ; '/'
+    JNZ r3, render_text
+    LDI r9, 0xFFFF44  ; yellow for commands
 
 render_text:
-    ; DRAWTEXT x=0, y=r8, addr=SCRATCH, fg=r6, bg=0 (transparent)
-    LDI r7, 0
-    LDI r11, SCRATCH
-    LDI r3, 0         ; bg = transparent
-    DRAWTEXT r7, r8, r11, r6, r3
+    ; DRAWTEXT x=0, y=r8, addr=SCRATCH, fg=r9, bg=0 (transparent)
+    LDI r10, 0
+    LDI r4, SCRATCH
+    LDI r15, 0         ; bg = transparent
+    DRAWTEXT r10, r8, r4, r9, r15
 
-    LDI r7, 1
+    LDI r10, 1
 
-    ADD r8, r2          ; y += 8
-    ADD r15, r7          ; row++
-    CMPI r15, ROWS
-    BLT r15, render_row
+    ADD r8, r6          ; y += 8
+    ADD r12, r10          ; row++
+    CMPI r12, ROWS
+    BLT r12, render_row
 
     ; Cursor (blink)
     LDI r20, BLINK
-    LOAD r4, r20
-    LDI r10, 8
-    AND r4, r10
-    CMPI r4, 4
-    BLT r4, draw_cursor
+    LOAD r3, r20
+    LDI r13, 8
+    AND r3, r13
+    CMPI r3, 4
+    BLT r3, draw_cursor
     JMP cursor_done
 
 draw_cursor:
     LDI r20, CUR_COL
-    LOAD r4, r20
-    MUL r4, r9           ; x = col * 6
+    LOAD r3, r20
+    MUL r3, r2           ; x = col * 6
     LDI r20, CUR_ROW
-    LOAD r0, r20
-    MUL r0, r2           ; row * 8
+    LOAD r5, r20
+    MUL r5, r6           ; row * 8
     LDI r14, 16
-    ADD r0, r14           ; y = 16 + row*8
+    ADD r5, r14           ; y = 16 + row*8
     LDI r14, 6
     LDI r1, 8
-    LDI r13, 0x44FF44
-    RECTF r4, r0, r14, r1, r13
+    LDI r11, 0x44FF44
+    RECTF r3, r5, r14, r1, r11
 
 cursor_done:
     POP r31
@@ -355,58 +355,58 @@ cursor_done:
 
 ; =========================================
 ; HANDLE_KEY
-; r13 = key
+; r11 = key
 ; =========================================
 handle_key:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
-    CMPI r13, 13
-    JNZ r4, check_bs
+    CMPI r11, 13
+    JNZ r3, check_bs
     JMP do_enter
 
 check_bs:
-    CMPI r13, 8
-    JNZ r4, check_del
+    CMPI r11, 8
+    JNZ r3, check_del
     JMP do_backspace
 
 check_del:
-    CMPI r13, 127
-    JNZ r4, check_up_arrow
+    CMPI r11, 127
+    JNZ r3, check_up_arrow
     JMP do_backspace
 
 check_up_arrow:
-    CMPI r13, 128         ; Up arrow = 0x80
-    JNZ r4, check_down_arrow
+    CMPI r11, 128         ; Up arrow = 0x80
+    JNZ r3, check_down_arrow
     JMP do_history_up
 
 check_down_arrow:
-    CMPI r13, 129         ; Down arrow = 0x81
-    JNZ r4, do_char
+    CMPI r11, 129         ; Down arrow = 0x81
+    JNZ r3, do_char
     JMP do_history_down
 
 do_char:
     ; buf[row*COLS + col] = key
     LDI r20, CUR_ROW
-    LOAD r0, r20
+    LOAD r5, r20
     LDI r14, COLS
-    MUL r0, r14           ; r0 = row * COLS
+    MUL r5, r14           ; r5 = row * COLS
     LDI r20, CUR_COL
-    LOAD r4, r20
-    ADD r0, r4           ; r0 = row*COLS + col
+    LOAD r3, r20
+    ADD r5, r3           ; r5 = row*COLS + col
     LDI r20, BUF
-    ADD r20, r0          ; r20 = BUF + offset
-    STORE r20, r13        ; write char
+    ADD r20, r5          ; r20 = BUF + offset
+    STORE r20, r11        ; write char
 
     ; col++
     LDI r20, CUR_COL
-    LOAD r4, r20
-    ADD r4, r7
-    STORE r20, r4
+    LOAD r3, r20
+    ADD r3, r10
+    STORE r20, r3
 
     ; If col >= COLS, wrap
-    CMPI r4, COLS
-    JNZ r4, hk_ret
+    CMPI r3, COLS
+    JNZ r3, hk_ret
     CALL do_newline
     JMP hk_ret
 
@@ -426,183 +426,183 @@ do_enter:
     CALL do_newline
 
     ; 3. Check for / commands
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 47         ; '/'
-    JNZ r4, send_to_llm  ; not a command, send to LLM
+    JNZ r3, send_to_llm  ; not a command, send to LLM
 
     ; Check /help
-    ADD r20, r7
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 104        ; 'h'
-    JNZ r4, try_clear_cmd
-    ADD r20, r7
+    JNZ r3, try_clear_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r4, try_clear_cmd
-    ADD r20, r7
+    JNZ r3, try_clear_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r4, try_clear_cmd
-    ADD r20, r7
+    JNZ r3, try_clear_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 112        ; 'p'
-    JNZ r4, try_clear_cmd
-    ADD r20, r7
+    JNZ r3, try_clear_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r4, send_to_llm
+    JNZ r3, send_to_llm
     JMP cmd_help
 
 try_clear_cmd:
     ; Check /clear
     LDI r20, SCRATCH
-    ADD r20, r7           ; skip '/'
+    ADD r20, r10           ; skip '/'
     LOAD r22, r20
     CMPI r22, 99         ; 'c'
-    JNZ r4, try_sys_cmd
-    ADD r20, r7
+    JNZ r3, try_sys_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r4, try_sys_cmd
-    ADD r20, r7
+    JNZ r3, try_sys_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r4, try_sys_cmd
-    ADD r20, r7
+    JNZ r3, try_sys_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r4, try_sys_cmd
-    ADD r20, r7
+    JNZ r3, try_sys_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 114        ; 'r'
-    JNZ r4, try_sys_cmd
-    ADD r20, r7
+    JNZ r3, try_sys_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r4, send_to_llm
+    JNZ r3, send_to_llm
     JMP cmd_clear
 
 try_sys_cmd:
     ; Check /sys
     LDI r20, SCRATCH
-    ADD r20, r7           ; skip '/'
+    ADD r20, r10           ; skip '/'
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r4, try_run_cmd
-    ADD r20, r7
+    JNZ r3, try_run_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 121        ; 'y'
-    JNZ r4, try_run_cmd
-    ADD r20, r7
+    JNZ r3, try_run_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r4, try_run_cmd
-    ADD r20, r7
+    JNZ r3, try_run_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r4, try_run_cmd
+    JNZ r3, try_run_cmd
     JMP cmd_sys
 
 try_run_cmd:
     ; Check /run
     LDI r20, SCRATCH
-    ADD r20, r7           ; skip '/'
+    ADD r20, r10           ; skip '/'
     LOAD r22, r20
     CMPI r22, 114        ; 'r'
-    JNZ r4, try_yes_cmd
-    ADD r20, r7
+    JNZ r3, try_yes_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r4, try_yes_cmd
-    ADD r20, r7
+    JNZ r3, try_yes_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 110        ; 'n'
-    JNZ r4, try_yes_cmd
-    ADD r20, r7
+    JNZ r3, try_yes_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r4, try_yes_cmd
+    JNZ r3, try_yes_cmd
     JMP cmd_run
 
 try_yes_cmd:
     ; Check /yes -- confirms a pending /run
     LDI r20, SCRATCH
-    ADD r20, r7           ; skip '/'
+    ADD r20, r10           ; skip '/'
     LOAD r22, r20
     CMPI r22, 121        ; 'y'
-    JNZ r4, try_focus_cmd
-    ADD r20, r7
+    JNZ r3, try_focus_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r4, try_focus_cmd
-    ADD r20, r7
+    JNZ r3, try_focus_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r4, try_focus_cmd
-    ADD r20, r7
+    JNZ r3, try_focus_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r4, try_focus_cmd
+    JNZ r3, try_focus_cmd
     JMP cmd_yes
 
 try_focus_cmd:
     ; Check /focus -- set focus opcode for targeted LLM diagnostics
     LDI r20, SCRATCH
-    ADD r20, r7           ; skip '/'
+    ADD r20, r10           ; skip '/'
     LOAD r22, r20
     CMPI r22, 102        ; 'f'
-    JNZ r4, try_status_cmd
-    ADD r20, r7
+    JNZ r3, try_status_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 111        ; 'o'
-    JNZ r4, try_status_cmd
-    ADD r20, r7
+    JNZ r3, try_status_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 99         ; 'c'
-    JNZ r4, try_status_cmd
-    ADD r20, r7
+    JNZ r3, try_status_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r4, try_status_cmd
-    ADD r20, r7
+    JNZ r3, try_status_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r4, try_status_cmd
+    JNZ r3, try_status_cmd
     JMP cmd_focus
 
 try_status_cmd:
     ; Check /status -- show current focus opcode and last assemble result
     LDI r20, SCRATCH
-    ADD r20, r7           ; skip '/'
+    ADD r20, r10           ; skip '/'
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r4, try_debug_cmd
-    ADD r20, r7
+    JNZ r3, try_debug_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 116        ; 't'
-    JNZ r4, try_debug_cmd
-    ADD r20, r7
+    JNZ r3, try_debug_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r4, try_debug_cmd
-    ADD r20, r7
+    JNZ r3, try_debug_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 116        ; 't'
-    JNZ r4, try_debug_cmd
-    ADD r20, r7
+    JNZ r3, try_debug_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r4, try_debug_cmd
-    ADD r20, r7
+    JNZ r3, try_debug_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r4, try_debug_cmd
-    ADD r20, r7
+    JNZ r3, try_debug_cmd
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r4, try_debug_cmd
+    JNZ r3, try_debug_cmd
     JMP cmd_status
 
 ; =========================================
@@ -612,40 +612,40 @@ try_status_cmd:
 ; ── /debug command dispatch ──
 try_debug_cmd:
     LDI r20, SCRATCH
-    ADD r20, r7           ; skip '/'
+    ADD r20, r10           ; skip '/'
     LOAD r22, r20
     CMPI r22, 100        ; 'd'
-    JNZ r4, send_to_llm
-    ADD r20, r7
+    JNZ r3, send_to_llm
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r4, send_to_llm
-    ADD r20, r7
+    JNZ r3, send_to_llm
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 98         ; 'b'
-    JNZ r4, send_to_llm
-    ADD r20, r7
+    JNZ r3, send_to_llm
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r4, send_to_llm
-    ADD r20, r7
+    JNZ r3, send_to_llm
+    ADD r20, r10
     LOAD r22, r20
     CMPI r22, 103        ; 'g'
-    JNZ r4, send_to_llm
+    JNZ r3, send_to_llm
     JMP cmd_debug
 
 send_to_llm:
-    LDI r7, 1
+    LDI r10, 1
     ; Cancel any pending /run -- a new chat turn supersedes prior output.
     LDI r20, RUN_PENDING
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
     ; Increment conversation turn counter
     LDI r20, CTX_TURNS
-    LOAD r4, r20
-    ADD r4, r7
-    STORE r20, r4
+    LOAD r3, r20
+    ADD r3, r10
+    STORE r20, r3
 
     ; Show "Thinking..." status
     LDI r20, SCRATCH
@@ -672,10 +672,10 @@ send_to_llm:
 
     ; Check if we have conversation history
     LDI r8, HISTORY
-    LOAD r11, r8
-    LDI r6, 0
-    CMP r11, r6
-    JZ r4, skip_history
+    LOAD r4, r8
+    LDI r9, 0
+    CMP r4, r9
+    JZ r3, skip_history
 
     ; Append history context
     STRO r19, "Previous: "
@@ -707,24 +707,24 @@ skip_history:
     ; Count prompt chars and add to CTX_CHARS
     LDI r20, PROMPT_BUF
     CALL strlen_prompt_buf
-    ; r4 = prompt length
+    ; r3 = prompt length
     LDI r20, CTX_CHARS
-    LOAD r15, r20
-    ADD r15, r4
-    STORE r20, r15
+    LOAD r12, r20
+    ADD r12, r3
+    STORE r20, r12
 
     ; Call LLM: prompt at PROMPT_BUF, response at RESP_BUF, max 3840 chars
     LDI r14, PROMPT_BUF
     LDI r1, RESP_BUF
-    LDI r13, 3840
-    LLM r14, r1, r13
+    LDI r11, 3840
+    LLM r14, r1, r11
 
-    ; r4 = response length -- add to CTX_CHARS
+    ; r3 = response length -- add to CTX_CHARS
     LDI r20, CTX_CHARS
-    LOAD r15, r20
-    ADD r15, r4
-    STORE r20, r15
-    LDI r7, 1
+    LOAD r12, r20
+    ADD r12, r3
+    STORE r20, r12
+    LDI r10, 1
 
     ; Write "AI: " prefix then response lines
     LDI r20, SCRATCH
@@ -734,27 +734,27 @@ skip_history:
     LDI r22, 0
     LDI r23, 38          ; max chars to append to first line (42 - 4)
 append_first:
-    LOAD r4, r21
-    LDI r12, 0
-    CMP r4, r12
-    JZ r4, first_done
-    LDI r12, 10
-    CMP r4, r12
-    JZ r4, first_done
-    ADD r20, r7
+    LOAD r3, r21
+    LDI r0, 0
+    CMP r3, r0
+    JZ r3, first_done
+    LDI r0, 10
+    CMP r3, r0
+    JZ r3, first_done
+    ADD r20, r10
     ADDI r22, 1
-    STORE r20, r4
-    ADD r21, r7
+    STORE r20, r3
+    ADD r21, r10
     CMPI r22, 38
-    JNZ r4, append_first
+    JNZ r3, append_first
 
 first_done:
-    LDI r4, 0
-    ADD r20, r7
-    STORE r20, r4
+    LDI r3, 0
+    ADD r20, r10
+    STORE r20, r3
 
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
     ; Write remaining response lines (word-wrap at COLS-2)
     LDI r25, 0           ; offset into response
@@ -762,49 +762,49 @@ first_done:
     LDI r26, 0
 skip_written:
     CMPI r26, 38
-    BGE r4, write_remaining
-    LOAD r4, r21
-    LDI r12, 0
-    CMP r4, r12
-    JZ r4, llm_done
-    ADD r21, r7
+    BGE r3, write_remaining
+    LOAD r3, r21
+    LDI r0, 0
+    CMP r3, r0
+    JZ r3, llm_done
+    ADD r21, r10
     ADDI r26, 1
     JMP skip_written
 
 write_remaining:
     ; Check if there are more chars
-    LOAD r4, r21
-    LDI r12, 0
-    CMP r4, r12
-    JZ r4, llm_done
+    LOAD r3, r21
+    LDI r0, 0
+    CMP r3, r0
+    JZ r3, llm_done
 
     ; Write COLS chars per line
     LDI r20, SCRATCH
     LDI r22, 0
 wrap_loop:
-    LOAD r4, r21
-    LDI r12, 0
-    CMP r4, r12
-    JZ r4, wrap_line_done
-    LDI r12, 10
-    CMP r4, r12
-    JNZ r4, wrap_no_newline
+    LOAD r3, r21
+    LDI r0, 0
+    CMP r3, r0
+    JZ r3, wrap_line_done
+    LDI r0, 10
+    CMP r3, r0
+    JNZ r3, wrap_no_newline
     ; Skip newline char, finish this line
-    ADD r21, r7
+    ADD r21, r10
     JMP wrap_line_done
 wrap_no_newline:
-    STORE r20, r4
-    ADD r20, r7
-    ADD r21, r7
+    STORE r20, r3
+    ADD r20, r10
+    ADD r21, r10
     ADDI r22, 1
     CMPI r22, COLS
-    JNZ r4, wrap_loop
+    JNZ r3, wrap_loop
 
 wrap_line_done:
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     JMP write_remaining
 
 llm_done:
@@ -814,14 +814,14 @@ llm_done:
     LDI r22, 0
 save_history:
     CMPI r22, 200
-    BGE r4, history_done
-    LOAD r4, r21
-    STORE r20, r4
-    LDI r12, 0
-    CMP r4, r12
-    JZ r4, history_done
-    ADD r20, r7
-    ADD r21, r7
+    BGE r3, history_done
+    LOAD r3, r21
+    STORE r20, r3
+    LDI r0, 0
+    CMP r3, r0
+    JZ r3, history_done
+    ADD r20, r10
+    ADD r21, r10
     ADDI r22, 1
     JMP save_history
 
@@ -835,48 +835,48 @@ history_done:
 ; =========================================
 
 cmd_help:
-    LDI r7, 1
+    LDI r10, 1
     ; Cancel any pending /run -- asking for help is not confirmation.
     LDI r20, RUN_PENDING
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, SCRATCH
     STRO r20, "Commands: /help /clear /sys /run /yes"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     STRO r20, "/focus 0xNN /status /run /yes"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     STRO r20, "/yes confirms and executes it."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
 cmd_clear:
-    LDI r7, 1
+    LDI r10, 1
     ; Cancel any pending /run.
     LDI r20, RUN_PENDING
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     ; Clear text buffer to spaces
     LDI r20, BUF
-    LDI r12, 32
+    LDI r0, 32
 cc_clear:
-    STORE r20, r12
-    ADD r20, r7
+    STORE r20, r0
+    ADD r20, r10
     CMPI r20, BUF_END
-    BLT r4, cc_clear
+    BLT r3, cc_clear
 
     ; Reset cursor
     LDI r20, CUR_ROW
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, CUR_COL
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
     ; Clear history
     LDI r8, HISTORY
@@ -885,64 +885,64 @@ cc_clear:
 
     ; Reset context tracking
     LDI r20, CTX_TURNS
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, CTX_CHARS
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
     ; Clear command history
     LDI r20, CMD_HIST_COUNT
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, CMD_HIST_NAV
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     STRO r20, "Cleared."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
 cmd_sys:
-    LDI r7, 1
+    LDI r10, 1
     ; Cancel any pending /run.
     LDI r20, RUN_PENDING
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, SCRATCH
     STRO r20, "Geometry OS v2.0"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     STRO r20, "AI Terminal via ZAI"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     STRO r20, "LLM opcode 0x9C"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
 cmd_run:
-    LDI r7, 1
+    LDI r10, 1
 
     ; Check if there's a response to run
     LDI r20, RESP_BUF
-    LOAD r4, r20
-    LDI r12, 0
-    CMP r4, r12
-    JNZ r4, run_has_resp
+    LOAD r3, r20
+    LDI r0, 0
+    CMP r3, r0
+    JNZ r3, run_has_resp
 
     ; No response -- show error
     LDI r20, SCRATCH
     STRO r20, "No AI response to run"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -951,113 +951,113 @@ run_has_resp:
     LDI r20, SCRATCH
     STRO r20, "Assembling response..."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
     ; ASM_RAM uses RESP_BUF address -- the opcode strips ``` fences automatically
-    LDI r15, RESP_BUF
-    ASM_RAM r15
+    LDI r12, RESP_BUF
+    ASM_RAM r12
 
     ; Check status at RAM[0xFFD]
     LDI r20, ASM_STATUS
-    LOAD r4, r20
-    LDI r12, 0
-    LDI r10, 0xFFFFFFFF
-    CMP r4, r10
-    JNZ r4, run_check_zero
+    LOAD r3, r20
+    LDI r0, 0
+    LDI r13, 0xFFFFFFFF
+    CMP r3, r13
+    JNZ r3, run_check_zero
 
     ; Assembly failed
     LDI r20, SCRATCH
     STRO r20, "Assembly failed!"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     STRO r20, "(Check AI output for errors)"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
 run_check_zero:
-    CMP r4, r12
-    JZ r4, run_failed_empty
+    CMP r3, r0
+    JZ r3, run_failed_empty
 
-    ; Success -- r4 = word count. Park it in RUN_PENDING and wait for /yes.
+    ; Success -- r3 = word count. Park it in RUN_PENDING and wait for /yes.
     ; AI-generated code has full VM privileges (files, network, shutdown),
     ; so we require an explicit second keystroke before RUNNEXT.
     LDI r20, RUN_PENDING
-    STORE r20, r4
-    LDI r7, 1
+    STORE r20, r3
+    LDI r10, 1
 
     LDI r20, SCRATCH
     STRO r20, "Compiled OK. /yes to run."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     STRO r20, "Any other input cancels."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
 run_failed_empty:
     ; Treat zero-word output as a failure -- nothing to run.
     LDI r20, RUN_PENDING
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, SCRATCH
     STRO r20, "Assembly produced 0 words"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
 cmd_yes:
-    LDI r7, 1
+    LDI r10, 1
     ; Check RUN_PENDING -- if zero, nothing to confirm.
     LDI r20, RUN_PENDING
-    LOAD r4, r20
-    LDI r12, 0
-    CMP r4, r12
-    JZ r4, yes_nothing_pending
+    LOAD r3, r20
+    LDI r0, 0
+    CMP r3, r0
+    JZ r3, yes_nothing_pending
 
     ; Clear pending flag.
     LDI r20, RUN_PENDING
-    LDI r12, 0
-    STORE r20, r12
+    LDI r0, 0
+    STORE r20, r0
 
     ; Build sandbox capability list and spawn child process.
     ; The child runs the assembled bytecode at 0x1000 with restricted
     ; VFS access (read/write /tmp/*, read /lib/*) and memory isolation
     ; via copy-on-write page tables.
     CALL build_sandbox_caps
-    LDI r7, 1
+    LDI r10, 1
 
     LDI r20, SCRATCH
     STRO r20, "Spawning sandbox..."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
-    ; SPAWNC r15, r5 -- r15=start addr, r5=caps list addr
-    LDI r15, 0x1000
-    LDI r5, SANDBOX_CAPS
-    SPAWNC r15, r5
+    ; SPAWNC r12, r7 -- r12=start addr, r7=caps list addr
+    LDI r12, 0x1000
+    LDI r7, SANDBOX_CAPS
+    SPAWNC r12, r7
 
     ; Check result in RAM[0xFFA]
     LDI r20, ASM_STATUS
     LDI r21, 0xFFA
-    LOAD r4, r21
-    LDI r12, 0xFFFFFFFF
-    CMP r4, r12
-    JZ r4, yes_spawn_failed
+    LOAD r3, r21
+    LDI r0, 0xFFFFFFFF
+    CMP r3, r0
+    JZ r3, yes_spawn_failed
 
-    ; Success -- child PID in r4
+    ; Success -- child PID in r3
     ; Store child PID for watchdog/recovery
     LDI r20, CHILD_PID
-    STORE r20, r4
+    STORE r20, r3
     LDI r20, SCRATCH
     STRO r20, "Sandbox running."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1065,7 +1065,7 @@ yes_spawn_failed:
     LDI r20, SCRATCH
     STRO r20, "Spawn failed! Falling back to RUNNEXT."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     ; Fallback -- run in-process (legacy behavior)
     RUNNEXT
     JMP hk_ret
@@ -1074,7 +1074,7 @@ yes_nothing_pending:
     LDI r20, SCRATCH
     STRO r20, "Nothing to confirm. Use /run first."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1087,7 +1087,7 @@ yes_nothing_pending:
 ; telling the LLM to exercise that specific opcode.
 ; =========================================
 cmd_focus:
-    LDI r7, 1
+    LDI r10, 1
 
     ; Walk SCRATCH past "/focus" to the argument.
     ; SCRATCH+7 should be first char of argument (or space or null).
@@ -1095,38 +1095,38 @@ cmd_focus:
     ADDI r20, 7           ; skip "/focus"
     LOAD r22, r20
     CMPI r22, 0
-    JZ r4, focus_show     ; bare "/focus" with no arg -> show current
+    JZ r3, focus_show     ; bare "/focus" with no arg -> show current
 
     ; Skip spaces between /focus and arg
 focus_skip_space:
     CMPI r22, 32          ; space
-    JNZ r4, focus_parse_arg
+    JNZ r3, focus_parse_arg
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 0
-    JNZ r4, focus_skip_space
+    JNZ r3, focus_skip_space
     JMP focus_show        ; trailing spaces only -> show current
 
 focus_parse_arg:
     ; Check for "off" -> clear focus
     CMPI r22, 111         ; 'o'
-    JNZ r4, focus_try_hex
+    JNZ r3, focus_try_hex
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 102         ; 'f'
-    JNZ r4, focus_try_hex
+    JNZ r3, focus_try_hex
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 102         ; 'f'
-    JNZ r4, focus_try_hex
+    JNZ r3, focus_try_hex
     ; "off" matched -- clear focus
     LDI r20, 0x7821
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, SCRATCH
     STRO r20, "Focus cleared."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1140,7 +1140,7 @@ focus_try_hex:
 focus_hex_skip:
     LOAD r22, r21
     CMPI r22, 32
-    JZ r4, focus_hex_next
+    JZ r3, focus_hex_next
     JMP focus_hex_check
 focus_hex_next:
     ADDI r21, 1
@@ -1149,11 +1149,11 @@ focus_hex_next:
 focus_hex_check:
     LOAD r22, r21
     CMPI r22, 48          ; '0'
-    JNZ r4, focus_bad_arg
+    JNZ r3, focus_bad_arg
     ADDI r21, 1
     LOAD r22, r21
     CMPI r22, 120         ; 'x'
-    JNZ r4, focus_bad_arg
+    JNZ r3, focus_bad_arg
     ADDI r21, 1
 
     ; Parse first hex digit into r23 (high nibble)
@@ -1161,9 +1161,9 @@ focus_hex_check:
     LDI r23, 0
     ; Check '0'-'9': r22 >= 48 AND r22 < 58
     CMPI r22, 48
-    BLT r4, focus_hi_not_digit   ; r22 < 48, not '0'-'9'
+    BLT r3, focus_hi_not_digit   ; r22 < 48, not '0'-'9'
     CMPI r22, 58
-    BGE r4, focus_hi_not_digit   ; r22 >= 58, past '9'
+    BGE r3, focus_hi_not_digit   ; r22 >= 58, past '9'
     ; It IS '0'-'9'
     SUBI r22, 48
     MOV r23, r22
@@ -1173,9 +1173,9 @@ focus_hex_check:
 focus_hi_not_digit:
     ; Check 'A'-'F': r22 >= 65 AND r22 < 71
     CMPI r22, 65
-    BLT r4, focus_hi_not_upper   ; < 'A'
+    BLT r3, focus_hi_not_upper   ; < 'A'
     CMPI r22, 71
-    BGE r4, focus_hi_not_upper   ; > 'F'
+    BGE r3, focus_hi_not_upper   ; > 'F'
     ; It IS 'A'-'F'
     SUBI r22, 55                 ; 'A'=65 -> 10
     MOV r23, r22
@@ -1185,9 +1185,9 @@ focus_hi_not_digit:
 focus_hi_not_upper:
     ; Check 'a'-'f': r22 >= 97 AND r22 < 103
     CMPI r22, 97
-    BLT r4, focus_bad_arg
+    BLT r3, focus_bad_arg
     CMPI r22, 103
-    BGE r4, focus_bad_arg
+    BGE r3, focus_bad_arg
     ; It IS 'a'-'f'
     SUBI r22, 87                 ; 'a'=97 -> 10
     MOV r23, r22
@@ -1200,9 +1200,9 @@ focus_lo_digit_start:
     LOAD r22, r21
     ; Check '0'-'9'
     CMPI r22, 48
-    BLT r4, focus_lo_not_digit
+    BLT r3, focus_lo_not_digit
     CMPI r22, 58
-    BGE r4, focus_lo_not_digit
+    BGE r3, focus_lo_not_digit
     SUBI r22, 48
     OR r23, r22
     JMP focus_write
@@ -1210,9 +1210,9 @@ focus_lo_digit_start:
 focus_lo_not_digit:
     ; Check 'A'-'F'
     CMPI r22, 65
-    BLT r4, focus_lo_not_upper
+    BLT r3, focus_lo_not_upper
     CMPI r22, 71
-    BGE r4, focus_lo_not_upper
+    BGE r3, focus_lo_not_upper
     SUBI r22, 55
     OR r23, r22
     JMP focus_write
@@ -1220,9 +1220,9 @@ focus_lo_not_digit:
 focus_lo_not_upper:
     ; Check 'a'-'f'
     CMPI r22, 97
-    BLT r4, focus_bad_arg
+    BLT r3, focus_bad_arg
     CMPI r22, 103
-    BGE r4, focus_bad_arg
+    BGE r3, focus_bad_arg
     SUBI r22, 87
     OR r23, r22
 
@@ -1237,20 +1237,20 @@ focus_write:
     STRO r20, "Focus set: 0x"
     CALL advance_to_null
     ; Append 2 hex digits
-    MOV r4, r23
-    SHRI r4, 4
+    MOV r3, r23
+    SHRI r3, 4
     CALL hex_digit_char
-    STORE r20, r4
+    STORE r20, r3
     ADDI r20, 1
-    MOV r4, r23
-    ANDI r4, 0xF
+    MOV r3, r23
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r20, r4
+    STORE r20, r3
     ADDI r20, 1
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1261,20 +1261,20 @@ focus_show:
     LDI r20, SCRATCH
     STRO r20, "Focus: 0x"
     CALL advance_to_null
-    MOV r4, r23
-    SHRI r4, 4
+    MOV r3, r23
+    SHRI r3, 4
     CALL hex_digit_char
-    STORE r20, r4
+    STORE r20, r3
     ADDI r20, 1
-    MOV r4, r23
-    ANDI r4, 0xF
+    MOV r3, r23
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r20, r4
+    STORE r20, r3
     ADDI r20, 1
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1282,7 +1282,7 @@ focus_bad_arg:
     LDI r20, SCRATCH
     STRO r20, "Usage: /focus 0xNN or /focus off"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1290,7 +1290,7 @@ focus_bad_arg:
 ; /status -- display focus opcode and last assemble result
 ; =========================================
 cmd_status:
-    LDI r7, 1
+    LDI r10, 1
 
     ; Show focus opcode
     LDI r20, 0x7821
@@ -1298,66 +1298,66 @@ cmd_status:
     LDI r20, SCRATCH
     STRO r20, "Focus opcode: 0x"
     CALL advance_to_null
-    MOV r4, r23
-    SHRI r4, 4
+    MOV r3, r23
+    SHRI r3, 4
     CALL hex_digit_char
-    STORE r20, r4
+    STORE r20, r3
     ADDI r20, 1
-    MOV r4, r23
-    ANDI r4, 0xF
+    MOV r3, r23
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r20, r4
+    STORE r20, r3
     ADDI r20, 1
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
     ; Show last assemble status (simplified: FAILED / OK / no assembly yet)
     LDI r20, ASM_STATUS
     LOAD r23, r20
-    LDI r10, 0xFFFFFFFF
-    CMP r23, r10
-    JNZ r4, status_not_failed
+    LDI r13, 0xFFFFFFFF
+    CMP r23, r13
+    JNZ r3, status_not_failed
     LDI r20, SCRATCH
     STRO r20, "ASM: FAILED"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     JMP status_done
 
 status_not_failed:
-    LDI r10, 0
-    CMP r23, r10
-    JNZ r4, status_has_count
+    LDI r13, 0
+    CMP r23, r13
+    JNZ r3, status_has_count
     LDI r20, SCRATCH
     STRO r20, "ASM: no assembly yet"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     JMP status_done
 
 status_has_count:
     LDI r20, SCRATCH
     STRO r20, "ASM: compiled OK"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
 status_done:
     ; Show prompt mode
     LDI r20, 0x7820
     LOAD r23, r20
     CMPI r23, 1
-    JNZ r4, status_oracle_mode
+    JNZ r3, status_oracle_mode
     LDI r20, SCRATCH
     STRO r20, "Prompt: asm_dev (opcode-aware)"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     JMP status_final
 
 status_oracle_mode:
     LDI r20, SCRATCH
     STRO r20, "Prompt: oracle (world guide)"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
 status_final:
     CALL write_prompt
@@ -1370,37 +1370,37 @@ status_final:
 ;        /debug regs   -- dump child's registers
 ; =========================================
 cmd_debug:
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
     ADDI r20, 7
     LOAD r22, r20
     CMPI r22, 0
-    JZ r4, debug_usage
+    JZ r3, debug_usage
 
 debug_skip_space:
     CMPI r22, 32
-    JNZ r4, debug_parse_arg
+    JNZ r3, debug_parse_arg
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 0
-    JNZ r4, debug_skip_space
+    JNZ r3, debug_skip_space
     JMP debug_usage
 
 debug_parse_arg:
     CMPI r22, 112
-    JNZ r4, debug_try_regs
+    JNZ r3, debug_try_regs
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 105
-    JNZ r4, debug_try_regs
+    JNZ r3, debug_try_regs
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 110
-    JNZ r4, debug_try_regs
+    JNZ r3, debug_try_regs
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 103
-    JNZ r4, debug_try_regs
+    JNZ r3, debug_try_regs
     JMP debug_do_ping
 
 debug_try_regs:
@@ -1409,24 +1409,24 @@ debug_try_regs:
 debug_regs_skip:
     LOAD r22, r20
     CMPI r22, 32
-    JNZ r4, debug_regs_check
+    JNZ r3, debug_regs_check
     ADDI r20, 1
     JMP debug_regs_skip
 debug_regs_check:
     CMPI r22, 114
-    JNZ r4, debug_usage
+    JNZ r3, debug_usage
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 101
-    JNZ r4, debug_usage
+    JNZ r3, debug_usage
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 103
-    JNZ r4, debug_usage
+    JNZ r3, debug_usage
     ADDI r20, 1
     LOAD r22, r20
     CMPI r22, 115
-    JNZ r4, debug_usage
+    JNZ r3, debug_usage
     JMP debug_do_regs
 
 debug_do_ping:
@@ -1434,33 +1434,33 @@ debug_do_ping:
     LOAD r22, r20
     LDI r23, 0xDB9900
     CMP r22, r23
-    JNZ r4, debug_no_stub
-    LDI r4, 3
+    JNZ r3, debug_no_stub
+    LDI r3, 3
     LDI r20, DEBUG_COMMAND
-    STORE r20, r4
-    LDI r4, 1
+    STORE r20, r3
+    LDI r3, 1
     LDI r20, DEBUG_STATUS
-    STORE r20, r4
-    LDI r12, 200
+    STORE r20, r3
+    LDI r0, 200
 debug_ping_wait:
     FRAME
     LDI r20, DEBUG_STATUS
     LOAD r22, r20
     CMPI r22, 2
-    JZ r4, debug_ping_ok
-    SUBI r12, 1
-    CMPI r12, 0
-    JNZ r4, debug_ping_wait
+    JZ r3, debug_ping_ok
+    SUBI r0, 1
+    CMPI r0, 0
+    JNZ r3, debug_ping_wait
     JMP debug_timeout
 
 debug_ping_ok:
-    LDI r4, 0
+    LDI r3, 0
     LDI r20, DEBUG_STATUS
-    STORE r20, r4
+    STORE r20, r3
     LDI r20, SCRATCH
     STRO r20, "Debug stub: PONG"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1469,46 +1469,46 @@ debug_do_regs:
     LOAD r22, r20
     LDI r23, 0xDB9900
     CMP r22, r23
-    JNZ r4, debug_no_stub
-    LDI r4, 1
+    JNZ r3, debug_no_stub
+    LDI r3, 1
     LDI r20, DEBUG_COMMAND
-    STORE r20, r4
-    LDI r4, 1
+    STORE r20, r3
+    LDI r3, 1
     LDI r20, DEBUG_STATUS
-    STORE r20, r4
-    LDI r12, 200
+    STORE r20, r3
+    LDI r0, 200
 debug_regs_wait:
     FRAME
     LDI r20, DEBUG_STATUS
     LOAD r22, r20
     CMPI r22, 2
-    JZ r4, debug_regs_got
-    SUBI r12, 1
-    CMPI r12, 0
-    JNZ r4, debug_regs_wait
+    JZ r3, debug_regs_got
+    SUBI r0, 1
+    CMPI r0, 0
+    JNZ r3, debug_regs_wait
     JMP debug_timeout
 
 debug_regs_got:
-    LDI r4, 0
+    LDI r3, 0
     LDI r20, DEBUG_STATUS
-    STORE r20, r4
+    STORE r20, r3
     LDI r20, SCRATCH
-    STRO r20, "r4="
+    STRO r20, "r3="
     CALL advance_to_null
     LDI r21, DEBUG_RESPONSE
     LOAD r22, r21
     CALL append_hex8
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, SCRATCH
-    STRO r20, "r7="
+    STRO r20, "r10="
     CALL advance_to_null
     LDI r21, DEBUG_RESPONSE
     ADDI r21, 1
     LOAD r22, r21
     CALL append_hex8
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1517,17 +1517,17 @@ append_hex8:
     PUSH r23
     LDI r23, 28
 ah8_loop:
-    MOV r4, r22
-    SHR r4, r23
-    ANDI r4, 0xF
+    MOV r3, r22
+    SHR r3, r23
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r20, r4
+    STORE r20, r3
     ADDI r20, 1
     SUBI r23, 4
     CMPI r23, 0
-    BGE r4, ah8_loop
-    LDI r4, 0
-    STORE r20, r4
+    BGE r3, ah8_loop
+    LDI r3, 0
+    STORE r20, r3
     POP r23
     POP r22
     RET
@@ -1536,7 +1536,7 @@ debug_no_stub:
     LDI r20, SCRATCH
     STRO r20, "No debug stub detected"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1544,7 +1544,7 @@ debug_timeout:
     LDI r20, SCRATCH
     STRO r20, "Debug: timeout"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
@@ -1552,22 +1552,22 @@ debug_usage:
     LDI r20, SCRATCH
     STRO r20, "Usage: /debug ping|regs"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     CALL write_prompt
     JMP hk_ret
 
 ; HEX_DIGIT_CHAR -- convert nibble (0-15) to ASCII hex char
-; Input: r4 = nibble value (0-15)
-; Output: r4 = ASCII char
+; Input: r3 = nibble value (0-15)
+; Output: r3 = ASCII char
 ; =========================================
 hex_digit_char:
-    CMPI r4, 10
-    BGE r4, hdc_alpha
-    ADDI r4, 48           ; '0' + val
+    CMPI r3, 10
+    BGE r3, hdc_alpha
+    ADDI r3, 48           ; '0' + val
     RET
 
 hdc_alpha:
-    ADDI r4, 55           ; 'A' + (val-10)
+    ADDI r3, 55           ; 'A' + (val-10)
     RET
 
 ; =========================================
@@ -1575,21 +1575,21 @@ hdc_alpha:
 ; =========================================
 write_prompt:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, CUR_ROW
-    LOAD r0, r20
+    LOAD r5, r20
     LDI r14, COLS
-    MUL r0, r14
+    MUL r5, r14
     LDI r20, BUF
-    ADD r20, r0
-    LDI r4, 62           ; '>'
-    STORE r20, r4
-    ADD r20, r7
-    LDI r4, 32           ; ' '
-    STORE r20, r4
+    ADD r20, r5
+    LDI r3, 62           ; '>'
+    STORE r20, r3
+    ADD r20, r10
+    LDI r3, 32           ; ' '
+    STORE r20, r3
     LDI r20, CUR_COL
-    LDI r4, 2
-    STORE r20, r4
+    LDI r3, 2
+    STORE r20, r3
     POP r31
     RET
 
@@ -1600,23 +1600,23 @@ write_prompt:
 ; =========================================
 extract_cmd:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Compute base = row * COLS
     LDI r20, CUR_ROW
-    LOAD r12, r20
-    LDI r10, COLS
-    MUL r12, r10
+    LOAD r0, r20
+    LDI r13, COLS
+    MUL r0, r13
 
     ; Get end position (cursor col)
     LDI r20, CUR_COL
-    LOAD r10, r20
+    LOAD r13, r20
 
     ; Source starts at col 2 (skip "> ")
     LDI r20, BUF
-    ADD r20, r12
-    ADD r20, r7
-    ADD r20, r7
+    ADD r20, r0
+    ADD r20, r10
+    ADD r20, r10
 
     ; Destination
     LDI r21, SCRATCH
@@ -1624,20 +1624,20 @@ extract_cmd:
     ; Copy loop: copy chars from col 2 to cursor col
     LDI r22, 2            ; current column index
 ec_loop:
-    CMP r22, r10
-    BGE r4, ec_done
+    CMP r22, r13
+    BGE r3, ec_done
 
-    LOAD r4, r20
-    STORE r21, r4
+    LOAD r3, r20
+    STORE r21, r3
 
-    ADD r20, r7
-    ADD r21, r7
-    ADD r22, r7
+    ADD r20, r10
+    ADD r21, r10
+    ADD r22, r10
     JMP ec_loop
 
 ec_done:
-    LDI r4, 0
-    STORE r21, r4
+    LDI r3, 0
+    STORE r21, r3
     POP r31
     RET
 
@@ -1648,25 +1648,25 @@ ec_done:
 ; =========================================
 write_line_to_buf:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Compute dest: BUF + row*COLS
     LDI r20, CUR_ROW
-    LOAD r0, r20
+    LOAD r5, r20
     LDI r14, COLS
-    MUL r0, r14
+    MUL r5, r14
     LDI r20, BUF
-    ADD r20, r0
+    ADD r20, r5
 
     ; Source
     LDI r21, SCRATCH
 
 wlb_loop:
-    LOAD r4, r21
-    JZ r4, wlb_done
-    STORE r20, r4
-    ADD r20, r7
-    ADD r21, r7
+    LOAD r3, r21
+    JZ r3, wlb_done
+    STORE r20, r3
+    ADD r20, r10
+    ADD r21, r10
     JMP wlb_loop
 
 wlb_done:
@@ -1679,54 +1679,54 @@ wlb_done:
 ; =========================================
 do_backspace:
     LDI r20, CUR_COL
-    LOAD r4, r20
+    LOAD r3, r20
     ; Don't go past column 2 (the "> " prompt)
-    CMPI r4, 2
-    JNZ r4, hk_ret       ; if col <= 2, do nothing (JNZ after CMPI means not-equal)
-    ; Actually: CMPI r4, 2 sets r4 to 0 if equal. So JNZ r4 means "if not 2"
-    ; We want to proceed only if r4 > 2
-    LDI r7, 1
+    CMPI r3, 2
+    JNZ r3, hk_ret       ; if col <= 2, do nothing (JNZ after CMPI means not-equal)
+    ; Actually: CMPI r3, 2 sets r3 to 0 if equal. So JNZ r3 means "if not 2"
+    ; We want to proceed only if r3 > 2
+    LDI r10, 1
     LDI r20, CUR_COL
-    LOAD r4, r20
-    CMPI r4, 2
-    JZ r4, hk_ret        ; at prompt, do nothing
+    LOAD r3, r20
+    CMPI r3, 2
+    JZ r3, hk_ret        ; at prompt, do nothing
 
-    SUBI r4, 1
-    STORE r20, r4
+    SUBI r3, 1
+    STORE r20, r3
     ; Clear char at new position
     LDI r20, CUR_ROW
-    LOAD r0, r20
+    LOAD r5, r20
     LDI r14, COLS
-    MUL r0, r14
+    MUL r5, r14
     LDI r20, CUR_COL
-    LOAD r4, r20
-    ADD r0, r4
+    LOAD r3, r20
+    ADD r5, r3
     LDI r20, BUF
-    ADD r20, r0
-    LDI r4, 32
-    STORE r20, r4
+    ADD r20, r5
+    LDI r3, 32
+    STORE r20, r3
     JMP hk_ret
 
 ; =========================================
 ; DO_NEWLINE
 ; =========================================
 do_newline:
-    LDI r7, 1
+    LDI r10, 1
     LDI r20, CUR_COL
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     LDI r20, CUR_ROW
-    LOAD r12, r20
-    ADD r12, r7
-    CMPI r12, ROWS
-    BLT r4, dn_store
+    LOAD r0, r20
+    ADD r0, r10
+    CMPI r0, ROWS
+    BLT r3, dn_store
     PUSH r31
     CALL scroll_up
     POP r31
     LDI r20, CUR_ROW
-    LDI r12, 29
+    LDI r0, 29
 dn_store:
-    STORE r20, r12
+    STORE r20, r0
     RET
 
 ; =========================================
@@ -1735,57 +1735,57 @@ dn_store:
 ; =========================================
 scroll_up:
     PUSH r31
-    LDI r7, 1
-    LDI r15, 0
+    LDI r10, 1
+    LDI r12, 0
 scroll_loop:
-    CMPI r15, 29
-    BGE r4, scroll_clear
+    CMPI r12, 29
+    BGE r3, scroll_clear
 
     ; Source: BUF + (row+1)*COLS
     LDI r20, BUF
-    LDI r4, 0
-    ADD r4, r15
-    ADD r4, r7
-    LDI r5, COLS
-    MUL r4, r5
-    ADD r20, r4
+    LDI r3, 0
+    ADD r3, r12
+    ADD r3, r10
+    LDI r7, COLS
+    MUL r3, r7
+    ADD r20, r3
 
     ; Dest: BUF + row*COLS
     LDI r21, BUF
-    LDI r4, 0
-    ADD r4, r15
-    LDI r5, COLS
-    MUL r4, r5
-    ADD r21, r4
+    LDI r3, 0
+    ADD r3, r12
+    LDI r7, COLS
+    MUL r3, r7
+    ADD r21, r3
 
     ; Copy COLS words
     LDI r22, 0
 scroll_copy:
-    LOAD r4, r20
-    STORE r21, r4
-    ADD r20, r7
-    ADD r21, r7
-    ADD r22, r7
+    LOAD r3, r20
+    STORE r21, r3
+    ADD r20, r10
+    ADD r21, r10
+    ADD r22, r10
     CMPI r22, COLS
     BLT r22, scroll_copy
 
-    ADD r15, r7
+    ADD r12, r10
     JMP scroll_loop
 
 scroll_clear:
     LDI r20, BUF
-    LDI r12, 29
-    LDI r5, COLS
-    MUL r12, r5
-    ADD r20, r12
-    LDI r12, 32
+    LDI r0, 29
+    LDI r7, COLS
+    MUL r0, r7
+    ADD r20, r0
+    LDI r0, 32
     LDI r22, 0
 scroll_clr_loop:
-    STORE r20, r12
-    ADD r20, r7
-    ADD r22, r7
+    STORE r20, r0
+    ADD r20, r10
+    ADD r22, r10
     CMPI r22, COLS
-    BLT r4, scroll_clr_loop
+    BLT r3, scroll_clr_loop
 
     POP r31
     RET
@@ -1794,21 +1794,21 @@ scroll_clr_loop:
 ; UTILITY: strlen_prompt_buf
 ; Counts chars in PROMPT_BUF until null terminator.
 ; Input: r20 = PROMPT_BUF address
-; Output: r4 = length (does NOT clobber r20)
-; Clobbers: r4, r5, r8
+; Output: r3 = length (does NOT clobber r20)
+; Clobbers: r3, r7, r8
 ; =========================================
 strlen_prompt_buf:
     PUSH r31
-    MOV r5, r20         ; save r20
-    LDI r4, 0
+    MOV r7, r20         ; save r20
+    LDI r3, 0
 sp_strlen_loop:
     LOAD r8, r20
     JZ r8, sp_strlen_done
-    ADDI r4, 1
+    ADDI r3, 1
     ADDI r20, 1
     JMP sp_strlen_loop
 sp_strlen_done:
-    MOV r20, r5         ; restore r20
+    MOV r20, r7         ; restore r20
     POP r31
     RET
 
@@ -1819,9 +1819,9 @@ advance_to_null:
     PUSH r31
 adv_loop:
     LOAD r8, r19
-    LDI r11, 0
-    CMP r8, r11
-    JZ r4, adv_done
+    LDI r4, 0
+    CMP r8, r4
+    JZ r3, adv_done
     ADDI r19, 1
     JMP adv_loop
 adv_done:
@@ -1835,9 +1835,9 @@ copy_until_null:
     PUSH r31
 cun_loop:
     LOAD r8, r18
-    LDI r11, 0
-    CMP r8, r11
-    JZ r4, cun_done
+    LDI r4, 0
+    CMP r8, r4
+    JZ r3, cun_done
     STORE r19, r8
     ADDI r18, 1
     ADDI r19, 1
@@ -1855,10 +1855,10 @@ clear_buf:
     PUSH r31
     PUSH r8
     PUSH r16
-    LDI r11, 0
+    LDI r4, 0
 cb_loop:
     JZ r16, cb_done
-    STORE r8, r11
+    STORE r8, r4
     ADDI r8, 1
     SUBI r16, 1
     JMP cb_loop
@@ -1876,7 +1876,7 @@ cb_done:
 ; =========================================
 build_sandbox_caps:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Write pattern strings
     ; "/tmp/*" at SANDBOX_STRS (0x7600)
@@ -1891,51 +1891,51 @@ build_sandbox_caps:
     ; Build capability struct at SANDBOX_CAPS (0x7500)
     ; [0x7500]: 2 (n_entries)
     LDI r20, SANDBOX_CAPS
-    LDI r12, 2
-    STORE r20, r12
+    LDI r0, 2
+    STORE r20, r0
 
     ; Entry 0: VFS path /tmp/* with read+write (0x03)
     ; [0x7501]: resource_type = 0 (VFS path)
     LDI r20, SANDBOX_CAPS
     ADDI r20, 1
-    LDI r12, 0
-    STORE r20, r12
+    LDI r0, 0
+    STORE r20, r0
     ; [0x7502]: pattern_addr = 0x7600
     ADDI r20, 1
-    LDI r12, SANDBOX_STRS
-    STORE r20, r12
+    LDI r0, SANDBOX_STRS
+    STORE r20, r0
     ; [0x7503]: pattern_len = 6
     ADDI r20, 1
-    LDI r12, 6
-    STORE r20, r12
+    LDI r0, 6
+    STORE r20, r0
     ; [0x7504]: permissions = 0x03 (read+write)
     ADDI r20, 1
-    LDI r12, 3
-    STORE r20, r12
+    LDI r0, 3
+    STORE r20, r0
 
     ; Entry 1: VFS path /lib/* with read (0x01)
     ; [0x7505]: resource_type = 0 (VFS path)
     ADDI r20, 1
-    LDI r12, 0
-    STORE r20, r12
+    LDI r0, 0
+    STORE r20, r0
     ; [0x7506]: pattern_addr = 0x7610
     ADDI r20, 1
-    LDI r12, SANDBOX_STRS
-    ADDI r12, 16
-    STORE r20, r12
+    LDI r0, SANDBOX_STRS
+    ADDI r0, 16
+    STORE r20, r0
     ; [0x7507]: pattern_len = 6
     ADDI r20, 1
-    LDI r12, 6
-    STORE r20, r12
+    LDI r0, 6
+    STORE r20, r0
     ; [0x7508]: permissions = 0x01 (read only)
     ADDI r20, 1
-    LDI r12, 1
-    STORE r20, r12
+    LDI r0, 1
+    STORE r20, r0
 
     ; [0x7509]: sentinel 0xFFFFFFFF
     ADDI r20, 1
-    LDI r12, 0xFFFFFFFF
-    STORE r20, r12
+    LDI r0, 0xFFFFFFFF
+    STORE r20, r0
 
     POP r31
     RET
@@ -1949,26 +1949,26 @@ hk_ret:
 ; =========================================
 check_watchdog:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Decrement watchdog timer
     LDI r20, WATCHDOG_TIMER
-    LOAD r4, r20
-    SUBI r4, 1
-    STORE r20, r4
-    CMPI r4, 0
-    JNZ r4, cw_done     ; Not time to check yet
+    LOAD r3, r20
+    SUBI r3, 1
+    STORE r20, r3
+    CMPI r3, 0
+    JNZ r3, cw_done     ; Not time to check yet
 
     ; Reset timer to 60 frames (1 second)
-    LDI r4, 60
-    STORE r20, r4
+    LDI r3, 60
+    STORE r20, r3
 
     ; Check if child is active (DEBUG_MAGIC)
     LDI r20, DEBUG_MAGIC
     LOAD r22, r20
     LDI r23, 0xDB9900
     CMP r22, r23
-    JNZ r4, cw_done     ; No child active
+    JNZ r3, cw_done     ; No child active
 
     ; Read heartbeat
     LDI r20, DEBUG_HEARTBEAT
@@ -1978,23 +1978,23 @@ check_watchdog:
     LDI r20, LAST_HEARTBEAT
     LOAD r23, r20
     CMP r22, r23
-    JZ r4, cw_flatline   ; Heartbeat hasn't changed!
+    JZ r3, cw_flatline   ; Heartbeat hasn't changed!
 
     ; Heartbeat is moving. Store new value and clear strikes.
     STORE r20, r22
     LDI r20, WATCHDOG_STRIKES
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
     JMP cw_done
 
 cw_flatline:
     ; Heartbeat is stuck. Increment strikes.
     LDI r20, WATCHDOG_STRIKES
-    LOAD r4, r20
-    ADDI r4, 1
-    STORE r20, r4
-    CMPI r4, 3          ; 3 strikes (3 seconds of flatline)
-    BGE r4, trigger_heal
+    LOAD r3, r20
+    ADDI r3, 1
+    STORE r20, r3
+    CMPI r3, 3          ; 3 strikes (3 seconds of flatline)
+    BGE r3, trigger_heal
     JMP cw_done
 
 cw_done:
@@ -2013,19 +2013,19 @@ trigger_heal:
     LDI r20, SCRATCH
     STRO r20, "FAULT: Child flatline!"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
     ; Kill the old child
     LDI r20, CHILD_PID
-    LOAD r15, r20
-    LDI r5, 0              ; Signal 0 = SIGTERM
-    SIGNAL r15, r5
+    LOAD r12, r20
+    LDI r7, 0              ; Signal 0 = SIGTERM
+    SIGNAL r12, r7
     ; Ignore result -- child may already be dead
 
     LDI r20, SCRATCH
     STRO r20, "Killed child process"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
     ; ── Build fault prompt in PROMPT_BUF ──
     LDI r19, PROMPT_BUF
@@ -2054,7 +2054,7 @@ trigger_heal:
     STRO r19, "Last checkpoint PC: 0x"
     CALL advance_to_null
     LDI r20, DEBUG_CHECKPOINT
-    LOAD r4, r20
+    LOAD r3, r20
     CALL write_hex_to_buf   ; writes 8 hex chars to r19
 
     LDI r8, 10
@@ -2064,9 +2064,9 @@ trigger_heal:
     ; Append source if available (RESP_BUF still has last LLM output)
     LDI r20, RESP_BUF
     LOAD r8, r20
-    LDI r11, 0
-    CMP r8, r11
-    JZ r4, heal_no_source
+    LDI r4, 0
+    CMP r8, r4
+    JZ r3, heal_no_source
 
     STRO r19, "Original source:"
     CALL advance_to_null
@@ -2083,204 +2083,204 @@ heal_no_source:
 
     ; Set recovery mode so LLM response auto-executes
     LDI r20, RECOVERY_MODE
-    LDI r4, 1
-    STORE r20, r4
+    LDI r3, 1
+    STORE r20, r3
 
     ; Reset watchdog strikes
     LDI r20, WATCHDOG_STRIKES
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
     ; Clear child PID (it's dead)
     LDI r20, CHILD_PID
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
     ; Call LLM
     LDI r14, PROMPT_BUF
     LDI r1, RESP_BUF
-    LDI r13, 3840
-    LLM r14, r1, r13
+    LDI r11, 3840
+    LLM r14, r1, r11
 
     ; Show status
     LDI r20, SCRATCH
     STRO r20, "Recovery: LLM consulted"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
     ; ── Auto-execute: assemble the LLM's fix and re-spawn ──
     ; Check if LLM returned anything
     LDI r20, RESP_BUF
-    LOAD r4, r20
-    LDI r12, 0
-    CMP r4, r12
-    JZ r4, heal_no_response
+    LOAD r3, r20
+    LDI r0, 0
+    CMP r3, r0
+    JZ r3, heal_no_response
 
     ; Assemble the response
     LDI r20, SCRATCH
     STRO r20, "Recovery: assembling fix..."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
-    LDI r15, RESP_BUF
-    ASM_RAM r15
+    LDI r12, RESP_BUF
+    ASM_RAM r12
 
     ; Check assembly status
     LDI r20, ASM_STATUS
-    LOAD r4, r20
-    LDI r12, 0xFFFFFFFF
-    CMP r4, r12
-    JZ r4, heal_asm_failed
+    LOAD r3, r20
+    LDI r0, 0xFFFFFFFF
+    CMP r3, r0
+    JZ r3, heal_asm_failed
 
-    LDI r12, 0
-    CMP r4, r12
-    JZ r4, heal_asm_empty
+    LDI r0, 0
+    CMP r3, r0
+    JZ r3, heal_asm_empty
 
     ; Assembly succeeded -- spawn directly (no /yes gate)
     LDI r20, SCRATCH
     STRO r20, "Recovery: re-spawning..."
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
     CALL build_sandbox_caps
-    LDI r7, 1
-    LDI r15, 0x1000
-    LDI r5, SANDBOX_CAPS
-    SPAWNC r15, r5
+    LDI r10, 1
+    LDI r12, 0x1000
+    LDI r7, SANDBOX_CAPS
+    SPAWNC r12, r7
 
     ; Check spawn result
     LDI r21, 0xFFA
-    LOAD r4, r21
-    LDI r12, 0xFFFFFFFF
-    CMP r4, r12
-    JZ r4, heal_spawn_failed
+    LOAD r3, r21
+    LDI r0, 0xFFFFFFFF
+    CMP r3, r0
+    JZ r3, heal_spawn_failed
 
     ; Success -- store new child PID
     LDI r20, CHILD_PID
-    STORE r20, r4
+    STORE r20, r3
 
     LDI r20, SCRATCH
     STRO r20, "Recovery: child respawned!"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     JMP heal_done
 
 heal_no_response:
     LDI r20, SCRATCH
     STRO r20, "Recovery: LLM returned nothing"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     JMP heal_done
 
 heal_asm_failed:
     LDI r20, SCRATCH
     STRO r20, "Recovery: assembly failed"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     JMP heal_done
 
 heal_asm_empty:
     LDI r20, SCRATCH
     STRO r20, "Recovery: empty assembly"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
     JMP heal_done
 
 heal_spawn_failed:
     LDI r20, SCRATCH
     STRO r20, "Recovery: spawn failed"
     CALL write_line_to_buf
-    LDI r7, 1
+    LDI r10, 1
 
 heal_done:
     ; Clear recovery mode
     LDI r20, RECOVERY_MODE
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
     POP r31
     RET
 
 ; =========================================
-; WRITE_HEX_TO_BUF -- write 8-char hex of r4 to buffer at r19
-; Input: r4 = value, r19 = buffer position
-; Advances r19 by 8. Uses r0, r14 as scratch.
+; WRITE_HEX_TO_BUF -- write 8-char hex of r3 to buffer at r19
+; Input: r3 = value, r19 = buffer position
+; Advances r19 by 8. Uses r5, r14 as scratch.
 ; =========================================
 write_hex_to_buf:
     PUSH r31
-    PUSH r4
-    LDI r7, 1
+    PUSH r3
+    LDI r10, 1
 
     ; Nibble 7 (bits 31-28)
-    PUSH r4
-    SHRI r4, 28
-    ANDI r4, 0xF
+    PUSH r3
+    SHRI r3, 28
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r19, r4
+    STORE r19, r3
     ADDI r19, 1
-    POP r4
+    POP r3
 
     ; Nibble 6 (bits 27-24)
-    PUSH r4
-    SHRI r4, 24
-    ANDI r4, 0xF
+    PUSH r3
+    SHRI r3, 24
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r19, r4
+    STORE r19, r3
     ADDI r19, 1
-    POP r4
+    POP r3
 
     ; Nibble 5 (bits 23-20)
-    PUSH r4
-    SHRI r4, 20
-    ANDI r4, 0xF
+    PUSH r3
+    SHRI r3, 20
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r19, r4
+    STORE r19, r3
     ADDI r19, 1
-    POP r4
+    POP r3
 
     ; Nibble 4 (bits 19-16)
-    PUSH r4
-    SHRI r4, 16
-    ANDI r4, 0xF
+    PUSH r3
+    SHRI r3, 16
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r19, r4
+    STORE r19, r3
     ADDI r19, 1
-    POP r4
+    POP r3
 
     ; Nibble 3 (bits 15-12)
-    PUSH r4
-    SHRI r4, 12
-    ANDI r4, 0xF
+    PUSH r3
+    SHRI r3, 12
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r19, r4
+    STORE r19, r3
     ADDI r19, 1
-    POP r4
+    POP r3
 
     ; Nibble 2 (bits 11-8)
-    PUSH r4
-    SHRI r4, 8
-    ANDI r4, 0xF
+    PUSH r3
+    SHRI r3, 8
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r19, r4
+    STORE r19, r3
     ADDI r19, 1
-    POP r4
+    POP r3
 
     ; Nibble 1 (bits 7-4)
-    PUSH r4
-    SHRI r4, 4
-    ANDI r4, 0xF
+    PUSH r3
+    SHRI r3, 4
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r19, r4
+    STORE r19, r3
     ADDI r19, 1
-    POP r4
+    POP r3
 
     ; Nibble 0 (bits 3-0)
-    ANDI r4, 0xF
+    ANDI r3, 0xF
     CALL hex_digit_char
-    STORE r19, r4
+    STORE r19, r3
     ADDI r19, 1
 
-    POP r4
+    POP r3
     POP r31
     RET
 
@@ -2290,25 +2290,25 @@ write_hex_to_buf:
 ; =========================================
 render_title:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Title bar background
-    LDI r7, 0
-    LDI r0, 0
+    LDI r10, 0
+    LDI r5, 0
     LDI r14, 256
     LDI r1, 16
-    LDI r13, 0x1A0033
-    RECTF r7, r0, r14, r1, r13
+    LDI r11, 0x1A0033
+    RECTF r10, r5, r14, r1, r11
 
     ; Title text
     LDI r20, SCRATCH
     STRO r20, "AI Terminal - ZAI"
-    LDI r7, 4
-    LDI r0, 4
+    LDI r10, 4
+    LDI r5, 4
     LDI r14, SCRATCH
     LDI r1, 0x00FF00
-    LDI r13, 0x1A0033
-    DRAWTEXT r7, r0, r14, r1, r13
+    LDI r11, 0x1A0033
+    DRAWTEXT r10, r5, r14, r1, r11
 
     ; Append turn count: " T:N"
     LDI r20, SCRATCH
@@ -2318,7 +2318,7 @@ render_title:
 
     ; Load turn count and convert to decimal
     LDI r20, CTX_TURNS
-    LOAD r4, r20
+    LOAD r3, r20
     CALL u32_to_dec_str
     ; u32_to_dec_str writes digits to SCRATCH at current pos
 
@@ -2330,35 +2330,35 @@ render_title:
 
     ; Load chars count and convert to decimal
     LDI r20, CTX_CHARS
-    LOAD r4, r20
+    LOAD r3, r20
     CALL u32_to_dec_str
 
     ; Draw the title
-    LDI r7, 4
-    LDI r0, 4
+    LDI r10, 4
+    LDI r5, 4
     LDI r14, SCRATCH
     LDI r1, 0x00FF00
-    LDI r13, 0x1A0033
-    DRAWTEXT r7, r0, r14, r1, r13
+    LDI r11, 0x1A0033
+    DRAWTEXT r10, r5, r14, r1, r11
 
     ; Status indicator dot (green)
-    LDI r7, 230
-    LDI r0, 4
+    LDI r10, 230
+    LDI r5, 4
     LDI r14, 8
     LDI r1, 8
-    LDI r13, 0x00FF00
-    RECTF r7, r0, r14, r1, r13
+    LDI r11, 0x00FF00
+    RECTF r10, r5, r14, r1, r11
 
     ; History indicator (small amber dot if history has entries)
     LDI r20, CMD_HIST_COUNT
-    LOAD r4, r20
-    JZ r4, title_no_hist
-    LDI r7, 216
-    LDI r0, 4
+    LOAD r3, r20
+    JZ r3, title_no_hist
+    LDI r10, 216
+    LDI r5, 4
     LDI r14, 6
     LDI r1, 6
-    LDI r13, 0xFFAA00
-    RECTF r7, r0, r14, r1, r13
+    LDI r11, 0xFFAA00
+    RECTF r10, r5, r14, r1, r11
 title_no_hist:
 
     POP r31
@@ -2366,10 +2366,10 @@ title_no_hist:
 
 ; =========================================
 ; U32_TO_DEC_STR - Convert u32 to decimal ASCII
-; Input: r4 = number (capped at 9999)
+; Input: r3 = number (capped at 9999)
 ; Output: writes decimal digits to SCRATCH at current null-terminator position
 ;         advances SCRATCH pointer past the digits + null
-; Clobbers: r4, r12, r10
+; Clobbers: r3, r0, r13
 ; =========================================
 u32_to_dec_str:
     ; Find null terminator in SCRATCH
@@ -2378,72 +2378,72 @@ u32_to_dec_str:
     ; r20 now points at the null
 
     ; Cap at 9999 to keep it short
-    LDI r10, 9999
-    CMP r4, r10
-    BLT r4, u2d_notcap
-    LDI r4, 9999
+    LDI r13, 9999
+    CMP r3, r13
+    BLT r3, u2d_notcap
+    LDI r3, 9999
 u2d_notcap:
 
     ; We need to extract decimal digits.
     ; For numbers < 10000: thousands, hundreds, tens, ones.
     ; Skip leading zeros.
-    LDI r12, 0            ; digit count (suppressed leading zeros)
-    LDI r10, 1000
+    LDI r0, 0            ; digit count (suppressed leading zeros)
+    LDI r13, 1000
 
     ; Thousands digit
-    LDI r12, 0
-    MOV r12, r4
-    DIV r12, r10           ; r12 = n / 1000
-    JZ r12, u2d_no_thou
-    ADDI r12, 48          ; '0' + digit
-    STORE r20, r12
+    LDI r0, 0
+    MOV r0, r3
+    DIV r0, r13           ; r0 = n / 1000
+    JZ r0, u2d_no_thou
+    ADDI r0, 48          ; '0' + digit
+    STORE r20, r0
     ADDI r20, 1
 u2d_no_thou:
 
     ; Hundreds digit: (n / 100) % 10
-    MOV r12, r4
-    LDI r10, 100
-    DIV r12, r10           ; r12 = n / 100
-    LDI r10, 10
-    MOD r12, r10           ; r12 = (n/100) % 10 = hundreds digit
+    MOV r0, r3
+    LDI r13, 100
+    DIV r0, r13           ; r0 = n / 100
+    LDI r13, 10
+    MOD r0, r13           ; r0 = (n/100) % 10 = hundreds digit
 
     ; Check if we should skip (no thousands AND hundreds is 0)
-    LDI r10, 1000
-    CMP r4, r10
-    BLT r4, u2d_skip_hun
-    JZ r12, u2d_skip_hun
-    ADDI r12, 48
-    STORE r20, r12
+    LDI r13, 1000
+    CMP r3, r13
+    BLT r3, u2d_skip_hun
+    JZ r0, u2d_skip_hun
+    ADDI r0, 48
+    STORE r20, r0
     ADDI r20, 1
 u2d_skip_hun:
 
     ; Tens digit
-    MOV r12, r4
-    LDI r10, 10
-    DIV r12, r10           ; r12 = n / 10
-    MOD r12, r10           ; r12 = (n/10) % 10 = tens digit
+    MOV r0, r3
+    LDI r13, 10
+    DIV r0, r13           ; r0 = n / 10
+    MOD r0, r13           ; r0 = (n/10) % 10 = tens digit
 
     ; Check if we should skip (n < 10 AND no prior digits)
-    LDI r10, 10
-    CMP r4, r10
-    BLT r4, u2d_skip_ten
-    JZ r12, u2d_skip_ten
-    ADDI r12, 48
-    STORE r20, r12
+    LDI r13, 10
+    CMP r3, r13
+    BLT r3, u2d_skip_ten
+    JZ r0, u2d_skip_ten
+    ADDI r0, 48
+    STORE r20, r0
     ADDI r20, 1
 u2d_skip_ten:
 
     ; Ones digit (always print)
-    MOV r12, r4
-    LDI r10, 10
-    MOD r12, r10           ; r12 = n % 10
-    ADDI r12, 48
-    STORE r20, r12
+    MOV r0, r3
+    LDI r13, 10
+    MOD r0, r13           ; r0 = n % 10
+    ADDI r0, 48
+    STORE r20, r0
     ADDI r20, 1
 
     ; Null terminate
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
     RET
 
@@ -2454,102 +2454,102 @@ u2d_skip_ten:
 ; =========================================
 history_save:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Check if SCRATCH is empty (just "> " with no text after)
     LDI r20, SCRATCH
-    LOAD r4, r20
-    CMPI r4, 0
-    JZ r4, hist_save_done  ; empty command, skip
+    LOAD r3, r20
+    CMPI r3, 0
+    JZ r3, hist_save_done  ; empty command, skip
 
     ; Load history count
     LDI r20, CMD_HIST_COUNT
-    LOAD r12, r20          ; r12 = count
+    LOAD r0, r20          ; r0 = count
 
     ; Don't save duplicates of the most recent entry
-    CMPI r12, 0
-    JZ r12, hist_not_dup
+    CMPI r0, 0
+    JZ r0, hist_not_dup
     ; Compare SCRATCH with last entry
     ; Last entry index = (count - 1) % 8
-    SUBI r12, 1
-    LDI r10, 8
-    MOD r12, r10           ; r12 = last entry index
-    LDI r10, 42
-    MUL r12, r10           ; r12 = byte offset of last entry
-    ADDI r12, CMD_HIST_BASE ; r12 = address of last entry
-    CALL strcmp_scratch    ; sets r4 = 0 if equal
-    JZ r4, hist_save_done ; duplicate, skip
+    SUBI r0, 1
+    LDI r13, 8
+    MOD r0, r13           ; r0 = last entry index
+    LDI r13, 42
+    MUL r0, r13           ; r0 = byte offset of last entry
+    ADDI r0, CMD_HIST_BASE ; r0 = address of last entry
+    CALL strcmp_scratch    ; sets r3 = 0 if equal
+    JZ r3, hist_save_done ; duplicate, skip
 
 hist_not_dup:
     ; Reload count
     LDI r20, CMD_HIST_COUNT
-    LOAD r12, r20
+    LOAD r0, r20
 
     ; Write index = count % 8
-    MOV r10, r12
-    LDI r2, 8
-    MOD r10, r2           ; r10 = write index
+    MOV r13, r0
+    LDI r6, 8
+    MOD r13, r6           ; r13 = write index
 
     ; Compute dest address = CMD_HIST_BASE + write_index * 42
-    LDI r9, 42
-    MUL r10, r9
-    ADDI r10, CMD_HIST_BASE
+    LDI r2, 42
+    MUL r13, r2
+    ADDI r13, CMD_HIST_BASE
 
     ; Copy 42 chars from SCRATCH to dest
     LDI r16, SCRATCH
     LDI r17, 0
 hist_copy:
-    CMP r17, r9
-    BGE r4, hist_copy_done
-    LOAD r4, r16
-    STORE r10, r4
+    CMP r17, r2
+    BGE r3, hist_copy_done
+    LOAD r3, r16
+    STORE r13, r3
     ADDI r16, 1
-    ADDI r10, 1
+    ADDI r13, 1
     ADDI r17, 1
     JMP hist_copy
 hist_copy_done:
 
     ; Increment count (cap at 8)
     LDI r20, CMD_HIST_COUNT
-    LOAD r4, r20
-    ADDI r4, 1
-    LDI r10, 8
-    CMP r4, r10
-    BLT r4, hist_no_cap
-    LDI r4, 8
+    LOAD r3, r20
+    ADDI r3, 1
+    LDI r13, 8
+    CMP r3, r13
+    BLT r3, hist_no_cap
+    LDI r3, 8
 hist_no_cap:
-    STORE r20, r4
+    STORE r20, r3
 
     ; Reset nav index to count (so down arrow goes to current)
     LDI r20, CMD_HIST_NAV
-    LDI r4, 0
-    STORE r20, r4
+    LDI r3, 0
+    STORE r20, r3
 
 hist_save_done:
     POP r31
     RET
 
 ; =========================================
-; STRCMP_SCRATCH - Compare SCRATCH with string at r12
-; Returns r4 = 0 if equal, nonzero otherwise
-; Clobbers: r4, r10, r2
+; STRCMP_SCRATCH - Compare SCRATCH with string at r0
+; Returns r3 = 0 if equal, nonzero otherwise
+; Clobbers: r3, r13, r6
 ; =========================================
 strcmp_scratch:
-    LDI r10, SCRATCH
+    LDI r13, SCRATCH
 strcmp_loop:
-    LOAD r4, r10
-    LOAD r2, r12
-    CMP r4, r2
-    JNZ r4, strcmp_neq
-    JZ r4, strcmp_eq     ; both null = equal
-    ADDI r10, 1
-    ADDI r12, 1
+    LOAD r3, r13
+    LOAD r6, r0
+    CMP r3, r6
+    JNZ r3, strcmp_neq
+    JZ r3, strcmp_eq     ; both null = equal
+    ADDI r13, 1
+    ADDI r0, 1
     JMP strcmp_loop
 strcmp_neq:
-    LDI r4, 1            ; not equal
+    LDI r3, 1            ; not equal
     RET
 strcmp_eq:
-    LDI r4, 0            ; equal
+    LDI r3, 0            ; equal
     RET
 
 ; =========================================
@@ -2558,26 +2558,26 @@ strcmp_eq:
 ; =========================================
 do_history_up:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Load history count
     LDI r20, CMD_HIST_COUNT
-    LOAD r12, r20
-    JZ r12, hist_up_done  ; no history
+    LOAD r0, r20
+    JZ r0, hist_up_done  ; no history
 
     ; Load current nav index
     LDI r20, CMD_HIST_NAV
-    LOAD r10, r20          ; r10 = current nav index
+    LOAD r13, r20          ; r13 = current nav index
 
     ; Check if we can go further back
     ; max index = count - 1
-    MOV r2, r12
-    SUBI r2, 1
-    CMP r10, r2
-    BGE r4, hist_up_done  ; already at oldest
+    MOV r6, r0
+    SUBI r6, 1
+    CMP r13, r6
+    BGE r3, hist_up_done  ; already at oldest
 
     ; If nav index is 0, save current prompt line first
-    JNZ r10, hist_up_recall
+    JNZ r13, hist_up_recall
     ; Save current prompt to temp slot (index = count, wraps or overflows)
     ; We save to the last slot (index = count % 8) before overwriting
     ; Actually, let's save to SCRATCH area temporarily
@@ -2585,20 +2585,20 @@ do_history_up:
 
 hist_up_recall:
     ; Increment nav index
-    ADDI r10, 1
+    ADDI r13, 1
     LDI r20, CMD_HIST_NAV
-    STORE r20, r10
+    STORE r20, r13
 
     ; Compute history address: (count - 1 - nav_index) % 8 * 42 + CMD_HIST_BASE
     ; This walks backwards through history
-    MOV r2, r12           ; r2 = count
-    SUBI r2, 1           ; r2 = count - 1
-    SUB r2, r10           ; r2 = count - 1 - nav_index
-    LDI r9, 8
-    MOD r2, r9           ; r2 = wrapped index
-    LDI r9, 42
-    MUL r2, r9           ; r2 = byte offset
-    ADDI r2, CMD_HIST_BASE
+    MOV r6, r0           ; r6 = count
+    SUBI r6, 1           ; r6 = count - 1
+    SUB r6, r13           ; r6 = count - 1 - nav_index
+    LDI r2, 8
+    MOD r6, r2           ; r6 = wrapped index
+    LDI r2, 42
+    MUL r6, r2           ; r6 = byte offset
+    ADDI r6, CMD_HIST_BASE
 
     ; Clear current prompt line (keep "> " prefix)
     CALL clear_prompt_line
@@ -2608,12 +2608,12 @@ hist_up_recall:
     ADDI r20, 2          ; skip "> " prefix
     LDI r17, 0
 hist_up_copy:
-    CMP r17, r9
-    BGE r4, hist_up_copy_done
-    LOAD r4, r2
-    JZ r4, hist_up_copy_done  ; stop at null terminator
-    STORE r20, r4
-    ADDI r2, 1
+    CMP r17, r2
+    BGE r3, hist_up_copy_done
+    LOAD r3, r6
+    JZ r3, hist_up_copy_done  ; stop at null terminator
+    STORE r20, r3
+    ADDI r6, 1
     ADDI r20, 1
     ADDI r17, 1
     JMP hist_up_copy
@@ -2623,10 +2623,10 @@ hist_up_copy_done:
     LDI r20, CUR_COL
     STORE r20, r17       ; col = number of chars copied
     ADDI r20, 2          ; but we need absolute col in display
-    LDI r4, 2
-    ADD r4, r17
+    LDI r3, 2
+    ADD r3, r17
     LDI r20, CUR_COL
-    STORE r20, r4
+    STORE r20, r3
 
 hist_up_done:
     POP r31
@@ -2637,37 +2637,37 @@ hist_up_done:
 ; =========================================
 do_history_down:
     PUSH r31
-    LDI r7, 1
+    LDI r10, 1
 
     ; Load nav index
     LDI r20, CMD_HIST_NAV
-    LOAD r10, r20
-    JZ r10, hist_down_done  ; already at current input
+    LOAD r13, r20
+    JZ r13, hist_down_done  ; already at current input
 
     ; Decrement nav index
-    SUBI r10, 1
+    SUBI r13, 1
     LDI r20, CMD_HIST_NAV
-    STORE r20, r10
+    STORE r20, r13
 
     ; If nav index is now 0, restore the saved current prompt
-    JNZ r10, hist_down_recall
+    JNZ r13, hist_down_recall
     CALL restore_current_prompt
     JMP hist_down_done
 
 hist_down_recall:
     ; Load history count
     LDI r20, CMD_HIST_COUNT
-    LOAD r12, r20
+    LOAD r0, r20
 
     ; Compute address: (count - 1 - nav_index) % 8 * 42 + CMD_HIST_BASE
-    MOV r2, r12
-    SUBI r2, 1
-    SUB r2, r10
-    LDI r9, 8
-    MOD r2, r9
-    LDI r9, 42
-    MUL r2, r9
-    ADDI r2, CMD_HIST_BASE
+    MOV r6, r0
+    SUBI r6, 1
+    SUB r6, r13
+    LDI r2, 8
+    MOD r6, r2
+    LDI r2, 42
+    MUL r6, r2
+    ADDI r6, CMD_HIST_BASE
 
     ; Clear current prompt line
     CALL clear_prompt_line
@@ -2677,21 +2677,21 @@ hist_down_recall:
     ADDI r20, 2
     LDI r17, 0
 hist_dn_copy:
-    CMP r17, r9
-    BGE r4, hist_dn_copy_done
-    LOAD r4, r2
-    JZ r4, hist_dn_copy_done
-    STORE r20, r4
-    ADDI r2, 1
+    CMP r17, r2
+    BGE r3, hist_dn_copy_done
+    LOAD r3, r6
+    JZ r3, hist_dn_copy_done
+    STORE r20, r3
+    ADDI r6, 1
     ADDI r20, 1
     ADDI r17, 1
     JMP hist_dn_copy
 hist_dn_copy_done:
 
-    LDI r4, 2
-    ADD r4, r17
+    LDI r3, 2
+    ADD r3, r17
     LDI r20, CUR_COL
-    STORE r20, r4
+    STORE r20, r3
 
 hist_down_done:
     POP r31
@@ -2723,47 +2723,47 @@ restore_current_prompt:
     ADDI r20, 2          ; skip "> "
     LDI r17, 0
 restore_loop:
-    LOAD r4, r20
-    JZ r4, restore_done
+    LOAD r3, r20
+    JZ r3, restore_done
     ADDI r17, 1
     ADDI r20, 1
     JMP restore_loop
 restore_done:
-    LDI r4, 2
-    ADD r4, r17
+    LDI r3, 2
+    ADD r3, r17
     LDI r20, CUR_COL
-    STORE r20, r4
+    STORE r20, r3
     RET
 
 ; =========================================
 ; CLEAR_PROMPT_LINE - Clear text after "> " on current row
 ; =========================================
 clear_prompt_line:
-    LDI r7, 1
+    LDI r10, 1
     ; Get current row
     LDI r20, CUR_ROW
-    LOAD r4, r20
-    LDI r10, COLS
-    MUL r4, r10           ; r4 = row * COLS
-    LDI r10, PROMPT_BUF
-    ADD r10, r4           ; r10 = &PROMPT_BUF[row * COLS]
+    LOAD r3, r20
+    LDI r13, COLS
+    MUL r3, r13           ; r3 = row * COLS
+    LDI r13, PROMPT_BUF
+    ADD r13, r3           ; r13 = &PROMPT_BUF[row * COLS]
 
     ; Write "> " at start
-    LDI r4, 62           ; '>'
-    STORE r10, r4
-    ADDI r10, 1
-    LDI r4, 32           ; ' '
-    STORE r10, r4
-    ADDI r10, 1
+    LDI r3, 62           ; '>'
+    STORE r13, r3
+    ADDI r13, 1
+    LDI r3, 32           ; ' '
+    STORE r13, r3
+    ADDI r13, 1
 
     ; Clear rest of the line (40 more chars)
-    LDI r4, 0
+    LDI r3, 0
     LDI r17, 0
 clear_prompt_loop:
     CMPI r17, 40
-    BGE r4, clear_prompt_done
-    STORE r10, r4
-    ADDI r10, 1
+    BGE r3, clear_prompt_done
+    STORE r13, r3
+    ADDI r13, 1
     ADDI r17, 1
     JMP clear_prompt_loop
 clear_prompt_done:

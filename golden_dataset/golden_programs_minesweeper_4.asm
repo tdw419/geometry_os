@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a Minesweeper game with an 8x8 grid and 10 mines. It initializes the game state, places mines randomly, calculates adjacent mine counts for each cell, handles user input (mouse clicks and keyboard toggles), and renders the game grid, status messages, and buttons within a loop that updates the display frame by frame. The game checks for win or lose conditions and provides visual feedback based on player actions.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; minesweeper.asm -- Minesweeper Game for Geometry OS
 ;
@@ -41,47 +41,47 @@
 
 ; ── INIT ──────────────────────────────────────
 start:
-    LDI r5, 1
+    LDI r4, 1
     LDI r30, 0xFD00
 
     ; Clear mine grid (256 words)
     LDI r20, MINE_GRID
     LDI r21, MINE_END
 clr_mine:
-    LDI r15, 0
-    STORE r20, r15
-    LDI r5, 1
-    ADD r20, r5
+    LDI r14, 0
+    STORE r20, r14
+    LDI r4, 1
+    ADD r20, r4
     CMP r20, r21
-    BLT r15, clr_mine
+    BLT r14, clr_mine
 
     ; Clear reveal grid (256 words)
     LDI r20, REVEAL
     LDI r21, REVEAL_END
 clr_rev:
-    LDI r15, 0
-    STORE r20, r15
-    LDI r5, 1
-    ADD r20, r5
+    LDI r14, 0
+    STORE r20, r14
+    LDI r4, 1
+    ADD r20, r4
     CMP r20, r21
-    BLT r15, clr_rev
+    BLT r14, clr_rev
 
     ; Clear adj grid (256 words)
     LDI r20, ADJ
     LDI r21, ADJ_END
 clr_adj:
-    LDI r15, 0
-    STORE r20, r15
-    LDI r5, 1
-    ADD r20, r5
+    LDI r14, 0
+    STORE r20, r14
+    LDI r4, 1
+    ADD r20, r4
     CMP r20, r21
-    BLT r15, clr_adj
+    BLT r14, clr_adj
 
     ; Place 10 mines using RAND
     LDI r20, 0
 place_loop:
     CMPI r20, NUM_MINES
-    BGE r15, place_done
+    BGE r14, place_done
     RAND r21
     LDI r22, 64
     MOD r21, r22
@@ -90,12 +90,12 @@ place_loop:
     ADD r23, r21
     LOAD r24, r23
     CMPI r24, 1
-    JNZ r15, place_found
+    JNZ r14, place_found
     JMP place_loop
 place_found:
-    LDI r5, 1
-    STORE r23, r5
-    ADD r20, r5
+    LDI r4, 1
+    STORE r23, r4
+    ADD r20, r4
     JMP place_loop
 place_done:
 
@@ -103,11 +103,11 @@ place_done:
     LDI r20, 0
 calc_row:
     CMPI r20, ROWS
-    BGE r15, calc_done
+    BGE r14, calc_done
     LDI r21, 0
 calc_col:
     CMPI r21, COLS
-    BGE r15, calc_next_row
+    BGE r14, calc_next_row
     ; count = 0
     LDI r22, 0
     ; Check all 8 neighbors by unrolled offset approach
@@ -116,16 +116,16 @@ calc_col:
     LDI r25, 0xFFFFFFFF
 calc_dr:
     CMPI r25, 2
-    BGE r15, calc_store
+    BGE r14, calc_store
     LDI r26, 0xFFFFFFFF
 calc_dc:
     CMPI r26, 2
-    BGE r15, calc_dr_inc
+    BGE r14, calc_dr_inc
     ; Skip center (0,0)
     CMPI r25, 0
-    JNZ r15, calc_do_check
+    JNZ r14, calc_do_check
     CMPI r26, 0
-    JZ r15, calc_dc_inc
+    JZ r14, calc_dc_inc
 
 calc_do_check:
     ; nr = row + dr, nc = col + dc
@@ -139,13 +139,13 @@ calc_do_check:
     ; Bounds check: nr must be 0..7, nc must be 0..7
     ; Check nr < 0 (signed negative)
     CMPI r27, 0
-    BLT r15, calc_pop_check
+    BLT r14, calc_pop_check
     CMPI r27, COLS
-    BGE r15, calc_pop_check
+    BGE r14, calc_pop_check
     CMPI r28, 0
-    BLT r15, calc_pop_check
+    BLT r14, calc_pop_check
     CMPI r28, COLS
-    BGE r15, calc_pop_check
+    BGE r14, calc_pop_check
     ; Compute index = nr * 8 + nc
     MOV r29, r27
     LDI r23, COLS
@@ -156,24 +156,24 @@ calc_do_check:
     ADD r23, r29
     LOAD r23, r23
     CMPI r23, 1
-    JNZ r15, calc_pop_check
+    JNZ r14, calc_pop_check
     ; It is a mine - increment count
     POP r22
     PUSH r22
-    LDI r5, 1
-    ADD r22, r5
+    LDI r4, 1
+    ADD r22, r4
 
 calc_pop_check:
     POP r22
     POP r21
     POP r20
 calc_dc_inc:
-    LDI r5, 1
-    ADD r26, r5
+    LDI r4, 1
+    ADD r26, r4
     JMP calc_dc
 calc_dr_inc:
-    LDI r5, 1
-    ADD r25, r5
+    LDI r4, 1
+    ADD r25, r4
     JMP calc_dr
 
 calc_store:
@@ -190,57 +190,57 @@ calc_store:
     POP r21
     POP r20
     ; Next col
-    LDI r5, 1
-    ADD r21, r5
+    LDI r4, 1
+    ADD r21, r4
     JMP calc_col
 calc_next_row:
-    LDI r5, 1
-    ADD r20, r5
+    LDI r4, 1
+    ADD r20, r4
     JMP calc_row
 calc_done:
 
     ; Set game state
     LDI r20, STATE
-    LDI r15, 0
-    STORE r20, r15
+    LDI r14, 0
+    STORE r20, r14
     LDI r20, FLAG_MODE
-    STORE r20, r15
+    STORE r20, r14
     LDI r20, MINE_LEFT
-    LDI r15, NUM_MINES
-    STORE r20, r15
+    LDI r14, NUM_MINES
+    STORE r20, r14
 
 ; ── MAIN LOOP ──────────────────────────────────
 main_loop:
     ; Fill background dark navy
-    LDI r6, 0x1A1A2E
-    FILL r6
+    LDI r2, 0x1A1A2E
+    FILL r2
 
     ; Title bar
-    LDI r5, 0
-    LDI r2, 0
-    LDI r4, 256
-    LDI r14, 20
-    LDI r6, 0x333355
-    RECTF r5, r2, r4, r14, r6
+    LDI r4, 0
+    LDI r0, 0
+    LDI r15, 256
+    LDI r1, 20
+    LDI r2, 0x333355
+    RECTF r4, r0, r15, r1, r2
 
     LDI r20, STR_BUF
     STRO r20, "MINESWEEPER"
-    LDI r5, 1
-    LDI r2, 6
-    LDI r4, STR_BUF
-    TEXT r5, r2, r4
+    LDI r4, 1
+    LDI r0, 6
+    LDI r15, STR_BUF
+    TEXT r4, r0, r15
 
     ; Draw 8x8 grid
     LDI r25, 0
 draw_row:
     CMPI r25, ROWS
-    BGE r15, draw_done
+    BGE r14, draw_done
     LDI r26, 0
 draw_col:
     CMPI r26, COLS
-    BGE r15, draw_next_row
+    BGE r14, draw_next_row
     ; Compute pixel position
-    LDI r5, 1
+    LDI r4, 1
     ; px = GRID_X + col * CELL
     MOV r20, r26
     LDI r21, CELL
@@ -268,61 +268,61 @@ draw_col:
 
     ; Draw based on state: 0=hidden, 1=revealed, 2=flagged
     CMPI r24, 2
-    JNZ r15, draw_check_revealed
+    JNZ r14, draw_check_revealed
     ; Flagged - orange
-    LDI r4, CELL
-    LDI r14, CELL
-    LDI r6, 0xFF8800
-    RECTF r21, r22, r4, r14, r6
+    LDI r15, CELL
+    LDI r1, CELL
+    LDI r2, 0xFF8800
+    RECTF r21, r22, r15, r1, r2
     JMP draw_next_cell
 
 draw_check_revealed:
     CMPI r24, 1
-    JNZ r15, draw_hidden
+    JNZ r14, draw_hidden
     ; Revealed - light
-    LDI r4, CELL
-    LDI r14, CELL
-    LDI r6, 0xCCCCDD
-    RECTF r21, r22, r4, r14, r6
+    LDI r15, CELL
+    LDI r1, CELL
+    LDI r2, 0xCCCCDD
+    RECTF r21, r22, r15, r1, r2
     ; Draw number if adj > 0
     LDI r23, ADJ
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 0
-    JZ r15, draw_next_cell
+    JZ r14, draw_next_cell
     ; Convert count to ASCII
-    LDI r6, 48
-    ADD r6, r24
+    LDI r2, 48
+    ADD r2, r24
     LDI r23, SCRATCH
-    STORE r23, r6
-    LDI r6, 0
-    LDI r5, 1
-    ADD r23, r5
-    STORE r23, r6
+    STORE r23, r2
+    LDI r2, 0
+    LDI r4, 1
+    ADD r23, r4
+    STORE r23, r2
     ; Center text in cell (x+7, y+7)
-    LDI r5, 7
-    ADD r21, r5
-    ADD r22, r5
-    LDI r4, SCRATCH
-    TEXT r21, r22, r4
+    LDI r4, 7
+    ADD r21, r4
+    ADD r22, r4
+    LDI r15, SCRATCH
+    TEXT r21, r22, r15
     JMP draw_next_cell
 
 draw_hidden:
     ; Hidden - gray
-    LDI r4, CELL
-    LDI r14, CELL
-    LDI r6, 0x555577
-    RECTF r21, r22, r4, r14, r6
+    LDI r15, CELL
+    LDI r1, CELL
+    LDI r2, 0x555577
+    RECTF r21, r22, r15, r1, r2
 
 draw_next_cell:
     POP r26
     POP r25
-    LDI r5, 1
-    ADD r26, r5
+    LDI r4, 1
+    ADD r26, r4
     JMP draw_col
 draw_next_row:
-    LDI r5, 1
-    ADD r25, r5
+    LDI r4, 1
+    ADD r25, r4
     JMP draw_row
 draw_done:
 
@@ -330,15 +330,15 @@ draw_done:
     LDI r20, STATE
     LOAD r20, r20
     CMPI r20, 2
-    JNZ r15, draw_status
+    JNZ r14, draw_status
     LDI r25, 0
 show_mines_row:
     CMPI r25, ROWS
-    BGE r15, show_mines_done
+    BGE r14, show_mines_done
     LDI r26, 0
 show_mines_col:
     CMPI r26, COLS
-    BGE r15, show_mines_nrow
+    BGE r14, show_mines_nrow
     PUSH r25
     PUSH r26
     MOV r20, r25
@@ -349,7 +349,7 @@ show_mines_col:
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 1
-    JNZ r15, show_mines_next
+    JNZ r14, show_mines_next
     ; Draw red over mine
     MOV r20, r26
     LDI r21, CELL
@@ -361,19 +361,19 @@ show_mines_col:
     MUL r20, r22
     LDI r22, GRID_Y
     ADD r22, r20
-    LDI r4, CELL
-    LDI r14, CELL
-    LDI r6, 0xFF0000
-    RECTF r21, r22, r4, r14, r6
+    LDI r15, CELL
+    LDI r1, CELL
+    LDI r2, 0xFF0000
+    RECTF r21, r22, r15, r1, r2
 show_mines_next:
     POP r26
     POP r25
-    LDI r5, 1
-    ADD r26, r5
+    LDI r4, 1
+    ADD r26, r4
     JMP show_mines_col
 show_mines_nrow:
-    LDI r5, 1
-    ADD r25, r5
+    LDI r4, 1
+    ADD r25, r4
     JMP show_mines_row
 show_mines_done:
 
@@ -381,156 +381,156 @@ draw_status:
     ; Mines remaining display
     LDI r20, MINE_LEFT
     LOAD r20, r20
-    LDI r6, 48
-    ADD r6, r20
+    LDI r2, 48
+    ADD r2, r20
     LDI r21, SCRATCH
-    STORE r21, r6
-    LDI r6, 0
-    LDI r5, 1
-    ADD r21, r5
-    STORE r21, r6
+    STORE r21, r2
+    LDI r2, 0
+    LDI r4, 1
+    ADD r21, r4
+    STORE r21, r2
     LDI r20, STR_BUF
     STRO r20, "Mines:"
-    LDI r5, 8
-    LDI r2, 214
-    LDI r4, STR_BUF
-    TEXT r5, r2, r4
-    LDI r5, 52
-    LDI r2, 214
-    LDI r4, SCRATCH
-    TEXT r5, r2, r4
+    LDI r4, 8
+    LDI r0, 214
+    LDI r15, STR_BUF
+    TEXT r4, r0, r15
+    LDI r4, 52
+    LDI r0, 214
+    LDI r15, SCRATCH
+    TEXT r4, r0, r15
 
     ; Flag mode display
     LDI r20, FLAG_MODE
     LOAD r20, r20
     CMPI r20, 1
-    JNZ r15, show_dig
+    JNZ r14, show_dig
     LDI r20, STR_BUF
     STRO r20, "[FLAG]"
-    LDI r5, 80
-    LDI r2, 214
-    LDI r4, STR_BUF
-    TEXT r5, r2, r4
+    LDI r4, 80
+    LDI r0, 214
+    LDI r15, STR_BUF
+    TEXT r4, r0, r15
     JMP draw_new_btn
 show_dig:
     LDI r20, STR_BUF
     STRO r20, "[DIG]"
-    LDI r5, 80
-    LDI r2, 214
-    LDI r4, STR_BUF
-    TEXT r5, r2, r4
+    LDI r4, 80
+    LDI r0, 214
+    LDI r15, STR_BUF
+    TEXT r4, r0, r15
 
 draw_new_btn:
     ; NEW button
-    LDI r5, 1
-    LDI r6, 0x444466
-    LDI r5, 170
-    LDI r2, 232
-    LDI r4, 60
-    LDI r14, 16
-    RECTF r5, r2, r4, r14, r6
+    LDI r4, 1
+    LDI r2, 0x444466
+    LDI r4, 170
+    LDI r0, 232
+    LDI r15, 60
+    LDI r1, 16
+    RECTF r4, r0, r15, r1, r2
     LDI r20, STR_BUF
     STRO r20, "[NEW]"
-    LDI r5, 180
-    LDI r2, 236
-    LDI r4, STR_BUF
-    TEXT r5, r2, r4
+    LDI r4, 180
+    LDI r0, 236
+    LDI r15, STR_BUF
+    TEXT r4, r0, r15
 
     ; Win/lose message
     LDI r20, STATE
     LOAD r20, r20
     CMPI r20, 1
-    JNZ r15, check_lose
+    JNZ r14, check_lose
     LDI r20, STR_BUF
     STRO r20, "YOU WIN!"
-    LDI r5, 80
-    LDI r2, 228
-    LDI r4, STR_BUF
-    TEXT r5, r2, r4
+    LDI r4, 80
+    LDI r0, 228
+    LDI r15, STR_BUF
+    TEXT r4, r0, r15
     JMP do_frame
 check_lose:
     CMPI r20, 2
-    JNZ r15, do_frame
+    JNZ r14, do_frame
     LDI r20, STR_BUF
     STRO r20, "GAME OVER"
-    LDI r5, 76
-    LDI r2, 228
-    LDI r4, STR_BUF
-    TEXT r5, r2, r4
+    LDI r4, 76
+    LDI r0, 228
+    LDI r15, STR_BUF
+    TEXT r4, r0, r15
 
 do_frame:
     ; Register hit regions
-    LDI r5, 1
-    LDI r6, GRID_X
-    LDI r8, GRID_Y
-    LDI r7, 176
-    LDI r12, 176
-    HITSET r6, r8, r7, r12, 1
+    LDI r4, 1
+    LDI r2, GRID_X
+    LDI r9, GRID_Y
+    LDI r5, 176
+    LDI r8, 176
+    HITSET r2, r9, r5, r8, 1
 
-    LDI r6, 170
-    LDI r8, 232
-    LDI r7, 60
-    LDI r12, 16
-    HITSET r6, r8, r7, r12, 2
+    LDI r2, 170
+    LDI r9, 232
+    LDI r5, 60
+    LDI r8, 16
+    HITSET r2, r9, r5, r8, 2
 
     ; Render frame
     FRAME
 
     ; Check keyboard (F = toggle flag mode)
-    IKEY r9
-    CMPI r9, 70
-    JNZ r15, do_hitq
+    IKEY r12
+    CMPI r12, 70
+    JNZ r14, do_hitq
     LDI r20, FLAG_MODE
     LOAD r21, r20
-    LDI r5, 1
-    XOR r21, r5
+    LDI r4, 1
+    XOR r21, r4
     STORE r20, r21
 
 do_hitq:
-    HITQ r9
-    CMPI r9, 0
-    JZ r15, main_loop
+    HITQ r12
+    CMPI r12, 0
+    JZ r14, main_loop
 
     ; Clicked NEW button
-    CMPI r9, 2
-    JZ r15, start
+    CMPI r12, 2
+    JZ r14, start
 
     ; Clicked grid - but only if playing
     LDI r20, STATE
     LOAD r20, r20
     CMPI r20, 0
-    JNZ r15, main_loop
+    JNZ r14, main_loop
 
     ; Get mouse coords and compute cell
-    MOUSEQ r10
-    ; r10 = mouse_x, r1 = mouse_y
-    LDI r3, GRID_X
-    SUB r10, r3
+    MOUSEQ r11
+    ; r11 = mouse_x, r3 = mouse_y
+    LDI r6, GRID_X
+    SUB r11, r6
     LDI r16, CELL
-    DIV r10, r16
-    LDI r3, GRID_Y
-    SUB r1, r3
+    DIV r11, r16
+    LDI r6, GRID_Y
+    SUB r3, r6
     LDI r16, CELL
-    DIV r1, r16
+    DIV r3, r16
     ; Bounds check
-    CMPI r10, COLS
-    BGE r15, main_loop
-    CMPI r1, ROWS
-    BGE r15, main_loop
+    CMPI r11, COLS
+    BGE r14, main_loop
+    CMPI r3, ROWS
+    BGE r14, main_loop
 
     ; index = row * 8 + col
-    PUSH r10
-    PUSH r1
-    MOV r20, r1
+    PUSH r11
+    PUSH r3
+    MOV r20, r3
     LDI r21, COLS
     MUL r20, r21
-    ADD r20, r10
+    ADD r20, r11
 
     ; Check flag mode
     LDI r23, FLAG_MODE
     LOAD r23, r23
     CMPI r23, 0
-    JNZ r15, do_flag
+    JNZ r14, do_flag
 
 do_reveal:
     ; Skip if already revealed or flagged
@@ -538,45 +538,45 @@ do_reveal:
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 0
-    JNZ r15, click_done
+    JNZ r14, click_done
 
     ; Check if mine
     LDI r23, MINE_GRID
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 1
-    JNZ r15, safe_reveal
+    JNZ r14, safe_reveal
 
     ; Hit mine - game over
     LDI r20, STATE
-    LDI r5, 2
-    STORE r20, r5
+    LDI r4, 2
+    STORE r20, r4
     JMP click_done
 
 safe_reveal:
     ; Mark revealed
     LDI r23, REVEAL
     ADD r23, r20
-    LDI r5, 1
-    STORE r23, r5
+    LDI r4, 1
+    STORE r23, r4
 
     ; Simple flood fill for zero-adjacent cells
     ; Wave approach: repeat 8 times
     LDI r29, 8
 flood_wave:
     CMPI r29, 0
-    JZ r15, do_check_win
-    LDI r5, 1
-    SUB r29, r5
+    JZ r14, do_check_win
+    LDI r4, 1
+    SUB r29, r4
     ; Scan all cells
     LDI r25, 0
 fw_row:
     CMPI r25, ROWS
-    BGE r15, flood_next_wave
+    BGE r14, flood_next_wave
     LDI r26, 0
 fw_col:
     CMPI r26, COLS
-    BGE r15, fw_next_row
+    BGE r14, fw_next_row
     PUSH r25
     PUSH r26
     MOV r20, r25
@@ -588,25 +588,25 @@ fw_col:
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 1
-    JNZ r15, fw_next
+    JNZ r14, fw_next
     LDI r23, ADJ
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 0
-    JNZ r15, fw_next
+    JNZ r14, fw_next
     ; Reveal all 8 hidden neighbors
     LDI r27, 0xFFFFFFFF
 fw_dr:
     CMPI r27, 2
-    BGE r15, fw_next_pop
+    BGE r14, fw_next_pop
     LDI r28, 0xFFFFFFFF
 fw_dc:
     CMPI r28, 2
-    BGE r15, fw_dr_inc
+    BGE r14, fw_dr_inc
     CMPI r27, 0
-    JNZ r15, fw_do_nbr
+    JNZ r14, fw_do_nbr
     CMPI r28, 0
-    JZ r15, fw_dc_inc
+    JZ r14, fw_dc_inc
 fw_do_nbr:
     ; nr = row + dr, nc = col + dc
     POP r24
@@ -619,13 +619,13 @@ fw_do_nbr:
     ADD r22, r28
     ; Bounds
     CMPI r21, 0
-    BLT r15, fw_dc_inc
+    BLT r14, fw_dc_inc
     CMPI r21, COLS
-    BGE r15, fw_dc_inc
+    BGE r14, fw_dc_inc
     CMPI r22, 0
-    BLT r15, fw_dc_inc
+    BLT r14, fw_dc_inc
     CMPI r22, COLS
-    BGE r15, fw_dc_inc
+    BGE r14, fw_dc_inc
     ; nidx = nr * 8 + nc
     PUSH r20
     MOV r20, r21
@@ -637,35 +637,35 @@ fw_do_nbr:
     ADD r24, r20
     LOAD r24, r24
     CMPI r24, 0
-    JNZ r15, fw_dc_inc_pop
+    JNZ r14, fw_dc_inc_pop
     ; Reveal it
-    LDI r5, 1
-    STORE r24, r5
+    LDI r4, 1
+    STORE r24, r4
 fw_dc_inc_pop:
     POP r20
 fw_dc_inc:
-    LDI r5, 1
-    ADD r28, r5
+    LDI r4, 1
+    ADD r28, r4
     JMP fw_dc
 fw_dr_inc:
-    LDI r5, 1
-    ADD r27, r5
+    LDI r4, 1
+    ADD r27, r4
     JMP fw_dr
 fw_next_pop:
     POP r26
     POP r25
-    LDI r5, 1
-    ADD r26, r5
+    LDI r4, 1
+    ADD r26, r4
     JMP fw_col
 fw_next:
     POP r26
     POP r25
-    LDI r5, 1
-    ADD r26, r5
+    LDI r4, 1
+    ADD r26, r4
     JMP fw_col
 fw_next_row:
-    LDI r5, 1
-    ADD r25, r5
+    LDI r4, 1
+    ADD r25, r4
     JMP fw_row
 flood_next_wave:
     JMP flood_wave
@@ -675,11 +675,11 @@ do_check_win:
     LDI r25, 0
 win_row:
     CMPI r25, ROWS
-    BGE r15, click_done
+    BGE r14, click_done
     LDI r26, 0
 win_col:
     CMPI r26, COLS
-    BGE r15, win_nrow
+    BGE r14, win_nrow
     PUSH r25
     PUSH r26
     MOV r20, r25
@@ -691,22 +691,22 @@ win_col:
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 1
-    JZ r15, win_skip
+    JZ r14, win_skip
     ; Must be revealed
     LDI r23, REVEAL
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 1
-    JNZ r15, not_won
+    JNZ r14, not_won
 win_skip:
     POP r26
     POP r25
-    LDI r5, 1
-    ADD r26, r5
+    LDI r4, 1
+    ADD r26, r4
     JMP win_col
 win_nrow:
-    LDI r5, 1
-    ADD r25, r5
+    LDI r4, 1
+    ADD r25, r4
     JMP win_row
 
 not_won:
@@ -718,8 +718,8 @@ not_won:
     POP r26
     POP r25
     LDI r20, STATE
-    LDI r5, 1
-    STORE r20, r5
+    LDI r4, 1
+    STORE r20, r4
 
 do_flag:
     ; Toggle flag on hidden cell
@@ -727,19 +727,19 @@ do_flag:
     ADD r23, r20
     LOAD r24, r23
     CMPI r24, 0
-    JNZ r15, click_done
-    LDI r5, 2
-    STORE r23, r5
+    JNZ r14, click_done
+    LDI r4, 2
+    STORE r23, r4
     ; Decrement mines left
     LDI r23, MINE_LEFT
     LOAD r24, r23
-    LDI r5, 1
-    SUB r24, r5
+    LDI r4, 1
+    SUB r24, r4
     STORE r23, r24
 
 click_done:
-    POP r1
-    POP r10
+    POP r3
+    POP r11
     JMP main_loop
 
     HALT

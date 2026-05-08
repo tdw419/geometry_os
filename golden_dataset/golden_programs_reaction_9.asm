@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a reaction time tester. It displays "Wait..." for a random delay and then changes to "PRESS!" where the player must press any key as quickly as possible. The reaction time is measured in frames and displayed, along with a rating based on performance. The player can retry by pressing 'R'.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; reaction.asm -- Reaction Time Tester for Geometry OS
 ;
@@ -22,13 +22,13 @@
 
 ; ── INIT ──────────────────────────────────────
 start:
-    LDI r1, 1
+    LDI r7, 1
     LDI r30, 0xFD00
 
     ; Set phase to waiting
     LDI r20, PHASE
-    LDI r2, 0
-    STORE r20, r2
+    LDI r5, 0
+    STORE r20, r5
 
     ; Generate random wait time (30-120 frames)
     RAND r20
@@ -41,43 +41,43 @@ start:
 
     ; Reset timer
     LDI r20, TIMER
-    LDI r2, 0
-    STORE r20, r2
+    LDI r5, 0
+    STORE r20, r5
 
 ; ── MAIN LOOP ──────────────────────────────────
 main_loop:
     ; Dark background
-    LDI r6, 0x1A1A2E
-    FILL r6
+    LDI r12, 0x1A1A2E
+    FILL r12
 
     LDI r20, PHASE
     LOAD r20, r20
 
     ; Phase 0 -- waiting for random delay
     CMPI r20, 0
-    JNZ r2, check_ready
+    JNZ r5, check_ready
 
     ; Show "Wait..." message
     LDI r20, STR_BUF
     STRO r20, "Wait for it..."
-    LDI r1, 52
-    LDI r13, 110
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 52
+    LDI r4, 110
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
 
     ; Draw waiting indicator (gray box)
-    LDI r1, 88
-    LDI r13, 140
-    LDI r14, 80
-    LDI r4, 20
-    LDI r6, 0x555577
-    RECTF r1, r13, r14, r4, r6
+    LDI r7, 88
+    LDI r4, 140
+    LDI r13, 80
+    LDI r10, 20
+    LDI r12, 0x555577
+    RECTF r7, r4, r13, r10, r12
 
     ; Increment timer
     LDI r20, TIMER
     LOAD r21, r20
-    LDI r1, 1
-    ADD r21, r1
+    LDI r7, 1
+    ADD r21, r7
     STORE r20, r21
 
     ; Check if wait time elapsed
@@ -86,53 +86,53 @@ main_loop:
     LDI r21, WAIT_TIME
     LOAD r21, r21
     CMP r20, r21
-    BLT r2, do_frame
+    BLT r5, do_frame
 
     ; Switch to ready phase
     LDI r20, PHASE
-    LDI r2, 1
-    STORE r20, r2
+    LDI r5, 1
+    STORE r20, r5
     LDI r20, TIMER
-    LDI r2, 0
-    STORE r20, r2
+    LDI r5, 0
+    STORE r20, r5
     JMP do_frame
 
 check_ready:
     ; Phase 1 -- show "PRESS!" and measure reaction
     CMPI r20, 1
-    JNZ r2, show_result
+    JNZ r5, show_result
 
     ; Bright green background flash
-    LDI r6, 0x003300
-    FILL r6
+    LDI r12, 0x003300
+    FILL r12
 
     ; Big "PRESS!" text
     LDI r20, STR_BUF
     STRO r20, "PRESS ANY KEY!"
-    LDI r1, 46
-    LDI r13, 110
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 46
+    LDI r4, 110
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
 
     ; Green action box
-    LDI r1, 68
-    LDI r13, 140
-    LDI r14, 120
-    LDI r4, 30
-    LDI r6, 0x00FF00
-    RECTF r1, r13, r14, r4, r6
+    LDI r7, 68
+    LDI r4, 140
+    LDI r13, 120
+    LDI r10, 30
+    LDI r12, 0x00FF00
+    RECTF r7, r4, r13, r10, r12
 
     ; Increment timer
     LDI r20, TIMER
     LOAD r21, r20
-    LDI r1, 1
-    ADD r21, r1
+    LDI r7, 1
+    ADD r21, r7
     STORE r20, r21
 
     ; Check for key press
     IKEY r11
     CMPI r11, 0
-    JZ r2, do_frame
+    JZ r5, do_frame
 
     ; Key pressed! Record reaction time
     LDI r20, REACTION
@@ -142,139 +142,139 @@ check_ready:
 
     ; Switch to result phase
     LDI r20, PHASE
-    LDI r2, 2
-    STORE r20, r2
+    LDI r5, 2
+    STORE r20, r5
     JMP do_frame
 
 show_result:
     ; Phase 2 -- show result
-    LDI r6, 0x0C0C1E
-    FILL r6
+    LDI r12, 0x0C0C1E
+    FILL r12
 
     ; Title
     LDI r20, STR_BUF
     STRO r20, "Reaction Time"
-    LDI r1, 62
-    LDI r13, 50
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 62
+    LDI r4, 50
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
 
     ; Result box
-    LDI r1, 38
-    LDI r13, 80
-    LDI r14, 180
+    LDI r7, 38
     LDI r4, 80
-    LDI r6, 0x333355
-    RECTF r1, r13, r14, r4, r6
+    LDI r13, 180
+    LDI r10, 80
+    LDI r12, 0x333355
+    RECTF r7, r4, r13, r10, r12
 
     ; Show reaction time
     LDI r20, REACTION
     LOAD r20, r20
     ; Convert to 3-digit ASCII
     LDI r21, SCRATCH
-    LDI r10, 100
+    LDI r6, 100
     MOV r22, r20
-    DIV r22, r10
-    LDI r6, 48
-    ADD r6, r22
-    STORE r21, r6
-    LDI r1, 1
-    ADD r21, r1
+    DIV r22, r6
+    LDI r12, 48
+    ADD r12, r22
+    STORE r21, r12
+    LDI r7, 1
+    ADD r21, r7
     ; tens
     MOV r22, r20
-    LDI r3, 100
-    MUL r3, r22
+    LDI r2, 100
+    MUL r2, r22
     ; wait -- MUL modifies r22 in place. Let me redo.
     ; Actually DIV already modified r22. Let me reload.
     MOV r22, r20
-    LDI r3, 100
-    MUL r3, r22
+    LDI r2, 100
+    MUL r2, r22
     MOV r22, r20
-    SUB r22, r3
-    LDI r10, 10
-    DIV r22, r10
-    LDI r6, 48
-    ADD r6, r22
-    STORE r21, r6
-    ADD r21, r1
+    SUB r22, r2
+    LDI r6, 10
+    DIV r22, r6
+    LDI r12, 48
+    ADD r12, r22
+    STORE r21, r12
+    ADD r21, r7
     ; ones
     MOV r22, r20
-    LDI r10, 10
-    MOD r22, r10
-    LDI r6, 48
-    ADD r6, r22
-    STORE r21, r6
-    ADD r21, r1
+    LDI r6, 10
+    MOD r22, r6
+    LDI r12, 48
+    ADD r12, r22
+    STORE r21, r12
+    ADD r21, r7
     ; null terminator
-    LDI r6, 0
-    STORE r21, r6
+    LDI r12, 0
+    STORE r21, r12
 
-    LDI r1, 82
-    LDI r13, 105
-    LDI r14, SCRATCH
-    TEXT r1, r13, r14
+    LDI r7, 82
+    LDI r4, 105
+    LDI r13, SCRATCH
+    TEXT r7, r4, r13
 
     ; "frames" label
     LDI r20, STR_BUF
     STRO r20, "frames"
-    LDI r1, 96
-    LDI r13, 125
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 96
+    LDI r4, 125
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
 
     ; Rating
     LDI r20, REACTION
     LOAD r20, r20
     CMPI r20, 10
-    BGE r2, show_fast
+    BGE r5, show_fast
     CMPI r20, 30
-    BGE r2, show_good
+    BGE r5, show_good
     CMPI r20, 60
-    BGE r2, show_ok
+    BGE r5, show_ok
     LDI r20, STR_BUF
     STRO r20, "SLOW"
-    LDI r1, 100
-    LDI r13, 150
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 100
+    LDI r4, 150
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
     JMP show_rating_done
 show_fast:
     LDI r20, STR_BUF
     STRO r20, "AMAZING!"
-    LDI r1, 88
-    LDI r13, 150
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 88
+    LDI r4, 150
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
     JMP show_rating_done
 show_good:
     LDI r20, STR_BUF
     STRO r20, "GOOD"
-    LDI r1, 100
-    LDI r13, 150
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 100
+    LDI r4, 150
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
     JMP show_rating_done
 show_ok:
     LDI r20, STR_BUF
     STRO r20, "OK"
-    LDI r1, 106
-    LDI r13, 150
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 106
+    LDI r4, 150
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
 show_rating_done:
 
     ; "Press R to retry" instruction
     LDI r20, STR_BUF
     STRO r20, "Press R to retry"
-    LDI r1, 60
-    LDI r13, 200
-    LDI r14, STR_BUF
-    TEXT r1, r13, r14
+    LDI r7, 60
+    LDI r4, 200
+    LDI r13, STR_BUF
+    TEXT r7, r4, r13
 
     ; Check for R key
     IKEY r11
     CMPI r11, 82
-    JNZ r2, do_frame
+    JNZ r5, do_frame
 
     ; Restart
     JMP start

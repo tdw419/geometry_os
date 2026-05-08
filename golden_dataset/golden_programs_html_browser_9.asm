@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a simple HTML browser that fetches and parses HTML pages, rendering styled text with support for headings, paragraphs, links, bold, italic, and horizontal rules. The browser includes basic navigation features such as fetching pages, scrolling, navigating history, going home, and bookmarking URLs.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; html_browser.asm -- Simple HTML Browser for Geometry OS
 ;
@@ -27,243 +27,243 @@ LDI r24, 0x000040 ; color: dark blue (url bar bg)
 LDI r25, 0x333333 ; color: dark gray (status)
 
 ; -- Init --
-LDI r15, 0xD000
-LDI r8, 0
-STORE r15, r8     ; scroll = 0
-LDI r15, 0xD004
-STORE r15, r8     ; line_count = 0
-LDI r15, 0xD008
-STORE r15, r8     ; mode = browse
-LDI r15, 0xD00C
-STORE r15, r8     ; history count = 0
+LDI r9, 0xD000
+LDI r1, 0
+STORE r9, r1     ; scroll = 0
+LDI r9, 0xD004
+STORE r9, r1     ; line_count = 0
+LDI r9, 0xD008
+STORE r9, r1     ; mode = browse
+LDI r9, 0xD00C
+STORE r9, r1     ; history count = 0
 
 ; -- Build a test page in HTML buffer --
 ; Write "<h1>Geometry OS</h1><p>Welcome!</p>" into 0x9000
-LDI r10, 0x9000
-LDI r3, 0
+LDI r11, 0x9000
+LDI r10, 0
 
 ; Write chars using STRO-like STORE sequence
 ; "<h1>Geometry OS</h1><p>Welcome!</p>"
 ; Character codes: < = 60, h = 104, 1 = 49, > = 62, etc.
 ; We'll write the HTML string byte by byte
-LDI r1, 60      ; <
-STORE r10, r1
-LDI r1, 104     ; h
-LDI r3, 1
-ADD r10, r3
-STORE r10, r1
-LDI r1, 49      ; 1
-ADD r10, r3
-STORE r10, r1
-LDI r1, 62      ; >
-ADD r10, r3
-STORE r10, r1
-LDI r1, 71      ; G
-ADD r10, r3
-STORE r10, r1
-LDI r1, 101     ; e
-ADD r10, r3
-STORE r10, r1
-LDI r1, 111     ; o
-ADD r10, r3
-STORE r10, r1
-LDI r1, 109     ; m
-ADD r10, r3
-STORE r10, r1
-LDI r1, 101     ; e
-ADD r10, r3
-STORE r10, r1
-LDI r1, 116     ; t
-ADD r10, r3
-STORE r10, r1
-LDI r1, 114     ; r
-ADD r10, r3
-STORE r10, r1
-LDI r1, 121     ; y
-ADD r10, r3
-STORE r10, r1
-LDI r1, 32      ; (space)
-ADD r10, r3
-STORE r10, r1
-LDI r1, 79      ; O
-ADD r10, r3
-STORE r10, r1
-LDI r1, 83      ; S
-ADD r10, r3
-STORE r10, r1
-LDI r1, 60      ; <
-ADD r10, r3
-STORE r10, r1
-LDI r1, 47      ; /
-ADD r10, r3
-STORE r10, r1
-LDI r1, 104     ; h
-ADD r10, r3
-STORE r10, r1
-LDI r1, 49      ; 1
-ADD r10, r3
-STORE r10, r1
-LDI r1, 62      ; >
-ADD r10, r3
-STORE r10, r1
-LDI r1, 60      ; <
-ADD r10, r3
-STORE r10, r1
-LDI r1, 112     ; p
-ADD r10, r3
-STORE r10, r1
-LDI r1, 62      ; >
-ADD r10, r3
-STORE r10, r1
-LDI r1, 87      ; W
-ADD r10, r3
-STORE r10, r1
-LDI r1, 101     ; e
-ADD r10, r3
-STORE r10, r1
-LDI r1, 108     ; l
-ADD r10, r3
-STORE r10, r1
-LDI r1, 99      ; c
-ADD r10, r3
-STORE r10, r1
-LDI r1, 111     ; o
-ADD r10, r3
-STORE r10, r1
-LDI r1, 109     ; m
-ADD r10, r3
-STORE r10, r1
-LDI r1, 101     ; e
-ADD r10, r3
-STORE r10, r1
-LDI r1, 33      ; !
-ADD r10, r3
-STORE r10, r1
-LDI r1, 60      ; <
-ADD r10, r3
-STORE r10, r1
-LDI r1, 47      ; /
-ADD r10, r3
-STORE r10, r1
-LDI r1, 112     ; p
-ADD r10, r3
-STORE r10, r1
-LDI r1, 62      ; >
-ADD r10, r3
-STORE r10, r1
-LDI r1, 0       ; null terminator
-ADD r10, r3
-STORE r10, r1
+LDI r14, 60      ; <
+STORE r11, r14
+LDI r14, 104     ; h
+LDI r10, 1
+ADD r11, r10
+STORE r11, r14
+LDI r14, 49      ; 1
+ADD r11, r10
+STORE r11, r14
+LDI r14, 62      ; >
+ADD r11, r10
+STORE r11, r14
+LDI r14, 71      ; G
+ADD r11, r10
+STORE r11, r14
+LDI r14, 101     ; e
+ADD r11, r10
+STORE r11, r14
+LDI r14, 111     ; o
+ADD r11, r10
+STORE r11, r14
+LDI r14, 109     ; m
+ADD r11, r10
+STORE r11, r14
+LDI r14, 101     ; e
+ADD r11, r10
+STORE r11, r14
+LDI r14, 116     ; t
+ADD r11, r10
+STORE r11, r14
+LDI r14, 114     ; r
+ADD r11, r10
+STORE r11, r14
+LDI r14, 121     ; y
+ADD r11, r10
+STORE r11, r14
+LDI r14, 32      ; (space)
+ADD r11, r10
+STORE r11, r14
+LDI r14, 79      ; O
+ADD r11, r10
+STORE r11, r14
+LDI r14, 83      ; S
+ADD r11, r10
+STORE r11, r14
+LDI r14, 60      ; <
+ADD r11, r10
+STORE r11, r14
+LDI r14, 47      ; /
+ADD r11, r10
+STORE r11, r14
+LDI r14, 104     ; h
+ADD r11, r10
+STORE r11, r14
+LDI r14, 49      ; 1
+ADD r11, r10
+STORE r11, r14
+LDI r14, 62      ; >
+ADD r11, r10
+STORE r11, r14
+LDI r14, 60      ; <
+ADD r11, r10
+STORE r11, r14
+LDI r14, 112     ; p
+ADD r11, r10
+STORE r11, r14
+LDI r14, 62      ; >
+ADD r11, r10
+STORE r11, r14
+LDI r14, 87      ; W
+ADD r11, r10
+STORE r11, r14
+LDI r14, 101     ; e
+ADD r11, r10
+STORE r11, r14
+LDI r14, 108     ; l
+ADD r11, r10
+STORE r11, r14
+LDI r14, 99      ; c
+ADD r11, r10
+STORE r11, r14
+LDI r14, 111     ; o
+ADD r11, r10
+STORE r11, r14
+LDI r14, 109     ; m
+ADD r11, r10
+STORE r11, r14
+LDI r14, 101     ; e
+ADD r11, r10
+STORE r11, r14
+LDI r14, 33      ; !
+ADD r11, r10
+STORE r11, r14
+LDI r14, 60      ; <
+ADD r11, r10
+STORE r11, r14
+LDI r14, 47      ; /
+ADD r11, r10
+STORE r11, r14
+LDI r14, 112     ; p
+ADD r11, r10
+STORE r11, r14
+LDI r14, 62      ; >
+ADD r11, r10
+STORE r11, r14
+LDI r14, 0       ; null terminator
+ADD r11, r10
+STORE r11, r14
 
 ; -- Parse HTML --
 HITCLR
-LDI r10, 0x9000  ; src = HTML buffer
-LDI r3, 0xA000  ; dest = parsed lines buffer
-LDI r1, 100     ; max_lines = 100
-HTPARSE r10, r3, r1
+LDI r11, 0x9000  ; src = HTML buffer
+LDI r10, 0xA000  ; dest = parsed lines buffer
+LDI r14, 100     ; max_lines = 100
+HTPARSE r11, r10, r14
 ; r6 = line count
 
 ; Store line count
-LDI r15, 0xD004
-STORE r15, r6
+LDI r9, 0xD004
+STORE r9, r6
 
 ; -- Render URL bar --
 ; Draw dark blue bar at top
+LDI r11, 0
 LDI r10, 0
-LDI r3, 0
-LDI r1, 256
+LDI r14, 256
 LDI r13, 16
-RECTF r10, r3, r1, r13, r24
+RECTF r11, r10, r14, r13, r24
 
 ; Draw "geo://" in URL bar using TEXT opcode
-LDI r10, 0x5000
-LDI r1, 103     ; g
-STORE r10, r1
-LDI r3, 1
-ADD r10, r3
-LDI r1, 101     ; e
-STORE r10, r1
-ADD r10, r3
-LDI r1, 111     ; o
-STORE r10, r1
-ADD r10, r3
-LDI r1, 58      ; :
-STORE r10, r1
-ADD r10, r3
-LDI r1, 47      ; /
-STORE r10, r1
-ADD r10, r3
-LDI r1, 47      ; /
-STORE r10, r1
-ADD r10, r3
-LDI r1, 104     ; h
-STORE r10, r1
-ADD r10, r3
-LDI r1, 111     ; o
-STORE r10, r1
-ADD r10, r3
-LDI r1, 109     ; m
-STORE r10, r1
-ADD r10, r3
-LDI r1, 101     ; e
-STORE r10, r1
-ADD r10, r3
-LDI r1, 0       ; null
-STORE r10, r1
+LDI r11, 0x5000
+LDI r14, 103     ; g
+STORE r11, r14
+LDI r10, 1
+ADD r11, r10
+LDI r14, 101     ; e
+STORE r11, r14
+ADD r11, r10
+LDI r14, 111     ; o
+STORE r11, r14
+ADD r11, r10
+LDI r14, 58      ; :
+STORE r11, r14
+ADD r11, r10
+LDI r14, 47      ; /
+STORE r11, r14
+ADD r11, r10
+LDI r14, 47      ; /
+STORE r11, r14
+ADD r11, r10
+LDI r14, 104     ; h
+STORE r11, r14
+ADD r11, r10
+LDI r14, 111     ; o
+STORE r11, r14
+ADD r11, r10
+LDI r14, 109     ; m
+STORE r11, r14
+ADD r11, r10
+LDI r14, 101     ; e
+STORE r11, r14
+ADD r11, r10
+LDI r14, 0       ; null
+STORE r11, r14
 
 ; Render URL text
-LDI r10, 2       ; x
-LDI r3, 2       ; y
-LDI r1, 0x5000  ; addr
+LDI r11, 2       ; x
+LDI r10, 2       ; y
+LDI r14, 0x5000  ; addr
 LDI r13, 0x00FFFF ; cyan color
-TEXT r10, r3, r1
+TEXT r11, r10, r14
 
 ; -- Render status bar --
-LDI r10, 0
-LDI r3, 240
-LDI r1, 256
+LDI r11, 0
+LDI r10, 240
+LDI r14, 256
 LDI r13, 16
-RECTF r10, r3, r1, r13, r25
+RECTF r11, r10, r14, r13, r25
 
 ; -- Render parsed content --
 ; Read scroll offset
-LDI r2, 0xD000
-LOAD r2, r2    ; r2 = scroll
+LDI r4, 0xD000
+LOAD r4, r4    ; r4 = scroll
 
 ; Read line count
-LDI r4, 0xD004
-LOAD r4, r4    ; r4 = line_count
+LDI r7, 0xD004
+LOAD r7, r7    ; r7 = line_count
 
 ; Render up to 24 visible lines (screen rows 20-236, 8px per line)
-LDI r15, 0        ; visible line counter
-LDI r8, 1        ; increment
-LDI r14, 24       ; max visible lines
-LDI r10, 0       ; base Y = 20
+LDI r9, 0        ; visible line counter
+LDI r1, 1        ; increment
+LDI r8, 24       ; max visible lines
+LDI r11, 0       ; base Y = 20
 
 render_loop:
-  CMP r15, r14
+  CMP r9, r8
   BGE r6, render_done
-  CMP r15, r4
+  CMP r9, r7
   BGE r6, render_done
 
   ; Calculate line address: 0xA000 + (scroll + vis_idx) * 33
-  MOV r3, r2     ; scroll
-  ADD r3, r15      ; + vis_idx
-  LDI r1, 33
-  MUL r3, r1     ; * 33
-  LDI r1, 0xA000
-  ADD r3, r1     ; + base
+  MOV r10, r4     ; scroll
+  ADD r10, r9      ; + vis_idx
+  LDI r14, 33
+  MUL r10, r14     ; * 33
+  LDI r14, 0xA000
+  ADD r10, r14     ; + base
 
   ; Check if we have valid data (color != 0 or has chars)
-  LOAD r1, r3    ; fg_color
-  CMP r1, r20     ; compare with 0 (black = empty)
+  LOAD r14, r10    ; fg_color
+  CMP r14, r20     ; compare with 0 (black = empty)
   JZ r6, next_line
 
   ; Draw the line using DRAWTEXT-style rendering
   ; For simplicity, draw first char as a colored pixel
   ; Real rendering would use DRAWTEXT opcode with per-line colors
   LDI r13, 4       ; x offset
-  MOV r13, r10     ; y = base_y + line * 8
+  MOV r13, r11     ; y = base_y + line * 8
   LDI r16, 8
   MUL r13, r16
   LDI r16, 20
@@ -272,15 +272,15 @@ render_loop:
   ; Draw each char as a single pixel (simplified)
   LDI r16, 0       ; char index
   draw_chars:
-    CMP r16, r8
+    CMP r16, r1
     BGE r6, next_line
     LDI r17, 1
     CMP r16, r17
     BGE r6, skip_first
     ; Draw char pixel
-    MOV r18, r3
+    MOV r18, r10
     ADD r18, r16
-    ADD r18, r8     ; skip color word
+    ADD r18, r1     ; skip color word
     LOAD r18, r18   ; char code
     CMP r18, r20
     JZ r6, next_line
@@ -291,15 +291,15 @@ render_loop:
     MUL r19, r17
     LDI r17, 4
     ADD r19, r17
-    PSET r19, r13, r1  ; colored pixel
+    PSET r19, r13, r14  ; colored pixel
 
   skip_first:
-    ADD r16, r8
+    ADD r16, r1
     JMP draw_chars
 
 next_line:
-  ADD r15, r8
-  ADD r10, r8
+  ADD r9, r1
+  ADD r11, r1
   JMP render_loop
 
 render_done:

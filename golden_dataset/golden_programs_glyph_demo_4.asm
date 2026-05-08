@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code initializes the stack pointer and sets up counters for x and y coordinates. It then calculates the sum of 3 and 4, which results in 7, and draws a pixel at position (7, 0) with color 7 before halting execution.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; glyph_demo.asm -- Auto-generated from GlyphLang: 3 4 + . @
 ; Demonstrates GlyphLang compilation to Geometry OS assembly.

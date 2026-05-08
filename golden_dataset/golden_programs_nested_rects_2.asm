@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code draws a series of concentric rectangles on the screen, starting from an outermost red rectangle and progressively shrinking inward with each subsequent rectangle colored green, blue, yellow, magenta, cyan, and finally white at the center. Each rectangle is inset by 20 pixels compared to its predecessor.
+; DESCRIPTION: Draws a red rectangle at the screen with fixed size.
 
 ; NESTED_RECTS -- Draw concentric rectangles from outside in
 ; Outer = red, inner = green, innermost = blue
@@ -7,58 +7,58 @@
 
 ; Outer red rectangle
 LDI r13, 0
-LDI r1, 0
-LDI r15, 256
-LDI r8, 256
-LDI r7, 0xFF0000
-RECTF r13, r1, r15, r8, r7
+LDI r15, 0
+LDI r3, 256
+LDI r0, 256
+LDI r9, 0xFF0000
+RECTF r13, r15, r3, r0, r9
 
 ; Green rectangle (20px inset)
 LDI r13, 20
-LDI r1, 20
-LDI r15, 216
-LDI r8, 216
-LDI r7, 0x00FF00
-RECTF r13, r1, r15, r8, r7
+LDI r15, 20
+LDI r3, 216
+LDI r0, 216
+LDI r9, 0x00FF00
+RECTF r13, r15, r3, r0, r9
 
 ; Blue rectangle (40px inset)
 LDI r13, 40
-LDI r1, 40
-LDI r15, 176
-LDI r8, 176
-LDI r7, 0x0000FF
-RECTF r13, r1, r15, r8, r7
+LDI r15, 40
+LDI r3, 176
+LDI r0, 176
+LDI r9, 0x0000FF
+RECTF r13, r15, r3, r0, r9
 
 ; Yellow rectangle (60px inset)
 LDI r13, 60
-LDI r1, 60
-LDI r15, 136
-LDI r8, 136
-LDI r7, 0xFFFF00
-RECTF r13, r1, r15, r8, r7
+LDI r15, 60
+LDI r3, 136
+LDI r0, 136
+LDI r9, 0xFFFF00
+RECTF r13, r15, r3, r0, r9
 
 ; Magenta rectangle (80px inset)
 LDI r13, 80
-LDI r1, 80
-LDI r15, 96
-LDI r8, 96
-LDI r7, 0xFF00FF
-RECTF r13, r1, r15, r8, r7
+LDI r15, 80
+LDI r3, 96
+LDI r0, 96
+LDI r9, 0xFF00FF
+RECTF r13, r15, r3, r0, r9
 
 ; Cyan rectangle (100px inset)
 LDI r13, 100
-LDI r1, 100
-LDI r15, 56
-LDI r8, 56
-LDI r7, 0x00FFFF
-RECTF r13, r1, r15, r8, r7
+LDI r15, 100
+LDI r3, 56
+LDI r0, 56
+LDI r9, 0x00FFFF
+RECTF r13, r15, r3, r0, r9
 
 ; White center (120px inset)
 LDI r13, 120
-LDI r1, 120
-LDI r15, 16
-LDI r8, 16
-LDI r7, 0xFFFFFF
-RECTF r13, r1, r15, r8, r7
+LDI r15, 120
+LDI r3, 16
+LDI r0, 16
+LDI r9, 0xFFFFFF
+RECTF r13, r15, r3, r0, r9
 
 HALT

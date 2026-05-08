@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a tilemap demo game with a 16x16 grid of tiles, each 15x15 pixels. It loads the map data from RAM and renders it using the TILEMAP opcode. The player can navigate using arrow keys or WASD, and the screen displays a title bar, status bar, and grid lines for reference. If no map data is present, it generates a demo level with various tile types like grass, water, stone, etc. The game loop continuously updates the display based on user input and includes a pulsing effect for the player character's cross icon.
+; DESCRIPTION: Draws a colored line at the screen with fixed size.
 
 ; tilemap_demo.asm -- Tilemap Demo Game (Phase 213)
 ;
@@ -57,7 +57,7 @@
 #define C_ICE1    0xADD8E6
 #define C_ICE2    0xCCE5FF
 
-    LDI r10, 1
+    LDI r5, 1
 
     ; ===== Build tile pixel data (9 tiles, 64 pixels each) =====
     ; Deterministic patterns based on row/col within each tile
@@ -65,7 +65,7 @@
     LDI r22, 576      ; total pixels across all 9 tiles
 tile_init_loop:
     CMPI r22, 0
-    JZ r12, tiles_done
+    JZ r4, tiles_done
 
     ; Determine which tile we're in (r20 - TILES_BASE) / 64
     ; and which pixel within tile
@@ -92,34 +92,34 @@ tile_init_loop:
     LDI r25, 8
     MOV r6, r24
     DIV r6, r25       ; r6 = row (0..7)
-    MOV r7, r24
-    MOD r7, r25       ; r7 = col (0..7)
+    MOV r2, r24
+    MOD r2, r25       ; r2 = col (0..7)
 
     ; Generate pattern based on tile index
     CMPI r23, 0
-    JZ r12, mk_grass
+    JZ r4, mk_grass
     CMPI r23, 1
-    JZ r12, mk_water
+    JZ r4, mk_water
     CMPI r23, 2
-    JZ r12, mk_stone
+    JZ r4, mk_stone
     CMPI r23, 3
-    JZ r12, mk_sand
+    JZ r4, mk_sand
     CMPI r23, 4
-    JZ r12, mk_dirt
+    JZ r4, mk_dirt
     CMPI r23, 5
-    JZ r12, mk_wood
+    JZ r4, mk_wood
     CMPI r23, 6
-    JZ r12, mk_lava
+    JZ r4, mk_lava
     CMPI r23, 7
-    JZ r12, mk_brick
+    JZ r4, mk_brick
     CMPI r23, 8
-    JZ r12, mk_ice
+    JZ r4, mk_ice
     JMP store_pixel
 
 mk_grass:
-    AND r6, r7
+    AND r6, r2
     CMPI r6, 0
-    JZ r12, grass_c1
+    JZ r4, grass_c1
     LDI r6, C_GRASS2
     JMP store_pixel
 grass_c1:
@@ -127,13 +127,13 @@ grass_c1:
     JMP store_pixel
 
 mk_water:
-    ADD r6, r7
-    LDI r3, 3
-    MOD r6, r3
+    ADD r6, r2
+    LDI r13, 3
+    MOD r6, r13
     CMPI r6, 0
-    JZ r12, water_c1
+    JZ r4, water_c1
     CMPI r6, 1
-    JZ r12, water_c2
+    JZ r4, water_c2
     LDI r6, C_WATER1
     JMP store_pixel
 water_c1:
@@ -144,9 +144,9 @@ water_c2:
     JMP store_pixel
 
 mk_stone:
-    AND r6, r7
+    AND r6, r2
     CMPI r6, 0
-    JZ r12, stone_c1
+    JZ r4, stone_c1
     LDI r6, C_STONE1
     JMP store_pixel
 stone_c1:
@@ -154,11 +154,11 @@ stone_c1:
     JMP store_pixel
 
 mk_sand:
-    ADD r6, r7
-    LDI r3, 3
-    MOD r6, r3
+    ADD r6, r2
+    LDI r13, 3
+    MOD r6, r13
     CMPI r6, 0
-    JZ r12, sand_c1
+    JZ r4, sand_c1
     LDI r6, C_SAND1
     JMP store_pixel
 sand_c1:
@@ -166,9 +166,9 @@ sand_c1:
     JMP store_pixel
 
 mk_dirt:
-    AND r6, r7
+    AND r6, r2
     CMPI r6, 0
-    JZ r12, dirt_c1
+    JZ r4, dirt_c1
     LDI r6, C_DIRT1
     JMP store_pixel
 dirt_c1:
@@ -176,11 +176,11 @@ dirt_c1:
     JMP store_pixel
 
 mk_wood:
-    ADD r6, r7
-    LDI r3, 4
-    MOD r6, r3
+    ADD r6, r2
+    LDI r13, 4
+    MOD r6, r13
     CMPI r6, 0
-    JZ r12, wood_c1
+    JZ r4, wood_c1
     LDI r6, C_WOOD1
     JMP store_pixel
 wood_c1:
@@ -188,9 +188,9 @@ wood_c1:
     JMP store_pixel
 
 mk_lava:
-    AND r6, r7
+    AND r6, r2
     CMPI r6, 0
-    JZ r12, lava_c1
+    JZ r4, lava_c1
     LDI r6, C_LAVA2
     JMP store_pixel
 lava_c1:
@@ -198,11 +198,11 @@ lava_c1:
     JMP store_pixel
 
 mk_brick:
-    ADD r6, r7
-    LDI r3, 4
-    MOD r6, r3
+    ADD r6, r2
+    LDI r13, 4
+    MOD r6, r13
     CMPI r6, 0
-    JZ r12, brick_c1
+    JZ r4, brick_c1
     LDI r6, C_BRICK1
     JMP store_pixel
 brick_c1:
@@ -210,9 +210,9 @@ brick_c1:
     JMP store_pixel
 
 mk_ice:
-    AND r6, r7
+    AND r6, r2
     CMPI r6, 0
-    JZ r12, ice_c1
+    JZ r4, ice_c1
     LDI r6, C_ICE1
     JMP store_pixel
 ice_c1:
@@ -221,8 +221,8 @@ ice_c1:
 
 store_pixel:
     STORE r20, r6
-    ADD r20, r10
-    SUB r22, r10
+    ADD r20, r5
+    SUB r22, r5
     JMP tile_init_loop
 
 tiles_done:
@@ -232,575 +232,575 @@ tiles_done:
     LDI r20, MAP_BASE
     LOAD r21, r20
     CMPI r21, 0
-    JNZ r12, map_exists
+    JNZ r4, map_exists
 
     ; Build a demo level: grass border, stone path, water pond, etc.
     LDI r20, MAP_BASE
     ; Row 0: all grass
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 1: grass with stone corners
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 2: grass, stone, dirt, sand
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 5
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 4
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 4
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 3: grass, stone path, water area
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 2
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 2
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 4
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 4: grass, stone, grass, water
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 2
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 2
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 2
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 5: grass, stone, grass, water edge
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 2
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 2
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 6: grass, stone, lava area
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 7
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 7: grass, stone, lava/brick
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 7
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 8
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 8
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Rows 8-15: Fill with grass, stone path, ice area, wood area
     ; Row 8
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 8
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 9
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 9
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 9
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 8
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 9
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 9
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 6
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 6
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Rows 10-15: grass with stone path and wood/brick features
     ; Row 10
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 6
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 6
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 11
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 6
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 6
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 12
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 13
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 4
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 4
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 14
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     LDI r6, 3
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
     ; Row 15: all grass
     LDI r6, 1
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
     STORE r20, r6
-    ADD r20, r10
+    ADD r20, r5
 
 map_exists:
 
@@ -817,39 +817,39 @@ map_exists:
 
 ; ===== MAIN LOOP =====
 main_loop:
-    LDI r10, 1
+    LDI r5, 1
 
     ; Read keyboard
-    IKEY r15
-    JZ r15, draw_frame
+    IKEY r0
+    JZ r0, draw_frame
 
     ; ESC (27) = halt
-    CMPI r15, 27
-    JZ r12, do_halt
+    CMPI r0, 27
+    JZ r4, do_halt
 
     ; W or Up (119 or 72) = move up
-    CMPI r15, 119
-    JZ r12, move_up
-    CMPI r15, 72
-    JZ r12, move_up
+    CMPI r0, 119
+    JZ r4, move_up
+    CMPI r0, 72
+    JZ r4, move_up
 
     ; S or Down (115 or 80) = move down (not 's' export!)
-    CMPI r15, 115
-    JZ r12, move_down
-    CMPI r15, 80
-    JZ r12, move_down
+    CMPI r0, 115
+    JZ r4, move_down
+    CMPI r0, 80
+    JZ r4, move_down
 
     ; A or Left (97 or 75) = move left
-    CMPI r15, 97
-    JZ r12, move_left
-    CMPI r15, 75
-    JZ r12, move_left
+    CMPI r0, 97
+    JZ r4, move_left
+    CMPI r0, 75
+    JZ r4, move_left
 
     ; D or Right (100 or 77) = move right
-    CMPI r15, 100
-    JZ r12, move_right
-    CMPI r15, 77
-    JZ r12, move_right
+    CMPI r0, 100
+    JZ r4, move_right
+    CMPI r0, 77
+    JZ r4, move_right
 
     JMP draw_frame
 
@@ -860,8 +860,8 @@ move_up:
     LDI r20, PLAYER_Y
     LOAD r21, r20
     CMPI r21, 0
-    JZ r12, draw_frame
-    SUB r21, r10
+    JZ r4, draw_frame
+    SUB r21, r5
     STORE r20, r21
     JMP draw_frame
 
@@ -869,8 +869,8 @@ move_down:
     LDI r20, PLAYER_Y
     LOAD r21, r20
     CMPI r21, 15
-    JZ r12, draw_frame
-    ADD r21, r10
+    JZ r4, draw_frame
+    ADD r21, r5
     STORE r20, r21
     JMP draw_frame
 
@@ -878,8 +878,8 @@ move_left:
     LDI r20, PLAYER_X
     LOAD r21, r20
     CMPI r21, 0
-    JZ r12, draw_frame
-    SUB r21, r10
+    JZ r4, draw_frame
+    SUB r21, r5
     STORE r20, r21
     JMP draw_frame
 
@@ -887,69 +887,69 @@ move_right:
     LDI r20, PLAYER_X
     LOAD r21, r20
     CMPI r21, 15
-    JZ r12, draw_frame
-    ADD r21, r10
+    JZ r4, draw_frame
+    ADD r21, r5
     STORE r20, r21
     JMP draw_frame
 
 ; ===== DRAW FRAME =====
 draw_frame:
-    LDI r10, 1
+    LDI r5, 1
 
     ; Clear screen
-    LDI r3, 0x1A1A2E
-    FILL r3
+    LDI r13, 0x1A1A2E
+    FILL r13
 
     ; ===== Title Bar =====
     LDI r6, 0
-    LDI r7, 0
-    LDI r14, 256
-    LDI r3, 12
-    LDI r4, 0x2D2D44
-    RECTF r6, r7, r14, r3, r4
+    LDI r2, 0
+    LDI r1, 256
+    LDI r13, 12
+    LDI r9, 0x2D2D44
+    RECTF r6, r2, r1, r13, r9
 
     LDI r20, STR_BUF
     STRO r20, "TILEMAP DEMO"
     LDI r6, 88
-    LDI r7, 1
-    LDI r14, STR_BUF
-    TEXT r6, r7, r14
+    LDI r2, 1
+    LDI r1, STR_BUF
+    TEXT r6, r2, r1
 
     ; ===== Render tilemap with TILEMAP opcode =====
     ; TILEMAP x_reg, y_reg, map_reg, tiles_reg, grid_w, grid_h, tile_w, tile_h
     LDI r6, 8
-    LDI r7, 14
-    LDI r14, MAP_BASE
-    LDI r3, TILES_BASE
-    LDI r4, 16
-    LDI r2, 16
-    LDI r11, 15
-    LDI r1, 15
-    TILEMAP r6, r7, r14, r3, r4, r2, r11, r1
+    LDI r2, 14
+    LDI r1, MAP_BASE
+    LDI r13, TILES_BASE
+    LDI r9, 16
+    LDI r11, 16
+    LDI r14, 15
+    LDI r12, 15
+    TILEMAP r6, r2, r1, r13, r9, r11, r14, r12
 
     ; ===== Draw grid lines (subtle) =====
     LDI r6, 8
-    LDI r7, 14
-    LDI r14, 1
-    LDI r3, 240
-    LDI r4, 0x333355
-    LDI r0, 15
+    LDI r2, 14
+    LDI r1, 1
+    LDI r13, 240
+    LDI r9, 0x333355
+    LDI r8, 15
 draw_vlines:
     CMPI r6, 248
-    BGE r12, vlines_done
-    RECTF r6, r7, r14, r3, r4
-    ADD r6, r0
+    BGE r4, vlines_done
+    RECTF r6, r2, r1, r13, r9
+    ADD r6, r8
     JMP draw_vlines
 vlines_done:
     LDI r6, 8
-    LDI r7, 14
-    LDI r14, 240
-    LDI r3, 1
+    LDI r2, 14
+    LDI r1, 240
+    LDI r13, 1
 draw_hlines:
-    CMPI r7, 254
-    BGE r12, hlines_done
-    RECTF r6, r7, r14, r3, r4
-    ADD r7, r0
+    CMPI r2, 254
+    BGE r4, hlines_done
+    RECTF r6, r2, r1, r13, r9
+    ADD r2, r8
     JMP draw_hlines
 hlines_done:
 
@@ -957,105 +957,105 @@ hlines_done:
     LDI r20, PLAYER_X
     LOAD r6, r20
     LDI r20, PLAYER_Y
-    LOAD r7, r20
+    LOAD r2, r20
 
     ; Compute pixel position: px = 8 + tile_x * 15 + 6, py = 14 + tile_y * 15 + 6
     ; Center a 3px cross within a 15px tile
-    LDI r14, 15
-    MUL r6, r14
-    ADD r6, r10       ; +1
-    LDI r3, 8
-    ADD r6, r3       ; +8 = 9 offset from tile start
-    LDI r3, 6
-    ADD r6, r3       ; +6 = 15 offset (center of 15px tile)
-    MUL r7, r14
-    ADD r7, r10       ; +1
-    LDI r3, 14
-    ADD r7, r3       ; +14 = 15 offset from y origin
+    LDI r1, 15
+    MUL r6, r1
+    ADD r6, r5       ; +1
+    LDI r13, 8
+    ADD r6, r13       ; +8 = 9 offset from tile start
+    LDI r13, 6
+    ADD r6, r13       ; +6 = 15 offset (center of 15px tile)
+    MUL r2, r1
+    ADD r2, r5       ; +1
+    LDI r13, 14
+    ADD r2, r13       ; +14 = 15 offset from y origin
 
     ; Player is a white cross on the tile
     ; Horizontal line
-    LDI r14, 3
-    LDI r3, 1
-    LDI r4, 0xFFFFFF
-    RECTF r6, r7, r14, r3, r4
+    LDI r1, 3
+    LDI r13, 1
+    LDI r9, 0xFFFFFF
+    RECTF r6, r2, r1, r13, r9
 
     ; Vertical line
-    LDI r14, 1
-    LDI r3, 3
-    RECTF r6, r7, r14, r3, r4
+    LDI r1, 1
+    LDI r13, 3
+    RECTF r6, r2, r1, r13, r9
 
     ; Center pixel
-    LDI r14, 1
-    LDI r3, 1
-    RECTF r6, r7, r14, r3, r4
+    LDI r1, 1
+    LDI r13, 1
+    RECTF r6, r2, r1, r13, r9
 
     ; Pulsing effect: toggle yellow/white every 16 frames
     LDI r20, FRAME_CNT
     LOAD r21, r20
-    ADD r21, r10
+    ADD r21, r5
     STORE r20, r21
     LDI r22, 16
     MOD r21, r22
     CMPI r21, 0
-    JZ r12, pulse_yellow
+    JZ r4, pulse_yellow
     JMP no_pulse
 pulse_yellow:
     ; Redraw cross in yellow
-    LDI r14, 3
-    LDI r3, 1
-    LDI r4, 0xFFFF00
-    RECTF r6, r7, r14, r3, r4
-    LDI r14, 1
-    LDI r3, 3
-    RECTF r6, r7, r14, r3, r4
-    LDI r14, 1
-    LDI r3, 1
-    RECTF r6, r7, r14, r3, r4
+    LDI r1, 3
+    LDI r13, 1
+    LDI r9, 0xFFFF00
+    RECTF r6, r2, r1, r13, r9
+    LDI r1, 1
+    LDI r13, 3
+    RECTF r6, r2, r1, r13, r9
+    LDI r1, 1
+    LDI r13, 1
+    RECTF r6, r2, r1, r13, r9
 no_pulse:
 
     ; ===== Status Bar =====
     LDI r6, 0
-    LDI r7, 248
-    LDI r14, 256
-    LDI r3, 8
-    LDI r4, 0x2D2D44
-    RECTF r6, r7, r14, r3, r4
+    LDI r2, 248
+    LDI r1, 256
+    LDI r13, 8
+    LDI r9, 0x2D2D44
+    RECTF r6, r2, r1, r13, r9
 
     ; Show player position
     LDI r20, STR_BUF
     STRO r20, "Pos:"
     LDI r6, 4
-    LDI r7, 249
-    LDI r14, STR_BUF
-    TEXT r6, r7, r14
+    LDI r2, 249
+    LDI r1, STR_BUF
+    TEXT r6, r2, r1
 
     LDI r20, PLAYER_X
     LOAD r6, r20
     LDI r20, PLAYER_Y
-    LOAD r7, r20
+    LOAD r2, r20
     ; Show tile under player
-    LDI r14, 16
-    MUL r7, r14
-    ADD r7, r6
+    LDI r1, 16
+    MUL r2, r1
+    ADD r2, r6
     LDI r20, MAP_BASE
-    ADD r20, r7
-    LOAD r7, r20
+    ADD r20, r2
+    LOAD r2, r20
 
     LDI r20, STR_BUF
     STRO r20, "Tile:"
     LDI r6, 40
     LDI r21, 249
-    LDI r14, STR_BUF
-    TEXT r6, r21, r14
+    LDI r1, STR_BUF
+    TEXT r6, r21, r1
 
     ; Show tile number
     LDI r20, STR_BUF
     STRO r20, "WASD/Arrows=Move ESC=Quit"
     LDI r6, 70
-    LDI r7, 249
-    LDI r14, STR_BUF
-    TEXT r6, r7, r14
+    LDI r2, 249
+    LDI r1, STR_BUF
+    TEXT r6, r2, r1
 
     ; ===== Frame =====
     FRAME

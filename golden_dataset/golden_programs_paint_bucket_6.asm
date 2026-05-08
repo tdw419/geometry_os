@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a paint bucket demo that demonstrates flood fill functionality using the FLOOD opcode. The program initializes a canvas with various bordered shapes and allows users to navigate with WASD keys, paint pixels with spacebar, flood fill enclosed regions with 'F', select colors 1-5, clear the canvas with 'C', and quit with 'Q'.
+; DESCRIPTION: Display a object using color red at the screen.
 
 ; paint_bucket.asm -- Paint Bucket Demo for Geometry OS
 ;
@@ -17,311 +17,311 @@
 ; Use F to flood-fill enclosed regions with the selected color.
 ;
 ; Register allocation:
-;   r3  = constant 1
-;   r6  = scratch
+;   r11  = constant 1
 ;   r13  = scratch
-;   r0  = scratch (tolerance, always 0 for exact match)
-;   r4  = current color (starts red)
-;   r1  = key value
-;   r9 = cursor X (starts at 128)
+;   r6  = scratch
+;   r4  = scratch (tolerance, always 0 for exact match)
+;   r10  = current color (starts red)
+;   r15  = key value
+;   r0 = cursor X (starts at 128)
 ;   r8 = cursor Y (starts at 128)
-;   r2 = zero constant
-;   r11 = one constant
+;   r9 = zero constant
+;   r5 = one constant
 ;   r16 = step size (3)
 
 ; ── INIT ──────────────────────────────────────────────
-    LDI r2, 0
-    LDI r11, 1
+    LDI r9, 0
+    LDI r5, 1
     LDI r16, 3
-    LDI r9, 128          ; cursor X
+    LDI r0, 128          ; cursor X
     LDI r8, 128          ; cursor Y
-    LDI r0, 0             ; tolerance = 0 (exact match)
-    LDI r4, 0xFF0000      ; start with red
+    LDI r4, 0             ; tolerance = 0 (exact match)
+    LDI r10, 0xFF0000      ; start with red
 
 ; ── Draw canvas background ────────────────────────────
-    LDI r6, 0x111111
-    FILL r6               ; dark background
+    LDI r13, 0x111111
+    FILL r13               ; dark background
 
 ; ── Draw bordered shapes ──────────────────────────────
 ; ── Draw bordered shapes using RECTF (outer fill + inner fill) ──
 
 ; Shape 1: White-bordered rectangle at (20,20) size 80x60
-    LDI r4, 0xFFFFFF      ; white
-    LDI r6, 20            ; x
-    LDI r13, 20            ; y
-    LDI r3, 2             ; w reg
-    LDI r5, 80            ; w
-    LDI r14, 60            ; h
-    RECTF r6, r13, r5, r14, r4
+    LDI r10, 0xFFFFFF      ; white
+    LDI r13, 20            ; x
+    LDI r6, 20            ; y
+    LDI r11, 2             ; w reg
+    LDI r14, 80            ; w
+    LDI r12, 60            ; h
+    RECTF r13, r6, r14, r12, r10
 
 ; Inner of shape 1: black fill at (22,22) size 76x56
-    LDI r4, 0x000000      ; black
-    LDI r6, 22
+    LDI r10, 0x000000      ; black
     LDI r13, 22
-    LDI r5, 76
-    LDI r14, 56
-    RECTF r6, r13, r5, r14, r4
+    LDI r6, 22
+    LDI r14, 76
+    LDI r12, 56
+    RECTF r13, r6, r14, r12, r10
 
 ; Shape 2: Circle approximation using concentric rects at (130,20) size 80x60
-    LDI r4, 0x00FF00      ; green border
-    LDI r6, 130
-    LDI r13, 20
-    LDI r5, 80
-    LDI r14, 60
-    RECTF r6, r13, r5, r14, r4
+    LDI r10, 0x00FF00      ; green border
+    LDI r13, 130
+    LDI r6, 20
+    LDI r14, 80
+    LDI r12, 60
+    RECTF r13, r6, r14, r12, r10
 
-    LDI r4, 0x000000      ; black interior
-    LDI r6, 132
-    LDI r13, 22
-    LDI r5, 76
-    LDI r14, 56
-    RECTF r6, r13, r5, r14, r4
+    LDI r10, 0x000000      ; black interior
+    LDI r13, 132
+    LDI r6, 22
+    LDI r14, 76
+    LDI r12, 56
+    RECTF r13, r6, r14, r12, r10
 
 ; Shape 3: Small square at (20,100) size 40x40
-    LDI r4, 0x0000FF      ; blue border
-    LDI r6, 20
-    LDI r13, 100
-    LDI r5, 40
+    LDI r10, 0x0000FF      ; blue border
+    LDI r13, 20
+    LDI r6, 100
     LDI r14, 40
-    RECTF r6, r13, r5, r14, r4
+    LDI r12, 40
+    RECTF r13, r6, r14, r12, r10
 
-    LDI r4, 0x000000
-    LDI r6, 22
-    LDI r13, 102
-    LDI r5, 36
+    LDI r10, 0x000000
+    LDI r13, 22
+    LDI r6, 102
     LDI r14, 36
-    RECTF r6, r13, r5, r14, r4
+    LDI r12, 36
+    RECTF r13, r6, r14, r12, r10
 
 ; Shape 4: Tall rectangle at (80,100) size 30x80
-    LDI r4, 0xFFFF00      ; yellow border
-    LDI r6, 80
-    LDI r13, 100
-    LDI r5, 30
-    LDI r14, 80
-    RECTF r6, r13, r5, r14, r4
+    LDI r10, 0xFFFF00      ; yellow border
+    LDI r13, 80
+    LDI r6, 100
+    LDI r14, 30
+    LDI r12, 80
+    RECTF r13, r6, r14, r12, r10
 
-    LDI r4, 0x000000
-    LDI r6, 82
-    LDI r13, 102
-    LDI r5, 26
-    LDI r14, 76
-    RECTF r6, r13, r5, r14, r4
+    LDI r10, 0x000000
+    LDI r13, 82
+    LDI r6, 102
+    LDI r14, 26
+    LDI r12, 76
+    RECTF r13, r6, r14, r12, r10
 
 ; Shape 5: L-shaped region (two overlapping rects)
-    LDI r4, 0xFF00FF      ; magenta border
-    LDI r6, 140
-    LDI r13, 100
-    LDI r5, 60
-    LDI r14, 30
-    RECTF r6, r13, r5, r14, r4
+    LDI r10, 0xFF00FF      ; magenta border
+    LDI r13, 140
+    LDI r6, 100
+    LDI r14, 60
+    LDI r12, 30
+    RECTF r13, r6, r14, r12, r10
 
-    LDI r6, 140
-    LDI r13, 120
-    LDI r5, 30
-    LDI r14, 50
-    RECTF r6, r13, r5, r14, r4
+    LDI r13, 140
+    LDI r6, 120
+    LDI r14, 30
+    LDI r12, 50
+    RECTF r13, r6, r14, r12, r10
 
 ; Inner L-shape (black)
-    LDI r4, 0x000000
-    LDI r6, 142
-    LDI r13, 102
-    LDI r5, 56
-    LDI r14, 26
-    RECTF r6, r13, r5, r14, r4
+    LDI r10, 0x000000
+    LDI r13, 142
+    LDI r6, 102
+    LDI r14, 56
+    LDI r12, 26
+    RECTF r13, r6, r14, r12, r10
 
-    LDI r6, 142
-    LDI r13, 122
-    LDI r5, 26
-    LDI r14, 46
-    RECTF r6, r13, r5, r14, r4
+    LDI r13, 142
+    LDI r6, 122
+    LDI r14, 26
+    LDI r12, 46
+    RECTF r13, r6, r14, r12, r10
 
 ; Reset color to red
-    LDI r4, 0xFF0000
+    LDI r10, 0xFF0000
 
 ; ── Draw UI text at bottom ────────────────────────────
 ; Store strings in RAM
     LDI r20, 0x500
-    LDI r6, 0x57           ; 'W'
-    STORE r20, r6
+    LDI r13, 0x57           ; 'W'
+    STORE r20, r13
     LDI r20, 0x504
-    LDI r6, 0x41           ; 'A'
-    STORE r20, r6
+    LDI r13, 0x41           ; 'A'
+    STORE r20, r13
     LDI r20, 0x508
-    LDI r6, 0x53           ; 'S'
-    STORE r20, r6
+    LDI r13, 0x53           ; 'S'
+    STORE r20, r13
     LDI r20, 0x50C
-    LDI r6, 0x44           ; 'D'
-    STORE r20, r6
+    LDI r13, 0x44           ; 'D'
+    STORE r20, r13
     LDI r20, 0x510
-    LDI r6, 0
-    STORE r20, r6
+    LDI r13, 0
+    STORE r20, r13
 
     LDI r20, 0x520
-    LDI r6, 0x53           ; 'S'
-    STORE r20, r6
+    LDI r13, 0x53           ; 'S'
+    STORE r20, r13
     LDI r20, 0x524
-    LDI r6, 0x50           ; 'P'
-    STORE r20, r6
+    LDI r13, 0x50           ; 'P'
+    STORE r20, r13
     LDI r20, 0x528
-    LDI r6, 0x3D           ; '='
-    STORE r20, r6
+    LDI r13, 0x3D           ; '='
+    STORE r20, r13
     LDI r20, 0x52C
-    LDI r6, 0x50           ; 'P'
-    STORE r20, r6
+    LDI r13, 0x50           ; 'P'
+    STORE r20, r13
     LDI r20, 0x530
-    LDI r6, 0x41           ; 'A'
-    STORE r20, r6
+    LDI r13, 0x41           ; 'A'
+    STORE r20, r13
     LDI r20, 0x534
-    LDI r6, 0x49           ; 'I'
-    STORE r20, r6
+    LDI r13, 0x49           ; 'I'
+    STORE r20, r13
     LDI r20, 0x538
-    LDI r6, 0x4E           ; 'N'
-    STORE r20, r6
+    LDI r13, 0x4E           ; 'N'
+    STORE r20, r13
     LDI r20, 0x53C
-    LDI r6, 0x54           ; 'T'
-    STORE r20, r6
+    LDI r13, 0x54           ; 'T'
+    STORE r20, r13
     LDI r20, 0x540
-    LDI r6, 0
-    STORE r20, r6
+    LDI r13, 0
+    STORE r20, r13
 
     LDI r20, 0x560
-    LDI r6, 0x46           ; 'F'
-    STORE r20, r6
+    LDI r13, 0x46           ; 'F'
+    STORE r20, r13
     LDI r20, 0x564
-    LDI r6, 0x3D           ; '='
-    STORE r20, r6
+    LDI r13, 0x3D           ; '='
+    STORE r20, r13
     LDI r20, 0x568
-    LDI r6, 0x46           ; 'F'
-    STORE r20, r6
+    LDI r13, 0x46           ; 'F'
+    STORE r20, r13
     LDI r20, 0x56C
-    LDI r6, 0x49           ; 'I'
-    STORE r20, r6
+    LDI r13, 0x49           ; 'I'
+    STORE r20, r13
     LDI r20, 0x570
-    LDI r6, 0x4C           ; 'L'
-    STORE r20, r6
+    LDI r13, 0x4C           ; 'L'
+    STORE r20, r13
     LDI r20, 0x574
-    LDI r6, 0x4C           ; 'L'
-    STORE r20, r6
+    LDI r13, 0x4C           ; 'L'
+    STORE r20, r13
     LDI r20, 0x578
-    LDI r6, 0
-    STORE r20, r6
+    LDI r13, 0
+    STORE r20, r13
 
     ; Draw "WASD=MOVE" at bottom
-    LDI r6, 2
-    LDI r13, 200
+    LDI r13, 2
+    LDI r6, 200
     LDI r20, 0x500
-    TEXT r6, r13, r20
+    TEXT r13, r6, r20
 
     ; Draw "SP=PAINT" at bottom
-    LDI r6, 2
-    LDI r13, 212
+    LDI r13, 2
+    LDI r6, 212
     LDI r20, 0x520
-    TEXT r6, r13, r20
+    TEXT r13, r6, r20
 
     ; Draw "F=FILL" at bottom
-    LDI r6, 2
-    LDI r13, 224
+    LDI r13, 2
+    LDI r6, 224
     LDI r20, 0x560
-    TEXT r6, r13, r20
+    TEXT r13, r6, r20
 
 ; ── MAIN LOOP ────────────────────────────────────────
 main_loop:
     FRAME
 
     ; Erase old cursor (draw dark pixel)
-    LDI r6, 0x111111
-    PSET r9, r8, r6
+    LDI r13, 0x111111
+    PSET r0, r8, r13
 
     ; Read keyboard
-    IKEY r1
+    IKEY r15
 
     ; Process movement
     ; W = move up
-    LDI r6, 87
-    CMP r1, r6
-    JNZ r11, not_w
+    LDI r13, 87
+    CMP r15, r13
+    JNZ r5, not_w
     SUB r8, r16
 not_w:
     ; S = move down
-    LDI r6, 83
-    CMP r1, r6
-    JNZ r11, not_s
+    LDI r13, 83
+    CMP r15, r13
+    JNZ r5, not_s
     ADD r8, r16
 not_s:
     ; A = move left
-    LDI r6, 65
-    CMP r1, r6
-    JNZ r11, not_a
-    SUB r9, r16
+    LDI r13, 65
+    CMP r15, r13
+    JNZ r5, not_a
+    SUB r0, r16
 not_a:
     ; D = move right
-    LDI r6, 68
-    CMP r1, r6
-    JNZ r11, not_d
-    ADD r9, r16
+    LDI r13, 68
+    CMP r15, r13
+    JNZ r5, not_d
+    ADD r0, r16
 not_d:
 
     ; Space = paint pixel
-    LDI r6, 32
-    CMP r1, r6
-    JNZ r11, not_space
-    PSET r9, r8, r4
+    LDI r13, 32
+    CMP r15, r13
+    JNZ r5, not_space
+    PSET r0, r8, r10
 not_space:
 
     ; F = flood fill from cursor
-    LDI r6, 70
-    CMP r1, r6
-    JNZ r11, not_f
-    FLOOD r9, r8, r4, r0    ; x, y, fill_color, tolerance=0
+    LDI r13, 70
+    CMP r15, r13
+    JNZ r5, not_f
+    FLOOD r0, r8, r10, r4    ; x, y, fill_color, tolerance=0
 not_f:
 
     ; 1 = red
-    LDI r6, 49
-    CMP r1, r6
-    JNZ r11, not_1
-    LDI r4, 0xFF0000
+    LDI r13, 49
+    CMP r15, r13
+    JNZ r5, not_1
+    LDI r10, 0xFF0000
 not_1:
     ; 2 = green
-    LDI r6, 50
-    CMP r1, r6
-    JNZ r11, not_2
-    LDI r4, 0x00FF00
+    LDI r13, 50
+    CMP r15, r13
+    JNZ r5, not_2
+    LDI r10, 0x00FF00
 not_2:
     ; 3 = blue
-    LDI r6, 51
-    CMP r1, r6
-    JNZ r11, not_3
-    LDI r4, 0x0000FF
+    LDI r13, 51
+    CMP r15, r13
+    JNZ r5, not_3
+    LDI r10, 0x0000FF
 not_3:
     ; 4 = yellow
-    LDI r6, 52
-    CMP r1, r6
-    JNZ r11, not_4
-    LDI r4, 0xFFFF00
+    LDI r13, 52
+    CMP r15, r13
+    JNZ r5, not_4
+    LDI r10, 0xFFFF00
 not_4:
     ; 5 = white
-    LDI r6, 53
-    CMP r1, r6
-    JNZ r11, not_5
-    LDI r4, 0xFFFFFF
+    LDI r13, 53
+    CMP r15, r13
+    JNZ r5, not_5
+    LDI r10, 0xFFFFFF
 not_5:
 
     ; C = clear canvas
-    LDI r6, 67
-    CMP r1, r6
-    JNZ r11, not_c
-    LDI r6, 0x111111
-    FILL r6
+    LDI r13, 67
+    CMP r15, r13
+    JNZ r5, not_c
+    LDI r13, 0x111111
+    FILL r13
 not_c:
 
     ; Q = quit
-    LDI r6, 81
-    CMP r1, r6
-    JNZ r11, not_q
+    LDI r13, 81
+    CMP r15, r13
+    JNZ r5, not_q
     HALT
 not_q:
 
     ; Draw cursor (current color with white center indicator)
-    PSET r9, r8, r4
+    PSET r0, r8, r10
 
     JMP main_loop

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a Wolfenstein-style 3D raycasting engine that renders pseudo-3D corridors from a 16x16 map using the DDA algorithm. The player can navigate through the environment with controls W/S for forward/back movement and A/D for rotating left/right, while the rendering system calculates wall heights based on distance to ensure perspective depth.
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ; raycaster.asm -- Wolfenstein-style 3D raycasting engine
 ;
@@ -19,283 +19,283 @@
 ; ============================================================
 ; INITIALIZATION
 ; ============================================================
-LDI r15, 1
-LDI r8, 256
-LDI r3, 128
+LDI r12, 1
+LDI r7, 256
+LDI r11, 128
 LDI r29, 16
-LDI r12, 0x5000
+LDI r13, 0x5000
 
 ; --- Build 16x16 map at 0x5000 using bitmask extraction ---
 ; Each row bitmask is shifted left by 1 each iteration.
 ; SHR by 15 extracts the MSB, AND with 1 ensures clean 0/1.
 
 ; Row 0: 1111111111111111 = 0xFFFF
-LDI r0, 0xFFFF
-LDI r13, 0
+LDI r3, 0xFFFF
+LDI r6, 0
 row0_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row0_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row0_lp
 
 ; Row 1: 1000000000000001 = 0x8001
-LDI r0, 0x8001
-LDI r13, 0
+LDI r3, 0x8001
+LDI r6, 0
 row1_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row1_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row1_lp
 
 ; Row 2: 1011100010001001 = 0xB889
-LDI r0, 0xB889
-LDI r13, 0
+LDI r3, 0xB889
+LDI r6, 0
 row2_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row2_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row2_lp
 
 ; Row 3: 1000100000000001 = 0x8801
-LDI r0, 0x8801
-LDI r13, 0
+LDI r3, 0x8801
+LDI r6, 0
 row3_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row3_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row3_lp
 
 ; Row 4: 1000100010000001 = 0x8881
-LDI r0, 0x8881
-LDI r13, 0
+LDI r3, 0x8881
+LDI r6, 0
 row4_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row4_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row4_lp
 
 ; Row 5: 1000001010001001 = 0x80A9
-LDI r0, 0x80A9
-LDI r13, 0
+LDI r3, 0x80A9
+LDI r6, 0
 row5_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row5_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row5_lp
 
 ; Row 6: 1000000000001001 = 0x8009
-LDI r0, 0x8009
-LDI r13, 0
+LDI r3, 0x8009
+LDI r6, 0
 row6_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row6_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row6_lp
 
 ; Row 7: 1111000011111001 = 0xF0F9
-LDI r0, 0xF0F9
-LDI r13, 0
+LDI r3, 0xF0F9
+LDI r6, 0
 row7_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row7_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row7_lp
 
 ; Row 8: 1000000000000001 = 0x8001
-LDI r0, 0x8001
-LDI r13, 0
+LDI r3, 0x8001
+LDI r6, 0
 row8_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row8_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row8_lp
 
 ; Row 9: 1000111000011001 = 0x8719
-LDI r0, 0x8719
-LDI r13, 0
+LDI r3, 0x8719
+LDI r6, 0
 row9_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row9_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row9_lp
 
 ; Row 10: 1000000000000001 = 0x8001
-LDI r0, 0x8001
-LDI r13, 0
+LDI r3, 0x8001
+LDI r6, 0
 row10_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row10_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row10_lp
 
 ; Row 11: 1000001110000001 = 0x80E1
-LDI r0, 0x80E1
-LDI r13, 0
+LDI r3, 0x80E1
+LDI r6, 0
 row11_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row11_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row11_lp
 
 ; Row 12: 1000001000011001 = 0x8089
-LDI r0, 0x8089
-LDI r13, 0
+LDI r3, 0x8089
+LDI r6, 0
 row12_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row12_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row12_lp
 
 ; Row 13: 1000001000000001 = 0x8081
-LDI r0, 0x8081
-LDI r13, 0
+LDI r3, 0x8081
+LDI r6, 0
 row13_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row13_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row13_lp
 
 ; Row 14: 1000000000000001 = 0x8001
-LDI r0, 0x8001
-LDI r13, 0
+LDI r3, 0x8001
+LDI r6, 0
 row14_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row14_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row14_lp
 
 ; Row 15: 1111111111111111 = 0xFFFF
-LDI r0, 0xFFFF
-LDI r13, 0
+LDI r3, 0xFFFF
+LDI r6, 0
 row15_lp:
-  MOV r2, r0
-  LDI r14, 15
-  SHR r2, r14
-  AND r2, r15
-  STORE r12, r2
-  SHL r0, r15
-  ADD r12, r15
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, row15_lp
+  MOV r2, r3
+  LDI r10, 15
+  SHR r2, r10
+  AND r2, r12
+  STORE r13, r2
+  SHL r3, r12
+  ADD r13, r12
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, row15_lp
 
 ; --- Player init ---
-LDI r9, 0x5200
-LDI r13, 640
-STORE r9, r13
-ADD r9, r15
-STORE r9, r13
-ADD r9, r15
-LDI r13, 256
-STORE r9, r13
-ADD r9, r15
-LDI r13, 0
-STORE r9, r13
-ADD r9, r15
-STORE r9, r13
-ADD r9, r15
-LDI r13, 169
-STORE r9, r13
+LDI r1, 0x5200
+LDI r6, 640
+STORE r1, r6
+ADD r1, r12
+STORE r1, r6
+ADD r1, r12
+LDI r6, 256
+STORE r1, r6
+ADD r1, r12
+LDI r6, 0
+STORE r1, r6
+ADD r1, r12
+STORE r1, r6
+ADD r1, r12
+LDI r6, 169
+STORE r1, r6
 
 ; Constants
 LDI r20, 0x5210
-LDI r13, 9
-STORE r20, r13
+LDI r6, 9
+STORE r20, r6
 LDI r20, 0x5211
-LDI r13, 13
-STORE r20, r13
+LDI r6, 13
+STORE r20, r6
 
-LDI r9, 0x5200
+LDI r1, 0x5200
 
 ; ============================================================
 ; MAIN LOOP
@@ -308,13 +308,13 @@ main_loop:
 
   LDI r21, 65
   CMP r20, r21
-  JZ r4, chk_rr
+  JZ r15, chk_rr
   LDI r21, 97
   CMP r20, r21
-  JZ r4, chk_rr
+  JZ r15, chk_rr
   LDI r21, 75
   CMP r20, r21
-  JZ r4, chk_rr
+  JZ r15, chk_rr
   PUSH r31
   CALL rot_left
   POP r31
@@ -322,13 +322,13 @@ main_loop:
 chk_rr:
   LDI r21, 68
   CMP r20, r21
-  JZ r4, chk_fw
+  JZ r15, chk_fw
   LDI r21, 100
   CMP r20, r21
-  JZ r4, chk_fw
+  JZ r15, chk_fw
   LDI r21, 77
   CMP r20, r21
-  JZ r4, chk_fw
+  JZ r15, chk_fw
   PUSH r31
   CALL rot_right
   POP r31
@@ -336,10 +336,10 @@ chk_rr:
 chk_fw:
   LDI r21, 87
   CMP r20, r21
-  JZ r4, chk_bw
+  JZ r15, chk_bw
   LDI r21, 119
   CMP r20, r21
-  JZ r4, chk_bw
+  JZ r15, chk_bw
   PUSH r31
   CALL move_fwd
   POP r31
@@ -347,10 +347,10 @@ chk_fw:
 chk_bw:
   LDI r21, 83
   CMP r20, r21
-  JZ r4, ray_start
+  JZ r15, ray_start
   LDI r21, 115
   CMP r20, r21
-  JZ r4, ray_start
+  JZ r15, ray_start
   PUSH r31
   CALL move_bwd
   POP r31
@@ -359,59 +359,59 @@ chk_bw:
 ; RAYCASTING: render 256 columns
 ; ============================================================
 ray_start:
-  LDI r1, 0
+  LDI r8, 0
 
 cast_loop:
   ; camera_x = 2*x - 256
-  MOV r0, r1
-  SHL r0, r15
-  SUB r0, r8
+  MOV r3, r8
+  SHL r3, r12
+  SUB r3, r7
 
   ; ray_dir_x = dir_x + (plane_x * camera_x >> 8)
-  LOAD r13, r9
-  MOV r2, r9
-  ADD r2, r15
-  ADD r2, r15
-  ADD r2, r15
-  ADD r2, r15
+  LOAD r6, r1
+  MOV r2, r1
+  ADD r2, r12
+  ADD r2, r12
+  ADD r2, r12
+  ADD r2, r12
   LOAD r2, r2
-  MOV r14, r2
-  MUL r14, r0
-  LDI r10, 8
-  SHR r14, r10
-  ADD r13, r14
+  MOV r10, r2
+  MUL r10, r3
+  LDI r5, 8
+  SHR r10, r5
+  ADD r6, r10
 
   ; ray_dir_y = dir_y + (plane_y * camera_x >> 8)
-  MOV r2, r9
-  ADD r2, r15
-  ADD r2, r15
-  ADD r2, r15
+  MOV r2, r1
+  ADD r2, r12
+  ADD r2, r12
+  ADD r2, r12
   LOAD r2, r2
-  MOV r7, r9
-  ADD r7, r15
-  ADD r7, r15
-  ADD r7, r15
-  ADD r7, r15
-  ADD r7, r15
-  LOAD r7, r7
-  MOV r14, r7
-  MUL r14, r0
-  SHR r14, r10
-  ADD r2, r14
+  MOV r0, r1
+  ADD r0, r12
+  ADD r0, r12
+  ADD r0, r12
+  ADD r0, r12
+  ADD r0, r12
+  LOAD r0, r0
+  MOV r10, r0
+  MUL r10, r3
+  SHR r10, r5
+  ADD r2, r10
 
   ; DDA setup
-  LOAD r11, r9
-  MOV r5, r9
-  ADD r5, r15
-  LOAD r5, r5
-  MOV r16, r11
-  SHR r16, r10
-  MOV r17, r5
-  SHR r17, r10
+  LOAD r9, r1
+  MOV r14, r1
+  ADD r14, r12
+  LOAD r14, r14
+  MOV r16, r9
+  SHR r16, r5
+  MOV r17, r14
+  SHR r17, r5
 
   ; delta_dist_x
-  JZ r13, ddx_big
-  MOV r18, r13
+  JZ r6, ddx_big
+  MOV r18, r6
   LDI r19, 31
   SAR r19, r18
   JNZ r19, ddx_neg
@@ -419,11 +419,11 @@ cast_loop:
 ddx_neg:
   NEG r18
 ddx_ok:
-  LDI r14, 65536
-  DIV r14, r18
+  LDI r10, 65536
+  DIV r10, r18
   JMP ddy_start
 ddx_big:
-  LDI r14, 65536
+  LDI r10, 65536
 
 ddy_start:
   JZ r2, ddy_big
@@ -435,22 +435,22 @@ ddy_start:
 ddy_neg:
   NEG r18
 ddy_ok2:
-  LDI r10, 65536
-  DIV r10, r18
+  LDI r5, 65536
+  DIV r5, r18
   JMP ddy_done
 ddy_big:
-  LDI r10, 65536
+  LDI r5, 65536
 ddy_done:
 
   ; Step direction
   LDI r19, 31
-  MOV r20, r13
+  MOV r20, r6
   SAR r20, r19
   JZ r20, sx_pos
-  LDI r7, 0xFFFFFFFF
+  LDI r0, 0xFFFFFFFF
   JMP sx_done
 sx_pos:
-  LDI r7, 1
+  LDI r0, 1
 sx_done:
 
   MOV r20, r2
@@ -463,72 +463,72 @@ sy_pos:
 sy_done:
 
   ; sideDist_x
-  MOV r22, r11
+  MOV r22, r9
   LDI r23, 0xFF
   AND r22, r23
   LDI r19, 31
-  SAR r19, r7
+  SAR r19, r0
   JNZ r19, sdx_neg
-  MOV r18, r8
+  MOV r18, r7
   SUB r18, r22
-  MUL r18, r14
+  MUL r18, r10
   LDI r25, 8
   SHR r18, r25
   JMP sdx_done
 sdx_neg:
   MOV r18, r22
-  MUL r18, r14
+  MUL r18, r10
   LDI r25, 8
   SHR r18, r25
 sdx_done:
 
   ; sideDist_y
-  MOV r22, r5
+  MOV r22, r14
   LDI r23, 0xFF
   AND r22, r23
   SAR r19, r21
   JNZ r19, sdy_neg
-  MOV r19, r8
+  MOV r19, r7
   SUB r19, r22
-  MUL r19, r10
+  MUL r19, r5
   LDI r25, 8
   SHR r19, r25
   JMP sdy_done
 sdy_neg:
   MOV r19, r22
-  MUL r19, r10
+  MUL r19, r5
   LDI r25, 8
   SHR r19, r25
 sdy_done:
 
-  ; DDA loop state: r13=rdx, r2=rdy, r14=ddx, r10=ddy
-  ; r7=sx, r21=sy, r11=px, r5=py, r16=mx, r17=my
+  ; DDA loop state: r6=rdx, r2=rdy, r10=ddx, r5=ddy
+  ; r0=sx, r21=sy, r9=px, r14=py, r16=mx, r17=my
   ; r18=sdx, r19=sdy
   LDI r25, 0
 
 dda_step:
   CMP r18, r19
-  BLT r4, dda_x
-  ADD r19, r10
+  BLT r15, dda_x
+  ADD r19, r5
   ADD r17, r21
   LDI r25, 1
   JMP dda_chk
 dda_x:
-  ADD r18, r14
-  ADD r16, r7
+  ADD r18, r10
+  ADD r16, r0
   LDI r25, 0
 dda_chk:
   LDI r22, 31
   MOV r23, r16
   SAR r23, r22
   JNZ r23, dda_hit
-  CMP r16, r8
-  BGE r4, dda_hit
+  CMP r16, r7
+  BGE r15, dda_hit
   MOV r23, r17
   SAR r23, r22
   JNZ r23, dda_hit
-  CMP r17, r8
-  BGE r4, dda_hit
+  CMP r17, r7
+  BGE r15, dda_hit
   MOV r22, r17
   LDI r23, 4
   SHL r22, r23
@@ -542,13 +542,13 @@ dda_chk:
 dda_hit:
   JNZ r25, perp_y
   MOV r22, r16
-  SHL r22, r10
-  SUB r22, r11
-  SAR r23, r7
+  SHL r22, r5
+  SUB r22, r9
+  SAR r23, r0
   JZ r23, px_ok
-  ADD r22, r8
+  ADD r22, r7
 px_ok:
-  MOV r23, r13
+  MOV r23, r6
   LDI r24, 31
   SAR r24, r23
   JNZ r24, rdx_n
@@ -557,17 +557,17 @@ rdx_n:
   NEG r23
 rdx_d:
   JZ r23, p_tiny
-  MUL r22, r8
+  MUL r22, r7
   DIV r22, r23
   JMP p_done
 
 perp_y:
   MOV r22, r17
-  SHL r22, r10
-  SUB r22, r5
+  SHL r22, r5
+  SUB r22, r14
   SAR r23, r21
   JZ r23, py_ok
-  ADD r22, r8
+  ADD r22, r7
 py_ok:
   MOV r23, r2
   LDI r24, 31
@@ -578,7 +578,7 @@ rdy_n:
   NEG r23
 rdy_d:
   JZ r23, p_tiny
-  MUL r22, r8
+  MUL r22, r7
   DIV r22, r23
   JMP p_done
 
@@ -588,22 +588,22 @@ p_done:
   ; r22 = perpDist (8.8)
   LDI r23, 65536
   DIV r23, r22
-  CMP r23, r8
-  BLT r4, wh_ok
+  CMP r23, r7
+  BLT r15, wh_ok
   LDI r23, 255
 wh_ok:
 
   MOV r24, r23
-  SHR r24, r15
-  MOV r26, r3
+  SHR r24, r12
+  MOV r26, r11
   SUB r26, r24
-  MOV r27, r3
+  MOV r27, r11
   ADD r27, r24
 
   SAR r28, r26
   JNZ r28, ds_0
   CMP r26, r2
-  BGE r4, ds_0
+  BGE r15, ds_0
   JMP ds_ok
 ds_0:
   LDI r26, 0
@@ -611,56 +611,56 @@ ds_ok:
 
   LDI r28, 224
   CMP r27, r28
-  BGE r4, de_224
+  BGE r15, de_224
   JMP de_ok
 de_224:
   LDI r27, 224
 de_ok:
 
   JNZ r25, wk_dark
-  LDI r6, 0xAAAAAA
+  LDI r4, 0xAAAAAA
   JMP do_shade
 wk_dark:
-  LDI r6, 0x777777
+  LDI r4, 0x777777
 do_shade:
   MOV r28, r22
-  SHR r28, r10
-  MUL r28, r10
+  SHR r28, r5
+  MUL r28, r5
   LDI r29, 255
   SUB r29, r28
   LDI r28, 64
   CMP r29, r28
-  BLT r4, sh_min
+  BLT r15, sh_min
   MOV r29, r28
 sh_min:
-  MUL r6, r29
-  SHR r6, r10
+  MUL r4, r29
+  SHR r4, r5
 
   JZ r26, no_ceil
   LDI r28, 0x111133
-  RECTF r1, r2, r15, r26, r28
+  RECTF r8, r2, r12, r26, r28
 no_ceil:
 
   MOV r28, r27
   SUB r28, r26
   JZ r28, no_wall
-  RECTF r1, r26, r15, r28, r6
+  RECTF r8, r26, r12, r28, r4
 no_wall:
 
   LDI r28, 224
   CMP r27, r28
-  BGE r4, no_floor
+  BGE r15, no_floor
   MOV r28, r27
   LDI r29, 224
   SUB r29, r28
   JZ r29, no_floor
   LDI r28, 0x333311
-  RECTF r1, r27, r15, r29, r28
+  RECTF r8, r27, r12, r29, r28
 no_floor:
 
-  ADD r1, r15
-  CMP r1, r8
-  BLT r4, cast_loop
+  ADD r8, r12
+  CMP r8, r7
+  BLT r15, cast_loop
 
 ; ============================================================
 ; MINIMAP (32x32 area at y=224)
@@ -670,45 +670,45 @@ no_floor:
   LDI r30, 32
   RECTF r2, r29, r30, r30, r28
 
-  LDI r0, 0
+  LDI r3, 0
 mm_row:
-  LDI r13, 0
+  LDI r6, 0
 mm_col:
-  MOV r14, r0
-  LDI r10, 4
-  SHL r14, r10
-  ADD r14, r13
-  LDI r10, 0x5000
-  ADD r14, r10
-  LOAD r14, r14
-  JZ r14, mm_skip
-  ADD r13, r13
-  MOV r10, r0
-  ADD r10, r10
-  LDI r7, 224
-  ADD r10, r7
-  LDI r11, 0x6666AA
-  PSET r13, r10, r11
-mm_skip:
-  ADD r13, r15
-  CMP r13, r29
-  BLT r4, mm_col
-  ADD r0, r15
-  CMP r0, r29
-  BLT r4, mm_row
-
-  LOAD r14, r9
-  MOV r10, r9
-  ADD r10, r15
+  MOV r10, r3
+  LDI r5, 4
+  SHL r10, r5
+  ADD r10, r6
+  LDI r5, 0x5000
+  ADD r10, r5
   LOAD r10, r10
-  SHR r14, r10
-  SHR r10, r10
-  ADD r14, r14
+  JZ r10, mm_skip
+  ADD r6, r6
+  MOV r5, r3
+  ADD r5, r5
+  LDI r0, 224
+  ADD r5, r0
+  LDI r9, 0x6666AA
+  PSET r6, r5, r9
+mm_skip:
+  ADD r6, r12
+  CMP r6, r29
+  BLT r15, mm_col
+  ADD r3, r12
+  CMP r3, r29
+  BLT r15, mm_row
+
+  LOAD r10, r1
+  MOV r5, r1
+  ADD r5, r12
+  LOAD r5, r5
+  SHR r10, r5
+  SHR r5, r5
   ADD r10, r10
-  LDI r7, 224
-  ADD r10, r7
-  LDI r11, 0xFF4444
-  PSET r14, r10, r11
+  ADD r5, r5
+  LDI r0, 224
+  ADD r5, r0
+  LDI r9, 0xFF4444
+  PSET r10, r5, r9
 
   PSETI 127, 126, 0xFFFFFF
   PSETI 128, 127, 0xFFFFFF
@@ -725,11 +725,11 @@ rot_left:
   PUSH r31
   LDI r20, 0x5210
   LOAD r20, r20
-  LOAD r21, r9
-  MOV r22, r9
-  ADD r22, r15
-  ADD r22, r15
-  ADD r22, r15
+  LOAD r21, r1
+  MOV r22, r1
+  ADD r22, r12
+  ADD r22, r12
+  ADD r22, r12
   LOAD r22, r22
   MOV r23, r21
   LDI r24, 8
@@ -738,28 +738,28 @@ rot_left:
   MUL r24, r20
   MOV r25, r23
   SUB r25, r24
-  SHR r25, r10
+  SHR r25, r5
   MOV r23, r21
   MUL r23, r20
   MOV r24, r22
   LDI r26, 8
   SHL r24, r26
   ADD r23, r24
-  SHR r23, r10
-  STORE r9, r25
-  ADD r9, r15
-  ADD r9, r15
-  ADD r9, r15
-  STORE r9, r23
-  MOV r21, r9
-  ADD r21, r15
-  ADD r21, r15
+  SHR r23, r5
+  STORE r1, r25
+  ADD r1, r12
+  ADD r1, r12
+  ADD r1, r12
+  STORE r1, r23
+  MOV r21, r1
+  ADD r21, r12
+  ADD r21, r12
   LOAD r21, r21
-  MOV r22, r9
-  ADD r22, r15
-  ADD r22, r15
-  ADD r22, r15
-  ADD r22, r15
+  MOV r22, r1
+  ADD r22, r12
+  ADD r22, r12
+  ADD r22, r12
+  ADD r22, r12
   LOAD r22, r22
   MOV r23, r21
   LDI r24, 8
@@ -768,19 +768,19 @@ rot_left:
   MUL r24, r20
   MOV r25, r23
   SUB r25, r24
-  SHR r25, r10
+  SHR r25, r5
   MOV r23, r21
   MUL r23, r20
   MOV r24, r22
   LDI r26, 8
   SHL r24, r26
   ADD r23, r24
-  SHR r23, r10
-  ADD r9, r15
-  STORE r9, r25
-  ADD r9, r15
-  STORE r9, r23
-  LDI r9, 0x5200
+  SHR r23, r5
+  ADD r1, r12
+  STORE r1, r25
+  ADD r1, r12
+  STORE r1, r23
+  LDI r1, 0x5200
   POP r31
   RET
 
@@ -788,11 +788,11 @@ rot_right:
   PUSH r31
   LDI r20, 0x5210
   LOAD r20, r20
-  LOAD r21, r9
-  MOV r22, r9
-  ADD r22, r15
-  ADD r22, r15
-  ADD r22, r15
+  LOAD r21, r1
+  MOV r22, r1
+  ADD r22, r12
+  ADD r22, r12
+  ADD r22, r12
   LOAD r22, r22
   MOV r23, r21
   LDI r24, 8
@@ -801,7 +801,7 @@ rot_right:
   MUL r24, r20
   MOV r25, r23
   ADD r25, r24
-  SHR r25, r10
+  SHR r25, r5
   MOV r23, r21
   MUL r23, r20
   NEG r23
@@ -809,21 +809,21 @@ rot_right:
   LDI r26, 8
   SHL r24, r26
   ADD r23, r24
-  SHR r23, r10
-  STORE r9, r25
-  ADD r9, r15
-  ADD r9, r15
-  ADD r9, r15
-  STORE r9, r23
-  MOV r21, r9
-  ADD r21, r15
-  ADD r21, r15
+  SHR r23, r5
+  STORE r1, r25
+  ADD r1, r12
+  ADD r1, r12
+  ADD r1, r12
+  STORE r1, r23
+  MOV r21, r1
+  ADD r21, r12
+  ADD r21, r12
   LOAD r21, r21
-  MOV r22, r9
-  ADD r22, r15
-  ADD r22, r15
-  ADD r22, r15
-  ADD r22, r15
+  MOV r22, r1
+  ADD r22, r12
+  ADD r22, r12
+  ADD r22, r12
+  ADD r22, r12
   LOAD r22, r22
   MOV r23, r21
   LDI r24, 8
@@ -832,7 +832,7 @@ rot_right:
   MUL r24, r20
   MOV r25, r23
   ADD r25, r24
-  SHR r25, r10
+  SHR r25, r5
   MOV r23, r21
   MUL r23, r20
   NEG r23
@@ -840,12 +840,12 @@ rot_right:
   LDI r26, 8
   SHL r24, r26
   ADD r23, r24
-  SHR r23, r10
-  ADD r9, r15
-  STORE r9, r25
-  ADD r9, r15
-  STORE r9, r23
-  LDI r9, 0x5200
+  SHR r23, r5
+  ADD r1, r12
+  STORE r1, r25
+  ADD r1, r12
+  STORE r1, r23
+  LDI r1, 0x5200
   POP r31
   RET
 
@@ -856,39 +856,39 @@ move_fwd:
   PUSH r31
   LDI r20, 0x5211
   LOAD r20, r20
-  LOAD r21, r9
-  MOV r22, r9
-  ADD r22, r15
+  LOAD r21, r1
+  MOV r22, r1
+  ADD r22, r12
   LOAD r22, r22
-  MOV r23, r9
-  ADD r23, r15
-  ADD r23, r15
-  ADD r23, r15
+  MOV r23, r1
+  ADD r23, r12
+  ADD r23, r12
+  ADD r23, r12
   LOAD r23, r23
-  MOV r24, r9
-  ADD r24, r15
-  ADD r24, r15
-  ADD r24, r15
-  ADD r24, r15
+  MOV r24, r1
+  ADD r24, r12
+  ADD r24, r12
+  ADD r24, r12
+  ADD r24, r12
   LOAD r24, r24
   MOV r25, r23
   MUL r25, r20
-  SHR r25, r10
+  SHR r25, r5
   ADD r21, r25
   MOV r25, r24
   MUL r25, r20
-  SHR r25, r10
+  SHR r25, r5
   ADD r22, r25
   MOV r25, r21
-  SHR r25, r10
+  SHR r25, r5
   MOV r26, r22
-  SHR r26, r10
+  SHR r26, r5
   CALL chk_wall
-  JNZ r0, mf_blk
-  STORE r9, r21
-  ADD r9, r15
-  STORE r9, r22
-  LDI r9, 0x5200
+  JNZ r3, mf_blk
+  STORE r1, r21
+  ADD r1, r12
+  STORE r1, r22
+  LDI r1, 0x5200
 mf_blk:
   POP r31
   RET
@@ -897,58 +897,58 @@ move_bwd:
   PUSH r31
   LDI r20, 0x5211
   LOAD r20, r20
-  LOAD r21, r9
-  MOV r22, r9
-  ADD r22, r15
+  LOAD r21, r1
+  MOV r22, r1
+  ADD r22, r12
   LOAD r22, r22
-  MOV r23, r9
-  ADD r23, r15
-  ADD r23, r15
-  ADD r23, r15
+  MOV r23, r1
+  ADD r23, r12
+  ADD r23, r12
+  ADD r23, r12
   LOAD r23, r23
-  MOV r24, r9
-  ADD r24, r15
-  ADD r24, r15
-  ADD r24, r15
-  ADD r24, r15
+  MOV r24, r1
+  ADD r24, r12
+  ADD r24, r12
+  ADD r24, r12
+  ADD r24, r12
   LOAD r24, r24
   MOV r25, r23
   MUL r25, r20
-  SHR r25, r10
+  SHR r25, r5
   SUB r21, r25
   MOV r25, r24
   MUL r25, r20
-  SHR r25, r10
+  SHR r25, r5
   SUB r22, r25
   MOV r25, r21
-  SHR r25, r10
+  SHR r25, r5
   MOV r26, r22
-  SHR r26, r10
+  SHR r26, r5
   CALL chk_wall
-  JNZ r0, mb_blk
-  STORE r9, r21
-  ADD r9, r15
-  STORE r9, r22
-  LDI r9, 0x5200
+  JNZ r3, mb_blk
+  STORE r1, r21
+  ADD r1, r12
+  STORE r1, r22
+  LDI r1, 0x5200
 mb_blk:
   POP r31
   RET
 
 ; ============================================================
-; WALL CHECK (r25=map_x, r26=map_y) -> r0=1 wall, 0 empty
+; WALL CHECK (r25=map_x, r26=map_y) -> r3=1 wall, 0 empty
 ; ============================================================
 chk_wall:
   LDI r27, 31
   MOV r28, r25
   SAR r28, r27
   JNZ r28, cw_wall
-  CMP r25, r8
-  BGE r4, cw_wall
+  CMP r25, r7
+  BGE r15, cw_wall
   MOV r28, r26
   SAR r28, r27
   JNZ r28, cw_wall
-  CMP r26, r8
-  BGE r4, cw_wall
+  CMP r26, r7
+  BGE r15, cw_wall
   MOV r27, r26
   LDI r28, 4
   SHL r27, r28
@@ -957,8 +957,8 @@ chk_wall:
   ADD r27, r28
   LOAD r27, r27
   JNZ r27, cw_wall
-  LDI r0, 0
+  LDI r3, 0
   RET
 cw_wall:
-  LDI r0, 1
+  LDI r3, 1
   RET

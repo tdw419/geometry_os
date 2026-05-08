@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an interactive hex viewer that reads files from the Virtual File System (VFS), displays them as hexadecimal dumps with ASCII characters, and allows scrolling through the file content using UP/DOWN arrow keys. The user can open files by selecting them in a list view and exit to the list view using the ESC key.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; hex_viewer.asm -- Interactive Hex Viewer for Geometry OS
 ;
@@ -40,7 +40,7 @@
 #define MAX_VISIBLE  14
 
 ; ── INIT ──────────────────────────────────────
-LDI r13, 1
+LDI r12, 1
 
 ; Build hex nibble lookup table at HEX_TABLE
 ; HEX_TABLE[0..15] = '0','1',...,'9','A','B','C','D','E','F'
@@ -94,35 +94,35 @@ LDI r17, 70           ; 'F'
 STORE r20, r17
 
 ; Fill screen dark background
-LDI r14, 0x0d1117
-FILL r14
+LDI r13, 0x0d1117
+FILL r13
 
 ; Mode = list view
 LDI r20, MODE
-LDI r14, 0
-STORE r20, r14
+LDI r13, 0
+STORE r20, r13
 
 ; Selected index = 0
 LDI r20, SEL_INDEX
-LDI r14, 0
-STORE r20, r14
+LDI r13, 0
+STORE r20, r13
 
 ; Scroll offset = 0
 LDI r20, SCROLL_OFF
-LDI r14, 0
-STORE r20, r14
+LDI r13, 0
+STORE r20, r13
 
 ; File size = 0
 LDI r20, FILE_SIZE
-LDI r14, 0
-STORE r20, r14
+LDI r13, 0
+STORE r20, r13
 
 ; ── List files with LS ──
 LDI r20, FILE_BUF
 LS r20
-; r0 = file count
+; r14 = file count
 LDI r21, FILE_COUNT
-STORE r21, r0
+STORE r21, r14
 
 ; ── Parse LS buffer: build filename address table ──
 LDI r20, FILE_BUF
@@ -130,21 +130,21 @@ LDI r22, 0
 LDI r23, FNAME_TABLE
 
 scan_loop:
-    LDI r15, 16
-    CMP r22, r15
-    BGE r0, scan_done
+    LDI r4, 16
+    CMP r22, r4
+    BGE r14, scan_done
 
-    LOAD r14, r20
-    CMPI r14, 0
-    JZ r0, scan_done
+    LOAD r13, r20
+    CMPI r13, 0
+    JZ r14, scan_done
 
     STORE r23, r20
     ADDI r23, 1
 
 skip_chars:
-    LOAD r14, r20
-    CMPI r14, 0
-    JZ r0, next_entry
+    LOAD r13, r20
+    CMPI r13, 0
+    JZ r14, next_entry
     ADDI r20, 1
     JMP skip_chars
 
@@ -177,59 +177,59 @@ STRO r20, "ESC back"
 
 ; ── MAIN LOOP ─────────────────────────────────
 main_loop:
-    LDI r13, 1
+    LDI r12, 1
 
     LDI r20, MODE
-    LOAD r15, r20
-    CMPI r15, 0
-    JZ r0, draw_list_view
+    LOAD r4, r20
+    CMPI r4, 0
+    JZ r14, draw_list_view
 
     JMP draw_hex_view
 
 ; ── LIST VIEW ─────────────────────────────────
 draw_list_view:
-    LDI r14, 0x0d1117
-    FILL r14
+    LDI r13, 0x0d1117
+    FILL r13
 
     ; Title bar
+    LDI r12, 0
     LDI r13, 0
-    LDI r14, 0
-    LDI r7, 256
-    LDI r10, 22
-    LDI r1, 0x1a1f29
-    RECTF r13, r14, r7, r10, r1
+    LDI r10, 256
+    LDI r8, 22
+    LDI r5, 0x1a1f29
+    RECTF r12, r13, r10, r8, r5
 
     ; Title text
-    LDI r13, 8
-    LDI r14, TITLE_Y
-    LDI r7, STR_BUF
-    TEXT r13, r14, r7
+    LDI r12, 8
+    LDI r13, TITLE_Y
+    LDI r10, STR_BUF
+    TEXT r12, r13, r10
 
     ; File count
     LDI r20, FILE_COUNT
-    LOAD r14, r20
+    LOAD r13, r20
     LDI r20, STR_BUF
     ADDI r20, 160
-    LDI r15, 48
-    ADD r15, r14
-    STORE r20, r15
-    LDI r15, 0
+    LDI r4, 48
+    ADD r4, r13
+    STORE r20, r4
+    LDI r4, 0
     ADDI r20, 1
-    STORE r20, r15
-    LDI r13, 200
-    LDI r14, TITLE_Y
-    LDI r7, STR_BUF
-    ADDI r7, 160
-    TEXT r13, r14, r7
+    STORE r20, r4
+    LDI r12, 200
+    LDI r13, TITLE_Y
+    LDI r10, STR_BUF
+    ADDI r10, 160
+    TEXT r12, r13, r10
 
     ; Instructions
-    LDI r13, 8
-    LDI r14, 238
-    LDI r7, STR_BUF
-    ADDI r7, 64
-    LDI r8, 0x888899
-    LDI r12, 0x0d1117
-    DRAWTEXT r13, r14, r7, r8, r12
+    LDI r12, 8
+    LDI r13, 238
+    LDI r10, STR_BUF
+    ADDI r10, 64
+    LDI r7, 0x888899
+    LDI r15, 0x0d1117
+    DRAWTEXT r12, r13, r10, r7, r15
 
     ; Draw file rows with selection highlight
     LDI r22, 0
@@ -237,36 +237,36 @@ draw_list_view:
     LDI r24, ROW_BASE_Y
 
 draw_rows:
-    LDI r15, 16
-    CMP r22, r15
-    BGE r0, list_input
+    LDI r4, 16
+    CMP r22, r4
+    BGE r14, list_input
 
     LOAD r20, r23
     CMPI r20, 0
-    JZ r0, list_input
+    JZ r14, list_input
 
     ; Check if selected
     LDI r25, SEL_INDEX
     LOAD r25, r25
     CMP r22, r25
-    JZ r0, row_selected
+    JZ r14, row_selected
 
     ; Normal row
-    LDI r13, 4
-    MOV r14, r24
-    LDI r7, 248
-    LDI r10, ROW_H
-    LDI r1, 0x131820
-    RECTF r13, r14, r7, r10, r1
+    LDI r12, 4
+    MOV r13, r24
+    LDI r10, 248
+    LDI r8, ROW_H
+    LDI r5, 0x131820
+    RECTF r12, r13, r10, r8, r5
     JMP draw_fname
 
 row_selected:
-    LDI r13, 4
-    MOV r14, r24
-    LDI r7, 248
-    LDI r10, ROW_H
-    LDI r1, 0x1a3a5c
-    RECTF r13, r14, r7, r10, r1
+    LDI r12, 4
+    MOV r13, r24
+    LDI r10, 248
+    LDI r8, ROW_H
+    LDI r5, 0x1a3a5c
+    RECTF r12, r13, r10, r8, r5
 
     ; Arrow indicator
     LDI r20, STR_BUF
@@ -274,57 +274,57 @@ row_selected:
     STRO r20, ">"
 
 draw_fname:
-    LDI r13, 16
-    MOV r14, r24
-    ADDI r14, 2
-    TEXT r13, r14, r20
+    LDI r12, 16
+    MOV r13, r24
+    ADDI r13, 2
+    TEXT r12, r13, r20
 
     ADDI r22, 1
     ADDI r23, 1
-    LDI r15, ROW_H
-    ADD r24, r15
+    LDI r4, ROW_H
+    ADD r24, r4
     JMP draw_rows
 
 ; ── LIST INPUT ────────────────────────────────
 list_input:
     FRAME
 
-    IKEY r11
-    CMPI r11, 0
-    JZ r0, main_loop
+    IKEY r2
+    CMPI r2, 0
+    JZ r14, main_loop
 
     ; W = 87 (up)
-    CMPI r11, 87
-    JNZ r0, not_up
+    CMPI r2, 87
+    JNZ r14, not_up
     LDI r20, SEL_INDEX
     LOAD r25, r20
     CMPI r25, 0
-    JZ r0, main_loop
+    JZ r14, main_loop
     SUBI r25, 1
     STORE r20, r25
     JMP main_loop
 
 not_up:
     ; S = 83 (down)
-    CMPI r11, 83
-    JNZ r0, not_down
+    CMPI r2, 83
+    JNZ r14, not_down
     LDI r20, SEL_INDEX
     LOAD r25, r20
-    LDI r15, FILE_COUNT
-    LOAD r15, r15
-    SUBI r15, 1
-    CMP r25, r15
-    BGE r0, main_loop
+    LDI r4, FILE_COUNT
+    LOAD r4, r4
+    SUBI r4, 1
+    CMP r25, r4
+    BGE r14, main_loop
     ADDI r25, 1
     STORE r20, r25
     JMP main_loop
 
 not_down:
     ; ENTER = 10 or 13
-    CMPI r11, 10
-    JZ r0, open_selected
-    CMPI r11, 13
-    JZ r0, open_selected
+    CMPI r2, 10
+    JZ r14, open_selected
+    CMPI r2, 13
+    JZ r14, open_selected
     JMP main_loop
 
 ; ── OPEN SELECTED FILE ────────────────────────
@@ -335,70 +335,70 @@ open_selected:
     ADD r23, r22
     LOAD r20, r23
     CMPI r20, 0
-    JZ r0, main_loop
+    JZ r14, main_loop
 
     ; Reset scroll
     LDI r25, SCROLL_OFF
-    LDI r15, 0
-    STORE r25, r15
+    LDI r4, 0
+    STORE r25, r4
 
     ; Open
-    LDI r15, 0
-    OPEN r20, r15
-    MOV r19, r0
+    LDI r4, 0
+    OPEN r20, r4
+    MOV r19, r14
     CMPI r19, 0xFFFFFFFF
-    JZ r0, main_loop
+    JZ r14, main_loop
 
     LDI r21, TEMP_FD
     STORE r21, r19
 
     ; Read content
-    LDI r15, CONTENT_BUF
-    LDI r2, 5120
-    READ r19, r15, r2
+    LDI r4, CONTENT_BUF
+    LDI r1, 5120
+    READ r19, r4, r1
     LDI r21, FILE_SIZE
-    STORE r21, r0
+    STORE r21, r14
 
     ; Null-terminate
     LDI r20, CONTENT_BUF
-    ADD r20, r0
-    LDI r14, 0
-    STORE r20, r14
+    ADD r20, r14
+    LDI r13, 0
+    STORE r20, r13
 
     CLOSE r19
 
     ; Switch to hex view
     LDI r20, MODE
-    LDI r14, 1
-    STORE r20, r14
+    LDI r13, 1
+    STORE r20, r13
     JMP main_loop
 
 ; ── HEX VIEW ─────────────────────────────────
 draw_hex_view:
-    LDI r14, 0x0d1117
-    FILL r14
+    LDI r13, 0x0d1117
+    FILL r13
 
     ; Header bar
+    LDI r12, 0
     LDI r13, 0
-    LDI r14, 0
-    LDI r7, 256
-    LDI r10, 22
-    LDI r1, 0x1a1f29
-    RECTF r13, r14, r7, r10, r1
+    LDI r10, 256
+    LDI r8, 22
+    LDI r5, 0x1a1f29
+    RECTF r12, r13, r10, r8, r5
 
     ; Title
-    LDI r13, 8
-    LDI r14, TITLE_Y
-    LDI r7, STR_BUF
-    TEXT r13, r14, r7
+    LDI r12, 8
+    LDI r13, TITLE_Y
+    LDI r10, STR_BUF
+    TEXT r12, r13, r10
 
     ; Separator line
-    LDI r13, 0
-    LDI r14, 26
-    LDI r7, 256
-    LDI r10, 1
-    LDI r1, 0x2a3a4a
-    RECTF r13, r14, r7, r10, r1
+    LDI r12, 0
+    LDI r13, 26
+    LDI r10, 256
+    LDI r8, 1
+    LDI r5, 0x2a3a4a
+    RECTF r12, r13, r10, r8, r5
 
     ; Draw hex dump rows
     LDI r22, 0            ; row counter
@@ -406,27 +406,27 @@ draw_hex_view:
     LOAD r27, r27         ; byte offset
 
 hex_row_loop:
-    LDI r15, MAX_VISIBLE
-    CMP r22, r15
-    BGE r0, hex_footer
+    LDI r4, MAX_VISIBLE
+    CMP r22, r4
+    BGE r14, hex_footer
 
     ; Compute byte offset for this row
     MOV r28, r22
-    LDI r15, BYTES_PER_ROW
-    MUL r28, r15
+    LDI r4, BYTES_PER_ROW
+    MUL r28, r4
     ADD r28, r27
 
     ; Check past EOF
-    LDI r15, FILE_SIZE
-    LOAD r15, r15
-    CMP r28, r15
-    BGE r0, hex_footer
+    LDI r4, FILE_SIZE
+    LOAD r4, r4
+    CMP r28, r4
+    BGE r14, hex_footer
 
     ; Y position for this row
-    MOV r5, r22
-    LDI r15, 14
-    MUL r5, r15
-    ADDI r5, 28
+    MOV r0, r22
+    LDI r4, 14
+    MUL r0, r4
+    ADDI r0, 28
 
     ; ── Draw address offset ──
     ; Convert r28 to 4-hex-char string using lookup table
@@ -434,129 +434,129 @@ hex_row_loop:
     LDI r21, STR_BUF
     ADDI r21, 192       ; offset string destination
 
-    MOV r14, r28
-    LDI r7, 12
-    SHR r14, r7
-    LDI r7, 0xF
-    AND r14, r7
-    LDI r7, HEX_TABLE
-    ADD r7, r14
-    LOAD r10, r7
-    STORE r21, r10
+    MOV r13, r28
+    LDI r10, 12
+    SHR r13, r10
+    LDI r10, 0xF
+    AND r13, r10
+    LDI r10, HEX_TABLE
+    ADD r10, r13
+    LOAD r8, r10
+    STORE r21, r8
     ADDI r21, 1
 
     ; Nibble 2 (bits 8-11)
-    MOV r14, r28
-    LDI r7, 8
-    SHR r14, r7
-    LDI r7, 0xF
-    AND r14, r7
-    LDI r7, HEX_TABLE
-    ADD r7, r14
-    LOAD r10, r7
-    STORE r21, r10
+    MOV r13, r28
+    LDI r10, 8
+    SHR r13, r10
+    LDI r10, 0xF
+    AND r13, r10
+    LDI r10, HEX_TABLE
+    ADD r10, r13
+    LOAD r8, r10
+    STORE r21, r8
     ADDI r21, 1
 
     ; Nibble 1 (bits 4-7)
-    MOV r14, r28
-    LDI r7, 4
-    SHR r14, r7
-    LDI r7, 0xF
-    AND r14, r7
-    LDI r7, HEX_TABLE
-    ADD r7, r14
-    LOAD r10, r7
-    STORE r21, r10
+    MOV r13, r28
+    LDI r10, 4
+    SHR r13, r10
+    LDI r10, 0xF
+    AND r13, r10
+    LDI r10, HEX_TABLE
+    ADD r10, r13
+    LOAD r8, r10
+    STORE r21, r8
     ADDI r21, 1
 
     ; Nibble 0 (bits 0-3)
-    MOV r14, r28
-    LDI r7, 0xF
-    AND r14, r7
-    LDI r7, HEX_TABLE
-    ADD r7, r14
-    LOAD r10, r7
-    STORE r21, r10
+    MOV r13, r28
+    LDI r10, 0xF
+    AND r13, r10
+    LDI r10, HEX_TABLE
+    ADD r10, r13
+    LOAD r8, r10
+    STORE r21, r8
     ADDI r21, 1
 
     ; Null terminate
-    LDI r10, 0
-    STORE r21, r10
+    LDI r8, 0
+    STORE r21, r8
 
     ; Draw address
-    LDI r11, 4
+    LDI r2, 4
     LDI r3, STR_BUF
     ADDI r3, 192
-    LDI r8, 0x55aaff
-    LDI r12, 0x0d1117
-    DRAWTEXT r11, r5, r3, r8, r12
+    LDI r7, 0x55aaff
+    LDI r15, 0x0d1117
+    DRAWTEXT r2, r0, r3, r7, r15
 
     ; ── Draw hex bytes ──
     LDI r29, 0           ; byte counter in row
     LDI r30, 48           ; x start for hex data
 
 hex_byte_loop:
-    LDI r15, BYTES_PER_ROW
-    CMP r29, r15
-    BGE r0, draw_ascii
+    LDI r4, BYTES_PER_ROW
+    CMP r29, r4
+    BGE r14, draw_ascii
 
     ; Check past EOF
-    MOV r15, r28
-    ADD r15, r29
-    LDI r2, FILE_SIZE
-    LOAD r2, r2
-    CMP r15, r2
-    BGE r0, draw_ascii
+    MOV r4, r28
+    ADD r4, r29
+    LDI r1, FILE_SIZE
+    LOAD r1, r1
+    CMP r4, r1
+    BGE r14, draw_ascii
 
     ; Load byte
-    LDI r15, CONTENT_BUF
-    ADD r15, r28
-    ADD r15, r29
-    LOAD r14, r15
+    LDI r4, CONTENT_BUF
+    ADD r4, r28
+    ADD r4, r29
+    LOAD r13, r4
 
     ; Convert byte to 2 hex chars using lookup table
     LDI r21, STR_BUF
     ADDI r21, 208
 
     ; High nibble
-    MOV r7, r14
-    LDI r10, 4
-    SHR r7, r10
-    LDI r10, 0xF
-    AND r7, r10
-    LDI r10, HEX_TABLE
-    ADD r10, r7
-    LOAD r1, r10
-    STORE r21, r1
+    MOV r10, r13
+    LDI r8, 4
+    SHR r10, r8
+    LDI r8, 0xF
+    AND r10, r8
+    LDI r8, HEX_TABLE
+    ADD r8, r10
+    LOAD r5, r8
+    STORE r21, r5
     ADDI r21, 1
 
     ; Low nibble
-    LDI r10, 0xF
-    AND r14, r10
-    LDI r10, HEX_TABLE
-    ADD r10, r14
-    LOAD r1, r10
-    STORE r21, r1
+    LDI r8, 0xF
+    AND r13, r8
+    LDI r8, HEX_TABLE
+    ADD r8, r13
+    LOAD r5, r8
+    STORE r21, r5
     ADDI r21, 1
 
     ; Null terminate
-    LDI r1, 0
-    STORE r21, r1
+    LDI r5, 0
+    STORE r21, r5
 
     ; Draw hex pair
-    MOV r11, r30
+    MOV r2, r30
     LDI r3, STR_BUF
     ADDI r3, 208
-    LDI r8, 0x44dd88
-    LDI r12, 0x0d1117
-    DRAWTEXT r11, r5, r3, r8, r12
+    LDI r7, 0x44dd88
+    LDI r15, 0x0d1117
+    DRAWTEXT r2, r0, r3, r7, r15
 
     ADDI r30, 20
 
     ; Extra gap after 8 bytes
-    LDI r15, 8
-    CMP r29, r15
-    JNZ r0, no_gap
+    LDI r4, 8
+    CMP r29, r4
+    JNZ r14, no_gap
     ADDI r30, 8
 no_gap:
     ADDI r29, 1
@@ -567,53 +567,53 @@ draw_ascii:
     LDI r29, 0
     LDI r30, 218           ; x start for ASCII
 ascii_loop:
-    LDI r15, BYTES_PER_ROW
-    CMP r29, r15
-    BGE r0, hex_next_row
+    LDI r4, BYTES_PER_ROW
+    CMP r29, r4
+    BGE r14, hex_next_row
 
-    MOV r15, r28
-    ADD r15, r29
-    LDI r2, FILE_SIZE
-    LOAD r2, r2
-    CMP r15, r2
-    BGE r0, hex_next_row
+    MOV r4, r28
+    ADD r4, r29
+    LDI r1, FILE_SIZE
+    LOAD r1, r1
+    CMP r4, r1
+    BGE r14, hex_next_row
 
     ; Load byte
-    LDI r15, CONTENT_BUF
-    ADD r15, r28
-    ADD r15, r29
-    LOAD r14, r15
+    LDI r4, CONTENT_BUF
+    ADD r4, r28
+    ADD r4, r29
+    LOAD r13, r4
 
     ; Printable check (32-126)
-    CMPI r14, 32
-    BLT r0, ascii_dot
-    CMPI r14, 127
-    BGE r0, ascii_dot
+    CMPI r13, 32
+    BLT r14, ascii_dot
+    CMPI r13, 127
+    BGE r14, ascii_dot
     ; Store char
     LDI r21, STR_BUF
     ADDI r21, 224
-    STORE r21, r14
-    LDI r15, 0
+    STORE r21, r13
+    LDI r4, 0
     ADDI r21, 1
-    STORE r21, r15
+    STORE r21, r4
     JMP ascii_draw
 
 ascii_dot:
     LDI r21, STR_BUF
     ADDI r21, 224
-    LDI r15, 46
-    STORE r21, r15
-    LDI r15, 0
+    LDI r4, 46
+    STORE r21, r4
+    LDI r4, 0
     ADDI r21, 1
-    STORE r21, r15
+    STORE r21, r4
 
 ascii_draw:
-    MOV r11, r30
+    MOV r2, r30
     LDI r3, STR_BUF
     ADDI r3, 224
-    LDI r8, 0x889999
-    LDI r12, 0x0d1117
-    DRAWTEXT r11, r5, r3, r8, r12
+    LDI r7, 0x889999
+    LDI r15, 0x0d1117
+    DRAWTEXT r2, r0, r3, r7, r15
 
     ADDI r30, 8
     ADDI r29, 1
@@ -626,12 +626,12 @@ hex_next_row:
 ; ── HEX FOOTER ────────────────────────────────
 hex_footer:
     ; Footer bar
-    LDI r13, 0
-    LDI r14, 236
-    LDI r7, 256
-    LDI r10, 20
-    LDI r1, 0x1a1f29
-    RECTF r13, r14, r7, r10, r1
+    LDI r12, 0
+    LDI r13, 236
+    LDI r10, 256
+    LDI r8, 20
+    LDI r5, 0x1a1f29
+    RECTF r12, r13, r10, r8, r5
 
     ; Show file size
     LDI r20, STR_BUF
@@ -639,125 +639,125 @@ hex_footer:
     STRO r20, "Bytes:"
 
     ; File size as decimal
-    LDI r15, FILE_SIZE
-    LOAD r14, r15
+    LDI r4, FILE_SIZE
+    LOAD r13, r4
     LDI r20, STR_BUF
     ADDI r20, 256
 
     ; Quick decimal conversion (up to 5 digits)
-    LDI r2, 1
-    LDI r7, 10000
-    MOV r10, r14
-    DIV r10, r7
-    CMPI r10, 0
-    JZ r0, skip10k
-    ADDI r10, 48
-    STORE r20, r10
-    ADD r20, r2
-    MOV r10, r14
-    MOD r10, r7
-    MOV r14, r10
+    LDI r1, 1
+    LDI r10, 10000
+    MOV r8, r13
+    DIV r8, r10
+    CMPI r8, 0
+    JZ r14, skip10k
+    ADDI r8, 48
+    STORE r20, r8
+    ADD r20, r1
+    MOV r8, r13
+    MOD r8, r10
+    MOV r13, r8
 skip10k:
-    LDI r7, 1000
-    MOV r10, r14
-    DIV r10, r7
-    CMPI r10, 0
-    JZ r0, skip1k
-    ADDI r10, 48
-    STORE r20, r10
-    ADD r20, r2
-    MOV r10, r14
-    MOD r10, r7
-    MOV r14, r10
+    LDI r10, 1000
+    MOV r8, r13
+    DIV r8, r10
+    CMPI r8, 0
+    JZ r14, skip1k
+    ADDI r8, 48
+    STORE r20, r8
+    ADD r20, r1
+    MOV r8, r13
+    MOD r8, r10
+    MOV r13, r8
 skip1k:
-    LDI r7, 100
-    MOV r10, r14
-    DIV r10, r7
-    CMPI r10, 0
-    JZ r0, skip100
-    ADDI r10, 48
-    STORE r20, r10
-    ADD r20, r2
-    MOV r10, r14
-    MOD r10, r7
-    MOV r14, r10
+    LDI r10, 100
+    MOV r8, r13
+    DIV r8, r10
+    CMPI r8, 0
+    JZ r14, skip100
+    ADDI r8, 48
+    STORE r20, r8
+    ADD r20, r1
+    MOV r8, r13
+    MOD r8, r10
+    MOV r13, r8
 skip100:
-    LDI r7, 10
-    MOV r10, r14
-    DIV r10, r7
-    ADDI r10, 48
-    STORE r20, r10
-    ADD r20, r2
-    MOD r14, r7
-    ADDI r14, 48
-    STORE r20, r14
-    ADD r20, r2
-    LDI r14, 0
-    STORE r20, r14
+    LDI r10, 10
+    MOV r8, r13
+    DIV r8, r10
+    ADDI r8, 48
+    STORE r20, r8
+    ADD r20, r1
+    MOD r13, r10
+    ADDI r13, 48
+    STORE r20, r13
+    ADD r20, r1
+    LDI r13, 0
+    STORE r20, r13
 
     ; Draw "Bytes: N"
-    LDI r11, 4
-    LDI r5, 240
+    LDI r2, 4
+    LDI r0, 240
     LDI r3, STR_BUF
     ADDI r3, 240
-    LDI r8, 0xaaaaaa
-    LDI r12, 0x1a1f29
-    DRAWTEXT r11, r5, r3, r8, r12
+    LDI r7, 0xaaaaaa
+    LDI r15, 0x1a1f29
+    DRAWTEXT r2, r0, r3, r7, r15
 
     ; Scroll hint
-    LDI r13, 110
-    LDI r14, 240
-    LDI r7, STR_BUF
-    ADDI r7, 64
-    DRAWTEXT r13, r14, r7, r8, r12
+    LDI r12, 110
+    LDI r13, 240
+    LDI r10, STR_BUF
+    ADDI r10, 64
+    DRAWTEXT r12, r13, r10, r7, r15
 
     ; ESC hint
-    LDI r13, 190
-    LDI r14, 240
-    LDI r7, STR_BUF
-    ADDI r7, 128
-    DRAWTEXT r13, r14, r7, r8, r12
+    LDI r12, 190
+    LDI r13, 240
+    LDI r10, STR_BUF
+    ADDI r10, 128
+    DRAWTEXT r12, r13, r10, r7, r15
 
 ; ── HEX INPUT ─────────────────────────────────
 hex_input:
     FRAME
 
-    IKEY r11
-    CMPI r11, 0
-    JZ r0, main_loop
+    IKEY r2
+    CMPI r2, 0
+    JZ r14, main_loop
 
     ; ESC = 27 -- back to list
-    CMPI r11, 27
-    JNZ r0, not_esc
+    CMPI r2, 27
+    JNZ r14, not_esc
     LDI r20, MODE
-    LDI r14, 0
-    STORE r20, r14
+    LDI r13, 0
+    STORE r20, r13
     JMP main_loop
 
 not_esc:
     ; W = 87 (up)
-    CMPI r11, 87
-    JNZ r0, not_hup
+    CMPI r2, 87
+    JNZ r14, not_hup
     LDI r20, SCROLL_OFF
     LOAD r25, r20
     CMPI r25, 0
-    JZ r0, main_loop
-    LDI r15, BYTES_PER_ROW
-    SUB r25, r15
+    JZ r14, main_loop
+    LDI r4, BYTES_PER_ROW
+    SUB r25, r4
     STORE r20, r25
     JMP main_loop
 
 not_hup:
     ; S = 83 (down)
-    CMPI r11, 83
-    JNZ r0, main_loop
+    CMPI r2, 83
+    JNZ r14, main_loop
     LDI r20, SCROLL_OFF
     LOAD r25, r20
-    LDI r15, BYTES_PER_ROW
-    ADD r25, r15
-    LDI r2, FILE_SIZE
-    LOAD r2, r2
-    CMP r25, r2
-    BGE r0, main_loop
+    LDI r4, BYTES_PER_ROW
+    ADD r25, r4
+    LDI r1, FILE_SIZE
+    LOAD r1, r1
+    CMP r25, r1
+    BGE r14, main_loop
     STORE r20, r25
     JMP main_loop

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes the system by clearing the screen, displaying the boot banner "Geometry OS v1.0.0", and writing the string "init: " to the screen. It then spawns a shell process named "shell" and enters a supervisor loop where it monitors the shell's status; if the shell exits, it respawns it. If spawning the shell fails, the system halts.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; init.asm -- Phase 30: Init process (PID 1)
 ;
@@ -19,141 +19,141 @@
 ; ═══════════════════════════════════════════════════════════════
 ; Phase 1: Initialize -- clear screen, display boot banner
 ; ═══════════════════════════════════════════════════════════════
-    LDI r1, 0
-    FILL r1               ; clear screen to black
+    LDI r5, 0
+    FILL r5               ; clear screen to black
 
     ; Write boot banner to RAM
-    LDI r15, 0x0300
-    LDI r1, 71        ; G
-    STORE r15, r1
-    LDI r15, 0x0301
-    LDI r1, 101       ; e
-    STORE r15, r1
-    LDI r15, 0x0302
-    LDI r1, 111       ; o
-    STORE r15, r1
-    LDI r15, 0x0303
-    LDI r1, 109       ; m
-    STORE r15, r1
-    LDI r15, 0x0304
-    LDI r1, 101       ; e
-    STORE r15, r1
-    LDI r15, 0x0305
-    LDI r1, 116       ; t
-    STORE r15, r1
-    LDI r15, 0x0306
-    LDI r1, 114       ; r
-    STORE r15, r1
-    LDI r15, 0x0307
-    LDI r1, 121       ; y
-    STORE r15, r1
-    LDI r15, 0x0308
-    LDI r1, 32        ; (space)
-    STORE r15, r1
-    LDI r15, 0x0309
-    LDI r1, 79        ; O
-    STORE r15, r1
-    LDI r15, 0x030A
-    LDI r1, 83        ; S
-    STORE r15, r1
-    LDI r15, 0x030B
-    LDI r1, 0         ; null terminator
-    STORE r15, r1
+    LDI r8, 0x0300
+    LDI r5, 71        ; G
+    STORE r8, r5
+    LDI r8, 0x0301
+    LDI r5, 101       ; e
+    STORE r8, r5
+    LDI r8, 0x0302
+    LDI r5, 111       ; o
+    STORE r8, r5
+    LDI r8, 0x0303
+    LDI r5, 109       ; m
+    STORE r8, r5
+    LDI r8, 0x0304
+    LDI r5, 101       ; e
+    STORE r8, r5
+    LDI r8, 0x0305
+    LDI r5, 116       ; t
+    STORE r8, r5
+    LDI r8, 0x0306
+    LDI r5, 114       ; r
+    STORE r8, r5
+    LDI r8, 0x0307
+    LDI r5, 121       ; y
+    STORE r8, r5
+    LDI r8, 0x0308
+    LDI r5, 32        ; (space)
+    STORE r8, r5
+    LDI r8, 0x0309
+    LDI r5, 79        ; O
+    STORE r8, r5
+    LDI r8, 0x030A
+    LDI r5, 83        ; S
+    STORE r8, r5
+    LDI r8, 0x030B
+    LDI r5, 0         ; null terminator
+    STORE r8, r5
 
     ; Display boot banner
-    LDI r11, 2          ; x = 2
-    LDI r0, 0          ; y = 0 (top of screen)
-    LDI r10, 0x0300     ; banner string addr
-    TEXT r11, r0, r10
+    LDI r7, 2          ; x = 2
+    LDI r10, 0          ; y = 0 (top of screen)
+    LDI r11, 0x0300     ; banner string addr
+    TEXT r7, r10, r11
 
     ; Write newline string
-    LDI r15, 0x0400
-    LDI r1, 10         ; \n
-    STORE r15, r1
-    LDI r15, 0x0401
-    LDI r1, 0
-    STORE r15, r1
+    LDI r8, 0x0400
+    LDI r5, 10         ; \n
+    STORE r8, r5
+    LDI r8, 0x0401
+    LDI r5, 0
+    STORE r8, r5
 
     ; Write "init: " label
-    LDI r15, 0x0500
-    LDI r1, 105       ; i
-    STORE r15, r1
-    LDI r15, 0x0501
-    LDI r1, 110       ; n
-    STORE r15, r1
-    LDI r15, 0x0502
-    LDI r1, 105       ; i
-    STORE r15, r1
-    LDI r15, 0x0503
-    LDI r1, 116       ; t
-    STORE r15, r1
-    LDI r15, 0x0504
-    LDI r1, 58        ; :
-    STORE r15, r1
-    LDI r15, 0x0505
-    LDI r1, 32        ; (space)
-    STORE r15, r1
-    LDI r15, 0x0506
-    LDI r1, 0
-    STORE r15, r1
+    LDI r8, 0x0500
+    LDI r5, 105       ; i
+    STORE r8, r5
+    LDI r8, 0x0501
+    LDI r5, 110       ; n
+    STORE r8, r5
+    LDI r8, 0x0502
+    LDI r5, 105       ; i
+    STORE r8, r5
+    LDI r8, 0x0503
+    LDI r5, 116       ; t
+    STORE r8, r5
+    LDI r8, 0x0504
+    LDI r5, 58        ; :
+    STORE r8, r5
+    LDI r8, 0x0505
+    LDI r5, 32        ; (space)
+    STORE r8, r5
+    LDI r8, 0x0506
+    LDI r5, 0
+    STORE r8, r5
 
     ; Display "init: " label at y=2
-    LDI r11, 2
-    LDI r0, 12
-    LDI r10, 0x0500
-    TEXT r11, r0, r10
+    LDI r7, 2
+    LDI r10, 12
+    LDI r11, 0x0500
+    TEXT r7, r10, r11
 
     ; ═══════════════════════════════════════════════════════════════
     ; Phase 2: Write shell program name to RAM
     ; ═══════════════════════════════════════════════════════════════
-    LDI r15, 0x0200
-    LDI r1, 115       ; s
-    STORE r15, r1
-    LDI r15, 0x0201
-    LDI r1, 104       ; h
-    STORE r15, r1
-    LDI r15, 0x0202
-    LDI r1, 101       ; e
-    STORE r15, r1
-    LDI r15, 0x0203
-    LDI r1, 108       ; l
-    STORE r15, r1
-    LDI r15, 0x0204
-    LDI r1, 108       ; l
-    STORE r15, r1
-    LDI r15, 0x0205
-    LDI r1, 0         ; null terminator
-    STORE r15, r1
+    LDI r8, 0x0200
+    LDI r5, 115       ; s
+    STORE r8, r5
+    LDI r8, 0x0201
+    LDI r5, 104       ; h
+    STORE r8, r5
+    LDI r8, 0x0202
+    LDI r5, 101       ; e
+    STORE r8, r5
+    LDI r8, 0x0203
+    LDI r5, 108       ; l
+    STORE r8, r5
+    LDI r8, 0x0204
+    LDI r5, 108       ; l
+    STORE r8, r5
+    LDI r8, 0x0205
+    LDI r5, 0         ; null terminator
+    STORE r8, r5
 
     ; ═══════════════════════════════════════════════════════════════
     ; Phase 3: Spawn shell process
     ; ═══════════════════════════════════════════════════════════════
 spawn_shell:
-    LDI r1, 0x0200     ; shell name addr
-    EXEC r1            ; spawn shell
+    LDI r5, 0x0200     ; shell name addr
+    EXEC r5            ; spawn shell
 
     ; Check if spawn succeeded
-    LDI r15, 0xFFA
-    LOAD r12, r15        ; r12 = result PID
-    LDI r11, 0xFFFFFFFF
-    CMP r12, r11
-    JZ r1, spawn_failed  ; if CMP result == 0 (r12 == 0xFFFFFFFF), spawn failed
+    LDI r8, 0xFFA
+    LOAD r1, r8        ; r1 = result PID
+    LDI r7, 0xFFFFFFFF
+    CMP r1, r7
+    JZ r5, spawn_failed  ; if CMP result == 0 (r1 == 0xFFFFFFFF), spawn failed
 
     ; Store shell PID
-    LDI r15, 0x0700
-    STORE r15, r12
+    LDI r8, 0x0700
+    STORE r8, r1
 
     ; ═══════════════════════════════════════════════════════════════
     ; Phase 4: Supervisor loop -- wait for shell to exit, respawn
     ; ═══════════════════════════════════════════════════════════════
 supervisor_loop:
-    LDI r9, 60
-    SLEEP r9          ; sleep 60 frames (~1 second) between checks
-    LDI r15, 0x0700
-    LOAD r1, r15        ; r1 = shell PID
-    WAITPID r1         ; check if still running
-    ; r1 = 0 means still running, 1 means exited
-    JNZ r1, shell_died ; shell exited, respawn
+    LDI r6, 60
+    SLEEP r6          ; sleep 60 frames (~1 second) between checks
+    LDI r8, 0x0700
+    LOAD r5, r8        ; r5 = shell PID
+    WAITPID r5         ; check if still running
+    ; r5 = 0 means still running, 1 means exited
+    JNZ r5, shell_died ; shell exited, respawn
     JMP supervisor_loop ; still running, keep monitoring
 
 spawn_failed:

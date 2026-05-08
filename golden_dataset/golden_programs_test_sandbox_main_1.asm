@@ -1,7 +1,7 @@
-; DESCRIPTION: This GeOS assembly code initializes a sandbox environment, spawns particles at the center, and enters a main loop where it updates particle positions applying gravity and boundary collision (bounce) logic. It also handles user input to spawn additional bursts of particles and draws the updated state on the screen.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; test_sandbox_main.asm -- Init + spawn + main loop
-LDI r4, 1
+LDI r5, 1
 LDI r21, 4
 LDI r22, 128
 LDI r23, 0x7000
@@ -21,14 +21,14 @@ STORE r26, r18
 STORE r27, r18
 
 ; Spawn burst
+LDI r11, 128
 LDI r12, 128
-LDI r3, 128
 CALL spawn_burst
 
 ; ===== Main Loop =====
 main_loop:
   LOAD r18, r27
-  ADD r18, r4
+  ADD r18, r5
   STORE r27, r18
 
   IKEY r19
@@ -36,74 +36,74 @@ main_loop:
   ; Space = spawn
   LDI r18, 32
   CMP r19, r18
-  JZ r1, do_spawn
+  JZ r13, do_spawn
 
   JMP after_input
 
 do_spawn:
+  LDI r11, 128
   LDI r12, 128
-  LDI r3, 128
   CALL spawn_burst
   JMP after_input
 
 after_input:
-  LOAD r6, r26
-  JZ r6, draw_hud
+  LOAD r0, r26
+  JZ r0, draw_hud
 
-  LDI r11, 0
+  LDI r9, 0
 
 update_loop:
-  MOV r14, r23
-  MOV r0, r11
+  MOV r6, r23
+  MOV r2, r9
   LDI r18, 4
-  MUL r0, r18
-  ADD r14, r0
+  MUL r2, r18
+  ADD r6, r2
 
-  LOAD r10, r14
-  ADD r14, r4
-  LOAD r15, r14
-  ADD r14, r4
-  LOAD r7, r14
-  ADD r14, r4
-  LOAD r2, r14
+  LOAD r7, r6
+  ADD r6, r5
+  LOAD r15, r6
+  ADD r6, r5
+  LOAD r8, r6
+  ADD r6, r5
+  LOAD r3, r6
 
   ; Apply gravity
-  PUSH r1
+  PUSH r13
   LOAD r18, r24
-  ADD r7, r18
+  ADD r8, r18
   LOAD r18, r25
-  ADD r2, r18
-  POP r1
+  ADD r3, r18
+  POP r13
 
   ; Update position
-  ADD r10, r7
-  ADD r15, r2
+  ADD r7, r8
+  ADD r15, r3
 
   ; Bounce
   CALL bounce_particle
 
   ; Store
-  MOV r14, r23
-  MOV r0, r11
+  MOV r6, r23
+  MOV r2, r9
   LDI r18, 4
-  MUL r0, r18
-  ADD r14, r0
+  MUL r2, r18
+  ADD r6, r2
 
-  STORE r14, r10
-  ADD r14, r4
-  STORE r14, r15
-  ADD r14, r4
-  STORE r14, r7
-  ADD r14, r4
-  STORE r14, r2
+  STORE r6, r7
+  ADD r6, r5
+  STORE r6, r15
+  ADD r6, r5
+  STORE r6, r8
+  ADD r6, r5
+  STORE r6, r3
 
   ; Draw
-  LDI r13, 0x00FF00
-  PSET r10, r15, r13
+  LDI r4, 0x00FF00
+  PSET r7, r15, r4
 
-  ADD r11, r4
-  CMP r11, r6
-  BLT r1, update_loop
+  ADD r9, r5
+  CMP r9, r0
+  BLT r13, update_loop
 
 draw_hud:
   FRAME
@@ -114,21 +114,31 @@ HALT
 ; ===== Subroutines =====
 spawn_burst:
   PUSH r31
-  PUSH r1
+  PUSH r13
   LDI r16, 8
 
 sb_loop:
   LOAD r18, r26
   LDI r17, 128
   CMP r18, r17
-  BGE r1, sb_done
+  BGE r13, sb_done
 
-  MOV r14, r23
-  MOV r0, r18
+  MOV r6, r23
+  MOV r2, r18
   LDI r17, 4
-  MUL r0, r17
-  ADD r14, r0
+  MUL r2, r17
+  ADD r6, r2
 
+  RAND r17
+  LDI r18, 15
+  AND r17, r18
+  LDI r18, 8
+  SUB r17, r18
+  MOV r18, r11
+  ADD r18, r17
+  STORE r6, r18
+
+  ADD r6, r5
   RAND r17
   LDI r18, 15
   AND r17, r18
@@ -136,81 +146,71 @@ sb_loop:
   SUB r17, r18
   MOV r18, r12
   ADD r18, r17
-  STORE r14, r18
+  STORE r6, r18
 
-  ADD r14, r4
-  RAND r17
-  LDI r18, 15
-  AND r17, r18
-  LDI r18, 8
-  SUB r17, r18
-  MOV r18, r3
-  ADD r18, r17
-  STORE r14, r18
-
-  ADD r14, r4
+  ADD r6, r5
   RAND r17
   LDI r18, 7
   AND r17, r18
   LDI r18, 3
   SUB r17, r18
-  STORE r14, r17
+  STORE r6, r17
 
-  ADD r14, r4
+  ADD r6, r5
   RAND r17
   LDI r18, 7
   AND r17, r18
   LDI r18, 5
   SUB r17, r18
-  STORE r14, r17
+  STORE r6, r17
 
   LOAD r18, r26
-  ADD r18, r4
+  ADD r18, r5
   STORE r26, r18
 
-  SUB r16, r4
+  SUB r16, r5
   JNZ r16, sb_loop
 
 sb_done:
-  POP r1
+  POP r13
   POP r31
   RET
 
 bounce_particle:
   PUSH r31
-  PUSH r1
+  PUSH r13
 
   ; Right wall
   LDI r18, 254
-  CMP r10, r18
-  BLT r1, bp_left
-  LDI r10, 254
-  NEG r7
+  CMP r7, r18
+  BLT r13, bp_left
+  LDI r7, 254
+  NEG r8
 
 bp_left:
-  MOV r18, r10
+  MOV r18, r7
   LDI r19, 0
   CMP r18, r19
-  BGE r1, bp_bottom
-  LDI r10, 0
-  NEG r7
+  BGE r13, bp_bottom
+  LDI r7, 0
+  NEG r8
 
 bp_bottom:
   LDI r18, 254
   CMP r15, r18
-  BLT r1, bp_top
+  BLT r13, bp_top
   LDI r15, 254
-  NEG r2
+  NEG r3
 
 bp_top:
   MOV r18, r15
   LDI r19, 0
   CMP r18, r19
-  BGE r1, bp_done
+  BGE r13, bp_done
   LDI r15, 0
-  NEG r2
+  NEG r3
 
 bp_done:
-  POP r1
+  POP r13
   POP r31
   RET

@@ -1,24 +1,24 @@
-; DESCRIPTION: The code initializes the stack pointer and calls a subroutine that uses `PUSH` and `POP` instructions to save and restore registers. The subroutine adds a value to a register and returns the result, which is then stored in memory.
+; DESCRIPTION: Draw object: pos=the screen, color=red, size=fixed size.
 
 ; test_push_pop.asm -- Test PUSH/POP/CALL/RET
-LDI r14, 1
+LDI r5, 1
 LDI r30, 0xFF00    ; set SP
 
 ; Call a subroutine that uses PUSH/POP
-LDI r6, 42
+LDI r4, 42
 CALL my_func
 
 ; Store result
-LDI r4, 0x7000
-STORE r4, r6
+LDI r7, 0x7000
+STORE r7, r4
 
 HALT
 
 my_func:
   PUSH r31
-  PUSH r3
+  PUSH r9
   LDI r18, 10
-  ADD r6, r18
-  POP r3
+  ADD r4, r18
+  POP r9
   POP r31
   RET

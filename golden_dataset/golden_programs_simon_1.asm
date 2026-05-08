@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code implements a Simon Says memory game with four colored buttons arranged in a cross pattern. The game displays a sequence of colors and requires the player to repeat it by clicking the corresponding buttons; each correct round extends the sequence, while a wrong click ends the game.
+; DESCRIPTION: Display a rectangle using color red at the screen.
 
 ; simon.asm -- Simon Says Memory Game for Geometry OS
 ;
@@ -41,21 +41,21 @@
 
 ; ── INIT ──────────────────────────────────────
 start:
-    LDI r15, 1
+    LDI r11, 1
     LDI r30, 0xFD00
 
     ; Initialize game
     LDI r20, SEQ_LEN
-    LDI r1, 1
-    STORE r20, r1
+    LDI r15, 1
+    STORE r20, r15
     LDI r20, PHASE
-    STORE r20, r1
+    STORE r20, r15
     LDI r20, INPUT_IDX
-    STORE r20, r1
+    STORE r20, r15
     LDI r20, SCORE
-    STORE r20, r1
+    STORE r20, r15
     LDI r20, TIMER
-    STORE r20, r1
+    STORE r20, r15
 
     ; Generate first sequence entry
     RAND r20
@@ -66,111 +66,111 @@ start:
 
     ; Start in showing phase
     LDI r20, SHOW_IDX
-    LDI r1, 0
-    STORE r20, r1
+    LDI r15, 0
+    STORE r20, r15
     LDI r20, PHASE
-    LDI r1, 1
-    STORE r20, r1
+    LDI r15, 1
+    STORE r20, r15
     LDI r20, TIMER
-    LDI r1, 0
-    STORE r20, r1
+    LDI r15, 0
+    STORE r20, r15
 
 ; ── MAIN LOOP ──────────────────────────────────
 main_loop:
     ; Dark background
-    LDI r8, 0x111122
-    FILL r8
+    LDI r12, 0x111122
+    FILL r12
 
     ; Title
     LDI r20, STR_BUF
     STRO r20, "SIMON SAYS"
-    LDI r15, 72
-    LDI r9, 6
-    LDI r3, STR_BUF
-    TEXT r15, r9, r3
+    LDI r11, 72
+    LDI r0, 6
+    LDI r13, STR_BUF
+    TEXT r11, r0, r13
 
     ; Score
     LDI r20, SCORE
     LOAD r20, r20
-    LDI r8, 48
-    ADD r8, r20
+    LDI r12, 48
+    ADD r12, r20
     LDI r21, SCRATCH
-    STORE r21, r8
-    LDI r8, 0
-    LDI r15, 1
-    ADD r21, r15
-    STORE r21, r8
+    STORE r21, r12
+    LDI r12, 0
+    LDI r11, 1
+    ADD r21, r11
+    STORE r21, r12
     LDI r20, STR_BUF
     STRO r20, "Score:"
-    LDI r15, 8
-    LDI r9, 214
-    LDI r3, STR_BUF
-    TEXT r15, r9, r3
-    LDI r15, 56
-    LDI r9, 214
-    LDI r3, SCRATCH
-    TEXT r15, r9, r3
+    LDI r11, 8
+    LDI r0, 214
+    LDI r13, STR_BUF
+    TEXT r11, r0, r13
+    LDI r11, 56
+    LDI r0, 214
+    LDI r13, SCRATCH
+    TEXT r11, r0, r13
 
     ; Round display
     LDI r20, SEQ_LEN
     LOAD r20, r20
-    LDI r8, 48
-    ADD r8, r20
+    LDI r12, 48
+    ADD r12, r20
     LDI r21, SCRATCH
-    STORE r21, r8
-    LDI r8, 0
-    LDI r15, 1
-    ADD r21, r15
-    STORE r21, r8
+    STORE r21, r12
+    LDI r12, 0
+    LDI r11, 1
+    ADD r21, r11
+    STORE r21, r12
     LDI r20, STR_BUF
     STRO r20, "Round:"
-    LDI r15, 160
-    LDI r9, 214
-    LDI r3, STR_BUF
-    TEXT r15, r9, r3
-    LDI r15, 210
-    LDI r9, 214
-    LDI r3, SCRATCH
-    TEXT r15, r9, r3
+    LDI r11, 160
+    LDI r0, 214
+    LDI r13, STR_BUF
+    TEXT r11, r0, r13
+    LDI r11, 210
+    LDI r0, 214
+    LDI r13, SCRATCH
+    TEXT r11, r0, r13
 
     ; Draw 4 buttons (dim colors normally)
     ; Red button (top)
-    LDI r15, 88
-    LDI r9, 30
-    LDI r3, 80
-    LDI r7, 80
-    LDI r8, 0x440000
-    RECTF r15, r9, r3, r7, r8
+    LDI r11, 88
+    LDI r0, 30
+    LDI r13, 80
+    LDI r14, 80
+    LDI r12, 0x440000
+    RECTF r11, r0, r13, r14, r12
 
     ; Green button (left)
-    LDI r15, 20
-    LDI r9, 130
-    LDI r3, 80
-    LDI r7, 80
-    LDI r8, 0x004400
-    RECTF r15, r9, r3, r7, r8
+    LDI r11, 20
+    LDI r0, 130
+    LDI r13, 80
+    LDI r14, 80
+    LDI r12, 0x004400
+    RECTF r11, r0, r13, r14, r12
 
     ; Blue button (right)
-    LDI r15, 156
-    LDI r9, 130
-    LDI r3, 80
-    LDI r7, 80
-    LDI r8, 0x000044
-    RECTF r15, r9, r3, r7, r8
+    LDI r11, 156
+    LDI r0, 130
+    LDI r13, 80
+    LDI r14, 80
+    LDI r12, 0x000044
+    RECTF r11, r0, r13, r14, r12
 
     ; Yellow button (bottom)
-    LDI r15, 88
-    LDI r9, 230
-    LDI r3, 80
-    LDI r7, 80
-    LDI r8, 0x444400
-    RECTF r15, r9, r3, r7, r8
+    LDI r11, 88
+    LDI r0, 230
+    LDI r13, 80
+    LDI r14, 80
+    LDI r12, 0x444400
+    RECTF r11, r0, r13, r14, r12
 
     ; Highlight active button during showing phase
     LDI r20, PHASE
     LOAD r20, r20
     CMPI r20, 1
-    JNZ r1, do_input_phase
+    JNZ r15, do_input_phase
 
     ; Showing phase - highlight the current sequence entry
     LDI r20, TIMER
@@ -179,7 +179,7 @@ main_loop:
     LDI r21, 25
     MOD r20, r21
     CMPI r20, 15
-    BGE r1, do_show_off
+    BGE r15, do_show_off
 
     ; Flash on - get current sequence entry
     LDI r20, SHOW_IDX
@@ -189,46 +189,46 @@ main_loop:
     LOAD r20, r21
     ; Highlight based on button index
     CMPI r20, RED_BTN
-    JNZ r1, check_green_show
+    JNZ r15, check_green_show
     ; Highlight red
-    LDI r15, 88
-    LDI r9, 30
-    LDI r3, 80
-    LDI r7, 80
-    LDI r8, 0xFF0000
-    RECTF r15, r9, r3, r7, r8
-    BEEP r15, r9
+    LDI r11, 88
+    LDI r0, 30
+    LDI r13, 80
+    LDI r14, 80
+    LDI r12, 0xFF0000
+    RECTF r11, r0, r13, r14, r12
+    BEEP r11, r0
     JMP do_show_done
 check_green_show:
     CMPI r20, GREEN_BTN
-    JNZ r1, check_blue_show
-    LDI r15, 20
-    LDI r9, 130
-    LDI r3, 80
-    LDI r7, 80
-    LDI r8, 0x00FF00
-    RECTF r15, r9, r3, r7, r8
-    BEEP r15, r9
+    JNZ r15, check_blue_show
+    LDI r11, 20
+    LDI r0, 130
+    LDI r13, 80
+    LDI r14, 80
+    LDI r12, 0x00FF00
+    RECTF r11, r0, r13, r14, r12
+    BEEP r11, r0
     JMP do_show_done
 check_blue_show:
     CMPI r20, BLUE_BTN
-    JNZ r1, check_yellow_show
-    LDI r15, 156
-    LDI r9, 130
-    LDI r3, 80
-    LDI r7, 80
-    LDI r8, 0x0000FF
-    RECTF r15, r9, r3, r7, r8
-    BEEP r15, r9
+    JNZ r15, check_yellow_show
+    LDI r11, 156
+    LDI r0, 130
+    LDI r13, 80
+    LDI r14, 80
+    LDI r12, 0x0000FF
+    RECTF r11, r0, r13, r14, r12
+    BEEP r11, r0
     JMP do_show_done
 check_yellow_show:
-    LDI r15, 88
-    LDI r9, 230
-    LDI r3, 80
-    LDI r7, 80
-    LDI r8, 0xFFFF00
-    RECTF r15, r9, r3, r7, r8
-    BEEP r15, r9
+    LDI r11, 88
+    LDI r0, 230
+    LDI r13, 80
+    LDI r14, 80
+    LDI r12, 0xFFFF00
+    RECTF r11, r0, r13, r14, r12
+    BEEP r11, r0
     JMP do_show_done
 
 do_show_off:
@@ -236,8 +236,8 @@ do_show_done:
     ; Advance timer
     LDI r20, TIMER
     LOAD r21, r20
-    LDI r15, 1
-    ADD r21, r15
+    LDI r11, 1
+    ADD r21, r11
     STORE r20, r21
     ; Check if we need to move to next show entry
     LDI r20, TIMER
@@ -245,12 +245,12 @@ do_show_done:
     LDI r21, 25
     MOD r20, r21
     CMPI r20, 0
-    JNZ r1, do_show_frame
+    JNZ r15, do_show_frame
     ; Timer hit cycle boundary - advance show index
     LDI r20, SHOW_IDX
     LOAD r21, r20
-    LDI r15, 1
-    ADD r21, r15
+    LDI r11, 1
+    ADD r21, r11
     STORE r20, r21
     ; Check if showing complete
     LDI r20, SHOW_IDX
@@ -258,17 +258,17 @@ do_show_done:
     LDI r21, SEQ_LEN
     LOAD r21, r21
     CMP r20, r21
-    BLT r1, do_show_frame
+    BLT r15, do_show_frame
     ; Showing complete - switch to input phase
     LDI r20, PHASE
-    LDI r1, 2
-    STORE r20, r1
+    LDI r15, 2
+    STORE r20, r15
     LDI r20, INPUT_IDX
-    LDI r1, 0
-    STORE r20, r1
+    LDI r15, 0
+    STORE r20, r15
     LDI r20, TIMER
-    LDI r1, 0
-    STORE r20, r1
+    LDI r15, 0
+    STORE r20, r15
     JMP register_hits
 
 do_input_phase:
@@ -276,43 +276,43 @@ do_input_phase:
     LDI r20, PHASE
     LOAD r20, r20
     CMPI r20, 3
-    JNZ r1, register_hits
+    JNZ r15, register_hits
     ; Game over - show message
     LDI r20, STR_BUF
     STRO r20, "GAME OVER"
-    LDI r15, 78
-    LDI r9, 230
-    LDI r3, STR_BUF
-    TEXT r15, r9, r3
+    LDI r11, 78
+    LDI r0, 230
+    LDI r13, STR_BUF
+    TEXT r11, r0, r13
 
 do_show_frame:
 register_hits:
     ; Register hit regions for 4 buttons
-    LDI r15, 1
+    LDI r11, 1
     ; Red
-    LDI r8, 88
-    LDI r11, 30
-    LDI r14, 80
+    LDI r12, 88
+    LDI r2, 30
+    LDI r3, 80
     LDI r10, 80
-    HITSET r8, r11, r14, r10, 1
+    HITSET r12, r2, r3, r10, 1
     ; Green
-    LDI r8, 20
-    LDI r11, 130
-    LDI r14, 80
+    LDI r12, 20
+    LDI r2, 130
+    LDI r3, 80
     LDI r10, 80
-    HITSET r8, r11, r14, r10, 2
+    HITSET r12, r2, r3, r10, 2
     ; Blue
-    LDI r8, 156
-    LDI r11, 130
-    LDI r14, 80
+    LDI r12, 156
+    LDI r2, 130
+    LDI r3, 80
     LDI r10, 80
-    HITSET r8, r11, r14, r10, 3
+    HITSET r12, r2, r3, r10, 3
     ; Yellow
-    LDI r8, 88
-    LDI r11, 230
-    LDI r14, 80
+    LDI r12, 88
+    LDI r2, 230
+    LDI r3, 80
     LDI r10, 80
-    HITSET r8, r11, r14, r10, 4
+    HITSET r12, r2, r3, r10, 4
 
     FRAME
 
@@ -320,11 +320,11 @@ register_hits:
     LDI r20, PHASE
     LOAD r20, r20
     CMPI r20, 2
-    JNZ r1, main_loop
+    JNZ r15, main_loop
 
-    HITQ r6
-    CMPI r6, 0
-    JZ r1, main_loop
+    HITQ r4
+    CMPI r4, 0
+    JZ r15, main_loop
 
     ; Player clicked a button - check against sequence
     LDI r20, INPUT_IDX
@@ -332,27 +332,27 @@ register_hits:
     LDI r21, SEQUENCE
     ADD r21, r20
     LOAD r21, r21
-    ; r6 = clicked button (1-4), r21 = expected (0-3)
+    ; r4 = clicked button (1-4), r21 = expected (0-3)
     ; Convert click id to button index: id - 1
-    MOV r22, r6
-    LDI r15, 1
-    SUB r22, r15
+    MOV r22, r4
+    LDI r11, 1
+    SUB r22, r11
     ; Compare
     CMP r22, r21
-    JZ r1, correct_click
+    JZ r15, correct_click
 
     ; Wrong click - game over
     LDI r20, PHASE
-    LDI r1, 3
-    STORE r20, r1
+    LDI r15, 3
+    STORE r20, r15
     JMP main_loop
 
 correct_click:
     ; Advance input index
     LDI r20, INPUT_IDX
     LOAD r21, r20
-    LDI r15, 1
-    ADD r21, r15
+    LDI r11, 1
+    ADD r21, r11
     STORE r20, r21
     ; Check if all inputs correct
     LDI r20, INPUT_IDX
@@ -360,20 +360,20 @@ correct_click:
     LDI r21, SEQ_LEN
     LOAD r21, r21
     CMP r20, r21
-    BLT r1, main_loop
+    BLT r15, main_loop
 
     ; Round complete! Add score and extend sequence
     LDI r20, SCORE
     LOAD r21, r20
-    LDI r15, 1
-    ADD r21, r15
+    LDI r11, 1
+    ADD r21, r11
     STORE r20, r21
 
     ; Extend sequence
     LDI r20, SEQ_LEN
     LOAD r21, r20
-    LDI r15, 1
-    ADD r21, r15
+    LDI r11, 1
+    ADD r21, r11
     STORE r20, r21
 
     ; Generate new random entry at end of sequence
@@ -382,22 +382,22 @@ correct_click:
     MOD r20, r21
     LDI r21, SEQ_LEN
     LOAD r22, r21
-    LDI r15, 1
-    SUB r22, r15
+    LDI r11, 1
+    SUB r22, r11
     LDI r23, SEQUENCE
     ADD r23, r22
     STORE r23, r20
 
     ; Start showing phase again
     LDI r20, SHOW_IDX
-    LDI r1, 0
-    STORE r20, r1
+    LDI r15, 0
+    STORE r20, r15
     LDI r20, PHASE
-    LDI r1, 1
-    STORE r20, r1
+    LDI r15, 1
+    STORE r20, r15
     LDI r20, TIMER
-    LDI r1, 0
-    STORE r20, r1
+    LDI r15, 0
+    STORE r20, r15
 
     JMP main_loop
 

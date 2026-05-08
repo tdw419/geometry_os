@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a stopwatch application that tracks elapsed time and lap times. It uses frame timing to manage seconds and centiseconds, handles keyboard inputs for starting/stopping, recording laps, and resetting, and renders the display with text and rectangles using defined RAM addresses for state management.
+; DESCRIPTION: Draw rectangle: pos=the screen, color=colored, size=fixed size.
 
 ; stopwatch.asm -- Stopwatch with Lap Times for Geometry OS
 ;
@@ -37,19 +37,19 @@
 
 ; ── INIT ──────────────────────────────────────────
     LDI r9, 1
-    LDI r4, 0
+    LDI r0, 0
 
     ; Init all state to zero
     LDI r20, RUNNING
-    STORE r20, r4
+    STORE r20, r0
     LDI r20, ELAPSED_CS
-    STORE r20, r4
+    STORE r20, r0
     LDI r20, FRAME_ACC
-    STORE r20, r4
+    STORE r20, r0
     LDI r20, LAP_COUNT
-    STORE r20, r4
+    STORE r20, r0
     LDI r20, LAST_LAP
-    STORE r20, r4
+    STORE r20, r0
 
     ; Init stack
     LDI r30, 0xFD00
@@ -59,34 +59,34 @@ main_loop:
     LDI r9, 1
 
     ; Read keyboard
-    IKEY r6
+    IKEY r5
 
     ; Space (32) = toggle running
-    CMPI r6, 32
-    JNZ r0, not_space
+    CMPI r5, 32
+    JNZ r11, not_space
     CALL toggle_running
     JMP main_loop
 not_space:
 
     ; L (76) = lap
-    CMPI r6, 76
-    JNZ r0, not_lap
+    CMPI r5, 76
+    JNZ r11, not_lap
     CALL record_lap
     JMP main_loop
 not_lap:
 
     ; R (82) = reset
-    CMPI r6, 82
-    JNZ r0, not_reset
+    CMPI r5, 82
+    JNZ r11, not_reset
     CALL reset_stopwatch
     JMP main_loop
 not_reset:
 
     ; Update elapsed time if running
     LDI r20, RUNNING
-    LOAD r15, r20
-    CMPI r15, 0
-    JZ r0, skip_update
+    LOAD r10, r20
+    CMPI r10, 0
+    JZ r11, skip_update
     CALL update_time
 
 skip_update:
@@ -100,15 +100,15 @@ skip_update:
 toggle_running:
     PUSH r31
     LDI r20, RUNNING
-    LOAD r15, r20
-    CMPI r15, 0
-    JNZ r0, was_running
-    LDI r15, 1
-    STORE r20, r15
+    LOAD r10, r20
+    CMPI r10, 0
+    JNZ r11, was_running
+    LDI r10, 1
+    STORE r20, r10
     JMP toggle_done
 was_running:
-    LDI r15, 0
-    STORE r20, r15
+    LDI r10, 0
+    STORE r20, r10
 toggle_done:
     POP r31
     RET
@@ -120,23 +120,23 @@ update_time:
 
     ; frame_acc++
     LDI r20, FRAME_ACC
-    LOAD r15, r20
-    ADDI r15, 1
-    STORE r20, r15
+    LOAD r10, r20
+    ADDI r10, 1
+    STORE r20, r10
 
     ; Check if 60 frames passed (1 second)
-    CMPI r15, 60
-    BLT r0, update_done
+    CMPI r10, 60
+    BLT r11, update_done
 
     ; Reset frame accumulator
-    LDI r15, 0
-    STORE r20, r15
+    LDI r10, 0
+    STORE r20, r10
 
     ; elapsed_cs += 100
     LDI r20, ELAPSED_CS
-    LOAD r15, r20
-    ADDI r15, 100
-    STORE r20, r15
+    LOAD r10, r20
+    ADDI r10, 100
+    STORE r20, r10
 
 update_done:
     POP r31
@@ -149,33 +149,33 @@ record_lap:
 
     ; Check lap count < 10
     LDI r20, LAP_COUNT
-    LOAD r15, r20
-    CMPI r15, 10
-    BGE r0, lap_full
+    LOAD r10, r20
+    CMPI r10, 10
+    BGE r11, lap_full
 
     ; Compute lap delta = elapsed - last_lap
     LDI r20, ELAPSED_CS
-    LOAD r13, r20
+    LOAD r14, r20
     LDI r20, LAST_LAP
-    LOAD r10, r20
-    SUB r13, r10         ; r13 = delta
+    LOAD r15, r20
+    SUB r14, r15         ; r14 = delta
 
     ; Store delta at LAP_BASE + lap_count
     LDI r21, LAP_BASE
-    ADD r21, r15        ; r21 = LAP_BASE + lap_count
-    STORE r21, r13
+    ADD r21, r10        ; r21 = LAP_BASE + lap_count
+    STORE r21, r14
 
     ; Update last_lap
     LDI r20, ELAPSED_CS
-    LOAD r13, r20
+    LOAD r14, r20
     LDI r20, LAST_LAP
-    STORE r20, r13
+    STORE r20, r14
 
     ; lap_count++
     LDI r20, LAP_COUNT
-    LOAD r15, r20
-    ADDI r15, 1
-    STORE r20, r15
+    LOAD r10, r20
+    ADDI r10, 1
+    STORE r20, r10
 
 lap_full:
     POP r31
@@ -184,18 +184,18 @@ lap_full:
 ; ── RESET ─────────────────────────────────────────
 reset_stopwatch:
     PUSH r31
-    LDI r4, 0
+    LDI r0, 0
 
     LDI r20, RUNNING
-    STORE r20, r4
+    STORE r20, r0
     LDI r20, ELAPSED_CS
-    STORE r20, r4
+    STORE r20, r0
     LDI r20, FRAME_ACC
-    STORE r20, r4
+    STORE r20, r0
     LDI r20, LAP_COUNT
-    STORE r20, r4
+    STORE r20, r0
     LDI r20, LAST_LAP
-    STORE r20, r4
+    STORE r20, r0
 
     POP r31
     RET
@@ -206,122 +206,122 @@ render:
     LDI r9, 1
 
     ; Background
-    LDI r4, 0x0D1B2A
-    FILL r4
+    LDI r0, 0x0D1B2A
+    FILL r0
 
     ; Title bar
-    LDI r4, 0x1B3A4B
-    LDI r14, 0
-    LDI r3, 0
-    LDI r6, 256
-    LDI r15, 24
-    RECTF r14, r3, r6, r15, r4
+    LDI r0, 0x1B3A4B
+    LDI r2, 0
+    LDI r13, 0
+    LDI r5, 256
+    LDI r10, 24
+    RECTF r2, r13, r5, r10, r0
 
     ; Title: "STOPWATCH"
     LDI r20, TXT_BUF
     STRO r20, "STOPWATCH"
-    LDI r14, 80
-    LDI r3, 6
+    LDI r2, 80
+    LDI r13, 6
     LDI r20, TXT_BUF
-    TEXT r14, r3, r20
+    TEXT r2, r13, r20
 
     ; Main time panel
-    LDI r4, 0x060612
-    LDI r14, 20
-    LDI r3, 35
-    LDI r6, 216
-    LDI r15, 70
-    RECTF r14, r3, r6, r15, r4
+    LDI r0, 0x060612
+    LDI r2, 20
+    LDI r13, 35
+    LDI r5, 216
+    LDI r10, 70
+    RECTF r2, r13, r5, r10, r0
 
     ; Compute time components
     LDI r20, ELAPSED_CS
-    LOAD r1, r20       ; total centiseconds
+    LOAD r12, r20       ; total centiseconds
 
     ; Minutes = elapsed / 6000
     LDI r8, 6000
-    MOV r2, r1
-    DIV r2, r8
+    MOV r1, r12
+    DIV r1, r8
 
     ; Remaining = elapsed % 6000
-    MOV r7, r1
+    MOV r7, r12
     MOD r7, r8
 
     ; Seconds = remaining / 100
-    LDI r5, 100
-    MOV r11, r7
-    DIV r11, r5
+    LDI r3, 100
+    MOV r4, r7
+    DIV r4, r3
 
     ; Centiseconds = remaining % 100
     MOV r16, r7
-    MOD r16, r5
+    MOD r16, r3
 
     ; Build time string at TXT_BUF: MM:SS.CC
     LDI r20, TXT_BUF
-    MOV r2, r2        ; minutes
+    MOV r1, r1        ; minutes
     CALL fmt_2digit
 
-    LDI r4, 0x3A       ; ':'
-    STORE r20, r4
+    LDI r0, 0x3A       ; ':'
+    STORE r20, r0
     ADDI r20, 1
 
-    MOV r2, r11        ; seconds
+    MOV r1, r4        ; seconds
     CALL fmt_2digit
 
-    LDI r4, 0x2E       ; '.'
-    STORE r20, r4
+    LDI r0, 0x2E       ; '.'
+    STORE r20, r0
     ADDI r20, 1
 
-    MOV r2, r16        ; centiseconds
+    MOV r1, r16        ; centiseconds
     CALL fmt_2digit
 
-    LDI r4, 0
-    STORE r20, r4
+    LDI r0, 0
+    STORE r20, r0
 
     ; Draw time (white text)
-    LDI r14, 55
-    LDI r3, 58
+    LDI r2, 55
+    LDI r13, 58
     LDI r20, TXT_BUF
-    TEXT r14, r3, r20
+    TEXT r2, r13, r20
 
     ; Status panel
-    LDI r4, 0x0D0D1A
-    LDI r14, 20
-    LDI r3, 115
-    LDI r6, 216
-    LDI r15, 45
-    RECTF r14, r3, r6, r15, r4
+    LDI r0, 0x0D0D1A
+    LDI r2, 20
+    LDI r13, 115
+    LDI r5, 216
+    LDI r10, 45
+    RECTF r2, r13, r5, r10, r0
 
     ; Show RUNNING or STOPPED
     LDI r20, RUNNING
-    LOAD r15, r20
-    CMPI r15, 0
-    JNZ r0, show_running
+    LOAD r10, r20
+    CMPI r10, 0
+    JNZ r11, show_running
 
     ; STOPPED text
     LDI r20, TXT_BUF
     STRO r20, "STOPPED"
-    LDI r14, 80
-    LDI r3, 128
-    LDI r6, 0xFF4444
-    DRAWTEXT r14, r3, r20, r6, r6
+    LDI r2, 80
+    LDI r13, 128
+    LDI r5, 0xFF4444
+    DRAWTEXT r2, r13, r20, r5, r5
     JMP show_status_done
 
 show_running:
     LDI r20, TXT_BUF
     STRO r20, "RUNNING"
-    LDI r14, 80
-    LDI r3, 128
-    LDI r6, 0x44FF44
-    DRAWTEXT r14, r3, r20, r6, r6
+    LDI r2, 80
+    LDI r13, 128
+    LDI r5, 0x44FF44
+    DRAWTEXT r2, r13, r20, r5, r5
 
 show_status_done:
     ; Lap panel
-    LDI r4, 0x101828
-    LDI r14, 20
-    LDI r3, 170
-    LDI r6, 216
-    LDI r15, 50
-    RECTF r14, r3, r6, r15, r4
+    LDI r0, 0x101828
+    LDI r2, 20
+    LDI r13, 170
+    LDI r5, 216
+    LDI r10, 50
+    RECTF r2, r13, r5, r10, r0
 
     ; "Laps N" text
     LDI r20, TXT_BUF
@@ -329,35 +329,35 @@ show_status_done:
     ADDI r20, 5
 
     LDI r21, LAP_COUNT
-    LOAD r2, r21
+    LOAD r1, r21
     CALL fmt_2digit
-    LDI r4, 0
-    STORE r20, r4
+    LDI r0, 0
+    STORE r20, r0
 
-    LDI r14, 80
-    LDI r3, 185
+    LDI r2, 80
+    LDI r13, 185
     LDI r20, TXT_BUF
-    TEXT r14, r3, r20
+    TEXT r2, r13, r20
 
     ; Bottom bar
-    LDI r4, 0x0A0A1A
-    LDI r14, 0
-    LDI r3, 240
-    LDI r6, 256
-    LDI r15, 16
-    RECTF r14, r3, r6, r15, r4
+    LDI r0, 0x0A0A1A
+    LDI r2, 0
+    LDI r13, 240
+    LDI r5, 256
+    LDI r10, 16
+    RECTF r2, r13, r5, r10, r0
 
     POP r31
     RET
 
 ; ── FMT 2 DIGIT ───────────────────────────────────
-; Formats r2 as 2-digit decimal, writes to RAM[r20], advances r20
+; Formats r1 as 2-digit decimal, writes to RAM[r20], advances r20
 fmt_2digit:
     PUSH r31
     LDI r21, 10
-    MOV r22, r2
+    MOV r22, r1
     DIV r22, r21       ; tens
-    MOV r23, r2
+    MOV r23, r1
     MOD r23, r21       ; ones
     ADDI r22, 0x30
     STORE r20, r22

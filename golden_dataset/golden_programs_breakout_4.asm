@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a classic Breakout game. The game features a paddle controlled by the player to bounce a ball back at bricks arranged in rows at the top of the screen. The player earns points for breaking bricks and can restart the game with 'R'. The game ends if the ball falls below the paddle, reducing lives until none are left.
+; DESCRIPTION: Display a object using color red at the screen.
 
 ; breakout.asm -- Breakout / Brick Breaker for Geometry OS
 ;
@@ -32,407 +32,407 @@ restart:
   LDI r30, 0x8000
 
   ; write "SCORE:" text to buffer (stays constant)
-  LDI r13, 0x3100
-  LDI r14, 83
-  STORE r13, r14        ; S
-  LDI r13, 0x3101
-  LDI r14, 67
-  STORE r13, r14        ; C
-  LDI r13, 0x3102
-  LDI r14, 79
-  STORE r13, r14        ; O
-  LDI r13, 0x3103
-  LDI r14, 82
-  STORE r13, r14        ; R
-  LDI r13, 0x3104
-  LDI r14, 69
-  STORE r13, r14        ; E
-  LDI r13, 0x3105
-  LDI r14, 58
-  STORE r13, r14        ; :
+  LDI r5, 0x3100
+  LDI r2, 83
+  STORE r5, r2        ; S
+  LDI r5, 0x3101
+  LDI r2, 67
+  STORE r5, r2        ; C
+  LDI r5, 0x3102
+  LDI r2, 79
+  STORE r5, r2        ; O
+  LDI r5, 0x3103
+  LDI r2, 82
+  STORE r5, r2        ; R
+  LDI r5, 0x3104
+  LDI r2, 69
+  STORE r5, r2        ; E
+  LDI r5, 0x3105
+  LDI r2, 58
+  STORE r5, r2        ; :
 
   ; init bricks -- row 0=red, row 1=orange, row 2=yellow, row 3=green
   LDI r22, 0xFF0000   ; red
   LDI r23, 0xFF8800   ; orange
   LDI r24, 0xFFDD00   ; yellow
   LDI r25, 0x00CC44   ; green
-  LDI r15, 0          ; brick index
+  LDI r12, 0          ; brick index
 
 ib_loop:
-  LDI r7, 0
-  ADD r7, r15
-  LDI r11, 3
-  SHR r7, r11          ; r7 = row (0-3)
+  LDI r3, 0
+  ADD r3, r12
+  LDI r8, 3
+  SHR r3, r8          ; r3 = row (0-3)
   ; default green (row 3)
-  LDI r14, 0
-  ADD r14, r25
+  LDI r2, 0
+  ADD r2, r25
   ; check row 0
-  LDI r11, 0
-  CMP r7, r11
-  JZ r6, ib_r0
+  LDI r8, 0
+  CMP r3, r8
+  JZ r7, ib_r0
   ; check row 1
-  LDI r11, 1
-  CMP r7, r11
-  JZ r6, ib_r1
+  LDI r8, 1
+  CMP r3, r8
+  JZ r7, ib_r1
   ; check row 2
-  LDI r11, 2
-  CMP r7, r11
-  JZ r6, ib_r2
-  JMP ib_store        ; row 3 = green (already in r14)
+  LDI r8, 2
+  CMP r3, r8
+  JZ r7, ib_r2
+  JMP ib_store        ; row 3 = green (already in r2)
 
 ib_r0:
-  LDI r14, 0
-  ADD r14, r22         ; red
+  LDI r2, 0
+  ADD r2, r22         ; red
   JMP ib_store
 
 ib_r1:
-  LDI r14, 0
-  ADD r14, r23         ; orange
+  LDI r2, 0
+  ADD r2, r23         ; orange
   JMP ib_store
 
 ib_r2:
-  LDI r14, 0
-  ADD r14, r24         ; yellow
+  LDI r2, 0
+  ADD r2, r24         ; yellow
 
 ib_store:
-  LDI r13, 0x3000
-  ADD r13, r15
-  STORE r13, r14
-  LDI r7, 1
-  ADD r15, r7
-  LDI r11, 32
-  CMP r15, r11
-  BLT r6, ib_loop
+  LDI r5, 0x3000
+  ADD r5, r12
+  STORE r5, r2
+  LDI r3, 1
+  ADD r12, r3
+  LDI r8, 32
+  CMP r12, r8
+  BLT r7, ib_loop
 
   ; init game state
-  LDI r14, 104
-  LDI r13, 0x3020
-  STORE r13, r14        ; paddle_x = 104 (centered)
-  LDI r14, 0
-  LDI r13, 0x3025
-  STORE r13, r14        ; score = 0
-  LDI r14, 3
-  LDI r13, 0x3026
-  STORE r13, r14        ; lives = 3
-  LDI r14, 0
-  LDI r13, 0x3027
-  STORE r13, r14        ; game_over = 0
-  LDI r14, 32
-  LDI r13, 0x3029
-  STORE r13, r14        ; bricks_left = 32
+  LDI r2, 104
+  LDI r5, 0x3020
+  STORE r5, r2        ; paddle_x = 104 (centered)
+  LDI r2, 0
+  LDI r5, 0x3025
+  STORE r5, r2        ; score = 0
+  LDI r2, 3
+  LDI r5, 0x3026
+  STORE r5, r2        ; lives = 3
+  LDI r2, 0
+  LDI r5, 0x3027
+  STORE r5, r2        ; game_over = 0
+  LDI r2, 32
+  LDI r5, 0x3029
+  STORE r5, r2        ; bricks_left = 32
 
   CALL reset_ball
 
 ; ── main loop ────────────────────────────────────────────────────
 game_loop:
   ; check game over
-  LDI r13, 0x3027
-  LOAD r14, r13
-  JNZ r14, game_over_screen
+  LDI r5, 0x3027
+  LOAD r2, r5
+  JNZ r2, game_over_screen
 
   ; read keyboard
-  IKEY r3
+  IKEY r1
 
   ; A/a = paddle left
-  LDI r11, 65
-  CMP r3, r11
-  JZ r6, pad_left
-  LDI r11, 97
-  CMP r3, r11
-  JZ r6, pad_left
+  LDI r8, 65
+  CMP r1, r8
+  JZ r7, pad_left
+  LDI r8, 97
+  CMP r1, r8
+  JZ r7, pad_left
 
   ; D/d = paddle right
-  LDI r11, 68
-  CMP r3, r11
-  JZ r6, pad_right
-  LDI r11, 100
-  CMP r3, r11
-  JZ r6, pad_right
+  LDI r8, 68
+  CMP r1, r8
+  JZ r7, pad_right
+  LDI r8, 100
+  CMP r1, r8
+  JZ r7, pad_right
 
   ; W/w/Space = launch ball
-  LDI r11, 87
-  CMP r3, r11
-  JZ r6, do_launch
-  LDI r11, 119
-  CMP r3, r11
-  JZ r6, do_launch
-  LDI r11, 32
-  CMP r3, r11
-  JZ r6, do_launch
+  LDI r8, 87
+  CMP r1, r8
+  JZ r7, do_launch
+  LDI r8, 119
+  CMP r1, r8
+  JZ r7, do_launch
+  LDI r8, 32
+  CMP r1, r8
+  JZ r7, do_launch
 
   ; R/r = restart
-  LDI r11, 82
-  CMP r3, r11
-  JZ r6, restart
-  LDI r11, 114
-  CMP r3, r11
-  JZ r6, restart
+  LDI r8, 82
+  CMP r1, r8
+  JZ r7, restart
+  LDI r8, 114
+  CMP r1, r8
+  JZ r7, restart
 
 after_input:
   ; if ball not launched, stick to paddle
-  LDI r13, 0x3028
-  LOAD r14, r13
-  JNZ r14, update_ball
+  LDI r5, 0x3028
+  LOAD r2, r5
+  JNZ r2, update_ball
 
   ; ball sits on paddle
-  LDI r13, 0x3020
-  LOAD r14, r13          ; paddle_x
-  LDI r7, 22
-  ADD r14, r7           ; center ball on paddle
-  LDI r13, 0x3021
-  STORE r13, r14         ; ball_x
-  LDI r14, 240
-  LDI r13, 0x3022
-  STORE r13, r14         ; ball_y = 240
+  LDI r5, 0x3020
+  LOAD r2, r5          ; paddle_x
+  LDI r3, 22
+  ADD r2, r3           ; center ball on paddle
+  LDI r5, 0x3021
+  STORE r5, r2         ; ball_x
+  LDI r2, 240
+  LDI r5, 0x3022
+  STORE r5, r2         ; ball_y = 240
   JMP draw_and_loop
 
 update_ball:
   ; move ball x
-  LDI r13, 0x3021
-  LOAD r14, r13
-  LDI r13, 0x3023
-  LOAD r4, r13
-  ADD r14, r4
-  LDI r13, 0x3021
-  STORE r13, r14
+  LDI r5, 0x3021
+  LOAD r2, r5
+  LDI r5, 0x3023
+  LOAD r4, r5
+  ADD r2, r4
+  LDI r5, 0x3021
+  STORE r5, r2
 
   ; move ball y
-  LDI r13, 0x3022
-  LOAD r14, r13
-  LDI r13, 0x3024
-  LOAD r4, r13
-  ADD r14, r4
-  LDI r13, 0x3022
-  STORE r13, r14
+  LDI r5, 0x3022
+  LOAD r2, r5
+  LDI r5, 0x3024
+  LOAD r4, r5
+  ADD r2, r4
+  LDI r5, 0x3022
+  STORE r5, r2
 
   ; ── left wall bounce ──
-  LDI r13, 0x3021
-  LOAD r14, r13
-  LDI r11, 0
-  CMP r14, r11
-  BGE r6, chk_rw
-  LDI r14, 0
-  LDI r13, 0x3021
-  STORE r13, r14
-  LDI r13, 0x3023
-  LOAD r14, r13
-  NEG r14
-  LDI r13, 0x3023
-  STORE r13, r14
+  LDI r5, 0x3021
+  LOAD r2, r5
+  LDI r8, 0
+  CMP r2, r8
+  BGE r7, chk_rw
+  LDI r2, 0
+  LDI r5, 0x3021
+  STORE r5, r2
+  LDI r5, 0x3023
+  LOAD r2, r5
+  NEG r2
+  LDI r5, 0x3023
+  STORE r5, r2
   ; wall bounce sound
-  LDI r7, 330
-  LDI r11, 20
-  BEEP r7, r11
+  LDI r3, 330
+  LDI r8, 20
+  BEEP r3, r8
 
 chk_rw:
   ; ── right wall bounce ──
-  LDI r13, 0x3021
-  LOAD r14, r13
-  LDI r11, 252          ; 256 - 4 (ball width)
-  CMP r14, r11
-  BLT r6, chk_tw
-  LDI r14, 252
-  LDI r13, 0x3021
-  STORE r13, r14
-  LDI r13, 0x3023
-  LOAD r14, r13
-  NEG r14
-  LDI r13, 0x3023
-  STORE r13, r14
+  LDI r5, 0x3021
+  LOAD r2, r5
+  LDI r8, 252          ; 256 - 4 (ball width)
+  CMP r2, r8
+  BLT r7, chk_tw
+  LDI r2, 252
+  LDI r5, 0x3021
+  STORE r5, r2
+  LDI r5, 0x3023
+  LOAD r2, r5
+  NEG r2
+  LDI r5, 0x3023
+  STORE r5, r2
   ; wall bounce sound
-  LDI r7, 330
-  LDI r11, 20
-  BEEP r7, r11
+  LDI r3, 330
+  LDI r8, 20
+  BEEP r3, r8
 
 chk_tw:
   ; ── top wall bounce ──
-  LDI r13, 0x3022
-  LOAD r14, r13
-  LDI r11, 0
-  CMP r14, r11
-  BGE r6, chk_bot
-  LDI r14, 0
-  LDI r13, 0x3022
-  STORE r13, r14
-  LDI r13, 0x3024
-  LOAD r14, r13
-  NEG r14
-  LDI r13, 0x3024
-  STORE r13, r14
+  LDI r5, 0x3022
+  LOAD r2, r5
+  LDI r8, 0
+  CMP r2, r8
+  BGE r7, chk_bot
+  LDI r2, 0
+  LDI r5, 0x3022
+  STORE r5, r2
+  LDI r5, 0x3024
+  LOAD r2, r5
+  NEG r2
+  LDI r5, 0x3024
+  STORE r5, r2
   ; wall bounce sound
-  LDI r7, 330
-  LDI r11, 20
-  BEEP r7, r11
+  LDI r3, 330
+  LDI r8, 20
+  BEEP r3, r8
 
 chk_bot:
   ; ── ball lost (fell off bottom) ──
-  LDI r13, 0x3022
-  LOAD r14, r13
-  LDI r11, 256
-  CMP r14, r11
-  BLT r6, chk_brick
+  LDI r5, 0x3022
+  LOAD r2, r5
+  LDI r8, 256
+  CMP r2, r8
+  BLT r7, chk_brick
   CALL lose_life
   JMP draw_and_loop
 
 chk_brick:
   ; ── brick collision ──
-  LDI r13, 0x3022
-  LOAD r14, r13          ; ball_y
+  LDI r5, 0x3022
+  LOAD r2, r5          ; ball_y
   ; ball must be in brick area: y >= 8 and y < 40
-  LDI r11, 8
-  CMP r14, r11
-  BLT r6, chk_paddle
-  LDI r11, 40
-  CMP r14, r11
-  BGE r6, chk_paddle
+  LDI r8, 8
+  CMP r2, r8
+  BLT r7, chk_paddle
+  LDI r8, 40
+  CMP r2, r8
+  BGE r7, chk_paddle
 
   ; compute brick row = (ball_y - 8) >> 3
-  LDI r7, 8
-  SUB r14, r7
-  LDI r7, 3
-  SHR r14, r7           ; r14 = row (0-3)
+  LDI r3, 8
+  SUB r2, r3
+  LDI r3, 3
+  SHR r2, r3           ; r2 = row (0-3)
 
   ; compute brick col = ball_x >> 5
-  LDI r13, 0x3021
-  LOAD r4, r13          ; ball_x
-  LDI r7, 5
-  SHR r4, r7           ; r4 = col (0-7)
+  LDI r5, 0x3021
+  LOAD r4, r5          ; ball_x
+  LDI r3, 5
+  SHR r4, r3           ; r4 = col (0-7)
 
   ; bounds check
-  LDI r11, 4
-  CMP r14, r11
-  BGE r6, chk_paddle
-  LDI r11, 8
-  CMP r4, r11
-  BGE r6, chk_paddle
+  LDI r8, 4
+  CMP r2, r8
+  BGE r7, chk_paddle
+  LDI r8, 8
+  CMP r4, r8
+  BGE r7, chk_paddle
 
   ; brick index = row * 8 + col
-  LDI r12, 0
-  ADD r12, r14
-  LDI r7, 3
-  SHL r12, r7           ; row * 8
-  ADD r12, r4           ; + col
+  LDI r14, 0
+  ADD r14, r2
+  LDI r3, 3
+  SHL r14, r3           ; row * 8
+  ADD r14, r4           ; + col
 
   ; check if brick alive
-  LDI r13, 0x3000
-  ADD r13, r12
-  LOAD r14, r13
-  JZ r14, chk_paddle   ; dead brick, skip
+  LDI r5, 0x3000
+  ADD r5, r14
+  LOAD r2, r5
+  JZ r2, chk_paddle   ; dead brick, skip
 
   ; kill brick
-  LDI r14, 0
-  STORE r13, r14
+  LDI r2, 0
+  STORE r5, r2
 
   ; decrement bricks_left
-  LDI r13, 0x3029
-  LOAD r14, r13
-  LDI r7, 1
-  SUB r14, r7
-  LDI r13, 0x3029
-  STORE r13, r14
+  LDI r5, 0x3029
+  LOAD r2, r5
+  LDI r3, 1
+  SUB r2, r3
+  LDI r5, 0x3029
+  STORE r5, r2
 
   ; check win
-  JNZ r14, brick_bounce
-  LDI r14, 1
-  LDI r13, 0x3027
-  STORE r13, r14         ; game_over = 1 (won!)
-  LDI r7, 880
-  LDI r11, 200
-  BEEP r7, r11
+  JNZ r2, brick_bounce
+  LDI r2, 1
+  LDI r5, 0x3027
+  STORE r5, r2         ; game_over = 1 (won!)
+  LDI r3, 880
+  LDI r8, 200
+  BEEP r3, r8
   JMP draw_and_loop
 
 brick_bounce:
   ; reverse ball_dy
-  LDI r13, 0x3024
-  LOAD r14, r13
-  NEG r14
-  LDI r13, 0x3024
-  STORE r13, r14
+  LDI r5, 0x3024
+  LOAD r2, r5
+  NEG r2
+  LDI r5, 0x3024
+  STORE r5, r2
   ; score += 10
-  LDI r13, 0x3025
-  LOAD r14, r13
-  LDI r7, 10
-  ADD r14, r7
-  LDI r13, 0x3025
-  STORE r13, r14
+  LDI r5, 0x3025
+  LOAD r2, r5
+  LDI r3, 10
+  ADD r2, r3
+  LDI r5, 0x3025
+  STORE r5, r2
   ; brick hit sound
-  LDI r7, 660
-  LDI r11, 30
-  BEEP r7, r11
+  LDI r3, 660
+  LDI r8, 30
+  BEEP r3, r8
 
 chk_paddle:
   ; ── paddle collision ──
   ; ball must be at paddle level (y >= 240) and moving down
-  LDI r13, 0x3022
-  LOAD r14, r13          ; ball_y
-  LDI r11, 240
-  CMP r14, r11
-  BLT r6, draw_and_loop
+  LDI r5, 0x3022
+  LOAD r2, r5          ; ball_y
+  LDI r8, 240
+  CMP r2, r8
+  BLT r7, draw_and_loop
   ; check ball moving down (dy > 0)
-  LDI r13, 0x3024
-  LOAD r14, r13
-  LDI r11, 0
-  CMP r14, r11
-  BLT r6, draw_and_loop ; moving up, skip
+  LDI r5, 0x3024
+  LOAD r2, r5
+  LDI r8, 0
+  CMP r2, r8
+  BLT r7, draw_and_loop ; moving up, skip
   ; check x overlap (ball center vs paddle bounds)
-  LDI r13, 0x3021
-  LOAD r14, r13          ; ball_x
-  LDI r13, 0x3020
-  LOAD r4, r13          ; paddle_x
-  LDI r7, 2
-  ADD r14, r7           ; ball center x
-  CMP r14, r4
-  BLT r6, draw_and_loop ; left of paddle
-  LDI r7, 48
-  ADD r4, r7           ; paddle right edge
-  CMP r14, r4
-  BGE r6, draw_and_loop ; right of paddle
+  LDI r5, 0x3021
+  LOAD r2, r5          ; ball_x
+  LDI r5, 0x3020
+  LOAD r4, r5          ; paddle_x
+  LDI r3, 2
+  ADD r2, r3           ; ball center x
+  CMP r2, r4
+  BLT r7, draw_and_loop ; left of paddle
+  LDI r3, 48
+  ADD r4, r3           ; paddle right edge
+  CMP r2, r4
+  BGE r7, draw_and_loop ; right of paddle
 
   ; paddle hit! reverse dy
-  LDI r13, 0x3024
-  LOAD r14, r13
-  NEG r14
-  LDI r13, 0x3024
-  STORE r13, r14
+  LDI r5, 0x3024
+  LOAD r2, r5
+  NEG r2
+  LDI r5, 0x3024
+  STORE r5, r2
 
   ; set dx from hit position (offset -24..24, clamped to -3..3)
-  LDI r13, 0x3021
-  LOAD r14, r13          ; ball_x
-  LDI r7, 2
-  ADD r14, r7           ; ball center x
-  LDI r13, 0x3020
-  LOAD r4, r13          ; paddle_x
-  SUB r14, r4           ; offset (0-48)
-  LDI r7, 24
-  SUB r14, r7           ; -24..24
+  LDI r5, 0x3021
+  LOAD r2, r5          ; ball_x
+  LDI r3, 2
+  ADD r2, r3           ; ball center x
+  LDI r5, 0x3020
+  LOAD r4, r5          ; paddle_x
+  SUB r2, r4           ; offset (0-48)
+  LDI r3, 24
+  SUB r2, r3           ; -24..24
 
   ; clamp to [-3, 3]
-  LDI r11, 0xFFFFFFFD   ; -3 unsigned
-  CMP r14, r11
-  BLT r6, dx_neg
-  LDI r11, 3
-  CMP r14, r11
-  BGE r6, dx_pos
+  LDI r8, 0xFFFFFFFD   ; -3 unsigned
+  CMP r2, r8
+  BLT r7, dx_neg
+  LDI r8, 3
+  CMP r2, r8
+  BGE r7, dx_pos
   JMP dx_store
 
 dx_neg:
-  LDI r14, 0xFFFFFFFD
+  LDI r2, 0xFFFFFFFD
   JMP dx_store
 
 dx_pos:
-  LDI r14, 3
+  LDI r2, 3
 
 dx_store:
   ; ensure dx is never 0 (would be boring)
-  JNZ r14, dx_ok
-  LDI r14, 1
+  JNZ r2, dx_ok
+  LDI r2, 1
 dx_ok:
-  LDI r13, 0x3023
-  STORE r13, r14
+  LDI r5, 0x3023
+  STORE r5, r2
   ; paddle hit sound
-  LDI r7, 440
-  LDI r11, 20
-  BEEP r7, r11
+  LDI r3, 440
+  LDI r8, 20
+  BEEP r3, r8
 
 draw_and_loop:
   CALL draw_frame
@@ -441,71 +441,71 @@ draw_and_loop:
 
 ; ── input handlers ───────────────────────────────────────────────
 pad_left:
-  LDI r13, 0x3020
-  LOAD r14, r13
-  LDI r7, 5
-  SUB r14, r7
-  LDI r11, 0
-  CMP r14, r11
-  BGE r6, pl_ok
-  LDI r14, 0
+  LDI r5, 0x3020
+  LOAD r2, r5
+  LDI r3, 5
+  SUB r2, r3
+  LDI r8, 0
+  CMP r2, r8
+  BGE r7, pl_ok
+  LDI r2, 0
 pl_ok:
-  LDI r13, 0x3020
-  STORE r13, r14
+  LDI r5, 0x3020
+  STORE r5, r2
   JMP after_input
 
 pad_right:
-  LDI r13, 0x3020
-  LOAD r14, r13
-  LDI r7, 5
-  ADD r14, r7
-  LDI r11, 208           ; 256 - 48
-  CMP r14, r11
-  BLT r6, pr_ok
-  LDI r14, 208
+  LDI r5, 0x3020
+  LOAD r2, r5
+  LDI r3, 5
+  ADD r2, r3
+  LDI r8, 208           ; 256 - 48
+  CMP r2, r8
+  BLT r7, pr_ok
+  LDI r2, 208
 pr_ok:
-  LDI r13, 0x3020
-  STORE r13, r14
+  LDI r5, 0x3020
+  STORE r5, r2
   JMP after_input
 
 do_launch:
-  LDI r13, 0x3028
-  LOAD r14, r13
-  JNZ r14, after_input  ; already launched
-  LDI r14, 1
-  LDI r13, 0x3028
-  STORE r13, r14
+  LDI r5, 0x3028
+  LOAD r2, r5
+  JNZ r2, after_input  ; already launched
+  LDI r2, 1
+  LDI r5, 0x3028
+  STORE r5, r2
   JMP after_input
 
 ; ── subroutines ──────────────────────────────────────────────────
 reset_ball:
-  LDI r14, 0
-  LDI r13, 0x3028
-  STORE r13, r14         ; ball_launched = 0
-  LDI r14, 2
-  LDI r13, 0x3023
-  STORE r13, r14         ; ball_dx = 2
-  LDI r14, 0xFFFFFFFD   ; -3
-  LDI r13, 0x3024
-  STORE r13, r14         ; ball_dy = -3
+  LDI r2, 0
+  LDI r5, 0x3028
+  STORE r5, r2         ; ball_launched = 0
+  LDI r2, 2
+  LDI r5, 0x3023
+  STORE r5, r2         ; ball_dx = 2
+  LDI r2, 0xFFFFFFFD   ; -3
+  LDI r5, 0x3024
+  STORE r5, r2         ; ball_dy = -3
   RET
 
 lose_life:
   PUSH r31
-  LDI r13, 0x3026
-  LOAD r14, r13
-  LDI r7, 1
-  SUB r14, r7
-  LDI r13, 0x3026
-  STORE r13, r14
-  JNZ r14, ll_reset
+  LDI r5, 0x3026
+  LOAD r2, r5
+  LDI r3, 1
+  SUB r2, r3
+  LDI r5, 0x3026
+  STORE r5, r2
+  JNZ r2, ll_reset
   ; game over (lost)
-  LDI r14, 2
-  LDI r13, 0x3027
-  STORE r13, r14
-  LDI r7, 110
-  LDI r11, 300
-  BEEP r7, r11
+  LDI r2, 2
+  LDI r5, 0x3027
+  STORE r5, r2
+  LDI r3, 110
+  LDI r8, 300
+  BEEP r3, r8
   POP r31
   RET
 
@@ -516,123 +516,123 @@ ll_reset:
 
 ; ── game over screen ─────────────────────────────────────────────
 game_over_screen:
-  LDI r13, 0x3027
-  LOAD r14, r13
-  LDI r11, 1
-  CMP r14, r11
-  JZ r6, win_screen
+  LDI r5, 0x3027
+  LOAD r2, r5
+  LDI r8, 1
+  CMP r2, r8
+  JZ r7, win_screen
 
   ; lose screen (dark red)
-  LDI r14, 0x330000
-  FILL r14
+  LDI r2, 0x330000
+  FILL r2
   FRAME
-  IKEY r3
-  JZ r3, game_over_screen
+  IKEY r1
+  JZ r1, game_over_screen
   JMP restart
 
 win_screen:
   ; win screen (dark green)
-  LDI r14, 0x003300
-  FILL r14
+  LDI r2, 0x003300
+  FILL r2
   FRAME
-  IKEY r3
-  JZ r3, win_screen
+  IKEY r1
+  JZ r1, win_screen
   JMP restart
 
 ; ─────────────────────────────────────────────────────────────────
 ; draw_frame -- render entire screen
-;   Clobbers r14-r5, r15. Preserves r20-r25.
+;   Clobbers r2-r10, r12. Preserves r20-r25.
 ; ─────────────────────────────────────────────────────────────────
 draw_frame:
   ; dark background
-  LDI r14, 0x000811
-  FILL r14
+  LDI r2, 0x000811
+  FILL r2
 
   ; ── draw bricks ──
-  LDI r15, 0           ; brick index
+  LDI r12, 0           ; brick index
   LDI r20, 0x3000      ; brick base
 
 df_bloop:
   ; load brick color
-  LDI r13, 0
-  ADD r13, r20
-  ADD r13, r15
-  LOAD r14, r13          ; r14 = color (0 = dead)
-  JZ r14, df_bnext
+  LDI r5, 0
+  ADD r5, r20
+  ADD r5, r12
+  LOAD r2, r5          ; r2 = color (0 = dead)
+  JZ r2, df_bnext
 
   ; compute pixel position
-  LDI r7, 0
-  ADD r7, r15
-  LDI r11, 7
-  AND r7, r11           ; r7 = col (0-7)
-  LDI r2, 5
-  SHL r7, r2           ; r7 = col * 32
+  LDI r3, 0
+  ADD r3, r12
+  LDI r8, 7
+  AND r3, r8           ; r3 = col (0-7)
+  LDI r9, 5
+  SHL r3, r9           ; r3 = col * 32
 
-  LDI r11, 0
-  ADD r11, r15
-  LDI r2, 3
-  SHR r11, r2           ; r11 = row (0-3)
-  LDI r2, 3
-  SHL r11, r2           ; r11 = row * 8
-  LDI r2, 9
-  ADD r11, r2           ; r11 = row * 8 + 9 (1px top gap)
+  LDI r8, 0
+  ADD r8, r12
+  LDI r9, 3
+  SHR r8, r9           ; r8 = row (0-3)
+  LDI r9, 3
+  SHL r8, r9           ; r8 = row * 8
+  LDI r9, 9
+  ADD r8, r9           ; r8 = row * 8 + 9 (1px top gap)
 
   ; draw brick: RECTF(x+1, y+1, 30, 6, color)
-  LDI r3, 1
-  ADD r7, r3           ; x + 1
-  ADD r11, r3           ; y + 1
-  LDI r3, 30           ; width
-  LDI r2, 6            ; height
-  RECTF r7, r11, r3, r2, r14
+  LDI r1, 1
+  ADD r3, r1           ; x + 1
+  ADD r8, r1           ; y + 1
+  LDI r1, 30           ; width
+  LDI r9, 6            ; height
+  RECTF r3, r8, r1, r9, r2
 
 df_bnext:
-  LDI r7, 1
-  ADD r15, r7
-  LDI r11, 32
-  CMP r15, r11
-  BLT r6, df_bloop
+  LDI r3, 1
+  ADD r12, r3
+  LDI r8, 32
+  CMP r12, r8
+  BLT r7, df_bloop
 
   ; ── draw paddle ──
-  LDI r13, 0x3020
-  LOAD r7, r13          ; r7 = paddle_x
-  LDI r11, 244           ; y
-  LDI r3, 48            ; width
-  LDI r2, 6             ; height
-  LDI r5, 0xCCCCCC      ; light gray
-  RECTF r7, r11, r3, r2, r5
+  LDI r5, 0x3020
+  LOAD r3, r5          ; r3 = paddle_x
+  LDI r8, 244           ; y
+  LDI r1, 48            ; width
+  LDI r9, 6             ; height
+  LDI r10, 0xCCCCCC      ; light gray
+  RECTF r3, r8, r1, r9, r10
 
   ; ── draw ball ──
-  LDI r13, 0x3021
-  LOAD r7, r13          ; ball_x
-  LDI r13, 0x3022
-  LOAD r11, r13          ; ball_y
-  LDI r3, 4            ; width
-  LDI r2, 4            ; height
-  LDI r5, 0xFFFFFF     ; white
-  RECTF r7, r11, r3, r2, r5
+  LDI r5, 0x3021
+  LOAD r3, r5          ; ball_x
+  LDI r5, 0x3022
+  LOAD r8, r5          ; ball_y
+  LDI r1, 4            ; width
+  LDI r9, 4            ; height
+  LDI r10, 0xFFFFFF     ; white
+  RECTF r3, r8, r1, r9, r10
 
   ; ── draw score text ──
   CALL draw_score
 
   ; ── draw lives (small rects at bottom-right) ──
-  LDI r13, 0x3026
-  LOAD r14, r13          ; lives
-  LDI r5, 0            ; loop counter
-  LDI r15, 240         ; x start
+  LDI r5, 0x3026
+  LOAD r2, r5          ; lives
+  LDI r10, 0            ; loop counter
+  LDI r12, 240         ; x start
 df_lloop:
-  CMP r5, r14
-  BGE r6, df_ldone
-  LDI r7, 0
-  ADD r7, r15
-  LDI r11, 252           ; y
-  LDI r3, 4             ; w
-  LDI r2, 4             ; h
+  CMP r10, r2
+  BGE r7, df_ldone
+  LDI r3, 0
+  ADD r3, r12
+  LDI r8, 252           ; y
+  LDI r1, 4             ; w
+  LDI r9, 4             ; h
   LDI r4, 0x00CC44     ; green
-  RECTF r7, r11, r3, r2, r4
-  LDI r7, 6
-  ADD r15, r7           ; next life dot x += 6
-  LDI r7, 1
-  ADD r5, r7
+  RECTF r3, r8, r1, r9, r4
+  LDI r3, 6
+  ADD r12, r3           ; next life dot x += 6
+  LDI r3, 1
+  ADD r10, r3
   JMP df_lloop
 
 df_ldone:
@@ -643,58 +643,58 @@ df_ldone:
 ;   Writes digits to RAM[0x3106..0x3108], null at 0x3109
 ; ─────────────────────────────────────────────────────────────────
 draw_score:
-  LDI r13, 0x3025
-  LOAD r14, r13          ; r14 = score
+  LDI r5, 0x3025
+  LOAD r2, r5          ; r2 = score
 
   ; hundreds digit: score / 100
   LDI r4, 0
-  ADD r4, r14           ; r4 = score copy
-  LDI r12, 100
-  DIV r4, r12           ; r4 = hundreds
-  LDI r7, 48
-  ADD r4, r7           ; r4 = '0' + hundreds
-  LDI r13, 0x3106
-  STORE r13, r4
+  ADD r4, r2           ; r4 = score copy
+  LDI r14, 100
+  DIV r4, r14           ; r4 = hundreds
+  LDI r3, 48
+  ADD r4, r3           ; r4 = '0' + hundreds
+  LDI r5, 0x3106
+  STORE r5, r4
 
   ; tens digit: (score - hundreds*100) / 10
-  LDI r12, 100
-  LDI r11, 0
-  ADD r11, r4           ; r11 = ASCII hundreds
-  LDI r7, 48
-  SUB r11, r7           ; r11 = numeric hundreds
-  MUL r11, r12           ; r11 = hundreds * 100
+  LDI r14, 100
+  LDI r8, 0
+  ADD r8, r4           ; r8 = ASCII hundreds
+  LDI r3, 48
+  SUB r8, r3           ; r8 = numeric hundreds
+  MUL r8, r14           ; r8 = hundreds * 100
   LDI r4, 0
-  ADD r4, r14           ; r4 = score
-  SUB r4, r11           ; r4 = remainder (< 100)
-  LDI r12, 10
-  DIV r4, r12           ; r4 = tens
-  LDI r7, 48
-  ADD r4, r7           ; r4 = '0' + tens
-  LDI r13, 0x3107
-  STORE r13, r4
+  ADD r4, r2           ; r4 = score
+  SUB r4, r8           ; r4 = remainder (< 100)
+  LDI r14, 10
+  DIV r4, r14           ; r4 = tens
+  LDI r3, 48
+  ADD r4, r3           ; r4 = '0' + tens
+  LDI r5, 0x3107
+  STORE r5, r4
 
   ; ones digit: remainder - tens*10
-  LDI r12, 10
-  LDI r11, 0
-  ADD r11, r4           ; r11 = ASCII tens
-  LDI r7, 48
-  SUB r11, r7           ; r11 = numeric tens
-  MUL r11, r12           ; r11 = tens * 10
-  SUB r4, r11           ; r4 = ones
-  LDI r7, 48
-  ADD r4, r7           ; r4 = '0' + ones
-  LDI r13, 0x3108
-  STORE r13, r4
+  LDI r14, 10
+  LDI r8, 0
+  ADD r8, r4           ; r8 = ASCII tens
+  LDI r3, 48
+  SUB r8, r3           ; r8 = numeric tens
+  MUL r8, r14           ; r8 = tens * 10
+  SUB r4, r8           ; r4 = ones
+  LDI r3, 48
+  ADD r4, r3           ; r4 = '0' + ones
+  LDI r5, 0x3108
+  STORE r5, r4
 
   ; null terminator
-  LDI r14, 0
-  LDI r13, 0x3109
-  STORE r13, r14
+  LDI r2, 0
+  LDI r5, 0x3109
+  STORE r5, r2
 
   ; TEXT opcode to render "SCORE:XXX"
-  LDI r7, 2             ; x
-  LDI r11, 0             ; y
-  LDI r3, 0x3100        ; string address
-  TEXT r7, r11, r3
+  LDI r3, 2             ; x
+  LDI r8, 0             ; y
+  LDI r1, 0x3100        ; string address
+  TEXT r3, r8, r1
 
   RET

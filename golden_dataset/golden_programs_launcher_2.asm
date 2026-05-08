@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code implements an application launcher that displays a full-screen grid of available `.asm` programs from the Virtual File System (VFS). Users can scroll through the grid using the W/S keys, select a program with the Enter key to launch it, or press ESC to close the launcher. The code demonstrates functionalities such as file listing (`LS`), text drawing (`DRAWTEXT`), program execution (`EXEC`), keyboard input handling (`IKEY`), and graphics rendering (`RECTF`). It manages state using RAM addresses for file list buffer, string buffers, file count, scroll offset, selected index, and mode. The grid layout consists of 3 columns and 8 rows, each cell being 84x28 pixels.
+; DESCRIPTION: Display a rectangle using color colored at the screen.
 
 ; launcher.asm -- App Launcher for Geometry OS
 ;
@@ -30,61 +30,61 @@
 ; INIT
 ; ==========================================
 LDI r30, 0xFD00
-LDI r14, 1
-LDI r1, 0
+LDI r5, 1
+LDI r12, 0
 
 ; Clear state
 LDI r20, SCROLL_OFF
-STORE r20, r1
+STORE r20, r12
 LDI r20, SEL_INDEX
-STORE r20, r1
+STORE r20, r12
 LDI r20, MODE
-STORE r20, r1
+STORE r20, r12
 
 ; -- Get file list --
-LDI r10, FILE_BUF
-LS r10
+LDI r13, FILE_BUF
+LS r13
 LDI r20, FILE_COUNT
-STORE r20, r3
+STORE r20, r11
 
 ; ==========================================
 ; MAIN LOOP
 ; ==========================================
 main_loop:
   ; Clear screen
-  LDI r3, 0x1A1A2E
-  FILL r3
+  LDI r11, 0x1A1A2E
+  FILL r11
 
   ; -- Draw title bar --
-  LDI r3, 0x2D2D4D
-  LDI r10, 0
-  LDI r4, 0
-  LDI r12, 256
-  LDI r6, 20
-  RECTF r10, r4, r12, r6, r3
+  LDI r11, 0x2D2D4D
+  LDI r13, 0
+  LDI r15, 0
+  LDI r4, 256
+  LDI r9, 20
+  RECTF r13, r15, r4, r9, r11
 
   ; Title "Apps"
-  LDI r10, STR_BUF
-  LDI r3, 65                ; A
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 112               ; p
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 112               ; p
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 115               ; s
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 0
-  STORE r10, r3
-  LDI r10, 110
-  LDI r4, 6
-  LDI r12, STR_BUF
-  LDI r6, 0xFFFFFF
-  LDI r13, 0
-  DRAWTEXT r10, r4, r12, r6, r13
+  LDI r13, STR_BUF
+  LDI r11, 65                ; A
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 112               ; p
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 112               ; p
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 115               ; s
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 0
+  STORE r13, r11
+  LDI r13, 110
+  LDI r15, 6
+  LDI r4, STR_BUF
+  LDI r9, 0xFFFFFF
+  LDI r0, 0
+  DRAWTEXT r13, r15, r4, r9, r0
 
   ; -- Draw grid of programs --
   LDI r22, FILE_BUF          ; current ptr
@@ -99,12 +99,12 @@ main_loop:
 scroll_skip:
   LOAD r25, r22
   JNZ r25, skip_adv
-  ADD r22, r14
+  ADD r22, r5
   SUBI r20, 1
   JZ r20, draw_grid
   JMP scroll_skip
 skip_adv:
-  ADD r22, r14
+  ADD r22, r5
   JMP scroll_skip
 
 draw_grid:
@@ -114,9 +114,9 @@ draw_grid:
 
 grid_loop:
   CMP r23, r24
-  BGE r3, grid_done
-  CMP r21, r1
-  JZ r3, grid_done
+  BGE r11, grid_done
+  CMP r21, r12
+  JZ r11, grid_done
 
   ; Compute grid position
   ; col = entry % 3, row = entry / 3
@@ -136,19 +136,19 @@ grid_loop:
   ADDI r27, 24
 
   ; Check if selected
-  LDI r12, SEL_INDEX
-  LOAD r12, r12
-  CMP r12, r23
+  LDI r4, SEL_INDEX
+  LOAD r4, r4
+  CMP r4, r23
   ; If selected, draw highlight
-  LDI r3, 0x4444AA
-  LDI r10, 84
-  LDI r4, 28
-  JZ r3, draw_cell_bg
+  LDI r11, 0x4444AA
+  LDI r13, 84
+  LDI r15, 28
+  JZ r11, draw_cell_bg
   ; Normal cell
-  LDI r3, 0x252540
+  LDI r11, 0x252540
 
 draw_cell_bg:
-  RECTF r26, r27, r10, r4, r3
+  RECTF r26, r27, r13, r15, r11
 
   ; Copy filename to STR_BUF (max 12 chars)
   LDI r25, STR_BUF
@@ -158,8 +158,8 @@ copy_fname:
   LOAD r27, r22
   STORE r25, r27
   JZ r27, fname_done
-  ADD r22, r14
-  ADD r25, r14
+  ADD r22, r5
+  ADD r25, r5
   SUBI r26, 1
   JZ r26, fname_done
   JMP copy_fname
@@ -168,7 +168,7 @@ fname_done:
   ; Advance past null
   LOAD r27, r22
   JNZ r27, no_null_adv
-  ADD r22, r14
+  ADD r22, r5
 no_null_adv:
 
   ; Draw filename
@@ -185,10 +185,10 @@ no_null_adv:
   MUL r27, r28
   ADDI r27, 28
 
-  LDI r12, STR_BUF
-  LDI r6, 0xCCCCCC
-  LDI r13, 0
-  DRAWTEXT r26, r27, r12, r6, r13
+  LDI r4, STR_BUF
+  LDI r9, 0xCCCCCC
+  LDI r0, 0
+  DRAWTEXT r26, r27, r4, r9, r0
 
   ADDI r23, 1
   SUBI r21, 1
@@ -197,46 +197,46 @@ no_null_adv:
 grid_done:
   ; -- Draw footer --
   ; "W/S Scroll  Enter Run  ESC Back"
-  LDI r10, STR_BUF
-  LDI r3, 87               ; W
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 47               ; /
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 83               ; S
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 32               ; space
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 82               ; R
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 117              ; u
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 110              ; n
-  STORE r10, r3
-  ADD r10, r14
-  LDI r3, 0
-  STORE r10, r3
+  LDI r13, STR_BUF
+  LDI r11, 87               ; W
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 47               ; /
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 83               ; S
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 32               ; space
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 82               ; R
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 117              ; u
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 110              ; n
+  STORE r13, r11
+  ADD r13, r5
+  LDI r11, 0
+  STORE r13, r11
 
-  LDI r10, 4
-  LDI r4, 244
-  LDI r12, STR_BUF
-  LDI r6, 0x888888
-  LDI r13, 0
-  DRAWTEXT r10, r4, r12, r6, r13
+  LDI r13, 4
+  LDI r15, 244
+  LDI r4, STR_BUF
+  LDI r9, 0x888888
+  LDI r0, 0
+  DRAWTEXT r13, r15, r4, r9, r0
 
   ; -- Handle keyboard input --
-  IKEY r10
-  JZ r10, no_key
+  IKEY r13
+  JZ r13, no_key
 
   ; W = up (87)
-  LDI r4, 87
-  CMP r10, r4
-  JNZ r3, check_down
+  LDI r15, 87
+  CMP r13, r15
+  JNZ r11, check_down
   ; Move selection up
   LDI r20, SEL_INDEX
   LOAD r20, r20
@@ -247,9 +247,9 @@ grid_done:
 
 check_down:
   ; S = down (83)
-  LDI r4, 83
-  CMP r10, r4
-  JNZ r3, check_enter
+  LDI r15, 83
+  CMP r13, r15
+  JNZ r11, check_enter
   ; Move selection down
   LDI r20, SEL_INDEX
   LOAD r20, r20
@@ -257,47 +257,47 @@ check_down:
   LOAD r21, r21
   SUBI r21, 1              ; max index
   CMP r20, r21
-  BGE r3, no_key
+  BGE r11, no_key
   ADDI r20, 1
   STORE r20, r20
   JMP no_key
 
 check_enter:
   ; Enter (13)
-  LDI r4, 13
-  CMP r10, r4
-  JNZ r3, check_esc
+  LDI r15, 13
+  CMP r13, r15
+  JNZ r11, check_esc
   LDI r20, MODE
-  LDI r3, 1
-  STORE r20, r3
+  LDI r11, 1
+  STORE r20, r11
   JMP no_key
 
 check_esc:
   ; ESC (27)
-  LDI r4, 27
-  CMP r10, r4
-  JNZ r3, no_key
+  LDI r15, 27
+  CMP r13, r15
+  JNZ r11, no_key
   LDI r20, MODE
-  LDI r3, 0
-  STORE r20, r3
+  LDI r11, 0
+  STORE r20, r11
 
 no_key:
   ; -- Draw launching overlay --
   LDI r20, MODE
   LOAD r20, r20
-  LDI r11, 1
-  CMP r20, r11
-  JNZ r3, no_overlay
-  LDI r3, 0x00AA00
-  LDI r10, 80
-  LDI r4, 120
-  LDI r12, 96
-  LDI r6, 16
-  RECTF r10, r4, r12, r6, r3
+  LDI r8, 1
+  CMP r20, r8
+  JNZ r11, no_overlay
+  LDI r11, 0x00AA00
+  LDI r13, 80
+  LDI r15, 120
+  LDI r4, 96
+  LDI r9, 16
+  RECTF r13, r15, r4, r9, r11
   ; Reset mode
   LDI r20, MODE
-  LDI r3, 0
-  STORE r20, r3
+  LDI r11, 0
+  STORE r20, r11
 
 no_overlay:
   FRAME

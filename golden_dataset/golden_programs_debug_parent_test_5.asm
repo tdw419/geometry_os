@@ -1,44 +1,44 @@
-; DESCRIPTION: This GeOS assembly code tests a parent process that spawns a child process (`debug_monitor`) using SPAWNC and communicates with it via a mailbox at Page 3. The parent waits for the child to initialize, checks a magic value to confirm its presence, sends a PING command, waits for a PONG response, and then tests REGS communication, displaying results on the screen.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; debug_parent_test.asm -- Test parent that communicates with debug_monitor
 ;
 ; Loads debug_monitor as a child via SPAWNC, then pings it via Page 3 mailbox.
 ; Run this as the main program (with debug_monitor.asm assembled to /tmp/debug_monitor.bin).
 
-LDI r10, 1
+LDI r4, 1
 LDI r30, 0xFD00
 
 ; Clear screen
-LDI r8, 0x101820
-FILL r8
+LDI r10, 0x101820
+FILL r10
 
 ; Draw title
 LDI r20, 0x1000
 STRO r20, "Debug Parent Test"
-LDI r10, 10
-LDI r9, 10
-LDI r7, 0x1000
-LDI r6, 0x00FF00
-LDI r1, 0x101820
-DRAWTEXT r10, r9, r7, r6, r1
+LDI r4, 10
+LDI r14, 10
+LDI r6, 0x1000
+LDI r0, 0x00FF00
+LDI r13, 0x101820
+DRAWTEXT r4, r14, r6, r0, r13
 
 ; ── Wait for child to initialize ──
 LDI r20, 0x2000
 STRO r20, "Waiting for child..."
-LDI r10, 10
-LDI r9, 30
-LDI r7, 0x2000
-LDI r6, 0xFFFFFF
-LDI r1, 0x101820
-DRAWTEXT r10, r9, r7, r6, r1
+LDI r4, 10
+LDI r14, 30
+LDI r6, 0x2000
+LDI r0, 0xFFFFFF
+LDI r13, 0x101820
+DRAWTEXT r4, r14, r6, r0, r13
 
 ; Wait a bunch of frames for child to set up its debug stub
-LDI r15, 60
+LDI r2, 60
 wait_init:
     FRAME
-    SUBI r15, 1
-    CMPI r15, 0
-    JNZ r8, wait_init
+    SUBI r2, 1
+    CMPI r2, 0
+    JNZ r10, wait_init
 
 ; ── Check magic ──
 LDI r20, 0x0C00
@@ -48,56 +48,56 @@ CMP r22, r23
 
 ; Display magic check result
 LDI r20, 0x2100
-LDI r10, 10
-LDI r9, 50
-CMPI r8, 0
-JNZ r8, magic_fail
+LDI r4, 10
+LDI r14, 50
+CMPI r10, 0
+JNZ r10, magic_fail
 STRO r20, "Magic OK! Sending PING..."
 JMP magic_done
 magic_fail:
 STRO r20, "No magic found!"
 magic_done:
-LDI r7, 0x2100
-LDI r6, 0xFFFF00
-LDI r1, 0x101820
-DRAWTEXT r10, r9, r7, r6, r1
+LDI r6, 0x2100
+LDI r0, 0xFFFF00
+LDI r13, 0x101820
+DRAWTEXT r4, r14, r6, r0, r13
 
 ; ── Send PING command ──
-LDI r8, 3
+LDI r10, 3
 LDI r20, 0x0C03
-STORE r20, r8         ; COMMAND = 3 (ping)
-LDI r8, 1
+STORE r20, r10         ; COMMAND = 3 (ping)
+LDI r10, 1
 LDI r20, 0x0C04
-STORE r20, r8         ; STATUS = 1 (pending)
+STORE r20, r10         ; STATUS = 1 (pending)
 
 ; Wait for response
-LDI r0, 200
+LDI r3, 200
 ping_wait:
     FRAME
     LDI r20, 0x0C04
     LOAD r22, r20
     CMPI r22, 2
-    JZ r8, ping_got
-    SUBI r0, 1
-    CMPI r0, 0
-    JNZ r8, ping_wait
+    JZ r10, ping_got
+    SUBI r3, 1
+    CMPI r3, 0
+    JNZ r10, ping_wait
 
 ; Timeout
 LDI r20, 0x2200
 STRO r20, "PING TIMEOUT!"
-LDI r10, 10
-LDI r9, 70
-LDI r7, 0x2200
-LDI r6, 0xFF4444
-LDI r1, 0x101820
-DRAWTEXT r10, r9, r7, r6, r1
+LDI r4, 10
+LDI r14, 70
+LDI r6, 0x2200
+LDI r0, 0xFF4444
+LDI r13, 0x101820
+DRAWTEXT r4, r14, r6, r0, r13
 JMP done
 
 ping_got:
 ; Clear status
-LDI r8, 0
+LDI r10, 0
 LDI r20, 0x0C04
-STORE r20, r8
+STORE r20, r10
 
 ; Check response
 LDI r20, 0x0C05
@@ -106,57 +106,57 @@ LDI r23, 0x504E4720
 CMP r22, r23
 
 LDI r20, 0x2200
-LDI r10, 10
-LDI r9, 70
-CMPI r8, 0
-JNZ r8, pong_fail
+LDI r4, 10
+LDI r14, 70
+CMPI r10, 0
+JNZ r10, pong_fail
 STRO r20, "PONG received! Bridge works!"
 JMP pong_done
 pong_fail:
 STRO r20, "Bad response"
 pong_done:
-LDI r7, 0x2200
-LDI r6, 0x44FF44
-LDI r1, 0x101820
-DRAWTEXT r10, r9, r7, r6, r1
+LDI r6, 0x2200
+LDI r0, 0x44FF44
+LDI r13, 0x101820
+DRAWTEXT r4, r14, r6, r0, r13
 
 ; ── Now test REGS ──
-LDI r8, 1
+LDI r10, 1
 LDI r20, 0x0C03
-STORE r20, r8
-LDI r8, 1
+STORE r20, r10
+LDI r10, 1
 LDI r20, 0x0C04
-STORE r20, r8
+STORE r20, r10
 
-LDI r0, 200
+LDI r3, 200
 regs_wait:
     FRAME
     LDI r20, 0x0C04
     LOAD r22, r20
     CMPI r22, 2
-    JZ r8, regs_got
-    SUBI r0, 1
-    CMPI r0, 0
-    JNZ r8, regs_wait
+    JZ r10, regs_got
+    SUBI r3, 1
+    CMPI r3, 0
+    JNZ r10, regs_wait
 
 LDI r20, 0x2300
 STRO r20, "REGS TIMEOUT!"
 JMP show_regs
 regs_got:
-LDI r8, 0
+LDI r10, 0
 LDI r20, 0x0C04
-STORE r20, r8
+STORE r20, r10
 
 LDI r20, 0x2300
 STRO r20, "REGS OK!"
 
 show_regs:
-LDI r10, 10
-LDI r9, 90
-LDI r7, 0x2300
-LDI r6, 0x4488FF
-LDI r1, 0x101820
-DRAWTEXT r10, r9, r7, r6, r1
+LDI r4, 10
+LDI r14, 90
+LDI r6, 0x2300
+LDI r0, 0x4488FF
+LDI r13, 0x101820
+DRAWTEXT r4, r14, r6, r0, r13
 
 done:
 FRAME

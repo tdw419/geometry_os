@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a multi-effect screensaver with three visual modes: a starfield, a bouncing logo, and a plasma effect. The effects cycle every ~10 seconds, and the screensaver exits upon any key press.
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ; screensaver.asm -- Multi-effect screensaver for Geometry OS
 ; Phase 64 demo: uses MIN/MAX/CLAMP opcodes
@@ -10,150 +10,150 @@
 #define TICKS_ADDR       0xFFE
 #define STARS_BASE       0x1000
 
-    LDI r15, 0
+    LDI r0, 0
 
     ; Initialize stars: x,y pairs at STARS_BASE
-    LDI r2, NUM_STARS
-    LDI r5, STARS_BASE
+    LDI r4, NUM_STARS
+    LDI r1, STARS_BASE
 init_stars:
-    RAND r6
-    ANDI r6, 0xFF
-    STORE r5, r6
-    ADDI r5, 1
-    RAND r6
-    ANDI r6, 0xFF
-    STORE r5, r6
-    ADDI r5, 1
-    SUBI r2, 1
-    JNZ r2, init_stars
+    RAND r14
+    ANDI r14, 0xFF
+    STORE r1, r14
+    ADDI r1, 1
+    RAND r14
+    ANDI r14, 0xFF
+    STORE r1, r14
+    ADDI r1, 1
+    SUBI r4, 1
+    JNZ r4, init_stars
 
 main_loop:
-    IKEY r15
-    JNZ r15, exit_screensaver
+    IKEY r0
+    JNZ r0, exit_screensaver
 
     ; Current effect = (ticks / TICKS_PER_EFFECT) % NUM_EFFECTS
     LDI r25, TICKS_ADDR
     LOAD r21, r25
-    LDI r2, TICKS_PER_EFFECT
-    DIV r21, r2
-    LDI r2, NUM_EFFECTS
-    MOD r21, r2
+    LDI r4, TICKS_PER_EFFECT
+    DIV r21, r4
+    LDI r4, NUM_EFFECTS
+    MOD r21, r4
 
     ; Clear screen (black)
-    LDI r2, 0
-    FILL r2
+    LDI r4, 0
+    FILL r4
 
     ; Dispatch
     CMPI r21, 0
-    JZ r15, do_starfield
+    JZ r0, do_starfield
     CMPI r21, 1
-    JZ r15, do_bounce
+    JZ r0, do_bounce
     JMP do_plasma
 
 ; ── Starfield ─────────────────────────────────
 do_starfield:
-    LDI r2, NUM_STARS
-    LDI r5, STARS_BASE
+    LDI r4, NUM_STARS
+    LDI r1, STARS_BASE
 star_loop:
-    LOAD r6, r5        ; x
+    LOAD r14, r1        ; x
+    ADDI r1, 1
+    LOAD r5, r1        ; y
     ADDI r5, 1
-    LOAD r8, r5        ; y
-    ADDI r8, 1
-    ANDI r8, 0xFF       ; wrap
-    STORE r5, r8
-    SUBI r5, 1
+    ANDI r5, 0xFF       ; wrap
+    STORE r1, r5
+    SUBI r1, 1
 
     ; Brightness via MIN/MAX
-    LDI r0, 0x444444
-    MAX r8, r0
-    LDI r0, 0xCCCCCC
-    MIN r8, r0
+    LDI r9, 0x444444
+    MAX r5, r9
+    LDI r9, 0xCCCCCC
+    MIN r5, r9
 
-    PSET r6, r8, r8
-    ADDI r5, 2
-    SUBI r2, 1
-    JNZ r2, star_loop
+    PSET r14, r5, r5
+    ADDI r1, 2
+    SUBI r4, 1
+    JNZ r4, star_loop
     JMP frame_end
 
 ; ── Bouncing logo ─────────────────────────────
 do_bounce:
     LDI r25, TICKS_ADDR
-    LOAD r2, r25
-    ANDI r2, 0x7F
-    ADDI r2, 10
+    LOAD r4, r25
+    ANDI r4, 0x7F
+    ADDI r4, 10
 
     LDI r25, TICKS_ADDR
-    LOAD r5, r25
+    LOAD r1, r25
     ; Slow y: divide by 3 via LDI + DIV
     LDI r26, 3
-    DIV r5, r26
-    ANDI r5, 0x7F
-    ADDI r5, 10
+    DIV r1, r26
+    ANDI r1, 0x7F
+    ADDI r1, 10
 
     ; CLAMP to stay on screen
-    LDI r6, 10
-    LDI r8, 200
-    CLAMP r2, r6, r8
-    CLAMP r5, r6, r8
+    LDI r14, 10
+    LDI r5, 200
+    CLAMP r4, r14, r5
+    CLAMP r1, r14, r5
 
     ; Green logo
-    LDI r0, 0x00FF00
-    LDI r13, 15
+    LDI r9, 0x00FF00
+    LDI r7, 15
     LDI r16, 20
-    RECTF r2, r5, r13, r16, r0
+    RECTF r4, r1, r7, r16, r9
 
     ; Shadow
-    LDI r0, 0x005500
-    ADDI r2, 2
-    ADDI r5, 2
-    RECTF r2, r5, r13, r16, r0
+    LDI r9, 0x005500
+    ADDI r4, 2
+    ADDI r1, 2
+    RECTF r4, r1, r7, r16, r9
     JMP frame_end
 
 ; ── Plasma ────────────────────────────────────
 do_plasma:
     LDI r25, TICKS_ADDR
-    LOAD r2, r25        ; time
-    LDI r5, 0           ; y
+    LOAD r4, r25        ; time
+    LDI r1, 0           ; y
 plasma_y:
-    LDI r6, 0           ; x
+    LDI r14, 0           ; x
 plasma_x:
     ; Red channel
-    MOV r8, r6
-    ADD r8, r5
-    ADD r8, r2
-    ANDI r8, 0xFF
-    SHLI r8, 16
+    MOV r5, r14
+    ADD r5, r1
+    ADD r5, r4
+    ANDI r5, 0xFF
+    SHLI r5, 16
 
     ; Green channel
-    MOV r0, r6
-    ADD r0, r5
-    ADD r0, r2
-    ADDI r0, 85
-    ANDI r0, 0xFF
-    LDI r13, 200
-    MIN r0, r13
-    SHLI r0, 8
-    ADD r8, r0
+    MOV r9, r14
+    ADD r9, r1
+    ADD r9, r4
+    ADDI r9, 85
+    ANDI r9, 0xFF
+    LDI r7, 200
+    MIN r9, r7
+    SHLI r9, 8
+    ADD r5, r9
 
     ; Blue channel
-    MOV r0, r6
-    ADD r0, r5
-    ADD r0, r2
-    ADDI r0, 170
-    ANDI r0, 0xFF
-    LDI r13, 200
-    MIN r0, r13
-    ADD r8, r0
+    MOV r9, r14
+    ADD r9, r1
+    ADD r9, r4
+    ADDI r9, 170
+    ANDI r9, 0xFF
+    LDI r7, 200
+    MIN r9, r7
+    ADD r5, r9
 
-    PSET r6, r5, r8
+    PSET r14, r1, r5
 
-    ADDI r6, 4
-    CMPI r6, 256
-    JNZ r15, plasma_x
+    ADDI r14, 4
+    CMPI r14, 256
+    JNZ r0, plasma_x
 
-    ADDI r5, 4
-    CMPI r5, 256
-    JNZ r15, plasma_y
+    ADDI r1, 4
+    CMPI r1, 256
+    JNZ r0, plasma_y
     JMP frame_end
 
 frame_end:
@@ -161,7 +161,7 @@ frame_end:
     JMP main_loop
 
 exit_screensaver:
-    LDI r2, 0
-    FILL r2
+    LDI r4, 0
+    FILL r4
     FRAME
     HALT

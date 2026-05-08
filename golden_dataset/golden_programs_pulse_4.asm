@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a self-animating pulse bar that continuously grows and shrinks in width, cycling indefinitely without external input. The animation is driven by a frame-based timer, with the bar's width modulated using a triangle wave pattern. Additionally, the color of the bar shifts based on the current tick count to provide visual feedback. The code also displays the "PULSE" title text and the current frame count on the screen.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; pulse.asm -- Self-Animating Pulse Bar for Geometry OS
 ;
@@ -17,14 +17,14 @@
 ;   - Color shifts with tick for visual feedback
 ;
 ; Registers:
-;   r8  - constant 1
-;   r2  - scratch
+;   r9  - constant 1
+;   r6  - scratch
 ;   r7  - scratch (tick, temp)
-;   r11  - color
-;   r15  - bar width
-;   r5  - divisor/modulus (200, 100)
-;   r3  - phase (tick % 200)
-;   r14  - frame_count from RAM[0xFFE]
+;   r5  - color
+;   r13  - bar width
+;   r8  - divisor/modulus (200, 100)
+;   r15  - phase (tick % 200)
+;   r4  - frame_count from RAM[0xFFE]
 ;
 
 #define TICK      0x200
@@ -33,170 +33,170 @@
 #define FCOUNT    0xFFE
 
 ; ── INIT ──────────────────────────────────────
-LDI r8, 1
+LDI r9, 1
 
 ; tick = 0
-LDI r2, TICK
+LDI r6, TICK
 LDI r7, 0
-STORE r2, r7
+STORE r6, r7
 
 ; bar_width = 0
-LDI r2, BAR_W
+LDI r6, BAR_W
 LDI r7, 0
-STORE r2, r7
+STORE r6, r7
 
 ; ── MAIN LOOP ─────────────────────────────────
 main_loop:
-    LDI r8, 1
+    LDI r9, 1
 
     ; ── UPDATE STATE ──
 
     ; Increment tick
     LDI r20, TICK
     LOAD r7, r20           ; r7 = tick
-    ADD r7, r8             ; r7 = tick + 1
+    ADD r7, r9             ; r7 = tick + 1
     STORE r20, r7          ; tick++
 
     ; Compute phase = tick % 200
-    LDI r3, 0
-    ADD r3, r7             ; r3 = tick
-    LDI r5, 200
-    MOD r3, r5             ; r3 = tick % 200 (0..199)
+    LDI r15, 0
+    ADD r15, r7             ; r15 = tick
+    LDI r8, 200
+    MOD r15, r8             ; r15 = tick % 200 (0..199)
 
     ; Triangle wave from phase:
     ;   if phase < 100: bar_width = phase (ramp up)
     ;   if phase >= 100: bar_width = 200 - phase (ramp down)
-    ; CMPI sets r6: 0xFFFFFFFF if <, 0 if ==, 1 if >
-    ; BGE branches when r6 != 0xFFFFFFFF (i.e., >= )
-    CMPI r3, 100
-    BGE r6, ramp_down       ; if phase >= 100, go to ramp_down
+    ; CMPI sets r0: 0xFFFFFFFF if <, 0 if ==, 1 if >
+    ; BGE branches when r0 != 0xFFFFFFFF (i.e., >= )
+    CMPI r15, 100
+    BGE r0, ramp_down       ; if phase >= 100, go to ramp_down
 
     ; ramp up: bar_width = phase
-    LDI r15, 0
-    ADD r15, r3             ; r15 = phase (0..99)
+    LDI r13, 0
+    ADD r13, r15             ; r13 = phase (0..99)
     JMP store_width
 
 ramp_down:
     ; ramp down: bar_width = 200 - phase
-    LDI r2, 200
-    LDI r15, 0
-    ADD r15, r3             ; r15 = phase
-    SUB r2, r15             ; r2 = 200 - phase
-    LDI r15, 0
-    ADD r15, r2             ; r15 = bar_width
+    LDI r6, 200
+    LDI r13, 0
+    ADD r13, r15             ; r13 = phase
+    SUB r6, r13             ; r6 = 200 - phase
+    LDI r13, 0
+    ADD r13, r6             ; r13 = bar_width
 
 store_width:
     LDI r20, BAR_W
-    STORE r20, r15          ; save bar_width to RAM
+    STORE r20, r13          ; save bar_width to RAM
 
     ; ── DRAW ──
 
     ; Clear screen to dark blue-black
-    LDI r2, 0x0D0D1A
-    FILL r2
+    LDI r6, 0x0D0D1A
+    FILL r6
 
     ; Draw bar: filled rectangle at (78, 100) with width=bar_width, height=30
     ; Color cycles: use tick to shift hue
     ; Simple: alternate between two colors based on tick/50
     LDI r20, TICK
     LOAD r7, r20           ; r7 = tick
-    LDI r5, 50
-    LDI r2, 0
-    ADD r2, r7
-    MOD r2, r5             ; r2 = tick % 50
+    LDI r8, 50
+    LDI r6, 0
+    ADD r6, r7
+    MOD r6, r8             ; r6 = tick % 50
 
     ; Color: 0x2ECC71 (green) base, shift with tick
-    ; r11 = 0x2ECC71 + (tick % 50) * small_offset
+    ; r5 = 0x2ECC71 + (tick % 50) * small_offset
     ; Simpler: just use tick low bits to cycle RGB
-    LDI r11, 0x2ECC71       ; base green
-    ADD r11, r7             ; shift color with tick (wraps around nicely)
+    LDI r5, 0x2ECC71       ; base green
+    ADD r5, r7             ; shift color with tick (wraps around nicely)
 
     ; Bar position: x=78, y=100, w=bar_width, h=30
-    LDI r8, 78             ; x
-    LDI r2, 100            ; y
+    LDI r9, 78             ; x
+    LDI r6, 100            ; y
     LDI r7, 0
-    ADD r7, r15             ; w = bar_width (from above)
-    LDI r0, 30             ; h
-    RECTF r8, r2, r7, r0, r11
+    ADD r7, r13             ; w = bar_width (from above)
+    LDI r1, 30             ; h
+    RECTF r9, r6, r7, r1, r5
 
     ; Draw "PULSE" title text
     LDI r20, SCRATCH       ; scratch buffer
-    LDI r2, 80             ; 'P'
-    STORE r20, r2
-    LDI r8, 1
-    ADD r20, r8
-    LDI r2, 85             ; 'U'
-    STORE r20, r2
-    ADD r20, r8
-    LDI r2, 76             ; 'L'
-    STORE r20, r2
-    ADD r20, r8
-    LDI r2, 83             ; 'S'
-    STORE r20, r2
-    ADD r20, r8
-    LDI r2, 69             ; 'E'
-    STORE r20, r2
-    ADD r20, r8
-    LDI r2, 0              ; null terminator
-    STORE r20, r2
+    LDI r6, 80             ; 'P'
+    STORE r20, r6
+    LDI r9, 1
+    ADD r20, r9
+    LDI r6, 85             ; 'U'
+    STORE r20, r6
+    ADD r20, r9
+    LDI r6, 76             ; 'L'
+    STORE r20, r6
+    ADD r20, r9
+    LDI r6, 83             ; 'S'
+    STORE r20, r6
+    ADD r20, r9
+    LDI r6, 69             ; 'E'
+    STORE r20, r6
+    ADD r20, r9
+    LDI r6, 0              ; null terminator
+    STORE r20, r6
 
-    LDI r8, 5
-    LDI r2, 5
+    LDI r9, 5
+    LDI r6, 5
     LDI r7, SCRATCH
-    TEXT r8, r2, r7
+    TEXT r9, r6, r7
 
     ; Draw frame counter as 3-digit number at (5, 20)
     LDI r20, SCRATCH
     LDI r20, TICK
-    LOAD r10, r20          ; r10 = tick value
+    LOAD r3, r20          ; r3 = tick value
 
     ; Convert tick to 3 ASCII digits at 0x200
-    LDI r8, 1
+    LDI r9, 1
     LDI r20, SCRATCH
 
     ; Hundreds
-    LDI r15, 100
-    LDI r13, 0
-    ADD r13, r10
-    DIV r13, r15            ; r13 = hundreds
-    LDI r2, 48
-    ADD r2, r13
-    STORE r20, r2
-    ADD r20, r8
+    LDI r13, 100
+    LDI r12, 0
+    ADD r12, r3
+    DIV r12, r13            ; r12 = hundreds
+    LDI r6, 48
+    ADD r6, r12
+    STORE r20, r6
+    ADD r20, r9
 
     ; Tens
-    LDI r1, 0
-    ADD r1, r13
-    LDI r2, 100
-    MUL r1, r2            ; r1 = hundreds * 100
-    LDI r4, 0
-    ADD r4, r10
-    SUB r4, r1           ; r4 = remainder
-    LDI r15, 10
-    LDI r12, 0
-    ADD r12, r4
-    DIV r12, r15            ; r12 = tens
-    LDI r2, 48
-    ADD r2, r12
-    STORE r20, r2
-    ADD r20, r8
+    LDI r11, 0
+    ADD r11, r12
+    LDI r6, 100
+    MUL r11, r6            ; r11 = hundreds * 100
+    LDI r14, 0
+    ADD r14, r3
+    SUB r14, r11           ; r14 = remainder
+    LDI r13, 10
+    LDI r10, 0
+    ADD r10, r14
+    DIV r10, r13            ; r10 = tens
+    LDI r6, 48
+    ADD r6, r10
+    STORE r20, r6
+    ADD r20, r9
 
     ; Ones
-    LDI r9, 0
-    ADD r9, r4
-    LDI r15, 10
-    MOD r9, r15            ; r9 = ones
-    LDI r2, 48
-    ADD r2, r9
-    STORE r20, r2
-    ADD r20, r8
     LDI r2, 0
-    STORE r20, r2          ; null terminate
+    ADD r2, r14
+    LDI r13, 10
+    MOD r2, r13            ; r2 = ones
+    LDI r6, 48
+    ADD r6, r2
+    STORE r20, r6
+    ADD r20, r9
+    LDI r6, 0
+    STORE r20, r6          ; null terminate
 
-    LDI r8, 5
-    LDI r2, 20
+    LDI r9, 5
+    LDI r6, 20
     LDI r7, SCRATCH
-    TEXT r8, r2, r7
+    TEXT r9, r6, r7
 
     ; ── FRAME ──
     FRAME

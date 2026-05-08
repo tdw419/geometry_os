@@ -34511,3 +34511,271 @@ fn test_p278_scheduler_setpriority_changes_allocation() {
         "should get priority-3 slice (800-1)"
     );
 }
+
+// ── Phase 279: Platformer Game ────────────────────────────────────
+
+#[test]
+fn test_p279_platformer_assembles() {
+    use crate::assembler::assemble;
+    let src = std::fs::read_to_string("programs/platformer.asm")
+        .expect("platformer.asm should exist");
+    let result = assemble(&src, 0);
+    assert!(result.is_ok(), "assembly failed: {:?}", result.err());
+    let asm = result.unwrap();
+    assert!(asm.pixels.len() > 100, "should produce substantial bytecode");
+    eprintln!("Platformer assembled: {} words", asm.pixels.len());
+}
+
+#[test]
+fn test_p279_platformer_boots_and_renders_title() {
+    use crate::assembler::assemble;
+    let src = std::fs::read_to_string("programs/platformer.asm")
+        .expect("platformer.asm should exist");
+    let asm = assemble(&src, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
+    }
+    vm.pc = 0;
+
+    // Run until first FRAME (title screen)
+    vm.frame_ready = false;
+    let mut steps = 0u32;
+    for _ in 0..2_000_000 {
+        if vm.frame_ready {
+            break;
+        }
+        let keep_going = vm.step();
+        steps += 1;
+        if !keep_going {
+            break;
+        }
+    }
+
+    assert!(
+        vm.frame_ready,
+        "should reach FRAME within 2M steps (took {})", steps
+    );
+    eprintln!("Title frame rendered in {} steps", steps);
+
+    // Title screen should show dark background (0x101030)
+    let title_color = 0x101030u32;
+    let title_pixels = vm.screen.iter().filter(|&&p| p == title_color).count();
+    assert!(
+        title_pixels > 1000,
+        "title screen should fill with background color (got {} pixels)", title_pixels
+    );
+
+    // Player state should be initialized (score=0, state=0=title)
+    assert_eq!(vm.ram[0x3005], 0, "score should start at 0");
+    assert_eq!(vm.ram[0x3006], 0, "game state should start at 0 (title)");
+}
+
+#[test]
+fn test_p279_platformer_transitions_to_play_on_key() {
+    use crate::assembler::assemble;
+    let src = std::fs::read_to_string("programs/platformer.asm")
+        .expect("platformer.asm should exist");
+    let asm = assemble(&src, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
+    }
+    vm.pc = 0;
+
+    // Run title screen for one frame, then inject a key to start playing
+    vm.frame_ready = false;
+    for _ in 0..2_000_000 {
+        if vm.frame_ready {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.frame_ready, "should render title frame");
+
+    // Inject 'W' key (87) to start playing
+    vm.push_key(87);
+
+    // Run until another FRAME
+    vm.frame_ready = false;
+    for _ in 0..5_000_000 {
+        if vm.frame_ready {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Game state should now be 1 (playing)
+    assert_eq!(
+        vm.ram[0x3006], 1,
+        "game state should transition to 1 (playing) after key press"
+    );
+
+    // Player position should be initialized
+    assert!(
+        vm.ram[0x3000] > 0,
+        "player x should be positive"
+    );
+    assert!(
+        vm.ram[0x3001] > 0,
+        "player y should be positive"
+    );
+
+    // Screen should show game world (not just title color)
+    let game_pixels: std::collections::HashSet<u32> =
+        vm.screen.iter().cloned().collect();
+    assert!(
+        game_pixels.len() > 3,
+        "game world should have multiple colors (got {} unique)", game_pixels.len()
+    );
+}
+
+#[test]
+fn test_p279_platformer_level_has_ground_tiles() {
+    use crate::assembler::assemble;
+    let src = std::fs::read_to_string("programs/platformer.asm")
+        .expect("platformer.asm should exist");
+    let asm = assemble(&src, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
+    }
+    vm.pc = 0;
+
+    // Run init (title -> press key -> play -> one frame)
+    vm.frame_ready = false;
+    for _ in 0..2_000_000 {
+        if vm.frame_ready { break; }
+        if !vm.step() { break; }
+    }
+    vm.push_key(87); // W to start
+    vm.frame_ready = false;
+    for _ in 0..5_000_000 {
+        if vm.frame_ready { break; }
+        if !vm.step() { break; }
+    }
+
+    // Verify ground tiles exist in the level data (tile type 1)
+    let ground_count = (0..512)
+        .filter(|&i| vm.ram[0x2000 + i] == 1)
+        .count();
+    assert!(
+        ground_count > 50,
+        "level should have ground tiles (got {})", ground_count
+    );
+
+    // Verify platforms exist (tile type 2)
+    let plat_count = (0..512)
+        .filter(|&i| vm.ram[0x2000 + i] == 2)
+        .count();
+    assert!(
+        plat_count > 5,
+        "level should have platform tiles (got {})", plat_count
+    );
+
+    // Verify coins exist (tile type 3)
+    let coin_count = (0..512)
+        .filter(|&i| vm.ram[0x2000 + i] == 3)
+        .count();
+    assert!(
+        coin_count > 3,
+        "level should have coin tiles (got {})", coin_count
+    );
+}
+
+#[test]
+fn test_p279_platformer_player_falls_with_gravity() {
+    use crate::assembler::assemble;
+    let src = std::fs::read_to_string("programs/platformer.asm")
+        .expect("platformer.asm should exist");
+    let asm = assemble(&src, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
+    }
+    vm.pc = 0;
+
+    // Get to playing state
+    vm.frame_ready = false;
+    for _ in 0..2_000_000 {
+        if vm.frame_ready { break; }
+        if !vm.step() { break; }
+    }
+    vm.push_key(87);
+    vm.frame_ready = false;
+    for _ in 0..5_000_000 {
+        if vm.frame_ready { break; }
+        if !vm.step() { break; }
+    }
+
+    let initial_y = vm.ram[0x3001];
+    eprintln!("Initial player Y: {}", initial_y);
+
+    // Run many more frames to let physics settle
+    for _ in 0..20 {
+        vm.frame_ready = false;
+        for _ in 0..5_000_000 {
+            if vm.frame_ready { break; }
+            if !vm.step() { break; }
+        }
+    }
+
+    let final_y = vm.ram[0x3001];
+    eprintln!("Final player Y after 20 frames: {}", final_y);
+
+    // Player should still be on screen (not fallen through or flown off)
+    assert!(
+        final_y < 250,
+        "player should not fall below screen (y={})", final_y
+    );
+}
+
+#[test]
+fn test_p279_platformer_enemies_initialized() {
+    use crate::assembler::assemble;
+    let src = std::fs::read_to_string("programs/platformer.asm")
+        .expect("platformer.asm should exist");
+    let asm = assemble(&src, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = w;
+        }
+    }
+    vm.pc = 0;
+
+    // Run init code
+    vm.frame_ready = false;
+    for _ in 0..2_000_000 {
+        if vm.frame_ready { break; }
+        if !vm.step() { break; }
+    }
+
+    // Enemy 0 at 0x3200: x, y, vx, type, alive, speed, len, start
+    assert!(vm.ram[0x3200] > 0, "enemy 0 x should be positive");
+    assert!(vm.ram[0x3201] > 0, "enemy 0 y should be positive");
+    assert_eq!(vm.ram[0x3204], 1, "enemy 0 should be alive");
+
+    // Enemy 1 at 0x3220
+    assert!(vm.ram[0x3220] > 0, "enemy 1 x should be positive");
+    assert!(vm.ram[0x3221] > 0, "enemy 1 y should be positive");
+    assert_eq!(vm.ram[0x3224], 1, "enemy 1 should be alive");
+
+    // Enemies should be at different positions
+    assert_ne!(
+        vm.ram[0x3200], vm.ram[0x3220],
+        "enemies should be at different x positions"
+    );
+}

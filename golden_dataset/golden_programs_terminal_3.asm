@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements an interactive terminal for Geometry OS (v7 with self-hosting), providing a GUI-based interface with a text buffer and command-line functionality. It supports commands such as `clear`, `cls`, `help`, `ver`, `hi`, `echo`, `ls`, `date`, `cat`, `sys`, `colors`, `whoami`, `uname`, `uptime`, `run`, `quit`, `edit <file>`, `build <file>`, and `reload`. The terminal handles user input, command execution, rendering of text and graphics on a 42x30 character display, and includes features like auto-scrolling when the content exceeds 30 rows.
+; DESCRIPTION: Render a colored line at the screen.
 
 ; terminal.asm -- Interactive Terminal for Geometry OS (v7 with self-hosting)
 ;
@@ -31,83 +31,83 @@
 ; =========================================
 ; INIT
 ; =========================================
-LDI r11, 1
+LDI r6, 1
 LDI r30, 0xFD00   ; Initialize stack pointer (r30=SP) to high RAM
 
 ; Clear screen
-LDI r6, 0x0C0C0C
-FILL r6
+LDI r2, 0x0C0C0C
+FILL r2
 
 ; Clear text buffer to spaces
 LDI r20, BUF
-LDI r1, 32
+LDI r15, 32
 clear_buf:
-    STORE r20, r1
-    ADD r20, r11
+    STORE r20, r15
+    ADD r20, r6
     CMPI r20, BUF_END
-    BLT r6, clear_buf
+    BLT r2, clear_buf
 
 ; Init cursor and blink to 0
 LDI r20, CUR_COL
-LDI r6, 0
-STORE r20, r6
+LDI r2, 0
+STORE r20, r2
 LDI r20, CUR_ROW
-STORE r20, r6
+STORE r20, r2
 LDI r20, BLINK
-STORE r20, r6
+STORE r20, r2
 
 ; Title bar
-LDI r11, 0
-LDI r12, 0
-LDI r13, 256
-LDI r3, 16
-LDI r2, 0x333355
-RECTF r11, r12, r13, r3, r2
+LDI r6, 0
+LDI r9, 0
+LDI r10, 256
+LDI r7, 16
+LDI r5, 0x333355
+RECTF r6, r9, r10, r7, r5
 
 ; Title text "GeoTerm" -- use STRO + DRAWTEXT (green on dark title bar)
 LDI r20, SCRATCH
 STRO r20, "GeoTerm"
-LDI r11, 4
-LDI r12, 4
-LDI r13, SCRATCH
-LDI r3, 0x00FF00  ; fg = green
-LDI r2, 0x333355  ; bg = match title bar
-DRAWTEXT r11, r12, r13, r3, r2
+LDI r6, 4
+LDI r9, 4
+LDI r10, SCRATCH
+LDI r7, 0x00FF00  ; fg = green
+LDI r5, 0x333355  ; bg = match title bar
+DRAWTEXT r6, r9, r10, r7, r5
 
 ; Close button hit region
-LDI r11, 220
-LDI r12, 0
-LDI r13, 36
-LDI r3, 16
-HITSET r11, r12, r13, r3, 99
+LDI r6, 220
+LDI r9, 0
+LDI r10, 36
+LDI r7, 16
+HITSET r6, r9, r10, r7, 99
 
-; Restore r11 = 1 before writing prompt!
-LDI r11, 1
+; Restore r6 = 1 before writing prompt!
+LDI r6, 1
 
 ; Write prompt "$ " at buffer row 0
 LDI r20, BUF
-LDI r6, 36           ; '$'
-STORE r20, r6
-ADD r20, r11
-LDI r6, 32           ; ' '
-STORE r20, r6
+LDI r2, 36           ; '$'
+STORE r20, r2
+ADD r20, r6
+LDI r2, 32           ; ' '
+STORE r20, r2
 
 ; Set cursor to col 2
 LDI r20, CUR_COL
-LDI r6, 2
-STORE r20, r6
+LDI r2, 2
+STORE r20, r2
 
 ; =========================================
 ; MAIN LOOP
 ; =========================================
 main_loop:
-    LDI r11, 1
+    LDI r6, 1
 
     ; Blink counter
     LDI r20, BLINK
-    LOAD r6, r20
-    ADD r6, r11
-    STORE r20, r6
+    LOAD r2, r20
+    ADD r2, r6
+    STORE r20, r2
 
     ; Render
     CALL render
@@ -115,8 +115,8 @@ main_loop:
     FRAME
 
     ; Read key
-    IKEY r2
-    JZ r2, main_loop
+    IKEY r5
+    JZ r5, main_loop
 
     ; Handle key
     CALL handle_key
@@ -127,77 +127,77 @@ main_loop:
 ; =========================================
 render:
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
 
     ; Clear content area
-    LDI r11, 0
-    LDI r12, 16
-    LDI r13, 256
-    LDI r3, 240
-    LDI r2, 0x0C0C0C
-    RECTF r11, r12, r13, r3, r2
+    LDI r6, 0
+    LDI r9, 16
+    LDI r10, 256
+    LDI r7, 240
+    LDI r5, 0x0C0C0C
+    RECTF r6, r9, r10, r7, r5
 
     ; Row loop
-    LDI r11, 1
-    LDI r8, 8            ; CHAR_H
-    LDI r9, 6            ; CHAR_W
-    LDI r0, 0           ; row counter
-    LDI r15, BUF         ; buffer pointer
-    LDI r10, 16          ; y = TITLE_H
+    LDI r6, 1
+    LDI r1, 8            ; CHAR_H
+    LDI r8, 6            ; CHAR_W
+    LDI r11, 0           ; row counter
+    LDI r3, BUF         ; buffer pointer
+    LDI r4, 16          ; y = TITLE_H
 
 render_row:
     ; Copy COLS chars from buffer to scratch
     LDI r16, SCRATCH
     LDI r17, 0
 copy_col:
-    LOAD r1, r15
-    STORE r16, r1
-    ADD r15, r11
-    ADD r16, r11
-    ADD r17, r11
+    LOAD r15, r3
+    STORE r16, r15
+    ADD r3, r6
+    ADD r16, r6
+    ADD r17, r6
     CMPI r17, COLS
     BLT r17, copy_col
 
     ; Null terminate
+    LDI r2, 0
+    STORE r16, r2
+
+    ; DRAWTEXT x=0, y=r4, addr=SCRATCH, fg=white, bg=0 (transparent)
     LDI r6, 0
-    STORE r16, r6
+    LDI r12, SCRATCH
+    LDI r14, 0xCCCCCC  ; fg = light gray
+    LDI r13, 0         ; bg = transparent
+    DRAWTEXT r6, r4, r12, r14, r13
 
-    ; DRAWTEXT x=0, y=r10, addr=SCRATCH, fg=white, bg=0 (transparent)
-    LDI r11, 0
-    LDI r7, SCRATCH
-    LDI r4, 0xCCCCCC  ; fg = light gray
-    LDI r14, 0         ; bg = transparent
-    DRAWTEXT r11, r10, r7, r4, r14
+    LDI r6, 1
 
-    LDI r11, 1
-
-    ADD r10, r8          ; y += 8
-    ADD r0, r11          ; row++
-    CMPI r0, ROWS
-    BLT r0, render_row
+    ADD r4, r1          ; y += 8
+    ADD r11, r6          ; row++
+    CMPI r11, ROWS
+    BLT r11, render_row
 
     ; Cursor (blink)
     LDI r20, BLINK
-    LOAD r6, r20
-    LDI r5, 8
-    AND r6, r5
-    CMPI r6, 4
-    BLT r6, draw_cursor
+    LOAD r2, r20
+    LDI r0, 8
+    AND r2, r0
+    CMPI r2, 4
+    BLT r2, draw_cursor
     JMP cursor_done
 
 draw_cursor:
     LDI r20, CUR_COL
-    LOAD r6, r20
-    MUL r6, r9           ; x = col * 6
+    LOAD r2, r20
+    MUL r2, r8           ; x = col * 6
     LDI r20, CUR_ROW
-    LOAD r12, r20
-    MUL r12, r8           ; row * 8
-    LDI r13, 16
-    ADD r12, r13           ; y = 16 + row*8
-    LDI r13, 6
-    LDI r3, 8
-    LDI r2, 0x44FF44
-    RECTF r6, r12, r13, r3, r2
+    LOAD r9, r20
+    MUL r9, r1           ; row * 8
+    LDI r10, 16
+    ADD r9, r10           ; y = 16 + row*8
+    LDI r10, 6
+    LDI r7, 8
+    LDI r5, 0x44FF44
+    RECTF r2, r9, r10, r7, r5
 
 cursor_done:
     POP r31
@@ -205,48 +205,48 @@ cursor_done:
 
 ; =========================================
 ; HANDLE_KEY
-; r2 = key
+; r5 = key
 ; =========================================
 handle_key:
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
 
-    CMPI r2, 13
-    JNZ r6, check_bs
+    CMPI r5, 13
+    JNZ r2, check_bs
     JMP do_enter
 
 check_bs:
-    CMPI r2, 8
-    JNZ r6, check_del
+    CMPI r5, 8
+    JNZ r2, check_del
     JMP do_backspace
 
 check_del:
-    CMPI r2, 127
-    JNZ r6, do_char
+    CMPI r5, 127
+    JNZ r2, do_char
     JMP do_backspace
 
 do_char:
     ; buf[row*COLS + col] = key
     LDI r20, CUR_ROW
-    LOAD r12, r20
-    LDI r13, COLS
-    MUL r12, r13           ; r12 = row * COLS
+    LOAD r9, r20
+    LDI r10, COLS
+    MUL r9, r10           ; r9 = row * COLS
     LDI r20, CUR_COL
-    LOAD r6, r20
-    ADD r12, r6           ; r12 = row*COLS + col
+    LOAD r2, r20
+    ADD r9, r2           ; r9 = row*COLS + col
     LDI r20, BUF
-    ADD r20, r12          ; r20 = BUF + offset
-    STORE r20, r2        ; write char
+    ADD r20, r9          ; r20 = BUF + offset
+    STORE r20, r5        ; write char
 
     ; col++
     LDI r20, CUR_COL
-    LOAD r6, r20
-    ADD r6, r11
-    STORE r20, r6
+    LOAD r2, r20
+    ADD r2, r6
+    STORE r20, r2
 
     ; If col >= COLS, wrap
-    CMPI r6, COLS
-    JNZ r6, hk_ret
+    CMPI r2, COLS
+    JNZ r2, hk_ret
     CALL do_newline
     JMP hk_ret
 
@@ -264,21 +264,21 @@ do_enter:
     CALL dispatch_cmd
 
     ; 4. Write prompt "$ " on the row after any output
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r12, r20
-    LDI r13, COLS
-    MUL r12, r13
+    LOAD r9, r20
+    LDI r10, COLS
+    MUL r9, r10
     LDI r20, BUF
-    ADD r20, r12
-    LDI r6, 36           ; '$'
-    STORE r20, r6
-    ADD r20, r11
-    LDI r6, 32           ; ' '
-    STORE r20, r6
+    ADD r20, r9
+    LDI r2, 36           ; '$'
+    STORE r20, r2
+    ADD r20, r6
+    LDI r2, 32           ; ' '
+    STORE r20, r2
     LDI r20, CUR_COL
-    LDI r6, 2
-    STORE r20, r6
+    LDI r2, 2
+    STORE r20, r2
     JMP hk_ret
 
 ; =========================================
@@ -288,54 +288,54 @@ do_enter:
 ; =========================================
 extract_cmd:
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
 
     ; Compute base = row * COLS
     LDI r20, CUR_ROW
-    LOAD r1, r20          ; r1 = row
-    LDI r5, COLS
-    MUL r1, r5            ; r1 = row * COLS
+    LOAD r15, r20          ; r15 = row
+    LDI r0, COLS
+    MUL r15, r0            ; r15 = row * COLS
 
     ; Source starts at col 2 (skip "$ ")
     LDI r20, BUF
-    ADD r20, r1           ; r20 = BUF + row*COLS
-    ADD r20, r11
-    ADD r20, r11           ; r20 = BUF + row*COLS + 2
+    ADD r20, r15           ; r20 = BUF + row*COLS
+    ADD r20, r6
+    ADD r20, r6           ; r20 = BUF + row*COLS + 2
 
     ; Destination
     LDI r21, SCRATCH
 
     ; Get end position (cursor col)
     LDI r20, CUR_COL
-    LOAD r5, r20          ; r5 = cursor col
+    LOAD r0, r20          ; r0 = cursor col
 
     ; Recompute source pointer
     LDI r20, BUF
-    ADD r20, r1           ; r20 = BUF + row*COLS
-    ADD r20, r11
-    ADD r20, r11           ; r20 = BUF + row*COLS + 2
+    ADD r20, r15           ; r20 = BUF + row*COLS
+    ADD r20, r6
+    ADD r20, r6           ; r20 = BUF + row*COLS + 2
 
     ; Copy loop: copy chars from col 2 to cursor col
     LDI r22, 2            ; current column index
 ec_loop:
     ; If col_index >= cursor_col, done
-    CMP r22, r5
-    BGE r6, ec_done
+    CMP r22, r0
+    BGE r2, ec_done
 
     ; Load char from source
-    LOAD r6, r20
+    LOAD r2, r20
     ; Store to scratch
-    STORE r21, r6
+    STORE r21, r2
 
-    ADD r20, r11           ; advance source
-    ADD r21, r11           ; advance dest
-    ADD r22, r11           ; col++
+    ADD r20, r6           ; advance source
+    ADD r21, r6           ; advance dest
+    ADD r22, r6           ; col++
     JMP ec_loop
 
 ec_done:
     ; Null terminate
-    LDI r6, 0
-    STORE r21, r6
+    LDI r2, 0
+    STORE r21, r2
 
     POP r31
     RET
@@ -348,33 +348,33 @@ ec_done:
 ; =========================================
 dispatch_cmd:
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
 
     ; --- Try "clear" ---
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 99         ; 'c'
-    JNZ r6, try_help
-    ADD r20, r11
+    JNZ r2, try_help
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r6, try_help
-    ADD r20, r11
+    JNZ r2, try_help
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_help
-    ADD r20, r11
+    JNZ r2, try_help
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r6, try_help
-    ADD r20, r11
+    JNZ r2, try_help
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 114        ; 'r'
-    JNZ r6, try_help
-    ADD r20, r11
+    JNZ r2, try_help
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null terminator
-    JNZ r6, try_help
+    JNZ r2, try_help
     ; MATCH: clear
     JMP cmd_clear
 
@@ -383,23 +383,23 @@ try_help:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 104        ; 'h'
-    JNZ r6, try_ver
-    ADD r20, r11
+    JNZ r2, try_ver
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_ver
-    ADD r20, r11
+    JNZ r2, try_ver
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r6, try_ver
-    ADD r20, r11
+    JNZ r2, try_ver
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 112        ; 'p'
-    JNZ r6, try_ver
-    ADD r20, r11
+    JNZ r2, try_ver
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_ver
+    JNZ r2, try_ver
     ; MATCH: help
     JMP cmd_help
 
@@ -408,19 +408,19 @@ try_ver:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 118        ; 'v'
-    JNZ r6, try_hi
-    ADD r20, r11
+    JNZ r2, try_hi
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_hi
-    ADD r20, r11
+    JNZ r2, try_hi
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 114        ; 'r'
-    JNZ r6, try_hi
-    ADD r20, r11
+    JNZ r2, try_hi
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_hi
+    JNZ r2, try_hi
     ; MATCH: ver
     JMP cmd_ver
 
@@ -429,15 +429,15 @@ try_hi:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 104        ; 'h'
-    JNZ r6, try_echo
-    ADD r20, r11
+    JNZ r2, try_echo
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 105        ; 'i'
-    JNZ r6, try_echo
-    ADD r20, r11
+    JNZ r2, try_echo
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_echo
+    JNZ r2, try_echo
     ; MATCH: hi
     JMP cmd_hi
 
@@ -446,23 +446,23 @@ try_echo:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_ls
-    ADD r20, r11
+    JNZ r2, try_ls
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 99         ; 'c'
-    JNZ r6, try_ls
-    ADD r20, r11
+    JNZ r2, try_ls
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 104        ; 'h'
-    JNZ r6, try_ls
-    ADD r20, r11
+    JNZ r2, try_ls
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 111        ; 'o'
-    JNZ r6, try_ls
-    ADD r20, r11
+    JNZ r2, try_ls
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 32         ; ' ' (space after echo)
-    JNZ r6, try_ls
+    JNZ r2, try_ls
     JMP cmd_echo
 
 try_ls:
@@ -470,15 +470,15 @@ try_ls:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r6, try_date
-    ADD r20, r11
+    JNZ r2, try_date
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r6, try_date
-    ADD r20, r11
+    JNZ r2, try_date
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_date
+    JNZ r2, try_date
     JMP cmd_ls
 
 try_date:
@@ -486,23 +486,23 @@ try_date:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 100        ; 'd'
-    JNZ r6, try_cls
-    ADD r20, r11
+    JNZ r2, try_cls
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r6, try_cls
-    ADD r20, r11
+    JNZ r2, try_cls
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 116        ; 't'
-    JNZ r6, try_cls
-    ADD r20, r11
+    JNZ r2, try_cls
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_cls
-    ADD r20, r11
+    JNZ r2, try_cls
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_cls
+    JNZ r2, try_cls
     JMP cmd_date
 
 try_cls:
@@ -510,19 +510,19 @@ try_cls:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 99         ; 'c'
-    JNZ r6, try_cat
-    ADD r20, r11
+    JNZ r2, try_cat
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r6, try_cat
-    ADD r20, r11
+    JNZ r2, try_cat
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r6, try_cat
-    ADD r20, r11
+    JNZ r2, try_cat
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_cat
+    JNZ r2, try_cat
     JMP cmd_clear
 
 try_cat:
@@ -530,19 +530,19 @@ try_cat:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 99         ; 'c'
-    JNZ r6, try_sys
-    ADD r20, r11
+    JNZ r2, try_sys
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r6, try_sys
-    ADD r20, r11
+    JNZ r2, try_sys
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 116        ; 't'
-    JNZ r6, try_sys
-    ADD r20, r11
+    JNZ r2, try_sys
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 32         ; ' ' (space after cat)
-    JNZ r6, try_sys
+    JNZ r2, try_sys
     JMP cmd_cat
 
 try_sys:
@@ -550,19 +550,19 @@ try_sys:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r6, try_colors
-    ADD r20, r11
+    JNZ r2, try_colors
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 121        ; 'y'
-    JNZ r6, try_colors
-    ADD r20, r11
+    JNZ r2, try_colors
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r6, try_colors
-    ADD r20, r11
+    JNZ r2, try_colors
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_colors
+    JNZ r2, try_colors
     JMP cmd_sys
 
 try_colors:
@@ -570,31 +570,31 @@ try_colors:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 99         ; 'c'
-    JNZ r6, try_whoami
-    ADD r20, r11
+    JNZ r2, try_whoami
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 111        ; 'o'
-    JNZ r6, try_whoami
-    ADD r20, r11
+    JNZ r2, try_whoami
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r6, try_whoami
-    ADD r20, r11
+    JNZ r2, try_whoami
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 111        ; 'o'
-    JNZ r6, try_whoami
-    ADD r20, r11
+    JNZ r2, try_whoami
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 114        ; 'r'
-    JNZ r6, try_whoami
-    ADD r20, r11
+    JNZ r2, try_whoami
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 115        ; 's'
-    JNZ r6, try_whoami
-    ADD r20, r11
+    JNZ r2, try_whoami
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_whoami
+    JNZ r2, try_whoami
     JMP cmd_colors
 
 try_whoami:
@@ -602,31 +602,31 @@ try_whoami:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 119        ; 'w'
-    JNZ r6, try_uname
-    ADD r20, r11
+    JNZ r2, try_uname
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 104        ; 'h'
-    JNZ r6, try_uname
-    ADD r20, r11
+    JNZ r2, try_uname
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 111        ; 'o'
-    JNZ r6, try_uname
-    ADD r20, r11
+    JNZ r2, try_uname
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r6, try_uname
-    ADD r20, r11
+    JNZ r2, try_uname
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 109        ; 'm'
-    JNZ r6, try_uname
-    ADD r20, r11
+    JNZ r2, try_uname
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 105        ; 'i'
-    JNZ r6, try_uname
-    ADD r20, r11
+    JNZ r2, try_uname
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_uname
+    JNZ r2, try_uname
     JMP cmd_whoami
 
 try_uname:
@@ -634,27 +634,27 @@ try_uname:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r6, try_uptime
-    ADD r20, r11
+    JNZ r2, try_uptime
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 110        ; 'n'
-    JNZ r6, try_uptime
-    ADD r20, r11
+    JNZ r2, try_uptime
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r6, try_uptime
-    ADD r20, r11
+    JNZ r2, try_uptime
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 109        ; 'm'
-    JNZ r6, try_uptime
-    ADD r20, r11
+    JNZ r2, try_uptime
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_uptime
-    ADD r20, r11
+    JNZ r2, try_uptime
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_uptime
+    JNZ r2, try_uptime
     JMP cmd_uname
 
 try_uptime:
@@ -662,31 +662,31 @@ try_uptime:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 112        ; 'p'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 116        ; 't'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 105        ; 'i'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 109        ; 'm'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_unknown
+    JNZ r2, try_unknown
     JMP cmd_uptime
 
 try_run:
@@ -694,19 +694,19 @@ try_run:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 114        ; 'r'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 110        ; 'n'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 32         ; ' ' (space after run)
-    JNZ r6, try_quit
+    JNZ r2, try_quit
     JMP cmd_run
 
 try_edit:
@@ -714,23 +714,23 @@ try_edit:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_build
-    ADD r20, r11
+    JNZ r2, try_build
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 100        ; 'd'
-    JNZ r6, try_build
-    ADD r20, r11
+    JNZ r2, try_build
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 105        ; 'i'
-    JNZ r6, try_build
-    ADD r20, r11
+    JNZ r2, try_build
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 116        ; 't'
-    JNZ r6, try_build
-    ADD r20, r11
+    JNZ r2, try_build
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 32         ; ' ' (space after edit)
-    JNZ r6, try_build
+    JNZ r2, try_build
     JMP cmd_edit
 
 try_build:
@@ -738,27 +738,27 @@ try_build:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 98         ; 'b'
-    JNZ r6, try_reload
-    ADD r20, r11
+    JNZ r2, try_reload
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r6, try_reload
-    ADD r20, r11
+    JNZ r2, try_reload
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 105        ; 'i'
-    JNZ r6, try_reload
-    ADD r20, r11
+    JNZ r2, try_reload
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r6, try_reload
-    ADD r20, r11
+    JNZ r2, try_reload
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 100        ; 'd'
-    JNZ r6, try_reload
-    ADD r20, r11
+    JNZ r2, try_reload
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 32         ; ' ' (space after build)
-    JNZ r6, try_reload
+    JNZ r2, try_reload
     JMP cmd_build
 
 try_reload:
@@ -766,31 +766,31 @@ try_reload:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 114        ; 'r'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 101        ; 'e'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 108        ; 'l'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 111        ; 'o'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 97         ; 'a'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 100        ; 'd'
-    JNZ r6, try_quit
-    ADD r20, r11
+    JNZ r2, try_quit
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_quit
+    JNZ r2, try_quit
     JMP cmd_reload
 
 try_quit:
@@ -798,23 +798,23 @@ try_quit:
     LDI r20, SCRATCH
     LOAD r22, r20
     CMPI r22, 113        ; 'q'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 117        ; 'u'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 105        ; 'i'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 116        ; 't'
-    JNZ r6, try_unknown
-    ADD r20, r11
+    JNZ r2, try_unknown
+    ADD r20, r6
     LOAD r22, r20
     CMPI r22, 0          ; null
-    JNZ r6, try_unknown
+    JNZ r2, try_unknown
     ; MATCH: quit
     JMP cmd_quit
 
@@ -834,86 +834,86 @@ try_unknown:
 
 cmd_clear:
     ; Clear the text buffer to spaces, reset cursor to row 0, col 2
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, BUF
-    LDI r1, 32
+    LDI r15, 32
 cc_clear:
-    STORE r20, r1
-    ADD r20, r11
+    STORE r20, r15
+    ADD r20, r6
     CMPI r20, BUF_END
-    BLT r6, cc_clear
+    BLT r2, cc_clear
 
     ; Reset cursor to row 0, col 2
     LDI r20, CUR_ROW
-    LDI r6, 0
-    STORE r20, r6
+    LDI r2, 0
+    STORE r20, r2
     LDI r20, CUR_COL
-    LDI r6, 2
-    STORE r20, r6
+    LDI r2, 2
+    STORE r20, r2
 
     ; Write prompt on row 0
     LDI r20, BUF
-    LDI r6, 36           ; '$'
-    STORE r20, r6
-    ADD r20, r11
-    LDI r6, 32           ; ' '
-    STORE r20, r6
+    LDI r2, 36           ; '$'
+    STORE r20, r2
+    ADD r20, r6
+    LDI r2, 32           ; ' '
+    STORE r20, r2
 
     JMP dc_ret
 
 cmd_help:
     ; Write "cmds: clear help ver hi" to current row
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "cmds: clear cls help ver hi echo ls date cat"
     CALL do_newline
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "      sys colors whoami uname uptime run quit"
     CALL do_newline
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "      edit <file> build <file> reload"
     CALL do_newline
     JMP dc_ret
 
 cmd_ver:
     ; Write "GeoTerm v1.0" to current row
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "GeoTerm v2.0"
     CALL do_newline
     JMP dc_ret
 
 cmd_hi:
     ; Write "hello!" to current row
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "hello!"
     CALL do_newline
     JMP dc_ret
@@ -921,28 +921,28 @@ cmd_hi:
 cmd_echo:
     ; Write args (SCRATCH+5 onward, after "echo ") to current row
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1           ; r20 = BUF + row*COLS
+    ADD r20, r15           ; r20 = BUF + row*COLS
 
     ; Source is SCRATCH+5 (skip "echo ")
     LDI r21, SCRATCH
-    ADD r21, r11           ; +1
-    ADD r21, r11           ; +2
-    ADD r21, r11           ; +3
-    ADD r21, r11           ; +4
-    ADD r21, r11           ; +5
+    ADD r21, r6           ; +1
+    ADD r21, r6           ; +2
+    ADD r21, r6           ; +3
+    ADD r21, r6           ; +4
+    ADD r21, r6           ; +5
 
 echo_loop:
-    LOAD r6, r21
-    JZ r6, echo_done
-    STORE r20, r6
-    ADD r20, r11
-    ADD r21, r11
+    LOAD r2, r21
+    JZ r2, echo_done
+    STORE r20, r2
+    ADD r20, r6
+    ADD r21, r6
     JMP echo_loop
 
 echo_done:
@@ -953,48 +953,48 @@ echo_done:
 cmd_ls:
     ; List VFS directory using LS opcode
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, 0x5100       ; LS output buffer
-    LS r20                ; list files, count in r6
-    CMPI r6, 0
-    JZ r6, ls_empty
+    LS r20                ; list files, count in r2
+    CMPI r2, 0
+    JZ r2, ls_empty
 
     ; Read entries from buffer, write one per row
     LDI r21, 0x5100
 ls_next:
-    LOAD r6, r21
-    JZ r6, ls_done        ; end of entries
+    LOAD r2, r21
+    JZ r2, ls_done        ; end of entries
 
     ; Write entry to current row
     LDI r22, CUR_ROW
-    LOAD r1, r22
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r22
+    LDI r0, COLS
+    MUL r15, r0
     LDI r23, BUF
-    ADD r23, r1
+    ADD r23, r15
 
     ; Copy string from r21 to r23
 ls_copy:
-    LOAD r6, r21
-    JZ r6, ls_copied
-    STORE r23, r6
-    ADD r21, r11
-    ADD r23, r11
+    LOAD r2, r21
+    JZ r2, ls_copied
+    STORE r23, r2
+    ADD r21, r6
+    ADD r23, r6
     JMP ls_copy
 
 ls_copied:
-    ADD r21, r11           ; skip null terminator
+    ADD r21, r6           ; skip null terminator
     CALL do_newline
     JMP ls_next
 
 ls_empty:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "(empty)"
     CALL do_newline
     POP r31
@@ -1006,13 +1006,13 @@ ls_done:
 
 cmd_date:
     ; Display date string
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "2026-04-20"
     CALL do_newline
     JMP dc_ret
@@ -1020,30 +1020,30 @@ cmd_date:
 write_unknown:
     ; Write "? " followed by the command text from SCRATCH to current row
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1           ; r20 = BUF + row*COLS (destination)
+    ADD r20, r15           ; r20 = BUF + row*COLS (destination)
 
     ; Write "? "
-    LDI r6, 63            ; '?'
-    STORE r20, r6
-    ADD r20, r11
-    LDI r6, 32            ; ' '
-    STORE r20, r6
-    ADD r20, r11
+    LDI r2, 63            ; '?'
+    STORE r20, r2
+    ADD r20, r6
+    LDI r2, 32            ; ' '
+    STORE r20, r2
+    ADD r20, r6
 
     ; Copy SCRATCH to rest of row
     LDI r21, SCRATCH
 wu_loop:
-    LOAD r6, r21
-    JZ r6, wu_done
-    STORE r20, r6
-    ADD r20, r11
-    ADD r21, r11
+    LOAD r2, r21
+    JZ r2, wu_done
+    STORE r20, r2
+    ADD r20, r6
+    ADD r21, r6
     JMP wu_loop
 
 wu_done:
@@ -1058,31 +1058,31 @@ wu_done:
 ; =========================================
 cmd_cat:
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
 
     ; Build filename address: SCRATCH+4 points to filename
     LDI r21, SCRATCH
-    ADD r21, r11
-    ADD r21, r11
-    ADD r21, r11
-    ADD r21, r11           ; r21 = SCRATCH+4 (filename)
+    ADD r21, r6
+    ADD r21, r6
+    ADD r21, r6
+    ADD r21, r6           ; r21 = SCRATCH+4 (filename)
 
     ; OPEN filename (r21), flags=0 (read), mode=0
     ; OPEN takes (path_reg, flags_reg, mode_reg)
     LDI r20, 0
     OPEN r21, r20, r20
-    ; fd returned in r6
-    MOV r18, r6           ; r18 = fd
-    CMPI r6, 0xFFFFFFFF
-    JNZ r6, cat_read      ; if not -1, file opened OK
+    ; fd returned in r2
+    MOV r18, r2           ; r18 = fd
+    CMPI r2, 0xFFFFFFFF
+    JNZ r2, cat_read      ; if not -1, file opened OK
 
     ; Error: file not found
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "(file not found)"
     CALL do_newline
     POP r31
@@ -1094,24 +1094,24 @@ cat_read:
     LDI r22, 0x5200       ; CAT_BUF
     LDI r23, 200          ; max words to read
     READ r18, r22, r23
-    ; r6 = bytes read (0 = EOF, 0xFFFFFFFF = error)
-    CMPI r6, 0
-    JZ r6, cat_close      ; EOF or empty
-    CMPI r6, 0xFFFFFFFF
-    JNZ r6, cat_close     ; error
+    ; r2 = bytes read (0 = EOF, 0xFFFFFFFF = error)
+    CMPI r2, 0
+    JZ r2, cat_close      ; EOF or empty
+    CMPI r2, 0xFFFFFFFF
+    JNZ r2, cat_close     ; error
 
     ; Write chars from buffer until null or 200 chars
     LDI r22, 0x5200
     LDI r24, 0            ; word counter
 cat_write_loop:
     CMPI r24, 200
-    BGE r6, cat_close
-    LOAD r6, r22
-    JZ r6, cat_close      ; null terminator
+    BGE r2, cat_close
+    LOAD r2, r22
+    JZ r2, cat_close      ; null terminator
     ; Write char to current terminal row
     CALL cat_write_char
-    ADD r22, r11
-    ADD r24, r11
+    ADD r22, r6
+    ADD r24, r6
     JMP cat_write_loop
 
 cat_close:
@@ -1120,32 +1120,32 @@ cat_close:
     RET
 
 cat_write_char:
-    ; Write r6 (char) at current cursor position in buffer
+    ; Write r2 (char) at current cursor position in buffer
     ; Advance cursor, handle line wrapping via do_newline
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r12, r20
-    LDI r5, COLS
-    MUL r12, r5
+    LOAD r9, r20
+    LDI r0, COLS
+    MUL r9, r0
     LDI r20, CUR_COL
-    LOAD r13, r20
-    ADD r12, r13
+    LOAD r10, r20
+    ADD r9, r10
     LDI r20, BUF
-    ADD r20, r12
-    STORE r20, r6
+    ADD r20, r9
+    STORE r20, r2
 
     ; Advance cursor col
     LDI r20, CUR_COL
-    LOAD r13, r20
-    ADD r13, r11
-    CMPI r13, COLS
-    JNZ r6, cwc_done      ; branch if not equal (r6 = CMPI result)
+    LOAD r10, r20
+    ADD r10, r6
+    CMPI r10, COLS
+    JNZ r2, cwc_done      ; branch if not equal (r2 = CMPI result)
     CALL do_newline
     JMP cwc_ret
 cwc_done:
     LDI r20, CUR_COL
-    STORE r20, r13
+    STORE r20, r10
 cwc_ret:
     POP r31
     RET
@@ -1154,32 +1154,32 @@ cwc_ret:
 ; SYS command -- show system info
 ; =========================================
 cmd_sys:
-    LDI r11, 1
+    LDI r6, 1
     ; Line 1: "Geometry OS v2.0"
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "Geometry OS v2.0"
     CALL do_newline
     ; Line 2: "Opcodes: 113"
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "Opcodes: 113  Programs: 72"
     CALL do_newline
     ; Line 3: "Tests: 1795"
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "Tests: 1795  Canvas: 256x256"
     CALL do_newline
     JMP dc_ret
@@ -1189,58 +1189,58 @@ cmd_sys:
 ; Draws colored rectangles on the canvas
 ; =========================================
 cmd_colors:
-    LDI r11, 1
+    LDI r6, 1
     ; Row 1 label
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "Color swatches drawn:"
     CALL do_newline
     ; Draw 6 color swatches across the screen
     ; Red
-    LDI r11, 0
-    LDI r12, 0
-    LDI r13, 42
-    LDI r3, 42
-    LDI r2, 0xFF0000
-    RECTF r11, r12, r13, r3, r2
+    LDI r6, 0
+    LDI r9, 0
+    LDI r10, 42
+    LDI r7, 42
+    LDI r5, 0xFF0000
+    RECTF r6, r9, r10, r7, r5
     ; Green
-    LDI r11, 43
-    LDI r2, 0x00FF00
-    RECTF r11, r12, r13, r3, r2
+    LDI r6, 43
+    LDI r5, 0x00FF00
+    RECTF r6, r9, r10, r7, r5
     ; Blue
-    LDI r11, 86
-    LDI r2, 0x0000FF
-    RECTF r11, r12, r13, r3, r2
+    LDI r6, 86
+    LDI r5, 0x0000FF
+    RECTF r6, r9, r10, r7, r5
     ; Yellow
-    LDI r11, 129
-    LDI r2, 0xFFFF00
-    RECTF r11, r12, r13, r3, r2
+    LDI r6, 129
+    LDI r5, 0xFFFF00
+    RECTF r6, r9, r10, r7, r5
     ; Cyan
-    LDI r11, 172
-    LDI r2, 0x00FFFF
-    RECTF r11, r12, r13, r3, r2
+    LDI r6, 172
+    LDI r5, 0x00FFFF
+    RECTF r6, r9, r10, r7, r5
     ; Magenta
-    LDI r11, 215
-    LDI r13, 41
-    LDI r2, 0xFF00FF
-    RECTF r11, r12, r13, r3, r2
+    LDI r6, 215
+    LDI r10, 41
+    LDI r5, 0xFF00FF
+    RECTF r6, r9, r10, r7, r5
     JMP dc_ret
 
 ; =========================================
 ; WHOAMI command
 ; =========================================
 cmd_whoami:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "GeoOS User"
     CALL do_newline
     JMP dc_ret
@@ -1249,13 +1249,13 @@ cmd_whoami:
 ; UNAME command
 ; =========================================
 cmd_uname:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "GeometryOS 2.0 rv32imac"
     CALL do_newline
     JMP dc_ret
@@ -1264,28 +1264,28 @@ cmd_uname:
 ; UPTIME command -- show frame count as uptime
 ; =========================================
 cmd_uptime:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "uptime: "
     ; Blink counter doubles as a rough tick counter
     ; Show the value at BLINK address as a simple number
     LDI r20, BLINK
-    LOAD r6, r20
+    LOAD r2, r20
     ; Write a few digits (just show raw value is too complex)
     ; Instead just show "running" indicator
-    ADD r20, r11
-    ADD r20, r11
-    ADD r20, r11
-    ADD r20, r11
-    ADD r20, r11
-    ADD r20, r11
-    ADD r20, r11
-    ADD r20, r11           ; advance past "uptime: "
+    ADD r20, r6
+    ADD r20, r6
+    ADD r20, r6
+    ADD r20, r6
+    ADD r20, r6
+    ADD r20, r6
+    ADD r20, r6
+    ADD r20, r6           ; advance past "uptime: "
     STRO r20, "running"
     CALL do_newline
     JMP dc_ret
@@ -1297,35 +1297,35 @@ cmd_uptime:
 ; =========================================
 cmd_run:
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
 
     ; Build null-terminated filename at 0x5300 from SCRATCH+4
     LDI r21, SCRATCH
-    ADD r21, r11       ; +1
-    ADD r21, r11       ; +2
-    ADD r21, r11       ; +3
-    ADD r21, r11       ; +4 = SCRATCH+4 (start of filename)
+    ADD r21, r6       ; +1
+    ADD r21, r6       ; +2
+    ADD r21, r6       ; +3
+    ADD r21, r6       ; +4 = SCRATCH+4 (start of filename)
     LDI r22, 0x5300   ; dest buffer
 run_copy:
-    LOAD r6, r21
-    STORE r22, r6
-    ADD r21, r11
-    ADD r22, r11
-    JZ r6, run_exec   ; stop at null terminator
+    LOAD r2, r21
+    STORE r22, r2
+    ADD r21, r6
+    ADD r22, r6
+    JZ r2, run_exec   ; stop at null terminator
 
 run_exec:
     ; EXEC takes a register pointing to the filename
-    LDI r11, 0x5300
-    EXEC r11            ; r6 = PID or 0xFFFFFFFF on error
-    CMPI r6, 0xFFFFFFFF
-    JZ r6, run_err
+    LDI r6, 0x5300
+    EXEC r6            ; r2 = PID or 0xFFFFFFFF on error
+    CMPI r2, 0xFFFFFFFF
+    JZ r2, run_err
 
     ; Save PID
-    MOV r12, r6
+    MOV r9, r2
 
 run_wait:
-    WAITPID r12         ; r6 = 0 still running, 1 done
-    JZ r6, run_wait
+    WAITPID r9         ; r2 = 0 still running, 1 done
+    JZ r2, run_wait
 
     ; Child done -- print "done" and return to prompt
     ; Redraw prompt area
@@ -1335,13 +1335,13 @@ run_wait:
 
 run_err:
     ; Print error message
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "(program not found)"
     CALL do_newline
     POP r31
@@ -1354,59 +1354,59 @@ run_err:
 ; =========================================
 cmd_edit:
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
 
     ; Build null-terminated filename at 0x5300 from SCRATCH+5
     LDI r21, SCRATCH
-    ADD r21, r11       ; +1
-    ADD r21, r11       ; +2
-    ADD r21, r11       ; +3
-    ADD r21, r11       ; +4
-    ADD r21, r11       ; +5 = SCRATCH+5 (start of filename)
+    ADD r21, r6       ; +1
+    ADD r21, r6       ; +2
+    ADD r21, r6       ; +3
+    ADD r21, r6       ; +4
+    ADD r21, r6       ; +5 = SCRATCH+5 (start of filename)
     LDI r22, 0x5300   ; dest buffer
 edit_copy:
-    LOAD r6, r21
-    STORE r22, r6
-    ADD r21, r11
-    ADD r22, r11
-    JZ r6, edit_fire   ; stop at null terminator
+    LOAD r2, r21
+    STORE r22, r2
+    ADD r21, r6
+    ADD r22, r6
+    JZ r2, edit_fire   ; stop at null terminator
 
 edit_fire:
     ; Check if filename is empty
     LDI r20, 0x5300
-    LOAD r6, r20
-    JZ r6, edit_err
+    LOAD r2, r20
+    JZ r2, edit_err
 
     ; Write path address to HOTRELOAD_PATH_PORT (0xFF6)
     LDI r20, 0xFF6
-    LDI r6, 0x5300
-    STORE r20, r6
+    LDI r2, 0x5300
+    STORE r20, r2
 
     ; Write verb 1 (edit) to HOTRELOAD_VERB_PORT (0xFF5)
     LDI r20, 0xFF5
-    LDI r6, 1
-    STORE r20, r6
+    LDI r2, 1
+    STORE r20, r2
 
     ; Print message and halt -- host will take over
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "opening editor..."
     CALL do_newline
     HALT
 
 edit_err:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "(usage: edit <filename>)"
     CALL do_newline
     POP r31
@@ -1419,86 +1419,86 @@ edit_err:
 ; =========================================
 cmd_build:
     PUSH r31
-    LDI r11, 1
+    LDI r6, 1
 
     ; Build "programs/<filename>.asm" path at 0x5300
     ; First write "programs/" prefix
     LDI r22, 0x5300
-    LDI r6, 112        ; 'p'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 114        ; 'r'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 111        ; 'o'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 103        ; 'g'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 114        ; 'r'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 97         ; 'a'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 109        ; 'm'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 115        ; 's'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 47         ; '/'
-    STORE r22, r6
-    ADD r22, r11        ; r22 = 0x5309, pointing after "programs/"
+    LDI r2, 112        ; 'p'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 114        ; 'r'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 111        ; 'o'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 103        ; 'g'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 114        ; 'r'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 97         ; 'a'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 109        ; 'm'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 115        ; 's'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 47         ; '/'
+    STORE r22, r2
+    ADD r22, r6        ; r22 = 0x5309, pointing after "programs/"
 
     ; Copy filename from SCRATCH+6
     LDI r21, SCRATCH
-    ADD r21, r11       ; +1
-    ADD r21, r11       ; +2
-    ADD r21, r11       ; +3
-    ADD r21, r11       ; +4
-    ADD r21, r11       ; +5
-    ADD r21, r11       ; +6 = SCRATCH+6 (start of filename)
+    ADD r21, r6       ; +1
+    ADD r21, r6       ; +2
+    ADD r21, r6       ; +3
+    ADD r21, r6       ; +4
+    ADD r21, r6       ; +5
+    ADD r21, r6       ; +6 = SCRATCH+6 (start of filename)
 
 build_copy:
-    LOAD r6, r21
-    STORE r22, r6
-    ADD r21, r11
-    ADD r22, r11
-    JZ r6, build_open   ; stop at null
+    LOAD r2, r21
+    STORE r22, r2
+    ADD r21, r6
+    ADD r22, r6
+    JZ r2, build_open   ; stop at null
 
 build_open:
     ; Append ".asm" extension
-    LDI r6, 46         ; '.'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 97         ; 'a'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 115        ; 's'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 109        ; 'm'
-    STORE r22, r6
-    ADD r22, r11
-    LDI r6, 0          ; null terminator
-    STORE r22, r6
+    LDI r2, 46         ; '.'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 97         ; 'a'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 115        ; 's'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 109        ; 'm'
+    STORE r22, r2
+    ADD r22, r6
+    LDI r2, 0          ; null terminator
+    STORE r22, r2
 
     ; Now OPEN the file at path 0x5300
     LDI r21, 0x5300
     LDI r20, 0
-    OPEN r21, r20, r20  ; fd in r6
-    MOV r18, r6         ; r18 = fd
-    CMPI r6, 0xFFFFFFFF
-    JZ r6, build_fopen_err
+    OPEN r21, r20, r20  ; fd in r2
+    MOV r18, r2         ; r18 = fd
+    CMPI r2, 0xFFFFFFFF
+    JZ r2, build_fopen_err
 
     ; READ source into buffer at 0x8000
     ; VFS READ returns u32 words, low byte = char
     LDI r22, 0x8000     ; source buffer
     LDI r23, 4096       ; max words to read (plenty for any .asm)
-    READ r18, r22, r23  ; r6 = bytes read
-    MOV r19, r6         ; r19 = bytes read
+    READ r18, r22, r23  ; r2 = bytes read
+    MOV r19, r2         ; r19 = bytes read
 
     ; CLOSE the file
     LDI r20, 0
@@ -1506,7 +1506,7 @@ build_open:
 
     ; Check if we read anything
     CMPI r19, 0
-    JZ r6, build_empty
+    JZ r2, build_empty
 
     ; Convert u32 VFS words to packed byte string at 0x9000
     ; Each VFS word has the character in the low byte
@@ -1515,90 +1515,90 @@ build_open:
     MOV r24, r19        ; counter
 build_pack:
     CMPI r24, 0
-    JZ r6, build_asm
-    LOAD r6, r21
-    STORE r22, r6       ; store the word (low byte has the char)
-    ADD r21, r11
-    ADD r22, r11
-    SUB r24, r11
+    JZ r2, build_asm
+    LOAD r2, r21
+    STORE r22, r2       ; store the word (low byte has the char)
+    ADD r21, r6
+    ADD r22, r6
+    SUB r24, r6
     JMP build_pack
 
 build_asm:
     ; Null-terminate the source string
-    LDI r6, 0
-    STORE r22, r6
+    LDI r2, 0
+    STORE r22, r2
 
     ; Call ASM opcode (0x4B): ASM src_reg, dest_reg
-    LDI r11, 0x9000      ; source address
-    LDI r12, 0xC000      ; dest address for bytecode
-    ASM r11, r12
+    LDI r6, 0x9000      ; source address
+    LDI r9, 0xC000      ; dest address for bytecode
+    ASM r6, r9
 
     ; Check result at RAM[0xFFD]
     LDI r20, 0xFFD
-    LOAD r6, r20
-    CMPI r6, 0xFFFFFFFF
-    JZ r6, build_err
+    LOAD r2, r20
+    CMPI r2, 0xFFFFFFFF
+    JZ r2, build_err
 
     ; Success: print "ok: N words"
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "ok: "
     ; We'd need int-to-string to show the word count.
     ; For now just say "ok" -- the word count is in RAM[0xFFD]
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
-    ADD r20, r11
-    ADD r20, r11
-    ADD r20, r11
-    ADD r20, r11
+    ADD r20, r15
+    ADD r20, r6
+    ADD r20, r6
+    ADD r20, r6
+    ADD r20, r6
     STRO r20, "assembled"
     CALL do_newline
     POP r31
     JMP dc_ret
 
 build_err:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "(build error)"
     CALL do_newline
     POP r31
     JMP dc_ret
 
 build_fopen_err:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "(file not found)"
     CALL do_newline
     POP r31
     JMP dc_ret
 
 build_empty:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "(file is empty)"
     CALL do_newline
     POP r31
@@ -1612,20 +1612,20 @@ cmd_reload:
     PUSH r31
 
     ; Print "reloading..." then signal host
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_ROW
-    LOAD r1, r20
-    LDI r5, COLS
-    MUL r1, r5
+    LOAD r15, r20
+    LDI r0, COLS
+    MUL r15, r0
     LDI r20, BUF
-    ADD r20, r1
+    ADD r20, r15
     STRO r20, "reloading..."
     CALL do_newline
 
     ; Write verb 2 (reload) to HOTRELOAD_VERB_PORT (0xFF5)
     LDI r20, 0xFF5
-    LDI r6, 2
-    STORE r20, r6
+    LDI r2, 2
+    STORE r20, r2
 
     ; Halt -- host will reassemble terminal.asm and restart
     HALT
@@ -1645,41 +1645,41 @@ dc_ret:
 ; =========================================
 do_backspace:
     LDI r20, CUR_COL
-    LOAD r6, r20
-    JZ r6, hk_ret
-    SUB r6, r11
-    STORE r20, r6
+    LOAD r2, r20
+    JZ r2, hk_ret
+    SUB r2, r6
+    STORE r20, r2
     ; Clear char
     LDI r20, CUR_ROW
-    LOAD r12, r20
-    LDI r13, COLS
-    MUL r12, r13
+    LOAD r9, r20
+    LDI r10, COLS
+    MUL r9, r10
     LDI r20, CUR_COL
-    LOAD r6, r20
-    ADD r12, r6
+    LOAD r2, r20
+    ADD r9, r2
     LDI r20, BUF
-    ADD r20, r12
-    LDI r6, 32
-    STORE r20, r6
+    ADD r20, r9
+    LDI r2, 32
+    STORE r20, r2
     JMP hk_ret
 
 do_newline:
-    LDI r11, 1
+    LDI r6, 1
     LDI r20, CUR_COL
-    LDI r6, 0
-    STORE r20, r6
+    LDI r2, 0
+    STORE r20, r2
     LDI r20, CUR_ROW
-    LOAD r1, r20          ; r1 = current row
-    ADD r1, r11            ; r1 = new row
-    CMPI r1, ROWS
-    BLT r6, dn_store      ; branch if new row < ROWS (r6 = CMPI result)
+    LOAD r15, r20          ; r15 = current row
+    ADD r15, r6            ; r15 = new row
+    CMPI r15, ROWS
+    BLT r2, dn_store      ; branch if new row < ROWS (r2 = CMPI result)
     PUSH r31              ; save return address across scroll call
     CALL scroll_up
     POP r31               ; restore return address
     LDI r20, CUR_ROW      ; reload after scroll clobbers r20
-    LDI r1, 29            ; clamp to last row
+    LDI r15, 29            ; clamp to last row
 dn_store:
-    STORE r20, r1
+    STORE r20, r15
     RET
 
 ; =========================================
@@ -1688,58 +1688,58 @@ dn_store:
 ; =========================================
 scroll_up:
     PUSH r31
-    LDI r11, 1
-    LDI r0, 0            ; row counter
+    LDI r6, 1
+    LDI r11, 0            ; row counter
 scroll_loop:
-    CMPI r0, 29
-    BGE r6, scroll_clear
+    CMPI r11, 29
+    BGE r2, scroll_clear
 
     ; Source ptr: BUF + (row+1)*COLS
     LDI r20, BUF
-    LDI r6, 0
-    ADD r6, r0
-    ADD r6, r11
-    LDI r15, COLS
-    MUL r6, r15
-    ADD r20, r6
+    LDI r2, 0
+    ADD r2, r11
+    ADD r2, r6
+    LDI r3, COLS
+    MUL r2, r3
+    ADD r20, r2
 
     ; Dest ptr: BUF + row*COLS
     LDI r21, BUF
-    LDI r6, 0
-    ADD r6, r0
-    LDI r15, COLS
-    MUL r6, r15
-    ADD r21, r6
+    LDI r2, 0
+    ADD r2, r11
+    LDI r3, COLS
+    MUL r2, r3
+    ADD r21, r2
 
     ; Copy COLS words
     LDI r22, 0
 scroll_copy:
-    LOAD r6, r20
-    STORE r21, r6
-    ADD r20, r11
-    ADD r21, r11
-    ADD r22, r11
+    LOAD r2, r20
+    STORE r21, r2
+    ADD r20, r6
+    ADD r21, r6
+    ADD r22, r6
     CMPI r22, COLS
     BLT r22, scroll_copy
 
-    ADD r0, r11
+    ADD r11, r6
     JMP scroll_loop
 
 scroll_clear:
     ; Clear last row (row 29) to spaces
     LDI r20, BUF
-    LDI r1, 29
-    LDI r15, COLS
-    MUL r1, r15
-    ADD r20, r1           ; r20 = BUF + 29*42
-    LDI r1, 32
+    LDI r15, 29
+    LDI r3, COLS
+    MUL r15, r3
+    ADD r20, r15           ; r20 = BUF + 29*42
+    LDI r15, 32
     LDI r22, 0
 scroll_clr_loop:
-    STORE r20, r1
-    ADD r20, r11
-    ADD r22, r11
+    STORE r20, r15
+    ADD r20, r6
+    ADD r22, r6
     CMPI r22, COLS
-    BLT r6, scroll_clr_loop
+    BLT r2, scroll_clr_loop
 
     POP r31
     RET

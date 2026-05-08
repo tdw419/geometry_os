@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a file browser GUI application with list, content, and delete confirmation modes. It uses VFS operations like LS, OPEN, READ, CLOSE, UNLINK, and VSTAT to manage files, renders text for display, handles mouse and keyboard input, and maintains state in RAM. The application supports displaying file lists, opening file contents, and confirming deletions through user interactions.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; file_browser.asm -- File Browser GUI App for Geometry OS
 ;
@@ -45,17 +45,17 @@
 
 ; ── INIT ──────────────────────────────────────
 LDI r30, 0xFF00
-LDI r4, 1
-LDI r14, 0x1a1a2e
-FILL r14
+LDI r14, 1
+LDI r15, 0x1a1a2e
+FILL r15
 
 LDI r20, MODE
-LDI r14, 0
-STORE r20, r14
+LDI r15, 0
+STORE r20, r15
 
 LDI r20, DEL_TARGET
-LDI r14, 0
-STORE r20, r14
+LDI r15, 0
+STORE r20, r15
 
 ; List files and build table
 PUSH r31
@@ -63,29 +63,29 @@ CALL refresh_list
 POP r31
 
 ; Register 6 hit regions for rows
-LDI r4, ROW_X
-LDI r7, ROW_W
-LDI r6, ROW_H
+LDI r14, ROW_X
+LDI r3, ROW_W
+LDI r10, ROW_H
 
-LDI r14, 30
-HITSET r4, r14, r7, r6, 1
-LDI r14, 52
-HITSET r4, r14, r7, r6, 2
-LDI r14, 74
-HITSET r4, r14, r7, r6, 3
-LDI r14, 96
-HITSET r4, r14, r7, r6, 4
-LDI r14, 118
-HITSET r4, r14, r7, r6, 5
-LDI r14, 140
-HITSET r4, r14, r7, r6, 6
+LDI r15, 30
+HITSET r14, r15, r3, r10, 1
+LDI r15, 52
+HITSET r14, r15, r3, r10, 2
+LDI r15, 74
+HITSET r14, r15, r3, r10, 3
+LDI r15, 96
+HITSET r14, r15, r3, r10, 4
+LDI r15, 118
+HITSET r14, r15, r3, r10, 5
+LDI r15, 140
+HITSET r14, r15, r3, r10, 6
 
 ; BACK button
-LDI r4, 10
-LDI r14, BACK_Y
-LDI r7, 60
-LDI r6, 16
-HITSET r4, r14, r7, r6, 99
+LDI r14, 10
+LDI r15, BACK_Y
+LDI r3, 60
+LDI r10, 16
+HITSET r14, r15, r3, r10, 99
 
 ; Label strings
 LDI r20, STR_BUF
@@ -99,47 +99,47 @@ STRO r20, "DEL?"
 
 ; ── MAIN LOOP ─────────────────────────────────
 main_loop:
-    LDI r4, 1
+    LDI r14, 1
     LDI r20, MODE
-    LOAD r15, r20
-    CMPI r15, 0
-    JZ r3, draw_list
-    CMPI r15, 1
-    JZ r3, draw_content
+    LOAD r6, r20
+    CMPI r6, 0
+    JZ r4, draw_list
+    CMPI r6, 1
+    JZ r4, draw_content
     JMP draw_delete
 
 ; ═══════════════════════════════════════════════
 ; LIST VIEW (mode 0)
 ; ═══════════════════════════════════════════════
 draw_list:
-    LDI r14, 0x1a1a2e
-    FILL r14
+    LDI r15, 0x1a1a2e
+    FILL r15
 
     ; Title bar
-    LDI r1, 0x2a2a4a
-    LDI r4, 0
+    LDI r0, 0x2a2a4a
     LDI r14, 0
-    LDI r7, 256
-    LDI r6, 24
-    RECTF r4, r14, r7, r6, r1
+    LDI r15, 0
+    LDI r3, 256
+    LDI r10, 24
+    RECTF r14, r15, r3, r10, r0
 
-    LDI r4, 10
-    LDI r14, TITLE_Y
-    LDI r7, STR_BUF
-    TEXT r4, r14, r7
+    LDI r14, 10
+    LDI r15, TITLE_Y
+    LDI r3, STR_BUF
+    TEXT r14, r15, r3
 
     ; DEL button
-    LDI r1, 0x884422
-    LDI r4, 196
-    LDI r14, 4
-    LDI r7, 50
-    LDI r6, 16
-    RECTF r4, r14, r7, r6, r1
-    LDI r4, 210
-    LDI r14, TITLE_Y
-    LDI r7, STR_BUF
-    ADDI r7, 32
-    TEXT r4, r14, r7
+    LDI r0, 0x884422
+    LDI r14, 196
+    LDI r15, 4
+    LDI r3, 50
+    LDI r10, 16
+    RECTF r14, r15, r3, r10, r0
+    LDI r14, 210
+    LDI r15, TITLE_Y
+    LDI r3, STR_BUF
+    ADDI r3, 32
+    TEXT r14, r15, r3
 
     ; File rows
     LDI r22, 0
@@ -148,42 +148,42 @@ draw_list:
 
 draw_rows:
     CMPI r22, MAX_ROWS
-    BGE r3, rows_done
+    BGE r4, rows_done
     LOAD r20, r23
     CMPI r20, 0
-    JZ r3, rows_done
+    JZ r4, rows_done
 
     ; Alternating bg
-    LDI r15, 2
-    MOD r22, r15
-    CMPI r15, 0
-    JZ r3, row_even
-    LDI r1, 0x222244
+    LDI r6, 2
+    MOD r22, r6
+    CMPI r6, 0
+    JZ r4, row_even
+    LDI r0, 0x222244
     JMP row_bg
 row_even:
-    LDI r1, 0x1e1e3a
+    LDI r0, 0x1e1e3a
 row_bg:
-    LDI r4, ROW_X
-    MOV r14, r24
-    LDI r7, ROW_W
-    LDI r6, ROW_H
-    RECTF r4, r14, r7, r6, r1
+    LDI r14, ROW_X
+    MOV r15, r24
+    LDI r3, ROW_W
+    LDI r10, ROW_H
+    RECTF r14, r15, r3, r10, r0
 
     ; Filename
-    LDI r4, ROW_X
-    ADDI r4, 4
-    MOV r14, r24
+    LDI r14, ROW_X
     ADDI r14, 4
-    TEXT r4, r14, r20
+    MOV r15, r24
+    ADDI r15, 4
+    TEXT r14, r15, r20
 
     ; File size display (right-aligned in row)
     LDI r21, SIZE_TABLE
     ADD r21, r22
     LOAD r12, r21
     CMPI r12, 0xFFFFFFFF
-    JZ r3, skip_size
+    JZ r4, skip_size
     CMPI r12, 0
-    JZ r3, skip_size
+    JZ r4, skip_size
     LDI r20, SIZE_STR_BUF
     PUSH r31
     CALL int_to_str
@@ -195,17 +195,17 @@ row_bg:
     LDI r18, 0
     STORE r20, r18
     ; Draw size at right side of row
-    LDI r4, SIZE_X
-    MOV r14, r24
-    ADDI r14, 4
-    LDI r7, SIZE_STR_BUF
-    TEXT r4, r14, r7
+    LDI r14, SIZE_X
+    MOV r15, r24
+    ADDI r15, 4
+    LDI r3, SIZE_STR_BUF
+    TEXT r14, r15, r3
 skip_size:
 
     ADDI r22, 1
     ADDI r23, 1
-    LDI r15, ROW_H
-    ADD r24, r15
+    LDI r6, ROW_H
+    ADD r24, r6
     JMP draw_rows
 
 rows_done:
@@ -215,41 +215,41 @@ rows_done:
 ; CONTENT VIEW (mode 1)
 ; ═══════════════════════════════════════════════
 draw_content:
-    LDI r14, 0x1a1a2e
-    FILL r14
+    LDI r15, 0x1a1a2e
+    FILL r15
 
-    LDI r1, 0x2a2a4a
-    LDI r4, 0
+    LDI r0, 0x2a2a4a
     LDI r14, 0
-    LDI r7, 256
-    LDI r6, 24
-    RECTF r4, r14, r7, r6, r1
+    LDI r15, 0
+    LDI r3, 256
+    LDI r10, 24
+    RECTF r14, r15, r3, r10, r0
 
-    LDI r4, 10
-    LDI r14, TITLE_Y
-    LDI r7, STR_BUF
-    ADDI r7, 16
-    TEXT r4, r14, r7
+    LDI r14, 10
+    LDI r15, TITLE_Y
+    LDI r3, STR_BUF
+    ADDI r3, 16
+    TEXT r14, r15, r3
 
     ; BACK button
-    LDI r1, 0x555555
-    LDI r4, 10
-    LDI r14, BACK_Y
-    LDI r7, 60
-    LDI r6, 16
-    RECTF r4, r14, r7, r6, r1
-    LDI r4, 22
-    LDI r14, BACK_Y
-    ADDI r14, 4
-    LDI r7, STR_BUF
-    ADDI r7, 16
-    TEXT r4, r14, r7
+    LDI r0, 0x555555
+    LDI r14, 10
+    LDI r15, BACK_Y
+    LDI r3, 60
+    LDI r10, 16
+    RECTF r14, r15, r3, r10, r0
+    LDI r14, 22
+    LDI r15, BACK_Y
+    ADDI r15, 4
+    LDI r3, STR_BUF
+    ADDI r3, 16
+    TEXT r14, r15, r3
 
     ; Content
-    LDI r4, 10
-    LDI r14, 30
-    LDI r7, CONTENT_BUF
-    TEXT r4, r14, r7
+    LDI r14, 10
+    LDI r15, 30
+    LDI r3, CONTENT_BUF
+    TEXT r14, r15, r3
 
     JMP do_hitq
 
@@ -257,23 +257,23 @@ draw_content:
 ; DELETE CONFIRM (mode 2)
 ; ═══════════════════════════════════════════════
 draw_delete:
-    LDI r14, 0x1a1a2e
-    FILL r14
+    LDI r15, 0x1a1a2e
+    FILL r15
 
     ; Dialog box
-    LDI r1, 0x2a2a4a
-    LDI r4, 30
-    LDI r14, 80
-    LDI r7, 196
-    LDI r6, 100
-    RECTF r4, r14, r7, r6, r1
+    LDI r0, 0x2a2a4a
+    LDI r14, 30
+    LDI r15, 80
+    LDI r3, 196
+    LDI r10, 100
+    RECTF r14, r15, r3, r10, r0
 
     ; Title
-    LDI r4, 120
-    LDI r14, 90
-    LDI r7, STR_BUF
-    ADDI r7, 32
-    TEXT r4, r14, r7
+    LDI r14, 120
+    LDI r15, 90
+    LDI r3, STR_BUF
+    ADDI r3, 32
+    TEXT r14, r15, r3
 
     ; Filename
     LDI r20, DEL_TARGET
@@ -282,27 +282,27 @@ draw_delete:
     ADD r23, r22
     LOAD r20, r23
     CMPI r20, 0
-    JZ r3, del_no_name
-    LDI r4, 40
-    LDI r14, 120
-    TEXT r4, r14, r20
+    JZ r4, del_no_name
+    LDI r14, 40
+    LDI r15, 120
+    TEXT r14, r15, r20
 del_no_name:
 
     ; [Y] green button
-    LDI r1, 0x225522
-    LDI r4, 50
-    LDI r14, 150
-    LDI r7, 70
-    LDI r6, 20
-    RECTF r4, r14, r7, r6, r1
+    LDI r0, 0x225522
+    LDI r14, 50
+    LDI r15, 150
+    LDI r3, 70
+    LDI r10, 20
+    RECTF r14, r15, r3, r10, r0
 
     ; [N] red button
-    LDI r1, 0x552222
-    LDI r4, 140
-    LDI r14, 150
-    LDI r7, 70
-    LDI r6, 20
-    RECTF r4, r14, r7, r6, r1
+    LDI r0, 0x552222
+    LDI r14, 140
+    LDI r15, 150
+    LDI r3, 70
+    LDI r10, 20
+    RECTF r14, r15, r3, r10, r0
 
     JMP do_hitq
 
@@ -311,131 +311,131 @@ del_no_name:
 ; ═══════════════════════════════════════════════
 do_hitq:
     FRAME
-    IKEY r13
-    CMPI r13, 0
-    JZ r3, chk_mouse
+    IKEY r2
+    CMPI r2, 0
+    JZ r4, chk_mouse
 
     LDI r20, MODE
-    LOAD r15, r20
+    LOAD r6, r20
 
     ; Delete confirm keyboard (mode 2)
-    CMPI r15, 2
-    JNZ r3, kb_list
-    CMPI r13, 89
-    JZ r3, do_unlink
-    CMPI r13, 121
-    JZ r3, do_unlink
-    CMPI r13, 78
-    JZ r3, do_cancel
-    CMPI r13, 110
-    JZ r3, do_cancel
-    CMPI r13, 27
-    JZ r3, do_cancel
+    CMPI r6, 2
+    JNZ r4, kb_list
+    CMPI r2, 89
+    JZ r4, do_unlink
+    CMPI r2, 121
+    JZ r4, do_unlink
+    CMPI r2, 78
+    JZ r4, do_cancel
+    CMPI r2, 110
+    JZ r4, do_cancel
+    CMPI r2, 27
+    JZ r4, do_cancel
     JMP main_loop
 
 kb_list:
     ; List mode D key
-    CMPI r15, 0
-    JNZ r3, chk_mouse
-    CMPI r13, 68
-    JZ r3, chk_mouse
-    CMPI r13, 100
-    JNZ r3, chk_mouse
+    CMPI r6, 0
+    JNZ r4, chk_mouse
+    CMPI r2, 68
+    JZ r4, chk_mouse
+    CMPI r2, 100
+    JNZ r4, chk_mouse
     LDI r20, DEL_TARGET
-    LDI r14, 255
-    STORE r20, r14
+    LDI r15, 255
+    STORE r20, r15
     JMP main_loop
 
 chk_mouse:
-    LDI r8, 0
-    HITQ r8
-    CMPI r8, 0
-    JZ r3, main_loop
+    LDI r7, 0
+    HITQ r7
+    CMPI r7, 0
+    JZ r4, main_loop
 
     LDI r20, MODE
-    LOAD r15, r20
-    CMPI r15, 0
-    JZ r3, on_list_click
-    CMPI r15, 1
-    JZ r3, on_content_click
+    LOAD r6, r20
+    CMPI r6, 0
+    JZ r4, on_list_click
+    CMPI r6, 1
+    JZ r4, on_content_click
     JMP main_loop
 
 ; ── List click handler ──
 on_list_click:
-    CMPI r8, 99
-    JZ r3, main_loop
+    CMPI r7, 99
+    JZ r4, main_loop
 
     LDI r20, DEL_TARGET
-    LOAD r15, r20
-    CMPI r15, 255
-    JNZ r3, on_open
+    LOAD r6, r20
+    CMPI r6, 255
+    JNZ r4, on_open
 
     ; Delete select: validate row
-    CMPI r8, 1
-    BLT r3, main_loop
-    CMPI r8, 6
-    BGE r3, main_loop
-    SUBI r8, 1
+    CMPI r7, 1
+    BLT r4, main_loop
+    CMPI r7, 6
+    BGE r4, main_loop
+    SUBI r7, 1
     LDI r23, FNAME_TABLE
-    ADD r23, r8
+    ADD r23, r7
     LOAD r20, r23
     CMPI r20, 0
-    JZ r3, main_loop
+    JZ r4, main_loop
 
     ; Enter delete confirm
-    MOV r15, r8
+    MOV r6, r7
     LDI r20, DEL_TARGET
-    STORE r20, r15
+    STORE r20, r6
     LDI r20, MODE
-    LDI r14, 2
-    STORE r20, r14
+    LDI r15, 2
+    STORE r20, r15
     JMP main_loop
 
 on_open:
-    CMPI r8, 1
-    BLT r3, main_loop
-    CMPI r8, 6
-    BGE r3, main_loop
-    SUBI r8, 1
+    CMPI r7, 1
+    BLT r4, main_loop
+    CMPI r7, 6
+    BGE r4, main_loop
+    SUBI r7, 1
     LDI r23, FNAME_TABLE
-    ADD r23, r8
+    ADD r23, r7
     LOAD r20, r23
     CMPI r20, 0
-    JZ r3, main_loop
+    JZ r4, main_loop
 
     ; Open and read
-    LDI r15, 0
-    OPEN r20, r15
-    MOV r19, r3
-    CMPI r3, 0xFFFFFFFF
-    JZ r3, main_loop
+    LDI r6, 0
+    OPEN r20, r6
+    MOV r19, r4
+    CMPI r4, 0xFFFFFFFF
+    JZ r4, main_loop
 
     LDI r21, TEMP_FD
     STORE r21, r19
 
-    LDI r15, CONTENT_BUF
-    LDI r11, 2048
-    READ r19, r15, r11
+    LDI r6, CONTENT_BUF
+    LDI r9, 2048
+    READ r19, r6, r9
 
     LDI r20, CONTENT_BUF
-    ADD r20, r3
-    LDI r14, 0
-    STORE r20, r14
+    ADD r20, r4
+    LDI r15, 0
+    STORE r20, r15
 
     CLOSE r19
 
     LDI r20, MODE
-    LDI r14, 1
-    STORE r20, r14
+    LDI r15, 1
+    STORE r20, r15
     JMP main_loop
 
 ; ── Content click handler ──
 on_content_click:
-    CMPI r8, 99
-    JNZ r3, main_loop
+    CMPI r7, 99
+    JNZ r4, main_loop
     LDI r20, MODE
-    LDI r14, 0
-    STORE r20, r14
+    LDI r15, 0
+    STORE r20, r15
     JMP main_loop
 
 ; ── Delete actions ──
@@ -446,15 +446,15 @@ do_unlink:
     ADD r23, r22
     LOAD r20, r23
     CMPI r20, 0
-    JZ r3, do_cancel
+    JZ r4, do_cancel
     UNLINK r20
 do_cancel:
     LDI r20, MODE
-    LDI r14, 0
-    STORE r20, r14
+    LDI r15, 0
+    STORE r20, r15
     LDI r20, DEL_TARGET
-    LDI r14, 0
-    STORE r20, r14
+    LDI r15, 0
+    STORE r20, r15
     PUSH r31
     CALL refresh_list
     POP r31
@@ -462,13 +462,13 @@ do_cancel:
 
 ; ═══════════════════════════════════════════════
 ; REFRESH LIST SUBROUTINE
-; Clobbers: r3, r14, r20, r21, r22, r23
+; Clobbers: r4, r15, r20, r21, r22, r23
 ; ═══════════════════════════════════════════════
 refresh_list:
     LDI r20, FILE_BUF
     LS r20
     LDI r21, FILE_COUNT
-    STORE r21, r3
+    STORE r21, r4
 
     LDI r20, FILE_BUF
     LDI r22, 0
@@ -476,10 +476,10 @@ refresh_list:
 
 rl_scan:
     CMPI r22, MAX_ROWS
-    BGE r3, rl_done
-    LOAD r14, r20
-    CMPI r14, 0
-    JZ r3, rl_done
+    BGE r4, rl_done
+    LOAD r15, r20
+    CMPI r15, 0
+    JZ r4, rl_done
 
     STORE r23, r20
     ADDI r23, 1
@@ -488,12 +488,12 @@ rl_scan:
     VSTAT r20
     LDI r21, SIZE_TABLE
     ADD r21, r22
-    STORE r21, r3
+    STORE r21, r4
 
 rl_skip:
-    LOAD r14, r20
-    CMPI r14, 0
-    JZ r3, rl_next
+    LOAD r15, r20
+    CMPI r15, 0
+    JZ r4, rl_next
     ADDI r20, 1
     JMP rl_skip
 

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates a memory-mapped screen buffer readback by drawing a red pixel at coordinates (20, 30), reading it back using the LOAD instruction from its mapped address, and then storing both the original and the read-back values in RAM for verification. It also reads and verifies the initial black pixel at (0, 0) and uses the read value to draw a copy of the red pixel at coordinates (21, 30).
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; screen_readback_demo.asm
 ; Phase: Memory-Mapped Screen Buffer Readback
@@ -17,36 +17,36 @@
 ; 5. Uses the read value to draw a copy of the pixel at (21, 30)
 
 ; --- Set up coordinates ---
-LDI r8, 20          ; r8 = x = 20
-LDI r6, 30          ; r6 = y = 30
+LDI r2, 20          ; r2 = x = 20
+LDI r4, 30          ; r4 = y = 30
 
 ; --- Draw a red pixel at (20, 30) ---
-LDI r0, 0x00FF      ; r0 = 0x000000FF
-SHLI r0, 16          ; r0 = 0x00FF0000
-PSET r8, r6, r0      ; screen[30*256+20] = 0x00FF0000 (red)
+LDI r8, 0x00FF      ; r8 = 0x000000FF
+SHLI r8, 16          ; r8 = 0x00FF0000
+PSET r2, r4, r8      ; screen[30*256+20] = 0x00FF0000 (red)
 
 ; --- Read back the pixel via LOAD from screen-mapped address ---
 ; Address = 0x10000 + 30*256 + 20 = 0x10000 + 7680 + 20 = 0x11E14
-LDI r15, 0x0001       ; r15 = 1
-SHLI r15, 16           ; r15 = 0x10000
-ADDI r15, 0x1E14      ; r15 = 0x11E14
-LOAD r7, r15           ; r7 = screen[30*256+20] = 0x00FF0000
+LDI r6, 0x0001       ; r6 = 1
+SHLI r6, 16           ; r6 = 0x10000
+ADDI r6, 0x1E14      ; r6 = 0x11E14
+LOAD r11, r6           ; r11 = screen[30*256+20] = 0x00FF0000
 
 ; --- Store read value to RAM[0x300] for verification ---
-LDI r12, 0x300
-STORE r12, r7
+LDI r9, 0x300
+STORE r9, r11
 
 ; --- Read pixel at (0,0) which should be black (0) ---
-LDI r15, 0x10000       ; r15 = 0x10000 (pixel 0,0)
-LOAD r5, r15           ; r5 = screen[0] = 0
+LDI r6, 0x10000       ; r6 = 0x10000 (pixel 0,0)
+LOAD r12, r6           ; r12 = screen[0] = 0
 
 ; --- Store to RAM[0x304] ---
-LDI r12, 0x304
-STORE r12, r5
+LDI r9, 0x304
+STORE r9, r12
 
 ; --- Use the read value to draw a copy at (21, 30) ---
-LDI r8, 21           ; x = 21
-LDI r6, 30           ; y = 30
-PSET r8, r6, r7      ; draw with the value we read back
+LDI r2, 21           ; x = 21
+LDI r4, 30           ; y = 30
+PSET r2, r4, r11      ; draw with the value we read back
 
 HALT

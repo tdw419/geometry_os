@@ -74,13 +74,23 @@ The grid acts as a text editor (TEXT mode) where "the letter IS the colored pixe
 - Window Bounds Protocol: RAM[0xF00..0xF03] for spatial coordination between processes
 - Screen RAM: mapped at 0x10000, addressed as `0x10000 + y * SCREEN_W + x`
 
-## Test Command
+## PixelGPT (The Paint-to-Code Bridge)
 
-```bash
-cargo test                    # run all tests (should be ~115)
-cargo test test_name          # run specific test
-cargo build 2>&1 | grep -E "^error|^warning\["  # check for errors/warnings
-```
+PixelGPT is a bilingual Transformer (29M params, 8L/8H/512D) that generates Geometry OS assembly from natural language prompts.
+
+**Key Components:**
+- `pixelflow/bilingual_tokenizer.py` -- ByteLevel BPE tokenizer for prose + atomic ISA tokens.
+- `pixelflow/generate_bilingual.py` -- Inference script: `python3 pixelflow/generate_bilingual.py "Prompt"`
+- `pixelflow/smoke_test.py` -- Benchmark: generates, executes, and validates code semantics and syntax.
+- `pixelflow/augment_golden.py` -- Data augmentation (register permutation + semantic templates).
+
+**Workflow:**
+1. **Train:** `python3 pixelflow/train_bilingual_llm.py --dataset pixelflow/golden_dataset_v8.npz --checkpoint pixelflow/bilingual_llm_v8_ckpt.pt`
+2. **Evaluate:** `python3 pixelflow/smoke_test.py --checkpoint pixelflow/bilingual_llm_v8_ckpt.pt`
+3. **Execute:** `python3 geo_dogfood_qa.py --asm generated.asm`
+
+**Training Data:**
+The model is trained on the **Golden Dataset**, a curated set of 211 human-written GeOS programs augmented with register permutations and diverse description templates to improve generalization.
 
 ## How to Add a New Opcode
 

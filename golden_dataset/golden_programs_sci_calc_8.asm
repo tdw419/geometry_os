@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a scientific calculator that supports basic arithmetic operations (addition, subtraction, multiplication, division) as well as trigonometric functions (sine and cosine) and square root calculation. The calculator uses a precomputed quarter-wave sine table for sine calculations and the Newton-Raphson method for square roots. It reads input from the keyboard, processes it based on the operation selected, and displays results on the screen.
+; DESCRIPTION: Render a colored square at the screen.
 
 ; sci_calc.asm -- Scientific Calculator for Geometry OS
 ;
@@ -39,99 +39,99 @@
 #define DISP_STR    0x6100
 
 ; ── INIT ──────────────────────────────────────────
-    LDI r10, 1
-    LDI r8, 0
+    LDI r1, 1
+    LDI r6, 0
 
     LDI r20, DISP_VAL
-    STORE r20, r8
+    STORE r20, r6
     LDI r20, ACCUM
-    STORE r20, r8
+    STORE r20, r6
     LDI r20, OPER
-    STORE r20, r8
+    STORE r20, r6
     LDI r20, NEW_ENTRY
-    LDI r4, 1
-    STORE r20, r4
+    LDI r15, 1
+    STORE r20, r15
 
     ; Build quarter-wave sine table (16 entries for 0-90 degrees)
     ; sin(n*90/15) * 1000 for n=0..15
     ; Pre-computed: 0, 104, 207, 309, 407, 500, 588, 669, 743, 809, 866, 914, 951, 978, 995, 1000
     LDI r20, SIN_QTR
-    LDI r4, 0
-    STORE r20, r4
+    LDI r15, 0
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 104
-    STORE r20, r4
+    LDI r15, 104
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 207
-    STORE r20, r4
+    LDI r15, 207
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 309
-    STORE r20, r4
+    LDI r15, 309
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 407
-    STORE r20, r4
+    LDI r15, 407
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 500
-    STORE r20, r4
+    LDI r15, 500
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 588
-    STORE r20, r4
+    LDI r15, 588
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 669
-    STORE r20, r4
+    LDI r15, 669
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 743
-    STORE r20, r4
+    LDI r15, 743
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 809
-    STORE r20, r4
+    LDI r15, 809
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 866
-    STORE r20, r4
+    LDI r15, 866
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 914
-    STORE r20, r4
+    LDI r15, 914
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 951
-    STORE r20, r4
+    LDI r15, 951
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 978
-    STORE r20, r4
+    LDI r15, 978
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 995
-    STORE r20, r4
+    LDI r15, 995
+    STORE r20, r15
     ADDI r20, 1
-    LDI r4, 1000
-    STORE r20, r4
+    LDI r15, 1000
+    STORE r20, r15
 
     ; Init stack
     LDI r30, 0xFD00
 
 ; ── MAIN LOOP ─────────────────────────────────────
 main_loop:
-    LDI r10, 1
+    LDI r1, 1
 
-    IKEY r3
+    IKEY r10
 
-    CMPI r3, 0
-    JZ r13, no_key
+    CMPI r10, 0
+    JZ r8, no_key
 
     ; Digit 0-9
-    CMPI r3, 48
-    BLT r13, not_digit
-    CMPI r3, 57
-    BGE r13, not_digit_ok
+    CMPI r10, 48
+    BLT r8, not_digit
+    CMPI r10, 57
+    BGE r8, not_digit_ok
     ; Between '0' and '9' but not '9' - need <= check
     ; Actually BGE means >= 57 = '9'+0 means >= '9'
     ; We need >= '0' AND <= '9' (48-57)
-    ; BLT r13 means if r3 < 48 skip; BGE r13 means if r3 >= 57+1 skip? No.
-    ; BGE branches when r13 != 0xFFFFFFFF (CMP found >=)
-    ; CMPI r3, 57; BGE r13, not_digit_ok means if r3 >= 57 goto not_digit_ok
-    ; But we want if r3 > 57 skip. So BGE at 57 means r3 >= 57 is ok (57='9')
-    ; Wait, we need to handle r3 = 57 ('9') as a digit too.
-    ; The correct pattern: skip if r3 < 48 OR r3 > 57.
-    ; CMPI r3, 48; BLT skip (if < 48)
-    ; CMPI r3, 58; BGE skip (if >= 58, i.e. > 57)
+    ; BLT r8 means if r10 < 48 skip; BGE r8 means if r10 >= 57+1 skip? No.
+    ; BGE branches when r8 != 0xFFFFFFFF (CMP found >=)
+    ; CMPI r10, 57; BGE r8, not_digit_ok means if r10 >= 57 goto not_digit_ok
+    ; But we want if r10 > 57 skip. So BGE at 57 means r10 >= 57 is ok (57='9')
+    ; Wait, we need to handle r10 = 57 ('9') as a digit too.
+    ; The correct pattern: skip if r10 < 48 OR r10 > 57.
+    ; CMPI r10, 48; BLT skip (if < 48)
+    ; CMPI r10, 58; BGE skip (if >= 58, i.e. > 57)
     JMP enter_digit_path
 not_digit_ok:
 
@@ -139,73 +139,73 @@ not_digit:
     JMP check_ops
 
 enter_digit_path:
-    SUBI r3, 48
+    SUBI r10, 48
     CALL enter_digit
     JMP no_key
 
 check_ops:
     ; + = add
-    CMPI r3, 43
-    JNZ r13, not_add
+    CMPI r10, 43
+    JNZ r8, not_add
     CALL do_add
     JMP no_key
 not_add:
 
     ; - = subtract
-    CMPI r3, 45
-    JNZ r13, not_sub
+    CMPI r10, 45
+    JNZ r8, not_sub
     CALL do_sub
     JMP no_key
 not_sub:
 
     ; * = multiply
-    CMPI r3, 42
-    JNZ r13, not_mul
+    CMPI r10, 42
+    JNZ r8, not_mul
     CALL do_mul
     JMP no_key
 not_mul:
 
     ; / = divide
-    CMPI r3, 47
-    JNZ r13, not_div
+    CMPI r10, 47
+    JNZ r8, not_div
     CALL do_div
     JMP no_key
 not_div:
 
     ; = or Enter = evaluate
-    CMPI r3, 61
-    JZ r13, do_eval
-    CMPI r3, 13
-    JNZ r13, not_eval
+    CMPI r10, 61
+    JZ r8, do_eval
+    CMPI r10, 13
+    JNZ r8, not_eval
 do_eval:
     CALL evaluate
     JMP no_key
 not_eval:
 
     ; S = sin
-    CMPI r3, 83
-    JNZ r13, not_sin
+    CMPI r10, 83
+    JNZ r8, not_sin
     CALL do_sin
     JMP no_key
 not_sin:
 
     ; C = cos
-    CMPI r3, 67
-    JNZ r13, not_cos
+    CMPI r10, 67
+    JNZ r8, not_cos
     CALL do_cos
     JMP no_key
 not_cos:
 
     ; Q = sqrt
-    CMPI r3, 81
-    JNZ r13, not_sqrt
+    CMPI r10, 81
+    JNZ r8, not_sqrt
     CALL do_sqrt
     JMP no_key
 not_sqrt:
 
     ; Escape = clear
-    CMPI r3, 27
-    JNZ r13, no_key
+    CMPI r10, 27
+    JNZ r8, no_key
     CALL clear_calc
 
 no_key:
@@ -216,61 +216,61 @@ no_key:
 ; ── ENTER DIGIT ───────────────────────────────────
 enter_digit:
     PUSH r31
-    ; r3 = digit value (0-9)
+    ; r10 = digit value (0-9)
     ; Check new_entry
     LDI r20, NEW_ENTRY
-    LOAD r7, r20
-    CMPI r7, 1
-    JNZ r13, append_digit
+    LOAD r4, r20
+    CMPI r4, 1
+    JNZ r8, append_digit
     ; Clear display
     LDI r20, DISP_VAL
-    LDI r8, 0
-    STORE r20, r8
+    LDI r6, 0
+    STORE r20, r6
     LDI r20, NEW_ENTRY
-    STORE r20, r8
+    STORE r20, r6
 append_digit:
     LDI r20, DISP_VAL
-    LOAD r7, r20
+    LOAD r4, r20
     LDI r9, 10
-    MUL r7, r9
-    ADD r7, r3
-    STORE r20, r7
+    MUL r4, r9
+    ADD r4, r10
+    STORE r20, r4
     POP r31
     RET
 
 ; ── OPERATORS ─────────────────────────────────────
 do_add:
     PUSH r31
-    LDI r7, 1
+    LDI r4, 1
     LDI r20, OPER
-    STORE r20, r7
+    STORE r20, r4
     CALL apply_op
     POP r31
     RET
 
 do_sub:
     PUSH r31
-    LDI r7, 2
+    LDI r4, 2
     LDI r20, OPER
-    STORE r20, r7
+    STORE r20, r4
     CALL apply_op
     POP r31
     RET
 
 do_mul:
     PUSH r31
-    LDI r7, 3
+    LDI r4, 3
     LDI r20, OPER
-    STORE r20, r7
+    STORE r20, r4
     CALL apply_op
     POP r31
     RET
 
 do_div:
     PUSH r31
-    LDI r7, 4
+    LDI r4, 4
     LDI r20, OPER
-    STORE r20, r7
+    STORE r20, r4
     CALL apply_op
     POP r31
     RET
@@ -278,12 +278,12 @@ do_div:
 apply_op:
     PUSH r31
     LDI r20, DISP_VAL
-    LOAD r7, r20
+    LOAD r4, r20
     LDI r20, ACCUM
-    STORE r20, r7
+    STORE r20, r4
     LDI r20, NEW_ENTRY
-    LDI r7, 1
-    STORE r20, r7
+    LDI r4, 1
+    STORE r20, r4
     POP r31
     RET
 
@@ -294,63 +294,63 @@ evaluate:
     LOAD r9, r20
 
     CMPI r9, 1
-    JNZ r13, ev_not_add
+    JNZ r8, ev_not_add
     LDI r20, ACCUM
-    LOAD r7, r20
+    LOAD r4, r20
     LDI r20, DISP_VAL
-    LOAD r11, r20
-    ADD r7, r11
+    LOAD r3, r20
+    ADD r4, r3
     LDI r20, DISP_VAL
-    STORE r20, r7
+    STORE r20, r4
     JMP ev_done
 
 ev_not_add:
     CMPI r9, 2
-    JNZ r13, ev_not_sub
+    JNZ r8, ev_not_sub
     LDI r20, ACCUM
-    LOAD r7, r20
+    LOAD r4, r20
     LDI r20, DISP_VAL
-    LOAD r11, r20
-    SUB r7, r11
+    LOAD r3, r20
+    SUB r4, r3
     LDI r20, DISP_VAL
-    STORE r20, r7
+    STORE r20, r4
     JMP ev_done
 
 ev_not_sub:
     CMPI r9, 3
-    JNZ r13, ev_not_mul
+    JNZ r8, ev_not_mul
     LDI r20, ACCUM
-    LOAD r7, r20
+    LOAD r4, r20
     LDI r20, DISP_VAL
-    LOAD r11, r20
-    MUL r7, r11
+    LOAD r3, r20
+    MUL r4, r3
     LDI r20, DISP_VAL
-    STORE r20, r7
+    STORE r20, r4
     JMP ev_done
 
 ev_not_mul:
     CMPI r9, 4
-    JNZ r13, ev_done
+    JNZ r8, ev_done
     LDI r20, ACCUM
-    LOAD r7, r20
+    LOAD r4, r20
     LDI r20, DISP_VAL
-    LOAD r11, r20
-    CMPI r11, 0
-    JZ r13, ev_done
-    DIV r7, r11
+    LOAD r3, r20
+    CMPI r3, 0
+    JZ r8, ev_done
+    DIV r4, r3
     LDI r20, DISP_VAL
-    STORE r20, r7
+    STORE r20, r4
 
 ev_done:
     LDI r20, OPER
-    LDI r7, 0
-    STORE r20, r7
+    LDI r4, 0
+    STORE r20, r4
     LDI r20, NEW_ENTRY
-    LDI r7, 1
-    STORE r20, r7
+    LDI r4, 1
+    STORE r20, r4
     LDI r20, ACCUM
-    LDI r7, 0
-    STORE r20, r7
+    LDI r4, 0
+    STORE r20, r4
     POP r31
     RET
 
@@ -358,35 +358,35 @@ ev_done:
 do_sin:
     PUSH r31
     LDI r20, DISP_VAL
-    LOAD r15, r20     ; angle in degrees (0-359)
+    LOAD r0, r20     ; angle in degrees (0-359)
 
     ; Normalize to 0-359
-    LDI r1, 360
-    MOD r15, r1
+    LDI r5, 360
+    MOD r0, r5
 
     ; Determine quadrant and map to 0-90
     ; table_index = angle * 16 / 90 (for 16-entry table over 0-90 deg)
-    LDI r5, 0        ; negative flag
+    LDI r12, 0        ; negative flag
     LDI r2, 90
 
-    CMP r15, r2
-    BLT r13, sin_q1
+    CMP r0, r2
+    BLT r8, sin_q1
     LDI r2, 180
-    CMP r15, r2
-    BLT r13, sin_q2
+    CMP r0, r2
+    BLT r8, sin_q2
     LDI r2, 270
-    CMP r15, r2
-    BLT r13, sin_q3
+    CMP r0, r2
+    BLT r8, sin_q3
     ; Q4: 270-359
-    LDI r1, 360
-    SUB r15, r1       ; angle = 360 - original
-    NEG r15            ; angle = -(360 - orig) = orig - 360... no
+    LDI r5, 360
+    SUB r0, r5       ; angle = 360 - original
+    NEG r0            ; angle = -(360 - orig) = orig - 360... no
     ; Better: angle = 360 - original
     LDI r20, DISP_VAL
-    LOAD r15, r20
-    LDI r1, 360
-    SUB r1, r15       ; 360 - angle
-    MOV r15, r1
+    LOAD r0, r20
+    LDI r5, 360
+    SUB r5, r0       ; 360 - angle
+    MOV r0, r5
     JMP sin_do_lookup
 
 sin_q1:
@@ -395,52 +395,52 @@ sin_q1:
 
 sin_q2:
     ; 90-179: effective = 180 - angle
-    LDI r1, 180
-    SUB r1, r15
-    MOV r15, r1
+    LDI r5, 180
+    SUB r5, r0
+    MOV r0, r5
     JMP sin_do_lookup
 
 sin_q3:
     ; 180-269: effective = angle - 180, negate result
-    LDI r1, 180
-    SUB r15, r1
-    LDI r5, 1         ; mark negate
+    LDI r5, 180
+    SUB r0, r5
+    LDI r12, 1         ; mark negate
     JMP sin_do_lookup
 
 sin_do_lookup:
-    ; r15 = effective angle (0-89)
-    ; table_index = r15 * 16 / 90
-    LDI r1, 16
-    MUL r15, r1
-    LDI r1, 90
-    DIV r15, r1       ; table index (0-15)
+    ; r0 = effective angle (0-89)
+    ; table_index = r0 * 16 / 90
+    LDI r5, 16
+    MUL r0, r5
+    LDI r5, 90
+    DIV r0, r5       ; table index (0-15)
 
     ; Clamp
-    CMPI r15, 0
-    BGE r13, sin_clamp_lo_ok
-    LDI r15, 0
+    CMPI r0, 0
+    BGE r8, sin_clamp_lo_ok
+    LDI r0, 0
 sin_clamp_lo_ok:
-    CMPI r15, 15
-    BLT r13, sin_clamp_hi_ok
-    LDI r15, 15
+    CMPI r0, 15
+    BLT r8, sin_clamp_hi_ok
+    LDI r0, 15
 sin_clamp_hi_ok:
 
     ; Look up
     LDI r20, SIN_QTR
-    ADD r20, r15
-    LOAD r15, r20
+    ADD r20, r0
+    LOAD r0, r20
 
     ; Negate if Q3/Q4
-    CMPI r5, 1
-    JNZ r13, sin_no_neg
-    NEG r15
+    CMPI r12, 1
+    JNZ r8, sin_no_neg
+    NEG r0
 sin_no_neg:
 
     LDI r20, DISP_VAL
-    STORE r20, r15
+    STORE r20, r0
     LDI r20, NEW_ENTRY
-    LDI r7, 1
-    STORE r20, r7
+    LDI r4, 1
+    STORE r20, r4
     POP r31
     RET
 
@@ -449,10 +449,10 @@ do_cos:
     PUSH r31
     ; cos(x) = sin(90 - x), or equivalently sin(x + 90)
     LDI r20, DISP_VAL
-    LOAD r15, r20
-    ADDI r15, 90
+    LOAD r0, r20
+    ADDI r0, 90
     LDI r20, DISP_VAL
-    STORE r20, r15
+    STORE r20, r0
     CALL do_sin
     POP r31
     RET
@@ -461,98 +461,98 @@ do_cos:
 do_sqrt:
     PUSH r31
     LDI r20, DISP_VAL
-    LOAD r15, r20
+    LOAD r0, r20
 
-    CMPI r15, 0
-    JZ r13, sqrt_done
+    CMPI r0, 0
+    JZ r8, sqrt_done
 
     ; Initial guess = N / 2 + 1
-    LDI r1, 2
-    MOV r5, r15
-    DIV r5, r1
-    ADDI r5, 1
+    LDI r5, 2
+    MOV r12, r0
+    DIV r12, r5
+    ADDI r12, 1
 
     ; 10 Newton iterations
     LDI r2, 10
 sqrt_iter:
-    MOV r14, r15
-    DIV r14, r5       ; N/guess
-    ADD r14, r5       ; guess + N/guess
-    DIV r14, r1       ; / 2
-    MOV r5, r14
+    MOV r7, r0
+    DIV r7, r12       ; N/guess
+    ADD r7, r12       ; guess + N/guess
+    DIV r7, r5       ; / 2
+    MOV r12, r7
     SUBI r2, 1
     JNZ r2, sqrt_iter
 
-    MOV r15, r5
+    MOV r0, r12
 sqrt_done:
     LDI r20, DISP_VAL
-    STORE r20, r15
-    LDI r20, NEW_ENTRY
-    LDI r7, 1
-    STORE r20, r7
-    POP r31
-    RET
-
-; ── CLEAR ─────────────────────────────────────────
-clear_calc:
-    PUSH r31
-    LDI r8, 0
-    LDI r20, DISP_VAL
-    STORE r20, r8
-    LDI r20, ACCUM
-    STORE r20, r8
-    LDI r20, OPER
-    STORE r20, r8
+    STORE r20, r0
     LDI r20, NEW_ENTRY
     LDI r4, 1
     STORE r20, r4
     POP r31
     RET
 
+; ── CLEAR ─────────────────────────────────────────
+clear_calc:
+    PUSH r31
+    LDI r6, 0
+    LDI r20, DISP_VAL
+    STORE r20, r6
+    LDI r20, ACCUM
+    STORE r20, r6
+    LDI r20, OPER
+    STORE r20, r6
+    LDI r20, NEW_ENTRY
+    LDI r15, 1
+    STORE r20, r15
+    POP r31
+    RET
+
 ; ── RENDER ────────────────────────────────────────
 render:
     PUSH r31
-    LDI r10, 1
+    LDI r1, 1
 
     ; Background
-    LDI r8, 0x0D1B2A
-    FILL r8
+    LDI r6, 0x0D1B2A
+    FILL r6
 
     ; Title bar
-    LDI r8, 0x1B3A4B
-    LDI r4, 0
-    LDI r12, 0
-    LDI r3, 256
-    LDI r7, 20
-    RECTF r4, r12, r3, r7, r8
+    LDI r6, 0x1B3A4B
+    LDI r15, 0
+    LDI r11, 0
+    LDI r10, 256
+    LDI r4, 20
+    RECTF r15, r11, r10, r4, r6
 
     ; Title
     LDI r20, TXT_BUF
     STRO r20, "SCI-CALC"
-    LDI r4, 85
-    LDI r12, 4
+    LDI r15, 85
+    LDI r11, 4
     LDI r20, TXT_BUF
-    TEXT r4, r12, r20
+    TEXT r15, r11, r20
 
     ; Display panel
-    LDI r8, 0x060612
-    LDI r4, 20
-    LDI r12, 28
-    LDI r3, 216
-    LDI r7, 40
-    RECTF r4, r12, r3, r7, r8
+    LDI r6, 0x060612
+    LDI r15, 20
+    LDI r11, 28
+    LDI r10, 216
+    LDI r4, 40
+    RECTF r15, r11, r10, r4, r6
 
     ; Convert display value to string at DISP_STR
     LDI r20, DISP_STR
     LDI r21, DISP_VAL
-    LOAD r15, r21
+    LOAD r0, r21
 
     ; Handle negative
     LDI r22, 0
     LDI r23, 0
-    CMP r15, r23
-    BGE r13, pos_num
-    NEG r15
+    CMP r0, r23
+    BGE r8, pos_num
+    NEG r0
     LDI r22, 1
 
 pos_num:
@@ -560,8 +560,8 @@ pos_num:
     LDI r23, 0
     LDI r24, 10
 
-    CMPI r15, 0
-    JNZ r13, not_zero
+    CMPI r0, 0
+    JNZ r8, not_zero
     LDI r25, 0x30
     STORE r20, r25
     ADDI r20, 1
@@ -571,21 +571,21 @@ pos_num:
 not_zero:
     LDI r25, 0x6100    ; temp buffer
 div_loop:
-    CMPI r15, 0
-    JZ r13, div_done
-    MOV r26, r15
+    CMPI r0, 0
+    JZ r8, div_done
+    MOV r26, r0
     MOD r26, r24
     ADDI r26, 0x30
     STORE r25, r26
     ADDI r25, 1
     ADDI r23, 1
-    DIV r15, r24
+    DIV r0, r24
     JMP div_loop
 
 div_done:
     ; Write negative sign
     CMPI r22, 0
-    JZ r13, no_neg
+    JZ r8, no_neg
     LDI r26, 0x2D
     STORE r20, r26
     ADDI r20, 1
@@ -596,7 +596,7 @@ no_neg:
     ADD r25, r23
 rev_loop:
     CMPI r23, 0
-    JZ r13, num_done
+    JZ r8, num_done
     SUBI r23, 1
     LDI r26, 0x6100
     ADD r26, r23
@@ -606,53 +606,53 @@ rev_loop:
     JMP rev_loop
 
 num_done:
-    LDI r8, 0
-    STORE r20, r8
+    LDI r6, 0
+    STORE r20, r6
 
     ; Draw display value
-    LDI r4, 40
-    LDI r12, 35
-    LDI r3, 0x00FF00
+    LDI r15, 40
+    LDI r11, 35
+    LDI r10, 0x00FF00
     LDI r20, DISP_STR
-    DRAWTEXT r4, r12, r20, r3, r3
+    DRAWTEXT r15, r11, r20, r10, r10
 
     ; Function labels panel
-    LDI r8, 0x0D0D1A
-    LDI r4, 20
-    LDI r12, 75
-    LDI r3, 216
-    LDI r7, 80
-    RECTF r4, r12, r3, r7, r8
+    LDI r6, 0x0D0D1A
+    LDI r15, 20
+    LDI r11, 75
+    LDI r10, 216
+    LDI r4, 80
+    RECTF r15, r11, r10, r4, r6
 
     ; Labels
     LDI r20, TXT_BUF
     STRO r20, "S:sin C:cos Q:sqrt"
-    LDI r4, 30
-    LDI r12, 85
-    LDI r3, 0x88BBFF
-    DRAWTEXT r4, r12, r20, r3, r3
+    LDI r15, 30
+    LDI r11, 85
+    LDI r10, 0x88BBFF
+    DRAWTEXT r15, r11, r20, r10, r10
 
     LDI r20, TXT_BUF
     STRO r20, "+ - * / = Enter"
-    LDI r4, 30
-    LDI r12, 100
-    LDI r3, 0x88BBFF
-    DRAWTEXT r4, r12, r20, r3, r3
+    LDI r15, 30
+    LDI r11, 100
+    LDI r10, 0x88BBFF
+    DRAWTEXT r15, r11, r20, r10, r10
 
     LDI r20, TXT_BUF
     STRO r20, "Esc:clear  0-9:digits"
-    LDI r4, 30
-    LDI r12, 115
-    LDI r3, 0x88BBFF
-    DRAWTEXT r4, r12, r20, r3, r3
+    LDI r15, 30
+    LDI r11, 115
+    LDI r10, 0x88BBFF
+    DRAWTEXT r15, r11, r20, r10, r10
 
     ; Bottom bar
-    LDI r8, 0x0A0A1A
-    LDI r4, 0
-    LDI r12, 240
-    LDI r3, 256
-    LDI r7, 16
-    RECTF r4, r12, r3, r7, r8
+    LDI r6, 0x0A0A1A
+    LDI r15, 0
+    LDI r11, 240
+    LDI r10, 256
+    LDI r4, 16
+    RECTF r15, r11, r10, r4, r6
 
     POP r31
     RET

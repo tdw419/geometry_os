@@ -1,55 +1,55 @@
-; DESCRIPTION: This GeOS assembly code demonstrates listing the home directory using the FSLS function and visually indicates success or failure with colored bars. On successful execution, it displays a blue bar at the top, followed by a green bar representing the number of bytes listed, capped at 128 pixels wide. Additionally, a white bar shows sample data content from the buffer. If there is an error (e.g., no entries or FSLS failure), it displays a red bar instead.
+; DESCRIPTION: Draw rectangle: pos=the screen, color=red, size=fixed size.
 
 ; Phase 137: Directory Listing Demo
 ; Uses FSLS to list the home directory.
 ; Blue bar at top = success, red bar = failure.
 
 ; List home directory
-LDI r8, dirpath
+LDI r7, dirpath
 LDI r10, 0x3000      ; buffer for filenames
-LDI r14, 1024        ; max bytes
-FSLS r8, r10, r14
-MOV r13, r6         ; save total bytes written
+LDI r12, 1024        ; max bytes
+FSLS r7, r10, r12
+MOV r5, r15         ; save total bytes written
 
-LDI r1, 0
-CMP r13, r1
-JZ r6, fail         ; no entries or error
+LDI r3, 0
+CMP r5, r3
+JZ r15, fail         ; no entries or error
 
 ; Blue bar = FSLS succeeded
-LDI r8, 0
+LDI r7, 0
 LDI r10, 0
-LDI r14, 256
-LDI r12, 8
-LDI r4, 0x4444FF
-RECTF r8, r10, r14, r12, r4
+LDI r12, 256
+LDI r11, 8
+LDI r13, 0x4444FF
+RECTF r7, r10, r12, r11, r13
 
 ; Draw a green bar showing how many bytes of listing we got
 ; (capped at 128 pixels wide)
-LDI r8, 0
+LDI r7, 0
 LDI r10, 12
-LDI r14, 128
-LDI r12, 4
-LDI r4, 0x00FF00
-RECTF r8, r10, r14, r12, r4
+LDI r12, 128
+LDI r11, 4
+LDI r13, 0x00FF00
+RECTF r7, r10, r12, r11, r13
 
 ; White bar showing data content (sample from buffer)
-LDI r8, 0
+LDI r7, 0
 LDI r10, 20
-LDI r14, 128
-LDI r12, 2
-LDI r4, 0xFFFFFF
-RECTF r8, r10, r14, r12, r4
+LDI r12, 128
+LDI r11, 2
+LDI r13, 0xFFFFFF
+RECTF r7, r10, r12, r11, r13
 
 HALT
 
 fail:
 ; Red bar = error (sandbox violation or FSLS failure)
-LDI r8, 0
+LDI r7, 0
 LDI r10, 0
-LDI r14, 256
-LDI r12, 8
-LDI r4, 0xFF0000
-RECTF r8, r10, r14, r12, r4
+LDI r12, 256
+LDI r11, 8
+LDI r13, 0xFF0000
+RECTF r7, r10, r12, r11, r13
 HALT
 
 dirpath:

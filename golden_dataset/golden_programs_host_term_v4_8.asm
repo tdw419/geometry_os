@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code spawns a bash shell inside a pseudo-terminal (PTY) and manages its interaction with the user through keyboard input and output. It includes support for ANSI escape sequences, dynamic terminal resizing based on window size, and horizontal scrolling functionality. The terminal is rendered using a 3x5 font and displays status information such as the current working directory and connection status.
+; DESCRIPTION: Render a red rectangle at the screen.
 
 ; host_term.asm -- Host Shell Terminal for Geometry OS (v5)
 ;
@@ -35,8 +35,8 @@
 ;   0x6300         WINFO_BUF
 ;
 ; Registers:
-;   r9  CMP/result
-;   r3  constant 1
+;   r13  CMP/result
+;   r4  constant 1
 ;   r28 PTY handle (live copy)
 ;   r30 stack pointer
 ;
@@ -82,108 +82,108 @@
 ; =========================================
 ; INIT
 ; =========================================
-LDI r3, 1
+LDI r4, 1
 LDI r30, 0xFD00
 
 ; Background fill -- dark gray
-LDI r9, 0x0A0A0A
-FILL r9
+LDI r13, 0x0A0A0A
+FILL r13
 
 ; Clear text buffer to spaces (85*40 = 3400 cells)
 LDI r20, BUF
-LDI r7, 32
-LDI r12, 3400
+LDI r6, 32
+LDI r8, 3400
 clear_buf_init:
-    STORE r20, r7
-    ADD r20, r3
+    STORE r20, r6
+    ADD r20, r4
     CMPI r20, BUF_END
-    BLT r9, clear_buf_init
+    BLT r13, clear_buf_init
 
 ; Cursor + blink + handle + ansi_state init
 LDI r20, CUR_COL
-LDI r9, 0
-STORE r20, r9
+LDI r13, 0
+STORE r20, r13
 LDI r20, CUR_ROW
-STORE r20, r9
+STORE r20, r13
 LDI r20, BLINK
-STORE r20, r9
+STORE r20, r13
 LDI r20, PTY_HANDLE
-LDI r9, 0xFFFF
-STORE r20, r9
+LDI r13, 0xFFFF
+STORE r20, r13
 LDI r20, ANSI_STATE
-LDI r9, 0
-STORE r20, r9
+LDI r13, 0
+STORE r20, r13
 LDI r20, STATUS_CONNECTED
-STORE r20, r9
+STORE r20, r13
 LDI r20, STATUS_CWD_LEN
-STORE r20, r9
+STORE r20, r13
 LDI r20, OSC_LEN
-STORE r20, r9
+STORE r20, r13
 
 ; Phase 133: init dynamic sizing vars
 LDI r20, H_SCROLL
-STORE r20, r9
+STORE r20, r13
 LDI r20, COLS_RAM
-LDI r9, COLS
-STORE r20, r9
+LDI r13, COLS
+STORE r20, r13
 LDI r20, ROWS_RAM
-LDI r9, ROWS
-STORE r20, r9
-LDI r9, 0
+LDI r13, ROWS
+STORE r20, r13
+LDI r13, 0
 
 ; Initialize resize tracking (WINSYS window ID = 0 = disabled)
 LDI r20, WIN_ID
-STORE r20, r9
+STORE r20, r13
 LDI r20, LAST_COLS
-LDI r9, COLS
-STORE r20, r9
-LDI r9, 0
+LDI r13, COLS
+STORE r20, r13
+LDI r13, 0
 
 ; Title bar background (8px tall for SMALLTEXT)
-LDI r3, 0
-LDI r6, 0
-LDI r13, 256
-LDI r14, 8
-LDI r4, 0x1A1A2E
-RECTF r3, r6, r13, r14, r4
+LDI r4, 0
+LDI r0, 0
+LDI r14, 256
+LDI r12, 8
+LDI r1, 0x1A1A2E
+RECTF r4, r0, r14, r12, r1
 
 ; Title text (using DRAWTEXT for readability in title bar)
 LDI r20, SCRATCH
 STRO r20, "shell"
-LDI r3, 2
-LDI r6, 1
-LDI r13, SCRATCH
-LDI r14, 0x44DD44
-LDI r4, 0x1A1A2E
-DRAWTEXT r3, r6, r13, r14, r4
+LDI r4, 2
+LDI r0, 1
+LDI r14, SCRATCH
+LDI r12, 0x44DD44
+LDI r1, 0x1A1A2E
+DRAWTEXT r4, r0, r14, r12, r1
 
 ; Close button hit region
-LDI r3, 230
-LDI r6, 0
-LDI r13, 26
-LDI r14, 8
-HITSET r3, r6, r13, r14, 99
+LDI r4, 230
+LDI r0, 0
+LDI r14, 26
+LDI r12, 8
+HITSET r4, r0, r14, r12, 99
 
 ; Empty cmd string for PTYOPEN
-LDI r3, CMD_BUF
-LDI r9, 0
-STORE r3, r9
+LDI r4, CMD_BUF
+LDI r13, 0
+STORE r4, r13
 
 ; PTYOPEN
-LDI r4, CMD_BUF
-PTYOPEN r4, r0
+LDI r1, CMD_BUF
+PTYOPEN r1, r5
 
 ; Save handle and mark connected
 LDI r20, PTY_HANDLE
-STORE r20, r0
+STORE r20, r5
 LDI r28, 0
-ADD r28, r0
+ADD r28, r5
 LDI r20, STATUS_CONNECTED
-LDI r9, 1
-STORE r20, r9
+LDI r13, 1
+STORE r20, r13
 
-; r3 = 1 (restore after earlier code clobbered it)
-LDI r3, 1
+; r4 = 1 (restore after earlier code clobbered it)
+LDI r4, 1
 
 ; =========================================
 ; STARTUP DRAIN -- collect initial bash output
@@ -204,26 +204,26 @@ LDI r23, 60         ; max startup frames
 
 startup_drain:
     ; Read from PTY
-    LDI r7, RECV_BUF
-    LDI r11, 512
-    PTYREAD r28, r7, r11
-    MOV r1, r9
-    CMPI r1, 0
-    JZ r9, startup_check_done
-    LDI r11, 0xFFFFFFFF
-    CMP r1, r11
-    JZ r9, pty_closed
+    LDI r6, RECV_BUF
+    LDI r10, 512
+    PTYREAD r28, r6, r10
+    MOV r11, r13
+    CMPI r11, 0
+    JZ r13, startup_check_done
+    LDI r10, 0xFFFFFFFF
+    CMP r11, r10
+    JZ r13, pty_closed
 
     ; Process received bytes
-    LDI r10, 0
+    LDI r7, 0
 startup_append:
-    CMP r10, r1
-    BGE r9, startup_after
+    CMP r7, r11
+    BGE r13, startup_after
     LDI r20, RECV_BUF
-    ADD r20, r10
-    LOAD r4, r20
+    ADD r20, r7
+    LOAD r1, r20
     CALL process_byte
-    ADD r10, r3
+    ADD r7, r4
     JMP startup_append
 startup_after:
     LDI r21, 1      ; mark as received
@@ -231,13 +231,13 @@ startup_after:
 startup_check_done:
     CALL render
     FRAME
-    ADD r22, r3
+    ADD r22, r4
     CMPI r22, 60
     BLT r22, startup_drain
 
 ; If no output received after 60 frames, probe with echo
 CMPI r21, 0
-JNZ r9, startup_done
+JNZ r13, startup_done
 
 ; Show "[probing...]" and send echo to trigger output
 LDI r20, SEND_BUF
@@ -248,135 +248,135 @@ FRAME
 
 ; Send "echo ready\n" to probe the PTY
 LDI r20, SEND_BUF
-LDI r9, 101
-STORE r20, r9
+LDI r13, 101
+STORE r20, r13
 LDI r20, SEND_BUF
-ADD r20, r3
-LDI r9, 99
-STORE r20, r9
+ADD r20, r4
+LDI r13, 99
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 2
-ADD r20, r6
-LDI r9, 104
-STORE r20, r9
+LDI r0, 2
+ADD r20, r0
+LDI r13, 104
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 3
-ADD r20, r6
-LDI r9, 111
-STORE r20, r9
+LDI r0, 3
+ADD r20, r0
+LDI r13, 111
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 4
-ADD r20, r6
-LDI r9, 32
-STORE r20, r9
+LDI r0, 4
+ADD r20, r0
+LDI r13, 32
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 5
-ADD r20, r6
-LDI r9, 114
-STORE r20, r9
+LDI r0, 5
+ADD r20, r0
+LDI r13, 114
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 6
-ADD r20, r6
-LDI r9, 101
-STORE r20, r9
+LDI r0, 6
+ADD r20, r0
+LDI r13, 101
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 7
-ADD r20, r6
-LDI r9, 97
-STORE r20, r9
+LDI r0, 7
+ADD r20, r0
+LDI r13, 97
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 8
-ADD r20, r6
-LDI r9, 100
-STORE r20, r9
+LDI r0, 8
+ADD r20, r0
+LDI r13, 100
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 9
-ADD r20, r6
-LDI r9, 121
-STORE r20, r9
+LDI r0, 9
+ADD r20, r0
+LDI r13, 121
+STORE r20, r13
 LDI r20, SEND_BUF
-LDI r6, 10
-ADD r20, r6
-LDI r9, 10
-STORE r20, r9
+LDI r0, 10
+ADD r20, r0
+LDI r13, 10
+STORE r20, r13
 
-LDI r7, SEND_BUF
-LDI r11, 11
-PTYWRITE r28, r7, r11
+LDI r6, SEND_BUF
+LDI r10, 11
+PTYWRITE r28, r6, r10
 
 ; Drain probe response for 30 more frames
 LDI r22, 0
 probe_drain:
-    LDI r7, RECV_BUF
-    LDI r11, 512
-    PTYREAD r28, r7, r11
-    MOV r1, r9
-    CMPI r1, 0
-    JZ r9, probe_next
-    LDI r11, 0xFFFFFFFF
-    CMP r1, r11
-    JZ r9, pty_closed
-    LDI r10, 0
+    LDI r6, RECV_BUF
+    LDI r10, 512
+    PTYREAD r28, r6, r10
+    MOV r11, r13
+    CMPI r11, 0
+    JZ r13, probe_next
+    LDI r10, 0xFFFFFFFF
+    CMP r11, r10
+    JZ r13, pty_closed
+    LDI r7, 0
 probe_append:
-    CMP r10, r1
-    BGE r9, probe_after
+    CMP r7, r11
+    BGE r13, probe_after
     LDI r20, RECV_BUF
-    ADD r20, r10
-    LOAD r4, r20
+    ADD r20, r7
+    LOAD r1, r20
     CALL process_byte
-    ADD r10, r3
+    ADD r7, r4
     JMP probe_append
 probe_after:
     LDI r21, 1
 probe_next:
     CALL render
     FRAME
-    ADD r22, r3
+    ADD r22, r4
     CMPI r22, 30
     BLT r22, probe_drain
 
 startup_done:
-    LDI r3, 1
+    LDI r4, 1
 
 ; =========================================
 ; MAIN LOOP
 ; =========================================
 main_loop:
-    LDI r3, 1
+    LDI r4, 1
 
     ; Check for window resize (WINSYS mode)
     CALL check_resize
 
     ; Drain pty into text buffer
-    LDI r7, RECV_BUF
-    LDI r11, 512
-    PTYREAD r28, r7, r11
-    ; r9 = bytes drained (0 = nothing, 0xFFFFFFFF = closed)
+    LDI r6, RECV_BUF
+    LDI r10, 512
+    PTYREAD r28, r6, r10
+    ; r13 = bytes drained (0 = nothing, 0xFFFFFFFF = closed)
     ; Save byte count before CMPI destroys it
-    MOV r1, r9
-    CMPI r1, 0
-    JZ r9, after_drain
-    LDI r11, 0xFFFFFFFF
-    CMP r1, r11
-    JZ r9, pty_closed
+    MOV r11, r13
+    CMPI r11, 0
+    JZ r13, after_drain
+    LDI r10, 0xFFFFFFFF
+    CMP r11, r10
+    JZ r13, pty_closed
 
     ; Process each byte through ANSI filter -> text buffer
-    LDI r10, 0
+    LDI r7, 0
 append_loop:
-    CMP r10, r1
-    BGE r9, after_drain
+    CMP r7, r11
+    BGE r13, after_drain
     LDI r20, RECV_BUF
-    ADD r20, r10
-    LOAD r4, r20
+    ADD r20, r7
+    LOAD r1, r20
     CALL process_byte
-    ADD r10, r3
+    ADD r7, r4
     JMP append_loop
 
 pty_closed:
     ; Mark disconnected
     LDI r20, STATUS_CONNECTED
-    LDI r9, 0
-    STORE r20, r9
+    LDI r13, 0
+    STORE r20, r13
     ; Show message and stop
     LDI r20, SEND_BUF
     STRO r20, "[pty closed]"
@@ -384,58 +384,58 @@ pty_closed:
     JMP after_drain
 
 after_drain:
-    LDI r3, 1
+    LDI r4, 1
 
     ; Blink counter
     LDI r20, BLINK
-    LOAD r9, r20
-    ADD r9, r3
-    STORE r20, r9
+    LOAD r13, r20
+    ADD r13, r4
+    STORE r20, r13
 
     ; Render
     CALL render
     FRAME
 
     ; Read keystroke
-    IKEY r4
-    JZ r4, main_loop
+    IKEY r1
+    JZ r1, main_loop
 
     ; Translate key and send to PTY
     CALL translate_key
-    ; r9 = number of bytes to send (0 = ignore, 1 = single, 3 = arrow escape)
-    CMPI r9, 0
-    JZ r9, main_loop
+    ; r13 = number of bytes to send (0 = ignore, 1 = single, 3 = arrow escape)
+    CMPI r13, 0
+    JZ r13, main_loop
 
     ; Send bytes from SEND_BUF
-    LDI r7, SEND_BUF
-    PTYWRITE r28, r7, r9
+    LDI r6, SEND_BUF
+    PTYWRITE r28, r6, r13
     JMP main_loop
 
 ; =========================================
 ; PROCESS_BYTE -- ANSI state machine + text buffer append
-; r4 = byte from PTY
+; r1 = byte from PTY
 ; Uses ANSI_STATE at 0x4A04
 ; =========================================
 process_byte:
     PUSH r31
-    LDI r3, 1
+    LDI r4, 1
 
     ; Load ANSI state
     LDI r20, ANSI_STATE
-    LOAD r14, r20
+    LOAD r12, r20
 
     ; State: NORMAL
-    CMPI r14, ANS_NORMAL
-    JNZ r9, pb_check_esc
+    CMPI r12, ANS_NORMAL
+    JNZ r13, pb_check_esc
 
     ; Check for ESC (0x1B)
-    CMPI r4, 27
-    JNZ r9, pb_normal_byte
+    CMPI r1, 27
+    JNZ r13, pb_normal_byte
 
     ; Saw ESC -> transition to ESC state
     LDI r20, ANSI_STATE
-    LDI r9, ANS_ESC
-    STORE r20, r9
+    LDI r13, ANS_ESC
+    STORE r20, r13
     JMP pb_ret
 
 pb_normal_byte:
@@ -445,49 +445,49 @@ pb_normal_byte:
 
 pb_check_esc:
     ; State: ESC (just saw 0x1B)
-    CMPI r14, ANS_ESC
-    JNZ r9, pb_check_csi
+    CMPI r12, ANS_ESC
+    JNZ r13, pb_check_csi
 
     ; Check for [ -> CSI
-    CMPI r4, 91   ; '['
-    JNZ r9, pb_esc_check_osc
+    CMPI r1, 91   ; '['
+    JNZ r13, pb_esc_check_osc
 
     LDI r20, ANSI_STATE
-    LDI r9, ANS_CSI
-    STORE r20, r9
+    LDI r13, ANS_CSI
+    STORE r20, r13
     JMP pb_ret
 
 pb_esc_check_osc:
     ; Check for ] -> OSC
-    CMPI r4, 93   ; ']'
-    JNZ r9, pb_esc_other
+    CMPI r1, 93   ; ']'
+    JNZ r13, pb_esc_other
 
     LDI r20, ANSI_STATE
-    LDI r9, ANS_OSC
-    STORE r20, r9
+    LDI r13, ANS_OSC
+    STORE r20, r13
     JMP pb_ret
 
 pb_esc_other:
     ; Any other char after ESC: not a recognized sequence.
     ; Two-char ESC sequences (ESC M, ESC 7, ESC 8) -- skip.
     LDI r20, ANSI_STATE
-    LDI r9, ANS_NORMAL
-    STORE r20, r9
+    LDI r13, ANS_NORMAL
+    STORE r20, r13
     JMP pb_ret
 
 pb_check_csi:
     ; State: CSI (saw ESC [)
-    CMPI r14, ANS_CSI
-    JNZ r9, pb_check_osc
+    CMPI r12, ANS_CSI
+    JNZ r13, pb_check_osc
 
     ; CSI sequences end with a byte in 0x40-0x7E (letter or @)
-    CMPI r4, 64    ; '@' -- first terminator
-    BLT r9, pb_csi_continue
+    CMPI r1, 64    ; '@' -- first terminator
+    BLT r13, pb_csi_continue
 
     ; Byte >= 0x40 is a terminator -> sequence done
     LDI r20, ANSI_STATE
-    LDI r9, ANS_NORMAL
-    STORE r20, r9
+    LDI r13, ANS_NORMAL
+    STORE r20, r13
     JMP pb_ret
 
 pb_csi_continue:
@@ -496,99 +496,99 @@ pb_csi_continue:
 
 pb_check_osc:
     ; State: OSC (saw ESC ])
-    CMPI r14, ANS_OSC
-    JNZ r9, pb_reset_state
+    CMPI r12, ANS_OSC
+    JNZ r13, pb_reset_state
 
     ; OSC ends with BEL (0x07) or ST (ESC \)
-    CMPI r4, 7     ; BEL
-    JZ r9, pb_osc_end
-    CMPI r4, 27
-    JNZ r9, pb_osc_continue
+    CMPI r1, 7     ; BEL
+    JZ r13, pb_osc_end
+    CMPI r1, 27
+    JNZ r13, pb_osc_continue
     ; ESC might be start of ST
     LDI r20, ANSI_STATE
-    LDI r9, ANS_ESC
-    STORE r20, r9
+    LDI r13, ANS_ESC
+    STORE r20, r13
     JMP pb_ret
 
 pb_osc_continue:
     ; Collect OSC byte into buffer (max 80 chars)
     LDI r20, OSC_LEN
-    LOAD r9, r20
-    LDI r11, 80
-    CMP r9, r11
-    BGE r9, pb_ret
-    LDI r11, OSC_BUF
-    ADD r11, r9
-    STORE r11, r4
-    ADD r9, r3
-    STORE r20, r9
+    LOAD r13, r20
+    LDI r10, 80
+    CMP r13, r10
+    BGE r13, pb_ret
+    LDI r10, OSC_BUF
+    ADD r10, r13
+    STORE r10, r1
+    ADD r13, r4
+    STORE r20, r13
     JMP pb_ret
 
 pb_osc_end:
     ; Process collected OSC sequence
     CALL process_osc
     LDI r20, ANSI_STATE
-    LDI r9, ANS_NORMAL
-    STORE r20, r9
+    LDI r13, ANS_NORMAL
+    STORE r20, r13
     JMP pb_ret
 
 pb_reset_state:
     LDI r20, ANSI_STATE
-    LDI r9, ANS_NORMAL
-    STORE r20, r9
+    LDI r13, ANS_NORMAL
+    STORE r20, r13
 
 pb_ret:
     POP r31
     RET
 
 ; =========================================
-; APPEND_BYTE -- append r4 to text buffer (visible chars only)
+; APPEND_BYTE -- append r1 to text buffer (visible chars only)
 ; \n (10) -> newline; \r (13) -> col=0; printable -> insert
 ; =========================================
 append_byte:
     PUSH r31
-    LDI r3, 1
+    LDI r4, 1
 
     ; Newline
-    CMPI r4, 10
-    JNZ r9, ab_check_cr
+    CMPI r1, 10
+    JNZ r13, ab_check_cr
     CALL do_newline
     JMP ab_ret
 
 ab_check_cr:
-    CMPI r4, 13
-    JNZ r9, ab_check_print
+    CMPI r1, 13
+    JNZ r13, ab_check_print
     LDI r20, CUR_COL
-    LDI r9, 0
-    STORE r20, r9
+    LDI r13, 0
+    STORE r20, r13
     JMP ab_ret
 
 ab_check_print:
     ; printable range 32..126 inclusive
-    CMPI r4, 32
-    BLT r9, ab_ret
-    CMPI r4, 127
-    BGE r9, ab_ret
+    CMPI r1, 32
+    BLT r13, ab_ret
+    CMPI r1, 127
+    BGE r13, ab_ret
 
-    ; buf[row*COLS + col] = r4
+    ; buf[row*COLS + col] = r1
     LDI r20, CUR_ROW
-    LOAD r6, r20
-    LDI r13, COLS
-    MUL r6, r13
+    LOAD r0, r20
+    LDI r14, COLS
+    MUL r0, r14
     LDI r20, CUR_COL
-    LOAD r9, r20
-    ADD r6, r9
+    LOAD r13, r20
+    ADD r0, r13
     LDI r20, BUF
-    ADD r20, r6
-    STORE r20, r4
+    ADD r20, r0
+    STORE r20, r1
 
     ; col++
     LDI r20, CUR_COL
-    LOAD r9, r20
-    ADD r9, r3
-    STORE r20, r9
-    CMPI r9, COLS
-    JNZ r9, ab_ret
+    LOAD r13, r20
+    ADD r13, r4
+    STORE r20, r13
+    CMPI r13, COLS
+    JNZ r13, ab_ret
     CALL do_newline
 
 ab_ret:
@@ -597,207 +597,207 @@ ab_ret:
 
 ; =========================================
 ; TRANSLATE_KEY -- translate IKEY code to PTY byte(s)
-; Fills SEND_BUF with bytes, returns byte count in r9
-; r4 = raw IKEY value (preserved)
+; Fills SEND_BUF with bytes, returns byte count in r13
+; r1 = raw IKEY value (preserved)
 ; =========================================
 translate_key:
     PUSH r31
-    LDI r3, 1
+    LDI r4, 1
 
     ; Printable ASCII (32-126): pass through as single byte
-    CMPI r4, 32
-    BLT r9, tk_special
-    CMPI r4, 127
-    BGE r9, tk_special
+    CMPI r1, 32
+    BLT r13, tk_special
+    CMPI r1, 127
+    BGE r13, tk_special
     LDI r20, SEND_BUF
-    STORE r20, r4
-    LDI r9, 1
+    STORE r20, r1
+    LDI r13, 1
     JMP tk_ret
 
 tk_special:
     ; Enter (0x0D) -> \n (10)
-    CMPI r4, 13
-    JNZ r9, tk_bs
+    CMPI r1, 13
+    JNZ r13, tk_bs
     LDI r20, SEND_BUF
-    LDI r9, 10
-    STORE r20, r9
-    LDI r9, 1
+    LDI r13, 10
+    STORE r20, r13
+    LDI r13, 1
     JMP tk_ret
 
 tk_bs:
     ; Backspace (0x08) -> DEL (0x7F)
-    CMPI r4, 8
-    JNZ r9, tk_del
+    CMPI r1, 8
+    JNZ r13, tk_del
     LDI r20, SEND_BUF
-    LDI r9, 127
-    STORE r20, r9
-    LDI r9, 1
+    LDI r13, 127
+    STORE r20, r13
+    LDI r13, 1
     JMP tk_ret
 
 tk_del:
     ; Delete (0x7F) -> ESC [ 3 ~ (just send DEL for simplicity)
-    CMPI r4, 127
-    JNZ r9, tk_tab
+    CMPI r1, 127
+    JNZ r13, tk_tab
     LDI r20, SEND_BUF
-    LDI r9, 127
-    STORE r20, r9
-    LDI r9, 1
+    LDI r13, 127
+    STORE r20, r13
+    LDI r13, 1
     JMP tk_ret
 
 tk_tab:
-    CMPI r4, 9
-    JNZ r9, tk_ctrl_c
+    CMPI r1, 9
+    JNZ r13, tk_ctrl_c
     LDI r20, SEND_BUF
-    LDI r9, 9
-    STORE r20, r9
-    LDI r9, 1
+    LDI r13, 9
+    STORE r20, r13
+    LDI r13, 1
     JMP tk_ret
 
 tk_ctrl_c:
     ; Ctrl-C: check for ASCII 3
-    CMPI r4, 3
-    JNZ r9, tk_ctrl_d
+    CMPI r1, 3
+    JNZ r13, tk_ctrl_d
     LDI r20, SEND_BUF
-    LDI r9, 3
-    STORE r20, r9
-    LDI r9, 1
+    LDI r13, 3
+    STORE r20, r13
+    LDI r13, 1
     JMP tk_ret
 
 tk_ctrl_d:
-    CMPI r4, 4
-    JNZ r9, tk_escape
+    CMPI r1, 4
+    JNZ r13, tk_escape
     LDI r20, SEND_BUF
-    LDI r9, 4
-    STORE r20, r9
-    LDI r9, 1
+    LDI r13, 4
+    STORE r20, r13
+    LDI r13, 1
     JMP tk_ret
 
 tk_escape:
-    CMPI r4, 27
-    JNZ r9, tk_arrow_up
+    CMPI r1, 27
+    JNZ r13, tk_arrow_up
     LDI r20, SEND_BUF
-    LDI r9, 27
-    STORE r20, r9
-    LDI r9, 1
+    LDI r13, 27
+    STORE r20, r13
+    LDI r13, 1
     JMP tk_ret
 
 tk_arrow_up:
     ; Arrow Up (0x80) -> ESC [ A
-    CMPI r4, KEY_UP
-    JNZ r9, tk_arrow_down
+    CMPI r1, KEY_UP
+    JNZ r13, tk_arrow_down
     LDI r20, SEND_BUF
-    LDI r9, 27
-    STORE r20, r9
+    LDI r13, 27
+    STORE r20, r13
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r9, 91
-    STORE r20, r9
+    ADD r20, r4
+    LDI r13, 91
+    STORE r20, r13
     LDI r20, SEND_BUF
-    LDI r6, 2
-    ADD r20, r6
-    LDI r9, 65
-    STORE r20, r9
-    LDI r9, 3
+    LDI r0, 2
+    ADD r20, r0
+    LDI r13, 65
+    STORE r20, r13
+    LDI r13, 3
     JMP tk_ret
 
 tk_arrow_down:
     ; Arrow Down (0x81) -> ESC [ B
-    CMPI r4, KEY_DOWN
-    JNZ r9, tk_arrow_right
+    CMPI r1, KEY_DOWN
+    JNZ r13, tk_arrow_right
     LDI r20, SEND_BUF
-    LDI r9, 27
-    STORE r20, r9
+    LDI r13, 27
+    STORE r20, r13
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r9, 91
-    STORE r20, r9
+    ADD r20, r4
+    LDI r13, 91
+    STORE r20, r13
     LDI r20, SEND_BUF
-    LDI r6, 2
-    ADD r20, r6
-    LDI r9, 66
-    STORE r20, r9
-    LDI r9, 3
+    LDI r0, 2
+    ADD r20, r0
+    LDI r13, 66
+    STORE r20, r13
+    LDI r13, 3
     JMP tk_ret
 
 tk_arrow_right:
     ; Arrow Right (0x83) -> ESC [ C
-    CMPI r4, KEY_RIGHT
-    JNZ r9, tk_arrow_left
+    CMPI r1, KEY_RIGHT
+    JNZ r13, tk_arrow_left
     LDI r20, SEND_BUF
-    LDI r9, 27
-    STORE r20, r9
+    LDI r13, 27
+    STORE r20, r13
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r9, 91
-    STORE r20, r9
+    ADD r20, r4
+    LDI r13, 91
+    STORE r20, r13
     LDI r20, SEND_BUF
-    LDI r6, 2
-    ADD r20, r6
-    LDI r9, 67
-    STORE r20, r9
-    LDI r9, 3
+    LDI r0, 2
+    ADD r20, r0
+    LDI r13, 67
+    STORE r20, r13
+    LDI r13, 3
     JMP tk_ret
 
 tk_arrow_left:
     ; Arrow Left (0x82) -> ESC [ D
-    CMPI r4, KEY_LEFT
-    JNZ r9, tk_home
+    CMPI r1, KEY_LEFT
+    JNZ r13, tk_home
     LDI r20, SEND_BUF
-    LDI r9, 27
-    STORE r20, r9
+    LDI r13, 27
+    STORE r20, r13
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r9, 91
-    STORE r20, r9
+    ADD r20, r4
+    LDI r13, 91
+    STORE r20, r13
     LDI r20, SEND_BUF
-    LDI r6, 2
-    ADD r20, r6
-    LDI r9, 68
-    STORE r20, r9
-    LDI r9, 3
+    LDI r0, 2
+    ADD r20, r0
+    LDI r13, 68
+    STORE r20, r13
+    LDI r13, 3
     JMP tk_ret
 
 tk_home:
     ; Home (0x84) -> ESC [ H
-    CMPI r4, KEY_HOME
-    JNZ r9, tk_end
+    CMPI r1, KEY_HOME
+    JNZ r13, tk_end
     LDI r20, SEND_BUF
-    LDI r9, 27
-    STORE r20, r9
+    LDI r13, 27
+    STORE r20, r13
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r9, 91
-    STORE r20, r9
+    ADD r20, r4
+    LDI r13, 91
+    STORE r20, r13
     LDI r20, SEND_BUF
-    LDI r6, 2
-    ADD r20, r6
-    LDI r9, 72
-    STORE r20, r9
-    LDI r9, 3
+    LDI r0, 2
+    ADD r20, r0
+    LDI r13, 72
+    STORE r20, r13
+    LDI r13, 3
     JMP tk_ret
 
 tk_end:
     ; End (0x85) -> ESC [ F
-    CMPI r4, KEY_END
-    JNZ r9, tk_ignore
+    CMPI r1, KEY_END
+    JNZ r13, tk_ignore
     LDI r20, SEND_BUF
-    LDI r9, 27
-    STORE r20, r9
+    LDI r13, 27
+    STORE r20, r13
     LDI r20, SEND_BUF
-    ADD r20, r3
-    LDI r9, 91
-    STORE r20, r9
+    ADD r20, r4
+    LDI r13, 91
+    STORE r20, r13
     LDI r20, SEND_BUF
-    LDI r6, 2
-    ADD r20, r6
-    LDI r9, 70
-    STORE r20, r9
-    LDI r9, 3
+    LDI r0, 2
+    ADD r20, r0
+    LDI r13, 70
+    STORE r20, r13
+    LDI r13, 3
     JMP tk_ret
 
 tk_ignore:
     ; Unknown key -- don't send anything
-    LDI r9, 0
+    LDI r13, 0
 
 tk_ret:
     POP r31
@@ -808,20 +808,20 @@ tk_ret:
 ; =========================================
 do_newline:
     PUSH r31
-    LDI r3, 1
+    LDI r4, 1
     LDI r20, CUR_COL
-    LDI r9, 0
-    STORE r20, r9
+    LDI r13, 0
+    STORE r20, r13
     LDI r20, CUR_ROW
-    LOAD r7, r20
-    ADD r7, r3
-    CMPI r7, ROWS
-    BLT r9, dn_store
+    LOAD r6, r20
+    ADD r6, r4
+    CMPI r6, ROWS
+    BLT r13, dn_store
     CALL scroll_up
     LDI r20, CUR_ROW
-    LDI r7, 29
+    LDI r6, 29
 dn_store:
-    STORE r20, r7
+    STORE r20, r6
     POP r31
     RET
 
@@ -830,54 +830,54 @@ dn_store:
 ; =========================================
 scroll_up:
     PUSH r31
-    LDI r3, 1
-    LDI r0, 0
+    LDI r4, 1
+    LDI r5, 0
 scroll_loop:
-    CMPI r0, 29
-    BGE r9, scroll_clear
+    CMPI r5, 29
+    BGE r13, scroll_clear
 
     LDI r20, BUF
-    LDI r9, 0
-    ADD r9, r0
-    ADD r9, r3
-    LDI r5, COLS
-    MUL r9, r5
-    ADD r20, r9          ; src = BUF + (row+1)*COLS
+    LDI r13, 0
+    ADD r13, r5
+    ADD r13, r4
+    LDI r2, COLS
+    MUL r13, r2
+    ADD r20, r13          ; src = BUF + (row+1)*COLS
 
     LDI r21, BUF
-    LDI r9, 0
-    ADD r9, r0
-    LDI r5, COLS
-    MUL r9, r5
-    ADD r21, r9          ; dst = BUF + row*COLS
+    LDI r13, 0
+    ADD r13, r5
+    LDI r2, COLS
+    MUL r13, r2
+    ADD r21, r13          ; dst = BUF + row*COLS
 
     LDI r22, 0
 scroll_copy:
-    LOAD r9, r20
-    STORE r21, r9
-    ADD r20, r3
-    ADD r21, r3
-    ADD r22, r3
+    LOAD r13, r20
+    STORE r21, r13
+    ADD r20, r4
+    ADD r21, r4
+    ADD r22, r4
     CMPI r22, COLS
     BLT r22, scroll_copy
 
-    ADD r0, r3
+    ADD r5, r4
     JMP scroll_loop
 
 scroll_clear:
     LDI r20, BUF
-    LDI r7, 29
-    LDI r5, COLS
-    MUL r7, r5
-    ADD r20, r7
-    LDI r7, 32
+    LDI r6, 29
+    LDI r2, COLS
+    MUL r6, r2
+    ADD r20, r6
+    LDI r6, 32
     LDI r22, 0
 sc_loop:
-    STORE r20, r7
-    ADD r20, r3
-    ADD r22, r3
+    STORE r20, r6
+    ADD r20, r4
+    ADD r22, r4
     CMPI r22, COLS
-    BLT r9, sc_loop
+    BLT r13, sc_loop
     POP r31
     RET
 
@@ -887,12 +887,12 @@ sc_loop:
 write_str_to_buf:
     PUSH r31
     PUSH r20
-    LDI r3, 1
+    LDI r4, 1
 wsb_loop:
-    LOAD r4, r20
-    JZ r4, wsb_done
+    LOAD r1, r20
+    JZ r1, wsb_done
     CALL append_byte
-    ADD r20, r3
+    ADD r20, r4
     JMP wsb_loop
 wsb_done:
     POP r20
@@ -906,73 +906,73 @@ wsb_done:
 ; =========================================
 process_osc:
     PUSH r31
-    LDI r3, 1
+    LDI r4, 1
 
     ; Check if OSC starts with '7' (OSC 7 = set working directory)
     LDI r20, OSC_BUF
-    LOAD r9, r20
-    CMPI r9, 55    ; '7' = 55
-    JNZ r9, po_done
+    LOAD r13, r20
+    CMPI r13, 55    ; '7' = 55
+    JNZ r13, po_done
 
     ; Check second byte is ';' (59)
     LDI r20, OSC_BUF
-    ADD r20, r3
-    LOAD r9, r20
-    CMPI r9, 59    ; ';'
-    JNZ r9, po_done
+    ADD r20, r4
+    LOAD r13, r20
+    CMPI r13, 59    ; ';'
+    JNZ r13, po_done
 
     ; Extract path from "7;file://HOST/PATH"
     ; Find the 3rd '/' (after file://host)
-    LDI r0, 0     ; position in OSC_BUF
-    LDI r5, 0     ; slash count
+    LDI r5, 0     ; position in OSC_BUF
+    LDI r2, 0     ; slash count
 po_find_path:
     LDI r20, OSC_BUF
-    ADD r20, r0
-    LOAD r9, r20
-    JZ r9, po_done  ; null terminator, no path found
-    CMPI r9, 47    ; '/'
-    JNZ r9, po_next
-    ADD r5, r3
+    ADD r20, r5
+    LOAD r13, r20
+    JZ r13, po_done  ; null terminator, no path found
+    CMPI r13, 47    ; '/'
+    JNZ r13, po_next
+    ADD r2, r4
     ; After 3 slashes, we're at the path
-    CMPI r5, 3
-    BGE r9, po_copy_path
+    CMPI r2, 3
+    BGE r13, po_copy_path
 po_next:
-    ADD r0, r3
-    LDI r11, 80
-    CMP r0, r11
-    BLT r9, po_find_path
+    ADD r5, r4
+    LDI r10, 80
+    CMP r5, r10
+    BLT r13, po_find_path
     JMP po_done
 
 po_copy_path:
-    ; r0 points to the 3rd '/' -- copy from there into STATUS_CWD
-    LDI r8, 0     ; cwd offset
+    ; r5 points to the 3rd '/' -- copy from there into STATUS_CWD
+    LDI r15, 0     ; cwd offset
 po_cp_loop:
     LDI r20, OSC_BUF
-    ADD r20, r0
-    LOAD r9, r20
-    JZ r9, po_cp_done
-    LDI r11, STATUS_CWD
-    ADD r11, r8
-    STORE r11, r9
-    ADD r0, r3
-    ADD r8, r3
-    LDI r11, 60
-    CMP r8, r11
-    BLT r9, po_cp_loop
+    ADD r20, r5
+    LOAD r13, r20
+    JZ r13, po_cp_done
+    LDI r10, STATUS_CWD
+    ADD r10, r15
+    STORE r10, r13
+    ADD r5, r4
+    ADD r15, r4
+    LDI r10, 60
+    CMP r15, r10
+    BLT r13, po_cp_loop
 po_cp_done:
     ; Null-terminate and store length
-    LDI r11, STATUS_CWD
-    ADD r11, r8
-    LDI r9, 0
-    STORE r11, r9
+    LDI r10, STATUS_CWD
+    ADD r10, r15
+    LDI r13, 0
+    STORE r10, r13
     LDI r20, STATUS_CWD_LEN
-    STORE r20, r8
+    STORE r20, r15
 
 po_done:
     ; Reset OSC buffer
     LDI r20, OSC_LEN
-    LDI r9, 0
-    STORE r20, r9
+    LDI r13, 0
+    STORE r20, r13
     POP r31
     RET
 
@@ -982,15 +982,15 @@ po_done:
 ; =========================================
 draw_status_bar:
     PUSH r31
-    LDI r3, 1
+    LDI r4, 1
 
     ; Clear title bar area
-    LDI r3, 0
-    LDI r6, 0
-    LDI r13, 256
-    LDI r14, 10
-    LDI r4, 0x1A1A2E
-    RECTF r3, r6, r13, r14, r4
+    LDI r4, 0
+    LDI r0, 0
+    LDI r14, 256
+    LDI r12, 10
+    LDI r1, 0x1A1A2E
+    RECTF r4, r0, r14, r12, r1
 
     ; Build status string in SCRATCH: "bash: " + cwd
     LDI r20, SCRATCH
@@ -998,95 +998,95 @@ draw_status_bar:
     ; Append cwd
     LDI r20, SCRATCH
     ; Find end of "bash: " (6 chars)
-    LDI r0, 0
+    LDI r5, 0
 dsb_find_end:
-    LDI r11, SCRATCH
-    ADD r11, r0
-    LOAD r9, r11
-    JZ r9, dsb_append_cwd
-    ADD r0, r3
+    LDI r10, SCRATCH
+    ADD r10, r5
+    LOAD r13, r10
+    JZ r13, dsb_append_cwd
+    ADD r5, r4
     JMP dsb_find_end
 
 dsb_append_cwd:
     ; Check if we have a cwd
     LDI r20, STATUS_CWD_LEN
-    LOAD r9, r20
-    JZ r9, dsb_no_cwd
+    LOAD r13, r20
+    JZ r13, dsb_no_cwd
 
     ; Append cwd chars
-    LDI r5, 0
+    LDI r2, 0
 dsb_cp:
-    LDI r11, STATUS_CWD
-    ADD r11, r5
-    LOAD r9, r11
-    JZ r9, dsb_cp_done
-    LDI r11, SCRATCH
-    ADD r11, r0
-    STORE r11, r9
-    ADD r0, r3
-    ADD r5, r3
-    LDI r11, 38     ; max 38 chars for title
-    CMP r0, r11
-    BLT r9, dsb_cp
+    LDI r10, STATUS_CWD
+    ADD r10, r2
+    LOAD r13, r10
+    JZ r13, dsb_cp_done
+    LDI r10, SCRATCH
+    ADD r10, r5
+    STORE r10, r13
+    ADD r5, r4
+    ADD r2, r4
+    LDI r10, 38     ; max 38 chars for title
+    CMP r5, r10
+    BLT r13, dsb_cp
     JMP dsb_cp_done
 
 dsb_no_cwd:
     ; No cwd known yet -- show "~"
-    LDI r11, SCRATCH
-    ADD r11, r0
-    LDI r9, 126    ; '~'
-    STORE r11, r9
-    ADD r0, r3
+    LDI r10, SCRATCH
+    ADD r10, r5
+    LDI r13, 126    ; '~'
+    STORE r10, r13
+    ADD r5, r4
 
 dsb_cp_done:
     ; Null-terminate
-    LDI r11, SCRATCH
-    ADD r11, r0
-    LDI r9, 0
-    STORE r11, r9
+    LDI r10, SCRATCH
+    ADD r10, r5
+    LDI r13, 0
+    STORE r10, r13
 
     ; Draw the status text
-    LDI r3, 2
-    LDI r6, 1
-    LDI r13, SCRATCH
-    LDI r14, 0x44DD44
-    LDI r4, 0x1A1A2E
-    DRAWTEXT r3, r6, r13, r14, r4
+    LDI r4, 2
+    LDI r0, 1
+    LDI r14, SCRATCH
+    LDI r12, 0x44DD44
+    LDI r1, 0x1A1A2E
+    DRAWTEXT r4, r0, r14, r12, r1
 
     ; Draw connection indicator on the right side
     LDI r20, STATUS_CONNECTED
-    LOAD r9, r20
-    JZ r9, dsb_disconnected
+    LOAD r13, r20
+    JZ r13, dsb_disconnected
 
     ; Connected: green dot (0x25CF = filled circle, or just use ASCII)
     LDI r20, SCRATCH
-    LDI r9, 42    ; '*' as connected indicator
-    STORE r20, r9
-    LDI r9, 0
-    ADD r20, r3
-    STORE r20, r9
-    LDI r3, 230
-    LDI r6, 1
-    LDI r13, SCRATCH
-    LDI r14, 0x44FF44
-    LDI r4, 0x1A1A2E
-    DRAWTEXT r3, r6, r13, r14, r4
+    LDI r13, 42    ; '*' as connected indicator
+    STORE r20, r13
+    LDI r13, 0
+    ADD r20, r4
+    STORE r20, r13
+    LDI r4, 230
+    LDI r0, 1
+    LDI r14, SCRATCH
+    LDI r12, 0x44FF44
+    LDI r1, 0x1A1A2E
+    DRAWTEXT r4, r0, r14, r12, r1
     JMP dsb_ret
 
 dsb_disconnected:
     ; Disconnected: red "X"
     LDI r20, SCRATCH
-    LDI r9, 88    ; 'X'
-    STORE r20, r9
-    LDI r9, 0
-    ADD r20, r3
-    STORE r20, r9
-    LDI r3, 230
-    LDI r6, 1
-    LDI r13, SCRATCH
-    LDI r14, 0xFF4444
-    LDI r4, 0x1A1A2E
-    DRAWTEXT r3, r6, r13, r14, r4
+    LDI r13, 88    ; 'X'
+    STORE r20, r13
+    LDI r13, 0
+    ADD r20, r4
+    STORE r20, r13
+    LDI r4, 230
+    LDI r0, 1
+    LDI r14, SCRATCH
+    LDI r12, 0xFF4444
+    LDI r1, 0x1A1A2E
+    DRAWTEXT r4, r0, r14, r12, r1
 
 dsb_ret:
     POP r31
@@ -1100,112 +1100,112 @@ dsb_ret:
 ; =========================================
 render:
     PUSH r31
-    LDI r3, 1
+    LDI r4, 1
 
     ; Draw status bar first
     CALL draw_status_bar
 
     ; Clear content area
-    LDI r3, 0
-    LDI r6, 8
-    LDI r13, 256
-    LDI r14, 248
-    LDI r4, 0x0A0A0A
-    RECTF r3, r6, r13, r14, r4
+    LDI r4, 0
+    LDI r0, 8
+    LDI r14, 256
+    LDI r12, 248
+    LDI r1, 0x0A0A0A
+    RECTF r4, r0, r14, r12, r1
 
     ; Load horizontal scroll offset
     LDI r20, H_SCROLL
     LOAD r25, r20        ; r25 = h_scroll (chars to skip)
 
-    LDI r3, 1
-    LDI r0, 0           ; row counter
-    LDI r5, BUF         ; buf pointer
-    LDI r8, 8           ; y position (start after title bar)
+    LDI r4, 1
+    LDI r5, 0           ; row counter
+    LDI r2, BUF         ; buf pointer
+    LDI r15, 8           ; y position (start after title bar)
 render_row:
     ; Copy up to COLS chars to scratch buffer, skipping h_scroll
     LDI r16, SCRATCH
     LDI r17, 0
 copy_col:
-    LOAD r7, r5
+    LOAD r6, r2
     ; Skip chars before h_scroll offset (fill with spaces)
     LDI r26, 0
     CMP r17, r25
-    BGE r9, copy_col_after_skip
+    BGE r13, copy_col_after_skip
     ; Within scroll zone -- write space
-    LDI r7, 32
+    LDI r6, 32
 copy_col_after_skip:
-    STORE r16, r7
-    ADD r5, r3
-    ADD r16, r3
-    ADD r17, r3
+    STORE r16, r6
+    ADD r2, r4
+    ADD r16, r4
+    ADD r17, r4
     CMPI r17, COLS
     BLT r17, copy_col
-    LDI r9, 0
-    STORE r16, r9      ; null-terminate
+    LDI r13, 0
+    STORE r16, r13      ; null-terminate
 
     ; Render with SMALLTEXT: light gray text, no background
-    LDI r3, 0
-    LDI r15, SCRATCH
-    LDI r2, 0xBBBBBB  ; light gray terminal text
-    LDI r12, 0         ; no background (already cleared)
-    SMALLTEXT r3, r8, r15, r2, r12
+    LDI r4, 0
+    LDI r3, SCRATCH
+    LDI r9, 0xBBBBBB  ; light gray terminal text
+    LDI r8, 0         ; no background (already cleared)
+    SMALLTEXT r4, r15, r3, r9, r8
 
-    LDI r3, 1
+    LDI r4, 1
     ; Advance y by 6 (5px glyph + 1px spacing)
-    ADD r8, r3
-    ADD r8, r3
-    ADD r8, r3
-    ADD r8, r3
-    ADD r8, r3
-    ADD r8, r3
+    ADD r15, r4
+    ADD r15, r4
+    ADD r15, r4
+    ADD r15, r4
+    ADD r15, r4
+    ADD r15, r4
 
-    ADD r0, r3
-    CMPI r0, ROWS
-    BLT r0, render_row
+    ADD r5, r4
+    CMPI r5, ROWS
+    BLT r5, render_row
 
     ; Cursor blink
     LDI r20, BLINK
-    LOAD r9, r20
-    LDI r11, 8
-    AND r9, r11
-    CMPI r9, 4
-    BGE r9, cursor_done
+    LOAD r13, r20
+    LDI r10, 8
+    AND r13, r10
+    CMPI r13, 4
+    BGE r13, cursor_done
 
 draw_cursor:
     ; Cursor: 2px wide, 5px tall at cursor position
     LDI r20, CUR_COL
-    LOAD r9, r20
-    LDI r11, 3
-    MUL r9, r11          ; x = col * 3 (3px per char)
+    LOAD r13, r20
+    LDI r10, 3
+    MUL r13, r10          ; x = col * 3 (3px per char)
     LDI r20, CUR_ROW
-    LOAD r6, r20
-    LDI r11, 6
-    MUL r6, r11          ; row * 6
-    LDI r13, 8
-    ADD r6, r13          ; + title bar offset
-    LDI r13, 2           ; width
-    LDI r14, 5           ; height
-    LDI r4, 0x44FF44
-    RECTF r9, r6, r13, r14, r4
+    LOAD r0, r20
+    LDI r10, 6
+    MUL r0, r10          ; row * 6
+    LDI r14, 8
+    ADD r0, r14          ; + title bar offset
+    LDI r14, 2           ; width
+    LDI r12, 5           ; height
+    LDI r1, 0x44FF44
+    RECTF r13, r0, r14, r12, r1
 
 cursor_done:
     ; Show horizontal scroll indicator if scrolled
     LDI r20, H_SCROLL
-    LOAD r9, r20
-    JZ r9, no_scroll_indicator
+    LOAD r13, r20
+    JZ r13, no_scroll_indicator
     ; Draw '<' at top-left to indicate horizontal scroll
-    LDI r3, 0
-    LDI r6, 8
+    LDI r4, 0
+    LDI r0, 8
     LDI r20, SCRATCH
-    LDI r9, 60    ; '<'
-    STORE r20, r9
-    LDI r9, 0
-    ADD r20, r3
-    STORE r20, r9
-    LDI r15, SCRATCH
-    LDI r2, 0xFFFF00  ; yellow indicator
-    LDI r12, 0
-    SMALLTEXT r3, r6, r15, r2, r12
+    LDI r13, 60    ; '<'
+    STORE r20, r13
+    LDI r13, 0
+    ADD r20, r4
+    STORE r20, r13
+    LDI r3, SCRATCH
+    LDI r9, 0xFFFF00  ; yellow indicator
+    LDI r8, 0
+    SMALLTEXT r4, r0, r3, r9, r8
 
 no_scroll_indicator:
     POP r31
@@ -1216,89 +1216,89 @@ no_scroll_indicator:
 ; If WIN_ID > 0, use WINSYS op=6 to get window dimensions,
 ; calculate new column count, and call PTYSIZE if changed.
 ; Minimum size: 20 cols, 10 rows.
-; Uses: r9-r11, r0-r8 (saved/restored around CALL)
+; Uses: r13-r10, r5-r15 (saved/restored around CALL)
 ; =========================================
 check_resize:
     PUSH r31
 
     ; Check if WINSYS mode is enabled (WIN_ID != 0)
     LDI r20, WIN_ID
-    LOAD r9, r20
-    CMPI r9, 0
-    JZ r9, cr_done
+    LOAD r13, r20
+    CMPI r13, 0
+    JZ r13, cr_done
 
     ; Save PTY handle
     PUSH r28
 
-    ; WINSYS op=6 (WINFO): r9=win_id, r3=winfo_buf_addr
+    ; WINSYS op=6 (WINFO): r13=win_id, r4=winfo_buf_addr
     LDI r20, WIN_ID
-    LOAD r9, r20
-    LDI r3, WINFO_BUF
+    LOAD r13, r20
+    LDI r4, WINFO_BUF
     ; WINSYS op_reg needs to hold the operation number (6)
-    LDI r0, 6
-    ; Call WINSYS with r0 containing op=6
+    LDI r5, 6
+    ; Call WINSYS with r5 containing op=6
     ; WINSYS reads op from register at op_reg position
-    ; Set r9=win_id, r3=WINFO_BUF, r0=6 for WINSYS r0
-    WINSYS r0
+    ; Set r13=win_id, r4=WINFO_BUF, r5=6 for WINSYS r5
+    WINSYS r5
 
-    ; Check success (r9=1)
-    CMPI r9, 1
-    JNZ r9, cr_restore
+    ; Check success (r13=1)
+    CMPI r13, 1
+    JNZ r13, cr_restore
 
     ; WINFO wrote [x, y, w, h, z, pid, wx, wy] to WINFO_BUF
     ; w is at WINFO_BUF+2
     LDI r20, WINFO_BUF
-    LDI r11, 2
-    ADD r20, r11
-    LOAD r5, r20     ; r5 = window width in pixels
+    LDI r10, 2
+    ADD r20, r10
+    LOAD r2, r20     ; r2 = window width in pixels
 
     ; h is at WINFO_BUF+3
     LDI r20, WINFO_BUF
-    LDI r11, 3
-    ADD r20, r11
-    LOAD r8, r20     ; r8 = window height in pixels
+    LDI r10, 3
+    ADD r20, r10
+    LOAD r15, r20     ; r15 = window height in pixels
 
     ; Calculate new_cols = width / 6 (MEDTEXT is 6px per char)
     ; Subtract title bar height (12px) from usable height
-    LDI r11, 12
-    CMP r8, r11
-    BLT r9, cr_restore  ; window too small
+    LDI r10, 12
+    CMP r15, r10
+    BLT r13, cr_restore  ; window too small
 
-    SUB r8, r11        ; usable height
-    LDI r11, 8          ; 8px per row
-    DIV r8, r11        ; r8 = usable rows
+    SUB r15, r10        ; usable height
+    LDI r10, 8          ; 8px per row
+    DIV r15, r10        ; r15 = usable rows
 
-    LDI r11, 6          ; 6px per column (MEDTEXT)
-    DIV r5, r11        ; r5 = new_cols
+    LDI r10, 6          ; 6px per column (MEDTEXT)
+    DIV r2, r10        ; r2 = new_cols
 
     ; Clamp to minimum 20 cols, 10 rows
-    LDI r11, 20
-    CMP r5, r11
-    BLT r9, cr_clamp_cols
+    LDI r10, 20
+    CMP r2, r10
+    BLT r13, cr_clamp_cols
     JMP cr_check_rows
 cr_clamp_cols:
-    LDI r5, 20
+    LDI r2, 20
 cr_check_rows:
-    LDI r11, 10
-    CMP r8, r11
-    BGE r9, cr_compare
-    LDI r8, 10
+    LDI r10, 10
+    CMP r15, r10
+    BGE r13, cr_compare
+    LDI r15, 10
 
 cr_compare:
     ; Compare new_cols with last known cols
     LDI r20, LAST_COLS
-    LOAD r11, r20
-    CMP r5, r11
-    JZ r9, cr_restore  ; no change
+    LOAD r10, r20
+    CMP r2, r10
+    JZ r13, cr_restore  ; no change
 
     ; Store new cols
     LDI r20, LAST_COLS
-    STORE r20, r5
+    STORE r20, r2
 
     ; Call PTYSIZE handle, rows, cols
-    LDI r11, PTY_HANDLE
-    LOAD r28, r11       ; restore PTY handle for PTYSIZE
-    PTYSIZE r28, r8, r5
+    LDI r10, PTY_HANDLE
+    LOAD r28, r10       ; restore PTY handle for PTYSIZE
+    PTYSIZE r28, r15, r2
 
     ; Fall through to restore r28
 
@@ -1307,5 +1307,5 @@ cr_restore:
 
 cr_done:
     POP r31
-    LDI r3, 1
+    LDI r4, 1
     RET

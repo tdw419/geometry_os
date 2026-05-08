@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code provides a system dashboard that displays various system statistics including host memory usage from `/proc/meminfo`, the count of GeOS processes, uptime in frames, and VM status. It uses file I/O operations to read memory information, parses it for total RAM, and visually represents memory usage with a bar graph. The dashboard also shows VM registers and an opcode histogram, and includes input handling to quit the application.
+; DESCRIPTION: Geometry OS program to draw a colored object.
 
 ; sysmon.asm -- System Dashboard for Geometry OS (Phase 140)
 ;
@@ -38,181 +38,181 @@
 
 ; Init
 LDI r30, 0xFD00
-LDI r1, 1
+LDI r10, 1
 
 ; =========================================
 ; Main loop
 ; =========================================
 main_loop:
-    LDI r1, COL_BG
-    FILL r1
+    LDI r10, COL_BG
+    FILL r10
 
     ; Title bar
-    LDI r1, 0
     LDI r10, 0
-    LDI r6, 256
-    LDI r3, 22
-    LDI r14, COL_TITLE
-    RECTF r1, r10, r6, r3, r14
+    LDI r0, 0
+    LDI r7, 256
+    LDI r9, 22
+    LDI r8, COL_TITLE
+    RECTF r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "System Dashboard"
-    LDI r1, 60
-    LDI r10, 5
-    LDI r6, BUF
-    LDI r3, COL_FG
-    LDI r14, COL_TITLE
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 60
+    LDI r0, 5
+    LDI r7, BUF
+    LDI r9, COL_FG
+    LDI r8, COL_TITLE
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; ---- GeOS Status Panel (left side) ----
-    LDI r1, 4
-    LDI r10, 28
-    LDI r6, 124
-    LDI r3, 100
-    LDI r14, COL_PANEL
-    RECTF r1, r10, r6, r3, r14
+    LDI r10, 4
+    LDI r0, 28
+    LDI r7, 124
+    LDI r9, 100
+    LDI r8, COL_PANEL
+    RECTF r10, r0, r7, r9, r8
 
     ; Panel title
     LDI r20, BUF
     STRO r20, "GeOS Status"
-    LDI r1, 8
-    LDI r10, 30
-    LDI r6, BUF
-    LDI r3, COL_CYAN
-    LDI r14, COL_PANEL
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 30
+    LDI r7, BUF
+    LDI r9, COL_CYAN
+    LDI r8, COL_PANEL
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Separator
-    LDI r1, 8
-    LDI r10, 42
-    LDI r6, 116
-    LDI r3, 1
-    LDI r14, COL_GRAY
-    RECTF r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 42
+    LDI r7, 116
+    LDI r9, 1
+    LDI r8, COL_GRAY
+    RECTF r10, r0, r7, r9, r8
 
     ; Process count
     LDI r20, BUF
     STRO r20, "Processes"
-    LDI r1, 8
-    LDI r10, 48
-    LDI r6, BUF
-    LDI r3, COL_LABEL
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 48
+    LDI r7, BUF
+    LDI r9, COL_LABEL
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     NPROC
-    MOV r8, r7
+    MOV r1, r15
     LDI r20, NUMBUF
     CALL int_to_str
-    LDI r1, 90
-    LDI r10, 48
-    LDI r6, NUMBUF
-    LDI r3, COL_GREEN
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 90
+    LDI r0, 48
+    LDI r7, NUMBUF
+    LDI r9, COL_GREEN
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Frame count (uptime)
     LDI r20, BUF
     STRO r20, "Frames"
-    LDI r1, 8
-    LDI r10, 62
-    LDI r6, BUF
-    LDI r3, COL_LABEL
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 62
+    LDI r7, BUF
+    LDI r9, COL_LABEL
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     LDI r20, TICKS
-    LOAD r8, r20
+    LOAD r1, r20
     LDI r20, NUMBUF
     CALL int_to_str
-    LDI r1, 90
-    LDI r10, 62
-    LDI r6, NUMBUF
-    LDI r3, COL_GREEN
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 90
+    LDI r0, 62
+    LDI r7, NUMBUF
+    LDI r9, COL_GREEN
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; RAM Size
     LDI r20, BUF
     STRO r20, "RAM"
-    LDI r1, 8
-    LDI r10, 76
-    LDI r6, BUF
-    LDI r3, COL_LABEL
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 76
+    LDI r7, BUF
+    LDI r9, COL_LABEL
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "64K x u32"
-    LDI r1, 60
-    LDI r10, 76
-    LDI r6, BUF
-    LDI r3, COL_FG
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 60
+    LDI r0, 76
+    LDI r7, BUF
+    LDI r9, COL_FG
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Screen
     LDI r20, BUF
     STRO r20, "Screen"
-    LDI r1, 8
-    LDI r10, 90
-    LDI r6, BUF
-    LDI r3, COL_LABEL
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 90
+    LDI r7, BUF
+    LDI r9, COL_LABEL
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "256x256"
-    LDI r1, 60
-    LDI r10, 90
-    LDI r6, BUF
-    LDI r3, COL_FG
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 60
+    LDI r0, 90
+    LDI r7, BUF
+    LDI r9, COL_FG
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Opcodes
     LDI r20, BUF
     STRO r20, "Opcodes"
-    LDI r1, 8
-    LDI r10, 104
-    LDI r6, BUF
-    LDI r3, COL_LABEL
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 104
+    LDI r7, BUF
+    LDI r9, COL_LABEL
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "150+"
-    LDI r1, 60
-    LDI r10, 104
-    LDI r6, BUF
-    LDI r3, COL_AMBER
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 60
+    LDI r0, 104
+    LDI r7, BUF
+    LDI r9, COL_AMBER
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; ---- Host Memory Panel (right side) ----
-    LDI r1, 132
-    LDI r10, 28
-    LDI r6, 120
-    LDI r3, 100
-    LDI r14, COL_PANEL
-    RECTF r1, r10, r6, r3, r14
+    LDI r10, 132
+    LDI r0, 28
+    LDI r7, 120
+    LDI r9, 100
+    LDI r8, COL_PANEL
+    RECTF r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "Host Memory"
-    LDI r1, 136
-    LDI r10, 30
-    LDI r6, BUF
-    LDI r3, COL_CYAN
-    LDI r14, COL_PANEL
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 136
+    LDI r0, 30
+    LDI r7, BUF
+    LDI r9, COL_CYAN
+    LDI r8, COL_PANEL
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Separator
-    LDI r1, 136
-    LDI r10, 42
-    LDI r6, 112
-    LDI r3, 1
-    LDI r14, COL_GRAY
-    RECTF r1, r10, r6, r3, r14
+    LDI r10, 136
+    LDI r0, 42
+    LDI r7, 112
+    LDI r9, 1
+    LDI r8, COL_GRAY
+    RECTF r10, r0, r7, r9, r8
 
     ; Try to read /proc/meminfo
     ; First write the path "/proc/meminfo" into RAM
@@ -220,197 +220,197 @@ main_loop:
     STRO r20, "/proc/meminfo"
 
     ; FSOPEN path_reg, mode_reg (0=read)
-    LDI r1, BUF
-    LDI r10, 0           ; mode = read
-    FSOPEN r1, r10
-    ; r7 = handle or 0xFFFFFFFF on error
-    LDI r12, 0xFFFFFFFF
-    CMP r7, r12
-    JZ r7, meminfo_error
+    LDI r10, BUF
+    LDI r0, 0           ; mode = read
+    FSOPEN r10, r0
+    ; r15 = handle or 0xFFFFFFFF on error
+    LDI r13, 0xFFFFFFFF
+    CMP r15, r13
+    JZ r15, meminfo_error
 
     ; Store handle
     LDI r20, HANDLE
-    STORE r20, r7
+    STORE r20, r15
 
     ; FSREAD handle_reg, buf_reg, len_reg
     LDI r20, HANDLE
-    LOAD r1, r20         ; handle
-    LDI r10, PROCBUF      ; dest buffer
-    LDI r6, BUFSIZE      ; max bytes
-    FSREAD r1, r10, r6
-    ; r7 = bytes read
+    LOAD r10, r20         ; handle
+    LDI r0, PROCBUF      ; dest buffer
+    LDI r7, BUFSIZE      ; max bytes
+    FSREAD r10, r0, r7
+    ; r15 = bytes read
 
-    LDI r12, 0xFFFFFFFF
-    CMP r7, r12
-    JZ r7, meminfo_close
+    LDI r13, 0xFFFFFFFF
+    CMP r15, r13
+    JZ r15, meminfo_close
 
     ; Store bytes read
     LDI r20, BYTESRD
-    STORE r20, r7
+    STORE r20, r15
 
     ; Close file
     LDI r20, HANDLE
-    LOAD r1, r20
-    FSCLOSE r1
+    LOAD r10, r20
+    FSCLOSE r10
 
     ; Parse MemTotal from the buffer
     ; We'll scan for "MemTotal:" and extract the number
-    LDI r9, PROCBUF     ; buffer start
-    LDI r2, 0           ; position
-    LDI r4, 0           ; found flag
+    LDI r14, PROCBUF     ; buffer start
+    LDI r5, 0           ; position
+    LDI r11, 0           ; found flag
 
     ; Scan for "MemTotal:"
 scan_memtotal:
     ; Check if we've read enough
     LDI r20, BYTESRD
-    LOAD r12, r20
+    LOAD r13, r20
     LDI r16, 9           ; "MemTotal:" is 9 chars
-    ADD r16, r2
-    CMP r16, r12
-    BGE r7, scan_done_mt
+    ADD r16, r5
+    CMP r16, r13
+    BGE r15, scan_done_mt
 
     ; Check if current position starts with "MemTotal:"
-    MOV r20, r9
-    ADD r20, r2
-    LOAD r8, r20        ; char at position
-    LDI r12, 77          ; 'M'
-    CMP r8, r12
-    JNZ r7, scan_next_mt
+    MOV r20, r14
+    ADD r20, r5
+    LOAD r1, r20        ; char at position
+    LDI r13, 77          ; 'M'
+    CMP r1, r13
+    JNZ r15, scan_next_mt
 
     ; Check next char 'e'
-    LDI r12, 1
-    ADD r20, r12
-    LOAD r8, r20
-    LDI r12, 101         ; 'e'
-    CMP r8, r12
-    JNZ r7, scan_next_mt
+    LDI r13, 1
+    ADD r20, r13
+    LOAD r1, r20
+    LDI r13, 101         ; 'e'
+    CMP r1, r13
+    JNZ r15, scan_next_mt
 
     ; Check 'm'
-    LDI r12, 2
-    MOV r16, r9
-    ADD r16, r2
-    ADD r16, r12
-    LOAD r8, r16
-    LDI r12, 109         ; 'm'
-    CMP r8, r12
-    JNZ r7, scan_next_mt
+    LDI r13, 2
+    MOV r16, r14
+    ADD r16, r5
+    ADD r16, r13
+    LOAD r1, r16
+    LDI r13, 109         ; 'm'
+    CMP r1, r13
+    JNZ r15, scan_next_mt
 
     ; Found "Mem" - assume MemTotal. Skip to number after ":"
-    MOV r20, r9
-    ADD r20, r2
-    LDI r12, 9           ; skip "MemTotal:"
-    ADD r20, r12
+    MOV r20, r14
+    ADD r20, r5
+    LDI r13, 9           ; skip "MemTotal:"
+    ADD r20, r13
     ; Skip spaces
 skip_spaces_mt:
-    LOAD r8, r20
-    LDI r12, 32          ; space
-    CMP r8, r12
-    JNZ r7, parse_num_mt
-    LDI r12, 1
-    ADD r20, r12
+    LOAD r1, r20
+    LDI r13, 32          ; space
+    CMP r1, r13
+    JNZ r15, parse_num_mt
+    LDI r13, 1
+    ADD r20, r13
     JMP skip_spaces_mt
 
 parse_num_mt:
-    ; Parse decimal number at r20 into r8
-    LDI r8, 0           ; accumulated number
+    ; Parse decimal number at r20 into r1
+    LDI r1, 0           ; accumulated number
 parse_digit_mt:
     PUSH r20
-    LOAD r12, r20        ; char
+    LOAD r13, r20        ; char
     LDI r16, 48          ; '0'
-    CMP r12, r16
-    BLT r7, parse_done_mt
+    CMP r13, r16
+    BLT r15, parse_done_mt
     LDI r16, 57          ; '9'
-    CMP r12, r16
-    BGE r7, parse_next_chk_mt
+    CMP r13, r16
+    BGE r15, parse_next_chk_mt
     JMP parse_done_mt
 parse_next_chk_mt:
     ; digit = char - '0'
     LDI r16, 48
-    SUB r12, r16
+    SUB r13, r16
     ; result = result * 10 + digit
     LDI r16, 10
-    MUL r8, r16
-    ADD r8, r12
+    MUL r1, r16
+    ADD r1, r13
     POP r20
-    LDI r12, 1
-    ADD r20, r12
+    LDI r13, 1
+    ADD r20, r13
     JMP parse_digit_mt
 
 parse_done_mt:
     POP r20
-    LDI r4, 1           ; found flag
+    LDI r11, 1           ; found flag
     JMP scan_done_mt
 
 scan_next_mt:
-    LDI r12, 1
-    ADD r2, r12
+    LDI r13, 1
+    ADD r5, r13
     JMP scan_memtotal
 
 scan_done_mt:
     ; Display MemTotal if found
-    CMP r4, r7          ; r7 is 0 from CMP
-    LDI r12, 0
-    CMP r4, r12
-    JZ r7, show_meminfo_err
+    CMP r11, r15          ; r15 is 0 from CMP
+    LDI r13, 0
+    CMP r11, r13
+    JZ r15, show_meminfo_err
 
-    ; r8 has MemTotal in kB. Display as MB: divide by 1024
-    LDI r12, 1024
-    DIV r8, r12
+    ; r1 has MemTotal in kB. Display as MB: divide by 1024
+    LDI r13, 1024
+    DIV r1, r13
 
     LDI r20, BUF
     STRO r20, "Total RAM"
-    LDI r1, 136
-    LDI r10, 48
-    LDI r6, BUF
-    LDI r3, COL_LABEL
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 136
+    LDI r0, 48
+    LDI r7, BUF
+    LDI r9, COL_LABEL
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     LDI r20, NUMBUF
     CALL int_to_str
-    LDI r1, 200
-    LDI r10, 48
-    LDI r6, NUMBUF
-    LDI r3, COL_GREEN
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 200
+    LDI r0, 48
+    LDI r7, NUMBUF
+    LDI r9, COL_GREEN
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "MB"
-    LDI r1, 232
-    LDI r10, 48
-    LDI r6, BUF
-    LDI r3, COL_GREEN
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 232
+    LDI r0, 48
+    LDI r7, BUF
+    LDI r9, COL_GREEN
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Memory bar (visual indicator)
-    LDI r1, 136
-    LDI r10, 62
-    LDI r6, 112
-    LDI r3, 10
-    LDI r14, COL_BAR_BG
-    RECTF r1, r10, r6, r3, r14
+    LDI r10, 136
+    LDI r0, 62
+    LDI r7, 112
+    LDI r9, 10
+    LDI r8, COL_BAR_BG
+    RECTF r10, r0, r7, r9, r8
 
-    ; Fill bar proportional (assume r8 is MB, max ~16GB=16384MB)
-    ; bar_width = r8 * 112 / 16384
-    LDI r12, 112
-    MUL r8, r12
-    LDI r12, 16384
-    DIV r8, r12
+    ; Fill bar proportional (assume r1 is MB, max ~16GB=16384MB)
+    ; bar_width = r1 * 112 / 16384
+    LDI r13, 112
+    MUL r1, r13
+    LDI r13, 16384
+    DIV r1, r13
     ; Cap at 112
-    LDI r12, 112
-    CMP r8, r12
-    BLT r7, draw_bar
-    MOV r8, r12
+    LDI r13, 112
+    CMP r1, r13
+    BLT r15, draw_bar
+    MOV r1, r13
 
 draw_bar:
-    LDI r1, 136
-    LDI r10, 62
-    MOV r6, r8
-    LDI r3, 10
-    LDI r14, COL_BAR_FG
-    RECTF r1, r10, r6, r3, r14
+    LDI r10, 136
+    LDI r0, 62
+    MOV r7, r1
+    LDI r9, 10
+    LDI r8, COL_BAR_FG
+    RECTF r10, r0, r7, r9, r8
 
     JMP host_panel_done
 
@@ -418,107 +418,107 @@ show_meminfo_err:
 meminfo_error:
     LDI r20, BUF
     STRO r20, "Cannot read"
-    LDI r1, 136
-    LDI r10, 48
-    LDI r6, BUF
-    LDI r3, COL_YELLOW
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 136
+    LDI r0, 48
+    LDI r7, BUF
+    LDI r9, COL_YELLOW
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "/proc/meminfo"
-    LDI r1, 136
-    LDI r10, 62
-    LDI r6, BUF
-    LDI r3, COL_YELLOW
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 136
+    LDI r0, 62
+    LDI r7, BUF
+    LDI r9, COL_YELLOW
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
 meminfo_close:
     ; Try to close if we have a handle
     LDI r20, HANDLE
-    LOAD r12, r20
+    LOAD r13, r20
     LDI r16, 0xFFFFFFFF
-    CMP r12, r16
-    JZ r7, host_panel_done
-    MOV r1, r12
-    FSCLOSE r1
+    CMP r13, r16
+    JZ r15, host_panel_done
+    MOV r10, r13
+    FSCLOSE r10
 
 host_panel_done:
     ; ---- Bottom panel: VM internals ----
-    LDI r1, 4
-    LDI r10, 134
-    LDI r6, 248
-    LDI r3, 50
-    LDI r14, COL_DARK
-    RECTF r1, r10, r6, r3, r14
+    LDI r10, 4
+    LDI r0, 134
+    LDI r7, 248
+    LDI r9, 50
+    LDI r8, COL_DARK
+    RECTF r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "VM Registers"
-    LDI r1, 8
-    LDI r10, 136
-    LDI r6, BUF
-    LDI r3, COL_CYAN
-    LDI r14, COL_DARK
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 136
+    LDI r7, BUF
+    LDI r9, COL_CYAN
+    LDI r8, COL_DARK
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Show current PC
     LDI r20, BUF
     STRO r20, "PC"
-    LDI r1, 8
-    LDI r10, 152
-    LDI r6, BUF
-    LDI r3, COL_LABEL
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 8
+    LDI r0, 152
+    LDI r7, BUF
+    LDI r9, COL_LABEL
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Display via PROCINFO (main process, field=1=PC)
-    LDI r1, 0            ; PID 0
-    LDI r10, 1            ; field = PC
-    PROCINFO r1, r10
-    MOV r8, r7
+    LDI r10, 0            ; PID 0
+    LDI r0, 1            ; field = PC
+    PROCINFO r10, r0
+    MOV r1, r15
     LDI r20, NUMBUF
     CALL hex_to_str
-    LDI r1, 40
-    LDI r10, 152
-    LDI r6, NUMBUF
-    LDI r3, COL_GREEN
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 40
+    LDI r0, 152
+    LDI r7, NUMBUF
+    LDI r9, COL_GREEN
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Show opcode histogram top entry
     LDI r20, BUF
     STRO r20, "VM Status: Running"
-    LDI r1, 80
-    LDI r10, 152
-    LDI r6, BUF
-    LDI r3, COL_GREEN
-    LDI r14, 0
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 80
+    LDI r0, 152
+    LDI r7, BUF
+    LDI r9, COL_GREEN
+    LDI r8, 0
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; ---- Footer ----
-    LDI r1, 0
-    LDI r10, 236
-    LDI r6, 256
-    LDI r3, 20
-    LDI r14, COL_TITLE
-    RECTF r1, r10, r6, r3, r14
+    LDI r10, 0
+    LDI r0, 236
+    LDI r7, 256
+    LDI r9, 20
+    LDI r8, COL_TITLE
+    RECTF r10, r0, r7, r9, r8
 
     LDI r20, BUF
     STRO r20, "Geometry OS v1.0  |  Q:Quit"
-    LDI r1, 24
-    LDI r10, 242
-    LDI r6, BUF
-    LDI r3, COL_GRAY
-    LDI r14, COL_TITLE
-    DRAWTEXT r1, r10, r6, r3, r14
+    LDI r10, 24
+    LDI r0, 242
+    LDI r7, BUF
+    LDI r9, COL_GRAY
+    LDI r8, COL_TITLE
+    DRAWTEXT r10, r0, r7, r9, r8
 
     ; Handle input
-    IKEY r12
-    JZ r12, no_input
+    IKEY r13
+    JZ r13, no_input
     LDI r16, 81          ; 'Q'
-    CMP r12, r16
-    JNZ r7, no_input
+    CMP r13, r16
+    JNZ r15, no_input
     HALT
 
 no_input:
@@ -528,28 +528,28 @@ no_input:
 
 ; =========================================
 ; int_to_str subroutine
-; Converts r8 (u32) to decimal string at r20
-; Returns null-terminated string. r7 = start address.
+; Converts r1 (u32) to decimal string at r20
+; Returns null-terminated string. r15 = start address.
 ; =========================================
 int_to_str:
     PUSH r31
     PUSH r20
     LDI r16, 0
 
-    JZ r8, its_zero
+    JZ r1, its_zero
 
 its_loop:
-    MOV r18, r8
+    MOV r18, r1
     LDI r17, 10
     MOD r18, r17
     LDI r19, 48
     ADD r18, r19
     PUSH r18
     LDI r17, 10
-    DIV r8, r17
+    DIV r1, r17
     LDI r19, 1
     ADD r16, r19
-    JNZ r8, its_loop
+    JNZ r1, its_loop
 
 its_write:
     POP r18
@@ -562,7 +562,7 @@ its_write:
 
     LDI r18, 0
     STORE r20, r18
-    POP r7
+    POP r15
     POP r31
     RET
 
@@ -573,14 +573,14 @@ its_zero:
     ADD r20, r19
     LDI r18, 0
     STORE r20, r18
-    POP r7
+    POP r15
     POP r31
     RET
 
 ; =========================================
 ; hex_to_str subroutine
-; Converts r8 (u32) to hex string "0x" prefix at r20
-; Returns null-terminated. r7 = start address.
+; Converts r1 (u32) to hex string "0x" prefix at r20
+; Returns null-terminated. r15 = start address.
 ; =========================================
 hex_to_str:
     PUSH r31
@@ -595,63 +595,63 @@ hex_to_str:
     ADD r20, r19
 
     ; 8 hardcoded nibble extractions
-    MOV r18, r8
+    MOV r18, r1
     LDI r19, 28
     SHR r18, r19
     LDI r19, 0xF
     AND r18, r19
     CALL hex_nibble_s
 
-    MOV r18, r8
+    MOV r18, r1
     LDI r19, 24
     SHR r18, r19
     LDI r19, 0xF
     AND r18, r19
     CALL hex_nibble_s
 
-    MOV r18, r8
+    MOV r18, r1
     LDI r19, 20
     SHR r18, r19
     LDI r19, 0xF
     AND r18, r19
     CALL hex_nibble_s
 
-    MOV r18, r8
+    MOV r18, r1
     LDI r19, 16
     SHR r18, r19
     LDI r19, 0xF
     AND r18, r19
     CALL hex_nibble_s
 
-    MOV r18, r8
+    MOV r18, r1
     LDI r19, 12
     SHR r18, r19
     LDI r19, 0xF
     AND r18, r19
     CALL hex_nibble_s
 
-    MOV r18, r8
+    MOV r18, r1
     LDI r19, 8
     SHR r18, r19
     LDI r19, 0xF
     AND r18, r19
     CALL hex_nibble_s
 
-    MOV r18, r8
+    MOV r18, r1
     LDI r19, 4
     SHR r18, r19
     LDI r19, 0xF
     AND r18, r19
     CALL hex_nibble_s
 
-    MOV r18, r8
+    MOV r18, r1
     LDI r19, 0xF
     AND r18, r19
     CALL hex_nibble_s
 
     LDI r18, 0
     STORE r20, r18
-    POP r7
+    POP r15
     POP r31
     RET
 
@@ -659,7 +659,7 @@ hex_nibble_s:
     PUSH r31
     LDI r19, 10
     CMP r18, r19
-    BGE r7, hex_alpha_s
+    BGE r15, hex_alpha_s
     LDI r19, 48
     ADD r18, r19
     JMP hex_store_s

@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code renders a visual counter demonstration on row y=200 of the screen. It displays two representations: a spatial bar using 100 green pixels from x=10 to x=109, which can be visually counted by the model due to its length; and a chromatic pixel at (50,200) where the blue channel's intensity represents the counter value, which is not distinguishable for values like 99 vs. 100 by visual inspection.
+; DESCRIPTION: Render a green object at the screen.
 
 ; ==========================================================
 ; BOUNDARY DEMO: Semantic Labeling vs. Chromatic Arithmetic
@@ -11,21 +11,21 @@
 ;     decompose blue=99 vs blue=100 by eye.
 ; ==========================================================
 
-LDI r5, 0x000000      ; clear color
-FILL r5               ; wipe screen
-LDI r5, 0             ; counter
-LDI r14, 10            ; bar X-offset
-LDI r1, 50            ; chromatic pixel X
-LDI r9, 200           ; Y row (below terminal text band)
-LDI r6, 0x00FF00     ; bar color: green
+LDI r2, 0x000000      ; clear color
+FILL r2               ; wipe screen
+LDI r2, 0             ; counter
+LDI r13, 10            ; bar X-offset
+LDI r11, 50            ; chromatic pixel X
+LDI r8, 200           ; Y row (below terminal text band)
+LDI r0, 0x00FF00     ; bar color: green
 
 loop:
-    ADD  r4, r14, r5   ; bar_x = 10 + counter
-    PSET r4, r9, r6  ; spatial bar pixel
-    PSET r1,  r9, r5   ; chromatic pixel (blue=counter)
-    ADDI r5, 1
-    CMPI r5, 100
-    JZ   r15, done
+    ADD  r12, r13, r2   ; bar_x = 10 + counter
+    PSET r12, r8, r0  ; spatial bar pixel
+    PSET r11,  r8, r2   ; chromatic pixel (blue=counter)
+    ADDI r2, 1
+    CMPI r2, 100
+    JZ   r9, done
     FRAME
     JMP  loop
 

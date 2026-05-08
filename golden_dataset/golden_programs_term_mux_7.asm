@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a minimal terminal multiplexer that manages two sessions. Each session is represented by a child process with stdin and stdout connected via pipes. The muxer reads keyboard input, routes it to the active session, and renders output from both sessions on the screen, displaying the active session's scrollback buffer below a status bar indicating which session is active.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; term_mux.asm -- Phase 103: Terminal Multiplexer
 ;
@@ -29,66 +29,66 @@
 ; ═══════════════════════════════════════════════════════════════
 ; Initialize
 ; ═══════════════════════════════════════════════════════════════
-    LDI r15, 1
+    LDI r13, 1
     LDI r8, 0xFF00
     MOV r30, r8              ; SP = 0xFF00
 
     ; Clear screen
-    LDI r6, 0
-    FILL r6
+    LDI r11, 0
+    FILL r11
 
     ; Initialize shared state
-    LDI r12, 0xF00
-    LDI r6, 0
-    STORE r12, r6            ; active_session = 0
-    ADD r12, r15
-    STORE r12, r6            ; session_0_output_len = 0
-    ADD r12, r15
-    STORE r12, r6            ; session_1_output_len = 0
+    LDI r1, 0xF00
+    LDI r11, 0
+    STORE r1, r11            ; active_session = 0
+    ADD r1, r13
+    STORE r1, r11            ; session_0_output_len = 0
+    ADD r1, r13
+    STORE r1, r11            ; session_1_output_len = 0
 
     ; Initialize scrollback buffers to zero
-    ; NOTE: r6 is CMP result register, so use r14 for zero
-    LDI r14, 0
-    LDI r2, 0x5000
+    ; NOTE: r11 is CMP result register, so use r5 for zero
+    LDI r5, 0
+    LDI r7, 0x5000
     LDI r9, 0x7000
 init_buffers:
-    STORE r2, r14
-    ADD r2, r15
-    CMP r2, r9
-    BLT r6, init_buffers
+    STORE r7, r5
+    ADD r7, r13
+    CMP r7, r9
+    BLT r11, init_buffers
 
     ; Create pipe pair for session 0
     ; PIPE creates read_fd and write_fd
     LDI r3, 20               ; r20 = read_fd
-    LDI r0, 21               ; r21 = write_fd
+    LDI r12, 21               ; r21 = write_fd
     PIPE r20, r21
 
     ; Store pipe fds in RAM
     ; Session 0 stdin pipe: write_fd in r21 (muxer writes to child stdin)
     ; Session 0 stdout pipe: read_fd in r20 (muxer reads child stdout)
-    LDI r12, 0x4000
-    STORE r12, r20           ; RAM[0x4000] = session_0_stdout_read_fd
-    ADD r12, r15
-    STORE r12, r21           ; RAM[0x4001] = session_0_stdin_write_fd
+    LDI r1, 0x4000
+    STORE r1, r20           ; RAM[0x4000] = session_0_stdout_read_fd
+    ADD r1, r13
+    STORE r1, r21           ; RAM[0x4001] = session_0_stdin_write_fd
 
     ; Store child PID
-    LDI r12, 0x4002
-    LDI r6, 0
-    STORE r12, r6            ; session_0_pid = 0 (not spawned yet)
+    LDI r1, 0x4002
+    LDI r11, 0
+    STORE r1, r11            ; session_0_pid = 0 (not spawned yet)
 
     ; Create pipe pair for session 1
     LDI r3, 22
-    LDI r0, 23
+    LDI r12, 23
     PIPE r22, r23
 
-    LDI r12, 0x4010
-    STORE r12, r22           ; RAM[0x4010] = session_1_stdout_read_fd
-    ADD r12, r15
-    STORE r12, r23           ; RAM[0x4011] = session_1_stdin_write_fd
+    LDI r1, 0x4010
+    STORE r1, r22           ; RAM[0x4010] = session_1_stdout_read_fd
+    ADD r1, r13
+    STORE r1, r23           ; RAM[0x4011] = session_1_stdin_write_fd
 
-    LDI r12, 0x4012
-    LDI r6, 0
-    STORE r12, r6            ; session_1_pid = 0
+    LDI r1, 0x4012
+    LDI r11, 0
+    STORE r1, r11            ; session_1_pid = 0
 
     ; Draw status bar at top
     CALL draw_status_bar
@@ -97,36 +97,36 @@ init_buffers:
     ; Main loop: read keyboard, route to session, render output
     ; ═══════════════════════════════════════════════════════════════
 main_loop:
-    IKEY r12                 ; read key from keyboard port
+    IKEY r1                 ; read key from keyboard port
 
     ; Check for session switch keys
-    LDI r2, 1               ; Ctrl+1
-    CMP r12, r2
-    JZ r6, switch_to_0
+    LDI r7, 1               ; Ctrl+1
+    CMP r1, r7
+    JZ r11, switch_to_0
 
-    LDI r2, 2               ; Ctrl+2
-    CMP r12, r2
-    JZ r6, switch_to_1
+    LDI r7, 2               ; Ctrl+2
+    CMP r1, r7
+    JZ r11, switch_to_1
 
     ; If key > 0, write to active session's stdin pipe
-    JZ r12, read_output
+    JZ r1, read_output
 
     ; Get active session
     LDI r9, 0xF00
     LOAD r9, r9            ; r9 = active_session
 
     ; Get stdin_write_fd for active session
-    LDI r13, 0x4001          ; base + 1 for stdin_write_fd
-    LDI r1, 16              ; offset between sessions (0x4011 - 0x4001)
-    MUL r9, r1
-    ADD r13, r9             ; r13 = &session[active].stdin_write_fd
-    LOAD r13, r13            ; r13 = stdin_write_fd
+    LDI r14, 0x4001          ; base + 1 for stdin_write_fd
+    LDI r10, 16              ; offset between sessions (0x4011 - 0x4001)
+    MUL r9, r10
+    ADD r14, r9             ; r14 = &session[active].stdin_write_fd
+    LOAD r14, r14            ; r14 = stdin_write_fd
 
     ; Write key to pipe: WRITE fd_reg, buf_reg, len_reg
-    LDI r11, 0x4080          ; temp buffer for key
-    STORE r11, r12
+    LDI r15, 0x4080          ; temp buffer for key
+    STORE r15, r1
     LDI r16, 1               ; length = 1 word
-    WRITE r13, r11, r16
+    WRITE r14, r15, r16
 
 read_output:
     ; Read from both sessions' stdout pipes and render active one
@@ -141,9 +141,9 @@ read_output:
 ; Switch to session 0
 ; ═══════════════════════════════════════════════════════════════
 switch_to_0:
-    LDI r12, 0xF00
-    LDI r2, 0
-    STORE r12, r2
+    LDI r1, 0xF00
+    LDI r7, 0
+    STORE r1, r7
     CALL draw_status_bar
     JMP read_output
 
@@ -151,9 +151,9 @@ switch_to_0:
 ; Switch to session 1
 ; ═══════════════════════════════════════════════════════════════
 switch_to_1:
-    LDI r12, 0xF00
-    LDI r2, 1
-    STORE r12, r2
+    LDI r1, 0xF00
+    LDI r7, 1
+    STORE r1, r7
     CALL draw_status_bar
     JMP read_output
 
@@ -163,17 +163,17 @@ switch_to_1:
 draw_status_bar:
     PUSH r31
     ; Background bar
-    LDI r6, 0
+    LDI r11, 0
     LDI r3, 0
-    LDI r0, 256
-    LDI r10, 12
-    LDI r7, 0x1A1A2E        ; dark blue
-    RECTF r6, r3, r0, r10, r7
+    LDI r12, 256
+    LDI r2, 12
+    LDI r6, 0x1A1A2E        ; dark blue
+    RECTF r11, r3, r12, r2, r6
 
     ; Draw "S0" indicator (session 0)
-    LDI r6, 0xF00
-    LOAD r6, r6              ; active_session
-    JZ r6, s0_active
+    LDI r11, 0xF00
+    LOAD r11, r11              ; active_session
+    JZ r11, s0_active
 
     ; Session 0 inactive - dim color
     LDI r4, 0x444466
@@ -182,36 +182,36 @@ s0_active:
     LDI r4, 0x44FF44         ; bright green for active
 draw_s0:
     ; Draw "0" at position (4, 3)
-    LDI r6, 4
+    LDI r11, 4
     LDI r3, 3
-    PSET r6, r3, r4
-    LDI r6, 5
-    PSET r6, r3, r4
+    PSET r11, r3, r4
+    LDI r11, 5
+    PSET r11, r3, r4
 
     ; Draw "1" indicator (session 1)
-    LDI r6, 0xF00
-    LOAD r6, r6
-    LDI r2, 1
-    CMP r6, r2
-    JZ r6, s1_active
+    LDI r11, 0xF00
+    LOAD r11, r11
+    LDI r7, 1
+    CMP r11, r7
+    JZ r11, s1_active
     LDI r4, 0x444466         ; dim
     JMP draw_s1
 s1_active:
     LDI r4, 0x44FF44         ; bright green
 draw_s1:
-    LDI r6, 8
+    LDI r11, 8
     LDI r3, 3
-    PSET r6, r3, r4
-    LDI r6, 9
-    PSET r6, r3, r4
+    PSET r11, r3, r4
+    LDI r11, 9
+    PSET r11, r3, r4
 
     ; Draw separator
     LDI r4, 0x888888
-    LDI r6, 7
+    LDI r11, 7
     LDI r3, 2
-    LDI r0, 7
-    LDI r10, 10
-    LINE r6, r3, r0, r10, r4
+    LDI r12, 7
+    LDI r2, 10
+    LINE r11, r3, r12, r2, r4
 
     POP r31
     RET
@@ -223,18 +223,18 @@ read_session_output:
     PUSH r31
 
     ; Read from session 0 stdout pipe
-    LDI r12, 0x4000
-    LOAD r12, r12            ; r12 = session_0_stdout_read_fd
-    LDI r2, 0x4090          ; read buffer
+    LDI r1, 0x4000
+    LOAD r1, r1            ; r1 = session_0_stdout_read_fd
+    LDI r7, 0x4090          ; read buffer
     LDI r9, 1               ; read 1 word
-    READ r12, r2, r9
+    READ r1, r7, r9
 
     ; Read from session 1 stdout pipe
-    LDI r12, 0x4010
-    LOAD r12, r12            ; r12 = session_1_stdout_read_fd
-    LDI r2, 0x40A0          ; read buffer
+    LDI r1, 0x4010
+    LOAD r1, r1            ; r1 = session_1_stdout_read_fd
+    LDI r7, 0x40A0          ; read buffer
     LDI r9, 1               ; read 1 word
-    READ r12, r2, r9
+    READ r1, r7, r9
 
     POP r31
     RET
@@ -245,21 +245,21 @@ read_session_output:
 render_active_session:
     PUSH r31
     ; Get active session
-    LDI r12, 0xF00
-    LOAD r12, r12            ; r12 = active_session
+    LDI r1, 0xF00
+    LOAD r1, r1            ; r1 = active_session
 
     ; Calculate buffer base address
-    LDI r2, 0x5000          ; session 0 buffer
-    JZ r12, render_buf
-    LDI r2, 0x6000          ; session 1 buffer
+    LDI r7, 0x5000          ; session 0 buffer
+    JZ r1, render_buf
+    LDI r7, 0x6000          ; session 1 buffer
 
 render_buf:
     ; Simple render: draw first 244 rows of scrollback as colored pixels
     ; (each word = one pixel, rendered at y+12 to leave room for status bar)
     LDI r9, 0               ; row counter
-    LDI r13, 256              ; width
-    LDI r1, 244              ; max rows to render
-    LDI r11, 12               ; y offset (below status bar)
+    LDI r14, 256              ; width
+    LDI r10, 244              ; max rows to render
+    LDI r15, 12               ; y offset (below status bar)
 
 render_row:
     LDI r16, 0               ; col counter
@@ -267,9 +267,9 @@ render_row:
 render_col:
     ; Compute buffer address
     MOV r17, r9
-    MUL r17, r13             ; row * 256
+    MUL r17, r14             ; row * 256
     ADD r17, r16             ; + col
-    MOV r18, r2
+    MOV r18, r7
     ADD r18, r17             ; buf + offset
     LOAD r18, r18            ; pixel value
 
@@ -279,17 +279,17 @@ render_col:
     ; Draw pixel
     MOV r19, r16             ; x = col
     MOV r20, r9
-    ADD r20, r11             ; y = row + offset
+    ADD r20, r15             ; y = row + offset
     PSET r19, r20, r18
 
 skip_pixel:
-    ADD r16, r15              ; col++
-    CMP r16, r13
-    BLT r6, render_col
+    ADD r16, r13              ; col++
+    CMP r16, r14
+    BLT r11, render_col
 
-    ADD r9, r15              ; row++
-    CMP r9, r1
-    BLT r6, render_row
+    ADD r9, r13              ; row++
+    CMP r9, r10
+    BLT r11, render_row
 
     POP r31
     RET

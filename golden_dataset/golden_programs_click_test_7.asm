@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates mouse support by drawing a crosshair at the cursor position and painting pixels on click. It uses opcodes like `MOUSEX`, `MOUSEY`, `MOUSEB`, and `MOUSECLICK` to read mouse data and handle input events, filling the background with a dark blue color and responding to left button clicks by drawing yellow squares.
+; DESCRIPTION: Render a blue square at the screen.
 
 ;; click_test.asm -- Phase 217 Mouse Support Demo
 ;; Draws a crosshair at the cursor and paints pixels on click.
@@ -8,81 +8,81 @@
 
 start:
     ;; Fill background dark blue (0x000033)
-    LDI r11, 0
-    LDI r5, 0
-    LDI r2, 256
-    LDI r8, 256
-    LDI r14, 0x000033
-    RECT r11, r5, r2, r8, r14
+    LDI r2, 0
+    LDI r1, 0
+    LDI r10, 256
+    LDI r15, 256
+    LDI r4, 0x000033
+    RECT r2, r1, r10, r15, r4
 
 main_loop:
     ;; Read mouse position
-    MOUSEX r11       ; r11 = mouse X
-    MOUSEY r5       ; r5 = mouse Y
+    MOUSEX r2       ; r2 = mouse X
+    MOUSEY r1       ; r1 = mouse Y
 
     ;; Read button state
-    MOUSEB r2       ; r2 = button bitmask
+    MOUSEB r10       ; r10 = button bitmask
 
     ;; Draw crosshair at cursor (red, 0xFF0000)
     ;; Horizontal line: 9 pixels centered on cursor
-    LDI r14, 0xFF0000
-    PIXEL r11, r5, r14         ; center pixel
-    SUBI r11, 1
-    PIXEL r11, r5, r14         ; -1
-    SUBI r11, 1
-    PIXEL r11, r5, r14         ; -2
-    ADDI r11, 3
-    PIXEL r11, r5, r14         ; +1
-    ADDI r11, 1
-    PIXEL r11, r5, r14         ; +2
+    LDI r4, 0xFF0000
+    PIXEL r2, r1, r4         ; center pixel
+    SUBI r2, 1
+    PIXEL r2, r1, r4         ; -1
+    SUBI r2, 1
+    PIXEL r2, r1, r4         ; -2
+    ADDI r2, 3
+    PIXEL r2, r1, r4         ; +1
+    ADDI r2, 1
+    PIXEL r2, r1, r4         ; +2
 
     ;; Vertical line: 5 pixels centered on cursor
-    SUBI r11, 2               ; restore r11 to center
-    PIXEL r11, r5, r14         ; center (already drawn, harmless)
-    SUBI r5, 1
-    PIXEL r11, r5, r14         ; up 1
-    SUBI r5, 1
-    PIXEL r11, r5, r14         ; up 2
-    ADDI r5, 3
-    PIXEL r11, r5, r14         ; down 1
-    ADDI r5, 1
-    PIXEL r11, r5, r14         ; down 2
+    SUBI r2, 2               ; restore r2 to center
+    PIXEL r2, r1, r4         ; center (already drawn, harmless)
+    SUBI r1, 1
+    PIXEL r2, r1, r4         ; up 1
+    SUBI r1, 1
+    PIXEL r2, r1, r4         ; up 2
+    ADDI r1, 3
+    PIXEL r2, r1, r4         ; down 1
+    ADDI r1, 1
+    PIXEL r2, r1, r4         ; down 2
 
     ;; Check if left button is held (bit 0)
-    ANDI r2, 1
-    JZ r2, check_click
+    ANDI r10, 1
+    JZ r10, check_click
 
     ;; Paint a green dot while dragging (0x00FF00)
-    LDI r14, 0x00FF00
-    PIXEL r11, r5, r14
-    SUBI r11, 1
-    PIXEL r11, r5, r14
-    ADDI r5, 1
-    ADDI r11, 1
-    PIXEL r11, r5, r14
-    ADDI r11, 1
-    PIXEL r11, r5, r14
+    LDI r4, 0x00FF00
+    PIXEL r2, r1, r4
+    SUBI r2, 1
+    PIXEL r2, r1, r4
+    ADDI r1, 1
+    ADDI r2, 1
+    PIXEL r2, r1, r4
+    ADDI r2, 1
+    PIXEL r2, r1, r4
 
 check_click:
     ;; Check for click event (non-blocking peek)
-    MOUSECLICK r12    ; r12=event_type, r6=x, r0=y
-    JZ r12, wait_frame
+    MOUSECLICK r11    ; r11=event_type, r3=x, r14=y
+    JZ r11, wait_frame
 
     ;; Click detected: draw a yellow square (0xFFFF00) at click position
-    LDI r14, 0xFFFF00
-    PIXEL r6, r0, r14
-    ADDI r6, 1
-    PIXEL r6, r0, r14
-    ADDI r0, 1
-    PIXEL r6, r0, r14
-    SUBI r6, 1
-    PIXEL r6, r0, r14
+    LDI r4, 0xFFFF00
+    PIXEL r3, r14, r4
+    ADDI r3, 1
+    PIXEL r3, r14, r4
+    ADDI r14, 1
+    PIXEL r3, r14, r4
+    SUBI r3, 1
+    PIXEL r3, r14, r4
 
 wait_frame:
     ;; Small delay loop
-    LDI r10, 100
+    LDI r8, 100
 delay:
-    SUBI r10, 1
-    JNZ r10, delay
+    SUBI r8, 1
+    JNZ r8, delay
 
     JMP main_loop

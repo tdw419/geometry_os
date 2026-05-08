@@ -1,38 +1,38 @@
-; DESCRIPTION: The GeOS assembly code draws concentric circles centered at (128, 128) with cycling colors. The radius of each circle starts at 10 and increases by 20 in each iteration until a total of 12 circles are drawn, with each circle's color calculated to cycle through hues.
+; DESCRIPTION: Render a red circle at the screen.
 
 ; circles.asm -- concentric circles with cycling colors
 
 ; center
-LDI r4, 128
-LDI r12, 128
+LDI r15, 128
+LDI r11, 128
 
 ; radius counter
-LDI r14, 10
+LDI r13, 10
 
 ; loop count
-LDI r13, 12
+LDI r6, 12
 
 loop:
   ; color = radius * 20 (cycles through hues roughly)
-  LDI r2, 20
-  MUL r2, r14
+  LDI r1, 20
+  MUL r1, r13
 
   ; shift into blue channel for variation
-  LDI r8, 0x000100
-  MUL r8, r14
-  LDI r0, 0xFF
-  AND r0, r2
-  OR r8, r0
+  LDI r12, 0x000100
+  MUL r12, r13
+  LDI r7, 0xFF
+  AND r7, r1
+  OR r12, r7
 
-  CIRCLE r4, r12, r14, r8
+  CIRCLE r15, r11, r13, r12
 
   ; radius += 20
-  LDI r11, 20
-  ADD r14, r11
+  LDI r3, 20
+  ADD r13, r3
 
   ; loop
-  LDI r11, 1
-  SUB r13, r11
-  JNZ r13, loop
+  LDI r3, 1
+  SUB r6, r3
+  JNZ r6, loop
 
 HALT

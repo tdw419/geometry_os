@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code records and displays a vertical color bar moving across the screen for 16 frames, then replays those frames backward using the REPLAY opcode. The code utilizes SNAP_TRACE to start and stop recording, FRAME to checkpoint each frame during drawing, and SCREENP to draw pixels on the screen.
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ; replay_demo.asm -- Draw frames, then replay them backward
 ;
@@ -8,77 +8,77 @@
 ; Draws a vertical color bar that moves across the screen for 16 frames,
 ; then replays those frames backward using the REPLAY opcode.
 
-  LDI r2, 1         ; mode = start recording
-  SNAP_TRACE r2      ; begin trace recording
+  LDI r3, 1         ; mode = start recording
+  SNAP_TRACE r3      ; begin trace recording
 
-  LDI r3, 0         ; frame counter
-  LDI r8, 16        ; total frames to draw
-  LDI r9, 0         ; bar x position
+  LDI r7, 0         ; frame counter
+  LDI r12, 16        ; total frames to draw
+  LDI r13, 0         ; bar x position
 
 draw_loop:
   ; Clear screen to black
-  LDI r4, 0
-  FILL r4
+  LDI r10, 0
+  FILL r10
 
-  ; Draw a vertical bar at position r9
-  LDI r11, 0          ; y = 0
-  LDI r14, 256        ; y limit
-  LDI r1, 0x00FF00   ; green bar color
-  LDI r10, 4          ; bar width
+  ; Draw a vertical bar at position r13
+  LDI r8, 0          ; y = 0
+  LDI r6, 256        ; y limit
+  LDI r5, 0x00FF00   ; green bar color
+  LDI r0, 4          ; bar width
 
 bar_y:
-  ; Draw 4 pixels wide at (r9, r11)
-  LDI r12, 0
+  ; Draw 4 pixels wide at (r13, r8)
+  LDI r2, 0
 bar_x:
-  LDI r13, 0
-  ADD r13, r9
-  ADD r13, r12         ; x = bar_pos + offset
-  SCREENP r13, r11, r1    ; set pixel
-  LDI r5, 1
-  ADD r12, r5
-  CMP r12, r10
-  BLT r6, bar_x
+  LDI r15, 0
+  ADD r15, r13
+  ADD r15, r2         ; x = bar_pos + offset
+  SCREENP r15, r8, r5    ; set pixel
+  LDI r1, 1
+  ADD r2, r1
+  CMP r2, r0
+  BLT r4, bar_x
 
-  LDI r5, 1
-  ADD r11, r5
-  CMP r11, r14
-  BLT r6, bar_y
+  LDI r1, 1
+  ADD r8, r1
+  CMP r8, r6
+  BLT r4, bar_y
 
   ; Advance bar position
-  LDI r5, 16
-  ADD r9, r5
+  LDI r1, 16
+  ADD r13, r1
 
   ; Show frame (also triggers checkpoint since trace recording is on)
   FRAME
 
-  LDI r5, 1
-  ADD r3, r5
-  CMP r3, r8
-  BLT r6, draw_loop
+  LDI r1, 1
+  ADD r7, r1
+  CMP r7, r12
+  BLT r4, draw_loop
 
   ; Stop recording
-  LDI r2, 0
-  SNAP_TRACE r2
+  LDI r3, 0
+  SNAP_TRACE r3
 
   ; Now replay backward: show frames from newest to oldest
-  LDI r0, 0         ; replay index (0 = newest)
+  LDI r9, 0         ; replay index (0 = newest)
 
 replay_loop:
-  LDI r2, 0
-  ADD r2, r0        ; frame index to replay
-  REPLAY r2
+  LDI r3, 0
+  ADD r3, r9        ; frame index to replay
+  REPLAY r3
 
   ; Small delay between replay frames
-  LDI r7, 0
+  LDI r14, 0
 delay:
-  LDI r15, 1
-  ADD r7, r15
-  CMP r7, r8       ; short delay
-  BLT r6, delay
+  LDI r11, 1
+  ADD r14, r11
+  CMP r14, r12       ; short delay
+  BLT r4, delay
 
-  LDI r5, 1
-  ADD r0, r5
-  CMP r0, r8       ; replay all 16 frames
-  BLT r6, replay_loop
+  LDI r1, 1
+  ADD r9, r1
+  CMP r9, r12       ; replay all 16 frames
+  BLT r4, replay_loop
 
   HALT

@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code implements a sound mixer daemon with a music player that uses inter-process communication (IPC) via shared RAM polling. The parent process writes note data to shared RAM, and the child process (mixer daemon) polls this data to play notes using the BEEP instruction. The shared RAM protocol defines command flags, frequency, duration, and channel information, while the mixer daemon manages up to four channels using a channel table in its own RAM.
+; DESCRIPTION: Draw object: pos=the screen, color=red, size=fixed size.
 
 ; sound_mixer.asm -- Sound Mixer Daemon with Music Player (Phase 99)
 ;
@@ -19,86 +19,86 @@
 ;    ch3_freq, ch3_dur, ch3_active]
 ;
 ; Register convention (parent):
-;   r11-r6 = shared RAM addresses
-;   r12  = frequency
-;   r0  = duration
+;   r12-r7 = shared RAM addresses
+;   r4  = frequency
+;   r9  = duration
 ;   r13  = channel
 ;
 ; Register convention (mixer daemon):
-;   r3  = constant 1
-;   r10  = constant 4 (max channels)
-;   r7  = channel table base (0x200)
-;   r11-r6 = shared RAM addresses
+;   r1  = constant 1
+;   r3  = constant 4 (max channels)
+;   r0  = channel table base (0x200)
+;   r12-r7 = shared RAM addresses
 
 ; ── Parent Process (Music Player) ────────────────────────────────
     LDI r30, 0xFF00         ; stack pointer
 
     ; ── Spawn mixer daemon ──
-    LDI r8, mixer_daemon
-    SPAWN r8
+    LDI r2, mixer_daemon
+    SPAWN r2
 
     ; ── Set up shared RAM address pointers ──
-    LDI r11, 0xF00          ; command flag address
-    LDI r4, 0xF01          ; frequency address
-    LDI r2, 0xF02          ; duration address
-    LDI r6, 0xF03          ; channel address
+    LDI r12, 0xF00          ; command flag address
+    LDI r6, 0xF01          ; frequency address
+    LDI r15, 0xF02          ; duration address
+    LDI r7, 0xF03          ; channel address
 
     ; ── Play melody via shared RAM ──
     ; Helper: write_note(freq, dur, channel) - polls until mixer is ready
 
     ; Note 1: C4 (262 Hz) on channel 0
-    LDI r12, 262
-    LDI r0, 400
+    LDI r4, 262
+    LDI r9, 400
     LDI r13, 0
     CALL write_note
 
     ; Note 2: E4 (330 Hz) on channel 1
-    LDI r12, 330
-    LDI r0, 400
+    LDI r4, 330
+    LDI r9, 400
     LDI r13, 1
     CALL write_note
 
     ; Note 3: G4 (392 Hz) on channel 0
-    LDI r12, 392
-    LDI r0, 400
+    LDI r4, 392
+    LDI r9, 400
     LDI r13, 0
     CALL write_note
 
     ; Note 4: C5 (523 Hz) on channel 2
-    LDI r12, 523
-    LDI r0, 600
+    LDI r4, 523
+    LDI r9, 600
     LDI r13, 2
     CALL write_note
 
     ; Note 5: A4 (440 Hz) on channel 3
-    LDI r12, 440
-    LDI r0, 500
+    LDI r4, 440
+    LDI r9, 500
     LDI r13, 3
     CALL write_note
 
     ; ── Send shutdown command ──
-    LDI r1, 2               ; shutdown flag
-    STORE r11, r1
+    LDI r14, 2               ; shutdown flag
+    STORE r12, r14
 
     HALT
 
 ; ── write_note subroutine ───────────────────────────────────────
 ; Sends a note to the mixer via shared RAM
-; Input: r12=freq, r0=dur, r13=channel
-; Uses: r1 (scratch)
-; Preserves: r12, r0, r13, r11-r6
+; Input: r4=freq, r9=dur, r13=channel
+; Uses: r14 (scratch)
+; Preserves: r4, r9, r13, r12-r7
 write_note:
     PUSH r31
 wait_ready:
-    LOAD r1, r11            ; r1 = command flag
-    JNZ r1, wait_ready      ; wait until mixer clears previous command
+    LOAD r14, r12            ; r14 = command flag
+    JNZ r14, wait_ready      ; wait until mixer clears previous command
 
     ; Write note data to shared RAM
-    STORE r4, r12            ; frequency
-    STORE r2, r0            ; duration
-    STORE r6, r13            ; channel
-    LDI r1, 1
-    STORE r11, r1            ; set command flag = 1
+    STORE r6, r4            ; frequency
+    STORE r15, r9            ; duration
+    STORE r7, r13            ; channel
+    LDI r14, 1
+    STORE r12, r14            ; set command flag = 1
 
     POP r31
     RET
@@ -107,63 +107,63 @@ wait_ready:
 .org 0x400
 mixer_daemon:
     LDI r30, 0xFF00         ; stack pointer
-    LDI r3, 1               ; constant 1
-    LDI r10, 4               ; max channels
-    LDI r7, 0x200           ; channel table base
+    LDI r1, 1               ; constant 1
+    LDI r3, 4               ; max channels
+    LDI r0, 0x200           ; channel table base
 
     ; Set up shared RAM address pointers
-    LDI r11, 0xF00          ; command flag
-    LDI r4, 0xF01          ; frequency
-    LDI r2, 0xF02          ; duration
-    LDI r6, 0xF03          ; channel
+    LDI r12, 0xF00          ; command flag
+    LDI r6, 0xF01          ; frequency
+    LDI r15, 0xF02          ; duration
+    LDI r7, 0xF03          ; channel
 
 mixer_loop:
     ; Poll for commands
-    LOAD r1, r11            ; r1 = command flag
-    JZ r1, mixer_loop       ; no command, keep polling
+    LOAD r14, r12            ; r14 = command flag
+    JZ r14, mixer_loop       ; no command, keep polling
 
     ; Check for shutdown (command == 2)
-    LDI r12, 2
-    CMP r1, r12
+    LDI r4, 2
+    CMP r14, r4
     JZ r5, mixer_shutdown
 
     ; Command == 1: play note
     ; Read note data from shared RAM
-    LOAD r12, r4            ; frequency
-    LOAD r0, r2            ; duration
-    LOAD r13, r6            ; channel
+    LOAD r4, r6            ; frequency
+    LOAD r9, r15            ; duration
+    LOAD r13, r7            ; channel
 
     ; Validate channel (0-3)
-    CMP r13, r10
+    CMP r13, r3
     BGE r5, clear_cmd       ; invalid channel, skip
 
     ; Store in channel table
     ; offset = channel * 3, base = 0x200
-    MOV r1, r13              ; r1 = channel
-    LDI r8, 3
-    MUL r1, r8              ; r1 = channel * 3
-    ADD r1, r7              ; r1 = 0x200 + channel * 3
+    MOV r14, r13              ; r14 = channel
+    LDI r2, 3
+    MUL r14, r2              ; r14 = channel * 3
+    ADD r14, r0              ; r14 = 0x200 + channel * 3
 
-    STORE r1, r12            ; freq at base+0
-    MOV r8, r1
-    ADD r8, r3
-    STORE r8, r0            ; dur at base+1
-    MOV r8, r1
-    LDI r15, 2
-    ADD r8, r15
-    STORE r8, r3            ; active = 1 at base+2
+    STORE r14, r4            ; freq at base+0
+    MOV r2, r14
+    ADD r2, r1
+    STORE r2, r9            ; dur at base+1
+    MOV r2, r14
+    LDI r10, 2
+    ADD r2, r10
+    STORE r2, r1            ; active = 1 at base+2
 
     ; Play the note via BEEP
-    BEEP r12, r0
+    BEEP r4, r9
 
 clear_cmd:
     ; Clear command flag so parent can send next note
-    LDI r1, 0
-    STORE r11, r1
+    LDI r14, 0
+    STORE r12, r14
 
     JMP mixer_loop
 
 mixer_shutdown:
-    LDI r1, 0
-    STORE r11, r1
+    LDI r14, 0
+    STORE r12, r14
     HALT

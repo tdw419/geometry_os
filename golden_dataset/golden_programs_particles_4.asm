@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code manages a system of 100 colored particles that drift across the screen, bounce off edges, and fade over time. Each particle's state (position, velocity, color, and life) is stored in RAM, and the code updates these states in real-time to create visually dynamic effects.
+; DESCRIPTION: Render a red object at the screen.
 
 ; particles.asm -- 100 colored pixels that drift, bounce, and fade
 ;
@@ -25,78 +25,78 @@ LDI r25, 1           ; constant 1
 LDI r26, 0           ; background color (black)
 
 ; ===== Initialize 100 particles =====
-LDI r13, 0
+LDI r1, 0
 
 init_loop:
   CALL calc_addr
   CALL randomize
-  ADD r13, r25
-  CMP r13, r21
-  BLT r3, init_loop
+  ADD r1, r25
+  CMP r1, r21
+  BLT r15, init_loop
 
 ; ===== Main frame loop =====
 frame_loop:
   FILL r26            ; clear screen to black
-  LDI r13, 0
+  LDI r1, 0
 
 update_loop:
-  CALL calc_addr      ; r12 = base of particle[i]
+  CALL calc_addr      ; r6 = base of particle[i]
 
   ; -- Load x and vx --
-  LOAD r2, r12         ; r2 = x
-  LDI r6, 2
-  ADD r12, r6          ; r12 -> vx
-  LOAD r11, r12         ; r11 = vx
-  ADD r2, r11          ; x += vx
+  LOAD r5, r6         ; r5 = x
+  LDI r8, 2
+  ADD r6, r8          ; r6 -> vx
+  LOAD r13, r6         ; r13 = vx
+  ADD r5, r13          ; x += vx
 
   ; Bounce X: if x >= 256, it went off screen
-  CMP r2, r22
-  BLT r3, x_ok
+  CMP r5, r22
+  BLT r15, x_ok
   ; Clamp x and negate vx
-  LDI r2, 2
-  LOAD r11, r12
-  NEG r11
-  STORE r12, r11        ; save negated vx
+  LDI r5, 2
+  LOAD r13, r6
+  NEG r13
+  STORE r6, r13        ; save negated vx
 x_ok:
   ; Save x back
   CALL calc_addr
-  STORE r12, r2
+  STORE r6, r5
 
   ; -- Load y and vy --
   CALL calc_addr
-  LDI r6, 1
-  ADD r12, r6          ; r12 -> y
-  LOAD r5, r12         ; r5 = y
-  LDI r6, 1
-  ADD r12, r6          ; r12 -> vy
-  LOAD r11, r12         ; r11 = vy
-  ADD r5, r11          ; y += vy
+  LDI r8, 1
+  ADD r6, r8          ; r6 -> y
+  LOAD r14, r6         ; r14 = y
+  LDI r8, 1
+  ADD r6, r8          ; r6 -> vy
+  LOAD r13, r6         ; r13 = vy
+  ADD r14, r13          ; y += vy
 
   ; Bounce Y
-  CMP r5, r22
-  BLT r3, y_ok
-  LDI r5, 2
-  LOAD r11, r12
-  NEG r11
-  STORE r12, r11        ; save negated vy
+  CMP r14, r22
+  BLT r15, y_ok
+  LDI r14, 2
+  LOAD r13, r6
+  NEG r13
+  STORE r6, r13        ; save negated vy
 y_ok:
   ; Save y back
   CALL calc_addr
-  LDI r6, 1
-  ADD r12, r6
-  STORE r12, r5
+  LDI r8, 1
+  ADD r6, r8
+  STORE r6, r14
 
   ; -- Decrement life --
   CALL calc_addr
-  LDI r6, 5
-  ADD r12, r6          ; r12 -> life
-  LOAD r6, r12
-  SUBI r6, 1
-  STORE r12, r6
+  LDI r8, 5
+  ADD r6, r8          ; r6 -> life
+  LOAD r8, r6
+  SUBI r8, 1
+  STORE r6, r8
 
   ; If life > 0, draw
-  CMP r6, r26
-  BGE r3, do_draw
+  CMP r8, r26
+  BGE r15, do_draw
 
   ; Life hit 0: respawn
   CALL calc_addr
@@ -106,118 +106,118 @@ y_ok:
 do_draw:
   ; -- Draw with fade --
   CALL calc_addr
-  LOAD r2, r12         ; x
-  LDI r6, 1
-  ADD r12, r6
-  LOAD r5, r12         ; y
-  LDI r6, 1
-  ADD r12, r6          ; skip vy
-  LDI r6, 1
-  ADD r12, r6          ; -> color
-  LOAD r10, r12         ; r10 = color
-  LDI r6, 1
-  ADD r12, r6          ; -> life
-  LOAD r0, r12         ; r0 = life
+  LOAD r5, r6         ; x
+  LDI r8, 1
+  ADD r6, r8
+  LOAD r14, r6         ; y
+  LDI r8, 1
+  ADD r6, r8          ; skip vy
+  LDI r8, 1
+  ADD r6, r8          ; -> color
+  LOAD r3, r6         ; r3 = color
+  LDI r8, 1
+  ADD r6, r8          ; -> life
+  LOAD r12, r6         ; r12 = life
 
   ; Compute fade: shift = (255 - life) >> 5 (0..7)
-  LDI r6, 255
-  SUB r6, r0
-  SHRI r6, 5          ; r6 = fade_shift (0..7)
-  MOV r0, r6
+  LDI r8, 255
+  SUB r8, r12
+  SHRI r8, 5          ; r8 = fade_shift (0..7)
+  MOV r12, r8
 
   ; Fade red
-  MOV r7, r10
-  SHRI r7, 16
-  SHR r7, r0
-  SHLI r7, 16
-  MOV r6, r7
+  MOV r10, r3
+  SHRI r10, 16
+  SHR r10, r12
+  SHLI r10, 16
+  MOV r8, r10
 
   ; Fade green
-  MOV r7, r10
-  SHRI r7, 8
-  ANDI r7, 0xFF
-  SHR r7, r0
-  SHLI r7, 8
-  OR r6, r7
+  MOV r10, r3
+  SHRI r10, 8
+  ANDI r10, 0xFF
+  SHR r10, r12
+  SHLI r10, 8
+  OR r8, r10
 
   ; Fade blue
-  MOV r7, r10
-  ANDI r7, 0xFF
-  SHR r7, r0
-  OR r6, r7           ; r6 = final faded color
+  MOV r10, r3
+  ANDI r10, 0xFF
+  SHR r10, r12
+  OR r8, r10           ; r8 = final faded color
 
   ; Skip if fully faded
-  CMP r6, r26
-  JZ r3, next_particle
+  CMP r8, r26
+  JZ r15, next_particle
 
-  PSET r2, r5, r6
+  PSET r5, r14, r8
 
 next_particle:
-  ADD r13, r25
-  CMP r13, r21
-  BLT r3, update_loop
+  ADD r1, r25
+  CMP r1, r21
+  BLT r15, update_loop
 
   FRAME
   JMP frame_loop
 
 ; ===== Subroutine: calc_addr =====
-; Sets r12 = 0x8000 + r13 * 6
+; Sets r6 = 0x8000 + r1 * 6
 calc_addr:
-  MOV r12, r13
-  MUL r12, r20
-  ADD r12, r23
+  MOV r6, r1
+  MUL r6, r20
+  ADD r6, r23
   RET
 
 ; ===== Subroutine: randomize =====
-; Randomizes particle at address r12
+; Randomizes particle at address r6
 randomize:
   ; x = RAND & 0xFF
-  RAND r2
-  AND r2, r24
-  STORE r12, r2
-  ADD r12, r25
+  RAND r5
+  AND r5, r24
+  STORE r6, r5
+  ADD r6, r25
 
   ; y = RAND & 0xFF
-  RAND r2
-  AND r2, r24
-  STORE r12, r2
-  ADD r12, r25
+  RAND r5
+  AND r5, r24
+  STORE r6, r5
+  ADD r6, r25
 
   ; vx = (RAND & 3) + 1, randomly negated
-  RAND r2
-  ANDI r2, 3
-  ADDI r2, 1           ; 1..4
-  RAND r6
-  ANDI r6, 1
-  JZ r6, vx_pos
-  NEG r2
+  RAND r5
+  ANDI r5, 3
+  ADDI r5, 1           ; 1..4
+  RAND r8
+  ANDI r8, 1
+  JZ r8, vx_pos
+  NEG r5
 vx_pos:
-  STORE r12, r2
-  ADD r12, r25
+  STORE r6, r5
+  ADD r6, r25
 
   ; vy = same
-  RAND r2
-  ANDI r2, 3
-  ADDI r2, 1
-  RAND r6
-  ANDI r6, 1
-  JZ r6, vy_pos
-  NEG r2
+  RAND r5
+  ANDI r5, 3
+  ADDI r5, 1
+  RAND r8
+  ANDI r8, 1
+  JZ r8, vy_pos
+  NEG r5
 vy_pos:
-  STORE r12, r2
-  ADD r12, r25
+  STORE r6, r5
+  ADD r6, r25
 
   ; color = RAND | 0x404040 (ensure bright enough)
-  RAND r2
-  LDI r6, 0x404040
-  OR r2, r6
-  STORE r12, r2
-  ADD r12, r25
+  RAND r5
+  LDI r8, 0x404040
+  OR r5, r8
+  STORE r6, r5
+  ADD r6, r25
 
   ; life = 128 + (RAND & 127)
-  RAND r2
-  ANDI r2, 127
-  ADDI r2, 128
-  STORE r12, r2
+  RAND r5
+  ANDI r5, 127
+  ADDI r5, 128
+  STORE r6, r5
 
   RET

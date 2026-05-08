@@ -1,4 +1,4 @@
-; DESCRIPTION: The GeOS assembly code simulates a crash by initializing a debug mailbox, updating its heartbeat five times, and then halting execution to draw a red 'X' on the screen, effectively stopping further updates. This is used to test the watchdog/recovery system.
+; DESCRIPTION: Draw object: pos=the screen, color=red, size=fixed size.
 
 ; flatliner.asm -- Test program that simulates a crash
 ;
@@ -20,64 +20,64 @@ LDI r7, 1
 LDI r30, 0xFD00
 
 ; Fill with dark red
-LDI r14, 0x2A0A0A
-FILL r14
+LDI r10, 0x2A0A0A
+FILL r10
 
 ; Draw "FLATLINER" label
 LDI r20, 0x1000
 STRO r20, "Flatliner"
 LDI r7, 10
-LDI r10, 10
-LDI r9, 0x1000
-LDI r3, 0xFF0000
-LDI r2, 0x2A0A0A
-DRAWTEXT r7, r10, r9, r3, r2
+LDI r15, 10
+LDI r8, 0x1000
+LDI r14, 0xFF0000
+LDI r1, 0x2A0A0A
+DRAWTEXT r7, r15, r8, r14, r1
 
 ; Initialize debug mailbox
-LDI r14, 0xDB9900
+LDI r10, 0xDB9900
 LDI r20, DEBUG_MAGIC
-STORE r20, r14
+STORE r20, r10
 
 GETPID
 LDI r20, DEBUG_CHILD_PID
-STORE r20, r14
+STORE r20, r10
 
-LDI r14, 0
+LDI r10, 0
 LDI r20, DEBUG_HEARTBEAT
-STORE r20, r14
+STORE r20, r10
 
 ; Counter: update heartbeat 5 times then crash
-LDI r2, 5
+LDI r1, 5
 
 beat_loop:
     FRAME
 
     ; Update heartbeat
     LDI r20, DEBUG_HEARTBEAT
-    LOAD r14, r20
-    ADDI r14, 1
-    STORE r20, r14
+    LOAD r10, r20
+    ADDI r10, 1
+    STORE r20, r10
 
     ; Update checkpoint
     LDI r20, DEBUG_CHECKPOINT
-    LDI r14, beat_loop
-    STORE r20, r14
+    LDI r10, beat_loop
+    STORE r20, r10
 
     ; Decrement counter
-    SUBI r2, 1
-    CMPI r2, 0
-    JZ r14, crash_now
+    SUBI r1, 1
+    CMPI r1, 0
+    JZ r10, crash_now
     JMP beat_loop
 
 crash_now:
     ; Simulate a crash: just halt (no more FRAME, no more heartbeat updates)
     ; Draw a red X to show we're "dead"
-    LDI r14, 0xFF0000
+    LDI r10, 0xFF0000
     LDI r7, 50
-    LDI r10, 50
-    LDI r9, 50
-    LDI r3, 50
-    RECTF r7, r10, r9, r3, r14
+    LDI r15, 50
+    LDI r8, 50
+    LDI r14, 50
+    RECTF r7, r15, r8, r14, r10
 
 dead_loop:
     ; Infinite loop with no FRAME -- the heartbeat stops updating

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a pixel-based chat demo that listens for incoming network frames using the NET_RECV function. It displays received pixel data on the screen and shows text messages in a status bar. The demo also includes a simple animated waiting indicator to signify activity.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; net_chat.asm -- Pixel Chat Demo (Phase 71: Pixel Network Protocol)
 ;
@@ -13,9 +13,9 @@
 ;   Frame type 0 (screen_share): display pixels on screen
 ;   Frame type 1 (chat): display text message in status bar
 
-LDI r2, 1              ; increment constant
-LDI r15, 256            ; screen width
-LDI r14, 0              ; frame counter
+LDI r10, 1              ; increment constant
+LDI r7, 256            ; screen width
+LDI r8, 0              ; frame counter
 
 ; Clear screen to dark blue
 LDI r11, 0x000033
@@ -23,69 +23,69 @@ FILL r11
 
 ; Draw title bar
 LDI r11, 0x00
-LDI r9, 0
-LDI r1, 256
-LDI r4, 1
-LDI r0, 0x333333
-RECTF r11, r9, r1, r4, r0
+LDI r15, 0
+LDI r6, 256
+LDI r13, 1
+LDI r1, 0x333333
+RECTF r11, r15, r6, r13, r1
 
 ; Draw status bar at bottom
 LDI r11, 0
-LDI r9, 250
-LDI r1, 256
-LDI r4, 6
-LDI r0, 0x222222
-RECTF r11, r9, r1, r4, r0
+LDI r15, 250
+LDI r6, 256
+LDI r13, 6
+LDI r1, 0x222222
+RECTF r11, r15, r6, r13, r1
 
 ; Write "Pixel Chat - Waiting..." text at top
-LDI r8, 0x2000
-LDI r3, 80             ; 'P'
-STORE r8, r3
-LDI r8, 0x2001
-LDI r3, 105            ; 'i'
-STORE r8, r3
-LDI r8, 0x2002
-LDI r3, 120            ; 'x'
-STORE r8, r3
-LDI r8, 0x2003
-LDI r3, 101            ; 'e'
-STORE r8, r3
-LDI r8, 0x2004
-LDI r3, 108            ; 'l'
-STORE r8, r3
-LDI r8, 0x2005
-LDI r3, 0              ; null
-STORE r8, r3
+LDI r0, 0x2000
+LDI r5, 80             ; 'P'
+STORE r0, r5
+LDI r0, 0x2001
+LDI r5, 105            ; 'i'
+STORE r0, r5
+LDI r0, 0x2002
+LDI r5, 120            ; 'x'
+STORE r0, r5
+LDI r0, 0x2003
+LDI r5, 101            ; 'e'
+STORE r0, r5
+LDI r0, 0x2004
+LDI r5, 108            ; 'l'
+STORE r0, r5
+LDI r0, 0x2005
+LDI r5, 0              ; null
+STORE r0, r5
 
-LDI r8, 0x2000
-LDI r3, 2
-LDI r10, 8
-LDI r6, 0xFFFFFF
-TEXT r8, r3, r6
+LDI r0, 0x2000
+LDI r5, 2
+LDI r3, 8
+LDI r12, 0xFFFFFF
+TEXT r0, r5, r12
 
 ; Main loop: poll for incoming frames
 main_loop:
   ; Update frame counter
-  ADD r14, r2
+  ADD r8, r10
   LDI r11, 0xFFE
-  STORE r11, r14
+  STORE r11, r8
 
   ; Poll NET_RECV
   LDI r11, 0x7100     ; receive buffer
-  LDI r9, 256        ; max length
-  NET_RECV r11, r9
+  LDI r15, 256        ; max length
+  NET_RECV r11, r15
 
-  ; Check if we got data (r5 > 0 means data received)
-  LDI r1, 0
-  CMP r5, r1
-  JZ r5, no_data
+  ; Check if we got data (r14 > 0 means data received)
+  LDI r6, 0
+  CMP r14, r6
+  JZ r14, no_data
 
   ; Data received! Check frame type
-  LDI r4, 0x7100
-  LOAD r4, r4         ; r4 = frame type
-  LDI r0, 1
-  CMP r4, r0
-  JZ r5, got_chat       ; type 1 = chat message
+  LDI r13, 0x7100
+  LOAD r13, r13         ; r13 = frame type
+  LDI r1, 1
+  CMP r13, r1
+  JZ r14, got_chat       ; type 1 = chat message
 
   ; Type 0 = screen share - display pixels
   ; Pixel data starts at 0x7104 (after 4-byte header)
@@ -99,11 +99,11 @@ got_chat:
   ; Chat message received - display in status bar
   ; Change status bar color to indicate message
   LDI r11, 0
-  LDI r9, 250
-  LDI r1, 256
-  LDI r4, 6
-  LDI r0, 0x004400    ; green tint = message received
-  RECTF r11, r9, r1, r4, r0
+  LDI r15, 250
+  LDI r6, 256
+  LDI r13, 6
+  LDI r1, 0x004400    ; green tint = message received
+  RECTF r11, r15, r6, r13, r1
   FRAME
   JMP main_loop
 
@@ -111,25 +111,25 @@ no_data:
   ; Animate waiting indicator (blinking dot)
   LDI r11, 0xFFE
   LOAD r11, r11         ; r11 = TICKS
-  LDI r9, 30
-  AND r11, r9          ; r11 = TICKS & 30
-  LDI r9, 15
-  CMP r11, r9
-  BLT r5, dot_on
+  LDI r15, 30
+  AND r11, r15          ; r11 = TICKS & 30
+  LDI r15, 15
+  CMP r11, r15
+  BLT r14, dot_on
 
   ; Dot off - draw black pixel at (128, 4)
   LDI r11, 128
-  LDI r9, 4
-  LDI r1, 0x000000
-  PSET r11, r9, r1
+  LDI r15, 4
+  LDI r6, 0x000000
+  PSET r11, r15, r6
   FRAME
   JMP main_loop
 
 dot_on:
   LDI r11, 128
-  LDI r9, 4
-  LDI r1, 0xFFFFFF
-  PSET r11, r9, r1
+  LDI r15, 4
+  LDI r6, 0xFFFFFF
+  PSET r11, r15, r6
   FRAME
   JMP main_loop
 

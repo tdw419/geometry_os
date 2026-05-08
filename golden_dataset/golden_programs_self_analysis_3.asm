@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code performs a recursive self-analysis by drawing content on the screen, sampling pixel data, constructing a prompt for a Language Learning Model (LLM) to analyze the drawn image, and then writing the LLM's response to a file. The process involves drawing a title bar, four colored quadrants, sampling the screen's pixels to count non-background colors, generating a natural language description of the scene, calling the LLM, displaying its response, and saving it to disk along with quadrant counts.
+; DESCRIPTION: Geometry OS program to draw a red object.
 
 ; self_analysis.asm -- Recursive Self-Analysis Program
 ;
@@ -16,7 +16,7 @@
 ;   0x2200-0x22FF  Summary text buffer
 ;
 ; Registers:
-;   r6:  constant 1
+;   r4:  constant 1
 ;   r30: stack pointer
 
 #define PROMPT_BUF  0x1400
@@ -25,75 +25,75 @@
 #define PATH_BUF    0x2100
 #define SUMMARY_BUF 0x2200
 
-LDI r6, 1
+LDI r4, 1
 LDI r30, 0xFD00
 
 ; ── PHASE 1: Draw content on screen ──
 
 ; Dark background
-LDI r2, 0x0A0A14
-FILL r2
+LDI r5, 0x0A0A14
+FILL r5
 
 ; Title bar (purple)
-LDI r6, 0
+LDI r4, 0
 LDI r10, 0
-LDI r11, 256
-LDI r4, 20
-LDI r14, 0x2D0050
-RECTF r6, r10, r11, r4, r14
+LDI r14, 256
+LDI r11, 20
+LDI r0, 0x2D0050
+RECTF r4, r10, r14, r11, r0
 
 ; Title text
 LDI r20, TEXT_BUF
 STRO r20, "Recursive Self-Analysis"
-LDI r6, 4
+LDI r4, 4
 LDI r10, 4
-LDI r11, TEXT_BUF
-LDI r4, 0xFFFFFF
-LDI r14, 0x2D0050
-DRAWTEXT r6, r10, r11, r4, r14
+LDI r14, TEXT_BUF
+LDI r11, 0xFFFFFF
+LDI r0, 0x2D0050
+DRAWTEXT r4, r10, r14, r11, r0
 
 ; Draw 4 colored quadrants so there's something to detect
 ; Top-left: red block
-LDI r6, 10
+LDI r4, 10
 LDI r10, 30
+LDI r14, 50
 LDI r11, 50
-LDI r4, 50
-LDI r14, 0xFF3333
-RECTF r6, r10, r11, r4, r14
+LDI r0, 0xFF3333
+RECTF r4, r10, r14, r11, r0
 
 ; Top-right: green block
-LDI r6, 196
+LDI r4, 196
 LDI r10, 30
+LDI r14, 50
 LDI r11, 50
-LDI r4, 50
-LDI r14, 0x33FF33
-RECTF r6, r10, r11, r4, r14
+LDI r0, 0x33FF33
+RECTF r4, r10, r14, r11, r0
 
 ; Bottom-left: blue block
-LDI r6, 10
+LDI r4, 10
 LDI r10, 176
+LDI r14, 50
 LDI r11, 50
-LDI r4, 50
-LDI r14, 0x3333FF
-RECTF r6, r10, r11, r4, r14
+LDI r0, 0x3333FF
+RECTF r4, r10, r14, r11, r0
 
 ; Bottom-right: yellow block
-LDI r6, 196
+LDI r4, 196
 LDI r10, 176
+LDI r14, 50
 LDI r11, 50
-LDI r4, 50
-LDI r14, 0xFFFF33
-RECTF r6, r10, r11, r4, r14
+LDI r0, 0xFFFF33
+RECTF r4, r10, r14, r11, r0
 
 ; Status line: "Sampling..."
 LDI r20, TEXT_BUF
 STRO r20, "Sampling screen..."
-LDI r6, 4
+LDI r4, 4
 LDI r10, 22
-LDI r11, TEXT_BUF
-LDI r4, 0xAAAAAA
-LDI r14, 0x2D0050
-DRAWTEXT r6, r10, r11, r4, r14
+LDI r14, TEXT_BUF
+LDI r11, 0xAAAAAA
+LDI r0, 0x2D0050
+DRAWTEXT r4, r10, r14, r11, r0
 
 FRAME
 
@@ -101,65 +101,65 @@ FRAME
 ; Sample a 16x16 grid (every 16 pixels). For each quadrant,
 ; count non-background (non-0x0A0A14) pixels.
 
-LDI r6, 1
+LDI r4, 1
 
-; Quadrant counters: r4=TL, r14=TR, r12=BL, r1=BR
-LDI r4, 0
-LDI r14, 0
-LDI r12, 0
-LDI r1, 0
+; Quadrant counters: r11=TL, r0=TR, r6=BL, r2=BR
+LDI r11, 0
+LDI r0, 0
+LDI r6, 0
+LDI r2, 0
 
-; r15 = row counter (0..15)
-LDI r15, 0
+; r13 = row counter (0..15)
+LDI r13, 0
 sample_row:
-    ; r5 = col counter (0..15)
-    LDI r5, 0
+    ; r8 = col counter (0..15)
+    LDI r8, 0
 sample_col:
     ; Compute actual pixel position: x = col*16, y = row*16
-    MOV r8, r5
-    SHLI r8, 4           ; x = col * 16
-    MOV r0, r15
-    SHLI r0, 4           ; y = row * 16
+    MOV r1, r8
+    SHLI r1, 4           ; x = col * 16
+    MOV r12, r13
+    SHLI r12, 4           ; y = row * 16
 
     ; Read pixel at (x, y)
-    SCREENP r3, r8, r0  ; r3 = pixel color
+    SCREENP r9, r1, r12  ; r9 = pixel color
 
     ; Check if pixel != background (0x0A0A14)
     LDI r7, 0x0A0A14
-    CMP r3, r7
-    JZ r2, sample_next    ; background pixel, skip
+    CMP r9, r7
+    JZ r5, sample_next    ; background pixel, skip
 
     ; Non-background pixel -- increment appropriate quadrant
     ; TL: x < 128 and y < 128
-    CMPI r8, 128
-    BGE r2, sample_check_right
-    CMPI r0, 128
-    BGE r2, sample_check_bl
-    ADDI r4, 1            ; TL++
+    CMPI r1, 128
+    BGE r5, sample_check_right
+    CMPI r12, 128
+    BGE r5, sample_check_bl
+    ADDI r11, 1            ; TL++
     JMP sample_next
 
 sample_check_right:
-    CMPI r0, 128
-    BGE r2, sample_check_br
-    ADDI r14, 1            ; TR++
+    CMPI r12, 128
+    BGE r5, sample_check_br
+    ADDI r0, 1            ; TR++
     JMP sample_next
 
 sample_check_bl:
-    ADDI r12, 1            ; BL++
+    ADDI r6, 1            ; BL++
     JMP sample_next
 
 sample_check_br:
-    ADDI r1, 1            ; BR++
+    ADDI r2, 1            ; BR++
     ; fall through to sample_next
 
 sample_next:
-    ADDI r5, 1
-    CMPI r5, 16
-    JNZ r2, sample_col    ; more columns
+    ADDI r8, 1
+    CMPI r8, 16
+    JNZ r5, sample_col    ; more columns
 
-    ADDI r15, 1
-    CMPI r15, 16
-    JNZ r2, sample_row    ; more rows
+    ADDI r13, 1
+    CMPI r13, 16
+    JNZ r5, sample_row    ; more rows
 
 ; ── PHASE 3: Build LLM prompt ──
 ; Describe the screen state in natural language.
@@ -176,7 +176,7 @@ CALL advance_to_null
 ; Append TL count
 STRO r20, "Top-left: "
 CALL advance_to_null
-MOV r2, r4
+MOV r5, r11
 CALL append_number
 STRO r20, " pixels\n"
 CALL advance_to_null
@@ -184,7 +184,7 @@ CALL advance_to_null
 ; Append TR count
 STRO r20, "Top-right: "
 CALL advance_to_null
-MOV r2, r14
+MOV r5, r0
 CALL append_number
 STRO r20, " pixels\n"
 CALL advance_to_null
@@ -192,7 +192,7 @@ CALL advance_to_null
 ; Append BL count
 STRO r20, "Bottom-left: "
 CALL advance_to_null
-MOV r2, r12
+MOV r5, r6
 CALL append_number
 STRO r20, " pixels\n"
 CALL advance_to_null
@@ -200,7 +200,7 @@ CALL advance_to_null
 ; Append BR count
 STRO r20, "Bottom-right: "
 CALL advance_to_null
-MOV r2, r1
+MOV r5, r2
 CALL append_number
 STRO r20, " pixels\n"
 CALL advance_to_null
@@ -217,41 +217,41 @@ CALL advance_to_null
 ; ── PHASE 4: Update status ──
 LDI r20, TEXT_BUF
 STRO r20, "Calling LLM..."
-LDI r6, 4
+LDI r4, 4
 LDI r10, 22
-LDI r11, TEXT_BUF
-LDI r4, 0xFFFF00
-LDI r14, 0x2D0050
-DRAWTEXT r6, r10, r11, r4, r14
+LDI r14, TEXT_BUF
+LDI r11, 0xFFFF00
+LDI r0, 0x2D0050
+DRAWTEXT r4, r10, r14, r11, r0
 FRAME
 
 ; ── PHASE 5: Call LLM ──
 LDI r10, PROMPT_BUF
-LDI r11, RESP_BUF
-LDI r4, 512
-LLM r10, r11, r4
-; r2 = response length
+LDI r14, RESP_BUF
+LDI r11, 512
+LLM r10, r14, r11
+; r5 = response length
 
 ; Save response length
-MOV r13, r2
+MOV r3, r5
 
 ; ── PHASE 6: Display response on screen ──
 LDI r20, TEXT_BUF
 STRO r20, "LLM Response:"
-LDI r6, 4
+LDI r4, 4
 LDI r10, 80
-LDI r11, TEXT_BUF
-LDI r4, 0x00FF88
-LDI r14, 0x0A0A14
-DRAWTEXT r6, r10, r11, r4, r14
+LDI r14, TEXT_BUF
+LDI r11, 0x00FF88
+LDI r0, 0x0A0A14
+DRAWTEXT r4, r10, r14, r11, r0
 
 ; Draw the LLM response text (first 32 chars fit on one line)
-LDI r6, 4
+LDI r4, 4
 LDI r10, 92
-LDI r11, RESP_BUF
-LDI r4, 0xDDDDDD
-LDI r14, 0x0A0A14
-DRAWTEXT r6, r10, r11, r4, r14
+LDI r14, RESP_BUF
+LDI r11, 0xDDDDDD
+LDI r0, 0x0A0A14
+DRAWTEXT r4, r10, r14, r11, r0
 
 ; ── PHASE 7: Write analysis to file ──
 ; Prepare file path
@@ -259,91 +259,91 @@ LDI r20, PATH_BUF
 STRO r20, "/tmp/screen_analysis.txt"
 
 ; Open for writing
-LDI r6, PATH_BUF
+LDI r4, PATH_BUF
 LDI r10, 1            ; mode = write
-OPEN r6, r10
-; r2 = fd
+OPEN r4, r10
+; r5 = fd
 
 ; Check for error
 LDI r7, 0xFFFFFFFF
-CMP r2, r7
-JZ r2, write_failed
+CMP r5, r7
+JZ r5, write_failed
 
 ; Save fd
-MOV r9, r2
+MOV r15, r5
 
 ; Write the response to file
-MOV r6, r9          ; fd
+MOV r4, r15          ; fd
 LDI r10, RESP_BUF     ; buf addr
-MOV r11, r13          ; length
-WRITESTR r6, r10
+MOV r14, r3          ; length
+WRITESTR r4, r10
 
 ; Close file
-MOV r6, r9
-CLOSE r6
+MOV r4, r15
+CLOSE r4
 
 ; Show success
 LDI r20, SUMMARY_BUF
 STRO r20, "Analysis saved to /tmp/screen_analysis.txt"
-LDI r6, 4
+LDI r4, 4
 LDI r10, 140
-LDI r11, SUMMARY_BUF
-LDI r4, 0x33FF33
-LDI r14, 0x0A0A14
-DRAWTEXT r6, r10, r11, r4, r14
+LDI r14, SUMMARY_BUF
+LDI r11, 0x33FF33
+LDI r0, 0x0A0A14
+DRAWTEXT r4, r10, r14, r11, r0
 JMP show_counts
 
 write_failed:
     LDI r20, SUMMARY_BUF
     STRO r20, "File write failed (no sandbox?)"
-    LDI r6, 4
+    LDI r4, 4
     LDI r10, 140
-    LDI r11, SUMMARY_BUF
-    LDI r4, 0xFF3333
-    LDI r14, 0x0A0A14
-    DRAWTEXT r6, r10, r11, r4, r14
+    LDI r14, SUMMARY_BUF
+    LDI r11, 0xFF3333
+    LDI r0, 0x0A0A14
+    DRAWTEXT r4, r10, r14, r11, r0
 
 show_counts:
     ; Show quadrant counts on screen
     LDI r20, SUMMARY_BUF
     STRO r20, "TL:"
     CALL advance_to_null
-    MOV r2, r4
+    MOV r5, r11
     CALL append_number
     STRO r20, " TR:"
     CALL advance_to_null
-    MOV r2, r14
+    MOV r5, r0
     CALL append_number
     STRO r20, " BL:"
     CALL advance_to_null
-    MOV r2, r12
+    MOV r5, r6
     CALL append_number
     STRO r20, " BR:"
     CALL advance_to_null
-    MOV r2, r1
+    MOV r5, r2
     CALL append_number
 
-    LDI r6, 4
+    LDI r4, 4
     LDI r10, 155
-    LDI r11, SUMMARY_BUF
-    LDI r4, 0xBBBBBB
-    LDI r14, 0x0A0A14
-    DRAWTEXT r6, r10, r11, r4, r14
+    LDI r14, SUMMARY_BUF
+    LDI r11, 0xBBBBBB
+    LDI r0, 0x0A0A14
+    DRAWTEXT r4, r10, r14, r11, r0
 
 ; Final status
 LDI r20, TEXT_BUF
 STRO r20, "Self-analysis complete."
-LDI r6, 4
+LDI r4, 4
 LDI r10, 22
-LDI r11, TEXT_BUF
-LDI r4, 0x33FF33
-LDI r14, 0x2D0050
-DRAWTEXT r6, r10, r11, r4, r14
+LDI r14, TEXT_BUF
+LDI r11, 0x33FF33
+LDI r0, 0x2D0050
+DRAWTEXT r4, r10, r14, r11, r0
 FRAME
 
 ; Halt
-LDI r2, 0
-EXIT r2
+LDI r5, 0
+EXIT r5
 
 ; =========================================
 ; Subroutines
@@ -356,7 +356,7 @@ advance_to_null:
 advance_loop:
     LOAD r22, r20
     CMPI r22, 0
-    JZ r2, advance_done
+    JZ r5, advance_done
     ADDI r20, 1
     JMP advance_loop
 advance_done:
@@ -364,17 +364,17 @@ advance_done:
     RET
 
 ; append_number -- append decimal number to string at r20
-; r2: number to append (0-255)
+; r5: number to append (0-255)
 ; r20: current position (advanced past written digits)
 append_number:
     PUSH r10
-    PUSH r11
-    PUSH r12
+    PUSH r14
+    PUSH r6
     PUSH r22
 
     ; Handle 0 special case
-    CMPI r2, 0
-    JNZ r2, append_nonzero
+    CMPI r5, 0
+    JNZ r5, append_nonzero
     LDI r22, 48           ; '0'
     STORE r20, r22
     ADDI r20, 1
@@ -382,42 +382,42 @@ append_number:
 
 append_nonzero:
     ; Extract digits into stack (reversed)
-    LDI r12, 0             ; digit count
-    MOV r10, r2            ; working copy
+    LDI r6, 0             ; digit count
+    MOV r10, r5            ; working copy
 append_extract:
     CMPI r10, 0
-    JZ r2, append_write
+    JZ r5, append_write
     ; r10 % 10
-    MOV r11, r10
+    MOV r14, r10
     LDI r22, 10
-    DIV r11, r22           ; r11 = r10 / 10
-    MUL r11, r22           ; r11 = (r10/10)*10
-    SUB r10, r11            ; r10 = r10 % 10 (digit)
+    DIV r14, r22           ; r14 = r10 / 10
+    MUL r14, r22           ; r14 = (r10/10)*10
+    SUB r10, r14            ; r10 = r10 % 10 (digit)
     ADDI r10, 48           ; ASCII digit
     PUSH r10               ; push digit onto stack
-    ADDI r12, 1
-    MOV r10, r2
+    ADDI r6, 1
+    MOV r10, r5
     LDI r22, 10
-    DIV r10, r22           ; r10 = r2 / 10
-    MOV r2, r10            ; update r2 for next iteration
-    MOV r10, r2
+    DIV r10, r22           ; r10 = r5 / 10
+    MOV r5, r10            ; update r5 for next iteration
+    MOV r10, r5
     JMP append_extract
 
 append_write:
     ; Pop digits in correct order
-    CMPI r12, 0
-    JZ r2, append_done
+    CMPI r6, 0
+    JZ r5, append_done
     POP r22
     STORE r20, r22
     ADDI r20, 1
-    SUBI r12, 1
+    SUBI r6, 1
     JMP append_write
 
 append_done:
     LDI r22, 0
     STORE r20, r22        ; null terminate
     POP r22
-    POP r12
-    POP r11
+    POP r6
+    POP r14
     POP r10
     RET

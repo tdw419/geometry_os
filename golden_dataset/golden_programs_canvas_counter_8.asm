@@ -1,19 +1,19 @@
-; DESCRIPTION: This GeOS assembly code increments a digit displayed on the canvas grid each frame. The digit resets after reaching '9', demonstrating that the grid functions as both the display and storage medium.
+; DESCRIPTION: Draw object: pos=the screen, color=colored, size=fixed size.
 
 ; canvas_counter.asm
 ; Increments a digit on the canvas grid each frame.
 ; Demonstrates that the grid IS the display.
 
-  LDI r1, 0x8000    ; Top-left corner of canvas
-  LDI r2, 0x30      ; ASCII '0'
-  LDI r11, 1         ; Increment
-  LDI r14, 0x3A      ; ASCII ':' (one past '9')
+  LDI r14, 0x8000    ; Top-left corner of canvas
+  LDI r1, 0x30      ; ASCII '0'
+  LDI r3, 1         ; Increment
+  LDI r13, 0x3A      ; ASCII ':' (one past '9')
 
 loop:
-  STORE r1, r2      ; Update canvas
+  STORE r14, r1      ; Update canvas
   FRAME             ; Wait for next frame
-  ADD r2, r11        ; Increment character
-  CMP r2, r14        ; Reached 10?
-  BLT r6, loop      ; No, continue
-  LDI r2, 0x30      ; Yes, reset to '0'
+  ADD r1, r3        ; Increment character
+  CMP r1, r13        ; Reached 10?
+  BLT r10, loop      ; No, continue
+  LDI r1, 0x30      ; Yes, reset to '0'
   JMP loop

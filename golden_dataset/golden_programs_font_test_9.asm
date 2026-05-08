@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code configures the system to render text using an 8x8 VGA font on a dark blue background. It displays a title, uppercase and lowercase alphabets, digits, special characters, and a footer message at specific y-coordinates on the screen.
+; DESCRIPTION: Draw object: pos=the screen, color=blue, size=fixed size.
 
 ; font_test.asm -- Phase 218: Verify 8x8 font rendering capability
 ; Uses the pixel VM TEXT opcode with variable-width 8x8 font mode.

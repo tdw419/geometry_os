@@ -1,4 +1,4 @@
-; DESCRIPTION: The provided code is a large assembly program designed to run on a custom assembly language interpreter or emulator. The program appears to be a simple game or simulation environment with various features such as terrain rendering, entity management, and command parsing. Below is a detailed breakdown of the key components and functionalities of the program:
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ### Key Components
 
@@ -155,11 +155,11 @@ This assembly program demonstrates a basic game loop structure, entity managemen
 ; Renders via RECTF (1-2 per tile depending on pattern).
 
 ; ===== Constants =====
-LDI r3, 1               ; constant 1
-LDI r10, 0xFFB          ; key bitmask port
-LDI r0, 0x7800         ; camera_x address
-LDI r11, 0x7801         ; camera_y address
-LDI r1, 0x7802         ; frame_counter address
+LDI r5, 1               ; constant 1
+LDI r3, 0xFFB          ; key bitmask port
+LDI r14, 0x7800         ; camera_x address
+LDI r12, 0x7801         ; camera_y address
+LDI r2, 0x7802         ; frame_counter address
 
 ; ===== Dynamic tile size from zoom level =====
 ; RAM[0x7812]: 0=1px tiles (256x256), 1=2px (128x128), 2=4px (64x64 default),
@@ -180,19 +180,19 @@ JMP zoom_default         ; zoom 4 = still 4px (Rust crops)
 
 zoom_0:
 LDI r4, 256              ; TILES per axis (zoomed out: see 256 tiles)
-LDI r6, 1                ; TILE_SIZE = 1 pixel
+LDI r13, 1                ; TILE_SIZE = 1 pixel
 LDI r30, 0               ; detail_level = 0 (minimal: flat tiles only)
 JMP zoom_set
 
 zoom_1:
 LDI r4, 128              ; TILES per axis (medium: 128 tiles)
-LDI r6, 2                ; TILE_SIZE = 2 pixels
+LDI r13, 2                ; TILE_SIZE = 2 pixels
 LDI r30, 1               ; detail_level = 1 (reduced: patterns + shimmer, no trees/contours)
 JMP zoom_set
 
 zoom_default:
 LDI r4, 64               ; TILES per axis (standard: 64 tiles)
-LDI r6, 4                ; TILE_SIZE = 4 pixels
+LDI r13, 4                ; TILE_SIZE = 4 pixels
 LDI r30, 2               ; detail_level = 2 (full detail)
 
 zoom_set:
@@ -207,7 +207,7 @@ JNZ r18, zoom_no_init_fix
 LDI r18, 2
 STORE r17, r18
 LDI r4, 64
-LDI r6, 4
+LDI r13, 4
 LDI r30, 2
 LDI r17, 0x7814
 STORE r17, r30
@@ -391,49 +391,49 @@ LDI r20, 0x7020
 
 LDI r17, 0xFFFFFFF0    ; -16
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0xFFFFFFF4    ; -12
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0xFFFFFFF8    ; -8
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0xFFFFFFFC    ; -4
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0x00000000    ; 0
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0x00000004    ; +4
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0x00000008    ; +8
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0x0000000C    ; +12
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0xFFFFFFF0    ; -16
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0xFFFFFFF4    ; -12
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0xFFFFFFF8    ; -8
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0xFFFFFFFC    ; -4
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0x00000000    ; 0
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0x00000004    ; +4
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0x00000008    ; +8
 STORE r20, r17
-ADD r20, r3
+ADD r20, r5
 LDI r17, 0x0000000C    ; +12
 STORE r20, r17
 
@@ -1013,18 +1013,18 @@ STORE r20, r17
 main_loop:
 
 ; --- Increment frame counter ---
-LOAD r17, r1
-ADD r17, r3
-STORE r1, r17
+LOAD r17, r2
+ADD r17, r5
+STORE r2, r17
 
 ; --- Read player position ---
 LDI r18, 0x7808
-LOAD r7, r18           ; r7 = player_x
+LOAD r15, r18           ; r15 = player_x
 LDI r18, 0x7809
-LOAD r5, r18           ; r5 = player_y
+LOAD r6, r18           ; r6 = player_y
 
 ; --- Read key bitmask ---
-LOAD r16, r10           ; r16 = key bitmask
+LOAD r16, r3           ; r16 = key bitmask
 
 ; --- Reset stack pointer (render loop may trash r30) ---
 LDI r30, 0xFF00
@@ -1043,7 +1043,7 @@ JZ r17, cmd_type_no_key      ; no key pressed
 
 ; Escape (27) exits type mode
 CMPI r17, 27
-JNZ r13, cmd_not_escape
+JNZ r9, cmd_not_escape
 LDI r17, 0x7830
 LDI r18, 0
 STORE r17, r18               ; CMD_MODE = 0
@@ -1054,7 +1054,7 @@ JMP cmd_type_no_key
 cmd_not_escape:
 ; Enter (13) executes command
 CMPI r17, 13
-JNZ r13, cmd_not_enter
+JNZ r9, cmd_not_enter
 CALL cmd_execute
 LDI r17, 0x7830
 LDI r18, 0
@@ -1066,9 +1066,9 @@ JMP cmd_type_no_key
 cmd_not_enter:
 ; Backspace (8 or 127)
 CMPI r17, 8
-JZ r13, cmd_do_bs
+JZ r9, cmd_do_bs
 CMPI r17, 127
-JNZ r13, cmd_do_char
+JNZ r9, cmd_do_char
 cmd_do_bs:
 LDI r17, 0x7831
 LOAD r18, r17                ; r18 = CMD_LEN
@@ -1083,7 +1083,7 @@ MOV r27, r17                  ; save char in r27 (not used by main loop yet)
 LDI r17, 0x7831
 LOAD r18, r17                 ; r18 = CMD_LEN
 CMPI r18, 63
-BGE r13, cmd_type_no_key       ; buffer full
+BGE r9, cmd_type_no_key       ; buffer full
 LDI r19, 0x7832
 ADD r19, r18                  ; r19 = CMD_BUF + CMD_LEN
 STORE r19, r27                ; CMD_BUF[len] = char
@@ -1096,7 +1096,7 @@ check_slash_toggle:
 IKEY r17
 JZ r17, cmd_move_no_key
 CMPI r17, 47                 ; '/'
-JNZ r13, cmd_move_no_key
+JNZ r9, cmd_move_no_key
 LDI r17, 0x7830
 LDI r18, 1
 STORE r17, r18               ; CMD_MODE = 1
@@ -1121,19 +1121,19 @@ JZ r17, no_up
 LDI r17, 0x780A
 LDI r18, 1
 STORE r17, r18          ; facing = up
-MOV r17, r5
-SUB r17, r3             ; target_y = player_y - 1
+MOV r17, r6
+SUB r17, r5             ; target_y = player_y - 1
 LDI r18, 0x7809
 STORE r18, r17          ; player_y = target_y (move will be reverted if blocked)
 ; Check biome at (player_x, target_y)
-MOV r2, r7             ; world_x = player_x
-MOV r15, r17             ; world_y = target_y
+MOV r1, r15             ; world_x = player_x
+MOV r11, r17             ; world_y = target_y
 CALL check_biome_walkable
-JZ r13, up_blocked       ; r13 == 0 means not walkable
+JZ r9, up_blocked       ; r9 == 0 means not walkable
 JMP no_up
 up_blocked:
 LDI r18, 0x7809
-STORE r18, r5          ; revert player_y to original
+STORE r18, r6          ; revert player_y to original
 no_up:
 
 ; --- Process Down (bit 1) - try move down ---
@@ -1144,18 +1144,18 @@ JZ r17, no_down
 LDI r17, 0x780A
 LDI r18, 0
 STORE r17, r18          ; facing = down
-MOV r17, r5
-ADD r17, r3             ; target_y = player_y + 1
+MOV r17, r6
+ADD r17, r5             ; target_y = player_y + 1
 LDI r18, 0x7809
 STORE r18, r17
-MOV r2, r7
-MOV r15, r17
+MOV r1, r15
+MOV r11, r17
 CALL check_biome_walkable
-JZ r13, down_blocked
+JZ r9, down_blocked
 JMP no_down
 down_blocked:
 LDI r18, 0x7809
-MOV r17, r5
+MOV r17, r6
 STORE r18, r17          ; revert
 no_down:
 
@@ -1167,18 +1167,18 @@ JZ r17, no_left
 LDI r17, 0x780A
 LDI r18, 2
 STORE r17, r18          ; facing = left
-MOV r17, r7
-SUB r17, r3             ; target_x = player_x - 1
+MOV r17, r15
+SUB r17, r5             ; target_x = player_x - 1
 LDI r18, 0x7808
 STORE r18, r17
-MOV r2, r17             ; world_x = target_x
-MOV r15, r5             ; world_y = player_y
+MOV r1, r17             ; world_x = target_x
+MOV r11, r6             ; world_y = player_y
 CALL check_biome_walkable
-JZ r13, left_blocked
+JZ r9, left_blocked
 JMP no_left
 left_blocked:
 LDI r18, 0x7808
-STORE r18, r7          ; revert player_x to original
+STORE r18, r15          ; revert player_x to original
 no_left:
 
 ; --- Process Right (bit 3) - try move right ---
@@ -1189,18 +1189,18 @@ JZ r17, no_right
 LDI r17, 0x780A
 LDI r18, 3
 STORE r17, r18          ; facing = right
-MOV r17, r7
-ADD r17, r3             ; target_x = player_x + 1
+MOV r17, r15
+ADD r17, r5             ; target_x = player_x + 1
 LDI r18, 0x7808
 STORE r18, r17
-MOV r2, r17
-MOV r15, r5
+MOV r1, r17
+MOV r11, r6
 CALL check_biome_walkable
-JZ r13, right_blocked
+JZ r9, right_blocked
 JMP no_right
 right_blocked:
 LDI r18, 0x7808
-MOV r17, r7
+MOV r17, r15
 STORE r18, r17          ; revert
 no_right:
 
@@ -1216,9 +1216,9 @@ STORE r17, r18
 
 ; --- Re-read player position (may have moved) ---
 LDI r18, 0x7808
-LOAD r7, r18           ; r7 = player_x
+LOAD r15, r18           ; r15 = player_x
 LDI r18, 0x7809
-LOAD r5, r18           ; r5 = player_y
+LOAD r6, r18           ; r6 = player_y
 
 
 ; ===== Update Entities (throttled to ~7.5 updates/sec) =====
@@ -1226,7 +1226,7 @@ LOAD r5, r18           ; r5 = player_y
 PUSH r31
 
 ; Throttle: only update entities every 8th frame
-LOAD r17, r1              ; frame_counter
+LOAD r17, r2              ; frame_counter
 LDI r18, 7
 AND r17, r18
 JNZ r17, ent_update_skip
@@ -1239,13 +1239,13 @@ LDI r26, 0                 ; entity index
 
 ent_update_loop:
   CMP r26, r21
-  BGE r13, ent_update_done
+  BGE r9, ent_update_done
 
   ; Load entity fields
   MOV r22, r20
-  LOAD r2, r22             ; world_x (r2 for biome check)
+  LOAD r1, r22             ; world_x (r1 for biome check)
   ADDI r22, 1
-  LOAD r15, r22             ; world_y (r15 for biome check)
+  LOAD r11, r22             ; world_y (r11 for biome check)
   ADDI r22, 1
   LOAD r17, r22            ; type
   ADDI r22, 1
@@ -1269,19 +1269,19 @@ ent_not_program:
   ; type 5=area_agent (autonomous explorer, seeks buildings)
   LDI r22, 1
   CMP r17, r22
-  JZ r13, ent_ai_wander     ; wanderer
+  JZ r9, ent_ai_wander     ; wanderer
   LDI r22, 2
   CMP r17, r22
-  JZ r13, ent_ai_guard      ; guard
+  JZ r9, ent_ai_guard      ; guard
   LDI r22, 3
   CMP r17, r22
-  JZ r13, ent_ai_animal     ; animal (flee)
+  JZ r9, ent_ai_animal     ; animal (flee)
   LDI r22, 4
   CMP r17, r22
-  JZ r13, ent_ai_ghost      ; ghost
+  JZ r9, ent_ai_ghost      ; ghost
   LDI r22, 5
   CMP r17, r22
-  JZ r13, ent_ai_area_agent ; area_agent
+  JZ r9, ent_ai_area_agent ; area_agent
   JMP ent_next              ; unknown type, skip
 
   ; ===== Wanderer AI (type 1): random walk =====
@@ -1302,7 +1302,7 @@ ent_ai_guard:
   ; Simple proximity check: if within 8 tiles on x-axis, approach
   LDI r22, 0x7808
   LOAD r22, r22             ; player_x
-  MOV r25, r2
+  MOV r25, r1
   SUB r25, r22              ; dx = entity_x - player_x
   ; Quick check: if |dx| < 8, approach. Use SAR sign check.
   LDI r23, 31
@@ -1313,7 +1313,7 @@ ent_ai_guard:
   ; dx >= 0: check if close enough (dx < 8)
   LDI r22, 8
   CMP r25, r22
-  BGE r13, ent_guard_patrol
+  BGE r9, ent_guard_patrol
   ; Close enough: move left toward player
   LDI r25, 2                ; direction = left
   JMP ent_compute_target
@@ -1322,7 +1322,7 @@ ent_guard_player_left:
   NEG r25                   ; r25 = |dx|
   LDI r22, 8
   CMP r25, r22
-  BGE r13, ent_guard_patrol
+  BGE r9, ent_guard_patrol
   ; Close: move right toward player
   LDI r25, 3                ; direction = right
   JMP ent_compute_target
@@ -1344,7 +1344,7 @@ ent_ai_animal:
   ; Simple flee: check if player within 6 tiles on x-axis
   LDI r22, 0x7808
   LOAD r22, r22             ; player_x
-  MOV r25, r2
+  MOV r25, r1
   SUB r25, r22              ; dx = entity_x - player_x
   LDI r23, 31
   MOV r24, r25
@@ -1353,7 +1353,7 @@ ent_ai_animal:
   ; dx >= 0: entity right of player. Check distance
   LDI r22, 6
   CMP r25, r22
-  BGE r13, ent_animal_calm
+  BGE r9, ent_animal_calm
   ; Close: flee right
   LDI r25, 3                ; direction = right
   JMP ent_compute_target_no_walkability
@@ -1362,7 +1362,7 @@ ent_animal_player_left:
   NEG r25
   LDI r22, 6
   CMP r25, r22
-  BGE r13, ent_animal_calm
+  BGE r9, ent_animal_calm
   ; Close: flee left
   LDI r25, 2                ; direction = left
   JMP ent_compute_target_no_walkability
@@ -1396,7 +1396,7 @@ ent_ai_area_agent:
   ; Compute agent_table_idx: entity_index - 7, clamped 0-1
   LDI r22, 7
   CMP r26, r22
-  BGE r13, ent_agent_use_idx1
+  BGE r9, ent_agent_use_idx1
   LDI r17, 0                ; agent0
   JMP ent_agent_have_idx
 ent_agent_use_idx1:
@@ -1421,13 +1421,13 @@ ent_agent_have_idx:
 ent_agent_not_idle:
   LDI r22, 1
   CMP r17, r22
-  JZ r13, ent_agent_state_moving
+  JZ r9, ent_agent_state_moving
   LDI r22, 3
   CMP r17, r22
-  JZ r13, ent_agent_state_inside
+  JZ r9, ent_agent_state_inside
   LDI r22, 5
   CMP r17, r22
-  JZ r13, ent_agent_state_returning
+  JZ r9, ent_agent_state_returning
   JMP ent_agent_state_idle   ; fallback to idle
 
   ; --- State: idle (0) - pick a target building ---
@@ -1469,9 +1469,9 @@ ent_agent_state_moving:
   LOAD r24, r22             ; target_y = building world_y
   ; Compute dx = target_x - entity_x, dy = target_y - entity_y
   MOV r22, r23
-  SUB r22, r2               ; dx = target_x - entity_x
+  SUB r22, r1               ; dx = target_x - entity_x
   MOV r17, r24
-  SUB r17, r15               ; dy = target_y - entity_y
+  SUB r17, r11               ; dy = target_y - entity_y
   ; Save target coords to temp RAM for later use
   LDI r25, 0x797C
   STORE r25, r23            ; save target_x
@@ -1487,13 +1487,13 @@ ent_agent_state_moving:
   ; dx >= 0
   LDI r23, 2
   CMP r22, r23
-  BLT r13, ent_agent_check_dy  ; dx < 2, check dy
+  BLT r9, ent_agent_check_dy  ; dx < 2, check dy
   JMP ent_agent_move_dx       ; dx >= 2, move
 ent_agent_dx_neg:
   NEG r22                   ; |dx|
   LDI r23, 2
   CMP r22, r23
-  BLT r13, ent_agent_check_dy  ; |dx| < 2
+  BLT r9, ent_agent_check_dy  ; |dx| < 2
   JMP ent_agent_move_dx
 ent_agent_check_dy:
   LDI r25, 31
@@ -1502,13 +1502,13 @@ ent_agent_check_dy:
   JNZ r23, ent_agent_dy_neg
   LDI r23, 2
   CMP r17, r23
-  BLT r13, ent_agent_arrived   ; dy < 2, arrived!
+  BLT r9, ent_agent_arrived   ; dy < 2, arrived!
   JMP ent_agent_move_dy
 ent_agent_dy_neg:
   NEG r17
   LDI r23, 2
   CMP r17, r23
-  BLT r13, ent_agent_arrived   ; |dy| < 2, arrived!
+  BLT r9, ent_agent_arrived   ; |dy| < 2, arrived!
   JMP ent_agent_move_dy
 
 ent_agent_arrived:
@@ -1533,7 +1533,7 @@ ent_agent_arrived:
   LOAD r17, r22             ; msg_count
   LDI r23, 4
   CMP r17, r23
-  BGE r13, ent_agent_arrived_done  ; mailbox full
+  BGE r9, ent_agent_arrived_done  ; mailbox full
   ADDI r17, 1
   STORE r22, r17            ; increment msg_count
   ; Compute message slot: 0x7970 + 1 + (msg_count-1) * 3 = 0x7971 + (msg_count-1)*3
@@ -1561,7 +1561,7 @@ ent_agent_move_dx:
   ; Need sign of original dx (before NEG). Reload target_x and recompute.
   LDI r22, 0x797C
   LOAD r22, r22             ; target_x
-  SUB r22, r2               ; dx = target_x - entity_x
+  SUB r22, r1               ; dx = target_x - entity_x
   LDI r23, 31
   MOV r25, r22
   SAR r25, r23              ; sign of dx
@@ -1576,7 +1576,7 @@ ent_agent_move_dy:
   ; Need sign of original dy
   LDI r22, 0x797D
   LOAD r22, r22             ; target_y
-  SUB r22, r15               ; dy = target_y - entity_y
+  SUB r22, r11               ; dy = target_y - entity_y
   LDI r23, 31
   MOV r25, r22
   SAR r25, r23
@@ -1599,7 +1599,7 @@ ent_agent_state_inside:
   ; Stay inside for 20 ticks
   LDI r23, 20
   CMP r17, r23
-  BLT r13, ent_agent_stay_inside
+  BLT r9, ent_agent_stay_inside
   ; Time to leave -- set status = returning (5)
   LDI r22, 0x797E
   LOAD r22, r22
@@ -1629,9 +1629,9 @@ ent_agent_state_returning:
   STORE r25, r24            ; save home_y as target_y
   ; Compute distance to home
   MOV r22, r23
-  SUB r22, r2               ; dx = home_x - entity_x
+  SUB r22, r1               ; dx = home_x - entity_x
   MOV r17, r24
-  SUB r17, r15               ; dy = home_y - entity_y
+  SUB r17, r11               ; dy = home_y - entity_y
 
   ; Check if home: |dx| <= 1 AND |dy| <= 1
   LDI r25, 31
@@ -1640,13 +1640,13 @@ ent_agent_state_returning:
   JNZ r24, ent_agent_home_dx_neg
   LDI r24, 2
   CMP r22, r24
-  BLT r13, ent_agent_home_check_dy
+  BLT r9, ent_agent_home_check_dy
   JMP ent_agent_home_move_dx
 ent_agent_home_dx_neg:
   NEG r22
   LDI r24, 2
   CMP r22, r24
-  BLT r13, ent_agent_home_check_dy
+  BLT r9, ent_agent_home_check_dy
   JMP ent_agent_home_move_dx
 
 ent_agent_home_check_dy:
@@ -1656,13 +1656,13 @@ ent_agent_home_check_dy:
   JNZ r24, ent_agent_home_dy_neg
   LDI r24, 2
   CMP r17, r24
-  BLT r13, ent_agent_home_arrived
+  BLT r9, ent_agent_home_arrived
   JMP ent_agent_home_move_dy
 ent_agent_home_dy_neg:
   NEG r17
   LDI r24, 2
   CMP r17, r24
-  BLT r13, ent_agent_home_arrived
+  BLT r9, ent_agent_home_arrived
   JMP ent_agent_home_move_dy
 
 ent_agent_home_arrived:
@@ -1683,7 +1683,7 @@ ent_agent_home_move_dx:
   ; Reuse ent_agent_move_dx logic (target is in 0x797C already)
   LDI r22, 0x797C
   LOAD r22, r22             ; target_x (home_x)
-  SUB r22, r2               ; dx
+  SUB r22, r1               ; dx
   LDI r23, 31
   MOV r25, r22
   SAR r25, r23
@@ -1697,7 +1697,7 @@ ent_agent_home_dx_left:
 ent_agent_home_move_dy:
   LDI r22, 0x797D
   LOAD r22, r22             ; target_y (home_y)
-  SUB r22, r15               ; dy
+  SUB r22, r11               ; dy
   LDI r23, 31
   MOV r25, r22
   SAR r25, r23
@@ -1717,32 +1717,32 @@ ent_agent_restore_and_compute:
 
 ent_compute_target:
   ; dir 0=up(y-1), 1=down(y+1), 2=left(x-1), 3=right(x+1)
-  MOV r22, r2              ; target_x = world_x
-  MOV r23, r15              ; target_y = world_y
+  MOV r22, r1              ; target_x = world_x
+  MOV r23, r11              ; target_y = world_y
   JNZ r25, ent_not_up
-  SUB r23, r3              ; target_y -= 1
+  SUB r23, r5              ; target_y -= 1
   JMP ent_do_biome_check
 ent_not_up:
   LDI r24, 1
   CMP r25, r24
-  JNZ r13, ent_not_down
-  ADD r23, r3              ; target_y += 1
+  JNZ r9, ent_not_down
+  ADD r23, r5              ; target_y += 1
   JMP ent_do_biome_check
 ent_not_down:
   LDI r24, 2
   CMP r25, r24
-  JNZ r13, ent_not_left
-  SUB r22, r3              ; target_x -= 1
+  JNZ r9, ent_not_left
+  SUB r22, r5              ; target_x -= 1
   JMP ent_do_biome_check
 ent_not_left:
-  ADD r22, r3              ; target_x += 1 (right)
+  ADD r22, r5              ; target_x += 1 (right)
 ent_do_biome_check:
 
   ; Check biome walkability (all types except ghost)
-  MOV r2, r22              ; target coords for biome check
-  MOV r15, r23
+  MOV r1, r22              ; target coords for biome check
+  MOV r11, r23
   CALL check_biome_walkable
-  JZ r13, ent_move_blocked  ; not walkable, skip move
+  JZ r9, ent_move_blocked  ; not walkable, skip move
 
   ; Update entity position
   MOV r24, r20
@@ -1759,25 +1759,25 @@ ent_do_biome_check:
 
 ent_compute_target_no_walkability:
   ; Same as above but skip biome check (ghost/animal flee)
-  MOV r22, r2              ; target_x = world_x
-  MOV r23, r15              ; target_y = world_y
+  MOV r22, r1              ; target_x = world_x
+  MOV r23, r11              ; target_y = world_y
   JNZ r25, ent_nt_up2
-  SUB r23, r3
+  SUB r23, r5
   JMP ent_do_move_no_check
 ent_nt_up2:
   LDI r24, 1
   CMP r25, r24
-  JNZ r13, ent_nt_down2
-  ADD r23, r3
+  JNZ r9, ent_nt_down2
+  ADD r23, r5
   JMP ent_do_move_no_check
 ent_nt_down2:
   LDI r24, 2
   CMP r25, r24
-  JNZ r13, ent_nt_left2
-  SUB r22, r3
+  JNZ r9, ent_nt_left2
+  SUB r22, r5
   JMP ent_do_move_no_check
 ent_nt_left2:
-  ADD r22, r3
+  ADD r22, r5
 ent_do_move_no_check:
   MOV r24, r20
   STORE r24, r22           ; world_x = target_x
@@ -1827,7 +1827,7 @@ LDI r26, 0
 
 ent_prox_loop:
   CMP r26, r21
-  BGE r13, ent_prox_done
+  BGE r9, ent_prox_done
 
   ; Load entity position
   MOV r22, r20
@@ -1839,11 +1839,11 @@ ent_prox_loop:
   LDI r19, 0x7808
   LOAD r19, r19            ; player_x
   CMP r17, r19
-  JNZ r13, ent_prox_next
+  JNZ r9, ent_prox_next
   LDI r19, 0x7809
   LOAD r19, r19            ; player_y
   CMP r18, r19
-  JNZ r13, ent_prox_next
+  JNZ r9, ent_prox_next
 
   ; Player is on this entity!
   LDI r22, 0x7930
@@ -1865,12 +1865,12 @@ POP r31
 MOV r17, r4
 LDI r18, 1
 SHR r17, r18              ; r17 = tiles/2 (center offset)
-MOV r18, r7
+MOV r18, r15
 SUB r18, r17
-STORE r0, r18            ; camera_x = player_x - tiles/2
-MOV r18, r5
+STORE r14, r18            ; camera_x = player_x - tiles/2
+MOV r18, r6
 SUB r18, r17
-STORE r11, r18            ; camera_y = player_y - tiles/2
+STORE r12, r18            ; camera_y = player_y - tiles/2
 
 ; --- Clear screen ---
 LDI r17, 0
@@ -1885,7 +1885,7 @@ FILL r17
 ;   Phase 2 (dusk):  frac_shr * 0x030000 → R+21 (amber glow)
 ;   Phase 3 (night): frac_shr * 0x000103 → G+7, B+21 (cool blue shift)
 ; r23 = tint offset added to every tile base color inline.
-LOAD r17, r1           ; r17 = frame_counter
+LOAD r17, r2           ; r17 = frame_counter
 LDI r18, 0xFF
 AND r17, r18            ; t = frame & 0xFF (0..255)
 MOV r18, r17
@@ -1936,7 +1936,7 @@ tint_dusk:
 tint_done:
 
 ; ===== Render Viewport =====
-; r7 = camera_x, r5 = camera_y
+; r15 = camera_x, r6 = camera_y
 ; r23 = precomputed tint offset
 ; Table base addresses
 LDI r24, 0x7000         ; biome color table base
@@ -1946,7 +1946,7 @@ LDI r8, 0               ; ty = 0
 LDI r27, 0              ; screen_y accumulator
 
 render_y:
-  LDI r12, 0             ; tx = 0
+  LDI r10, 0             ; tx = 0
   LDI r28, 0            ; screen_x accumulator
 
   ; Reset contour carry-forward elevation for start of row
@@ -1955,7 +1955,7 @@ render_y:
   STORE r18, r19            ; RAM[0x7807] = 0 (no left neighbor at row start)
 
   ; Precompute y-part of blend neighbor hash (shared across row)
-  MOV r26, r5
+  MOV r26, r6
   ADD r26, r8            ; r26 = world_y for this row
   LDI r18, 3
   SHR r26, r18           ; world_y >> 3
@@ -1966,7 +1966,7 @@ render_y:
   ; Mode: 0=none, 1=top 50/50 (pos 0), 2=top 75/25 (pos 1),
   ;        3=bottom 75/25 (pos 6), 4=bottom 50/50 (pos 7)
   ; RAM[0x7804] = precomputed neighbor y_hash for Y-blend
-  MOV r18, r5
+  MOV r18, r6
   ADD r18, r8              ; r18 = world_y
   ANDI r18, 7              ; r18 = local_y (0..7)
   LDI r20, 0               ; default blend mode = 0 (no blend)
@@ -2005,7 +2005,7 @@ ypre_chk7:
   STORE r16, r20
   LDI r20, 8               ; +8 offset
 ypre_hash:
-  MOV r22, r5
+  MOV r22, r6
   ADD r22, r8
   ADD r22, r20             ; neighbor_y = world_y + offset
   LDI r20, 3
@@ -2022,10 +2022,10 @@ ypre_done:
 
   render_x:
     ; World coordinates
-    MOV r2, r7
-    ADD r2, r12           ; r2 = world_x
-    MOV r15, r5
-    ADD r15, r8           ; r15 = world_y
+    MOV r1, r15
+    ADD r1, r10           ; r1 = world_x
+    MOV r11, r6
+    ADD r11, r8           ; r11 = world_y
 
     ; ---- Claim dispatch ----
     ; Check if tile is inside a claimed region. Claimed tiles skip the
@@ -2036,27 +2036,27 @@ ypre_done:
     LDI r21, 0x78C0      ; r21 = first entry base
 claim_loop:
     LOAD r22, r21        ; x1
-    CMP r2, r22
-    BLT r13, claim_miss
+    CMP r1, r22
+    BLT r9, claim_miss
     ADDI r21, 2
     LOAD r22, r21        ; x2 (exclusive)
-    CMP r2, r22
-    BGE r13, claim_x_pass
+    CMP r1, r22
+    BGE r9, claim_x_pass
     JMP claim_miss
 claim_x_pass:
     SUBI r21, 1
     LOAD r22, r21        ; y1
-    CMP r15, r22
-    BLT r13, claim_miss
+    CMP r11, r22
+    BLT r9, claim_miss
     ADDI r21, 2
     LOAD r22, r21        ; y2 (exclusive)
-    CMP r15, r22
-    BGE r13, claim_hit
+    CMP r11, r22
+    BGE r9, claim_hit
     JMP claim_miss
 claim_hit:
     ; Tile claimed -- render with competing checkerboard hash
-    MOV r22, r2
-    ADD r22, r15
+    MOV r22, r1
+    ADD r22, r11
     ANDI r22, 1
     JZ r22, claim_teal
     LDI r23, 0xFF00FF     ; magenta
@@ -2064,7 +2064,7 @@ claim_hit:
 claim_teal:
     LDI r23, 0x00FFAA     ; neon teal
 claim_draw:
-    RECTF r28, r27, r6, r6, r23
+    RECTF r28, r27, r13, r13, r23
     JMP claim_next_tile
 claim_miss:
     ; Restore r21 to entry start and advance by 4 for next iteration
@@ -2077,24 +2077,24 @@ claim_miss:
 no_claim:
 
     ; ---- Coarse hash for biome ----
-    MOV r9, r2
-    MOV r14, r15
+    MOV r0, r1
+    MOV r7, r11
     LDI r18, 3
-    SHR r9, r18          ; r9 = world_x >> 3
-    SHR r14, r18          ; r14 = world_y >> 3
+    SHR r0, r18          ; r0 = world_x >> 3
+    SHR r7, r18          ; r7 = world_y >> 3
     LDI r18, 99001
-    MUL r9, r18          ; r9 = x_hash
+    MUL r0, r18          ; r0 = x_hash
     LDI r18, 79007
-    MUL r14, r18          ; r14 = y_hash
-    XOR r9, r14           ; r9 = coarse_hash
+    MUL r7, r18          ; r7 = y_hash
+    XOR r0, r7           ; r0 = coarse_hash
     LDI r18, 1103515245
-    MUL r9, r18          ; r9 = mixed_hash
+    MUL r0, r18          ; r0 = mixed_hash
 
     ; ---- Extract biome (top 5 bits) + pattern (bits 25-26) ----
-    MOV r17, r9
+    MOV r17, r0
     LDI r18, 27
     SHR r17, r18         ; r17 = biome_type (0..31)
-    MOV r29, r9
+    MOV r29, r0
     LDI r18, 25
     SHR r29, r18
     ANDI r29, 3           ; r29 = pattern_type (0-3) -- saved from clobber
@@ -2121,11 +2121,11 @@ no_claim:
     LOAD r18, r18
     JZ r18, no_xblend
     LDI r19, 0               ; blend mode: 0=50/50, 1=75/25
-    MOV r18, r2
+    MOV r18, r1
     ANDI r18, 7              ; r18 = local_x (position within 8-tile biome)
     JNZ r18, xblend_chk_1
     ; local_x == 0: 50/50 blend with LEFT neighbor (world_x - 8)
-    MOV r21, r2
+    MOV r21, r1
     LDI r18, 8
     SUB r21, r18
     JMP xblend_hash
@@ -2135,7 +2135,7 @@ xblend_chk_1:
     JNZ r18, xblend_chk_6
     ; local_x == 1: 75/25 graduated blend LEFT
     LDI r19, 1               ; graduated mode
-    MOV r21, r2
+    MOV r21, r1
     LDI r18, 8
     SUB r21, r18
     JMP xblend_hash
@@ -2145,7 +2145,7 @@ xblend_chk_6:
     JNZ r18, xblend_chk_7
     ; local_x == 6: 75/25 graduated blend RIGHT
     LDI r19, 1               ; graduated mode
-    MOV r21, r2
+    MOV r21, r1
     LDI r18, 8
     ADD r21, r18
     JMP xblend_hash
@@ -2154,7 +2154,7 @@ xblend_chk_7:
     SUB r18, r21             ; r18 = local_x - 7
     JNZ r18, no_xblend       ; not at X edge, skip
     ; local_x == 7: 50/50 blend with RIGHT neighbor (world_x + 8)
-    MOV r21, r2
+    MOV r21, r1
     LDI r18, 8
     ADD r21, r18
 xblend_hash:
@@ -2212,7 +2212,7 @@ no_xblend:
     LOAD r26, r26           ; r26 = neighbor_y_hash
     ; Compute neighbor biome: re-derive x_hash XOR neighbor_y_hash → LCG → biome index
     ; (x_hash clobbered by X-blend, so re-derive from world_x)
-    MOV r22, r2
+    MOV r22, r1
     LDI r18, 3
     SHR r22, r18             ; r22 = world_x >> 3
     LDI r18, 99001
@@ -2253,15 +2253,15 @@ yblend_75:
 no_yblend:
 
     ; ---- Fine hash: MUL-based per-tile seeding (Pixelpack strategy) ----
-    ; r14 = world_x * 374761393 XOR world_y * 668265263
+    ; r7 = world_x * 374761393 XOR world_y * 668265263
     ; This gives good avalanche -- adjacent tiles get very different seeds
-    MOV r14, r2
+    MOV r7, r1
     LDI r18, 374761393
-    MUL r14, r18
-    MOV r21, r15
+    MUL r7, r18
+    MOV r21, r11
     LDI r18, 668265263
     MUL r21, r18
-    XOR r14, r21           ; r14 = fine_hash (THE SEED, 32 bits of goodness)
+    XOR r7, r21           ; r7 = fine_hash (THE SEED, 32 bits of goodness)
 
     ; ---- Single water check (biome 0 or 1) ----
     ; Sets r31=1 for water, r31=0 for land. Used by height skip and shimmer.
@@ -2288,17 +2288,17 @@ water_checked:
     LDI r18, 0x7814
     LOAD r18, r18
     JZ r18, no_reflect
-    MOV r18, r15
+    MOV r18, r11
     ANDI r18, 7              ; world_y & 7
     JNZ r18, no_reflect      ; same biome block → above is same water biome
     ; At biome boundary: compute above-tile biome via hash(world_x, world_y-1)
-    MOV r18, r2
+    MOV r18, r1
     LDI r19, 3
     SHR r18, r19             ; world_x >> 3
     LDI r19, 99001
     MUL r18, r19             ; x_hash
-    MOV r19, r15
-    SUB r19, r3              ; world_y - 1
+    MOV r19, r11
+    SUB r19, r5              ; world_y - 1
     LDI r20, 3
     SHR r19, r20             ; (world_y-1) >> 3
     LDI r20, 79007
@@ -2324,8 +2324,8 @@ water_checked:
     LDI r18, 0x0E1C38
     ADD r19, r18             ; reflected/2 + blue_tint
     ; Ripple: (frame_counter + world_x) & 0xF * 0x020202 for wave motion
-    LOAD r20, r1            ; frame_counter
-    ADD r20, r2              ; fc + world_x (cheap position variation)
+    LOAD r20, r2            ; frame_counter
+    ADD r20, r1              ; fc + world_x (cheap position variation)
     ANDI r20, 0xF            ; 0-15 ripple phase
     LDI r21, 0x020202
     MUL r20, r21             ; ripple brightness (0x00..0x1E1E1E)
@@ -2339,7 +2339,7 @@ no_reflect:
     JZ r31, height_apply
     JMP height_skip        ; water = flat, no height shading
 height_apply:
-    MOV r18, r14            ; fine_hash
+    MOV r18, r7            ; fine_hash
     LDI r30, 28
     SHR r18, r30           ; top 4 bits (0-15)
     ANDI r18, 0x7          ; clamp to 0-7
@@ -2349,7 +2349,7 @@ height_apply:
 height_skip:
 
     ; ---- R-channel variation: nibble 0 of fine_hash ----
-    MOV r18, r14
+    MOV r18, r7
     ANDI r18, 0xF          ; r18 = seed & 0xF (nibble 0: R variation index)
     ADD r18, r25           ; r18 = 0x7020 + index
     LOAD r18, r18          ; r18 = variation offset
@@ -2358,7 +2358,7 @@ height_skip:
     ; ---- Apply day/night tint to base, then derive accent ----
     ADD r17, r23          ; base += tint
     ; Accent: XOR tinted base with coarse_hash mask (XOR_CHAIN strategy)
-    MOV r19, r9
+    MOV r19, r0
     LDI r18, 10
     SHR r19, r18
     ANDI r19, 0x1F1F1F     ; 5 bits per channel mask
@@ -2376,8 +2376,8 @@ height_skip:
     LOAD r18, r18
     JZ r18, no_shimmer
     LDI r29, 1             ; force center pattern for water
-    LOAD r18, r1          ; frame_counter
-    MOV r30, r14
+    LOAD r18, r2          ; frame_counter
+    MOV r30, r7
     ANDI r30, 0xF          ; fine_hash nibble (spatial variation)
     ADD r18, r30           ; wave_phase = fc + spatial
     ANDI r18, 0xF          ; 0-15 shimmer phase
@@ -2403,18 +2403,18 @@ no_shimmer:
     LDI r18, 0x7814
     LOAD r18, r18
     JZ r18, no_foam
-    MOV r18, r2
+    MOV r18, r1
     ANDI r18, 7              ; world_x & 7
     JNZ r18, no_foam         ; not at X biome boundary → same biome, skip
     ; At biome boundary: compute left neighbor hash
-    MOV r18, r2
-    SUB r18, r3              ; r18 = world_x - 1 (left neighbor)
+    MOV r18, r1
+    SUB r18, r5              ; r18 = world_x - 1 (left neighbor)
     MOV r21, r18
     LDI r18, 3
     SHR r21, r18             ; (world_x-1) >> 3
     LDI r18, 99001
     MUL r21, r18
-    MOV r22, r15              ; world_y
+    MOV r22, r11              ; world_y
     LDI r18, 3
     SHR r22, r18             ; world_y >> 3
     LDI r18, 79007
@@ -2445,40 +2445,40 @@ no_foam:
     ; ---- Pattern dispatch (flat=0, center=1, horiz=2, vert=3) ----
     MOV r18, r29           ; restore pattern_type from r29
     JZ r18, pat_flat       ; 0: flat tile
-    SUB r18, r3            ; pattern - 1
+    SUB r18, r5            ; pattern - 1
     JZ r18, pat_center     ; 1: center bright
-    SUB r18, r3            ; pattern - 2
+    SUB r18, r5            ; pattern - 2
     JZ r18, pat_horiz      ; 2: horizontal stripe
     ; Fall through: 3 = vertical stripe
 
     ; Pattern 3: left half base, right half accent (rock faces)
-    RECTF r28, r27, r20, r6, r17
+    RECTF r28, r27, r20, r13, r17
     MOV r21, r28
     ADD r21, r20           ; r21 = x + 2
-    RECTF r21, r27, r20, r6, r19
+    RECTF r21, r27, r20, r13, r19
     JMP tile_done
 
 pat_flat:
     ; Pattern 0: single flat tile
-    RECTF r28, r27, r6, r6, r17
+    RECTF r28, r27, r13, r13, r17
     JMP tile_done
 
 pat_center:
     ; Pattern 1: base background + 2x2 accent center (oasis, crystals)
-    RECTF r28, r27, r6, r6, r17
+    RECTF r28, r27, r13, r13, r17
     MOV r21, r28
-    ADD r21, r3            ; r21 = x + 1
+    ADD r21, r5            ; r21 = x + 1
     MOV r22, r27
-    ADD r22, r3            ; r22 = y + 1
+    ADD r22, r5            ; r22 = y + 1
     RECTF r21, r22, r20, r20, r19
     JMP tile_done
 
 pat_horiz:
     ; Pattern 2: top half base, bottom half accent (dune ridges)
-    RECTF r28, r27, r6, r20, r17
+    RECTF r28, r27, r13, r20, r17
     MOV r21, r27
     ADD r21, r20           ; r21 = y + 2
-    RECTF r28, r21, r6, r20, r19
+    RECTF r28, r21, r13, r20, r19
     JMP tile_done
 
 tile_done:
@@ -2494,21 +2494,21 @@ tile_done:
     LOAD r18, r18
     LDI r17, 2
     CMP r18, r17
-    BLT r13, contour_clr_skip   ; detail < 2 → skip
+    BLT r9, contour_clr_skip   ; detail < 2 → skip
     JNZ r31, contour_clr_skip
 
     ; Extract current elevation
-    MOV r9, r14
+    MOV r0, r7
     LDI r18, 28
-    SHR r9, r18
-    ANDI r9, 7              ; r9 = current_elevation (0-7)
+    SHR r0, r18
+    ANDI r0, 7              ; r0 = current_elevation (0-7)
 
     ; -- Right neighbor contour (carry-forward from RAM[0x7807]) --
     LDI r18, 0x7807
     LOAD r18, r18            ; r18 = prev_tile_elevation
 
     ; Check: |current - prev| >= 3? (single subtraction + sign test)
-    MOV r19, r9
+    MOV r19, r0
     SUB r19, r18              ; current - prev
     LDI r20, 3
     SUB r19, r20              ; (current - prev) - 3
@@ -2518,7 +2518,7 @@ tile_done:
 
     ; Check reverse: prev - current >= 3?
     MOV r19, r18
-    SUB r19, r9               ; prev - current
+    SUB r19, r0               ; prev - current
     LDI r20, 3
     SUB r19, r20              ; (prev - current) - 3
     LDI r20, 0x80000000
@@ -2531,17 +2531,17 @@ contour_r_draw:
     ; (tx+3, ty) and (tx+3, ty+3) checked by the tint analysis test.
     LDI r17, 0x222222
     MOV r18, r28
-    ADD r18, r3
-    ADD r18, r3               ; x = screen_x + 2 = sx + 2
-    RECTF r18, r27, r3, r6, r17
+    ADD r18, r5
+    ADD r18, r5               ; x = screen_x + 2 = sx + 2
+    RECTF r18, r27, r5, r13, r17
 
 contour_bottom_chk:
     ; -- Bottom neighbor contour --
-    MOV r18, r2
+    MOV r18, r1
     LDI r19, 374761393
     MUL r18, r19              ; wx * seed_x
-    MOV r19, r15
-    ADD r19, r3               ; world_y + 1
+    MOV r19, r11
+    ADD r19, r5               ; world_y + 1
     LDI r20, 668265263
     MUL r19, r20              ; (wy+1) * seed_y
     XOR r18, r19              ; bottom fine_hash
@@ -2550,7 +2550,7 @@ contour_bottom_chk:
     ANDI r18, 7               ; r18 = bottom_elevation
 
     ; Check: current - bottom >= 3?
-    MOV r19, r9
+    MOV r19, r0
     SUB r19, r18
     LDI r20, 3
     SUB r19, r20
@@ -2560,7 +2560,7 @@ contour_bottom_chk:
 
     ; Check reverse: bottom - current >= 3?
     MOV r19, r18
-    SUB r19, r9
+    SUB r19, r0
     LDI r20, 3
     SUB r19, r20
     LDI r20, 0x80000000
@@ -2573,14 +2573,14 @@ contour_b_draw:
     ; (tx, ty+3) and (tx+3, ty+3) checked by the tint analysis test.
     LDI r17, 0x222222
     MOV r18, r27
-    ADD r18, r3
-    ADD r18, r3               ; y = screen_y + 2 = sy + 2
-    RECTF r28, r18, r6, r3, r17
+    ADD r18, r5
+    ADD r18, r5               ; y = screen_y + 2 = sy + 2
+    RECTF r28, r18, r13, r5, r17
 
 contour_done:
     ; Store current elevation for next tile's right-edge contour check
     LDI r18, 0x7807
-    STORE r18, r9             ; RAM[0x7807] = current_elevation
+    STORE r18, r0             ; RAM[0x7807] = current_elevation
     JMP contour_after
 
 contour_clr_skip:
@@ -2601,7 +2601,7 @@ contour_after:
     LOAD r18, r18
     LDI r17, 2
     CMP r18, r17
-    BLT r13, no_tree        ; detail < 2 → skip trees
+    BLT r9, no_tree        ; detail < 2 → skip trees
     JNZ r31, no_tree         ; water tiles skip
 
     LDI r18, 0x7806
@@ -2623,13 +2623,13 @@ contour_after:
     JMP no_tree
 
 tree_grass:
-    MOV r18, r14
+    MOV r18, r7
     ANDI r18, 0x3            ; ~25% density
     JNZ r18, no_tree
     JMP tree_draw
 
 tree_forest:
-    MOV r18, r14
+    MOV r18, r7
     ANDI r18, 0x1            ; ~50% density
     JNZ r18, no_tree
 
@@ -2637,7 +2637,7 @@ tree_draw:
     ; Canopy: RECTF(sx+1, sy, 3, 2, canopy_green)
     LDI r20, 0x228811
     MOV r18, r28
-    ADD r18, r3               ; sx + 1
+    ADD r18, r5               ; sx + 1
     LDI r19, 3
     LDI r21, 2
     RECTF r18, r27, r19, r21, r20
@@ -2645,27 +2645,27 @@ tree_draw:
     ; Trunk: RECTF(sx+2, sy+2, 1, 1, trunk_brown)
     LDI r20, 0x664422
     MOV r18, r28
-    ADD r18, r3
-    ADD r18, r3               ; sx + 2
+    ADD r18, r5
+    ADD r18, r5               ; sx + 2
     MOV r19, r27
-    ADD r19, r3
-    ADD r19, r3               ; sy + 2
-    RECTF r18, r19, r3, r3, r20
+    ADD r19, r5
+    ADD r19, r5               ; sy + 2
+    RECTF r18, r19, r5, r5, r20
 
 no_tree:
 
 claim_next_tile:
     ; ---- Next tile ----
-    ADD r12, r3            ; tx++
-    ADD r28, r6           ; screen_x += TILE_SIZE
-    MOV r18, r12
+    ADD r10, r5            ; tx++
+    ADD r28, r13           ; screen_x += TILE_SIZE
+    MOV r18, r10
     SUB r18, r4           ; tx - 64
     JZ r18, next_row
     JMP render_x
 
 next_row:
-    ADD r8, r3            ; ty++
-    ADD r27, r6           ; screen_y += TILE_SIZE
+    ADD r8, r5            ; ty++
+    ADD r27, r13           ; screen_y += TILE_SIZE
     MOV r18, r8
     SUB r18, r4           ; ty - 64
     JZ r18, frame_end
@@ -2678,7 +2678,7 @@ frame_end:
 ; Colors shift per phase: dawn=blue-purple→orange, day=blue→light-blue,
 ; dusk=dark-purple→deep-orange, night=near-black→dark-blue.
 ; Bands: [0-3]=top, [4-7]=top+(horizon>>2), [8-11]=(top+horizon)>>1, [12-15]=horizon
-LOAD r17, r1           ; r17 = frame_counter
+LOAD r17, r2           ; r17 = frame_counter
 LDI r18, 0xFF
 AND r17, r18
 LDI r18, 6
@@ -2693,60 +2693,60 @@ SUB r17, r18
 JZ r17, sky_dusk
 
 sky_night:
-  LDI r9, 0x050510       ; top: near-black with hint of blue
-  LDI r14, 0x0A0A30       ; horizon: dark navy
+  LDI r0, 0x050510       ; top: near-black with hint of blue
+  LDI r7, 0x0A0A30       ; horizon: dark navy
   JMP sky_draw
 
 sky_dawn:
-  LDI r9, 0x101040       ; top: deep blue-purple
-  LDI r14, 0xCC6600       ; horizon: warm orange
+  LDI r0, 0x101040       ; top: deep blue-purple
+  LDI r7, 0xCC6600       ; horizon: warm orange
   JMP sky_draw
 
 sky_day:
-  LDI r9, 0x1844AA       ; top: medium blue
-  LDI r14, 0x5599DD       ; horizon: light sky blue
+  LDI r0, 0x1844AA       ; top: medium blue
+  LDI r7, 0x5599DD       ; horizon: light sky blue
   JMP sky_draw
 
 sky_dusk:
-  LDI r9, 0x0C0820       ; top: dark purple
-  LDI r14, 0xDD4400       ; horizon: deep orange-red
+  LDI r0, 0x0C0820       ; top: dark purple
+  LDI r7, 0xDD4400       ; horizon: deep orange-red
   JMP sky_draw
 
 sky_draw:
 ; Band 0 (rows 0-3): top color
-LDI r2, 0
-LDI r15, 0
+LDI r1, 0
+LDI r11, 0
 LDI r18, 256
 LDI r19, 4
-RECTF r2, r15, r18, r19, r9
+RECTF r1, r11, r18, r19, r0
 
 ; Band 1 (rows 4-7): top + (horizon >> 2) = 75% top + 25% horizon
-MOV r17, r14
+MOV r17, r7
 LDI r18, 2
 SHR r17, r18            ; horizon >> 2
-ADD r17, r9             ; top + (horizon >> 2)
+ADD r17, r0             ; top + (horizon >> 2)
 LDI r18, 256            ; width
-LDI r15, 4
-RECTF r2, r15, r18, r19, r17
+LDI r11, 4
+RECTF r1, r11, r18, r19, r17
 
 ; Band 2 (rows 8-11): (top >> 1) + (horizon >> 1) = 50/50 blend
-MOV r17, r9
+MOV r17, r0
 LDI r18, 1
 SHR r17, r18            ; top >> 1
-MOV r20, r14
+MOV r20, r7
 SHR r20, r18            ; horizon >> 1
 ADD r17, r20            ; mid blend
 LDI r18, 256            ; width
-LDI r15, 8
-RECTF r2, r15, r18, r19, r17
+LDI r11, 8
+RECTF r1, r11, r18, r19, r17
 
 ; Band 3 (rows 12-15): horizon color
 LDI r18, 256            ; width
-LDI r15, 12
-RECTF r2, r15, r18, r19, r14
+LDI r11, 12
+RECTF r1, r11, r18, r19, r7
 
 ; ===== Player Cursor =====
-LOAD r17, r1
+LOAD r17, r2
 LDI r18, 16
 AND r17, r18
 JZ r17, cursor_white
@@ -2757,16 +2757,16 @@ LDI r17, 0xFFFFFF
 cursor_arms:
 LDI r18, 1
 LDI r19, 3
-LDI r2, 127
-LDI r15, 124
-RECTF r2, r15, r18, r19, r17
-LDI r15, 128
-RECTF r2, r15, r18, r19, r17
-LDI r2, 124
-LDI r15, 127
-RECTF r2, r15, r19, r18, r17
-LDI r2, 128
-RECTF r2, r15, r19, r18, r17
+LDI r1, 127
+LDI r11, 124
+RECTF r1, r11, r18, r19, r17
+LDI r11, 128
+RECTF r1, r11, r18, r19, r17
+LDI r1, 124
+LDI r11, 127
+RECTF r1, r11, r19, r18, r17
+LDI r1, 128
+RECTF r1, r11, r19, r18, r17
 
 ; ===== 32x32 Minimap Overlay (top-right, updated every 4 frames) =====
 ; Covers 64-tile viewport at half resolution (1 pixel = 2 tiles).
@@ -2780,10 +2780,10 @@ LDI r18, 0x7814
 LOAD r18, r18
 LDI r17, 2
 CMP r18, r17
-BLT r13, mm_skip          ; detail < 2 → skip minimap
+BLT r9, mm_skip          ; detail < 2 → skip minimap
 
 ; --- Recompute biome hashes every 4 frames (always on frame 1) ---
-LOAD r17, r1           ; r17 = frame_counter
+LOAD r17, r2           ; r17 = frame_counter
 LDI r18, 1
 SUB r17, r18            ; r17 = frame_counter - 1 (so first frame fc=1 gives 0)
 LDI r18, 3
@@ -2795,58 +2795,58 @@ LDI r8, 0               ; my = 0
 LDI r20, 0x7100         ; cache base
 
 mm_y:
-  LDI r12, 0             ; mx = 0
+  LDI r10, 0             ; mx = 0
   mm_x:
     ; World coords: each pixel covers 2 tiles
-    MOV r2, r12
+    MOV r1, r10
     LDI r18, 2
-    MUL r2, r18
-    ADD r2, r7          ; r2 = camera_x + mx*2
+    MUL r1, r18
+    ADD r1, r15          ; r1 = camera_x + mx*2
 
-    MOV r15, r8
+    MOV r11, r8
     LDI r18, 2
-    MUL r15, r18
-    ADD r15, r5          ; r15 = camera_y + my*2
+    MUL r11, r18
+    ADD r11, r6          ; r11 = camera_y + my*2
 
     ; Coarse hash for biome (same hash as main terrain)
-    MOV r9, r2
+    MOV r0, r1
     LDI r18, 3
-    SHR r9, r18          ; world_x >> 3
+    SHR r0, r18          ; world_x >> 3
     LDI r18, 99001
-    MUL r9, r18          ; x_hash
+    MUL r0, r18          ; x_hash
 
-    MOV r14, r15
+    MOV r7, r11
     LDI r18, 3
-    SHR r14, r18          ; world_y >> 3
+    SHR r7, r18          ; world_y >> 3
     LDI r18, 79007
-    MUL r14, r18          ; y_hash
+    MUL r7, r18          ; y_hash
 
-    XOR r9, r14           ; coarse_hash
+    XOR r0, r7           ; coarse_hash
     LDI r18, 1103515245
-    MUL r9, r18          ; mixed_hash
+    MUL r0, r18          ; mixed_hash
     LDI r18, 27
-    SHR r9, r18          ; biome index (0..31)
+    SHR r0, r18          ; biome index (0..31)
 
     ; Lookup biome color and dim to 50%
     MOV r18, r24
-    ADD r18, r9
+    ADD r18, r0
     LOAD r17, r18        ; r17 = biome base color
     LDI r18, 1
     SHR r17, r18         ; dim to 50% brightness
 
     ; Store to cache
     STORE r20, r17
-    ADD r20, r3          ; cache ptr++
+    ADD r20, r5          ; cache ptr++
 
-    ADD r12, r3           ; mx++
+    ADD r10, r5           ; mx++
     LDI r18, 32
-    MOV r19, r12
+    MOV r19, r10
     SUB r19, r18
     JZ r19, mm_next_row
     JMP mm_x
 
 mm_next_row:
-    ADD r8, r3           ; my++
+    ADD r8, r5           ; my++
     LDI r18, 32
     MOV r19, r8
     SUB r19, r18
@@ -2859,27 +2859,27 @@ LDI r8, 0               ; my = 0
 LDI r20, 0x7100         ; cache base
 
 mm_pnt_y:
-  LDI r12, 0             ; mx = 0
+  LDI r10, 0             ; mx = 0
   mm_pnt_x:
     ; Load cached color
     LOAD r17, r20
-    ADD r20, r3
+    ADD r20, r5
 
     ; Screen position: x = 224 + mx, y = my
-    MOV r2, r12
+    MOV r1, r10
     LDI r18, 224
-    ADD r2, r18
-    PSET r2, r8, r17
+    ADD r1, r18
+    PSET r1, r8, r17
 
-    ADD r12, r3           ; mx++
+    ADD r10, r5           ; mx++
     LDI r18, 32
-    MOV r19, r12
+    MOV r19, r10
     SUB r19, r18
     JZ r19, mm_pnt_next
     JMP mm_pnt_x
 
 mm_pnt_next:
-    ADD r8, r3           ; my++
+    ADD r8, r5           ; my++
     LDI r18, 32
     MOV r19, r8
     SUB r19, r18
@@ -2892,21 +2892,21 @@ LDI r17, 0xAAAAAA
 LDI r18, 1
 LDI r19, 32
 
-LDI r2, 224
-LDI r15, 0
-RECTF r2, r15, r19, r18, r17    ; top edge
-LDI r15, 31
-RECTF r2, r15, r19, r18, r17    ; bottom edge
-LDI r15, 0
-RECTF r2, r15, r18, r19, r17    ; left edge
-LDI r2, 255
-RECTF r2, r15, r18, r19, r17    ; right edge
+LDI r1, 224
+LDI r11, 0
+RECTF r1, r11, r19, r18, r17    ; top edge
+LDI r11, 31
+RECTF r1, r11, r19, r18, r17    ; bottom edge
+LDI r11, 0
+RECTF r1, r11, r18, r19, r17    ; left edge
+LDI r1, 255
+RECTF r1, r11, r18, r19, r17    ; right edge
 
 ; --- Player center dot ---
-LDI r2, 240
-LDI r15, 16
+LDI r1, 240
+LDI r11, 16
 LDI r17, 0xFFFFFF
-PSET r2, r15, r17
+PSET r1, r11, r17
 
 mm_skip:
 
@@ -2925,21 +2925,21 @@ LDI r18, 0x7814
 LOAD r18, r18
 LDI r17, 2
 CMP r18, r17
-BLT r13, player_simple   ; detail < 2 → simple marker
+BLT r9, player_simple   ; detail < 2 → simple marker
 
 ; Sprite base position (screen center)
-LDI r2, 124             ; x = 124
-LDI r15, 124             ; y = 124
+LDI r1, 124             ; x = 124
+LDI r11, 124             ; y = 124
 
 ; Draw body (4x4 center block) - blue
 LDI r17, 0x4444FF
 LDI r18, 4
-RECTF r2, r15, r18, r18, r17
+RECTF r1, r11, r18, r18, r17
 
 ; Draw head (4x4 top of sprite) - skin color
 LDI r17, 0xFFCC88
-LDI r15, 120
-RECTF r2, r15, r18, r18, r17
+LDI r11, 120
+RECTF r1, r11, r18, r18, r17
 
 ; Draw eyes based on facing direction
 LDI r18, 0x780A
@@ -2983,7 +2983,7 @@ LDI r18, 0x7814
 LOAD r18, r18
 LDI r17, 2
 CMP r18, r17
-BLT r13, bldg_simple_dots   ; detail < 2 → simple dots
+BLT r9, bldg_simple_dots   ; detail < 2 → simple dots
 JMP bldg_normal_render
 
 bldg_simple_dots:
@@ -2995,9 +2995,9 @@ LDI r17, 0
 
 bldg_dot_loop:
   MOV r22, r20
-  LOAD r2, r22          ; bldg world_x
+  LOAD r1, r22          ; bldg world_x
   ADDI r22, 1
-  LOAD r15, r22          ; bldg world_y
+  LOAD r11, r22          ; bldg world_y
   ADDI r22, 1
   LOAD r25, r22         ; type_color
   ADDI r22, 1
@@ -3006,41 +3006,41 @@ bldg_dot_loop:
   ; Screen coords: (bldg_x - camera_x) * tile_size
   LDI r18, 0x7800
   LOAD r27, r18
-  MOV r28, r2
+  MOV r28, r1
   SUB r28, r27          ; dx = bldg_x - cam_x
   ; Skip if off-screen
   LDI r29, 0
   CMP r28, r29
-  BLT r13, bldg_dot_next
+  BLT r9, bldg_dot_next
   MOV r29, r4
-  SUB r29, r3           ; tiles - 1
+  SUB r29, r5           ; tiles - 1
   CMP r28, r29
-  BGE r13, bldg_dot_next
+  BGE r9, bldg_dot_next
 
   LDI r18, 0x7801
   LOAD r27, r18
-  MOV r29, r15
+  MOV r29, r11
   SUB r29, r27          ; dy = bldg_y - cam_y
   LDI r18, 0
   CMP r29, r18
-  BLT r13, bldg_dot_next
+  BLT r9, bldg_dot_next
   MOV r18, r4
-  SUB r18, r3           ; tiles - 1
+  SUB r18, r5           ; tiles - 1
   CMP r29, r18
-  BGE r13, bldg_dot_next
+  BGE r9, bldg_dot_next
 
   ; Compute pixel position: dx * tile_size, dy * tile_size
-  MOV r28, r2
+  MOV r28, r1
   LDI r18, 0x7800
   LOAD r27, r18
   SUB r28, r27
-  MUL r28, r6           ; screen_x = dx * tile_size
+  MUL r28, r13           ; screen_x = dx * tile_size
 
-  MOV r29, r15
+  MOV r29, r11
   LDI r18, 0x7801
   LOAD r27, r18
   SUB r29, r27
-  MUL r29, r6           ; screen_y = dy * tile_size
+  MUL r29, r13           ; screen_y = dy * tile_size
 
   ; Draw 2x2 colored dot
   LDI r17, 2
@@ -3051,7 +3051,7 @@ bldg_dot_next:
   ADDI r17, 1
   MOV r22, r17
   CMP r22, r21
-  BLT r13, bldg_dot_loop
+  BLT r9, bldg_dot_loop
 POP r31
 JMP bldg_render_done
 
@@ -3063,9 +3063,9 @@ LDI r17, 0              ; counter
 
 bldg_loop:
   MOV r22, r20
-  LOAD r2, r22          ; bldg world_x
+  LOAD r1, r22          ; bldg world_x
   ADDI r22, 1
-  LOAD r15, r22          ; bldg world_y
+  LOAD r11, r22          ; bldg world_y
   ADDI r22, 1
   LOAD r25, r22         ; type_color
   ADDI r22, 1
@@ -3074,37 +3074,37 @@ bldg_loop:
   ; Screen coords: (bldg_x - camera_x) * 4
   LDI r18, 0x7800
   LOAD r27, r18         ; camera_x
-  MOV r28, r2
+  MOV r28, r1
   SUB r28, r27          ; dx = bldg_x - cam_x
   LDI r29, 0
   CMP r28, r29
-  BLT r13, bldg_next     ; off-screen left
+  BLT r9, bldg_next     ; off-screen left
   LDI r29, 62
   CMP r28, r29
-  BGE r13, bldg_next     ; off-screen right
+  BGE r9, bldg_next     ; off-screen right
 
   LDI r18, 0x7801
   LOAD r27, r18         ; camera_y
-  MOV r29, r15
+  MOV r29, r11
   SUB r29, r27          ; dy = bldg_y - cam_y
   LDI r18, 0
   CMP r29, r18
-  BLT r13, bldg_next     ; off-screen top
+  BLT r9, bldg_next     ; off-screen top
   LDI r18, 58
   CMP r29, r18
-  BGE r13, bldg_next     ; off-screen bottom
+  BGE r9, bldg_next     ; off-screen bottom
 
   ; Compute pixel position
   LDI r18, 0x7800
   LOAD r27, r18
-  MOV r28, r2
+  MOV r28, r1
   SUB r28, r27
   LDI r18, 4
   MUL r28, r18          ; screen_x = (bldg_x - cam_x) * 4
 
   LDI r18, 0x7801
   LOAD r27, r18
-  MOV r29, r15
+  MOV r29, r11
   SUB r29, r27
   LDI r18, 4
   MUL r29, r18          ; screen_y = (bldg_y - cam_y) * 4
@@ -3149,7 +3149,7 @@ bldg_loop:
   LOAD r27, r18         ; player_x
   LDI r18, 0x7809
   LOAD r18, r18         ; player_y
-  MOV r22, r2
+  MOV r22, r1
   ADDI r22, 3           ; bldg center x
   MOV r23, r27
   SUB r23, r22          ; dx = px - bcx
@@ -3165,9 +3165,9 @@ bldg_dx_ok:
 bldg_dx_abs:
   LDI r24, 4
   CMP r23, r24
-  BGE r13, bldg_next
+  BGE r9, bldg_next
 
-  MOV r22, r15
+  MOV r22, r11
   ADDI r22, 4           ; bldg center y
   MOV r23, r18
   SUB r23, r22
@@ -3183,7 +3183,7 @@ bldg_dy_ok:
 bldg_dy_abs:
   LDI r24, 4
   CMP r23, r24
-  BGE r13, bldg_next
+  BGE r9, bldg_next
 
   ; Nearby! Set flag
   LDI r17, 0x7584
@@ -3197,7 +3197,7 @@ bldg_next:
   ADDI r17, 1
   MOV r22, r17
   CMP r22, r21
-  BLT r13, bldg_loop
+  BLT r9, bldg_loop
 POP r31
 
 bldg_render_done:
@@ -3218,39 +3218,39 @@ LDI r17, 0x7812
 LOAD r18, r17            ; zoom_level
 LDI r17, 1
 SUB r18, r17
-JZ r13, ai_zoom_1
+JZ r9, ai_zoom_1
 LDI r17, 1
 SUB r18, r17
-JZ r13, ai_zoom_default
+JZ r9, ai_zoom_default
 JMP ai_zoom_default
 
 ai_zoom_1:
 LDI r4, 128
-LDI r6, 2
+LDI r13, 2
 JMP ai_zoom_set
 
 ai_zoom_default:
 LDI r4, 64
-LDI r6, 4
+LDI r13, 4
 
 ai_zoom_set:
 
 ; ── Ring 0: The Beacon (32,32) ──
 ; Draw a bright marker at spawn point. No visibility check -- if off-screen, no harm.
 LDI r18, 0x7800
-LOAD r2, r18             ; camera_x
+LOAD r1, r18             ; camera_x
 LDI r19, 0x7801
-LOAD r15, r19             ; camera_y
+LOAD r11, r19             ; camera_y
 
 ; Compute screen pixel for world (32,32)
 LDI r17, 32
-SUB r17, r2
-MUL r17, r6              ; px_x = (32 - cam_x) * tile_size
+SUB r17, r1
+MUL r17, r13              ; px_x = (32 - cam_x) * tile_size
 MOV r18, r17             ; save px_x
 
 LDI r17, 32
-SUB r17, r15
-MUL r17, r6              ; px_y = (32 - cam_y) * tile_size
+SUB r17, r11
+MUL r17, r13              ; px_y = (32 - cam_y) * tile_size
 
 ; Draw beacon marker (8x8 bright cyan)
 LDI r19, 8
@@ -3268,18 +3268,18 @@ ai_ring1:
 ; ── Ring 1: Core Commands (world y=30) ──
 ; The 5 steps of the canvas-as-IDE loop. 2 tiles above beacon.
 LDI r19, 0x7801
-LOAD r15, r19
+LOAD r11, r19
 LDI r17, 30
-SUB r17, r15
-MUL r17, r6
+SUB r17, r11
+MUL r17, r13
 MOV r23, r17             ; r23 = base_y for ring 1
 
 LDI r18, 0x7800
-LOAD r2, r18
+LOAD r1, r18
 
 LDI r19, 26
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "1.load 2.asm 3.run"
 LDI r21, 0x44FF44
@@ -3287,8 +3287,8 @@ LDI r22, 0x0A1A0A
 DRAWTEXT r19, r23, r20, r21, r22
 
 LDI r19, 33
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "4.screen 5.save"
 LDI r21, 0x44FF44
@@ -3298,18 +3298,18 @@ DRAWTEXT r19, r23, r20, r21, r22
 ai_ring2:
 ; ── Ring 2: Key Opcodes (world y=34) ──
 LDI r19, 0x7801
-LOAD r15, r19
+LOAD r11, r19
 LDI r17, 34
-SUB r17, r15
-MUL r17, r6
+SUB r17, r11
+MUL r17, r13
 MOV r23, r17
 
 LDI r18, 0x7800
-LOAD r2, r18
+LOAD r1, r18
 
 LDI r19, 24
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "LDI PSET RECTF DRAWTEXT"
 LDI r21, 0xFFAA22
@@ -3317,8 +3317,8 @@ LDI r22, 0x1A1000
 DRAWTEXT r19, r23, r20, r21, r22
 
 LDI r19, 32
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "ADD SUB MUL JMP HALT"
 LDI r21, 0xFFAA22
@@ -3328,19 +3328,19 @@ DRAWTEXT r19, r23, r20, r21, r22
 ai_ring3:
 ; ── Ring 3: Extended Reference (y=28 and y=36) ──
 LDI r19, 0x7801
-LOAD r15, r19
+LOAD r11, r19
 LDI r18, 0x7800
-LOAD r2, r18
+LOAD r1, r18
 
 ; Top row (y=28): socket commands
 LDI r17, 28
-SUB r17, r15
-MUL r17, r6
+SUB r17, r11
+MUL r17, r13
 MOV r23, r17
 
 LDI r19, 22
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "Socket: status canvas help goto"
 LDI r21, 0x8888AA
@@ -3348,8 +3348,8 @@ LDI r22, 0x0A0A14
 DRAWTEXT r19, r23, r20, r21, r22
 
 LDI r19, 33
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "launch buildings nearby"
 LDI r21, 0x8888AA
@@ -3358,13 +3358,13 @@ DRAWTEXT r19, r23, r20, r21, r22
 
 ; Bottom row (y=36): architecture
 LDI r17, 36
-SUB r17, r15
-MUL r17, r6
+SUB r17, r11
+MUL r17, r13
 MOV r23, r17
 
 LDI r19, 21
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "RAM: 0x7000 biome 0x7500 bldg"
 LDI r21, 0x666688
@@ -3372,8 +3372,8 @@ LDI r22, 0x0A0A14
 DRAWTEXT r19, r23, r20, r21, r22
 
 LDI r19, 32
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "Player 0x7808(x) 0x7809(y)"
 LDI r21, 0x666688
@@ -3381,8 +3381,8 @@ LDI r22, 0x0A0A14
 DRAWTEXT r19, r23, r20, r21, r22
 
 LDI r19, 37
-SUB r19, r2
-MUL r19, r6
+SUB r19, r1
+MUL r19, r13
 LDI r20, 0x5000
 STRO r20, "Tile=4px 64x64=256x256"
 LDI r21, 0x666688
@@ -3407,13 +3407,13 @@ LDI r26, 0                 ; entity index
 
 ent_render_loop:
   CMP r26, r21
-  BGE r13, ent_render_done
+  BGE r9, ent_render_done
 
   ; Load entity fields
   MOV r22, r20
-  LOAD r2, r22             ; world_x
+  LOAD r1, r22             ; world_x
   ADDI r22, 1
-  LOAD r15, r22             ; world_y
+  LOAD r11, r22             ; world_y
   ADDI r22, 1
   LOAD r17, r22            ; type
   ADDI r22, 1
@@ -3424,35 +3424,35 @@ ent_render_loop:
   ; Compute screen position: (world_x - camera_x) * tile_size
   LDI r25, 0x7800
   LOAD r25, r25            ; camera_x
-  MOV r27, r2
+  MOV r27, r1
   SUB r27, r25             ; dx = world_x - camera_x
 
   ; Skip if off-screen (x)
   LDI r25, 0
   CMP r27, r25
-  BLT r13, ent_render_next
+  BLT r9, ent_render_next
   MOV r25, r4
-  SUB r25, r3              ; tiles - 1
+  SUB r25, r5              ; tiles - 1
   CMP r27, r25
-  BGE r13, ent_render_next
+  BGE r9, ent_render_next
 
   LDI r25, 0x7801
   LOAD r25, r25            ; camera_y
-  MOV r28, r15
+  MOV r28, r11
   SUB r28, r25             ; dy = world_y - camera_y
 
   ; Skip if off-screen (y)
   LDI r25, 0
   CMP r28, r25
-  BLT r13, ent_render_next
+  BLT r9, ent_render_next
   MOV r25, r4
-  SUB r25, r3
+  SUB r25, r5
   CMP r28, r25
-  BGE r13, ent_render_next
+  BGE r9, ent_render_next
 
   ; Convert to pixel coords
-  MUL r27, r6              ; screen_x = dx * tile_size
-  MUL r28, r6              ; screen_y = dy * tile_size
+  MUL r27, r13              ; screen_x = dx * tile_size
+  MUL r28, r13              ; screen_y = dy * tile_size
 
   ; Load detail level
   LDI r25, 0x7814
@@ -3466,23 +3466,23 @@ ent_render_not_program:
   ; Type dispatch for entity rendering
   LDI r25, 1
   CMP r17, r25
-  JZ r13, ent_render_agent   ; wanderer
+  JZ r9, ent_render_agent   ; wanderer
 
   LDI r25, 2
   CMP r17, r25
-  JZ r13, ent_render_guard   ; guard
+  JZ r9, ent_render_guard   ; guard
 
   LDI r25, 3
   CMP r17, r25
-  JZ r13, ent_render_animal  ; animal
+  JZ r9, ent_render_animal  ; animal
 
   LDI r25, 4
   CMP r17, r25
-  JZ r13, ent_render_ghost   ; ghost
+  JZ r9, ent_render_ghost   ; ghost
 
   LDI r25, 5
   CMP r17, r25
-  JZ r13, ent_render_area_agent ; area_agent
+  JZ r9, ent_render_area_agent ; area_agent
 
   JMP ent_render_next       ; unknown type
 
@@ -3501,9 +3501,9 @@ ent_agent_color:
   ; Check detail for render mode
   LDI r25, 0x7814
   LOAD r25, r25
-  LDI r14, 2
-  CMP r25, r14
-  BLT r13, ent_agent_simple
+  LDI r7, 2
+  CMP r25, r7
+  BLT r9, ent_agent_simple
 
   ; Detailed: draw 3x3 circle with direction indicator
   LDI r25, 1
@@ -3514,54 +3514,54 @@ ent_agent_color:
 
   ; Direction indicator
   MOV r25, r18
-  LDI r14, 16
-  SHR r25, r14         ; direction
-  LDI r14, 0
-  CMP r25, r14
-  JNZ r13, ent_agent_not_up2
+  LDI r7, 16
+  SHR r25, r7         ; direction
+  LDI r7, 0
+  CMP r25, r7
+  JNZ r9, ent_agent_not_up2
   LDI r25, 0
   ADD r25, r27             ; dx=0
-  SUB r28, r3              ; dy=-1
-  LDI r14, 0xFFFFFF
-  PSET r25, r28, r14   ; white dot above
+  SUB r28, r5              ; dy=-1
+  LDI r7, 0xFFFFFF
+  PSET r25, r28, r7   ; white dot above
   ADDI r28, 1              ; restore y
   JMP ent_agent_dir_done
 ent_agent_not_up2:
-  LDI r14, 1
-  CMP r25, r14
-  JNZ r13, ent_agent_not_down2
+  LDI r7, 1
+  CMP r25, r7
+  JNZ r9, ent_agent_not_down2
   LDI r25, 0
   ADD r25, r27
-  ADD r28, r3              ; dy=+1
-  LDI r14, 0xFFFFFF
-  PSET r25, r28, r14
-  SUB r28, r3
+  ADD r28, r5              ; dy=+1
+  LDI r7, 0xFFFFFF
+  PSET r25, r28, r7
+  SUB r28, r5
   JMP ent_agent_dir_done
 ent_agent_not_down2:
-  LDI r14, 2
-  CMP r25, r14
-  JNZ r13, ent_agent_not_left2
-  SUB r27, r3              ; dx=-1
+  LDI r7, 2
+  CMP r25, r7
+  JNZ r9, ent_agent_not_left2
+  SUB r27, r5              ; dx=-1
   LDI r25, 0
   ADD r25, r28
-  LDI r14, 0xFFFFFF
-  PSET r27, r25, r14
+  LDI r7, 0xFFFFFF
+  PSET r27, r25, r7
   ADDI r27, 1
   JMP ent_agent_dir_done
 ent_agent_not_left2:
-  ADD r27, r3              ; dx=+1
+  ADD r27, r5              ; dx=+1
   LDI r25, 0
   ADD r25, r28
-  LDI r14, 0xFFFFFF
-  PSET r27, r25, r14
-  SUB r27, r3
+  LDI r7, 0xFFFFFF
+  PSET r27, r25, r7
+  SUB r27, r5
 ent_agent_dir_done:
 
   ; Side pixels for 3px wide circle
   LDI r25, 1
   SUB r27, r25             ; left
-  LDI r14, 1
-  ADD r28, r14         ; center_y+1
+  LDI r7, 1
+  ADD r28, r7         ; center_y+1
   PSET r27, r28, r17
   ADDI r27, 2              ; right
   PSET r27, r28, r17
@@ -3589,9 +3589,9 @@ ent_guard_color:
   ; Check detail
   LDI r25, 0x7814
   LOAD r25, r25
-  LDI r14, 2
-  CMP r25, r14
-  BLT r13, ent_guard_simple
+  LDI r7, 2
+  CMP r25, r7
+  BLT r9, ent_guard_simple
 
   ; Detailed: 3x3 body with white cross marking
   LDI r25, 3
@@ -3600,21 +3600,21 @@ ent_guard_color:
   LDI r25, 1
   ADD r27, r25             ; center_x
   ADDI r28, 1              ; center_y
-  LDI r14, 0xFFFFFF
-  PSET r27, r28, r14
+  LDI r7, 0xFFFFFF
+  PSET r27, r28, r7
   ; Top of cross
   SUBI r28, 1
-  PSET r27, r28, r14
+  PSET r27, r28, r7
   ; Bottom of cross
   ADDI r28, 2
-  PSET r27, r28, r14
+  PSET r27, r28, r7
   SUBI r28, 1              ; restore center_y
   ; Left/right of cross
   SUBI r27, 1
   ADDI r28, 1
-  PSET r27, r28, r14
+  PSET r27, r28, r7
   ADDI r27, 2
-  PSET r27, r28, r14
+  PSET r27, r28, r7
   SUBI r27, 1              ; restore center_x
   SUBI r28, 1              ; restore center_y
   JMP ent_render_next
@@ -3639,9 +3639,9 @@ ent_animal_color:
   ; Check detail
   LDI r25, 0x7814
   LOAD r25, r25
-  LDI r14, 2
-  CMP r25, r14
-  BLT r13, ent_animal_simple
+  LDI r7, 2
+  CMP r25, r7
+  BLT r9, ent_animal_simple
 
   ; Detailed: 2x2 body with 2 ear pixels
   LDI r25, 1
@@ -3650,11 +3650,11 @@ ent_animal_color:
   LDI r25, 2
   RECTF r27, r28, r25, r25, r17
   ; Ears (dark green dots above body)
-  LDI r14, 0x116611
+  LDI r7, 0x116611
   SUBI r28, 1              ; above body
-  PSET r27, r28, r14        ; left ear
+  PSET r27, r28, r7        ; left ear
   ADDI r27, 1
-  PSET r27, r28, r14        ; right ear
+  PSET r27, r28, r7        ; right ear
   JMP ent_render_next
 
 ent_animal_simple:
@@ -3666,39 +3666,39 @@ ent_animal_simple:
 ent_render_ghost:
   ; Flickering: 25% chance of invisible each frame
   RAND r25
-  LDI r14, 3
-  AND r25, r14
+  LDI r7, 3
+  AND r25, r7
   JNZ r25, ent_ghost_visible
   JMP ent_render_next      ; invisible this frame
 ent_ghost_visible:
   ; Purple tint, varies with anim_frame
   MOV r25, r19
-  LDI r14, 3
-  AND r25, r14              ; 0-3 phase
+  LDI r7, 3
+  AND r25, r7              ; 0-3 phase
   LDI r17, 0x9933FF        ; purple base
-  LDI r14, 1
-  CMP r25, r14
-  JNZ r13, ent_ghost_not_p2
+  LDI r7, 1
+  CMP r25, r7
+  JNZ r9, ent_ghost_not_p2
   LDI r17, 0xBB66FF        ; light purple
   JMP ent_ghost_draw
 ent_ghost_not_p2:
-  LDI r14, 2
-  CMP r25, r14
-  JNZ r13, ent_ghost_not_p3
+  LDI r7, 2
+  CMP r25, r7
+  JNZ r9, ent_ghost_not_p3
   LDI r17, 0x7722CC        ; dark purple
   JMP ent_ghost_draw
 ent_ghost_not_p3:
-  LDI r14, 3
-  CMP r25, r14
-  JNZ r13, ent_ghost_draw
+  LDI r7, 3
+  CMP r25, r7
+  JNZ r9, ent_ghost_draw
   LDI r17, 0xDD99FF        ; very light purple (spectral)
 ent_ghost_draw:
   ; Check detail
   LDI r25, 0x7814
   LOAD r25, r25
-  LDI r14, 2
-  CMP r25, r14
-  BLT r13, ent_ghost_simple
+  LDI r7, 2
+  CMP r25, r7
+  BLT r9, ent_ghost_simple
 
   ; Detailed: 3x4 ghost shape (body + wavy bottom)
   LDI r25, 3
@@ -3711,12 +3711,12 @@ ent_ghost_draw:
   ; Eyes (white dots)
   SUBI r27, 1              ; center column
   SUBI r28, 2              ; eye row
-  LDI r14, 0xFFFFFF
-  PSET r27, r28, r14        ; center eye
+  LDI r7, 0xFFFFFF
+  PSET r27, r28, r7        ; center eye
   SUBI r27, 1
-  PSET r27, r28, r14        ; left eye
+  PSET r27, r28, r7        ; left eye
   ADDI r27, 2
-  PSET r27, r28, r14        ; right eye
+  PSET r27, r28, r7        ; right eye
   JMP ent_render_next
 
 ent_ghost_simple:
@@ -3744,7 +3744,7 @@ ent_aagent_color:
   LOAD r25, r22
   LDI r22, 3
   CMP r25, r22
-  JNZ r13, ent_aagent_not_inside
+  JNZ r9, ent_aagent_not_inside
   ; Inside building: render as dim/flickering
   RAND r25
   LDI r22, 1
@@ -3759,9 +3759,9 @@ ent_aagent_not_inside:
   ; Check detail level
   LDI r25, 0x7814
   LOAD r25, r25
-  LDI r14, 2
-  CMP r25, r14
-  BLT r13, ent_aagent_simple
+  LDI r7, 2
+  CMP r25, r7
+  BLT r9, ent_aagent_simple
 
 ent_aagent_do_render:
   ; Detailed: draw diamond shape (5 pixels in cross pattern) with antenna
@@ -3783,8 +3783,8 @@ ent_aagent_do_render:
   PSET r27, r28, r17
   ; Antenna: white pixel above diamond
   SUBI r28, 2               ; above top
-  LDI r14, 0xFFFFFF
-  PSET r27, r28, r14
+  LDI r7, 0xFFFFFF
+  PSET r27, r28, r7
   ; Restore coords
   ADDI r28, 1
   SUBI r27, 1
@@ -3811,9 +3811,9 @@ ent_prog_color:
   ; Check detail
   LDI r25, 0x7814
   LOAD r25, r25
-  LDI r14, 2
-  CMP r25, r14
-  BLT r13, ent_prog_simple
+  LDI r7, 2
+  CMP r25, r7
+  BLT r9, ent_prog_simple
 
   ; Detailed: draw diamond pattern (4 pixels in cross pattern)
   ; Top pixel
@@ -3855,7 +3855,7 @@ LDI r18, 0x7814
 LOAD r18, r18
 LDI r17, 2
 CMP r18, r17
-BLT r13, mm_bldg_skip
+BLT r9, mm_bldg_skip
 PUSH r31
 LDI r20, 0x7500
 LDI r17, 0x7580
@@ -3864,9 +3864,9 @@ LDI r17, 0
 
 mm_bldg_loop:
   MOV r22, r20
-  LOAD r2, r22          ; bldg world_x
+  LOAD r1, r22          ; bldg world_x
   ADDI r22, 1
-  LOAD r15, r22          ; bldg world_y
+  LOAD r11, r22          ; bldg world_y
   ADDI r22, 1
   LOAD r25, r22         ; type_color
   ADDI r22, 1
@@ -3875,7 +3875,7 @@ mm_bldg_loop:
   ; Minimap pixel: mmx = 224 + (bldg_x - camera_x)/2
   LDI r18, 0x7800
   LOAD r27, r18
-  MOV r28, r2
+  MOV r28, r1
   SUB r28, r27
   LDI r18, 2
   DIV r28, r18          ; tile offset / 2
@@ -3884,14 +3884,14 @@ mm_bldg_loop:
   ; Clamp to minimap area
   LDI r18, 224
   CMP r28, r18
-  BLT r13, mm_bldg_skip
+  BLT r9, mm_bldg_skip
   LDI r18, 255
   CMP r28, r18
-  BGE r13, mm_bldg_skip
+  BGE r9, mm_bldg_skip
 
   LDI r18, 0x7801
   LOAD r27, r18
-  MOV r29, r15
+  MOV r29, r11
   SUB r29, r27
   LDI r18, 2
   DIV r29, r18
@@ -3899,10 +3899,10 @@ mm_bldg_loop:
 
   LDI r18, 0
   CMP r29, r18
-  BLT r13, mm_bldg_skip
+  BLT r9, mm_bldg_skip
   LDI r18, 31
   CMP r29, r18
-  BGE r13, mm_bldg_skip
+  BGE r9, mm_bldg_skip
 
   PSET r28, r29, r25
 
@@ -3911,7 +3911,7 @@ mm_bldg_skip:
   ADDI r17, 1
   MOV r22, r17
   CMP r22, r21
-  BLT r13, mm_bldg_loop
+  BLT r9, mm_bldg_loop
 POP r31
 
 mm_bldg_skip:
@@ -3923,7 +3923,7 @@ LDI r18, 0x7814
 LOAD r18, r18
 LDI r17, 2
 CMP r18, r17
-BLT r13, mm_ent_skip
+BLT r9, mm_ent_skip
 PUSH r31
 
 LDI r20, 0x7900
@@ -3933,20 +3933,20 @@ LDI r26, 0
 
 mm_ent_loop:
   CMP r26, r21
-  BGE r13, mm_ent_done
+  BGE r9, mm_ent_done
 
   ; Load entity position
   MOV r22, r20
-  LOAD r2, r22             ; world_x
+  LOAD r1, r22             ; world_x
   ADDI r22, 1
-  LOAD r15, r22             ; world_y
+  LOAD r11, r22             ; world_y
   ADDI r22, 1
   LOAD r17, r22            ; type
 
   ; Minimap coords: mmx = 224 + (world_x - camera_x)/2
   LDI r18, 0x7800
   LOAD r27, r18
-  MOV r28, r2
+  MOV r28, r1
   SUB r28, r27
   LDI r18, 2
   DIV r28, r18
@@ -3955,21 +3955,21 @@ mm_ent_loop:
   ; Clamp to minimap
   LDI r18, 224
   CMP r28, r18
-  BLT r13, mm_ent_next
+  BLT r9, mm_ent_next
   LDI r18, 255
   CMP r28, r18
-  BGE r13, mm_ent_next
+  BGE r9, mm_ent_next
 
   LDI r18, 0x7801
   LOAD r27, r18
-  MOV r25, r15
+  MOV r25, r11
   SUB r25, r27
   LDI r18, 2
   DIV r25, r18
   ; Clamp y to minimap range
   LDI r18, 32
   CMP r25, r18
-  BGE r13, mm_ent_next
+  BGE r9, mm_ent_next
 
   ; Draw entity marker on minimap
   ; Different color per entity type
@@ -3979,19 +3979,19 @@ mm_ent_loop:
 mm_ent_not_program:
   LDI r25, 1
   CMP r17, r25
-  JNZ r13, mm_ent_not_wanderer
+  JNZ r9, mm_ent_not_wanderer
   LDI r18, 0xFF8800        ; orange (wanderer)
   JMP mm_ent_dot
 mm_ent_not_wanderer:
   LDI r25, 2
   CMP r17, r25
-  JNZ r13, mm_ent_not_guard
+  JNZ r9, mm_ent_not_guard
   LDI r18, 0xFF2020        ; red (guard)
   JMP mm_ent_dot
 mm_ent_not_guard:
   LDI r25, 3
   CMP r17, r25
-  JNZ r13, mm_ent_not_animal
+  JNZ r9, mm_ent_not_animal
   LDI r18, 0x33CC33        ; green (animal)
   JMP mm_ent_dot
 mm_ent_not_animal:
@@ -4154,7 +4154,7 @@ LDI r17, 0x7930
 LOAD r17, r17              ; entity_nearby_idx
 LDI r18, 0xFFFFFFFF
 CMP r17, r18
-JZ r13, no_entity_tooltip   ; -1 = no entity nearby
+JZ r9, no_entity_tooltip   ; -1 = no entity nearby
 
 ; Determine entity type for tooltip text
 LDI r20, 0x7900
@@ -4171,13 +4171,13 @@ JZ r17, ent_tooltip_program
 ; Dispatch by entity type
 LDI r18, 1
 CMP r17, r18
-JZ r13, ent_tooltip_wanderer
+JZ r9, ent_tooltip_wanderer
 LDI r18, 2
 CMP r17, r18
-JZ r13, ent_tooltip_guard
+JZ r9, ent_tooltip_guard
 LDI r18, 3
 CMP r17, r18
-JZ r13, ent_tooltip_animal
+JZ r9, ent_tooltip_animal
 JMP ent_tooltip_ghost
 
 ent_tooltip_wanderer:
@@ -4273,9 +4273,9 @@ LDI r18, 0x7814
 LOAD r18, r18
 LDI r17, 2
 CMP r18, r17
-BGE r13, player_marker_done   ; detail >= 2 → skip (full sprite already drawn)
+BGE r9, player_marker_done   ; detail >= 2 → skip (full sprite already drawn)
 ; Flashing crosshair at center
-LOAD r17, r1               ; frame_counter
+LOAD r17, r2               ; frame_counter
 LDI r18, 16
 AND r17, r18
 JZ r17, pm_white
@@ -4284,19 +4284,19 @@ JMP pm_draw
 pm_white:
 LDI r17, 0xFFFFFF
 pm_draw:
-LDI r2, 128
-LDI r15, 128
-PSET r2, r15, r17            ; center dot
-LDI r2, 127
-PSET r2, r15, r17            ; left
-LDI r2, 129
-LDI r15, 128
-PSET r2, r15, r17            ; right
-LDI r2, 128
-LDI r15, 127
-PSET r2, r15, r17            ; up
-LDI r15, 129
-PSET r2, r15, r17            ; down
+LDI r1, 128
+LDI r11, 128
+PSET r1, r11, r17            ; center dot
+LDI r1, 127
+PSET r1, r11, r17            ; left
+LDI r1, 129
+LDI r11, 128
+PSET r1, r11, r17            ; right
+LDI r1, 128
+LDI r11, 127
+PSET r1, r11, r17            ; up
+LDI r11, 129
+PSET r1, r11, r17            ; down
 player_marker_done:
 
     FRAME
@@ -4322,7 +4322,7 @@ STORE r17, r19
 LDI r17, 0x7832
 LOAD r18, r17
 CMPI r18, 47               ; '/'
-JNZ r13, cmd_oracle          ; not a / command → send to Oracle
+JNZ r9, cmd_oracle          ; not a / command → send to Oracle
 
 ; --- Parse / commands ---
 ADDI r17, 1                  ; skip '/'
@@ -4330,22 +4330,22 @@ LOAD r18, r17
 
 ; /tp X Y -- teleport player
 CMPI r18, 116               ; 't'
-JNZ r13, cmd_try_build
+JNZ r9, cmd_try_build
 ADDI r17, 1
 LOAD r18, r17
 CMPI r18, 112               ; 'p'
-JNZ r13, cmd_oracle          ; not /tp, fall through to oracle
+JNZ r9, cmd_oracle          ; not /tp, fall through to oracle
 
 ; Parse first number (x) after /tp
 ADDI r17, 1                  ; skip 'p'
-CALL parse_next_number       ; r13 = number, r17 advanced past it
+CALL parse_next_number       ; r9 = number, r17 advanced past it
 LDI r19, 0x7808
-STORE r19, r13                ; player_x = parsed x
+STORE r19, r9                ; player_x = parsed x
 
 ; Parse second number (y)
 CALL parse_next_number
 LDI r19, 0x7809
-STORE r19, r13                ; player_y = parsed y
+STORE r19, r9                ; player_y = parsed y
 
 ; Show confirmation in Oracle response buffer
 LDI r17, 0x7872
@@ -4362,30 +4362,30 @@ LDI r17, 0x7832
 ADDI r17, 1                  ; skip '/'
 LOAD r18, r17
 CMPI r18, 98                ; 'b'
-JNZ r13, cmd_oracle
+JNZ r9, cmd_oracle
 ADDI r17, 1
 LOAD r18, r17
 CMPI r18, 117               ; 'u'
-JNZ r13, cmd_oracle
+JNZ r9, cmd_oracle
 ADDI r17, 1
 LOAD r18, r17
 CMPI r18, 105               ; 'i'
-JNZ r13, cmd_oracle
+JNZ r9, cmd_oracle
 ADDI r17, 1
 LOAD r18, r17
 CMPI r18, 108               ; 'l'
-JNZ r13, cmd_oracle
+JNZ r9, cmd_oracle
 ADDI r17, 1
 LOAD r18, r17
 CMPI r18, 100               ; 'd'
-JNZ r13, cmd_oracle
+JNZ r9, cmd_oracle
 
 ; It's /build. Skip space, copy name from CMD_BUF+7 to name slot.
 ; Find next building slot: building_count at 0x7580
 LDI r17, 0x7580
 LOAD r18, r17                ; r18 = current count
 CMPI r18, 32
-BGE r13, cmd_build_full       ; max 32 buildings
+BGE r9, cmd_build_full       ; max 32 buildings
 
 ; New building at index = count
 MOV r19, r18                 ; r19 = index
@@ -4467,10 +4467,10 @@ STORE r17, r18
 ; LLM call: prompt from CMD_BUF (0x7832), response to ORACLE_RESP_BUF (0x7873)
 ; The build_llm_system_prompt() on Rust side will read player pos/buildings
 ; and prepend the Oracle system prompt.
-LDI r2, 0x7832              ; prompt = CMD_BUF text
-LDI r15, 0x7873              ; response buffer
-LDI r9, 895                 ; max response length
-LLM r2, r15, r9
+LDI r1, 0x7832              ; prompt = CMD_BUF text
+LDI r11, 0x7873              ; response buffer
+LDI r0, 895                 ; max response length
+LLM r1, r11, r0
 
 ; Mark response as ready
 LDI r17, 0x7872
@@ -4484,8 +4484,8 @@ RET
 ; =========================================
 ; PARSE_NEXT_NUMBER -- parse decimal number from string
 ; Input: r17 = pointer to string (position in CMD_BUF)
-; Output: r13 = parsed number, r17 = advanced past number + space
-; Uses r12 as accumulator (r13 is clobbered by CMPI!)
+; Output: r9 = parsed number, r17 = advanced past number + space
+; Uses r10 as accumulator (r9 is clobbered by CMPI!)
 ; =========================================
 parse_next_number:
 PUSH r31
@@ -4495,49 +4495,49 @@ LDI r8, 1
 pnn_skip:
 LOAD r18, r17
 CMPI r18, 32                ; space
-JNZ r13, pnn_digit_start
+JNZ r9, pnn_digit_start
 ADDI r17, 1
 JMP pnn_skip
 
 pnn_digit_start:
-LDI r12, 0                   ; accumulator in r12 (NOT r13, CMPI clobbers r13)
+LDI r10, 0                   ; accumulator in r10 (NOT r9, CMPI clobbers r9)
 
 pnn_loop:
 LOAD r18, r17
 JZ r18, pnn_done            ; null terminator
 CMPI r18, 32                ; space = end of number
-JZ r13, pnn_done
+JZ r9, pnn_done
 CMPI r18, 48                ; '0'
-BLT r13, pnn_done
+BLT r9, pnn_done
 CMPI r18, 58                ; '9'+1
-BGE r13, pnn_done
+BGE r9, pnn_done
 
-; r12 = r12 * 10 + (char - '0')
+; r10 = r10 * 10 + (char - '0')
 LDI r19, 10
-MUL r12, r19
+MUL r10, r19
 SUBI r18, 48                ; char - '0'
-ADD r12, r18
+ADD r10, r18
 ADDI r17, 1
 JMP pnn_loop
 
 pnn_done:
-MOV r13, r12                  ; move result to r13 for caller
+MOV r9, r10                  ; move result to r9 for caller
 POP r31
 RET
 
 ; ===== check_biome_walkable subroutine =====
-; Input: r2 = world_x, r15 = world_y
-; Output: r13 = 1 (walkable) or 0 (blocked)
-; Preserves: r8-r14, r7-r5
+; Input: r1 = world_x, r11 = world_y
+; Output: r9 = 1 (walkable) or 0 (blocked)
+; Preserves: r8-r7, r15-r6
 ; Uses: r17-r22 as temporaries
-; Clobbers: r13 (CMP result), r31 (saved/restored via push/pop)
+; Clobbers: r9 (CMP result), r31 (saved/restored via push/pop)
 
 check_biome_walkable:
 PUSH r31
 
 ; Compute coarse hash for biome (same as main terrain)
-MOV r21, r2
-MOV r22, r15
+MOV r21, r1
+MOV r22, r11
 LDI r17, 3
 SHR r21, r17           ; world_x >> 3
 SHR r22, r17           ; world_y >> 3
@@ -4555,41 +4555,41 @@ SHR r21, r17           ; biome_type (0..31)
 ; Water: biome < 2
 LDI r17, 2
 CMP r21, r17
-BLT r13, biome_blocked
+BLT r9, biome_blocked
 
 ; Mountain: biome 13-14 (13 <= biome < 15)
 LDI r17, 13
 CMP r21, r17
-BLT r13, biome_not_mt
+BLT r9, biome_not_mt
 LDI r17, 15
 CMP r21, r17
-BGE r13, biome_not_mt
+BGE r9, biome_not_mt
 JMP biome_blocked
 
 biome_not_mt:
 ; Lava/volcanic: biome 16-18 (16 <= biome <= 18)
 LDI r17, 16
 CMP r21, r17
-BLT r13, biome_not_lava
+BLT r9, biome_not_lava
 LDI r17, 19
 CMP r21, r17
-BGE r13, biome_not_lava
+BGE r9, biome_not_lava
 JMP biome_blocked
 
 biome_not_lava:
 ; Coral: biome == 22
 LDI r17, 22
 CMP r21, r17
-JZ r13, biome_blocked
+JZ r9, biome_blocked
 
 ; Walkable
 LDI r17, 1
-MOV r13, r17
+MOV r9, r17
 JMP biome_check_done
 
 biome_blocked:
 LDI r17, 0
-MOV r13, r17
+MOV r9, r17
 
 biome_check_done:
 POP r31

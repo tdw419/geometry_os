@@ -1,4 +1,4 @@
-; DESCRIPTION: The `debug_monitor.asm` code initializes a debug protocol over shared memory at Page 3, allowing an AI Terminal to inspect the program's state. It handles commands for dumping registers, reading RAM, and responding to pings, updating status indicators and heartbeat signals accordingly.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; debug_monitor.asm -- Debug Monitor Stub
 ;
@@ -28,50 +28,50 @@
 #define DEBUG_HEARTBEAT   0x0C27
 #define DEBUG_CHECKPOINT 0x0C28
 
-LDI r5, 1
+LDI r1, 1
 LDI r30, 0xFD00
 
 ; ── Draw something visible so we know it's running ──
-LDI r2, 0x1A1A2E
-FILL r2
+LDI r12, 0x1A1A2E
+FILL r12
 
 ; Draw "DEBUG" label
 LDI r20, 0x1000
 STRO r20, "Debug Monitor"
-LDI r5, 10
-LDI r3, 10
-LDI r6, 0x1000
-LDI r15, 0x00FF00
-LDI r12, 0x1A1A2E
-DRAWTEXT r5, r3, r6, r15, r12
+LDI r1, 10
+LDI r13, 10
+LDI r2, 0x1000
+LDI r3, 0x00FF00
+LDI r5, 0x1A1A2E
+DRAWTEXT r1, r13, r2, r3, r5
 
 ; Draw a pulsing indicator
-LDI r5, 100
-LDI r3, 100
-LDI r6, 20
-LDI r15, 20
+LDI r1, 100
+LDI r13, 100
+LDI r2, 20
+LDI r3, 20
 
 ; ── Initialize debug mailbox ──
-LDI r2, 0xDB9900
+LDI r12, 0xDB9900
 LDI r20, DEBUG_MAGIC
-STORE r20, r2
+STORE r20, r12
 
 ; Write our PID
 GETPID
 LDI r20, DEBUG_CHILD_PID
-STORE r20, r2
+STORE r20, r12
 
 ; Clear status and heartbeat
-LDI r2, 0
+LDI r12, 0
 LDI r20, DEBUG_STATUS
-STORE r20, r2
+STORE r20, r12
 LDI r20, DEBUG_COMMAND
-STORE r20, r2
+STORE r20, r12
 LDI r20, DEBUG_HEARTBEAT
-STORE r20, r2
+STORE r20, r12
 
 ; Frame counter for pulsing indicator
-LDI r11, 0
+LDI r0, 0
 
 ; ── Main loop ──
 main_loop:
@@ -79,35 +79,35 @@ main_loop:
 
     ; Update heartbeat
     LDI r20, DEBUG_HEARTBEAT
-    LOAD r2, r20
-    ADDI r2, 1
-    STORE r20, r2
+    LOAD r12, r20
+    ADDI r12, 1
+    STORE r20, r12
 
     ; Update checkpoint (approximate current PC)
     LDI r20, DEBUG_CHECKPOINT
-    LDI r2, main_loop
-    STORE r20, r2
+    LDI r12, main_loop
+    STORE r20, r12
 
     ; Pulse the indicator (color oscillates)
-    LDI r11, 1
-    ADD r11, r0          ; r0 = tick counter (reuse frame count)
-    LDI r2, 0xFF4444
-    ANDI r2, 0xFF
-    SHLI r2, 16
-    ORI r2, 0x4444FF
+    LDI r0, 1
+    ADD r0, r15          ; r15 = tick counter (reuse frame count)
+    LDI r12, 0xFF4444
+    ANDI r12, 0xFF
+    SHLI r12, 16
+    ORI r12, 0x4444FF
     ; Simplified: just draw a blue rect
-    LDI r2, 0x4466FF
-    LDI r5, 100
-    LDI r3, 100
-    LDI r6, 20
-    LDI r15, 20
-    RECTF r5, r3, r6, r15, r2
+    LDI r12, 0x4466FF
+    LDI r1, 100
+    LDI r13, 100
+    LDI r2, 20
+    LDI r3, 20
+    RECTF r1, r13, r2, r3, r12
 
     ; ── Check for debug commands ──
     LDI r20, DEBUG_STATUS
     LOAD r22, r20
     CMPI r22, 1
-    JZ r2, debug_handle_command  ; r2=0 means equal (status==1)
+    JZ r12, debug_handle_command  ; r12=0 means equal (status==1)
     ; Status != 1, no command pending
     JMP main_loop
 
@@ -116,65 +116,65 @@ debug_handle_command:
     LDI r20, DEBUG_COMMAND
     LOAD r22, r20
 
-    ; Save r2 because CMPI clobbers it
-    PUSH r2
+    ; Save r12 because CMPI clobbers it
+    PUSH r12
 
     ; Command 1 = dump registers
     CMPI r22, 1
-    JNZ r2, try_cmd_ram_read
+    JNZ r12, try_cmd_ram_read
 
-    ; Restore r2 (the actual register value) before dumping
-    POP r2
+    ; Restore r12 (the actual register value) before dumping
+    POP r12
 
     ; Dump registers to response buffer
     LDI r20, DEBUG_RESPONSE
-    STORE r20, r2       ; r2 (real value)
+    STORE r20, r12       ; r12 (real value)
     ADDI r20, 1
-    LDI r23, 1          ; skip r2, start at r5
-    STORE r20, r5       ; r5
-    ADDI r20, 1
-    STORE r20, r3       ; r3
-    ADDI r20, 1
-    STORE r20, r6       ; r6
-    ADDI r20, 1
-    STORE r20, r15       ; r15
-    ADDI r20, 1
-    STORE r20, r12       ; r12
-    ADDI r20, 1
-    STORE r20, r11       ; r11
-    ADDI r20, 1
-    STORE r20, r0       ; r0
+    LDI r23, 1          ; skip r12, start at r1
+    STORE r20, r1       ; r1
     ADDI r20, 1
     STORE r20, r13       ; r13
     ADDI r20, 1
-    ; r9-r31: just store zeros for now (can't read all regs easily)
+    STORE r20, r2       ; r2
+    ADDI r20, 1
+    STORE r20, r3       ; r3
+    ADDI r20, 1
+    STORE r20, r5       ; r5
+    ADDI r20, 1
+    STORE r20, r0       ; r0
+    ADDI r20, 1
+    STORE r20, r15       ; r15
+    ADDI r20, 1
+    STORE r20, r4       ; r4
+    ADDI r20, 1
+    ; r14-r31: just store zeros for now (can't read all regs easily)
     LDI r23, 0
-    LDI r24, 23         ; remaining regs (r9-r31 = 23)
+    LDI r24, 23         ; remaining regs (r14-r31 = 23)
 dump_loop:
     CMPI r24, 0
-    JZ r2, dump_done
+    JZ r12, dump_done
     STORE r20, r23      ; store 0
     ADDI r20, 1
     SUBI r24, 1
     JMP dump_loop
 dump_done:
     ; Set status = 2 (response ready)
-    LDI r2, 2
+    LDI r12, 2
     LDI r20, DEBUG_STATUS
-    STORE r20, r2
+    STORE r20, r12
     JMP main_loop
 
 try_cmd_ram_read:
-    POP r2              ; clean up pushed r2 from command dispatch
+    POP r12              ; clean up pushed r12 from command dispatch
     ; Command 2 = read RAM at address
     CMPI r22, 2
-    JNZ r2, try_cmd_ping
+    JNZ r12, try_cmd_ping
 
     LDI r20, DEBUG_ADDR
     LOAD r21, r20       ; r21 = address to read
     ; Bounds check
     CMPI r21, 65536
-    BGE r2, cmd_error
+    BGE r12, cmd_error
     LOAD r22, r21       ; r22 = value at that address
     LDI r20, DEBUG_RESPONSE
     STORE r20, r22      ; response[0] = value
@@ -182,28 +182,28 @@ try_cmd_ram_read:
     ADDI r20, 1
     STORE r20, r21      ; response[1] = address
 
-    LDI r2, 2
+    LDI r12, 2
     LDI r20, DEBUG_STATUS
-    STORE r20, r2
+    STORE r20, r12
     JMP main_loop
 
 try_cmd_ping:
     ; Command 3 = ping (just acknowledge)
     CMPI r22, 3
-    JNZ r2, cmd_error
+    JNZ r12, cmd_error
 
     LDI r20, DEBUG_RESPONSE
     LDI r23, 0x504E4720 ; "PING " in hex
     STORE r20, r23
 
-    LDI r2, 2
+    LDI r12, 2
     LDI r20, DEBUG_STATUS
-    STORE r20, r2
+    STORE r20, r12
     JMP main_loop
 
 cmd_error:
     ; Unknown command, set status to 0xFF (error)
-    LDI r2, 0xFF
+    LDI r12, 0xFF
     LDI r20, DEBUG_STATUS
-    STORE r20, r2
+    STORE r20, r12
     JMP main_loop

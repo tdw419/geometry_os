@@ -31,8 +31,9 @@ def run_vm(asm_path, ppm_path):
     return stdout.decode(), stderr.decode()
 
 def main():
-    checkpoint_path = "pixelflow/bilingual_llm_v5_ckpt.pt"
+    checkpoint_path = "pixelflow/bilingual_llm_v8_ckpt.pt"
     tokenizer_path = "pixelflow/bilingual_tokenizer_v4"
+
     output_dir = Path("pixelflow/smoke_results")
     output_dir.mkdir(exist_ok=True)
 

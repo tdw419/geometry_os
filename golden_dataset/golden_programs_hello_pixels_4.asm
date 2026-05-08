@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code loads the coordinates (80, 120) into registers `r0` and `r12`, respectively, and a pointer to the string "HELLO PIXELS" in register `r1`. It then uses the `TEXT` opcode to render the null-terminated string at the specified screen position. The code halts after displaying the message.
+; DESCRIPTION: Display a object using color colored at the screen.
 
 ; hello_pixels.asm -- Pixel-to-CPU-to-Pixel round-trip demo
 ;
@@ -8,10 +8,10 @@
 ; TEXT (0x44) renders a null-terminated string from RAM at (x_reg, y_reg).
 ; Code runs first; data lives after HALT so it isn't executed as opcodes.
 
-LDI r0, 80
-LDI r12, 120
-LDI r1, msg
-TEXT r0, r12, r1
+LDI r6, 80
+LDI r3, 120
+LDI r5, msg
+TEXT r6, r3, r5
 HALT
 
 msg: .ascii "HELLO PIXELS"

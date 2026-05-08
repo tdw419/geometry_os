@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a stateful infinite world with wandering creatures. The player is always at the viewport center, and footstep trails mark visited tiles as "path" color. Creatures wander via random walk and are drawn on top of terrain. Weather effects like rain, snow, and lightning are also simulated, with particle systems for visual effects.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; living_map.asm -- Stateful infinite world with wandering creatures
 ;
@@ -27,13 +27,13 @@
 ;   RAM[0xFFB]  = key bitmask (host writes each frame)
 
 ; ===== Constants =====
-LDI r2, 1               ; constant 1
-LDI r10, 64              ; TILES per axis
-LDI r13, 4               ; TILE_SIZE pixels
-LDI r4, 0xFFB          ; key bitmask port
-LDI r11, 0x7800         ; camera_x address
-LDI r1, 0x7801         ; camera_y address
-LDI r12, 0x7802         ; frame_counter address
+LDI r3, 1               ; constant 1
+LDI r2, 64              ; TILES per axis
+LDI r0, 4               ; TILE_SIZE pixels
+LDI r11, 0xFFB          ; key bitmask port
+LDI r1, 0x7800         ; camera_x address
+LDI r5, 0x7801         ; camera_y address
+LDI r14, 0x7802         ; frame_counter address
 LDI r28, 32             ; center offset
 
 ; ===== Initialize state table =====
@@ -65,13 +65,13 @@ init_rain:
   LDI r18, 0xFF
   AND r25, r18
   STORE r23, r25          ; x = random 0..255
-  ADD r23, r2
+  ADD r23, r3
   RAND r25
   LDI r18, 0xFF
   AND r25, r18
   STORE r23, r25          ; y = random 0..255
-  ADD r23, r2
-  SUB r24, r2
+  ADD r23, r3
+  SUB r24, r3
   JNZ r24, init_rain
 
 ; ===== Initialize snow particles (32 at 0x7050) =====
@@ -82,13 +82,13 @@ init_snow:
   LDI r18, 0xFF
   AND r25, r18
   STORE r23, r25          ; x = random 0..255
-  ADD r23, r2
+  ADD r23, r3
   RAND r25
   LDI r18, 0xFF
   AND r25, r18
   STORE r23, r25          ; y = random 0..255
-  ADD r23, r2
-  SUB r24, r2
+  ADD r23, r3
+  SUB r24, r3
   JNZ r24, init_snow
 
 ; ===== Initialize player position =====
@@ -107,16 +107,16 @@ main_loop:
 LDI r28, 32             ; center offset (reloaded because r28 gets clobbered)
 
 ; --- Increment frame counter ---
-LOAD r17, r12
-ADD r17, r2
-STORE r12, r17          ; frame_counter++
+LOAD r17, r14
+ADD r17, r3
+STORE r14, r17          ; frame_counter++
 
 ; --- Read camera position ---
-LOAD r14, r11           ; r14 = camera_x
-LOAD r6, r1           ; r6 = camera_y
+LOAD r13, r1           ; r13 = camera_x
+LOAD r9, r5           ; r9 = camera_y
 
 ; --- Read key bitmask ---
-LOAD r16, r4           ; r16 = key bitmask
+LOAD r16, r11           ; r16 = key bitmask
 
 ; --- Store previous player position ---
 LDI r17, 0x7803
@@ -133,7 +133,7 @@ MOV r17, r16
 LDI r18, 1
 AND r17, r18
 JZ r17, no_up
-SUB r6, r2
+SUB r9, r3
 no_up:
 
 ; --- Process Down (bit 1) ---
@@ -141,7 +141,7 @@ MOV r17, r16
 LDI r18, 2
 AND r17, r18
 JZ r17, no_down
-ADD r6, r2
+ADD r9, r3
 no_down:
 
 ; --- Process Left (bit 2) ---
@@ -149,7 +149,7 @@ MOV r17, r16
 LDI r18, 4
 AND r17, r18
 JZ r17, no_left
-SUB r14, r2
+SUB r13, r3
 no_left:
 
 ; --- Process Right (bit 3) ---
@@ -157,19 +157,19 @@ MOV r17, r16
 LDI r18, 8
 AND r17, r18
 JZ r17, no_right
-ADD r14, r2
+ADD r13, r3
 no_right:
 
 ; --- Store updated camera ---
-STORE r11, r14
-STORE r1, r6
+STORE r1, r13
+STORE r5, r9
 
 ; --- Compute and store player world position ---
-MOV r17, r14
+MOV r17, r13
 ADD r17, r28
 LDI r18, 0x7803
 STORE r18, r17          ; player_world_x = camera_x + 32
-MOV r17, r6
+MOV r17, r9
 ADD r17, r28
 LDI r18, 0x7804
 STORE r18, r17          ; player_world_y = camera_y + 32
@@ -180,13 +180,13 @@ LOAD r19, r17           ; r19 = player_world_x (current)
 LDI r17, 0x7805
 LOAD r18, r17           ; r18 = prev_player_x
 CMP r19, r18
-JNZ r7, add_footstep
+JNZ r12, add_footstep
 LDI r17, 0x7804
 LOAD r19, r17
 LDI r17, 0x7806
 LOAD r18, r17
 CMP r19, r18
-JZ r7, skip_footstep
+JZ r12, skip_footstep
 
 add_footstep:
 ; Read prev position (tile we're leaving)
@@ -205,14 +205,14 @@ MUL r24, r25            ; r24 = head * 3
 ADD r23, r24            ; r23 = &state[head][0]
 
 STORE r23, r20          ; world_x
-ADD r23, r2
+ADD r23, r3
 STORE r23, r21          ; world_y
-ADD r23, r2
+ADD r23, r3
 LDI r25, 0xC2A280       ; path/dirt color
 STORE r23, r25
 
 ; Advance head (circular, 64 entries)
-ADD r22, r2
+ADD r22, r3
 LDI r25, 64
 MOV r26, r22
 SUB r26, r25
@@ -225,7 +225,7 @@ STORE r17, r22
 ; Update state_count (cap at 64)
 LDI r17, 0x7807
 LOAD r22, r17
-ADD r22, r2
+ADD r22, r3
 LDI r25, 64
 MOV r26, r22
 SUB r26, r25
@@ -239,7 +239,7 @@ skip_footstep:
 
 ; ===== Update Creatures (every 8th frame) =====
 ; Throttle: only move creatures when frame_counter & 7 == 0
-LOAD r22, r12           ; r22 = frame_counter
+LOAD r22, r14           ; r22 = frame_counter
 LDI r17, 7
 AND r22, r17
 JNZ r22, skip_creatures
@@ -266,65 +266,65 @@ LDI r17, 0
 FILL r17
 
 ; ===== Render Viewport (terrain) =====
-LOAD r22, r12           ; r22 = frame_counter
-LDI r5, 0               ; ty = 0
+LOAD r22, r14           ; r22 = frame_counter
+LDI r8, 0               ; ty = 0
 
 render_y:
-  LDI r9, 0             ; tx = 0
+  LDI r6, 0             ; tx = 0
 
   render_x:
     ; World coordinates
-    MOV r0, r14
-    ADD r0, r9           ; r0 = world_x
-    MOV r15, r6
-    ADD r15, r5           ; r15 = world_y
+    MOV r7, r13
+    ADD r7, r6           ; r7 = world_x
+    MOV r4, r9
+    ADD r4, r8           ; r4 = world_y
 
     ; ---- Coarse hash for contiguous biomes ----
-    MOV r8, r0
+    MOV r15, r7
     LDI r18, 3
-    SHR r8, r18
+    SHR r15, r18
     LDI r18, 99001
-    MUL r8, r18
+    MUL r15, r18
 
-    MOV r3, r15
+    MOV r10, r4
     LDI r18, 3
-    SHR r3, r18
+    SHR r10, r18
     LDI r18, 79007
-    MUL r3, r18
+    MUL r10, r18
 
-    XOR r8, r3
+    XOR r15, r10
 
     LDI r18, 1103515245
-    MUL r8, r18          ; mix
+    MUL r15, r18          ; mix
 
     LDI r18, 28
-    SHR r8, r18          ; r8 = biome_type (0..15)
+    SHR r15, r18          ; r15 = biome_type (0..15)
 
     ; ---- Fine hash for structure placement ----
-    MOV r3, r0
+    MOV r10, r7
     LDI r18, 374761393
-    MUL r3, r18
-    MOV r21, r15
+    MUL r10, r18
+    MOV r21, r4
     LDI r18, 668265263
     MUL r21, r18
-    XOR r3, r21
+    XOR r10, r21
 
     LDI r18, 0xFF
-    MOV r21, r3
+    MOV r21, r10
     AND r21, r18
     LDI r18, 42
     CMP r21, r18
-    JNZ r7, no_struct
+    JNZ r12, no_struct
 
     LDI r18, 4
-    CMP r8, r18
-    BLT r7, struct_water
+    CMP r15, r18
+    BLT r12, struct_water
     LDI r18, 9
-    CMP r8, r18
-    BLT r7, struct_land
+    CMP r15, r18
+    BLT r12, struct_land
     LDI r18, 12
-    CMP r8, r18
-    BLT r7, struct_mountain
+    CMP r15, r18
+    BLT r12, struct_mountain
     JMP struct_snow
 
 struct_water:
@@ -343,34 +343,34 @@ struct_snow:
 no_struct:
     ; ---- Biome -> Color ----
     LDI r18, 3
-    CMP r8, r18
-    BLT r7, color_water
+    CMP r15, r18
+    BLT r12, color_water
 
     LDI r18, 4
-    CMP r8, r18
-    BLT r7, color_beach
+    CMP r15, r18
+    BLT r12, color_beach
 
     LDI r18, 7
-    CMP r8, r18
-    BLT r7, color_grass
+    CMP r15, r18
+    BLT r12, color_grass
 
     LDI r18, 9
-    CMP r8, r18
-    BLT r7, color_forest
+    CMP r15, r18
+    BLT r12, color_forest
 
     LDI r18, 12
-    CMP r8, r18
-    BLT r7, color_mountain
+    CMP r15, r18
+    BLT r12, color_mountain
 
     JMP color_snow
 
 color_water:
     LDI r18, 1
-    CMP r8, r18
-    BLT r7, water_deep
+    CMP r15, r18
+    BLT r12, water_deep
     LDI r18, 2
-    CMP r8, r18
-    JZ r7, water_shallow
+    CMP r15, r18
+    JZ r12, water_shallow
     LDI r17, 0x000088
     JMP water_animate
 water_deep:
@@ -381,8 +381,8 @@ water_shallow:
 
 water_animate:
     MOV r21, r22
-    ADD r21, r0
-    ADD r21, r15
+    ADD r21, r7
+    ADD r21, r4
     LDI r18, 0x1F
     AND r21, r18
     ADD r17, r21
@@ -394,11 +394,11 @@ color_beach:
 
 color_grass:
     LDI r18, 5
-    CMP r8, r18
-    BLT r7, grass_light
+    CMP r15, r18
+    BLT r12, grass_light
     LDI r18, 6
-    CMP r8, r18
-    JZ r7, grass_dark
+    CMP r15, r18
+    JZ r12, grass_dark
     LDI r17, 0x33AA22
     JMP do_rect
 grass_light:
@@ -410,8 +410,8 @@ grass_dark:
 
 color_forest:
     LDI r18, 8
-    CMP r8, r18
-    JZ r7, forest_dense
+    CMP r15, r18
+    JZ r12, forest_dense
     LDI r17, 0x116600
     JMP do_rect
 forest_dense:
@@ -420,11 +420,11 @@ forest_dense:
 
 color_mountain:
     LDI r18, 10
-    CMP r8, r18
-    BLT r7, mt_low
+    CMP r15, r18
+    BLT r12, mt_low
     LDI r18, 11
-    CMP r8, r18
-    JZ r7, mt_tall
+    CMP r15, r18
+    JZ r12, mt_tall
     LDI r17, 0x888888
     JMP do_rect
 mt_low:
@@ -436,11 +436,11 @@ mt_tall:
 
 color_snow:
     LDI r18, 14
-    CMP r8, r18
-    BLT r7, snow_light
+    CMP r15, r18
+    BLT r12, snow_light
     LDI r18, 15
-    CMP r8, r18
-    JZ r7, snow_peak
+    CMP r15, r18
+    JZ r12, snow_peak
     LDI r17, 0xDDEEFF
     JMP do_rect
 snow_light:
@@ -452,23 +452,23 @@ snow_peak:
 
     ; ---- Draw tile ----
 do_rect:
-    MOV r0, r9
-    MUL r0, r13           ; r0 = tx * 4
-    MOV r15, r5
-    MUL r15, r13           ; r15 = ty * 4
-    RECTF r0, r15, r13, r13, r17
+    MOV r7, r6
+    MUL r7, r0           ; r7 = tx * 4
+    MOV r4, r8
+    MUL r4, r0           ; r4 = ty * 4
+    RECTF r7, r4, r0, r0, r17
 
     ; ---- Next tile ----
-    ADD r9, r2
-    MOV r18, r9
-    SUB r18, r10
+    ADD r6, r3
+    MOV r18, r6
+    SUB r18, r2
     JZ r18, next_row
     JMP render_x
 
 next_row:
-    ADD r5, r2
-    MOV r18, r5
-    SUB r18, r10
+    ADD r8, r3
+    MOV r18, r8
+    SUB r18, r2
     JZ r18, render_state
     JMP render_y
 
@@ -481,7 +481,7 @@ LDI r23, 0x9000         ; state table base
 
 state_loop:
   CMP r19, r20
-  JNZ r7, state_check
+  JNZ r12, state_check
   JMP state_done
 
 state_check:
@@ -492,51 +492,51 @@ state_check:
   ADD r26, r24
 
   LOAD r27, r26          ; world_x
-  ADD r26, r2
+  ADD r26, r3
   LOAD r28, r26          ; world_y
-  ADD r26, r2
+  ADD r26, r3
   LOAD r17, r26          ; color
 
   ; Check on-screen: camera_x <= world_x < camera_x + 64
-  LOAD r0, r11           ; camera_x
-  MOV r15, r27
-  CMP r15, r0
-  BLT r7, state_next
+  LOAD r7, r1           ; camera_x
+  MOV r4, r27
+  CMP r4, r7
+  BLT r12, state_next
 
-  MOV r15, r0
-  ADD r15, r10
-  MOV r0, r27
-  CMP r0, r15
-  BGE r7, state_next
+  MOV r4, r7
+  ADD r4, r2
+  MOV r7, r27
+  CMP r7, r4
+  BGE r12, state_next
 
-  LOAD r0, r1           ; camera_y
-  MOV r15, r28
-  CMP r15, r0
-  BLT r7, state_next
+  LOAD r7, r5           ; camera_y
+  MOV r4, r28
+  CMP r4, r7
+  BLT r12, state_next
 
-  MOV r15, r0
-  ADD r15, r10
-  MOV r0, r28
-  CMP r0, r15
-  BGE r7, state_next
+  MOV r4, r7
+  ADD r4, r2
+  MOV r7, r28
+  CMP r7, r4
+  BGE r12, state_next
 
   ; Compute screen position
-  MOV r0, r27
-  LOAD r15, r11
-  SUB r0, r15
+  MOV r7, r27
+  LOAD r4, r1
+  SUB r7, r4
   LDI r25, 4
-  MUL r0, r25
+  MUL r7, r25
 
-  MOV r15, r28
-  LOAD r26, r1
-  SUB r15, r26
+  MOV r4, r28
+  LOAD r26, r5
+  SUB r4, r26
   LDI r25, 4
-  MUL r15, r25
+  MUL r4, r25
 
-  RECTF r0, r15, r13, r13, r17
+  RECTF r7, r4, r0, r0, r17
 
 state_next:
-  ADD r19, r2
+  ADD r19, r3
   JMP state_loop
 
 state_done:
@@ -544,25 +544,25 @@ state_done:
 ; ===== Render Creatures =====
 ; Creature 0 (orange-red)
 LDI r17, 0x7000
-LOAD r0, r17             ; world_x
+LOAD r7, r17             ; world_x
 LDI r17, 0x7001
-LOAD r15, r17             ; world_y
+LOAD r4, r17             ; world_y
 LDI r17, 0xFF6633        ; orange-red
 CALL draw_creature
 
 ; Creature 1 (gold)
 LDI r17, 0x7004
-LOAD r0, r17
+LOAD r7, r17
 LDI r17, 0x7005
-LOAD r15, r17
+LOAD r4, r17
 LDI r17, 0xFFCC00        ; gold
 CALL draw_creature
 
 ; Creature 2 (purple)
 LDI r17, 0x7008
-LOAD r0, r17
+LOAD r7, r17
 LDI r17, 0x7009
-LOAD r15, r17
+LOAD r4, r17
 LDI r17, 0xCC33FF        ; purple
 CALL draw_creature
 
@@ -570,10 +570,10 @@ CALL draw_creature
 CALL render_weather
 
 ; ===== Render Player =====
-LDI r0, 128
-LDI r15, 128
+LDI r7, 128
+LDI r4, 128
 LDI r17, 0xFFFFFF        ; white
-RECTF r0, r15, r13, r13, r17
+RECTF r7, r4, r0, r0, r17
 
 ; ===== End Frame =====
 FRAME
@@ -582,100 +582,100 @@ JMP main_loop
 
 ; ===== Subroutine: update_creature =====
 ; Input: r23 = creature base address (world_x, world_y, dir_seed)
-; Uses: r0-r3, r18-r21
-; Clobbers: r7 (CMP), r0-r3, r18-r21
+; Uses: r7-r10, r18-r21
+; Clobbers: r12 (CMP), r7-r10, r18-r21
 update_creature:
   PUSH r23
-  PUSH r2
+  PUSH r3
 
-  LDI r2, 1
+  LDI r3, 1
 
   ; Load position
-  LOAD r0, r23           ; r0 = world_x
+  LOAD r7, r23           ; r7 = world_x
   LDI r18, 1
   ADD r23, r18
-  LOAD r15, r23           ; r15 = world_y
+  LOAD r4, r23           ; r4 = world_y
   ADD r23, r18
-  LOAD r8, r23           ; r8 = dir_seed
+  LOAD r15, r23           ; r15 = dir_seed
 
   ; Random direction
-  RAND r3
+  RAND r10
   LDI r18, 3
-  AND r3, r18            ; r3 = 0..3
+  AND r10, r18            ; r10 = 0..3
 
   LDI r18, 1
-  CMP r3, r18
-  JZ r7, uc_down
+  CMP r10, r18
+  JZ r12, uc_down
   LDI r18, 2
-  CMP r3, r18
-  JZ r7, uc_left
+  CMP r10, r18
+  JZ r12, uc_left
   LDI r18, 3
-  CMP r3, r18
-  JZ r7, uc_right
+  CMP r10, r18
+  JZ r12, uc_right
 
 uc_up:
-  SUB r15, r2
+  SUB r4, r3
   JMP uc_update
 uc_down:
-  ADD r15, r2
+  ADD r4, r3
   JMP uc_update
 uc_left:
-  SUB r0, r2
+  SUB r7, r3
   JMP uc_update
 uc_right:
-  ADD r0, r2
+  ADD r7, r3
 
 uc_update:
   ; Write back
   ; r23 currently points to dir_seed, need to reset to base
-  POP r2
+  POP r3
   POP r23
-  STORE r23, r0           ; world_x
+  STORE r23, r7           ; world_x
   LDI r18, 1
   ADD r23, r18
-  STORE r23, r15           ; world_y
+  STORE r23, r4           ; world_y
   ADD r23, r18
   ; Update seed with XOR for variety
   LDI r18, 2654435761     ; golden ratio constant
-  XOR r8, r18
-  STORE r23, r8           ; dir_seed
+  XOR r15, r18
+  STORE r23, r15           ; dir_seed
 
   RET
 
 
 ; ===== Subroutine: draw_creature =====
-; Input: r0 = world_x, r15 = world_y, r17 = color
+; Input: r7 = world_x, r4 = world_y, r17 = color
 ; Draws a 4x4 creature tile if on-screen
-; Clobbers: r7, r0, r15, r8, r3, r18
+; Clobbers: r12, r7, r4, r15, r10, r18
 draw_creature:
   ; Compute screen position: (world_x - camera_x) * 4
-  LOAD r8, r11            ; camera_x
+  LOAD r15, r1            ; camera_x
   ; Check: world_x < camera_x? (unsigned wrap = offscreen)
-  MOV r3, r0
-  SUB r3, r8              ; r3 = world_x - camera_x
-  ; If world_x < camera_x, r3 wraps to huge number
+  MOV r10, r7
+  SUB r10, r15              ; r10 = world_x - camera_x
+  ; If world_x < camera_x, r10 wraps to huge number
   LDI r18, 64
-  CMP r3, r18
-  BGE r7, dc_done         ; off-screen right or wrapped left
+  CMP r10, r18
+  BGE r12, dc_done         ; off-screen right or wrapped left
 
-  MOV r0, r3
+  MOV r7, r10
   LDI r18, 4
-  MUL r0, r18             ; pixel x
+  MUL r7, r18             ; pixel x
 
-  LOAD r8, r1            ; camera_y
-  MOV r3, r15
-  SUB r3, r8
-  CMP r3, r18             ; reuse r18=64 (still >= check)
+  LOAD r15, r5            ; camera_y
+  MOV r10, r4
+  SUB r10, r15
+  CMP r10, r18             ; reuse r18=64 (still >= check)
   ; Actually r18 was overwritten to 4. Recompute.
   LDI r18, 64
-  CMP r3, r18
-  BGE r7, dc_done
+  CMP r10, r18
+  BGE r12, dc_done
 
-  MOV r15, r3
+  MOV r4, r10
   LDI r18, 4
-  MUL r15, r18             ; pixel y
+  MUL r4, r18             ; pixel y
 
-  RECTF r0, r15, r13, r13, r17
+  RECTF r7, r4, r0, r0, r17
 
 dc_done:
   RET
@@ -695,12 +695,12 @@ weather_update:
   PUSH r24
   PUSH r25
 
-  ; r2 = 1 (constant, DO NOT MODIFY)
+  ; r3 = 1 (constant, DO NOT MODIFY)
 
   ; --- Decrement weather timer ---
   LDI r17, 0x780A
   LOAD r18, r17
-  SUB r18, r2
+  SUB r18, r3
   STORE r17, r18            ; weather_timer--
 
   JNZ r18, wu_no_change
@@ -743,10 +743,10 @@ wu_no_change:
   ; --- Update rain particles (rain=1 or storm=2) ---
   LDI r18, 1
   CMP r20, r18
-  JZ r7, wu_do_rain
+  JZ r12, wu_do_rain
   LDI r18, 2
   CMP r20, r18
-  JNZ r7, wu_skip_rain
+  JNZ r12, wu_skip_rain
 
 wu_do_rain:
   LDI r21, 0x7010           ; rain particle base
@@ -754,7 +754,7 @@ wu_do_rain:
 
 wu_rain_loop:
   LOAD r23, r21             ; x
-  ADD r21, r2               ; advance to y slot
+  ADD r21, r3               ; advance to y slot
   LOAD r24, r21             ; y
 
   ; Move y down by 2
@@ -764,7 +764,7 @@ wu_rain_loop:
   ; Check y >= 256 -> respawn
   LDI r17, 256
   CMP r24, r17
-  BLT r7, wu_rain_ok
+  BLT r12, wu_rain_ok
 
   RAND r23
   LDI r17, 0xFF
@@ -773,12 +773,12 @@ wu_rain_loop:
 
 wu_rain_ok:
   STORE r21, r24            ; store y
-  SUB r21, r2               ; back to x slot
+  SUB r21, r3               ; back to x slot
   STORE r21, r23            ; store x
-  ADD r21, r2               ; to y
-  ADD r21, r2               ; to next particle x
+  ADD r21, r3               ; to y
+  ADD r21, r3               ; to next particle x
 
-  SUB r22, r2
+  SUB r22, r3
   JNZ r22, wu_rain_loop
 
 wu_skip_rain:
@@ -786,13 +786,13 @@ wu_skip_rain:
   ; --- Storm: lightning logic ---
   LDI r18, 2
   CMP r20, r18
-  JNZ r7, wu_skip_lightning
+  JNZ r12, wu_skip_lightning
 
   ; Decrement flash frames if active
   LDI r17, 0x780C
   LOAD r18, r17
   JZ r18, wu_no_flash
-  SUB r18, r2
+  SUB r18, r3
   STORE r17, r18            ; flash_frames--
   JMP wu_skip_lightning
 
@@ -800,7 +800,7 @@ wu_no_flash:
   ; Decrement lightning countdown
   LDI r17, 0x780B
   LOAD r18, r17
-  SUB r18, r2
+  SUB r18, r3
   STORE r17, r18            ; countdown--
   JNZ r18, wu_skip_lightning
 
@@ -822,18 +822,18 @@ wu_skip_lightning:
   ; --- Snow: update snow particles (snow=3) ---
   LDI r18, 3
   CMP r20, r18
-  JNZ r7, wu_skip_snow
+  JNZ r12, wu_skip_snow
 
   LDI r21, 0x7050           ; snow particle base
   LDI r22, 32               ; count
 
 wu_snow_loop:
   LOAD r23, r21             ; x
-  ADD r21, r2               ; to y slot
+  ADD r21, r3               ; to y slot
   LOAD r24, r21             ; y
 
   ; Move y down by 1
-  ADD r24, r2
+  ADD r24, r3
 
   ; Horizontal drift: random -1, 0, +1
   RAND r25
@@ -850,7 +850,7 @@ wu_snow_loop:
   ; Check y >= 256 -> respawn
   LDI r17, 256
   CMP r24, r17
-  BLT r7, wu_snow_ok
+  BLT r12, wu_snow_ok
 
   RAND r23
   LDI r17, 0xFF
@@ -859,12 +859,12 @@ wu_snow_loop:
 
 wu_snow_ok:
   STORE r21, r24            ; store y
-  SUB r21, r2               ; back to x
+  SUB r21, r3               ; back to x
   STORE r21, r23            ; store x
-  ADD r21, r2               ; to y
-  ADD r21, r2               ; to next particle x
+  ADD r21, r3               ; to y
+  ADD r21, r3               ; to next particle x
 
-  SUB r22, r2
+  SUB r22, r3
   JNZ r22, wu_snow_loop
 
 wu_skip_snow:
@@ -895,7 +895,7 @@ render_weather:
   PUSH r24
   PUSH r25
 
-  ; r2 = 1 (constant, DO NOT MODIFY)
+  ; r3 = 1 (constant, DO NOT MODIFY)
 
   LDI r17, 0x7809
   LOAD r20, r17             ; r20 = weather_state
@@ -903,7 +903,7 @@ render_weather:
   ; --- Lightning bolt (storm, flash > 0) ---
   LDI r18, 2
   CMP r20, r18
-  JNZ r7, rw_no_lightning
+  JNZ r12, rw_no_lightning
 
   LDI r17, 0x780C
   LOAD r18, r17             ; flash_frames
@@ -932,10 +932,10 @@ rw_no_lightning:
   ; --- Rain particles (rain=1 or storm=2) ---
   LDI r18, 1
   CMP r20, r18
-  JZ r7, rw_do_rain
+  JZ r12, rw_do_rain
   LDI r18, 2
   CMP r20, r18
-  JNZ r7, rw_skip_rain
+  JNZ r12, rw_skip_rain
 
 rw_do_rain:
   LDI r21, 0x7010
@@ -943,14 +943,14 @@ rw_do_rain:
 
 rw_rain_draw:
   LOAD r23, r21             ; x
-  ADD r21, r2
+  ADD r21, r3
   LOAD r24, r21             ; y
 
   LDI r17, 0x4488FF         ; light blue rain
   PSET r23, r24, r17
 
-  ADD r21, r2               ; next particle
-  SUB r22, r2
+  ADD r21, r3               ; next particle
+  SUB r22, r3
   JNZ r22, rw_rain_draw
 
 rw_skip_rain:
@@ -958,21 +958,21 @@ rw_skip_rain:
   ; --- Snow particles (snow=3) ---
   LDI r18, 3
   CMP r20, r18
-  JNZ r7, rw_skip_snow
+  JNZ r12, rw_skip_snow
 
   LDI r21, 0x7050
   LDI r22, 32
 
 rw_snow_draw:
   LOAD r23, r21             ; x
-  ADD r21, r2
+  ADD r21, r3
   LOAD r24, r21             ; y
 
   LDI r17, 0xEEEEFF         ; light snowflake
   PSET r23, r24, r17
 
-  ADD r21, r2               ; next particle
-  SUB r22, r2
+  ADD r21, r3               ; next particle
+  SUB r22, r3
   JNZ r22, rw_snow_draw
 
 rw_skip_snow:

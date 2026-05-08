@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a sandbox environment, spawns particles at the center, and enters a main loop where it updates particle positions applying gravity and boundary collision (bounce) logic. It also handles user input to spawn additional bursts of particles and draws the updated state on the screen.
+; DESCRIPTION: Render a colored object at the screen.
 
 ; test_sandbox_main.asm -- Init + spawn + main loop
 LDI r13, 1
@@ -21,8 +21,8 @@ STORE r26, r18
 STORE r27, r18
 
 ; Spawn burst
-LDI r14, 128
-LDI r10, 128
+LDI r6, 128
+LDI r8, 128
 CALL spawn_burst
 
 ; ===== Main Loop =====
@@ -36,13 +36,13 @@ main_loop:
   ; Space = spawn
   LDI r18, 32
   CMP r19, r18
-  JZ r9, do_spawn
+  JZ r7, do_spawn
 
   JMP after_input
 
 do_spawn:
-  LDI r14, 128
-  LDI r10, 128
+  LDI r6, 128
+  LDI r8, 128
   CALL spawn_burst
   JMP after_input
 
@@ -50,60 +50,60 @@ after_input:
   LOAD r4, r26
   JZ r4, draw_hud
 
-  LDI r6, 0
+  LDI r0, 0
 
 update_loop:
-  MOV r12, r23
-  MOV r8, r6
+  MOV r15, r23
+  MOV r10, r0
   LDI r18, 4
-  MUL r8, r18
-  ADD r12, r8
+  MUL r10, r18
+  ADD r15, r10
 
-  LOAD r1, r12
-  ADD r12, r13
-  LOAD r7, r12
-  ADD r12, r13
-  LOAD r2, r12
-  ADD r12, r13
-  LOAD r15, r12
+  LOAD r9, r15
+  ADD r15, r13
+  LOAD r12, r15
+  ADD r15, r13
+  LOAD r14, r15
+  ADD r15, r13
+  LOAD r1, r15
 
   ; Apply gravity
-  PUSH r9
+  PUSH r7
   LOAD r18, r24
-  ADD r2, r18
+  ADD r14, r18
   LOAD r18, r25
-  ADD r15, r18
-  POP r9
+  ADD r1, r18
+  POP r7
 
   ; Update position
-  ADD r1, r2
-  ADD r7, r15
+  ADD r9, r14
+  ADD r12, r1
 
   ; Bounce
   CALL bounce_particle
 
   ; Store
-  MOV r12, r23
-  MOV r8, r6
+  MOV r15, r23
+  MOV r10, r0
   LDI r18, 4
-  MUL r8, r18
-  ADD r12, r8
+  MUL r10, r18
+  ADD r15, r10
 
-  STORE r12, r1
-  ADD r12, r13
-  STORE r12, r7
-  ADD r12, r13
-  STORE r12, r2
-  ADD r12, r13
-  STORE r12, r15
+  STORE r15, r9
+  ADD r15, r13
+  STORE r15, r12
+  ADD r15, r13
+  STORE r15, r14
+  ADD r15, r13
+  STORE r15, r1
 
   ; Draw
-  LDI r0, 0x00FF00
-  PSET r1, r7, r0
+  LDI r3, 0x00FF00
+  PSET r9, r12, r3
 
-  ADD r6, r13
-  CMP r6, r4
-  BLT r9, update_loop
+  ADD r0, r13
+  CMP r0, r4
+  BLT r7, update_loop
 
 draw_hud:
   FRAME
@@ -114,55 +114,55 @@ HALT
 ; ===== Subroutines =====
 spawn_burst:
   PUSH r31
-  PUSH r9
+  PUSH r7
   LDI r16, 8
 
 sb_loop:
   LOAD r18, r26
   LDI r17, 128
   CMP r18, r17
-  BGE r9, sb_done
+  BGE r7, sb_done
 
-  MOV r12, r23
-  MOV r8, r18
+  MOV r15, r23
+  MOV r10, r18
   LDI r17, 4
-  MUL r8, r17
-  ADD r12, r8
+  MUL r10, r17
+  ADD r15, r10
 
   RAND r17
   LDI r18, 15
   AND r17, r18
   LDI r18, 8
   SUB r17, r18
-  MOV r18, r14
+  MOV r18, r6
   ADD r18, r17
-  STORE r12, r18
+  STORE r15, r18
 
-  ADD r12, r13
+  ADD r15, r13
   RAND r17
   LDI r18, 15
   AND r17, r18
   LDI r18, 8
   SUB r17, r18
-  MOV r18, r10
+  MOV r18, r8
   ADD r18, r17
-  STORE r12, r18
+  STORE r15, r18
 
-  ADD r12, r13
+  ADD r15, r13
   RAND r17
   LDI r18, 7
   AND r17, r18
   LDI r18, 3
   SUB r17, r18
-  STORE r12, r17
+  STORE r15, r17
 
-  ADD r12, r13
+  ADD r15, r13
   RAND r17
   LDI r18, 7
   AND r17, r18
   LDI r18, 5
   SUB r17, r18
-  STORE r12, r17
+  STORE r15, r17
 
   LOAD r18, r26
   ADD r18, r13
@@ -172,45 +172,45 @@ sb_loop:
   JNZ r16, sb_loop
 
 sb_done:
-  POP r9
+  POP r7
   POP r31
   RET
 
 bounce_particle:
   PUSH r31
-  PUSH r9
+  PUSH r7
 
   ; Right wall
   LDI r18, 254
-  CMP r1, r18
-  BLT r9, bp_left
-  LDI r1, 254
-  NEG r2
+  CMP r9, r18
+  BLT r7, bp_left
+  LDI r9, 254
+  NEG r14
 
 bp_left:
-  MOV r18, r1
+  MOV r18, r9
   LDI r19, 0
   CMP r18, r19
-  BGE r9, bp_bottom
-  LDI r1, 0
-  NEG r2
+  BGE r7, bp_bottom
+  LDI r9, 0
+  NEG r14
 
 bp_bottom:
   LDI r18, 254
-  CMP r7, r18
-  BLT r9, bp_top
-  LDI r7, 254
-  NEG r15
+  CMP r12, r18
+  BLT r7, bp_top
+  LDI r12, 254
+  NEG r1
 
 bp_top:
-  MOV r18, r7
+  MOV r18, r12
   LDI r19, 0
   CMP r18, r19
-  BGE r9, bp_done
-  LDI r7, 0
-  NEG r15
+  BGE r7, bp_done
+  LDI r12, 0
+  NEG r1
 
 bp_done:
-  POP r9
+  POP r7
   POP r31
   RET

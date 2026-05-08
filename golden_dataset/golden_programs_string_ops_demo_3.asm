@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates the use of string operations `STRLEN`, `STRCMP`, and `STRCPY` by displaying results with colored indicator bars. It initializes several strings in RAM, performs the operations, and visually shows the outcomes through pixel-based graphics on a display.
+; DESCRIPTION: Draw object: pos=the screen, color=red, size=fixed size.
 
 ; STRING_OPS_DEMO: Demonstrates STRLEN, STRCMP, STRCPY opcodes
 ;
@@ -9,14 +9,14 @@
 ;   Row 4: STRCPY  - copies "Hello" and displays it (blue bar)
 ;
 ; Register convention:
-;   r6  = CMP result (clobbered by CMP), opcode return value
-;   r13  = constant 1 (increment)
-;   r10  = loop counter
-;   r12  = saved value (length or count)
-;   r7 = x coordinate
-;   r8 = y coordinate
-;   r14 = string address
-;   r0, r9, r1 = temps
+;   r1  = CMP result (clobbered by CMP), opcode return value
+;   r12  = constant 1 (increment)
+;   r4  = loop counter
+;   r10  = saved value (length or count)
+;   r15 = x coordinate
+;   r11 = y coordinate
+;   r8 = string address
+;   r3, r13, r0 = temps
 
 ; ── RAM Layout ─────────────────────────────────────────────
 ;   0x3000 = "Geometry" (9 words: 8 chars + null)
@@ -28,221 +28,221 @@
 ;   0x3070 = "String Ops" (11 words: 10 chars + null)
 
 ; ── Constants ──────────────────────────────────────────────
-    LDI r13, 1           ; increment constant
+    LDI r12, 1           ; increment constant
 
 ; ── Build "Geometry" at 0x3000 ────────────────────────────
-    LDI r10, 0x3000
-    LDI r9, 71        ; G
-    STORE r10, r9
-    LDI r10, 0x3001
-    LDI r9, 101       ; e
-    STORE r10, r9
-    LDI r10, 0x3002
-    LDI r9, 111       ; o
-    STORE r10, r9
-    LDI r10, 0x3003
-    LDI r9, 109       ; m
-    STORE r10, r9
-    LDI r10, 0x3004
-    LDI r9, 101       ; e
-    STORE r10, r9
-    LDI r10, 0x3005
-    LDI r9, 116       ; t
-    STORE r10, r9
-    LDI r10, 0x3006
-    LDI r9, 114       ; r
-    STORE r10, r9
-    LDI r10, 0x3007
-    LDI r9, 121       ; y
-    STORE r10, r9
-    LDI r10, 0x3008
-    LDI r9, 0         ; null
-    STORE r10, r9
+    LDI r4, 0x3000
+    LDI r13, 71        ; G
+    STORE r4, r13
+    LDI r4, 0x3001
+    LDI r13, 101       ; e
+    STORE r4, r13
+    LDI r4, 0x3002
+    LDI r13, 111       ; o
+    STORE r4, r13
+    LDI r4, 0x3003
+    LDI r13, 109       ; m
+    STORE r4, r13
+    LDI r4, 0x3004
+    LDI r13, 101       ; e
+    STORE r4, r13
+    LDI r4, 0x3005
+    LDI r13, 116       ; t
+    STORE r4, r13
+    LDI r4, 0x3006
+    LDI r13, 114       ; r
+    STORE r4, r13
+    LDI r4, 0x3007
+    LDI r13, 121       ; y
+    STORE r4, r13
+    LDI r4, 0x3008
+    LDI r13, 0         ; null
+    STORE r4, r13
 
 ; ── Build "Geometry" at 0x3010 (identical) ────────────────
-    LDI r10, 0x3010
-    LDI r9, 71
-    STORE r10, r9
-    LDI r10, 0x3011
-    LDI r9, 101
-    STORE r10, r9
-    LDI r10, 0x3012
-    LDI r9, 111
-    STORE r10, r9
-    LDI r10, 0x3013
-    LDI r9, 109
-    STORE r10, r9
-    LDI r10, 0x3014
-    LDI r9, 101
-    STORE r10, r9
-    LDI r10, 0x3015
-    LDI r9, 116
-    STORE r10, r9
-    LDI r10, 0x3016
-    LDI r9, 114
-    STORE r10, r9
-    LDI r10, 0x3017
-    LDI r9, 121
-    STORE r10, r9
-    LDI r10, 0x3018
-    LDI r9, 0
-    STORE r10, r9
+    LDI r4, 0x3010
+    LDI r13, 71
+    STORE r4, r13
+    LDI r4, 0x3011
+    LDI r13, 101
+    STORE r4, r13
+    LDI r4, 0x3012
+    LDI r13, 111
+    STORE r4, r13
+    LDI r4, 0x3013
+    LDI r13, 109
+    STORE r4, r13
+    LDI r4, 0x3014
+    LDI r13, 101
+    STORE r4, r13
+    LDI r4, 0x3015
+    LDI r13, 116
+    STORE r4, r13
+    LDI r4, 0x3016
+    LDI r13, 114
+    STORE r4, r13
+    LDI r4, 0x3017
+    LDI r13, 121
+    STORE r4, r13
+    LDI r4, 0x3018
+    LDI r13, 0
+    STORE r4, r13
 
 ; ── Build "Hello" at 0x3020 ───────────────────────────────
-    LDI r10, 0x3020
-    LDI r9, 72        ; H
-    STORE r10, r9
-    LDI r10, 0x3021
-    LDI r9, 101       ; e
-    STORE r10, r9
-    LDI r10, 0x3022
-    LDI r9, 108       ; l
-    STORE r10, r9
-    LDI r10, 0x3023
-    LDI r9, 108       ; l
-    STORE r10, r9
-    LDI r10, 0x3024
-    LDI r9, 111       ; o
-    STORE r10, r9
-    LDI r10, 0x3025
-    LDI r9, 0
-    STORE r10, r9
+    LDI r4, 0x3020
+    LDI r13, 72        ; H
+    STORE r4, r13
+    LDI r4, 0x3021
+    LDI r13, 101       ; e
+    STORE r4, r13
+    LDI r4, 0x3022
+    LDI r13, 108       ; l
+    STORE r4, r13
+    LDI r4, 0x3023
+    LDI r13, 108       ; l
+    STORE r4, r13
+    LDI r4, 0x3024
+    LDI r13, 111       ; o
+    STORE r4, r13
+    LDI r4, 0x3025
+    LDI r13, 0
+    STORE r4, r13
 
 ; ── Build "MATCH" at 0x3040 ───────────────────────────────
-    LDI r10, 0x3040
-    LDI r9, 77        ; M
-    STORE r10, r9
-    LDI r10, 0x3041
-    LDI r9, 65        ; A
-    STORE r10, r9
-    LDI r10, 0x3042
-    LDI r9, 84        ; T
-    STORE r10, r9
-    LDI r10, 0x3043
-    LDI r9, 67        ; C
-    STORE r10, r9
-    LDI r10, 0x3044
-    LDI r9, 72        ; H
-    STORE r10, r9
-    LDI r10, 0x3045
-    LDI r9, 0
-    STORE r10, r9
+    LDI r4, 0x3040
+    LDI r13, 77        ; M
+    STORE r4, r13
+    LDI r4, 0x3041
+    LDI r13, 65        ; A
+    STORE r4, r13
+    LDI r4, 0x3042
+    LDI r13, 84        ; T
+    STORE r4, r13
+    LDI r4, 0x3043
+    LDI r13, 67        ; C
+    STORE r4, r13
+    LDI r4, 0x3044
+    LDI r13, 72        ; H
+    STORE r4, r13
+    LDI r4, 0x3045
+    LDI r13, 0
+    STORE r4, r13
 
 ; ── Build "DIFF" at 0x3048 ────────────────────────────────
-    LDI r10, 0x3048
-    LDI r9, 68        ; D
-    STORE r10, r9
-    LDI r10, 0x3049
-    LDI r9, 73        ; I
-    STORE r10, r9
-    LDI r10, 0x304A
-    LDI r9, 70        ; F
-    STORE r10, r9
-    LDI r10, 0x304B
-    LDI r9, 70        ; F
-    STORE r10, r9
-    LDI r10, 0x304C
-    LDI r9, 0
-    STORE r10, r9
+    LDI r4, 0x3048
+    LDI r13, 68        ; D
+    STORE r4, r13
+    LDI r4, 0x3049
+    LDI r13, 73        ; I
+    STORE r4, r13
+    LDI r4, 0x304A
+    LDI r13, 70        ; F
+    STORE r4, r13
+    LDI r4, 0x304B
+    LDI r13, 70        ; F
+    STORE r4, r13
+    LDI r4, 0x304C
+    LDI r13, 0
+    STORE r4, r13
 
 ; ── Build "String Ops" at 0x3070 ──────────────────────────
-    LDI r10, 0x3070
-    LDI r9, 83        ; S
-    STORE r10, r9
-    LDI r10, 0x3071
-    LDI r9, 116       ; t
-    STORE r10, r9
-    LDI r10, 0x3072
-    LDI r9, 114       ; r
-    STORE r10, r9
-    LDI r10, 0x3073
-    LDI r9, 105       ; i
-    STORE r10, r9
-    LDI r10, 0x3074
-    LDI r9, 110       ; n
-    STORE r10, r9
-    LDI r10, 0x3075
-    LDI r9, 103       ; g
-    STORE r10, r9
-    LDI r10, 0x3076
-    LDI r9, 32        ; space
-    STORE r10, r9
-    LDI r10, 0x3077
-    LDI r9, 79        ; O
-    STORE r10, r9
-    LDI r10, 0x3078
-    LDI r9, 112       ; p
-    STORE r10, r9
-    LDI r10, 0x3079
-    LDI r9, 115       ; s
-    STORE r10, r9
-    LDI r10, 0x307A
-    LDI r9, 0
-    STORE r10, r9
+    LDI r4, 0x3070
+    LDI r13, 83        ; S
+    STORE r4, r13
+    LDI r4, 0x3071
+    LDI r13, 116       ; t
+    STORE r4, r13
+    LDI r4, 0x3072
+    LDI r13, 114       ; r
+    STORE r4, r13
+    LDI r4, 0x3073
+    LDI r13, 105       ; i
+    STORE r4, r13
+    LDI r4, 0x3074
+    LDI r13, 110       ; n
+    STORE r4, r13
+    LDI r4, 0x3075
+    LDI r13, 103       ; g
+    STORE r4, r13
+    LDI r4, 0x3076
+    LDI r13, 32        ; space
+    STORE r4, r13
+    LDI r4, 0x3077
+    LDI r13, 79        ; O
+    STORE r4, r13
+    LDI r4, 0x3078
+    LDI r13, 112       ; p
+    STORE r4, r13
+    LDI r4, 0x3079
+    LDI r13, 115       ; s
+    STORE r4, r13
+    LDI r4, 0x307A
+    LDI r13, 0
+    STORE r4, r13
 
 ; ── Title bar (yellow, 100 pixels wide) ───────────────────
-    LDI r9, 0xFFFF00
-    LDI r8, 2
-    LDI r7, 5
-    LDI r1, 105
+    LDI r13, 0xFFFF00
+    LDI r11, 2
+    LDI r15, 5
+    LDI r0, 105
 
 title_loop:
-    PSET r7, r8, r9
-    ADD r7, r13
-    CMP r7, r1
-    BLT r6, title_loop
+    PSET r15, r11, r13
+    ADD r15, r12
+    CMP r15, r0
+    BLT r1, title_loop
 
 ; Display title "String Ops" at (10, 5)
-    LDI r8, 5
-    LDI r7, 10
-    LDI r14, 0x3070
-    TEXT r7, r8, r14
+    LDI r11, 5
+    LDI r15, 10
+    LDI r8, 0x3070
+    TEXT r15, r11, r8
 
 ; ── Test 1: STRLEN ────────────────────────────────────────
 ; Display "Geometry" at (10, 25)
-    LDI r8, 25
-    LDI r7, 10
-    LDI r14, 0x3000
-    TEXT r7, r8, r14
+    LDI r11, 25
+    LDI r15, 10
+    LDI r8, 0x3000
+    TEXT r15, r11, r8
 
-; Get length of "Geometry" -> r6 = 8
-    LDI r14, 0x3000
-    STRLEN r14
+; Get length of "Geometry" -> r1 = 8
+    LDI r8, 0x3000
+    STRLEN r8
 
-; Save length to r12 (r6 will be clobbered by CMP in loop)
-    MOV r12, r6
+; Save length to r10 (r1 will be clobbered by CMP in loop)
+    MOV r10, r1
 
 ; Draw green bar: 8 pixels wide at y=38
-    LDI r9, 0x00FF00
-    LDI r8, 38
-    LDI r7, 10
-    LDI r10, 0
+    LDI r13, 0x00FF00
+    LDI r11, 38
+    LDI r15, 10
+    LDI r4, 0
 
 len_loop:
-    CMP r10, r12
-    BGE r6, len_done
-    PSET r7, r8, r9
-    ADD r7, r13
-    ADD r10, r13
+    CMP r4, r10
+    BGE r1, len_done
+    PSET r15, r11, r13
+    ADD r15, r12
+    ADD r4, r12
     JMP len_loop
 
 len_done:
 
 ; ── Test 2: STRCMP (equal strings) ────────────────────────
 ; Compare "Geometry" at 0x3000 with copy at 0x3010
-    LDI r14, 0x3000
-    LDI r0, 0x3010
-    STRCMP r14, r0    ; r6 = 0 (equal)
+    LDI r8, 0x3000
+    LDI r3, 0x3010
+    STRCMP r8, r3    ; r1 = 0 (equal)
 
 ; Display both strings + "MATCH" at y=55
-    LDI r8, 55
-    LDI r7, 10
-    LDI r14, 0x3000
-    TEXT r7, r8, r14
+    LDI r11, 55
+    LDI r15, 10
+    LDI r8, 0x3000
+    TEXT r15, r11, r8
 
-    LDI r7, 85
-    LDI r14, 0x3040    ; "MATCH"
-    TEXT r7, r8, r14
+    LDI r15, 85
+    LDI r8, 0x3040    ; "MATCH"
+    TEXT r15, r11, r8
 
 ; Green indicator bar at y=68
     PSETI 10, 68, 0x00FF00
@@ -253,19 +253,19 @@ len_done:
 
 ; ── Test 3: STRCMP (different strings) ────────────────────
 ; Compare "Geometry" (0x3000) with "Hello" (0x3020)
-    LDI r14, 0x3000
-    LDI r0, 0x3020
-    STRCMP r14, r0    ; r6 = 1 (G > H, so s1 > s2)
+    LDI r8, 0x3000
+    LDI r3, 0x3020
+    STRCMP r8, r3    ; r1 = 1 (G > H, so s1 > s2)
 
 ; Display both strings + "DIFF" at y=85
-    LDI r8, 85
-    LDI r7, 10
-    LDI r14, 0x3000
-    TEXT r7, r8, r14
+    LDI r11, 85
+    LDI r15, 10
+    LDI r8, 0x3000
+    TEXT r15, r11, r8
 
-    LDI r7, 85
-    LDI r14, 0x3048    ; "DIFF"
-    TEXT r7, r8, r14
+    LDI r15, 85
+    LDI r8, 0x3048    ; "DIFF"
+    TEXT r15, r11, r8
 
 ; Red indicator bar at y=98
     PSETI 10, 98, 0xFF0000
@@ -276,64 +276,64 @@ len_done:
 
 ; ── Test 4: STRCPY ────────────────────────────────────────
 ; Copy "Hello" from 0x3020 to 0x3030
-    LDI r14, 0x3020    ; source
-    LDI r0, 0x3030    ; destination
-    STRCPY r14, r0    ; r6 = 6 (bytes copied incl null)
+    LDI r8, 0x3020    ; source
+    LDI r3, 0x3030    ; destination
+    STRCPY r8, r3    ; r1 = 6 (bytes copied incl null)
 
-; Save count to r12
-    MOV r12, r6
+; Save count to r10
+    MOV r10, r1
 
 ; Display copied string at (10, 115)
-    LDI r8, 115
-    LDI r7, 10
-    LDI r14, 0x3030
-    TEXT r7, r8, r14
+    LDI r11, 115
+    LDI r15, 10
+    LDI r8, 0x3030
+    TEXT r15, r11, r8
 
 ; Blue bar: 5 pixels (chars) at y=128
-    LDI r9, 0x0000FF
-    LDI r8, 128
-    LDI r7, 10
-    LDI r10, 0
+    LDI r13, 0x0000FF
+    LDI r11, 128
+    LDI r15, 10
+    LDI r4, 0
 
 copy_loop:
-    CMP r10, r12         ; compare counter with total bytes copied
-    BGE r6, copy_done
-    PSET r7, r8, r9
-    ADD r7, r13
-    ADD r10, r13
+    CMP r4, r10         ; compare counter with total bytes copied
+    BGE r1, copy_done
+    PSET r15, r11, r13
+    ADD r15, r12
+    ADD r4, r12
     JMP copy_loop
 
 copy_done:
 
 ; ── Separator lines ───────────────────────────────────────
-    LDI r9, 0x444444  ; dark gray separators
-    LDI r1, 100       ; separator width
+    LDI r13, 0x444444  ; dark gray separators
+    LDI r0, 100       ; separator width
 
 sep1:
-    LDI r8, 50
-    LDI r7, 5
+    LDI r11, 50
+    LDI r15, 5
 sep1_loop:
-    PSET r7, r8, r9
-    ADD r7, r13
-    CMP r7, r1
-    BLT r6, sep1_loop
+    PSET r15, r11, r13
+    ADD r15, r12
+    CMP r15, r0
+    BLT r1, sep1_loop
 
 sep2:
-    LDI r8, 80
-    LDI r7, 5
+    LDI r11, 80
+    LDI r15, 5
 sep2_loop:
-    PSET r7, r8, r9
-    ADD r7, r13
-    CMP r7, r1
-    BLT r6, sep2_loop
+    PSET r15, r11, r13
+    ADD r15, r12
+    CMP r15, r0
+    BLT r1, sep2_loop
 
 sep3:
-    LDI r8, 110
-    LDI r7, 5
+    LDI r11, 110
+    LDI r15, 5
 sep3_loop:
-    PSET r7, r8, r9
-    ADD r7, r13
-    CMP r7, r1
-    BLT r6, sep3_loop
+    PSET r15, r11, r13
+    ADD r15, r12
+    CMP r15, r0
+    BLT r1, sep3_loop
 
     HALT

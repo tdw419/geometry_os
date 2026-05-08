@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code reads the first four bytes of a specified test file and checks if the content is "GEOS". If successful, it draws a green rectangle on the screen; otherwise, it draws a red rectangle.
+; DESCRIPTION: Render a red rectangle at the screen.
 
 ; Phase 137: Host Filesystem Read Demo
 ; Reads the first 4 bytes of a test file and draws green if "GEOS" found.
@@ -7,57 +7,57 @@
 ; This program opens it for reading, reads 4 bytes, and checks for 'G' (0x47)
 
 ; FSOPEN path_reg, mode_reg  -- open for reading
-LDI r7, filepath
-LDI r11, 0           ; read mode
-FSOPEN r7, r11
+LDI r4, filepath
+LDI r9, 0           ; read mode
+FSOPEN r4, r9
 
-; r6 has handle. Error codes are >= 0xFFFFFF00.
-; Simple check: r6 < 0x80000000 means success (handle is small)
-LDI r8, 0x80000000
-CMP r6, r8
-BGE r6, fail        ; if handle >= 0x80000000, it's an error
-MOV r9, r6         ; save handle
+; r7 has handle. Error codes are >= 0xFFFFFF00.
+; Simple check: r7 < 0x80000000 means success (handle is small)
+LDI r2, 0x80000000
+CMP r7, r2
+BGE r7, fail        ; if handle >= 0x80000000, it's an error
+MOV r12, r7         ; save handle
 
 ; FSREAD handle, buf, len
-LDI r11, 0x3000      ; buffer
-LDI r2, 4           ; read 4 bytes
-MOV r7, r9
-FSREAD r7, r11, r2
-MOV r13, r6         ; bytes read
+LDI r9, 0x3000      ; buffer
+LDI r8, 4           ; read 4 bytes
+MOV r4, r12
+FSREAD r4, r9, r8
+MOV r5, r7         ; bytes read
 
 ; FSCLOSE handle
-MOV r7, r9
-FSCLOSE r7
+MOV r4, r12
+FSCLOSE r4
 
 ; Check if we read at least 1 byte
-LDI r8, 0x80000000
-CMP r13, r8
-BGE r6, fail        ; bytes_read >= 0x80000000 means error
+LDI r2, 0x80000000
+CMP r5, r2
+BGE r7, fail        ; bytes_read >= 0x80000000 means error
 
 ; Check first byte is 'G' (0x47)
-LDI r1, 0x3000
-LOAD r0, r1       ; r0 = first byte
-LDI r3, 0x47       ; 'G'
-CMP r0, r3
-JZ r6, success
+LDI r3, 0x3000
+LOAD r6, r3       ; r6 = first byte
+LDI r11, 0x47       ; 'G'
+CMP r6, r11
+JZ r7, success
 JMP fail
 
 success:
-LDI r7, 96
-LDI r11, 96
-LDI r2, 64
-LDI r5, 64
-LDI r14, 0x00FF00
-RECTF r7, r11, r2, r5, r14
+LDI r4, 96
+LDI r9, 96
+LDI r8, 64
+LDI r0, 64
+LDI r15, 0x00FF00
+RECTF r4, r9, r8, r0, r15
 HALT
 
 fail:
-LDI r7, 96
-LDI r11, 96
-LDI r2, 64
-LDI r5, 64
-LDI r14, 0xFF0000
-RECTF r7, r11, r2, r5, r14
+LDI r4, 96
+LDI r9, 96
+LDI r8, 64
+LDI r0, 64
+LDI r15, 0xFF0000
+RECTF r4, r9, r8, r0, r15
 HALT
 
 filepath:

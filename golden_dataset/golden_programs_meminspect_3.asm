@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code initializes a memory inspector tool that displays a hex dump of RAM regions with ASCII characters alongside. It allows scrolling through memory using arrow keys and jumping to specific addresses using number keys. The code sets up a hex digit lookup table, initializes the display state, and enters a main loop where it continuously reads input, updates the view address, and redraws the screen with the current memory contents.
+; DESCRIPTION: Draws a red object at the screen with fixed size.
 
 ; meminspect.asm -- Memory Inspector for Geometry OS
 ;
@@ -24,7 +24,7 @@
 #define ROW_SCROLL 0x6501
 
 LDI r30, 0xFD00
-LDI r3, 1
+LDI r15, 1
 
 ; =========================================
 ; Init hex table "0123456789ABCDEF"
@@ -32,83 +32,83 @@ LDI r3, 1
 LDI r20, HEX_TABLE
 LDI r21, 48
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 49
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 50
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 51
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 52
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 53
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 54
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 55
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 56
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 57
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 65
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 66
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 67
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 68
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 69
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 70
 STORE r20, r21
 
 ; Init state
 LDI r20, VIEW_ADDR
-LDI r10, 0x2000
-STORE r20, r10
+LDI r9, 0x2000
+STORE r20, r9
 LDI r20, ROW_SCROLL
-LDI r10, 0
-STORE r20, r10
+LDI r9, 0
+STORE r20, r9
 
 ; Demo data at 0x2000
 LDI r20, 0x2000
 LDI r21, 72
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 101
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 108
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 108
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 111
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 44
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 32
 STORE r20, r21
-ADD r20, r3
+ADD r20, r15
 LDI r21, 87
 STORE r20, r21
 
@@ -116,54 +116,54 @@ STORE r20, r21
 ; MAIN LOOP
 ; =========================================
 main_loop:
-  IKEY r4
+  IKEY r6
 
-  LDI r6, 38
-  CMP r4, r6
-  JZ r8, do_up
+  LDI r13, 38
+  CMP r6, r13
+  JZ r5, do_up
 
-  LDI r6, 40
-  CMP r4, r6
-  JZ r8, do_down
+  LDI r13, 40
+  CMP r6, r13
+  JZ r5, do_down
 
   ; Number keys 0-9
-  LDI r6, 48
-  CMP r4, r6
-  BLT r8, do_draw
+  LDI r13, 48
+  CMP r6, r13
+  BLT r5, do_draw
 
-  LDI r6, 58
-  CMP r4, r6
-  BGE r8, do_draw
+  LDI r13, 58
+  CMP r6, r13
+  BGE r5, do_draw
 
-  LDI r6, 48
-  SUB r4, r6
-  LDI r6, 256
-  MUL r4, r6
+  LDI r13, 48
+  SUB r6, r13
+  LDI r13, 256
+  MUL r6, r13
   LDI r20, VIEW_ADDR
-  STORE r20, r4
+  STORE r20, r6
   LDI r20, ROW_SCROLL
-  LDI r10, 0
-  STORE r20, r10
+  LDI r9, 0
+  STORE r20, r9
   JMP do_draw
 
 do_up:
   LDI r20, ROW_SCROLL
-  LOAD r10, r20
-  LDI r6, 0
-  CMP r10, r6
-  JZ r8, do_draw
-  SUB r10, r3
-  STORE r20, r10
+  LOAD r9, r20
+  LDI r13, 0
+  CMP r9, r13
+  JZ r5, do_draw
+  SUB r9, r15
+  STORE r20, r9
   JMP do_draw
 
 do_down:
   LDI r20, ROW_SCROLL
-  LOAD r10, r20
-  ADD r10, r3
-  LDI r6, 32
-  CMP r10, r6
-  BGE r8, do_draw
-  STORE r20, r10
+  LOAD r9, r20
+  ADD r9, r15
+  LDI r13, 32
+  CMP r9, r13
+  BGE r5, do_draw
+  STORE r20, r9
   JMP do_draw
 
 ; =========================================
@@ -171,37 +171,37 @@ do_down:
 ; =========================================
 do_draw:
   ; Background
-  LDI r9, 0x080818
-  FILL r9
+  LDI r8, 0x080818
+  FILL r8
 
   ; Title bar
-  LDI r9, 0
-  LDI r11, 0
-  LDI r2, 256
-  LDI r15, 16
-  LDI r7, 0x004488
-  RECTF r9, r11, r2, r15, r7
+  LDI r8, 0
+  LDI r12, 0
+  LDI r3, 256
+  LDI r0, 16
+  LDI r4, 0x004488
+  RECTF r8, r12, r3, r0, r4
 
   LDI r20, BUF
   STRO r20, "Memory Inspector"
-  LDI r9, 30
-  LDI r11, 3
-  LDI r2, BUF
-  LDI r15, 0xFFFFFF
-  LDI r7, 0x004488
-  DRAWTEXT r9, r11, r2, r15, r7
+  LDI r8, 30
+  LDI r12, 3
+  LDI r3, BUF
+  LDI r0, 0xFFFFFF
+  LDI r4, 0x004488
+  DRAWTEXT r8, r12, r3, r0, r4
 
   ; Compute effective start address
   LDI r20, VIEW_ADDR
-  LOAD r13, r20
+  LOAD r14, r20
   LDI r20, ROW_SCROLL
-  LOAD r12, r20
-  LDI r6, 8
-  MUL r12, r6
-  ADD r13, r12          ; r13 = start addr for display
+  LOAD r7, r20
+  LDI r13, 8
+  MUL r7, r13
+  ADD r14, r7          ; r14 = start addr for display
 
   ; Draw 14 hex dump rows
-  LDI r0, 0            ; row counter
+  LDI r10, 0            ; row counter
   LDI r1, 22           ; y position
 
   ; Note: no CALL inside this loop, all inline
@@ -209,29 +209,29 @@ do_draw:
 nxt_row:
   ; Build address in BUF (4 hex chars)
   LDI r21, BUF
-  ; Extract nibbles from r13 (only low 16 bits for display)
+  ; Extract nibbles from r14 (only low 16 bits for display)
   LDI r22, 12
 nxt_addr_nib:
-  MOV r12, r13
+  MOV r7, r14
   MOV r16, r22
-  SHR r12, r16
+  SHR r7, r16
   LDI r16, 0xF
-  AND r12, r16
+  AND r7, r16
   LDI r16, HEX_TABLE
-  ADD r16, r12
+  ADD r16, r7
   LOAD r16, r16
   STORE r21, r16
-  ADD r21, r3
-  SUB r22, r3
+  ADD r21, r15
+  SUB r22, r15
   LDI r16, 0
   CMP r22, r16
-  BLT r8, addr_done
+  BLT r5, addr_done
   ; But we need 4 digits only (bits 15:0), so iterate 4 times with shifts 12,8,4,0
   ; Actually we want 8 hex digits for full u32
   ; Let's just do the full 8-digit address
   LDI r16, 0
   CMP r22, r16
-  JNZ r8, nxt_addr_nib
+  JNZ r5, nxt_addr_nib
 addr_done:
   ; Hmm, this loop structure is wrong. Let me do it simpler.
   ; Just write 4 hex digits for the low 16 bits
@@ -241,170 +241,170 @@ addr_done:
   LDI r21, BUF
 
   ; Nibble 3 (bits 15:12)
-  MOV r12, r13
+  MOV r7, r14
   LDI r16, 12
-  SHR r12, r16
+  SHR r7, r16
   LDI r16, 0xF
-  AND r12, r16
+  AND r7, r16
   LDI r16, HEX_TABLE
-  ADD r16, r12
+  ADD r16, r7
   LOAD r16, r16
   STORE r21, r16
-  ADD r21, r3
+  ADD r21, r15
 
   ; Nibble 2 (bits 11:8)
-  MOV r12, r13
+  MOV r7, r14
   LDI r16, 8
-  SHR r12, r16
+  SHR r7, r16
   LDI r16, 0xF
-  AND r12, r16
+  AND r7, r16
   LDI r16, HEX_TABLE
-  ADD r16, r12
+  ADD r16, r7
   LOAD r16, r16
   STORE r21, r16
-  ADD r21, r3
+  ADD r21, r15
 
   ; Nibble 1 (bits 7:4)
-  MOV r12, r13
+  MOV r7, r14
   LDI r16, 4
-  SHR r12, r16
+  SHR r7, r16
   LDI r16, 0xF
-  AND r12, r16
+  AND r7, r16
   LDI r16, HEX_TABLE
-  ADD r16, r12
+  ADD r16, r7
   LOAD r16, r16
   STORE r21, r16
-  ADD r21, r3
+  ADD r21, r15
 
   ; Nibble 0 (bits 3:0)
-  MOV r12, r13
+  MOV r7, r14
   LDI r16, 0xF
-  AND r12, r16
+  AND r7, r16
   LDI r16, HEX_TABLE
-  ADD r16, r12
+  ADD r16, r7
   LOAD r16, r16
   STORE r21, r16
-  ADD r21, r3
+  ADD r21, r15
 
   ; Colon + space
   LDI r16, 58           ; ':'
   STORE r21, r16
-  ADD r21, r3
+  ADD r21, r15
   LDI r16, 32           ; ' '
   STORE r21, r16
-  ADD r21, r3
+  ADD r21, r15
 
   ; Read 8 bytes, write hex
-  MOV r26, r13
+  MOV r26, r14
   LDI r25, 0
 nxt_byte:
-  LOAD r10, r26
+  LOAD r9, r26
 
   ; High nibble
-  LDI r9, 4
-  SHR r10, r9
-  LDI r9, 0xF
-  AND r10, r9
-  LDI r9, HEX_TABLE
-  ADD r9, r10
-  LOAD r9, r9
-  STORE r21, r9
-  ADD r21, r3
+  LDI r8, 4
+  SHR r9, r8
+  LDI r8, 0xF
+  AND r9, r8
+  LDI r8, HEX_TABLE
+  ADD r8, r9
+  LOAD r8, r8
+  STORE r21, r8
+  ADD r21, r15
 
   ; Low nibble
-  LOAD r10, r26
-  LDI r9, 0xF
-  AND r10, r9
-  LDI r9, HEX_TABLE
-  ADD r9, r10
-  LOAD r9, r9
-  STORE r21, r9
-  ADD r21, r3
+  LOAD r9, r26
+  LDI r8, 0xF
+  AND r9, r8
+  LDI r8, HEX_TABLE
+  ADD r8, r9
+  LOAD r8, r8
+  STORE r21, r8
+  ADD r21, r15
 
   ; Space
-  LDI r9, 32
-  STORE r21, r9
-  ADD r21, r3
+  LDI r8, 32
+  STORE r21, r8
+  ADD r21, r15
 
-  ADD r26, r3
-  ADD r25, r3
-  LDI r9, 8
-  CMP r25, r9
-  BLT r8, nxt_byte
+  ADD r26, r15
+  ADD r25, r15
+  LDI r8, 8
+  CMP r25, r8
+  BLT r5, nxt_byte
 
   ; " |" separator
-  LDI r9, 32
-  STORE r21, r9
-  ADD r21, r3
-  LDI r9, 124          ; '|'
-  STORE r21, r9
-  ADD r21, r3
+  LDI r8, 32
+  STORE r21, r8
+  ADD r21, r15
+  LDI r8, 124          ; '|'
+  STORE r21, r8
+  ADD r21, r15
 
   ; ASCII
-  MOV r26, r13
+  MOV r26, r14
   LDI r25, 0
 nxt_ascii:
-  LOAD r10, r26
-  LDI r9, 32
-  CMP r10, r9
-  BLT r8, put_dot
-  LDI r9, 127
-  CMP r10, r9
-  BGE r8, put_dot
-  STORE r21, r10
+  LOAD r9, r26
+  LDI r8, 32
+  CMP r9, r8
+  BLT r5, put_dot
+  LDI r8, 127
+  CMP r9, r8
+  BGE r5, put_dot
+  STORE r21, r9
   JMP nxt_asc2
 put_dot:
-  LDI r9, 46
-  STORE r21, r9
+  LDI r8, 46
+  STORE r21, r8
 nxt_asc2:
-  ADD r21, r3
-  ADD r26, r3
-  ADD r25, r3
-  LDI r9, 8
-  CMP r25, r9
-  BLT r8, nxt_ascii
+  ADD r21, r15
+  ADD r26, r15
+  ADD r25, r15
+  LDI r8, 8
+  CMP r25, r8
+  BLT r5, nxt_ascii
 
   ; Trailing | and null
-  LDI r9, 124
-  STORE r21, r9
-  ADD r21, r3
-  LDI r9, 0
-  STORE r21, r9
+  LDI r8, 124
+  STORE r21, r8
+  ADD r21, r15
+  LDI r8, 0
+  STORE r21, r8
 
   ; Draw
-  LDI r9, 2
-  MOV r11, r1
-  LDI r2, BUF
-  LDI r15, 0xCCCCCC
-  LDI r7, 0x080818
-  DRAWTEXT r9, r11, r2, r15, r7
+  LDI r8, 2
+  MOV r12, r1
+  LDI r3, BUF
+  LDI r0, 0xCCCCCC
+  LDI r4, 0x080818
+  DRAWTEXT r8, r12, r3, r0, r4
 
   ; Advance by 8
-  LDI r6, 8
-  ADD r13, r6
-  LDI r6, 15
-  ADD r1, r6
-  ADD r0, r3
-  LDI r6, 14
-  CMP r0, r6
-  BLT r8, nxt_row
+  LDI r13, 8
+  ADD r14, r13
+  LDI r13, 15
+  ADD r1, r13
+  ADD r10, r15
+  LDI r13, 14
+  CMP r10, r13
+  BLT r5, nxt_row
 
   ; Status bar
-  LDI r9, 0
-  LDI r11, 236
-  LDI r2, 256
-  LDI r15, 20
-  LDI r7, 0x1A1A2E
-  RECTF r9, r11, r2, r15, r7
+  LDI r8, 0
+  LDI r12, 236
+  LDI r3, 256
+  LDI r0, 20
+  LDI r4, 0x1A1A2E
+  RECTF r8, r12, r3, r0, r4
 
   LDI r20, BUF
   STRO r20, "Up/Dn:Scroll 0-9:Jump"
-  LDI r9, 4
-  LDI r11, 238
-  LDI r2, BUF
-  LDI r15, 0x888888
-  LDI r7, 0x1A1A2E
-  DRAWTEXT r9, r11, r2, r15, r7
+  LDI r8, 4
+  LDI r12, 238
+  LDI r3, BUF
+  LDI r0, 0x888888
+  LDI r4, 0x1A1A2E
+  DRAWTEXT r8, r12, r3, r0, r4
 
   FRAME
   JMP main_loop

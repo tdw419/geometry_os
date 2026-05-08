@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code tests stack operations using register r30 as the stack pointer, verifying LIFO order, stack pointer tracking, handling of multiple values, and preservation of register contents across push/pop cycles. Test results are stored in RAM addresses from 0x0200 to 0x0208.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; PUSH/POP test - stack operations with r30 as stack pointer
 ; Tests: LIFO order, SP tracking, multiple values, register reuse
@@ -8,83 +8,83 @@
   LDI r30, 0xFF00
 
 ; -- Test 1 - Basic LIFO - push 3 values, pop in reverse --
-  LDI r6, 100
-  LDI r8, 200
-  LDI r14, 300
-  PUSH r6           ; push 100
-  PUSH r8           ; push 200
-  PUSH r14           ; push 300
-  POP r2            ; r2 = 300 (top)
-  POP r11            ; r11 = 200
-  POP r13            ; r13 = 100
-  LDI r10, 0x0200
-  STORE r10, r2     ; RAM[0x0200] = 300
-  LDI r10, 0x0201
-  STORE r10, r11     ; RAM[0x0201] = 200
-  LDI r10, 0x0202
-  STORE r10, r13     ; RAM[0x0202] = 100
+  LDI r10, 100
+  LDI r4, 200
+  LDI r5, 300
+  PUSH r10           ; push 100
+  PUSH r4           ; push 200
+  PUSH r5           ; push 300
+  POP r0            ; r0 = 300 (top)
+  POP r15            ; r15 = 200
+  POP r8            ; r8 = 100
+  LDI r2, 0x0200
+  STORE r2, r0     ; RAM[0x0200] = 300
+  LDI r2, 0x0201
+  STORE r2, r15     ; RAM[0x0201] = 200
+  LDI r2, 0x0202
+  STORE r2, r8     ; RAM[0x0202] = 100
 
 ; -- Test 2 - Push same register multiple times --
-  LDI r6, 0
-  PUSH r6           ; push 0
-  LDI r6, 1
-  PUSH r6           ; push 1
-  LDI r6, 2
-  PUSH r6           ; push 2
-  POP r2            ; r2 = 2
-  POP r11            ; r11 = 1
-  POP r13            ; r13 = 0
-  LDI r10, 0x0203
-  STORE r10, r2     ; RAM[0x0203] = 2
-  LDI r10, 0x0204
-  STORE r10, r11     ; RAM[0x0204] = 1
-  LDI r10, 0x0205
-  STORE r10, r13     ; RAM[0x0205] = 0
+  LDI r10, 0
+  PUSH r10           ; push 0
+  LDI r10, 1
+  PUSH r10           ; push 1
+  LDI r10, 2
+  PUSH r10           ; push 2
+  POP r0            ; r0 = 2
+  POP r15            ; r15 = 1
+  POP r8            ; r8 = 0
+  LDI r2, 0x0203
+  STORE r2, r0     ; RAM[0x0203] = 2
+  LDI r2, 0x0204
+  STORE r2, r15     ; RAM[0x0204] = 1
+  LDI r2, 0x0205
+  STORE r2, r8     ; RAM[0x0205] = 0
 
 ; -- Test 3 - SP restored after balanced push/pop --
 ; After all above operations, SP should be back at 0xFF00
 ; We test this by pushing a known value and popping it
-  LDI r6, 42
-  PUSH r6           ; push at SP = 0xFF00
-  POP r2            ; r2 should be 42 if SP is correct
-  LDI r10, 0x0206
-  STORE r10, r2     ; RAM[0x0206] = 42
+  LDI r10, 42
+  PUSH r10           ; push at SP = 0xFF00
+  POP r0            ; r0 should be 42 if SP is correct
+  LDI r2, 0x0206
+  STORE r2, r0     ; RAM[0x0206] = 42
 
 ; -- Test 4 - PUSH preserves values across register reuse --
-  LDI r6, 777
-  PUSH r6           ; save 777
-  LDI r6, 0         ; clobber r6
-  ADD r6, r8        ; r6 = 0 + r8 (some garbage value)
-  LDI r6, 0
-  ADD r6, r14
-  POP r2            ; r2 should still be 777
-  LDI r10, 0x0207
-  STORE r10, r2     ; RAM[0x0207] = 777
+  LDI r10, 777
+  PUSH r10           ; save 777
+  LDI r10, 0         ; clobber r10
+  ADD r10, r4        ; r10 = 0 + r4 (some garbage value)
+  LDI r10, 0
+  ADD r10, r5
+  POP r0            ; r0 should still be 777
+  LDI r2, 0x0207
+  STORE r2, r0     ; RAM[0x0207] = 777
 
 ; -- Test 5 - Push 5 values, pop all 5 --
-  LDI r6, 10
-  PUSH r6
-  LDI r6, 20
-  PUSH r6
-  LDI r6, 30
-  PUSH r6
-  LDI r6, 40
-  PUSH r6
-  LDI r6, 50
-  PUSH r6
-  ; Pop into r2 and accumulate sum
-  LDI r2, 0
-  POP r11
-  ADD r2, r11        ; 50
-  POP r11
-  ADD r2, r11        ; 50+40=90
-  POP r11
-  ADD r2, r11        ; 90+30=120
-  POP r11
-  ADD r2, r11        ; 120+20=140
-  POP r11
-  ADD r2, r11        ; 140+10=150
-  LDI r10, 0x0208
-  STORE r10, r2     ; RAM[0x0208] = 150
+  LDI r10, 10
+  PUSH r10
+  LDI r10, 20
+  PUSH r10
+  LDI r10, 30
+  PUSH r10
+  LDI r10, 40
+  PUSH r10
+  LDI r10, 50
+  PUSH r10
+  ; Pop into r0 and accumulate sum
+  LDI r0, 0
+  POP r15
+  ADD r0, r15        ; 50
+  POP r15
+  ADD r0, r15        ; 50+40=90
+  POP r15
+  ADD r0, r15        ; 90+30=120
+  POP r15
+  ADD r0, r15        ; 120+20=140
+  POP r15
+  ADD r0, r15        ; 140+10=150
+  LDI r2, 0x0208
+  STORE r2, r0     ; RAM[0x0208] = 150
 
   HALT

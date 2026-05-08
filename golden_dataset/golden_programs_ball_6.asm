@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a bouncing ball simulation with keyboard control. The ball moves and bounces off the walls of a 256x256 pixel screen, responding to WASD keys for direction changes and R key to reset its position.
+; DESCRIPTION: Draws a colored rectangle at the screen with fixed size.
 
 ; ball.asm -- bouncing ball with keyboard control
 ;
@@ -12,149 +12,149 @@
 ;   R (82) = reset ball to center
 ;
 ; Registers:
-;   r8 = ball_x (fixed point: actual x = r8, but treated as signed)
-;   r3 = ball_y
-;   r4 = dx (velocity x, signed two's complement)
-;   r5 = dy (velocity y)
-;   r12 = ball color (white)
-;   r2 = scratch
-;   r10 = key code
-;   r1 = ball radius (for CIRCLE)
-;   r13 = 0 (black, for clearing)
+;   r13 = ball_x (fixed point: actual x = r13, but treated as signed)
+;   r11 = ball_y
+;   r3 = dx (velocity x, signed two's complement)
+;   r2 = dy (velocity y)
+;   r14 = ball color (white)
+;   r7 = scratch
+;   r6 = key code
+;   r8 = ball radius (for CIRCLE)
+;   r4 = 0 (black, for clearing)
 
 ; ── init ────────────────────────────────────────────────────────
-LDI r8, 128     ; ball_x = center
-LDI r3, 128     ; ball_y = center
-LDI r4, 2       ; dx = 2
-LDI r5, 3       ; dy = 3
-LDI r12, 0xFFFFFF ; white
-LDI r1, 8       ; radius 8
-LDI r13, 0       ; black
+LDI r13, 128     ; ball_x = center
+LDI r11, 128     ; ball_y = center
+LDI r3, 2       ; dx = 2
+LDI r2, 3       ; dy = 3
+LDI r14, 0xFFFFFF ; white
+LDI r8, 8       ; radius 8
+LDI r4, 0       ; black
 LDI r20, 330    ; bounce freq (Hz)
 LDI r21, 40     ; bounce dur  (ms)
 
 ; ── main loop ────────────────────────────────────────────────────
 loop:
   ; clear screen
-  FILL r13
+  FILL r4
 
   ; read keyboard
-  IKEY r10
+  IKEY r6
 
   ; A (97 lowercase or 65 uppercase) = kick left
-  LDI r2, 65
-  CMP r10, r2
-  JZ r14, kick_left
-  LDI r2, 97
-  CMP r10, r2
-  JZ r14, kick_left
+  LDI r7, 65
+  CMP r6, r7
+  JZ r5, kick_left
+  LDI r7, 97
+  CMP r6, r7
+  JZ r5, kick_left
 
   ; D (100 or 68) = kick right
-  LDI r2, 68
-  CMP r10, r2
-  JZ r14, kick_right
-  LDI r2, 100
-  CMP r10, r2
-  JZ r14, kick_right
+  LDI r7, 68
+  CMP r6, r7
+  JZ r5, kick_right
+  LDI r7, 100
+  CMP r6, r7
+  JZ r5, kick_right
 
   ; W (119 or 87) = kick up
-  LDI r2, 87
-  CMP r10, r2
-  JZ r14, kick_up
-  LDI r2, 119
-  CMP r10, r2
-  JZ r14, kick_up
+  LDI r7, 87
+  CMP r6, r7
+  JZ r5, kick_up
+  LDI r7, 119
+  CMP r6, r7
+  JZ r5, kick_up
 
   ; S (115 or 83) = kick down
-  LDI r2, 83
-  CMP r10, r2
-  JZ r14, kick_down
-  LDI r2, 115
-  CMP r10, r2
-  JZ r14, kick_down
+  LDI r7, 83
+  CMP r6, r7
+  JZ r5, kick_down
+  LDI r7, 115
+  CMP r6, r7
+  JZ r5, kick_down
 
   ; R (82 or 114) = reset
-  LDI r2, 82
-  CMP r10, r2
-  JZ r14, do_reset
-  LDI r2, 114
-  CMP r10, r2
-  JZ r14, do_reset
+  LDI r7, 82
+  CMP r6, r7
+  JZ r5, do_reset
+  LDI r7, 114
+  CMP r6, r7
+  JZ r5, do_reset
 
 after_input:
   ; move ball
-  ADD r8, r4
-  ADD r3, r5
+  ADD r13, r3
+  ADD r11, r2
 
   ; ── bounce x walls ──────────────────────────────────────────
   ; if x >= 248 (255 - radius), negate dx
-  LDI r2, 248
-  CMP r8, r2
-  BLT r14, check_x_low
-  LDI r8, 248
-  NEG r4
+  LDI r7, 248
+  CMP r13, r7
+  BLT r5, check_x_low
+  LDI r13, 248
+  NEG r3
   BEEP r20, r21
   JMP check_y
 
 check_x_low:
   ; if x <= 8 (radius), negate dx
-  LDI r2, 8
-  CMP r8, r2
-  BGE r14, check_y
-  LDI r8, 8
-  NEG r4
+  LDI r7, 8
+  CMP r13, r7
+  BGE r5, check_y
+  LDI r13, 8
+  NEG r3
   BEEP r20, r21
 
   ; ── bounce y walls ──────────────────────────────────────────
 check_y:
-  LDI r2, 248
-  CMP r3, r2
-  BLT r14, check_y_low
-  LDI r3, 248
-  NEG r5
+  LDI r7, 248
+  CMP r11, r7
+  BLT r5, check_y_low
+  LDI r11, 248
+  NEG r2
   BEEP r20, r21
   JMP draw_ball
 
 check_y_low:
-  LDI r2, 8
-  CMP r3, r2
-  BGE r14, draw_ball
-  LDI r3, 8
-  NEG r5
+  LDI r7, 8
+  CMP r11, r7
+  BGE r5, draw_ball
+  LDI r11, 8
+  NEG r2
   BEEP r20, r21
 
   ; ── draw ball ───────────────────────────────────────────────
 draw_ball:
-  CIRCLE r8, r3, r1, r12
+  CIRCLE r13, r11, r8, r14
   FRAME
   JMP loop
 
   ; ── kick handlers ───────────────────────────────────────────
 kick_left:
-  LDI r2, 3
-  NEG r2
-  LDI r4, 0
-  ADD r4, r2
+  LDI r7, 3
+  NEG r7
+  LDI r3, 0
+  ADD r3, r7
   JMP after_input
 
 kick_right:
-  LDI r4, 3
+  LDI r3, 3
   JMP after_input
 
 kick_up:
-  LDI r2, 3
-  NEG r2
-  LDI r5, 0
-  ADD r5, r2
+  LDI r7, 3
+  NEG r7
+  LDI r2, 0
+  ADD r2, r7
   JMP after_input
 
 kick_down:
-  LDI r5, 3
+  LDI r2, 3
   JMP after_input
 
 do_reset:
-  LDI r8, 128
-  LDI r3, 128
-  LDI r4, 2
-  LDI r5, 3
+  LDI r13, 128
+  LDI r11, 128
+  LDI r3, 2
+  LDI r2, 3
   JMP after_input

@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code reads a pattern code from RAM[0x7000], dispatches to corresponding pre-stored assembly programs for different patterns (SUN, RAIN, STAR, or default SMILEY), copies the selected program to the canvas buffer at 0x8000, clears any remaining buffer cells, self-assembles and runs the copied program, which then drives pixel drawing commands on the display.
+; DESCRIPTION: Draws a red object at the screen with fixed size.
 
 ; chatbot.asm - Pattern-Responsive Art Generator
 ; Self-modification showcase demo
@@ -14,65 +14,65 @@
 ;   0/default = SMILEY (green smiley face)
 
 LDI r30, 0xFF00
-LDI r2, 1
+LDI r5, 1
 
 ; Read pattern code from RAM[0x7000]
-LDI r9, 0x7000
-LOAD r9, r9
+LDI r14, 0x7000
+LOAD r14, r14
 
 ; Dispatch on pattern code
 LDI r16, 1
-CMP r9, r16
-JZ r3, pick_sun
+CMP r14, r16
+JZ r8, pick_sun
 
 LDI r16, 2
-CMP r9, r16
-JZ r3, pick_rain
+CMP r14, r16
+JZ r8, pick_rain
 
 LDI r16, 3
-CMP r9, r16
-JZ r3, pick_star
+CMP r14, r16
+JZ r8, pick_star
 
 ; Default -- smiley
-LDI r13, smiley_text
+LDI r7, smiley_text
 JMP do_copy
 
 pick_sun:
-  LDI r13, sun_text
+  LDI r7, sun_text
   JMP do_copy
 
 pick_rain:
-  LDI r13, rain_text
+  LDI r7, rain_text
   JMP do_copy
 
 pick_star:
-  LDI r13, star_text
+  LDI r7, star_text
 
 do_copy:
   ; Copy selected pattern to canvas buffer at 0x8000
   ; Stop at 0xFF end marker
-  LDI r5, 0x8000
-  LDI r12, 0xFF
+  LDI r0, 0x8000
+  LDI r6, 0xFF
 
 copy_loop:
-  LOAD r6, r13
-  CMP r6, r12
-  JZ r3, copy_done
-  STORE r5, r6
-  ADD r13, r2
-  ADD r5, r2
+  LOAD r13, r7
+  CMP r13, r6
+  JZ r8, copy_done
+  STORE r0, r13
+  ADD r7, r5
+  ADD r0, r5
   JMP copy_loop
 
 copy_done:
   ; Clear remaining canvas cells
-  LDI r6, 0
-  LDI r9, 0x9000
+  LDI r13, 0
+  LDI r14, 0x9000
 
 clear_loop:
-  CMP r5, r9
-  BGE r3, all_done
-  STORE r5, r6
-  ADD r5, r2
+  CMP r0, r14
+  BGE r8, all_done
+  STORE r0, r13
+  ADD r0, r5
   JMP clear_loop
 
 all_done:

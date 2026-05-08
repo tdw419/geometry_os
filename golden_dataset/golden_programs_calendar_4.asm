@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a monthly calendar display that navigates through months and years using arrow keys. It uses Zeller's congruence to calculate the day of the week and renders the calendar grid with day numbers on the screen. The program handles month transitions, leap year calculations, and user input for navigation and quitting.
+; DESCRIPTION: A colored object centered at the screen with fixed size.
 
 ; calendar.asm -- Monthly Calendar for Geometry OS
 ;
@@ -34,7 +34,7 @@
 
 ; Init
 LDI r30, 0xFD00
-LDI r7, 1
+LDI r3, 1
 
 ; Default month/year (April 2026)
 LDI r20, MONTH
@@ -55,43 +55,43 @@ CALL compute_month
 ; =========================================
 main_loop:
     ; Read keyboard
-    IKEY r11
-    JZ r11, no_input
+    IKEY r8
+    JZ r8, no_input
 
     ; Left arrow (D=68) = previous month
     LDI r13, 68
-    CMP r11, r13
-    JZ r0, prev_month
+    CMP r8, r13
+    JZ r10, prev_month
 
     ; Right arrow (C=67) = next month
     LDI r13, 67
-    CMP r11, r13
-    JZ r0, next_month
+    CMP r8, r13
+    JZ r10, next_month
 
     ; Up arrow (A=65) = previous year
     LDI r13, 65
-    CMP r11, r13
-    JZ r0, prev_year
+    CMP r8, r13
+    JZ r10, prev_year
 
     ; Down arrow (B=66) = next year
     LDI r13, 66
-    CMP r11, r13
-    JZ r0, next_year
+    CMP r8, r13
+    JZ r10, next_year
 
     ; ESC = quit
     LDI r13, 27
-    CMP r11, r13
-    JZ r0, cal_quit
+    CMP r8, r13
+    JZ r10, cal_quit
 
     JMP no_input
 
 prev_month:
     LDI r20, MONTH
-    LOAD r6, r20
+    LOAD r4, r20
     LDI r13, 1
-    SUB r6, r13
-    JNZ r6, pm_store
-    LDI r6, 12
+    SUB r4, r13
+    JNZ r4, pm_store
+    LDI r4, 12
     LDI r20, YEAR
     LOAD r16, r20
     LDI r13, 1
@@ -99,59 +99,59 @@ prev_month:
     STORE r20, r16
     LDI r20, MONTH
 pm_store:
-    STORE r20, r6
+    STORE r20, r4
     CALL compute_month
     JMP no_input
 
 next_month:
     LDI r20, MONTH
-    LOAD r6, r20
+    LOAD r4, r20
     LDI r13, 1
-    ADD r6, r13
+    ADD r4, r13
     LDI r13, 13
-    CMP r6, r13
-    JZ r0, nm_wrap
-    STORE r20, r6
+    CMP r4, r13
+    JZ r10, nm_wrap
+    STORE r20, r4
     CALL compute_month
     JMP no_input
 
 nm_wrap:
-    LDI r6, 1
-    STORE r20, r6
+    LDI r4, 1
+    STORE r20, r4
     LDI r20, YEAR
-    LOAD r6, r20
+    LOAD r4, r20
     LDI r13, 1
-    ADD r6, r13
-    STORE r20, r6
+    ADD r4, r13
+    STORE r20, r4
     CALL compute_month
     JMP no_input
 
 prev_year:
     LDI r20, YEAR
-    LOAD r6, r20
+    LOAD r4, r20
     LDI r13, 1
-    SUB r6, r13
-    STORE r20, r6
+    SUB r4, r13
+    STORE r20, r4
     CALL compute_month
     JMP no_input
 
 next_year:
     LDI r20, YEAR
-    LOAD r6, r20
+    LOAD r4, r20
     LDI r13, 1
-    ADD r6, r13
-    STORE r20, r6
+    ADD r4, r13
+    STORE r20, r4
     CALL compute_month
     JMP no_input
 
 no_input:
     ; Update blink
     LDI r20, TICKS
-    LOAD r6, r20
+    LOAD r4, r20
     LDI r13, 30
-    DIV r6, r13
+    DIV r4, r13
     LDI r20, BLINK
-    STORE r20, r6
+    STORE r20, r4
 
     ; Render
     CALL render_calendar
@@ -164,100 +164,100 @@ cal_quit:
 
 ; =========================================
 ; compute_month -- calculate days in month and first day
-; Uses: r11-r19
+; Uses: r8-r19
 ; =========================================
 compute_month:
     PUSH r31
 
     LDI r20, MONTH
-    LOAD r11, r20       ; r11 = month (1-12)
+    LOAD r8, r20       ; r8 = month (1-12)
     LDI r20, YEAR
     LOAD r13, r20       ; r13 = year
 
     ; Compute days in month
-    LDI r1, 2
-    CMP r11, r1
-    JZ r0, feb_days
+    LDI r7, 2
+    CMP r8, r7
+    JZ r10, feb_days
 
     ; Non-Feb: 30 days for Apr,Jun,Sep,Nov; 31 for rest
-    LDI r1, 31
-    LDI r10, 4
-    CMP r11, r10
-    JZ r0, set_30
-    LDI r10, 6
-    CMP r11, r10
-    JZ r0, set_30
-    LDI r10, 9
-    CMP r11, r10
-    JZ r0, set_30
-    LDI r10, 11
-    CMP r11, r10
-    JZ r0, set_30
+    LDI r7, 31
+    LDI r14, 4
+    CMP r8, r14
+    JZ r10, set_30
+    LDI r14, 6
+    CMP r8, r14
+    JZ r10, set_30
+    LDI r14, 9
+    CMP r8, r14
+    JZ r10, set_30
+    LDI r14, 11
+    CMP r8, r14
+    JZ r10, set_30
     JMP store_mdays
 
 set_30:
-    LDI r1, 30
+    LDI r7, 30
     JMP store_mdays
 
 feb_days:
-    LDI r1, 28
-    MOV r10, r13
-    LDI r3, 4
-    MOD r10, r3
-    JNZ r10, store_mdays
-    MOV r10, r13
-    LDI r3, 100
-    MOD r10, r3
-    JNZ r10, is_leap
-    MOV r10, r13
-    LDI r3, 400
-    MOD r10, r3
-    JNZ r10, store_mdays
+    LDI r7, 28
+    MOV r14, r13
+    LDI r15, 4
+    MOD r14, r15
+    JNZ r14, store_mdays
+    MOV r14, r13
+    LDI r15, 100
+    MOD r14, r15
+    JNZ r14, is_leap
+    MOV r14, r13
+    LDI r15, 400
+    MOD r14, r15
+    JNZ r14, store_mdays
 
 is_leap:
-    LDI r1, 29
+    LDI r7, 29
 
 store_mdays:
     LDI r20, MDAYS
-    STORE r20, r1
+    STORE r20, r7
 
     ; Zeller congruence for first day
-    MOV r10, r11
-    MOV r3, r13
+    MOV r14, r8
+    MOV r15, r13
 
     ; Jan->13, Feb->14, year--
-    LDI r6, 3
-    CMP r10, r6
-    BGE r0, zeller_ok
-    LDI r6, 12
-    ADD r10, r6
-    LDI r6, 1
-    SUB r3, r6
+    LDI r4, 3
+    CMP r14, r4
+    BGE r10, zeller_ok
+    LDI r4, 12
+    ADD r14, r4
+    LDI r4, 1
+    SUB r15, r4
 
 zeller_ok:
     ; K = year % 100
-    MOV r6, r3
+    MOV r4, r15
     LDI r16, 100
-    MOD r6, r16
+    MOD r4, r16
 
     ; J = year / 100
-    MOV r16, r3
+    MOV r16, r15
     LDI r17, 100
     DIV r16, r17
 
     ; (13*(m+1))/5
     LDI r17, 1
-    ADD r10, r17
+    ADD r14, r17
     LDI r17, 13
-    MUL r10, r17
+    MUL r14, r17
     LDI r17, 5
-    DIV r10, r17
+    DIV r14, r17
 
     ; h = 1 + 13*(m+1)/5 + K + K/4 + J/4 + 5*J
     LDI r17, 1
-    ADD r17, r10
-    ADD r17, r6
-    MOV r18, r6
+    ADD r17, r14
+    ADD r17, r4
+    MOV r18, r4
     LDI r19, 4
     DIV r18, r19
     ADD r17, r18
@@ -289,248 +289,248 @@ zeller_ok:
 
 ; =========================================
 ; render_calendar -- draw the calendar screen
-; Uses: r7-r8
+; Uses: r3-r6
 ; =========================================
 render_calendar:
     PUSH r31
 
     ; Background
-    LDI r7, 0x0D1B2A
-    FILL r7
+    LDI r3, 0x0D1B2A
+    FILL r3
 
     ; Title bar
-    LDI r7, 0
-    LDI r15, 0
-    LDI r12, 256
-    LDI r14, 28
-    LDI r9, 0x1B3A5C
-    RECTF r7, r15, r12, r14, r9
+    LDI r3, 0
+    LDI r2, 0
+    LDI r11, 256
+    LDI r9, 28
+    LDI r0, 0x1B3A5C
+    RECTF r3, r2, r11, r9, r0
 
     ; Month name in title
     LDI r20, MONTH
-    LOAD r11, r20
+    LOAD r8, r20
     LDI r20, BUF
     CALL get_month_name
-    LDI r7, 8
-    LDI r15, 8
-    LDI r12, BUF
-    LDI r14, 0xFFFFFF
-    LDI r9, 0x1B3A5C
-    DRAWTEXT r7, r15, r12, r14, r9
+    LDI r3, 8
+    LDI r2, 8
+    LDI r11, BUF
+    LDI r9, 0xFFFFFF
+    LDI r0, 0x1B3A5C
+    DRAWTEXT r3, r2, r11, r9, r0
 
     ; Year in title
     LDI r20, YEAR
-    LOAD r6, r20
+    LOAD r4, r20
     LDI r20, BUF
     CALL int_to_str
-    LDI r7, 80
-    LDI r15, 8
-    LDI r12, BUF
-    LDI r14, 0xFFFFFF
-    LDI r9, 0x1B3A5C
-    DRAWTEXT r7, r15, r12, r14, r9
+    LDI r3, 80
+    LDI r2, 8
+    LDI r11, BUF
+    LDI r9, 0xFFFFFF
+    LDI r0, 0x1B3A5C
+    DRAWTEXT r3, r2, r11, r9, r0
 
     ; =========================================
     ; Day-of-week header row
     ; =========================================
-    LDI r9, 0x1A1A3A
-    LDI r7, 16
-    LDI r15, 32
-    LDI r12, 224
-    LDI r14, 16
-    RECTF r7, r15, r12, r14, r9
+    LDI r0, 0x1A1A3A
+    LDI r3, 16
+    LDI r2, 32
+    LDI r11, 224
+    LDI r9, 16
+    RECTF r3, r2, r11, r9, r0
 
     ; S M T W T F S headers
-    LDI r7, 22
-    LDI r15, 34
+    LDI r3, 22
+    LDI r2, 34
     LDI r20, BUF
     STRO r20, "S"
-    LDI r12, BUF
-    LDI r14, 0x8888BB
-    LDI r9, 0x1A1A3A
-    DRAWTEXT r7, r15, r12, r14, r9
+    LDI r11, BUF
+    LDI r9, 0x8888BB
+    LDI r0, 0x1A1A3A
+    DRAWTEXT r3, r2, r11, r9, r0
 
-    LDI r7, 54
+    LDI r3, 54
     LDI r20, BUF
     STRO r20, "M"
-    DRAWTEXT r7, r15, r12, r14, r9
+    DRAWTEXT r3, r2, r11, r9, r0
 
-    LDI r7, 86
+    LDI r3, 86
     LDI r20, BUF
     STRO r20, "T"
-    DRAWTEXT r7, r15, r12, r14, r9
+    DRAWTEXT r3, r2, r11, r9, r0
 
-    LDI r7, 118
+    LDI r3, 118
     LDI r20, BUF
     STRO r20, "W"
-    DRAWTEXT r7, r15, r12, r14, r9
+    DRAWTEXT r3, r2, r11, r9, r0
 
-    LDI r7, 150
+    LDI r3, 150
     LDI r20, BUF
     STRO r20, "T"
-    DRAWTEXT r7, r15, r12, r14, r9
+    DRAWTEXT r3, r2, r11, r9, r0
 
-    LDI r7, 182
+    LDI r3, 182
     LDI r20, BUF
     STRO r20, "F"
-    DRAWTEXT r7, r15, r12, r14, r9
+    DRAWTEXT r3, r2, r11, r9, r0
 
-    LDI r7, 214
+    LDI r3, 214
     LDI r20, BUF
     STRO r20, "S"
-    DRAWTEXT r7, r15, r12, r14, r9
+    DRAWTEXT r3, r2, r11, r9, r0
 
     ; =========================================
     ; Draw day grid
     ; =========================================
     LDI r20, FDAY
-    LOAD r2, r20          ; r2 = first day (0=Sun..6=Sat)
+    LOAD r12, r20          ; r12 = first day (0=Sun..6=Sat)
     LDI r20, MDAYS
-    LOAD r8, r20          ; r8 = days in month
-    LDI r11, 1            ; r11 = current day (1..31)
+    LOAD r6, r20          ; r6 = days in month
+    LDI r8, 1            ; r8 = current day (1..31)
 
     ; Grid layout: 7 columns, each 32px wide, starting at x=16
     ; Row starts at y=50, each row 24px
     LDI r13, 0            ; column counter (0-6)
-    MOV r1, r2           ; start column = first day
-    LDI r10, 50           ; y position
+    MOV r7, r12           ; start column = first day
+    LDI r14, 50           ; y position
 
 day_loop:
     ; Check if done
-    MOV r3, r8
-    LDI r6, 1
-    ADD r3, r6
-    CMP r11, r3
-    BGE r0, days_done
+    MOV r15, r6
+    LDI r4, 1
+    ADD r15, r4
+    CMP r8, r15
+    BGE r10, days_done
 
     ; Compute x position: 16 + column * 32 + 4
-    MOV r6, r1
+    MOV r4, r7
     LDI r16, 32
-    MUL r6, r16
+    MUL r4, r16
     LDI r16, 20
-    ADD r6, r16          ; r6 = x
+    ADD r4, r16          ; r4 = x
 
     ; Draw day cell background
-    LDI r7, 0x16162E
-    MOV r15, r10
-    LDI r12, 28
-    LDI r14, 22
-    RECTF r6, r15, r12, r14, r7
+    LDI r3, 0x16162E
+    MOV r2, r14
+    LDI r11, 28
+    LDI r9, 22
+    RECTF r4, r2, r11, r9, r3
 
     ; Save x position before int_to_str trashes registers
-    MOV r4, r1           ; save column
-    MOV r5, r10           ; save y
+    MOV r5, r7           ; save column
+    MOV r1, r14           ; save y
 
     ; Convert day number to string
     LDI r20, BUF
-    MOV r6, r11
+    MOV r4, r8
     CALL int_to_str
 
     ; Recompute x for text (centered in cell)
-    MOV r6, r4
+    MOV r4, r5
     LDI r16, 32
-    MUL r6, r16
+    MUL r4, r16
     LDI r16, 26
-    ADD r6, r16          ; x for text
-    MOV r15, r5            ; restore y
+    ADD r4, r16          ; x for text
+    MOV r2, r1            ; restore y
     LDI r16, 4
-    ADD r15, r16           ; y offset for text
-    LDI r12, BUF
-    LDI r14, 0xCCCCFF
-    LDI r9, 0x16162E
-    DRAWTEXT r6, r15, r12, r14, r9
+    ADD r2, r16           ; y offset for text
+    LDI r11, BUF
+    LDI r9, 0xCCCCFF
+    LDI r0, 0x16162E
+    DRAWTEXT r4, r2, r11, r9, r0
 
     ; Advance column
     LDI r16, 1
-    ADD r1, r16
+    ADD r7, r16
     LDI r16, 7
-    CMP r1, r16
-    BLT r0, same_row
+    CMP r7, r16
+    BLT r10, same_row
 
     ; New row
-    LDI r1, 0
+    LDI r7, 0
     LDI r16, 24
-    ADD r10, r16
+    ADD r14, r16
 
 same_row:
     ; Next day
     LDI r16, 1
-    ADD r11, r16
+    ADD r8, r16
     JMP day_loop
 
 days_done:
     ; =========================================
     ; Footer
     ; =========================================
-    LDI r7, 0
-    LDI r15, 236
-    LDI r12, 256
-    LDI r14, 20
-    LDI r9, 0x0A0A1A
-    RECTF r7, r15, r12, r14, r9
+    LDI r3, 0
+    LDI r2, 236
+    LDI r11, 256
+    LDI r9, 20
+    LDI r0, 0x0A0A1A
+    RECTF r3, r2, r11, r9, r0
 
     LDI r20, BUF
     STRO r20, "Arrows: navigate  ESC: quit"
-    LDI r7, 40
-    LDI r15, 240
-    LDI r12, BUF
-    LDI r14, 0x6666AA
-    LDI r9, 0x0A0A1A
-    DRAWTEXT r7, r15, r12, r14, r9
+    LDI r3, 40
+    LDI r2, 240
+    LDI r11, BUF
+    LDI r9, 0x6666AA
+    LDI r0, 0x0A0A1A
+    DRAWTEXT r3, r2, r11, r9, r0
 
     POP r31
     RET
 
 ; =========================================
 ; get_month_name -- write month name to BUF
-; Input: r11 = month (1-12), r20 = buffer addr
+; Input: r8 = month (1-12), r20 = buffer addr
 ; =========================================
 get_month_name:
     PUSH r31
 
     LDI r13, 1
-    CMP r11, r13
-    JZ r0, gm_jan
+    CMP r8, r13
+    JZ r10, gm_jan
 
     LDI r13, 2
-    CMP r11, r13
-    JZ r0, gm_feb
+    CMP r8, r13
+    JZ r10, gm_feb
 
     LDI r13, 3
-    CMP r11, r13
-    JZ r0, gm_mar
+    CMP r8, r13
+    JZ r10, gm_mar
 
     LDI r13, 4
-    CMP r11, r13
-    JZ r0, gm_apr
+    CMP r8, r13
+    JZ r10, gm_apr
 
     LDI r13, 5
-    CMP r11, r13
-    JZ r0, gm_may
+    CMP r8, r13
+    JZ r10, gm_may
 
     LDI r13, 6
-    CMP r11, r13
-    JZ r0, gm_jun
+    CMP r8, r13
+    JZ r10, gm_jun
 
     LDI r13, 7
-    CMP r11, r13
-    JZ r0, gm_jul
+    CMP r8, r13
+    JZ r10, gm_jul
 
     LDI r13, 8
-    CMP r11, r13
-    JZ r0, gm_aug
+    CMP r8, r13
+    JZ r10, gm_aug
 
     LDI r13, 9
-    CMP r11, r13
-    JZ r0, gm_sep
+    CMP r8, r13
+    JZ r10, gm_sep
 
     LDI r13, 10
-    CMP r11, r13
-    JZ r0, gm_oct
+    CMP r8, r13
+    JZ r10, gm_oct
 
     LDI r13, 11
-    CMP r11, r13
-    JZ r0, gm_nov
+    CMP r8, r13
+    JZ r10, gm_nov
 
     ; Default: December
     STRO r20, "December"
@@ -594,27 +594,27 @@ gm_nov:
 
 ; =========================================
 ; int_to_str subroutine
-; Converts r6 (u32) to decimal string at r20
-; Destroys r6-r19. Returns string null-terminated.
+; Converts r4 (u32) to decimal string at r20
+; Destroys r4-r19. Returns string null-terminated.
 ; =========================================
 int_to_str:
     PUSH r31
     LDI r16, 0
 
-    JZ r6, its_zero
+    JZ r4, its_zero
 
 its_loop:
-    MOV r18, r6
+    MOV r18, r4
     LDI r17, 10
     MOD r18, r17
     LDI r19, 48
     ADD r18, r19
     PUSH r18
     LDI r17, 10
-    DIV r6, r17
+    DIV r4, r17
     LDI r19, 1
     ADD r16, r19
-    JNZ r6, its_loop
+    JNZ r4, its_loop
 
 its_write:
     POP r18

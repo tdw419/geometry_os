@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code implements a digital clock application with features such as a blinking colon separator, color-coded info panels, and displays for day counter, elapsed time, and frame statistics. It uses the FRAME instruction to manage timing and updates the display every 60 frames to simulate one second. The code also includes functions to render text and handle number formatting for displaying time values accurately.
+; DESCRIPTION: Draws a colored object at the screen with fixed size.
 
 ; clock.asm -- Digital Clock App for Geometry OS
 ;
@@ -34,19 +34,19 @@
 ; =========================================
 ; INIT
 ; =========================================
-LDI r3, 1
+LDI r11, 1
 LDI r30, 0xFD00
 
 ; Init blink counter
 LDI r20, BLINK
-LDI r4, 0
-STORE r20, r4
+LDI r15, 0
+STORE r20, r15
 
 ; =========================================
 ; MAIN LOOP
 ; =========================================
 main_loop:
-    LDI r3, 1
+    LDI r11, 1
 
     ; Draw everything
     CALL render
@@ -56,13 +56,13 @@ main_loop:
 
     ; Update blink toggle
     LDI r20, TICKS
-    LOAD r13, r20
-    LDI r4, 30
-    DIV r13, r4
-    LDI r4, 2
-    MOD r13, r4
+    LOAD r6, r20
+    LDI r15, 30
+    DIV r6, r15
+    LDI r15, 2
+    MOD r6, r15
     LDI r20, BLINK
-    STORE r20, r13
+    STORE r20, r6
 
     JMP main_loop
 
@@ -71,424 +71,424 @@ main_loop:
 ; =========================================
 render:
     PUSH r31
-    LDI r3, 1
+    LDI r11, 1
 
     ; ── Background ──
-    LDI r4, 0x0A0A1E
-    FILL r4
+    LDI r15, 0x0A0A1E
+    FILL r15
 
     ; ── Title bar ──
-    LDI r3, 0
-    LDI r4, 0
-    LDI r14, 256
-    LDI r6, 20
-    LDI r11, 0x0D1B2A
-    RECTF r3, r4, r14, r6, r11
+    LDI r11, 0
+    LDI r15, 0
+    LDI r9, 256
+    LDI r8, 20
+    LDI r7, 0x0D1B2A
+    RECTF r11, r15, r9, r8, r7
 
     LDI r20, SCRATCH
     STRO r20, "GeoClock v1.0"
-    LDI r4, 0
-    STORE r20, r4
-    LDI r3, 8
-    LDI r4, 6
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r15, 0
+    STORE r20, r15
+    LDI r11, 8
+    LDI r15, 6
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     ; ── Info panel (date/day) ──
-    LDI r3, 0
-    LDI r4, 20
-    LDI r14, 256
-    LDI r6, 20
-    LDI r11, 0x101828
-    RECTF r3, r4, r14, r6, r11
+    LDI r11, 0
+    LDI r15, 20
+    LDI r9, 256
+    LDI r8, 20
+    LDI r7, 0x101828
+    RECTF r11, r15, r9, r8, r7
 
     ; Compute time values
     ; total_seconds = frame_count / 60
     LDI r20, TICKS
-    LOAD r13, r20
-    LDI r4, 60
-    DIV r13, r4
-    ; r13 = total_seconds
+    LOAD r6, r20
+    LDI r15, 60
+    DIV r6, r15
+    ; r6 = total_seconds
 
     ; hours = total_seconds / 3600
-    LDI r0, 0
-    ADD r0, r13
-    LDI r4, 3600
-    DIV r0, r4
-    ; r0 = hours
+    LDI r2, 0
+    ADD r2, r6
+    LDI r15, 3600
+    DIV r2, r15
+    ; r2 = hours
 
     ; minutes = (total_seconds % 3600) / 60
-    LDI r10, 0
-    ADD r10, r13
-    LDI r4, 3600
-    MOD r10, r4
-    LDI r4, 60
-    DIV r10, r4
-    ; r10 = minutes
+    LDI r13, 0
+    ADD r13, r6
+    LDI r15, 3600
+    MOD r13, r15
+    LDI r15, 60
+    DIV r13, r15
+    ; r13 = minutes
 
     ; seconds = total_seconds % 60
-    LDI r1, 0
-    ADD r1, r13
-    LDI r4, 60
-    MOD r1, r4
-    ; r1 = seconds
+    LDI r3, 0
+    ADD r3, r6
+    LDI r15, 60
+    MOD r3, r15
+    ; r3 = seconds
 
     ; days = hours / 24
-    LDI r5, 0
-    ADD r5, r0
-    LDI r4, 24
-    DIV r5, r4
-    ; r5 = days
+    LDI r10, 0
+    ADD r10, r2
+    LDI r15, 24
+    DIV r10, r15
+    ; r10 = days
 
     ; hours within day = hours % 24
-    LDI r0, 0
-    ADD r0, r13
-    LDI r4, 3600
-    DIV r0, r4
-    LDI r4, 24
-    MOD r0, r4
-    ; r0 = hours (0-23)
+    LDI r2, 0
+    ADD r2, r6
+    LDI r15, 3600
+    DIV r2, r15
+    LDI r15, 24
+    MOD r2, r15
+    ; r2 = hours (0-23)
 
     ; Build "Day N  HH:MM:SS" string
     LDI r20, SCRATCH
     STRO r20, "Day "
-    LDI r13, 0
-    ADD r13, r5
+    LDI r6, 0
+    ADD r6, r10
     CALL write_number
-    LDI r4, 32
-    STORE r20, r4
-    ADD r20, r3
+    LDI r15, 32
+    STORE r20, r15
+    ADD r20, r11
 
     ; Write hours (2-digit with leading zero)
     CALL write_two_digit
     ; Colon
     LDI r20, BLINK
-    LOAD r12, r20
-    CMPI r12, 0
-    JNZ r12, colon_on1
-    LDI r4, 32
-    STORE r20, r4
-    ADD r20, r3
-    LDI r4, 32
-    STORE r20, r4
-    ADD r20, r3
+    LOAD r1, r20
+    CMPI r1, 0
+    JNZ r1, colon_on1
+    LDI r15, 32
+    STORE r20, r15
+    ADD r20, r11
+    LDI r15, 32
+    STORE r20, r15
+    ADD r20, r11
     JMP colon_done1
 colon_on1:
-    LDI r4, 58
-    STORE r20, r4
-    ADD r20, r3
-    LDI r4, 58
-    STORE r20, r4
-    ADD r20, r3
+    LDI r15, 58
+    STORE r20, r15
+    ADD r20, r11
+    LDI r15, 58
+    STORE r20, r15
+    ADD r20, r11
 colon_done1:
 
     ; Write minutes
-    LDI r13, 0
-    ADD r13, r10
+    LDI r6, 0
+    ADD r6, r13
     CALL write_two_digit
     ; Colon
     LDI r20, BLINK
-    LOAD r12, r20
-    CMPI r12, 0
-    JNZ r12, colon_on2
-    LDI r4, 32
-    STORE r20, r4
-    ADD r20, r3
-    LDI r4, 32
-    STORE r20, r4
-    ADD r20, r3
+    LOAD r1, r20
+    CMPI r1, 0
+    JNZ r1, colon_on2
+    LDI r15, 32
+    STORE r20, r15
+    ADD r20, r11
+    LDI r15, 32
+    STORE r20, r15
+    ADD r20, r11
     JMP colon_done2
 colon_on2:
-    LDI r4, 58
-    STORE r20, r4
-    ADD r20, r3
-    LDI r4, 58
-    STORE r20, r4
-    ADD r20, r3
+    LDI r15, 58
+    STORE r20, r15
+    ADD r20, r11
+    LDI r15, 58
+    STORE r20, r15
+    ADD r20, r11
 colon_done2:
 
     ; Write seconds
-    LDI r13, 0
-    ADD r13, r1
+    LDI r6, 0
+    ADD r6, r3
     CALL write_two_digit
 
     ; Null terminate
-    LDI r4, 0
-    STORE r20, r4
+    LDI r15, 0
+    STORE r20, r15
 
     ; Render time string at top of info panel
-    LDI r3, 8
-    LDI r4, 24
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r11, 8
+    LDI r15, 24
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     ; ── Main clock panel ──
-    LDI r3, 0
-    LDI r4, 40
-    LDI r14, 256
-    LDI r6, 80
-    LDI r11, 0x060612
-    RECTF r3, r4, r14, r6, r11
+    LDI r11, 0
+    LDI r15, 40
+    LDI r9, 256
+    LDI r8, 80
+    LDI r7, 0x060612
+    RECTF r11, r15, r9, r8, r7
 
     ; Large time display using TEXT at y=60
     ; Build "HH:MM:SS" string again for the large display
     LDI r20, SCRATCH
-    LDI r13, 0
-    ADD r13, r0
+    LDI r6, 0
+    ADD r6, r2
     CALL write_two_digit
-    LDI r4, 58
-    STORE r20, r4
-    ADD r20, r3
-    LDI r13, 0
-    ADD r13, r10
+    LDI r15, 58
+    STORE r20, r15
+    ADD r20, r11
+    LDI r6, 0
+    ADD r6, r13
     CALL write_two_digit
-    LDI r4, 58
-    STORE r20, r4
-    ADD r20, r3
-    LDI r13, 0
-    ADD r13, r1
+    LDI r15, 58
+    STORE r20, r15
+    ADD r20, r11
+    LDI r6, 0
+    ADD r6, r3
     CALL write_two_digit
-    LDI r4, 0
-    STORE r20, r4
+    LDI r15, 0
+    STORE r20, r15
 
-    LDI r3, 80
-    LDI r4, 65
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r11, 80
+    LDI r15, 65
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     ; ── Statistics panel ──
-    LDI r3, 0
-    LDI r4, 120
-    LDI r14, 256
-    LDI r6, 60
-    LDI r11, 0x0D0D1A
-    RECTF r3, r4, r14, r6, r11
+    LDI r11, 0
+    LDI r15, 120
+    LDI r9, 256
+    LDI r8, 60
+    LDI r7, 0x0D0D1A
+    RECTF r11, r15, r9, r8, r7
 
     ; Frame count
     LDI r20, SCRATCH
     STRO r20, "Frames: "
     LDI r20, TICKS
-    LOAD r13, r20
+    LOAD r6, r20
     LDI r20, SCRATCH
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
     CALL write_number
-    LDI r4, 0
-    STORE r20, r4
-    LDI r3, 8
-    LDI r4, 126
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r15, 0
+    STORE r20, r15
+    LDI r11, 8
+    LDI r15, 126
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     ; Total seconds
     LDI r20, SCRATCH
     STRO r20, "Seconds: "
     LDI r20, TICKS
-    LOAD r13, r20
-    LDI r4, 60
-    DIV r13, r4
+    LOAD r6, r20
+    LDI r15, 60
+    DIV r6, r15
     LDI r20, SCRATCH
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
     CALL write_number
-    LDI r4, 0
-    STORE r20, r4
-    LDI r3, 8
-    LDI r4, 138
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r15, 0
+    STORE r20, r15
+    LDI r11, 8
+    LDI r15, 138
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     ; Total minutes
     LDI r20, SCRATCH
     STRO r20, "Minutes: "
     LDI r20, TICKS
-    LOAD r13, r20
-    LDI r4, 3600
-    DIV r13, r4
+    LOAD r6, r20
+    LDI r15, 3600
+    DIV r6, r15
     LDI r20, SCRATCH
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
-    ADD r20, r3
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
+    ADD r20, r11
     CALL write_number
-    LDI r4, 0
-    STORE r20, r4
-    LDI r3, 8
-    LDI r4, 150
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r15, 0
+    STORE r20, r15
+    LDI r11, 8
+    LDI r15, 150
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     ; Tick rate info
     LDI r20, SCRATCH
     STRO r20, "60 frames = 1 sim second"
-    LDI r4, 0
-    STORE r20, r4
-    LDI r3, 8
-    LDI r4, 164
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r15, 0
+    STORE r20, r15
+    LDI r11, 8
+    LDI r15, 164
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     ; ── Large seconds display panel ──
-    LDI r3, 0
-    LDI r4, 180
-    LDI r14, 256
-    LDI r6, 56
-    LDI r11, 0x060612
-    RECTF r3, r4, r14, r6, r11
+    LDI r11, 0
+    LDI r15, 180
+    LDI r9, 256
+    LDI r8, 56
+    LDI r7, 0x060612
+    RECTF r11, r15, r9, r8, r7
 
     ; Elapsed time string
     LDI r20, SCRATCH
     STRO r20, "Elapsed: "
-    LDI r13, 0
-    ADD r13, r5
+    LDI r6, 0
+    ADD r6, r10
     CALL write_number
-    LDI r4, 32
-    STORE r20, r4
-    ADD r20, r3
-    LDI r4, 100            ; 'd'
-    STORE r20, r4
-    ADD r20, r3
-    LDI r4, 32
-    STORE r20, r4
-    ADD r20, r3
-    LDI r13, 0
-    ADD r13, r0
+    LDI r15, 32
+    STORE r20, r15
+    ADD r20, r11
+    LDI r15, 100            ; 'd'
+    STORE r20, r15
+    ADD r20, r11
+    LDI r15, 32
+    STORE r20, r15
+    ADD r20, r11
+    LDI r6, 0
+    ADD r6, r2
     CALL write_two_digit
-    LDI r4, 58
-    STORE r20, r4
-    ADD r20, r3
-    LDI r13, 0
-    ADD r13, r10
+    LDI r15, 58
+    STORE r20, r15
+    ADD r20, r11
+    LDI r6, 0
+    ADD r6, r13
     CALL write_two_digit
-    LDI r4, 58
-    STORE r20, r4
-    ADD r20, r3
-    LDI r13, 0
-    ADD r13, r1
+    LDI r15, 58
+    STORE r20, r15
+    ADD r20, r11
+    LDI r6, 0
+    ADD r6, r3
     CALL write_two_digit
-    LDI r4, 0
-    STORE r20, r4
-    LDI r3, 8
-    LDI r4, 195
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r15, 0
+    STORE r20, r15
+    LDI r11, 8
+    LDI r15, 195
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     ; ── Status bar ──
-    LDI r3, 0
-    LDI r4, 240
-    LDI r14, 256
-    LDI r6, 16
-    LDI r11, 0x0A0A1A
-    RECTF r3, r4, r14, r6, r11
+    LDI r11, 0
+    LDI r15, 240
+    LDI r9, 256
+    LDI r8, 16
+    LDI r7, 0x0A0A1A
+    RECTF r11, r15, r9, r8, r7
 
     LDI r20, SCRATCH
     STRO r20, "Geometry OS Clock"
-    LDI r4, 0
-    STORE r20, r4
-    LDI r3, 8
-    LDI r4, 244
-    LDI r14, SCRATCH
-    TEXT r3, r4, r14
+    LDI r15, 0
+    STORE r20, r15
+    LDI r11, 8
+    LDI r15, 244
+    LDI r9, SCRATCH
+    TEXT r11, r15, r9
 
     POP r31
     RET
 
 ; =========================================
-; WRITE_TWO_DIGIT: Write value in r13 as 2-digit decimal at SCRATCH[r20]
+; WRITE_TWO_DIGIT: Write value in r6 as 2-digit decimal at SCRATCH[r20]
 ; Advances r20 by 2
-; Expects r3 = 1
+; Expects r11 = 1
 ; =========================================
 write_two_digit:
     PUSH r31
-    LDI r3, 1
+    LDI r11, 1
 
     ; Tens digit
-    LDI r12, 0
-    ADD r12, r13
-    LDI r4, 10
-    DIV r12, r4
-    LDI r4, 48
-    ADD r4, r12
-    STORE r20, r4
-    ADD r20, r3
+    LDI r1, 0
+    ADD r1, r6
+    LDI r15, 10
+    DIV r1, r15
+    LDI r15, 48
+    ADD r15, r1
+    STORE r20, r15
+    ADD r20, r11
 
     ; Ones digit
-    LDI r12, 0
-    ADD r12, r13
-    LDI r4, 10
-    MOD r12, r4
-    LDI r4, 48
-    ADD r4, r12
-    STORE r20, r4
-    ADD r20, r3
+    LDI r1, 0
+    ADD r1, r6
+    LDI r15, 10
+    MOD r1, r15
+    LDI r15, 48
+    ADD r15, r1
+    STORE r20, r15
+    ADD r20, r11
 
     POP r31
     RET
 
 ; =========================================
-; WRITE_NUMBER: Write number r13 as decimal at SCRATCH[r20]
+; WRITE_NUMBER: Write number r6 as decimal at SCRATCH[r20]
 ; Advances r20 past the digits
-; Expects r3 = 1
+; Expects r11 = 1
 ; =========================================
 write_number:
     PUSH r31
-    LDI r3, 1
+    LDI r11, 1
 
     ; Handle 0
-    CMPI r13, 0
-    JNZ r13, wn_not_zero
-    LDI r4, 48
-    STORE r20, r4
-    ADD r20, r3
+    CMPI r6, 0
+    JNZ r6, wn_not_zero
+    LDI r15, 48
+    STORE r20, r15
+    ADD r20, r11
     POP r31
     RET
 
 wn_not_zero:
     ; Push digits onto stack (ones first), then pop (most significant first)
-    LDI r15, 0
-    ADD r15, r13          ; r15 = remaining value
-    LDI r12, 0           ; digit count
+    LDI r4, 0
+    ADD r4, r6          ; r4 = remaining value
+    LDI r1, 0           ; digit count
 
 wn_push_loop:
-    CMPI r15, 0
-    JZ r15, wn_pop_loop
+    CMPI r4, 0
+    JZ r4, wn_pop_loop
     LDI r16, 0
-    ADD r16, r15
-    LDI r4, 10
-    MOD r16, r4          ; r16 = ones digit
+    ADD r16, r4
+    LDI r15, 10
+    MOD r16, r15          ; r16 = ones digit
     PUSH r16
-    ADD r12, r3
-    LDI r4, 10
-    DIV r15, r4
+    ADD r1, r11
+    LDI r15, 10
+    DIV r4, r15
     JMP wn_push_loop
 
 wn_pop_loop:
-    CMPI r12, 0
-    JZ r12, wn_done
+    CMPI r1, 0
+    JZ r1, wn_done
     POP r16
-    LDI r4, 48
-    ADD r4, r16
-    STORE r20, r4
-    ADD r20, r3
-    SUB r12, r3
+    LDI r15, 48
+    ADD r15, r16
+    STORE r20, r15
+    ADD r20, r11
+    SUB r1, r11
     JMP wn_pop_loop
 
 wn_done:

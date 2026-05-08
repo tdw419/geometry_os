@@ -1,14 +1,14 @@
-; DESCRIPTION: The code initializes the screen to a dark gray color and writes several rows of text in different ANSI colors (red, green, blue, yellow, cyan) directly to memory buffers at specified addresses. It also fills corresponding color buffers with the respective color codes for each text row.
+; DESCRIPTION: Draw rectangle: pos=the screen, color=red, size=fixed size.
 
 ; color_test.asm -- Test ANSI SGR color rendering
 ; Writes text in various ANSI colors to verify color buffer works
 
-LDI r5, 1
+LDI r12, 1
 LDI r30, 0xFD00
 
 ; Fill screen dark
-LDI r3, 0x0A0A0A
-FILL r3
+LDI r9, 0x0A0A0A
+FILL r9
 
 ; Simulate what host_term.asm does:
 ; Write text directly to BUF (0x4000) and colors to COLOR_BUF (0x7800)
@@ -20,76 +20,76 @@ STRO r20, "ANSI Color Test"
 ; Row 1: Red text
 LDI r20, 0x4050
 STRO r20, "Red text here"
-LDI r13, 0x4050
-LDI r1, 0x7850
-LDI r9, 13
-LDI r8, 0xCD0000
+LDI r8, 0x4050
+LDI r4, 0x7850
+LDI r5, 13
+LDI r1, 0xCD0000
 call_fill_red:
-    STORE r1, r8
-    ADD r13, r5
-    ADD r1, r5
-    SUB r9, r5
-    CMPI r9, 0
-    JNZ r3, call_fill_red
+    STORE r4, r1
+    ADD r8, r12
+    ADD r4, r12
+    SUB r5, r12
+    CMPI r5, 0
+    JNZ r9, call_fill_red
 
 ; Row 2: Green text
 LDI r20, 0x40A0
 STRO r20, "Green text here"
-LDI r13, 0x40A0
-LDI r1, 0x78A0
-LDI r9, 15
-LDI r8, 0x00CD00
+LDI r8, 0x40A0
+LDI r4, 0x78A0
+LDI r5, 15
+LDI r1, 0x00CD00
 call_fill_green:
-    STORE r1, r8
-    ADD r13, r5
-    ADD r1, r5
-    SUB r9, r5
-    CMPI r9, 0
-    JNZ r3, call_fill_green
+    STORE r4, r1
+    ADD r8, r12
+    ADD r4, r12
+    SUB r5, r12
+    CMPI r5, 0
+    JNZ r9, call_fill_green
 
 ; Row 3: Blue text
 LDI r20, 0x40F0
 STRO r20, "Blue text here"
-LDI r13, 0x40F0
-LDI r1, 0x78F0
-LDI r9, 14
-LDI r8, 0x0000EE
+LDI r8, 0x40F0
+LDI r4, 0x78F0
+LDI r5, 14
+LDI r1, 0x0000EE
 call_fill_blue:
-    STORE r1, r8
-    ADD r13, r5
-    ADD r1, r5
-    SUB r9, r5
-    CMPI r9, 0
-    JNZ r3, call_fill_blue
+    STORE r4, r1
+    ADD r8, r12
+    ADD r4, r12
+    SUB r5, r12
+    CMPI r5, 0
+    JNZ r9, call_fill_blue
 
 ; Row 4: Yellow text
 LDI r20, 0x4140
 STRO r20, "Yellow text here"
-LDI r13, 0x4140
-LDI r1, 0x7940
-LDI r9, 16
-LDI r8, 0xCDCD00
+LDI r8, 0x4140
+LDI r4, 0x7940
+LDI r5, 16
+LDI r1, 0xCDCD00
 call_fill_yellow:
-    STORE r1, r8
-    ADD r13, r5
-    ADD r1, r5
-    SUB r9, r5
-    CMPI r9, 0
-    JNZ r3, call_fill_yellow
+    STORE r4, r1
+    ADD r8, r12
+    ADD r4, r12
+    SUB r5, r12
+    CMPI r5, 0
+    JNZ r9, call_fill_yellow
 
 ; Row 5: Cyan text
 LDI r20, 0x4190
 STRO r20, "Cyan text here"
-LDI r13, 0x4190
-LDI r1, 0x7990
-LDI r9, 14
-LDI r8, 0x00CDCD
+LDI r8, 0x4190
+LDI r4, 0x7990
+LDI r5, 14
+LDI r1, 0x00CDCD
 call_fill_cyan:
-    STORE r1, r8
-    ADD r13, r5
-    ADD r1, r5
-    SUB r9, r5
-    CMPI r9, 0
-    JNZ r3, call_fill_cyan
+    STORE r4, r1
+    ADD r8, r12
+    ADD r4, r12
+    SUB r5, r12
+    CMPI r5, 0
+    JNZ r9, call_fill_cyan
 
 HALT

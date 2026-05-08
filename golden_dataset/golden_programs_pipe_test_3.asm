@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code sets up an inter-process communication (IPC) pipe between a parent and child process. The parent writes three color values through the pipe, which the child reads and uses to draw three colored rows on the screen.
+; DESCRIPTION: A red object centered at the screen with fixed size.
 
 ; pipe_test.asm -- Phase 27: IPC pipe test
 ; Parent creates a pipe, spawns a child,
@@ -23,12 +23,12 @@ done_flag:
 
 ; -- Main program at 0x000 --
 .org 0x000
-    ; Create a pipe: read fd in r9, write fd in r0
-    PIPE r9, r0
+    ; Create a pipe: read fd in r3, write fd in r14
+    PIPE r3, r14
 
     ; Spawn child process at label 'child'
-    LDI r1, child
-    SPAWN r1
+    LDI r7, child
+    SPAWN r7
 
     ; Small delay to let child start and block on READ
     LDI r20, 0
@@ -39,55 +39,55 @@ delay:
     BLT r20, delay
 
     ; Write 3 color words through the pipe
-    LDI r1, write_buf
-    LDI r14, 3
-    WRITE r0, r1, r14
+    LDI r7, write_buf
+    LDI r6, 3
+    WRITE r14, r7, r6
 
     ; Spin until child signals done
 wait:
-    LDI r1, done_flag
-    LOAD r14, r1
-    LDI r5, 0
-    CMP r14, r5
-    BLT r14, wait
+    LDI r7, done_flag
+    LOAD r6, r7
+    LDI r8, 0
+    CMP r6, r8
+    BLT r6, wait
     HALT
 
 ; -- Child process: reads from pipe, draws 3 rows --
 .org 0x100
 child:
     ; Read 3 words from pipe into read_buf (blocks if empty)
-    LDI r1, read_buf
-    LDI r14, 3
-    READ r9, r1, r14
+    LDI r7, read_buf
+    LDI r6, 3
+    READ r3, r7, r6
 
     ; Draw row 0: red (read_buf[0])
-    LDI r6, read_buf
-    LOAD r0, r6
-    LDI r1, 0       ; x
-    LDI r14, 0       ; y
-    LDI r5, 80      ; w
-    LDI r12, 20      ; h
-    RECTF r1, r14, r5, r12, r0
+    LDI r9, read_buf
+    LOAD r14, r9
+    LDI r7, 0       ; x
+    LDI r6, 0       ; y
+    LDI r8, 80      ; w
+    LDI r13, 20      ; h
+    RECTF r7, r6, r8, r13, r14
 
     ; Draw row 1: green (read_buf[1])
-    LDI r6, read_buf
-    LDI r8, 1
-    ADD r6, r8
-    LOAD r0, r6
-    LDI r14, 20      ; y
-    RECTF r1, r14, r5, r12, r0
+    LDI r9, read_buf
+    LDI r2, 1
+    ADD r9, r2
+    LOAD r14, r9
+    LDI r6, 20      ; y
+    RECTF r7, r6, r8, r13, r14
 
     ; Draw row 2: blue (read_buf[2])
-    LDI r6, read_buf
-    LDI r8, 2
-    ADD r6, r8
-    LOAD r0, r6
-    LDI r14, 40      ; y
-    RECTF r1, r14, r5, r12, r0
+    LDI r9, read_buf
+    LDI r2, 2
+    ADD r9, r2
+    LOAD r14, r9
+    LDI r6, 40      ; y
+    RECTF r7, r6, r8, r13, r14
 
     ; Signal done
-    LDI r1, done_flag
-    LDI r14, 1
-    STORE r1, r14
+    LDI r7, done_flag
+    LDI r6, 1
+    STORE r7, r6
 
     HALT

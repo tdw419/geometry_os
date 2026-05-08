@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code demonstrates inter-process communication (IPC) using pipes. It creates a pipe, writes five values into it, reads them back, and displays the result on screen by showing the text "PIPE IPC OK" and drawing a green line to indicate success.
+; DESCRIPTION: Draws a green line at the screen with fixed size.
 
 ; pipe_demo.asm -- Phase 27 IPC Demo
 ; Demonstrates pipes, MSGSND/MSGRCV, and blocking I/O
@@ -14,48 +14,48 @@
 .org 0x100
 
 ; === Phase 1: Create a pipe ===
-PIPE r2, r15          ; r2 = read_fd (0x8000+idx), r15 = write_fd (0xC000+idx)
+PIPE r9, r12          ; r9 = read_fd (0x8000+idx), r12 = write_fd (0xC000+idx)
 
 ; === Phase 2: Write 5 values into the pipe ===
-LDI r5, 42           ; value 1
-STORE r20, r5
-LDI r5, 99           ; value 2
-STORE r21, r5
-LDI r5, 7            ; value 3
-STORE r22, r5
-LDI r5, 1234         ; value 4
-STORE r23, r5
-LDI r5, 56789        ; value 5
-STORE r24, r5
+LDI r1, 42           ; value 1
+STORE r20, r1
+LDI r1, 99           ; value 2
+STORE r21, r1
+LDI r1, 7            ; value 3
+STORE r22, r1
+LDI r1, 1234         ; value 4
+STORE r23, r1
+LDI r1, 56789        ; value 5
+STORE r24, r1
 
 ; WRITE write_fd, buf_addr, len
-LDI r5, 20           ; buf_addr = 0x14 (r20)
-LDI r4, 5            ; len = 5
-WRITE r15, r5, r4     ; write 5 words to pipe
+LDI r1, 20           ; buf_addr = 0x14 (r20)
+LDI r10, 5            ; len = 5
+WRITE r12, r1, r10     ; write 5 words to pipe
 
 ; === Phase 3: Read 5 values back from the pipe ===
-LDI r5, 30           ; buf_addr = 0x1E (r30)
-LDI r4, 5            ; len = 5
-READ r2, r5, r4      ; read 5 words from pipe
+LDI r1, 30           ; buf_addr = 0x1E (r30)
+LDI r10, 5            ; len = 5
+READ r9, r1, r10      ; read 5 words from pipe
 
 ; === Phase 4: Display result on screen ===
-LDI r12, 10          ; x position
-LDI r10, 10          ; y position
+LDI r5, 10          ; x position
+LDI r13, 10          ; y position
 FILL 0               ; clear screen (black)
 
 ; Show "IPC OK" text
-LDI r12, 100
-LDI r10, 120
-LDI r6, msg
-TEXT r12, r10, [r6]
+LDI r5, 100
+LDI r13, 120
+LDI r2, msg
+TEXT r5, r13, [r2]
 
 ; Draw a green line to indicate success
-LDI r12, 100
-LDI r10, 130
-LDI r6, 156
-LDI r1, 130
-LDI r8, 0x00FF00    ; green
-LINE r12, r10, r6, r1, r8
+LDI r5, 100
+LDI r13, 130
+LDI r2, 156
+LDI r6, 130
+LDI r4, 0x00FF00    ; green
+LINE r5, r13, r2, r6, r4
 
 HALT
 

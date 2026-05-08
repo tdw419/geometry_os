@@ -1,4 +1,4 @@
-; DESCRIPTION: This GeOS assembly code searches for a byte pattern in a text buffer located at 0x6000, using a pre-loaded pattern at 0x6100. It counts the matches and displays them on the screen with highlighted text, storing the match count at RAM[0x7800].
+; DESCRIPTION: Render a colored object at the screen.
 
 ; grep.asm -- Search for a pattern in RAM text
 ;
@@ -11,20 +11,20 @@
 ; Expected: 1 match (in "F[oo] Bar")
 
     ; --- Fill screen ---
-    LDI r5, 0x000011
-    FILL r5
+    LDI r12, 0x000011
+    FILL r12
 
     ; --- Pre-load text at 0x6000 ---
     LDI r20, 0x6000
     STRO r20, "Hello World"
     LDI r20, 0x600B
-    LDI r0, 10
-    STORE r20, r0
+    LDI r6, 10
+    STORE r20, r6
     LDI r20, 0x600C
     STRO r20, "Foo Bar"
     LDI r20, 0x6013
-    LDI r0, 10
-    STORE r20, r0
+    LDI r6, 10
+    STORE r20, r6
     LDI r20, 0x6014
     STRO r20, "Baz"
 
@@ -33,118 +33,118 @@
     STRO r20, "oo"
 
     ; --- Search ---
-    LDI r15, 0x6000        ; text pointer
-    LDI r7, 0             ; match count
-    LDI r3, 1
+    LDI r2, 0x6000        ; text pointer
+    LDI r3, 0             ; match count
+    LDI r15, 1
 
 search_loop:
     ; Read char at text pointer
-    LOAD r0, r15
+    LOAD r6, r2
     ; Check for null (end of text)
-    LDI r8, 0
-    CMP r0, r8
-    JZ r11, search_done
+    LDI r5, 0
+    CMP r6, r5
+    JZ r7, search_done
 
     ; Try to match pattern at this position
-    LDI r14, 0x6100        ; pattern pointer
-    MOV r16, r15            ; save start position
+    LDI r10, 0x6100        ; pattern pointer
+    MOV r16, r2            ; save start position
 
 match_try:
     ; Read pattern char
-    LOAD r0, r14
+    LOAD r6, r10
     ; If pattern char is null, full match
-    LDI r8, 0
-    CMP r0, r8
-    JZ r11, found_match
+    LDI r5, 0
+    CMP r6, r5
+    JZ r7, found_match
 
     ; Read text char at current position
-    LOAD r4, r16
+    LOAD r1, r16
     ; If text is null or newline, no match
-    LDI r8, 0
-    CMP r4, r8
-    JZ r11, no_match
+    LDI r5, 0
+    CMP r1, r5
+    JZ r7, no_match
 
     ; Compare
-    CMP r0, r4
-    JNZ r11, no_match
+    CMP r6, r1
+    JNZ r7, no_match
 
     ; Match so far, advance both
-    ADD r14, r3
-    ADD r16, r3
+    ADD r10, r15
+    ADD r16, r15
     JMP match_try
 
 found_match:
-    ADDI r7, 1            ; match count++
+    ADDI r3, 1            ; match count++
 
 no_match:
-    ADDI r15, 1            ; advance text pointer
+    ADDI r2, 1            ; advance text pointer
     JMP search_loop
 
 search_done:
     ; Store match count
     LDI r9, 0x7800
-    STORE r9, r7
+    STORE r9, r3
 
     ; --- Draw header ---
-    LDI r5, 0x006600       ; green header
-    LDI r14, 0
+    LDI r12, 0x006600       ; green header
+    LDI r10, 0
     LDI r16, 0
     LDI r17, 256
     LDI r18, 12
-    RECTF r14, r16, r17, r18, r5
+    RECTF r10, r16, r17, r18, r12
 
     LDI r20, 0x5000
     STRO r20, "grep:"
-    LDI r15, 4
-    LDI r7, 2
-    LDI r12, 0x5000
-    LDI r1, 0xFFFFFF
-    LDI r2, 0x006600
-    DRAWTEXT r15, r7, r12, r1, r2
+    LDI r2, 4
+    LDI r3, 2
+    LDI r11, 0x5000
+    LDI r0, 0xFFFFFF
+    LDI r14, 0x006600
+    DRAWTEXT r2, r3, r11, r0, r14
 
     ; Show pattern searched
     LDI r20, 0x5000
     STRO r20, "Pattern:"
-    LDI r15, 4
-    LDI r7, 16
-    LDI r12, 0x5000
-    LDI r1, 0xCCCCCC
-    LDI r2, 0x000011
-    DRAWTEXT r15, r7, r12, r1, r2
+    LDI r2, 4
+    LDI r3, 16
+    LDI r11, 0x5000
+    LDI r0, 0xCCCCCC
+    LDI r14, 0x000011
+    DRAWTEXT r2, r3, r11, r0, r14
 
     ; Show the pattern itself
-    LDI r15, 80
-    LDI r7, 16
-    LDI r12, 0x6100
-    LDI r1, 0xFFFF00     ; yellow
-    LDI r2, 0x000011
-    DRAWTEXT r15, r7, r12, r1, r2
+    LDI r2, 80
+    LDI r3, 16
+    LDI r11, 0x6100
+    LDI r0, 0xFFFF00     ; yellow
+    LDI r14, 0x000011
+    DRAWTEXT r2, r3, r11, r0, r14
 
     ; Show match count
     LDI r20, 0x5000
     STRO r20, "Matches:"
-    LDI r15, 4
-    LDI r7, 32
-    LDI r12, 0x5000
-    LDI r1, 0xCCCCCC
-    LDI r2, 0x000011
-    DRAWTEXT r15, r7, r12, r1, r2
+    LDI r2, 4
+    LDI r3, 32
+    LDI r11, 0x5000
+    LDI r0, 0xCCCCCC
+    LDI r14, 0x000011
+    DRAWTEXT r2, r3, r11, r0, r14
 
     ; Show the original text
     LDI r20, 0x5000
     STRO r20, "Text:"
-    LDI r15, 4
-    LDI r7, 48
-    LDI r12, 0x5000
-    LDI r1, 0xCCCCCC
-    LDI r2, 0x000011
-    DRAWTEXT r15, r7, r12, r1, r2
+    LDI r2, 4
+    LDI r3, 48
+    LDI r11, 0x5000
+    LDI r0, 0xCCCCCC
+    LDI r14, 0x000011
+    DRAWTEXT r2, r3, r11, r0, r14
 
-    LDI r15, 50
-    LDI r7, 48
-    LDI r12, 0x6000
-    LDI r1, 0x888888
-    LDI r2, 0x000011
-    DRAWTEXT r15, r7, r12, r1, r2
+    LDI r2, 50
+    LDI r3, 48
+    LDI r11, 0x6000
+    LDI r0, 0x888888
+    LDI r14, 0x000011
+    DRAWTEXT r2, r3, r11, r0, r14
 
     HALT
