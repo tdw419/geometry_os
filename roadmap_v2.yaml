@@ -4760,7 +4760,7 @@ phases:
     validation: cargo test --lib ops_memory scheduler
 - id: phase-279
   title: GeOS Program -- Platformer Game with Physics
-  status: in_progress
+  status: planned
   goal: Build a side-scrolling platformer game demonstrating advanced collision detection
     and physics simulation in the VM.
   description: 'A Mario-style platformer with gravity, jumping, horizontal scrolling,
