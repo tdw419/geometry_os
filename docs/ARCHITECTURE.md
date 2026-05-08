@@ -1,513 +1,742 @@
-# Geometry OS Architecture
+# Geometry OS — Architecture Reference
 
-System-level documentation for the full Geometry OS stack.
-Read alongside CANVAS_TEXT_SURFACE.md (editor/assembly pipeline) and
-SIGNED_ARITHMETIC.md (arithmetic semantics).
+> **Last updated:** 2026-05-08
+> **Stats:** 218 opcodes, 3237 tests, 218 programs, 125K LOC (src), 26K LOC (tests)
 
----
+## One-Line Summary
 
-## Full Opcode Reference (77 opcodes)
+Type text on a 32×128 pixel grid, press F8 to assemble, press F5 to run — the letter IS the colored pixels.
 
-### Control Flow
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x00 | HALT     |      | Stop execution |
-| 0x01 | NOP      |      | No operation |
-| 0x02 | FRAME    |      | Yield to renderer, increment TICKS |
-| 0x03 | BEEP     | freq_reg, dur_reg | Sine-wave tone (20-20000 Hz, 1-5000 ms) |
+## The Pipeline
 
-### Data Movement
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x10 | LDI      | reg, imm | Load immediate |
-| 0x11 | LOAD     | reg, [reg] | Load from memory |
-| 0x12 | STORE    | [reg], reg | Store to memory |
-| 0x51 | MOV      | rd, rs | Register copy |
+```
+keystroke → ASCII byte → vm.canvas_buffer[row*32+col] as u32
+                                │
+                    ┌───────────┼───────────┐
+                    │           │           │
+               rendering   preprocessor   assembly (F8)
+                    │        (macro exp)       │
+          font::GLYPHS[byte]  VAR/SET/GET   assembler::assemble()
+          palette_color(val)                → bytecode at 0x1000
+                    │           │           │
+              pixel glyph   expanded      F5 runs from 0x1000
+              colored by    source →       → VM.step() loop
+              HSV palette   assembler
+```
 
-### Arithmetic
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x20 | ADD      | rd, rs | rd = rd + rs |
-| 0x21 | SUB      | rd, rs | rd = rd - rs |
-| 0x22 | MUL      | rd, rs | rd = rd * rs |
-| 0x23 | DIV      | rd, rs | rd = rd / rs |
-| 0x24 | AND      | rd, rs | Bitwise AND |
-| 0x25 | OR       | rd, rs | Bitwise OR |
-| 0x26 | XOR      | rd, rs | Bitwise XOR |
-| 0x27 | SHL      | rd, rs | Shift left |
-| 0x28 | SHR      | rd, rs | Shift right |
-| 0x29 | MOD      | rd, rs | Modulo |
-| 0x2A | NEG      | rd     | Two's complement negation |
-| 0x2B | SAR      | rd, rs | Arithmetic shift right (sign-preserving) |
+Three representations of each cell, all from the same byte:
 
-### Compare & Branches
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x50 | CMP      | rd, rs | Compare: r0 = -1/0/1 (lt/eq/gt) |
-| 0x30 | JMP      | addr  | Unconditional jump |
-| 0x31 | JZ       | reg, addr | Jump if zero |
-| 0x32 | JNZ      | reg, addr | Jump if not zero |
-| 0x33 | CALL     | addr  | Subroutine call (return addr in r31) |
-| 0x34 | RET      |       | Return from subroutine |
-| 0x35 | BLT      | reg, addr | Branch if r0 < 0 (after CMP) |
-| 0x36 | BGE      | reg, addr | Branch if r0 >= 0 (after CMP) |
+1. **Glyph** — character shape from `font::GLYPHS[byte]` (8×8 at 2× scale)
+2. **Color** — `palette_color(val)` solid block, HSV spread across printable ASCII
+3. **Byte** — raw hex value (for cursor inspector)
 
-### Graphics
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x40 | PSET     | xr, yr, cr | Set pixel (registers) |
-| 0x41 | PSETI    | x, y, c | Set pixel (immediates) |
-| 0x42 | FILL     | cr     | Fill screen with color |
-| 0x43 | RECTF    | xr,yr,wr,hr,cr | Filled rectangle |
-| 0x44 | TEXT     | xr, yr, ar | Draw null-terminated string from RAM |
-| 0x45 | LINE     | x0r,y0r,x1r,y1r,cr | Bresenham line |
-| 0x46 | CIRCLE   | xr, yr, rr, cr | Midpoint circle |
-| 0x47 | SCROLL   | nr     | Scroll screen up by N pixels |
-| 0x4A | SPRITE   | xr,yr,ar,wr,hr | Blit NxM sprite from RAM (0=transparent) |
-| 0x4C | TILEMAP  | xr,yr,mr,tr,gwr,ghr,twr,thr | Grid blit from tile index array |
-| 0x4F | PEEK     | rx, ry, rd | Read screen pixel at (rx,ry) into rd |
+## Source Tree
 
-### Stack & I/O
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x60 | PUSH     | reg   | Push to stack (r30 = SP) |
-| 0x61 | POP      | reg   | Pop from stack |
-| 0x48 | IKEY     | reg   | Read keyboard port, clear it |
-| 0x49 | RAND     | reg   | Pseudo-random u32 (LCG, seed 0xDEADBEEF) |
-
-### Meta-Programming
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x4B | ASM      | src_reg, dest_reg | Assemble source text from RAM, write bytecode to RAM |
-
-### Multi-Process
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x4D | SPAWN    | addr_reg | Create child process at address, PID in RAM[0xFFA] |
-| 0x4E | KILL     | pid_reg | Terminate child process by PID |
-
-### Kernel Mode (Syscalls)
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x52 | SYSCALL  |       | Trap into kernel mode, dispatch by number in r0 |
-| 0x53 | RETK     |       | Return from kernel mode to user mode |
-
-### Filesystem
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x54 | OPEN     | path_reg, mode_reg | Open file, fd in r0 |
-| 0x55 | READ     | fd_reg, buf_reg, count_reg | Read from file into RAM |
-| 0x56 | WRITE    | fd_reg, buf_reg, count_reg | Write from RAM to file |
-| 0x57 | CLOSE    | fd_reg | Close file descriptor |
-| 0x58 | SEEK     | fd_reg, offset_reg | Seek in file |
-| 0x59 | LS       | buf_reg | Directory listing into RAM buffer |
-
-### Process Management
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x5A | YIELD    |       | Voluntary context switch |
-| 0x5B | SLEEP    | ticks_reg | Sleep for N frames |
-| 0x5C | SETPRIORITY | prio_reg | Set process priority (0-3) |
-| 0x65 | GETPID   |       | Get current process ID, result in r0 |
-| 0x66 | EXEC     | addr_reg | Execute program at address (in-kernel) |
-| 0x6F | EXIT     | status_reg | Exit process with status code |
-
-### Inter-Process Communication
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x5D | PIPE     | r5, r6 | Create pipe: read FD in r5, write FD in r6 |
-| 0x5E | MSGSND   | pid_reg | Send 4-word message to process |
-| 0x5F | MSGRCV   |       | Receive message, sender PID in r0 |
-
-### Device I/O
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x62 | IOCTL    | fd_reg, cmd_reg, val_reg | Device-specific control |
-| 0x63 | GETENV   | key_reg, buf_reg | Read environment variable |
-| 0x64 | SETENV   | key_reg, val_reg | Set environment variable |
-| 0x67 | WRITESTR | fd_reg, buf_reg | Write null-terminated string |
-| 0x68 | READLN   | buf_reg | Read keyboard line into buffer |
-| 0x6D | SCREENP  | xr, yr, cr | Draw pixel to screen via fd |
-
-### Shell & Execution
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x69 | WAITPID  | pid_reg | Wait for child process, exit code in r0 |
-| 0x6A | EXECP    | addr_reg, stdin_fd, stdout_fd | Spawn with fd redirection |
-| 0x6B | CHDIR    | path_reg | Change working directory |
-| 0x6C | GETCWD   | buf_reg | Get current working directory |
-
-### System
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x6E | SHUTDOWN |       | Halt all processes, flush filesystem |
-| 0x70 | SIGNAL   | pid_reg, sig_reg | Send signal to process |
-| 0x71 | SIGSET   | sig_reg, handler_reg | Register signal handler |
-
-### Hypervisor
-| Hex  | Mnemonic | Args | Description |
-|------|----------|------|-------------|
-| 0x72 | HYPERVISOR | config_reg | Read config from RAM, spawn guest OS |
-
----
+```
+src/
+├── main.rs              # Window (minifb), rendering, input, terminal/editor modes
+├── lib.rs               # Public API (pub mod vm, assembler)
+├── cli.rs               # Headless CLI REPL (--cli mode)
+├── canvas.rs            # GUI terminal handler
+├── hermes.rs            # Built-in LLM agent (hermes/build commands)
+├── episode_log.rs       # Episodic memory for LLM context
+├── preprocessor.rs      # Macro expansion (VAR/SET/GET/INC/DEC)
+├── font.rs              # 8×8 VGA/CP437 bitmaps (128 glyphs)
+├── glyph_backend.rs     # Glyph rendering backend
+├── vfs.rs               # Virtual filesystem
+├── inode_fs.rs          # Inode-based in-memory filesystem
+├── audio.rs             # Audio subsystem (WAV via aplay)
+├── save.rs              # Save/load VM state to disk
+├── scrollback.rs        # Terminal scrollback buffer
+├── keys.rs              # Key mapping (physical → ASCII)
+├── pixel.rs             # Pixel-level operations
+├── render.rs            # Rendering pipeline
+├── camera.rs            # Camera/viewport management
+├── viewport.rs          # Viewport abstraction
+├── vision.rs            # Vision-gate pixel inspection
+├── mcp_server.rs        # MCP bridge (Hermes → VM socket)
+├── fuzzer.rs            # Bytecode VM fuzzer with oracle checking
+├── riscv_fuzzer.rs      # RISC-V interpreter fuzzer (17 C-ext ops)
+└── assembler/
+    ├── mod.rs               # Two-pass assembler with labels
+    ├── core_ops.rs          # ALU, branches, load/store, stack
+    ├── graphics_ops.rs      # PSET, RECTF, LINE, CIRCLE, SPRITE, TILEMAP, etc.
+    ├── immediate_ops.rs     # PSETI, TEXTI, MEMSET, BYTEPACK, etc.
+    ├── system_ops.rs        # Syscalls, process, IPC, device, networking
+    ├── formula_ops.rs       # FORMULA/FORMULACLEAR/FORMULAREM
+    ├── instructions.rs      # Instruction metadata
+    └── includes.rs          # .include directive handling
+src/vm/
+├── mod.rs               # Core VM: 64K RAM, 32 regs, 256×256 screen
+├── types.rs             # Process, SpawnedProcess, VmState types
+├── memory.rs            # Page directory, COW, physical page allocator
+├── scheduler.rs         # Round-robin process scheduler
+├── boot.rs              # Boot sequence (init process, shell spawn)
+├── ops_memory.rs        # LOAD/STORE/LOADS/STORES/MEMCPY/MEMSET handlers
+├── ops_graphics.rs      # PSET/RECTF/LINE/CIRCLE/SPRITE/TEXT/CLIP/etc handlers
+├── ops_extended.rs      # CMP/MOV/NEG/BFE/BFI/CMOV/CSEL/etc handlers
+├── ops_syscall.rs       # OPEN/READ/WRITE/CLOSE/SEEK/LS/FMKDIR/etc handlers
+├── ops_host_fs.rs       # Host filesystem bridge opcodes
+├── ops_pty.rs           # PTY open/write/read/close/size handlers
+├── net.rs               # UDP networking (SOCKSEND/SOCKRECV/CONNECT)
+├── formula.rs           # Reactive canvas formula engine
+├── disasm.rs            # Disassembler (instruction boundary scanning)
+├── trace.rs             # Execution trace buffer
+├── icache.rs            # Instruction cache
+├── io.rs                # Save/load state serialization
+├── gpu_lexer.rs         # GPU shader lexer
+├── gpu_patcher.rs       # GPU binary patching
+└── tests.rs             # VM unit/integration tests (core)
+tests/
+├── program_tests.rs     # Integration tests: assemble + run + verify screen
+└── ...                  # Additional test files
+programs/                # 218 assembly programs (.asm files)
+docs/
+├── CANVAS_TEXT_SURFACE.md   # Founding spec (THE authoritative document)
+├── ARCHITECTURE.md          # This file
+└── RISCV_HYPERVISOR.md      # RISC-V Linux boot design
+```
 
 ## Memory Map
 
 ```
-Address         Size     Purpose
-──────────────────────────────────────────────────────────────
-0x000-0x3FF     1024     Canvas grid (legacy, separate buffer in TEXT mode)
-0x400-0xEFF     ~4K      Multi-process bytecode (via .org directive)
-0xF00-0xF03     4        Window Bounds Protocol (win_x, win_y, win_w, win_h)
-0x1000-0x1FFF   4096     Canvas bytecode output (F8 assembles here)
-0x2000-0xFFA    ~60K     General purpose RAM
-0xFFB           1        Key bitmask port (bits 0-5, read-only)
-0xFFC           1        Network port (UDP)
-0xFFD           1        ASM result port (word count or 0xFFFFFFFF on error)
-0xFFE           1        TICKS port (frame counter, read-only)
-0xFFF           1        Keyboard port (cleared on IKEY read)
-──────────────────────────────────────────────────────────────
-Total: 65536 (0x10000) u32 cells
+Address Range        Size      Purpose
+────────────────────────────────────────────────────────────────
+0x0000–0x0FFF        4K        Source text (32×128 canvas grid)
+0x1000–0x1FFF        4K        Assembled bytecode (F8 writes here)
+0x2000–0x7FFF        24K       General-purpose RAM
+0x8000–0x8FFF        4K        Canvas buffer mirror (LOAD/STORE intercepted)
+0x9000–0xFBFF        28K       General-purpose RAM
+0xFC00–0xFC03        4W        Window Bounds Protocol (shared RAM IPC)
+0xFC04–0xFC04        1W        Audio volume (0–100, via /dev/audio IOCTL)
+0xFC05–0xFC05        1W        Keyboard echo mode (via /dev/keyboard IOCTL)
+0xFC07–0xFC07        1W        Key bitmask (bits 0–5: U/D/L/R/space/enter)
+0xFC08–0xFC08        1W        Network data port (UDP)
+0xFC09–0xFC09        1W        ASM result (word count or 0xFFFFFFFF on error)
+0xFC0A–0xFC0A        1W        TICKS (frame counter, read-only, per FRAME)
+0xFC00–0xFFFF        1K        Hardware registers / stack (r30=SP grows from 0xFC00)
+────────────────────────────────────────────────────────────────
+Page 3 Debug Mailbox (shared COW page, identity-mapped in all SPAWNC children):
+0x0C00  DEBUG_MAGIC      (0xDB9900 = debug stub active)
+0x0C01  DEBUG_PARENT_PID
+0x0C02  DEBUG_CHILD_PID
+0x0C03  DEBUG_COMMAND    (1=regs, 2=ram_read, 3=ping, 0=none)
+0x0C04  DEBUG_STATUS     (0=idle, 1=cmd_pending, 2=response_ready)
+0x0C05–0x0C24 DEBUG_RESPONSE (32 words)
+0x0C25  DEBUG_ADDR
+0x0C26  DEBUG_VALUE
+0x0C27  DEBUG_HEARTBEAT
+0x0C28  DEBUG_CHECKPOINT
+────────────────────────────────────────────────────────────────
+FD namespace:
+  0–99           Regular file fds (VFS fopen)
+  0x8000–0xBFFF  Pipe read fds (0x8000 + pipe_idx)
+  0xC000–0xDFFF  Pipe write fds (0xC000 + pipe_idx)
+  0xE000–0xE003  Device fds (screen/keyboard/audio/net)
 ```
 
----
+Total: 65536 (64K) u32 cells.
 
-## Kernel Mode Architecture
+## Special Registers
 
-Geometry OS has two execution modes:
+| Register | Purpose |
+|----------|---------|
+| r0 | CMP result (−1/0/1). **Never use as general register.** |
+| r30 (SP) | Stack pointer. Initialize to 0xFC00 before PUSH/POP. Grows downward. |
+| r31 (LR) | Link register. CALL saves return address here, RET jumps to it. |
 
-- **Kernel mode**: Full access to all opcodes, hardware ports, and system resources.
-- **User mode**: Restricted -- cannot directly access hardware ports (0xFFF, 0xFFB, etc.) or use privileged opcodes.
+## VM Structure
 
-Programs spawned via `SPAWN` start in user mode. The `SYSCALL` opcode traps into kernel mode, dispatches based on the syscall number in r0, and `RETK` returns to user mode.
+- **64K RAM** (`ram: [u32; 65536]`)
+- **32 registers** (`regs: [u32; 32]`)
+- **256×256 screen buffer** (`screen: [u32; 65536]`)
+- **128×32 canvas buffer** (`canvas_buffer: Vec<u32>`) — mapped at 0x8000–0x8FFF
+- **Process table** — multi-process with isolated address spaces
+- **Page directory** — COW fork, per-process virtual memory
+- **VFS** — inode-based in-memory filesystem
+- **Scheduler** — round-robin with priority and time slices
+- **IPC** — pipes (PIPE), messages (MSGSND/MSGRCV)
 
-### Syscall Convention
+## Multi-Process
 
-1. Set r0 to syscall number
-2. Set argument registers as needed
-3. Execute `SYSCALL`
-4. Kernel handler runs, sets r0 to return value
-5. Execute `RETK` to return to user mode
+### SPAWN / KILL
 
----
+SPAWN creates a child process with its own registers, PC, and page directory (isolated address space). Only shared pages are identity-mapped:
 
-## Multi-Process Architecture
-
-Geometry OS supports up to 8 concurrent processes sharing the same 64K RAM.
-
-### Scheduler
-
-Processes are scheduled with a priority-based preemptive scheduler:
-- **Priority levels**: 0 (lowest) to 3 (highest)
-- **Timer interrupt**: Fires every N instructions, triggers context switch
-- **YIELD**: Voluntary context switch
-- **SLEEP**: Timed sleep, process wakes after N frames
-- **Blocking I/O**: Processes block on empty pipe reads or message receives
-
-### Process Lifecycle
-
-- **SPAWN** (0x4D): Creates a child process with its own register file, page table, and fd table. PID stored in RAM[0xFFA].
-- **KILL** (0x4E): Terminates a child by PID.
-- **EXIT** (0x6F): Exits current process with status code, becomes zombie.
-- **WAITPID** (0x69): Parent reaps zombie, gets exit code.
-- **SIGNAL** (0x70) / **SIGSET** (0x71): POSIX-like signal handling.
-
-### Window Bounds Protocol
-
-For spatial coordination between processes, RAM[0xF00..0xF03] is a shared convention:
-
-| Address | Field | Who Writes |
-|---------|-------|------------|
-| 0xF00   | win_x | Primary |
-| 0xF01   | win_y | Primary |
-| 0xF02   | win_w | Primary |
-| 0xF03   | win_h | Primary |
-
-### Multi-Process Assembly
-
-Use `.org <addr>` in a single assembly file to place child process code:
+- **Page 3** (0x0C00–0x0FFF): Debug mailbox, window bounds, hardware ports
+- **Page 63** (0xFC00–0xFFFF): Hardware registers, stack area
 
 ```
-  LDI r0, child
-  SPAWN r0          ; spawn child at label
-  ; ... primary loop ...
+; Primary spawns child at label
+LDI r6, child
+SPAWN r6            ; child starts at 'child', r6 = child PID
 
-.org 0x400
-child:
-  ; ... child process code ...
+; ... primary loop ...
+KILL r6             ; kill by PID
 ```
 
----
+**Entry point alignment**: SPAWN uses COW fork. Child virtual page 0 maps to the physical page containing `start_addr`. For JMP/CALL to work correctly in the child, use page-aligned addresses (multiples of 1024: `.org 0x000`, `.org 0x400`, `.org 0x800`).
 
-## Memory Protection
+### SPAWNC (COW Fork)
 
-Each process gets its own page table mapping virtual addresses to physical RAM.
+SPAWNC (0xA7) creates COW children. Only Page 3 is shared between parent and child. Parent cannot write to child's non-shared RAM.
 
-- **Kernel mode**: Identity mapping (no translation)
-- **User mode**: Page table translation via 1-level paging
-- **SEGFAULT**: Access to unmapped page halts the offending process
-- **RAM[0xFF9]**: Tracks which PID caused the last segfault
+### Window Bounds Protocol (Shared RAM IPC)
 
-Each child process receives 4 private physical pages. Shared regions (page 3, page 63) are identity-mapped for inter-process communication.
-
-See `docs/MEMORY_PROTECTION.md` for full details.
-
----
-
-## Virtual Filesystem (VFS)
-
-Programs access files through syscall opcodes. Backed by the host filesystem at `.geometry_os/fs/`.
-
-| Opcode | Syscall | Description |
-|--------|---------|-------------|
-| 0x54   | OPEN    | Open file, returns fd |
-| 0x55   | READ    | Read bytes into RAM |
-| 0x56   | WRITE   | Write bytes from RAM |
-| 0x57   | CLOSE   | Close file descriptor |
-| 0x58   | SEEK    | Seek to offset |
-| 0x59   | LS      | Directory listing |
-
-Each process has up to 16 open file descriptors.
-
-### Device Files
-
-Hardware accessed through the filesystem interface:
-
-| Path          | FD        | Description |
-|---------------|-----------|-------------|
-| /dev/screen   | 0xE000    | Screen pixel output |
-| /dev/keyboard | 0xE001    | Keyboard input |
-| /dev/audio    | 0xE002    | Audio output |
-| /dev/net      | 0xE003    | Network (UDP) |
-
-### IOCTL (0x62)
-
-Device-specific control operations:
-- **Screen**: cmd 0 = get width, cmd 1 = get height
-- **Keyboard**: cmd 0 = get echo mode, cmd 1 = set echo mode
-- **Audio**: cmd 0 = get volume, cmd 1 = set volume
-- **Net**: cmd 0 = get status
-
----
-
-## Inter-Process Communication
-
-### Pipes (0x5D)
-
-Unidirectional byte streams with circular buffer (256 words). Created with `PIPE r5, r6` which returns read FD (0x8000|idx) and write FD (0xC000|idx).
-
-### Messages (0x5E/0x5F)
-
-Fixed-size (4-word) messages between processes. `MSGSND` sends to target PID, `MSGRCV` receives and returns sender PID. Per-process message queue holds 16 messages. `MSGRCV` blocks if no message is queued.
-
----
-
-## Shell
-
-`shell.asm` is an interactive command interpreter running as a user process. It supports:
-- **Built-in commands**: ls, cd, cat, echo, ps, kill, help, pwd, clear, exit
-- **Pipe operator**: `prog1 | prog2` connects stdout to stdin
-- **Redirection**: `prog > file`, `prog < file`, `prog >> file`
-- **Environment variables**: SHELL, HOME, CWD, USER set by init
-
----
-
-## Boot Sequence
-
-1. VM initializes hardware (screen, keyboard, timer)
-2. Boot ROM assembles `init.asm` from boot.cfg
-3. Init process (PID 1) spawns with priority 2
-4. Init reads boot.cfg, sets environment variables
-5. Init spawns shell process
-6. Init enters supervisor loop, respawns shell if it dies
-7. `SHUTDOWN` (0x6E) halts all processes, flushes filesystem
-
----
-
-## Hypervisor
-
-Geometry OS has two hypervisor modes for running guest operating systems:
-
-### QEMU Bridge (Phase 33)
-
-Spawns QEMU as a subprocess, pipes serial console I/O through the canvas text surface.
-Supports any QEMU architecture: riscv64, x86_64, aarch64, mipsel.
-
-- ANSI escape sequence parsing for terminal rendering
-- Keyboard forwarding to QEMU stdin
-- Auto-scrolling canvas output
-
-### Native RISC-V Interpreter (Phases 34-37)
-
-Pure Rust RISC-V RV32I interpreter with no external dependencies.
-
-**RISC-V module** (`src/riscv/`):
-- `mod.rs` -- public interface, bridge integration
-- `cpu.rs` -- register file, instruction execute, privilege modes, CSRs
-- `memory.rs` -- guest RAM (up to 128MB), load/store
-- `decode.rs` -- instruction decode for all RV32I opcodes
-- `mmu.rs` -- SV32 page table walk, TLB cache, page fault traps
-- `uart.rs` -- UART 16550 serial port emulation
-- `clint.rs` -- CLINT timer interrupt controller
-- `plic.rs` -- PLIC platform interrupt controller
-- `virtio_blk.rs` -- Virtio MMIO block device
-- `dtb.rs` -- Device Tree Blob generation
-
-**Features**:
-- 40 RV32I base instructions
-- M/S/U privilege modes with ECALL/MRET/SRET
-- CSR register bank (mstatus, mtvec, mepc, sstatus, stvec, satp, etc.)
-- SV32 2-level page table walk with 64-entry ASID-aware TLB
-- Timer and software interrupts
-- ELF and raw binary kernel loader
-- Device tree blob generation for guest kernel boot
-
----
-
-## Standard Library
-
-Located in `lib/`:
-- `lib/stdlib.asm` -- String operations, memory operations, formatted I/O
-- `lib/math.asm` -- sin, cos, sqrt via lookup tables
-- `lib/heap.asm` -- malloc/free dynamic memory allocator
-
-Loaded via `.include` directive in the assembler.
-
----
-
-## Preprocessor (Abstraction Layer)
-
-The preprocessor (`preprocessor.rs`) sits between the canvas text and the assembler.
-
-### Macros
-
-| Macro | Syntax | Expansion | Temp Registers |
-|-------|--------|-----------|----------------|
-| VAR   | `VAR name addr` | Defines variable | none |
-| SET   | `SET var, val` | LDI r28, val / LDI r29, addr / STORE r29, r28 | r28, r29 |
-| GET   | `GET reg, var` | LDI r29, addr / LOAD reg, r29 | r29 |
-| INC   | `INC var` | LDI r29, addr / LOAD r28, r29 / ADD r28, r27 / STORE r29, r28 | r27, r28, r29 |
-| DEC   | `DEC var` | LDI r29, addr / LOAD r28, r29 / SUB r28, r27 / STORE r29, r28 | r27, r28, r29 |
-
-### #define Constants
+Zero-opcode spatial coordination via shared RAM:
 
 ```
-#define TILE 8
-#define MAX_X 255
+RAM[0xFC00] = win_x   (left edge)
+RAM[0xFC01] = win_y   (top edge)
+RAM[0xFC02] = win_w   (width)
+RAM[0xFC03] = win_h   (height)
 ```
 
-Replaced before instruction parsing. Works in immediate contexts.
+Children read these each frame and clamp rendering to their window. Moving the window automatically moves children — no messages, no interrupts.
 
----
+## Virtual Filesystem
 
-## VM Instrumentation
+### Inode-Based In-Memory FS
 
-### Access Log Buffer
+- Files stored as inode → block chains
+- Max files and blocks configurable
+- Standard operations: OPEN, READ, WRITE, CLOSE, SEEK, LS
+- Extended: FMKDIR, FUNLINK, FSTAT, FCOPY
 
-Tracks LOAD, STORE, SPRITE, and TILEMAP memory accesses per frame. Each access records the RAM address and type (read/write). Consumed by the visual debugger overlay.
+### Device Drivers (`/dev/*`)
 
-### Instruction Fetch Logging
+Accessed via OPEN + IOCTL:
 
-Every PC value is logged to a circular buffer. Used by the visual debugger to trace execution flow.
+| Device | FD Range | Operations |
+|--------|----------|------------|
+| `/dev/screen` | 0xE000 | READ (pixels), WRITE (pixels), IOCTL (dimensions) |
+| `/dev/keyboard` | 0xE001 | READ (key), IOCTL (echo mode) |
+| `/dev/audio` | 0xE002 | WRITE (WAV data), IOCTL (volume) |
+| `/dev/net` | 0xE003 | READ/WRITE (UDP packets) |
 
----
+## Modes
 
-## Visual Debugger
+### Terminal Mode (default on boot)
 
-### Memory Heatmap
+Prompt: `geo> `. Commands: help, list/ls, load, run, edit, regs, peek, poke, step, bp, bpc, disasm, reset, clear/cls, files, shell, readfile, hermes, build, quit/exit.
 
-Compact 256x256 view of the entire 64K RAM. Each pixel represents one word.
+### Editor Mode (entered via `edit`)
 
-- **Cyan**: Recent read
-- **Magenta**: Recent write
-- **White**: Current PC position
+Type text directly on the canvas grid. F8 assembles, F5 runs, F6 steps, F7 saves state, Escape returns to terminal.
 
-Intensity decay fades highlights over ~10 frames.
+### CLI Mode (`--cli` flag)
 
-### Canvas Cell Tinting
+Headless REPL on stdin/stdout. No window. Loads at address 0 (not 0x1000). Supports `screen` command for pixel dump.
 
-Active RAM addresses flash with colored borders on the canvas grid.
+## Assembler
 
-### PC Trail
+Two-pass with labels. Standard mnemonics, comma-separated args, semicolon comments, colon labels.
 
-Fading white glow follows the program counter, showing execution path.
+```asm
+LDI r1, 10          ; load immediate
+LDI r2, 20
+ADD r1, r2           ; r1 = r1 + r2
 
-### RAM Inspector Panel
+loop:
+  JNZ r1, loop       ; jump if r1 != 0
+HALT
+```
 
-Second 32x32 grid at the bottom of the window visualizes a scrollable region of RAM. PageUp/PageDown in Terminal mode scrolls through different regions.
+### Preprocessor Macros
 
----
+Before assembly: `VAR name addr`, `SET var val`, `GET reg var`, `INC var`, `DEC var`.
 
-## Audio
+### Directives
 
-The BEEP opcode generates sine-wave tones via `aplay` (Linux). Requires `libasound2-dev`.
-- Frequency: 20-20000 Hz
-- Duration: 1-5000 ms
+`.org addr`, `.ascii "text"`, `.asciz "text"`, `.byte val`, `.db val`, `.include "file"`.
 
----
+**Pitfall**: `label: .ascii "text"` on one line fails. Put label on its own line.
 
-## Platform Ports
+## ISA — Complete Opcode Table
 
-### WASM (Web)
+218 opcodes across 12 functional categories. Each row: hex byte, name, word count, register args, description.
 
-Compiles to WebAssembly via `wasm-pack`. Full opcode set works in WASM mode.
+### System (0x00–0x04)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x00 | HALT | 1 | 0 | Stop execution |
+| 0x01 | NOP | 1 | 0 | No operation |
+| 0x02 | FRAME | 1 | 0 | Yield to renderer (animation tick) |
+| 0x03 | BEEP | 3 | 2 | Play tone: BEEP freq_reg, dur_reg |
+| 0x04 | MEMCPY | 4 | 3 | Copy memory: MEMCPY dst, src, len |
+
+### Load / Store (0x10–0x17)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x10 | LDI | 3 | 2 | Load immediate: LDI reg, imm |
+| 0x11 | LOAD | 3 | 2 | Load from RAM: LOAD reg, addr_reg |
+| 0x12 | STORE | 3 | 2 | Store to RAM: STORE addr_reg, reg |
+| 0x13 | TEXTI | 5 | 2 | Render inline text at cursor position |
+| 0x14 | STRO | 4 | 1 | Write string literal to RAM at register address |
+| 0x15 | CMPI | 3 | 2 | Compare immediate: CMPI reg, imm |
+| 0x16 | LOADS | 3 | 2 | Load signed byte from RAM |
+| 0x17 | STORES | 3 | 2 | Store signed byte to RAM |
+
+### Arithmetic / Logic (0x20–0x2B)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x20 | ADD | 3 | 2 | rd = rd + rs |
+| 0x21 | SUB | 3 | 2 | rd = rd − rs |
+| 0x22 | MUL | 3 | 2 | rd = rd × rs |
+| 0x23 | DIV | 3 | 2 | rd = rd / rs (truncating) |
+| 0x24 | AND | 3 | 2 | rd = rd & rs |
+| 0x25 | OR | 3 | 2 | rd = rd \| rs |
+| 0x26 | XOR | 3 | 2 | rd = rd ^ rs |
+| 0x27 | SHL | 3 | 2 | rd = rd << rs (mod 32) |
+| 0x28 | SHR | 3 | 2 | rd = rd >> rs (logical, mod 32) |
+| 0x29 | MOD | 3 | 2 | rd = rd % rs |
+| 0x2A | NEG | 2 | 1 | rd = two's complement negate |
+| 0x2B | SAR | 3 | 2 | rd = rd >> rs (arithmetic, sign-preserving) |
+
+### Control Flow (0x30–0x36)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x30 | JMP | 2 | 1 | Jump to address (label or immediate) |
+| 0x31 | JZ | 3 | 2 | Jump if reg == 0 |
+| 0x32 | JNZ | 3 | 2 | Jump if reg != 0 |
+| 0x33 | CALL | 2 | 1 | Call subroutine (return addr → r31) |
+| 0x34 | RET | 1 | 0 | Return (jump to r31) |
+| 0x35 | BLT | 3 | 2 | Branch if last CMP was less-than (checks r0) |
+| 0x36 | BGE | 3 | 2 | Branch if last CMP was greater-or-equal (checks r0) |
+
+> **No BNE/BEQ/BLE** — use JNZ/JZ and CMP+BLT/BGE instead.
+> **BLT/BGE take 2 args** (register, label), not 3. CMP first, then branch on r0.
+
+### Comparison / Move (0x50–0x51, 0x86–0x8B)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x50 | CMP | 3 | 2 | Compare: r0 = −1 (a<b), 0 (a==b), 1 (a>b) |
+| 0x51 | MOV | 3 | 2 | Register copy: rd = rs |
+| 0x86 | STRCMP | 3 | 2 | String compare (null-terminated RAM strings) |
+| 0x87 | ABS | 2 | 1 | Absolute value: reg = \|reg\| |
+| 0x89 | MIN | 3 | 2 | rd = min(rd, rs) |
+| 0x8A | MAX | 3 | 2 | rd = max(rd, rs) |
+| 0x8B | CLAMP | 4 | 3 | Clamp value to [lo, hi] range |
+
+### Stack (0x60–0x61)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x60 | PUSH | 2 | 1 | Push reg onto stack (r30=SP, grows down) |
+| 0x61 | POP | 2 | 1 | Pop from stack into reg |
+
+### Graphics — Primitives (0x40–0x4A)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x40 | PSET | 4 | 3 | Set pixel: PSET x_reg, y_reg, color_reg |
+| 0x41 | PSETI | 4 | 3 | Set pixel immediate: PSETI x, y, color |
+| 0x42 | FILL | 2 | 1 | Fill screen with color |
+| 0x43 | RECTF | 6 | 5 | Filled rectangle: RECTF x, y, w, h, color |
+| 0x44 | TEXT | 4 | 3 | Render text from RAM: TEXT x, y, addr |
+| 0x45 | LINE | 6 | 5 | Bresenham line: LINE x0, y0, x1, y1, color |
+| 0x46 | CIRCLE | 5 | 4 | Midpoint circle: CIRCLE x, y, r, color |
+| 0x47 | SCROLL | 2 | 1 | Scroll screen up by N pixels |
+| 0x48 | IKEY | 2 | 1 | Read keyboard (returns ASCII or 0) |
+| 0x49 | RAND | 2 | 1 | Pseudo-random u32 (LCG) |
+| 0x4A | SPRITE | 6 | 5 | Blit NxM sprite from RAM (color 0 = transparent) |
+| 0x4C | TILEMAP | 9 | 8 | Grid blit from tile index array |
+
+### Graphics — Extended (0x88, 0x8C, 0xC4–0xC5, 0xCE, 0xF2–0xF5)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x37 | HITSET | 6 | 5 | Define hit-test region |
+| 0x38 | HITQ | 2 | 1 | Query which region was hit |
+| 0x88 | RECT | 6 | 5 | Unfilled rectangle outline |
+| 0x8C | DRAWTEXT | 6 | 5 | Draw text with foreground/background |
+| 0x91 | INV | 1 | 0 | Invert all screen pixels |
+| 0x9E | HITCLR | 1 | 0 | Clear all hit regions |
+| 0xC4 | CLIPSET | 5 | 4 | Set clip rectangle (constrain rendering) |
+| 0xC5 | CLIPCLR | 1 | 0 | Clear clip rectangle |
+| 0xCE | FLOOD | 5 | 4 | Scanline flood fill |
+| 0xF2 | BLEND | 5 | 4 | Alpha blend onto screen |
+| 0xF3 | BLENDR | 4 | 3 | Register-based alpha blend |
+| 0xF4 | ROTATE | 6 | 5 | Rotate screen region by angle |
+| 0xF5 | SCALE | 9 | 8 | Scale screen region (nearest-neighbor) |
+
+### Text Rendering (0x13, 0xD0–0xD1, 0xDB–0xDD)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x13 | TEXTI | 5 | 2 | Render inline text at cursor |
+| 0xD0 | SMALLTEXT | 6 | 5 | Render text in small font (5×7) |
+| 0xD1 | MEDTEXT | 6 | 5 | Render text in medium font |
+| 0xDB | VWTXT | 6 | 5 | Viewport text |
+| 0xDC | FONT_SELECT | 2 | 1 | Select active font |
+| 0xDD | CLIP_TEXT | 4 | 3 | Render text within clip region |
+
+### Screen I/O (0x4F, 0x6D, 0x95–0x98, 0xAF, 0xB0, 0xB2, 0xD7–0xD8)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x4F | PEEK | 4 | 3 | Read screen pixel: PEEK x, y, dest |
+| 0x6D | SCREENP | 4 | 3 | Read screen pixel: SCREENP dest, x, y (reversed args!) |
+| 0x95 | WPIXEL | 5 | 4 | Write pixel to window |
+| 0x96 | WREAD | 5 | 4 | Read pixel from window |
+| 0x97 | SPRBLT | 5 | 4 | Sprite blit with flags |
+| 0x98 | SCRSHOT | 2 | 1 | Screenshot screen to RAM buffer |
+| 0xAF | SAVEPNG | 2 | 1 | Save screen as PNG file |
+| 0xB0 | SCREENA | 3 | 1 | Screen animation mode |
+| 0xB2 | LOADSRCIMG | 2 | 1 | Load source image |
+| 0xD7 | CLIP_COPY | 5 | 4 | Copy screen region to buffer |
+| 0xD8 | CLIP_PASTE | 3 | 2 | Paste buffer to screen region |
+
+> **PEEK vs SCREENP**: 0x4F uses `PEEK x, y, dest` (matches PSET convention). 0x6D uses `SCREENP dest, x, y` (dest first). Prefer PEEK for consistency.
+
+### Sprite System (0xD9–0xDA, 0xE5–0xE7, 0xEC)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0xD9 | SPRITE_LOAD | 4 | 3 | Load sprite from RAM |
+| 0xDA | SPRITE_FRAME | 6 | 5 | Set sprite frame dimensions |
+| 0xE5 | SPRLOAD | 6 | 4 | Load sprite data |
+| 0xE6 | SPRFRAME | 3 | 1 | Set current sprite frame |
+| 0xE7 | SPRANIM | 4 | 2 | Animate sprite sequence |
+| 0xEC | SPRITEANIM | 4 | 2 | Sprite animation (alt) |
+
+### Input (0x48, 0x85, 0xC7–0xCB)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x48 | IKEY | 2 | 1 | Read keyboard port (returns ASCII or 0) |
+| 0x85 | MOUSEQ | 2 | 1 | Query mouse state |
+| 0xC7 | IMOUSE | 2 | 1 | Read mouse (mode parameter) |
+| 0xC8 | MOUSEX | 2 | 1 | Mouse X coordinate → reg |
+| 0xC9 | MOUSEY | 2 | 1 | Mouse Y coordinate → reg |
+| 0xCA | MOUSEB | 2 | 1 | Mouse button state → reg |
+| 0xCB | MOUSECLICK | 2 | 1 | Inject mouse click event |
+
+### Bitfield / Bit Operations (0x8D–0x8F, 0x90, 0xC2–0xC3, 0xCF, 0xE0–0xE1, 0xF0–0xF1)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x8D | BITSET | 3 | 2 | Set bit N in register |
+| 0x8E | BITCLR | 3 | 2 | Clear bit N in register |
+| 0x8F | BITTEST | 3 | 2 | Test bit N (result in reg) |
+| 0x90 | NOT | 2 | 1 | Bitwise NOT: reg = !reg |
+| 0xC2 | BFE | 5 | 4 | Bitfield extract: BFE dest, src, pos, width |
+| 0xC3 | BFI | 5 | 4 | Bitfield insert: BFI dest, src, pos, width |
+| 0xCF | BNOT | 2 | 1 | Bitwise NOT (alt encoding) |
+| 0xE0 | CMOV | 4 | 3 | Conditional move (branchless) |
+| 0xE1 | BSET | 3 | 2 | Bit set (alt) |
+| 0xF0 | BCLR | 3 | 2 | Bit clear (alt) |
+| 0xF1 | BTST | 3 | 2 | Bit test (alt) |
+
+### Process Management (0x4D–0x4E, 0x5A–0x5C, 0x65, 0x6F–0x71, 0x7D, 0x9B, 0xA7, 0xBE–0xC0)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x4D | SPAWN | 2 | 1 | Spawn process at address |
+| 0x4E | KILL | 2 | 1 | Kill process by PID |
+| 0x5A | YIELD | 1 | 0 | Yield scheduler slot |
+| 0x5B | SLEEP | 2 | 1 | Sleep for N ticks |
+| 0x5C | SETPRIORITY | 2 | 1 | Set process priority |
+| 0x65 | GETPID | 1 | 0 | Get current process ID → r0 |
+| 0x6F | EXIT | 2 | 1 | Exit with code |
+| 0x70 | SIGNAL | 3 | 2 | Send signal to process |
+| 0x71 | SIGSET | 3 | 2 | Set signal handler |
+| 0x7D | FORK | 2 | 1 | Fork current process |
+| 0x9B | PROCLS | 2 | 1 | Close/terminate process |
+| 0xA7 | SPAWNC | 3 | 2 | Spawn COW child (shared page 3) |
+| 0xBE | NPROC | 1 | 0 | Get process count → r0 |
+| 0xBF | PROCINFO | 3 | 2 | Get process info by PID |
+| 0xC0 | SETCAPS | 2 | 1 | Set process capabilities |
+
+### IPC (0x5D–0x5F)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x5D | PIPE | 3 | 2 | Create pipe (returns read/write fds) |
+| 0x5E | MSGSND | 2 | 1 | Send message to message queue |
+| 0x5F | MSGRCV | 1 | 0 | Receive message (blocking) |
+
+### VFS / File I/O (0x54–0x59, 0x62, 0x67–0x69, 0x78–0x7A, 0xB7–0xBD)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x54 | OPEN | 3 | 2 | Open file: OPEN path_reg, mode_reg |
+| 0x55 | READ | 4 | 3 | Read: READ fd, buf_addr, count |
+| 0x56 | WRITE | 4 | 3 | Write: WRITE fd, buf_addr, count |
+| 0x57 | CLOSE | 2 | 1 | Close file descriptor |
+| 0x58 | SEEK | 4 | 3 | Seek: SEEK fd, offset, whence |
+| 0x59 | LS | 2 | 1 | List directory contents |
+| 0x62 | IOCTL | 4 | 3 | Device I/O control |
+| 0x67 | WRITESTR | 3 | 2 | Write null-terminated string to fd |
+| 0x68 | READLN | 4 | 3 | Read line from fd |
+| 0x69 | WAITPID | 2 | 1 | Wait for child process |
+| 0x78 | FMKDIR | 2 | 1 | Create directory |
+| 0x79 | FSTAT | 3 | 2 | Get file status info |
+| 0x7A | FUNLINK | 2 | 1 | Delete file |
+| 0xB7 | UNLINK | 2 | 1 | Unlink file (alt) |
+| 0xB8 | FCOPY | 3 | 2 | Copy file |
+| 0xB9 | FSOPEN | 3 | 2 | Open file (extended) |
+| 0xBA | FSCLOSE | 2 | 1 | Close file (extended) |
+| 0xBB | FSREAD | 4 | 3 | Read file (extended) |
+| 0xBC | FSWRITE | 4 | 3 | Write file (extended) |
+| 0xBD | FSLS | 4 | 3 | List directory (extended) |
+
+### Program Execution (0x52–0x53, 0x66, 0x6A–0x6C, 0x63–0x64)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x52 | SYSCALL | 2 | 1 | System call (number in reg) |
+| 0x53 | RETK | 1 | 0 | Return from syscall |
+| 0x63 | GETENV | 3 | 2 | Get environment variable |
+| 0x64 | SETENV | 3 | 2 | Set environment variable |
+| 0x66 | EXEC | 2 | 1 | Execute program |
+| 0x6A | EXECP | 4 | 3 | Execute with argv/envp |
+| 0x6B | CHDIR | 2 | 1 | Change working directory |
+| 0x6C | GETCWD | 2 | 1 | Get current working directory |
+
+### Self-Assembly / Reactive Canvas (0x73–0x77)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x73 | ASMSELF | 1 | 0 | Assemble canvas text → bytecode at 0x1000 |
+| 0x74 | RUNNEXT | 1 | 0 | Jump PC to 0x1000 |
+| 0x75 | FORMULA | 5 | 2 | Register reactive formula on cell |
+| 0x76 | FORMULACLEAR | 1 | 0 | Clear all formulas |
+| 0x77 | FORMULAREM | 2 | 1 | Remove formula from specific cell |
+
+### Hypervisor / VM Management (0x72, 0x9F–0xA5, 0xB4–0xB6)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x72 | HYPERVISOR | 4 | 2 | Hypervisor command |
+| 0x9F | VM_SPAWN | 3 | 2 | Spawn guest VM |
+| 0xA0 | VM_KILL | 2 | 1 | Kill guest VM |
+| 0xA1 | VM_STATUS | 2 | 1 | Query guest VM status |
+| 0xA2 | VM_PAUSE | 2 | 1 | Pause guest VM |
+| 0xA3 | VM_RESUME | 2 | 1 | Resume guest VM |
+| 0xA4 | VM_SET_BUDGET | 3 | 2 | Set step budget for guest |
+| 0xA5 | VM_LIST | 2 | 1 | List running guest VMs |
+| 0xB4 | VM_LIVE_SPAWN | 3 | 2 | Spawn live VM tile |
+| 0xB5 | VM_LIVE_STEP | 1 | 0 | Step all live VM tiles |
+| 0xB6 | VM_LIVE_KILL | 1 | 0 | Kill all live VM tiles |
+
+### AI / LLM (0x9C, 0xA6, 0xA8)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x9C | LLM | 4 | 3 | LLM inference: prompt, response buffer, max len |
+| 0xA6 | AI_INJECT | 2 | 1 | Inject input into AI agent |
+| 0xA8 | HERMES | 4 | 3 | Hermes agent command |
+
+### PTY / Terminal (0xA9–0xAD)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0xA9 | PTYOPEN | 3 | 2 | Open pseudo-terminal |
+| 0xAA | PTYWRITE | 4 | 3 | Write to PTY |
+| 0xAB | PTYREAD | 4 | 3 | Read from PTY |
+| 0xAC | PTYCLOSE | 2 | 1 | Close PTY |
+| 0xAD | PTYSIZE | 4 | 3 | Get PTY dimensions |
+
+### Networking (0x7F–0x82, 0x99–0x9A, 0xCC)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x7F | CONNECT | 4 | 3 | TCP connect |
+| 0x80 | SOCKSEND | 5 | 4 | Socket send |
+| 0x81 | SOCKRECV | 5 | 4 | Socket receive |
+| 0x82 | DISCONNECT | 2 | 1 | Disconnect socket |
+| 0x99 | NET_SEND | 4 | 3 | UDP send |
+| 0x9A | NET_RECV | 3 | 2 | UDP receive |
+| 0xCC | HTTPGET | 6 | 5 | HTTP GET request |
+
+### Audio (0x03, 0xD4–0xD6)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x03 | BEEP | 3 | 2 | Play sine-wave tone |
+| 0xD4 | AUDIO_PLAY | 4 | 3 | Play audio sample |
+| 0xD5 | AUDIO_STOP | 1 | 0 | Stop audio playback |
+| 0xD6 | AUDIO_STATUS | 2 | 1 | Query audio status |
+
+### Memory Operations (0x04, 0xB3, 0xD2–0xD3, 0xF6)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x04 | MEMCPY | 4 | 3 | Copy memory region |
+| 0xB3 | ASM_RAM | 2 | 1 | Assemble from RAM |
+| 0xD2 | PATCH | 4 | 3 | Patch bytecode in RAM |
+| 0xD3 | PATCHW | 3 | 2 | Patch single word in RAM |
+| 0xF6 | MEMSET | 4 | 3 | Fill memory region with value |
+
+### String Operations (0x14, 0x86, 0xED–0xEE, 0xFA)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x14 | STRO | 4 | 1 | Write string literal to RAM |
+| 0x86 | STRCMP | 3 | 2 | Compare two null-terminated strings |
+| 0xED | STRLEN | 2 | 1 | String length → reg |
+| 0xEE | STRCPY | 3 | 2 | Copy string |
+| 0xFA | STRCAT | 3 | 2 | Concatenate strings |
+
+### Neural Network (0x92–0x93, 0xDE)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x92 | MATVEC | 6 | 5 | Matrix-vector multiply |
+| 0x93 | RELU | 2 | 1 | ReLU activation |
+| 0xDE | MATMUL | 7 | 6 | Matrix-matrix multiply |
+
+### Hash Table (0xE2–0xE4)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0xE2 | HASHINIT | 3 | 2 | Initialize hash table |
+| 0xE3 | HASHSET | 4 | 3 | Set key-value in hash table |
+| 0xE4 | HASHGET | 4 | 3 | Get value from hash table |
+
+### Timers / Alarms (0xE8–0xEB)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0xE8 | TMR_GET | 2 | 1 | Get timer value |
+| 0xE9 | TMR_WAIT | 2 | 1 | Wait for timer |
+| 0xEA | ALARM_SET | 4 | 3 | Set alarm |
+| 0xEB | ALARM_CLR | 2 | 1 | Clear alarm |
+
+### Debug / Trace / Profile (0x7B–0x7C, 0x83–0x84, 0xC1, 0xC6, 0xCD)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x7B | SNAP_TRACE | 2 | 1 | Snapshot trace buffer |
+| 0x7C | REPLAY | 2 | 1 | Replay trace |
+| 0x7E | NOTE | 4 | 3 | Attach debug note |
+| 0x83 | TRACE_READ | 2 | 1 | Read trace buffer |
+| 0x84 | PIXEL_HISTORY | 2 | 1 | Pixel write history |
+| 0xC1 | VSTAT | 2 | 1 | VM statistics |
+| 0xC6 | PROFILE | 3 | 2 | Performance profiling |
+| 0xCD | BREAKPOINT | 1 | 0 | Debug breakpoint |
+
+### Image / Pixel (0xAE, 0xAF, 0xB1, 0xDF)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0xAE | BYTEPACK | 4 | 3 | Pack bytes into pixel |
+| 0xAF | SAVEPNG | 2 | 1 | Save screen as PNG |
+| 0xB1 | LOADPNG | 3 | 2 | Load PNG from path |
+| 0xDF | CLIP_HISTORY | 3 | 2 | Clip history buffer |
+
+### Conditional (0xE0, 0xEF)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0xE0 | CMOV | 4 | 3 | Conditional move (branchless) |
+| 0xEF | CSEL | 5 | 4 | Conditional select (branchless) |
+
+### Window System (0x94)
+
+| Hex | Name | Words | Args | Description |
+|-----|------|-------|------|-------------|
+| 0x94 | WINSYS | 2 | 1 | Window system command |
+
+## Key Patterns
+
+### Animation Loop
+
+```asm
+loop:
+  FILL r_black        ; clear screen
+  ; ... draw scene ...
+  FRAME               ; yield to renderer
+  JMP loop
+```
+
+### Interactive Input
+
+```asm
+loop:
+  FILL r_black
+  IKEY r10            ; r10 = ASCII key or 0
+  ; ... handle input ...
+  FRAME
+  JMP loop
+```
+
+### Throttle with TICKS
+
+```asm
+LDI r4, 0xFC0A
+LOAD r8, r4           ; r8 = TICKS
+LDI r9, 7
+AND r8, r9            ; mask with divisor-1
+JZ r8, do_move        ; only on every 8th frame
+```
+
+### PUSH/POP Around CALLs
+
+```asm
+; Always save r31 before inner CALLs in a called function
+render:
+  PUSH r31
+  CALL compute_camera
+  POP r31
+  RET
+```
+
+### Sine Table (Plasma, Waves)
+
+No sine opcode. Build a 256-entry lookup table at boot using parabolic approximation:
+```
+val = 255 − 127 × (i − 128)² / 16384
+```
+
+### Table Lookup Optimization
+
+Replace cascading CMP/BLT chains with RAM tables. Initialize at boot, then single LOAD per lookup. Reduces per-lookup cost from ~30 instructions to ~3.
+
+## Build & Test
 
 ```bash
-cd wasm && wasm-pack build --target web
+cd ~/zion/projects/geometry_os/geometry_os
+cargo build                    # Build binary + library
+cargo test                     # Full test suite (~20 min in debug)
+cargo test --lib               # Library tests only
+cargo test --bin geo_mcp_server  # MCP server tests
+cargo run                      # GUI mode (minifb window)
+cargo run -- --cli             # Headless CLI mode
+cargo run -- programs/hello.asm  # Load file at startup
 ```
 
-### Network (UDP)
+## RISC-V Subsystem
 
-RAM[0xFFC] is a bidirectional network port. Two VM instances exchange messages via UDP.
+A RISC-V (RV32IMAC) interpreter lives at `src/riscv/`. It boots Linux kernels via a hypervisor bridge. Key components:
 
-### GlyphLang Backend
+- **CPU**: Full RV32IMAC with C extension (compressed instructions)
+- **MMU**: SV32 page tables with COW fork support
+- **Bus**: CLINT, PLIC, UART 16550, VirtIO block device
+- **SBI**: Minimal v0.2 (console putchar)
+- **Fuzzer**: `src/riscv_fuzzer.rs` — oracle-checked fuzzing of 17 C-ext ops
 
-`src/glyph_backend.rs` compiles GlyphLang source to Geometry OS bytecode.
+See `docs/RISCV_HYPERVISOR.md` for full design details.
 
----
+## MCP Server
 
-## Build & Run
+A separate binary (`geo_mcp_server`) bridges Hermes agent tools to the VM via a Unix socket. Allows external AI agents to load programs, read/write memory, and inspect screen state programmatically.
 
-```bash
-# GUI mode
-cargo run --release
+See `src/mcp_server.rs` and `references/mcp-server.md`.
 
-# CLI mode (headless)
-cargo run --release -- --cli
+## Known Constraints
 
-# WASM build
-cd wasm && wasm-pack build --target web
-
-# Run tests
-cargo test
-```
-
-### Key Bindings (GUI)
-
-| Key | Action |
-|-----|--------|
-| F5  | Run / resume |
-| F6  | Single-step |
-| F7  | Save state |
-| F8  | Assemble canvas text |
-| Ctrl+F8 | Load .asm file |
-| F9  | Screenshot (PNG) |
-| F10 | Toggle frame capture |
-| Escape | Toggle editor/terminal |
-
-### CLI Commands
-
-`help`, `load <name>`, `run`, `step`, `regs`, `peek <addr>`, `poke <addr> <val>`,
-`bp [addr]`, `bpc`, `trace [n]`, `screenshot`, `save [slot]`, `load-slot [slot]`,
-`reset`, `quit`
-
----
-
-## Stats
-
-- 10,023 lines of Rust (core VM, assembler, main, preprocessor, font, glyph backend, QEMU bridge)
-- 5,739 lines of Rust (RISC-V interpreter)
-- 77 opcodes (Geometry OS VM)
-- 40 programs + 5 library modules
-- 697 tests
-- 15,762 total LOC
+- **No 3-argument ALU**: `ADD rd, rs` means `rd = rd + rs`. No `ADD rd, rs1, rs2`.
+- **r0 reserved for CMP**: Never use as loop counter or accumulator.
+- **LDI takes immediates only**: Use `MOV rd, rs` to copy registers, not `LDI rd, rs`.
+- **LOAD/STORE take register addresses**: `LOAD r1, 0x7000` is invalid. Use `LDI r4, 0x7000; LOAD r1, r4`.
+- **No character literals**: Use numeric ASCII values (65 for 'A'), not `'A'`.
+- **IKEY reads one key per frame**: Rapid typing drops keys.
+- **Bytecode limit**: 4096 words (0x1000–0x1FFF) — silently truncates on overflow.
+- **GUI loads at 0x1000**: CLI and tests load at 0x000. Programs with backward jumps may break in GUI mode.

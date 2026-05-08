@@ -1,218 +1,90 @@
-# Canvas Text Surface: How to Write Programs by Typing Text on the Pixel Grid
+# Canvas Text Surface
 
-This document explains the Canvas Text Surface feature in Geometry OS. It is
-written for AI agents who need to understand, use, or extend this system.
-
-Read this alongside KEYSTROKE_TO_PIXELS.md (the foundational document) and
-PIXELC_GUIDE.md (the Python-to-bytecode compiler).
+The founding document for Geometry OS v2. Defines the core pipeline:
+**type text on a pixel grid, assemble it, run it.**
 
 ---
 
-## What It Is
+## One Pipeline
 
-The canvas grid IS a text editor. Each cell holds one ASCII character. You type
-assembly source code directly onto the 32-column grid, press F8 to assemble it,
-and F5 to run it. The grid reads like a text file rendered in colored pixels.
+```
+keystroke -> ASCII byte -> canvas_buffer u32
+                                |
+                      +---------+---------+---------+
+                      |                   |         |
+                 rendering       preprocessor   assembly (F8)
+                      |           (macro exp)       |
+            parse_syntax_line()  VAR/SET/GET   assembler::assemble()
+            font::GLYPHS[byte]   INC/DEC vars  -> bytecode at 0x1000
+```
 
-The canvas supports **scrolling**: the logical grid is 32 columns × 128 rows
-(4096 characters), but only 32 rows are visible at a time. Programs larger
-than 32 lines scroll automatically as you type, and PageUp/PageDown scroll
-manually. A scrollbar on the right edge shows scroll position.
-
-The VM does not change. The assembler does not change. Only the canvas input
-and display model changed.
+There is one mode: type text on the grid. Every character you type appears as a
+colored pixel-font glyph in its own cell. Press F8 to assemble the grid text
+into bytecode. Press F5 to run it.
 
 ---
 
-## The Core Chain
+## Memory Map
 
 ```
-keystroke -> ASCII byte value -> stored in canvas_buffer[cell] as u32
-                                    |
-                          +---------+---------+
-                          |                   |
-                     rendering            assembly (F8)
-                          |                   |
-                   pixel font glyph     read grid as text string
-                   colored by               |
-                   syntax_highlight   preprocessor::preprocess()
-                   (via parse_            (macro expansion)
-                    syntax_line)             |
-                          |            assembler::assemble()
-                   the letter IS           |
-                   the colored        bytecode at 0x1000
-                   pixels                   |
-                                      F5 runs from 0x1000
+Address         Size     Purpose
+──────────────────────────────────────────────────────────────
+0x000-0x3FF     1024     Source text (legacy; TEXT mode uses separate buffer)
+0x1000-0x1FFF   4096     Canvas bytecode output (F8 assembles here)
+0x2000-0x7FFF   ~24K     General purpose RAM
+0x8000-0x8FFF   4096     Canvas buffer mirror (RAM-mapped, 128x32 grid)
+                         LOAD/STORE intercepted to vm.canvas_buffer
+0x9000-0xF02F   ~25K     General purpose RAM
+0xF00-0xF03     4        Window Bounds Protocol (shared RAM IPC)
+0xC00-0xC2F     48       Debug Mailbox Protocol (debugger)
+0xF010-0xF01F   16       System Clipboard (shared RAM convention)
+0xFF7           1        Audio volume (0-100)
+0xFFB           1        Key bitmask port (bits 0-5, read-only)
+0xFFC           1        Network data port (UDP)
+0xFFD           1        ASM result port (word count or 0xFFFFFFFF on error)
+0xFFE           1        TICKS port (frame counter, incremented each FRAME)
+0xFF00-0xFFFF   256      Hardware registers / stack (r30=SP grows down from 0xFF00)
+──────────────────────────────────────────────────────────────
+Total: 65536 (64K) u32 cells
 ```
 
-A single keystroke produces one ASCII value. That value:
-- Determines the pixel color via `syntax_highlight_color()` -- token-aware
-  coloring based on the shared tokenizer `preprocessor::parse_syntax_line()`
-- Determines the glyph shape via `font::GLYPHS[byte]` -- an 8x8 bitmap
-- Gets stored in the canvas buffer at the cursor position
+**Note on canvas storage:** The canvas text editor uses a separate backing
+buffer (`canvas_buffer` in main.rs) with 128 rows × 32 columns = 4096 cells.
+This buffer is NOT in VM RAM. It's a `Vec<u32>` that allows programs larger
+than 32 rows without overlapping the bytecode region at 0x1000.
 
-The letter shape and the color both come from the same source value. No
-overlays. No separate rendering layer. The text IS pixels.
-
-The **abstraction layer** (preprocessor.rs) uses the same tokenizer that
-produces the font colors. The color IS the token type, and the token type
-drives both rendering and macro expansion. This is the single-source-of-truth
-pipeline: keystroke → font color → canvas text → compiled code on abstraction
-layer.
+Source text and assembled bytecode live in different memory regions.
+Source stays visible on the grid after assembly.
 
 ---
 
-## Two Modes: TEXT and DIRECT
+## How F8 Assembles
 
-The backtick key (`) toggles between TEXT mode (default) and DIRECT mode.
+1. Reads the canvas buffer (128 rows × 32 cols)
+2. Extracts text: each cell's low byte is an ASCII character, nulls become newlines
+3. Passes through the preprocessor (VAR/SET/GET/INC/DEC macro expansion)
+4. Feeds expanded text to `assembler::assemble()`
+5. Writes bytecode to VM RAM starting at 0x1000
+6. Sets `canvas_assembled = true` for the next F5 run
 
-### TEXT Mode (default)
+The assembler is a two-pass system:
+- **Pass 1**: Collect label positions, compute addresses
+- **Pass 2**: Generate bytecode with resolved labels
 
-- Keystrokes write ASCII characters to grid cells
-- `key_to_ascii_shifted(key, shift)` handles the mapping
-- Shift+letter = uppercase, no shift = lowercase
-- Enter = newline (writes `\n` and advances to next row)
-- Space = 0x20 (space character)
-- F8 = reads the grid as a text string, preprocesses macros, assembles it,
-  stores bytecode at 0x1000
-- F5 = runs the VM from 0x1000 (after F8 assembly)
-- The grid displays characters rendered as pixel-font glyphs
-
-### DIRECT Mode
-
-- Keystrokes write raw byte values to grid cells
-- `key_to_pixel(key, hex_mode)` handles the mapping
-- Single-char opcode encoding: `A` = ADD, `I` = LDI, etc.
-- F8 = loads programs/boot.asm from disk
-- F5 = runs from PC=0
-- The grid displays solid colored cells (no glyph rendering)
-- Tab toggles hex mode for entering raw nibbles
-
----
-
-## How TEXT Mode Input Works
-
-When the VM is stopped and not in any special mode (editor/REPL/ASM),
-keystrokes go through the text input path in main.rs. TEXT mode is the
-default -- the canvas always renders printable ASCII as pixel-font glyphs.
-
-```
-Keypress
-  |
-  v
-Is it Enter?
-  YES -> write '\n' (0x0A) to current cell, advance cursor to start of next row
-  NO -> Is it Space?
-    YES -> write 0x20 to current cell, advance cursor one cell right
-    NO -> key_to_ascii_shifted(key, shift)?
-      Some(ch) -> write ch as u32 to current cell, advance cursor one cell right
-      None -> key not recognized, ignore
-```
-
-The cursor wraps at column 32 (next row) and at row 32 (back to row 0).
-
-- Backspace clears the current cell and moves the cursor back one position.
-
-Arrow keys move the cursor without modifying cells.
-
-**Ctrl+V** pastes text from the system clipboard onto the grid at the cursor
-position. Newlines advance to the next row. Text wraps at column 32 and stops
-at the bottom of the grid (row 32). Carriage returns (`\r`) are stripped. The
-status bar shows how many characters were pasted, or an error if clipboard
-access fails.
-
-Uses the `arboard` crate for cross-platform clipboard access (X11 on Linux,
-Win32 on Windows, NSPasteboard on macOS).
-
-### Scrolling
-
-The canvas is 32 columns wide but 128 rows tall. Only 32 rows are visible at
-once. The view scrolls automatically when the cursor moves out of the visible
-area (typing, arrow keys, paste). Manual scroll controls:
-
-- **PageUp**: Scroll up one page (32 rows). Cursor moves to center of new view.
-- **PageDown**: Scroll down one page (32 rows). Cursor moves to center of new view.
-- **Arrow Up/Down**: Moves cursor; auto-scrolls if cursor leaves visible area.
-
-A 2-pixel-wide scrollbar on the right edge of the canvas shows the current
-position. The thumb size is proportional to the visible/total ratio.
-
----
-
-## How F8 Assembly Works (TEXT Mode)
-
-When you press F8 in TEXT mode (without Ctrl held):
-
-1. Read all 4096 cells (32x128 grid) from `canvas_buffer`
-2. Convert each u32 to a character:
-   - `0` (null) becomes `\n` (line break)
-   - `0x0A` (explicit newline) stays as `\n`
-   - Any other value becomes `(val & 0xFF) as u8 as char`
-3. Collapse consecutive newlines to avoid blank lines
-4. **Pass the resulting string through the preprocessor** (`preprocessor::preprocess()`)
-   - Expands macros (VAR, SET, GET, INC, DEC) into raw opcodes
-   - Resolves named variables to RAM addresses
-   - Non-macro lines pass through verbatim (with variable substitution)
-5. Pass the preprocessed string to `assembler::assemble(&source)`
-6. On success:
-   - Clear the bytecode region at `CANVAS_BYTECODE_ADDR` (0x1000) for 4096 cells
-   - Write assembled bytecode bytes to `vm.ram[0x1000..]`
-   - Set `canvas_assembled = true`
-   - Set `vm.pc = 0x1000`
-   - Set `vm.halted = false`
-   - The source text on the grid is NOT modified -- it stays visible
-7. On error:
-   - Display the assembler error message in the status bar
-
-The key insight: your source text at 0x000-0x3FF stays intact. Bytecode lives
-at 0x1000+. They don't overlap. You can always see what you wrote.
-
-### Multi-Process Assembly (.org and SPAWN)
-
-A single assembly can contain multiple programs using the `.org` directive:
-
-```
-  LDI r0, message
-  SPAWN r0          ; spawn child at label
-  ; ... primary loop ...
-  
-.org 0x400
-message:
-  ; ... child process code ...
-```
-
-The `.org <addr>` directive advances the bytecode emitter to the given address,
-padding with zeros. This lets you lay out a primary process and child processes
-in one file. `LDI rd, <label>` resolves label addresses, so `LDI r0, child`
-loads the child's entry point for use with SPAWN.
-
-### Ctrl+F8 in TEXT Mode
-
-Holding Ctrl while pressing F8 enters **file input mode**. A prompt appears in the
-status bar: `[load file: | Tab=complete, Enter=load, Esc=cancel]`.
-
-Type a file path (absolute or relative). Press **Tab** to cycle through `.asm`
-files in the `programs/` directory. Press **Enter** to load the file onto the
-grid (clears the grid first, like the command-line argument). Press **Escape** to
-cancel.
-
-If a file was previously loaded (via command-line or Ctrl+F8), the path is
-pre-populated so you can just press Enter to reload it.
-
-After loading, the file path is remembered so the next Ctrl+F8 starts with it
-pre-filled. The source text appears on the grid ready for F8 assembly.
+Supported directives: `.org <addr>`, `.include <file>`, `.define <name> <val>`,
+`.ascii "text"`, `.asciz "text"` (null-terminated), `.byte val1, val2, ...`
 
 ---
 
 ## How F5 Runs (After Canvas Assembly)
 
 When `canvas_assembled == true`:
-- F5 starts execution at `vm.pc = CANVAS_BYTECODE_ADDR` (0x1000)
+- F5 starts execution at `vm.pc = 0x1000`
 - The VM fetches and executes bytecode from that address
 - The canvas grid continues showing your source text
 
 When `canvas_assembled == false`:
-- F5 starts execution at `vm.pc = 0` (standard behavior)
+- F5 starts execution at `vm.pc = 0`
 
 ---
 
@@ -233,146 +105,66 @@ source of truth.
 | INC | `INC var` | `LDI r29, addr` / `LOAD r28, r29` / `LDI r27, 1` / `ADD r28, r27` / `STORE r29, r28` | r27, r28, r29 |
 | DEC | `DEC var` | `LDI r29, addr` / `LOAD r28, r29` / `LDI r27, 1` / `SUB r28, r27` / `STORE r29, r28` | r27, r28, r29 |
 
+### Immediate Aliases
+
+The preprocessor recognizes shorthand immediate forms that expand to LDI + opcode:
+
+| Alias | Expands To | Example |
+|-------|-----------|---------|
+| ADDI rd, imm | `LDI rT, imm` / `ADD rd, rT` | `ADDI r1, 5` |
+| SUBI rd, imm | `LDI rT, imm` / `SUB rd, rT` | `SUBI r1, 3` |
+| MULI rd, imm | `LDI rT, imm` / `MUL rd, rT` | `MULI r1, 10` |
+| ANDI, ORI, XORI | Same pattern | `ANDI r1, 0xFF` |
+| SHLI, SHRI, SARI | Same pattern | `SHLI r1, 4` |
+| CMPI rd, imm | `LDI rT, imm` / `CMP rd, rT` | `CMPI r5, 100` |
+| COPY rd, rs | `MOV rd, rs` | `COPY r1, r2` |
+
+Temp register `r29` is used for all immediate aliases. Avoid relying on
+r29 persisting across these instructions.
+
 ### Register Safety
 
-The preprocessor uses **r27, r28, r29** as temporary registers. These are
-deliberately chosen from the high end of the register file to avoid conflicts
-with programs that use r0-r15 for their own state. Your program's r0-r15 are
-never touched by macro expansion.
-
-### Variable Resolution
-
-Named variables are also resolved in normal instructions. If you define
-`VAR dst 0x4000`, then `LDI r4, dst` becomes `LDI r4, 0x4000`. The
-preprocessor preserves the original line formatting including commas and
-whitespace -- only the variable name is substituted.
-
-### Example
-
-```
-VAR score 0x4000
-VAR player_x 0x4001
-
-SET score, 0            ; LDI r28, 0 / LDI r29, 0x4000 / STORE r29, r28
-SET player_x, 128       ; LDI r28, 128 / LDI r29, 0x4001 / STORE r29, r28
-
-INC score               ; score becomes 1
-
-GET r10, score          ; r10 = 1
-GET r11, player_x       ; r11 = 128
-
-HALT
-```
-
-### Pipeline Position
-
-```
-canvas text → parse_syntax_line() → [Opcode/Label/Number/Register tokens]
-                                          |
-                              +-----------+-----------+
-                              |                       |
-                         rendering               preprocessor
-                         (color lookup)     (macro match + expand)
-                              |                       |
-                         colored pixels        raw ASM text
-                                                    |
-                                            assembler::assemble()
-                                                    |
-                                            bytecode at 0x1000
-```
+The preprocessor uses **r27, r28, r29** as temporary registers. Your program
+should avoid relying on these registers persisting across macro/alias expansion.
 
 ---
 
 ## How Pixel Font Rendering Works
 
 In TEXT mode, each non-empty cell with a printable ASCII value (0x20-0x7F) is
-rendered using the pixel font method. The rendering pipeline:
+rendered using the pixel font method:
 
 ```
 For cell at (row, col):
   1. val = canvas_buffer[row * 32 + col]
   2. ascii_byte = val & 0xFF
-  3. fg = syntax_highlight_color(canvas_buffer, row, col)  // token-aware color
-  4. glyph = font::GLYPHS[ascii_byte]  // 8x8 bitmap from font.rs
+  3. fg = syntax_highlight_color(canvas_buffer, row, col)
+  4. glyph = font::GLYPHS[ascii_byte]  (8x8 bitmap from font.rs)
   5. For each pixel (dx, dy) in the 16x16 cell:
-       a. Map to glyph coordinates (gx, gy) at 2x scale
-       b. If glyph bit is ON:  pixel color = fg (colored letter pixel)
-       c. If glyph bit is OFF: pixel color = GRID_BG (dark background)
-       d. Cell border (right/bottom edge): GRID_LINE color
+       a. Map to glyph coordinates at 2x scale
+       b. If glyph bit is ON:  pixel = fg
+       c. If glyph bit is OFF: pixel = GRID_BG
+       d. Cell border: GRID_LINE color
        e. Cursor/PC highlight: CYAN/MAGENTA border override
 ```
 
-The result: each character appears as its letter shape built from colored
-pixels. Adjacent characters with different token types have different colors.
-The color is determined by syntax highlighting, not by raw ASCII value:
+### Syntax Highlighting Colors
 
-```
-syntax_highlight_color(canvas_buffer, row, col):
-  1. Extract the full line text from canvas_buffer[row]
-  2. Call preprocessor::parse_syntax_line(line) for token spans
-  3. Return the color for the token type at (row, col)
+| Token Type | Color | Examples |
+|-----------|-------|---------|
+| Opcode | 0x00CCFF (cyan) | LDI, ADD, HALT, etc. |
+| Register | 0x44FF88 (green) | r0-r31 |
+| Number | 0xFFAA33 (orange) | 10, 0xFF, 0b1010 |
+| Label | 0xFFDD44 (yellow) | loop:, JMP target |
+| Comment | 0x555566 (gray) | ; this is a comment |
+| Default | 0xAAAA88 (muted) | everything else |
 
-Color scheme:
-  Opcode   (LDI, ADD, HALT, etc.) -> SYN_OPCODE   = 0x00CCFF (cyan)
-  Register (r0-r31)              -> SYN_REGISTER = 0x44FF88 (green)
-  Number   (10, 0xFF, etc.)      -> SYN_NUMBER   = 0xFFAA33 (orange)
-  Label    (loop:, JMP start)    -> SYN_LABEL    = 0xFFDD44 (yellow)
-  Comment  (; this is a comment) -> SYN_COMMENT  = 0x555566 (gray)
-  Default  (everything else)     -> SYN_DEFAULT  = 0xAAAA88 (muted)
+The highlighter recognizes all opcodes from the shared list in
+`preprocessor.rs`, registers (r0-r31), decimal/hex/binary numbers, label
+definitions (word followed by ':'), label references, and inline comments.
 
-The highlighter recognizes all opcodes from the shared OPCODES list in
-preprocessor.rs, registers (r0-r31), decimal/hex/binary numbers, label
-definitions (word followed by ':'), label references (e.g. JMP target),
-and inline comments.
-
-The color gives you structural information at a glance. You can scan a grid
-and see opcodes, registers, and numbers as different color groups.
-
----
-
-## Memory Map for Text Surface Mode
-
-```
-Address        Size    Purpose
----------------------------------------------------------------
-0x000-0x3FF   1024    Canvas grid region (legacy; see note below)
-                       Visible source text is in a separate buffer
-0x1000-0x1FFF 4096    Canvas bytecode output
-                       F8 preprocesses + assembles grid text here
-                       F5 runs VM from here when canvas_assembled=true
-0x4000-0x4EFF  ~4K     Multi-process bytecode (via .org directive)
-                       e.g. .org 0x4000 places a child process starting at 0x4000
-0x8000-0x8FFF 4096    Canvas grid (RAM-mapped mirror of canvas_buffer) (Phase 45)
-0x10000-0x1FFFF 65536   Screen buffer (RAM-mapped mirror of screen[]) (Phase 46)
-                       256x256 pixels, each a u32 color value
-                       screen[y * 256 + x] maps to address 0x10000 + y*256 + x
-                       LOAD/STORE to this range reads/writes pixels directly
-                       Equivalent to PEEK/PIXEL opcodes but via memory access
-0xF000-0xF003  4       Window Bounds Protocol (shared RAM convention)
-                       RAM[0xF000]=win_x, [0xF001]=win_y, [0xF002]=win_w, [0xF003]=win_h
-                       Primary writes; child processes read to clamp their rendering
-0xF010-0xF01F  16      System Clipboard (Phase 96, shared RAM convention)
-                       RAM[0xF010]=ownership (0=free, 1=writing, PID=owned)
-                       RAM[0xF011]=data_length (0-14 words)
-                       RAM[0xF012-0xF01F]=data (up to 14 u32 words)
-                       For large data, stores VFS path string instead
-0xFFFB         1       Key bitmask port (bits 0-5: up/down/left/right/space/enter, read-only)
-0xFFFC         1       Network port (UDP send/receive)
-0xFFFD         1       ASM result port (bytecode word count, or 0xFFFFFFFF on error)
-0xFFFE         1       TICKS port (frame counter, incremented each FRAME, read-only)
-0xFFFF         1       Keyboard port (memory-mapped I/O, cleared on IKEY read)
-```
-
-**Note on canvas storage:** The canvas text editor uses a separate backing buffer
-(`canvas_buffer` in main.rs) with 128 rows × 32 columns = 4096 cells. This buffer
-is NOT in VM RAM. It's a separate `Vec<u32>` that allows programs larger than 32
-rows without overlapping the bytecode region at 0x1000. The first 1024 cells of
-VM RAM (0x000-0x3FF) are unused by the canvas in TEXT mode but remain accessible
-for programs that read/write them directly.
-
-The source text and the assembled bytecode live in different memory regions.
-Source at 0x000 stays visible on the grid. Bytecode at 0x1000 is invisible but
-fully addressable by the VM.
+**Important:** Comments with colons (e.g., `; step: use r0`) are parsed as
+labels. Use dashes or parens instead (e.g., `; step -- use r0`).
 
 ---
 
@@ -381,12 +173,11 @@ fully addressable by the VM.
 1. Launch Geometry OS (TEXT mode is the default)
 2. Type your assembly program on the grid:
    ```
-   LDI r0, 10
-   LDI r1, 20
-   ADD r0, r1
+   LDI r1, 10
+   LDI r2, 20
+   ADD r1, r2
    HALT
    ```
-   Each character appears as a colored pixel glyph in its own cell.
    Press Enter after each line to advance to the next row.
 
 3. Press F8 to assemble
@@ -399,155 +190,136 @@ fully addressable by the VM.
    - The VM screen (256x256 panel) shows program output
 
 5. Press F5 again to pause
-6. Press F5 again to resume, or modify the source and press F8 to reassemble
+6. Modify the source and press F8 to reassemble
 
----
+### Loading an Existing Program
 
-## Practical Examples
-
-### Example 1: Simple Add
-
-Type on the grid (TEXT mode):
-```
-LDI r0, 10
-LDI r1, 20
-ADD r0, r1
-HALT
-```
-F8 -> F5. After running, r0 = 30.
-
-### Example 2: With Abstraction Layer Macros
-
-```
-VAR score 0x4000
-SET score, 0
-INC score
-INC score
-GET r0, score
-HALT
-```
-F8 -> F5. After running, r0 = 2. The preprocessor expands this into raw
-opcodes before the assembler sees it.
-
-### Example 3: Loading an Existing Program
-
-To load an .asm file from disk onto the grid:
 - Press Ctrl+F8 to enter file input mode
 - Type a path or press Tab to cycle through `programs/*.asm` files
 - Press Enter to load it onto the grid
 - Then F8 to assemble, F5 to run
 
-### Example 4: Converting Existing Code
+---
 
-Any existing .gasm or .asm file can be "typed" onto the grid. The text
-representation on the grid is identical to the file contents. Feed each
-character to the grid cells and it renders the same source. F8 assembles it
-exactly as if it came from a file.
+## ISA Overview
+
+Geometry OS has **228 opcodes** organized into categories. The full reference
+is in **docs/ARCHITECTURE.md**. Here are the core categories:
+
+| Category | Count | Examples |
+|----------|-------|---------|
+| Control flow | ~10 | HALT, NOP, FRAME, JMP, CALL, RET, JZ, JNZ, BLT, BGE |
+| Data movement | ~10 | LDI, LOAD, STORE, MOV, PUSH, POP, STRO, TEXTI |
+| Arithmetic | ~15 | ADD, SUB, MUL, DIV, MOD, NEG, SAR, ABS, MIN, MAX, CLAMP |
+| Logic/Bitwise | ~15 | AND, OR, XOR, SHL, SHR, NOT, BFE, BFI, BITSET, BITCLR |
+| Compare/Branch | ~5 | CMP, CMPI, CMOV, CSEL |
+| Graphics | ~25 | PSET, PSETI, FILL, RECTF, LINE, CIRCLE, TEXT, SPRITE, TILEMAP |
+| Screen ops | ~10 | SCROLL, PEEK, SCREENP, BLEND, ROTATE, SCALE, FLOOD |
+| Filesystem | ~15 | OPEN, READ, WRITE, CLOSE, SEEK, LS, FMKDIR, FUNLINK |
+| Process mgmt | ~15 | SPAWN, KILL, YIELD, SLEEP, GETPID, EXIT, SIGNAL |
+| IPC | ~5 | PIPE, MSGSND, MSGRCV, WAITPID |
+| Device I/O | ~10 | IOCTL, IKEY, RAND, MOUSEX, MOUSEY, MOUSEB |
+| Self-modifying | ~5 | ASM, ASMSELF, RUNNEXT, FORMULA |
+| Network | ~10 | CONNECT, SOCKSEND, SOCKRECV, NET_SEND |
+| Window system | ~10 | WINSYS, WPIXEL, WREAD, SPRBLT, PROCLS |
+| VM management | ~15 | VM_SPAWN, VM_KILL, VM_PAUSE, VM_RESUME |
+| AI/Agent | ~5 | HERMES, LLM, AI_AGENT, AI_INJECT |
+| Audio | ~5 | BEEP, NOTE, AUDIO_PLAY, AUDIO_STOP |
+| String ops | ~10 | STRLEN, STRCMP, STRCPY, STRCAT, DRAWTEXT |
+| Misc | ~15 | MEMCPY, MEMSET, HASHINIT, SAVEPNG, LOADPNG |
+
+### Special Registers
+
+- **r0**: CMP result register (set to 0xFFFFFFFF/0/1 for lt/eq/gt). Never use as a general register.
+- **r30**: Stack Pointer (SP) -- set to 0xFF00 before using PUSH/POP. Grows downward.
+- **r31**: Link Register (LR) -- CALL saves return address here, RET jumps to it.
+
+### Key Patterns
+
+**There is NO 3-argument form for ANY instruction.** `ADD rd, rs` means `rd = rd + rs`.
+To add an immediate: `LDI rT, imm; ADD rd, rT` (or use the `ADDI` alias).
+
+**LOAD/STORE take register addresses only:**
+```
+LDI r4, 0x4000    ; load address into register
+LOAD r1, r4        ; read from RAM[0x4000]
+STORE r4, r1       ; write to RAM[0x4000]
+```
+
+**Nested CALLs clobber r31** -- always PUSH/POP r31 around inner CALLs.
+
+---
+
+## Animation Pattern
+
+Any program can animate by replacing HALT with a FRAME loop:
+
+```asm
+loop:
+  FILL r_black       ; clear screen
+  ; ... draw scene ...
+  FRAME              ; yield to renderer, display this frame
+  JMP loop
+```
+
+Use the TICKS port (RAM[0xFFE]) to throttle animations:
+```asm
+LDI r4, 0xFFE
+LOAD r8, r4           ; r8 = TICKS
+LDI r9, 7
+AND r8, r9            ; r8 = TICKS & 7
+JZ r8, do_move        ; only move every 8th frame
+JMP skip
+do_move:
+  ; ... throttled logic ...
+skip:
+  FRAME
+  JMP loop
+```
+
+---
+
+## Multi-Process Quick Reference
+
+```
+SPAWN r0             ; create child at address in r0, returns PID in r0
+KILL r0              ; terminate process by PID
+GETPID               ; get own PID in r0
+YIELD                ; voluntary context switch
+SLEEP r0             ; sleep for r0 frames
+EXIT r0              ; exit with status code
+SIGNAL r0, r1        ; send signal r1 to PID r0
+```
+
+Use `.org <addr>` to place child code (must be page-aligned: 0x000, 0x400, 0x800).
+Window Bounds Protocol at RAM[0xF00..0xF03] for spatial coordination.
 
 ---
 
 ## What AI Agents Need to Know
 
-### If you're writing programs for the grid:
-
-1. Use standard assembly mnemonics (LDI, ADD, HALT, etc.) -- NOT single-char
-   codes (I, A, H). TEXT mode reads full assembly text.
-
-2. You can use preprocessor macros (VAR, SET, GET, INC, DEC) to reduce
-   boilerplate. VAR defines a named memory address. SET/GET handle the
-   load/store dance. INC/DEC are atomic increment/decrement. These are
-   expanded before assembly -- no runtime cost, no VM changes.
-
-3. The canvas has 32 columns per row. A line like `LDI r0, 10` takes 10 cells.
-
-4. The visible grid shows 32 rows at a time, but the logical grid extends to
-   128 rows (4096 characters total). The view auto-scrolls when typing past
-   the bottom edge. PageUp/PageDown scroll by one page. A scrollbar on the
-   right edge shows position.
-
-5. Enter newlines explicitly (press Enter / write 0x0A). The assembler reads
-   the grid as one big text string with embedded newlines.
-
-6. Null cells (value 0) are treated as newlines during assembly. Unwritten
-   cells at the end of a line don't matter.
-
-7. Source text is stored in a separate backing buffer, not VM RAM. Bytecode
-   never overlaps.
-
-8. The preprocessor uses r27-r29 as temporaries. Your program should avoid
-   relying on these registers persisting across macro calls.
-
-9. **Multi-process programs** use SPAWN (0x4D), KILL (0x4E), and MOV (0x51).
-   Use `.org <addr>` to place child process code at a known address, then
-   `LDI r0, child_label` / `SPAWN r0` to launch it. The spawned process gets
-   its own register file and shares the same RAM. For spatial coordination,
-   the Window Bounds Protocol uses RAM[0xF00..0xF03] (win_x, win_y, win_w, win_h)
-   as a shared convention -- the primary writes bounds, children read and respect them.
-
-10. **PEEK opcode** (0x4F) reads a pixel from the screen buffer: `PEEK rx, ry, rd`
-    stores the color at screen position (regs[rx], regs[ry]) into regs[rd]. Returns 0
-    for out-of-bounds. Use for collision detection -- check wall pixels before moving.
-
-11. **TILEMAP opcode** (0x4C) does grid blit from a tile index array. Useful for
-    drawing tile-based game maps efficiently.
-
-12. **Multi-key input**: RAM[0xFFB] is a bitmask of currently held keys
-    (bits 0-5: up/down/left/right/space/enter). Read it directly to support
-    simultaneous key presses.
-
-### If you're modifying the codebase:
-
-1. TEXT mode is the default canvas mode (no toggle variable)
-2. Input handling is in the text input path in main.rs (search for `key_to_ascii_shifted`)
-3. F8 assembly is at ~line 1049 (the `if !ctrl` branch for F8)
-4. Pixel font rendering is at ~line 2473 (the `if use_pixel_font` branch)
-5. The rendering condition:
-   ```rust
-   let use_pixel_font = val != 0 && ascii_byte >= 0x20 && ascii_byte < 0x80;
-   ```
-6. The font data is in `font.rs` -- the `GLYPHS` array, 128 entries of 8 u8
-   rows each (8x8 VGA/CP437-style bitmaps). Bit test uses `(7 - col)`.
-7. The shared tokenizer `preprocessor::parse_syntax_line()` is in
-   `preprocessor.rs`. Both rendering and macro expansion use it.
-8. The OPCODES list in `preprocessor.rs` must be kept in sync with the actual
-   opcodes in `assembler.rs`.
-
-### Key constants:
-
-```rust
-const CANVAS_COLS: usize = 32;           // grid width (fixed)
-const CANVAS_ROWS: usize = 32;           // visible rows on screen
-const CANVAS_MAX_ROWS: usize = 128;      // total logical rows (scrollable)
-const CANVAS_SCALE: usize = 16;          // pixels per cell on screen
-const CANVAS_BYTECODE_ADDR: usize = 0x1000; // where assembled bytecode goes
-```
-
-### Key functions:
-
-| Function | Purpose |
-|----------|---------|
-| `key_to_ascii_shifted(key, shift)` | TEXT mode input: key -> ASCII with shift awareness |
-| `key_to_pixel(key, hex_mode)` | DIRECT mode input: key -> raw byte value |
-| `key_to_ascii(key)` | Runtime input: key -> ASCII (no shift) |
-| `preprocessor::parse_syntax_line(line)` | Shared tokenizer: line -> Vec\<SynSpan\> (used by both rendering and preprocessor) |
-| `preprocessor::Preprocessor::preprocess(&source)` | Macro expansion: VAR/SET/GET/INC/DEC -> raw opcodes |
-| `syntax_highlight_color(buf, row, col)` | Syntax-aware color for canvas rendering (calls parse_syntax_line internally) |
-| `font::GLYPHS[byte]` | 8x8 bitmap for the character |
-| `assembler::assemble(&text)` | Text -> bytecode (shared by all modes) |
+1. Use standard assembly mnemonics (LDI, ADD, HALT, etc.)
+2. Preprocessor macros (VAR, SET, GET, INC, DEC) reduce boilerplate
+3. The canvas has 32 columns per row, 128 logical rows (scrollable)
+4. Enter newlines explicitly (press Enter / write 0x0A)
+5. Source text is in a separate buffer, bytecode never overlaps
+6. r0 is reserved for CMP -- never use as loop counter or accumulator
+7. PUSH/POP r31 around nested CALLs
+8. LABEL on same line as directive fails: put label on its own line
+9. LDI takes immediates only, MOV for register copies (`LDI r4, r20` is WRONG)
+10. Full ISA reference: `docs/ARCHITECTURE.md`
 
 ---
 
-## Relationship to Other Features
+## Key Constants
 
-| Feature | How it relates to text surface |
-|---------|-------------------------------|
-| KEYSTROKE_TO_PIXELS.md | The foundational document. Text surface builds on the same keystroke-to-RAM path. |
-| DIRECT mode | The original mode. Toggle with backquote. Raw bytes, no text rendering. |
-| Editor (F9) | A separate text editor with its own buffer. Both feed the same assembler. |
-| REPL (F6) | Live single-instruction execution. Uses the assembler but not the grid. |
-| preprocessor.rs | The abstraction layer. Shared tokenizer + macro expansion. Sits between canvas text and assembler. |
-| pixelc compiler | Python-to-.gasm compiler. Output can be typed onto the grid or loaded via Ctrl+F8. |
-| font.rs | The 8x8 VGA bitmap font data. Used for pixel font rendering in TEXT mode. |
+```rust
+const CANVAS_COLS: usize = 32;
+const CANVAS_ROWS: usize = 32;        // visible rows
+const CANVAS_MAX_ROWS: usize = 128;   // logical rows (scrollable)
+const CANVAS_SCALE: usize = 16;       // pixels per cell
+const CANVAS_BYTECODE_ADDR: usize = 0x1000;
+```
 
 ---
 
@@ -563,28 +335,18 @@ program instruction.
 
 Why TEXT mode is the default:
 
-The original DIRECT mode (single-char opcodes: `I` = LDI, `A` = ADD) requires
-memorizing a mapping table. TEXT mode is self-documenting: `LDI r0, 10` on the
-grid reads as `LDI r0, 10`. Anyone who can read assembly can read the grid.
+TEXT mode is self-documenting: `LDI r0, 10` on the grid reads as `LDI r0, 10`.
+Anyone who can read assembly can read the grid.
 
 Why source and bytecode are separate:
 
-Keeping source text at 0x000-0x3FF and bytecode at 0x1000 means you always
-see what you wrote. You can reassemble after editing without losing your
-source. The grid IS the source file.
-
-Why the preprocessor shares the tokenizer:
-
-The same `parse_syntax_line()` function that determines font colors also
-drives macro expansion. This means the color IS the token type. A cyan cell
-is an opcode, a green cell is a register, an orange cell is a number. The
-abstraction layer reads these token types directly -- it doesn't re-parse the
-understands. This eliminates divergence between what you see and what the compiler
-understands.
+Keeping source text in a separate buffer and bytecode at 0x1000 means you
+always see what you wrote. You can reassemble after editing without losing
+your source.
 
 ---
 
 ## See Also
 
-- **docs/ARCHITECTURE.md** -- Multi-process scheduling, instrumentation, visual debugger, WASM port, and other system-level features beyond the canvas text surface.
-- **docs/SIGNED_ARITHMETIC.md** -- Two's-complement arithmetic semantics (SAR, CMP, signed division).
+- **docs/ARCHITECTURE.md** -- Full opcode reference (228 opcodes), multi-process, VFS, hypervisor, and system architecture
+- **docs/SIGNED_ARITHMETIC.md** -- Two's-complement arithmetic semantics (SAR, CMP, signed division)
