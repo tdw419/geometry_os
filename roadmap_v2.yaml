@@ -1950,7 +1950,7 @@ phases:
     already exists). The existing 8x8 font remains the default.
   deliverables:
   - name: Variable-width font rendering
-    status: todo
+    status: done
     tasks:
     - id: p210.d1.t1
       title: Implement proportional font rendering in TEXT opcode
@@ -2699,7 +2699,7 @@ phases:
     \ loop checks."
   deliverables:
   - name: BREAKPOINT opcode
-    status: todo
+    status: done
     tasks:
     - id: p227.d1.t1
       title: Implement BREAKPOINT opcode (0xCA)
@@ -3102,7 +3102,7 @@ phases:
     with Result-based error handling that returns VFS errors to the guest.
   deliverables:
   - name: unwrap()-free vfs_surface.rs
-    status: todo
+    status: done
     tasks:
     - id: p237.d1.t1
       title: Convert surface read/write to Result-based
@@ -3136,7 +3136,7 @@ phases:
     opcodes accelerate text-heavy programs 5-10x.
   deliverables:
   - name: String opcodes
-    status: todo
+    status: done
     tasks:
     - id: p238.d1.t1
       title: Implement STRLEN addr_reg len_reg (0xC9), STRCMP a_reg b_reg (0xCA),
@@ -3174,7 +3174,7 @@ phases:
     by 3-5x for bulk operations.
   deliverables:
   - name: Memory block opcodes
-    status: todo
+    status: done
     tasks:
     - id: p239.d1.t1
       title: Implement MEMCPY dst_reg src_reg len_reg (0xCC), MEMSET dst_reg val_reg
@@ -3403,7 +3403,7 @@ phases:
     zero test coverage.
   deliverables:
   - name: ops_host_fs unit tests
-    status: todo
+    status: done
     tasks:
     - id: p245.d1.t1
       title: Add tests for HOST_READ opcode
@@ -3427,7 +3427,7 @@ phases:
       - src/vm/tests.rs
       scope_lines: 60
   - name: ops_pty unit tests
-    status: todo
+    status: done
     tasks:
     - id: p245.d2.t1
       title: Add tests for PTY_CREATE and PTY_CLOSE
@@ -3455,7 +3455,7 @@ phases:
     to filesystem, process, and device operations.
   deliverables:
   - name: ops_syscall unit tests
-    status: todo
+    status: done
     tasks:
     - id: p246.d1.t1
       title: Add tests for valid syscall dispatch
