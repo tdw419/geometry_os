@@ -11768,3 +11768,26 @@ phases:
     scope_lines: 300
   scope_lines_total: 300
   test_target: 0
+- id: phase-275
+  title: Add Xvfb lifecycle management to dogfood QA preflight
+  status: planned
+  goal: GeOS GUI launches reliably during automated QA by ensuring Xvfb is running before attempting to start GeOS
+  description: 'GeOS repeatedly crashes with "XOpenDisplay failed" because no X server is available on this headless system. The restart log shows 9 consecutive crash loops all failing with the same error. While Phase 273 covers the XOpenIM crash (when Xvfb IS running), this is a different issue: Xvfb itself is not being started or has exited. The dogfood QA preflight script should manage the Xvfb lifecycle: start Xvfb if not running, set DISPLAY, verify it works, then launch GeOS. This enables automated visual QA (screenshots, window interaction) to actually function.'
+  deliverables:
+  - name: Add Xvfb start/verify to dogfood QA preflight
+    description: 'In the preflight script that launches GeOS for QA, add Xvfb lifecycle management: (1) Check if Xvfb is running (pgrep Xvfb or check DISPLAY socket), (2) If not, start Xvfb with Xvfb :99 -screen 0 1024x768x24 and export DISPLAY=:99, (3) Verify Xvfb is accepting connections (xdpyinfo or similar), (4) Only then launch GeOS. Also add cleanup on exit.'
+    status: todo
+    tasks:
+    - id: p275.d1.t1
+      title: Add Xvfb start function to preflight
+      status: todo
+      description: Create a function that checks for running Xvfb, starts one if needed on :99, sets DISPLAY=:99, and verifies connectivity. Call this before any GeOS launch attempt.
+      scope_lines: 30
+    - id: p275.d1.t2
+      title: Set XMODIFIERS=@im=none to avoid Phase-273 XIM crash
+      status: todo
+      description: When starting Xvfb, also export XMODIFIERS=@im=none as a workaround for the Phase-273 XOpenIM issue until that minifb patch is applied.
+      scope_lines: 5
+    scope_lines: 35
+  scope_lines_total: 35
+  test_target: 0

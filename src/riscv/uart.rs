@@ -59,6 +59,10 @@ pub struct Uart {
     pub scr: u8,
     /// FIFO Control Register (write-only).
     pub fcr: u8,
+    /// Divisor Latch Low byte (accessible when DLAB=1 via offset 0).
+    pub dll: u8,
+    /// Divisor Latch High byte (accessible when DLAB=1 via offset 1).
+    pub dlm: u8,
     /// Input buffer (characters received from host, e.g. keyboard).
     pub rx_buf: Vec<u8>,
     /// Output buffer (characters transmitted by guest).
@@ -74,6 +78,12 @@ impl Default for Uart {
 }
 
 impl Uart {
+    /// Check if DLAB (Divisor Latch Access Bit) is set in LCR.
+    /// When DLAB=1, offsets 0 and 1 access DLL/DLM instead of THR/IER.
+    fn dlab(&self) -> bool {
+        (self.lcr & 0x80) != 0
+    }
+
     /// Create a new UART with empty TX/RX buffers and THRE bit set.
     pub fn new() -> Self {
         Self {
@@ -84,6 +94,8 @@ impl Uart {
             msr: 0,
             scr: 0,
             fcr: 0,
+            dll: 0,
+            dlm: 0,
             rx_buf: Vec::new(),
             tx_buf: Vec::new(),
             write_count: 0,
@@ -99,18 +111,30 @@ impl Uart {
     pub fn read_byte(&mut self, offset: u64) -> u8 {
         match offset {
             THR_RBR => {
-                // Read from receive buffer (FIFO: first in, first out).
-                if !self.rx_buf.is_empty() {
-                    let b = self.rx_buf.remove(0);
-                    if self.rx_buf.is_empty() {
-                        self.lsr &= !LSR_DR; // Clear Data Ready
-                    }
-                    b
+                if self.dlab() {
+                    // DLAB=1: offset 0 reads DLL (Divisor Latch Low)
+                    self.dll
                 } else {
-                    0
+                    // Read from receive buffer (FIFO: first in, first out).
+                    if !self.rx_buf.is_empty() {
+                        let b = self.rx_buf.remove(0);
+                        if self.rx_buf.is_empty() {
+                            self.lsr &= !LSR_DR; // Clear Data Ready
+                        }
+                        b
+                    } else {
+                        0
+                    }
                 }
             }
-            IER => self.ier,
+            IER => {
+                if self.dlab() {
+                    // DLAB=1: offset 1 reads DLM (Divisor Latch High)
+                    self.dlm
+                } else {
+                    self.ier
+                }
+            }
             IIR_FCR => {
                 // Return interrupt ID. We report no interrupt unless RX has data.
                 if !self.rx_buf.is_empty() && (self.ier & 0x01) != 0 {
@@ -134,14 +158,22 @@ impl Uart {
     pub fn write_byte(&mut self, offset: u64, val: u8) {
         match offset {
             THR_RBR => {
-                // Transmit: add to output buffer.
-                self.tx_buf.push(val);
-                self.write_count += 1;
-                // In real hardware, THR would become not-empty, then empty
-                // after "transmitting". We're instant, so THRE stays set.
+                if self.dlab() {
+                    // DLAB=1: offset 0 writes DLL (Divisor Latch Low)
+                    self.dll = val;
+                } else {
+                    // Transmit: add to output buffer.
+                    self.tx_buf.push(val);
+                    self.write_count += 1;
+                }
             }
             IER => {
-                self.ier = val & 0x0F; // Only lower 4 bits writable
+                if self.dlab() {
+                    // DLAB=1: offset 1 writes DLM (Divisor Latch High)
+                    self.dlm = val;
+                } else {
+                    self.ier = val & 0x0F; // Only lower 4 bits writable
+                }
             }
             IIR_FCR => {
                 self.fcr = val;
@@ -309,5 +341,76 @@ mod tests {
         let word = uart.read_word(UART_BASE).expect("operation should succeed");
         // Byte 0 = THR_RBR (0, no data), Byte 1 = IER (0x01), Byte 2 = IIR_FCR, Byte 3 = LCR
         assert_eq!((word >> 8) & 0xFF, 0x01); // IER value
+    }
+
+    #[test]
+    fn dlab_writes_dll_dlm_not_thr_ier() {
+        let mut uart = Uart::new();
+        // Normal mode: write to THR and IER
+        uart.write_byte(THR_RBR, b'A');
+        uart.write_byte(IER, 0x0F);
+        assert_eq!(uart.tx_buf, vec![b'A']);
+        assert_eq!(uart.ier, 0x0F);
+
+        // Set DLAB=1 via LCR bit 7
+        uart.write_byte(LCR, 0x80);
+        assert!(uart.dlab());
+
+        // DLAB=1: writes to offset 0/1 go to DLL/DLM, not THR/IER
+        uart.write_byte(THR_RBR, 0x01); // writes DLL, NOT transmit
+        uart.write_byte(IER, 0x00);     // writes DLM, NOT IER
+        assert_eq!(uart.dll, 0x01);
+        assert_eq!(uart.dlm, 0x00);
+        // TX buffer should NOT have grown (DLL write, not THR write)
+        assert_eq!(uart.tx_buf.len(), 1); // still just 'A' from before
+        // IER should NOT have changed (DLM write, not IER write)
+        assert_eq!(uart.ier, 0x0F);
+    }
+
+    #[test]
+    fn dlab_reads_dll_dlm_not_rbr_ier() {
+        let mut uart = Uart::new();
+        // Pre-set IER so we can verify it's preserved
+        uart.write_byte(IER, 0x05);
+        // Set DLL and DLM
+        uart.write_byte(LCR, 0x80); // DLAB=1
+        uart.write_byte(THR_RBR, 0x0C); // DLL = 0x0C
+        uart.write_byte(IER, 0x00);     // writes DLM, NOT IER
+
+        // Read back DLL/DLM
+        assert_eq!(uart.read_byte(THR_RBR), 0x0C); // reads DLL
+        assert_eq!(uart.read_byte(IER), 0x00);      // reads DLM
+
+        // Clear DLAB - now offset 0/1 go back to RBR/IER
+        uart.write_byte(LCR, 0x03); // 8N1, DLAB=0
+        assert!(!uart.dlab());
+
+        // Offset 0 now reads RBR (receive buffer), not DLL
+        assert_eq!(uart.read_byte(THR_RBR), 0); // empty RX buffer
+        // Offset 1 now reads IER (preserved from before DLAB was set)
+        assert_eq!(uart.read_byte(IER), 0x05);
+    }
+
+    #[test]
+    fn dlab_baud_rate_divisor_sequence() {
+        let mut uart = Uart::new();
+        // Typical Linux 8250 driver baud rate setting sequence:
+        // 1. Set DLAB=1
+        uart.write_byte(LCR, 0x80);
+        // 2. Write divisor low byte (DLL)
+        uart.write_byte(THR_RBR, 0x01); // DLL = 1
+        // 3. Write divisor high byte (DLM)
+        uart.write_byte(IER, 0x00);     // DLM = 0
+        // 4. Clear DLAB, set 8N1
+        uart.write_byte(LCR, 0x03);
+
+        // Verify divisor was stored correctly
+        assert_eq!(uart.dll, 0x01);
+        assert_eq!(uart.dlm, 0x00);
+        // Verify LCR is now 8N1 (DLAB cleared)
+        assert_eq!(uart.lcr, 0x03);
+        // Verify normal TX/RX works again
+        uart.write_byte(THR_RBR, b'Z');
+        assert_eq!(uart.tx_buf, vec![b'Z']);
     }
 }
