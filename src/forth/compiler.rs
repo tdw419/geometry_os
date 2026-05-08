@@ -22,7 +22,6 @@ use crate::forth::lexer;
 
 const DATA_BASE: u32 = 0x3000;
 const VAR_BASE: u32 = 0x3800;
-const RSP_BASE: u32 = 0x3900;
 const DOT_QUOTE: &str = ".\"";
 
 #[derive(Debug)]

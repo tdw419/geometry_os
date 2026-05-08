@@ -97,10 +97,6 @@ const GEO_FN_MSLEEP: u32 = 15;
 /// Maximum number of concurrent alarms.
 const GEO_MAX_ALARMS: usize = 4;
 
-/// Approximate ticks per millisecond.
-/// On real RISC-V hardware with a 52MHz timebase, this is exact.
-/// For the emulator, this ratio is used to convert ms -> CLINT ticks.
-const GEO_TICKS_PER_MS: u64 = 52_000;
 
 /// Maximum number of shared memory regions.
 const SHM_MAX_REGIONS: usize = 16;

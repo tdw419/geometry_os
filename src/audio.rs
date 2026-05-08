@@ -32,23 +32,6 @@ fn get_beep_sender() -> &'static Sender<Vec<u8>> {
 /// Set by stream_pcm(), cleared by the aplay thread callback.
 static PCM_PLAYING: AtomicBool = AtomicBool::new(false);
 
-/// Sender for PCM stop signals. The playback thread checks this channel
-/// with a short timeout and kills the aplay child if a stop signal arrives.
-static PCM_STOP_TX: OnceLock<Sender<()>> = OnceLock::new();
-
-fn get_pcm_stop_sender() -> &'static Sender<()> {
-    PCM_STOP_TX.get_or_init(|| {
-        let (tx, rx) = channel::<()>();
-        std::thread::spawn(move || {
-            // This thread drains stop signals. The actual stop logic
-            // is in stop_pcm() which sends a signal here.
-            while rx.recv().is_ok() {
-                // Stop signal received; the actual kill happens in stop_pcm
-            }
-        });
-        tx
-    })
-}
 
 /// Stream raw PCM samples from a u32 RAM buffer through aplay in a background thread.
 /// Each u32 word in samples is treated as a signed 16-bit PCM sample (low 16 bits, sign-extended).

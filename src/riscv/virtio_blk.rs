@@ -93,11 +93,6 @@ pub const VIRTIO_STATUS_DRIVER_OK: u32 = 4;
 pub const VIRTIO_STATUS_FEATURES_OK: u32 = 8;
 pub const VIRTIO_STATUS_FAILED: u32 = 128;
 
-/// Virtio feature bits.
-const VIRTIO_BLK_F_RO: u32 = 5; // Read-only
-const VIRTIO_BLK_F_BLK_SIZE: u32 = 6; // Block size available
-const VIRTIO_F_RING_EVENT_IDX: u32 = 29;
-const VIRTIO_F_VERSION_1: u32 = 32;
 
 /// Virtio block request types.
 const VIRTIO_BLK_T_IN: u32 = 0; // Read
@@ -153,20 +148,9 @@ impl Default for VirtQueue {
     }
 }
 
-/// Virtio block request header (16 bytes, in guest memory).
-///   type: u32 (0=read, 1=write)
-///   reserved: u32
-///   sector: u64
-#[derive(Clone, Copy, Debug)]
-struct BlkRequest {
-    req_type: u32,
-    sector: u64,
-}
-
 /// Virtio block request status (1 byte, written after data).
 const VIRTIO_BLK_S_OK: u8 = 0;
 const VIRTIO_BLK_S_IOERR: u8 = 1;
-const VIRTIO_BLK_S_UNSUPP: u8 = 2;
 
 /// Host file path for persistent disk backing.
 /// If set, disk is loaded from this file on creation and saved on write.

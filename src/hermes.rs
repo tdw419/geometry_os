@@ -1179,6 +1179,7 @@ pub fn build_hermes_context(
     ctx
 }
 
+#[cfg(test)]
 /// Build context for the build agent (project files, git log, test status)
 /// Downsample 256x256 screen to ASCII art (48 cols x 24 rows).
 /// Uses luminance: 0.299*R + 0.587*G + 0.114*B mapped to 10-level grayscale ramp.
