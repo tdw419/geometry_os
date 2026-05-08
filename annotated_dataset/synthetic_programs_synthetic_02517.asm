@@ -1,0 +1,56 @@
+; DESCRIPTION: This GeOS assembly code performs a series of memory operations including loading and storing values to specific registers. It initializes various registers with different hexadecimal values and then loads these values back into other registers or memory locations, simulating complex data manipulation tasks typical in embedded systems programming.
+
+; memory operations
+; initialization
+  LDI r15, 0x1DD092
+  LDI r4, 10
+  LDI r10, 3461
+  LDI r10x20F9, 128
+  STORE r14, r15
+  LOAD r6, r14
+  LDI r6, 3900
+  STORE r6, r0
+  LOAD r3, r6
+  LDI r5, 0x94DB9A
+  STORE r5, r12
+  LOAD r15, r5
+  LDI r5, 0xE313E6
+  STORE r5, r1
+  LOAD r10, r5
+  LDI r16, 128
+  STORE r16, r11
+  LOAD r3, r16
+  LDI r13, 255
+  STORE r13, r10
+  LOAD r14, r13
+  LDI r0x22BA0, 0x2B5BFC
+  STORE r10, r10
+  LOAD r3, r10
+  LDI r0, 255
+  STORE r0, r17
+  LOAD r13, r0
+  LDI r5, 256
+  STORE r5, r6
+  LOAD r29, r5
+  LDI r6, 0x5FA5B7
+  STORE r6, r15
+  LOAD r1, r6
+  LDI r13, 16
+  STORE r13, r9
+  LOAD r3, r13
+  LDI r5, 0x2041x43A232
+  STORE r5, r6
+  LOAD r8, r5
+  LDI r8, 2012
+  STORE r8, r8
+  LOAD r4, r8
+  LDI r3, 2222
+  STORE r3, r10
+  LOAD r11, r3
+  LDI r7, 0xC3B4CC
+  STORE r7, r3
+  LOAD r0, r7
+  LDI r12, 2
+  STORE r12, r2
+  LOAD r11, r12
+  HALT

@@ -3928,7 +3928,7 @@ phases:
   _claimed_at: 1778200642
 - id: phase-257
   title: RISC-V Guest -- Timer and Sleep Syscalls
-  status: planned
+  status: in_progress
   goal: Add timer and sleep syscalls for RISC-V guest programs
   description: Guest programs currently have no way to delay execution or measure
     time. The CLINT hardware provides timer interrupts, but guest C programs need
@@ -3962,6 +3962,8 @@ phases:
       scope_lines: 50
   test_target: 2
   scope_lines_total: 150
+  _claimed_by: worker-0
+  _claimed_at: 1778202562
 - id: phase-258
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
   status: planned

@@ -84,6 +84,24 @@ const GEO_FN_SHM_SIZE: u32 = 9;
 const GEO_FN_SHM_WRITE: u32 = 10;
 const GEO_FN_SHM_READ: u32 = 11;
 
+// Phase 257: Timer and Sleep syscalls
+// Function 12: GEO_UPTIME -- get elapsed ticks since boot
+// Function 13: GEO_ALARM_SET -- register a one-shot alarm
+// Function 14: GEO_ALARM_CANCEL -- cancel a registered alarm
+// Function 15: GEO_MSLEEP -- yield and sleep for N milliseconds
+const GEO_FN_UPTIME: u32 = 12;
+const GEO_FN_ALARM_SET: u32 = 13;
+const GEO_FN_ALARM_CANCEL: u32 = 14;
+const GEO_FN_MSLEEP: u32 = 15;
+
+/// Maximum number of concurrent alarms.
+const GEO_MAX_ALARMS: usize = 4;
+
+/// Approximate ticks per millisecond.
+/// On real RISC-V hardware with a 52MHz timebase, this is exact.
+/// For the emulator, this ratio is used to convert ms -> CLINT ticks.
+const GEO_TICKS_PER_MS: u64 = 52_000;
+
 /// Maximum number of shared memory regions.
 const SHM_MAX_REGIONS: usize = 16;
 /// Maximum size per shared memory region in bytes.
@@ -157,6 +175,19 @@ pub enum NetOpKind {
     Recv,
 }
 
+/// Phase 257: Alarm descriptor for timer syscalls.
+#[derive(Debug, Clone, Copy)]
+pub struct AlarmEntry {
+    /// Whether this alarm slot is active.
+    pub active: bool,
+    /// CLINT mtime when the alarm fires (absolute).
+    pub expire_mtime: u64,
+    /// Callback function pointer (0 = just wake, no callback).
+    pub callback: u32,
+    /// Owner context ID (for permission checking).
+    pub owner: usize,
+}
+
 /// SBI device: handles ECALL-based SBI calls and HTIF memory-mapped I/O.
 pub struct Sbi {
     /// UART for console output (shared reference via write callback).
@@ -202,6 +233,10 @@ pub struct Sbi {
     /// Pending shared memory read: (shm_id, offset, dst_phys_addr, len).
     /// Set by GEO_FN_SHM_READ ecall, fulfilled by step loop.
     pub shm_pending_read: Option<(u32, usize, u64, usize)>,
+    /// Phase 257: Alarm table for timer syscalls.
+    pub alarms: [AlarmEntry; GEO_MAX_ALARMS],
+    /// Phase 257: CLINT mtime captured at SBI creation (boot time).
+    pub boot_mtime: u64,
 }
 
 impl Sbi {
@@ -226,7 +261,29 @@ impl Sbi {
             shm_next_id: 1, // start IDs at 1 (0 = error/null)
             shm_pending_write: None,
             shm_pending_read: None,
+            alarms: [AlarmEntry {
+                active: false,
+                expire_mtime: 0,
+                callback: 0,
+                owner: 0,
+            }; GEO_MAX_ALARMS],
+            boot_mtime: 0, // will be set from clint.mtime at boot
         }
+    }
+
+    /// Phase 257: Check all active alarms against current CLINT mtime.
+    /// Returns a list of (alarm_id, callback_addr) for alarms that have fired.
+    /// Each fired alarm is deactivated after this call.
+    /// Called from the step loop each tick.
+    pub fn check_alarms(&mut self, current_mtime: u64) -> Vec<(u32, u32)> {
+        let mut fired = Vec::new();
+        for (i, alarm) in self.alarms.iter_mut().enumerate() {
+            if alarm.active && current_mtime >= alarm.expire_mtime {
+                alarm.active = false;
+                fired.push(((i + 1) as u32, alarm.callback));
+            }
+        }
+        fired
     }
 
     /// Handle an SBI ECALL.
@@ -614,6 +671,78 @@ impl Sbi {
                     }
                     self.shm_pending_read = Some((shm_id, offset, dst_addr, len));
                     Some((SBI_SUCCESS as u32, len as u32))
+                }
+                // Phase 257: Timer and Sleep syscalls
+                GEO_FN_UPTIME => {
+                    // Returns elapsed ticks since boot.
+                    // a0 = unused, a1 = unused
+                    // Returns: a0 = SBI_SUCCESS, a1 = elapsed ticks (u32)
+                    let current_mtime = clint.read_mtime();
+                    let elapsed = current_mtime.wrapping_sub(self.boot_mtime);
+                    Some((SBI_SUCCESS as u32, elapsed))
+                }
+                GEO_FN_ALARM_SET => {
+                    // Register a one-shot alarm.
+                    // a0 = delay_ticks (how many ticks from now to fire)
+                    // a1 = callback_phys_addr (physical address to jump to on fire)
+                    // Returns: a0 = SBI_SUCCESS, a1 = alarm_id (1-based) or SBI_ERR on failure
+                    let delay_ticks = a0;
+                    let callback = a1;
+                    if delay_ticks == 0 || callback == 0 {
+                        return Some((SBI_ERR_INVALID_PARAM as u32, 0));
+                    }
+                    let current_mtime = clint.read_mtime();
+                    let expire = current_mtime.wrapping_add(delay_ticks);
+                    // Find a free alarm slot
+                    match self
+                        .alarms
+                        .iter_mut()
+                        .find(|a| !a.active)
+                    {
+                        Some(slot) => {
+                            slot.active = true;
+                            slot.expire_mtime = expire;
+                            slot.callback = callback;
+                            slot.owner = 0; // no multi-process owner tracking yet
+                            let alarm_id =
+                                slot as *const AlarmEntry as u64 - self.alarms.as_ptr() as u64
+                                    + 1; // 1-based ID
+                            Some((SBI_SUCCESS as u32, alarm_id as u32))
+                        }
+                        None => Some((SBI_ERR_FAILURE as u32, 0)),
+                    }
+                }
+                GEO_FN_ALARM_CANCEL => {
+                    // Cancel a previously registered alarm.
+                    // a0 = alarm_id (1-based, as returned by ALARM_SET)
+                    // Returns: a0 = SBI_SUCCESS or SBI_ERR_INVALID_PARAM
+                    let alarm_id = a0 as usize;
+                    if alarm_id == 0 || alarm_id > self.alarms.len() {
+                        return Some((SBI_ERR_INVALID_PARAM as u32, 0));
+                    }
+                    let slot = &mut self.alarms[alarm_id - 1];
+                    if !slot.active {
+                        return Some((SBI_ERR_INVALID_PARAM as u32, 0));
+                    }
+                    slot.active = false;
+                    Some((SBI_SUCCESS as u32, 0))
+                }
+                GEO_FN_MSLEEP => {
+                    // Sleep for N virtual ticks by advancing CLINT mtime directly.
+                    // a0 = sleep_ticks (number of CLINT ticks to wait)
+                    // a1 = unused
+                    // Returns: a0 = SBI_SUCCESS, a1 = actual ticks elapsed
+                    //
+                    // In the virtual environment there is no real-time clock.
+                    // Instead of busy-waiting (which would loop forever since
+                    // mtime only advances in the step loop), we advance mtime
+                    // directly to simulate time passage.
+                    let sleep_ticks = a0;
+                    if sleep_ticks == 0 {
+                        return Some((SBI_ERR_INVALID_PARAM as u32, 0));
+                    }
+                    clint.tick_n(sleep_ticks as u64);
+                    Some((SBI_SUCCESS as u32, sleep_ticks))
                 }
                 _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
             },
@@ -1749,5 +1878,459 @@ mod tests {
         let r2 = sbi.shm_regions.iter().find(|r| r.id == id2).unwrap();
         assert_eq!(r1.data[0], 0xAB);
         assert_eq!(r2.data[0], 0xCD);
+    }
+
+    // --- Phase 257: Timer and Sleep syscall tests ---
+
+    #[test]
+    fn test_uptime_returns_zero_initially() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // mtime starts at 0, boot_mtime starts at 0, so elapsed = 0
+        let (a0, a1) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_UPTIME,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 0);
+    }
+
+    #[test]
+    fn test_uptime_returns_elapsed_after_ticks() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // Advance CLINT by 1000 ticks
+        clint.tick_n(1000);
+        let (a0, a1) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_UPTIME,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 1000);
+    }
+
+    #[test]
+    fn test_uptime_wrapping() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // Set boot_mtime to u64::MAX - 50, then advance 100 ticks
+        sbi.boot_mtime = u64::MAX - 50;
+        clint.tick_n(100);
+        let (a0, a1) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_UPTIME,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        // 100 - (MAX - 50) = 100 + 50 + 1 = 151 (wrapping)
+        assert_eq!(a1, 151);
+    }
+
+    #[test]
+    fn test_alarm_set_and_cancel() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // Set alarm: fire in 100 ticks, callback at PA 0x2000
+        let (a0, a1) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_ALARM_SET,
+                100,
+                0x2000,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 1); // alarm_id = 1
+
+        // Cancel alarm 1
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_ALARM_CANCEL,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+
+        // Canceling again should fail (already inactive)
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_ALARM_CANCEL,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_alarm_set_invalid_params() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // delay_ticks = 0
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_ALARM_SET,
+                0,
+                0x1000,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+
+        // callback = 0
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_ALARM_SET,
+                50,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_alarm_set_multiple() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // Fill all alarm slots
+        for i in 0..GEO_MAX_ALARMS {
+            let (a0, a1) = sbi
+                .handle_ecall(
+                    SBI_EXT_GEOMETRY,
+                    GEO_FN_ALARM_SET,
+                    (100 + i * 10) as u32,
+                    (0x1000 + i as u32) * 4,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    &mut uart,
+                    &mut clint,
+                )
+                .unwrap();
+            assert_eq!(a0, SBI_SUCCESS as u32);
+            assert_eq!(a1, (i + 1) as u32);
+        }
+
+        // Next one should fail (all slots used)
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_ALARM_SET,
+                999,
+                0xBEEF,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_FAILURE as u32);
+    }
+
+    #[test]
+    fn test_alarm_cancel_invalid_id() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // alarm_id = 0 (invalid)
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_ALARM_CANCEL,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+
+        // alarm_id > max (invalid)
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_ALARM_CANCEL,
+                (GEO_MAX_ALARMS + 1) as u32,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_check_alarms_fires_correctly() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // Set alarm: fire in 50 ticks
+        sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            GEO_FN_ALARM_SET,
+            50,
+            0x2000,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+
+        // Check at mtime=49: no fire
+        clint.tick_n(49);
+        let fired = sbi.check_alarms(clint.read_mtime());
+        assert!(fired.is_empty());
+
+        // Check at mtime=50: fires
+        clint.tick_n(1);
+        let fired = sbi.check_alarms(clint.read_mtime());
+        assert_eq!(fired.len(), 1);
+        assert_eq!(fired[0], (1, 0x2000)); // alarm_id=1, callback=0x2000
+
+        // Check again at mtime=50: already deactivated, no fire
+        let fired = sbi.check_alarms(clint.read_mtime());
+        assert!(fired.is_empty());
+    }
+
+    #[test]
+    fn test_check_alarms_multiple_fire() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // Set two alarms: one at +10, one at +20
+        sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            GEO_FN_ALARM_SET,
+            10,
+            0x1000,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            GEO_FN_ALARM_SET,
+            20,
+            0x2000,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+
+        // At mtime=15: only first fires
+        clint.tick_n(15);
+        let fired = sbi.check_alarms(clint.read_mtime());
+        assert_eq!(fired.len(), 1);
+        assert_eq!(fired[0].0, 1); // alarm 1
+
+        // At mtime=25: second fires
+        clint.tick_n(10);
+        let fired = sbi.check_alarms(clint.read_mtime());
+        assert_eq!(fired.len(), 1);
+        assert_eq!(fired[0].0, 2); // alarm 2
+    }
+
+    #[test]
+    fn test_msleep_advances_clint() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // mtime starts at 0
+        assert_eq!(clint.read_mtime(), 0);
+
+        // Sleep for 500 ticks
+        let (a0, a1) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_MSLEEP,
+                500,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 500);
+
+        // mtime should now be 500
+        assert_eq!(clint.read_mtime(), 500);
+    }
+
+    #[test]
+    fn test_msleep_zero_invalid() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_MSLEEP,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_msleep_then_uptime() {
+        use super::*;
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // Sleep for 200 ticks
+        sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            GEO_FN_MSLEEP,
+            200,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+
+        // Uptime should reflect the 200 ticks
+        let (a0, a1) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_UPTIME,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 200);
     }
 }
