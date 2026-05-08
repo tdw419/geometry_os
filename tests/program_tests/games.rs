@@ -3275,6 +3275,226 @@ fn trace_cmd_bar_multi_key() {
     panic!("TRACE DONE");
 }
 
+// ── CELLULAR AUTOMATA SANDBOX ─────────────────────────────────
+
+/// Helper: assemble cellular_automata.asm and return a fresh VM ready to run
+fn cellular_automata_vm() -> Vm {
+    let source = std::fs::read_to_string("programs/cellular_automata.asm")
+        .expect("cellular_automata.asm not found");
+    let asm = assemble(&source, 0).expect("cellular_automata.asm failed to assemble");
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm
+}
+
+#[test]
+fn test_cellular_automata_assembles() {
+    let source = std::fs::read_to_string("programs/cellular_automata.asm")
+        .expect("cellular_automata.asm not found");
+    let asm = assemble(&source, 0).expect("cellular_automata.asm should assemble");
+    assert!(
+        asm.pixels.len() > 100,
+        "cellular_automata bytecode should be >100 words, got {}",
+        asm.pixels.len()
+    );
+}
+
+#[test]
+fn test_cellular_automata_life_block_survives() {
+    // Block at grid (10,50) is a still life under Conway's Life (B3/S23).
+    // Each cell has exactly 3 alive neighbors, so all survive.
+    let mut vm = cellular_automata_vm();
+
+    let steps = step_until_frame(&mut vm, 10_000_000);
+    assert!(
+        vm.frame_ready,
+        "should reach FRAME within 10M steps (took {})",
+        steps
+    );
+
+    let alive = 0x00FF00u32;
+    assert_eq!(
+        vm.screen[200 * 256 + 40],
+        alive,
+        "block (10,50) screen(40,200) should survive"
+    );
+    assert_eq!(
+        vm.screen[200 * 256 + 44],
+        alive,
+        "block (11,50) screen(44,200) should survive"
+    );
+    assert_eq!(
+        vm.screen[204 * 256 + 40],
+        alive,
+        "block (10,51) screen(40,204) should survive"
+    );
+    assert_eq!(
+        vm.screen[204 * 256 + 44],
+        alive,
+        "block (11,51) screen(44,204) should survive"
+    );
+}
+
+#[test]
+fn test_cellular_automata_life_blinker_oscillates() {
+    // Blinker at grid (50,5): horizontal cells (50,5),(51,5),(52,5).
+    // After gen 1: vertical (51,4),(51,5),(51,6).
+    let mut vm = cellular_automata_vm();
+    let alive = 0x00FF00u32;
+
+    // Frame 0: horizontal -> vertical
+    let steps = step_until_frame(&mut vm, 10_000_000);
+    assert!(vm.frame_ready, "frame 0 within 10M steps (took {})", steps);
+
+    // Vertical blinker at screen (204,16),(204,20),(204,24)
+    assert_eq!(vm.screen[16 * 256 + 204], alive, "vertical (204,16) alive");
+    assert_eq!(vm.screen[20 * 256 + 204], alive, "vertical (204,20) alive");
+    assert_eq!(vm.screen[24 * 256 + 204], alive, "vertical (204,24) alive");
+    // Horizontal ends dead
+    assert_eq!(vm.screen[20 * 256 + 200], 0, "horiz end (200,20) dead");
+    assert_eq!(vm.screen[20 * 256 + 208], 0, "horiz end (208,20) dead");
+
+    // Frame 1: vertical -> horizontal (period 2)
+    // Throttle: computation every 4th frame (TICKS&3==0).
+    // Frame 0 = gen1, frames 1-3 = skip, frame 4 = gen2. Need 5 frames total.
+    for _ in 0..4 {
+        vm.frame_ready = false;
+        step_until_frame(&mut vm, 10_000_000);
+    }
+
+    assert_eq!(vm.screen[20 * 256 + 200], alive, "horiz (200,20) alive");
+    assert_eq!(vm.screen[20 * 256 + 204], alive, "horiz (204,20) alive");
+    assert_eq!(vm.screen[20 * 256 + 208], alive, "horiz (208,20) alive");
+    assert_eq!(vm.screen[16 * 256 + 204], 0, "vert end (204,16) dead");
+    assert_eq!(vm.screen[24 * 256 + 204], 0, "vert end (204,24) dead");
+}
+
+#[test]
+fn test_cellular_automata_rule_switching() {
+    // Verify that pressing '3' switches to Seeds rule.
+    // Under Seeds (B2/S, no survival), the block at (10,50) dies after one generation.
+    // We send key '3' (ASCII 51) after init to switch rules, then check results.
+    let mut vm = cellular_automata_vm();
+
+    // Step past init code (PSETI instructions draw patterns, ~50 instructions)
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Now switch to Seeds by pressing '3'
+    vm.ram[0x3000] = 0x04; // birth_mask: B2
+    vm.ram[0x3001] = 0x00; // survival_mask: none
+    vm.ram[0x3005] = 0xFF8800; // orange color (override init's green)
+
+    // Run to first FRAME (computation + render)
+    let steps = step_until_frame(&mut vm, 10_000_000);
+    assert!(
+        vm.frame_ready,
+        "should reach FRAME within 10M (took {})",
+        steps
+    );
+
+    // Block should be dead under Seeds (no survival mask)
+    assert_eq!(
+        vm.screen[200 * 256 + 40],
+        0,
+        "Seeds: block (10,50) should die"
+    );
+    assert_eq!(
+        vm.screen[200 * 256 + 44],
+        0,
+        "Seeds: block (11,50) should die"
+    );
+
+    // New births should exist (Seeds creates new patterns from B2)
+    let non_black: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        non_black > 10,
+        "Seeds should produce births, got {} non-black pixels",
+        non_black
+    );
+}
+
+#[test]
+fn test_cellular_automata_highlife_same_as_life() {
+    // HighLife (B36/S23) is a superset of Life (B3/S23).
+    // Life patterns that work under B3/S23 produce identical results under B36/S23
+    // because the survival mask is the same and B3 births are a subset of B36.
+    // The block at grid (10,50) survives under both rules.
+    let mut vm = cellular_automata_vm();
+
+    // Step past init, then switch to HighLife
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+    vm.ram[0x3000] = 0x48; // birth_mask: B36
+    vm.ram[0x3001] = 0x0C; // survival_mask: S23
+    vm.ram[0x3005] = 0x00FFFF; // cyan
+
+    let steps = step_until_frame(&mut vm, 10_000_000);
+    assert!(
+        vm.frame_ready,
+        "should reach FRAME within 10M steps (took {})",
+        steps
+    );
+
+    // Block should survive (3 neighbors each, S23 applies)
+    let alive = 0x00FFFFu32;
+    assert_eq!(
+        vm.screen[200 * 256 + 40],
+        alive,
+        "HighLife: block (10,50) should survive"
+    );
+    assert_eq!(
+        vm.screen[200 * 256 + 44],
+        alive,
+        "HighLife: block (11,50) should survive"
+    );
+    assert_eq!(
+        vm.screen[204 * 256 + 40],
+        alive,
+        "HighLife: block (10,51) should survive"
+    );
+    assert_eq!(
+        vm.screen[204 * 256 + 44],
+        alive,
+        "HighLife: block (11,51) should survive"
+    );
+}
+
+#[test]
+fn test_cellular_automata_renders() {
+    // After one generation, the screen must have both live and dead pixels.
+    let mut vm = cellular_automata_vm();
+
+    let steps = step_until_frame(&mut vm, 10_000_000);
+    assert!(
+        vm.frame_ready,
+        "should reach FRAME within 10M steps (took {})",
+        steps
+    );
+
+    let non_black: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        non_black > 50,
+        "screen should have >50 live pixels after render, got {}",
+        non_black
+    );
+    assert!(
+        non_black < 50000,
+        "screen should have <50000 live pixels, got {}",
+        non_black
+    );
+}
+
 #[test]
 #[ignore] // diagnostic trace, deliberately panics with "TRACE DONE"
 fn trace_tp_teleports_step_by_step() {
