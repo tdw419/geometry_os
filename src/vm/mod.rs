@@ -6288,8 +6288,9 @@ impl Vm {
         if win.is_none() {
             return;
         }
-        let w = win.unwrap().w as usize;
-        let h = win.unwrap().h as usize;
+        let win_ref = win.unwrap();
+        let w = win_ref.w as usize;
+        let h = win_ref.h as usize;
         let max_cols = if w >= 6 { w / 6 } else { 1 };
         let max_rows = if h >= 8 { h / 8 } else { 1 };
 
