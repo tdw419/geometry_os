@@ -1462,6 +1462,54 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // STRLEN dest_reg, addr_reg  (0xF7) -- Count bytes until null terminator
+        // Scans RAM at addr, returns length in dest. Max scan: 4096 bytes.
+        "STRLEN" => {
+            if tokens.len() < 3 {
+                return Err("STRLEN requires 2 arguments: STRLEN dest_reg, addr_reg".to_string());
+            }
+            bytecode.push(0xF7);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        // STRCMP addr1_reg, addr2_reg  (0xF8) -- Lexicographic string comparison
+        // Result in r0: -1 (s1 < s2), 0 (equal), 1 (s1 > s2). Uses CMP convention.
+        "STRCMP" => {
+            if tokens.len() < 3 {
+                return Err("STRCMP requires 2 arguments: STRCMP addr1_reg, addr2_reg".to_string());
+            }
+            bytecode.push(0xF8);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        // STRCPY dest_reg, src_reg  (0xF9) -- Copy null-terminated string
+        // Copies from RAM[src] to RAM[dest], including null terminator.
+        "STRCPY" => {
+            if tokens.len() < 3 {
+                return Err("STRCPY requires 2 arguments: STRCPY dest_reg, src_reg".to_string());
+            }
+            bytecode.push(0xF9);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        // STRCAT dest_reg, src_reg  (0xFA) -- Append string to destination
+        // Finds null in dest, appends src (including null) at that position.
+        "STRCAT" => {
+            if tokens.len() < 3 {
+                return Err("STRCAT requires 2 arguments: STRCAT dest_reg, src_reg".to_string());
+            }
+            bytecode.push(0xFA);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

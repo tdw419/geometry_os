@@ -6642,6 +6642,201 @@ fn test_strlen_strcpy_combined() {
     assert_eq!(vm.regs[0], 5, "STRLEN of copied string should be 5");
 }
 
+// --- STRCAT (0xFA) tests ---
+
+#[test]
+fn test_strcat_basic() {
+    let mut vm = Vm::new();
+    // dest = "hello\0" at 0x3000
+    vm.ram[0x3000] = 'h' as u32;
+    vm.ram[0x3001] = 'e' as u32;
+    vm.ram[0x3002] = 'l' as u32;
+    vm.ram[0x3003] = 'l' as u32;
+    vm.ram[0x3004] = 'o' as u32;
+    vm.ram[0x3005] = 0;
+    // src = " world\0" at 0x4000
+    vm.ram[0x4000] = ' ' as u32;
+    vm.ram[0x4001] = 'w' as u32;
+    vm.ram[0x4002] = 'o' as u32;
+    vm.ram[0x4003] = 'r' as u32;
+    vm.ram[0x4004] = 'l' as u32;
+    vm.ram[0x4005] = 'd' as u32;
+    vm.ram[0x4006] = 0;
+    vm.regs[1] = 0x3000; // dest
+    vm.regs[2] = 0x4000; // src
+    vm.ram[0] = 0xFA;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    // Verify "hello world\0"
+    let expected = b"hello world\0";
+    for (i, &b) in expected.iter().enumerate() {
+        assert_eq!(
+            vm.ram[0x3000 + i],
+            b as u32,
+            "STRCAT basic: dst[{}] mismatch",
+            i
+        );
+    }
+}
+
+#[test]
+fn test_strcat_empty_dest() {
+    let mut vm = Vm::new();
+    // dest = "" at 0x3000
+    vm.ram[0x3000] = 0;
+    // src = "abc\0" at 0x4000
+    vm.ram[0x4000] = 'a' as u32;
+    vm.ram[0x4001] = 'b' as u32;
+    vm.ram[0x4002] = 'c' as u32;
+    vm.ram[0x4003] = 0;
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    vm.ram[0] = 0xFA;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    let expected = b"abc\0";
+    for (i, &b) in expected.iter().enumerate() {
+        assert_eq!(
+            vm.ram[0x3000 + i],
+            b as u32,
+            "STRCAT empty dest: dst[{}] mismatch",
+            i
+        );
+    }
+}
+
+#[test]
+fn test_strcat_empty_src() {
+    let mut vm = Vm::new();
+    // dest = "abc\0" at 0x3000
+    vm.ram[0x3000] = 'a' as u32;
+    vm.ram[0x3001] = 'b' as u32;
+    vm.ram[0x3002] = 'c' as u32;
+    vm.ram[0x3003] = 0;
+    // src = "" at 0x4000
+    vm.ram[0x4000] = 0;
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    vm.ram[0] = 0xFA;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    // dest unchanged
+    assert_eq!(vm.ram[0x3000], 'a' as u32);
+    assert_eq!(vm.ram[0x3001], 'b' as u32);
+    assert_eq!(vm.ram[0x3002], 'c' as u32);
+    assert_eq!(vm.ram[0x3003], 0);
+}
+
+#[test]
+fn test_strcat_both_empty() {
+    let mut vm = Vm::new();
+    vm.ram[0x3000] = 0; // empty dest
+    vm.ram[0x4000] = 0; // empty src
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    vm.ram[0] = 0xFA;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.ram[0x3000], 0, "both empty should remain empty");
+}
+
+#[test]
+fn test_strcat_does_not_clobber_past_null() {
+    let mut vm = Vm::new();
+    // dest = "ab\0cd" at 0x3000 -- stuff after null should survive
+    vm.ram[0x3000] = 'a' as u32;
+    vm.ram[0x3001] = 'b' as u32;
+    vm.ram[0x3002] = 0;
+    vm.ram[0x3003] = 'X' as u32; // sentinel
+                                 // src = "12\0" at 0x4000
+    vm.ram[0x4000] = '1' as u32;
+    vm.ram[0x4001] = '2' as u32;
+    vm.ram[0x4002] = 0;
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    vm.ram[0] = 0xFA;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    // Result: "ab12\0" at 0x3000
+    assert_eq!(vm.ram[0x3000], 'a' as u32);
+    assert_eq!(vm.ram[0x3001], 'b' as u32);
+    assert_eq!(vm.ram[0x3002], '1' as u32);
+    assert_eq!(vm.ram[0x3003], '2' as u32);
+    assert_eq!(vm.ram[0x3004], 0);
+}
+
+#[test]
+fn test_strcat_assembled() {
+    let mut vm = Vm::new();
+    let src = "\
+LDI r1, 0x3000
+LDI r2, 0x4000
+STRCAT r1, r2
+HALT";
+    let bc = crate::assembler::assemble(src, 0).unwrap();
+    // dest = "hi\0" at 0x3000
+    vm.ram[0x3000] = 'h' as u32;
+    vm.ram[0x3001] = 'i' as u32;
+    vm.ram[0x3002] = 0;
+    // src = "!\0" at 0x4000
+    vm.ram[0x4000] = '!' as u32;
+    vm.ram[0x4001] = 0;
+    for (i, &word) in bc.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    let expected = b"hi!\0";
+    for (i, &b) in expected.iter().enumerate() {
+        assert_eq!(
+            vm.ram[0x3000 + i],
+            b as u32,
+            "assembled STRCAT: dst[{}] mismatch",
+            i
+        );
+    }
+}
+
+#[test]
+fn test_strcat_strlen_combined() {
+    let mut vm = Vm::new();
+    // dest = "foo\0" at 0x3000
+    vm.ram[0x3000] = 'f' as u32;
+    vm.ram[0x3001] = 'o' as u32;
+    vm.ram[0x3002] = 'o' as u32;
+    vm.ram[0x3003] = 0;
+    // src = "bar\0" at 0x4000
+    vm.ram[0x4000] = 'b' as u32;
+    vm.ram[0x4001] = 'a' as u32;
+    vm.ram[0x4002] = 'r' as u32;
+    vm.ram[0x4003] = 0;
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    // STRCAT r1, r2
+    vm.ram[0] = 0xFA;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    // STRLEN r1
+    vm.ram[3] = 0xED;
+    vm.ram[4] = 1;
+    vm.pc = 3;
+    vm.step();
+    assert_eq!(vm.regs[0], 6, "STRLEN after STRCAT should be 6 (foobar)");
+}
+
 #[test]
 fn test_string_ops_demo_assembles_and_runs() {
     let source = include_str!("../../programs/string_ops_demo.asm");
@@ -6699,12 +6894,30 @@ fn test_string_ops_demo_assembles_and_runs() {
     assert_eq!(vm.ram[0x3032], 'l' as u32, "STRCPY: l at dest");
     assert_eq!(vm.ram[0x3033], 'l' as u32, "STRCPY: l at dest");
     assert_eq!(vm.ram[0x3034], 'o' as u32, "STRCPY: o at dest");
-    assert_eq!(vm.ram[0x3035], 0, "STRCPY: null terminator");
     assert_eq!(
         vm.screen[128 * 256 + 10],
         0x0000FF,
         "STRCPY: blue bar start"
     );
+
+    // STRCAT: "Hello" + " World" = "Hello World" at 0x3030
+    assert_eq!(vm.ram[0x3030], 'H' as u32, "STRCAT: H");
+    assert_eq!(vm.ram[0x3035], 0x20, "STRCAT: space at [5]");
+    assert_eq!(vm.ram[0x3036], 'W' as u32, "STRCAT: W at [6]");
+    assert_eq!(vm.ram[0x303A], 'd' as u32, "STRCAT: d at [10]");
+    assert_eq!(vm.ram[0x303B], 0, "STRCAT: null at [11]");
+    // Purple bar: 11 pixels at y=158
+    assert_eq!(
+        vm.screen[158 * 256 + 10],
+        0xFF00FF,
+        "STRCAT: purple bar start"
+    );
+    assert_eq!(
+        vm.screen[158 * 256 + 20],
+        0xFF00FF,
+        "STRCAT: purple bar end (11th pixel)"
+    );
+    assert_eq!(vm.screen[158 * 256 + 21], 0x000000, "STRCAT: no 12th pixel");
 
     // Title bar: yellow at y=2
     assert_eq!(vm.screen[2 * 256 + 10], 0xFFFF00, "Title bar: yellow pixel");

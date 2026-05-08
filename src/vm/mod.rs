@@ -5579,6 +5579,148 @@ impl Vm {
                 }
             }
 
+            // STRLEN dest_reg, addr_reg  (0xF7) -- Count bytes until null terminator
+            // Scans RAM starting at addr, counting non-null bytes.
+            // Result written to dest_reg. Max scan: 4096 bytes (safety).
+            // Encoding: 3 words [0xF7, dest_reg, addr_reg]
+            0xF7 => {
+                let dr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                if dr < NUM_REGS && ar < NUM_REGS {
+                    let mut addr = self.regs[ar] as usize;
+                    let mut len = 0u32;
+                    while len < 4096 && addr < self.ram.len() {
+                        if self.ram[addr] & 0xFF == 0 {
+                            break;
+                        }
+                        len += 1;
+                        addr += 1;
+                    }
+                    self.regs[dr] = len;
+                    if self.render_logging {
+                        self.log_render_op(0xF7, "STRLEN", &[len, self.regs[ar]]);
+                    }
+                }
+            }
+
+            // STRCMP addr1_reg, addr2_reg  (0xF8) -- Lexicographic string comparison
+            // Compares two null-terminated strings from RAM.
+            // Result in r0: 0xFFFFFFFF (-1) if s1 < s2, 0 if equal, 1 if s1 > s2.
+            // Uses signed byte comparison (ASCII ordering).
+            // Max scan: 4096 bytes.
+            // Encoding: 3 words [0xF8, addr1_reg, addr2_reg]
+            0xF8 => {
+                let a1r = self.fetch() as usize;
+                let a2r = self.fetch() as usize;
+                if a1r < NUM_REGS && a2r < NUM_REGS {
+                    let mut addr1 = self.regs[a1r] as usize;
+                    let mut addr2 = self.regs[a2r] as usize;
+                    let mut result: i32 = 0;
+                    for _ in 0..4096 {
+                        if addr1 >= self.ram.len() || addr2 >= self.ram.len() {
+                            break;
+                        }
+                        let b1 = (self.ram[addr1] & 0xFF) as i8;
+                        let b2 = (self.ram[addr2] & 0xFF) as i8;
+                        if b1 == 0 && b2 == 0 {
+                            result = 0;
+                            break;
+                        }
+                        if b1 == 0 {
+                            result = -1;
+                            break;
+                        }
+                        if b2 == 0 {
+                            result = 1;
+                            break;
+                        }
+                        if b1 < b2 {
+                            result = -1;
+                            break;
+                        }
+                        if b1 > b2 {
+                            result = 1;
+                            break;
+                        }
+                        addr1 += 1;
+                        addr2 += 1;
+                    }
+                    // Match CMP convention: r0 = 0xFFFFFFFF (-1), 0, or 1
+                    self.regs[0] = match result {
+                        -1 => 0xFFFFFFFF,
+                        0 => 0,
+                        _ => 1,
+                    };
+                    if self.render_logging {
+                        self.log_render_op(0xF8, "STRCMP", &[self.regs[a1r], self.regs[a2r]]);
+                    }
+                }
+            }
+
+            // STRCPY dest_reg, src_reg  (0xF9) -- Copy null-terminated string
+            // Copies bytes from RAM[src] to RAM[dest], including null terminator.
+            // Max copy: 4096 bytes.
+            // Encoding: 3 words [0xF9, dest_reg, src_reg]
+            0xF9 => {
+                let dr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                if dr < NUM_REGS && sr < NUM_REGS {
+                    let mut src_addr = self.regs[sr] as usize;
+                    let mut dst_addr = self.regs[dr] as usize;
+                    for _ in 0..4096 {
+                        if src_addr >= self.ram.len() || dst_addr >= self.ram.len() {
+                            break;
+                        }
+                        let byte = self.ram[src_addr];
+                        self.ram[dst_addr] = byte;
+                        if byte & 0xFF == 0 {
+                            break;
+                        }
+                        src_addr += 1;
+                        dst_addr += 1;
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xF9, "STRCPY", &[self.regs[dr], self.regs[sr]]);
+                    }
+                }
+            }
+
+            // STRCAT dest_reg, src_reg  (0xFA) -- Append string to destination
+            // Finds null terminator in dest string, then copies src (including null)
+            // at that position. Max combined operation: 4096 bytes.
+            // Encoding: 3 words [0xFA, dest_reg, src_reg]
+            0xFA => {
+                let dr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                if dr < NUM_REGS && sr < NUM_REGS {
+                    let mut dst_addr = self.regs[dr] as usize;
+                    let mut budget = 4096u32;
+                    // Find end of dest string
+                    while budget > 0 && dst_addr < self.ram.len() {
+                        if self.ram[dst_addr] & 0xFF == 0 {
+                            break;
+                        }
+                        dst_addr += 1;
+                        budget -= 1;
+                    }
+                    // Append src at the null terminator position
+                    let mut src_addr = self.regs[sr] as usize;
+                    while budget > 0 && src_addr < self.ram.len() && dst_addr < self.ram.len() {
+                        let byte = self.ram[src_addr];
+                        self.ram[dst_addr] = byte;
+                        if byte & 0xFF == 0 {
+                            break;
+                        }
+                        src_addr += 1;
+                        dst_addr += 1;
+                        budget -= 1;
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xFA, "STRCAT", &[self.regs[dr], self.regs[sr]]);
+                    }
+                }
+            }
+
             _ => {
                 self.halted = true;
                 return false;

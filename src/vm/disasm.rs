@@ -741,6 +741,26 @@ impl Vm {
                 ),
                 4,
             ),
+            // STRLEN dest_reg, addr_reg (0xF7) -- Count bytes until null terminator
+            0xF7 => (
+                format!("STRLEN {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+            // STRCMP addr1_reg, addr2_reg (0xF8) -- Lexicographic comparison (result in r0)
+            0xF8 => (
+                format!("STRCMP {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+            // STRCPY dest_reg, src_reg (0xF9) -- Copy null-terminated string
+            0xF9 => (
+                format!("STRCPY {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+            // STRCAT dest_reg, src_reg (0xFA) -- Append string to destination
+            0xFA => (
+                format!("STRCAT {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
             0x87 => (format!("ABS {}", reg(ram(a + 1))), 2),
             0x88 => (
                 format!(

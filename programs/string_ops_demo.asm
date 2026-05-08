@@ -303,6 +303,82 @@ copy_loop:
 
 copy_done:
 
+; ── Test 5: STRCAT ───────────────────────────────────────
+; Append " World" to the copy at 0x3030 (currently "Hello")
+; Build " World" at 0x3050
+    LDI r2, 0x3050
+    LDI r14, 32        ; space
+    STORE r2, r14
+    LDI r2, 0x3051
+    LDI r14, 87        ; W
+    STORE r2, r14
+    LDI r2, 0x3052
+    LDI r14, 111       ; o
+    STORE r2, r14
+    LDI r2, 0x3053
+    LDI r14, 114       ; r
+    STORE r2, r14
+    LDI r2, 0x3054
+    LDI r14, 108       ; l
+    STORE r2, r14
+    LDI r2, 0x3055
+    LDI r14, 100       ; d
+    STORE r2, r14
+    LDI r2, 0x3056
+    LDI r14, 0
+    STORE r2, r14
+
+; Build "CAT" at 0x3060
+    LDI r2, 0x3060
+    LDI r14, 67        ; C
+    STORE r2, r14
+    LDI r2, 0x3061
+    LDI r14, 65        ; A
+    STORE r2, r14
+    LDI r2, 0x3062
+    LDI r14, 84        ; T
+    STORE r2, r14
+    LDI r2, 0x3063
+    LDI r14, 0
+    STORE r2, r14
+
+; STRCAT: append " World" to "Hello" at 0x3030
+    LDI r12, 0x3030    ; dest (currently "Hello\0")
+    LDI r13, 0x3050    ; src  (" World\0")
+    STRCAT r12, r13
+
+; Verify with STRLEN: should be 11 ("Hello World")
+    LDI r12, 0x3030
+    STRLEN r12
+    MOV r3, r0         ; r3 = 11
+
+; Display concatenated string at (10, 145)
+    LDI r11, 145
+    LDI r10, 10
+    LDI r12, 0x3030
+    TEXT r10, r11, r12
+
+; Display "CAT" label at (90, 145)
+    LDI r10, 90
+    LDI r12, 0x3060
+    TEXT r10, r11, r12
+
+; Purple bar: 11 pixels at y=158
+    LDI r14, 0xFF00FF
+    LDI r11, 158
+    LDI r10, 10
+    LDI r2, 0
+
+cat_loop:
+    CMP r2, r3
+    BGE r0, cat_done
+    PSET r10, r11, r14
+    ADD r10, r1
+    ADD r2, r1
+    JMP cat_loop
+
+cat_done:
+
 ; ── Separator lines ───────────────────────────────────────
     LDI r14, 0x444444  ; dark gray separators
     LDI r15, 100       ; separator width
