@@ -11,7 +11,7 @@
 // Controls: pause/resume/reset/shutdown via ThreadControl enum.
 // The GUI thread calls try_recv_frame() each render tick (non-blocking).
 
-use super::cpu::StepResult;
+use super::cpu::{self, StepResult};
 use super::framebuf::{FB_HEIGHT, FB_WIDTH};
 use super::loader;
 use super::RiscvVm;
@@ -191,10 +191,23 @@ impl Drop for RiscvVmHandle {
 
 // ── Spawner ──────────────────────────────────────────────────────
 
+/// Execution mode for the guest VM.
+#[derive(Clone)]
+pub enum GuestMode {
+    /// Load and run a standard RISC-V ELF binary.
+    Elf(Vec<u8>),
+    /// Boot a RISC-V Linux kernel with optional initramfs and bootargs.
+    Linux {
+        kernel: Vec<u8>,
+        initrd: Option<Vec<u8>>,
+        bootargs: String,
+    },
+}
+
 /// Configuration for spawning a new RiscvVmThread.
 pub struct VmThreadConfig {
-    /// ELF binary data to load.
-    pub elf_data: Vec<u8>,
+    /// Guest execution mode (ELF or Linux).
+    pub mode: GuestMode,
     /// RAM size in bytes (default: 1MB).
     pub ram_size: usize,
     /// RAM base address (default: 0x8000_0000).
@@ -206,7 +219,7 @@ pub struct VmThreadConfig {
 impl Default for VmThreadConfig {
     fn default() -> Self {
         Self {
-            elf_data: Vec::new(),
+            mode: GuestMode::Elf(Vec::new()),
             ram_size: 1024 * 1024,
             ram_base: 0x8000_0000,
             batch_size: 5000,
@@ -248,32 +261,58 @@ fn vm_thread_main(
     control_rx: Receiver<ThreadControl>,
     status_tx: Sender<VmStatus>,
 ) {
-    // Store ELF for reset
-    let elf_data = config.elf_data;
+    eprintln!("[riscv-vm] Thread started");
+    // Shared parameters
     let ram_size = config.ram_size;
     let ram_base = config.ram_base;
     let batch_size = config.batch_size;
 
-    // Create VM
-    let mut vm = RiscvVm::new_with_base(ram_base, ram_size);
-
-    // Load ELF
-    let load_info = match loader::load_elf(&mut vm.bus, &elf_data) {
-        Ok(info) => info,
-        Err(e) => {
-            let _ = status_tx.send(VmStatus::Halted {
-                pc: 0,
-                instructions: 0,
-                reason: format!("ELF load error: {:?}", e),
-            });
-            return;
+    // 1. Initialize VM based on mode
+    let (mut vm, is_linux, fw_addr, dtb_addr) = match config.mode {
+        GuestMode::Elf(ref elf_data) => {
+            let mut vm = RiscvVm::new_with_base(ram_base, ram_size);
+            let load_info = match loader::load_elf(&mut vm.bus, elf_data) {
+                Ok(info) => info,
+                Err(e) => {
+                    let _ = status_tx.send(VmStatus::Halted {
+                        pc: 0,
+                        instructions: 0,
+                        reason: format!("ELF load error: {:?}", e),
+                    });
+                    return;
+                }
+            };
+            vm.cpu.pc = load_info.entry;
+            (vm, false, 0u64, 0u64)
+        }
+        GuestMode::Linux {
+            ref kernel,
+            ref initrd,
+            ref bootargs,
+        } => {
+            let ram_size_mb = (ram_size / (1024 * 1024)) as u32;
+            match RiscvVm::boot_linux_setup(kernel, initrd.as_deref(), ram_size_mb, bootargs) {
+                Ok((mut vm, fw, entry, dtb)) => {
+                    vm.cpu.pc = entry;
+                    (vm, true, fw, dtb)
+                }
+                Err(e) => {
+                    let _ = status_tx.send(VmStatus::Halted {
+                        pc: 0,
+                        instructions: 0,
+                        reason: format!("Linux setup error: {:?}", e),
+                    });
+                    return;
+                }
+            }
         }
     };
-    vm.cpu.pc = load_info.entry;
+
+    // Instruction count tracker for present callback
+    let instruction_count: Rc<RefCell<u64>> = Rc::new(RefCell::new(0));
 
     // Install channel-based present callback
     let ft = frame_tx.clone();
-    let instruction_count: Rc<RefCell<u64>> = Rc::new(RefCell::new(0));
     let ic_clone = instruction_count.clone();
     let present_cb: super::framebuf::PresentCallback =
         Rc::new(RefCell::new(move |pixels: &[u32], clip_rect| {
@@ -290,6 +329,9 @@ fn vm_thread_main(
 
     let mut paused = false;
     let mut running = true;
+    let mut count = 0u64;
+    let fw_addr_u32 = fw_addr as u32;
+    let mut last_satp = vm.cpu.csr.satp;
 
     while running {
         // 1. Process control commands
@@ -304,38 +346,13 @@ fn vm_thread_main(
                 let _ = status_tx.send(VmStatus::Resumed);
             }
             Ok(ThreadControl::Reset) => {
-                // Re-create VM from scratch
-                vm = RiscvVm::new_with_base(ram_base, ram_size);
-                match loader::load_elf(&mut vm.bus, &elf_data) {
-                    Ok(info) => vm.cpu.pc = info.entry,
-                    Err(e) => {
-                        let _ = status_tx.send(VmStatus::Halted {
-                            pc: 0,
-                            instructions: 0,
-                            reason: format!("ELF reload error: {:?}", e),
-                        });
-                        running = false;
-                        continue;
-                    }
-                }
-                // Re-install the callback with the new VM
-                let ft2 = frame_tx.clone();
-                *instruction_count.borrow_mut() = 0;
-                let ic2 = instruction_count.clone();
-                let cb: super::framebuf::PresentCallback =
-                    Rc::new(RefCell::new(move |pixels: &[u32], clip_rect| {
-                        let frame = Frame {
-                            pixels: pixels.to_vec(),
-                            width: FB_WIDTH,
-                            height: FB_HEIGHT,
-                            instructions: *ic2.borrow(),
-                            clip_rect,
-                        };
-                        let _ = ft2.send(frame);
-                    }));
-                vm.bus.framebuf.on_present = Some(cb);
-                paused = false;
-                let _ = status_tx.send(VmStatus::ResetDone);
+                // For now, reset just kills. Full reload requires storing config.
+                let _ = status_tx.send(VmStatus::Halted {
+                    pc: vm.cpu.pc,
+                    instructions: count,
+                    reason: "Reset not fully implemented for live thread".into(),
+                });
+                break;
             }
             Ok(ThreadControl::Input(byte)) => {
                 vm.bus.uart.receive_byte(byte);
@@ -347,7 +364,7 @@ fn vm_thread_main(
                     pixels: vm.bus.framebuf.pixels.clone(),
                     width: FB_WIDTH,
                     height: FB_HEIGHT,
-                    instructions: *instruction_count.borrow(),
+                    instructions: count,
                     clip_rect: None, // full buffer for snapshots
                 };
                 let _ = frame_tx.send(frame);
@@ -365,7 +382,86 @@ fn vm_thread_main(
         // 3. Run a batch of instructions
         let mut halt_reason = None;
         for _ in 0..batch_size {
-            match vm.step() {
+            // Linux-mode logic: trap forwarding and PT fixups
+            if is_linux {
+                // SATP change identity mapping injection
+                let cur_satp = vm.cpu.csr.satp;
+                if cur_satp != last_satp {
+                    let mode = (cur_satp >> 31) & 1;
+                    if mode == 1 {
+                        let ppn = cur_satp & 0x3FFFFF;
+                        let pg_dir_phys = (ppn as u64) * 4096;
+                        // Inject device identity mappings (0x02000000, 0x0C000000, 0x10000000)
+                        let identity_pte: u32 = 0x0000_00CF; // V+R+W+X+A+D, U=0
+                        for l1_idx in 0..640 {
+                            let addr = pg_dir_phys + (l1_idx as u64) * 4;
+                            if let Ok(existing) = vm.bus.read_word(addr) {
+                                if (existing & 1) == 0 {
+                                    let pte = identity_pte | (l1_idx << 20);
+                                    let _ = vm.bus.write_word(addr, pte);
+                                }
+                            }
+                        }
+                        // Ensure DTB is mapped
+                        let dtb_va = dtb_addr as u32;
+                        let dtb_vpn1 = ((dtb_va >> 22) & 0x3FF) as u64;
+                        let l1_addr = pg_dir_phys + dtb_vpn1 * 4;
+                        if let Ok(l1_entry) = vm.bus.read_word(l1_addr) {
+                            if (l1_entry & 1) == 0 {
+                                let dtb_l1_offset = (dtb_addr >> 22) as u32;
+                                let pte = 0x0000_00CF | (dtb_l1_offset << 20);
+                                let _ = vm.bus.write_word(l1_addr, pte);
+                            }
+                        }
+                        vm.cpu.tlb.flush_all();
+                    }
+                    last_satp = cur_satp;
+                }
+            }
+
+            let step_result = vm.step();
+            count += 1;
+            *instruction_count.borrow_mut() = count;
+
+            if count % 1_000_000 == 0 {
+                eprintln!("[riscv-vm] Executed {} instructions...", count);
+            }
+
+            // Print any new console output from the guest (SBI or UART)
+            if !vm.bus.sbi.console_output.is_empty() || !vm.bus.uart.tx_buf.is_empty() {
+                use std::io::Write;
+                if !vm.bus.sbi.console_output.is_empty() {
+                    let s = String::from_utf8_lossy(&vm.bus.sbi.console_output);
+                    print!("{}", s);
+                    vm.bus.sbi.console_output.clear();
+                }
+                if !vm.bus.uart.tx_buf.is_empty() {
+                    let s = String::from_utf8_lossy(&vm.bus.uart.tx_buf);
+                    print!("{}", s);
+                    vm.bus.uart.tx_buf.clear();
+                }
+                let _ = std::io::stdout().flush();
+            }
+
+            // Linux-mode trap forwarding
+            if is_linux && vm.cpu.pc == fw_addr_u32 {
+                let cause = vm.cpu.csr.mcause;
+                if cause != 0xB { // Not ECALL_M
+                    // Forward M-mode trap to S-mode
+                    vm.cpu.csr.stval = vm.cpu.csr.mtval;
+                    vm.cpu.csr.sepc = vm.cpu.csr.mepc;
+                    vm.cpu.csr.scause = cause;
+                    let stvec = vm.cpu.csr.stvec;
+                    vm.cpu.pc = if (stvec & 1) == 1 && (cause & (1 << 31)) != 0 {
+                        (stvec & !3) + (cause & 0x7FFFFFFF) * 4
+                    } else {
+                        stvec & !3
+                    };
+                    vm.cpu.privilege = cpu::Privilege::Supervisor;
+                }
+            }
+
+            match step_result {
                 StepResult::Ok => {}
                 StepResult::Ebreak => {
                     halt_reason = Some(format!("EBREAK at PC=0x{:08X}", vm.cpu.pc));
@@ -375,19 +471,13 @@ fn vm_thread_main(
                     halt_reason = Some("Guest requested shutdown".into());
                     break;
                 }
-                StepResult::Ecall => {
-                    // SBI handled internally
-                }
+                StepResult::Ecall => {}
                 StepResult::FetchFault | StepResult::LoadFault | StepResult::StoreFault => {
                     halt_reason = Some(format!("FAULT at PC=0x{:08X}", vm.cpu.pc));
                     break;
                 }
-                StepResult::Yielded => {
-                    // Context switch handled by RiscvVm::step() internally.
-                    // Continue running the new context.
-                }
+                StepResult::Yielded => {}
             }
-            *instruction_count.borrow_mut() += 1;
 
             if vm.bus.sbi.shutdown_requested {
                 halt_reason = Some("SBI shutdown".into());
@@ -397,14 +487,19 @@ fn vm_thread_main(
 
         // 4. If halted, notify and stop
         if let Some(reason) = halt_reason {
+            eprintln!("[riscv-vm] Thread halting: {}", reason);
             let _ = status_tx.send(VmStatus::Halted {
                 pc: vm.cpu.pc,
-                instructions: *instruction_count.borrow(),
+                instructions: count,
                 reason,
             });
             running = false;
         }
+
+        // Yield to host
+        thread::yield_now();
     }
+    eprintln!("[riscv-vm] Thread exited cleanly after {} instructions", count);
 }
 
 // ── Tests ────────────────────────────────────────────────────────
@@ -477,7 +572,7 @@ mod tests {
         };
 
         let config = VmThreadConfig {
-            elf_data,
+            mode: GuestMode::Elf(elf_data),
             ram_size: 64 * 1024,
             ..Default::default()
         };

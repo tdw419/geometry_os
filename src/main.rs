@@ -35,7 +35,7 @@ use cli::cli_main;
 use hermes::{run_build_canvas, run_hermes_canvas};
 use keys::{key_ctrl_num, key_ctrl_shift, key_to_ascii, key_to_ascii_shifted};
 use render::*;
-use riscv::live::{spawn_vm_thread, Frame, RiscvVmHandle, VmStatus, VmThreadConfig};
+use riscv::live::{spawn_vm_thread, Frame, GuestMode, RiscvVmHandle, VmStatus, VmThreadConfig};
 use save::{load_state, save_full_buffer_png, save_screen_png, save_state};
 
 // ── Memory map ───────────────────────────────────────────────────
@@ -3424,7 +3424,7 @@ fn main() {
                                                 riscv_latest_frame = None;
                                             }
                                             let config = VmThreadConfig {
-                                                elf_data,
+                                                mode: GuestMode::Elf(elf_data),
                                                 ram_size: 1024 * 1024,
                                                 ..Default::default()
                                             };
@@ -3453,6 +3453,69 @@ fn main() {
                                     }
                                 } else {
                                     response.push_str("[usage: riscv_run <elf_path>]\n");
+                                }
+                            }
+                            "linux_boot" => {
+                                // Boot a Linux kernel natively
+                                // Usage: linux_boot kernel=<path> [initrd=<path>] [ram=<MB>] [bootargs="..."]
+                                let mut kernel_path = String::new();
+                                let mut initrd_path = None;
+                                let mut ram_mb = 128u32;
+                                let mut bootargs = "console=ttyS0 nosmp".to_string();
+
+                                for part in &parts[1..] {
+                                    if part.starts_with("kernel=") {
+                                        kernel_path = part["kernel=".len()..].to_string();
+                                    } else if part.starts_with("initrd=") {
+                                        initrd_path = Some(part["initrd=".len()..].to_string());
+                                    } else if part.starts_with("ram=") {
+                                        ram_mb = part["ram=".len()..].parse().unwrap_or(128);
+                                    } else if part.starts_with("bootargs=") {
+                                        bootargs = part["bootargs=".len()..].to_string();
+                                    }
+                                }
+
+                                if kernel_path.is_empty() {
+                                    response.push_str("[error: linux_boot requires kernel=<path>]\n");
+                                } else {
+                                    match std::fs::read(&kernel_path) {
+                                        Ok(kernel_data) => {
+                                            let initrd_data = if let Some(ref p) = initrd_path {
+                                                std::fs::read(p).ok()
+                                            } else {
+                                                None
+                                            };
+                                            
+                                            // Kill existing
+                                            if riscv_handle.is_some() {
+                                                riscv_handle = None;
+                                                riscv_latest_frame = None;
+                                            }
+
+                                            let config = VmThreadConfig {
+                                                mode: GuestMode::Linux {
+                                                    kernel: kernel_data,
+                                                    initrd: initrd_data,
+                                                    bootargs,
+                                                },
+                                                ram_size: (ram_mb as usize) * 1024 * 1024,
+                                                ..Default::default()
+                                            };
+
+                                            match spawn_vm_thread(config) {
+                                                Ok(h) => {
+                                                    riscv_handle = Some(h);
+                                                    response.push_str(&format!("[linux: booting kernel={} ram={}MB]\n", kernel_path, ram_mb));
+                                                }
+                                                Err(e) => {
+                                                    response.push_str(&format!("[error: {}]\n", e));
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            response.push_str(&format!("[error: could not read kernel {}: {}]\n", kernel_path, e));
+                                        }
+                                    }
                                 }
                             }
                             "riscv_kill" => {

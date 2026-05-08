@@ -5,6 +5,7 @@ use crate::canvas::list_asm_files;
 use crate::hermes::{run_build_loop, run_hermes_loop};
 use crate::preprocessor;
 use crate::qemu::QemuBridge;
+use crate::riscv::live::{spawn_vm_thread, GuestMode, VmThreadConfig};
 use crate::save::{load_state, save_state};
 use crate::vm;
 use std::io::{self, Write};
@@ -56,6 +57,7 @@ pub fn cli_main(extra_args: &[String]) {
     let mut cli_breakpoints: Vec<u32> = Vec::new();
     let mut canvas_buffer: Vec<u32> = vec![0; 4096];
     let mut qemu_bridge: Option<QemuBridge> = None;
+    let mut riscv_handle: Option<crate::riscv::live::RiscvVmHandle> = None;
     let boot_png_mode: bool;
     let boot_src_png_mode: bool;
 
@@ -218,6 +220,9 @@ pub fn cli_main(extra_args: &[String]) {
                 println!("  qemu boot <cfg>   Boot QEMU VM (e.g. qemu boot arch=riscv64 kernel=Image ram=256M)");
                 println!("  qemu kill         Kill running QEMU");
                 println!("  qemu status       Show QEMU status");
+                println!("  riscv run <path>  Launch RISC-V ELF on background thread");
+                println!("  riscv kill        Kill running RISC-V VM");
+                println!("  linux boot <cfg>  Boot Linux kernel natively (e.g. linux boot kernel=vmlinux)");
                 println!("  boot-png <file>   Load pixelpack PNG, decode to bytecode, run");
                 println!("  boot-src-png <file> Load source PNG, decode to text, assemble, run");
                 println!("  hermes <prompt>   Ask local LLM to write/run programs");
@@ -1023,6 +1028,112 @@ pub fn cli_main(extra_args: &[String]) {
                         println!("  qemu traps [N]               -- show last N trap entries");
                         println!("  qemu traps analyze           -- AI-driven behavioral analysis");
                     }
+                }
+            }
+            "riscv" => {
+                let subcmd = parts.get(1).copied().unwrap_or("");
+                match subcmd {
+                    "run" => {
+                        if parts.len() < 3 {
+                            println!("Usage: riscv run <path>");
+                            continue;
+                        }
+                        let path = parts[2];
+                        match std::fs::read(path) {
+                            Ok(elf_data) => {
+                                // Kill existing first
+                                riscv_handle = None;
+
+                                let config = VmThreadConfig {
+                                    mode: GuestMode::Elf(elf_data),
+                                    ram_size: 1024 * 1024,
+                                    ..Default::default()
+                                };
+                                match spawn_vm_thread(config) {
+                                    Ok(h) => {
+                                        riscv_handle = Some(h);
+                                        println!("[riscv] Launched {}", path);
+                                    }
+                                    Err(e) => println!("[riscv] Error: {}", e),
+                                }
+                            }
+                            Err(e) => println!("Error reading {}: {}", path, e),
+                        }
+                    }
+                    "kill" => {
+                        if riscv_handle.is_some() {
+                            riscv_handle = None;
+                            println!("[riscv] Killed");
+                        } else {
+                            println!("[riscv] Not running");
+                        }
+                    }
+                    _ => println!("Unknown riscv subcommand: {}", subcmd),
+                }
+            }
+            "linux" => {
+                let subcmd = parts.get(1).copied().unwrap_or("");
+                match subcmd {
+                    "boot" => {
+                        if parts.len() < 3 {
+                            println!("Usage: linux boot <cfg>");
+                            println!("  e.g. linux boot kernel=vmlinux initrd=initrd.cpio ram=128");
+                            continue;
+                        }
+                        let mut kernel_path = String::new();
+                        let mut initrd_path = None;
+                        let mut ram_mb = 128u32;
+                        let mut bootargs = "console=ttyS0 nosmp".to_string();
+
+                        for part in &parts[2..] {
+                            if part.starts_with("kernel=") {
+                                kernel_path = part["kernel=".len()..].to_string();
+                            } else if part.starts_with("initrd=") {
+                                initrd_path = Some(part["initrd=".len()..].to_string());
+                            } else if part.starts_with("ram=") {
+                                ram_mb = part["ram=".len()..].parse().unwrap_or(128);
+                            } else if part.starts_with("bootargs=") {
+                                bootargs = part["bootargs=".len()..].to_string();
+                            }
+                        }
+
+                        if kernel_path.is_empty() {
+                            println!("[linux] Error: kernel=<path> required");
+                            continue;
+                        }
+
+                        match std::fs::read(&kernel_path) {
+                            Ok(kernel_data) => {
+                                let initrd_data = if let Some(ref p) = initrd_path {
+                                    std::fs::read(p).ok()
+                                } else {
+                                    None
+                                };
+                                // Kill existing
+                                riscv_handle = None;
+
+                                let config = VmThreadConfig {
+                                    mode: GuestMode::Linux {
+                                        kernel: kernel_data,
+                                        initrd: initrd_data,
+                                        bootargs,
+                                    },
+                                    ram_size: (ram_mb as usize) * 1024 * 1024,
+                                    ..Default::default()
+                                };
+
+                                match spawn_vm_thread(config) {
+                                    Ok(h) => {
+                                        riscv_handle = Some(h);
+                                        println!("[linux] Booting {}...", kernel_path);
+                                    }
+                                    Err(e) => println!("[linux] Error: {}", e),
+                                }
+                            }
+                            Err(e) => println!("Error reading kernel {}: {}", kernel_path, e),
+                        }
+                    }
+                    _ => println!("Unknown linux subcommand: {}", subcmd),
                 }
             }
             "quit" | "exit" => {
