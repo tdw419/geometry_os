@@ -12,7 +12,6 @@ use super::socket::GuestSockets;
 use super::uart::Uart;
 use super::vfs_surface::VfsSurface;
 use super::virtio_blk::VirtioBlk;
-use super::virtio_net::VirtioNet;
 use std::collections::HashSet;
 
 /// CLINT MMIO address range.
@@ -31,8 +30,6 @@ pub struct Bus {
     pub plic: Plic,
     /// Virtio block device.
     pub virtio_blk: VirtioBlk,
-    /// Virtio network device (MMIO at 0x1000_2000).
-    pub virtio_net: VirtioNet,
     /// VFS Pixel Surface MMIO device.
     pub vfs_surface: VfsSurface,
     /// MMIO Framebuffer (256x256 RGBA at 0x6000_0000).
@@ -105,7 +102,6 @@ impl Bus {
             uart: Uart::new(),
             plic: Plic::new(),
             virtio_blk: VirtioBlk::new(),
-            virtio_net: VirtioNet::new(),
             vfs_surface,
             framebuf: Framebuffer::new(),
             sbi: Sbi::new(),
@@ -147,10 +143,6 @@ impl Bus {
             self.plic.read(addr).ok_or(MemoryError { addr, size: 4 })
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
             self.virtio_blk
-                .read(addr)
-                .ok_or(MemoryError { addr, size: 4 })
-        } else if super::virtio_net::VirtioNet::contains(addr) {
-            self.virtio_net
                 .read(addr)
                 .ok_or(MemoryError { addr, size: 4 })
         } else if super::vfs_surface::VfsSurface::contains(addr) {
@@ -212,12 +204,6 @@ impl Bus {
             // VirtioBlk::write() returns Some(queue_idx) on QUEUE_NOTIFY
             if let Some(queue_idx) = self.virtio_blk.write(addr, val) {
                 self.process_virtio_blk_queue(queue_idx);
-            }
-            Ok(())
-        } else if super::virtio_net::VirtioNet::contains(addr) {
-            // VirtioNet::write() returns Some(queue_idx) on QUEUE_NOTIFY
-            if let Some(queue_idx) = self.virtio_net.write(addr, val) {
-                self.process_virtio_net_queue(queue_idx);
             }
             Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
@@ -288,54 +274,6 @@ impl Bus {
         }
     }
 
-    /// Process a Virtio network queue notification.
-    fn process_virtio_net_queue(&mut self, queue_idx: u32) {
-        let bus = self as *mut Bus;
-        unsafe {
-            let virtio_net = &mut (*bus).virtio_net;
-
-            let mut read_word = |addr: u64| -> u32 { (*bus).mem.read_word(addr).unwrap_or(0) };
-            let mut write_word = |addr: u64, val: u32| {
-                let _ = (*bus).mem.write_word(addr, val);
-            };
-            let mut read_bytes = |addr: u64, len: usize| -> Vec<u8> {
-                let mut data = vec![0u8; len];
-                for i in 0..len {
-                    match (*bus).mem.read_byte(addr + i as u64) {
-                        Ok(b) => data[i] = b,
-                        Err(_) => break,
-                    }
-                }
-                data
-            };
-            let mut write_bytes = |addr: u64, data: &[u8]| {
-                for (i, &b) in data.iter().enumerate() {
-                    let _ = (*bus).mem.write_byte(addr + i as u64, b);
-                }
-            };
-
-            let processed = if queue_idx == 1 {
-                virtio_net.process_tx_queue(
-                    &mut read_word,
-                    &mut write_word,
-                    &mut read_bytes,
-                )
-            } else if queue_idx == 0 {
-                virtio_net.process_rx_queue(
-                    &mut read_word,
-                    &mut write_word,
-                    &mut write_bytes,
-                )
-            } else {
-                0
-            };
-
-            if processed > 0 {
-                (*bus).plic.signal(super::plic::IRQ_VIRTIO_NET);
-            }
-        }
-    }
-
     /// Read a byte. Routes to device MMIO or RAM.
     /// Takes &mut self because device reads can have side effects.
     pub fn read_byte(&mut self, addr: u64) -> Result<u8, MemoryError> {
@@ -365,13 +303,6 @@ impl Bus {
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
             let word = self
                 .virtio_blk
-                .read(addr & !3)
-                .ok_or(MemoryError { addr, size: 1 })?;
-            let byte_off = (addr & 3) as usize;
-            Ok((word >> (byte_off * 8)) as u8)
-        } else if super::virtio_net::VirtioNet::contains(addr) {
-            let word = self
-                .virtio_net
                 .read(addr & !3)
                 .ok_or(MemoryError { addr, size: 1 })?;
             let byte_off = (addr & 3) as usize;
@@ -438,9 +369,6 @@ impl Bus {
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
             // Virtio doesn't have byte-level writes; ignore
             Ok(())
-        } else if super::virtio_net::VirtioNet::contains(addr) {
-            // Virtio doesn't have byte-level writes; ignore
-            Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
             let word_addr = addr & !3;
             let byte_off = (addr & 3) as usize;
@@ -492,13 +420,6 @@ impl Bus {
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
             let word = self
                 .virtio_blk
-                .read(addr & !3)
-                .ok_or(MemoryError { addr, size: 2 })?;
-            let half_off = ((addr >> 1) & 1) as usize;
-            Ok((word >> (half_off * 16)) as u16)
-        } else if super::virtio_net::VirtioNet::contains(addr) {
-            let word = self
-                .virtio_net
                 .read(addr & !3)
                 .ok_or(MemoryError { addr, size: 2 })?;
             let half_off = ((addr >> 1) & 1) as usize;
@@ -561,9 +482,6 @@ impl Bus {
                 Err(MemoryError { addr, size: 2 })
             }
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
-            // Virtio doesn't have half-word writes; ignore
-            Ok(())
-        } else if super::virtio_net::VirtioNet::contains(addr) {
             // Virtio doesn't have half-word writes; ignore
             Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
