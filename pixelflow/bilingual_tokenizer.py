@@ -27,7 +27,7 @@ import glob
 import re
 import string
 from pathlib import Path
-from tokenizers import Tokenizer, models, trainers, pre_tokenizers
+from tokenizers import Tokenizer, models, trainers, pre_tokenizers, decoders
 from opcode_tokenizer import OpcodeTokenizer, PAD, BOS, EOS, NEWLINE, COMMENT, NUM, LABEL, STR, COMMA, COLON
 
 # Reserved IDs for character-level literal encoding (270-299)
@@ -56,7 +56,8 @@ class BilingualTokenizer:
     def __init__(self, text_vocab_size=3000, offset=None):
         self.asm_tok = OpcodeTokenizer()
         self.text_tok = Tokenizer(models.BPE(unk_token="<UNK>"))
-        self.text_tok.pre_tokenizer = pre_tokenizers.Whitespace()
+        self.text_tok.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
+        self.text_tok.decoder = decoders.ByteLevel()
         self.text_vocab_size = text_vocab_size
         self.offset = offset or BPE_OFFSET
 
@@ -190,7 +191,8 @@ class BilingualTokenizer:
         def flush_bpe():
             if current_bpe_chunk:
                 text = self.text_tok.decode(current_bpe_chunk)
-                if parts and not parts[-1].endswith("\n") and not parts[-1].endswith(" "):
+                # ByteLevel decoder handles spaces. Only add space if transitioning from atomic token
+                if parts and not parts[-1].endswith("\n") and not parts[-1].endswith(" ") and not text.startswith(" "):
                     parts.append(" ")
                 parts.append(text)
                 current_bpe_chunk.clear()

@@ -1,19 +1,36 @@
-; DESCRIPTION : Draw s a g re en re ct angle of size 64 x 64 at the to p - left co r ne r ( 0 , 0 ) .
+; DESCRIPTION: Draws a green rectangle of size 64x64 at the top-left corner (0, 0). main
+LDI r13, 0x3000
+STORE r13, r4
+CALL write_proms
+CALL write_lines
+CALL write_prompt
+JMP hk_ret
 
-; P h as e 2 19 De mo : S cre en C a p t u re to RA M
-; = = = = =
-; Draw s 10 p i x el s ac ro s s the screen
-; U se s PSET ( 0x2000 = x ) from screen ( 0x 00 00 00FF )
-; 0x 00 = 0x00FF00 1 = 50
-; 0x 1000 : screen base ( re d y counter )
-; 0x 10 1 1 = RA M at 0x2000 ( n ul l co p i ed d p i x el s )
-; 0x 2 100 - 0x2009 : RA M are a g a in color ( 0x 00 00 00FF )
-; 0x 00 00 .. 0x 01 7 8 - 0x2009 FF p i x el s co p i ed d in ate s
-; 0x 00 8 - V M d res s of screen p i x el s
-; ── Con st an ts ──────────────────────────────────────
-LDI r2, 0x2000 ; p i x el counter
-LDI r13, 0x2000 ; p i x el color ( 0 , 0 )
-LDI r12, 0x2000 ; p i x el s
+fme_done:
+CALL my_prot
 
-COPY_LOOP:
-LOAD
+LDI r13, 0x5010
+LOAD r7, r13
+LDI r4, 0xFFFFFFF
+STORE r13, r7
+JMP hk_ret
+
+mk_run:
+LDI r13, 0x5010
+LOAD r7, r13
+LDI r4, 1
+ADD r7, r4
+STORE r13, r7
+CALL write_done
+JMP hk_ret
+
+run_done:
+LDI r13, 0x5010
+LOAD r7, r13
+LDI r4, 1
+ADD r7, r4
+JMP hk_ret
+
+hk_ret:
+LDI r13, 0xFFFFFF
+STORE r13, r7

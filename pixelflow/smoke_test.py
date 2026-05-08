@@ -9,18 +9,19 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(__file__))
 from bilingual_tokenizer import BilingualTokenizer
 from train_opcode_llm import OpcodeGPT, generate_asm
+from constrained_decoder import generate_constrained
 
 PROMPTS = [
-    "; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.",
-    "; DESCRIPTION: Fills the entire 256x256 screen with solid blue color (0x0000FF).",
-    "; DESCRIPTION: Draws a green rectangle of size 64x64 at the top-left corner (0, 0).",
-    "; DESCRIPTION: Draws a white diagonal line from the top-left (0, 0) to the bottom-right (255, 255).",
-    "; DESCRIPTION: Clears the screen to black and then halts.",
-    "; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.",
-    "; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.",
-    "; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.",
-    "; DESCRIPTION: Draws a horizontal red line across the middle of the screen.",
-    "; DESCRIPTION: Fills the screen with a vertical gradient from black to white."
+    ("; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.", ["CIRCLE"]),
+    ("; DESCRIPTION: Fills the entire 256x256 screen with solid blue color (0x0000FF).", ["FILL", "RECTF"]),
+    ("; DESCRIPTION: Draws a green rectangle of size 64x64 at the top-left corner (0, 0).", ["RECTF"]),
+    ("; DESCRIPTION: Draws a white diagonal line from the top-left (0, 0) to the bottom-right (255, 255).", ["LINE"]),
+    ("; DESCRIPTION: Clears the screen to black and then halts.", ["HALT"]),
+    ("; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.", ["RECTF"]),
+    ("; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.", ["JNZ", "SUB"]),
+    ("; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.", ["LOOP", "RECTF", "JNZ"]),
+    ("; DESCRIPTION: Draws a horizontal red line across the middle of the screen.", ["LINE"]),
+    ("; DESCRIPTION: Fills the screen with a vertical gradient from black to white.", ["LOOP", "PSET"])
 ]
 
 def run_vm(asm_path, ppm_path):
@@ -58,9 +59,9 @@ def main():
 
     report = []
 
-    for i, prompt in enumerate(PROMPTS):
+    for i, (prompt, keywords) in enumerate(PROMPTS):
         print(f"\n[Prompt {i+1}] {prompt}")
-        generated = generate_asm(model, tokenizer, prompt, device, max_tokens=256, temperature=0.7)
+        generated = generate_constrained(model, tokenizer, prompt, device, max_tokens=256, temperature=0.7)
         
         asm_file = output_dir / f"test_{i+1}.asm"
         ppm_file = output_dir / f"test_{i+1}.ppm"
@@ -68,38 +69,58 @@ def main():
         with open(asm_file, "w") as f:
             f.write(generated)
         
-        print(f"  Generated ASM saved to {asm_file}")
-        
         # Run in VM
         stdout, stderr = run_vm(asm_file, ppm_file)
         
-        # Check if ppm was created
-        success = ppm_file.exists()
-        status = "PASSED" if success else "FAILED"
+        syntax_ok = "requires" not in stdout and "Unknown opcode" not in stdout and "Error" not in stdout and "undefined" not in stdout
+        vm_success = False
+        non_black_ratio = 0.0
         
-        # Check for errors in stdout/stderr
-        error_msg = ""
-        if "Error" in stdout or "Error" in stderr:
-            error_msg = " (errors detected)"
+        if ppm_file.exists() and ppm_file.stat().st_size > 100:
+            try:
+                with open(ppm_file, 'rb') as pf:
+                    pf.readline() # P6
+                    pf.readline() # dims
+                    pf.readline() # maxval
+                    data = pf.read()
+                
+                total_pixels = len(data) // 3
+                if total_pixels > 0:
+                    non_black = sum(1 for j in range(0, len(data), 3) if data[j:j+3] != b'\x00\x00\x00')
+                    non_black_ratio = non_black / total_pixels
+                    vm_success = non_black > 0
+            except Exception as e:
+                pass
+
+        # Final status
+        status = "PASSED" if (syntax_ok and vm_success) else "FAILED"
+        
+        reasons = []
+        if not syntax_ok: reasons.append("SYNTAX ERROR")
+        if not vm_success: reasons.append("NO VISUAL OUTPUT")
+        
+        if reasons:
+            status += " (" + ", ".join(reasons) + ")"
             
-        print(f"  VM Execution: {status}{error_msg}")
+        print(f"  Result: {status} [Visual Output: {non_black_ratio:.2%}]")
         
         report.append({
             "prompt": prompt,
             "asm": generated,
-            "success": success,
+            "success": status.startswith("PASSED"),
+            "status": status,
             "ppm": str(ppm_file)
         })
 
     # Save summary
     with open(output_dir / "report.md", "w") as f:
-        f.write("# PixelGPT V5 Smoke Test Report\n\n")
+        f.write("# PixelGPT V8 Smoke Test Report\n\n")
         f.write(f"Checkpoint: {checkpoint_path}\n")
         f.write(f"Epoch: {checkpoint['epoch']}, Loss: {checkpoint['loss']:.4f}\n\n")
         for i, item in enumerate(report):
             status = "✅" if item["success"] else "❌"
             f.write(f"## {i+1}. {item['prompt']}\n")
-            f.write(f"Status: {status}\n\n")
+            f.write(f"Status: {status} ({item['status']})\n\n")
             f.write("### Generated Assembly:\n```\n")
             f.write(item["asm"])
             f.write("\n```\n\n")

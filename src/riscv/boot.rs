@@ -416,7 +416,11 @@ impl RiscvVm {
         // instead of reaching our M-mode SBI handler, and all SBI calls silently fail.
         // 0xB109 with bit 9 cleared = 0xA109
         vm.cpu.csr.medeleg = 0xA109;
-        vm.cpu.csr.mideleg = 0x222;
+        // Delegate interrupts to S-mode: SSIP(1), STIP(5), SEIP(9), MTIP(7)
+        // Adding MTIP (bit 7 = 0x80) so timer interrupts go directly to kernel's
+        // S-mode trap handler via stvec, bypassing M-mode forwarding entirely.
+        // This is critical for the live thread where there is no M-mode trap handler.
+        vm.cpu.csr.mideleg = 0x2A2;
 
         // Enable M-mode interrupts in MIE CSR.
         // On real hardware, OpenSBI sets MTIE (bit 7) so timer interrupts from CLINT

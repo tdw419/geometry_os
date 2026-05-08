@@ -4796,7 +4796,7 @@ phases:
   _claimed_at: 1778272032
 - id: phase-280
   title: GeOS VM -- String Library Opcodes (STRLEN, STRCMP, STRCPY, STRCAT)
-  status: in_progress
+  status: planned
   goal: Add string manipulation opcodes to reduce boilerplate in shell, editor, and
     text-heavy programs.
   description: Current string operations require manual null-terminator scanning loops
@@ -4860,7 +4860,7 @@ phases:
 - id: phase-282
   title: GeOS VM -- Typed Memory Access Opcodes (LOADW, LOADH, LOADB, STOREW, STOREH,
     STOREB)
-  status: planned
+  status: done
   goal: Add byte (8-bit) and halfword (16-bit) memory access opcodes for efficient
     data packing and network protocol handling.
   description: The VM currently only supports 32-bit word LOAD/STORE. Accessing individual
@@ -4869,21 +4869,20 @@ phases:
     access. LOADB/STOREB read/write a single byte from a word, LOADH/STOREH handle
     16-bit halfwords.
   deliverables:
-  - name: 'LOADB opcode (0xDA): load byte at word-aligned address, zero-extend to
-      u32'
-    status: planned
-  - name: 'STOREB opcode (0xDB): store low byte of register to word-aligned address'
-    status: planned
-  - name: 'LOADH opcode (0xDC): load halfword (16-bit), zero-extend to u32'
-    status: planned
-  - name: 'STOREH opcode (0xDD): store low halfword of register'
-    status: planned
+  - name: 'LOADB opcode (0xFB): load byte at address, zero-extend to u32'
+    status: done
+  - name: 'STOREB opcode (0xFC): store low byte of register, preserve upper 24 bits'
+    status: done
+  - name: 'LOADH opcode (0xFD): load halfword (16-bit), zero-extend to u32'
+    status: done
+  - name: 'STOREH opcode (0xFE): store low halfword, preserve upper 16 bits'
+    status: done
   - name: Assembler and disassembler support
-    status: planned
+    status: done
   - name: Unit tests for alignment, boundary, and masking behavior
-    status: planned
+    status: done
   - name: 'Integration test: byte_demo.asm demonstrating packed data access'
-    status: planned
+    status: done
   acceptance_criteria:
   - description: Byte/halfword ops work correctly on all alignments
     validation: cargo test --lib loadb storeb loadh storeh

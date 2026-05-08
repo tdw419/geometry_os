@@ -380,6 +380,9 @@ fn vm_thread_main(
         }
 
         // 3. Run a batch of instructions
+        // Linux diagnostic counters (before the loop)
+        let mut linux_diag_count: u64 = 0;
+        let mut linux_last_pc: u32 = 0;
         let mut halt_reason = None;
         for _ in 0..batch_size {
             // Linux-mode logic: trap forwarding and PT fixups
@@ -419,12 +422,19 @@ fn vm_thread_main(
                 }
             }
 
-            let step_result = vm.step();
+            // Linux needs ~100x CLINT tick ratio (real hardware: 1GHz CPU / 10MHz timebase).
+            // Bare-metal ELF uses 1:1 which is fine for simple programs.
+            let step_result = if is_linux {
+                vm.step_with_clint_ticks(100)
+            } else {
+                vm.step()
+            };
             count += 1;
             *instruction_count.borrow_mut() = count;
 
-            if count % 1_000_000 == 0 {
-                eprintln!("[riscv-vm] Executed {} instructions...", count);
+            if count % 2_000_000 == 0 {
+                eprintln!("[riscv-vm] Executed {}M instructions, mtime={}, PC=0x{:08X}, priv={:?}",
+                    count / 1_000_000, vm.bus.clint.mtime, vm.cpu.pc, vm.cpu.privilege);
             }
 
             // Print any new console output from the guest (SBI or UART)
@@ -441,6 +451,21 @@ fn vm_thread_main(
                     vm.bus.uart.tx_buf.clear();
                 }
                 let _ = std::io::stdout().flush();
+            }
+
+            // Linux-mode: log PC transitions for diagnostics (first 300)
+            if is_linux {
+                let cur_pc = vm.cpu.pc;
+                if cur_pc != linux_last_pc {
+                    linux_last_pc = cur_pc;
+                    if linux_diag_count < 300 {
+                        eprintln!(
+                            "[riscv-vm] #{} PC=0x{:08X} priv={:?} scause=0x{:X} sepc=0x{:08X} mtime={}",
+                            count, cur_pc, vm.cpu.privilege, vm.cpu.csr.scause, vm.cpu.csr.sepc, vm.bus.clint.mtime
+                        );
+                        linux_diag_count += 1;
+                    }
+                }
             }
 
             // Linux-mode trap forwarding

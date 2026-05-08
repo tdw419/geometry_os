@@ -1,27 +1,21 @@
 ; DESCRIPTION : Draw s a h or i z on tal re d li ne ac ro s s the m id d le of the screen .
 
-; c ro l l _ de mo . asm -- draw a b right b ar at y = 240 the n s c ro l l it u p war d
-; CMP al w ay s w ri t es res ul t into r15 , s o ke e p x in r0 , u se r0 on ly for CMP
+; p i x el _ de mo . asm -- A u se D op code ( 0x C 6 )
+; T e st ra t es the m f a ul 4 x 4 check er b o ar d input s , al ter n asse mb le d for all s .
+;
+; M i x el - w h at ( 0 , 0 ) and ( 10 )
+; rot 0 : de f a ul t 5 x ( 1 , 10 )
+; 1 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-LDI r6, 0 ; x counter
-LDI r12, 256 ; li m it
-LDI r9, 0x00FF00 ; g re en color ( for PSET g re en )
+LDI r11, 1
+LDI r30, 0xFD00
 
-x_loop:
-PSET r6, r12, r9 ; p i x el
-ADD r6, r9 ; x + +
-LDI r1, 0
-ADD r1, r13
-SUB r1, r9
-JZ r1, next_loop
-JMP x_loop
+; B a ck g ro u nd fi l l -- d ark g ra y
+LDI r3, 0x0A0A
+FILL r3
 
-next_x:
-ADD r6, r9 ; y + +
-ADD r11, r9 ; st ri p e p e p i x el counter + +
-LDI r1, 0
-ADD r1, r11
-SUB r1, r9
-JNZ r1, check_y
-; T o g g le color and re set counter
-LDI r1
+; Clear text buffer to sp ac es ( 8 5 * 40 p x p er ch ar s )
+LDI r20, BUF
+LDI r0, 32
+LDI r13, 3400
+clear_bu

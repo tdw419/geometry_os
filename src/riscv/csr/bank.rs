@@ -279,9 +279,20 @@ impl CsrBank {
         let mie_enabled = (self.mstatus >> MSTATUS_MIE) & 1 != 0;
         let sie_enabled = (self.mstatus >> MSTATUS_SIE) & 1 != 0;
 
-        // Machine timer interrupt: MTIP pending, MTIE enabled, MIE enabled
-        if (self.mip >> INT_MTI) & 1 != 0 && (self.mie >> INT_MTI) & 1 != 0 && mie_enabled {
-            return Some(MCAUSE_INTERRUPT_BIT | INT_MTI);
+        // Machine timer interrupt: MTIP pending, MTIE enabled
+        // If delegated to S-mode (mideleg bit 7), check SIE and require non-M-mode
+        // If not delegated, check MIE (original behavior)
+        if (self.mip >> INT_MTI) & 1 != 0 && (self.mie >> INT_MTI) & 1 != 0 {
+            let mti_delegated = (self.mideleg >> INT_MTI) & 1 != 0;
+            if mti_delegated {
+                // Delegated to S-mode: check SIE, require non-M-mode
+                if sie_enabled && current_priv != Privilege::Machine {
+                    return Some(MCAUSE_INTERRUPT_BIT | INT_MTI);
+                }
+            } else if mie_enabled {
+                // Not delegated: M-mode delivery
+                return Some(MCAUSE_INTERRUPT_BIT | INT_MTI);
+            }
         }
 
         // Supervisor timer interrupt (only if not in M-mode, or if delegated)

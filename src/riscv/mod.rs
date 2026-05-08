@@ -247,6 +247,74 @@ impl RiscvVm {
         result
     }
 
+    /// Execute one step with configurable CLINT tick speed.
+    /// Used by the live thread for Linux guests where 1:1 tick ratio is too slow.
+    pub fn step_with_clint_ticks(&mut self, ticks: u64) -> StepResult {
+        // 1. Advance CLINT timer by N ticks
+        self.bus.tick_clint_n(ticks);
+
+        // 1b. Check alarms
+        let current_mtime = self.bus.clint.mtime;
+        let fired_alarms = self.bus.sbi.check_alarms(current_mtime);
+        for (_alarm_id, callback_addr) in fired_alarms {
+            if callback_addr != 0 {
+                self.cpu.x[1] = self.cpu.pc;
+                self.cpu.pc = callback_addr;
+            }
+        }
+
+        // 2. Sync CLINT hardware state into MIP
+        self.bus.sync_mip(&mut self.cpu.csr.mip);
+
+        // 3. Handle pending spawn request
+        if let Some((entry, _)) = self.bus.sbi.spawn_requested.take() {
+            let ctx_id = self.next_context_id;
+            self.next_context_id += 1;
+            let mut ctx = GuestContext::new(ctx_id);
+            ctx.pc = entry;
+            self.contexts.push(ctx);
+            self.cpu.x[10] = ctx_id as u32;
+        }
+
+        // 4. Execute one CPU instruction
+        let result = self.cpu.step(&mut self.bus);
+
+        // 4b. Handle GPU compute
+        if let Some((code_addr, num_words, max_steps, num_tiles, result_addr)) =
+            self.bus.sbi.gpu_compute_requested.take()
+        {
+            let req = gpu_bridge::GpuComputeRequest {
+                code_addr, num_words, max_steps, num_tiles, result_addr,
+            };
+            let bus_ptr = &mut self.bus as *mut bus::Bus;
+            let result_code = unsafe {
+                let gpu_bridge = &mut *(&mut self.gpu_bridge as *mut gpu_bridge::GpuBridge);
+                gpu_bridge.execute(
+                    &req,
+                    |addr| (*bus_ptr).mem.read_word(addr).unwrap_or(0),
+                    |addr, val| { let _ = (*bus_ptr).mem.write_word(addr, val); },
+                )
+            };
+            self.cpu.x[10] = result_code;
+        }
+
+        // 5. Handle cooperative yield
+        if result == StepResult::Yielded {
+            self.save_context();
+            let target = if let Some(id) = self.bus.sbi.yield_to_context.take() {
+                id
+            } else {
+                self.next_alive_context()
+            };
+            if target != self.current_context {
+                self.current_context = target;
+                self.restore_context();
+            }
+        }
+
+        result
+    }
+
     /// Save current CPU state into the active context.
     pub fn save_context(&mut self) {
         if let Some(ctx) = self.contexts.get_mut(self.current_context) {

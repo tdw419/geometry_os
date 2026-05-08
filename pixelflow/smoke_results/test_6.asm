@@ -1,16 +1,47 @@
-; DESCRIPTION : Draw s a y el lo w square at ( 100 , 100 ) with si de le n g th 40 .
+; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.
+LDI r8, 0x3000
+LOAD r1, r8
+ADDI r1, 1
+LDI r5, 0x3000
+LDI r6, 0
 
-DR0x10000 ; st e p s_ a ze ce ( c r on g r id ( 0x00FF00 )
-;
-; A r id ( c r id with w hit e , cy an , cy an , cy an ) is c r id ( 16 , 100 ) is n on ( c ale n on )
+fill_loop:
+CMP r5, r6
+JZ r3, fill_done
+STORE r8, r1
+ADDI r8, 1
+ADDI r5, 1
+JMP fill_loop
 
-; Co lo r : LDI , 0xFF 00 00 -- p y el lo w , each 7 in 8 x 8 , each 15 g r id ( 7 , 23 6 )
-; Co lo r ri p e nt s , 15 , 23 0 in 3 - h or i z on tal
-; Co lo r shift s a h or i z on tal o : w hit e at ter n
-; Co lo r on g r id ( 8 , 10 ) -> p i x el s , 23 6 )
-; Co lo r shift hu e at ( 2 A ) -> p i x el s , 23 6 )
-; 16 - b ut e at p i x el s , 7 : 0 .. 14
-;
-; Re gist er co n ve n tion :
-; r8 = co or d ay s in co or d in ate s
-; r8 = co
+fill_done:
+RET
+
+init_respawn_burst:
+PUSH r31
+PUSH r1
+PUSH r5
+LDI r16, 1
+
+LDI r15, 0x3000
+ADD r15, r5
+LOAD r1, r15
+ADDI r15, 1
+LDI r8, 0x3000
+ADD r8, r1
+LOAD r2, r8
+ADD r15, r1
+POP r5
+POP r31
+RET
+
+init_reset:
+PUSH r31
+PUSH r3
+PUSH r1
+PUSH r5
+LDI r1, 0
+ADD r1, r15
+LDI r8, 0x3020
+STORE r8, r1
+POP r31
+RET

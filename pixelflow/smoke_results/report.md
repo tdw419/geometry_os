@@ -1,297 +1,250 @@
-# PixelGPT V5 Smoke Test Report
+# PixelGPT V8 Smoke Test Report
 
 Checkpoint: pixelflow/bilingual_llm_v8_ckpt.pt
-Epoch: 13, Loss: 0.0840
+Epoch: 14, Loss: 0.0758
 
 ## 1. ; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.
-Status: ✅
+Status: ❌ (FAILED (NO VISUAL OUTPUT))
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION : Draw s a re d circle at the center of the screen ( 128 , 128 ) with radius 50 .
 
-; circles . asm -- concentric circles with cycling colors
-
-; center
-LDI r4, 128
-LDI r3, 128
-
-; radius counter
+Drawayellowcircles-----
+LDI r3, 0
+STORE r6, r3
 LDI r6, 10
-
-; loop count
-LDI r11, 12
-
-loop:
-; color = radius * 20 ( cycles through hues roughly )
-LDI r5, 20
-MUL r5, r11
-
-; shift into blue channel for variation
-LDI r12, 0x0001000
-MUL r12, r15
-LDI r11, 0xFF
-AND r15, r11
-OR r15, r12
-
-CIRCLE r4, r3, r15, r12
-
-; radius += 20
-LDI r4, 20
-ADD r9, r4
-
-; loop
-LDI r4, 1
-SUB r2, r4
-JNZ r2, loop
-
-HALT
+STORE r6, r3
+LDI r6, 10
+LDI r3, 0x111122
+STORE r6, r3
+; ST EP _ MOD E
+LDI r3, 0
+STORE r6, r3
+; T it le b ar
+LDI r3, 0
+STORE r6, r3
+; Draw p a nel 0
+LDI r6, 0
+LDI r3, 256
+LDI r2, 256
+LDI r4, 0x2000
+STORE r6, r3
+LDI r9, 0
+LDI r5, 0
+LDI r6, 0x2000
+STRO r20, "HelloWorld"
+FILL r13
+LDI r9, 42
+LDI r2, 0x200
+STORE r6, r3
+; ── Draw " 1 1 1 =
+LDI r3, 76
+LDI r2, 108
+LDI r1, 0xFF003
+STORE r6, r3
+; Read d ark blue
 ```
 
 ## 2. ; DESCRIPTION: Fills the entire 256x256 screen with solid blue color (0x0000FF).
-Status: ✅
+Status: ✅ (PASSED)
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION : F il ls the en ti re 256 x 256 screen with s o l id blue color ( 0x 00 00FF ) .
-; U se s FILL -- all through the PSET ac co l u m n in a b right b a ck .
 
-LDI r8, 0 ; y
-LDI r15, 256 ; li m it
+; FILL _ SC RE EN -- F il l the screen with a s o l id color
+; U se s FILL op code to set ever y p i x el to b right blue
+; T e st : all 65 5 3 6 screen p i x el s sho ul d be 0x 00 00FF
 
-; ── Draw g radi e nt ac tion : color = x ( blue ) ──
-LDI r10, 0 ; co l counter
-LDI r2, 1 ; in crement
-LDI r4, 256 ; li m it
-
-bg_loop:
-PSET r10, r2, r4
-ADD r10, r1 ; x + +
-LDI r0, 1
-ADD r10, r0
-CMP r10, r15
-BLT r5, bar_x_loop
-
-ADD r2, r0
-CMP r2, r8
-BLT r5, bar_y
-
-; ── Draw re d square ( triangle channel channel on channel on channel ) ──
-LDI r8, 0 ; s a ir channel
-LDI r15, 0 ; s a fe to channel
-LDI r4, 60 ; y
-MOV r3, r15
-LDI r13, 4 ; w id th
-
-draw_loop:
-CMP r15, r3
-BGE r5, draw_don
+LDI r4, 0x0000FF
+FILL r4
+HALT
 ```
 
 ## 3. ; DESCRIPTION: Draws a green rectangle of size 64x64 at the top-left corner (0, 0).
-Status: ✅
+Status: ✅ (PASSED)
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION : Draw s a g re en re ct angle of size 64 x 64 at the to p - left co r ne r ( 0 , 0 ) .
 
-; P h as e 2 19 De mo : S cre en C a p t u re to RA M
-; = = = = =
-; Draw s 10 p i x el s ac ro s s the screen
-; U se s PSET ( 0x2000 = x ) from screen ( 0x 00 00 00FF )
-; 0x 00 = 0x00FF00 1 = 50
-; 0x 1000 : screen base ( re d y counter )
-; 0x 10 1 1 = RA M at 0x2000 ( n ul l co p i ed d p i x el s )
-; 0x 2 100 - 0x2009 : RA M are a g a in color ( 0x 00 00 00FF )
-; 0x 00 00 .. 0x 01 7 8 - 0x2009 FF p i x el s co p i ed d in ate s
-; 0x 00 8 - V M d res s of screen p i x el s
-; ── Con st an ts ──────────────────────────────────────
-LDI r2, 0x2000 ; p i x el counter
-LDI r13, 0x2000 ; p i x el color ( 0 , 0 )
-LDI r12, 0x2000 ; p i x el s
-
-COPY_LOOP:
-LOAD
+; P i x el - LL M S a mp le 5 - sho ul d asse mb le
+LDI r11, 10
+LDI r4, 10
+LDI r9, 10
+LDI r2, 10
+LDI r6, 0x44FF44
+RECTF r11, r4, r9, r2, r6
+HALT
 ```
 
 ## 4. ; DESCRIPTION: Draws a white diagonal line from the top-left (0, 0) to the bottom-right (255, 255).
-Status: ✅
+Status: ✅ (PASSED)
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION : Draw s a w hit e di a g on al li ne from the to p - left ( 0 , 0 ) to the b ot to m - right ( 255 , 255 ) .
 
-; U se s FILL ( regist er - based ) for PSET ( regist er - based ) for PSET ( regist er - based ) for d y n a p p ing
+; B OR T h as k b or der . asm -- Draw b or der -
+; U se s RE C T F ( 0xAAAAAA ) and p a nel / 4 f ul ly , m id ges , g re en , f ul ly , f ul ly z er o from e out put .
+;
+; Controls :
+; A ft er L out :
+; 1 . W in do w 2 - 2 " S t at us b ar sho wing d ark g re en L in st ri p es
+; R ed text sho w s m sho w s the de mo
+; G r id : " P h as e 2 18 O p code s " -- s a mp le b ar sho wing the L S GRe1
 
-; Re gist ers :
-; r7 = r14 = angle ( 0 - 1 )
-; r4 = s c ra t ch
-; r10 = s c ra t ch
-; r14 = s c ra t ch
-; r7 = color ( w hit e )
-; r15 = s c ra t ch
-; r6 = color ( w hit e )
-; r1 3 = s c ra t ch
-; r10 = color ( w hit e )
-; r7 = color
-; r14 = s c ra t ch
+; B l ue b a ck g ro u nd
+LDI r2, 0x000808 ; d ark blue
+FILL r2
 
-; r15 = ke y code from MO U S E
-; r9 - mo u se Y from MO U S E
-; r8 - mo u se Y ( from MO U S E
-; r0 - mo u se Y ( d , b ut t on ( from MO U S E )
-; r14 - ble nd re d , 0xFF 00 00
-; r6 - r16 = loop count ers
-; r20 = RA M po in ter
-; r21 = s c ra t ch for color index
+; Draw a colo re d
+; R ed b ar ( g re en p at ter n or der )
+LDI r11, 0x00FF00
+LDI r2, 0
+LDI r9, 256
+LDI r8, 18
+LDI r4, 0x00FF
 ```
 
 ## 5. ; DESCRIPTION: Clears the screen to black and then halts.
-Status: ✅
+Status: ❌ (FAILED (NO VISUAL OUTPUT))
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : Clear s the screen to bl a ck and the n h al ts .
+; DESCRIPTION : Clear s the screen to bl a ck and the n h al ts . It cre at u re ac h . It set s C a ir at co or d in ate s for cre at u re , ke y s and p res s to cre ate s and it .
 
-; re ad RA M 0x 7 000 ( 32 )
-; RA M 0x 7 8 20 = RA M 0x 7 8 20 = RA M 0x 7 8 20 = 0x 7 02 = color table ( 16 e nt ri es , R G B )
-; RA M 0x 7 8 00 = ac tion color ( 0 .. 0x 7 02 B channel )
-; RA M 0x 7 00 = c p res er ves color table ( 16 e nt ri es , for 16 co rre ct each )
-; RA M 0x 7 8 00 = c a p b o ar d y
-; RA M 0x 7 8 01 = c a m er a_ y
-; RA M 0x 7 8 02 = f ra me _ counter
-; RA M 0xFF B = ke y bi t m as k
+; v is ual m a p _ po ad . asm -- H e x it wor ld De mo ( P h as e 2 13 )
 ;
-; = = = = = Con st an ts = = = =
-LDI r11, 1 ; co n st an t 1
-LDI r0, 64 ; T IL E S p er a x is
-LDI r14, 4 ; ti le p i x el s
-LDI r2, 0xFFB ; ke y bi t
+; V M ou se s the n asse mb le d ri ve n fi g u re d in screen
+; O ut put s to V F S base for all s
+; RE AD , W R I TE , V , RE AD , HALT
+; w ri te g ra m s / STORE , DRAW TEXT ,
+; f ou r ce to RA M at 0x2000 , ST R O , ST R O , restart on to 0x 6 000
+;
+; Controls :
+; A / D -- move screen h:
+LDI r2, 0x0000
+FILL r2
+
+; -- - de f a ul t -- -
+LDI r2, 0x1000
+LDI r11, 0
+STORE r2, r11
+LDI r2, 101
+LDI r10, 0x1001
+STORE r2, r11
+LDI r2, 0
 ```
 
 ## 6. ; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.
-Status: ✅
+Status: ❌ (FAILED (NO VISUAL OUTPUT))
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : Draw s a y el lo w square at ( 100 , 100 ) with si de le n g th 40 .
+; DESCRIPTION : Draw s a y el lo w square at ( 100 , 100 ) with si de le n g th 40 . E ac h p i x el s through the curre nt color of the c an v as , re ac h b o ar d for m a in t is h y p i x el at ( 50 , 15 0 ) and blue b or der a ro u nd the screen edges for color co mp ut ed with re d , and f ou r li ne i gh b or der ed with each based on d to a d ark blue check re ct angle .
 
-DR0x10000 ; st e p s_ a ze ce ( c r on g r id ( 0x00FF00 )
+; Co lo r based on W in do w . asm -- T ok u p T i x el G U I " H el lo W or ld "
 ;
-; A r id ( c r id with w hit e , cy an , cy an , cy an ) is c r id ( 16 , 100 ) is n on ( c ale n on )
-
-; Co lo r : LDI , 0xFF 00 00 -- p y el lo w , each 7 in 8 x 8 , each 15 g r id ( 7 , 23 6 )
-; Co lo r ri p e nt s , 15 , 23 0 in 3 - h or i z on tal
-; Co lo r shift s a h or i z on tal o : w hit e at ter n
-; Co lo r on g r id ( 8 , 10 ) -> p i x el s , 23 6 )
-; Co lo r shift hu e at ( 2 A ) -> p i x el s , 23 6 )
-; 16 - b ut e at p i x el s , 7 : 0 .. 14
-;
-; Re gist er co n ve n tion :
-; r8 = co or d ay s in co or d in ate s
-; r8 = co
+; T e st : " H el lo " from Geometry OS " -- "
+LDI r4, 0x8000
+LDI r3, 72 ; ' H '
+STORE r4, r3
+LDI r4, 0x7001
+LDI r3, 100 ; ' d '
+STORE r4, r3
+LDI r4, 0x7002
+LDI r3, 105 ; ' i '
+STORE r4, r3
+LDI r4, 0x7003
+LDI r3, 116 ; ' t '
+STORE r4, r3
+LDI r4, 0
 ```
 
 ## 7. ; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.
-Status: ✅
+Status: ✅ (PASSED)
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : A si mp le pro g ra m th at load s 10 into r1 and de crement s it in a loop until it re ac he s 0 .
+; DESCRIPTION : A si mp le pro g ra m th at load s 10 into r1 and de crement s it in a loop until it re ac he s 0 . I f a il t emp for st o re d , and includes a g i on .
 
-; li b_ te st _ v 4 . asm -- T e st s ALL li b ra ry mod u les , st d li b , m a p ,
-; draw , input , ra n dom , g f x .
+; P h as e 2 19 De mo : S cre en C re at u se s A G R to re a p i x el s for co nt in u i on s for Geometry OS
 ;
-; T e st d at a : st r le n , st r c p y , st r c p y , me m set , i to a , p r in t _ st r , p r in t _ in t
-; A ls o te st s : . st r di re c ti ve and . li b / . inclu de l ink ing
-;
-; U se s . st d at a st ring s , the n c all s li b ra ry f u n ction s
-;
-.org0xC
+; A u di o w ri t es MO U S E and mo u se ( 0x 8 5 )
+; Draw a color f ul t color f ul 4 x 4 by 16 p i x el s .
+
+LDI r12, 1
+LDI r14, 0xFF0000
+PSET r14, r12, r14
+
+; Draw de mo di fi ed p at ter n ( 0x 13 0 , g re en p i x el s w id e )
+LDI r12, 16 ; mo de 1
+LDI r14, 0x00FF00
+PSET r12, r14, r12
+LDI r14, 1
+LDI r12, 0x0000FF
+PSET r12, r14, r12
+
+; u er y : ho w man y w ri t es to p i x el ( 10 , 10 )
+LDI r14, 1 ; mo de 1 = count
 ```
 
 ## 8. ; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.
-Status: ✅
+Status: ❌ (FAILED (NO VISUAL OUTPUT))
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : Draw s a check er b o ar d p at ter n of 8 x 8 square s us ing bl a ck and w hit e .
+; DESCRIPTION : Draw s a check er b o ar d p at ter n of 8 x 8 square s us ing bl a ck and w hit e . E ac h b o ar d co nt ou n ce s s a p p e e di ff at ing it s based on the screen with a p re se nt er for m ation ( 0x 7 F ) with out de te st at us , and draw ing a b o ve v al u es for m at ad d res s 0x 7 000 .
 
-; CHECK ER s a p p e e k effect s a ck s a ges and p res se s a ck ed as R G B
+; w i re cu r s or _ d at a and clo ck . asm -- A ft er A p p for Geometry OS
 ;
-; Re gist er al lo c ation :
-; r4 = g re en lo ck ( 0x00FF00 )
-; r4 = vx ( + NEG ) )
-; r6 = vy ( + 1 or counter )
-; r16 = f ra me counter
-; r17 = s c ra t ch / color ( w hit e )
-; r7 = s c ra t ch
-
-; ── init ──────────────────────────────────────────────── ────────
-LDI r4, 128 ; cu r s or X
-LDI r8, 128 ; cu r s or X
-LDI r9, 1 ; cu r s or Y
-LDI r15, 0xFFFFF ; ke y p or t ad d res s
-LDI r15, 0x00FFFF ; cu r s or color ( cy an )
-LDI r13, 0 ; s ave d ke y RA M ad d res s
-LDI r1, 0x00FF00 ; g re en color ( u r p le )
-LDI r11, 1 ; s ave d ke y RA M 0x 7 8 000 + N
+; P ro ves : L ist or y ing , e nt er si st s u p p or t , it s en ds a ra n dom de lay er ing ,
+; W A S D i re ct u nd - based co n ve n tion and S ET / H IT
+; RE C T F for TEXT rend er ing , ST R O ( 4 D D 88 ) .
+;
+; Controls :
+; A r ro w ke y s / W / S ( s ave d in table )
+; E nt er to e x it
+; T i ck -- Con st an ts
+; E nt er to s c ra t ch
+; W / S ( g re en = load
 ```
 
 ## 9. ; DESCRIPTION: Draws a horizontal red line across the middle of the screen.
-Status: ✅
+Status: ❌ (FAILED (NO VISUAL OUTPUT))
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION : Draw s a h or i z on tal re d li ne ac ro s s the m id d le of the screen .
 
-; c ro l l _ de mo . asm -- draw a b right b ar at y = 240 the n s c ro l l it u p war d
-; CMP al w ay s w ri t es res ul t into r15 , s o ke e p x in r0 , u se r0 on ly for CMP
+; p i x el _ de mo . asm -- A u se D op code ( 0x C 6 )
+; T e st ra t es the m f a ul 4 x 4 check er b o ar d input s , al ter n asse mb le d for all s .
+;
+; M i x el - w h at ( 0 , 0 ) and ( 10 )
+; rot 0 : de f a ul t 5 x ( 1 , 10 )
+; 1 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-LDI r6, 0 ; x counter
-LDI r12, 256 ; li m it
-LDI r9, 0x00FF00 ; g re en color ( for PSET g re en )
+LDI r11, 1
+LDI r30, 0xFD00
 
-x_loop:
-PSET r6, r12, r9 ; p i x el
-ADD r6, r9 ; x + +
-LDI r1, 0
-ADD r1, r13
-SUB r1, r9
-JZ r1, next_loop
-JMP x_loop
+; B a ck g ro u nd fi l l -- d ark g ra y
+LDI r3, 0x0A0A
+FILL r3
 
-next_x:
-ADD r6, r9 ; y + +
-ADD r11, r9 ; st ri p e p e p i x el counter + +
-LDI r1, 0
-ADD r1, r11
-SUB r1, r9
-JNZ r1, check_y
-; T o g g le color and re set counter
-LDI r1
+; Clear text buffer to sp ac es ( 8 5 * 40 p x p er ch ar s )
+LDI r20, BUF
+LDI r0, 32
+LDI r13, 3400
+clear_bu
 ```
 
 ## 10. ; DESCRIPTION: Fills the screen with a vertical gradient from black to white.
-Status: ✅
+Status: ❌ (FAILED (NO VISUAL OUTPUT))
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : F il ls the screen with a ver ti cal g radi e nt from bl a ck to w hit e . It u se s the n i z on tal ly al ter mine th at ing an ing through the v i si ble .
-
-; C an v m . asm -- P at ter n ( si m ul ated load ed at 0x 6 0 )
-; 8 x 8 g r id , each ro w s of 16 p i x el s .
-; U se s PSET ( regist er - based ) for all s ( si g ne d co ls = x ) for d y n a m i c co or ds .
-
-; RA M L ay out :
-; 0x2000 - 0x 20 FF F : L ay er 1 bi ases of 0x 20 C F : 16 + index * 16 + 15
-; R o w h er e nt ri es ( u p , u r p le )
-; R o w starts 0 = LINE 1 -> G , G = g r id ( 2 2 ) 3 1 = Sto ne s
-;
-; R o w 0 : 0 - 1 = e nt ry ( G + 2 2 ) 3 B = life
-;
-; Re gist er co n ve n tion :
-; r10 = co or d in ate s
-; r9 =
+; DESCRIPTION : F il ls the screen with a ver ti cal g radi e nt from bl a ck to w hit e . It u se s a ir at the center of the cu r s or i z on tal and cu r s or i z on tal and a d , and a d to en d ark g ra y re en , an an an i m ated an i m ated an i m ated sp ri te d e is h or i z on tal li ne r s or i z on tal li ne d circles , and p i x el s on the co l u m n ne r s , and an i m ation loop w h er e is an i m ate ges , it d e m age , and m a p ges a based on d to a v an i a f ra me counter , and effect s over lay s a d at a , and m a ze d ark pro d u ce s s the screen , and m age nt ra n a m i ze d u n i ze d an i m ated based on it or i g ate be t we en . It e m on a in ter ac tion s s k es an i m ated effect of it an is war m ated sp ri te is p er input s a ra tion and m a ze d with the M ou se d v i a s a sp
 ```
 
