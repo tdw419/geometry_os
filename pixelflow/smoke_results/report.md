@@ -1,25 +1,51 @@
 # PixelGPT V5 Smoke Test Report
 
-Checkpoint: pixelflow/bilingual_llm_v5_ckpt.pt
-Epoch: 20, Loss: 0.3736
+Checkpoint: pixelflow/bilingual_llm_v8_ckpt.pt
+Epoch: 13, Loss: 0.0840
 
 ## 1. ; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.
 Status: ✅
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : Draw s a re d circle at the center of the screen ( 128 , 128 ) with radius 50 . The radius of 128 and 50 ble nd as a s ing le r p i x el s ( 20 , 20 ) . The HALT is drawn at co or d in ate s ( 20 , 10 ) with center ( 2 , 128 ) with radius 50 and blue , b or der , b or der , w hi le w id th s ing from center co r ne r s ( 9 4 , 25 4 ) .
+; DESCRIPTION : Draw s a re d circle at the center of the screen ( 128 , 128 ) with radius 50 .
 
-; P i x el 1 : si mp le g ne d u ated t ra n si tion s : center of 4 p i x el = 10 .. 255 .
-; P o si mp le r p i x el center p at ter n s ever y 4 th f ra me .
-; P o si tion : de l is ne g a ti ve with b or at g in al p i x el s .
+; circles . asm -- concentric circles with cycling colors
 
-; B or der : co p y , w hit e at y = 1 , colo re d , b or der , y = right ( 128 , center of g re en .
-; B or der - p i x el at ( 10 , 0 ) with color
-LDI r8, 1
-LDI r9, 200
-LDI r9, 60
-RECTF r9
+; center
+LDI r4, 128
+LDI r3, 128
+
+; radius counter
+LDI r6, 10
+
+; loop count
+LDI r11, 12
+
+loop:
+; color = radius * 20 ( cycles through hues roughly )
+LDI r5, 20
+MUL r5, r11
+
+; shift into blue channel for variation
+LDI r12, 0x0001000
+MUL r12, r15
+LDI r11, 0xFF
+AND r15, r11
+OR r15, r12
+
+CIRCLE r4, r3, r15, r12
+
+; radius += 20
+LDI r4, 20
+ADD r9, r4
+
+; loop
+LDI r4, 1
+SUB r2, r4
+JNZ r2, loop
+
+HALT
 ```
 
 ## 2. ; DESCRIPTION: Fills the entire 256x256 screen with solid blue color (0x0000FF).
@@ -27,24 +53,39 @@ Status: ✅
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : F il ls the en ti re 256 x 256 screen with s o l id blue color ( 0x 00 00FF ) . It the n draws a circle centered at ( 10 , 10 ) us ing color 0x 80 5 and color 0x 80 C E . The circle is drawn with center co or d in ate s ( 10 , 10 ) with a radius of 0x 80 7 . The circle is drawn at ( 25 4 9 C 1 , 16 ) with color 0x 8 E 9 6 A C 2 .
+; DESCRIPTION : F il ls the en ti re 256 x 256 screen with s o l id blue color ( 0x 00 00FF ) .
+; U se s FILL -- all through the PSET ac co l u m n in a b right b a ck .
 
-; si mp le draw pro g ra m
-; initi ali z ation
-LDI r0, 32
-LDI r12, 0xF00F00
-LDI r0, 255
-LDI r13, 0x5C8F95
-LDI r6, 0x0A0F00
-LDI r7, 0x3F0444
-LDI r9, 4
-CIRCLE r2, r0, r7, r9
-LDI r7, 10
-LDI r10, 2
-LDI r14, 0xCE3CFB
-LDI r1, 0x3D4856
-CIRCLE r7, r10, r14, r1
-HALT
+LDI r8, 0 ; y
+LDI r15, 256 ; li m it
+
+; ── Draw g radi e nt ac tion : color = x ( blue ) ──
+LDI r10, 0 ; co l counter
+LDI r2, 1 ; in crement
+LDI r4, 256 ; li m it
+
+bg_loop:
+PSET r10, r2, r4
+ADD r10, r1 ; x + +
+LDI r0, 1
+ADD r10, r0
+CMP r10, r15
+BLT r5, bar_x_loop
+
+ADD r2, r0
+CMP r2, r8
+BLT r5, bar_y
+
+; ── Draw re d square ( triangle channel channel on channel on channel ) ──
+LDI r8, 0 ; s a ir channel
+LDI r15, 0 ; s a fe to channel
+LDI r4, 60 ; y
+MOV r3, r15
+LDI r13, 4 ; w id th
+
+draw_loop:
+CMP r15, r3
+BGE r5, draw_don
 ```
 
 ## 3. ; DESCRIPTION: Draws a green rectangle of size 64x64 at the top-left corner (0, 0).
@@ -52,23 +93,25 @@ Status: ✅
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : Draw s a g re en re ct angle of size 64 x 64 at the to p - left co r ne r ( 0 , 0 ) . E ac h the se co nd p i x el , w hit e color 0x4 0 10 10 and t ru n s the m for i x el s on the cu r s or position ( 10 , 10 ) us ing the PSET in stru ction to p - left co r ne r at ( 128 , 10 ) with the color 0x E 20 7 .
+; DESCRIPTION : Draw s a g re en re ct angle of size 64 x 64 at the to p - left co r ne r ( 0 , 0 ) .
 
-; si mp le draw pro g ra m
-; initi ali z ation
-LDI r2, 32
-LDI r3, 0
-LDI r4, 128
-LDI r15, 10
-LDI r0, 256
-LDI r4, 8
-LDI r10, 0x3E16F9
-LDI r9, 0xC08B88
-LINE r2, r1, r10, r9, r10
-LDI r7, 1
-SUB r3, r3, r7
-JNZ r3, loop_0
-HALT
+; P h as e 2 19 De mo : S cre en C a p t u re to RA M
+; = = = = =
+; Draw s 10 p i x el s ac ro s s the screen
+; U se s PSET ( 0x2000 = x ) from screen ( 0x 00 00 00FF )
+; 0x 00 = 0x00FF00 1 = 50
+; 0x 1000 : screen base ( re d y counter )
+; 0x 10 1 1 = RA M at 0x2000 ( n ul l co p i ed d p i x el s )
+; 0x 2 100 - 0x2009 : RA M are a g a in color ( 0x 00 00 00FF )
+; 0x 00 00 .. 0x 01 7 8 - 0x2009 FF p i x el s co p i ed d in ate s
+; 0x 00 8 - V M d res s of screen p i x el s
+; ── Con st an ts ──────────────────────────────────────
+LDI r2, 0x2000 ; p i x el counter
+LDI r13, 0x2000 ; p i x el color ( 0 , 0 )
+LDI r12, 0x2000 ; p i x el s
+
+COPY_LOOP:
+LOAD
 ```
 
 ## 4. ; DESCRIPTION: Draws a white diagonal line from the top-left (0, 0) to the bottom-right (255, 255).
@@ -77,39 +120,30 @@ Status: ✅
 ### Generated Assembly:
 ```
 ; DESCRIPTION : Draw s a w hit e di a g on al li ne from the to p - left ( 0 , 0 ) to the b ot to m - right ( 255 , 255 ) .
-LDI r1, 0
-LDI r2, 2
-LDI r3, 256
-LDI r4, 256
-LDI r5, 0x0000CC
-RECTF r1, r2, r3, r4, r5
-LDI r1, 10
-LDI r2, 10
-LDI r3, 16
-LDI r4, 40
-LDI r5, 0x0000FF
-RECTF r1, r2, r3, r4, r5
 
-; G re en b ut t on ( blue b lo ck ) as at b ot to m over l a be l
-LDI r1, 0
-LDI r2, 256
-LDI r3, 40
-LDI r4, 10
-LDI r5, COLOR_Y
-RECTF r1, r2, r3, r4, r5
+; U se s FILL ( regist er - based ) for PSET ( regist er - based ) for PSET ( regist er - based ) for d y n a p p ing
 
-; O r s or re d in di c at or b or der
-LDI r1, 2
-LDI r2, 0
-LDI r3, 256
-LDI r4, 16
-LDI r5, COLOR_Y
-RECTF r1, r2, r3, r4, r5
+; Re gist ers :
+; r7 = r14 = angle ( 0 - 1 )
+; r4 = s c ra t ch
+; r10 = s c ra t ch
+; r14 = s c ra t ch
+; r7 = color ( w hit e )
+; r15 = s c ra t ch
+; r6 = color ( w hit e )
+; r1 3 = s c ra t ch
+; r10 = color ( w hit e )
+; r7 = color
+; r14 = s c ra t ch
 
-; Y el lo w b lo ck
-LDI r1, 0
-LDI r2, 256
-LDI r3, 1
+; r15 = ke y code from MO U S E
+; r9 - mo u se Y from MO U S E
+; r8 - mo u se Y ( from MO U S E
+; r0 - mo u se Y ( d , b ut t on ( from MO U S E )
+; r14 - ble nd re d , 0xFF 00 00
+; r6 - r16 = loop count ers
+; r20 = RA M po in ter
+; r21 = s c ra t ch for color index
 ```
 
 ## 5. ; DESCRIPTION: Clears the screen to black and then halts.
@@ -119,24 +153,20 @@ Status: ✅
 ```
 ; DESCRIPTION : Clear s the screen to bl a ck and the n h al ts .
 
-; De m on st ra t es the screen us ing the W A S S S I _ P I X E L op code ( 0x 7 8 00 )
-; S ho w s en d " A S CI I ' ( A S CI I 6 ), re sp on se with co p y ing
-; 8 . U se s T RA M 0x 7 000 , n "
+; re ad RA M 0x 7 000 ( 32 )
+; RA M 0x 7 8 20 = RA M 0x 7 8 20 = RA M 0x 7 8 20 = 0x 7 02 = color table ( 16 e nt ri es , R G B )
+; RA M 0x 7 8 00 = ac tion color ( 0 .. 0x 7 02 B channel )
+; RA M 0x 7 00 = c p res er ves color table ( 16 e nt ri es , for 16 co rre ct each )
+; RA M 0x 7 8 00 = c a p b o ar d y
+; RA M 0x 7 8 01 = c a m er a_ y
+; RA M 0x 7 8 02 = f ra me _ counter
+; RA M 0xFF B = ke y bi t m as k
 ;
-LDI r0, 1 ; mo de 1 : a p pro g ra m
-LDI r9, 0x1000 ; s ou r ce
-STRO r9, "Hello"
-
-; -- Read b o ar d --
-LDI r9, 0x1200
-LDI r0, 1
-STORE r9, r0
-
-; S e t initi ali ze --
-LDI r0, 0x1201
-LDI r0, 121 ; p
-STORE r9, r0
-LDI r9, 0
+; = = = = = Con st an ts = = = =
+LDI r11, 1 ; co n st an t 1
+LDI r0, 64 ; T IL E S p er a x is
+LDI r14, 4 ; ti le p i x el s
+LDI r2, 0xFFB ; ke y bi t
 ```
 
 ## 6. ; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.
@@ -144,19 +174,22 @@ Status: ✅
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : Draw s a y el lo w square at ( 100 , 100 ) with si de le n g th 40 . E ac h f o l lo w s by c an v as g re en g re en in st e ad . E ac h a p es the screen , w h er e it co nt in u es to draw a li ne on the screen us ing the LINE in stru ction be f o re h al t ing e x e cu tion .
+; DESCRIPTION : Draw s a y el lo w square at ( 100 , 100 ) with si de le n g th 40 .
 
-; P h as e 10 : draw_ p i x el C T F . asm -- I nt N e w t De mo
+DR0x10000 ; st e p s_ a ze ce ( c r on g r id ( 0x00FF00 )
 ;
-; Read s a w hit e center ( 0 , 3 0 )
-; De m on st ra t es to screen p - left center ( 2 , 5 ) and ( 3 5 ) with w hit e , the n draw ing an i m ated color v i a LOAD
-; E ac h screen x 3 0 p i x el s centered on the screen ( 50 , 0 ) .
-; W e st e p sho t
-; This de mo : ge nera t ed ver if i c ation is h a ir at g a ti ve .
+; A r id ( c r id with w hit e , cy an , cy an , cy an ) is c r id ( 16 , 100 ) is n on ( c ale n on )
+
+; Co lo r : LDI , 0xFF 00 00 -- p y el lo w , each 7 in 8 x 8 , each 15 g r id ( 7 , 23 6 )
+; Co lo r ri p e nt s , 15 , 23 0 in 3 - h or i z on tal
+; Co lo r shift s a h or i z on tal o : w hit e at ter n
+; Co lo r on g r id ( 8 , 10 ) -> p i x el s , 23 6 )
+; Co lo r shift hu e at ( 2 A ) -> p i x el s , 23 6 )
+; 16 - b ut e at p i x el s , 7 : 0 .. 14
 ;
-; Memory layout :
-; 0x2000 - 0x5 00 1 FF : re d p i x el s ( 20 p x w ay s , y )
-;
+; Re gist er co n ve n tion :
+; r8 = co or d ay s in co or d in ate s
+; r8 = co
 ```
 
 ## 7. ; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.
@@ -164,23 +197,17 @@ Status: ✅
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : A si mp le pro g ra m th at load s 10 into r1 and de crement s it in a loop until it re ac he s 0 . It the n e nt ers a loop w h er e it w a it s for an o th er ke y p res s ( ' S ' ) to e x it s u b t ra ct ing a p pro ac ter i z on the screen . The loop includes a m a in _ 4 in stru ction to di sp lay a f ra me and re t u r n s to the start of the loop .
+; DESCRIPTION : A si mp le pro g ra m th at load s 10 into r1 and de crement s it in a loop until it re ac he s 0 .
 
-; input d ri ve n pro g ra m
-; initi ali z ation
-LDI r9, 0xF7ED91
-LDI r25, 16
-main_0:
-IKEY r9
-CMPI r9, 0x5137DF
-JNZ r9, key_1
-LDI r9, 0x997976
-LDI r2, 4
-LDI r4, 1
-LDI r10, 4
-RECTF r9, r2, r4, r10, r10
-FRAME
-JMP main_0
+; li b_ te st _ v 4 . asm -- T e st s ALL li b ra ry mod u les , st d li b , m a p ,
+; draw , input , ra n dom , g f x .
+;
+; T e st d at a : st r le n , st r c p y , st r c p y , me m set , i to a , p r in t _ st r , p r in t _ in t
+; A ls o te st s : . st r di re c ti ve and . li b / . inclu de l ink ing
+;
+; U se s . st d at a st ring s , the n c all s li b ra ry f u n ction s
+;
+.org0xC
 ```
 
 ## 8. ; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.
@@ -188,25 +215,27 @@ Status: ✅
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : Draw s a check er b o ar d p at ter n of 8 x 8 square s us ing bl a ck and w hit e . It w ri t es to the screen , the n e nt ers a s er i es of loop w h er e it re p e ated ly checks if the p res se d to p - right co r ne r d by o th er counter . The pro v id es o th er w i se , it di sp lay s the text " H E L LO " and " W OR L D " on the screen at a sp e ci fi c position , updates the f ra me , and the n re p e at s .
+; DESCRIPTION : Draw s a check er b o ar d p at ter n of 8 x 8 square s us ing bl a ck and w hit e .
 
-; input d ri ve n pro g ra m
-; initi ali z ation
-LDI r2, 256
-LDI r9, 255
-main_0:
-LDI r10, 3526
-LDI r14, 0x158ED0
-LDI r6, 0x319329
-TEXT r10, r14, r6, "HELLO"
-LDI r14, 74
-LDI r2, 3560
-LDI r1, 64
-WPIXEL
-LDI r10, 10
-LDI r12, 0xE72C0C
-LDI r12, 0xC35BF7
-TEXT r10, r12
+; CHECK ER s a p p e e k effect s a ck s a ges and p res se s a ck ed as R G B
+;
+; Re gist er al lo c ation :
+; r4 = g re en lo ck ( 0x00FF00 )
+; r4 = vx ( + NEG ) )
+; r6 = vy ( + 1 or counter )
+; r16 = f ra me counter
+; r17 = s c ra t ch / color ( w hit e )
+; r7 = s c ra t ch
+
+; ── init ──────────────────────────────────────────────── ────────
+LDI r4, 128 ; cu r s or X
+LDI r8, 128 ; cu r s or X
+LDI r9, 1 ; cu r s or Y
+LDI r15, 0xFFFFF ; ke y p or t ad d res s
+LDI r15, 0x00FFFF ; cu r s or color ( cy an )
+LDI r13, 0 ; s ave d ke y RA M ad d res s
+LDI r1, 0x00FF00 ; g re en color ( u r p le )
+LDI r11, 1 ; s ave d ke y RA M 0x 7 8 000 + N
 ```
 
 ## 9. ; DESCRIPTION: Draws a horizontal red line across the middle of the screen.
@@ -214,18 +243,33 @@ Status: ✅
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : Draw s a h or i z on tal re d li ne ac ro s s the m id d le of the screen . The de m on st ra t es c ro s s the screen and b ou n ce by it b ar s for co nt e nt s . It u se s RE C T F for the b ot to m over lay are a , with var i o us p i x el s , and re set it s li ne s on the screen , h al ts e x e cu tion after co mp let ing the fi le n ame d .
+; DESCRIPTION : Draw s a h or i z on tal re d li ne ac ro s s the m id d le of the screen .
 
-; li m _ de mo . asm -- A u se s se s a s o l
-; P i x el A S S L ay out :
-; L ay out :
-; R o w 0 : square , mo u se s PSET , FILL , TEXT , RE C T F , FILL , RE C T F , FILL ,
-; P o g in t _ re g , re en , ST R O , TEXT , FRAME , RE C T F , FILL , RE C T F .
-; TEXT -- TEXT -
-; P re - di re ct s , FRAME . loop s .
-; Controls :
-; Right ar ro w s from cu r s or co r ne r m n ( 0 - 100 )
-; C op y first li ne
+; c ro l l _ de mo . asm -- draw a b right b ar at y = 240 the n s c ro l l it u p war d
+; CMP al w ay s w ri t es res ul t into r15 , s o ke e p x in r0 , u se r0 on ly for CMP
+
+LDI r6, 0 ; x counter
+LDI r12, 256 ; li m it
+LDI r9, 0x00FF00 ; g re en color ( for PSET g re en )
+
+x_loop:
+PSET r6, r12, r9 ; p i x el
+ADD r6, r9 ; x + +
+LDI r1, 0
+ADD r1, r13
+SUB r1, r9
+JZ r1, next_loop
+JMP x_loop
+
+next_x:
+ADD r6, r9 ; y + +
+ADD r11, r9 ; st ri p e p e p i x el counter + +
+LDI r1, 0
+ADD r1, r11
+SUB r1, r9
+JNZ r1, check_y
+; T o g g le color and re set counter
+LDI r1
 ```
 
 ## 10. ; DESCRIPTION: Fills the screen with a vertical gradient from black to white.
@@ -233,20 +277,21 @@ Status: ✅
 
 ### Generated Assembly:
 ```
-; DESCRIPTION : F il ls the screen with a ver ti cal g radi e nt from bl a ck to w hit e . It the n the n over lay er at the to p - left co r ne r of the to p - left co r ne r at ( 0 , 1 ) with color 0x 8 FF , di me n sion s s u b se q ue nt ly for si st of the he i ght s u b se q ue st ing to in a c an v as h or i z on tal li ne .
+; DESCRIPTION : F il ls the screen with a ver ti cal g radi e nt from bl a ck to w hit e . It u se s the n i z on tal ly al ter mine th at ing an ing through the v i si ble .
 
-; T e st . asm -- Con st an ts for Geometry OS
-; T e st d at us b ar ( y )
-; 8 . A n i m ate s a p p ed to s ave
-; 4 . C lo se s o ck s :
-; S t ate s a 4 - based c an v as
-; T i me di u m b t ra ct s the s w it ch
-; - S e t a pro g ra m s h t t t ra ck s ( v al ue )
-; - S imp le d at a ( x ) with color
+; C an v m . asm -- P at ter n ( si m ul ated load ed at 0x 6 0 )
+; 8 x 8 g r id , each ro w s of 16 p i x el s .
+; U se s PSET ( regist er - based ) for all s ( si g ne d co ls = x ) for d y n a m i c co or ds .
+
+; RA M L ay out :
+; 0x2000 - 0x 20 FF F : L ay er 1 bi ases of 0x 20 C F : 16 + index * 16 + 15
+; R o w h er e nt ri es ( u p , u r p le )
+; R o w starts 0 = LINE 1 -> G , G = g r id ( 2 2 ) 3 1 = Sto ne s
 ;
-; L ay out :
-; r10 - r11 - r11 ( sho ul d be lo w , he i ght )
-; r11 - r12 - r11 ( all )
-; r11 - color (
+; R o w 0 : 0 - 1 = e nt ry ( G + 2 2 ) 3 B = life
+;
+; Re gist er co n ve n tion :
+; r10 = co or d in ate s
+; r9 =
 ```
 

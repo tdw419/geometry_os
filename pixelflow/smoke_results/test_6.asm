@@ -1,13 +1,16 @@
-; DESCRIPTION : Draw s a y el lo w square at ( 100 , 100 ) with si de le n g th 40 . E ac h f o l lo w s by c an v as g re en g re en in st e ad . E ac h a p es the screen , w h er e it co nt in u es to draw a li ne on the screen us ing the LINE in stru ction be f o re h al t ing e x e cu tion .
+; DESCRIPTION : Draw s a y el lo w square at ( 100 , 100 ) with si de le n g th 40 .
 
-; P h as e 10 : draw_ p i x el C T F . asm -- I nt N e w t De mo
+DR0x10000 ; st e p s_ a ze ce ( c r on g r id ( 0x00FF00 )
 ;
-; Read s a w hit e center ( 0 , 3 0 )
-; De m on st ra t es to screen p - left center ( 2 , 5 ) and ( 3 5 ) with w hit e , the n draw ing an i m ated color v i a LOAD
-; E ac h screen x 3 0 p i x el s centered on the screen ( 50 , 0 ) .
-; W e st e p sho t
-; This de mo : ge nera t ed ver if i c ation is h a ir at g a ti ve .
+; A r id ( c r id with w hit e , cy an , cy an , cy an ) is c r id ( 16 , 100 ) is n on ( c ale n on )
+
+; Co lo r : LDI , 0xFF 00 00 -- p y el lo w , each 7 in 8 x 8 , each 15 g r id ( 7 , 23 6 )
+; Co lo r ri p e nt s , 15 , 23 0 in 3 - h or i z on tal
+; Co lo r shift s a h or i z on tal o : w hit e at ter n
+; Co lo r on g r id ( 8 , 10 ) -> p i x el s , 23 6 )
+; Co lo r shift hu e at ( 2 A ) -> p i x el s , 23 6 )
+; 16 - b ut e at p i x el s , 7 : 0 .. 14
 ;
-; Memory layout :
-; 0x2000 - 0x5 00 1 FF : re d p i x el s ( 20 p x w ay s , y )
-;
+; Re gist er co n ve n tion :
+; r8 = co or d ay s in co or d in ate s
+; r8 = co
