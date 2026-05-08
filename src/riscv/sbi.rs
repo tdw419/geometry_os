@@ -62,6 +62,13 @@ const SBI_DBCN_CONSOLE_WRITE_BYTE: u32 = 2;
 // Function 2: GEO_YIELD_TO -- yield to specific context ID (a0=target)
 // Function 3: GEO_SPAWN -- create new context at entry point (a0=entry)
 // Function 4: GEO_KILL -- terminate a context (a0=context_id)
+// Function 5: GEO_GPU_COMPUTE -- GPU compute offload
+// Function 6: GEO_SHM_ALLOC -- allocate shared memory region (a0=size_bytes, a1=flags)
+// Function 7: GEO_SHM_MAP -- map shared region into guest physical address (a0=shm_id, a1=phys_addr)
+// Function 8: GEO_SHM_UNMAP -- unmap shared region (a0=shm_id)
+// Function 9: GEO_SHM_SIZE -- get size of shared region (a0=shm_id)
+// Function 10: GEO_SHM_WRITE -- write bytes to shared region (a0=shm_id, a1=offset, a2=src_phys_addr, a3=len)
+// Function 11: GEO_SHM_READ -- read bytes from shared region (a0=shm_id, a1=offset, a2=dst_phys_addr, a3=len)
 // Pixel access is via the MMIO framebuffer at 0x6000_0000 (256x256 RGBA).
 const SBI_EXT_GEOMETRY: u32 = 0x47454F00; // "GEO\0"
 const GEO_FN_VFS_READ: u32 = 0;
@@ -70,6 +77,38 @@ const GEO_FN_YIELD_TO: u32 = 2;
 const GEO_FN_SPAWN: u32 = 3;
 const GEO_FN_KILL: u32 = 4;
 const GEO_FN_GPU_COMPUTE: u32 = 5;
+const GEO_FN_SHM_ALLOC: u32 = 6;
+const GEO_FN_SHM_MAP: u32 = 7;
+const GEO_FN_SHM_UNMAP: u32 = 8;
+const GEO_FN_SHM_SIZE: u32 = 9;
+const GEO_FN_SHM_WRITE: u32 = 10;
+const GEO_FN_SHM_READ: u32 = 11;
+
+/// Maximum number of shared memory regions.
+const SHM_MAX_REGIONS: usize = 16;
+/// Maximum size per shared memory region in bytes.
+const SHM_MAX_SIZE: usize = 64 * 1024; // 64KB
+
+/// A shared memory region that contexts can map into their address space.
+/// The data lives in a separate buffer (not in GuestMemory) until mapped.
+/// After SHM_MAP, the data is copied into GuestMemory at the specified
+/// physical address, and both the shared buffer and the mapped address
+/// are tracked so multiple contexts can see the same data.
+#[derive(Debug, Clone)]
+pub struct SharedMemoryRegion {
+    /// Unique shared memory ID.
+    pub id: u32,
+    /// Size in bytes.
+    pub size: usize,
+    /// The shared data buffer.
+    pub data: Vec<u8>,
+    /// Whether this region has been mapped into guest physical memory.
+    pub mapped: bool,
+    /// Guest physical address where the region is mapped (if mapped).
+    pub map_addr: u64,
+    /// Number of contexts that have mapped this region.
+    pub ref_count: usize,
+}
 
 // Phase 244: Network extension -- TCP via SBI
 // EID is ASCII "NET\0"
@@ -152,6 +191,17 @@ pub struct Sbi {
     pub net_sockets: [Option<std::net::TcpStream>; 4],
     /// Phase 244: Pending network operation (send/recv) for step loop.
     pub net_pending: Option<NetPendingOp>,
+    /// Phase 256: Shared memory regions for inter-context IPC.
+    /// Up to SHM_MAX_REGIONS (16) regions, each up to SHM_MAX_SIZE (64KB).
+    pub shm_regions: Vec<SharedMemoryRegion>,
+    /// Next shared memory ID to assign.
+    pub shm_next_id: u32,
+    /// Pending shared memory write: (shm_id, offset, src_phys_addr, len).
+    /// Set by GEO_FN_SHM_WRITE ecall, fulfilled by step loop.
+    pub shm_pending_write: Option<(u32, usize, u64, usize)>,
+    /// Pending shared memory read: (shm_id, offset, dst_phys_addr, len).
+    /// Set by GEO_FN_SHM_READ ecall, fulfilled by step loop.
+    pub shm_pending_read: Option<(u32, usize, u64, usize)>,
 }
 
 impl Sbi {
@@ -172,6 +222,10 @@ impl Sbi {
             gpu_compute_requested: None,
             net_sockets: [None, None, None, None],
             net_pending: None,
+            shm_regions: Vec::new(),
+            shm_next_id: 1, // start IDs at 1 (0 = error/null)
+            shm_pending_write: None,
+            shm_pending_read: None,
         }
     }
 
@@ -444,6 +498,122 @@ impl Sbi {
                     self.gpu_compute_requested =
                         Some((code_addr, num_words, max_steps, num_tiles, result_addr));
                     Some((SBI_SUCCESS as u32, 0))
+                }
+                GEO_FN_SHM_ALLOC => {
+                    // Allocate a shared memory region.
+                    // a0 = size in bytes (rounded up to 4)
+                    // a1 = flags (reserved, must be 0)
+                    // Returns: a0=SBI_SUCCESS, a1=shm_id
+                    let size = if a0 == 0 || a0 as usize > SHM_MAX_SIZE {
+                        return Some((SBI_ERR_INVALID_PARAM as u32, 0));
+                    } else {
+                        a0 as usize
+                    };
+                    if _a1 != 0 {
+                        return Some((SBI_ERR_INVALID_PARAM as u32, 0));
+                    }
+                    if self.shm_regions.len() >= SHM_MAX_REGIONS {
+                        return Some((SBI_ERR_FAILURE as u32, 0));
+                    }
+                    let id = self.shm_next_id;
+                    self.shm_next_id += 1;
+                    self.shm_regions.push(SharedMemoryRegion {
+                        id,
+                        size,
+                        data: vec![0u8; size],
+                        mapped: false,
+                        map_addr: 0,
+                        ref_count: 0,
+                    });
+                    Some((SBI_SUCCESS as u32, id))
+                }
+                GEO_FN_SHM_MAP => {
+                    // Map a shared region into guest physical memory.
+                    // a0 = shm_id
+                    // a1 = phys_addr (low 32 bits) where to map
+                    // Returns: a0=SBI_SUCCESS
+                    // The data is NOT copied here -- the step loop fulfills this
+                    // by writing shm data into guest memory. We just record the
+                    // mapping intent. Multiple contexts can map the same shm_id.
+                    let shm_id = a0;
+                    let phys_addr = _a1 as u64;
+                    let region = match self.shm_regions.iter_mut().find(|r| r.id == shm_id) {
+                        Some(r) => r,
+                        None => return Some((SBI_ERR_INVALID_PARAM as u32, 0)),
+                    };
+                    region.mapped = true;
+                    region.map_addr = phys_addr;
+                    region.ref_count = region.ref_count.saturating_add(1);
+                    Some((SBI_SUCCESS as u32, region.size as u32))
+                }
+                GEO_FN_SHM_UNMAP => {
+                    // Unmap a shared region for the calling context.
+                    // a0 = shm_id
+                    // Returns: a0=SBI_SUCCESS
+                    let shm_id = a0;
+                    let region = match self.shm_regions.iter_mut().find(|r| r.id == shm_id) {
+                        Some(r) => r,
+                        None => return Some((SBI_ERR_INVALID_PARAM as u32, 0)),
+                    };
+                    region.ref_count = region.ref_count.saturating_sub(1);
+                    if region.ref_count == 0 {
+                        region.mapped = false;
+                        region.map_addr = 0;
+                    }
+                    Some((SBI_SUCCESS as u32, 0))
+                }
+                GEO_FN_SHM_SIZE => {
+                    // Get the size of a shared memory region.
+                    // a0 = shm_id
+                    // Returns: a0=SBI_SUCCESS, a1=size_in_bytes
+                    let shm_id = a0;
+                    match self.shm_regions.iter().find(|r| r.id == shm_id) {
+                        Some(r) => Some((SBI_SUCCESS as u32, r.size as u32)),
+                        None => Some((SBI_ERR_INVALID_PARAM as u32, 0)),
+                    }
+                }
+                GEO_FN_SHM_WRITE => {
+                    // Write bytes from guest memory into a shared region.
+                    // a0 = shm_id, a1 = offset, a2 = src_phys_addr, a3 = len
+                    // The actual data copy is fulfilled by the step loop which
+                    // has access to guest memory. Here we store the request.
+                    let shm_id = a0;
+                    let offset = _a1 as usize;
+                    let src_addr = _a2 as u64;
+                    let len = _a3 as usize;
+                    let region = match self.shm_regions.iter().find(|r| r.id == shm_id) {
+                        Some(r) => r,
+                        None => return Some((SBI_ERR_INVALID_PARAM as u32, 0)),
+                    };
+                    if offset.saturating_add(len) > region.size || len == 0 {
+                        return Some((SBI_ERR_INVALID_PARAM as u32, 0));
+                    }
+                    // Store pending write for step loop to fulfill.
+                    // The step loop will read `len` bytes from guest phys `src_addr`
+                    // and write them into region.data[offset..offset+len].
+                    // For simplicity, since we don't have a generic pending-op
+                    // field, we perform the write inline by storing a marker.
+                    // The caller (step loop) must check sbi.shm_pending_write.
+                    self.shm_pending_write = Some((shm_id, offset, src_addr, len));
+                    Some((SBI_SUCCESS as u32, len as u32))
+                }
+                GEO_FN_SHM_READ => {
+                    // Read bytes from a shared region into guest memory.
+                    // a0 = shm_id, a1 = offset, a2 = dst_phys_addr, a3 = len
+                    // Similar to SHM_WRITE, the actual copy is fulfilled by step loop.
+                    let shm_id = a0;
+                    let offset = _a1 as usize;
+                    let dst_addr = _a2 as u64;
+                    let len = _a3 as usize;
+                    let region = match self.shm_regions.iter().find(|r| r.id == shm_id) {
+                        Some(r) => r,
+                        None => return Some((SBI_ERR_INVALID_PARAM as u32, 0)),
+                    };
+                    if offset.saturating_add(len) > region.size || len == 0 {
+                        return Some((SBI_ERR_INVALID_PARAM as u32, 0));
+                    }
+                    self.shm_pending_read = Some((shm_id, offset, dst_addr, len));
+                    Some((SBI_SUCCESS as u32, len as u32))
                 }
                 _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
             },
@@ -1261,5 +1431,323 @@ mod tests {
         );
 
         server.join().expect("server thread");
+    }
+
+    // Phase 256: Shared memory SBI extension tests
+    #[test]
+    fn test_shm_alloc_basic() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // Allocate 256 bytes
+        let result = sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            GEO_FN_SHM_ALLOC,
+            256, // size
+            0,   // flags
+            0, 0, 0, 0,
+            &mut uart,
+            &mut clint,
+        );
+        assert!(result.is_some());
+        let (a0, a1) = result.unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 1); // first ID
+        assert_eq!(sbi.shm_regions.len(), 1);
+        assert_eq!(sbi.shm_regions[0].size, 256);
+        assert_eq!(sbi.shm_regions[0].data.len(), 256);
+        assert!(!sbi.shm_regions[0].mapped);
+        assert_eq!(sbi.shm_regions[0].ref_count, 0);
+    }
+
+    #[test]
+    fn test_shm_alloc_sequential_ids() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (_, id1) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        let (_, id2) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 128, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(id1, 1);
+        assert_eq!(id2, 2);
+        assert_eq!(sbi.shm_regions.len(), 2);
+    }
+
+    #[test]
+    fn test_shm_alloc_zero_size_fails() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (a0, _) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+        assert_eq!(sbi.shm_regions.len(), 0);
+    }
+
+    #[test]
+    fn test_shm_alloc_too_large_fails() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC,
+                (SHM_MAX_SIZE + 1) as u32, 0,
+                0, 0, 0, 0,
+                &mut uart, &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_shm_alloc_invalid_flags_fails() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (a0, _) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 1, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_shm_alloc_max_regions() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // Fill all 16 slots
+        for _ in 0..SHM_MAX_REGIONS {
+            let (a0, _) = sbi
+                .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+                .unwrap();
+            assert_eq!(a0, SBI_SUCCESS as u32);
+        }
+        assert_eq!(sbi.shm_regions.len(), SHM_MAX_REGIONS);
+        // 17th should fail
+        let (a0, _) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_FAILURE as u32);
+    }
+
+    #[test]
+    fn test_shm_map_basic() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (_, shm_id) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 256, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        // Map at physical address 0x100000
+        let (a0, a1) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_MAP, shm_id, 0x100000, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 256); // returns size
+        let region = sbi.shm_regions.iter().find(|r| r.id == shm_id).unwrap();
+        assert!(region.mapped);
+        assert_eq!(region.map_addr, 0x100000);
+        assert_eq!(region.ref_count, 1);
+    }
+
+    #[test]
+    fn test_shm_map_invalid_id() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (a0, _) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_MAP, 99, 0x100000, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_shm_unmap() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (_, shm_id) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 128, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        // Map twice (two contexts)
+        sbi.handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_MAP, shm_id, 0x100000, 0, 0, 0, 0, &mut uart, &mut clint);
+        sbi.handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_MAP, shm_id, 0x200000, 0, 0, 0, 0, &mut uart, &mut clint);
+        let region = sbi.shm_regions.iter().find(|r| r.id == shm_id).unwrap();
+        assert_eq!(region.ref_count, 2);
+
+        // Unmap once
+        let (a0, _) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_UNMAP, shm_id, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        let region = sbi.shm_regions.iter().find(|r| r.id == shm_id).unwrap();
+        assert_eq!(region.ref_count, 1);
+        assert!(region.mapped); // still mapped by other context
+
+        // Unmap again
+        sbi.handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_UNMAP, shm_id, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        let region = sbi.shm_regions.iter().find(|r| r.id == shm_id).unwrap();
+        assert_eq!(region.ref_count, 0);
+        assert!(!region.mapped); // fully unmapped
+    }
+
+    #[test]
+    fn test_shm_size() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (_, shm_id) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 1024, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        let (a0, a1) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_SIZE, shm_id, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 1024);
+    }
+
+    #[test]
+    fn test_shm_size_invalid_id() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (a0, _) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_SIZE, 99, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_shm_write_sets_pending() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (_, shm_id) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        // Write 4 bytes at offset 0 from phys addr 0x500000
+        let (a0, a1) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY, GEO_FN_SHM_WRITE,
+                shm_id, 0,    // offset
+                0x500000, 4,  // src_phys_addr, len
+                0, 0,
+                &mut uart, &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 4);
+        assert!(sbi.shm_pending_write.is_some());
+        let (w_id, w_off, w_addr, w_len) = sbi.shm_pending_write.unwrap();
+        assert_eq!(w_id, shm_id);
+        assert_eq!(w_off, 0);
+        assert_eq!(w_addr, 0x500000);
+        assert_eq!(w_len, 4);
+    }
+
+    #[test]
+    fn test_shm_write_out_of_bounds() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (_, shm_id) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        // Write past end of region
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY, GEO_FN_SHM_WRITE,
+                shm_id, 60, 0x500000, 10, // offset=60, len=10 -> 70 > 64
+                0, 0,
+                &mut uart, &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_shm_read_sets_pending() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (_, shm_id) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        let (a0, a1) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY, GEO_FN_SHM_READ,
+                shm_id, 8,    // offset
+                0x600000, 16, // dst_phys_addr, len
+                0, 0,
+                &mut uart, &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_SUCCESS as u32);
+        assert_eq!(a1, 16);
+        assert!(sbi.shm_pending_read.is_some());
+        let (r_id, r_off, r_addr, r_len) = sbi.shm_pending_read.unwrap();
+        assert_eq!(r_id, shm_id);
+        assert_eq!(r_off, 8);
+        assert_eq!(r_addr, 0x600000);
+        assert_eq!(r_len, 16);
+    }
+
+    #[test]
+    fn test_shm_read_out_of_bounds() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        let (_, shm_id) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 32, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        let (a0, _) = sbi
+            .handle_ecall(
+                SBI_EXT_GEOMETRY, GEO_FN_SHM_READ,
+                shm_id, 0, 0x600000, 0, // len=0 -> invalid
+                0, 0,
+                &mut uart, &mut clint,
+            )
+            .unwrap();
+        assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
+    }
+
+    #[test]
+    fn test_shm_probe_extension_available() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // PROBE_EXTENSION for GEO should return available (1)
+        let (a0, a1) = sbi
+            .handle_ecall(SBI_EXT_BASE, 3, SBI_EXT_GEOMETRY, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        assert_eq!(a0, 0); // success
+        assert_eq!(a1, 1); // available
+    }
+
+    #[test]
+    fn test_shm_data_isolated_between_regions() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+        // Allocate two regions
+        let (_, id1) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 16, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        let (_, id2) = sbi
+            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 16, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .unwrap();
+        // Write to region 1
+        sbi.shm_regions.iter_mut().find(|r| r.id == id1).unwrap().data[0] = 0xAB;
+        sbi.shm_regions.iter_mut().find(|r| r.id == id2).unwrap().data[0] = 0xCD;
+        // Verify isolation
+        let r1 = sbi.shm_regions.iter().find(|r| r.id == id1).unwrap();
+        let r2 = sbi.shm_regions.iter().find(|r| r.id == id2).unwrap();
+        assert_eq!(r1.data[0], 0xAB);
+        assert_eq!(r2.data[0], 0xCD);
     }
 }

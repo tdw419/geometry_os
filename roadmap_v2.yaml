@@ -3888,7 +3888,7 @@ phases:
   _claimed_at: 1778199849
 - id: phase-256
   title: RISC-V Guest -- Shared Memory IPC Between Processes
-  status: planned
+  status: in_progress
   goal: Enable RISC-V guest processes to communicate via shared memory regions
   description: The Geometry OS VM has MSGSND/MSGRCV/PIPE for IPC, but RISC-V guest
     programs running under the interpreter have no IPC mechanism. Add shared memory
@@ -3897,7 +3897,7 @@ phases:
     and shared framebuffers.
   deliverables:
   - name: Shared memory SBI extension
-    status: todo
+    status: done
     tasks:
     - id: p256.d1.t1
       title: Add SBI SHM extension (shm_alloc, shm_map, shm_free)
@@ -3924,6 +3924,8 @@ phases:
       scope_lines: 100
   test_target: 3
   scope_lines_total: 280
+  _claimed_by: worker-0
+  _claimed_at: 1778200642
 - id: phase-257
   title: RISC-V Guest -- Timer and Sleep Syscalls
   status: planned

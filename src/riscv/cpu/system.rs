@@ -193,6 +193,55 @@ impl RiscvCpu {
                             }
                         }
 
+                        // Phase 256: Handle SHM pending write (guest -> shm)
+                        if let Some((shm_id, offset, src_addr, len)) =
+                            bus.sbi.shm_pending_write.take()
+                        {
+                            // Find region index first to avoid borrow conflicts
+                            let region_idx = bus
+                                .sbi
+                                .shm_regions
+                                .iter()
+                                .position(|r| r.id == shm_id);
+                            if let Some(idx) = region_idx {
+                                let region_size = bus.sbi.shm_regions[idx].data.len();
+                                // Read from guest memory into a temporary buffer
+                                let mut buf = vec![0u8; len.min(region_size.saturating_sub(offset))];
+                                for i in 0..buf.len() {
+                                    if let Ok(b) = bus.read_byte(src_addr + i as u64) {
+                                        buf[i] = b;
+                                    }
+                                }
+                                // Now write into the region
+                                for (i, &b) in buf.iter().enumerate() {
+                                    bus.sbi.shm_regions[idx].data[offset + i] = b;
+                                }
+                            }
+                        }
+
+                        // Phase 256: Handle SHM pending read (shm -> guest)
+                        if let Some((shm_id, offset, dst_addr, len)) =
+                            bus.sbi.shm_pending_read.take()
+                        {
+                            let region_idx = bus
+                                .sbi
+                                .shm_regions
+                                .iter()
+                                .position(|r| r.id == shm_id);
+                            if let Some(idx) = region_idx {
+                                let region_size = bus.sbi.shm_regions[idx].data.len();
+                                let copy_len = len.min(region_size.saturating_sub(offset));
+                                // Copy from region into a temporary buffer
+                                let buf: Vec<u8> = bus.sbi.shm_regions[idx]
+                                    .data[offset..offset + copy_len]
+                                    .to_vec();
+                                // Write to guest memory
+                                for (i, &b) in buf.iter().enumerate() {
+                                    let _ = bus.write_byte(dst_addr + i as u64, b);
+                                }
+                            }
+                        }
+
                         // GEO_VFS_READ pending request handling.
                         // DEPRECATED: The ecall now returns NOT_SUPPORTED, so this
                         // branch is dead code. Retained for safety during transition.
