@@ -4010,7 +4010,7 @@ phases:
   _claimed_at: 1778205927
 - id: phase-259
   title: GeOS Program -- Cellular Automata Sandbox (Life, HighLife, Seeds)
-  status: planned
+  status: done
   goal: Write a multi-rule cellular automata playground with rule switching
   description: Conway Game of Life already exists as code_evolution.asm, but a unified
     sandbox that supports multiple rules (Life, HighLife, Day and Night, Langton Ant,
@@ -4019,7 +4019,7 @@ phases:
     logic.
   deliverables:
   - name: Cellular automata sandbox
-    status: todo
+    status: done
     tasks:
     - id: p259.d1.t1
       title: Implement grid data structure and rendering
@@ -4044,6 +4044,8 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 330
+  _claimed_by: worker-0
+  _claimed_at: 1778218612
 - id: phase-260
   title: GeOS VM -- Matrix Multiply Opcode (MATMUL)
   status: complete
