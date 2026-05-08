@@ -333,6 +333,10 @@ fn vm_thread_main(
     let fw_addr_u32 = fw_addr as u32;
     let mut last_satp = vm.cpu.csr.satp;
 
+    // Linux diagnostic state
+    let mut linux_diag_count: u64 = 0;
+    let mut linux_last_pc: u32 = 0;
+
     while running {
         // 1. Process control commands
         match control_rx.try_recv() {
@@ -380,9 +384,6 @@ fn vm_thread_main(
         }
 
         // 3. Run a batch of instructions
-        // Linux diagnostic counters (before the loop)
-        let mut linux_diag_count: u64 = 0;
-        let mut linux_last_pc: u32 = 0;
         let mut halt_reason = None;
         for _ in 0..batch_size {
             // Linux-mode logic: trap forwarding and PT fixups
@@ -422,10 +423,10 @@ fn vm_thread_main(
                 }
             }
 
-            // Linux needs ~100x CLINT tick ratio (real hardware: 1GHz CPU / 10MHz timebase).
-            // Bare-metal ELF uses 1:1 which is fine for simple programs.
+            // Linux needs ~10x CLINT tick ratio (bare-metal ELF uses 1:1).
+            // Ticking 100x caused an interrupt storm; 10x is more stable.
             let step_result = if is_linux {
-                vm.step_with_clint_ticks(100)
+                vm.step_with_clint_ticks(10)
             } else {
                 vm.step()
             };

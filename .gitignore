@@ -31,3 +31,4 @@ tools/hermes_bridge/target/
 annotated_dataset/synthetic_*
 *.npz
 training_log*.txt
+synthetic_dataset_v9/

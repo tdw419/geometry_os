@@ -205,7 +205,7 @@ title_loop:
 
 ; Get length of "Geometry" -> r0 = 8
     LDI r12, 0x3000
-    STRLEN r12
+    STRLEN r0, r12
 
 ; Save length to r3 (r0 will be clobbered by CMP in loop)
     MOV r3, r0
@@ -276,7 +276,10 @@ len_done:
 ; Copy "Hello" from 0x3020 to 0x3030
     LDI r12, 0x3020    ; source
     LDI r13, 0x3030    ; destination
-    STRCPY r12, r13    ; r0 = 6 (bytes copied incl null)
+    STRCPY r13, r12    ; dest=r13, src=r12
+
+; Get length of copied string for the bar
+    STRLEN r0, r13     ; r0 = 5 ("Hello" length)
 
 ; Save count to r3
     MOV r3, r0
@@ -349,7 +352,7 @@ copy_done:
 
 ; Verify with STRLEN: should be 11 ("Hello World")
     LDI r12, 0x3030
-    STRLEN r12
+    STRLEN r0, r12
     MOV r3, r0         ; r3 = 11
 
 ; Display concatenated string at (10, 145)

@@ -6462,7 +6462,7 @@ fn test_strlen_assembled() {
     let mut vm = Vm::new();
     let src = "\
 LDI r1, 0x3000
-STRLEN r1
+STRLEN r0, r1
 HALT";
     let bc = crate::assembler::assemble(src, 0).unwrap();
     // Place "GeOS" at 0x3000
@@ -6586,7 +6586,7 @@ fn test_strcpy_assembled() {
     let src = "\
 LDI r1, 0x3000
 LDI r2, 0x4000
-STRCPY r1, r2
+STRCPY r2, r1
 HALT";
     let bc = crate::assembler::assemble(src, 0).unwrap();
     // Place "test" at 0x3000
@@ -6606,7 +6606,7 @@ HALT";
             break;
         }
     }
-    assert_eq!(vm.regs[0], 5, "assembled STRCPY: 'test\\0' = 5 bytes");
+    assert_eq!(vm.regs[0], 0, "assembled STRCPY (0xF9): does not set r0");
     for (i, &b) in s.iter().enumerate() {
         assert_eq!(
             vm.ram[0x4000 + i],
