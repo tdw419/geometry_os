@@ -1315,6 +1315,9 @@ impl Vm {
             // ALARM_CLR slot_reg (0xEB, 2 words)
             0xEB => (format!("ALARM_CLR {}", reg(ram(a + 1))), 2),
 
+            // BYTEPACK src_addr_reg, len_reg, path_addr_reg (0xAE) -- encode RAM to pixelpack PNG
+            0xAE => (format!("BYTEPACK {}, {}, {}", reg(ram(a + 1)), reg(ram(a + 2)), reg(ram(a + 3))), 4),
+
             // SAVEPNG path_addr_reg (0xAF) -- save screen as PNG to VFS file
             0xAF => (format!("SAVEPNG {}", reg(ram(a + 1))), 2),
 

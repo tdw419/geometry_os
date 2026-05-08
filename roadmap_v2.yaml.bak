@@ -3810,7 +3810,7 @@ phases:
   _claimed_at: 1778188766
 - id: phase-254
   title: GeOS Program -- Procedural Dungeon Generator with Fog of War
-  status: planned
+  status: in_progress
   goal: Write a dungeon crawler with BSP room generation and line-of-sight fog
   description: Extends the existing infinite_map terrain concepts into a dungeon setting.
     BSP (Binary Space Partition) generates rooms connected by corridors. Raycasting-based
@@ -3845,6 +3845,8 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 380
+  _claimed_by: worker-0
+  _claimed_at: 1778227445
 - id: phase-255
   title: GeOS VM -- Conditional Move and Select Opcodes (CMOV, CSEL)
   status: done

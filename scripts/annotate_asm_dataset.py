@@ -29,18 +29,28 @@ SYSTEM_PROMPT = (
     "Be technical and precise. Output ONLY the description, nothing else."
 )
 
-def annotate_file(file_path):
-    """Generate a description for a single .asm file."""
+def annotate_file(file_path, max_retries=3):
+    """Generate a description for a single .asm file with retry logic."""
     code = Path(file_path).read_text()
     prompt = f"Code:\n{code}\n\nDescription:"
     
-    description = generate(
-        prompt,
-        system=SYSTEM_PROMPT,
-        model='ollama/qwen2.5-coder:14b'
-    ).strip()
-    
-    return description
+    for attempt in range(max_retries):
+        try:
+            description = generate(
+                prompt,
+                system=SYSTEM_PROMPT,
+                model='ollama/qwen2.5-coder:14b'
+            ).strip()
+            if description and len(description) > 10:
+                return description
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait = 2 ** (attempt + 1)
+                print(f"retry({attempt+1})...", end=" ", flush=True)
+                time.sleep(wait)
+            else:
+                raise
+    return ""
 
 def main():
     parser = argparse.ArgumentParser(description="Annotate GeOS ASM programs with English descriptions")

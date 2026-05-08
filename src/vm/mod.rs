@@ -5004,6 +5004,84 @@ impl Vm {
                 }
             }
 
+            // ── Phase 275: BYTEPACK opcode (0xAE) ──
+            // BYTEPACK src_addr_reg, len_reg, path_addr_reg (0xAE)
+            // Reads len u32 words from RAM starting at src_addr, encodes them as
+            // raw bytes (little-endian, 4 bytes per word) into a pixelpack PNG,
+            // then writes the PNG to a VFS file at the given path.
+            // Returns total PNG bytes written in r0, or 0xFFFFFFFF on error.
+            // Use case: shell 'as <src> <dst>' saves assembled bytecode as .png.
+            0xAE => {
+                let src_r = self.fetch() as usize;
+                let len_r = self.fetch() as usize;
+                let path_r = self.fetch() as usize;
+                if src_r < NUM_REGS && len_r < NUM_REGS && path_r < NUM_REGS {
+                    let src_addr = self.regs[src_r] as usize;
+                    let word_count = self.regs[len_r] as usize;
+                    let path_addr = self.regs[path_r] as usize;
+                    let pid = self.current_pid;
+
+                    // Convert u32 words to raw bytes (little-endian)
+                    let mut raw_bytes = Vec::with_capacity(word_count * 4);
+                    for i in 0..word_count {
+                        let addr = src_addr + i;
+                        if addr < self.ram.len() {
+                            let word = self.ram[addr];
+                            raw_bytes.push((word & 0xFF) as u8);
+                            raw_bytes.push(((word >> 8) & 0xFF) as u8);
+                            raw_bytes.push(((word >> 16) & 0xFF) as u8);
+                            raw_bytes.push(((word >> 24) & 0xFF) as u8);
+                        }
+                    }
+
+                    // Encode as pixelpack PNG
+                    match crate::pixel::encode_pixelpack_png(&raw_bytes) {
+                        Ok(png_bytes) => {
+                            // Write PNG to VFS file
+                            let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid);
+                            if fd != 0xFFFFFFFF {
+                                // Stage PNG bytes in RAM: one byte per u32 word
+                                let stage_base = 0x9000u32;
+                                let chunk_size = 512u32;
+                                let mut written: u32 = 0;
+                                let total_bytes = png_bytes.len() as u32;
+                                let mut offset = 0u32;
+                                while offset < total_bytes {
+                                    let end = std::cmp::min(offset + chunk_size, total_bytes);
+                                    let n = end - offset;
+                                    for i in 0..n {
+                                        let ram_addr = (stage_base + i) as usize;
+                                        if ram_addr < self.ram.len() {
+                                            self.ram[ram_addr] =
+                                                png_bytes[(offset + i) as usize] as u32;
+                                        }
+                                    }
+                                    let bytes_written =
+                                        self.vfs.fwrite(&self.ram, fd, stage_base, n, pid);
+                                    if bytes_written == 0xFFFFFFFF {
+                                        let _ = self.vfs.fclose(fd, pid);
+                                        self.regs[0] = 0xFFFFFFFF;
+                                        written = 0;
+                                        break;
+                                    }
+                                    written += bytes_written;
+                                    offset = end;
+                                }
+                                self.vfs.fclose(fd, pid);
+                                self.regs[0] = written;
+                            } else {
+                                self.regs[0] = 0xFFFFFFFF;
+                            }
+                        }
+                        Err(_) => {
+                            self.regs[0] = 0xFFFFFFFF;
+                        }
+                    }
+                } else {
+                    self.regs[0] = 0xFFFFFFFF;
+                }
+            }
+
             // ── Phase 212: SAVEPNG opcode (0xAF) ──
             // SAVEPNG path_addr_reg (0xAF) -- Screenshot: save screen as PNG to VFS file
             // Reads null-terminated path from RAM at address in register.

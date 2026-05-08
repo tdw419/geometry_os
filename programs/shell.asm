@@ -2749,8 +2749,9 @@ date_done:
     RET
 
 do_as:
-    ; Native assembler: as <filename>
+    ; Native assembler: as <src.asm> [dst.png]
     ; Reads file from VFS, assembles to bytecode at 0x1000
+    ; If dst.png given, saves bytecode as pixelpack PNG via BYTEPACK
     ; Reports success (word count) or error
     PUSH r15
     PUSH r14
@@ -2762,6 +2763,54 @@ do_as:
     LOAD r0, r9
     JZ r0, as_usage
 
+    ; Check for second argument (optional dst.png)
+    ; Find space separator in 0x0600, copy second arg to 0x1800
+    ; and null-terminate first arg at the space
+    LDI r15, 0            ; r15 = 0 means no second arg (default)
+    LDI r13, 0x0600
+as_find_space:
+    LOAD r0, r13
+    JZ r0, as_open_src    ; no space found, single arg mode
+    LDI r1, 32             ; space
+    CMP r0, r1
+    JZ r0, as_found_space
+    LDI r0, 1
+    ADD r13, r0
+    JMP as_find_space
+as_found_space:
+    ; Skip the space, copy rest to 0x1800
+    LDI r0, 1
+    ADD r13, r0
+    LDI r14, 0x1800
+as_copy_dst:
+    LOAD r0, r13
+    JZ r0, as_copy_dst_done
+    STORE r14, r0
+    LDI r0, 1
+    ADD r13, r0
+    ADD r14, r0
+    JMP as_copy_dst
+as_copy_dst_done:
+    LDI r0, 0
+    STORE r14, r0           ; null-terminate dst filename
+    ; Null-terminate the source filename (replace space with 0)
+    LDI r13, 0x0600
+as_null_src:
+    LOAD r0, r13
+    JZ r0, as_src_done
+    LDI r1, 32
+    CMP r0, r1
+    JZ r0, as_terminate_src
+    LDI r0, 1
+    ADD r13, r0
+    JMP as_null_src
+as_terminate_src:
+    LDI r0, 0
+    STORE r13, r0
+as_src_done:
+    LDI r15, 1              ; r15 = 1 means we have a second arg
+
+as_open_src:
     ; Open file for reading (mode 0 = read)
     LDI r1, 0x0600       ; filename addr
     LDI r2, 0            ; mode = read
@@ -2899,6 +2948,83 @@ as_dtoa_done:
     STORE r11, r0
 
     ; Display message
+    LDI r2, 4
+    LDI r3, 0x2500
+    TEXT r2, r1, r3
+
+    ; Check if we should save as pixelpack (r15 = 1 means second arg present)
+    LDI r0, 1
+    CMP r15, r0
+    JZ r0, as_bytepack
+
+    ; No second arg -- just assembled, done
+    JMP as_cleanup
+
+as_bytepack:
+    ; Save bytecode as pixelpack PNG
+    ; BYTEPACK src_addr, len, path_addr
+    ; src = 0x1000 (bytecode base), len = word_count * 4, path = 0x1800
+    LDI r9, 0xFFD
+    LOAD r0, r9            ; r0 = word count
+    LDI r1, 4
+    MUL r0, r1             ; r0 = byte count
+    LDI r10, 0x1000        ; src_addr = bytecode base
+    MOV r11, r0            ; len = byte count
+    LDI r12, 0x1800        ; path = dst filename
+    BYTEPACK r10, r11, r12
+
+    ; Display "saved to <dst.png>"
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r8, 12
+    ADD r1, r8
+    STORE r9, r1
+
+    ; Build "saved to " at 0x2500
+    LDI r11, 0x2500
+    LDI r0, 115            ; s
+    STORE r11, r0
+    LDI r1, 1
+    ADD r11, r1
+    LDI r0, 97             ; a
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 118            ; v
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 101            ; e
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 100            ; d
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 32             ; space
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 116            ; t
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 111            ; o
+    STORE r11, r0
+    ADD r11, r1
+    LDI r0, 32             ; space
+    STORE r11, r0
+    ADD r11, r1
+
+    ; Append dst filename from 0x1800
+    LDI r13, 0x1800
+as_append_dst:
+    LOAD r0, r13
+    JZ r0, as_append_dst_done
+    STORE r11, r0
+    ADD r13, r1
+    ADD r11, r1
+    JMP as_append_dst
+as_append_dst_done:
+    LDI r0, 0
+    STORE r11, r0           ; null terminate
+
+    ; Display "saved to <dst>"
     LDI r2, 4
     LDI r3, 0x2500
     TEXT r2, r1, r3
@@ -3130,6 +3256,13 @@ help_text:
     .byte 97  ; a
     .byte 116 ; t
     .byte 101 ; e
+    .byte 32  ; space
+    .byte 97  ; a
+    .byte 115  ; s
+    .byte 32  ; space
+    .byte 114 ; r
+    .byte 117 ; u
+    .byte 110 ; n
     .byte 0
 
 ; Data blocks reordered for monotonically increasing .org addresses
@@ -3660,6 +3793,11 @@ as_usage_msg:
     .byte 108 ; l
     .byte 101 ; e
     .byte 62  ; >
+    .byte 32  ; space
+    .byte 91  ; [
+    .byte 100 ; d
+    .byte 115 ; s
+    .byte 93  ; ]
     .byte 0
 
 .org 0x1E20
