@@ -256,6 +256,11 @@ pub const OPCODES: &[&str] = &[
     "AUDIO_PLAY",
     "AUDIO_STOP",
     "AUDIO_STATUS",
+    // Phase 282: Typed memory access opcodes
+    "LOADB",
+    "STOREB",
+    "LOADH",
+    "STOREH",
     // Preprocessor macros (not real opcodes, but recognized as Opcode tokens)
     "VAR",
     "SET",

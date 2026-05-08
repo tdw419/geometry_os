@@ -5721,6 +5721,155 @@ impl Vm {
                 }
             }
 
+            // LOADB dest_reg, addr_reg  (0xFB) -- Load byte: read u32 at addr, zero-extend low 8 bits
+            // Encoding: 3 words [0xFB, dest_reg, addr_reg]
+            0xFB => {
+                let reg = self.fetch() as usize;
+                let addr_reg = self.fetch() as usize;
+                if reg < NUM_REGS && addr_reg < NUM_REGS {
+                    let vaddr = self.regs[addr_reg];
+                    match self.translate_va_or_fault(vaddr) {
+                        Some(addr) => {
+                            if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
+                                .contains(&addr)
+                            {
+                                self.regs[reg] = self.canvas_buffer[addr - CANVAS_RAM_BASE] & 0xFF;
+                            } else if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                .contains(&addr)
+                            {
+                                self.regs[reg] = self.screen[addr - SCREEN_RAM_BASE] & 0xFF;
+                            } else if addr < self.ram.len() {
+                                self.regs[reg] = self.ram[addr] & 0xFF;
+                            } else {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        }
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // STOREB addr_reg, src_reg  (0xFC) -- Store byte: write low 8 bits of reg, preserve upper 24
+            // Encoding: 3 words [0xFC, addr_reg, src_reg]
+            0xFC => {
+                let addr_reg = self.fetch() as usize;
+                let reg = self.fetch() as usize;
+                if addr_reg < NUM_REGS && reg < NUM_REGS {
+                    let vaddr = self.regs[addr_reg];
+                    self.resolve_cow_if_needed(vaddr);
+                    match self.translate_va_or_fault(vaddr) {
+                        Some(addr) => {
+                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                .contains(&addr)
+                            {
+                                let mask = self.screen[addr - SCREEN_RAM_BASE] & !0xFF;
+                                self.screen[addr - SCREEN_RAM_BASE] = mask | (self.regs[reg] & 0xFF);
+                            } else if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
+                                .contains(&addr)
+                            {
+                                let cidx = addr - CANVAS_RAM_BASE;
+                                let mask = self.canvas_buffer[cidx] & !0xFF;
+                                self.canvas_buffer[cidx] = mask | (self.regs[reg] & 0xFF);
+                                self.formula_recalc(cidx);
+                            } else if addr < self.ram.len() {
+                                if self.mode == CpuMode::User && addr >= 0xFF00 {
+                                    self.trigger_segfault();
+                                    return false;
+                                }
+                                let mask = self.ram[addr] & !0xFF_u32;
+                                self.ram[addr] = mask | (self.regs[reg] & 0xFF);
+                            } else {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        }
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // LOADH dest_reg, addr_reg  (0xFD) -- Load halfword: read u32 at addr, zero-extend low 16 bits
+            // Encoding: 3 words [0xFD, dest_reg, addr_reg]
+            0xFD => {
+                let reg = self.fetch() as usize;
+                let addr_reg = self.fetch() as usize;
+                if reg < NUM_REGS && addr_reg < NUM_REGS {
+                    let vaddr = self.regs[addr_reg];
+                    match self.translate_va_or_fault(vaddr) {
+                        Some(addr) => {
+                            if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
+                                .contains(&addr)
+                            {
+                                self.regs[reg] = self.canvas_buffer[addr - CANVAS_RAM_BASE] & 0xFFFF;
+                            } else if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                .contains(&addr)
+                            {
+                                self.regs[reg] = self.screen[addr - SCREEN_RAM_BASE] & 0xFFFF;
+                            } else if addr < self.ram.len() {
+                                self.regs[reg] = self.ram[addr] & 0xFFFF;
+                            } else {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        }
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // STOREH addr_reg, src_reg  (0xFE) -- Store halfword: write low 16 bits, preserve upper 16
+            // Encoding: 3 words [0xFE, addr_reg, src_reg]
+            0xFE => {
+                let addr_reg = self.fetch() as usize;
+                let reg = self.fetch() as usize;
+                if addr_reg < NUM_REGS && reg < NUM_REGS {
+                    let vaddr = self.regs[addr_reg];
+                    self.resolve_cow_if_needed(vaddr);
+                    match self.translate_va_or_fault(vaddr) {
+                        Some(addr) => {
+                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                .contains(&addr)
+                            {
+                                let mask = self.screen[addr - SCREEN_RAM_BASE] & !0xFFFF;
+                                self.screen[addr - SCREEN_RAM_BASE] =
+                                    mask | (self.regs[reg] & 0xFFFF);
+                            } else if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
+                                .contains(&addr)
+                            {
+                                let cidx = addr - CANVAS_RAM_BASE;
+                                let mask = self.canvas_buffer[cidx] & !0xFFFF_u32;
+                                self.canvas_buffer[cidx] = mask | (self.regs[reg] & 0xFFFF);
+                                self.formula_recalc(cidx);
+                            } else if addr < self.ram.len() {
+                                if self.mode == CpuMode::User && addr >= 0xFF00 {
+                                    self.trigger_segfault();
+                                    return false;
+                                }
+                                let mask = self.ram[addr] & !0xFFFF_u32;
+                                self.ram[addr] = mask | (self.regs[reg] & 0xFFFF);
+                            } else {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        }
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        }
+                    }
+                }
+            }
+
             _ => {
                 self.halted = true;
                 return false;

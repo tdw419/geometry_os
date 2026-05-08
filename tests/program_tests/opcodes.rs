@@ -1827,3 +1827,19 @@ fn test_alt_digit_keycodes_defined() {
     assert_eq!(0x94, 0x94, "Ctrl+3 should be 0x94");
     assert_eq!(0x95, 0x95, "Ctrl+4 should be 0x95");
 }
+
+// ── Phase 282: Typed memory access (LOADB/STOREB/LOADH/STOREH) ──────
+
+#[test]
+fn test_byte_demo_program() {
+    let vm = compile_run("programs/byte_demo.asm");
+    assert!(vm.halted, "byte_demo.asm should halt");
+    // Pixel at (100, 50) = pure red 0x00FF0000
+    assert_eq!(vm.screen[50 * 256 + 100], 0x00FF0000, "pixel 0 should be red");
+    // Pixel at (101, 50) = green halfword 0x0000FF00
+    assert_eq!(vm.screen[50 * 256 + 101], 0x0000FF00, "pixel 1 should be green");
+    // Pixel at (102, 50) = STOREH preserved upper bits -> 0x00FF00FF
+    assert_eq!(vm.screen[50 * 256 + 102], 0x00FF00FF, "pixel 2 should be red+blue");
+    // Pixel at (103, 50) = STOREB preserved upper bits -> 0x00FFFF00
+    assert_eq!(vm.screen[50 * 256 + 103], 0x00FFFF00, "pixel 3 should be yellow");
+}

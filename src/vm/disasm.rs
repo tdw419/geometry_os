@@ -761,6 +761,27 @@ impl Vm {
                 format!("STRCAT {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
                 3,
             ),
+            // Phase 282: Typed memory access
+            // LOADB dest_reg, addr_reg (0xFB) -- Load byte, zero-extend
+            0xFB => (
+                format!("LOADB {}, [{}]", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+            // STOREB addr_reg, src_reg (0xFC) -- Store byte
+            0xFC => (
+                format!("STOREB [{}], {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+            // LOADH dest_reg, addr_reg (0xFD) -- Load halfword, zero-extend
+            0xFD => (
+                format!("LOADH {}, [{}]", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+            // STOREH addr_reg, src_reg (0xFE) -- Store halfword
+            0xFE => (
+                format!("STOREH [{}], {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
             0x87 => (format!("ABS {}", reg(ram(a + 1))), 2),
             0x88 => (
                 format!(

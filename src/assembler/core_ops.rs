@@ -215,6 +215,47 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // Phase 282: Typed memory access
+        "LOADB" => {
+            if tokens.len() < 3 {
+                return Err("LOADB requires 2 arguments: LOADB dest_reg, addr_reg".to_string());
+            }
+            bytecode.push(0xFB);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        "STOREB" => {
+            if tokens.len() < 3 {
+                return Err("STOREB requires 2 arguments: STOREB addr_reg, src_reg".to_string());
+            }
+            bytecode.push(0xFC);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        "LOADH" => {
+            if tokens.len() < 3 {
+                return Err("LOADH requires 2 arguments: LOADH dest_reg, addr_reg".to_string());
+            }
+            bytecode.push(0xFD);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        "STOREH" => {
+            if tokens.len() < 3 {
+                return Err("STOREH requires 2 arguments: STOREH addr_reg, src_reg".to_string());
+            }
+            bytecode.push(0xFE);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
         "MOV" => {
             if tokens.len() < 3 {
                 return Err("MOV requires 2 arguments: MOV rd, rs".to_string());

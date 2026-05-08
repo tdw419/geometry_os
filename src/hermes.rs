@@ -1047,6 +1047,10 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xF4 => "ROTATE",
         0xF5 => "SCALE",
         0xF6 => "MEMSET",
+        0xFB => "LOADB",
+        0xFC => "STOREB",
+        0xFD => "LOADH",
+        0xFE => "STOREH",
         _ => "???",
     }
 }

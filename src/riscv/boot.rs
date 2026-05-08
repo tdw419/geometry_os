@@ -314,8 +314,8 @@ impl RiscvVm {
         // _dtb_early_pa: physical address of DTB.
         // We use PA for _dtb_early_va because the boot page table identity-maps
         // low addresses, so VA = PA works for the DTB range.
-        let dtb_early_va_pa: u64 = 0x00801008;
-        let dtb_early_pa_pa: u64 = 0x0080100C;
+        let dtb_early_va_pa: u64 = 0x01482008;
+        let dtb_early_pa_pa: u64 = 0x0148200C;
         vm.bus.write_word(dtb_early_va_pa, dtb_addr as u32).ok();
         vm.bus.write_word(dtb_early_pa_pa, dtb_addr as u32).ok();
         eprintln!(
@@ -325,7 +325,7 @@ impl RiscvVm {
 
         // Also set initial_boot_params for compatibility (some kernel paths
         // read it directly).
-        let ibp_phys: u64 = 0x00C7A380;
+        let ibp_phys: u64 = 0x01482380;
         vm.bus.write_word(ibp_phys, dtb_addr as u32).ok();
 
         // 8. Set CPU state for boot.
@@ -640,7 +640,7 @@ impl RiscvVm {
         // value makes calibrate_delay() skip calibration when it finds a
         // non-zero value.
         // Value: 400000 (same as lpj_fine, approximately correct for 1.68 MIPS)
-        let lpj_pa: u64 = 0x01480A18;
+        let lpj_pa: u64 = 0x01482060;
         vm.bus.write_word(lpj_pa, 400_000).ok();
         eprintln!("[boot] Pre-set loops_per_jiffy=400000 to skip calibrate_delay()");
 

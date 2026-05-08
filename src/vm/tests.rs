@@ -35013,3 +35013,256 @@ fn test_p279_platformer_enemies_initialized() {
         "enemies should be at different x positions"
     );
 }
+
+// ── Phase 282: Typed memory access opcodes (LOADB/STOREB/LOADH/STOREH) ──
+
+#[test]
+fn test_loadb_zero_extends_low_byte() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0xAABBCCDD;
+    // LOADB r1, r10 where r10 = 0x2000
+    vm.ram[0] = 0xFB; // LOADB
+    vm.ram[1] = 1;    // dest = r1
+    vm.ram[2] = 10;   // addr = r10
+    vm.regs[10] = 0x2000;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 0xDD, "LOADB should extract low byte and zero-extend");
+}
+
+#[test]
+fn test_loadh_zero_extends_low_halfword() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0xAABBCCDD;
+    // LOADH r1, r10 where r10 = 0x2000
+    vm.ram[0] = 0xFD; // LOADH
+    vm.ram[1] = 1;    // dest = r1
+    vm.ram[2] = 10;   // addr = r10
+    vm.regs[10] = 0x2000;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 0xCCDD, "LOADH should extract low halfword and zero-extend");
+}
+
+#[test]
+fn test_storeb_preserves_upper_bytes() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0xAABBCC00;
+    // STOREB r10, r1 where r10 = 0x2000, r1 = 0xFF
+    vm.ram[0] = 0xFC; // STOREB
+    vm.ram[1] = 10;   // addr = r10
+    vm.ram[2] = 1;    // src = r1
+    vm.regs[10] = 0x2000;
+    vm.regs[1] = 0xFF;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.ram[0x2000], 0xAABBCCFF, "STOREB should preserve upper 24 bits");
+}
+
+#[test]
+fn test_storeh_preserves_upper_halfword() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0xAA000000;
+    // STOREH r10, r1 where r10 = 0x2000, r1 = 0xBEEF
+    vm.ram[0] = 0xFE; // STOREH
+    vm.ram[1] = 10;   // addr = r10
+    vm.ram[2] = 1;    // src = r1
+    vm.regs[10] = 0x2000;
+    vm.regs[1] = 0xBEEF;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.ram[0x2000], 0xAA00BEEF, "STOREH should preserve upper 16 bits");
+}
+
+#[test]
+fn test_storeb_masks_high_bits_of_source() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0x00000000;
+    // STOREB with value 0x1FF should only store 0xFF
+    vm.ram[0] = 0xFC;
+    vm.ram[1] = 10;
+    vm.ram[2] = 1;
+    vm.regs[10] = 0x2000;
+    vm.regs[1] = 0x1FF;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.ram[0x2000], 0x000000FF, "STOREB should mask source to low 8 bits");
+}
+
+#[test]
+fn test_storeh_masks_high_bits_of_source() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0x00000000;
+    // STOREH with value 0x1FFFF should only store 0xFFFF
+    vm.ram[0] = 0xFE;
+    vm.ram[1] = 10;
+    vm.ram[2] = 1;
+    vm.regs[10] = 0x2000;
+    vm.regs[1] = 0x1FFFF;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.ram[0x2000], 0x0000FFFF, "STOREH should mask source to low 16 bits");
+}
+
+#[test]
+fn test_loadb_from_zero() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0x00000000;
+    vm.ram[0] = 0xFB;
+    vm.ram[1] = 1;
+    vm.ram[2] = 10;
+    vm.regs[10] = 0x2000;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 0, "LOADB from zero word should give 0");
+}
+
+#[test]
+fn test_loadh_from_zero() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0x00000000;
+    vm.ram[0] = 0xFD;
+    vm.ram[1] = 1;
+    vm.ram[2] = 10;
+    vm.regs[10] = 0x2000;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 0, "LOADH from zero word should give 0");
+}
+
+#[test]
+fn test_loadb_storeb_roundtrip() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0x12345678;
+    // LOADB r1, r10 (extract byte 0x78)
+    vm.ram[0] = 0xFB;
+    vm.ram[1] = 1;
+    vm.ram[2] = 10;
+    vm.regs[10] = 0x2000;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 0x78);
+
+    // STOREB r11, r1 (write 0x78 to 0x2001, preserving existing)
+    vm.ram[0x2001] = 0xDEADBEEF;
+    vm.ram[3] = 0xFC;
+    vm.ram[4] = 11;
+    vm.ram[5] = 1;
+    vm.regs[11] = 0x2001;
+    vm.pc = 3;
+    vm.step();
+    assert_eq!(vm.ram[0x2001], 0xDEADBE78, "STOREB roundtrip should write extracted byte");
+}
+
+#[test]
+fn test_loadh_storeh_roundtrip() {
+    let mut vm = Vm::new();
+    vm.ram[0x2000] = 0x12345678;
+    // LOADH r1, r10 (extract halfword 0x5678)
+    vm.ram[0] = 0xFD;
+    vm.ram[1] = 1;
+    vm.ram[2] = 10;
+    vm.regs[10] = 0x2000;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[1], 0x5678);
+
+    // STOREH r11, r1 (write 0x5678 to 0x2001, preserving upper half)
+    vm.ram[0x2001] = 0xDEAD0000;
+    vm.ram[3] = 0xFE;
+    vm.ram[4] = 11;
+    vm.ram[5] = 1;
+    vm.regs[11] = 0x2001;
+    vm.pc = 3;
+    vm.step();
+    assert_eq!(vm.ram[0x2001], 0xDEAD5678, "STOREH roundtrip should write extracted halfword");
+}
+
+#[test]
+fn test_loadb_assembler_encoding() {
+    let source = "LOADB r1, r10\nHALT";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xFB, "LOADB should encode to 0xFB");
+    assert_eq!(asm.pixels[1], 1, "first arg should be dest reg r1");
+    assert_eq!(asm.pixels[2], 10, "second arg should be addr reg r10");
+    assert_eq!(asm.pixels[3], 0x00, "HALT follows");
+}
+
+#[test]
+fn test_storeb_assembler_encoding() {
+    let source = "STOREB r10, r1\nHALT";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xFC, "STOREB should encode to 0xFC");
+    assert_eq!(asm.pixels[1], 10, "first arg should be addr reg r10");
+    assert_eq!(asm.pixels[2], 1, "second arg should be src reg r1");
+}
+
+#[test]
+fn test_loadh_assembler_encoding() {
+    let source = "LOADH r1, r10\nHALT";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xFD, "LOADH should encode to 0xFD");
+    assert_eq!(asm.pixels[1], 1, "first arg should be dest reg r1");
+    assert_eq!(asm.pixels[2], 10, "second arg should be addr reg r10");
+}
+
+#[test]
+fn test_storeh_assembler_encoding() {
+    let source = "STOREH r10, r1\nHALT";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xFE, "STOREH should encode to 0xFE");
+    assert_eq!(asm.pixels[1], 10, "first arg should be addr reg r10");
+    assert_eq!(asm.pixels[2], 1, "second arg should be src reg r1");
+}
+
+#[test]
+fn test_loadb_disassembler() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xFB;
+    vm.ram[1] = 5;
+    vm.ram[2] = 15;
+    let (text, words) = vm.disassemble_at(0);
+    assert_eq!(words, 3, "LOADB should be 3 words");
+    assert!(text.contains("LOADB"), "disassembly should contain LOADB");
+}
+
+#[test]
+fn test_storeh_disassembler() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xFE;
+    vm.ram[1] = 5;
+    vm.ram[2] = 15;
+    let (text, words) = vm.disassemble_at(0);
+    assert_eq!(words, 3, "STOREH should be 3 words");
+    assert!(text.contains("STOREH"), "disassembly should contain STOREH");
+}
+
+#[test]
+fn test_packed_data_demo() {
+    // Demonstrate packing bytes into words using STOREB
+    let source = "\
+LDI r10, 0x2000\n\
+LDI r1, 0x11\n\
+STOREB r10, r1\n\
+LDI r11, 0x2000\n\
+LDI r1, 1\n\
+ADD r11, r1\n\
+LDI r1, 0x22\n\
+STOREB r11, r1\n\
+HALT";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.ram[0x2000], 0x11, "first byte stored");
+    assert_eq!(vm.ram[0x2001], 0x22, "second byte stored");
+}
