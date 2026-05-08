@@ -3810,7 +3810,7 @@ phases:
   _claimed_at: 1778188766
 - id: phase-254
   title: GeOS Program -- Procedural Dungeon Generator with Fog of War
-  status: planned
+  status: in_progress
   goal: Write a dungeon crawler with BSP room generation and line-of-sight fog
   description: Extends the existing infinite_map terrain concepts into a dungeon setting.
     BSP (Binary Space Partition) generates rooms connected by corridors. Raycasting-based
@@ -3845,9 +3845,11 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 380
+  _claimed_by: worker-0
+  _claimed_at: 1778197560
 - id: phase-255
   title: GeOS VM -- Conditional Move and Select Opcodes (CMOV, CSEL)
-  status: planned
+  status: done
   goal: Add branchless conditional move opcodes for performance-critical inner loops
   description: Conditional moves eliminate branch misprediction stalls in hot loops
     (pixel rendering, collision detection). CMOV rd, rs moves rs to rd if r0 != 0
@@ -3856,10 +3858,10 @@ phases:
     patterns.
   deliverables:
   - name: Conditional move opcodes
-    status: todo
+    status: done
     tasks:
     - id: p255.d1.t1
-      title: Implement CMOV rd, rs (0xDA) and CSEL rd, rs_true, rs_false (0xDB)
+      title: Implement CMOV rd, rs (0xE0) and CSEL rd, rs_true, rs_false (0xEF)
       description: 'CMOV: if r0 != 0 then rd = rs. CSEL: if r0 != 0 then rd = rs_true
         else rd = rs_false. Both read CMP result from r0.'
       scope_files:
@@ -3882,6 +3884,8 @@ phases:
       scope_lines: 60
   test_target: 8
   scope_lines_total: 150
+  _claimed_by: worker-0
+  _claimed_at: 1778199849
 - id: phase-256
   title: RISC-V Guest -- Shared Memory IPC Between Processes
   status: planned
