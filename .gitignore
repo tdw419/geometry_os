@@ -29,3 +29,5 @@ tools/hermes_bridge/target/
 
 # Synthetic training data (generated artifacts)
 annotated_dataset/synthetic_*
+*.npz
+training_log*.txt
