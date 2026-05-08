@@ -32811,3 +32811,719 @@ fn test_raycaster_renders_3d_maze() {
         "minimap top-left cell should show wall color"
     );
 }
+
+// ─── Phase 276: ops_graphics.rs Unit Test Suite ───
+// Comprehensive edge-case tests for all graphics opcodes.
+// These tests verify boundary conditions, clipping, transparency,
+// and identity transforms for the drawing pipeline.
+
+// ═══════════════════════════════════════════════════════════
+// PSET boundary tests (p276a)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_pset_corner_top_left() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0;       // x = 0
+    vm.regs[2] = 0;       // y = 0
+    vm.regs[3] = 0xFF0000; // red
+    // PSET r1, r2, r3 => opcode 0x40
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.step();
+    assert_eq!(vm.screen[0], 0xFF0000, "top-left corner should be red");
+}
+
+#[test]
+fn test_p276_pset_corner_bottom_right() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 255;      // x = 255
+    vm.regs[2] = 255;      // y = 255
+    vm.regs[3] = 0x00FF00; // green
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.step();
+    assert_eq!(vm.screen[255 * 256 + 255], 0x00FF00, "bottom-right corner should be green");
+}
+
+#[test]
+fn test_p276_pset_out_of_bounds_x256() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 256;      // x = 256 (out of bounds)
+    vm.regs[2] = 0;        // y = 0
+    vm.regs[3] = 0xFFFFFF; // white
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.step();
+    assert_eq!(vm.screen.len(), 256 * 256);
+}
+
+#[test]
+fn test_p276_pset_out_of_bounds_y256() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0;        // x = 0
+    vm.regs[2] = 256;      // y = 256 (out of bounds)
+    vm.regs[3] = 0x0000FF; // blue
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.step();
+    assert_eq!(vm.screen.len(), 256 * 256);
+}
+
+#[test]
+fn test_p276_pset_large_coordinates() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0xFFFFFFFF; // x = max u32
+    vm.regs[2] = 0xFFFFFFFF; // y = max u32
+    vm.regs[3] = 0x123456;
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.step();
+    assert_eq!(vm.screen.len(), 256 * 256);
+}
+
+#[test]
+fn test_p276_pset_overwrites_previous() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 20; vm.regs[3] = 0xFF0000; // red
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000);
+
+    // Overwrite same pixel with blue
+    vm.regs[3] = 0x0000FF;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[20 * 256 + 10], 0x0000FF, "should overwrite to blue");
+}
+
+#[test]
+fn test_p276_pseti_immediate_values() {
+    let mut vm = Vm::new();
+    // PSETI x, y, color => opcode 0x41, 4 words
+    vm.ram[0] = 0x41; vm.ram[1] = 50; vm.ram[2] = 100; vm.ram[3] = 0x00FFFF;
+    vm.step();
+    assert_eq!(vm.screen[100 * 256 + 50], 0x00FFFF, "PSETI at (50,100)");
+}
+
+// ═══════════════════════════════════════════════════════════
+// RECTF zero-width/height and out-of-bounds tests (p276b)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_rectf_zero_width_no_draw() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0; vm.regs[4] = 10;
+    vm.regs[5] = 0xFF0000;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    assert_eq!(vm.screen[10 * 256 + 10], 0, "zero-width rect should draw nothing");
+}
+
+#[test]
+fn test_p276_rectf_zero_height_no_draw() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 10; vm.regs[4] = 0;
+    vm.regs[5] = 0xFF0000;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    assert_eq!(vm.screen[10 * 256 + 10], 0, "zero-height rect should draw nothing");
+}
+
+#[test]
+fn test_p276_rectf_one_pixel() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 42; vm.regs[2] = 17; vm.regs[3] = 1; vm.regs[4] = 1;
+    vm.regs[5] = 0x00FF00;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    assert_eq!(vm.screen[17 * 256 + 42], 0x00FF00, "1x1 rect = single pixel");
+    assert_eq!(vm.screen[17 * 256 + 43], 0);
+    assert_eq!(vm.screen[18 * 256 + 42], 0);
+}
+
+#[test]
+fn test_p276_rectf_extends_past_screen_right() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 250; vm.regs[2] = 0; vm.regs[3] = 20; vm.regs[4] = 1;
+    vm.regs[5] = 0xFFFFFF;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    for x in 250..=255 {
+        assert_eq!(vm.screen[0 * 256 + x], 0xFFFFFF, "x={} should be white", x);
+    }
+}
+
+#[test]
+fn test_p276_rectf_extends_past_screen_bottom() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0; vm.regs[2] = 250; vm.regs[3] = 1; vm.regs[4] = 20;
+    vm.regs[5] = 0xABCDEF;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    for y in 250..=255 {
+        assert_eq!(vm.screen[y * 256 + 0], 0xABCDEF, "y={} should be drawn", y);
+    }
+}
+
+#[test]
+fn test_p276_rectf_full_screen() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 256; vm.regs[4] = 256;
+    vm.regs[5] = 0x111111;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    assert_eq!(vm.screen[0], 0x111111);
+    assert_eq!(vm.screen[255 * 256 + 255], 0x111111);
+    assert_eq!(vm.screen[128 * 256 + 128], 0x111111);
+}
+
+// ═══════════════════════════════════════════════════════════
+// LINE Bresenham edge cases (p276c)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_line_single_point() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 50; vm.regs[2] = 50; vm.regs[3] = 50; vm.regs[4] = 50;
+    vm.regs[5] = 0xFF0000;
+    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    assert_eq!(vm.screen[50 * 256 + 50], 0xFF0000, "zero-length line = single point");
+}
+
+#[test]
+fn test_p276_line_horizontal_strict() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 5; vm.regs[3] = 20; vm.regs[4] = 5;
+    vm.regs[5] = 0x00FF00;
+    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    for x in 10..=20 {
+        assert_eq!(vm.screen[5 * 256 + x], 0x00FF00, "horizontal line at x={}", x);
+    }
+    assert_eq!(vm.screen[6 * 256 + 15], 0);
+}
+
+#[test]
+fn test_p276_line_vertical_strict() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 30; vm.regs[2] = 10; vm.regs[3] = 30; vm.regs[4] = 30;
+    vm.regs[5] = 0x0000FF;
+    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    for y in 10..=30 {
+        assert_eq!(vm.screen[y * 256 + 30], 0x0000FF, "vertical line at y={}", y);
+    }
+}
+
+#[test]
+fn test_p276_line_diagonal_45deg() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 10; vm.regs[4] = 10;
+    vm.regs[5] = 0xFFFF00;
+    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    for i in 0..=10 {
+        assert_eq!(vm.screen[i * 256 + i], 0xFFFF00, "diagonal at ({}, {})", i, i);
+    }
+}
+
+#[test]
+fn test_p276_line_steep_slope() {
+    let mut vm = Vm::new();
+    // Nearly vertical: dx=1, dy=20
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 1; vm.regs[4] = 20;
+    vm.regs[5] = 0xFF00FF;
+    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    let mut drawn = 0;
+    for y in 0..=20 {
+        for x in 0..=1 {
+            if vm.screen[y * 256 + x] == 0xFF00FF { drawn += 1; }
+        }
+    }
+    assert!(drawn >= 20, "steep line should draw >= 20 pixels, got {}", drawn);
+}
+
+#[test]
+fn test_p276_line_shallow_slope() {
+    let mut vm = Vm::new();
+    // Nearly horizontal: dx=20, dy=1
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 20; vm.regs[4] = 1;
+    vm.regs[5] = 0x00FFFF;
+    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.step();
+    let mut drawn = 0;
+    for y in 0..=1 {
+        for x in 0..=20 {
+            if vm.screen[y * 256 + x] == 0x00FFFF { drawn += 1; }
+        }
+    }
+    assert!(drawn >= 20, "shallow line should draw >= 20 pixels, got {}", drawn);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CIRCLE radius 0 and boundary tests (p276d)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_circle_radius_zero() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 100; vm.regs[2] = 100; vm.regs[3] = 0;
+    vm.regs[4] = 0xFF0000;
+    vm.ram[0] = 0x46; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.step();
+    assert_eq!(vm.screen[100 * 256 + 100], 0xFF0000, "radius-0 circle = center pixel");
+}
+
+#[test]
+fn test_p276_circle_radius_one() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 100; vm.regs[2] = 100; vm.regs[3] = 1;
+    vm.regs[4] = 0x00FF00;
+    vm.ram[0] = 0x46; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.step();
+    // Radius 1 circle is a ring -- center (100,100) is NOT part of the circle
+    assert_eq!(vm.screen[100 * 256 + 100], 0, "center should be empty for radius-1 ring");
+    // Cardinal ring pixels should be drawn
+    assert_eq!(vm.screen[100 * 256 + 101], 0x00FF00, "right cardinal");
+    assert_eq!(vm.screen[100 * 256 + 99], 0x00FF00, "left cardinal");
+    assert_eq!(vm.screen[101 * 256 + 100], 0x00FF00, "bottom cardinal");
+    assert_eq!(vm.screen[99 * 256 + 100], 0x00FF00, "top cardinal");
+}
+
+#[test]
+fn test_p276_circle_large_radius_clipped() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 300;
+    vm.regs[4] = 0x0000FF;
+    vm.ram[0] = 0x46; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.step();
+    let screen = &vm.screen;
+    let drawn: usize = (0..256u32)
+        .flat_map(|y| (0..256u32).map(move |x| screen[(y * 256 + x) as usize]))
+        .filter(|&c| c == 0x0000FF)
+        .count();
+    assert!(drawn > 0, "large clipped circle should draw some pixels");
+}
+
+#[test]
+fn test_p276_circle_center_at_corner() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 10;
+    vm.regs[4] = 0xFFFFFF;
+    vm.ram[0] = 0x46; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.step();
+    let screen = &vm.screen;
+    let drawn: usize = (0..256)
+        .flat_map(|y| (0..256).map(move |x| screen[y * 256 + x]))
+        .filter(|&c| c == 0xFFFFFF)
+        .count();
+    assert!(drawn > 0 && drawn < 80, "corner circle partially visible, got {} pixels", drawn);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SPRITE transparency and bounds clipping (p276e)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_sprite_transparency_skips_zero() {
+    let mut vm = Vm::new();
+    // Draw a background pixel first
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0xFF0000;
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+
+    // Sprite data: 2x2, with one transparent (0) pixel
+    let base = 0x2000usize;
+    vm.ram[base] = 0x00FF00;     // (0,0) = green
+    vm.ram[base + 1] = 0x000000; // (1,0) = transparent
+    vm.ram[base + 2] = 0x0000FF; // (0,1) = blue
+    vm.ram[base + 3] = 0xFFFFFF; // (1,1) = white
+
+    // SPRITE xr, yr, addr_r, wr, hr => 0x4A, 6 words
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[4] = base as u32;
+    vm.regs[5] = 2; vm.regs[6] = 2;
+    vm.ram[0] = 0x4A; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 4; vm.ram[4] = 5; vm.ram[5] = 6;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "sprite pixel (0,0)");
+    // Transparent pixel should preserve background
+    assert_eq!(vm.screen[10 * 256 + 11], 0xFF0000, "transparent preserves background");
+    assert_eq!(vm.screen[11 * 256 + 10], 0x0000FF, "sprite pixel (0,1)");
+    assert_eq!(vm.screen[11 * 256 + 11], 0xFFFFFF, "sprite pixel (1,1)");
+}
+
+#[test]
+fn test_p276_sprite_extends_past_screen_edge() {
+    let mut vm = Vm::new();
+    let base = 0x2000usize;
+    for i in 0..4 {
+        vm.ram[base + i] = 0xAAAAAA;
+    }
+    vm.regs[1] = 254; vm.regs[2] = 0; vm.regs[4] = base as u32;
+    vm.regs[5] = 4; vm.regs[6] = 1;
+    vm.ram[0] = 0x4A; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 4; vm.ram[4] = 5; vm.ram[5] = 6;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[0 * 256 + 254], 0xAAAAAA);
+    assert_eq!(vm.screen[0 * 256 + 255], 0xAAAAAA);
+}
+
+#[test]
+fn test_p276_sprite_one_by_one() {
+    let mut vm = Vm::new();
+    let base = 0x2000usize;
+    vm.ram[base] = 0xFF00FF;
+    vm.regs[1] = 42; vm.regs[2] = 42; vm.regs[4] = base as u32;
+    vm.regs[5] = 1; vm.regs[6] = 1;
+    vm.ram[0] = 0x4A; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 4; vm.ram[4] = 5; vm.ram[5] = 6;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[42 * 256 + 42], 0xFF00FF, "1x1 sprite");
+}
+
+// ═══════════════════════════════════════════════════════════
+// FLOOD fill edge cases (p276f)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_flood_fill_uniform_surface() {
+    let mut vm = Vm::new();
+    // Fill entire screen black
+    vm.regs[1] = 0;
+    vm.ram[0] = 0x42; vm.ram[1] = 1;
+    vm.pc = 0; vm.step();
+
+    // FLOOD xr, yr, fill_reg, tolerance_reg => 0xCE, 5 words
+    vm.regs[1] = 128; vm.regs[2] = 128; vm.regs[3] = 0xFF0000; vm.regs[4] = 0;
+    vm.ram[0] = 0xCE; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.screen[0], 0xFF0000);
+    assert_eq!(vm.screen[128 * 256 + 128], 0xFF0000);
+    assert_eq!(vm.screen[255 * 256 + 255], 0xFF0000);
+}
+
+#[test]
+fn test_p276_flood_fill_stops_at_different_color() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x0000FF;
+    vm.ram[0] = 0x42; vm.ram[1] = 1;
+    vm.pc = 0; vm.step();
+
+    // Green border at y=100
+    for x in 0..256 {
+        vm.screen[100 * 256 + x] = 0x00FF00;
+    }
+
+    vm.regs[1] = 128; vm.regs[2] = 50; vm.regs[3] = 0xFF0000; vm.regs[4] = 0;
+    vm.ram[0] = 0xCE; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.screen[50 * 256 + 128], 0xFF0000, "top half flooded");
+    assert_eq!(vm.screen[100 * 256 + 128], 0x00FF00, "border preserved");
+    assert_eq!(vm.screen[150 * 256 + 128], 0x0000FF, "bottom half not flooded");
+}
+
+#[test]
+fn test_p276_flood_fill_with_tolerance() {
+    let mut vm = Vm::new();
+    let base_color = 0x050505;
+    vm.regs[1] = base_color;
+    vm.ram[0] = 0x42; vm.ram[1] = 1;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 0xFF0000; vm.regs[4] = 10;
+    vm.ram[0] = 0xCE; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.screen[128 * 256 + 128], 0xFF0000, "flooded with tolerance");
+}
+
+// ═══════════════════════════════════════════════════════════
+// BLEND/BLENDR alpha edge cases (p276g)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_blend_alpha_zero_no_change() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0x00FF00;
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0xFF0000; vm.regs[4] = 0;
+    vm.ram[0] = 0xF2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "alpha=0 should not change pixel");
+}
+
+#[test]
+fn test_p276_blend_alpha_255_full_replace() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0x00FF00;
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0xFF0000; vm.regs[4] = 255;
+    vm.ram[0] = 0xF2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000, "alpha=255 should fully replace");
+}
+
+#[test]
+fn test_p276_blend_alpha_128_half_mix() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0xFF0000;
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0x0000FF; vm.regs[4] = 128;
+    vm.ram[0] = 0xF2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    let result = vm.screen[10 * 256 + 10];
+    let r = (result >> 16) & 0xFF;
+    let g = (result >> 8) & 0xFF;
+    let b = result & 0xFF;
+    assert!(r < 255 && r > 0, "R should be mixed: got {}", r);
+    assert_eq!(g, 0, "G should be 0");
+    assert!(b > 0 && b < 255, "B should be mixed: got {}", b);
+}
+
+#[test]
+fn test_p276_blendr_alpha_zero_no_change() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x00FF00; vm.regs[2] = 0xFF0000; vm.regs[3] = 0;
+    vm.ram[0] = 0xF3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.regs[1], 0x00FF00, "BLENDR alpha=0: dst unchanged");
+}
+
+#[test]
+fn test_p276_blendr_alpha_255_full_replace() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x00FF00; vm.regs[2] = 0xFF0000; vm.regs[3] = 255;
+    vm.ram[0] = 0xF3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.regs[1], 0xFF0000, "BLENDR alpha=255: dst = src");
+}
+
+#[test]
+fn test_p276_blendr_alpha_128_half_mix() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0xFF0000; vm.regs[2] = 0x0000FF; vm.regs[3] = 128;
+    vm.ram[0] = 0xF3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+    let result = vm.regs[1];
+    let r = (result >> 16) & 0xFF;
+    let b = result & 0xFF;
+    assert!(r > 0 && r < 255, "R should be mixed: {}", r);
+    assert!(b > 0 && b < 255, "B should be mixed: {}", b);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ROTATE/SCALE identity transform tests (p276h)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_scale_identity() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4; vm.regs[5] = 0xFF0000;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.pc = 0; vm.step();
+
+    // SCALE sx, sy, sw, sh, dx, dy, dw, dh => 0xF5, 9 words
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4;
+    vm.regs[5] = 10; vm.regs[6] = 10; vm.regs[7] = 4; vm.regs[8] = 4;
+    vm.ram[0] = 0xF5;
+    for i in 1..=8 { vm.ram[i] = i as u32; }
+    vm.pc = 0; vm.step();
+
+    for dy in 0..4 {
+        for dx in 0..4 {
+            assert_eq!(vm.screen[(10 + dy) * 256 + (10 + dx)], 0xFF0000,
+                "identity scale pixel ({}, {})", 10+dx, 10+dy);
+        }
+    }
+}
+
+#[test]
+fn test_p276_scale_2x_upscale() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 2; vm.regs[4] = 2; vm.regs[5] = 0x00FF00;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 2; vm.regs[4] = 2;
+    vm.regs[5] = 10; vm.regs[6] = 10; vm.regs[7] = 4; vm.regs[8] = 4;
+    vm.ram[0] = 0xF5;
+    for i in 1..=8 { vm.ram[i] = i as u32; }
+    vm.pc = 0; vm.step();
+
+    for dy in 0..4 {
+        for dx in 0..4 {
+            assert_eq!(vm.screen[(10 + dy) * 256 + (10 + dx)], 0x00FF00,
+                "2x upscale pixel ({}, {})", 10+dx, 10+dy);
+        }
+    }
+}
+
+#[test]
+fn test_p276_rotate_zero_degrees_identity() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4; vm.regs[5] = 0x0000FF;
+    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.pc = 0; vm.step();
+
+    // ROTATE x, y, w, h, angle => 0xF4, 6 words
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4; vm.regs[5] = 0;
+    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.pc = 0; vm.step();
+
+    let screen = &vm.screen;
+    let blue_count: usize = (10..14).flat_map(|y| (10..14).map(move |x| screen[y * 256 + x]))
+        .filter(|&c| c == 0x0000FF).count();
+    assert!(blue_count >= 16, "0-degree rotation should preserve all 16 pixels, got {}", blue_count);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLIPSET/CLIPCLR edge cases
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_fill_respects_clip_rect() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4;
+    vm.ram[0] = 0xC4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 0xFF0000;
+    vm.ram[0] = 0x42; vm.ram[1] = 1;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.screen[11 * 256 + 11], 0xFF0000, "inside clip");
+    assert_eq!(vm.screen[0], 0, "outside clip");
+    assert_eq!(vm.screen[5 * 256 + 5], 0, "outside clip");
+
+    vm.ram[0] = 0xC5;
+    vm.pc = 0; vm.step();
+    assert!(vm.clip_rect.is_none(), "clip should be cleared");
+}
+
+#[test]
+fn test_p276_pset_respects_clip_rect() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4;
+    vm.ram[0] = 0xC4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 11; vm.regs[2] = 11; vm.regs[3] = 0xFF0000;
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[11 * 256 + 11], 0xFF0000, "inside clip");
+
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 0x00FF00;
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[0], 0, "outside clip should be rejected");
+}
+
+#[test]
+fn test_p276_clipset_zero_size() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 50; vm.regs[2] = 50; vm.regs[3] = 0; vm.regs[4] = 0;
+    vm.ram[0] = 0xC4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 0xFF0000;
+    vm.ram[0] = 0x42; vm.ram[1] = 1;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[50 * 256 + 50], 0, "zero-size clip blocks all drawing");
+}
+
+#[test]
+fn test_p276_clipclr_restores_full_drawing() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 1; vm.regs[4] = 1;
+    vm.ram[0] = 0xC4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.pc = 0; vm.step();
+
+    vm.ram[0] = 0xC5;
+    vm.pc = 0; vm.step();
+
+    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 0xFFFFFF;
+    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[0], 0xFFFFFF, "drawing after clipclr");
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCREENP (0x6D) arg order: dest FIRST
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_screenp_reads_pixel() {
+    let mut vm = Vm::new();
+    vm.screen[20 * 256 + 30] = 0xABCDEF;
+
+    vm.regs[1] = 7;   // dest reg
+    vm.regs[2] = 30;  // x
+    vm.regs[3] = 20;  // y
+    vm.ram[0] = 0x6D; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.regs[7], 0xABCDEF, "SCREENP should read pixel into dest reg");
+}
+
+#[test]
+fn test_p276_screenp_out_of_bounds_returns_zero() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 7; vm.regs[2] = 256; vm.regs[3] = 0;
+    vm.ram[0] = 0x6D; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.regs[7], 0, "out-of-bounds SCREENP returns 0");
+}
+
+// ═══════════════════════════════════════════════════════════
+// PEEK (0x4F) arg order: x, y, dest (matches PSET)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_peek_reads_pixel() {
+    let mut vm = Vm::new();
+    vm.screen[15 * 256 + 25] = 0x123456;
+
+    vm.regs[1] = 25;  // x
+    vm.regs[2] = 15;  // y
+    vm.regs[3] = 9;   // dest
+    vm.ram[0] = 0x4F; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.regs[9], 0x123456, "PEEK should read pixel into dest reg");
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCROLL opcode edge cases
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_p276_scroll_moves_pixels_up() {
+    let mut vm = Vm::new();
+    for x in 0..256 {
+        vm.screen[5 * 256 + x] = 0xFF0000;
+    }
+
+    vm.regs[1] = 3;
+    vm.ram[0] = 0x47; vm.ram[1] = 1;
+    vm.pc = 0; vm.step();
+
+    assert_eq!(vm.screen[2 * 256 + 0], 0xFF0000, "scrolled up to y=2");
+    assert_eq!(vm.screen[5 * 256 + 0], 0, "old position cleared");
+    assert_eq!(vm.screen[255 * 256 + 0], 0, "bottom filled black");
+}
+
+#[test]
+fn test_p276_scroll_zero_pixels() {
+    let mut vm = Vm::new();
+    vm.screen[10 * 256 + 10] = 0x00FF00;
+    vm.regs[1] = 0;
+    vm.ram[0] = 0x47; vm.ram[1] = 1;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "scroll by 0 preserves pixels");
+}
