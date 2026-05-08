@@ -423,10 +423,14 @@ fn vm_thread_main(
                 }
             }
 
-            // Using standard vm.step() for both ELF and Linux.
-            // vm.step() ticks CLINT by 1 per instruction.
-            // This avoids timer interrupt storms.
-            let step_result = vm.step();
+            // Linux needs a higher CLINT tick ratio than bare-metal programs.
+            // Using 1x multiplier to avoid timer interrupt storm while allowing
+            // the kernel to progress through its jiffy-based scheduling.
+            let step_result = if is_linux {
+                vm.step_with_clint_ticks(1)
+            } else {
+                vm.step()
+            };
             count += 1;
             *instruction_count.borrow_mut() = count;
 
@@ -437,16 +441,18 @@ fn vm_thread_main(
 
             // Print any new console output from the guest (SBI or UART)
             if !vm.bus.sbi.console_output.is_empty() || !vm.bus.uart.tx_buf.is_empty() {
+                use std::io::Write;
                 if !vm.bus.sbi.console_output.is_empty() {
                     let s = String::from_utf8_lossy(&vm.bus.sbi.console_output);
-                    eprint!("{}", s);
+                    print!("{}", s);
                     vm.bus.sbi.console_output.clear();
                 }
                 if !vm.bus.uart.tx_buf.is_empty() {
                     let s = String::from_utf8_lossy(&vm.bus.uart.tx_buf);
-                    eprint!("{}", s);
+                    print!("{}", s);
                     vm.bus.uart.tx_buf.clear();
                 }
+                let _ = std::io::stdout().flush();
             }
 
             // Linux-mode: log PC transitions for diagnostics (first 300)
