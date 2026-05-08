@@ -4704,7 +4704,7 @@ phases:
     validation: cargo test --lib ops_graphics
 - id: phase-277
   title: GeOS VM -- ops_extended.rs Unit Test Suite
-  status: in_progress
+  status: planned
   goal: Add unit tests for extended opcodes in ops_extended.rs (currently 0 tests).
   description: The extended opcode handler covers CMP, MOV, SAR, CMOV, CSEL, BFE,
     BFI, FORMULA, and other utility opcodes. Zero test coverage means regressions
@@ -4730,11 +4730,9 @@ phases:
     validation: grep -c 'fn test_' src/vm/ops_extended.rs >= 25
   - description: All tests pass
     validation: cargo test --lib ops_extended
-  _claimed_by: worker-0
-  _claimed_at: 1778264216
 - id: phase-278
   title: GeOS VM -- ops_memory.rs and scheduler.rs Unit Tests
-  status: in_progress
+  status: planned
   goal: Add unit tests for memory opcodes and process scheduler (both currently 0
     tests).
   description: LOAD/STORE with canvas buffer interception (0x8000-0x8FFF), PUSH/POP
@@ -4760,8 +4758,6 @@ phases:
       >= 30
   - description: All tests pass
     validation: cargo test --lib ops_memory scheduler
-  _claimed_by: worker-0
-  _claimed_at: 1778265183
 - id: phase-279
   title: GeOS Program -- Platformer Game with Physics
   status: planned
@@ -4792,6 +4788,8 @@ phases:
     validation: cargo test --lib test_platformer
   - description: Player responds to jump input within 5 frames
     validation: Manual verification via MCP or visual test
+  _claimed_by: worker-0
+  _claimed_at: 1778267968
 - id: phase-280
   title: GeOS VM -- String Library Opcodes (STRLEN, STRCMP, STRCPY, STRCAT)
   status: planned
