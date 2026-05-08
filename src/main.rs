@@ -802,6 +802,9 @@ fn main() {
     let cmd_listener = std::os::unix::net::UnixListener::bind(cmd_sock_path).ok();
     if let Some(ref l) = cmd_listener {
         l.set_nonblocking(true).ok();
+        println!("[geos] Command socket listening at {}", cmd_sock_path);
+    } else {
+        println!("[geos] FAILED to bind command socket at {}", cmd_sock_path);
     }
 
     // ── Main loop ────────────────────────────────────────────────
