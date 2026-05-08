@@ -672,8 +672,17 @@ pub fn decode_pixelpack_png(data: &[u8]) -> Result<Vec<u8>, String> {
 
 /// Decode a pixelpack PNG file from disk.
 pub fn decode_pixelpack_file(path: &str) -> Result<Vec<u8>, String> {
-    let data = std::fs::read(path).map_err(|e| format!("Cannot read {}: {}", path, e))?;
-    decode_pixelpack_png(&data)
+    match std::fs::read(path) {
+        Ok(data) => decode_pixelpack_png(&data),
+        Err(_) => {
+            // Fallback: try VFS directory
+            let vfs_path = std::path::Path::new(crate::vfs::FS_DIR).join(path);
+            let data = std::fs::read(&vfs_path).map_err(|e| {
+                format!("Cannot read {} or fallback {:?}: {}", path, vfs_path, e)
+            })?;
+            decode_pixelpack_png(&data)
+        }
+    }
 }
 
 /// Encode raw bytes into a pixelpack PNG.
@@ -797,8 +806,17 @@ pub fn decode_pixelpack_source(data: &[u8]) -> Result<String, String> {
 
 /// Decode a pixelpack PNG file from disk as source text.
 pub fn decode_pixelpack_source_file(path: &str) -> Result<String, String> {
-    let data = std::fs::read(path).map_err(|e| format!("Cannot read {}: {}", path, e))?;
-    decode_pixelpack_source(&data)
+    match std::fs::read(path) {
+        Ok(data) => decode_pixelpack_source(&data),
+        Err(_) => {
+            // Fallback: try VFS directory
+            let vfs_path = std::path::Path::new(crate::vfs::FS_DIR).join(path);
+            let data = std::fs::read(&vfs_path).map_err(|e| {
+                format!("Cannot read {} or fallback {:?}: {}", path, vfs_path, e)
+            })?;
+            decode_pixelpack_source(&data)
+        }
+    }
 }
 
 /// Encode source text (assembly) into a pixelpack PNG with geo_boot=source metadata.

@@ -210,9 +210,16 @@ impl Vm {
                             let source = match std::fs::read_to_string(&prog_path) {
                                 Ok(s) => s,
                                 Err(_) => {
-                                    self.regs[0] = 0xFFFFFFFF;
-                                    self.ram[0xFFA] = 0xFFFFFFFF;
-                                    return true;
+                                    // Fallback: try VFS directory (.geometry_os/fs/)
+                                    let vfs_path = self.vfs.base_dir.join(&fname);
+                                    match std::fs::read_to_string(&vfs_path) {
+                                        Ok(s) => s,
+                                        Err(_) => {
+                                            self.regs[0] = 0xFFFFFFFF;
+                                            self.ram[0xFFA] = 0xFFFFFFFF;
+                                            return true;
+                                        }
+                                    }
                                 }
                             };
                             match crate::assembler::assemble(&source, 0) {
