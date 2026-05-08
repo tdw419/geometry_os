@@ -1,1 +1,43 @@
-; DESCRIPTION : F il ls the screen with a ver ti cal g radi e nt from bl a ck to w hit e . It u se s a ir at the center of the cu r s or i z on tal and cu r s or i z on tal and a d , and a d to en d ark g ra y re en , an an an i m ated an i m ated an i m ated sp ri te d e is h or i z on tal li ne r s or i z on tal li ne d circles , and p i x el s on the co l u m n ne r s , and an i m ation loop w h er e is an i m ate ges , it d e m age , and m a p ges a based on d to a v an i a f ra me counter , and effect s over lay s a d at a , and m a ze d ark pro d u ce s s the screen , and m age nt ra n a m i ze d u n i ze d an i m ated based on it or i g ate be t we en . It e m on a in ter ac tion s s k es an i m ated effect of it an is war m ated sp ri te is p er input s a ra tion and m a ze d with the M ou se d v i a s a sp
+; DESCRIPTION: Fills the screen with a vertical gradient from black to white.*
+
+word_0:
+LDI r12, 0x4000
+LDI r1, 0
+ADD r1, r11
+LOAD r15, r1
+write_digits
+
+LDI r2, 0x40D0D1
+LOAD r15, r2
+LDI r7, 1
+ADD r15, r7
+STORE r1, r15
+LDI r2, 1
+ADD r11, r2
+ADD r10, r2
+JMP write_digits
+
+write_digits:
+LDI r1, 0x2404
+STORE r1, r15
+LDI r2, 1
+ADD r10, r2
+JMP write_digits
+
+write_digits:
+LDI r1, 0x2403
+LOAD r15, r1
+LDI r2, 1
+ADD r15, r2
+STORE r1, r15
+LDI r2, 4
+LDI r7, wd_ok:
+POP r31
+RET
+
+do_date:
+PUSH r31
+PUSH r11
+PUSH r2
+PUSH r12
+PUSH r3

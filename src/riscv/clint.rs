@@ -21,6 +21,8 @@ pub struct Clint {
     pub mtimecmp: u64,
     /// msip per hart: bit 0 triggers machine software interrupt.
     pub msip: u32,
+    /// Debug counter: how many times SET_TIMER has been called.
+    pub timer_set_count: u64,
 }
 
 impl Default for Clint {
@@ -36,6 +38,7 @@ impl Clint {
             mtime: 0,
             mtimecmp: u64::MAX, // No timer interrupt until explicitly set
             msip: 0,
+            timer_set_count: 0,
         }
     }
 

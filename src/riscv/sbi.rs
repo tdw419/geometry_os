@@ -339,7 +339,16 @@ impl Sbi {
             SBI_SET_TIMER => {
                 // Set the timer: a0:a1 = 64-bit next timer event (absolute time)
                 // a0 = low bits, a1 = high bits
-                clint.mtimecmp = (a1 as u64) << 32 | (a0 as u64);
+                let new_mtimecmp = (a1 as u64) << 32 | (a0 as u64);
+                let current_mtime = clint.mtime;
+                clint.mtimecmp = new_mtimecmp;
+                // Debug: log first few timer sets
+                if clint.timer_set_count < 10 {
+                    eprintln!("[sbi] SET_TIMER: mtimecmp={} mtime={} delta={}",
+                        new_mtimecmp, current_mtime,
+                        new_mtimecmp.wrapping_sub(current_mtime));
+                    clint.timer_set_count += 1;
+                }
                 Some((SBI_SUCCESS as u32, 0))
             }
             SBI_CLEAR_IPI => Some((SBI_SUCCESS as u32, 0)),
