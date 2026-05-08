@@ -4704,7 +4704,7 @@ phases:
     validation: cargo test --lib ops_graphics
 - id: phase-277
   title: GeOS VM -- ops_extended.rs Unit Test Suite
-  status: todo
+  status: planned
   goal: Add unit tests for extended opcodes in ops_extended.rs (currently 0 tests).
   description: The extended opcode handler covers CMP, MOV, SAR, CMOV, CSEL, BFE,
     BFI, FORMULA, and other utility opcodes. Zero test coverage means regressions
@@ -4712,19 +4712,19 @@ phases:
     Add targeted tests for each opcode family.
   deliverables:
   - name: CMP signed comparison edge cases (i32::MIN, i32::MAX, 0)
-    status: todo
+    status: planned
   - name: SAR arithmetic shift right (negative values preserve sign)
-    status: todo
+    status: planned
   - name: BFE bitfield extract (field at MSB, LSB, spanning word boundary)
-    status: todo
+    status: planned
   - name: BFI bitfield insert (overwrite and preserve surrounding bits)
-    status: todo
+    status: planned
   - name: CMOV conditional move (condition true and false paths)
-    status: todo
+    status: planned
   - name: CSEL conditional select (all comparison modes)
-    status: todo
+    status: planned
   - name: FORMULA registration and evaluation on canvas cells
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: At least 25 new test functions in ops_extended.rs
     validation: grep -c 'fn test_' src/vm/ops_extended.rs >= 25
@@ -4732,7 +4732,7 @@ phases:
     validation: cargo test --lib ops_extended
 - id: phase-278
   title: GeOS VM -- ops_memory.rs and scheduler.rs Unit Tests
-  status: todo
+  status: planned
   goal: Add unit tests for memory opcodes and process scheduler (both currently 0
     tests).
   description: LOAD/STORE with canvas buffer interception (0x8000-0x8FFF), PUSH/POP
@@ -4741,17 +4741,17 @@ phases:
     than crashes.
   deliverables:
   - name: LOAD/STORE canvas buffer interception tests (0x8000-0x8FFF range)
-    status: todo
+    status: planned
   - name: LOAD/STORE regular RAM access (outside canvas range)
-    status: todo
+    status: planned
   - name: PUSH/POP stack underflow and overflow at 0xFF00 boundary
-    status: todo
+    status: planned
   - name: Scheduler round-robin process selection tests
-    status: todo
+    status: planned
   - name: Scheduler priority ordering with SETPRIORITY
-    status: todo
+    status: planned
   - name: Scheduler YIELD and SLEEP correctness
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: At least 30 new test functions across ops_memory.rs and scheduler.rs
     validation: grep -c 'fn test_' src/vm/ops_memory.rs + grep -c 'fn test_' src/vm/scheduler.rs
@@ -4760,7 +4760,7 @@ phases:
     validation: cargo test --lib ops_memory scheduler
 - id: phase-279
   title: GeOS Program -- Platformer Game with Physics
-  status: todo
+  status: planned
   goal: Build a side-scrolling platformer game demonstrating advanced collision detection
     and physics simulation in the VM.
   description: 'A Mario-style platformer with gravity, jumping, horizontal scrolling,
@@ -4770,19 +4770,19 @@ phases:
     character rendering, scrolling camera, and multi-entity state management.'
   deliverables:
   - name: Player character with gravity, jump, and horizontal movement
-    status: todo
+    status: planned
   - name: Tile-based level with platforms and gaps
-    status: todo
+    status: planned
   - name: Horizontal camera scrolling following the player
-    status: todo
+    status: planned
   - name: Collectible coins with score display via TEXT opcode
-    status: todo
+    status: planned
   - name: Simple enemy patrol AI with collision death
-    status: todo
+    status: planned
   - name: 'Game states: title screen, playing, game over'
-    status: todo
+    status: planned
   - name: Integration test verifying game boots and renders first frame
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: platformer.asm runs and produces at least one rendered frame
     validation: cargo test --lib test_platformer
@@ -4790,7 +4790,7 @@ phases:
     validation: Manual verification via MCP or visual test
 - id: phase-280
   title: GeOS VM -- String Library Opcodes (STRLEN, STRCMP, STRCPY, STRCAT)
-  status: todo
+  status: planned
   goal: Add string manipulation opcodes to reduce boilerplate in shell, editor, and
     text-heavy programs.
   description: Current string operations require manual null-terminator scanning loops
@@ -4799,21 +4799,21 @@ phases:
     These are foundational for any text-processing application running in the VM.
   deliverables:
   - name: 'STRLEN opcode (0xD6): count bytes until null terminator'
-    status: todo
+    status: planned
   - name: 'STRCMP opcode (0xD7): lexicographic comparison returning -1/0/1 in r0'
-    status: todo
+    status: planned
   - name: 'STRCPY opcode (0xD8): copy null-terminated string from src to dst'
-    status: todo
+    status: planned
   - name: 'STRCAT opcode (0xD9): append null-terminated string to destination'
-    status: todo
+    status: planned
   - name: Assembler support for all four opcodes
-    status: todo
+    status: planned
   - name: Disassembler support for all four opcodes
-    status: todo
+    status: planned
   - name: Unit tests for each opcode (empty strings, max length, buffer overlap)
-    status: todo
+    status: planned
   - name: 'Integration test: string_demo.asm using all four opcodes'
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: All four opcodes assemble, execute, and produce correct results
     validation: cargo test --lib strlen strcmp strcpy strcat
@@ -4821,7 +4821,7 @@ phases:
     validation: cargo test --lib disasm_str
 - id: phase-281
   title: Documentation -- Modernize CANVAS_TEXT_SURFACE.md and ARCHITECTURE.md
-  status: todo
+  status: planned
   goal: Update the founding spec and architecture docs to match the current 2928-test,
     217-program, 119K-LOC codebase.
   description: CANVAS_TEXT_SURFACE.md has 12+ documented discrepancies from the current
@@ -4832,18 +4832,18 @@ phases:
   deliverables:
   - name: 'Audit CANVAS_TEXT_SURFACE.md: verify every opcode, address, and behavior
       claim against source code'
-    status: todo
+    status: planned
   - name: Update ISA table to include all current opcodes (150+)
-    status: todo
+    status: planned
   - name: Remove dead sections (DIRECT mode, .gasm format, pixelc compiler references)
-    status: todo
+    status: planned
   - name: Update memory map with all current regions (canvas buffer, screen buffer,
       mailbox, etc.)
-    status: todo
+    status: planned
   - name: Audit and update ARCHITECTURE.md with current module structure
-    status: todo
+    status: planned
   - name: Add quick-reference section for multi-process and VFS to founding spec
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: No documented opcode/address that contradicts source code
     validation: grep-based cross-check script passes
@@ -4852,7 +4852,7 @@ phases:
 - id: phase-282
   title: GeOS VM -- Typed Memory Access Opcodes (LOADW, LOADH, LOADB, STOREW, STOREH,
     STOREB)
-  status: todo
+  status: planned
   goal: Add byte (8-bit) and halfword (16-bit) memory access opcodes for efficient
     data packing and network protocol handling.
   description: The VM currently only supports 32-bit word LOAD/STORE. Accessing individual
@@ -4863,19 +4863,19 @@ phases:
   deliverables:
   - name: 'LOADB opcode (0xDA): load byte at word-aligned address, zero-extend to
       u32'
-    status: todo
+    status: planned
   - name: 'STOREB opcode (0xDB): store low byte of register to word-aligned address'
-    status: todo
+    status: planned
   - name: 'LOADH opcode (0xDC): load halfword (16-bit), zero-extend to u32'
-    status: todo
+    status: planned
   - name: 'STOREH opcode (0xDD): store low halfword of register'
-    status: todo
+    status: planned
   - name: Assembler and disassembler support
-    status: todo
+    status: planned
   - name: Unit tests for alignment, boundary, and masking behavior
-    status: todo
+    status: planned
   - name: 'Integration test: byte_demo.asm demonstrating packed data access'
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: Byte/halfword ops work correctly on all alignments
     validation: cargo test --lib loadb storeb loadh storeh
@@ -4883,7 +4883,7 @@ phases:
     validation: cargo test --lib test_byte_ops_assemble
 - id: phase-283
   title: RISC-V Guest -- VirtIO Network Driver
-  status: todo
+  status: planned
   goal: Implement VirtIO network device emulation so RISC-V guests can send and receive
     network packets.
   description: 'The RISC-V interpreter already has VirtIO block device support (virtio_blk.rs).
@@ -4892,17 +4892,17 @@ phases:
     socket syscall layer from phase-201.'
   deliverables:
   - name: VirtIO network device structure (config, queues, feature bits)
-    status: todo
+    status: planned
   - name: Transmit/receive queue handling with descriptor chains
-    status: todo
+    status: planned
   - name: Interrupt delivery on packet arrival
-    status: todo
+    status: planned
   - name: Integration with host TAP interface or socket bridge
-    status: todo
+    status: planned
   - name: Unit tests for device initialization and queue operations
-    status: todo
+    status: planned
   - name: 'Integration test: guest sends a UDP packet via VirtIO-net'
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: VirtIO-net device initializes without error in guest
     validation: Guest kernel detects virtio_net in boot log
@@ -4910,7 +4910,7 @@ phases:
     validation: UDP echo test passes
 - id: phase-284
   title: GeOS Program -- Mandelbrot Fractal Renderer
-  status: todo
+  status: planned
   goal: Build a Mandelbrot set renderer demonstrating fixed-point math and per-pixel
     computation in the VM.
   description: 'The Mandelbrot set is the classic GPU benchmark. Implementing it in
@@ -4920,17 +4920,17 @@ phases:
     for the VM execution engine.'
   deliverables:
   - name: Fixed-point multiplication and addition routines (16.16 format)
-    status: todo
+    status: planned
   - name: Mandelbrot escape-time loop with configurable max iterations
-    status: todo
+    status: planned
   - name: Color mapping from iteration count via sine lookup table
-    status: todo
+    status: planned
   - name: Zoom in/out and pan via keyboard input (IKEY)
-    status: todo
+    status: planned
   - name: Coordinate display showing current view bounds
-    status: todo
+    status: planned
   - name: Integration test verifying first frame renders non-uniform pixels
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: mandelbrot.asm renders a recognizable fractal shape
     validation: Pixel diversity test shows >100 unique colors in first frame
@@ -4938,7 +4938,7 @@ phases:
     validation: Two zoom levels produce different screen checksums
 - id: phase-285
   title: GeOS VM -- Error Code Propagation in Syscalls
-  status: todo
+  status: planned
   goal: Replace silent failures in VFS/syscall opcodes with meaningful error codes
     returned in r0.
   description: Currently, OPEN/READ/WRITE/CLOSE failures silently return 0 or garbage.
@@ -4948,19 +4948,19 @@ phases:
     and file_browser.
   deliverables:
   - name: Define error code constants (ENOSPC=1, ENOENT=2, EPERM=3, EIO=4, EISDIR=5)
-    status: todo
+    status: planned
   - name: OPEN returns -ENOENT when file not found, -EPERM when capability denied
-    status: todo
+    status: planned
   - name: READ returns -EIO on read past EOF or device error
-    status: todo
+    status: planned
   - name: WRITE returns -ENOSPC when VFS storage full
-    status: todo
+    status: planned
   - name: IOCTL returns -EINVAL for invalid commands
-    status: todo
+    status: planned
   - name: Unit tests for each error path
-    status: todo
+    status: planned
   - name: Update shell.asm to check error codes and display messages
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: All syscall failures return negative error codes in r0
     validation: cargo test --lib syscall_error_codes
@@ -4968,7 +4968,7 @@ phases:
     validation: Integration test verifies error message in terminal output
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
-  status: todo
+  status: planned
   goal: Extend the 8x8 fixed-width font system to support proportional (variable-width)
     character rendering.
   description: The current font system uses uniform 8x8 pixel glyphs. Adding variable-width
@@ -4977,17 +4977,17 @@ phases:
     is foundational for the nano editor and any text-heavy application.
   deliverables:
   - name: 'Glyph width table: per-character advance widths (4-8 pixels)'
-    status: todo
+    status: planned
   - name: Proportional TEXT opcode mode (TEXT_VW) using variable advance
-    status: todo
+    status: planned
   - name: Original TEXT opcode remains fixed-width for backward compatibility
-    status: todo
+    status: planned
   - name: Character kerning pairs table for common pairs (AV, WA, To, etc.)
-    status: todo
+    status: planned
   - name: Updated font.rs with proportional glyph data
-    status: todo
+    status: planned
   - name: Visual test comparing fixed vs proportional text rendering
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: Proportional text renders without overlapping characters
     validation: Pixel collision test between adjacent characters
@@ -4995,7 +4995,7 @@ phases:
     validation: Checksum comparison with existing text programs
 - id: phase-287
   title: RISC-V Guest -- VirtIO GPU (Simple Display)
-  status: todo
+  status: planned
   goal: Implement minimal VirtIO GPU device so RISC-V guests can write pixels to a
     framebuffer via standard VirtIO-GPU protocol.
   description: Currently the RISC-V guest's graphical output goes through a custom
@@ -5004,17 +5004,17 @@ phases:
     stone toward running unmodified Linux distributions with graphical output.
   deliverables:
   - name: VirtIO GPU device config (resolution, scanout)
-    status: todo
+    status: planned
   - name: 2D resource create/destroy and transfer commands
-    status: todo
+    status: planned
   - name: Scanout attachment to display the framebuffer
-    status: todo
+    status: planned
   - name: Cursor positioning support
-    status: todo
+    status: planned
   - name: Bridge to GeOS canvas buffer for pixel output
-    status: todo
+    status: planned
   - name: Unit tests for device initialization and resource lifecycle
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: Guest kernel detects virtio_gpu device
     validation: Boot log shows virtio_gpu probe success
@@ -5022,7 +5022,7 @@ phases:
     validation: fbtest program produces visible output
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
-  status: todo
+  status: planned
   goal: Implement a complete Tetris game as a showcase of the VM's game development
     capabilities.
   description: 'Tetris is the canonical puzzle game. This implementation exercises:
@@ -5032,19 +5032,19 @@ phases:
     polished or rebuilt.'
   deliverables:
   - name: All 7 tetrominoes with rotation states
-    status: todo
+    status: planned
   - name: Line clear detection and animation
-    status: todo
+    status: planned
   - name: Score system (single/double/triple/tetris bonuses)
-    status: todo
+    status: planned
   - name: Level progression with speed increase
-    status: todo
+    status: planned
   - name: Next piece preview panel
-    status: todo
+    status: planned
   - name: Game over screen with final score
-    status: todo
+    status: planned
   - name: Integration test verifying game boots and pieces fall
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: tetris.asm runs and renders the game board
     validation: cargo test --lib test_tetris
@@ -5052,7 +5052,7 @@ phases:
     validation: RAM score address increases after simulated line clears
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
-  status: todo
+  status: planned
   goal: Add mutex and semaphore opcodes for safe inter-process resource sharing.
   description: The VM has PIPE and MSGSND/MSGRCV for data IPC, but no synchronization
     primitives. Multiple processes accessing shared resources (files, memory regions,
@@ -5060,21 +5060,21 @@ phases:
     provides the building blocks for safe concurrent access patterns.
   deliverables:
   - name: 'MTEXINIT opcode: initialize a mutex at a RAM address'
-    status: todo
+    status: planned
   - name: 'MTEXLOCK opcode: acquire lock (block if held by another process)'
-    status: todo
+    status: planned
   - name: 'MTEXUNLOCK opcode: release lock (wake one waiter)'
-    status: todo
+    status: planned
   - name: 'SEMINIT opcode: initialize semaphore with count'
-    status: todo
+    status: planned
   - name: 'SEMWAIT opcode: decrement semaphore (block if zero)'
-    status: todo
+    status: planned
   - name: 'SEMPOST opcode: increment semaphore (wake one waiter)'
-    status: todo
+    status: planned
   - name: Unit tests for lock acquisition, blocking, and wake-up
-    status: todo
+    status: planned
   - name: 'Integration test: two processes sharing a counter via mutex'
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: Mutex prevents concurrent access to shared resource
     validation: Race condition test passes 1000 iterations
@@ -5082,7 +5082,7 @@ phases:
     validation: Producer-consumer test with 4 processes completes
 - id: phase-290
   title: GeOS VM -- Performance Benchmark Suite and Optimization
-  status: todo
+  status: planned
   goal: Create a standardized benchmark suite measuring VM instruction throughput,
     memory access patterns, and graphics rendering performance.
   description: 'With 150+ opcodes and 2928 tests, the VM needs quantitative performance
@@ -5092,19 +5092,19 @@ phases:
     real program frame times.'
   deliverables:
   - name: Instruction dispatch benchmark (1M iterations of each opcode class)
-    status: todo
+    status: planned
   - name: Memory access benchmark (sequential, random, canvas-intercepted)
-    status: todo
+    status: planned
   - name: Graphics benchmark (FILL rate, RECTF rate, LINE rate, SPRITE rate)
-    status: todo
+    status: planned
   - name: Full-program benchmarks (plasma, infinite_map, snake frame times)
-    status: todo
+    status: planned
   - name: RISC-V vs native VM comparison benchmarks
-    status: todo
+    status: planned
   - name: Benchmark runner script with CSV output
-    status: todo
+    status: planned
   - name: Baseline results committed to docs/PERFORMANCE_BENCHMARK.md
-    status: todo
+    status: planned
   acceptance_criteria:
   - description: All benchmarks produce stable, reproducible results
     validation: Three runs within 5% variance
