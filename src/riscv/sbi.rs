@@ -1572,7 +1572,10 @@ mod tests {
             GEO_FN_SHM_ALLOC,
             256, // size
             0,   // flags
-            0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0,
             &mut uart,
             &mut clint,
         );
@@ -1593,10 +1596,32 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (_, id1) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                64,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         let (_, id2) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 128, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                128,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(id1, 1);
         assert_eq!(id2, 2);
@@ -1609,7 +1634,18 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (a0, _) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
         assert_eq!(sbi.shm_regions.len(), 0);
@@ -1622,10 +1658,16 @@ mod tests {
         let mut clint = Clint::new();
         let (a0, _) = sbi
             .handle_ecall(
-                SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC,
-                (SHM_MAX_SIZE + 1) as u32, 0,
-                0, 0, 0, 0,
-                &mut uart, &mut clint,
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                (SHM_MAX_SIZE + 1) as u32,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
             )
             .unwrap();
         assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
@@ -1637,7 +1679,18 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (a0, _) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 1, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                64,
+                1,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
     }
@@ -1650,14 +1703,36 @@ mod tests {
         // Fill all 16 slots
         for _ in 0..SHM_MAX_REGIONS {
             let (a0, _) = sbi
-                .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+                .handle_ecall(
+                    SBI_EXT_GEOMETRY,
+                    GEO_FN_SHM_ALLOC,
+                    64,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    &mut uart,
+                    &mut clint,
+                )
                 .unwrap();
             assert_eq!(a0, SBI_SUCCESS as u32);
         }
         assert_eq!(sbi.shm_regions.len(), SHM_MAX_REGIONS);
         // 17th should fail
         let (a0, _) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                64,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, SBI_ERR_FAILURE as u32);
     }
@@ -1668,11 +1743,33 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (_, shm_id) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 256, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                256,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         // Map at physical address 0x100000
         let (a0, a1) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_MAP, shm_id, 0x100000, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_MAP,
+                shm_id,
+                0x100000,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, SBI_SUCCESS as u32);
         assert_eq!(a1, 256); // returns size
@@ -1688,7 +1785,18 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (a0, _) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_MAP, 99, 0x100000, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_MAP,
+                99,
+                0x100000,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
     }
@@ -1699,17 +1807,61 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (_, shm_id) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 128, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                128,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         // Map twice (two contexts)
-        sbi.handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_MAP, shm_id, 0x100000, 0, 0, 0, 0, &mut uart, &mut clint);
-        sbi.handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_MAP, shm_id, 0x200000, 0, 0, 0, 0, &mut uart, &mut clint);
+        sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            GEO_FN_SHM_MAP,
+            shm_id,
+            0x100000,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
+        sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            GEO_FN_SHM_MAP,
+            shm_id,
+            0x200000,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
         let region = sbi.shm_regions.iter().find(|r| r.id == shm_id).unwrap();
         assert_eq!(region.ref_count, 2);
 
         // Unmap once
         let (a0, _) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_UNMAP, shm_id, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_UNMAP,
+                shm_id,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, SBI_SUCCESS as u32);
         let region = sbi.shm_regions.iter().find(|r| r.id == shm_id).unwrap();
@@ -1717,7 +1869,18 @@ mod tests {
         assert!(region.mapped); // still mapped by other context
 
         // Unmap again
-        sbi.handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_UNMAP, shm_id, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            GEO_FN_SHM_UNMAP,
+            shm_id,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &mut uart,
+            &mut clint,
+        );
         let region = sbi.shm_regions.iter().find(|r| r.id == shm_id).unwrap();
         assert_eq!(region.ref_count, 0);
         assert!(!region.mapped); // fully unmapped
@@ -1729,10 +1892,32 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (_, shm_id) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 1024, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                1024,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         let (a0, a1) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_SIZE, shm_id, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_SIZE,
+                shm_id,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, SBI_SUCCESS as u32);
         assert_eq!(a1, 1024);
@@ -1744,7 +1929,18 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (a0, _) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_SIZE, 99, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_SIZE,
+                99,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
     }
@@ -1755,16 +1951,32 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (_, shm_id) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                64,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         // Write 4 bytes at offset 0 from phys addr 0x500000
         let (a0, a1) = sbi
             .handle_ecall(
-                SBI_EXT_GEOMETRY, GEO_FN_SHM_WRITE,
-                shm_id, 0,    // offset
-                0x500000, 4,  // src_phys_addr, len
-                0, 0,
-                &mut uart, &mut clint,
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_WRITE,
+                shm_id,
+                0, // offset
+                0x500000,
+                4, // src_phys_addr, len
+                0,
+                0,
+                &mut uart,
+                &mut clint,
             )
             .unwrap();
         assert_eq!(a0, SBI_SUCCESS as u32);
@@ -1783,15 +1995,32 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (_, shm_id) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                64,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         // Write past end of region
         let (a0, _) = sbi
             .handle_ecall(
-                SBI_EXT_GEOMETRY, GEO_FN_SHM_WRITE,
-                shm_id, 60, 0x500000, 10, // offset=60, len=10 -> 70 > 64
-                0, 0,
-                &mut uart, &mut clint,
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_WRITE,
+                shm_id,
+                60,
+                0x500000,
+                10, // offset=60, len=10 -> 70 > 64
+                0,
+                0,
+                &mut uart,
+                &mut clint,
             )
             .unwrap();
         assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
@@ -1803,15 +2032,31 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (_, shm_id) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 64, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                64,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         let (a0, a1) = sbi
             .handle_ecall(
-                SBI_EXT_GEOMETRY, GEO_FN_SHM_READ,
-                shm_id, 8,    // offset
-                0x600000, 16, // dst_phys_addr, len
-                0, 0,
-                &mut uart, &mut clint,
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_READ,
+                shm_id,
+                8, // offset
+                0x600000,
+                16, // dst_phys_addr, len
+                0,
+                0,
+                &mut uart,
+                &mut clint,
             )
             .unwrap();
         assert_eq!(a0, SBI_SUCCESS as u32);
@@ -1830,14 +2075,31 @@ mod tests {
         let mut uart = Uart::new();
         let mut clint = Clint::new();
         let (_, shm_id) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 32, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                32,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         let (a0, _) = sbi
             .handle_ecall(
-                SBI_EXT_GEOMETRY, GEO_FN_SHM_READ,
-                shm_id, 0, 0x600000, 0, // len=0 -> invalid
-                0, 0,
-                &mut uart, &mut clint,
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_READ,
+                shm_id,
+                0,
+                0x600000,
+                0, // len=0 -> invalid
+                0,
+                0,
+                &mut uart,
+                &mut clint,
             )
             .unwrap();
         assert_eq!(a0, SBI_ERR_INVALID_PARAM as u32);
@@ -1850,7 +2112,18 @@ mod tests {
         let mut clint = Clint::new();
         // PROBE_EXTENSION for GEO should return available (1)
         let (a0, a1) = sbi
-            .handle_ecall(SBI_EXT_BASE, 3, SBI_EXT_GEOMETRY, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_BASE,
+                3,
+                SBI_EXT_GEOMETRY,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         assert_eq!(a0, 0); // success
         assert_eq!(a1, 1); // available
@@ -1863,14 +2136,44 @@ mod tests {
         let mut clint = Clint::new();
         // Allocate two regions
         let (_, id1) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 16, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                16,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         let (_, id2) = sbi
-            .handle_ecall(SBI_EXT_GEOMETRY, GEO_FN_SHM_ALLOC, 16, 0, 0, 0, 0, 0, &mut uart, &mut clint)
+            .handle_ecall(
+                SBI_EXT_GEOMETRY,
+                GEO_FN_SHM_ALLOC,
+                16,
+                0,
+                0,
+                0,
+                0,
+                0,
+                &mut uart,
+                &mut clint,
+            )
             .unwrap();
         // Write to region 1
-        sbi.shm_regions.iter_mut().find(|r| r.id == id1).unwrap().data[0] = 0xAB;
-        sbi.shm_regions.iter_mut().find(|r| r.id == id2).unwrap().data[0] = 0xCD;
+        sbi.shm_regions
+            .iter_mut()
+            .find(|r| r.id == id1)
+            .unwrap()
+            .data[0] = 0xAB;
+        sbi.shm_regions
+            .iter_mut()
+            .find(|r| r.id == id2)
+            .unwrap()
+            .data[0] = 0xCD;
         // Verify isolation
         let r1 = sbi.shm_regions.iter().find(|r| r.id == id1).unwrap();
         let r2 = sbi.shm_regions.iter().find(|r| r.id == id2).unwrap();

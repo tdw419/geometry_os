@@ -455,7 +455,13 @@ mod tests {
 
     #[test]
     fn test_play_note_internal_all_waveforms() {
-        for wave in [Waveform::Sine, Waveform::Square, Waveform::Triangle, Waveform::Sawtooth, Waveform::Noise] {
+        for wave in [
+            Waveform::Sine,
+            Waveform::Square,
+            Waveform::Triangle,
+            Waveform::Sawtooth,
+            Waveform::Noise,
+        ] {
             let result = play_note_internal(wave, 440, 10);
             assert!(result.is_ok(), "play_note should succeed for {:?}", wave);
         }
@@ -646,7 +652,7 @@ mod tests {
         let samples: Vec<u32> = vec![1000; 10];
         mixer_write(0, &samples);
         // These should not panic even with extreme rates
-        mixer_commit(10, 1);    // below min
+        mixer_commit(10, 1); // below min
         mixer_write(0, &samples);
         mixer_commit(10, 99999); // above max
     }

@@ -1,0 +1,354 @@
+Device: cuda
+Loading tokenizer from pixelflow/bilingual_tokenizer_v4...
+Vocabulary Size: 3456
+Loading dataset from bilingual_dataset.npz...
+Dataset loaded: 5601 samples.
+Model: 13,694,976 params
+  6L, 8H, 384D, ctx=1024
+Epoch 1/40  loss=1.6994  lr=3.00e-04  time=125.0s
+  Saved best checkpoint (loss=1.6994)
+Epoch 2/40  loss=1.1909  lr=2.98e-04  time=126.0s
+  Saved best checkpoint (loss=1.1909)
+Epoch 3/40  loss=1.0755  lr=2.96e-04  time=126.2s
+  Saved best checkpoint (loss=1.0755)
+Epoch 4/40  loss=0.9691  lr=2.93e-04  time=124.8s
+  Saved best checkpoint (loss=0.9691)
+Epoch 5/40  loss=0.8864  lr=2.89e-04  time=125.5s
+  Saved best checkpoint (loss=0.8864)
+
+  Prompt: ; Draws a red circle at the center
+    ; Draw s a re d circle at the center of p i x el s , to p i x el s , and the fi le n w hit e and renders a re en re ce it s s and the center in f ra me . The n ing the m LINE , and h al ts .
+; -- -- -- - P h as e 2 : i x el s co nd with a g ro s s c x 256 . A TION
+; v al ue ( 0 , 0 ) (
+
+  Prompt: ; Initialization sequence
+    ; In iti ali z ation se q u en ce s s u b ro u ti ne s based on res ul ts , bi t w i se AND , X OR , and X OR op eration s ( di v i sion ), ar ith me ti c op eration s like OR , MUL , and SH L , and man ip ul ate ly h al t ing e x e cu tion .
+; m i x ed pro g ra m
+; initi ali z ation
+LDI r13, 2548
+LDI r1, 4
+
+  Prompt: LDI r1, 10
+loop:
+    LDI r1, 10
+loop:
+LDI r1, 5
+LDI r4, BUF
+LDI r4, 0x25A10
+LDI r1, 2
+LDI r4, 0x24BC4
+RECTF r1, r2, r3, r4, r4, r5
+
+; E a in loop
+LDI r5, 1
+LDI r6, 16
+LDI r6, 14
+LDI r5, 0
+LDI r6, 0x802307
+LDI r5, 0
+LDI
+Epoch 6/40  loss=0.8213  lr=2.84e-04  time=125.3s
+  Saved best checkpoint (loss=0.8213)
+Epoch 7/40  loss=0.7632  lr=2.78e-04  time=126.1s
+  Saved best checkpoint (loss=0.7632)
+Epoch 8/40  loss=0.7089  lr=2.71e-04  time=126.0s
+  Saved best checkpoint (loss=0.7089)
+Epoch 9/40  loss=0.6609  lr=2.64e-04  time=125.6s
+  Saved best checkpoint (loss=0.6609)
+Epoch 10/40  loss=0.6198  lr=2.56e-04  time=126.0s
+  Saved best checkpoint (loss=0.6198)
+
+  Prompt: ; Draws a red circle at the center
+    ; Draw s a re d circle at the center ──
+
+; Con st an ts ──
+LDI r0, 0 ; mo u se b a ck g ro u nd
+LDI r2, 32 ; x
+LDI r3, 236 ; y
+LDI r4, 0x0000FF ; f g = blue
+RECTF r1, r2, r3, r4, r5
+
+; F ra me counter
+LDI r5, 0x00FFFFFFFFFF ; y el lo e
+
+  Prompt: ; Initialization sequence
+    ; In iti ali z ation se q u en ce p at ter n si ble )
+; Load c er a s er e nt ri es
+LDI r20, DEBUF ; m a x p p at ter n s
+LDI r21, 0x7800 ; p er p a in ter n se q u en ce buffer
+; Sc an v as k en ti ty p es
+LDI r20, BLINKINEXT_BUF ; m a x = 224 + (
+
+  Prompt: LDI r1, 10
+loop:
+    LDI r1, 10
+loop:
+LDI r4, 0x3000
+LDI r1, 0x3000
+STORE r4, r1
+RET
+
+; ── P i e ce 3 : L ay out ) ──────────────────────────────── ──
+draw_hak:
+LDI r4, 0x3000
+FILL r4
+
+; TEXT in stru ct s ad d res s
+LDI r1, 0x3000
+FILL r1
+
+; " M S M : "
+Epoch 11/40  loss=0.5840  lr=2.47e-04  time=125.9s
+  Saved best checkpoint (loss=0.5840)
+Epoch 12/40  loss=0.5507  lr=2.38e-04  time=126.0s
+  Saved best checkpoint (loss=0.5507)
+Epoch 13/40  loss=0.5158  lr=2.28e-04  time=125.8s
+  Saved best checkpoint (loss=0.5158)
+Epoch 14/40  loss=0.4874  lr=2.18e-04  time=126.2s
+  Saved best checkpoint (loss=0.4874)
+Epoch 15/40  loss=0.4659  lr=2.07e-04  time=125.9s
+  Saved best checkpoint (loss=0.4659)
+
+  Prompt: ; Draws a red circle at the center
+    ; Draw s a re d circle at the center
+; 1 1 : blue m ul ti p le ing le
+LDI r10, 0xBFFF00 ; blue
+PSET r10, r11, r12
+
+; -- - S t at us b ar : bi ts -- -
+LDI r10, 0x000 ; y el lo w
+LDI r11, 2
+LDI r12, 0x00FF ; cy an
+LDI r13, 0x44444 ; g re en
+RECTF r10
+
+  Prompt: ; Initialization sequence
+    ; In iti ali z ation se q u en ce s re ad y e nt ri es and d ri ve n pro g ra m th at initializes se ver al registers with sp e ci fi c v al u es and the n u se s the PSET I in stru ction to w ri te a p i x el at co or d in ate s ( 8 2 ) with color 0x 9 5 A F E . The pro g ra m h al ts after co mp let ing t as k s .
+
+; si mp
+
+  Prompt: LDI r1, 10
+loop:
+    LDI r1, 10
+loop:
+; No w m i er i o us si ble
+LDI r4, 0x3330
+LOAD r1, r4 ; r1 = co nt e nt ( 0 - ro w )
+
+; r10 = se le ct ed from a ro w ( 0 - 3 1 )
+CMP r1, r2
+JZ r0, left
+
+; N ot e ed f all s w id th = 1
+; w in do w s ( 0 - 3 1 1
+Epoch 16/40  loss=0.4425  lr=1.96e-04  time=126.2s
+  Saved best checkpoint (loss=0.4425)
+Epoch 17/40  loss=0.4231  lr=1.85e-04  time=126.0s
+  Saved best checkpoint (loss=0.4231)
+Epoch 18/40  loss=0.4056  lr=1.73e-04  time=125.9s
+  Saved best checkpoint (loss=0.4056)
+Epoch 19/40  loss=0.3902  lr=1.62e-04  time=126.0s
+  Saved best checkpoint (loss=0.3902)
+Epoch 20/40  loss=0.3767  lr=1.50e-04  time=125.9s
+  Saved best checkpoint (loss=0.3767)
+
+  Prompt: ; Draws a red circle at the center
+    ; Draw s a re d circle at the center
+; mo de 4 x 3 : blue over ter n to p - right blue ,
+LDI r3, 0x0000FF ; blue
+PSET r1, r2, r3
+
+; Draw g re en square at ( 50 , 4 )
+; mo di fi es blue at screen
+LDI r1, 0x000FF0 ; blue
+PSET r1, r2, r1
+
+; Draw a blue b or der
+; Y el lo d at (
+
+  Prompt: ; Initialization sequence
+    ; In iti ali z ation se q u en ce of me mor y . De bu F S I G G G ad d res se s table from the m , p er ves st o re d in RA M . It initializes registers to set u p a ra me t ers for m i x el and out put s , and f in al ly h al ts e x e cu tion .
+
+; li ne ar m i x ed pro g ra m
+; P i x el d at a me mor y st o re
+
+  Prompt: LDI r1, 10
+loop:
+    LDI r1, 10
+loop:
+; = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+; U p er s bi t p i x el s at co or d in ate s ( 128 , 20 )
+; -- - Read the p i x el at ( 20 , 0 ) -- -
+Epoch 21/40  loss=0.3630  lr=1.38e-04  time=126.5s
+  Saved best checkpoint (loss=0.3630)
+Epoch 22/40  loss=0.3517  lr=1.27e-04  time=125.8s
+  Saved best checkpoint (loss=0.3517)
+Epoch 23/40  loss=0.3399  lr=1.15e-04  time=125.8s
+  Saved best checkpoint (loss=0.3399)
+Epoch 24/40  loss=0.3307  lr=1.04e-04  time=126.1s
+  Saved best checkpoint (loss=0.3307)
+Epoch 25/40  loss=0.3219  lr=9.26e-05  time=126.1s
+  Saved best checkpoint (loss=0.3219)
+
+  Prompt: ; Draws a red circle at the center
+    ; Draw s a re d circle at the center
+; C over ti me at ( 10 , 255 ) to p - bl a ck
+; C h or i z on tal p i x el s at ( 10 , 50 ) and ( 10 8 , 10 ) with color : w hit e
+MOV r20, r3
+ADD r20, r7 ; x + 1
+ANDI r5, 0xFF
+LDI r8, 1
+SHR r20, r8 ; r9 = ( 0 , 50 )
+ADD r5, r7 ; r5 = (
+
+  Prompt: ; Initialization sequence
+    ; In iti ali z ation se q u en ce s en ce s th at se m a p p ed li c ation ( J ) for a w a mp to play no te ( Z A ) -> w ay on it or m ul ti p le , w a it ing o m a ze , and re q u en ce , w a it ing m ul ti p le , co n fi r m ing , and di sp lay s the text " H el a ti c be h ro le d .
+
+; n ame
+
+  Prompt: LDI r1, 10
+loop:
+    LDI r1, 10
+loop:
+LDI r20, SCRATCH
+STRO r20, "Foutinal"
+LDI r1, 80
+LDI r2, 249
+LDI r3, SCRATCH
+LDI r4, 0x44FF44
+LDI r5, 0x1A1A2E
+SMALLTEXT r1, r2, r3, r4, r5
+
+; C lo se b ut t on hit re g i on
+Epoch 26/40  loss=0.3134  lr=8.19e-05  time=126.1s
+  Saved best checkpoint (loss=0.3134)
+Epoch 27/40  loss=0.3070  lr=7.16e-05  time=126.0s
+  Saved best checkpoint (loss=0.3070)
+Epoch 28/40  loss=0.3005  lr=6.18e-05  time=126.0s
+  Saved best checkpoint (loss=0.3005)
+Epoch 29/40  loss=0.2938  lr=5.26e-05  time=126.0s
+  Saved best checkpoint (loss=0.2938)
+Epoch 30/40  loss=0.2891  lr=4.39e-05  time=126.0s
+  Saved best checkpoint (loss=0.2891)
+
+  Prompt: ; Draws a red circle at the center
+    ; Draw s a re d circle at the center
+; F ast re d at ( 50 , 50 ) and blue at ( 15 0 ) for sp ri te 0 : blue at ( 50 , 6 )
+; T e st at us b ar at RA M 0x 7 80 7 , g re en 0x00FF00 , the n over f lo w based s ( 0xFF 00 00 00 )
+; S ing a fe ty p e
+; Sp e ed e ed - ne ar - bl a ck d ro w s
+
+  Prompt: ; Initialization sequence
+    ; In iti ali z ation se q u en ce s s including load ing and st a ck s . The parent pro ce s s count w ri t es into registers , de fi ne s the m on it or s sp e ci fi c me mor y ad d res se s , and man a ges the ir v al ue to a st ring in RA M . The pro g ra m initializes var i o us registers with sp e ci fi c he x ad e ci m al v al u es and u se s the ir
+
+  Prompt: LDI r1, 10
+loop:
+    LDI r1, 10
+loop:
+LDI r4, 0x2001
+FILL r10
+LDI r4, 0x201
+LDI r1, 0
+STORE r4, r1
+LDI r4, 0x202
+LOAD r1, r4
+JNZ r1, chk_ok
+; ot_ok
+; re ver t
+LDI r1, 0
+LDI r4, 0x202
+STORE r4, r1
+; he ad ( b ot to m - right )
+Epoch 31/40  loss=0.2847  lr=3.59e-05  time=126.0s
+  Saved best checkpoint (loss=0.2847)
+Epoch 32/40  loss=0.2806  lr=2.86e-05  time=126.0s
+  Saved best checkpoint (loss=0.2806)
+Epoch 33/40  loss=0.2773  lr=2.21e-05  time=126.0s
+  Saved best checkpoint (loss=0.2773)
+Epoch 34/40  loss=0.2752  lr=1.63e-05  time=126.2s
+  Saved best checkpoint (loss=0.2752)
+Epoch 35/40  loss=0.2726  lr=1.14e-05  time=126.1s
+  Saved best checkpoint (loss=0.2726)
+
+  Prompt: ; Draws a red circle at the center
+    ; Draw s a re d circle at the center
+; S h or i z on tal blue b or der : center
+MOV r17, r6
+CMP r17, r18
+BLT r0, y_skip
+LDI r17, 0x780A
+ADD r17, r5 ; to p - left
+
+; Con ver t ter
+LDI r6, 0x780A
+LDI r7, 0x780A
+STORE r17, r6
+ADD r17, r7
+LDI r6, 1
+SUB r17
+
+  Prompt: ; Initialization sequence
+    ; In iti ali z ation se q u en ce s s and rot on the m on it s on c an a m on th at co n curre nt f l a g s . It initializes se ver al registers with sp e ci fi c v al u es and the n co n di tion al ly e x e c ut es di ff er e nt b ra n c he s of the f u n ction s including p er for m ing ar ith me ti c and lo g i cal op eration s . The m a
+
+  Prompt: LDI r1, 10
+loop:
+    LDI r1, 10
+loop:
+LDI r5, 0x0000FF
+FILL r5
+LDI r1, 1
+ADD r5, r1
+CMPI r5, 40
+JNZ r5, loop_0
+LDI r6, 0x0044FF
+loop_0:
+ADD r1, r5
+CMPI r1, 22
+BLT r1, loop_0
+LDI r4, 0x400FF0
+LDI r4, 0x
+Epoch 36/40  loss=0.2704  lr=7.34e-06  time=126.2s
+  Saved best checkpoint (loss=0.2704)
+Epoch 37/40  loss=0.2699  lr=4.14e-06  time=126.3s
+  Saved best checkpoint (loss=0.2699)
+Epoch 38/40  loss=0.2691  lr=1.85e-06  time=126.1s
+  Saved best checkpoint (loss=0.2691)
+Epoch 39/40  loss=0.2682  lr=4.62e-07  time=126.1s
+  Saved best checkpoint (loss=0.2682)
+Epoch 40/40  loss=0.2679  lr=0.00e+00  time=126.1s
+  Saved best checkpoint (loss=0.2679)
+
+  Prompt: ; Draws a red circle at the center
+    ; Draw s a re d circle at the center
+; F or i z on tal blue to p u r p le of se h a ro u nd the screen .
+; H as h a p e 3 x 16 = x 16 to p - left co r ne r s of the t in t .
+; Check de ta il le ve l . asm over f lo w h al f - d u tion of the H T T O ME S B O T S B C P _ BU F ( 0x 7 000 - 0x
+
+  Prompt: ; Initialization sequence
+    ; In iti ali z ation se q u en ce s s and f ul p at ter n de d in a s er i es of co n di tion al lo g i c . It initializes registers with sp e ci fi c v al u es , it e x e c ut es bi t w i se op eration s s u ch as X OR , AND , and OR , f o l lo w ed by a h al t in stru ction to ter min ate e x e cu tion .
+
+; m at h co
+
+  Prompt: LDI r1, 10
+loop:
+    LDI r1, 10
+loop:
+ADD r10, r1
+CMP r10, r1
+BLT r0, loop
+
+; = = = Update score text " LDI + " at 0x 2 100
+LDI r14, 0x2000
+LDI r11, 76
+STORE r14, r11
+ADD r10, r15
+LDI r16, 78
+STORE r15, r16
+ADD r15, r7
+LDI r16, 73
+STORE r15, r16
+ADD r15, r7
+LDI r16, 73
+
+Training complete. Best loss: 0.2679
+Checkpoint: bilingual_llm_ckpt.pt

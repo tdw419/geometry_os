@@ -1140,13 +1140,13 @@ fn test_beep_sets_state() {
 #[test]
 fn test_note_sets_state() {
     let mut vm = Vm::new();
-    vm.regs[1] = 1;   // wave = square
+    vm.regs[1] = 1; // wave = square
     vm.regs[2] = 880; // freq
     vm.regs[3] = 150; // dur
     vm.ram[0] = 0x7E;
     vm.ram[1] = 1;
     vm.ram[2] = 2;
-    vm.ram[3] = 3;    // NOTE r1, r2, r3
+    vm.ram[3] = 3; // NOTE r1, r2, r3
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
@@ -1160,7 +1160,7 @@ fn test_note_sets_state() {
 #[test]
 fn test_note_clamps_waveform() {
     let mut vm = Vm::new();
-    vm.regs[1] = 99;  // invalid wave -> clamped to 4 (noise)
+    vm.regs[1] = 99; // invalid wave -> clamped to 4 (noise)
     vm.regs[2] = 440;
     vm.regs[3] = 100;
     vm.ram[0] = 0x7E;
@@ -1180,8 +1180,8 @@ fn test_note_clamps_waveform() {
 #[test]
 fn test_note_clamps_freq_and_dur() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0;    // sine
-    vm.regs[2] = 10;   // below min 20 -> clamped to 20
+    vm.regs[1] = 0; // sine
+    vm.regs[2] = 10; // below min 20 -> clamped to 20
     vm.regs[3] = 9999; // above max 5000 -> clamped to 5000
     vm.ram[0] = 0x7E;
     vm.ram[1] = 1;
@@ -1203,12 +1203,12 @@ fn test_note_clamps_freq_and_dur() {
 fn test_audio_play_sets_state() {
     let mut vm = Vm::new();
     vm.regs[1] = 0x2000; // addr
-    vm.regs[2] = 100;    // len
-    vm.regs[3] = 22050;  // rate
+    vm.regs[2] = 100; // len
+    vm.regs[3] = 22050; // rate
     vm.ram[0] = 0xD4;
     vm.ram[1] = 1;
     vm.ram[2] = 2;
-    vm.ram[3] = 3;       // AUDIO_PLAY r1, r2, r3
+    vm.ram[3] = 3; // AUDIO_PLAY r1, r2, r3
     vm.ram[4] = 0x00;
     vm.pc = 0;
     for _ in 0..100 {
@@ -1224,7 +1224,7 @@ fn test_audio_play_clamps_len_and_rate() {
     let mut vm = Vm::new();
     vm.regs[1] = 0x3000;
     vm.regs[2] = 999999; // above max 65536
-    vm.regs[3] = 1000;   // below min 8000
+    vm.regs[3] = 1000; // below min 8000
     vm.ram[0] = 0xD4;
     vm.ram[1] = 1;
     vm.ram[2] = 2;
@@ -1243,7 +1243,7 @@ fn test_audio_play_clamps_len_and_rate() {
 fn test_audio_play_zero_len_no_op() {
     let mut vm = Vm::new();
     vm.regs[1] = 0x2000;
-    vm.regs[2] = 0;      // zero length -> no audio_play set
+    vm.regs[2] = 0; // zero length -> no audio_play set
     vm.regs[3] = 22050;
     vm.ram[0] = 0xD4;
     vm.ram[1] = 1;
@@ -32734,7 +32734,6 @@ fn test_flood_demo_assembles() {
     );
 }
 
-
 #[test]
 fn test_raycaster_renders_3d_maze() {
     use crate::assembler::assemble;
@@ -32753,12 +32752,20 @@ fn test_raycaster_renders_3d_maze() {
     vm.frame_ready = false;
     let mut steps = 0u32;
     for _ in 0..5_000_000 {
-        if vm.frame_ready { break; }
-        if !vm.step() { break; }
+        if vm.frame_ready {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
         steps += 1;
     }
 
-    assert!(vm.frame_ready, "should reach FRAME within 5M steps (took {})", steps);
+    assert!(
+        vm.frame_ready,
+        "should reach FRAME within 5M steps (took {})",
+        steps
+    );
     eprintln!("Raycaster first frame in {} steps", steps);
 
     // Screen should be mostly non-black (ceiling + floor + walls)
@@ -32804,4 +32811,3 @@ fn test_raycaster_renders_3d_maze() {
         "minimap top-left cell should show wall color"
     );
 }
-

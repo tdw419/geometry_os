@@ -17,13 +17,19 @@ fn test_raycaster_dda_trace() {
     let mut entries = 0;
 
     for step in 0..500_000 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
         if vm.frame_ready {
             let mut nb = 0;
             let mut w = 0;
             for &px in &vm.screen {
-                if px != 0 { nb += 1; }
-                if px == 0xCC6633 || px == 0x884422 { w += 1; }
+                if px != 0 {
+                    nb += 1;
+                }
+                if px == 0xCC6633 || px == 0x884422 {
+                    w += 1;
+                }
             }
             println!("FRAME step={} non_black={} walls={}", step, nb, w);
             return;
