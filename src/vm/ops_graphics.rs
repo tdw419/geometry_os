@@ -747,9 +747,9 @@ impl Vm {
                         let cos_a = angle_rad.cos();
                         let sin_a = angle_rad.sin();
 
-                        // Center of source rect
-                        let cx = sx + sw / 2;
-                        let cy = sy + sh / 2;
+                        // Center of source rect (for rotation)
+                        let _cx = sx + sw / 2;
+                        let _cy = sy + sh / 2;
 
                         // Capture source pixels into a temp buffer
                         let mut src_buf = vec![0u32; sw * sh];

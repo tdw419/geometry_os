@@ -306,7 +306,7 @@ impl Sbi {
         a7: u32,
         a6: u32,
         a0: u32,
-        _a1: u32,
+        a1: u32,
         _a2: u32,
         _a3: u32,
         _a4: u32,
@@ -344,7 +344,7 @@ impl Sbi {
             SBI_SET_TIMER => {
                 // Set the timer: a0:a1 = 64-bit next timer event (absolute time)
                 // a0 = low bits, a1 = high bits
-                clint.mtimecmp = (_a1 as u64) << 32 | (a0 as u64);
+                clint.mtimecmp = (a1 as u64) << 32 | (a0 as u64);
                 Some((SBI_SUCCESS as u32, 0))
             }
             SBI_CLEAR_IPI => Some((SBI_SUCCESS as u32, 0)),
@@ -413,7 +413,7 @@ impl Sbi {
                 // Timer extension: function 0 = sbi_set_timer
                 // a0:a1 = 64-bit next timer event (absolute time)
                 if a6 == 0 {
-                    clint.mtimecmp = (_a1 as u64) << 32 | (a0 as u64);
+                    clint.mtimecmp = (a1 as u64) << 32 | (a0 as u64);
                 }
                 Some((SBI_SUCCESS as u32, 0))
             }
@@ -465,7 +465,7 @@ impl Sbi {
                         // Return success immediately -- the caller (step function)
                         // will read from guest memory and output to UART.
                         let num_bytes = a0 as usize;
-                        let base_low = _a1 as u64;
+                        let base_low = a1 as u64;
                         let base_high = (_a2 as u64) << 32;
                         let phys_addr = base_high | base_low;
                         self.dbcn_pending_write = Some((phys_addr, num_bytes));
@@ -548,7 +548,7 @@ impl Sbi {
                     // The bridge is fulfilled by RiscvVm::step() which has
                     // access to guest memory for the actual data transfer.
                     let code_addr = a0 as u64;
-                    let num_words = _a1;
+                    let num_words = a1;
                     let max_steps = _a2;
                     let num_tiles = _a3;
                     let result_addr = (_a4 as u64) | ((_a5 as u64) << 32);
@@ -566,7 +566,7 @@ impl Sbi {
                     } else {
                         a0 as usize
                     };
-                    if _a1 != 0 {
+                    if a1 != 0 {
                         return Some((SBI_ERR_INVALID_PARAM as u32, 0));
                     }
                     if self.shm_regions.len() >= SHM_MAX_REGIONS {
@@ -593,7 +593,7 @@ impl Sbi {
                     // by writing shm data into guest memory. We just record the
                     // mapping intent. Multiple contexts can map the same shm_id.
                     let shm_id = a0;
-                    let phys_addr = _a1 as u64;
+                    let phys_addr = a1 as u64;
                     let region = match self.shm_regions.iter_mut().find(|r| r.id == shm_id) {
                         Some(r) => r,
                         None => return Some((SBI_ERR_INVALID_PARAM as u32, 0)),
@@ -635,7 +635,7 @@ impl Sbi {
                     // The actual data copy is fulfilled by the step loop which
                     // has access to guest memory. Here we store the request.
                     let shm_id = a0;
-                    let offset = _a1 as usize;
+                    let offset = a1 as usize;
                     let src_addr = _a2 as u64;
                     let len = _a3 as usize;
                     let region = match self.shm_regions.iter().find(|r| r.id == shm_id) {
@@ -659,7 +659,7 @@ impl Sbi {
                     // a0 = shm_id, a1 = offset, a2 = dst_phys_addr, a3 = len
                     // Similar to SHM_WRITE, the actual copy is fulfilled by step loop.
                     let shm_id = a0;
-                    let offset = _a1 as usize;
+                    let offset = a1 as usize;
                     let dst_addr = _a2 as u64;
                     let len = _a3 as usize;
                     let region = match self.shm_regions.iter().find(|r| r.id == shm_id) {
@@ -677,8 +677,8 @@ impl Sbi {
                     // Returns elapsed ticks since boot.
                     // a0 = unused, a1 = unused
                     // Returns: a0 = SBI_SUCCESS, a1 = elapsed ticks (u32)
-                    let current_mtime = clint.read_mtime();
-                    let elapsed = current_mtime.wrapping_sub(self.boot_mtime);
+                    let current_mtime = clint.mtime as u32;
+                    let elapsed = current_mtime.wrapping_sub(self.boot_mtime as u32);
                     Some((SBI_SUCCESS as u32, elapsed))
                 }
                 GEO_FN_ALARM_SET => {
@@ -691,24 +691,22 @@ impl Sbi {
                     if delay_ticks == 0 || callback == 0 {
                         return Some((SBI_ERR_INVALID_PARAM as u32, 0));
                     }
-                    let current_mtime = clint.read_mtime();
-                    let expire = current_mtime.wrapping_add(delay_ticks);
-                    // Find a free alarm slot
-                    match self
-                        .alarms
-                        .iter_mut()
-                        .find(|a| !a.active)
-                    {
-                        Some(slot) => {
-                            slot.active = true;
-                            slot.expire_mtime = expire;
-                            slot.callback = callback;
-                            slot.owner = 0; // no multi-process owner tracking yet
-                            let alarm_id =
-                                slot as *const AlarmEntry as u64 - self.alarms.as_ptr() as u64
-                                    + 1; // 1-based ID
-                            Some((SBI_SUCCESS as u32, alarm_id as u32))
+                    let current_mtime = clint.mtime as u32;
+                    let expire = (current_mtime as u64).wrapping_add(delay_ticks as u64);
+                    // Find a free alarm slot (with index tracking)
+                    let mut alarm_idx = None;
+                    for (i, a) in self.alarms.iter_mut().enumerate() {
+                        if !a.active {
+                            a.active = true;
+                            a.expire_mtime = expire;
+                            a.callback = callback;
+                            a.owner = 0; // no multi-process owner tracking yet
+                            alarm_idx = Some(i + 1); // 1-based ID
+                            break;
                         }
+                    }
+                    match alarm_idx {
+                        Some(id) => Some((SBI_SUCCESS as u32, id as u32)),
                         None => Some((SBI_ERR_FAILURE as u32, 0)),
                     }
                 }
@@ -748,7 +746,7 @@ impl Sbi {
             },
             // Phase 244: Network extension (TCP connect/send/recv/disconnect)
             SBI_EXT_NET => {
-                let a1 = _a1;
+                let a1 = a1;
                 let a2 = _a2;
                 match a6 {
                     NET_FN_CONNECT => {
@@ -2081,7 +2079,6 @@ mod tests {
                     0,
                     0,
                     0,
-                    0,
                     &mut uart,
                     &mut clint,
                 )
@@ -2097,7 +2094,6 @@ mod tests {
                 GEO_FN_ALARM_SET,
                 999,
                 0xBEEF,
-                0,
                 0,
                 0,
                 0,
@@ -2168,24 +2164,23 @@ mod tests {
             0,
             0,
             0,
-            0,
             &mut uart,
             &mut clint,
         );
 
         // Check at mtime=49: no fire
         clint.tick_n(49);
-        let fired = sbi.check_alarms(clint.read_mtime());
+        let fired = sbi.check_alarms(clint.mtime);
         assert!(fired.is_empty());
 
         // Check at mtime=50: fires
         clint.tick_n(1);
-        let fired = sbi.check_alarms(clint.read_mtime());
+        let fired = sbi.check_alarms(clint.mtime);
         assert_eq!(fired.len(), 1);
         assert_eq!(fired[0], (1, 0x2000)); // alarm_id=1, callback=0x2000
 
         // Check again at mtime=50: already deactivated, no fire
-        let fired = sbi.check_alarms(clint.read_mtime());
+        let fired = sbi.check_alarms(clint.mtime);
         assert!(fired.is_empty());
     }
 
@@ -2206,7 +2201,6 @@ mod tests {
             0,
             0,
             0,
-            0,
             &mut uart,
             &mut clint,
         );
@@ -2219,20 +2213,19 @@ mod tests {
             0,
             0,
             0,
-            0,
             &mut uart,
             &mut clint,
         );
 
         // At mtime=15: only first fires
         clint.tick_n(15);
-        let fired = sbi.check_alarms(clint.read_mtime());
+        let fired = sbi.check_alarms(clint.mtime);
         assert_eq!(fired.len(), 1);
         assert_eq!(fired[0].0, 1); // alarm 1
 
         // At mtime=25: second fires
         clint.tick_n(10);
-        let fired = sbi.check_alarms(clint.read_mtime());
+        let fired = sbi.check_alarms(clint.mtime);
         assert_eq!(fired.len(), 1);
         assert_eq!(fired[0].0, 2); // alarm 2
     }
@@ -2245,7 +2238,7 @@ mod tests {
         let mut clint = Clint::new();
 
         // mtime starts at 0
-        assert_eq!(clint.read_mtime(), 0);
+        assert_eq!(clint.mtime, 0);
 
         // Sleep for 500 ticks
         let (a0, a1) = sbi
@@ -2266,7 +2259,7 @@ mod tests {
         assert_eq!(a1, 500);
 
         // mtime should now be 500
-        assert_eq!(clint.read_mtime(), 500);
+        assert_eq!(clint.mtime, 500);
     }
 
     #[test]
@@ -2305,7 +2298,6 @@ mod tests {
             SBI_EXT_GEOMETRY,
             GEO_FN_MSLEEP,
             200,
-            0,
             0,
             0,
             0,
