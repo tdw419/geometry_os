@@ -3966,34 +3966,37 @@ phases:
   _claimed_at: 1778202562
 - id: phase-258
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
-  status: planned
+  status: done
   goal: Add a hardware-accelerated flood fill for paint programs
-  description: The VM has PSET for single pixels and FILL for solid colors, but no
+  description: The VM has PSET for single pixels and RECTF for solid rectangles, but no
     flood fill. Implementing flood fill in assembly requires a stack-based algorithm
     (PUSH/POP per pixel) which is slow and uses valuable stack space. A native FLOOD
     opcode uses an internal scanline span buffer to fill regions 10-100x faster than
     assembly implementation.
   deliverables:
   - name: FLOOD opcode
-    status: todo
+    status: done
     tasks:
     - id: p258.d1.t1
-      title: Implement FLOOD x_reg, y_reg, color_reg (0xDC) with scanline span algorithm
+      title: Implement FLOOD x_reg, y_reg, color_reg, tolerance_reg (0xCE) with scanline span algorithm
       description: Read target color at (x,y). If same as fill color, NOP. Otherwise,
         fill using scanline span expansion (push left/right spans to internal buffer).
-        Stack-free algorithm.
+        Stack-free algorithm. Tolerance parameter allows fuzzy matching.
       scope_files:
       - src/vm/mod.rs
       - src/assembler/ops_graphics.rs
       scope_lines: 120
+      status: done
     - id: p258.d1.t2
       title: Add disassembler entry and tests
       description: Test filling small and large regions. Test filling entire screen.
-        Test filling on boundary. Test no-op when target = fill color.
+        Test filling on boundary. Test no-op when target = fill color. Test tolerance.
+        Test demo program assembly.
       scope_files:
-      - src/vm/disasm.rs
       - src/vm/tests.rs
-      scope_lines: 80
+      - programs/flood_demo.asm
+      scope_lines: 200
+      status: done
     - id: p258.d1.t3
       title: Write paint_app.asm with flood fill
       description: Paint program with color palette, brush (PSET), and flood fill
@@ -4003,6 +4006,8 @@ phases:
       scope_lines: 100
   test_target: 8
   scope_lines_total: 300
+  _claimed_by: worker-0
+  _claimed_at: 1778205927
 - id: phase-259
   title: GeOS Program -- Cellular Automata Sandbox (Life, HighLife, Seeds)
   status: planned

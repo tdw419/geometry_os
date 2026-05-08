@@ -3719,7 +3719,7 @@ phases:
   _claimed_at: 1778185724
 - id: phase-252
   title: GeOS Program -- Raycasting 3D Engine (Wolfenstein-style)
-  status: in_progress
+  status: planned
   goal: Write a first-person raycasting renderer in assembly
   description: A raycasting engine renders a pseudo-3D view from a 2D map using only
     arithmetic (MUL, DIV, SHL, SHR, SIN table lookups) and PSET/RECTF. This is the
@@ -3754,8 +3754,6 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 360
-  _claimed_by: worker-0
-  _claimed_at: 1778195037
 - id: phase-253
   title: GeOS VM -- Audio System Tests and Improvements
   status: complete
@@ -3810,7 +3808,7 @@ phases:
   _claimed_at: 1778188766
 - id: phase-254
   title: GeOS Program -- Procedural Dungeon Generator with Fog of War
-  status: in_progress
+  status: planned
   goal: Write a dungeon crawler with BSP room generation and line-of-sight fog
   description: Extends the existing infinite_map terrain concepts into a dungeon setting.
     BSP (Binary Space Partition) generates rooms connected by corridors. Raycasting-based
@@ -3845,8 +3843,6 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 380
-  _claimed_by: worker-0
-  _claimed_at: 1778197560
 - id: phase-255
   title: GeOS VM -- Conditional Move and Select Opcodes (CMOV, CSEL)
   status: done
@@ -3888,7 +3884,7 @@ phases:
   _claimed_at: 1778199849
 - id: phase-256
   title: RISC-V Guest -- Shared Memory IPC Between Processes
-  status: in_progress
+  status: complete
   goal: Enable RISC-V guest processes to communicate via shared memory regions
   description: The Geometry OS VM has MSGSND/MSGRCV/PIPE for IPC, but RISC-V guest
     programs running under the interpreter have no IPC mechanism. Add shared memory
@@ -3924,11 +3920,9 @@ phases:
       scope_lines: 100
   test_target: 3
   scope_lines_total: 280
-  _claimed_by: worker-0
-  _claimed_at: 1778200642
 - id: phase-257
   title: RISC-V Guest -- Timer and Sleep Syscalls
-  status: in_progress
+  status: planned
   goal: Add timer and sleep syscalls for RISC-V guest programs
   description: Guest programs currently have no way to delay execution or measure
     time. The CLINT hardware provides timer interrupts, but guest C programs need
@@ -3962,38 +3956,40 @@ phases:
       scope_lines: 50
   test_target: 2
   scope_lines_total: 150
-  _claimed_by: worker-0
-  _claimed_at: 1778202562
 - id: phase-258
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
-  status: in_progress
+  status: done
   goal: Add a hardware-accelerated flood fill for paint programs
-  description: The VM has PSET for single pixels and FILL for solid colors, but no
-    flood fill. Implementing flood fill in assembly requires a stack-based algorithm
+  description: The VM has PSET for single pixels and RECTF for solid rectangles, but
+    no flood fill. Implementing flood fill in assembly requires a stack-based algorithm
     (PUSH/POP per pixel) which is slow and uses valuable stack space. A native FLOOD
     opcode uses an internal scanline span buffer to fill regions 10-100x faster than
     assembly implementation.
   deliverables:
   - name: FLOOD opcode
-    status: todo
+    status: done
     tasks:
     - id: p258.d1.t1
-      title: Implement FLOOD x_reg, y_reg, color_reg (0xDC) with scanline span algorithm
+      title: Implement FLOOD x_reg, y_reg, color_reg, tolerance_reg (0xCE) with scanline
+        span algorithm
       description: Read target color at (x,y). If same as fill color, NOP. Otherwise,
         fill using scanline span expansion (push left/right spans to internal buffer).
-        Stack-free algorithm.
+        Stack-free algorithm. Tolerance parameter allows fuzzy matching.
       scope_files:
       - src/vm/mod.rs
       - src/assembler/ops_graphics.rs
       scope_lines: 120
+      status: done
     - id: p258.d1.t2
       title: Add disassembler entry and tests
       description: Test filling small and large regions. Test filling entire screen.
-        Test filling on boundary. Test no-op when target = fill color.
+        Test filling on boundary. Test no-op when target = fill color. Test tolerance.
+        Test demo program assembly.
       scope_files:
-      - src/vm/disasm.rs
       - src/vm/tests.rs
-      scope_lines: 80
+      - programs/flood_demo.asm
+      scope_lines: 200
+      status: done
     - id: p258.d1.t3
       title: Write paint_app.asm with flood fill
       description: Paint program with color palette, brush (PSET), and flood fill

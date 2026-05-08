@@ -32688,3 +32688,48 @@ fn test_rotate_180_degrees() {
         "180° rotation: blue should move from bottom-right to top-left"
     );
 }
+
+#[test]
+fn test_flood_demo_assembles() {
+    // Verify flood_demo.asm assembles and runs to HALT after drawing scene
+    let source = std::fs::read_to_string("programs/flood_demo.asm")
+        .expect("programs/flood_demo.asm should exist");
+    let asm = crate::assembler::assemble(&source, 0).expect("flood_demo should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    // Run until HALT or frame (no input in CLI mode, so it halts after draw_scene)
+    let mut steps = 0;
+    while vm.step() && steps < 100_000 {
+        steps += 1;
+    }
+    assert!(vm.halted, "flood_demo should halt after drawing scene");
+    // Screen should have white border pixels (from RECTF draws)
+    let mut white_pixels = 0u32;
+    for &pixel in vm.screen.iter() {
+        if pixel == 0xFFFFFF {
+            white_pixels += 1;
+        }
+    }
+    assert!(
+        white_pixels > 500,
+        "flood_demo should draw white border walls, got {} white pixels",
+        white_pixels
+    );
+    // Screen should also have colored rectangles
+    let mut non_black = 0u32;
+    for &pixel in vm.screen.iter() {
+        if pixel != 0 {
+            non_black += 1;
+        }
+    }
+    assert!(
+        non_black > 1000,
+        "flood_demo should draw multiple colored shapes, got {} non-black pixels",
+        non_black
+    );
+}
