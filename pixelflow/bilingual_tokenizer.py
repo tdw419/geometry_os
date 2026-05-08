@@ -92,28 +92,29 @@ class BilingualTokenizer:
 
         lines = text.split('\n')
         for i, line in enumerate(lines):
-            trimmed = line.strip()
+            # V5 Change: Preserve leading whitespace for comments to keep BPE consistent
+            # but strip for code analysis
+            trimmed = line.lstrip()
             if not trimmed:
                 if i < len(lines) - 1: tokens.append(NEWLINE)
                 continue
 
             if trimmed.startswith(';'):
-                # Full-line comment -> BPE
-                tokens.extend(self._encode_bpe(trimmed))
+                # Full-line comment -> BPE (use original line to preserve indent/spacing)
+                tokens.extend(self._encode_bpe(line))
             else:
                 # Check for inline comment (code ; comment)
-                # Split on first semicolon that's not inside a string
-                semicolon_pos = self._find_comment_semicolon(trimmed)
+                semicolon_pos = self._find_comment_semicolon(line)
                 if semicolon_pos >= 0:
-                    code_part = trimmed[:semicolon_pos].rstrip()
-                    comment_part = trimmed[semicolon_pos:]  # includes the ';'
+                    code_part = line[:semicolon_pos]
+                    comment_part = line[semicolon_pos:]  # includes the ';'
                     # Encode code part
-                    if code_part:
+                    if code_part.strip():
                         tokens.extend(self._encode_asm_line(code_part))
                     # Encode comment part via BPE
                     tokens.extend(self._encode_bpe(comment_part))
                 else:
-                    tokens.extend(self._encode_asm_line(trimmed))
+                    tokens.extend(self._encode_asm_line(line))
 
             if i < len(lines) - 1:
                 tokens.append(NEWLINE)
@@ -122,50 +123,58 @@ class BilingualTokenizer:
         return tokens
 
     def _find_comment_semicolon(self, line):
-        """Find the position of a comment semicolon in an ASM line."""
-        # Simple heuristic: first ';' not preceded by a digit (avoids 0x; edge cases)
-        idx = line.find(';')
-        if idx > 0:
-            return idx
+        """Find the position of a comment semicolon in an ASM line, ignoring strings."""
+        in_string = False
+        for i, char in enumerate(line):
+            if char == '"':
+                in_string = not in_string
+            if char == ';' and not in_string:
+                return i
         return -1
 
     def _encode_asm_line(self, line):
         """Encode a pure ASM line (no comments) into token IDs."""
         tokens = []
-        prev_was_chars = False
-        # Split on whitespace, commas, colons, and brackets individually
+        # Split on delimiters but keep them
+        # V5: More robust regex for ASM tokens
         parts = re.split(r'([\s,:{}\[\]])', line)
         for p in parts:
+            if not p: continue
+            
+            # 1. Whitespace handling
+            if p.isspace():
+                # We don't usually emit tokens for whitespace in GeOS ASM 
+                # unless it's between two character-level tokens
+                continue
+
+            # 2. Structural delimiters
+            if p == ",":
+                tokens.append(COMMA)
+                continue
+            if p == ":":
+                tokens.append(COLON)
+                continue
+            
+            # 3. Opcode / Register / Atomic
             ps = p.strip()
             if not ps: continue
-            if ps == ",":
-                tokens.append(COMMA)
-                prev_was_chars = False
-            elif ps == ":":
-                tokens.append(COLON)
-                prev_was_chars = False
+            
+            tid = self.asm_tok._classify_token(ps)
+            
+            # 4. Literal Encoding (The sensitive part)
+            # If it's a number, label, or string, we use char-level encoding.
+            # But we MUST ensure we don't 'leak' into BPE unless it's unknown.
+            if tid in [NUM, LABEL, STR]:
+                # If there's a previous token that was also char-level,
+                # the split regex already separated them.
+                tokens.extend(self._encode_chars(ps))
             else:
-                tid = self.asm_tok._classify_token(ps)
-                # Directives (.byte, #define, etc.) should be treated as atomic-like
-                is_directive = ps.startswith('.') or ps.startswith('#')
-                if is_directive:
-                    # Encode directive as chars, then emit SPACE_TOKEN to separate from args
+                # Directives or complex tokens
+                if ps.startswith('.') or ps.startswith('#'):
                     tokens.extend(self._encode_chars(ps))
-                    tokens.append(SPACE_TOKEN)
-                    prev_was_chars = True
-                elif tid in [NUM, LABEL, STR]:
-                    if prev_was_chars:
-                        tokens.append(SPACE_TOKEN)
-                    tokens.extend(self._encode_chars(ps))
-                    prev_was_chars = True
-                elif ps == "[" or ps == "]":
-                    if prev_was_chars:
-                        tokens.append(SPACE_TOKEN)
-                    tokens.extend(self._encode_chars(ps))
-                    prev_was_chars = True
                 else:
+                    # Atomic opcode or register
                     tokens.append(tid)
-                    prev_was_chars = False
         return tokens
 
     def decode(self, ids):

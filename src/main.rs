@@ -3358,13 +3358,32 @@ fn main() {
                                                 response
                                                     .push_str("[error: missing arch= parameter]\n");
                                             } else {
-                                                vm.hypervisor_config = cfg.clone();
-                                                vm.hypervisor_window_id = window_id;
-                                                vm.hypervisor_active = true;
-                                                response.push_str(&format!(
-                                                    "[hypervisor: booted config='{}' window={} active={}]\n",
-                                                    cfg, window_id, vm.hypervisor_active
-                                                ));
+                                                // Kill any existing QEMU first
+                                                if let Some(ref mut bridge) = qemu_bridge {
+                                                    let _ = bridge.kill();
+                                                }
+                                                qemu_bridge = None;
+                                                qemu_active = false;
+
+                                                let resolved_cfg = resolve_qemu_pixel_paths(&cfg);
+                                                match QemuBridge::spawn(&resolved_cfg) {
+                                                    Ok(bridge) => {
+                                                        canvas_buffer.fill(0);
+                                                        scroll_offset = 0;
+                                                        qemu_active = true;
+                                                        qemu_bridge = Some(bridge);
+                                                        vm.hypervisor_config = resolved_cfg;
+                                                        vm.hypervisor_window_id = window_id;
+                                                        vm.hypervisor_active = true;
+                                                        response.push_str(&format!(
+                                                            "[hypervisor: booted config='{}' window={} active={}]\n",
+                                                            cfg, window_id, vm.hypervisor_active
+                                                        ));
+                                                    }
+                                                    Err(e) => {
+                                                        response.push_str(&format!("[error: {}]\n", e));
+                                                    }
+                                                }
                                             }
                                         }
                                         None => {
@@ -3375,7 +3394,12 @@ fn main() {
                             }
                             "hypervisor_kill" => {
                                 // Kill running hypervisor
-                                if vm.hypervisor_active {
+                                if vm.hypervisor_active || qemu_active {
+                                    if let Some(ref mut bridge) = qemu_bridge {
+                                        let _ = bridge.kill();
+                                    }
+                                    qemu_bridge = None;
+                                    qemu_active = false;
                                     vm.hypervisor_active = false;
                                     vm.hypervisor_config.clear();
                                     vm.hypervisor_window_id = 0;
