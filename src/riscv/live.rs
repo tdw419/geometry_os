@@ -423,10 +423,11 @@ fn vm_thread_main(
                 }
             }
 
-            // Linux needs ~10x CLINT tick ratio (bare-metal ELF uses 1:1).
-            // Ticking 100x caused an interrupt storm; 10x is more stable.
+            // Linux needs a higher CLINT tick ratio than bare-metal programs.
+            // Using 1x multiplier to avoid timer interrupt storm while allowing
+            // the kernel to progress through its jiffy-based scheduling.
             let step_result = if is_linux {
-                vm.step_with_clint_ticks(10)
+                vm.step_with_clint_ticks(1)
             } else {
                 vm.step()
             };

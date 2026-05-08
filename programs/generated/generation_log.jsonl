@@ -1,0 +1,2 @@
+{"prompt": "Draw a yellow rectangle at (20,20) to (100,80)", "file": "000_yellow_rect.asm", "success": true, "non_black_ratio": 0.0732, "timestamp": "2026-05-08T17:12:00"}
+{"prompt": "Draw a white diagonal line from (0, 0) to (255, 255)", "file": "001_white_diagonal.asm", "success": true, "non_black_ratio": 0.0039, "timestamp": "2026-05-08T17:12:30"}
