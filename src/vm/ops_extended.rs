@@ -2238,4 +2238,989 @@ mod tests {
         vm2.step();
         vm2
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Phase 277: Unit tests for extended opcodes
+    // CMP (0x50), SAR (0x2B), BFE (0xC2), BFI (0xC3),
+    // CMOV (0xE0), CSEL (0xEF), FORMULA (0x75/0x76/0x77)
+    // ═══════════════════════════════════════════════════════════════
+
+    // ── CMP signed comparison edge cases (0x50) ─────────────────
+    // CMP rd, rs: r0 = 0xFFFFFFFF (a<b), 0 (a==b), 1 (a>b)
+    // Encoding: 3 words [0x50, rd, rs]
+
+    #[test]
+    fn test_cmp_equal() {
+        // CMP r1, r2 where both are 42
+        let mut vm = Vm::new();
+        vm.regs[1] = 42;
+        vm.regs[2] = 42;
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_cmp_less_than() {
+        // CMP r1, r2 where r1=-1 (0xFFFFFFFF), r2=0
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFFF; // -1 as i32
+        vm.regs[2] = 0;
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // less
+    }
+
+    #[test]
+    fn test_cmp_greater_than() {
+        // CMP r1, r2 where r1=100, r2=50
+        let mut vm = Vm::new();
+        vm.regs[1] = 100;
+        vm.regs[2] = 50;
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 1); // greater
+    }
+
+    #[test]
+    fn test_cmp_i32_min_vs_max() {
+        // i32::MIN (-2147483648) vs i32::MAX (2147483647)
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x80000000u32; // i32::MIN
+        vm.regs[2] = 0x7FFFFFFFu32; // i32::MAX
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // MIN < MAX
+    }
+
+    #[test]
+    fn test_cmp_i32_max_vs_min() {
+        // i32::MAX vs i32::MIN
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x7FFFFFFFu32; // i32::MAX
+        vm.regs[2] = 0x80000000u32; // i32::MIN
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 1); // MAX > MIN
+    }
+
+    #[test]
+    fn test_cmp_i32_min_vs_zero() {
+        // i32::MIN vs 0
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x80000000u32; // i32::MIN = -2147483648
+        vm.regs[2] = 0;
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // MIN < 0
+    }
+
+    #[test]
+    fn test_cmp_i32_max_vs_zero() {
+        // i32::MAX vs 0
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x7FFFFFFFu32; // i32::MAX = 2147483647
+        vm.regs[2] = 0;
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 1); // MAX > 0
+    }
+
+    #[test]
+    fn test_cmp_both_zero() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0;
+        vm.regs[2] = 0;
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0); // equal
+    }
+
+    #[test]
+    fn test_cmp_negative_vs_negative() {
+        // -5 vs -3: -5 < -3
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFFBu32; // -5
+        vm.regs[2] = 0xFFFFFFFDu32; // -3
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // less
+    }
+
+    #[test]
+    fn test_cmp_same_register() {
+        // CMP r1, r1 should always be equal
+        let mut vm = Vm::new();
+        vm.regs[1] = 12345;
+        let vm = step_one_from(&vm, &[0x50, 1, 1], 0);
+        assert_eq!(vm.regs[0], 0); // equal
+    }
+
+    #[test]
+    fn test_cmp_clobbers_r0() {
+        // CMP writes to r0 regardless of which regs are compared
+        let mut vm = Vm::new();
+        vm.regs[0] = 42; // r0 has a value
+        vm.regs[3] = 10;
+        vm.regs[4] = 20;
+        let vm = step_one_from(&vm, &[0x50, 3, 4], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // r0 was overwritten by CMP result
+    }
+
+    #[test]
+    fn test_cmp_large_positive_values() {
+        // 0x7FFFFF00 vs 0x7FFFFF01
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x7FFFFF00;
+        vm.regs[2] = 0x7FFFFF01;
+        let vm = step_one_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // less
+    }
+
+    // ── SAR arithmetic shift right (0x2B) ───────────────────────
+    // SAR rd, rs: rd = rd >> rs (arithmetic, sign-preserving)
+    // Encoding: 3 words [0x2B, rd, rs]
+
+    #[test]
+    fn test_sar_positive_by_one() {
+        // 8 >> 1 = 4
+        let mut vm = Vm::new();
+        vm.regs[1] = 8;
+        vm.regs[2] = 1;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 4);
+    }
+
+    #[test]
+    fn test_sar_positive_by_four() {
+        // 256 >> 4 = 16
+        let mut vm = Vm::new();
+        vm.regs[1] = 256;
+        vm.regs[2] = 4;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 16);
+    }
+
+    #[test]
+    fn test_sar_negative_preserves_sign() {
+        // -8 (0xFFFFFFF8) >> 1 = -4 (0xFFFFFFFC)
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFF8u32; // -8
+        vm.regs[2] = 1;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 0xFFFFFFFCu32); // -4
+    }
+
+    #[test]
+    fn test_sar_negative_by_large_shift() {
+        // -1 (0xFFFFFFFF) >> 31 = -1 (all sign bits)
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFFF; // -1
+        vm.regs[2] = 31;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 0xFFFFFFFF); // still -1
+    }
+
+    #[test]
+    fn test_sar_i32_min_by_one() {
+        // i32::MIN >> 1 = 0xC0000000 (still negative, sign preserved)
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x80000000u32; // i32::MIN
+        vm.regs[2] = 1;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 0xC0000000u32);
+    }
+
+    #[test]
+    fn test_sar_i32_min_by_31() {
+        // i32::MIN >> 31 = 0xFFFFFFFF (-1)
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x80000000u32; // i32::MIN
+        vm.regs[2] = 31;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 0xFFFFFFFFu32); // -1
+    }
+
+    #[test]
+    fn test_sar_shift_by_zero() {
+        // 42 >> 0 = 42
+        let mut vm = Vm::new();
+        vm.regs[1] = 42;
+        vm.regs[2] = 0;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 42);
+    }
+
+    #[test]
+    fn test_sar_shift_modulo_32() {
+        // Shift by 33 should be same as shift by 1 (mod 32)
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFF8u32; // -8
+        vm.regs[2] = 33;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 0xFFFFFFFCu32); // same as >> 1
+    }
+
+    #[test]
+    fn test_sar_negative_vs_logical_shift() {
+        // SAR of negative should fill with 1s, not 0s
+        // 0x80000000 >> 4 = 0xF8000000 (SAR) not 0x08000000 (SHR)
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x80000000u32;
+        vm.regs[2] = 4;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 0xF8000000u32); // sign bit propagated
+    }
+
+    #[test]
+    fn test_sar_small_negative() {
+        // -2 >> 1 = -1
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFFEu32; // -2
+        vm.regs[2] = 1;
+        let vm = step_one_from(&vm, &[0x2B, 1, 2], 0);
+        assert_eq!(vm.regs[1], 0xFFFFFFFFu32); // -1
+    }
+
+    // ── BFE bitfield extract (0xC2) ─────────────────────────────
+    // BFE rd, rs, width_reg, lsb_reg
+    // Extracts `width` bits starting at bit `lsb` from rs, zero-extends into rd.
+    // Encoding: 5 words [0xC2, rd, rs, width_reg, lsb_reg]
+
+    #[test]
+    fn test_bfe_extract_low_byte() {
+        // Extract 8 bits at lsb=0 from 0xAABBCCDD -> 0xDD
+        let mut vm = Vm::new();
+        vm.regs[2] = 0xAABBCCDD;
+        vm.regs[3] = 8; // width
+        vm.regs[4] = 0; // lsb
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xDD);
+    }
+
+    #[test]
+    fn test_bfe_extract_mid_nibble() {
+        // Extract 4 bits at lsb=8 from 0xAABBCCDD -> 0xC
+        // 0xAABBCCDD: bits [8:12) = 0xC (from the CC byte)
+        let mut vm = Vm::new();
+        vm.regs[2] = 0xAABBCCDD;
+        vm.regs[3] = 4; // width
+        vm.regs[4] = 8; // lsb
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xC);
+    }
+
+    #[test]
+    fn test_bfe_extract_msb() {
+        // Extract 4 bits at lsb=28 from 0xA0000000 -> 0xA
+        let mut vm = Vm::new();
+        vm.regs[2] = 0xA0000000;
+        vm.regs[3] = 4; // width
+        vm.regs[4] = 28; // lsb
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xA);
+    }
+
+    #[test]
+    fn test_bfe_extract_spanning_boundary() {
+        // Extract 16 bits at lsb=12 from 0x12345678
+        // 0x12345678 >> 12 = 0x12345, & 0xFFFF = 0x2345
+        let mut vm = Vm::new();
+        vm.regs[2] = 0x12345678;
+        vm.regs[3] = 16; // width
+        vm.regs[4] = 12; // lsb
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0x2345);
+    }
+
+    #[test]
+    fn test_bfe_extract_full_word() {
+        // Extract 32 bits from 0xDEADBEEF -> 0xDEADBEEF
+        let mut vm = Vm::new();
+        vm.regs[2] = 0xDEADBEEF;
+        vm.regs[3] = 32; // width
+        vm.regs[4] = 0; // lsb
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xDEADBEEF);
+    }
+
+    #[test]
+    fn test_bfe_extract_zero_width() {
+        // Width 0 -> result 0
+        let mut vm = Vm::new();
+        vm.regs[2] = 0xFFFFFFFF;
+        vm.regs[3] = 0; // width = 0
+        vm.regs[4] = 0;
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    #[test]
+    fn test_bfe_extract_lsb_out_of_range() {
+        // LSB >= 32 -> result 0
+        let mut vm = Vm::new();
+        vm.regs[2] = 0xFFFFFFFF;
+        vm.regs[3] = 8;
+        vm.regs[4] = 32; // lsb >= 32
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    #[test]
+    fn test_bfe_extract_single_bit() {
+        // Extract 1 bit at lsb=7 from 0x80 -> 1
+        let mut vm = Vm::new();
+        vm.regs[2] = 0x80;
+        vm.regs[3] = 1; // width
+        vm.regs[4] = 7; // lsb
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 1);
+    }
+
+    #[test]
+    fn test_bfe_extract_single_bit_zero() {
+        // Extract 1 bit at lsb=6 from 0x80 -> 0
+        let mut vm = Vm::new();
+        vm.regs[2] = 0x80;
+        vm.regs[3] = 1; // width
+        vm.regs[4] = 6; // lsb (bit 6 is 0 in 0x80)
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    #[test]
+    fn test_bfe_extract_from_zero() {
+        // Extract anything from 0 -> 0
+        let mut vm = Vm::new();
+        vm.regs[2] = 0;
+        vm.regs[3] = 16;
+        vm.regs[4] = 8;
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    #[test]
+    fn test_bfe_width_clamped_to_32() {
+        // Width > 32 should be clamped to 32
+        let mut vm = Vm::new();
+        vm.regs[2] = 0xDEADBEEF;
+        vm.regs[3] = 64; // width > 32
+        vm.regs[4] = 0;
+        let vm = step_one_from(&vm, &[0xC2, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xDEADBEEF); // treated as width=32
+    }
+
+    // ── BFI bitfield insert (0xC3) ─────────────────────────────
+    // BFI rd, rs, width_reg, lsb_reg
+    // Inserts `width` low bits of rs into rd starting at bit `lsb`.
+    // Encoding: 5 words [0xC3, rd, rs, width_reg, lsb_reg]
+
+    #[test]
+    fn test_bfi_insert_low_byte() {
+        // Insert 0xFF into bits [0:8) of 0x12345678 -> 0x123456FF
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x12345678; // dst
+        vm.regs[2] = 0xFF; // src (bits to insert)
+        vm.regs[3] = 8; // width
+        vm.regs[4] = 0; // lsb
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0x123456FF);
+    }
+
+    #[test]
+    fn test_bfi_insert_mid_nibble() {
+        // Insert 0xA into bits [8:12) of 0x12345678 -> 0x12345A78
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x12345678;
+        vm.regs[2] = 0xA;
+        vm.regs[3] = 4; // width
+        vm.regs[4] = 8; // lsb
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0x12345A78);
+    }
+
+    #[test]
+    fn test_bfi_insert_at_msb() {
+        // Insert 0xB into bits [28:32) of 0x00000000 -> 0xB0000000
+        let mut vm = Vm::new();
+        vm.regs[1] = 0;
+        vm.regs[2] = 0xB;
+        vm.regs[3] = 4; // width
+        vm.regs[4] = 28; // lsb
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xB0000000);
+    }
+
+    #[test]
+    fn test_bfi_preserves_surrounding_bits() {
+        // Insert 4 bits at lsb=4 into 0xFF00FF00
+        // Bits [4:8) cleared then set to low 4 bits of src
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFF00FF00;
+        vm.regs[2] = 0x9; // insert 0x9
+        vm.regs[3] = 4; // width
+        vm.regs[4] = 4; // lsb
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        // bits [4:8) were 0, now 9: 0xFF00FF90
+        assert_eq!(vm.regs[1], 0xFF00FF90);
+    }
+
+    #[test]
+    fn test_bfi_overwrite_existing() {
+        // Insert 0x3 into bits [0:4) of 0xFFFFFFF0 -> 0xFFFFFFF3
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFF0;
+        vm.regs[2] = 0x3;
+        vm.regs[3] = 4; // width
+        vm.regs[4] = 0; // lsb
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xFFFFFFF3);
+    }
+
+    #[test]
+    fn test_bfi_zero_width_noop() {
+        // Width 0 -> no change
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x12345678;
+        vm.regs[2] = 0xFF;
+        vm.regs[3] = 0; // width = 0
+        vm.regs[4] = 0;
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0x12345678); // unchanged
+    }
+
+    #[test]
+    fn test_bfi_lsb_out_of_range_noop() {
+        // LSB >= 32 -> no change
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x12345678;
+        vm.regs[2] = 0xFF;
+        vm.regs[3] = 8;
+        vm.regs[4] = 32; // lsb >= 32
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0x12345678); // unchanged
+    }
+
+    #[test]
+    fn test_bfi_full_word_insert() {
+        // Width 32 -> replace entire value
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x12345678;
+        vm.regs[2] = 0xDEADBEEF;
+        vm.regs[3] = 32; // width
+        vm.regs[4] = 0; // lsb
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xDEADBEEF);
+    }
+
+    #[test]
+    fn test_bfi_spanning_word_boundary() {
+        // Insert 8 bits at lsb=28: overlaps bits 28-31 and wraps
+        // 0x00000000, insert 0x12 at lsb=28, width=4 -> 0x10000000
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x00000000;
+        vm.regs[2] = 0x1; // insert 1 at bit 28
+        vm.regs[3] = 4; // width
+        vm.regs[4] = 28; // lsb
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0x10000000);
+    }
+
+    #[test]
+    fn test_bfi_src_high_bits_ignored() {
+        // Only low `width` bits of src are used
+        // Insert 0xFFF (12 bits) but width=4 -> only low 4 bits (0xF) used
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x00000000;
+        vm.regs[2] = 0xFFF;
+        vm.regs[3] = 4; // width = 4
+        vm.regs[4] = 0; // lsb
+        let vm = step_one_from(&vm, &[0xC3, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 0xF);
+    }
+
+    // ── CMOV conditional move (0xE0) ───────────────────────────
+    // CMOV rd, rs, cond_reg: if cond_reg != 0, rd = rs
+    // Encoding: 4 words [0xE0, rd, rs, cond_reg]
+
+    #[test]
+    fn test_cmov_condition_true() {
+        // cond=1 -> move happens
+        let mut vm = Vm::new();
+        vm.regs[1] = 0; // dst starts at 0
+        vm.regs[2] = 42; // src
+        vm.regs[3] = 1; // cond = true
+        let vm = step_one_from(&vm, &[0xE0, 1, 2, 3], 0);
+        assert_eq!(vm.regs[1], 42);
+    }
+
+    #[test]
+    fn test_cmov_condition_false() {
+        // cond=0 -> no move
+        let mut vm = Vm::new();
+        vm.regs[1] = 99; // dst
+        vm.regs[2] = 42; // src
+        vm.regs[3] = 0; // cond = false
+        let vm = step_one_from(&vm, &[0xE0, 1, 2, 3], 0);
+        assert_eq!(vm.regs[1], 99); // unchanged
+    }
+
+    #[test]
+    fn test_cmov_condition_negative_one() {
+        // cond=0xFFFFFFFF (from CMP less-than) -> move happens
+        let mut vm = Vm::new();
+        vm.regs[1] = 0;
+        vm.regs[2] = 77;
+        vm.regs[3] = 0xFFFFFFFF;
+        let vm = step_one_from(&vm, &[0xE0, 1, 2, 3], 0);
+        assert_eq!(vm.regs[1], 77);
+    }
+
+    #[test]
+    fn test_cmov_condition_large_value() {
+        // Any non-zero cond triggers move
+        let mut vm = Vm::new();
+        vm.regs[1] = 0;
+        vm.regs[2] = 55;
+        vm.regs[3] = 0x80000000;
+        let vm = step_one_from(&vm, &[0xE0, 1, 2, 3], 0);
+        assert_eq!(vm.regs[1], 55);
+    }
+
+    #[test]
+    fn test_cmov_same_register() {
+        // CMOV r1, r1, cond -> always no-op (rd=rs)
+        let mut vm = Vm::new();
+        vm.regs[1] = 123;
+        vm.regs[2] = 1; // cond=true, but src=dst
+        let vm = step_one_from(&vm, &[0xE0, 1, 1, 2], 0);
+        assert_eq!(vm.regs[1], 123);
+    }
+
+    #[test]
+    fn test_cmov_zero_source() {
+        // Move 0 when condition true
+        let mut vm = Vm::new();
+        vm.regs[1] = 42;
+        vm.regs[2] = 0; // src = 0
+        vm.regs[3] = 5; // cond = true
+        let vm = step_one_from(&vm, &[0xE0, 1, 2, 3], 0);
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    // ── CSEL conditional select (0xEF) ─────────────────────────
+    // CSEL rd, rs1, rs2, cond_reg: if cond != 0, rd = rs1, else rd = rs2
+    // Encoding: 5 words [0xEF, rd, rs1, rs2, cond_reg]
+
+    #[test]
+    fn test_csel_condition_true() {
+        // cond != 0 -> rd = rs1
+        let mut vm = Vm::new();
+        vm.regs[1] = 0; // dst
+        vm.regs[2] = 10; // rs1 (selected when true)
+        vm.regs[3] = 20; // rs2
+        vm.regs[4] = 1; // cond = true
+        let vm = step_one_from(&vm, &[0xEF, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 10);
+    }
+
+    #[test]
+    fn test_csel_condition_false() {
+        // cond == 0 -> rd = rs2
+        let mut vm = Vm::new();
+        vm.regs[1] = 0; // dst
+        vm.regs[2] = 10; // rs1
+        vm.regs[3] = 20; // rs2 (selected when false)
+        vm.regs[4] = 0; // cond = false
+        let vm = step_one_from(&vm, &[0xEF, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 20);
+    }
+
+    #[test]
+    fn test_csel_cmp_less_than() {
+        // Simulate: CMP r5, r6 (r5 < r6 -> r0 = 0xFFFFFFFF)
+        // CSEL r1, r5, r6, r0 -> r1 = r5 (the smaller value)
+        let mut vm = Vm::new();
+        vm.regs[5] = 3;
+        vm.regs[6] = 7;
+        vm.regs[0] = 0xFFFFFFFF; // CMP result: less
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0xEF, 1, 5, 6, 0], 0);
+        assert_eq!(vm.regs[1], 3); // selected rs1 (smaller)
+    }
+
+    #[test]
+    fn test_csel_cmp_equal() {
+        // CMP result: equal (r0=0) -> select rs2
+        let mut vm = Vm::new();
+        vm.regs[5] = 5;
+        vm.regs[6] = 5;
+        vm.regs[0] = 0; // CMP result: equal
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0xEF, 1, 5, 6, 0], 0);
+        assert_eq!(vm.regs[1], 5); // selected rs2
+    }
+
+    #[test]
+    fn test_csel_cmp_greater_than() {
+        // CMP result: greater (r0=1) -> select rs1
+        let mut vm = Vm::new();
+        vm.regs[5] = 10;
+        vm.regs[6] = 3;
+        vm.regs[0] = 1; // CMP result: greater
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0xEF, 1, 5, 6, 0], 0);
+        assert_eq!(vm.regs[1], 10); // selected rs1
+    }
+
+    #[test]
+    fn test_csel_max_pattern() {
+        // CSEL as max(a, b): CMP a, b; CSEL dst, b, a, r0
+        // If a < b (r0=0xFFFFFFFF), select b. If a >= b (r0=0 or 1), select a.
+        // But CMP r0 semantics: a<b -> 0xFFFFFFFF (non-zero, selects rs1=b)
+        // a==b -> 0 (zero, selects rs2=a) -- correct, max(a,a) = a
+        // a>b -> 1 (non-zero, selects rs1=b) -- WRONG, should select a
+        // So CSEL with CMP for max needs: CSEL dst, a, b, r0 works for min not max
+        // This test documents the actual behavior
+        let mut vm = Vm::new();
+        vm.regs[5] = 10; // a
+        vm.regs[6] = 3; // b
+        vm.regs[0] = 1; // a > b
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0xEF, 1, 5, 6, 0], 0);
+        // cond=1 (non-zero), so selects rs1=5 (which is a=10)
+        assert_eq!(vm.regs[1], 10); // selects the first (larger)
+    }
+
+    #[test]
+    fn test_csel_min_pattern() {
+        // CSEL as min: CSEL dst, a, b, r0
+        // a<b (r0=0xFFFFFFFF non-zero) -> select a (the smaller) -- correct for min
+        // a==b (r0=0) -> select b (same value) -- correct
+        // a>b (r0=1 non-zero) -> select a (the larger) -- wrong for min
+        // So pure CSEL doesn't give min/max directly from CMP result
+        let mut vm = Vm::new();
+        vm.regs[5] = 3; // a
+        vm.regs[6] = 10; // b
+        vm.regs[0] = 0xFFFFFFFF; // a < b
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0xEF, 1, 5, 6, 0], 0);
+        assert_eq!(vm.regs[1], 3); // selects a (smaller) -- min behavior
+    }
+
+    #[test]
+    fn test_csel_same_rs() {
+        // Both sources same -> dst gets that value regardless of cond
+        let mut vm = Vm::new();
+        vm.regs[2] = 42;
+        vm.regs[3] = 42;
+        vm.regs[1] = 0;
+        let vm = step_one_from(&vm, &[0xEF, 1, 2, 3, 4], 0);
+        assert_eq!(vm.regs[1], 42);
+    }
+
+    #[test]
+    fn test_csel_cond_is_destination() {
+        // cond register same as destination
+        let mut vm = Vm::new();
+        vm.regs[1] = 99; // dst and cond
+        vm.regs[2] = 10;
+        vm.regs[3] = 20;
+        // cond=99 (non-zero) -> select rs1=10 into r1
+        let vm = step_one_from(&vm, &[0xEF, 1, 2, 3, 1], 0);
+        assert_eq!(vm.regs[1], 10); // cond was read before write
+    }
+
+    // ── FORMULA registration and evaluation (0x75/0x76/0x77) ────
+
+    #[test]
+    fn test_formula_register_sub() {
+        // FORMULA target=10, op=1 (SUB), deps=[20, 21]
+        // bytecode: [0x75, 10, 1, 2, 20, 21]
+        let vm = step_one(&[0x75, 10, 1, 2, 20, 21], 0);
+        assert_eq!(vm.regs[0], 1); // success
+        assert_eq!(vm.formulas.len(), 1);
+    }
+
+    #[test]
+    fn test_formula_register_mul() {
+        // FORMULA target=5, op=2 (MUL), deps=[6, 7]
+        let vm = step_one(&[0x75, 5, 2, 2, 6, 7], 0);
+        assert_eq!(vm.regs[0], 1);
+        assert_eq!(vm.formulas[0].op, FormulaOp::Mul);
+    }
+
+    #[test]
+    fn test_formula_register_copy_single_dep() {
+        // FORMULA target=100, op=8 (COPY), deps=[200]
+        let vm = step_one(&[0x75, 100, 8, 1, 200], 0);
+        assert_eq!(vm.regs[0], 1);
+        assert_eq!(vm.formulas[0].deps, vec![200]);
+    }
+
+    #[test]
+    fn test_formula_register_all_ops() {
+        // Test each op code registers successfully
+        for op in 0..=13u32 {
+            let vm = step_one(&[0x75, 0, op, 2, 1, 2], 0);
+            assert_eq!(vm.regs[0], 1, "op={} should succeed", op);
+        }
+    }
+
+    #[test]
+    fn test_formula_register_max_deps() {
+        // Register with maximum dependencies (MAX_FORMULA_DEPS = 8)
+        let bytecode = &[0x75, 0, 0, 8, 1, 2, 3, 4, 5, 6, 7, 8];
+        let vm = step_one(bytecode, 0);
+        assert_eq!(vm.regs[0], 1); // success
+        assert_eq!(vm.formulas[0].deps.len(), 8);
+    }
+
+    #[test]
+    fn test_formula_evaluate_add() {
+        // Register ADD formula, set deps, evaluate
+        let mut vm = Vm::new();
+        // Set up: cell 10 = cell 1 + cell 2
+        vm.canvas_buffer[1] = 30;
+        vm.canvas_buffer[2] = 12;
+        vm.formula_register(10, vec![1, 2], FormulaOp::Add);
+        // Manually evaluate
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 42);
+    }
+
+    #[test]
+    fn test_formula_evaluate_sub() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 100;
+        vm.canvas_buffer[2] = 37;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Sub);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 63);
+    }
+
+    #[test]
+    fn test_formula_evaluate_mul() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 7;
+        vm.canvas_buffer[2] = 6;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Mul);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 42);
+    }
+
+    #[test]
+    fn test_formula_evaluate_div() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 100;
+        vm.canvas_buffer[2] = 4;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Div);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 25);
+    }
+
+    #[test]
+    fn test_formula_evaluate_div_by_zero() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 42;
+        vm.canvas_buffer[2] = 0;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Div);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 0); // div by zero returns 0
+    }
+
+    #[test]
+    fn test_formula_evaluate_and() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 0xFF00;
+        vm.canvas_buffer[2] = 0x0FF0;
+        vm.formula_register(5, vec![1, 2], FormulaOp::And);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 0x0F00);
+    }
+
+    #[test]
+    fn test_formula_evaluate_or() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 0xFF00;
+        vm.canvas_buffer[2] = 0x0FF0;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Or);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 0xFFF0);
+    }
+
+    #[test]
+    fn test_formula_evaluate_xor() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 0xFF00;
+        vm.canvas_buffer[2] = 0x0FF0;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Xor);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 0xF0F0);
+    }
+
+    #[test]
+    fn test_formula_evaluate_not() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 0x0F0F0F0F;
+        vm.formula_register(5, vec![1], FormulaOp::Not);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 0xF0F0F0F0);
+    }
+
+    #[test]
+    fn test_formula_evaluate_max() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 10;
+        vm.canvas_buffer[2] = 25;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Max);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 25);
+    }
+
+    #[test]
+    fn test_formula_evaluate_min() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 10;
+        vm.canvas_buffer[2] = 25;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Min);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 10);
+    }
+
+    #[test]
+    fn test_formula_evaluate_mod() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 17;
+        vm.canvas_buffer[2] = 5;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Mod);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 2);
+    }
+
+    #[test]
+    fn test_formula_evaluate_mod_by_zero() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 17;
+        vm.canvas_buffer[2] = 0;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Mod);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 0); // mod by zero returns 0
+    }
+
+    #[test]
+    fn test_formula_evaluate_shl() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 1;
+        vm.canvas_buffer[2] = 4;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Shl);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 16);
+    }
+
+    #[test]
+    fn test_formula_evaluate_shr() {
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 16;
+        vm.canvas_buffer[2] = 2;
+        vm.formula_register(5, vec![1, 2], FormulaOp::Shr);
+        let result = vm.formula_eval(&vm.formulas[0], &vm.canvas_buffer);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn test_formula_clear_removes_all() {
+        let mut vm = Vm::new();
+        vm.formula_register(0, vec![1, 2], FormulaOp::Add);
+        vm.formula_register(3, vec![4, 5], FormulaOp::Mul);
+        assert_eq!(vm.formulas.len(), 2);
+        vm.formula_clear_all();
+        assert_eq!(vm.formulas.len(), 0);
+        assert!(vm.formula_dep_index.is_empty());
+    }
+
+    #[test]
+    fn test_formula_remove_specific() {
+        let mut vm = Vm::new();
+        vm.formula_register(0, vec![1, 2], FormulaOp::Add);
+        vm.formula_register(3, vec![4, 5], FormulaOp::Mul);
+        assert_eq!(vm.formulas.len(), 2);
+        vm.formula_remove(0);
+        assert_eq!(vm.formulas.len(), 1);
+        assert_eq!(vm.formulas[0].target_idx, 3);
+    }
+
+    #[test]
+    fn test_formula_remove_nonexistent() {
+        let mut vm = Vm::new();
+        vm.formula_register(0, vec![1], FormulaOp::Copy);
+        vm.formula_remove(99); // doesn't exist
+        assert_eq!(vm.formulas.len(), 1); // unchanged
+    }
+
+    #[test]
+    fn test_formula_cycle_detection() {
+        // A depends on B, B depends on A -> cycle
+        let mut vm = Vm::new();
+        // Register: target=0, deps=[1] (0 depends on 1)
+        assert!(vm.formula_register(0, vec![1], FormulaOp::Copy));
+        // Try: target=1, deps=[0] (1 depends on 0) -> cycle!
+        assert!(!vm.formula_register(1, vec![0], FormulaOp::Copy));
+    }
+
+    #[test]
+    fn test_formula_chain_no_cycle() {
+        // A depends on B, C depends on A -> not a cycle
+        let mut vm = Vm::new();
+        assert!(vm.formula_register(0, vec![1], FormulaOp::Copy)); // 0 <- 1
+        assert!(vm.formula_register(2, vec![0], FormulaOp::Copy)); // 2 <- 0, not a cycle
+    }
+
+    #[test]
+    fn test_formula_reregister_replaces() {
+        // Registering on same target replaces old formula
+        let mut vm = Vm::new();
+        vm.formula_register(5, vec![1, 2], FormulaOp::Add);
+        assert_eq!(vm.formulas.len(), 1);
+        vm.formula_register(5, vec![3, 4], FormulaOp::Mul);
+        assert_eq!(vm.formulas.len(), 1); // still 1 (replaced)
+        assert_eq!(vm.formulas[0].op, FormulaOp::Mul);
+        assert_eq!(vm.formulas[0].deps, vec![3, 4]);
+    }
+
+    #[test]
+    fn test_formula_invalid_target_out_of_range() {
+        // target_idx >= CANVAS_RAM_SIZE (4096)
+        let mut vm = Vm::new();
+        assert!(!vm.formula_register(5000, vec![1], FormulaOp::Copy));
+    }
+
+    #[test]
+    fn test_formula_invalid_dep_out_of_range() {
+        // dep >= CANVAS_RAM_SIZE
+        let mut vm = Vm::new();
+        assert!(!vm.formula_register(0, vec![5000], FormulaOp::Copy));
+    }
+
+    #[test]
+    fn test_formula_recalc_updates_target() {
+        // Register cell 10 = cell 1 + cell 2
+        // Change cell 1, recalc should update cell 10
+        let mut vm = Vm::new();
+        vm.canvas_buffer[1] = 10;
+        vm.canvas_buffer[2] = 20;
+        vm.formula_register(10, vec![1, 2], FormulaOp::Add);
+        // Change cell 1 and recalc
+        vm.canvas_buffer[1] = 100;
+        vm.formula_recalc(1);
+        assert_eq!(vm.canvas_buffer[10], 120); // 100 + 20
+    }
+
+    #[test]
+    fn test_formula_recalc_no_dependents() {
+        // Recalcing a cell with no formulas depending on it is a no-op
+        let mut vm = Vm::new();
+        vm.canvas_buffer[50] = 999;
+        vm.formula_recalc(50); // nothing depends on 50
+                               // No crash, no change
+    }
+
+    #[test]
+    fn test_formula_opcode_invalid_op_fallback() {
+        // op_code=99 should fall back to Copy
+        let vm = step_one(&[0x75, 0, 99, 1, 5], 0);
+        assert_eq!(vm.regs[0], 1); // succeeds
+        assert_eq!(vm.formulas[0].op, FormulaOp::Copy);
+    }
 }
