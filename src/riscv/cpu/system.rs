@@ -132,20 +132,26 @@ impl RiscvCpu {
                         &mut bus.clint,
                     );
 
+                    eprintln!("[cpu] ECALL at PC=0x{:08X}, a7=0x{:08X}, a6=0x{:X}, sbi_hit={}", 
+                        self.pc, a7, a6, sbi_result.is_some());
+
                     if let Some((ret_a0, ret_a1)) = sbi_result {
                         self.x[10] = ret_a0;
                         self.x[11] = ret_a1;
 
                         // Handle DBCN pending write: read from guest memory
                         if let Some((phys_addr, num_bytes)) = bus.sbi.dbcn_pending_write.take() {
+                            eprintln!("[cpu] DBCN write at 0x{:08X}, len={}", phys_addr, num_bytes);
                             for i in 0..num_bytes {
                                 if let Ok(b) = bus.read_byte(phys_addr + i as u64) {
+                                    eprint!("{}", b as char);
                                     if b != 0 {
                                         bus.uart.write_byte(0, b);
                                         bus.sbi.console_output.push(b);
                                     }
                                 }
                             }
+                            let _ = std::io::Write::flush(&mut std::io::stderr());
                         }
 
                         // Phase 244: Handle NET pending send/recv

@@ -658,6 +658,23 @@ impl RiscvVm {
         vm.bus.write_word(sbi_dbcn_pa, 1).ok(); // bool true
         eprintln!("[boot] Pre-set sbi_debug_console_available=true for earlycon DBCN");
 
+        // Patch early_sbi_setup() to force enable DBCN.
+        //   PA 0x00414CAC: cb89  -- C.BEQZ a5, c0414cbe
+        let early_sbi_setup_patch_pa: u64 = 0x00414CAC;
+        if let Ok(0xCB89) = vm.bus.read_half(early_sbi_setup_patch_pa) {
+            vm.bus.write_half(early_sbi_setup_patch_pa, 0x0001).ok();
+            eprintln!("[boot] Patched early_sbi_setup to force enable DBCN");
+        }
+
+        // Patch sbi_debug_console_write() to skip the flag check.
+        //   PA 0x0000E7AC: cff9  -- C.BEQZ a5, c000e88a
+        let sbi_write_patch_pa: u64 = 0x0000E7AC;
+        if let Ok(0xCFF9) = vm.bus.read_half(sbi_write_patch_pa) {
+            vm.bus.write_half(sbi_write_patch_pa, 0x0001).ok();
+            eprintln!("[boot] Patched sbi_debug_console_write to force enable output");
+        }
+
+
         // Patch calibrate_delay to return immediately.
         // calibrate_delay() at VA 0xC00080DA (PA 0x00080DA) runs an
         // exponentially-growing loop calling udelay() to measure CPU speed.

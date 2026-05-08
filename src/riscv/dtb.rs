@@ -238,6 +238,8 @@ pub struct DtbConfig {
     pub plic_base: u64,
     /// Virtio MMIO base address.
     pub virtio_base: u64,
+    /// Virtio network device MMIO base address.
+    pub virtio_net_base: u64,
     /// Initrd start address (physical). None = no initrd.
     pub initrd_start: Option<u64>,
     /// Initrd end address (physical). None = no initrd.
@@ -260,6 +262,7 @@ impl Default for DtbConfig {
             clint_base: 0x0200_0000,
             plic_base: 0x0C00_0000,
             virtio_base: 0x1000_1000,
+            virtio_net_base: 0x1000_2000,
             initrd_start: None,
             initrd_end: None,
             bootargs: String::new(),
@@ -388,6 +391,13 @@ pub fn generate_dtb(config: &DtbConfig) -> Vec<u8> {
     b.prop_u32("interrupt-parent", 2); // PLIC phandle
     b.end_node();
 
+    b.begin_node("virtio@10002000");
+    b.prop_string("compatible", "virtio,mmio");
+    b.prop_reg("reg", config.virtio_net_base, 0x1000);
+    b.prop_u32("interrupts", 2); // IRQ 2
+    b.prop_u32("interrupt-parent", 2); // PLIC phandle
+    b.end_node();
+
     b.end_node(); // soc
 
     // Chosen node (for boot args, initrd, etc).
@@ -477,6 +487,7 @@ mod tests {
             clint_base: 0x0200_0000,
             plic_base: 0x0C00_0000,
             virtio_base: 0x1000_1000,
+            virtio_net_base: 0x1000_2000,
             initrd_start: None,
             initrd_end: None,
             bootargs: String::new(),

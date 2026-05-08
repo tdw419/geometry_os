@@ -93,10 +93,84 @@ HALT
 """
         return desc, code.strip()
 
-    def generate_dataset(self, num_samples=10000):
-        generators = [self.generate_rectf, self.generate_circle, self.generate_fill, self.generate_line]
+    def generate_gradient(self):
+        color_name = random.choice(["red", "green", "blue", "white", "yellow", "cyan", "magenta"])
+        color_val = COLORS[color_name]
         
-        print(f"[*] Generating {num_samples} samples...")
+        desc = f"; DESCRIPTION: Fills the screen with a vertical {color_name} gradient."
+        code = f"""
+; Initialize color and loop counters
+LDI r0, {color_val}
+LDI r1, 0  ; y coordinate
+LDI r2, 0  ; x coordinate
+LDI r3, 512 ; width
+LDI r4, 256 ; height
+
+y_loop:
+  LDI r2, 0
+  x_loop:
+    PSET r2, r1, r0
+    LDI r5, 1
+    ADD r2, r5
+    LDI r5, 512
+    CMP r2, r5
+    BLT r0, x_loop
+  
+  LDI r5, 1
+  ADD r1, r5
+  LDI r5, 256
+  CMP r1, r5
+  BLT r0, y_loop
+HALT
+"""
+        return desc, code.strip()
+
+    def generate_loop(self):
+        count = random.randint(5, 50)
+        desc = f"; DESCRIPTION: A simple program that loads {count} into r1 and decrements it in a loop."
+        code = f"""
+LDI r1, {count}
+loop:
+  LDI r2, 1
+  SUB r1, r2
+  JNZ r1, loop
+HALT
+"""
+        return desc, code.strip()
+
+    def generate_multi(self):
+        # Generate 2-3 primitives
+        num_prims = random.randint(2, 3)
+        descs = []
+        codes = []
+        
+        # We need to use different registers or be careful
+        # For simplicity, we just stack them
+        for _ in range(num_prims):
+            prim_gen = random.choice([self.generate_rectf, self.generate_circle, self.generate_line])
+            d, c = prim_gen()
+            # Strip HALT from intermediate
+            c = c.replace("HALT", "")
+            descs.append(d.replace("; DESCRIPTION: ", ""))
+            codes.append(c.strip())
+            
+        desc = "; DESCRIPTION: Composite program: " + " then ".join(descs)
+        code = "\n".join(codes) + "\nHALT"
+        return desc, code
+
+    def generate_dataset(self, num_samples=50000):
+
+        generators = [
+            self.generate_rectf, 
+            self.generate_circle, 
+            self.generate_fill, 
+            self.generate_line,
+            self.generate_gradient,
+            self.generate_loop,
+            self.generate_multi
+        ]
+        
+        print(f"[*] Generating {num_samples} samples (Combinatorial Curriculum)...")
         for i in range(num_samples):
             gen = random.choice(generators)
             desc, code = gen()

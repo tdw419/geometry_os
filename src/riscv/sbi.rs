@@ -302,15 +302,15 @@ impl Sbi {
         a6: u32,
         a0: u32,
         a1: u32,
-        _a2: u32,
-        _a3: u32,
-        _a4: u32,
-        _a5: u32,
+        a2: u32,
+        a3: u32,
+        a4: u32,
+        a5: u32,
         uart: &mut Uart,
         clint: &mut super::clint::Clint,
     ) -> Option<(u32, u32)> {
         // Log ECALL arguments for debugging (before they're modified)
-        self.ecall_log.push((a7, a6, a0));
+        if a7 != 0x54494D45 && a7 != 0 { eprintln!("[sbi] call a7=0x{:08X} a6=0x{:X} a0=0x{:X} a1=0x{:X} a2=0x{:X} a3=0x{:X}", a7, a6, a0, a1, a2, a3); } self.ecall_log.push((a7, a6, a0));
         match a7 {
             // SBI v0.1 legacy calls (extension ID is the function ID, a6=0)
             SBI_CONSOLE_PUTCHAR => {
@@ -470,7 +470,7 @@ impl Sbi {
                         // will read from guest memory and output to UART.
                         let num_bytes = a0 as usize;
                         let base_low = a1 as u64;
-                        let base_high = (_a2 as u64) << 32;
+                        let base_high = (a2 as u64) << 32;
                         let phys_addr = base_high | base_low;
                         self.dbcn_pending_write = Some((phys_addr, num_bytes));
                         // Return success -- caller handles the actual write
@@ -553,9 +553,9 @@ impl Sbi {
                     // access to guest memory for the actual data transfer.
                     let code_addr = a0 as u64;
                     let num_words = a1;
-                    let max_steps = _a2;
-                    let num_tiles = _a3;
-                    let result_addr = (_a4 as u64) | ((_a5 as u64) << 32);
+                    let max_steps = a2;
+                    let num_tiles = a3;
+                    let result_addr = (a4 as u64) | ((a5 as u64) << 32);
                     self.gpu_compute_requested =
                         Some((code_addr, num_words, max_steps, num_tiles, result_addr));
                     Some((SBI_SUCCESS as u32, 0))
@@ -640,8 +640,8 @@ impl Sbi {
                     // has access to guest memory. Here we store the request.
                     let shm_id = a0;
                     let offset = a1 as usize;
-                    let src_addr = _a2 as u64;
-                    let len = _a3 as usize;
+                    let src_addr = a2 as u64;
+                    let len = a3 as usize;
                     let region = match self.shm_regions.iter().find(|r| r.id == shm_id) {
                         Some(r) => r,
                         None => return Some((SBI_ERR_INVALID_PARAM as u32, 0)),
@@ -664,8 +664,8 @@ impl Sbi {
                     // Similar to SHM_WRITE, the actual copy is fulfilled by step loop.
                     let shm_id = a0;
                     let offset = a1 as usize;
-                    let dst_addr = _a2 as u64;
-                    let len = _a3 as usize;
+                    let dst_addr = a2 as u64;
+                    let len = a3 as usize;
                     let region = match self.shm_regions.iter().find(|r| r.id == shm_id) {
                         Some(r) => r,
                         None => return Some((SBI_ERR_INVALID_PARAM as u32, 0)),
@@ -751,7 +751,7 @@ impl Sbi {
             // Phase 244: Network extension (TCP connect/send/recv/disconnect)
             SBI_EXT_NET => {
                 let a1 = a1;
-                let a2 = _a2;
+                let a2 = a2;
                 match a6 {
                     NET_FN_CONNECT => {
                         // a0 = IP address packed as big-endian octets

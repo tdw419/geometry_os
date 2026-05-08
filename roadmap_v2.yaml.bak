@@ -4796,7 +4796,7 @@ phases:
   _claimed_at: 1778272032
 - id: phase-280
   title: GeOS VM -- String Library Opcodes (STRLEN, STRCMP, STRCPY, STRCAT)
-  status: planned
+  status: in_progress
   goal: Add string manipulation opcodes to reduce boilerplate in shell, editor, and
     text-heavy programs.
   description: Current string operations require manual null-terminator scanning loops
@@ -4826,7 +4826,7 @@ phases:
   - description: Disassembler shows correct mnemonic for each opcode
     validation: cargo test --lib disasm_str
   _claimed_by: worker-0
-  _claimed_at: 1778272795
+  _claimed_at: 1778277471
 - id: phase-281
   title: Documentation -- Modernize CANVAS_TEXT_SURFACE.md and ARCHITECTURE.md
   status: done
