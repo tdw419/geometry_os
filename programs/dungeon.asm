@@ -1,504 +1,711 @@
-; Geometry OS - Procedural Dungeon Generator with Fog of War
-; Controls: WASD=move, R=regenerate
-; Map: 32x32 tiles, 8x8 pixels each (256x256 screen)
+; dungeon.asm -- Procedural Dungeon Crawler with Fog of War
+; BSP room generation, L-shaped corridors, radius-based visibility
+; Controls: W/A/S/D = move, R = regenerate dungeon
 ;
-; Memory Map
-; 0x2000..0x23FF  map[1024]       (0=wall, 1=floor, 2=corridor)
-; 0x3000..0x33FF  vis[1024]       (0=hidden, 1=explored, 2=visible)
-; 0x4000         player_x
-; 0x4001         player_y
-; 0x6200         debug_rays (tiles checked in fog)
+; 32x32 tile map, 8x8 pixel tiles = 256x256 screen
+;
+; Memory map:
+;   0x2000-0x23FF  Tiles (1024: 0=wall, 1=floor)
+;   0x3000-0x33FF  Visibility (1024: 0=hidden, 1=explored, 2=visible)
+;   0x4000        player_x
+;   0x4001        player_y
+;   0x4100-0x4103  Room 0 (x, y, w, h)
+;   0x4110-0x4113  Room 1 (x, y, w, h)
+;   0x4120-0x4123  Room 2 (x, y, w, h)
+;   0x4130-0x4133  Room 3 (x, y, w, h)
+;   0x6000-0x6005  Color LUT (6 entries)
 ;
 ; Register Convention
+; r1  = temp (reusable)
 ; r4  = 1 (constant)
 ; r5  = 5 (for SHL multiply by 32)
 ; r6  = 0x2000 (map base)
 ; r7  = 0x3000 (vis base)
 ; r8  = player_x
 ; r9  = player_y
-; r10 = temp
-; r11 = temp
-; r12 = temp
-; r13 = temp
-; r14 = temp
-; r15 = temp
-; r16 = temp (room x)
-; r17 = temp (room y)
-; r18 = temp (room w)
-; r19 = temp (room h)
-; r20-r25 = temps
+; r10-r25 = temps for subroutines
 ; r30 = SP, r31 = LR
 
-; === INIT ===
-    LDI r30, 0xFF00
+; === ENTRY ===
+restart:
+    LDI r30, 0xFE00
     LDI r4, 1
     LDI r5, 5
     LDI r6, 0x2000
     LDI r7, 0x3000
-    CALL gen_dungeon
+
+    PUSH r31
+    CALL init_colors
+    POP r31
+    PUSH r31
+    CALL init_dungeon
+    POP r31
     JMP game_loop
 
-; === GENERATE DUNGEON ===
-; Deterministic 3x3 grid of rooms with corridors
-gen_dungeon:
-    PUSH r31
-    ; Clear map (1024 words of 0)
-    LDI r10, 0x2000
-    LDI r11, 0x2400
-    LDI r12, 0
-clr_map:
-    CMP r10, r11
+; === COLOR TABLE ===
+; Index = vis*3 + tile_type (0=wall, 1=floor)
+; Wall:  0=hidden(0x0C0C18) 1=explored(0x2A2A44) 2=visible(0x5566AA)
+; Floor: 3=hidden(0x0C0C18) 4=explored(0x1E1E36) 5=visible(0x8888CC)
+init_colors:
+    LDI r20, 0x6000
+    LDI r1, 0x0C0C18
+    STORE r20, r1
+    ADDI r20, 1
+    LDI r1, 0x2A2A44
+    STORE r20, r1
+    ADDI r20, 1
+    LDI r1, 0x5566AA
+    STORE r20, r1
+    ADDI r20, 1
+    LDI r1, 0x0C0C18
+    STORE r20, r1
+    ADDI r20, 1
+    LDI r1, 0x1E1E36
+    STORE r20, r1
+    ADDI r20, 1
+    LDI r1, 0x8888CC
+    STORE r20, r1
+    RET
+
+; === DUNGEON INITIALIZATION ===
+; BSP split: divide 32x32 into 4 quadrants with random split point
+; Place random room in each quadrant, connect with corridors
+init_dungeon:
+    ; Clear tile map (1024 words of 0)
+    LDI r20, 0x2000
+    LDI r21, 0x2400
+    LDI r1, 0
+clr_tiles:
+    CMP r20, r21
     BGE r0, clr_vis
-    STORE r10, r12
-    ADD r10, r4
-    JMP clr_map
+    STORE r20, r1
+    ADDI r20, 1
+    JMP clr_tiles
+
 clr_vis:
-    ; Clear vis (1024 words of 0)
-    LDI r10, 0x3000
-    LDI r11, 0x3400
-clr_vis_l:
-    CMP r10, r11
-    BGE r0, gen_rooms
-    STORE r10, r12
-    ADD r10, r4
-    JMP clr_vis_l
+    ; Clear visibility map (1024 words of 0)
+    LDI r20, 0x3000
+    LDI r21, 0x3400
+clr_v:
+    CMP r20, r21
+    BGE r0, bsp_start
+    STORE r20, r1
+    ADDI r20, 1
+    JMP clr_v
 
-gen_rooms:
-    ; Carve 9 rooms in 3x3 grid
-    ; Each grid cell is 10 tiles, rooms are 5x5 centered in cell
-    ; Room positions: (1,1) (11,1) (21,1) (1,11) (11,11) (21,11) (1,21) (11,21) (21,21)
-    ; Room 0: (1,1) 5x5
-    LDI r16, 1
-    LDI r17, 1
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
-    ; Room 1: (11,1) 5x5
-    LDI r16, 11
-    LDI r17, 1
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
-    ; Room 2: (21,1) 5x5
-    LDI r16, 21
-    LDI r17, 1
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
-    ; Room 3: (1,11) 5x5
-    LDI r16, 1
-    LDI r17, 11
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
-    ; Room 4: (11,11) 5x5 (center)
-    LDI r16, 11
-    LDI r17, 11
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
-    ; Room 5: (21,11) 5x5
-    LDI r16, 21
-    LDI r17, 11
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
-    ; Room 6: (1,21) 5x5
-    LDI r16, 1
-    LDI r17, 21
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
-    ; Room 7: (11,21) 5x5
-    LDI r16, 11
-    LDI r17, 21
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
-    ; Room 8: (21,21) 5x5
-    LDI r16, 21
-    LDI r17, 21
-    LDI r18, 5
-    LDI r19, 5
-    CALL carve_room
+bsp_start:
+    ; BSP split: horizontal at y=10+rand(12), vertical at x=10+rand(12)
+    ; This creates 4 quadrants for 4 rooms
+    RAND r22
+    LDI r23, 12
+    MOD r22, r23
+    ADDI r22, 10       ; split_y (10..21)
 
-    ; Connect rooms with corridors
-    ; Horizontal: 0->1 (y=3, x: 6 to 10), 1->2 (y=3, x: 16 to 20)
-    ;            3->4 (y=13, x: 6 to 10), 4->5 (y=13, x: 16 to 20)
-    ;            6->7 (y=23, x: 6 to 10), 7->8 (y=23, x: 16 to 20)
-    LDI r17, 3
-    CALL carve_h_corridor
-    LDI r17, 13
-    CALL carve_h_corridor
-    LDI r17, 23
-    CALL carve_h_corridor
+    RAND r24
+    LDI r23, 12
+    MOD r24, r23
+    ADDI r24, 10       ; split_x (10..21)
 
-    ; Vertical: 0->3 (x=3, y: 6 to 10), 3->6 (x=3, y: 16 to 20)
-    ;           1->4 (x=13, y: 6 to 10), 4->7 (x=13, y: 16 to 20)
-    ;           2->5 (x=23, y: 6 to 10), 5->8 (x=23, y: 16 to 20)
-    LDI r16, 3
-    CALL carve_v_corridor
-    LDI r16, 13
-    CALL carve_v_corridor
-    LDI r16, 23
-    CALL carve_v_corridor
+    ; Ensure minimum quadrant size of 4
+    ; split_y must be <= 28, split_x must be <= 28
+    LDI r23, 28
+    CMP r22, r23
+    BLT r0, sy_ok
+    LDI r22, 28
+sy_ok:
+    CMP r24, r23
+    BLT r0, sx_ok
+    LDI r24, 28
+sx_ok:
+    ; Ensure split_y >= 6 and split_x >= 6
+    LDI r23, 6
+    CMP r22, r23
+    BGE r0, sy2_ok
+    LDI r22, 6
+sy2_ok:
+    CMP r24, r23
+    BGE r0, sx2_ok
+    LDI r24, 6
+sx2_ok:
 
-    ; Player at center of room 4 (11+2, 11+2 = 13, 13)
-    LDI r10, 0x4000
-    LDI r11, 13
-    STORE r10, r11
-    ADD r10, r4
-    STORE r10, r11
+    ; Place room in top-left quadrant (0,0)-(split_x,split_y)
+    LDI r1, 0
+    MOV r10, r1        ; rx = 0
+    MOV r11, r1        ; ry = 0
+    MOV r12, r24       ; rw = split_x
+    MOV r13, r22       ; rh = split_y
+    LDI r20, 0x4100
+    PUSH r31
+    CALL place_room
+    POP r31
+
+    ; Place room in top-right quadrant (split_x,0)-(32,split_y)
+    MOV r10, r24       ; rx = split_x
+    LDI r11, 0         ; ry = 0 (use LDI, not MOV r1 -- r1 clobbered by place_room)
+    LDI r12, 32
+    SUB r12, r24       ; rw = 32 - split_x
+    MOV r13, r22       ; rh = split_y
+    LDI r20, 0x4110
+    PUSH r31
+    CALL place_room
+    POP r31
+
+    ; Place room in bottom-left quadrant (0,split_y)-(split_x,32)
+    LDI r10, 0         ; rx = 0 (use LDI, not MOV r1 -- r1 clobbered by place_room)
+    MOV r11, r22       ; ry = split_y
+    MOV r12, r24       ; rw = split_x
+    LDI r13, 32
+    SUB r13, r22       ; rh = 32 - split_y
+    LDI r20, 0x4120
+    PUSH r31
+    CALL place_room
+    POP r31
+
+    ; Place room in bottom-right quadrant (split_x,split_y)-(32,32)
+    MOV r10, r24       ; rx = split_x
+    MOV r11, r22       ; ry = split_y
+    LDI r12, 32
+    SUB r12, r24       ; rw = 32 - split_x
+    LDI r13, 32
+    SUB r13, r22       ; rh = 32 - split_y
+    LDI r20, 0x4130
+    PUSH r31
+    CALL place_room
+    POP r31
+
+    ; Connect rooms with L-shaped corridors
+    ; Room 0 -> Room 1 (horizontal corridor across split)
+    LDI r20, 0x4100
+    LDI r21, 0x4110
+    PUSH r31
+    CALL connect_rooms
+    POP r31
+
+    ; Room 2 -> Room 3 (horizontal corridor across split)
+    LDI r20, 0x4120
+    LDI r21, 0x4130
+    PUSH r31
+    CALL connect_rooms
+    POP r31
+
+    ; Room 0 -> Room 2 (vertical corridor across split)
+    LDI r20, 0x4100
+    LDI r21, 0x4120
+    PUSH r31
+    CALL connect_rooms
+    POP r31
+
+    ; Room 1 -> Room 3 (vertical corridor across split)
+    LDI r20, 0x4110
+    LDI r21, 0x4130
+    PUSH r31
+    CALL connect_rooms
+    POP r31
+
+    ; Place player in center of room 0
+    LDI r20, 0x4100
+    LOAD r10, r20       ; room x
+    ADDI r20, 1
+    LOAD r11, r20       ; room y
+    ADDI r20, 1
+    LOAD r12, r20       ; room w
+    ADDI r20, 1
+    LOAD r13, r20       ; room h
+    ; player_x = room_x + room_w/2
+    MOV r8, r12
+    LDI r1, 2
+    DIV r8, r1
+    ADD r8, r10
+    ; player_y = room_y + room_h/2
+    MOV r9, r13
+    DIV r9, r1
+    ADD r9, r11
+    ; Store player position
+    LDI r20, 0x4000
+    STORE r20, r8
+    ADDI r20, 1
+    STORE r20, r9
+    RET
+
+; === PLACE ROOM ===
+; Random room within BSP quadrant
+; Inputs: r10=rx, r11=ry, r12=rw, r13=rh, r20=room_addr
+place_room:
+    ; Random room width: 3..min(7, rw-2)
+    RAND r14
+    LDI r15, 5
+    MOD r14, r15
+    ADDI r14, 3        ; 3..7
+    MOV r1, r12
+    SUBI r1, 2
+    CMP r14, r1
+    BLT r0, rw_ok
+    MOV r14, r1
+rw_ok:
+    CMPI r14, 3
+    BGE r0, rw_min
+    LDI r14, 3
+rw_min:
+    ; r14 = room_w
+
+    ; Random room height: 3..min(7, rh-2)
+    RAND r15
+    LDI r1, 5
+    MOD r15, r1
+    ADDI r15, 3        ; 3..7
+    MOV r1, r13
+    SUBI r1, 2
+    CMP r15, r1
+    BLT r0, rh_ok
+    MOV r15, r1
+rh_ok:
+    CMPI r15, 3
+    BGE r0, rh_min
+    LDI r15, 3
+rh_min:
+    ; r15 = room_h
+
+    ; Random x offset: 1..max(1, rw - room_w - 1)
+    ; Use MOD instead of CMP to avoid signed comparison on RAND output
+    ; (RAND can return values >= 0x80000000 which CMP treats as negative)
+    MOV r1, r12
+    SUB r1, r14
+    SUBI r1, 1          ; r1 = rw - room_w - 1 (max x offset)
+    CMPI r1, 1
+    BGE r0, ox_ok
+    LDI r1, 1
+ox_ok:
+    ADDI r1, 1          ; r1 = MOD range (max_x_off + 1)
+    RAND r16
+    MOD r16, r1         ; r16 = 0..max_x_off (uniform, no signed CMP issue)
+    ADDI r16, 1         ; r16 = 1..max_x_off+1
+    ; r16 = x offset
+
+    ; Random y offset: same MOD pattern
+    MOV r1, r13
+    SUB r1, r15
+    SUBI r1, 1          ; r1 = rh - room_h - 1 (max y offset)
+    CMPI r1, 1
+    BGE r0, oy_ok
+    LDI r1, 1
+oy_ok:
+    ADDI r1, 1          ; r1 = MOD range (max_y_off + 1)
+    RAND r17
+    MOD r17, r1         ; r17 = 0..max_y_off (uniform, no signed CMP issue)
+    ADDI r17, 1         ; r17 = 1..max_y_off+1
+    ; r17 = y offset
+
+    ; room_x = rx + x_off
+    ADD r10, r16
+    ; room_y = ry + y_off
+    ADD r11, r17
+    ; r10=room_x, r11=room_y, r14=room_w, r15=room_h
+
+    ; Store room data at r20
+    STORE r20, r10
+    ADDI r20, 1
+    STORE r20, r11
+    ADDI r20, 1
+    STORE r20, r14
+    ADDI r20, 1
+    STORE r20, r15
+
+    ; Carve room into tile map
+    PUSH r31
+    CALL carve_room
     POP r31
     RET
 
 ; === CARVE ROOM ===
-; Input: r16=x, r17=y, r18=w, r19=h
+; Carve room tiles into map at r6 base
+; Inputs: r10=x, r11=y, r14=w, r15=h
+; NOTE: Do NOT use r22 or r24 here -- init_dungeon stores split_y/split_x in them
 carve_room:
-    MOV r10, r17
+    ; Compute end boundaries BEFORE loops (not inside!)
+    MOV r20, r11       ; r20 = y cursor = room_y
+    MOV r25, r11       ; r25 = room_y
+    ADD r25, r15       ; r25 = end_y = room_y + room_h
 cr_yl:
-    MOV r11, r10
-    ADD r11, r19
-    CMP r10, r11
+    CMP r20, r25       ; y < end_y?
     BGE r0, cr_done
-    MOV r11, r16
+    MOV r21, r10       ; r21 = x cursor = room_x
+    MOV r26, r10       ; r26 = room_x
+    ADD r26, r14       ; r26 = end_x = room_x + room_w
 cr_xl:
-    MOV r12, r11
-    ADD r12, r18
-    CMP r11, r12
+    CMP r21, r26       ; x < end_x?
     BGE r0, cr_ny
-    ; addr = y*32 + x + 0x2000
-    MOV r12, r10
-    SHL r12, r5
-    ADD r12, r11
-    ADD r12, r6
-    STORE r12, r4
-    ADD r11, r4
+    ; addr = y*32 + x + map_base (use r18, NOT r22 which holds split_y)
+    MOV r18, r20
+    SHL r18, r5
+    ADD r18, r21
+    ADD r18, r6
+    STORE r18, r4      ; tile = 1 (floor)
+    ADDI r21, 1
     JMP cr_xl
 cr_ny:
-    ADD r10, r4
+    ADDI r20, 1
     JMP cr_yl
 cr_done:
     RET
 
-; === CARVE HORIZONTAL CORRIDORS ===
-; Carves 3 corridors at y positions 3, 13, 23
-; Between columns: x=6..10 and x=16..20
+; === CONNECT ROOMS ===
+; L-shaped corridor between centers of two rooms
+; Inputs: r20=room_a_addr, r21=room_b_addr
+connect_rooms:
+    ; Load room A center
+    LOAD r10, r20      ; ax
+    ADDI r20, 1
+    LOAD r11, r20      ; ay
+    ADDI r20, 1
+    LOAD r12, r20      ; aw
+    ADDI r20, 1
+    LOAD r13, r20      ; ah
+    ; center_a_x = ax + aw/2
+    MOV r22, r12
+    LDI r1, 2
+    DIV r22, r1
+    ADD r22, r10
+    ; center_a_y = ay + ah/2
+    MOV r23, r13
+    DIV r23, r1
+    ADD r23, r11
+
+    ; Load room B center
+    LOAD r10, r21      ; bx
+    ADDI r21, 1
+    LOAD r11, r21      ; by
+    ADDI r21, 1
+    LOAD r12, r21      ; bw
+    ADDI r21, 1
+    LOAD r13, r21      ; bh
+    ; center_b_x = bx + bw/2
+    MOV r24, r12
+    DIV r24, r1
+    ADD r24, r10
+    ; center_b_y = by + bh/2
+    MOV r25, r13
+    DIV r25, r1
+    ADD r25, r11
+
+    ; Carve L-shaped corridor: horizontal from A to B, then vertical
+    ; First: horizontal at y=a_y, from a_x to b_x
+    MOV r10, r22       ; x start = center_a_x
+    MOV r11, r23       ; y = center_a_y
+    MOV r12, r24       ; x end = center_b_x
+    PUSH r31
+    CALL carve_h_corridor
+    POP r31
+
+    ; Second: vertical at x=b_x, from a_y to b_y
+    MOV r10, r24       ; x = center_b_x
+    MOV r11, r23       ; y start = center_a_y
+    MOV r12, r25       ; y end = center_b_y
+    PUSH r31
+    CALL carve_v_corridor
+    POP r31
+    RET
+
+; === CARVE HORIZONTAL CORRIDOR ===
+; Carve floor tiles from x1 to x2 at y
+; Inputs: r10=x1, r11=y, r12=x2
 carve_h_corridor:
-    ; Corridor at y=r17, x=6 to x=10
-    LDI r10, 6
-    LDI r11, 11
-ch1:
-    CMP r10, r11
-    BGE r0, ch2
-    MOV r12, r17
-    SHL r12, r5
-    ADD r12, r10
-    ADD r12, r6
-    LDI r13, 2
-    STORE r12, r13
-    ADD r10, r4
-    JMP ch1
-ch2:
-    ; Corridor at y=r17, x=16 to x=20
-    LDI r10, 16
-    LDI r11, 21
-ch3:
-    CMP r10, r11
+    CMP r10, r12
     BGE r0, ch_done
-    MOV r12, r17
-    SHL r12, r5
-    ADD r12, r10
-    ADD r12, r6
-    LDI r13, 2
-    STORE r12, r13
-    ADD r10, r4
-    JMP ch3
+ch_loop:
+    ; Check bounds
+    CMPI r10, 32
+    BGE r0, ch_done
+    CMPI r11, 32
+    BGE r0, ch_done
+    ; addr = y*32 + x + map_base
+    MOV r20, r11
+    SHL r20, r5
+    ADD r20, r10
+    ADD r20, r6
+    LDI r1, 1
+    STORE r20, r1
+    ADDI r10, 1
+    CMP r10, r12
+    BLT r0, ch_loop
 ch_done:
     RET
 
-; === CARVE VERTICAL CORRIDORS ===
-; Carves 3 corridors at x positions 3, 13, 23
-; Between rows: y=6..10 and y=16..20
+; === CARVE VERTICAL CORRIDOR ===
+; Carve floor tiles from y1 to y2 at x
+; Inputs: r10=x, r11=y1, r12=y2
 carve_v_corridor:
-    ; Corridor at x=r16, y=6 to y=10
-    LDI r10, 6
-    LDI r11, 11
-cv1:
-    CMP r10, r11
-    BGE r0, cv2
-    MOV r12, r10
-    SHL r12, r5
-    ADD r12, r16
-    ADD r12, r6
-    LDI r13, 2
-    STORE r12, r13
-    ADD r10, r4
-    JMP cv1
-cv2:
-    ; Corridor at x=r16, y=16 to y=20
-    LDI r10, 16
-    LDI r11, 21
-cv3:
-    CMP r10, r11
+    CMP r11, r12
     BGE r0, cv_done
-    MOV r12, r10
-    SHL r12, r5
-    ADD r12, r16
-    ADD r12, r6
-    LDI r13, 2
-    STORE r12, r13
-    ADD r10, r4
-    JMP cv3
+cv_loop:
+    CMPI r10, 32
+    BGE r0, cv_done
+    CMPI r11, 32
+    BGE r0, cv_done
+    ; addr = y*32 + x + map_base
+    MOV r20, r11
+    SHL r20, r5
+    ADD r20, r10
+    ADD r20, r6
+    LDI r1, 1
+    STORE r20, r1
+    ADDI r11, 1
+    CMP r11, r12
+    BLT r0, cv_loop
 cv_done:
     RET
 
 ; === GAME LOOP ===
 game_loop:
-    LDI r10, 0
-    FILL r10
+    LDI r1, 0
+    FILL r1            ; clear screen
+
+    ; Read input
     IKEY r13
-    LDI r10, 0x4000
-    LOAD r8, r10
-    ADD r10, r4
-    LOAD r9, r10
+
+    ; Load player position
+    LDI r20, 0x4000
+    LOAD r8, r20
+    ADDI r20, 1
+    LOAD r9, r20
 
     ; R = regenerate
-    LDI r10, 82
-    CMP r13, r10
+    LDI r1, 82
+    CMP r13, r1
     JZ r0, do_regen
     ; W = up
-    LDI r10, 87
-    CMP r13, r10
+    LDI r1, 87
+    CMP r13, r1
     JZ r0, try_up
     ; S = down
-    LDI r10, 83
-    CMP r13, r10
+    LDI r1, 83
+    CMP r13, r1
     JZ r0, try_down
     ; A = left
-    LDI r10, 65
-    CMP r13, r10
+    LDI r1, 65
+    CMP r13, r1
     JZ r0, try_left
     ; D = right
-    LDI r10, 68
-    CMP r13, r10
+    LDI r1, 68
+    CMP r13, r1
     JZ r0, try_right
     JMP do_fog
 
 try_up:
-    LDI r10, 0
-    CMP r9, r10
+    CMPI r9, 0
     JZ r0, do_fog
-    SUB r9, r4
+    SUBI r9, 1
     JMP try_move
 
 try_down:
-    LDI r10, 31
-    CMP r9, r10
+    LDI r1, 31
+    CMP r9, r1
     BGE r0, do_fog
-    ADD r9, r4
+    ADDI r9, 1
     JMP try_move
 
 try_left:
-    LDI r10, 0
-    CMP r8, r10
+    CMPI r8, 0
     JZ r0, do_fog
-    SUB r8, r4
+    SUBI r8, 1
     JMP try_move
 
 try_right:
-    LDI r10, 31
-    CMP r8, r10
+    LDI r1, 31
+    CMP r8, r1
     BGE r0, do_fog
-    ADD r8, r4
+    ADDI r8, 1
     JMP try_move
 
 try_move:
-    ; Check if walkable (map[tile] != 0)
-    MOV r10, r9
-    SHL r10, r5
-    ADD r10, r8
-    ADD r10, r6
-    LOAD r10, r10
-    JNZ r10, do_ok
+    ; Check walkable (map[y*32+x] != 0)
+    MOV r20, r9
+    SHL r20, r5
+    ADD r20, r8
+    ADD r20, r6
+    LOAD r20, r20
+    JNZ r20, do_ok
     JMP do_fog
 
 do_ok:
-    LDI r10, 0x4000
-    STORE r10, r8
-    ADD r10, r4
-    STORE r10, r9
+    LDI r20, 0x4000
+    STORE r20, r8
+    ADDI r20, 1
+    STORE r20, r9
     JMP do_fog
 
 do_regen:
-    CALL gen_dungeon
-    LDI r10, 0x4000
-    LOAD r8, r10
-    ADD r10, r4
-    LOAD r9, r10
+    PUSH r31
+    CALL init_dungeon
+    POP r31
+    LDI r20, 0x4000
+    LOAD r8, r20
+    ADDI r20, 1
+    LOAD r9, r20
 
 do_fog:
-    CALL fog_cast
+    PUSH r31
+    CALL fog_update
+    POP r31
+    PUSH r31
     CALL render_map
+    POP r31
+
     ; Draw player marker (bright green 8x8)
     MOV r20, r8
-    LDI r21, 3
-    SHL r20, r21
+    LDI r1, 3
+    SHL r20, r1        ; px = player_x * 8
     MOV r21, r9
-    LDI r22, 3
-    SHL r21, r22
+    SHL r21, r1        ; py = player_y * 8
     LDI r22, 8
     LDI r23, 8
     LDI r25, 0x00FF88
     RECTF r20, r21, r22, r23, r25
+
     FRAME
     JMP game_loop
 
 ; === FOG OF WAR ===
-; Sets vis[]: 0=hidden, 1=explored (was visible before), 2=visible (current)
-; First pass: mark all 2s as 1s (explored), then mark radius-8 tiles as 2
-fog_cast:
-    ; Pass 1: downgrade visible(2) to explored(1)
-    LDI r10, 0
-    LDI r11, 1024
+; Three states: 0=hidden, 1=explored (previously visible), 2=visible (current)
+; Pass 1: downgrade visible(2) to explored(1)
+; Pass 2: mark tiles within radius 9 as visible(2)
+fog_update:
+    ; Pass 1: 2 -> 1
+    LDI r20, 0
+    LDI r21, 1024
 fog_d1:
-    CMP r10, r11
+    CMP r20, r21
     BGE r0, fog_p2
-    MOV r12, r7
-    ADD r12, r10
-    LOAD r12, r12
-    LDI r13, 2
-    CMP r12, r13
+    MOV r22, r7
+    ADD r22, r20
+    LOAD r22, r22
+    LDI r1, 2
+    CMP r22, r1
     JZ r0, fd1_down
     JMP fd1_next
 fd1_down:
-    MOV r12, r7
-    ADD r12, r10
-    LDI r13, 1
-    STORE r12, r13
+    MOV r22, r7
+    ADD r22, r20
+    LDI r1, 1
+    STORE r22, r1
 fd1_next:
-    ADD r10, r4
+    ADDI r20, 1
     JMP fog_d1
 
 fog_p2:
-    ; Pass 2: mark tiles in radius 8 as visible(2)
-    LDI r10, 0
-    LDI r14, 1024
-    LDI r15, 65       ; radius^2 = 8*8 + 1
+    ; Pass 2: mark tiles within radius 9 as visible
+    ; radius^2 = 81
+    LDI r20, 0
+    LDI r21, 1024
+    LDI r22, 81       ; radius^2
 fog_p2l:
-    CMP r10, r14
+    CMP r20, r21
     BGE r0, fog_done
     ; ty = tile / 32
-    MOV r11, r10
-    SHR r11, r5
+    MOV r23, r20
+    SHR r23, r5
     ; tx = tile & 31
-    MOV r12, r10
-    LDI r13, 31
-    AND r12, r13
-    ; dx = tx - player_x
-    MOV r20, r12
-    SUB r20, r8
-    ; dy = ty - player_y
-    MOV r21, r11
-    SUB r21, r9
+    MOV r24, r20
+    LDI r1, 31
+    AND r24, r1
+    ; dx = tx - player_x (signed)
+    MOV r25, r24
+    SUB r25, r8
+    ; dy = ty - player_y (signed)
+    MOV r1, r23
+    SUB r1, r9
     ; dist_sq = dx*dx + dy*dy
-    MUL r20, r20
-    MUL r21, r21
-    ADD r20, r21
-    CMP r20, r15
+    MUL r25, r25
+    MUL r1, r1
+    ADD r25, r1
+    CMP r25, r22
     BGE r0, fog_p2s
-    ; vis[tile] = 2 (visible)
-    MOV r20, r7
-    ADD r20, r10
-    LDI r21, 2
-    STORE r20, r21
+    ; vis[tile] = 2
+    MOV r25, r7
+    ADD r25, r20
+    LDI r1, 2
+    STORE r25, r1
 fog_p2s:
-    ADD r10, r4
+    ADDI r20, 1
     JMP fog_p2l
 fog_done:
-    ; Debug: count tiles in radius
-    LDI r10, 0x6200
-    LDI r11, 0
-    STORE r10, r11
     RET
 
 ; === RENDER MAP ===
+; Render 32x32 tiles as 8x8 pixel blocks
+; Color based on tile type and visibility state
 render_map:
-    LDI r10, 0
+    LDI r20, 0         ; y
 rm_yl:
-    LDI r20, 32
-    CMP r10, r20
+    CMPI r20, 32
     BGE r0, rm_done
-    LDI r11, 0
+    LDI r21, 0         ; x
 rm_xl:
-    CMP r11, r20
+    CMPI r21, 32
     BGE r0, rm_ny
-    ; tile_index = y*32 + x
-    MOV r12, r10
-    SHL r12, r5
-    ADD r12, r11
-    ; Get map value
-    MOV r13, r6
-    ADD r13, r12
-    LOAD r13, r13
-    ; Get vis value
-    MOV r14, r7
-    ADD r14, r12
-    LOAD r14, r14
-    ; vis: 0=hidden, 1=explored, 2=visible
-    LDI r15, 2
-    CMP r14, r15
-    JZ r0, is_vis
-    LDI r15, 1
-    CMP r14, r15
+
+    ; tile_idx = y*32 + x
+    MOV r22, r20
+    SHL r22, r5
+    ADD r22, r21
+
+    ; Get tile type (0=wall, 1=floor)
+    MOV r23, r6
+    ADD r23, r22
+    LOAD r23, r23
+
+    ; Get visibility (0=hidden, 1=explored, 2=visible)
+    MOV r24, r7
+    ADD r24, r22
+    LOAD r24, r24
+
+    ; Skip hidden tiles (render as black from FILL)
+    LDI r1, 0
+    CMP r24, r1
+    JZ r0, rm_skip
+
+    ; Compute color LUT index: vis*3 + tile_type
+    ; vis=1: explored, vis=2: visible
+    LDI r25, 0
+    CMP r24, r4        ; vis == 1?
     JZ r0, is_explored
-    JMP rm_skip
-is_vis:
-    ; map: 0=wall, 1=floor, 2=corridor
-    LDI r15, 0
-    CMP r13, r15
+    ; vis == 2 (visible)
+    LDI r25, 0
+    CMP r23, r1        ; tile == 0 (wall)?
     JZ r0, vis_wall
-    LDI r15, 1
-    CMP r13, r15
-    JZ r0, vis_floor
-    LDI r25, 0x998866
-    JMP draw_tile
-vis_floor:
-    LDI r25, 0xBBAA77
+    ; visible floor
+    LDI r25, 0x8888CC
     JMP draw_tile
 vis_wall:
-    LDI r25, 0x445566
+    LDI r25, 0x5566AA
     JMP draw_tile
+
 is_explored:
-    LDI r15, 0
-    CMP r13, r15
+    LDI r25, 0
+    CMP r23, r1        ; tile == 0 (wall)?
     JZ r0, exp_wall
-    LDI r15, 1
-    CMP r13, r15
-    JZ r0, exp_floor
-    LDI r25, 0x443322
-    JMP draw_tile
-exp_floor:
-    LDI r25, 0x554433
+    ; explored floor
+    LDI r25, 0x1E1E36
     JMP draw_tile
 exp_wall:
-    LDI r25, 0x222233
+    LDI r25, 0x2A2A44
     JMP draw_tile
+
 draw_tile:
-    MOV r20, r11
-    LDI r21, 3
-    SHL r20, r21
-    MOV r21, r10
-    LDI r22, 3
-    SHL r21, r22
-    LDI r22, 8
-    LDI r23, 8
-    RECTF r20, r21, r22, r23, r25
+    ; px = x * 8, py = y * 8
+    MOV r26, r21
+    LDI r1, 3
+    SHL r26, r1
+    MOV r27, r20
+    SHL r27, r1
+    LDI r28, 8
+    LDI r29, 8
+    RECTF r26, r27, r28, r29, r25
+
 rm_skip:
-    ADD r11, r4
+    ADDI r21, 1
     JMP rm_xl
 rm_ny:
-    ADD r10, r4
+    ADDI r20, 1
     JMP rm_yl
 rm_done:
     RET
