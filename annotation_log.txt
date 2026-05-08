@@ -256,4 +256,17 @@
   synthetic_03380.asm... OK (383 chars)
   synthetic_03381.asm... OK (244 chars)
   synthetic_03382.asm... OK (358 chars)
-  synthetic_03383.asm... 
+  synthetic_03383.asm... OK (399 chars)
+  synthetic_03384.asm... OK (374 chars)
+  synthetic_03385.asm... OK (362 chars)
+  synthetic_03386.asm... OK (327 chars)
+  synthetic_03387.asm... OK (252 chars)
+  synthetic_03388.asm... OK (333 chars)
+  synthetic_03389.asm... OK (360 chars)
+  synthetic_03390.asm... OK (382 chars)
+  synthetic_03391.asm... OK (299 chars)
+  synthetic_03392.asm... OK (301 chars)
+  synthetic_03393.asm... OK (298 chars)
+  synthetic_03394.asm... OK (387 chars)
+  synthetic_03395.asm... OK (284 chars)
+  synthetic_03396.asm... 
