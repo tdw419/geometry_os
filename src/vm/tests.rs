@@ -32733,3 +32733,75 @@ fn test_flood_demo_assembles() {
         non_black
     );
 }
+
+
+#[test]
+fn test_raycaster_renders_3d_maze() {
+    use crate::assembler::assemble;
+    let source = include_str!("../../programs/raycaster.asm");
+    let asm = assemble(source, 0).expect("raycaster.asm should assemble");
+    assert!(asm.pixels.len() > 100, "should produce meaningful bytecode");
+
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+
+    // Run until first FRAME
+    vm.frame_ready = false;
+    let mut steps = 0u32;
+    for _ in 0..5_000_000 {
+        if vm.frame_ready { break; }
+        if !vm.step() { break; }
+        steps += 1;
+    }
+
+    assert!(vm.frame_ready, "should reach FRAME within 5M steps (took {})", steps);
+    eprintln!("Raycaster first frame in {} steps", steps);
+
+    // Screen should be mostly non-black (ceiling + floor + walls)
+    let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
+    eprintln!("Non-black pixels: {}/{}", non_black, 256 * 256);
+    assert!(
+        non_black > 40000,
+        "screen should be mostly rendered ({} non-black)",
+        non_black
+    );
+
+    // Ceiling color (0x111122) at top-left
+    assert_eq!(vm.screen[0], 0x111122, "top-left should be ceiling color");
+
+    // Floor color (0x221111) at bottom-left
+    assert_eq!(
+        vm.screen[255 * 256],
+        0x221111,
+        "bottom-left should be floor color"
+    );
+
+    // Wall area (x=64..191) should have pixels distinct from ceiling/floor
+    let mut wall_pixels = 0u32;
+    for y in 0..256u32 {
+        for x in 64..192u32 {
+            let p = vm.screen[(y * 256 + x) as usize];
+            if p != 0 && p != 0x111122 && p != 0x221111 && p != 0x8888AA && p != 0x222233 {
+                wall_pixels += 1;
+            }
+        }
+    }
+    eprintln!("Wall area distinct pixels: {}", wall_pixels);
+    assert!(
+        wall_pixels > 100,
+        "wall rendering area should have distinct pixels (got {})",
+        wall_pixels
+    );
+
+    // Minimap should be visible (wall cells in top-right area)
+    let minimap_wall = vm.screen[10 * 256 + 240]; // first map cell (0,0) = wall
+    assert_eq!(
+        minimap_wall, 0x8888AA,
+        "minimap top-left cell should show wall color"
+    );
+}
+
