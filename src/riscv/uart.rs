@@ -358,12 +358,12 @@ mod tests {
 
         // DLAB=1: writes to offset 0/1 go to DLL/DLM, not THR/IER
         uart.write_byte(THR_RBR, 0x01); // writes DLL, NOT transmit
-        uart.write_byte(IER, 0x00);     // writes DLM, NOT IER
+        uart.write_byte(IER, 0x00); // writes DLM, NOT IER
         assert_eq!(uart.dll, 0x01);
         assert_eq!(uart.dlm, 0x00);
         // TX buffer should NOT have grown (DLL write, not THR write)
         assert_eq!(uart.tx_buf.len(), 1); // still just 'A' from before
-        // IER should NOT have changed (DLM write, not IER write)
+                                          // IER should NOT have changed (DLM write, not IER write)
         assert_eq!(uart.ier, 0x0F);
     }
 
@@ -375,11 +375,11 @@ mod tests {
         // Set DLL and DLM
         uart.write_byte(LCR, 0x80); // DLAB=1
         uart.write_byte(THR_RBR, 0x0C); // DLL = 0x0C
-        uart.write_byte(IER, 0x00);     // writes DLM, NOT IER
+        uart.write_byte(IER, 0x00); // writes DLM, NOT IER
 
         // Read back DLL/DLM
         assert_eq!(uart.read_byte(THR_RBR), 0x0C); // reads DLL
-        assert_eq!(uart.read_byte(IER), 0x00);      // reads DLM
+        assert_eq!(uart.read_byte(IER), 0x00); // reads DLM
 
         // Clear DLAB - now offset 0/1 go back to RBR/IER
         uart.write_byte(LCR, 0x03); // 8N1, DLAB=0
@@ -387,7 +387,7 @@ mod tests {
 
         // Offset 0 now reads RBR (receive buffer), not DLL
         assert_eq!(uart.read_byte(THR_RBR), 0); // empty RX buffer
-        // Offset 1 now reads IER (preserved from before DLAB was set)
+                                                // Offset 1 now reads IER (preserved from before DLAB was set)
         assert_eq!(uart.read_byte(IER), 0x05);
     }
 
@@ -399,9 +399,9 @@ mod tests {
         uart.write_byte(LCR, 0x80);
         // 2. Write divisor low byte (DLL)
         uart.write_byte(THR_RBR, 0x01); // DLL = 1
-        // 3. Write divisor high byte (DLM)
-        uart.write_byte(IER, 0x00);     // DLM = 0
-        // 4. Clear DLAB, set 8N1
+                                        // 3. Write divisor high byte (DLM)
+        uart.write_byte(IER, 0x00); // DLM = 0
+                                    // 4. Clear DLAB, set 8N1
         uart.write_byte(LCR, 0x03);
 
         // Verify divisor was stored correctly

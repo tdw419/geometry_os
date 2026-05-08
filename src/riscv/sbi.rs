@@ -97,7 +97,6 @@ const GEO_FN_MSLEEP: u32 = 15;
 /// Maximum number of concurrent alarms.
 const GEO_MAX_ALARMS: usize = 4;
 
-
 /// Maximum number of shared memory regions.
 const SHM_MAX_REGIONS: usize = 16;
 /// Maximum size per shared memory region in bytes.

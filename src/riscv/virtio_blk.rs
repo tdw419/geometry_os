@@ -93,7 +93,6 @@ pub const VIRTIO_STATUS_DRIVER_OK: u32 = 4;
 pub const VIRTIO_STATUS_FEATURES_OK: u32 = 8;
 pub const VIRTIO_STATUS_FAILED: u32 = 128;
 
-
 /// Virtio block request types.
 const VIRTIO_BLK_T_IN: u32 = 0; // Read
 const VIRTIO_BLK_T_OUT: u32 = 1; // Write

@@ -32,7 +32,6 @@ fn get_beep_sender() -> &'static Sender<Vec<u8>> {
 /// Set by stream_pcm(), cleared by the aplay thread callback.
 static PCM_PLAYING: AtomicBool = AtomicBool::new(false);
 
-
 /// Stream raw PCM samples from a u32 RAM buffer through aplay in a background thread.
 /// Each u32 word in samples is treated as a signed 16-bit PCM sample (low 16 bits, sign-extended).
 /// Non-blocking: returns immediately, audio plays in background.

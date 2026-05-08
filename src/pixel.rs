@@ -677,9 +677,8 @@ pub fn decode_pixelpack_file(path: &str) -> Result<Vec<u8>, String> {
         Err(_) => {
             // Fallback: try VFS directory
             let vfs_path = std::path::Path::new(crate::vfs::FS_DIR).join(path);
-            let data = std::fs::read(&vfs_path).map_err(|e| {
-                format!("Cannot read {} or fallback {:?}: {}", path, vfs_path, e)
-            })?;
+            let data = std::fs::read(&vfs_path)
+                .map_err(|e| format!("Cannot read {} or fallback {:?}: {}", path, vfs_path, e))?;
             decode_pixelpack_png(&data)
         }
     }
@@ -811,9 +810,8 @@ pub fn decode_pixelpack_source_file(path: &str) -> Result<String, String> {
         Err(_) => {
             // Fallback: try VFS directory
             let vfs_path = std::path::Path::new(crate::vfs::FS_DIR).join(path);
-            let data = std::fs::read(&vfs_path).map_err(|e| {
-                format!("Cannot read {} or fallback {:?}: {}", path, vfs_path, e)
-            })?;
+            let data = std::fs::read(&vfs_path)
+                .map_err(|e| format!("Cannot read {} or fallback {:?}: {}", path, vfs_path, e))?;
             decode_pixelpack_source(&data)
         }
     }

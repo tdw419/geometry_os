@@ -3384,7 +3384,8 @@ fn main() {
                                                         ));
                                                     }
                                                     Err(e) => {
-                                                        response.push_str(&format!("[error: {}]\n", e));
+                                                        response
+                                                            .push_str(&format!("[error: {}]\n", e));
                                                     }
                                                 }
                                             }

@@ -44,7 +44,17 @@ fn main() {
                 if tx < 32 && ty < 32 {
                     let tile = vm.ram[0x2000 + (ty * 32 + tx) as usize];
                     let vis = vm.ram[0x3000 + (ty * 32 + tx) as usize];
-                    format!("{}{}", if tile == 1 { "." } else { "#" }, if vis == 2 { "V" } else if vis == 1 { "E" } else { "H" })
+                    format!(
+                        "{}{}",
+                        if tile == 1 { "." } else { "#" },
+                        if vis == 2 {
+                            "V"
+                        } else if vis == 1 {
+                            "E"
+                        } else {
+                            "H"
+                        }
+                    )
                 } else {
                     "??".to_string()
                 }
@@ -57,29 +67,53 @@ fn main() {
     let mut vis = [0u32; 3];
     for i in 0..1024 {
         let v = vm.ram[0x3000 + i];
-        if v < 3 { vis[v as usize] += 1; }
+        if v < 3 {
+            vis[v as usize] += 1;
+        }
     }
-    println!("\nVisibility: hidden={} explored={} visible={}", vis[0], vis[1], vis[2]);
+    println!(
+        "\nVisibility: hidden={} explored={} visible={}",
+        vis[0], vis[1], vis[2]
+    );
 
     // Check: is the player tile itself floor and visible?
     let pidx = (py * 32 + px) as usize;
-    println!("Player tile: type={} vis={}", vm.ram[0x2000 + pidx], vm.ram[0x3000 + pidx]);
+    println!(
+        "Player tile: type={} vis={}",
+        vm.ram[0x2000 + pidx],
+        vm.ram[0x3000 + pidx]
+    );
 
     // Check all 8 adjacent tiles
     println!("\nAdjacent tiles:");
-    for (dx, dy) in [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,-1),(-1,1),(1,1)] {
+    for (dx, dy) in [
+        (-1, 0),
+        (1, 0),
+        (0, -1),
+        (0, 1),
+        (-1, -1),
+        (1, -1),
+        (-1, 1),
+        (1, 1),
+    ] {
         let tx = (px as i32 + dx) as u32;
         let ty = (py as i32 + dy) as u32;
         if tx < 32 && ty < 32 {
             let idx = (ty * 32 + tx) as usize;
-            println!("  ({},{}) tile={} vis={}", tx, ty, vm.ram[0x2000 + idx], vm.ram[0x3000 + idx]);
+            println!(
+                "  ({},{}) tile={} vis={}",
+                tx,
+                ty,
+                vm.ram[0x2000 + idx],
+                vm.ram[0x3000 + idx]
+            );
         }
     }
 
     // Now run just a few more steps to see if LOS is computing
     // Reset visibility, run compute_los manually by stepping to it
     println!("\nManual LOS trace:");
-    
+
     // Find compute_los label address
     let compute_los_addr = {
         let lines: Vec<&str> = source.lines().collect();
@@ -95,7 +129,10 @@ fn main() {
             }
             // Rough instruction count
             if let Some(words) = trimmed.split_whitespace().next() {
-                if words.chars().all(|c| c.is_ascii_alphabetic() || c == '_' || c == '.') {
+                if words
+                    .chars()
+                    .all(|c| c.is_ascii_alphabetic() || c == '_' || c == '.')
+                {
                     addr += 3; // Most instructions are 3 words
                 }
             }

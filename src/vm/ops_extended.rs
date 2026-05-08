@@ -1236,7 +1236,7 @@ mod tests {
         // IOCTL /dev/screen cmd=0 -> r0 = 256
         let mut vm = Vm::new();
         vm.regs[1] = 0xE000; // fd = /dev/screen in r1
-        vm.regs[2] = 0;      // cmd = 0 in r2
+        vm.regs[2] = 0; // cmd = 0 in r2
         let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
         assert_eq!(vm.regs[0], 256);
     }
@@ -1257,7 +1257,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.ram[0xFF8] = 42;
         vm.regs[1] = 0xE001; // fd = /dev/keyboard
-        vm.regs[2] = 0;      // cmd = 0 (get echo)
+        vm.regs[2] = 0; // cmd = 0 (get echo)
         let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
         assert_eq!(vm.regs[0], 42);
     }
@@ -1267,8 +1267,8 @@ mod tests {
         // IOCTL /dev/keyboard cmd=1 -> RAM[0xFF8] = arg, r0 = 0
         let mut vm = Vm::new();
         vm.regs[1] = 0xE001; // fd = /dev/keyboard
-        vm.regs[2] = 1;      // cmd = 1 (set echo)
-        vm.regs[3] = 99;     // arg = 99
+        vm.regs[2] = 1; // cmd = 1 (set echo)
+        vm.regs[3] = 99; // arg = 99
         let vm = step_one_from(&vm, &[0x62, 1, 2, 3], 0);
         assert_eq!(vm.ram[0xFF8], 99);
         assert_eq!(vm.regs[0], 0);
@@ -1280,7 +1280,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.ram[0xFF7] = 75;
         vm.regs[1] = 0xE002; // fd = /dev/audio
-        vm.regs[2] = 0;      // cmd = 0 (get volume)
+        vm.regs[2] = 0; // cmd = 0 (get volume)
         let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
         assert_eq!(vm.regs[0], 75);
     }
@@ -1290,8 +1290,8 @@ mod tests {
         // IOCTL /dev/audio cmd=1 -> RAM[0xFF7] = arg.clamp(100), r0 = 0
         let mut vm = Vm::new();
         vm.regs[1] = 0xE002; // fd = /dev/audio
-        vm.regs[2] = 1;      // cmd = 1 (set volume)
-        vm.regs[3] = 80;     // arg = 80
+        vm.regs[2] = 1; // cmd = 1 (set volume)
+        vm.regs[3] = 80; // arg = 80
         let vm = step_one_from(&vm, &[0x62, 1, 2, 3], 0);
         assert_eq!(vm.ram[0xFF7], 80);
         assert_eq!(vm.regs[0], 0);
@@ -1302,8 +1302,8 @@ mod tests {
         // Volume > 100 should be clamped
         let mut vm = Vm::new();
         vm.regs[1] = 0xE002; // fd = /dev/audio
-        vm.regs[2] = 1;      // cmd = 1 (set volume)
-        vm.regs[3] = 150;    // arg = 150 (should clamp to 100)
+        vm.regs[2] = 1; // cmd = 1 (set volume)
+        vm.regs[3] = 150; // arg = 150 (should clamp to 100)
         let vm = step_one_from(&vm, &[0x62, 1, 2, 3], 0);
         assert_eq!(vm.ram[0xFF7], 100);
     }
@@ -1313,7 +1313,7 @@ mod tests {
         // IOCTL /dev/net cmd=0 -> r0 = 1 (up)
         let mut vm = Vm::new();
         vm.regs[1] = 0xE003; // fd = /dev/net
-        vm.regs[2] = 0;      // cmd = 0 (get status)
+        vm.regs[2] = 0; // cmd = 0 (get status)
         let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
         assert_eq!(vm.regs[0], 1);
     }
@@ -1332,7 +1332,7 @@ mod tests {
         // /dev/screen cmd=99 -> r0 = 0xFFFFFFFF
         let mut vm = Vm::new();
         vm.regs[1] = 0xE000; // fd = /dev/screen
-        vm.regs[2] = 99;     // cmd = 99 (unknown)
+        vm.regs[2] = 99; // cmd = 99 (unknown)
         let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
         assert_eq!(vm.regs[0], 0xFFFFFFFF);
     }
@@ -1349,7 +1349,7 @@ mod tests {
         // cmd=3 clears custom font -> r0 = 0
         let mut vm = Vm::new();
         vm.regs[1] = 0xE000; // fd = /dev/screen
-        vm.regs[2] = 3;      // cmd = 3 (clear font)
+        vm.regs[2] = 3; // cmd = 3 (clear font)
         let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
         assert_eq!(vm.regs[0], 0);
     }
@@ -1492,7 +1492,7 @@ mod tests {
     fn test_screenp_read_pixel() {
         let mut vm = Vm::new();
         vm.screen[10 * 256 + 20] = 0xFF0000; // red at (20, 10)
-        // SCREENP dest=r0, x=r1=20, y=r2=10
+                                             // SCREENP dest=r0, x=r1=20, y=r2=10
         vm.regs[1] = 20;
         vm.regs[2] = 10;
         let vm = step_one_from(&vm, &[0x6D, 0, 1, 2], 0);
@@ -1675,7 +1675,7 @@ mod tests {
         vm.halted = false;
         vm.step();
         assert_eq!(vm.ram[0xFFD], 4); // 4 words: LDI(3) + HALT(1)
-        // Verify bytecode was written to 0x1000
+                                      // Verify bytecode was written to 0x1000
         assert_ne!(vm.ram[0x1000], 0); // first word should be LDI opcode
     }
 
@@ -2009,8 +2009,8 @@ mod tests {
     #[test]
     fn test_unknown_extended_opcode_halts() {
         let vm = step_one(&[0x7E], 0); // not in 0x62-0x7D range... actually 0x7E is not dispatched here
-        // 0x7E would be dispatched elsewhere. Let's test 0x7D range with invalid sub-opcode
-        // Actually 0x62..=0x7D is the range. 0x7E wouldn't hit step_extended.
+                                       // 0x7E would be dispatched elsewhere. Let's test 0x7D range with invalid sub-opcode
+                                       // Actually 0x62..=0x7D is the range. 0x7E wouldn't hit step_extended.
     }
 
     #[test]
@@ -2157,11 +2157,14 @@ mod tests {
         let mut vm = Vm::new();
         vm.processes.push(SpawnedProcess::default_spawned(1));
         vm.current_pid = 1;
-        vm.regs[1] = 1;     // SIGUSER1
+        vm.regs[1] = 1; // SIGUSER1
         vm.regs[2] = 0x500; // handler address
         let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
         assert_eq!(vm.regs[0], 0); // success
-        assert_eq!(vm.processes[0].signal_handlers[Signal::User1 as usize], 0x500);
+        assert_eq!(
+            vm.processes[0].signal_handlers[Signal::User1 as usize],
+            0x500
+        );
     }
 
     #[test]
@@ -2179,7 +2182,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.processes.push(SpawnedProcess::default_spawned(1));
         vm.current_pid = 1;
-        vm.regs[1] = 99;    // invalid signal number
+        vm.regs[1] = 99; // invalid signal number
         vm.regs[2] = 0x500;
         let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
         assert_eq!(vm.regs[0], 0xFFFFFFFF); // invalid signal
@@ -2190,11 +2193,14 @@ mod tests {
         let mut vm = Vm::new();
         vm.processes.push(SpawnedProcess::default_spawned(1));
         vm.current_pid = 1;
-        vm.regs[1] = 1;        // SIGUSER1
+        vm.regs[1] = 1; // SIGUSER1
         vm.regs[2] = 0xFFFFFFFF; // SIG_IGN
         let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
         assert_eq!(vm.regs[0], 0); // success
-        assert_eq!(vm.processes[0].signal_handlers[Signal::User1 as usize], 0xFFFFFFFF);
+        assert_eq!(
+            vm.processes[0].signal_handlers[Signal::User1 as usize],
+            0xFFFFFFFF
+        );
     }
 
     // ── Helper for tests that need a pre-configured VM ──────────

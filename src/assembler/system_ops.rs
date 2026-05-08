@@ -586,7 +586,10 @@ pub(super) fn try_parse(
 
         "BYTEPACK" => {
             if tokens.len() < 4 {
-                return Err("BYTEPACK requires 3 arguments: BYTEPACK src_addr_reg, len_reg, path_addr_reg".to_string());
+                return Err(
+                    "BYTEPACK requires 3 arguments: BYTEPACK src_addr_reg, len_reg, path_addr_reg"
+                        .to_string(),
+                );
             }
             bytecode.push(0xAE);
             bytecode.push(parse_reg(tokens[1])? as u32);

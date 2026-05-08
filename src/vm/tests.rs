@@ -32824,11 +32824,14 @@ fn test_raycaster_renders_3d_maze() {
 #[test]
 fn test_p276_pset_corner_top_left() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0;       // x = 0
-    vm.regs[2] = 0;       // y = 0
+    vm.regs[1] = 0; // x = 0
+    vm.regs[2] = 0; // y = 0
     vm.regs[3] = 0xFF0000; // red
-    // PSET r1, r2, r3 => opcode 0x40
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+                           // PSET r1, r2, r3 => opcode 0x40
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.step();
     assert_eq!(vm.screen[0], 0xFF0000, "top-left corner should be red");
 }
@@ -32836,21 +32839,31 @@ fn test_p276_pset_corner_top_left() {
 #[test]
 fn test_p276_pset_corner_bottom_right() {
     let mut vm = Vm::new();
-    vm.regs[1] = 255;      // x = 255
-    vm.regs[2] = 255;      // y = 255
+    vm.regs[1] = 255; // x = 255
+    vm.regs[2] = 255; // y = 255
     vm.regs[3] = 0x00FF00; // green
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.step();
-    assert_eq!(vm.screen[255 * 256 + 255], 0x00FF00, "bottom-right corner should be green");
+    assert_eq!(
+        vm.screen[255 * 256 + 255],
+        0x00FF00,
+        "bottom-right corner should be green"
+    );
 }
 
 #[test]
 fn test_p276_pset_out_of_bounds_x256() {
     let mut vm = Vm::new();
-    vm.regs[1] = 256;      // x = 256 (out of bounds)
-    vm.regs[2] = 0;        // y = 0
+    vm.regs[1] = 256; // x = 256 (out of bounds)
+    vm.regs[2] = 0; // y = 0
     vm.regs[3] = 0xFFFFFF; // white
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.step();
     assert_eq!(vm.screen.len(), 256 * 256);
 }
@@ -32858,10 +32871,13 @@ fn test_p276_pset_out_of_bounds_x256() {
 #[test]
 fn test_p276_pset_out_of_bounds_y256() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0;        // x = 0
-    vm.regs[2] = 256;      // y = 256 (out of bounds)
+    vm.regs[1] = 0; // x = 0
+    vm.regs[2] = 256; // y = 256 (out of bounds)
     vm.regs[3] = 0x0000FF; // blue
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.step();
     assert_eq!(vm.screen.len(), 256 * 256);
 }
@@ -32872,7 +32888,10 @@ fn test_p276_pset_large_coordinates() {
     vm.regs[1] = 0xFFFFFFFF; // x = max u32
     vm.regs[2] = 0xFFFFFFFF; // y = max u32
     vm.regs[3] = 0x123456;
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
     vm.step();
     assert_eq!(vm.screen.len(), 256 * 256);
 }
@@ -32880,22 +32899,36 @@ fn test_p276_pset_large_coordinates() {
 #[test]
 fn test_p276_pset_overwrites_previous() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 20; vm.regs[3] = 0xFF0000; // red
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 20;
+    vm.regs[3] = 0xFF0000; // red
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000);
 
     // Overwrite same pixel with blue
     vm.regs[3] = 0x0000FF;
-    vm.pc = 0; vm.step();
-    assert_eq!(vm.screen[20 * 256 + 10], 0x0000FF, "should overwrite to blue");
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0x0000FF,
+        "should overwrite to blue"
+    );
 }
 
 #[test]
 fn test_p276_pseti_immediate_values() {
     let mut vm = Vm::new();
     // PSETI x, y, color => opcode 0x41, 4 words
-    vm.ram[0] = 0x41; vm.ram[1] = 50; vm.ram[2] = 100; vm.ram[3] = 0x00FFFF;
+    vm.ram[0] = 0x41;
+    vm.ram[1] = 50;
+    vm.ram[2] = 100;
+    vm.ram[3] = 0x00FFFF;
     vm.step();
     assert_eq!(vm.screen[100 * 256 + 50], 0x00FFFF, "PSETI at (50,100)");
 }
@@ -32907,31 +32940,67 @@ fn test_p276_pseti_immediate_values() {
 #[test]
 fn test_p276_rectf_zero_width_no_draw() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0; vm.regs[4] = 10;
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0;
+    vm.regs[4] = 10;
     vm.regs[5] = 0xFF0000;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
-    assert_eq!(vm.screen[10 * 256 + 10], 0, "zero-width rect should draw nothing");
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0,
+        "zero-width rect should draw nothing"
+    );
 }
 
 #[test]
 fn test_p276_rectf_zero_height_no_draw() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 10; vm.regs[4] = 0;
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 10;
+    vm.regs[4] = 0;
     vm.regs[5] = 0xFF0000;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
-    assert_eq!(vm.screen[10 * 256 + 10], 0, "zero-height rect should draw nothing");
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0,
+        "zero-height rect should draw nothing"
+    );
 }
 
 #[test]
 fn test_p276_rectf_one_pixel() {
     let mut vm = Vm::new();
-    vm.regs[1] = 42; vm.regs[2] = 17; vm.regs[3] = 1; vm.regs[4] = 1;
+    vm.regs[1] = 42;
+    vm.regs[2] = 17;
+    vm.regs[3] = 1;
+    vm.regs[4] = 1;
     vm.regs[5] = 0x00FF00;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
-    assert_eq!(vm.screen[17 * 256 + 42], 0x00FF00, "1x1 rect = single pixel");
+    assert_eq!(
+        vm.screen[17 * 256 + 42],
+        0x00FF00,
+        "1x1 rect = single pixel"
+    );
     assert_eq!(vm.screen[17 * 256 + 43], 0);
     assert_eq!(vm.screen[18 * 256 + 42], 0);
 }
@@ -32939,9 +33008,17 @@ fn test_p276_rectf_one_pixel() {
 #[test]
 fn test_p276_rectf_extends_past_screen_right() {
     let mut vm = Vm::new();
-    vm.regs[1] = 250; vm.regs[2] = 0; vm.regs[3] = 20; vm.regs[4] = 1;
+    vm.regs[1] = 250;
+    vm.regs[2] = 0;
+    vm.regs[3] = 20;
+    vm.regs[4] = 1;
     vm.regs[5] = 0xFFFFFF;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
     for x in 250..=255 {
         assert_eq!(vm.screen[0 * 256 + x], 0xFFFFFF, "x={} should be white", x);
@@ -32951,9 +33028,17 @@ fn test_p276_rectf_extends_past_screen_right() {
 #[test]
 fn test_p276_rectf_extends_past_screen_bottom() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0; vm.regs[2] = 250; vm.regs[3] = 1; vm.regs[4] = 20;
+    vm.regs[1] = 0;
+    vm.regs[2] = 250;
+    vm.regs[3] = 1;
+    vm.regs[4] = 20;
     vm.regs[5] = 0xABCDEF;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
     for y in 250..=255 {
         assert_eq!(vm.screen[y * 256 + 0], 0xABCDEF, "y={} should be drawn", y);
@@ -32963,9 +33048,17 @@ fn test_p276_rectf_extends_past_screen_bottom() {
 #[test]
 fn test_p276_rectf_full_screen() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 256; vm.regs[4] = 256;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 256;
+    vm.regs[4] = 256;
     vm.regs[5] = 0x111111;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
     assert_eq!(vm.screen[0], 0x111111);
     assert_eq!(vm.screen[255 * 256 + 255], 0x111111);
@@ -32979,22 +33072,47 @@ fn test_p276_rectf_full_screen() {
 #[test]
 fn test_p276_line_single_point() {
     let mut vm = Vm::new();
-    vm.regs[1] = 50; vm.regs[2] = 50; vm.regs[3] = 50; vm.regs[4] = 50;
+    vm.regs[1] = 50;
+    vm.regs[2] = 50;
+    vm.regs[3] = 50;
+    vm.regs[4] = 50;
     vm.regs[5] = 0xFF0000;
-    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x45;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
-    assert_eq!(vm.screen[50 * 256 + 50], 0xFF0000, "zero-length line = single point");
+    assert_eq!(
+        vm.screen[50 * 256 + 50],
+        0xFF0000,
+        "zero-length line = single point"
+    );
 }
 
 #[test]
 fn test_p276_line_horizontal_strict() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 5; vm.regs[3] = 20; vm.regs[4] = 5;
+    vm.regs[1] = 10;
+    vm.regs[2] = 5;
+    vm.regs[3] = 20;
+    vm.regs[4] = 5;
     vm.regs[5] = 0x00FF00;
-    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x45;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
     for x in 10..=20 {
-        assert_eq!(vm.screen[5 * 256 + x], 0x00FF00, "horizontal line at x={}", x);
+        assert_eq!(
+            vm.screen[5 * 256 + x],
+            0x00FF00,
+            "horizontal line at x={}",
+            x
+        );
     }
     assert_eq!(vm.screen[6 * 256 + 15], 0);
 }
@@ -33002,24 +33120,51 @@ fn test_p276_line_horizontal_strict() {
 #[test]
 fn test_p276_line_vertical_strict() {
     let mut vm = Vm::new();
-    vm.regs[1] = 30; vm.regs[2] = 10; vm.regs[3] = 30; vm.regs[4] = 30;
+    vm.regs[1] = 30;
+    vm.regs[2] = 10;
+    vm.regs[3] = 30;
+    vm.regs[4] = 30;
     vm.regs[5] = 0x0000FF;
-    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x45;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
     for y in 10..=30 {
-        assert_eq!(vm.screen[y * 256 + 30], 0x0000FF, "vertical line at y={}", y);
+        assert_eq!(
+            vm.screen[y * 256 + 30],
+            0x0000FF,
+            "vertical line at y={}",
+            y
+        );
     }
 }
 
 #[test]
 fn test_p276_line_diagonal_45deg() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 10; vm.regs[4] = 10;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 10;
+    vm.regs[4] = 10;
     vm.regs[5] = 0xFFFF00;
-    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x45;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
     for i in 0..=10 {
-        assert_eq!(vm.screen[i * 256 + i], 0xFFFF00, "diagonal at ({}, {})", i, i);
+        assert_eq!(
+            vm.screen[i * 256 + i],
+            0xFFFF00,
+            "diagonal at ({}, {})",
+            i,
+            i
+        );
     }
 }
 
@@ -33027,34 +33172,62 @@ fn test_p276_line_diagonal_45deg() {
 fn test_p276_line_steep_slope() {
     let mut vm = Vm::new();
     // Nearly vertical: dx=1, dy=20
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 1; vm.regs[4] = 20;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 1;
+    vm.regs[4] = 20;
     vm.regs[5] = 0xFF00FF;
-    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x45;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
     let mut drawn = 0;
     for y in 0..=20 {
         for x in 0..=1 {
-            if vm.screen[y * 256 + x] == 0xFF00FF { drawn += 1; }
+            if vm.screen[y * 256 + x] == 0xFF00FF {
+                drawn += 1;
+            }
         }
     }
-    assert!(drawn >= 20, "steep line should draw >= 20 pixels, got {}", drawn);
+    assert!(
+        drawn >= 20,
+        "steep line should draw >= 20 pixels, got {}",
+        drawn
+    );
 }
 
 #[test]
 fn test_p276_line_shallow_slope() {
     let mut vm = Vm::new();
     // Nearly horizontal: dx=20, dy=1
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 20; vm.regs[4] = 1;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 20;
+    vm.regs[4] = 1;
     vm.regs[5] = 0x00FFFF;
-    vm.ram[0] = 0x45; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
+    vm.ram[0] = 0x45;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
     vm.step();
     let mut drawn = 0;
     for y in 0..=1 {
         for x in 0..=20 {
-            if vm.screen[y * 256 + x] == 0x00FFFF { drawn += 1; }
+            if vm.screen[y * 256 + x] == 0x00FFFF {
+                drawn += 1;
+            }
         }
     }
-    assert!(drawn >= 20, "shallow line should draw >= 20 pixels, got {}", drawn);
+    assert!(
+        drawn >= 20,
+        "shallow line should draw >= 20 pixels, got {}",
+        drawn
+    );
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -33064,22 +33237,42 @@ fn test_p276_line_shallow_slope() {
 #[test]
 fn test_p276_circle_radius_zero() {
     let mut vm = Vm::new();
-    vm.regs[1] = 100; vm.regs[2] = 100; vm.regs[3] = 0;
+    vm.regs[1] = 100;
+    vm.regs[2] = 100;
+    vm.regs[3] = 0;
     vm.regs[4] = 0xFF0000;
-    vm.ram[0] = 0x46; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[0] = 0x46;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.step();
-    assert_eq!(vm.screen[100 * 256 + 100], 0xFF0000, "radius-0 circle = center pixel");
+    assert_eq!(
+        vm.screen[100 * 256 + 100],
+        0xFF0000,
+        "radius-0 circle = center pixel"
+    );
 }
 
 #[test]
 fn test_p276_circle_radius_one() {
     let mut vm = Vm::new();
-    vm.regs[1] = 100; vm.regs[2] = 100; vm.regs[3] = 1;
+    vm.regs[1] = 100;
+    vm.regs[2] = 100;
+    vm.regs[3] = 1;
     vm.regs[4] = 0x00FF00;
-    vm.ram[0] = 0x46; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[0] = 0x46;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.step();
     // Radius 1 circle is a ring -- center (100,100) is NOT part of the circle
-    assert_eq!(vm.screen[100 * 256 + 100], 0, "center should be empty for radius-1 ring");
+    assert_eq!(
+        vm.screen[100 * 256 + 100],
+        0,
+        "center should be empty for radius-1 ring"
+    );
     // Cardinal ring pixels should be drawn
     assert_eq!(vm.screen[100 * 256 + 101], 0x00FF00, "right cardinal");
     assert_eq!(vm.screen[100 * 256 + 99], 0x00FF00, "left cardinal");
@@ -33090,9 +33283,15 @@ fn test_p276_circle_radius_one() {
 #[test]
 fn test_p276_circle_large_radius_clipped() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 300;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 300;
     vm.regs[4] = 0x0000FF;
-    vm.ram[0] = 0x46; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[0] = 0x46;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.step();
     let screen = &vm.screen;
     let drawn: usize = (0..256u32)
@@ -33105,16 +33304,26 @@ fn test_p276_circle_large_radius_clipped() {
 #[test]
 fn test_p276_circle_center_at_corner() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 10;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 10;
     vm.regs[4] = 0xFFFFFF;
-    vm.ram[0] = 0x46; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[0] = 0x46;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
     vm.step();
     let screen = &vm.screen;
     let drawn: usize = (0..256)
         .flat_map(|y| (0..256).map(move |x| screen[y * 256 + x]))
         .filter(|&c| c == 0xFFFFFF)
         .count();
-    assert!(drawn > 0 && drawn < 80, "corner circle partially visible, got {} pixels", drawn);
+    assert!(
+        drawn > 0 && drawn < 80,
+        "corner circle partially visible, got {} pixels",
+        drawn
+    );
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -33133,20 +33342,33 @@ fn test_p276_sprite_transparency_skips_zero() {
 
     // Sprite data: 2x2, with one transparent (0) pixel
     let base = 0x2000usize;
-    vm.ram[base] = 0x00FF00;     // (0,0) = green
+    vm.ram[base] = 0x00FF00; // (0,0) = green
     vm.ram[base + 1] = 0x000000; // (1,0) = transparent
     vm.ram[base + 2] = 0x0000FF; // (0,1) = blue
     vm.ram[base + 3] = 0xFFFFFF; // (1,1) = white
 
     // SPRITE xr, yr, addr_r, wr, hr => 0x4A, 6 words
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[4] = base as u32;
-    vm.regs[5] = 2; vm.regs[6] = 2;
-    vm.ram[0] = 0x4A; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 4; vm.ram[4] = 5; vm.ram[5] = 6;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[4] = base as u32;
+    vm.regs[5] = 2;
+    vm.regs[6] = 2;
+    vm.ram[0] = 0x4A;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 4;
+    vm.ram[4] = 5;
+    vm.ram[5] = 6;
+    vm.pc = 0;
+    vm.step();
 
     assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "sprite pixel (0,0)");
     // Transparent pixel should preserve background
-    assert_eq!(vm.screen[10 * 256 + 11], 0xFF0000, "transparent preserves background");
+    assert_eq!(
+        vm.screen[10 * 256 + 11],
+        0xFF0000,
+        "transparent preserves background"
+    );
     assert_eq!(vm.screen[11 * 256 + 10], 0x0000FF, "sprite pixel (0,1)");
     assert_eq!(vm.screen[11 * 256 + 11], 0xFFFFFF, "sprite pixel (1,1)");
 }
@@ -33158,10 +33380,19 @@ fn test_p276_sprite_extends_past_screen_edge() {
     for i in 0..4 {
         vm.ram[base + i] = 0xAAAAAA;
     }
-    vm.regs[1] = 254; vm.regs[2] = 0; vm.regs[4] = base as u32;
-    vm.regs[5] = 4; vm.regs[6] = 1;
-    vm.ram[0] = 0x4A; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 4; vm.ram[4] = 5; vm.ram[5] = 6;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 254;
+    vm.regs[2] = 0;
+    vm.regs[4] = base as u32;
+    vm.regs[5] = 4;
+    vm.regs[6] = 1;
+    vm.ram[0] = 0x4A;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 4;
+    vm.ram[4] = 5;
+    vm.ram[5] = 6;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.screen[0 * 256 + 254], 0xAAAAAA);
     assert_eq!(vm.screen[0 * 256 + 255], 0xAAAAAA);
 }
@@ -33171,10 +33402,19 @@ fn test_p276_sprite_one_by_one() {
     let mut vm = Vm::new();
     let base = 0x2000usize;
     vm.ram[base] = 0xFF00FF;
-    vm.regs[1] = 42; vm.regs[2] = 42; vm.regs[4] = base as u32;
-    vm.regs[5] = 1; vm.regs[6] = 1;
-    vm.ram[0] = 0x4A; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 4; vm.ram[4] = 5; vm.ram[5] = 6;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 42;
+    vm.regs[2] = 42;
+    vm.regs[4] = base as u32;
+    vm.regs[5] = 1;
+    vm.regs[6] = 1;
+    vm.ram[0] = 0x4A;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 4;
+    vm.ram[4] = 5;
+    vm.ram[5] = 6;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.screen[42 * 256 + 42], 0xFF00FF, "1x1 sprite");
 }
 
@@ -33187,13 +33427,23 @@ fn test_p276_flood_fill_uniform_surface() {
     let mut vm = Vm::new();
     // Fill entire screen black
     vm.regs[1] = 0;
-    vm.ram[0] = 0x42; vm.ram[1] = 1;
-    vm.pc = 0; vm.step();
+    vm.ram[0] = 0x42;
+    vm.ram[1] = 1;
+    vm.pc = 0;
+    vm.step();
 
     // FLOOD xr, yr, fill_reg, tolerance_reg => 0xCE, 5 words
-    vm.regs[1] = 128; vm.regs[2] = 128; vm.regs[3] = 0xFF0000; vm.regs[4] = 0;
-    vm.ram[0] = 0xCE; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 128;
+    vm.regs[2] = 128;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 0;
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
     assert_eq!(vm.screen[0], 0xFF0000);
     assert_eq!(vm.screen[128 * 256 + 128], 0xFF0000);
@@ -33204,21 +33454,35 @@ fn test_p276_flood_fill_uniform_surface() {
 fn test_p276_flood_fill_stops_at_different_color() {
     let mut vm = Vm::new();
     vm.regs[1] = 0x0000FF;
-    vm.ram[0] = 0x42; vm.ram[1] = 1;
-    vm.pc = 0; vm.step();
+    vm.ram[0] = 0x42;
+    vm.ram[1] = 1;
+    vm.pc = 0;
+    vm.step();
 
     // Green border at y=100
     for x in 0..256 {
         vm.screen[100 * 256 + x] = 0x00FF00;
     }
 
-    vm.regs[1] = 128; vm.regs[2] = 50; vm.regs[3] = 0xFF0000; vm.regs[4] = 0;
-    vm.ram[0] = 0xCE; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 128;
+    vm.regs[2] = 50;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 0;
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
     assert_eq!(vm.screen[50 * 256 + 128], 0xFF0000, "top half flooded");
     assert_eq!(vm.screen[100 * 256 + 128], 0x00FF00, "border preserved");
-    assert_eq!(vm.screen[150 * 256 + 128], 0x0000FF, "bottom half not flooded");
+    assert_eq!(
+        vm.screen[150 * 256 + 128],
+        0x0000FF,
+        "bottom half not flooded"
+    );
 }
 
 #[test]
@@ -33226,14 +33490,28 @@ fn test_p276_flood_fill_with_tolerance() {
     let mut vm = Vm::new();
     let base_color = 0x050505;
     vm.regs[1] = base_color;
-    vm.ram[0] = 0x42; vm.ram[1] = 1;
-    vm.pc = 0; vm.step();
+    vm.ram[0] = 0x42;
+    vm.ram[1] = 1;
+    vm.pc = 0;
+    vm.step();
 
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 0xFF0000; vm.regs[4] = 10;
-    vm.ram[0] = 0xCE; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 10;
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
-    assert_eq!(vm.screen[128 * 256 + 128], 0xFF0000, "flooded with tolerance");
+    assert_eq!(
+        vm.screen[128 * 256 + 128],
+        0xFF0000,
+        "flooded with tolerance"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -33243,41 +33521,91 @@ fn test_p276_flood_fill_with_tolerance() {
 #[test]
 fn test_p276_blend_alpha_zero_no_change() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0x00FF00;
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0x00FF00;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
 
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0xFF0000; vm.regs[4] = 0;
-    vm.ram[0] = 0xF2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 0;
+    vm.ram[0] = 0xF2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
-    assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "alpha=0 should not change pixel");
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0x00FF00,
+        "alpha=0 should not change pixel"
+    );
 }
 
 #[test]
 fn test_p276_blend_alpha_255_full_replace() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0x00FF00;
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0x00FF00;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
 
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0xFF0000; vm.regs[4] = 255;
-    vm.ram[0] = 0xF2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 255;
+    vm.ram[0] = 0xF2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
-    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000, "alpha=255 should fully replace");
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0xFF0000,
+        "alpha=255 should fully replace"
+    );
 }
 
 #[test]
 fn test_p276_blend_alpha_128_half_mix() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0xFF0000;
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0xFF0000;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
 
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 0x0000FF; vm.regs[4] = 128;
-    vm.ram[0] = 0xF2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0x0000FF;
+    vm.regs[4] = 128;
+    vm.ram[0] = 0xF2;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
     let result = vm.screen[10 * 256 + 10];
     let r = (result >> 16) & 0xFF;
@@ -33291,27 +33619,45 @@ fn test_p276_blend_alpha_128_half_mix() {
 #[test]
 fn test_p276_blendr_alpha_zero_no_change() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0x00FF00; vm.regs[2] = 0xFF0000; vm.regs[3] = 0;
-    vm.ram[0] = 0xF3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0x00FF00;
+    vm.regs[2] = 0xFF0000;
+    vm.regs[3] = 0;
+    vm.ram[0] = 0xF3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.regs[1], 0x00FF00, "BLENDR alpha=0: dst unchanged");
 }
 
 #[test]
 fn test_p276_blendr_alpha_255_full_replace() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0x00FF00; vm.regs[2] = 0xFF0000; vm.regs[3] = 255;
-    vm.ram[0] = 0xF3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0x00FF00;
+    vm.regs[2] = 0xFF0000;
+    vm.regs[3] = 255;
+    vm.ram[0] = 0xF3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.regs[1], 0xFF0000, "BLENDR alpha=255: dst = src");
 }
 
 #[test]
 fn test_p276_blendr_alpha_128_half_mix() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0xFF0000; vm.regs[2] = 0x0000FF; vm.regs[3] = 128;
-    vm.ram[0] = 0xF3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0xFF0000;
+    vm.regs[2] = 0x0000FF;
+    vm.regs[3] = 128;
+    vm.ram[0] = 0xF3;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
     let result = vm.regs[1];
     let r = (result >> 16) & 0xFF;
     let b = result & 0xFF;
@@ -33326,21 +33672,45 @@ fn test_p276_blendr_alpha_128_half_mix() {
 #[test]
 fn test_p276_scale_identity() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4; vm.regs[5] = 0xFF0000;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 4;
+    vm.regs[4] = 4;
+    vm.regs[5] = 0xFF0000;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.pc = 0;
+    vm.step();
 
     // SCALE sx, sy, sw, sh, dx, dy, dw, dh => 0xF5, 9 words
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4;
-    vm.regs[5] = 10; vm.regs[6] = 10; vm.regs[7] = 4; vm.regs[8] = 4;
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 4;
+    vm.regs[4] = 4;
+    vm.regs[5] = 10;
+    vm.regs[6] = 10;
+    vm.regs[7] = 4;
+    vm.regs[8] = 4;
     vm.ram[0] = 0xF5;
-    for i in 1..=8 { vm.ram[i] = i as u32; }
-    vm.pc = 0; vm.step();
+    for i in 1..=8 {
+        vm.ram[i] = i as u32;
+    }
+    vm.pc = 0;
+    vm.step();
 
     for dy in 0..4 {
         for dx in 0..4 {
-            assert_eq!(vm.screen[(10 + dy) * 256 + (10 + dx)], 0xFF0000,
-                "identity scale pixel ({}, {})", 10+dx, 10+dy);
+            assert_eq!(
+                vm.screen[(10 + dy) * 256 + (10 + dx)],
+                0xFF0000,
+                "identity scale pixel ({}, {})",
+                10 + dx,
+                10 + dy
+            );
         }
     }
 }
@@ -33348,20 +33718,44 @@ fn test_p276_scale_identity() {
 #[test]
 fn test_p276_scale_2x_upscale() {
     let mut vm = Vm::new();
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 2; vm.regs[4] = 2; vm.regs[5] = 0x00FF00;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 2;
+    vm.regs[4] = 2;
+    vm.regs[5] = 0x00FF00;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.pc = 0;
+    vm.step();
 
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 2; vm.regs[4] = 2;
-    vm.regs[5] = 10; vm.regs[6] = 10; vm.regs[7] = 4; vm.regs[8] = 4;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 2;
+    vm.regs[4] = 2;
+    vm.regs[5] = 10;
+    vm.regs[6] = 10;
+    vm.regs[7] = 4;
+    vm.regs[8] = 4;
     vm.ram[0] = 0xF5;
-    for i in 1..=8 { vm.ram[i] = i as u32; }
-    vm.pc = 0; vm.step();
+    for i in 1..=8 {
+        vm.ram[i] = i as u32;
+    }
+    vm.pc = 0;
+    vm.step();
 
     for dy in 0..4 {
         for dx in 0..4 {
-            assert_eq!(vm.screen[(10 + dy) * 256 + (10 + dx)], 0x00FF00,
-                "2x upscale pixel ({}, {})", 10+dx, 10+dy);
+            assert_eq!(
+                vm.screen[(10 + dy) * 256 + (10 + dx)],
+                0x00FF00,
+                "2x upscale pixel ({}, {})",
+                10 + dx,
+                10 + dy
+            );
         }
     }
 }
@@ -33369,19 +33763,45 @@ fn test_p276_scale_2x_upscale() {
 #[test]
 fn test_p276_rotate_zero_degrees_identity() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4; vm.regs[5] = 0x0000FF;
-    vm.ram[0] = 0x43; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 4;
+    vm.regs[4] = 4;
+    vm.regs[5] = 0x0000FF;
+    vm.ram[0] = 0x43;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.pc = 0;
+    vm.step();
 
     // ROTATE x, y, w, h, angle => 0xF4, 6 words
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4; vm.regs[5] = 0;
-    vm.ram[0] = 0xF4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4; vm.ram[5] = 5;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 4;
+    vm.regs[4] = 4;
+    vm.regs[5] = 0;
+    vm.ram[0] = 0xF4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.pc = 0;
+    vm.step();
 
     let screen = &vm.screen;
-    let blue_count: usize = (10..14).flat_map(|y| (10..14).map(move |x| screen[y * 256 + x]))
-        .filter(|&c| c == 0x0000FF).count();
-    assert!(blue_count >= 16, "0-degree rotation should preserve all 16 pixels, got {}", blue_count);
+    let blue_count: usize = (10..14)
+        .flat_map(|y| (10..14).map(move |x| screen[y * 256 + x]))
+        .filter(|&c| c == 0x0000FF)
+        .count();
+    assert!(
+        blue_count >= 16,
+        "0-degree rotation should preserve all 16 pixels, got {}",
+        blue_count
+    );
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -33391,67 +33811,127 @@ fn test_p276_rotate_zero_degrees_identity() {
 #[test]
 fn test_p276_fill_respects_clip_rect() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4;
-    vm.ram[0] = 0xC4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 4;
+    vm.regs[4] = 4;
+    vm.ram[0] = 0xC4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
     vm.regs[1] = 0xFF0000;
-    vm.ram[0] = 0x42; vm.ram[1] = 1;
-    vm.pc = 0; vm.step();
+    vm.ram[0] = 0x42;
+    vm.ram[1] = 1;
+    vm.pc = 0;
+    vm.step();
 
     assert_eq!(vm.screen[11 * 256 + 11], 0xFF0000, "inside clip");
     assert_eq!(vm.screen[0], 0, "outside clip");
     assert_eq!(vm.screen[5 * 256 + 5], 0, "outside clip");
 
     vm.ram[0] = 0xC5;
-    vm.pc = 0; vm.step();
+    vm.pc = 0;
+    vm.step();
     assert!(vm.clip_rect.is_none(), "clip should be cleared");
 }
 
 #[test]
 fn test_p276_pset_respects_clip_rect() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 4; vm.regs[4] = 4;
-    vm.ram[0] = 0xC4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 4;
+    vm.regs[4] = 4;
+    vm.ram[0] = 0xC4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
-    vm.regs[1] = 11; vm.regs[2] = 11; vm.regs[3] = 0xFF0000;
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 11;
+    vm.regs[2] = 11;
+    vm.regs[3] = 0xFF0000;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.screen[11 * 256 + 11], 0xFF0000, "inside clip");
 
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 0x00FF00;
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 0x00FF00;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.screen[0], 0, "outside clip should be rejected");
 }
 
 #[test]
 fn test_p276_clipset_zero_size() {
     let mut vm = Vm::new();
-    vm.regs[1] = 50; vm.regs[2] = 50; vm.regs[3] = 0; vm.regs[4] = 0;
-    vm.ram[0] = 0xC4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 50;
+    vm.regs[2] = 50;
+    vm.regs[3] = 0;
+    vm.regs[4] = 0;
+    vm.ram[0] = 0xC4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
     vm.regs[1] = 0xFF0000;
-    vm.ram[0] = 0x42; vm.ram[1] = 1;
-    vm.pc = 0; vm.step();
-    assert_eq!(vm.screen[50 * 256 + 50], 0, "zero-size clip blocks all drawing");
+    vm.ram[0] = 0x42;
+    vm.ram[1] = 1;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(
+        vm.screen[50 * 256 + 50],
+        0,
+        "zero-size clip blocks all drawing"
+    );
 }
 
 #[test]
 fn test_p276_clipclr_restores_full_drawing() {
     let mut vm = Vm::new();
-    vm.regs[1] = 10; vm.regs[2] = 10; vm.regs[3] = 1; vm.regs[4] = 1;
-    vm.ram[0] = 0xC4; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 1;
+    vm.regs[4] = 1;
+    vm.ram[0] = 0xC4;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+    vm.step();
 
     vm.ram[0] = 0xC5;
-    vm.pc = 0; vm.step();
+    vm.pc = 0;
+    vm.step();
 
-    vm.regs[1] = 0; vm.regs[2] = 0; vm.regs[3] = 0xFFFFFF;
-    vm.ram[0] = 0x40; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 0xFFFFFF;
+    vm.ram[0] = 0x40;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.screen[0], 0xFFFFFF, "drawing after clipclr");
 }
 
@@ -33466,18 +33946,31 @@ fn test_p276_screenp_reads_pixel() {
 
     vm.regs[2] = 30; // x
     vm.regs[3] = 20; // y
-    vm.ram[0] = 0x6D; vm.ram[1] = 7; vm.ram[2] = 2; vm.ram[3] = 3; // dest=r7
-    vm.pc = 0; vm.step();
+    vm.ram[0] = 0x6D;
+    vm.ram[1] = 7;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3; // dest=r7
+    vm.pc = 0;
+    vm.step();
 
-    assert_eq!(vm.regs[7], 0xABCDEF, "SCREENP should read pixel into dest reg");
+    assert_eq!(
+        vm.regs[7], 0xABCDEF,
+        "SCREENP should read pixel into dest reg"
+    );
 }
 
 #[test]
 fn test_p276_screenp_out_of_bounds_returns_zero() {
     let mut vm = Vm::new();
-    vm.regs[1] = 7; vm.regs[2] = 256; vm.regs[3] = 0;
-    vm.ram[0] = 0x6D; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
-    vm.pc = 0; vm.step();
+    vm.regs[1] = 7;
+    vm.regs[2] = 256;
+    vm.regs[3] = 0;
+    vm.ram[0] = 0x6D;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
     assert_eq!(vm.regs[7], 0, "out-of-bounds SCREENP returns 0");
 }
 
@@ -33492,8 +33985,12 @@ fn test_p276_peek_reads_pixel() {
 
     vm.regs[1] = 25; // x
     vm.regs[2] = 15; // y
-    vm.ram[0] = 0x4F; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 9; // dest=r9
-    vm.pc = 0; vm.step();
+    vm.ram[0] = 0x4F;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 9; // dest=r9
+    vm.pc = 0;
+    vm.step();
 
     assert_eq!(vm.regs[9], 0x123456, "PEEK should read pixel into dest reg");
 }
@@ -33510,8 +34007,10 @@ fn test_p276_scroll_moves_pixels_up() {
     }
 
     vm.regs[1] = 3;
-    vm.ram[0] = 0x47; vm.ram[1] = 1;
-    vm.pc = 0; vm.step();
+    vm.ram[0] = 0x47;
+    vm.ram[1] = 1;
+    vm.pc = 0;
+    vm.step();
 
     assert_eq!(vm.screen[2 * 256 + 0], 0xFF0000, "scrolled up to y=2");
     assert_eq!(vm.screen[5 * 256 + 0], 0, "old position cleared");
@@ -33523,7 +34022,492 @@ fn test_p276_scroll_zero_pixels() {
     let mut vm = Vm::new();
     vm.screen[10 * 256 + 10] = 0x00FF00;
     vm.regs[1] = 0;
-    vm.ram[0] = 0x47; vm.ram[1] = 1;
-    vm.pc = 0; vm.step();
-    assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00, "scroll by 0 preserves pixels");
+    vm.ram[0] = 0x47;
+    vm.ram[1] = 1;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0x00FF00,
+        "scroll by 0 preserves pixels"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Phase 278: ops_memory.rs and scheduler.rs Unit Tests
+// ═══════════════════════════════════════════════════════════
+
+// ── PUSH/POP boundary tests ──────────────────────────────
+
+#[test]
+fn test_p278_push_pop_roundtrip_at_0xFF00() {
+    // SP starts at 0xFF00. PUSH should store at 0xFEFF, POP should retrieve it.
+    let mut vm = Vm::new();
+    vm.regs[30] = 0xFF00; // SP = 0xFF00
+    vm.regs[1] = 42; // value to push
+
+    // PUSH r1: stores at 0xFEFF, SP becomes 0xFEFF
+    vm.ram[0] = 0x60; // PUSH
+    vm.ram[1] = 1; // r1
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[30], 0xFEFF, "SP should decrement to 0xFEFF");
+    assert_eq!(vm.ram[0xFEFF], 42, "value stored at 0xFEFF");
+
+    // POP r2: reads from 0xFEFF, SP becomes 0xFF00
+    vm.ram[0] = 0x61; // POP
+    vm.ram[1] = 2; // r2
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[2], 42, "popped value should be 42");
+    assert_eq!(vm.regs[30], 0xFF00, "SP should be back to 0xFF00");
+}
+
+#[test]
+fn test_p278_push_at_sp_zero_does_nothing() {
+    // PUSH when SP == 0 should silently do nothing (no underflow)
+    let mut vm = Vm::new();
+    vm.regs[30] = 0; // SP at absolute bottom
+    vm.regs[1] = 99;
+    vm.ram[0] = 0x60; // PUSH
+    vm.ram[1] = 1; // r1
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[30], 0, "SP should remain 0 after underflow PUSH");
+}
+
+#[test]
+fn test_p278_pop_at_sp_zero_reads_and_advances() {
+    // POP when SP == 0 should read from address 0 and advance SP to 1
+    let mut vm = Vm::new();
+    vm.regs[30] = 0;
+    vm.ram[0] = 0x55; // some value at address 0
+                      // POP r1: reads ram[0], SP becomes 1
+    vm.ram[0x200] = 0x61; // POP at a safe address
+    vm.ram[0x201] = 1; // r1
+    vm.pc = 0x200;
+    vm.step();
+    assert_eq!(vm.regs[1], 0x55, "POP should read whatever is at ram[SP]");
+    assert_eq!(vm.regs[30], 1, "SP should advance to 1");
+}
+
+#[test]
+fn test_p278_push_multiple_values_preserve_order() {
+    // Push 3 values, pop them back - should be LIFO
+    // NOTE: Each instruction uses a separate address to avoid icache staleness
+    // (writing vm.ram[] directly doesn't bump icache_generation).
+    let mut vm = Vm::new();
+    vm.regs[30] = 0xFF00;
+
+    // PUSH r1 (10)
+    vm.regs[1] = 10;
+    vm.ram[0] = 0x60;
+    vm.ram[1] = 1;
+    vm.pc = 0;
+    vm.step();
+
+    // PUSH r2 (20) — at different address to avoid icache hit with stale reg
+    vm.regs[2] = 20;
+    vm.ram[2] = 0x60;
+    vm.ram[3] = 2;
+    vm.pc = 2;
+    vm.step();
+
+    // PUSH r3 (30)
+    vm.regs[3] = 30;
+    vm.ram[4] = 0x60;
+    vm.ram[5] = 3;
+    vm.pc = 4;
+    vm.step();
+
+    assert_eq!(vm.regs[30], 0xFEFD, "SP should be 0xFF00 - 3");
+
+    // POP r4 -> 30
+    vm.ram[6] = 0x61;
+    vm.ram[7] = 4;
+    vm.pc = 6;
+    vm.step();
+    assert_eq!(vm.regs[4], 30);
+
+    // POP r5 -> 20
+    vm.ram[8] = 0x61;
+    vm.ram[9] = 5;
+    vm.pc = 8;
+    vm.step();
+    assert_eq!(vm.regs[5], 20);
+
+    // POP r6 -> 10
+    vm.ram[10] = 0x61;
+    vm.ram[11] = 6;
+    vm.pc = 10;
+    vm.step();
+    assert_eq!(vm.regs[6], 10);
+
+    assert_eq!(vm.regs[30], 0xFF00, "SP should be back to start");
+}
+
+#[test]
+fn test_p278_load_store_canvas_buffer_intercept() {
+    // Verify LOAD from 0x8000 reads canvas_buffer, not ram
+    let mut vm = Vm::new();
+    vm.canvas_buffer[5] = 0xABCDEF;
+    vm.ram[0x8005] = 999; // should be ignored
+
+    vm.regs[1] = 0x8005; // address in canvas range
+    vm.ram[0] = 0x11; // LOAD
+    vm.ram[1] = 2; // r2
+    vm.ram[2] = 1; // r2 = LOAD r2, r1
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[2], 0xABCDEF, "LOAD should read from canvas_buffer");
+
+    // Verify STORE to 0x8005 writes canvas_buffer, not ram
+    vm.regs[3] = 0x123456;
+    vm.ram[0] = 0x12; // STORE
+    vm.ram[1] = 1; // addr_reg
+    vm.ram[2] = 3; // val_reg
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(
+        vm.canvas_buffer[5], 0x123456,
+        "STORE should write to canvas_buffer"
+    );
+    assert_eq!(vm.ram[0x8005], 999, "RAM should be unchanged");
+}
+
+#[test]
+fn test_p278_load_store_regular_ram_outside_canvas() {
+    // LOAD/STORE outside 0x8000-0x8FFF should use normal RAM
+    let mut vm = Vm::new();
+    vm.ram[0x3000] = 42;
+
+    vm.regs[1] = 0x3000;
+    vm.ram[0] = 0x11;
+    vm.ram[1] = 2;
+    vm.ram[2] = 1;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[2], 42, "LOAD outside canvas range should read RAM");
+
+    vm.regs[3] = 99;
+    vm.ram[0] = 0x12;
+    vm.ram[1] = 1;
+    vm.ram[2] = 3;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(
+        vm.ram[0x3000], 99,
+        "STORE outside canvas range should write RAM"
+    );
+}
+
+// ── Scheduler round-robin tests ──────────────────────────
+
+#[test]
+fn test_p278_scheduler_single_process_runs() {
+    // A single child process should execute when step_all_processes is called
+    use crate::vm::types::Process;
+    let mut vm = Vm::new();
+
+    // Place HALT at address 0x100 (child's PC)
+    vm.ram[0x100] = 0x00; // HALT
+
+    let mut proc = Process::new(1, 0, 0x100);
+    // Give the process an initial slice so the scheduler runs it immediately
+    proc.slice_remaining = 10;
+    vm.processes.push(proc);
+
+    vm.step_all_processes();
+
+    // Process should have executed HALT and become Zombie
+    assert_eq!(
+        vm.processes[0].state,
+        crate::vm::types::ProcessState::Zombie,
+        "process should be zombie after HALT"
+    );
+}
+
+#[test]
+fn test_p278_scheduler_round_robin_both_run() {
+    // Two processes: each increments its own counter register, then HALTs.
+    // After step_all_processes, both should have run.
+    use crate::vm::types::Process;
+    let mut vm = Vm::new();
+
+    // Process 1 at 0x100: LDI r10, 1; ADD r10, r10; HALT
+    vm.ram[0x100] = 0x10;
+    vm.ram[0x101] = 10;
+    vm.ram[0x102] = 1; // LDI r10, 1
+    vm.ram[0x103] = 0x20;
+    vm.ram[0x104] = 10;
+    vm.ram[0x105] = 10; // ADD r10, r10
+    vm.ram[0x106] = 0x00; // HALT
+
+    // Process 2 at 0x200: LDI r10, 1; ADD r10, r10; HALT
+    vm.ram[0x200] = 0x10;
+    vm.ram[0x201] = 10;
+    vm.ram[0x202] = 1; // LDI r10, 1
+    vm.ram[0x203] = 0x20;
+    vm.ram[0x204] = 10;
+    vm.ram[0x205] = 10; // ADD r10, r10
+    vm.ram[0x206] = 0x00; // HALT
+
+    let mut p1 = Process::new(1, 0, 0x100);
+    p1.slice_remaining = 100;
+    let mut p2 = Process::new(2, 0, 0x200);
+    p2.slice_remaining = 100;
+    vm.processes.push(p1);
+    vm.processes.push(p2);
+
+    // Run enough scheduler ticks for both to complete
+    for _ in 0..10 {
+        vm.step_all_processes();
+    }
+
+    // Both should have halted
+    assert_eq!(
+        vm.processes[0].state,
+        crate::vm::types::ProcessState::Zombie,
+        "process 1 should be zombie"
+    );
+    assert_eq!(
+        vm.processes[1].state,
+        crate::vm::types::ProcessState::Zombie,
+        "process 2 should be zombie"
+    );
+    // Process 1: LDI r10=1, ADD r10+=r10 => r10=2
+    assert_eq!(vm.processes[0].regs[10], 2, "process 1 should have r10=2");
+    // Process 2: same
+    assert_eq!(vm.processes[1].regs[10], 2, "process 2 should have r10=2");
+}
+
+#[test]
+fn test_p278_scheduler_priority_higher_gets_more_slices() {
+    // Process 1: priority 0 (lowest) => slice = 100 * (1<<0) = 100
+    // Process 2: priority 3 (highest) => slice = 100 * (1<<3) = 800
+    // Both run a long loop. After one scheduling round, process 2 should have
+    // executed more steps.
+    use crate::vm::types::Process;
+    let mut vm = Vm::new();
+
+    // Process 1 at 0x100: infinite loop (JMP to self) - will exhaust slice
+    vm.ram[0x100] = 0x30;
+    vm.ram[0x101] = 0x100; // JMP 0x100
+
+    // Process 2 at 0x200: same infinite loop
+    vm.ram[0x200] = 0x30;
+    vm.ram[0x201] = 0x200; // JMP 0x200
+
+    let mut p1 = Process::new(1, 0, 0x100);
+    p1.priority = 0;
+    p1.slice_remaining = 0; // force allocation on first tick
+    let mut p2 = Process::new(2, 0, 0x200);
+    p2.priority = 3;
+    p2.slice_remaining = 0;
+    vm.processes.push(p1);
+    vm.processes.push(p2);
+
+    // First call: all_exhausted=true, slices allocated based on priority
+    // Then each process runs one step within its slice
+    vm.step_all_processes();
+
+    // After allocation: p1 gets 100, p2 gets 800
+    // Each ran 1 step, so p1.slice_remaining = 99, p2.slice_remaining = 799
+    assert_eq!(
+        vm.processes[0].slice_remaining, 99,
+        "low-priority process should have 99 remaining (100-1)"
+    );
+    assert_eq!(
+        vm.processes[1].slice_remaining, 799,
+        "high-priority process should have 799 remaining (800-1)"
+    );
+}
+
+#[test]
+fn test_p278_scheduler_yield_forfeits_slice() {
+    // A process that YIELDs should have its slice set to 0 immediately
+    use crate::vm::types::Process;
+    let mut vm = Vm::new();
+
+    // Process at 0x100: YIELD (opcode 0x5A, 1 word)
+    vm.ram[0x100] = 0x5A; // YIELD
+
+    let mut proc = Process::new(1, 0, 0x100);
+    proc.slice_remaining = 50;
+    vm.processes.push(proc);
+
+    vm.step_all_processes();
+
+    assert_eq!(
+        vm.processes[0].slice_remaining, 0,
+        "yielded process should have 0 slice remaining"
+    );
+    assert!(vm.processes[0].yielded, "yielded flag should be set");
+}
+
+#[test]
+fn test_p278_scheduler_sleep_blocks_process() {
+    // A process that SLEEPs should not run until its sleep expires
+    use crate::vm::types::Process;
+    let mut vm = Vm::new();
+
+    // Process at 0x100: LDI r10, 1; SLEEP r10 (sleep for 1 tick)
+    vm.ram[0x100] = 0x10;
+    vm.ram[0x101] = 10;
+    vm.ram[0x102] = 1; // LDI r10, 1
+    vm.ram[0x103] = 0x5B;
+    vm.ram[0x104] = 10; // SLEEP r10
+
+    let mut proc = Process::new(1, 0, 0x100);
+    proc.slice_remaining = 100;
+    vm.processes.push(proc);
+
+    // First tick: process runs LDI r10, 1
+    vm.step_all_processes();
+    assert_eq!(vm.processes[0].regs[10], 1, "LDI should have executed");
+
+    // Second tick: process runs SLEEP r10 (sets sleep_frames=1)
+    vm.step_all_processes();
+    assert!(
+        vm.processes[0].sleep_until > 0,
+        "process should be sleeping"
+    );
+
+    let sleep_until = vm.processes[0].sleep_until;
+
+    // Third tick: sched_tick increments, but sleep_until > sched_tick, so process sleeps
+    // We set sched_tick = sleep_until - 2 so after the internal increment
+    // (sched_tick += 1) it becomes sleep_until - 1, which is < sleep_until
+    vm.sched_tick = sleep_until - 2;
+    vm.step_all_processes();
+    assert_eq!(
+        vm.processes[0].sleep_until, sleep_until,
+        "sleep_until should not change while sleeping"
+    );
+
+    // Advance sched_tick past sleep_until
+    vm.sched_tick = sleep_until;
+    vm.step_all_processes();
+
+    // Process should now be awake (sleep_until cleared)
+    assert_eq!(
+        vm.processes[0].sleep_until, 0,
+        "process should be awake after sleep expires"
+    );
+}
+
+#[test]
+fn test_p278_scheduler_halted_process_skipped() {
+    // Halted (zombie) processes should not consume scheduler time
+    use crate::vm::types::Process;
+    let mut vm = Vm::new();
+
+    // Zombie process
+    let mut zombie = Process::new(1, 0, 0);
+    zombie.state = crate::vm::types::ProcessState::Zombie;
+    vm.processes.push(zombie);
+
+    // Active process: LDI r10, 42; HALT
+    vm.ram[0x200] = 0x10;
+    vm.ram[0x201] = 10;
+    vm.ram[0x202] = 42;
+    vm.ram[0x203] = 0x00; // HALT
+    let mut active = Process::new(2, 0, 0x200);
+    active.slice_remaining = 100;
+    vm.processes.push(active);
+
+    // step_all_processes executes ONE instruction per process per call
+    // First call: executes LDI r10, 42
+    vm.step_all_processes();
+    assert_eq!(vm.processes[1].regs[10], 42, "LDI should have executed");
+    assert_eq!(vm.processes[1].state, crate::vm::types::ProcessState::Ready);
+
+    // Second call: executes HALT -> Zombie
+    vm.step_all_processes();
+    assert_eq!(
+        vm.processes[1].state,
+        crate::vm::types::ProcessState::Zombie
+    );
+    // Zombie should still be zombie
+    assert_eq!(
+        vm.processes[0].state,
+        crate::vm::types::ProcessState::Zombie
+    );
+}
+
+#[test]
+fn test_p278_scheduler_new_round_allocates_fresh_slices() {
+    // When all processes exhaust their slices, a new round starts
+    use crate::vm::types::Process;
+    let mut vm = Vm::new();
+
+    // Two processes with infinite loops
+    vm.ram[0x100] = 0x30;
+    vm.ram[0x101] = 0x100; // JMP 0x100
+    vm.ram[0x200] = 0x30;
+    vm.ram[0x201] = 0x200; // JMP 0x200
+
+    let mut p1 = Process::new(1, 0, 0x100);
+    p1.slice_remaining = 1; // will exhaust after 1 step
+    let mut p2 = Process::new(2, 0, 0x200);
+    p2.slice_remaining = 1;
+    vm.processes.push(p1);
+    vm.processes.push(p2);
+
+    // Tick 1: both have slice=1, all_exhausted=false (slices > 0)
+    // Sort by priority (both priority 1), run each
+    vm.step_all_processes();
+    assert_eq!(vm.processes[0].slice_remaining, 0, "p1 slice exhausted");
+    assert_eq!(vm.processes[1].slice_remaining, 0, "p2 slice exhausted");
+
+    // Tick 2: all_exhausted=true (both slices == 0), new round allocated
+    vm.step_all_processes();
+    // After reallocation: each gets default_time_slice * (1 << 1) = 200
+    // Then each runs 1 step: remaining = 199
+    assert_eq!(
+        vm.processes[0].slice_remaining, 199,
+        "p1 should get fresh slice"
+    );
+    assert_eq!(
+        vm.processes[1].slice_remaining, 199,
+        "p2 should get fresh slice"
+    );
+}
+
+#[test]
+fn test_p278_scheduler_setpriority_changes_allocation() {
+    // A process that changes priority via SETPRIORITY should get a different
+    // slice in the next round
+    use crate::vm::types::Process;
+    let mut vm = Vm::new();
+
+    // Process: SETPRIORITY r10; infinite loop
+    vm.ram[0x100] = 0x5C;
+    vm.ram[0x101] = 10; // SETPRIORITY r10
+    vm.ram[0x102] = 0x30;
+    vm.ram[0x103] = 0x102; // JMP 0x102
+
+    let mut proc = Process::new(1, 0, 0x100);
+    proc.slice_remaining = 2; // enough for SETPRIORITY + 1 JMP
+    proc.regs[10] = 3; // set priority to 3 (max)
+    vm.processes.push(proc);
+
+    // First tick: runs SETPRIORITY, priority becomes 3
+    vm.step_all_processes();
+    assert_eq!(
+        vm.processes[0].priority, 3,
+        "priority should be updated to 3"
+    );
+
+    // Exhaust remaining slice
+    vm.step_all_processes();
+    assert_eq!(vm.processes[0].slice_remaining, 0);
+
+    // Next round: should allocate based on new priority 3
+    vm.step_all_processes();
+    // default_time_slice * (1 << 3) = 100 * 8 = 800, minus 1 step = 799
+    assert_eq!(
+        vm.processes[0].slice_remaining, 799,
+        "should get priority-3 slice (800-1)"
+    );
 }

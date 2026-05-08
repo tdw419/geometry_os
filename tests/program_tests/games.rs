@@ -3577,7 +3577,11 @@ fn test_dungeon_assembles() {
     let source = std::fs::read_to_string("programs/dungeon.asm")
         .expect("failed to read programs/dungeon.asm");
     let asm = assemble(&source, 0).expect("dungeon.asm should assemble");
-    assert!(asm.pixels.len() > 500, "dungeon should produce substantial bytecode (got {} words)", asm.pixels.len());
+    assert!(
+        asm.pixels.len() > 500,
+        "dungeon should produce substantial bytecode (got {} words)",
+        asm.pixels.len()
+    );
 }
 
 #[test]
@@ -3620,7 +3624,8 @@ fn test_dungeon_produces_frame() {
     }
     assert!(
         frames >= 1,
-        "dungeon should produce at least 1 frame in 50M steps (got {})", frames
+        "dungeon should produce at least 1 frame in 50M steps (got {})",
+        frames
     );
     let mut nonzero = 0u32;
     for &p in &vm.screen {
@@ -3630,7 +3635,8 @@ fn test_dungeon_produces_frame() {
     }
     assert!(
         nonzero > 10,
-        "dungeon frame should have non-black pixels (got {})", nonzero
+        "dungeon frame should have non-black pixels (got {})",
+        nonzero
     );
 }
 
@@ -3649,8 +3655,13 @@ fn test_dungeon_tile_map_initialized() {
     vm.halted = false;
     // Run until first frame
     for _ in 0..50_000_000 {
-        if !vm.step() { break; }
-        if vm.frame_ready { vm.frame_ready = false; break; }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
     }
     // Check tile map has both walls (0) and floors (1)
     let mut walls = 0u32;
@@ -3680,8 +3691,13 @@ fn test_dungeon_fog_of_war() {
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..50_000_000 {
-        if !vm.step() { break; }
-        if vm.frame_ready { vm.frame_ready = false; break; }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
     }
     // Visibility map should have all 3 states
     let mut hidden = 0u32;
@@ -3695,8 +3711,16 @@ fn test_dungeon_fog_of_war() {
             _ => {}
         }
     }
-    assert!(visible > 5, "should have visible tiles near player (got {})", visible);
-    assert!(hidden > 100, "should have hidden tiles far from player (got {})", hidden);
+    assert!(
+        visible > 5,
+        "should have visible tiles near player (got {})",
+        visible
+    );
+    assert!(
+        hidden > 100,
+        "should have hidden tiles far from player (got {})",
+        hidden
+    );
 }
 
 #[test]
@@ -3713,8 +3737,13 @@ fn test_dungeon_debug() {
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..50_000_000 {
-        if !vm.step() { break; }
-        if vm.frame_ready { vm.frame_ready = false; break; }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
     }
     let px = vm.ram[0x4000];
     let py = vm.ram[0x4001];
@@ -3739,9 +3768,14 @@ fn test_dungeon_debug() {
     let mut counts = [0u32; 3];
     for i in 0..1024 {
         let v = vm.ram[0x3000 + i];
-        if v < 3 { counts[v as usize] += 1; }
+        if v < 3 {
+            counts[v as usize] += 1;
+        }
     }
-    eprintln!("Visibility: hidden={} explored={} visible={}", counts[0], counts[1], counts[2]);
+    eprintln!(
+        "Visibility: hidden={} explored={} visible={}",
+        counts[0], counts[1], counts[2]
+    );
     // Count debug counters
     eprintln!("Rays cast: {}", vm.ram[0x6200]);
     eprintln!("Tiles in radius: {}", vm.ram[0x6201]);
