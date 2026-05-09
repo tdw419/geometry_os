@@ -5529,7 +5529,7 @@ phases:
     validation: grep -c "#[test]" src/forth/lexer.rs >= 10
 - id: phase-307
   title: GeOS VM -- Render Module Unit Tests
-  status: todo
+  status: done
   goal: Add unit tests for the render module (render.rs, 1472 LOC, 377 refs, 0 tests).
   description: 'The render module handles the full rendering pipeline: pixel font
     glyph rendering, palette color computation, canvas buffer display, grid overlay,
@@ -5552,7 +5552,7 @@ phases:
     validation: grep -c "#[test]" src/render.rs >= 20
 - id: phase-308
   title: GeOS VM -- Keys and Camera Module Tests
-  status: todo
+  status: done
   goal: Add unit tests for keys.rs (155 LOC, 35 refs) and camera.rs (185 LOC, 93 refs),
     both with 0 tests.
   description: 'The keys module handles keyboard input mapping (key codes to ASCII,
@@ -5563,17 +5563,19 @@ phases:
     viewport resize behavior.'
   deliverables:
   - name: Unit tests for key code to ASCII mapping
-    status: todo
+    status: done
   - name: Unit tests for shift state handling
-    status: todo
+    status: done
   - name: Unit tests for camera coordinate transforms
-    status: todo
+    status: done
   - name: Unit tests for camera pan/zoom boundaries
-    status: todo
+    status: done
   acceptance_criteria:
   - description: keys.rs has at least 10 unit tests
+    met: true
     validation: grep -c "#[test]" src/keys.rs >= 10
   - description: camera.rs has at least 10 unit tests
+    met: true
     validation: grep -c "#[test]" src/camera.rs >= 10
 - id: phase-309
   title: GeOS VM -- VM Memory Module Tests

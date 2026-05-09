@@ -183,3 +183,135 @@ pub fn open_camera(device: &str) -> Result<CameraHandle, String> {
         ffmpeg_child,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── rgb24_to_pixels ──
+
+    #[test]
+    fn test_rgb24_single_pixel() {
+        let rgb = [0xFF, 0x00, 0x00]; // pure red
+        let pixels = rgb24_to_pixels(&rgb);
+        assert_eq!(pixels.len(), 1);
+        // Format: 0x00RRGGBB
+        assert_eq!(pixels[0], 0x00FF0000);
+    }
+
+    #[test]
+    fn test_rgb24_pure_green() {
+        let rgb = [0x00, 0xFF, 0x00];
+        let pixels = rgb24_to_pixels(&rgb);
+        assert_eq!(pixels[0], 0x0000FF00);
+    }
+
+    #[test]
+    fn test_rgb24_pure_blue() {
+        let rgb = [0x00, 0x00, 0xFF];
+        let pixels = rgb24_to_pixels(&rgb);
+        assert_eq!(pixels[0], 0x000000FF);
+    }
+
+    #[test]
+    fn test_rgb24_black() {
+        let rgb = [0x00, 0x00, 0x00];
+        let pixels = rgb24_to_pixels(&rgb);
+        assert_eq!(pixels[0], 0x00000000);
+    }
+
+    #[test]
+    fn test_rgb24_white() {
+        let rgb = [0xFF, 0xFF, 0xFF];
+        let pixels = rgb24_to_pixels(&rgb);
+        assert_eq!(pixels[0], 0x00FFFFFF);
+    }
+
+    #[test]
+    fn test_rgb24_multiple_pixels() {
+        let rgb = [
+            0x12, 0x34, 0x56, // pixel 0: R=0x12, G=0x34, B=0x56
+            0xAB, 0xCD, 0xEF, // pixel 1: R=0xAB, G=0xCD, B=0xEF
+        ];
+        let pixels = rgb24_to_pixels(&rgb);
+        assert_eq!(pixels.len(), 2);
+        assert_eq!(pixels[0], 0x00123456);
+        assert_eq!(pixels[1], 0x00ABCDEF);
+    }
+
+    #[test]
+    fn test_rgb24_empty_input() {
+        let rgb: &[u8] = &[];
+        let pixels = rgb24_to_pixels(rgb);
+        assert!(pixels.is_empty());
+    }
+
+    #[test]
+    fn test_rgb24_frame_size() {
+        // Simulate a 2x2 frame (4 pixels)
+        let rgb = [0u8; 12]; // 4 pixels * 3 bytes
+        let pixels = rgb24_to_pixels(&rgb);
+        assert_eq!(pixels.len(), 4);
+    }
+
+    #[test]
+    fn test_rgb24_preserves_channel_values() {
+        // Verify each channel lands in the correct byte position
+        for r in &[0x00, 0x55, 0xAA, 0xFF] {
+            for g in &[0x00, 0x55, 0xAA, 0xFF] {
+                for b in &[0x00, 0x55, 0xAA, 0xFF] {
+                    let rgb = [*r, *g, *b];
+                    let pixels = rgb24_to_pixels(&rgb);
+                    assert_eq!(pixels.len(), 1);
+                    assert_eq!(pixels[0], (*r as u32) << 16 | (*g as u32) << 8 | *b as u32,
+                        "R={:02X} G={:02X} B={:02X} -> {:08X}", r, g, b, pixels[0]);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_rgb24_full_256x256_frame() {
+        // Verify the pixel count for a full 256x256 RGB24 frame
+        let frame_size = 256 * 256 * 3;
+        let rgb = vec![0u8; frame_size];
+        let pixels = rgb24_to_pixels(&rgb);
+        assert_eq!(pixels.len(), 256 * 256);
+    }
+
+    // ── CameraFrame struct ──
+
+    #[test]
+    fn test_camera_frame_debug() {
+        let frame = CameraFrame { pixels: vec![0x00FF0000, 0x0000FF00] };
+        let debug_str = format!("{:?}", frame);
+        assert!(debug_str.contains("CameraFrame"));
+        assert!(debug_str.contains("pixels"));
+    }
+
+    #[test]
+    fn test_camera_frame_clone() {
+        let frame = CameraFrame { pixels: vec![0x00FF0000] };
+        let cloned = frame.clone();
+        assert_eq!(cloned.pixels, frame.pixels);
+        // Verify independence
+        let mut frame2 = frame.clone();
+        frame2.pixels[0] = 0x00000000;
+        assert_ne!(frame.pixels[0], frame2.pixels[0]);
+    }
+
+    #[test]
+    fn test_camera_frame_default_black() {
+        let frame = CameraFrame { pixels: vec![0u32; 4] };
+        assert!(frame.pixels.iter().all(|&p| p == 0));
+    }
+
+    #[test]
+    fn test_rgb24_byte_order_rgb_not_bgr() {
+        // Ensure we're using RGB order, not BGR
+        let rgb = [0x01, 0x02, 0x03]; // R=1, G=2, B=3
+        let pixels = rgb24_to_pixels(&rgb);
+        // 0x00RRGGBB = 0x00010203
+        assert_eq!(pixels[0], 0x00010203);
+    }
+}
