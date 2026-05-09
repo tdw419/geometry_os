@@ -35348,3 +35348,286 @@ HALT";
     assert_eq!(vm.ram[0x2000], 0x11, "first byte stored");
     assert_eq!(vm.ram[0x2001], 0x22, "second byte stored");
 }
+
+// ── Phase 285: Error Code Propagation Tests ─────────────────────
+
+#[test]
+fn test_open_nonexistent_file_returns_enoent() {
+    let dir = std::env::temp_dir().join("geo_test_err_open");
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::create_dir_all(&dir);
+
+    let mut vm = Vm::new();
+    vm.vfs.base_dir = dir.clone();
+
+    let name = b"nofile";
+    for (i, &ch) in name.iter().enumerate() {
+        vm.ram[0x200 + i] = ch as u32;
+    }
+    vm.ram[0x200 + name.len()] = 0;
+
+    // OPEN path_reg, mode_reg -- path_reg and mode_reg are register indices
+    vm.ram[0] = 0x54;
+    vm.ram[1] = 1;   // path_reg = r1 (register index)
+    vm.ram[2] = 2;   // mode_reg = r2 (register index)
+    vm.regs[1] = 0x200; // r1 = address of path string
+    vm.regs[2] = 0;     // r2 = mode (read)
+    vm.regs[0] = 0;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT),
+        "OPEN on nonexistent file should return ENOENT");
+}
+
+#[test]
+fn test_open_empty_path_returns_einval() {
+    let dir = std::env::temp_dir().join("geo_test_err_open2");
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::create_dir_all(&dir);
+
+    let mut vm = Vm::new();
+    vm.vfs.base_dir = dir;
+    vm.ram[0x200] = 0;
+
+    // OPEN path_reg, mode_reg -- path_reg and mode_reg are register indices
+    vm.ram[0] = 0x54;
+    vm.ram[1] = 1;   // path_reg = r1 (register index)
+    vm.ram[2] = 2;   // mode_reg = r2 (register index)
+    vm.regs[1] = 0x200; // r1 = address of path string (empty, null-terminated)
+    vm.regs[2] = 0;     // r2 = mode (read)
+    vm.regs[0] = 0;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL),
+        "OPEN with empty path should return EINVAL");
+}
+
+#[test]
+fn test_open_directory_returns_eisdir() {
+    let dir = std::env::temp_dir().join("geo_test_err_open3");
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::create_dir_all(&dir.join("subdir"));
+
+    let mut vm = Vm::new();
+    vm.vfs.base_dir = dir.clone();
+
+    let name = b"subdir";
+    for (i, &ch) in name.iter().enumerate() {
+        vm.ram[0x200 + i] = ch as u32;
+    }
+    vm.ram[0x200 + name.len()] = 0;
+
+    // OPEN path_reg, mode_reg -- path_reg and mode_reg are register indices
+    vm.ram[0] = 0x54;
+    vm.ram[1] = 1;   // path_reg = r1 (register index)
+    vm.ram[2] = 2;   // mode_reg = r2 (register index)
+    vm.regs[1] = 0x200; // r1 = address of path string
+    vm.regs[2] = 0;     // r2 = mode (read)
+    vm.regs[0] = 0;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EISDIR),
+        "OPEN on directory should return EISDIR");
+}
+
+#[test]
+fn test_read_bad_fd_returns_ebadf() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0x55;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.regs[1] = 99;
+    vm.regs[2] = 0x200;
+    vm.regs[3] = 10;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
+        "READ on unopened fd should return EBADF");
+}
+
+#[test]
+fn test_write_bad_fd_returns_ebadf() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0x56;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.regs[1] = 99;
+    vm.regs[2] = 0x200;
+    vm.regs[3] = 10;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
+        "WRITE on unopened fd should return EBADF");
+}
+
+#[test]
+fn test_close_bad_fd_returns_ebadf() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0x57;
+    vm.ram[1] = 1;
+    vm.regs[1] = 99;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
+        "CLOSE on unopened fd should return EBADF");
+}
+
+#[test]
+fn test_ioctl_invalid_cmd_returns_einval() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0x62;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.regs[1] = 0xE000;
+    vm.regs[2] = 99;
+    vm.regs[3] = 0;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL),
+        "IOCTL with invalid command should return EINVAL");
+}
+
+#[test]
+fn test_ioctl_non_device_fd_returns_ebadf() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0x62;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.regs[1] = 5;
+    vm.regs[2] = 0;
+    vm.regs[3] = 0;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
+        "IOCTL on non-device fd should return EBADF");
+}
+
+#[test]
+fn test_seek_bad_fd_returns_ebadf() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0x58;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.regs[1] = 99;
+    vm.regs[2] = 0;
+    vm.regs[3] = 0;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
+        "SEEK on unopened fd should return EBADF");
+}
+
+#[test]
+fn test_open_write_then_read_returns_eacces() {
+    let dir = std::env::temp_dir().join("geo_test_err_rdwr");
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::create_dir_all(&dir);
+    std::fs::write(dir.join("testfile"), b"hello").unwrap();
+
+    let mut vm = Vm::new();
+    vm.vfs.base_dir = dir;
+
+    let name = b"testfile";
+    for (i, &ch) in name.iter().enumerate() {
+        vm.ram[0x200 + i] = ch as u32;
+    }
+    vm.ram[0x200 + name.len()] = 0;
+
+    vm.ram[0] = 0x54;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0;
+    vm.regs[1] = 0x200;
+    vm.regs[0] = 1;
+    vm.pc = 0;
+    vm.step();
+    let fd = vm.regs[0];
+
+    vm.ram[0] = 0x55;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.regs[1] = fd;
+    vm.regs[2] = 0x300;
+    vm.regs[3] = 10;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EACCES),
+        "READ on write-only fd should return EACCES");
+}
+
+#[test]
+fn test_open_read_then_write_returns_eacces() {
+    let dir = std::env::temp_dir().join("geo_test_err_wrrd");
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::create_dir_all(&dir);
+    std::fs::write(dir.join("testfile2"), b"hello").unwrap();
+
+    let mut vm = Vm::new();
+    vm.vfs.base_dir = dir;
+
+    let name = b"testfile2";
+    for (i, &ch) in name.iter().enumerate() {
+        vm.ram[0x200 + i] = ch as u32;
+    }
+    vm.ram[0x200 + name.len()] = 0;
+
+    vm.ram[0] = 0x54;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0;
+    vm.regs[1] = 0x200;
+    vm.regs[0] = 0;
+    vm.pc = 0;
+    vm.step();
+    let fd = vm.regs[0];
+
+    vm.ram[0] = 0x56;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.regs[1] = fd;
+    vm.regs[2] = 0x300;
+    vm.regs[3] = 10;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EACCES),
+        "WRITE on read-only fd should return EACCES");
+}
+
+#[test]
+fn test_geos_errno_encoding() {
+    assert!(geos_errno(GEOS_ENOENT) & 0x8000_0000 != 0);
+    assert!(geos_errno(GEOS_EPERM) & 0x8000_0000 != 0);
+    assert!(geos_errno(GEOS_EINVAL) & 0x8000_0000 != 0);
+    assert!(geos_errno(GEOS_EIO) & 0x8000_0000 != 0);
+    assert_eq!(geos_errno(GEOS_ENOENT), 0xFFFF_FFFE);
+    assert_eq!(geos_errno(GEOS_EINVAL), 0xFFFF_FFF9);
+    assert_eq!(geos_errno(GEOS_EBADF), 0xFFFF_FFF8);
+}
+
+#[test]
+fn test_is_geos_errno_detects_errors() {
+    assert!(is_geos_errno(geos_errno(GEOS_ENOENT)));
+    assert!(is_geos_errno(geos_errno(GEOS_EPERM)));
+    assert!(is_geos_errno(geos_errno(GEOS_EINVAL)));
+    assert!(is_geos_errno(geos_errno(GEOS_EIO)));
+    assert!(!is_geos_errno(0));
+    assert!(!is_geos_errno(1));
+    assert!(!is_geos_errno(100));
+    assert!(!is_geos_errno(0x7FFF_FFFF));
+}

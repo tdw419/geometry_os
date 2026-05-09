@@ -2,3 +2,4 @@
 {"prompt": "Draw a diagonal gradient where pixel color is based on (x+y) position, creating grayscale diagonal bands", "file": "014_diagonal_gradient.asm", "success": true, "non_black_ratio": 1.0, "timestamp": "2026-05-08T23:32:00"}
 {"prompt": "Draw a diamond outline using four LINE calls connecting the midpoints of screen edges", "file": "015_diamond.asm", "success": true, "non_black_ratio": 0.0078, "timestamp": "2026-05-08T23:33:00"}
 {"prompt": "Create a bar chart with 8 bars of different heights in different colors", "file": "016_bar_chart.asm", "success": true, "non_black_ratio": 0.4257, "timestamp": "2026-05-09T00:30:00"}
+{"prompt": "Create 8 horizontal rainbow stripes filling the screen", "file": "018_rainbow_stripes.asm", "success": true, "non_black_ratio": 1.0, "timestamp": "2026-05-09T01:35:00"}

@@ -4900,35 +4900,36 @@ phases:
   deliverables:
   - name: VirtIO network device structure (config, queues, feature bits)
     status: done
-    description: 'VirtioNet struct in src/riscv/virtio_net.rs (915 lines). Config space
-      at MMIO 0x10002000 with MAC (DE:AD:BE:EF:00:01), link status, MTU (1500). Features:
-      VIRTIO_NET_F_MAC and VIRTIO_NET_F_STATUS advertised. 3 virtqueues (RX=0, TX=1,
-      CTRL=2).'
+    description: 'VirtioNet struct in src/riscv/virtio_net.rs (915 lines). Config
+      space at MMIO 0x10002000 with MAC (DE:AD:BE:EF:00:01), link status, MTU (1500).
+      Features: VIRTIO_NET_F_MAC and VIRTIO_NET_F_STATUS advertised. 3 virtqueues
+      (RX=0, TX=1, CTRL=2).'
   - name: Transmit/receive queue handling with descriptor chains
     status: done
-    description: 'process_tx_queue() walks descriptor chains, strips 2-byte VirtIO net
-      header, collects packet data. process_rx_queue() delivers pending packets to guest
-      writeable buffers with net header prepended. Both update used ring and signal interrupts.'
+    description: process_tx_queue() walks descriptor chains, strips 2-byte VirtIO
+      net header, collects packet data. process_rx_queue() delivers pending packets
+      to guest writeable buffers with net header prepended. Both update used ring
+      and signal interrupts.
   - name: Interrupt delivery on packet arrival
     status: done
-    description: 'VIRTIO_INT_USED_RING set after processing packets. VIRTIO_INT_CONFIG on
-      link status change. Bus routes QUEUE_NOTIFY to process_virtio_net_queue() which
-      signals PLIC IRQ_VIRTIO_NET.'
+    description: VIRTIO_INT_USED_RING set after processing packets. VIRTIO_INT_CONFIG
+      on link status change. Bus routes QUEUE_NOTIFY to process_virtio_net_queue()
+      which signals PLIC IRQ_VIRTIO_NET.
   - name: Integration with host TAP interface or socket bridge
     status: done
-    description: 'UDP socket bridge via with_udp_port() constructor. Non-blocking poll
+    description: UDP socket bridge via with_udp_port() constructor. Non-blocking poll
       via poll_udp_socket(). External packet injection via inject_packet(). send_to()
-      for directed sends. Port 0 = disabled.'
+      for directed sends. Port 0 = disabled.
   - name: Unit tests for device initialization and queue operations
     status: done
-    description: '24 unit tests in virtio_net.rs: device defaults, MMIO read/write, config
-      space, queue setup, notify, interrupts, packet injection, bounds checking. 9 bus
-      integration tests in bus.rs. Total: 33 passing tests.'
+    description: '24 unit tests in virtio_net.rs: device defaults, MMIO read/write,
+      config space, queue setup, notify, interrupts, packet injection, bounds checking.
+      9 bus integration tests in bus.rs. Total: 33 passing tests.'
   - name: 'Integration test: guest sends a UDP packet via VirtIO-net'
     status: done
-    description: 'Bus integration tests verify full MMIO path: read magic/device_id, config
-      MAC, queue setup, QUEUE_NOTIFY dispatch, interrupt ACK, inject+RX pending count.
-      Full TX/RX tested via process_virtio_net_queue with guest memory callbacks.'
+    description: 'Bus integration tests verify full MMIO path: read magic/device_id,
+      config MAC, queue setup, QUEUE_NOTIFY dispatch, interrupt ACK, inject+RX pending
+      count. Full TX/RX tested via process_virtio_net_queue with guest memory callbacks.'
   acceptance_criteria:
   - description: VirtIO-net device initializes without error in guest
     validation: Guest kernel detects virtio_net in boot log
@@ -4985,7 +4986,7 @@ phases:
   _completed_at: 1778297900
 - id: phase-285
   title: GeOS VM -- Error Code Propagation in Syscalls
-  status: planned
+  status: in_progress
   goal: Replace silent failures in VFS/syscall opcodes with meaningful error codes
     returned in r0.
   description: Currently, OPEN/READ/WRITE/CLOSE failures silently return 0 or garbage.
@@ -5013,6 +5014,8 @@ phases:
     validation: cargo test --lib syscall_error_codes
   - description: Shell displays error messages for failed operations
     validation: Integration test verifies error message in terminal output
+  _claimed_by: worker-0
+  _claimed_at: 1778308771
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
   status: planned
