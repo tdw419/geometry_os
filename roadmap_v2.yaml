@@ -5423,12 +5423,18 @@ phases:
     validation: cargo test --lib passes with new tests
   - description: No panics on allocation exhaustion
     validation: OOM path returns error instead of panicking
-
 - id: phase-303
   title: GeOS VM -- Assembler Graphics Ops Unit Tests
   status: done
-  goal: Add unit tests for the assembler graphics operations module (graphics_ops.rs, 508 LOC, 0 tests).
-  description: 'The assembler graphics_ops.rs handles encoding for PSET, PSETI, FILL, RECTF, TEXT, LINE, CIRCLE, SCROLL, SPRITE, TILEMAP, FLOOD, BLEND, BLENDR, ROTATE, SCALE, SCREENP, CLIPSET, CLIPCLR, SMALLTEXT and related opcodes. Despite being critical for program correctness, it has zero tests in its own file. Add tests for: correct bytecode encoding for each graphics opcode, argument count validation, edge cases (zero-size rects, out-of-range colors), and round-trip assemble-disassemble for graphics instructions.'
+  goal: Add unit tests for the assembler graphics operations module (graphics_ops.rs,
+    508 LOC, 0 tests).
+  description: 'The assembler graphics_ops.rs handles encoding for PSET, PSETI, FILL,
+    RECTF, TEXT, LINE, CIRCLE, SCROLL, SPRITE, TILEMAP, FLOOD, BLEND, BLENDR, ROTATE,
+    SCALE, SCREENP, CLIPSET, CLIPCLR, SMALLTEXT and related opcodes. Despite being
+    critical for program correctness, it has zero tests in its own file. Add tests
+    for: correct bytecode encoding for each graphics opcode, argument count validation,
+    edge cases (zero-size rects, out-of-range colors), and round-trip assemble-disassemble
+    for graphics instructions.'
   deliverables:
   - name: Unit tests for PSET/PSETI/FILL/RECTF encoding
     status: todo
@@ -5446,8 +5452,14 @@ phases:
 - id: phase-304
   title: GeOS VM -- Assembler System Ops Unit Tests
   status: done
-  goal: Add unit tests for the assembler system operations module (system_ops.rs, 1542 LOC, 0 tests).
-  description: 'The assembler system_ops.rs handles encoding for SPAWN, KILL, MSGSND, MSGRCV, PIPE, GETPID, OPEN, READ, WRITE, CLOSE, SEEK, LS, IOCTL, SYSCALL, RETK, CHDIR, GETCWD, EXECP, WAITPID, SLEEP, YIELD, SETPRIORITY, ASM, ASMSELF, RUNNEXT, FORMULA, FORMULACLEAR, FORMULAREM, PROFILE, and other system-level opcodes. At 1542 LOC it is the largest assembler module with zero tests. Add tests for: correct bytecode encoding, argument validation, edge cases, and system opcode round-trips.'
+  goal: Add unit tests for the assembler system operations module (system_ops.rs,
+    1542 LOC, 0 tests).
+  description: 'The assembler system_ops.rs handles encoding for SPAWN, KILL, MSGSND,
+    MSGRCV, PIPE, GETPID, OPEN, READ, WRITE, CLOSE, SEEK, LS, IOCTL, SYSCALL, RETK,
+    CHDIR, GETCWD, EXECP, WAITPID, SLEEP, YIELD, SETPRIORITY, ASM, ASMSELF, RUNNEXT,
+    FORMULA, FORMULACLEAR, FORMULAREM, PROFILE, and other system-level opcodes. At
+    1542 LOC it is the largest assembler module with zero tests. Add tests for: correct
+    bytecode encoding, argument validation, edge cases, and system opcode round-trips.'
   deliverables:
   - name: Unit tests for SPAWN/KILL/MSG/PIPE/GETPID encoding
     status: done
@@ -5465,8 +5477,14 @@ phases:
 - id: phase-305
   title: GeOS VM -- Assembler Core and Immediate Ops Unit Tests
   status: done
-  goal: Add unit tests for assembler core_ops.rs (428 LOC) and immediate_ops.rs (127 LOC), both with 0 tests.
-  description: 'The core assembler module handles LDI, LOAD, STORE, ADD, SUB, MUL, DIV, AND, OR, XOR, SHL, SHR, MOD, NEG, SAR, CMP, MOV, JMP, JZ, JNZ, CALL, RET, BLT, BGE, PUSH, POP, HALT, NOP, FRAME, BEEP, IKEY, RAND, PEEK, ASM, and CMOV/CSEL. The immediate ops module handles BFE, BFI, and other immediate-form instructions. Both have zero dedicated tests despite being the foundation of all assembly. Add comprehensive tests for encoding correctness, edge cases, and register validation.'
+  goal: Add unit tests for assembler core_ops.rs (428 LOC) and immediate_ops.rs (127
+    LOC), both with 0 tests.
+  description: The core assembler module handles LDI, LOAD, STORE, ADD, SUB, MUL,
+    DIV, AND, OR, XOR, SHL, SHR, MOD, NEG, SAR, CMP, MOV, JMP, JZ, JNZ, CALL, RET,
+    BLT, BGE, PUSH, POP, HALT, NOP, FRAME, BEEP, IKEY, RAND, PEEK, ASM, and CMOV/CSEL.
+    The immediate ops module handles BFE, BFI, and other immediate-form instructions.
+    Both have zero dedicated tests despite being the foundation of all assembly. Add
+    comprehensive tests for encoding correctness, edge cases, and register validation.
   deliverables:
   - name: Unit tests for arithmetic opcodes (ADD through SAR)
     status: done
@@ -5483,20 +5501,27 @@ phases:
     validation: grep -c "#[test]" src/assembler/immediate_ops.rs >= 10
 - id: phase-306
   title: GeOS VM -- Forth Compiler Unit Tests
-  status: todo
-  goal: Add unit tests for the Forth compiler (compiler.rs, 1028 LOC, 0 tests) and lexer (lexer.rs, 127 LOC, 0 tests).
-  description: 'The Forth VM subsystem has 1157 total LOC with zero tests and zero roadmap phases. The compiler translates Forth source to assembly, and the lexer tokenizes Forth input. This is a complete language implementation sitting untested. Add tests for: lexer tokenization of all Forth word types (numbers, strings, colon definitions, comments), compiler compilation of basic words, stack operations, control structures (IF/ELSE/THEN, DO/LOOP), variable access, and error handling for invalid input.'
+  status: done
+  goal: Add unit tests for the Forth compiler (compiler.rs, 1028 LOC, 0 tests) and
+    lexer (lexer.rs, 127 LOC, 0 tests).
+  description: 'The Forth VM subsystem has 1157 total LOC with zero tests and zero
+    roadmap phases. The compiler translates Forth source to assembly, and the lexer
+    tokenizes Forth input. This is a complete language implementation sitting untested.
+    Add tests for: lexer tokenization of all Forth word types (numbers, strings, colon
+    definitions, comments), compiler compilation of basic words, stack operations,
+    control structures (IF/ELSE/THEN, DO/LOOP), variable access, and error handling
+    for invalid input.'
   deliverables:
   - name: Lexer tests for all token types
-    status: todo
+    status: done
   - name: Compiler tests for basic stack operations
-    status: todo
+    status: done
   - name: Compiler tests for control structures (IF/ELSE/THEN, DO/LOOP)
-    status: todo
+    status: done
   - name: Compiler tests for variable and constant definitions
-    status: todo
+    status: done
   - name: Error handling tests for invalid Forth input
-    status: todo
+    status: done
   acceptance_criteria:
   - description: forth/compiler.rs has at least 20 unit tests
     validation: grep -c "#[test]" src/forth/compiler.rs >= 20
@@ -5506,7 +5531,13 @@ phases:
   title: GeOS VM -- Render Module Unit Tests
   status: todo
   goal: Add unit tests for the render module (render.rs, 1472 LOC, 377 refs, 0 tests).
-  description: 'The render module handles the full rendering pipeline: pixel font glyph rendering, palette color computation, canvas buffer display, grid overlay, cursor rendering, and the text surface mode visual output. With 377 references across the codebase and 1472 LOC, it is a critical path for all visual output but has zero dedicated tests. Add tests for: palette_color() correctness, glyph rendering for edge-case characters, canvas buffer read/write, grid boundary calculations, and cursor positioning.'
+  description: 'The render module handles the full rendering pipeline: pixel font
+    glyph rendering, palette color computation, canvas buffer display, grid overlay,
+    cursor rendering, and the text surface mode visual output. With 377 references
+    across the codebase and 1472 LOC, it is a critical path for all visual output
+    but has zero dedicated tests. Add tests for: palette_color() correctness, glyph
+    rendering for edge-case characters, canvas buffer read/write, grid boundary calculations,
+    and cursor positioning.'
   deliverables:
   - name: Unit tests for palette_color() computation
     status: todo
@@ -5522,8 +5553,14 @@ phases:
 - id: phase-308
   title: GeOS VM -- Keys and Camera Module Tests
   status: todo
-  goal: Add unit tests for keys.rs (155 LOC, 35 refs) and camera.rs (185 LOC, 93 refs), both with 0 tests.
-  description: 'The keys module handles keyboard input mapping (key codes to ASCII, shift state handling). The camera module handles world-to-screen coordinate transformation, zoom, and pan for the desktop view. Both are small but heavily referenced. Add tests for: key mapping correctness for all standard keys, shift state handling, camera coordinate transforms at various zoom levels, pan boundary clamping, and viewport resize behavior.'
+  goal: Add unit tests for keys.rs (155 LOC, 35 refs) and camera.rs (185 LOC, 93 refs),
+    both with 0 tests.
+  description: 'The keys module handles keyboard input mapping (key codes to ASCII,
+    shift state handling). The camera module handles world-to-screen coordinate transformation,
+    zoom, and pan for the desktop view. Both are small but heavily referenced. Add
+    tests for: key mapping correctness for all standard keys, shift state handling,
+    camera coordinate transforms at various zoom levels, pan boundary clamping, and
+    viewport resize behavior.'
   deliverables:
   - name: Unit tests for key code to ASCII mapping
     status: todo
@@ -5540,18 +5577,23 @@ phases:
     validation: grep -c "#[test]" src/camera.rs >= 10
 - id: phase-309
   title: GeOS VM -- VM Memory Module Tests
-  status: todo
+  status: done
   goal: Add unit tests for the VM memory module (memory.rs, 265 LOC, 248 refs, 0 tests).
-  description: 'The VM memory module handles page allocation, deallocation, COW page management, page directory operations, and address translation. With 248 refs across the codebase it is fundamental to the multi-process system. Add tests for: page allocation and deallocation, COW page split behavior, page directory creation and lookup, address translation correctness, allocation exhaustion recovery, and double-free protection.'
+  description: 'The VM memory module handles page allocation, deallocation, COW page
+    management, page directory operations, and address translation. With 248 refs
+    across the codebase it is fundamental to the multi-process system. Add tests for:
+    page allocation and deallocation, COW page split behavior, page directory creation
+    and lookup, address translation correctness, allocation exhaustion recovery, and
+    double-free protection.'
   deliverables:
   - name: Unit tests for page alloc/free cycle
-    status: todo
+    status: done
   - name: Unit tests for COW page management
-    status: todo
+    status: done
   - name: Unit tests for page directory operations
-    status: todo
+    status: done
   - name: Unit tests for allocation exhaustion handling
-    status: todo
+    status: done
   acceptance_criteria:
   - description: memory.rs has at least 15 unit tests
     validation: grep -c "#[test]" src/vm/memory.rs >= 15
@@ -5559,7 +5601,11 @@ phases:
   title: GeOS VM -- Fuzzer Module Tests
   status: todo
   goal: Add unit tests for the fuzzer module (fuzzer.rs, 747 LOC, 0 tests).
-  description: 'The VM bytecode fuzzer generates random valid programs and runs them against an oracle to catch VM bugs. With 747 LOC and zero tests, the fuzzer itself could have bugs that mask real VM issues. Add tests for: random program generation produces valid bytecode, oracle checking correctly detects divergence, configuration parsing, and fuzzer lifecycle (start, run, report).'
+  description: 'The VM bytecode fuzzer generates random valid programs and runs them
+    against an oracle to catch VM bugs. With 747 LOC and zero tests, the fuzzer itself
+    could have bugs that mask real VM issues. Add tests for: random program generation
+    produces valid bytecode, oracle checking correctly detects divergence, configuration
+    parsing, and fuzzer lifecycle (start, run, report).'
   deliverables:
   - name: Unit tests for random bytecode generation
     status: todo
@@ -5573,8 +5619,15 @@ phases:
 - id: phase-311
   title: GeOS Program -- Raycaster (Wolfenstein-style)
   status: todo
-  goal: Implement a raycasting engine demonstrating trigonometry, fixed-point math, and per-column rendering.
-  description: 'A raycaster renders a pseudo-3D view from a 2D map, the technique behind Wolfenstein 3D. This is an ideal showcase for the VM math capabilities: fixed-point trigonometry via lookup tables, per-column vertical line rendering via LINE or PSET, wall distance calculation with DIV, and sprite rendering for objects. The map is stored in RAM, player position/angle in registers. Arrow keys rotate and move, WASD strafe. Demonstrates: lookup tables, fixed-point arithmetic, per-pixel column rendering, and interactive game state.'
+  goal: Implement a raycasting engine demonstrating trigonometry, fixed-point math,
+    and per-column rendering.
+  description: 'A raycaster renders a pseudo-3D view from a 2D map, the technique
+    behind Wolfenstein 3D. This is an ideal showcase for the VM math capabilities:
+    fixed-point trigonometry via lookup tables, per-column vertical line rendering
+    via LINE or PSET, wall distance calculation with DIV, and sprite rendering for
+    objects. The map is stored in RAM, player position/angle in registers. Arrow keys
+    rotate and move, WASD strafe. Demonstrates: lookup tables, fixed-point arithmetic,
+    per-pixel column rendering, and interactive game state.'
   deliverables:
   - name: Fixed-point trigonometry lookup table generation
     status: todo
@@ -5594,8 +5647,14 @@ phases:
 - id: phase-312
   title: GeOS Program -- L-System Fractal Tree
   status: todo
-  goal: Implement an L-system fractal tree renderer demonstrating string rewriting, turtle graphics, and recursive structure.
-  description: 'An L-system uses string rewriting rules to generate complex fractal patterns. The program maintains a string in RAM, applies rewrite rules iteratively, then interprets the result as turtle graphics commands (F=forward, +=turn left, -=turn right). This demonstrates: string manipulation in RAM, iterative rewriting, turtle graphics via LINE/PSET, and angle/length parameterization. Different rule sets produce trees, ferns, snowflakes, and dragon curves.'
+  goal: Implement an L-system fractal tree renderer demonstrating string rewriting,
+    turtle graphics, and recursive structure.
+  description: 'An L-system uses string rewriting rules to generate complex fractal
+    patterns. The program maintains a string in RAM, applies rewrite rules iteratively,
+    then interprets the result as turtle graphics commands (F=forward, +=turn left,
+    -=turn right). This demonstrates: string manipulation in RAM, iterative rewriting,
+    turtle graphics via LINE/PSET, and angle/length parameterization. Different rule
+    sets produce trees, ferns, snowflakes, and dragon curves.'
   deliverables:
   - name: L-system string rewriting engine in assembly
     status: todo
@@ -5613,8 +5672,12 @@ phases:
 - id: phase-313
   title: GeOS VM -- Assembler Includes and Formula Ops Tests
   status: todo
-  goal: Add unit tests for assembler includes.rs (144 LOC) and formula_ops.rs (106 LOC), both with 0 tests.
-  description: 'The includes module handles .include directive processing, file path resolution, and recursive inclusion. The formula_ops module handles FORMULA, FORMULACLEAR, and FORMULAREM opcode encoding. Both are untested. Add tests for: include path resolution, recursive include detection, formula encoding, and edge cases.'
+  goal: Add unit tests for assembler includes.rs (144 LOC) and formula_ops.rs (106
+    LOC), both with 0 tests.
+  description: 'The includes module handles .include directive processing, file path
+    resolution, and recursive inclusion. The formula_ops module handles FORMULA, FORMULACLEAR,
+    and FORMULAREM opcode encoding. Both are untested. Add tests for: include path
+    resolution, recursive include detection, formula encoding, and edge cases.'
   deliverables:
   - name: Unit tests for .include directive processing
     status: todo
@@ -5628,8 +5691,13 @@ phases:
 - id: phase-314
   title: GeOS VM -- VM IO Serialization Tests
   status: todo
-  goal: Add unit tests for the VM IO module (io.rs, 582 LOC, 5046 refs, 0 in-file tests).
-  description: 'The IO module handles VM state serialization/deserialization for save/load, canvas buffer I/O, and checkpoint operations. With 5046 refs it is one of the most referenced modules. While heavily tested indirectly through tests.rs, dedicated unit tests would catch edge cases in serialization round-trips, version compatibility, and corrupted state handling.'
+  goal: Add unit tests for the VM IO module (io.rs, 582 LOC, 5046 refs, 0 in-file
+    tests).
+  description: The IO module handles VM state serialization/deserialization for save/load,
+    canvas buffer I/O, and checkpoint operations. With 5046 refs it is one of the
+    most referenced modules. While heavily tested indirectly through tests.rs, dedicated
+    unit tests would catch edge cases in serialization round-trips, version compatibility,
+    and corrupted state handling.
   deliverables:
   - name: Unit tests for save state serialization round-trip
     status: todo
@@ -5643,8 +5711,14 @@ phases:
 - id: phase-315
   title: GeOS Program -- Music Sequencer
   status: todo
-  goal: Implement a step sequencer demonstrating the WAVE/SMALLTEXT opcodes and timed audio playback.
-  description: 'A step sequencer displays a grid of notes that the user can toggle on/off, then plays them back in a loop using the BEEP/WAVE opcodes. Rows represent pitches, columns represent time steps. The sequencer demonstrates: grid-based UI rendering with RECTF, interactive note toggling via mouse or keyboard, timed audio scheduling using TICKS, and pattern looping. Visual feedback shows the current playback position.'
+  goal: Implement a step sequencer demonstrating the WAVE/SMALLTEXT opcodes and timed
+    audio playback.
+  description: 'A step sequencer displays a grid of notes that the user can toggle
+    on/off, then plays them back in a loop using the BEEP/WAVE opcodes. Rows represent
+    pitches, columns represent time steps. The sequencer demonstrates: grid-based
+    UI rendering with RECTF, interactive note toggling via mouse or keyboard, timed
+    audio scheduling using TICKS, and pattern looping. Visual feedback shows the current
+    playback position.'
   deliverables:
   - name: Note grid rendering (16 rows x 16 steps)
     status: todo

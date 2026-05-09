@@ -165,7 +165,10 @@ mod tests {
     fn test_number_literals() {
         let tokens = tokenize("0 42 -7 255 0xFF 0x1A3F $ABCD");
         let texts: Vec<&str> = tokens.iter().map(|t| t.text.as_str()).collect();
-        assert_eq!(texts, vec!["0", "42", "-7", "255", "0xFF", "0x1A3F", "$ABCD"]);
+        assert_eq!(
+            texts,
+            vec!["0", "42", "-7", "255", "0xFF", "0x1A3F", "$ABCD"]
+        );
     }
 
     #[test]
@@ -259,7 +262,13 @@ mod tests {
         let source = "DUP DROP SWAP OVER NIP TUCK ROT 2DUP 2DROP 2SWAP ?DUP";
         let tokens = tokenize(source);
         let texts: Vec<&str> = tokens.iter().map(|t| t.text.as_str()).collect();
-        assert_eq!(texts, vec!["DUP", "DROP", "SWAP", "OVER", "NIP", "TUCK", "ROT", "2DUP", "2DROP", "2SWAP", "?DUP"]);
+        assert_eq!(
+            texts,
+            vec![
+                "DUP", "DROP", "SWAP", "OVER", "NIP", "TUCK", "ROT", "2DUP", "2DROP", "2SWAP",
+                "?DUP"
+            ]
+        );
     }
 
     #[test]
@@ -267,7 +276,13 @@ mod tests {
         let source = "+ - * / MOD /MOD NEGATE ABS MIN MAX 1+ 1- 2+ 2- 2* 2/";
         let tokens = tokenize(source);
         let texts: Vec<&str> = tokens.iter().map(|t| t.text.as_str()).collect();
-        assert_eq!(texts, vec!["+", "-", "*", "/", "MOD", "/MOD", "NEGATE", "ABS", "MIN", "MAX", "1+", "1-", "2+", "2-", "2*", "2/"]);
+        assert_eq!(
+            texts,
+            vec![
+                "+", "-", "*", "/", "MOD", "/MOD", "NEGATE", "ABS", "MIN", "MAX", "1+", "1-", "2+",
+                "2-", "2*", "2/"
+            ]
+        );
     }
 
     #[test]
@@ -275,7 +290,10 @@ mod tests {
         let source = "= <> < > <= >= 0= 0< 0>";
         let tokens = tokenize(source);
         let texts: Vec<&str> = tokens.iter().map(|t| t.text.as_str()).collect();
-        assert_eq!(texts, vec!["=", "<>", "<", ">", "<=", ">=", "0=", "0<", "0>"]);
+        assert_eq!(
+            texts,
+            vec!["=", "<>", "<", ">", "<=", ">=", "0=", "0<", "0>"]
+        );
     }
 
     #[test]
@@ -283,7 +301,13 @@ mod tests {
         let source = "IF ELSE THEN DO ?DO LOOP +LOOP I J LEAVE BEGIN UNTIL AGAIN WHILE REPEAT";
         let tokens = tokenize(source);
         let texts: Vec<&str> = tokens.iter().map(|t| t.text.as_str()).collect();
-        assert_eq!(texts, vec!["IF", "ELSE", "THEN", "DO", "?DO", "LOOP", "+LOOP", "I", "J", "LEAVE", "BEGIN", "UNTIL", "AGAIN", "WHILE", "REPEAT"]);
+        assert_eq!(
+            texts,
+            vec![
+                "IF", "ELSE", "THEN", "DO", "?DO", "LOOP", "+LOOP", "I", "J", "LEAVE", "BEGIN",
+                "UNTIL", "AGAIN", "WHILE", "REPEAT"
+            ]
+        );
     }
 
     #[test]
@@ -307,7 +331,10 @@ mod tests {
         let source = "AND OR XOR INVERT LSHIFT RSHIFT";
         let tokens = tokenize(source);
         let texts: Vec<&str> = tokens.iter().map(|t| t.text.as_str()).collect();
-        assert_eq!(texts, vec!["AND", "OR", "XOR", "INVERT", "LSHIFT", "RSHIFT"]);
+        assert_eq!(
+            texts,
+            vec!["AND", "OR", "XOR", "INVERT", "LSHIFT", "RSHIFT"]
+        );
     }
 
     #[test]
@@ -350,12 +377,26 @@ mod tests {
 "#;
         let tokens = tokenize(source);
         let texts: Vec<&str> = tokens.iter().map(|t| t.text.as_str()).collect();
-        assert_eq!(texts, vec![
-            ":", "SQUARE", "DUP", "*", ";",
-            ":", "CUBE", "DUP", "SQUARE", "*", ";",
-            "10", "SQUARE",
-            "20", "CUBE",
-            ".\" hello\"",
-        ]);
+        assert_eq!(
+            texts,
+            vec![
+                ":",
+                "SQUARE",
+                "DUP",
+                "*",
+                ";",
+                ":",
+                "CUBE",
+                "DUP",
+                "SQUARE",
+                "*",
+                ";",
+                "10",
+                "SQUARE",
+                "20",
+                "CUBE",
+                ".\" hello\"",
+            ]
+        );
     }
 }

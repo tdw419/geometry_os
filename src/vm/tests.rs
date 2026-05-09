@@ -35887,3 +35887,689 @@ fn test_is_geos_errno_detects_errors() {
     assert!(!is_geos_errno(100));
     assert!(!is_geos_errno(0x7FFF_FFFF));
 }
+
+// ── Phase 309: VM Memory Module Unit Tests ────────────────────────────────
+
+#[test]
+fn test_p309_alloc_single_page() {
+    let mut vm = Vm::new();
+    // Pages 0-1 are reserved (allocated_pages = 0b11)
+    let result = vm.alloc_pages(1);
+    assert!(result.is_some());
+    let page = result.unwrap();
+    // First allocatable page is page 2
+    assert_eq!(page, 2);
+    // Page 2 should be marked as allocated
+    assert_ne!(vm.allocated_pages & (1u64 << 2), 0);
+    // Ref count should be 1
+    assert_eq!(vm.page_ref_count[page], 1);
+}
+
+#[test]
+fn test_p309_alloc_two_contiguous_pages() {
+    let mut vm = Vm::new();
+    let result = vm.alloc_pages(2);
+    assert!(result.is_some());
+    assert_eq!(result.unwrap(), 2);
+    // Both pages 2 and 3 should be allocated
+    assert_ne!(vm.allocated_pages & (1u64 << 2), 0);
+    assert_ne!(vm.allocated_pages & (1u64 << 3), 0);
+    assert_eq!(vm.page_ref_count[2], 1);
+    assert_eq!(vm.page_ref_count[3], 1);
+}
+
+#[test]
+fn test_p309_alloc_multiple_sequential() {
+    let mut vm = Vm::new();
+    let a = vm.alloc_pages(1).unwrap();
+    let b = vm.alloc_pages(1).unwrap();
+    let c = vm.alloc_pages(1).unwrap();
+    assert_eq!(a, 2);
+    assert_eq!(b, 3);
+    assert_eq!(c, 4);
+    assert_eq!(vm.page_ref_count[a], 1);
+    assert_eq!(vm.page_ref_count[b], 1);
+    assert_eq!(vm.page_ref_count[c], 1);
+}
+
+#[test]
+fn test_p309_alloc_finds_gap() {
+    let mut vm = Vm::new();
+    // Allocate pages 2-5
+    let a = vm.alloc_pages(4).unwrap(); // pages 2,3,4,5
+    assert_eq!(a, 2);
+    // Now allocate 1 page -- should get page 6
+    let b = vm.alloc_pages(1).unwrap();
+    assert_eq!(b, 6);
+    // Allocate another -- page 7
+    let c = vm.alloc_pages(1).unwrap();
+    assert_eq!(c, 7);
+}
+
+#[test]
+fn test_p309_alloc_skips_allocated_pages() {
+    let mut vm = Vm::new();
+    // Allocate pages 2-3
+    vm.alloc_pages(2).unwrap();
+    // Free page 2 manually to create a gap before page 3
+    vm.allocated_pages &= !(1u64 << 2);
+    vm.page_ref_count[2] = 0;
+    // Try to alloc 2 contiguous pages -- should find the gap at page 2-3
+    // (page 2 is free, page 3 is still allocated, so gap is only 1 page)
+    // Actually page 3 IS allocated, so 2 contiguous won't fit at 2.
+    // Should skip to page 4-5
+    let result = vm.alloc_pages(2).unwrap();
+    assert_eq!(result, 4);
+}
+
+#[test]
+fn test_p309_alloc_exhaustion() {
+    let mut vm = Vm::new();
+    // Pages 0-1 reserved, so allocatable = pages 2..63 (62 pages)
+    // Allocate in chunks of 10
+    let mut total = 0;
+    for _ in 0..6 {
+        if vm.alloc_pages(10).is_some() {
+            total += 10;
+        }
+    }
+    // 6 * 10 = 60 pages allocated, only 2 left (pages 62-63)
+    // Allocating 3 should fail
+    assert!(vm.alloc_pages(3).is_none());
+    // Allocating 2 should succeed
+    assert!(vm.alloc_pages(2).is_some());
+    // Now nothing left
+    assert!(vm.alloc_pages(1).is_none());
+}
+
+#[test]
+fn test_p309_alloc_zero_pages() {
+    let mut vm = Vm::new();
+    // Allocating 0 pages should succeed (empty allocation)
+    let result = vm.alloc_pages(0);
+    // With the current implementation, count=0 means the loop doesn't execute
+    // and returns Some(2) since no pages need to be contiguous
+    assert!(result.is_some());
+}
+
+#[test]
+fn test_p309_alloc_large_chunk_fails() {
+    let mut vm = Vm::new();
+    // Only 62 pages available (2..63), requesting 63 should fail
+    assert!(vm.alloc_pages(63).is_none());
+    // Requesting exactly 62 should succeed
+    assert!(vm.alloc_pages(62).is_some());
+}
+
+#[test]
+fn test_p309_alloc_reserves_pages_0_1() {
+    let mut vm = Vm::new();
+    // Pages 0-1 are always reserved by Vm::new()
+    assert_ne!(vm.allocated_pages & (1u64 << 0), 0);
+    assert_ne!(vm.allocated_pages & (1u64 << 1), 0);
+    // Ref count for reserved pages
+    assert!(vm.page_ref_count[0] >= 1);
+    assert!(vm.page_ref_count[1] >= 1);
+}
+
+#[test]
+fn test_p309_free_single_page() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap();
+    assert_ne!(vm.allocated_pages & (1u64 << page), 0);
+
+    // Free via free_page_dir with a directory containing just that page
+    vm.free_page_dir(&[page as u32]);
+    assert_eq!(vm.allocated_pages & (1u64 << page), 0);
+    assert_eq!(vm.page_ref_count[page], 0);
+}
+
+#[test]
+fn test_p309_free_multiple_pages() {
+    let mut vm = Vm::new();
+    let start = vm.alloc_pages(3).unwrap(); // pages 2,3,4
+    vm.free_page_dir(&[2u32, 3u32, 4u32]);
+    assert_eq!(vm.allocated_pages & (1u64 << 2), 0);
+    assert_eq!(vm.allocated_pages & (1u64 << 3), 0);
+    assert_eq!(vm.allocated_pages & (1u64 << 4), 0);
+    assert_eq!(vm.page_ref_count[2], 0);
+    assert_eq!(vm.page_ref_count[3], 0);
+    assert_eq!(vm.page_ref_count[4], 0);
+}
+
+#[test]
+fn test_p309_free_then_realloc() {
+    let mut vm = Vm::new();
+    let a = vm.alloc_pages(2).unwrap(); // pages 2-3
+    vm.free_page_dir(&[2u32, 3u32]);
+    // Re-alloc should get the same pages back
+    let b = vm.alloc_pages(2).unwrap();
+    assert_eq!(b, 2);
+}
+
+#[test]
+fn test_p309_free_ignores_out_of_range() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap();
+    // free_page_dir should silently skip pages >= NUM_RAM_PAGES
+    vm.free_page_dir(&[page as u32, NUM_RAM_PAGES as u32, 999u32]);
+    assert_eq!(vm.allocated_pages & (1u64 << page), 0);
+    // Out-of-range pages should not cause panics
+}
+
+#[test]
+fn test_p309_free_cow_shared_page_decrements_only() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap(); // ref_count = 1
+                                           // Simulate COW sharing: bump ref count and set COW flag
+    vm.page_ref_count[page] = 2;
+    vm.page_cow |= 1u64 << page;
+
+    // Free should decrement ref count, NOT actually free
+    vm.free_page_dir(&[page as u32]);
+    assert_eq!(vm.page_ref_count[page], 1);
+    // Page should still be allocated (ref count > 0)
+    assert_ne!(vm.allocated_pages & (1u64 << page), 0);
+    // COW flag should be cleared since ref count dropped to 1
+    assert_eq!(vm.page_cow & (1u64 << page), 0);
+}
+
+#[test]
+fn test_p309_free_last_cow_ref_clears_and_frees() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap();
+    vm.page_ref_count[page] = 2;
+    vm.page_cow |= 1u64 << page;
+
+    // First free: decrement from 2 to 1
+    vm.free_page_dir(&[page as u32]);
+    assert_eq!(vm.page_ref_count[page], 1);
+    assert_ne!(vm.allocated_pages & (1u64 << page), 0);
+
+    // Second free: drops to 0, actually frees
+    vm.free_page_dir(&[page as u32]);
+    assert_eq!(vm.page_ref_count[page], 0);
+    assert_eq!(vm.allocated_pages & (1u64 << page), 0);
+    assert_eq!(vm.page_cow & (1u64 << page), 0);
+}
+
+#[test]
+fn test_p309_cow_write_allocates_new_page() {
+    let mut vm = Vm::new();
+    // Set up a page directory with COW page
+    let page = vm.alloc_pages(1).unwrap(); // page 2
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[0] = page as u32;
+    vm.current_page_dir = Some(pd);
+    vm.page_cow |= 1u64 << page;
+    vm.page_ref_count[page] = 2; // shared
+
+    // Write data to the COW page
+    let base = page * PAGE_SIZE;
+    vm.ram[base] = 0xDEADBEEF;
+
+    // Resolve COW on write
+    let resolved = vm.handle_cow_write(0);
+    assert!(resolved);
+
+    // Old page ref count should decrement
+    assert_eq!(vm.page_ref_count[page], 1);
+    // COW flag on old page should be cleared
+    assert_eq!(vm.page_cow & (1u64 << page), 0);
+
+    // New page should be allocated and mapped
+    let new_page = vm.current_page_dir.as_ref().unwrap()[0] as usize;
+    assert_ne!(new_page, page);
+    assert_ne!(vm.allocated_pages & (1u64 << new_page), 0);
+    assert_eq!(vm.page_cow & (1u64 << new_page), 0);
+
+    // Data should be copied to new page
+    let new_base = new_page * PAGE_SIZE;
+    assert_eq!(vm.ram[new_base], 0xDEADBEEF);
+}
+
+#[test]
+fn test_p309_cow_write_no_page_dir() {
+    let mut vm = Vm::new();
+    vm.current_page_dir = None;
+    // Should return false (no page directory to resolve)
+    assert!(!vm.handle_cow_write(0));
+}
+
+#[test]
+fn test_p309_cow_write_non_cow_page() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap();
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[0] = page as u32;
+    vm.current_page_dir = Some(pd);
+    // No COW flag set
+    vm.page_cow &= !(1u64 << page);
+
+    assert!(!vm.handle_cow_write(0));
+    // Page directory should not change
+    assert_eq!(vm.current_page_dir.as_ref().unwrap()[0], page as u32);
+}
+
+#[test]
+fn test_p309_cow_write_allocation_failure() {
+    let mut vm = Vm::new();
+    // Fill all allocatable pages
+    for _ in 0..62 {
+        vm.alloc_pages(1);
+    }
+    // Set up COW on page 2
+    vm.page_cow |= 1u64 << 2;
+    vm.page_ref_count[2] = 2;
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[0] = 2;
+    vm.current_page_dir = Some(pd);
+
+    // COW write should fail (no free pages for new allocation)
+    assert!(!vm.handle_cow_write(0));
+    // Original page directory should be unchanged
+    assert_eq!(vm.current_page_dir.as_ref().unwrap()[0], 2);
+}
+
+#[test]
+fn test_p309_cow_write_preserves_shared_data() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap();
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[0] = page as u32;
+    vm.current_page_dir = Some(pd);
+    vm.page_cow |= 1u64 << page;
+    vm.page_ref_count[page] = 2;
+
+    // Write pattern to the shared page
+    let base = page * PAGE_SIZE;
+    for i in 0..PAGE_SIZE {
+        if base + i < vm.ram.len() {
+            vm.ram[base + i] = (i as u32) * 3;
+        }
+    }
+
+    // Resolve COW
+    assert!(vm.handle_cow_write(0));
+
+    // Verify data copied to new page
+    let new_page = vm.current_page_dir.as_ref().unwrap()[0] as usize;
+    let new_base = new_page * PAGE_SIZE;
+    for i in 0..PAGE_SIZE {
+        if base + i < vm.ram.len() && new_base + i < vm.ram.len() {
+            assert_eq!(vm.ram[new_base + i], (i as u32) * 3);
+        }
+    }
+}
+
+#[test]
+fn test_p309_translate_va_identity_mapping() {
+    let vm = Vm::new();
+    // No page directory = identity mapping
+    assert_eq!(vm.translate_va(0x500), Some(0x500));
+    assert_eq!(vm.translate_va(0), Some(0));
+    assert_eq!(vm.translate_va(0xFFF), Some(0xFFF));
+}
+
+#[test]
+fn test_p309_translate_va_mapped_page() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap(); // page 2
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[0] = page as u32; // virtual page 0 -> physical page 2
+    vm.current_page_dir = Some(pd);
+
+    // Virtual addr 0 should map to physical page 2
+    assert_eq!(vm.translate_va(0), Some(2 * PAGE_SIZE));
+    assert_eq!(
+        vm.translate_va(PAGE_SIZE as u32 - 1),
+        Some(2 * PAGE_SIZE + PAGE_SIZE - 1)
+    );
+}
+
+#[test]
+fn test_p309_translate_va_unmapped_page() {
+    let mut vm = Vm::new();
+    let pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    vm.current_page_dir = Some(pd);
+
+    // All pages unmapped
+    assert_eq!(vm.translate_va(0), None);
+    assert_eq!(vm.translate_va(0x500), None);
+}
+
+#[test]
+fn test_p309_translate_va_out_of_range_vpage() {
+    let mut vm = Vm::new();
+    let pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    vm.current_page_dir = Some(pd);
+
+    // Address beyond page directory range
+    let beyond = (NUM_PAGES * PAGE_SIZE) as u32;
+    assert_eq!(vm.translate_va(beyond), None);
+}
+
+#[test]
+fn test_p309_translate_va_page_unmapped_sentinel() {
+    let mut vm = Vm::new();
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[5] = PAGE_UNMAPPED; // explicitly unmapped
+    vm.current_page_dir = Some(pd);
+
+    let vaddr = (5 * PAGE_SIZE) as u32;
+    assert_eq!(vm.translate_va(vaddr), None);
+}
+
+#[test]
+fn test_p309_create_process_page_dir() {
+    let mut vm = Vm::new();
+    let pd = vm.create_process_page_dir().unwrap();
+
+    // Should have NUM_PAGES entries
+    assert_eq!(pd.len(), NUM_PAGES);
+
+    // Pages 0..PROCESS_PAGES should be mapped (contiguous physical pages)
+    for i in 0..PROCESS_PAGES {
+        assert_ne!(pd[i], PAGE_UNMAPPED, "Virtual page {} should be mapped", i);
+    }
+
+    // Page 3 should be identity-mapped (shared region)
+    assert_eq!(pd[3], 3);
+
+    // Page 63 should be identity-mapped (hardware ports)
+    assert_eq!(pd[63], 63);
+
+    // Pages between PROCESS_PAGES and 63 (exclusive) should be unmapped
+    for i in PROCESS_PAGES..63 {
+        assert_eq!(
+            pd[i], PAGE_UNMAPPED,
+            "Virtual page {} should be unmapped",
+            i
+        );
+    }
+}
+
+#[test]
+fn test_p309_create_process_page_dir_distinct_physical_pages() {
+    let mut vm = Vm::new();
+    let pd1 = vm.create_process_page_dir().unwrap();
+    let pd2 = vm.create_process_page_dir().unwrap();
+
+    // Two processes should get different physical pages (except shared regions)
+    // Page 3 and 63 are shared (identity-mapped), but others differ
+    let mut distinct = 0;
+    for i in 0..PROCESS_PAGES {
+        if i == 3 {
+            continue;
+        } // shared
+        if pd1[i] != pd2[i] {
+            distinct += 1;
+        }
+    }
+    assert!(
+        distinct > 0,
+        "Processes should have distinct physical pages"
+    );
+}
+
+#[test]
+fn test_p309_create_process_page_dir_exhaustion() {
+    let mut vm = Vm::new();
+    // Each process needs PROCESS_PAGES pages. With 62 free pages,
+    // we can create floor(62/PROCESS_PAGES) = 15 processes
+    let mut count = 0;
+    for _ in 0..20 {
+        if vm.create_process_page_dir().is_some() {
+            count += 1;
+        }
+    }
+    // Should be able to create at least 10 processes
+    assert!(
+        count >= 10,
+        "Should create at least 10 process page dirs, got {}",
+        count
+    );
+}
+
+#[test]
+fn test_p309_resolve_cow_if_needed_skips_non_cow() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap();
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[0] = page as u32;
+    vm.current_page_dir = Some(pd);
+    // No COW flag
+    vm.page_cow &= !(1u64 << page);
+
+    // Should not crash, should not change page dir
+    vm.resolve_cow_if_needed(0);
+    assert_eq!(vm.current_page_dir.as_ref().unwrap()[0], page as u32);
+}
+
+#[test]
+fn test_p309_resolve_cow_if_needed_resolves() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap();
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[0] = page as u32;
+    vm.current_page_dir = Some(pd);
+    vm.page_cow |= 1u64 << page;
+
+    vm.resolve_cow_if_needed(0);
+    // After resolution, page 0 should point to a new physical page
+    let new_page = vm.current_page_dir.as_ref().unwrap()[0] as usize;
+    assert_ne!(new_page, page);
+}
+
+#[test]
+fn test_p309_resolve_cow_if_needed_unmapped() {
+    let mut vm = Vm::new();
+    let pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    vm.current_page_dir = Some(pd);
+
+    // Unmapped page -- should not crash
+    vm.resolve_cow_if_needed(0);
+}
+
+#[test]
+fn test_p309_handle_page_fault_no_page_dir() {
+    let mut vm = Vm::new();
+    vm.current_page_dir = None;
+    // Kernel mode: no fault handling
+    assert!(!vm.handle_page_fault(0x5000));
+}
+
+#[test]
+fn test_p309_handle_page_fault_already_mapped() {
+    let mut vm = Vm::new();
+    let page = vm.alloc_pages(1).unwrap();
+    let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd[10] = page as u32;
+    vm.current_page_dir = Some(pd);
+    vm.current_vmas.clear(); // No VMA restrictions
+
+    // Already mapped -- should not re-allocate
+    assert!(!vm.handle_page_fault(10 * PAGE_SIZE as u32));
+    assert_eq!(vm.current_page_dir.as_ref().unwrap()[10], page as u32);
+}
+
+#[test]
+fn test_p309_handle_page_fault_kernel_page() {
+    let mut vm = Vm::new();
+    let pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    vm.current_page_dir = Some(pd);
+    vm.current_vmas.clear();
+
+    // Page 63+ should not be demand-allocated
+    assert!(!vm.handle_page_fault(63 * PAGE_SIZE as u32));
+    assert!(!vm.handle_page_fault(64 * PAGE_SIZE as u32));
+}
+
+#[test]
+fn test_p309_handle_page_fault_demand_alloc() {
+    let mut vm = Vm::new();
+    let pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    vm.current_page_dir = Some(pd);
+    vm.current_vmas.clear(); // No VMA restrictions = old behavior
+
+    // Demand-allocate page 10
+    let vaddr = 10 * PAGE_SIZE as u32;
+    assert!(vm.handle_page_fault(vaddr));
+
+    // Should now be mapped
+    let new_page = vm.current_page_dir.as_ref().unwrap()[10] as usize;
+    assert_ne!(new_page, PAGE_UNMAPPED as usize);
+    assert_ne!(vm.allocated_pages & (1u64 << new_page), 0);
+
+    // Newly allocated page should be zeroed
+    let base = new_page * PAGE_SIZE;
+    for i in 0..PAGE_SIZE {
+        if base + i < vm.ram.len() {
+            assert_eq!(vm.ram[base + i], 0);
+        }
+    }
+}
+
+#[test]
+fn test_p309_handle_page_fault_out_of_range() {
+    let mut vm = Vm::new();
+    let pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    vm.current_page_dir = Some(pd);
+    vm.current_vmas.clear();
+
+    // Beyond page directory range
+    assert!(!vm.handle_page_fault((NUM_PAGES * PAGE_SIZE) as u32));
+}
+
+#[test]
+fn test_p309_translate_va_or_fault_demand_alloc() {
+    let mut vm = Vm::new();
+    let pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    vm.current_page_dir = Some(pd);
+    vm.current_vmas.clear();
+
+    // First access should trigger fault + allocate
+    let vaddr = 20 * PAGE_SIZE as u32;
+    let result = vm.translate_va_or_fault(vaddr);
+    assert!(result.is_some());
+
+    // Second access should work without fault
+    let result2 = vm.translate_va_or_fault(vaddr);
+    assert!(result2.is_some());
+    assert_eq!(result, result2);
+}
+
+#[test]
+fn test_p309_translate_va_or_fault_kernel_mode() {
+    let mut vm = Vm::new();
+    // No page dir = identity mapping, no faults
+    assert_eq!(vm.translate_va_or_fault(0x1234), Some(0x1234));
+}
+
+#[test]
+fn test_p309_trigger_segfault() {
+    let mut vm = Vm::new();
+    vm.halted = false;
+    vm.segfault = false;
+
+    vm.trigger_segfault();
+    assert!(vm.segfault);
+    assert!(vm.halted);
+}
+
+#[test]
+fn test_p309_trigger_segfault_with_addr() {
+    let mut vm = Vm::new();
+    vm.halted = false;
+    vm.segfault = false;
+    vm.segfault_addr = 0;
+
+    vm.trigger_segfault_with_addr(0xBEEF);
+    assert!(vm.segfault);
+    assert!(vm.halted);
+    assert_eq!(vm.segfault_addr, 0xBEEF);
+}
+
+#[test]
+fn test_p309_page_fault_with_vma_restriction() {
+    let mut vm = Vm::new();
+    let pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+    vm.current_page_dir = Some(pd);
+
+    // Set a Heap VMA: start=4, current_end=4, max_end=8
+    // can_grow_to for Heap: vpage > current_end && vpage <= max_end
+    // So pages 5,6,7,8 are growable; page 4 is not (it's at current_end)
+    vm.current_vmas = vec![Vma::new(VmaType::Heap, 4, 4, 8)];
+
+    // Page 5 is beyond current_end and within max_end -- should be allowed
+    assert!(vm.handle_page_fault(5 * PAGE_SIZE as u32));
+
+    // Page 4 is at current_end -- NOT growable (Heap: vpage > current_end)
+    assert!(!vm.handle_page_fault(4 * PAGE_SIZE as u32));
+
+    // Page 9 is beyond max_end -- should not be allowed
+    assert!(!vm.handle_page_fault(9 * PAGE_SIZE as u32));
+
+    // Page 3 is before VMA start -- should not be allowed
+    assert!(!vm.handle_page_fault(3 * PAGE_SIZE as u32));
+}
+
+#[test]
+fn test_p309_alloc_and_free_cycle() {
+    let mut vm = Vm::new();
+    let mut pages = Vec::new();
+
+    // Allocate 10 pages
+    for _ in 0..10 {
+        pages.push(vm.alloc_pages(1).unwrap());
+    }
+
+    // Free them all
+    let pd: Vec<u32> = pages.iter().map(|&p| p as u32).collect();
+    vm.free_page_dir(&pd);
+
+    // All should be free again
+    for &p in &pages {
+        assert_eq!(vm.allocated_pages & (1u64 << p), 0);
+        assert_eq!(vm.page_ref_count[p], 0);
+    }
+
+    // Should be able to re-allocate the same pages
+    for i in 0..10 {
+        assert_eq!(vm.alloc_pages(1).unwrap(), pages[i]);
+    }
+}
+
+#[test]
+fn test_p309_cow_isolation_between_processes() {
+    let mut vm = Vm::new();
+
+    // Create two process page directories sharing the same physical pages via COW
+    let page = vm.alloc_pages(1).unwrap(); // page 2
+    let mut pd1 = vec![PAGE_UNMAPPED; NUM_PAGES];
+    let mut pd2 = vec![PAGE_UNMAPPED; NUM_PAGES];
+    pd1[0] = page as u32;
+    pd2[0] = page as u32;
+    vm.page_ref_count[page] = 2;
+    vm.page_cow |= 1u64 << page;
+
+    // Write initial data
+    let base = page * PAGE_SIZE;
+    vm.ram[base] = 42;
+
+    // Process 1 writes (triggers COW)
+    vm.current_page_dir = Some(pd1);
+    assert!(vm.handle_cow_write(0));
+    let pd1_new_page = vm.current_page_dir.as_ref().unwrap()[0] as usize;
+
+    // Process 1 modifies its copy
+    let new_base = pd1_new_page * PAGE_SIZE;
+    vm.ram[new_base] = 99;
+
+    // Process 2 should still see original data
+    let pd2_base = page * PAGE_SIZE;
+    assert_eq!(vm.ram[pd2_base], 42);
+
+    // Process 1 sees its modified copy
+    assert_eq!(vm.ram[new_base], 99);
+}

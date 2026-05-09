@@ -1424,7 +1424,7 @@ mod tests {
         let joined = lines.join("\n");
         // DO/LOOP should have a loop label and branch
         assert!(joined.contains("DO_LOOP") || joined.contains("loop"));
-        assert!(joined.contains("CMP r14, r15"));  // loop termination uses CMP, not CMPI
+        assert!(joined.contains("CMP r14, r15")); // loop termination uses CMP, not CMPI
     }
 
     #[test]
@@ -1587,9 +1587,7 @@ mod tests {
         // Recursive words require forward references which this compiler
         // does not support. Test that attempting to call an undefined word
         // during compilation produces a clear error.
-        let result = compile_lines(
-            r#": FACT DUP 1 > IF DUP 1- FACT * ELSE DROP 1 THEN ;"#
-        );
+        let result = compile_lines(r#": FACT DUP 1 > IF DUP 1- FACT * ELSE DROP 1 THEN ;"#);
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.message.contains("unknown word: FACT"));
@@ -1597,9 +1595,7 @@ mod tests {
 
     #[test]
     fn test_loops_and_conditionals_combined() {
-        let lines = compile_lines(
-            ": COUNTDOWN 10 0 DO I 5 = IF 99 . THEN LOOP ;"
-        ).unwrap();
+        let lines = compile_lines(": COUNTDOWN 10 0 DO I 5 = IF 99 . THEN LOOP ;").unwrap();
         let joined = lines.join("\n");
         assert!(joined.contains("IF") || joined.contains("JZ"));
         assert!(joined.contains("LOOP") || joined.contains("loop"));
@@ -1628,9 +1624,7 @@ mod tests {
 
     #[test]
     fn test_unique_labels_for_multiple_ifs() {
-        let lines = compile_lines(
-            ": TEST 10 > IF 42 THEN 20 > IF 99 THEN ;"
-        ).unwrap();
+        let lines = compile_lines(": TEST 10 > IF 42 THEN 20 > IF 99 THEN ;").unwrap();
         let joined = lines.join("\n");
         // Should have 2 different IF label prefixes (not the same label twice)
         // IF/THEN generates _else: and _then: labels
