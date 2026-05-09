@@ -5154,7 +5154,7 @@ phases:
     met: true
 - id: phase-292
   title: GeOS VM -- Scrollback Buffer Enhancement and Tests
-  status: todo
+  status: done
   goal: Enhance the scrollback buffer (scrollback.rs, 228 LOC, 6 tests) with configurable
     limits and comprehensive tests.
   description: 'The terminal scrollback buffer was added recently with basic functionality.
@@ -5164,19 +5164,19 @@ phases:
     wrap-around, line deletion, search within scrollback, and memory efficiency.'
   deliverables:
   - name: Configurable scrollback limit (default 1000 lines)
-    status: planned
+    status: done
   - name: Scrollback search functionality
-    status: planned
+    status: done
   - name: Unit tests for scroll boundaries and wrap-around
-    status: planned
+    status: done
   - name: Unit tests for line deletion and memory efficiency
-    status: planned
+    status: done
   acceptance_criteria:
   - description: Scrollback has at least 15 unit tests
     validation: grep -c "fn test_" src/scrollback.rs >= 15
 - id: phase-293
   title: GeOS Program -- Breakout Game with Bricks and Power-ups
-  status: todo
+  status: done
   goal: Implement a full Breakout/Arkanoid game demonstrating RECTF, LINE, collision
     detection, and game state management.
   description: 'The game catalog has asteroids, snake, tetris, and ball but no breakout
@@ -5186,17 +5186,17 @@ phases:
     machines in assembly.'
   deliverables:
   - name: Brick grid rendering with color-per-row (8 rows, 12 columns)
-    status: planned
+    status: done
   - name: Paddle movement (keyboard-controlled) and ball physics
-    status: planned
+    status: done
   - name: Ball-brick collision detection and brick removal
-    status: planned
+    status: done
   - name: Score system and lives display
-    status: planned
+    status: done
   - name: Level progression (new brick patterns)
-    status: planned
+    status: done
   - name: Integration test verifying game boots and renders bricks
-    status: planned
+    status: done
   acceptance_criteria:
   - description: Game boots and renders initial brick grid
     validation: Program assembles and produces non-empty screen after 100 frames
@@ -5204,7 +5204,7 @@ phases:
     validation: Ball position changes direction at boundaries
 - id: phase-294
   title: GeOS VM -- geos_term.rs (Binary Target) Test Suite
-  status: todo
+  status: done
   goal: Add integration tests for the geos_term binary target (1853 LOC, 3 tests).
   description: 'geos_term.rs is the standalone terminal binary for Geometry OS. It
     handles the full interactive loop including canvas editing, terminal commands,
@@ -5213,19 +5213,19 @@ phases:
     and error handling.'
   deliverables:
   - name: Unit tests for terminal command parsing
-    status: planned
+    status: done
   - name: Unit tests for file load/save operations
-    status: planned
+    status: done
   - name: Unit tests for canvas buffer manipulation
-    status: planned
+    status: done
   - name: Error handling tests for invalid commands
-    status: planned
+    status: done
   acceptance_criteria:
   - description: geos_term.rs has at least 10 unit tests
     validation: grep -c "fn test_" src/bin/geos_term.rs >= 10
 - id: phase-295
   title: GeOS VM -- RISC-V Live Mode Tests (riscv/live.rs)
-  status: todo
+  status: done
   goal: Expand test coverage for the RISC-V live execution mode (698 LOC, 3 tests).
   description: 'riscv/live.rs handles the RISC-V VM running inside the GeOS desktop
     as a guest process. It bridges the RISC-V step loop to the GeOS framebuffer. With
@@ -5234,19 +5234,19 @@ phases:
     and error recovery.'
   deliverables:
   - name: Unit tests for framebuffer update paths
-    status: planned
+    status: done
   - name: Unit tests for register state sync
-    status: planned
+    status: done
   - name: Unit tests for halt and error conditions
-    status: planned
+    status: done
   - name: Integration test for guest program execution lifecycle
-    status: planned
+    status: done
   acceptance_criteria:
   - description: riscv/live.rs has at least 10 unit tests
     validation: grep -c "fn test_" src/riscv/live.rs >= 10
 - id: phase-296
   title: GeOS Program -- Fractal Zoom (Mandelbrot Deep Zoom)
-  status: todo
+  status: done
   goal: Implement an interactive Mandelbrot fractal renderer with zoom and pan controls.
   description: 'A mandelbrot program exists but an interactive version with zoom/pan
     would showcase the VM math capabilities (MUL, DIV for complex arithmetic) and
@@ -5255,15 +5255,15 @@ phases:
     with FRAME animation, and interactive control flow.'
   deliverables:
   - name: Fixed-point complex arithmetic (multiply, add, magnitude squared)
-    status: planned
+    status: done
   - name: Progressive rendering with FRAME-based animation
-    status: planned
+    status: done
   - name: Arrow key panning and +/- zoom controls
-    status: planned
+    status: done
   - name: Color mapping from iteration count to RGB
-    status: planned
+    status: done
   - name: Integration test verifying initial render produces non-uniform screen
-    status: planned
+    status: done
   acceptance_criteria:
   - description: Program assembles and renders a recognizable Mandelbrot set
     validation: Screen has >100 distinct colors after 1 frame
@@ -5271,7 +5271,7 @@ phases:
     validation: RAM state changes after zoom key presses
 - id: phase-297
   title: RISC-V Guest -- VirtIO GPU (Simple Display)
-  status: todo
+  status: done
   goal: Implement VirtIO GPU device for RISC-V guest graphical output.
   description: 'Phase 287 was marked in_progress but never implemented. The RISC-V
     guest currently has VirtIO block and network devices but no GPU. A simple VirtIO
@@ -5280,17 +5280,17 @@ phases:
     attachment. Bridge to the GeOS canvas buffer for pixel output.'
   deliverables:
   - name: VirtIO GPU device configuration (resolution, scanout)
-    status: planned
+    status: done
   - name: 2D resource create/destroy and transfer commands
-    status: planned
+    status: done
   - name: Scanout attachment to display the framebuffer
-    status: planned
+    status: done
   - name: Cursor positioning support
-    status: planned
+    status: done
   - name: Bridge to GeOS canvas buffer for pixel output
-    status: planned
+    status: done
   - name: Unit tests for device initialization and resource lifecycle
-    status: planned
+    status: done
   acceptance_criteria:
   - description: VirtIO GPU device initializes successfully in bus
     validation: Guest can query GPU device capabilities
@@ -5298,7 +5298,7 @@ phases:
     validation: Test writes pixels via VirtIO GPU and verifies canvas content
 - id: phase-298
   title: GeOS VM -- Audio System Expansion (WAVE Opcode)
-  status: todo
+  status: done
   goal: Add a WAVE opcode for playing custom waveforms beyond the basic BEEP sine
     tone.
   description: The VM currently only has BEEP (sine wave tone). A WAVE opcode allows
@@ -5308,19 +5308,19 @@ phases:
     register, duration register, and volume register.
   deliverables:
   - name: 'WAVE opcode (0xD0): custom waveform playback'
-    status: planned
+    status: done
   - name: Waveform generators (square, triangle, sawtooth, noise)
-    status: planned
+    status: done
   - name: Volume control parameter
-    status: planned
+    status: done
   - name: Assembler support for WAVE mnemonic
-    status: planned
+    status: done
   - name: Disassembler support for WAVE
-    status: planned
+    status: done
   - name: Unit tests for waveform generation
-    status: planned
+    status: done
   - name: 'Demo program: simple melody with mixed waveforms'
-    status: planned
+    status: done
   acceptance_criteria:
   - description: WAVE opcode produces audible output
     validation: Integration test verifies WAV data is generated
@@ -5328,7 +5328,7 @@ phases:
     validation: Generated WAV files have different frequency spectra
 - id: phase-299
   title: GeOS VM -- Viewport and Camera System Tests
-  status: todo
+  status: done
   goal: Expand test coverage for the viewport/camera system (viewport.rs 255 LOC,
     0 tests; 235 refs across codebase).
   description: 'The viewport and camera system handles coordinate transformation,
@@ -5338,19 +5338,19 @@ phases:
     and screen-to-world/world-to-screen conversion.'
   deliverables:
   - name: Unit tests for coordinate transformation (world <-> screen)
-    status: planned
+    status: done
   - name: Unit tests for zoom level clamping and interpolation
-    status: planned
+    status: done
   - name: Unit tests for pan boundaries and constraints
-    status: planned
+    status: done
   - name: Unit tests for viewport resize behavior
-    status: planned
+    status: done
   acceptance_criteria:
   - description: viewport.rs has at least 10 unit tests
     validation: grep -c "fn test_" src/viewport.rs >= 10
 - id: phase-300
   title: GeOS Program -- Sokoban Puzzle Game
-  status: todo
+  status: done
   goal: Implement a Sokoban (box-pushing puzzle) game demonstrating tile-based rendering
     and state management.
   description: 'Sokoban is a classic puzzle game well-suited to the VM tilemap capabilities.
@@ -5360,17 +5360,17 @@ phases:
     levels stored in RAM. Simple controls: WASD to move, U to undo, R to restart level.'
   deliverables:
   - name: Tile-based level rendering (walls, floor, boxes, targets, player)
-    status: planned
+    status: done
   - name: Player movement with box pushing mechanics
-    status: planned
+    status: done
   - name: Win detection (all boxes on targets)
-    status: planned
+    status: done
   - name: Move history for undo functionality
-    status: planned
+    status: done
   - name: Multiple levels stored in RAM
-    status: planned
+    status: done
   - name: Integration test verifying level renders and player can move
-    status: planned
+    status: done
   acceptance_criteria:
   - description: Game renders initial level correctly
     validation: Screen has distinct colors for walls, floor, boxes, targets, and player
@@ -5378,7 +5378,7 @@ phases:
     validation: RAM state changes correctly after push sequence
 - id: phase-301
   title: GeOS VM -- MCP Server Integration Tests
-  status: todo
+  status: done
   goal: Expand test coverage for the MCP server (mcp_server.rs, 82 tests already,
     but integration paths need coverage).
   description: 'The MCP server (geo_mcp_server binary) bridges Hermes tools to the
@@ -5388,19 +5388,19 @@ phases:
     across tool calls.'
   deliverables:
   - name: Integration tests for multi-tool execution sequences
-    status: planned
+    status: done
   - name: Error recovery tests for malformed requests
-    status: planned
+    status: done
   - name: State consistency tests across tool calls
-    status: planned
+    status: done
   - name: Tests for all MCP resource URIs
-    status: planned
+    status: done
   acceptance_criteria:
   - description: MCP server has at least 95 total tests
     validation: cargo test --bin geo_mcp_server shows >= 95 tests
 - id: phase-302
   title: GeOS VM -- Memory Pool Allocator Tests and Hardening
-  status: todo
+  status: done
   goal: Test and harden the memory pool allocator used by SPAWN and VFS.
   description: 'The VM has a page allocator for SPAWN (COW pages) and the VFS inode
     allocator. These are critical for system stability but have limited test coverage
@@ -5409,20 +5409,256 @@ phases:
     against double-free and use-after-free.'
   deliverables:
   - name: 'Stress test: allocate until exhaustion then free all'
-    status: planned
+    status: done
   - name: COW page split on write (verify isolation after write)
-    status: planned
+    status: done
   - name: Double-free protection test
-    status: planned
+    status: done
   - name: Fragmentation recovery test (alloc/free/alloc pattern)
-    status: planned
+    status: done
   - name: VFS inode allocator edge case tests
-    status: planned
+    status: done
   acceptance_criteria:
   - description: All allocator stress tests pass
     validation: cargo test --lib passes with new tests
   - description: No panics on allocation exhaustion
     validation: OOM path returns error instead of panicking
+
+- id: phase-303
+  title: GeOS VM -- Assembler Graphics Ops Unit Tests
+  status: todo
+  goal: Add unit tests for the assembler graphics operations module (graphics_ops.rs, 508 LOC, 0 tests).
+  description: 'The assembler graphics_ops.rs handles encoding for PSET, PSETI, FILL, RECTF, TEXT, LINE, CIRCLE, SCROLL, SPRITE, TILEMAP, FLOOD, BLEND, BLENDR, ROTATE, SCALE, SCREENP, CLIPSET, CLIPCLR, SMALLTEXT and related opcodes. Despite being critical for program correctness, it has zero tests in its own file. Add tests for: correct bytecode encoding for each graphics opcode, argument count validation, edge cases (zero-size rects, out-of-range colors), and round-trip assemble-disassemble for graphics instructions.'
+  deliverables:
+  - name: Unit tests for PSET/PSETI/FILL/RECTF encoding
+    status: todo
+  - name: Unit tests for TEXT/LINE/CIRCLE/SCROLL encoding
+    status: todo
+  - name: Unit tests for SPRITE/TILEMAP/FLOOD encoding
+    status: todo
+  - name: Unit tests for BLEND/ROTATE/SCALE/SCREENP encoding
+    status: todo
+  - name: Round-trip assemble-disassemble tests for graphics instructions
+    status: todo
+  acceptance_criteria:
+  - description: graphics_ops.rs has at least 25 unit tests
+    validation: grep -c "#[test]" src/assembler/graphics_ops.rs >= 25
+- id: phase-304
+  title: GeOS VM -- Assembler System Ops Unit Tests
+  status: todo
+  goal: Add unit tests for the assembler system operations module (system_ops.rs, 1542 LOC, 0 tests).
+  description: 'The assembler system_ops.rs handles encoding for SPAWN, KILL, MSGSND, MSGRCV, PIPE, GETPID, OPEN, READ, WRITE, CLOSE, SEEK, LS, IOCTL, SYSCALL, RETK, CHDIR, GETCWD, EXECP, WAITPID, SLEEP, YIELD, SETPRIORITY, ASM, ASMSELF, RUNNEXT, FORMULA, FORMULACLEAR, FORMULAREM, PROFILE, and other system-level opcodes. At 1542 LOC it is the largest assembler module with zero tests. Add tests for: correct bytecode encoding, argument validation, edge cases, and system opcode round-trips.'
+  deliverables:
+  - name: Unit tests for SPAWN/KILL/MSG/PIPE/GETPID encoding
+    status: todo
+  - name: Unit tests for OPEN/READ/WRITE/CLOSE/SEEK/LS encoding
+    status: todo
+  - name: Unit tests for IOCTL/SYSCALL/RETK encoding
+    status: todo
+  - name: Unit tests for ASM/ASMSELF/RUNNEXT/FORMULA encoding
+    status: todo
+  - name: Unit tests for SLEEP/YIELD/SETPRIORITY/CHDIR/GETCWD encoding
+    status: todo
+  acceptance_criteria:
+  - description: system_ops.rs has at least 30 unit tests
+    validation: grep -c "#[test]" src/assembler/system_ops.rs >= 30
+- id: phase-305
+  title: GeOS VM -- Assembler Core and Immediate Ops Unit Tests
+  status: todo
+  goal: Add unit tests for assembler core_ops.rs (428 LOC) and immediate_ops.rs (127 LOC), both with 0 tests.
+  description: 'The core assembler module handles LDI, LOAD, STORE, ADD, SUB, MUL, DIV, AND, OR, XOR, SHL, SHR, MOD, NEG, SAR, CMP, MOV, JMP, JZ, JNZ, CALL, RET, BLT, BGE, PUSH, POP, HALT, NOP, FRAME, BEEP, IKEY, RAND, PEEK, ASM, and CMOV/CSEL. The immediate ops module handles BFE, BFI, and other immediate-form instructions. Both have zero dedicated tests despite being the foundation of all assembly. Add comprehensive tests for encoding correctness, edge cases, and register validation.'
+  deliverables:
+  - name: Unit tests for arithmetic opcodes (ADD through SAR)
+    status: todo
+  - name: Unit tests for control flow (JMP, JZ, JNZ, CALL, RET, BLT, BGE)
+    status: todo
+  - name: Unit tests for memory ops (LDI, LOAD, STORE, PUSH, POP)
+    status: todo
+  - name: Unit tests for immediate ops (BFE, BFI, CMOV, CSEL, CMPI)
+    status: todo
+  acceptance_criteria:
+  - description: core_ops.rs has at least 20 unit tests
+    validation: grep -c "#[test]" src/assembler/core_ops.rs >= 20
+  - description: immediate_ops.rs has at least 10 unit tests
+    validation: grep -c "#[test]" src/assembler/immediate_ops.rs >= 10
+- id: phase-306
+  title: GeOS VM -- Forth Compiler Unit Tests
+  status: todo
+  goal: Add unit tests for the Forth compiler (compiler.rs, 1028 LOC, 0 tests) and lexer (lexer.rs, 127 LOC, 0 tests).
+  description: 'The Forth VM subsystem has 1157 total LOC with zero tests and zero roadmap phases. The compiler translates Forth source to assembly, and the lexer tokenizes Forth input. This is a complete language implementation sitting untested. Add tests for: lexer tokenization of all Forth word types (numbers, strings, colon definitions, comments), compiler compilation of basic words, stack operations, control structures (IF/ELSE/THEN, DO/LOOP), variable access, and error handling for invalid input.'
+  deliverables:
+  - name: Lexer tests for all token types
+    status: todo
+  - name: Compiler tests for basic stack operations
+    status: todo
+  - name: Compiler tests for control structures (IF/ELSE/THEN, DO/LOOP)
+    status: todo
+  - name: Compiler tests for variable and constant definitions
+    status: todo
+  - name: Error handling tests for invalid Forth input
+    status: todo
+  acceptance_criteria:
+  - description: forth/compiler.rs has at least 20 unit tests
+    validation: grep -c "#[test]" src/forth/compiler.rs >= 20
+  - description: forth/lexer.rs has at least 10 unit tests
+    validation: grep -c "#[test]" src/forth/lexer.rs >= 10
+- id: phase-307
+  title: GeOS VM -- Render Module Unit Tests
+  status: todo
+  goal: Add unit tests for the render module (render.rs, 1472 LOC, 377 refs, 0 tests).
+  description: 'The render module handles the full rendering pipeline: pixel font glyph rendering, palette color computation, canvas buffer display, grid overlay, cursor rendering, and the text surface mode visual output. With 377 references across the codebase and 1472 LOC, it is a critical path for all visual output but has zero dedicated tests. Add tests for: palette_color() correctness, glyph rendering for edge-case characters, canvas buffer read/write, grid boundary calculations, and cursor positioning.'
+  deliverables:
+  - name: Unit tests for palette_color() computation
+    status: todo
+  - name: Unit tests for glyph rendering
+    status: todo
+  - name: Unit tests for canvas buffer operations
+    status: todo
+  - name: Unit tests for grid overlay calculations
+    status: todo
+  acceptance_criteria:
+  - description: render.rs has at least 20 unit tests
+    validation: grep -c "#[test]" src/render.rs >= 20
+- id: phase-308
+  title: GeOS VM -- Keys and Camera Module Tests
+  status: todo
+  goal: Add unit tests for keys.rs (155 LOC, 35 refs) and camera.rs (185 LOC, 93 refs), both with 0 tests.
+  description: 'The keys module handles keyboard input mapping (key codes to ASCII, shift state handling). The camera module handles world-to-screen coordinate transformation, zoom, and pan for the desktop view. Both are small but heavily referenced. Add tests for: key mapping correctness for all standard keys, shift state handling, camera coordinate transforms at various zoom levels, pan boundary clamping, and viewport resize behavior.'
+  deliverables:
+  - name: Unit tests for key code to ASCII mapping
+    status: todo
+  - name: Unit tests for shift state handling
+    status: todo
+  - name: Unit tests for camera coordinate transforms
+    status: todo
+  - name: Unit tests for camera pan/zoom boundaries
+    status: todo
+  acceptance_criteria:
+  - description: keys.rs has at least 10 unit tests
+    validation: grep -c "#[test]" src/keys.rs >= 10
+  - description: camera.rs has at least 10 unit tests
+    validation: grep -c "#[test]" src/camera.rs >= 10
+- id: phase-309
+  title: GeOS VM -- VM Memory Module Tests
+  status: todo
+  goal: Add unit tests for the VM memory module (memory.rs, 265 LOC, 248 refs, 0 tests).
+  description: 'The VM memory module handles page allocation, deallocation, COW page management, page directory operations, and address translation. With 248 refs across the codebase it is fundamental to the multi-process system. Add tests for: page allocation and deallocation, COW page split behavior, page directory creation and lookup, address translation correctness, allocation exhaustion recovery, and double-free protection.'
+  deliverables:
+  - name: Unit tests for page alloc/free cycle
+    status: todo
+  - name: Unit tests for COW page management
+    status: todo
+  - name: Unit tests for page directory operations
+    status: todo
+  - name: Unit tests for allocation exhaustion handling
+    status: todo
+  acceptance_criteria:
+  - description: memory.rs has at least 15 unit tests
+    validation: grep -c "#[test]" src/vm/memory.rs >= 15
+- id: phase-310
+  title: GeOS VM -- Fuzzer Module Tests
+  status: todo
+  goal: Add unit tests for the fuzzer module (fuzzer.rs, 747 LOC, 0 tests).
+  description: 'The VM bytecode fuzzer generates random valid programs and runs them against an oracle to catch VM bugs. With 747 LOC and zero tests, the fuzzer itself could have bugs that mask real VM issues. Add tests for: random program generation produces valid bytecode, oracle checking correctly detects divergence, configuration parsing, and fuzzer lifecycle (start, run, report).'
+  deliverables:
+  - name: Unit tests for random bytecode generation
+    status: todo
+  - name: Unit tests for oracle checking logic
+    status: todo
+  - name: Unit tests for fuzzer configuration
+    status: todo
+  acceptance_criteria:
+  - description: fuzzer.rs has at least 10 unit tests
+    validation: grep -c "#[test]" src/fuzzer.rs >= 10
+- id: phase-311
+  title: GeOS Program -- Raycaster (Wolfenstein-style)
+  status: todo
+  goal: Implement a raycasting engine demonstrating trigonometry, fixed-point math, and per-column rendering.
+  description: 'A raycaster renders a pseudo-3D view from a 2D map, the technique behind Wolfenstein 3D. This is an ideal showcase for the VM math capabilities: fixed-point trigonometry via lookup tables, per-column vertical line rendering via LINE or PSET, wall distance calculation with DIV, and sprite rendering for objects. The map is stored in RAM, player position/angle in registers. Arrow keys rotate and move, WASD strafe. Demonstrates: lookup tables, fixed-point arithmetic, per-pixel column rendering, and interactive game state.'
+  deliverables:
+  - name: Fixed-point trigonometry lookup table generation
+    status: todo
+  - name: Ray casting and wall distance calculation
+    status: todo
+  - name: Per-column wall rendering with height scaling
+    status: todo
+  - name: Player movement and rotation with collision
+    status: todo
+  - name: Floor/ceiling rendering
+    status: todo
+  - name: Integration test verifying non-uniform screen output
+    status: todo
+  acceptance_criteria:
+  - description: Program assembles and produces a 3D-like view
+    validation: Screen has >50 distinct vertical stripe colors after 1 frame
+- id: phase-312
+  title: GeOS Program -- L-System Fractal Tree
+  status: todo
+  goal: Implement an L-system fractal tree renderer demonstrating string rewriting, turtle graphics, and recursive structure.
+  description: 'An L-system uses string rewriting rules to generate complex fractal patterns. The program maintains a string in RAM, applies rewrite rules iteratively, then interprets the result as turtle graphics commands (F=forward, +=turn left, -=turn right). This demonstrates: string manipulation in RAM, iterative rewriting, turtle graphics via LINE/PSET, and angle/length parameterization. Different rule sets produce trees, ferns, snowflakes, and dragon curves.'
+  deliverables:
+  - name: L-system string rewriting engine in assembly
+    status: todo
+  - name: Turtle graphics interpreter (F, +, -, [, ])
+    status: todo
+  - name: Multiple rule sets (tree, fern, Koch curve)
+    status: todo
+  - name: Color gradient based on recursion depth
+    status: todo
+  - name: Integration test verifying fractal renders
+    status: todo
+  acceptance_criteria:
+  - description: Program assembles and draws a recognizable tree structure
+    validation: Screen has LINE opcode segments forming a branching pattern
+- id: phase-313
+  title: GeOS VM -- Assembler Includes and Formula Ops Tests
+  status: todo
+  goal: Add unit tests for assembler includes.rs (144 LOC) and formula_ops.rs (106 LOC), both with 0 tests.
+  description: 'The includes module handles .include directive processing, file path resolution, and recursive inclusion. The formula_ops module handles FORMULA, FORMULACLEAR, and FORMULAREM opcode encoding. Both are untested. Add tests for: include path resolution, recursive include detection, formula encoding, and edge cases.'
+  deliverables:
+  - name: Unit tests for .include directive processing
+    status: todo
+  - name: Unit tests for FORMULA/FORMULACLEAR/FORMULAREM encoding
+    status: todo
+  acceptance_criteria:
+  - description: includes.rs has at least 8 unit tests
+    validation: grep -c "#[test]" src/assembler/includes.rs >= 8
+  - description: formula_ops.rs has at least 5 unit tests
+    validation: grep -c "#[test]" src/assembler/formula_ops.rs >= 5
+- id: phase-314
+  title: GeOS VM -- VM IO Serialization Tests
+  status: todo
+  goal: Add unit tests for the VM IO module (io.rs, 582 LOC, 5046 refs, 0 in-file tests).
+  description: 'The IO module handles VM state serialization/deserialization for save/load, canvas buffer I/O, and checkpoint operations. With 5046 refs it is one of the most referenced modules. While heavily tested indirectly through tests.rs, dedicated unit tests would catch edge cases in serialization round-trips, version compatibility, and corrupted state handling.'
+  deliverables:
+  - name: Unit tests for save state serialization round-trip
+    status: todo
+  - name: Unit tests for canvas buffer save/load
+    status: todo
+  - name: Unit tests for corrupted state handling
+    status: todo
+  acceptance_criteria:
+  - description: io.rs has at least 15 unit tests
+    validation: grep -c "#[test]" src/vm/io.rs >= 15
+- id: phase-315
+  title: GeOS Program -- Music Sequencer
+  status: todo
+  goal: Implement a step sequencer demonstrating the WAVE/SMALLTEXT opcodes and timed audio playback.
+  description: 'A step sequencer displays a grid of notes that the user can toggle on/off, then plays them back in a loop using the BEEP/WAVE opcodes. Rows represent pitches, columns represent time steps. The sequencer demonstrates: grid-based UI rendering with RECTF, interactive note toggling via mouse or keyboard, timed audio scheduling using TICKS, and pattern looping. Visual feedback shows the current playback position.'
+  deliverables:
+  - name: Note grid rendering (16 rows x 16 steps)
+    status: todo
+  - name: Interactive note toggling with keyboard
+    status: todo
+  - name: Playback engine with TICKS-based timing
+    status: todo
+  - name: Visual playback position indicator
+    status: todo
+  - name: Integration test verifying grid renders and state changes
+    status: todo
+  acceptance_criteria:
+  - description: Program assembles and renders the note grid
+    validation: Screen has a grid pattern with toggleable cells
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
@@ -5443,10 +5679,10 @@ meta:
   canonical_surface: vm.screen (256x256 Vec<u32>)
   sbi_extension_id: '0x47454F00'
   dtb_isa: rv32imac
-  phases_total: 128
-  phases_done: 66
-  phases_remaining: 62
-  opcodes: 215
+  phases_total: 141
+  phases_done: 128
+  phases_remaining: 13
+  opcodes: 214
   programs: 219
-  loc: 129130
-  tests: 3320
+  loc: 132466
+  tests: 3897
