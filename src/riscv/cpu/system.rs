@@ -218,6 +218,7 @@ impl RiscvCpu {
                                 bus.sbi.shm_regions.iter().position(|r| r.id == shm_id);
                             if let Some(idx) = region_idx {
                                 let region_size = bus.sbi.shm_regions[idx].data.len();
+                                let offset = offset as usize;
                                 // Read from guest memory into a temporary buffer
                                 let mut buf =
                                     vec![0u8; len.min(region_size.saturating_sub(offset))];
@@ -241,6 +242,7 @@ impl RiscvCpu {
                                 bus.sbi.shm_regions.iter().position(|r| r.id == shm_id);
                             if let Some(idx) = region_idx {
                                 let region_size = bus.sbi.shm_regions[idx].data.len();
+                                let offset = offset as usize;
                                 let copy_len = len.min(region_size.saturating_sub(offset));
                                 // Copy from region into a temporary buffer
                                 let buf: Vec<u8> = bus.sbi.shm_regions[idx].data

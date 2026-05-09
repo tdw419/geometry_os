@@ -210,7 +210,7 @@ impl RiscvVm {
         {
             let req = gpu_bridge::GpuComputeRequest {
                 code_addr,
-                num_words,
+                num_words: num_words as u32,
                 max_steps,
                 num_tiles,
                 result_addr,
@@ -237,7 +237,7 @@ impl RiscvVm {
             self.save_context();
             let target = if let Some(id) = self.bus.sbi.yield_to_context.take() {
                 // Yield to specific context
-                id
+                id as usize
             } else {
                 // Round-robin: find next alive context
                 self.next_alive_context()
@@ -294,7 +294,7 @@ impl RiscvVm {
         {
             let req = gpu_bridge::GpuComputeRequest {
                 code_addr,
-                num_words,
+                num_words: num_words as u32,
                 max_steps,
                 num_tiles,
                 result_addr,
@@ -317,7 +317,7 @@ impl RiscvVm {
         if result == StepResult::Yielded {
             self.save_context();
             let target = if let Some(id) = self.bus.sbi.yield_to_context.take() {
-                id
+                id as usize
             } else {
                 self.next_alive_context()
             };
@@ -366,7 +366,7 @@ impl RiscvVm {
         {
             let req = gpu_bridge::GpuComputeRequest {
                 code_addr,
-                num_words,
+                num_words: num_words as u32,
                 max_steps,
                 num_tiles,
                 result_addr,
@@ -389,7 +389,7 @@ impl RiscvVm {
         if result == StepResult::Yielded {
             self.save_context();
             let target = if let Some(id) = self.bus.sbi.yield_to_context.take() {
-                id
+                id as usize
             } else {
                 self.next_alive_context()
             };
