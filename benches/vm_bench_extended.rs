@@ -22,7 +22,8 @@ fn vm_with_source(source: &str) -> Vm {
 
 /// Load a .asm file from disk, assemble, and run in VM
 fn vm_from_file(path: &str) -> Vm {
-    let source = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("Failed to read {}: {}", path, e));
+    let source =
+        std::fs::read_to_string(path).unwrap_or_else(|e| panic!("Failed to read {}: {}", path, e));
     vm_with_source(&source)
 }
 
@@ -89,14 +90,20 @@ fn bench_line(c: &mut Criterion) {
     group.bench_function("horizontal_256px", |b| {
         b.iter_batched(
             || vm_with_source(horiz_line),
-            |mut vm| { run_steps(&mut vm, 100); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
     group.bench_function("diagonal_256px", |b| {
         b.iter_batched(
             || vm_with_source(diag_line),
-            |mut vm| { run_steps(&mut vm, 100); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -134,14 +141,20 @@ fn bench_sprite(c: &mut Criterion) {
     group.bench_function("8x8_blit", |b| {
         b.iter_batched(
             || vm_with_source(sprite_8x8),
-            |mut vm| { run_steps(&mut vm, 100); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
     group.bench_function("16x16_blit", |b| {
         b.iter_batched(
             || vm_with_source(sprite_16x16),
-            |mut vm| { run_steps(&mut vm, 100); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -175,14 +188,20 @@ fn bench_circle(c: &mut Criterion) {
     group.bench_function("radius_10", |b| {
         b.iter_batched(
             || vm_with_source(circle_small),
-            |mut vm| { run_steps(&mut vm, 100); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
     group.bench_function("radius_100", |b| {
         b.iter_batched(
             || vm_with_source(circle_large),
-            |mut vm| { run_steps(&mut vm, 100); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -234,14 +253,20 @@ fn bench_random_memory(c: &mut Criterion) {
     group.bench_function("store_1000_random", |b| {
         b.iter_batched(
             || vm_with_source(random_store),
-            |mut vm| { run_steps(&mut vm, 100_000); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100_000);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
     group.bench_function("load_1000_random", |b| {
         b.iter_batched(
             || vm_with_source(random_load),
-            |mut vm| { run_steps(&mut vm, 100_000); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100_000);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -270,7 +295,10 @@ fn bench_dispatch_arithmetic(c: &mut Criterion) {
     group.bench_function("add_10k", |b| {
         b.iter_batched(
             || vm_with_source(add_loop),
-            |mut vm| { let s = run_steps(&mut vm, 100_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 100_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -300,7 +328,10 @@ fn bench_dispatch_bitwise(c: &mut Criterion) {
     group.bench_function("bitwise_10k", |b| {
         b.iter_batched(
             || vm_with_source(bitwise_loop),
-            |mut vm| { let s = run_steps(&mut vm, 100_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 100_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -328,7 +359,10 @@ fn bench_dispatch_shift(c: &mut Criterion) {
     group.bench_function("shift_10k", |b| {
         b.iter_batched(
             || vm_with_source(shift_loop),
-            |mut vm| { let s = run_steps(&mut vm, 100_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 100_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -357,7 +391,10 @@ fn bench_dispatch_muldiv(c: &mut Criterion) {
     group.bench_function("muldiv_10k", |b| {
         b.iter_batched(
             || vm_with_source(muldiv_loop),
-            |mut vm| { let s = run_steps(&mut vm, 100_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 100_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -387,7 +424,10 @@ fn bench_dispatch_memory(c: &mut Criterion) {
     group.bench_function("loadstore_10k", |b| {
         b.iter_batched(
             || vm_with_source(mem_loop),
-            |mut vm| { let s = run_steps(&mut vm, 100_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 100_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -416,7 +456,10 @@ fn bench_dispatch_stack(c: &mut Criterion) {
     group.bench_function("pushpop_10k", |b| {
         b.iter_batched(
             || vm_with_source(stack_loop),
-            |mut vm| { let s = run_steps(&mut vm, 100_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 100_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -451,7 +494,10 @@ fn bench_dispatch_graphics(c: &mut Criterion) {
     group.bench_function("pset_10k", |b| {
         b.iter_batched(
             || vm_with_source(pset_loop),
-            |mut vm| { let s = run_steps(&mut vm, 200_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 200_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -630,7 +676,10 @@ fn bench_icache(c: &mut Criterion) {
     group.bench_function("tight_loop_50k", |b| {
         b.iter_batched(
             || vm_with_source(tight_loop),
-            |mut vm| { let s = run_steps(&mut vm, 200_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 200_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -638,7 +687,10 @@ fn bench_icache(c: &mut Criterion) {
     group.bench_function("wide_loop_50k_equiv", |b| {
         b.iter_batched(
             || vm_with_source(wide_loop),
-            |mut vm| { let s = run_steps(&mut vm, 200_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 200_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -681,7 +733,10 @@ fn bench_scheduling(c: &mut Criterion) {
     group.bench_function("two_processes_1k_iters", |b| {
         b.iter_batched(
             || vm_with_source(two_process),
-            |mut vm| { run_steps(&mut vm, 100_000); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100_000);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -707,7 +762,10 @@ fn bench_text(c: &mut Criterion) {
     group.bench_function("render_hello_world", |b| {
         b.iter_batched(
             || vm_with_source(text_render),
-            |mut vm| { run_steps(&mut vm, 1000); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 1000);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -729,7 +787,10 @@ fn bench_scroll(c: &mut Criterion) {
     group.bench_function("scroll_1px", |b| {
         b.iter_batched(
             || vm_with_source(scroll_program),
-            |mut vm| { run_steps(&mut vm, 100); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 100);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -754,7 +815,10 @@ fn bench_flood(c: &mut Criterion) {
     group.bench_function("flood_center_red", |b| {
         b.iter_batched(
             || vm_with_source(flood_program),
-            |mut vm| { run_steps(&mut vm, 1_000_000); black_box(&vm); },
+            |mut vm| {
+                run_steps(&mut vm, 1_000_000);
+                black_box(&vm);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -794,7 +858,10 @@ fn bench_peek(c: &mut Criterion) {
     group.bench_function("peek_all_65536_pixels", |b| {
         b.iter_batched(
             || vm_with_source(peek_loop),
-            |mut vm| { let s = run_steps(&mut vm, 1_000_000); black_box(s); },
+            |mut vm| {
+                let s = run_steps(&mut vm, 1_000_000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });

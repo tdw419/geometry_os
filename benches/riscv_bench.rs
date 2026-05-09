@@ -3,8 +3,8 @@
 // for equivalent operations.
 
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use geometry_os::riscv::RiscvVm;
 use geometry_os::riscv::cpu::StepResult;
+use geometry_os::riscv::RiscvVm;
 
 /// Run RISC-V VM for N steps, counting actual instructions executed.
 /// Stops on Shutdown (halt equivalent) or fetch fault.
@@ -79,7 +79,10 @@ fn bench_riscv_nop_loop(c: &mut Criterion) {
                 vm.cpu.pc = ram_base as u32;
                 vm
             },
-            |mut vm| { let s = riscv_run_steps(&mut vm, 100000); black_box(s); },
+            |mut vm| {
+                let s = riscv_run_steps(&mut vm, 100000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -144,7 +147,10 @@ fn bench_riscv_addi_loop(c: &mut Criterion) {
                 vm.cpu.pc = ram_base as u32;
                 vm
             },
-            |mut vm| { let s = riscv_run_steps(&mut vm, 50000); black_box(s); },
+            |mut vm| {
+                let s = riscv_run_steps(&mut vm, 50000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -182,7 +188,10 @@ fn bench_riscv_memory(c: &mut Criterion) {
                 vm.cpu.pc = ram_base as u32;
                 vm
             },
-            |mut vm| { let s = riscv_run_steps(&mut vm, 10000); black_box(s); },
+            |mut vm| {
+                let s = riscv_run_steps(&mut vm, 10000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -208,7 +217,10 @@ fn bench_riscv_clint_tick(c: &mut Criterion) {
                 vm.cpu.pc = ram_base as u32;
                 vm
             },
-            |mut vm| { let s = riscv_run_steps(&mut vm, 1000); black_box(s); },
+            |mut vm| {
+                let s = riscv_run_steps(&mut vm, 1000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -234,7 +246,10 @@ fn bench_riscv_decode_compressed(c: &mut Criterion) {
                 vm.cpu.pc = ram_base as u32;
                 vm
             },
-            |mut vm| { let s = riscv_run_steps(&mut vm, 10000); black_box(s); },
+            |mut vm| {
+                let s = riscv_run_steps(&mut vm, 10000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });
@@ -264,7 +279,10 @@ fn bench_riscv_decode_32bit(c: &mut Criterion) {
                 vm.cpu.pc = ram_base as u32;
                 vm
             },
-            |mut vm| { let s = riscv_run_steps(&mut vm, 10000); black_box(s); },
+            |mut vm| {
+                let s = riscv_run_steps(&mut vm, 10000);
+                black_box(s);
+            },
             BatchSize::SmallInput,
         );
     });

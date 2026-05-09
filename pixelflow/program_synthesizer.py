@@ -16,8 +16,8 @@ import random
 import os
 from pathlib import Path
 
-# GeOS screen dimensions (256x256 framebuffer)
-SCREEN_W = 256
+# GeOS screen dimensions (512x256 framebuffer)
+SCREEN_W = 512
 SCREEN_H = 256
 
 COLORS = {
@@ -68,7 +68,7 @@ PSET_PHRASINGS = [
 
 
 class CoTSynthesizer:
-    def __init__(self, output_dir="synthetic_dataset_v11"):
+    def __init__(self, output_dir="synthetic_dataset_v12"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.counts = {"rectf": 0, "circle": 0, "fill": 0, "line": 0,
@@ -160,9 +160,9 @@ class CoTSynthesizer:
         color_val = COLORS[color_name]
 
         desc = f"; DESCRIPTION: Fills the screen with a vertical {color_name} gradient from dark to bright."
-        plan = (f"; PLAN: r0={color_val}(base color), r1=0(y start), r2=0(x), "
-                f"r3={SCREEN_W}(width), r4={SCREEN_H}(height), r5=1(inc), r6={SCREEN_H}(limit). "
-                f"Loop: PSET r2, r1, r0 across x, then INC r1.")
+        plan = (f"; PLAN: r0={color_val}(base color), r1=0(y), r2=0(x), "
+                f"r3={SCREEN_W}(width), r4={SCREEN_H}(height). "
+                f"r10 is comparison result.")
         code = f"""LDI r0, {color_val}
 LDI r1, 0
 y_loop:
@@ -173,50 +173,66 @@ LDI r5, 1
 ADD r2, r5
 LDI r6, {SCREEN_W}
 CMP r2, r6
-BLT r0, x_loop
+BLT r10, x_loop
 LDI r5, 1
 ADD r1, r5
 LDI r6, {SCREEN_H}
 CMP r1, r6
-BLT r0, y_loop
+BLT r10, y_loop
 HALT"""
         self.counts["gradient"] += 1
         return f"{desc}\n{plan}\n{code.strip()}"
 
     def generate_multi(self):
-        """Composite: 2 primitives drawn sequentially."""
-        generators = [
-            self.generate_rectf, self.generate_circle,
-            self.generate_line, self.generate_pset
-        ]
-        chosen = random.sample(generators, min(2, len(generators)))
-        parts = []
-        for gen in chosen:
-            text = gen()
-            # Remove HALT from intermediate parts
-            lines = text.strip().split('\n')
-            filtered = [l for l in lines if l.strip() != 'HALT']
-            parts.append('\n'.join(filtered))
+        """Composite: 2-3 primitives drawn sequentially with unique registers."""
+        # Mapping for each primitive to avoid conflicts
+        # Primitive 1 uses r0-r4, Primitive 2 uses r5-r9, Primitive 3 uses r10-r14
+        def get_variant(gen_func, reg_offset):
+            # This is a bit hacky, but we substitute registers in the generated code
+            # We wrap the primitive logic to use the offset
+            content = gen_func()
+            # Extract only the code part
+            lines = content.strip().split('\n')
+            code_lines = []
+            desc = ""
+            plan = ""
+            for l in lines:
+                if l.startswith('; DESCRIPTION:'): desc = l.replace('; DESCRIPTION: ', '')
+                elif l.startswith('; PLAN:'): plan = l.replace('; PLAN: ', '')
+                elif not l.startswith(';') and l.strip() and l.strip() != 'HALT':
+                    # Substitute r0-r4 with r(0+offset)-r(4+offset)
+                    # Use regex with word boundaries to avoid mangling RECTF (r in RECTF)
+                    line = l
+                    for i in range(4, -1, -1):
+                        line = re.sub(fr'\br{i}\b', f'r{i+reg_offset}', line)
+                    code_lines.append(line)
+            
+            # Update plan with offset registers
+            for i in range(4, -1, -1):
+                plan = re.sub(fr'\br{i}\b', f'r{i+reg_offset}', plan)
+                
+            return desc, plan, code_lines
 
-        combined_code = '\n'.join(parts) + '\nHALT'
-
-        # Build combined desc/plan
-        desc_lines = []
-        plan_lines = []
-        for part in parts:
-            for line in part.split('\n'):
-                if line.startswith('; DESCRIPTION:'):
-                    desc_lines.append(line.replace('; DESCRIPTION: ', '').rstrip('.'))
-                elif line.startswith('; PLAN:'):
-                    plan_lines.append(line)
-
-        desc = "; DESCRIPTION: Composite: " + ". Then " + ". Then ".join(desc_lines) + "."
-        plan = "; PLAN: " + " Next: ".join(
-            p.replace('; PLAN: ', '').rstrip('.') for p in plan_lines
-        ) + "."
+        num_prims = random.randint(2, 3)
+        generators = [self.generate_rectf, self.generate_circle, self.generate_line, self.generate_pset]
+        chosen = random.sample(generators, num_prims)
+        
+        all_descs = []
+        all_plans = []
+        all_code = []
+        
+        for i, gen in enumerate(chosen):
+            d, p, c = get_variant(gen, i * 5)
+            all_descs.append(d.rstrip('.'))
+            all_plans.append(p.rstrip('.'))
+            all_code.extend(c)
+            
+        desc = "; DESCRIPTION: Composite: " + " then ".join(all_descs) + "."
+        plan = "; PLAN: " + " Next: ".join(all_plans) + "."
+        code = "\n".join(all_code) + "\nHALT"
 
         self.counts["multi"] += 1
-        return f"{desc}\n{plan}\n{combined_code}"
+        return f"{desc}\n{plan}\n{code}"
 
     # ─── Dataset generation ──────────────────────────────────────────────
 
@@ -252,4 +268,4 @@ HALT"""
 
 if __name__ == "__main__":
     synth = CoTSynthesizer()
-    synth.generate_dataset(50000)
+    synth.generate_dataset(100000)

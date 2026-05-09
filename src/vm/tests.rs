@@ -8932,15 +8932,15 @@ fn test_proportional_vs_fixed_width_comparison() {
         vm_fixed.ram[100 + i] = ch as u32;
     }
     vm_fixed.ram[100 + text.len()] = 0;
-    vm_fixed.regs[10] = 0;  // x=0
-    vm_fixed.regs[11] = 0;  // y=0
+    vm_fixed.regs[10] = 0; // x=0
+    vm_fixed.regs[11] = 0; // y=0
     vm_fixed.regs[12] = 100; // addr
     vm_fixed.set_font_mode(0); // fixed-width (default)
-    vm_fixed.ram[0] = 0x44;  // TEXT
+    vm_fixed.ram[0] = 0x44; // TEXT
     vm_fixed.ram[1] = 10;
     vm_fixed.ram[2] = 11;
     vm_fixed.ram[3] = 12;
-    vm_fixed.ram[4] = 0x00;  // HALT
+    vm_fixed.ram[4] = 0x00; // HALT
     vm_fixed.step();
 
     // Find rightmost rendered pixel
@@ -8963,14 +8963,14 @@ fn test_proportional_vs_fixed_width_comparison() {
     vm_prop.regs[11] = 0;
     vm_prop.regs[12] = 100;
     vm_prop.regs[13] = 0xFFFFFF; // fg = white
-    vm_prop.regs[14] = 0;        // bg = transparent
-    vm_prop.ram[0] = 0xDB;  // VWTXT
+    vm_prop.regs[14] = 0; // bg = transparent
+    vm_prop.ram[0] = 0xDB; // VWTXT
     vm_prop.ram[1] = 10;
     vm_prop.ram[2] = 11;
     vm_prop.ram[3] = 12;
     vm_prop.ram[4] = 13;
     vm_prop.ram[5] = 14;
-    vm_prop.ram[6] = 0x00;  // HALT
+    vm_prop.ram[6] = 0x00; // HALT
     vm_prop.step();
 
     let mut prop_rightmost = 0usize;
@@ -33139,7 +33139,10 @@ fn test_flood_demo_assembles() {
     let source = std::fs::read_to_string("programs/flood_demo.asm")
         .expect("programs/flood_demo.asm should exist");
     let asm = crate::assembler::assemble(&source, 0).expect("flood_demo should assemble");
-    assert!(asm.pixels.len() > 100, "flood_demo should produce meaningful bytecode");
+    assert!(
+        asm.pixels.len() > 100,
+        "flood_demo should produce meaningful bytecode"
+    );
     let mut vm = Vm::new();
     for (i, &pixel) in asm.pixels.iter().enumerate() {
         if i < vm.ram.len() {
@@ -33209,7 +33212,10 @@ fn test_flood_demo_diag_100k() {
     eprintln!("PC: 0x{:X}, Halted: {}", vm.pc, vm.halted);
     let start = steps_per_frame.len().saturating_sub(10);
     eprintln!("Steps/frame (last 10): {:?}", &steps_per_frame[start..]);
-    eprintln!("r10={}, r11={}, r31=0x{:X}", vm.regs[10], vm.regs[11], vm.regs[31]);
+    eprintln!(
+        "r10={}, r11={}, r31=0x{:X}",
+        vm.regs[10], vm.regs[11], vm.regs[31]
+    );
     eprintln!("total_steps: {}", vm.total_steps);
     // Disassemble around PC
     for offset in -5i32..=5i32 {
@@ -35585,16 +35591,19 @@ fn test_open_nonexistent_file_returns_enoent() {
 
     // OPEN path_reg, mode_reg -- path_reg and mode_reg are register indices
     vm.ram[0] = 0x54;
-    vm.ram[1] = 1;   // path_reg = r1 (register index)
-    vm.ram[2] = 2;   // mode_reg = r2 (register index)
+    vm.ram[1] = 1; // path_reg = r1 (register index)
+    vm.ram[2] = 2; // mode_reg = r2 (register index)
     vm.regs[1] = 0x200; // r1 = address of path string
-    vm.regs[2] = 0;     // r2 = mode (read)
+    vm.regs[2] = 0; // r2 = mode (read)
     vm.regs[0] = 0;
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT),
-        "OPEN on nonexistent file should return ENOENT");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_ENOENT),
+        "OPEN on nonexistent file should return ENOENT"
+    );
 }
 
 #[test]
@@ -35609,16 +35618,19 @@ fn test_open_empty_path_returns_einval() {
 
     // OPEN path_reg, mode_reg -- path_reg and mode_reg are register indices
     vm.ram[0] = 0x54;
-    vm.ram[1] = 1;   // path_reg = r1 (register index)
-    vm.ram[2] = 2;   // mode_reg = r2 (register index)
+    vm.ram[1] = 1; // path_reg = r1 (register index)
+    vm.ram[2] = 2; // mode_reg = r2 (register index)
     vm.regs[1] = 0x200; // r1 = address of path string (empty, null-terminated)
-    vm.regs[2] = 0;     // r2 = mode (read)
+    vm.regs[2] = 0; // r2 = mode (read)
     vm.regs[0] = 0;
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL),
-        "OPEN with empty path should return EINVAL");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EINVAL),
+        "OPEN with empty path should return EINVAL"
+    );
 }
 
 #[test]
@@ -35638,16 +35650,19 @@ fn test_open_directory_returns_eisdir() {
 
     // OPEN path_reg, mode_reg -- path_reg and mode_reg are register indices
     vm.ram[0] = 0x54;
-    vm.ram[1] = 1;   // path_reg = r1 (register index)
-    vm.ram[2] = 2;   // mode_reg = r2 (register index)
+    vm.ram[1] = 1; // path_reg = r1 (register index)
+    vm.ram[2] = 2; // mode_reg = r2 (register index)
     vm.regs[1] = 0x200; // r1 = address of path string
-    vm.regs[2] = 0;     // r2 = mode (read)
+    vm.regs[2] = 0; // r2 = mode (read)
     vm.regs[0] = 0;
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EISDIR),
-        "OPEN on directory should return EISDIR");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EISDIR),
+        "OPEN on directory should return EISDIR"
+    );
 }
 
 #[test]
@@ -35663,8 +35678,11 @@ fn test_read_bad_fd_returns_ebadf() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
-        "READ on unopened fd should return EBADF");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EBADF),
+        "READ on unopened fd should return EBADF"
+    );
 }
 
 #[test]
@@ -35680,8 +35698,11 @@ fn test_write_bad_fd_returns_ebadf() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
-        "WRITE on unopened fd should return EBADF");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EBADF),
+        "WRITE on unopened fd should return EBADF"
+    );
 }
 
 #[test]
@@ -35693,8 +35714,11 @@ fn test_close_bad_fd_returns_ebadf() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
-        "CLOSE on unopened fd should return EBADF");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EBADF),
+        "CLOSE on unopened fd should return EBADF"
+    );
 }
 
 #[test]
@@ -35710,8 +35734,11 @@ fn test_ioctl_invalid_cmd_returns_einval() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL),
-        "IOCTL with invalid command should return EINVAL");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EINVAL),
+        "IOCTL with invalid command should return EINVAL"
+    );
 }
 
 #[test]
@@ -35727,8 +35754,11 @@ fn test_ioctl_non_device_fd_returns_ebadf() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
-        "IOCTL on non-device fd should return EBADF");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EBADF),
+        "IOCTL on non-device fd should return EBADF"
+    );
 }
 
 #[test]
@@ -35744,8 +35774,11 @@ fn test_seek_bad_fd_returns_ebadf() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF),
-        "SEEK on unopened fd should return EBADF");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EBADF),
+        "SEEK on unopened fd should return EBADF"
+    );
 }
 
 #[test]
@@ -35783,8 +35816,11 @@ fn test_open_write_then_read_returns_eacces() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EACCES),
-        "READ on write-only fd should return EACCES");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EACCES),
+        "READ on write-only fd should return EACCES"
+    );
 }
 
 #[test]
@@ -35822,8 +35858,11 @@ fn test_open_read_then_write_returns_eacces() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EACCES),
-        "WRITE on read-only fd should return EACCES");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EACCES),
+        "WRITE on read-only fd should return EACCES"
+    );
 }
 
 #[test]

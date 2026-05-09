@@ -136,8 +136,16 @@ impl RiscvCpu {
                     if self.ecall_count < 100 && a7 != 0x54494D45 && a7 != 0 {
                         eprintln!(
                             "[sbi] ECALL #{} at PC=0x{:08X} a7=0x{:08X} a6=0x{:X} a0=0x{:X} -> {}",
-                            self.ecall_count, self.pc, a7, a6, a0,
-                            if sbi_result.is_some() { "handled" } else { "trap" }
+                            self.ecall_count,
+                            self.pc,
+                            a7,
+                            a6,
+                            a0,
+                            if sbi_result.is_some() {
+                                "handled"
+                            } else {
+                                "trap"
+                            }
                         );
                     }
 

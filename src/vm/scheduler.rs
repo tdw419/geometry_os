@@ -91,6 +91,7 @@ impl Vm {
 
             // Reset per-step scheduler flags
             self.yielded = false;
+            self.wants_block = false;
             self.sleep_frames = 0;
             self.new_priority = proc.priority;
             self.step_exit_code = None;
@@ -105,6 +106,8 @@ impl Vm {
             proc.regs = self.regs;
             proc.state = if !still_running || self.halted || self.segfault {
                 ProcessState::Zombie
+            } else if self.wants_block {
+                ProcessState::Blocked
             } else {
                 ProcessState::Ready
             };
@@ -167,6 +170,16 @@ impl Vm {
 
         procs.extend(std::mem::take(&mut self.processes));
         self.processes = procs;
+
+        // Phase 289: Apply pending wake-ups from mutex/semaphore ops
+        let wakes = std::mem::take(&mut self.pending_wakes);
+        for wake_pid in wakes {
+            if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == wake_pid) {
+                if proc.state == ProcessState::Blocked {
+                    proc.state = ProcessState::Ready;
+                }
+            }
+        }
 
         // Phase 104: Crash Recovery
         // After restoring state, check if a new segfault occurred this tick

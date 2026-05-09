@@ -72,6 +72,10 @@ pub struct Vm {
     pub default_time_slice: u32,
     /// Per-step scheduler flag: process yielded voluntarily
     pub yielded: bool,
+    /// Per-step scheduler flag: process wants to block (mutex/semaphore)
+    pub wants_block: bool,
+    /// Pending wake-ups: PIDs to unblock after this scheduling round
+    pub pending_wakes: Vec<u32>,
     /// Per-step scheduler value: sleep for this many sched_ticks
     pub sleep_frames: u32,
     /// Per-step scheduler value: new priority requested by SETPRIORITY
@@ -387,6 +391,8 @@ impl Vm {
             sched_tick: 0,
             default_time_slice: DEFAULT_TIME_SLICE,
             yielded: false,
+            wants_block: false,
+            pending_wakes: Vec::new(),
             sleep_frames: 0,
             new_priority: 0,
             pipes: Vec::new(),
@@ -1007,11 +1013,10 @@ impl Vm {
                             if !mtx.wait_queue.contains(&pid) {
                                 mtx.wait_queue.push(pid);
                             }
-                            if pid > 0 {
-                                if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == pid) {
-                                    proc.state = ProcessState::Blocked;
-                                }
-                            }
+                            // Use wants_block flag instead of directly setting
+                            // process state (processes may be taken out of
+                            // self.processes during scheduling round)
+                            self.wants_block = true;
                             self.pc -= 2; // rewind to retry MTEXLOCK
                         }
                     } else {
@@ -1039,14 +1044,9 @@ impl Vm {
                             if let Some(waker_pid) = mtx.wait_queue.first().copied() {
                                 mtx.wait_queue.remove(0);
                                 mtx.owner_pid = waker_pid;
-                                // Unblock the waker process
-                                if waker_pid > 0 {
-                                    if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == waker_pid) {
-                                        if proc.state == ProcessState::Blocked {
-                                            proc.state = ProcessState::Ready;
-                                        }
-                                    }
-                                }
+                                // Queue wake-up (process may be out of
+                                // self.processes during scheduling round)
+                                self.pending_wakes.push(waker_pid);
                             }
                             self.regs[0] = 0;
                         } else if mtx.owner_pid == NO_MUTEX_OWNER {
@@ -1105,11 +1105,7 @@ impl Vm {
                             if !sem.wait_queue.contains(&pid) {
                                 sem.wait_queue.push(pid);
                             }
-                            if pid > 0 {
-                                if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == pid) {
-                                    proc.state = ProcessState::Blocked;
-                                }
-                            }
+                            self.wants_block = true;
                             self.pc -= 2; // rewind to retry SEMWAIT
                         }
                     } else {
@@ -1131,17 +1127,9 @@ impl Vm {
                         // If waiters exist, give the semaphore directly to the first waiter
                         if let Some(waker_pid) = sem.wait_queue.first().copied() {
                             sem.wait_queue.remove(0);
-                            // Unblock the waker (it will retry SEMWAIT and find count=0,
-                            // but we transfer ownership: the waker gets the slot without
-                            // actually decrementing -- so we DON'T increment count here,
-                            // effectively the post goes directly to the waiter)
-                            if waker_pid > 0 {
-                                if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == waker_pid) {
-                                    if proc.state == ProcessState::Blocked {
-                                        proc.state = ProcessState::Ready;
-                                    }
-                                }
-                            }
+                            // The post goes directly to the waiter (count stays same,
+                            // waiter retries SEMWAIT and finds count > 0)
+                            self.pending_wakes.push(waker_pid);
                         } else {
                             // No waiters: increment count
                             sem.count = sem.count.saturating_add(1);

@@ -579,7 +579,11 @@ impl super::Vm {
                     let idx = buf_addr + i;
                     if idx < self.ram.len() {
                         let b = (self.ram[idx] & 0xFF) as u8;
-                        Some(if b >= 0x20 && b < 0x7F { b as char } else { '.' })
+                        Some(if b >= 0x20 && b < 0x7F {
+                            b as char
+                        } else {
+                            '.'
+                        })
                     } else {
                         None
                     }

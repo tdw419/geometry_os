@@ -448,9 +448,16 @@ fn vm_thread_main(
                 use std::io::Write;
                 let new_mtime = vm.bus.clint.mtime;
                 let ticked = new_mtime != prev_mtime;
-                let msg = format!("[clint-check] count={} mtime {}->{} ticked={}\n", count, prev_mtime, new_mtime, ticked);
+                let msg = format!(
+                    "[clint-check] count={} mtime {}->{} ticked={}\n",
+                    count, prev_mtime, new_mtime, ticked
+                );
                 eprintln!("{}", msg);
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/geos_guest.log") {
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/geos_guest.log")
+                {
                     let _ = f.write_all(msg.as_bytes());
                     let _ = f.flush();
                 }
@@ -460,10 +467,14 @@ fn vm_thread_main(
 
             if count % 2_000_000 == 0 {
                 use std::io::Write;
-                let msg = format!("[riscv-vm] Executed {}M instructions, mtime={}, PC=0x{:08X}, priv={:?}\n",
-                    count / 1_000_000, vm.bus.clint.mtime, vm.cpu.pc, vm.cpu.privilege);
+                let msg = format!("[riscv-vm] Executed {}M instructions, mtime={}, PC=0x{:08X}, priv={:?}, scause=0x{:X}, sepc=0x{:08X}\n",
+                    count / 1_000_000, vm.bus.clint.mtime, vm.cpu.pc, vm.cpu.privilege, vm.cpu.csr.scause, vm.cpu.csr.sepc);
                 eprint!("{}", msg);
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/geos_guest.log") {
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/geos_guest.log")
+                {
                     let _ = f.write_all(msg.as_bytes());
                     let _ = f.flush();
                 }
@@ -500,16 +511,20 @@ fn vm_thread_main(
                 }
             }
 
-            // Linux-mode: log PC transitions for diagnostics (first 300)
+            // Linux-mode: log PC transitions for diagnostics (first 500)
             if is_linux {
                 let cur_pc = vm.cpu.pc;
                 if cur_pc != linux_last_pc {
                     linux_last_pc = cur_pc;
-                    if linux_diag_count < 300 {
-                        eprintln!(
-                            "[riscv-vm] #{} PC=0x{:08X} priv={:?} scause=0x{:X} sepc=0x{:08X} mtime={}",
+                    if linux_diag_count < 500 {
+                        use std::io::Write;
+                        let msg = format!(
+                            "[pc-diag] #{} PC=0x{:08X} priv={:?} scause=0x{:X} sepc=0x{:08X} mtime={}\n",
                             count, cur_pc, vm.cpu.privilege, vm.cpu.csr.scause, vm.cpu.csr.sepc, vm.bus.clint.mtime
                         );
+                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/geos_guest.log") {
+                            let _ = f.write_all(msg.as_bytes());
+                        }
                         linux_diag_count += 1;
                     }
                 }

@@ -475,6 +475,8 @@ impl Vm {
             sched_tick: 0,
             default_time_slice: DEFAULT_TIME_SLICE,
             yielded: false,
+            wants_block: false,
+            pending_wakes: Vec::new(),
             sleep_frames: 0,
             new_priority: 0,
             pipes: Vec::new(),
