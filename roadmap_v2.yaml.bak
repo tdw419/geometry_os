@@ -5067,6 +5067,8 @@ phases:
     validation: cargo test --lib test_tetris
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
+  _claimed_by: worker-0
+  _claimed_at: 1778333895
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: done
