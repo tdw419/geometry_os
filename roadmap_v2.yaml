@@ -5025,7 +5025,7 @@ phases:
   _claimed_at: 1778290388
 - id: phase-287
   title: RISC-V Guest -- VirtIO GPU (Simple Display)
-  status: planned
+  status: in_progress
   goal: Implement minimal VirtIO GPU device so RISC-V guests can write pixels to a
     framebuffer via standard VirtIO-GPU protocol.
   description: Currently the RISC-V guest's graphical output goes through a custom
@@ -5050,9 +5050,11 @@ phases:
     validation: Boot log shows virtio_gpu probe success
   - description: Guest can write pixels that appear on GeOS canvas
     validation: fbtest program produces visible output
+  _claimed_by: worker-0
+  _claimed_at: 1778291958
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
-  status: planned
+  status: in_progress
   goal: Implement a complete Tetris game as a showcase of the VM's game development
     capabilities.
   description: 'Tetris is the canonical puzzle game. This implementation exercises:
@@ -5080,6 +5082,8 @@ phases:
     validation: cargo test --lib test_tetris
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
+  _claimed_by: worker-0
+  _claimed_at: 1778294079
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: planned

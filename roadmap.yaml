@@ -7522,7 +7522,7 @@ phases:
   test_target: 545
 - id: phase-152
   title: QR Code Generator
-  status: complete
+  status: planned
   goal: 'Generate and display QR codes on the VM screen from text input, encoding
     data as black/white pixel modules.
 
