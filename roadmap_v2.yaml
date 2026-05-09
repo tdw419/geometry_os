@@ -5074,7 +5074,7 @@ phases:
   - description: Guest can write pixels that appear on GeOS canvas
     validation: fbtest program produces visible output
   _claimed_by: worker-0
-  _claimed_at: 1778312995
+  _claimed_at: 1778324006
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
   status: in_progress

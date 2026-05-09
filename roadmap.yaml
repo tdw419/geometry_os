@@ -11789,5 +11789,24 @@ phases:
       description: When starting Xvfb, also export XMODIFIERS=@im=none as a workaround for the Phase-273 XOpenIM issue until that minifb patch is applied.
       scope_lines: 5
     scope_lines: 35
-  scope_lines_total: 35
+    scope_lines_total: 35
   test_target: 0
+- id: phase-304
+  title: Hypervisor Integration -- Socket Command Wiring
+  status: complete
+  goal: Wire the hypervisor_boot and hypervisor_kill socket commands to the QemuBridge implementation
+  description: Previously the hypervisor_boot socket command only set a flag on the VM struct that was never read. This phase wires the command to actually spawn a QEMU process via QemuBridge, enabling programmatic control of guest OS instances from external agents. Also added debug logging for socket binding.
+  deliverables:
+  - name: Wired socket commands
+    status: complete
+    tasks:
+    - id: p304d1.t1
+      title: Implement QemuBridge::spawn in socket handler
+      status: complete
+      description: Modified src/main.rs to call QemuBridge::spawn and set qemu_active when hypervisor_boot is received.
+    - id: p304d1.t2
+      title: Implement QEMU termination in hypervisor_kill
+      status: complete
+      description: Ensured the QEMU process is killed and the bridge is cleared when hypervisor_kill is received.
+  test_target: 1
+  scope_lines_total: 50
