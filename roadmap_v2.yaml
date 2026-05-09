@@ -5437,15 +5437,15 @@ phases:
     for graphics instructions.'
   deliverables:
   - name: Unit tests for PSET/PSETI/FILL/RECTF encoding
-    status: todo
+    status: done
   - name: Unit tests for TEXT/LINE/CIRCLE/SCROLL encoding
-    status: todo
+    status: done
   - name: Unit tests for SPRITE/TILEMAP/FLOOD encoding
-    status: todo
+    status: done
   - name: Unit tests for BLEND/ROTATE/SCALE/SCREENP encoding
-    status: todo
+    status: done
   - name: Round-trip assemble-disassemble tests for graphics instructions
-    status: todo
+    status: done
   acceptance_criteria:
   - description: graphics_ops.rs has at least 25 unit tests
     validation: grep -c "#[test]" src/assembler/graphics_ops.rs >= 25
@@ -5540,13 +5540,13 @@ phases:
     and cursor positioning.'
   deliverables:
   - name: Unit tests for palette_color() computation
-    status: todo
+    status: done
   - name: Unit tests for glyph rendering
-    status: todo
+    status: done
   - name: Unit tests for canvas buffer operations
-    status: todo
+    status: done
   - name: Unit tests for grid overlay calculations
-    status: todo
+    status: done
   acceptance_criteria:
   - description: render.rs has at least 20 unit tests
     validation: grep -c "#[test]" src/render.rs >= 20
@@ -5620,7 +5620,7 @@ phases:
     validation: grep -c "#[test]" src/fuzzer.rs >= 10
 - id: phase-311
   title: GeOS Program -- Raycaster (Wolfenstein-style)
-  status: todo
+  status: done
   goal: Implement a raycasting engine demonstrating trigonometry, fixed-point math,
     and per-column rendering.
   description: 'A raycaster renders a pseudo-3D view from a 2D map, the technique
@@ -5632,17 +5632,17 @@ phases:
     per-pixel column rendering, and interactive game state.'
   deliverables:
   - name: Fixed-point trigonometry lookup table generation
-    status: todo
+    status: done
   - name: Ray casting and wall distance calculation
-    status: todo
+    status: done
   - name: Per-column wall rendering with height scaling
-    status: todo
+    status: done
   - name: Player movement and rotation with collision
-    status: todo
+    status: done
   - name: Floor/ceiling rendering
-    status: todo
+    status: done
   - name: Integration test verifying non-uniform screen output
-    status: todo
+    status: done
   acceptance_criteria:
   - description: Program assembles and produces a 3D-like view
     validation: Screen has >50 distinct vertical stripe colors after 1 frame
