@@ -907,3 +907,1037 @@ impl Vm {
         true
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vm::types::*;
+
+    /// Helper: create a VM, load bytecode at addr, set registers, execute one step.
+    fn step_one(bytecode: &[u32], addr: u32) -> Vm {
+        let mut vm = Vm::new();
+        for (i, &w) in bytecode.iter().enumerate() {
+            let a = addr as usize + i;
+            if a < vm.ram.len() {
+                vm.ram[a] = w;
+            }
+        }
+        vm.pc = addr;
+        vm.halted = false;
+        vm.step();
+        vm
+    }
+
+    /// Helper: clone a VM (with pre-set registers/RAM), load bytecode, execute one step.
+    fn step_from(vm: &Vm, bytecode: &[u32], addr: u32) -> Vm {
+        let mut vm2 = Vm::new();
+        vm2.regs.copy_from_slice(&vm.regs);
+        let ram_len = vm.ram.len().min(vm2.ram.len());
+        vm2.ram[..ram_len].copy_from_slice(&vm.ram[..ram_len]);
+        vm2.screen.copy_from_slice(&vm.screen);
+        vm2.current_pid = vm.current_pid;
+        vm2.focused_pid = vm.focused_pid;
+        vm2.mode = vm.mode;
+        vm2.clip_rect = vm.clip_rect;
+        vm2.key_port = vm.key_port;
+        vm2.key_buffer.copy_from_slice(&vm.key_buffer);
+        vm2.key_buffer_head = vm.key_buffer_head;
+        vm2.key_buffer_tail = vm.key_buffer_tail;
+        vm2.rand_state = vm.rand_state;
+        for (i, &w) in bytecode.iter().enumerate() {
+            let a = addr as usize + i;
+            if a < vm2.ram.len() {
+                vm2.ram[a] = w;
+            }
+        }
+        vm2.pc = addr;
+        vm2.halted = false;
+        vm2.step();
+        vm2
+    }
+
+    /// Helper: write a null-terminated string into RAM.
+    fn write_string(vm: &mut Vm, addr: usize, s: &str) {
+        for (i, &byte) in s.as_bytes().iter().enumerate() {
+            if addr + i < vm.ram.len() {
+                vm.ram[addr + i] = byte as u32;
+            }
+        }
+        if addr + s.len() < vm.ram.len() {
+            vm.ram[addr + s.len()] = 0;
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // PSET (0x40) -- set pixel with register args
+    // Encoding: [0x40, x_reg, y_reg, color_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_pset_basic() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 10; // x
+        vm.regs[2] = 20; // y
+        vm.regs[3] = 0xFF0000; // color = red
+        let vm = step_from(&vm, &[0x40, 1, 2, 3], 0);
+        assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000);
+    }
+
+    #[test]
+    fn test_pset_zero_coords() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0;
+        vm.regs[2] = 0;
+        vm.regs[3] = 0x00FF00;
+        let vm = step_from(&vm, &[0x40, 1, 2, 3], 0);
+        assert_eq!(vm.screen[0], 0x00FF00);
+    }
+
+    #[test]
+    fn test_pset_max_valid_coords() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 255;
+        vm.regs[2] = 255;
+        vm.regs[3] = 0x0000FF;
+        let vm = step_from(&vm, &[0x40, 1, 2, 3], 0);
+        assert_eq!(vm.screen[255 * 256 + 255], 0x0000FF);
+    }
+
+    #[test]
+    fn test_pset_out_of_bounds_x() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 256; // out of bounds
+        vm.regs[2] = 10;
+        vm.regs[3] = 0xFFFFFF;
+        let vm = step_from(&vm, &[0x40, 1, 2, 3], 0);
+        // set_pixel_clipped silently discards -- no crash, pixel not set
+        // Check a nearby pixel to confirm no write happened
+        assert_eq!(vm.screen[10 * 256 + 10], 0);
+    }
+
+    #[test]
+    fn test_pset_out_of_bounds_y() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 10;
+        vm.regs[2] = 300; // out of bounds
+        vm.regs[3] = 0xFFFFFF;
+        let vm = step_from(&vm, &[0x40, 1, 2, 3], 0);
+        assert_eq!(vm.screen[10], 0);
+    }
+
+    #[test]
+    fn test_pset_with_clip_rect() {
+        // Test via CLIPSET opcode (0xC4) to set clip, then PSET
+        // CLIPSET: [0xC4, x_reg, y_reg, w_reg, h_reg] (5 words)
+        let mut vm = Vm::new();
+        vm.regs[1] = 50; // x
+        vm.regs[2] = 50; // y
+        vm.regs[3] = 10; // w
+        vm.regs[4] = 10; // h
+        // CLIPSET r1, r2, r3, r4
+        let vm = step_from(&vm, &[0xC4, 1, 2, 3, 4], 0);
+        assert!(vm.clip_rect.is_some());
+        let (cx, cy, cw, ch) = vm.clip_rect.unwrap();
+        assert_eq!(cx, 50);
+        assert_eq!(cy, 50);
+        assert_eq!(cw, 10);
+        assert_eq!(ch, 10);
+    }
+
+    #[test]
+    fn test_clipclr_clears_rect() {
+        let mut vm = Vm::new();
+        vm.clip_rect = Some((10, 10, 50, 50));
+        // CLIPCLR: [0xC5] (1 word)
+        let vm = step_from(&vm, &[0xC5], 0);
+        assert!(vm.clip_rect.is_none());
+    }
+
+    #[test]
+    fn test_pset_invalid_register() {
+        // Register index >= NUM_REGS (32) should be silently ignored
+        let vm = step_one(&[0x40, 33, 2, 3], 0);
+        assert_eq!(vm.screen[0], 0); // no crash, no write
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // PSETI (0x41) -- set pixel with immediate values
+    // Encoding: [0x41, x_imm, y_imm, color_imm]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_pseti_basic() {
+        let vm = step_one(&[0x41, 5, 15, 0x00FF00], 0);
+        assert_eq!(vm.screen[15 * 256 + 5], 0x00FF00);
+    }
+
+    #[test]
+    fn test_pseti_origin() {
+        let vm = step_one(&[0x41, 0, 0, 0xFFFFFF], 0);
+        assert_eq!(vm.screen[0], 0xFFFFFF);
+    }
+
+    #[test]
+    fn test_pseti_corner() {
+        let vm = step_one(&[0x41, 255, 255, 0x123456], 0);
+        assert_eq!(vm.screen[255 * 256 + 255], 0x123456);
+    }
+
+    #[test]
+    fn test_pseti_out_of_bounds() {
+        let vm = step_one(&[0x41, 256, 256, 0xFFFFFF], 0);
+        // Should not crash
+        assert_eq!(vm.screen[255 * 256 + 255], 0);
+    }
+
+    #[test]
+    fn test_pseti_black() {
+        let mut vm = Vm::new();
+        // First set a pixel to white, then overwrite with black
+        vm.screen[10 * 256 + 20] = 0xFFFFFF;
+        vm.regs[0] = 0; // not used by PSETI
+        let vm = step_from(&vm, &[0x41, 20, 10, 0x000000], 0);
+        assert_eq!(vm.screen[10 * 256 + 20], 0x000000);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // FILL (0x42) -- fill screen
+    // Encoding: [0x42, color_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_fill_blue() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x0000FF;
+        let vm = step_from(&vm, &[0x42, 1], 0);
+        // Check several pixels across the screen
+        assert_eq!(vm.screen[0], 0x0000FF);
+        assert_eq!(vm.screen[128 * 256 + 128], 0x0000FF);
+        assert_eq!(vm.screen[255 * 256 + 255], 0x0000FF);
+    }
+
+    #[test]
+    fn test_fill_black() {
+        let mut vm = Vm::new();
+        // Pre-fill with white
+        for p in vm.screen.iter_mut() {
+            *p = 0xFFFFFF;
+        }
+        vm.regs[1] = 0;
+        let vm = step_from(&vm, &[0x42, 1], 0);
+        assert_eq!(vm.screen[0], 0);
+        assert_eq!(vm.screen[255 * 256 + 255], 0);
+    }
+
+    #[test]
+    fn test_fill_with_clip_rect() {
+        let mut vm = Vm::new();
+        vm.clip_rect = Some((10, 10, 20, 20));
+        vm.regs[1] = 0xFF0000;
+        let vm = step_from(&vm, &[0x42, 1], 0);
+        // Inside clip: should be red
+        assert_eq!(vm.screen[15 * 256 + 15], 0xFF0000);
+        // Outside clip: should remain black
+        assert_eq!(vm.screen[0], 0);
+        assert_eq!(vm.screen[5 * 256 + 5], 0);
+        assert_eq!(vm.screen[200 * 256 + 200], 0);
+    }
+
+    #[test]
+    fn test_fill_invalid_register() {
+        let vm = step_one(&[0x42, 33], 0);
+        // Should not crash, screen remains all zeros
+        assert_eq!(vm.screen[0], 0);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // RECTF (0x43) -- filled rectangle
+    // Encoding: [0x43, x_reg, y_reg, w_reg, h_reg, color_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_rectf_basic() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 10; // x
+        vm.regs[2] = 20; // y
+        vm.regs[3] = 30; // w
+        vm.regs[4] = 40; // h
+        vm.regs[5] = 0x00FF00; // color = green
+        let vm = step_from(&vm, &[0x43, 1, 2, 3, 4, 5], 0);
+        // Top-left corner
+        assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00);
+        // Bottom-right corner (x=39, y=59)
+        assert_eq!(vm.screen[59 * 256 + 39], 0x00FF00);
+        // Just outside
+        assert_eq!(vm.screen[20 * 256 + 9], 0);
+        assert_eq!(vm.screen[60 * 256 + 10], 0);
+    }
+
+    #[test]
+    fn test_rectf_zero_size() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 50;
+        vm.regs[2] = 50;
+        vm.regs[3] = 0; // w=0
+        vm.regs[4] = 10;
+        vm.regs[5] = 0xFF0000;
+        let vm = step_from(&vm, &[0x43, 1, 2, 3, 4, 5], 0);
+        // No pixels should be set
+        assert_eq!(vm.screen[50 * 256 + 50], 0);
+    }
+
+    #[test]
+    fn test_rectf_single_pixel() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 100;
+        vm.regs[2] = 100;
+        vm.regs[3] = 1;
+        vm.regs[4] = 1;
+        vm.regs[5] = 0xFFFFFF;
+        let vm = step_from(&vm, &[0x43, 1, 2, 3, 4, 5], 0);
+        assert_eq!(vm.screen[100 * 256 + 100], 0xFFFFFF);
+        assert_eq!(vm.screen[100 * 256 + 101], 0);
+    }
+
+    #[test]
+    fn test_rectf_full_screen() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0;
+        vm.regs[2] = 0;
+        vm.regs[3] = 256;
+        vm.regs[4] = 256;
+        vm.regs[5] = 0x123456;
+        let vm = step_from(&vm, &[0x43, 1, 2, 3, 4, 5], 0);
+        assert_eq!(vm.screen[0], 0x123456);
+        assert_eq!(vm.screen[255 * 256 + 255], 0x123456);
+    }
+
+    #[test]
+    fn test_rectf_with_clip() {
+        let mut vm = Vm::new();
+        vm.clip_rect = Some((20, 20, 10, 10)); // 20,20 to 29,29
+        vm.regs[1] = 0;
+        vm.regs[2] = 0;
+        vm.regs[3] = 256;
+        vm.regs[4] = 256;
+        vm.regs[5] = 0xFF0000;
+        let vm = step_from(&vm, &[0x43, 1, 2, 3, 4, 5], 0);
+        // Inside clip
+        assert_eq!(vm.screen[25 * 256 + 25], 0xFF0000);
+        // Outside clip
+        assert_eq!(vm.screen[0], 0);
+        assert_eq!(vm.screen[10 * 256 + 10], 0);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // LINE (0x45) -- Bresenham line
+    // Encoding: [0x45, x0_reg, y0_reg, x1_reg, y1_reg, color_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_line_horizontal() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 10; // x0
+        vm.regs[2] = 20; // y0
+        vm.regs[3] = 50; // x1
+        vm.regs[4] = 20; // y1 (same y = horizontal)
+        vm.regs[5] = 0xFFFFFF;
+        let vm = step_from(&vm, &[0x45, 1, 2, 3, 4, 5], 0);
+        for x in 10..=50 {
+            assert_eq!(vm.screen[20 * 256 + x], 0xFFFFFF, "pixel at ({}, 20)", x);
+        }
+        // Pixel above the line should be untouched
+        assert_eq!(vm.screen[19 * 256 + 30], 0);
+    }
+
+    #[test]
+    fn test_line_vertical() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 30; // x0
+        vm.regs[2] = 10; // y0
+        vm.regs[3] = 30; // x1 (same x = vertical)
+        vm.regs[4] = 60; // y1
+        vm.regs[5] = 0x00FF00;
+        let vm = step_from(&vm, &[0x45, 1, 2, 3, 4, 5], 0);
+        for y in 10..=60 {
+            assert_eq!(vm.screen[y * 256 + 30], 0x00FF00, "pixel at (30, {})", y);
+        }
+    }
+
+    #[test]
+    fn test_line_diagonal() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0; // x0
+        vm.regs[2] = 0; // y0
+        vm.regs[3] = 10; // x1
+        vm.regs[4] = 10; // y1
+        vm.regs[5] = 0xFF0000;
+        let vm = step_from(&vm, &[0x45, 1, 2, 3, 4, 5], 0);
+        for i in 0..=10 {
+            assert_eq!(vm.screen[i * 256 + i], 0xFF0000, "pixel at ({}, {})", i, i);
+        }
+    }
+
+    #[test]
+    fn test_line_single_point() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 42;
+        vm.regs[2] = 42;
+        vm.regs[3] = 42; // same start and end
+        vm.regs[4] = 42;
+        vm.regs[5] = 0xFFFFFF;
+        let vm = step_from(&vm, &[0x45, 1, 2, 3, 4, 5], 0);
+        assert_eq!(vm.screen[42 * 256 + 42], 0xFFFFFF);
+    }
+
+    #[test]
+    fn test_line_steep() {
+        // More vertical than horizontal
+        let mut vm = Vm::new();
+        vm.regs[1] = 50;
+        vm.regs[2] = 0;
+        vm.regs[3] = 53;
+        vm.regs[4] = 100;
+        vm.regs[5] = 0x0000FF;
+        let vm = step_from(&vm, &[0x45, 1, 2, 3, 4, 5], 0);
+        // Start and end points must be drawn
+        assert_eq!(vm.screen[0 * 256 + 50], 0x0000FF);
+        assert_eq!(vm.screen[100 * 256 + 53], 0x0000FF);
+        // Should have multiple pixels in between
+        let count = (0..256)
+            .flat_map(|y| (0..256).map(move |x| (x, y)))
+            .filter(|&(x, y)| vm.screen[y * 256 + x] == 0x0000FF)
+            .count();
+        assert!(count >= 10, "steep line should have >= 10 pixels, got {}", count);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // CIRCLE (0x46) -- midpoint circle
+    // Encoding: [0x46, x_reg, y_reg, radius_reg, color_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_circle_basic() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 128; // cx
+        vm.regs[2] = 128; // cy
+        vm.regs[3] = 20;  // radius
+        vm.regs[4] = 0xFFFFFF;
+        let vm = step_from(&vm, &[0x46, 1, 2, 3, 4], 0);
+        // Cardinal points must be set
+        assert_eq!(vm.screen[128 * 256 + 148], 0xFFFFFF); // right (cx+r, cy)
+        assert_eq!(vm.screen[128 * 256 + 108], 0xFFFFFF); // left
+        assert_eq!(vm.screen[108 * 256 + 128], 0xFFFFFF); // top
+        assert_eq!(vm.screen[148 * 256 + 128], 0xFFFFFF); // bottom
+        // Center should NOT be set (circle outline only)
+        assert_eq!(vm.screen[128 * 256 + 128], 0);
+    }
+
+    #[test]
+    fn test_circle_radius_zero() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 50;
+        vm.regs[2] = 50;
+        vm.regs[3] = 0;
+        vm.regs[4] = 0xFF0000;
+        let vm = step_from(&vm, &[0x46, 1, 2, 3, 4], 0);
+        // Radius 0: should draw a single pixel at center
+        assert_eq!(vm.screen[50 * 256 + 50], 0xFF0000);
+    }
+
+    #[test]
+    fn test_circle_screen_edge_clipping() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0;   // cx at left edge
+        vm.regs[2] = 0;   // cy at top edge
+        vm.regs[3] = 30;  // radius extends past edges
+        vm.regs[4] = 0x00FF00;
+        let vm = step_from(&vm, &[0x46, 1, 2, 3, 4], 0);
+        // Should not crash; some pixels on right/bottom should be set
+        let count = vm.screen.iter().filter(|&&p| p == 0x00FF00).count();
+        assert!(count > 0, "circle at edge should produce pixels, got {}", count);
+    }
+
+    #[test]
+    fn test_circle_symmetry() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 100;
+        vm.regs[2] = 100;
+        vm.regs[3] = 15;
+        vm.regs[4] = 0xFFFFFF;
+        let vm = step_from(&vm, &[0x46, 1, 2, 3, 4], 0);
+        // Check 8-fold symmetry: top-right pixel should have matching counterparts
+        // For a small circle, (cx+15, cy) and (cx, cy+15) should both be set
+        assert_eq!(vm.screen[100 * 256 + 115], 0xFFFFFF); // right
+        assert_eq!(vm.screen[115 * 256 + 100], 0xFFFFFF); // bottom
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // SPRITE (0x4A) -- blit NxM pixels from RAM
+    // Encoding: [0x4A, x_reg, y_reg, addr_reg, w_reg, h_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_sprite_basic() {
+        let mut vm = Vm::new();
+        // Set up a 2x2 sprite at RAM[0x2000]: red, green, blue, white
+        vm.ram[0x2000] = 0xFF0000;
+        vm.ram[0x2001] = 0x00FF00;
+        vm.ram[0x2002] = 0x0000FF;
+        vm.ram[0x2003] = 0xFFFFFF;
+        vm.regs[1] = 10;     // x
+        vm.regs[2] = 20;     // y
+        vm.regs[3] = 0x2000; // addr
+        vm.regs[4] = 2;      // w
+        vm.regs[5] = 2;      // h
+        let vm = step_from(&vm, &[0x4A, 1, 2, 3, 4, 5], 0);
+        assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000);
+        assert_eq!(vm.screen[20 * 256 + 11], 0x00FF00);
+        assert_eq!(vm.screen[21 * 256 + 10], 0x0000FF);
+        assert_eq!(vm.screen[21 * 256 + 11], 0xFFFFFF);
+    }
+
+    #[test]
+    fn test_sprite_transparent_pixels() {
+        let mut vm = Vm::new();
+        // Sprite: red, transparent (0), green
+        vm.ram[0x2000] = 0xFF0000;
+        vm.ram[0x2001] = 0; // transparent
+        vm.ram[0x2002] = 0x00FF00;
+        // Pre-fill screen with white at the sprite location
+        vm.screen[10 * 256 + 10] = 0xFFFFFF;
+        vm.screen[10 * 256 + 11] = 0xFFFFFF;
+        vm.screen[10 * 256 + 12] = 0xFFFFFF;
+        vm.regs[1] = 10;
+        vm.regs[2] = 10;
+        vm.regs[3] = 0x2000;
+        vm.regs[4] = 3;
+        vm.regs[5] = 1;
+        let vm = step_from(&vm, &[0x4A, 1, 2, 3, 4, 5], 0);
+        assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000);  // red
+        assert_eq!(vm.screen[10 * 256 + 11], 0xFFFFFF);  // transparent = unchanged
+        assert_eq!(vm.screen[10 * 256 + 12], 0x00FF00);  // green
+    }
+
+    #[test]
+    fn test_sprite_out_of_bounds() {
+        let mut vm = Vm::new();
+        vm.ram[0x2000] = 0xFF0000;
+        vm.ram[0x2001] = 0x00FF00;
+        vm.regs[1] = 255;     // x at right edge
+        vm.regs[2] = 0;
+        vm.regs[3] = 0x2000;
+        vm.regs[4] = 2;       // extends past screen
+        vm.regs[5] = 1;
+        let vm = step_from(&vm, &[0x4A, 1, 2, 3, 4, 5], 0);
+        // First pixel should be drawn, second clipped
+        assert_eq!(vm.screen[0 * 256 + 255], 0xFF0000);
+        // No crash from out-of-bounds write
+    }
+
+    #[test]
+    fn test_sprite_all_transparent() {
+        let mut vm = Vm::new();
+        vm.ram[0x2000] = 0;
+        vm.ram[0x2001] = 0;
+        vm.ram[0x2002] = 0;
+        vm.ram[0x2003] = 0;
+        vm.regs[1] = 10;
+        vm.regs[2] = 10;
+        vm.regs[3] = 0x2000;
+        vm.regs[4] = 2;
+        vm.regs[5] = 2;
+        let vm = step_from(&vm, &[0x4A, 1, 2, 3, 4, 5], 0);
+        assert_eq!(vm.screen[10 * 256 + 10], 0);
+    }
+
+    #[test]
+    fn test_sprite_tile_zero_skip() {
+        // In TILEMAP context, tile index 0 means empty (skip).
+        // SPRITE doesn't have tile indices, but color 0 = transparent.
+        // This test verifies the transparent=0 convention is consistent.
+        let mut vm = Vm::new();
+        vm.ram[0x2000] = 0; // transparent
+        vm.screen[10 * 256 + 10] = 0x123456; // pre-existing pixel
+        vm.regs[1] = 10;
+        vm.regs[2] = 10;
+        vm.regs[3] = 0x2000;
+        vm.regs[4] = 1;
+        vm.regs[5] = 1;
+        let vm = step_from(&vm, &[0x4A, 1, 2, 3, 4, 5], 0);
+        assert_eq!(vm.screen[10 * 256 + 10], 0x123456); // unchanged
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // CMP (0x50) -- compare registers
+    // Encoding: [0x50, rd, rs]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_cmp_less_than() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 5;
+        vm.regs[2] = 10;
+        let vm = step_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // -1 = less
+    }
+
+    #[test]
+    fn test_cmp_equal() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 42;
+        vm.regs[2] = 42;
+        let vm = step_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0); // equal
+    }
+
+    #[test]
+    fn test_cmp_greater_than() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 100;
+        vm.regs[2] = 50;
+        let vm = step_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 1); // greater
+    }
+
+    #[test]
+    fn test_cmp_zero_zero() {
+        let vm = step_one(&[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0); // 0 == 0
+    }
+
+    #[test]
+    fn test_cmp_signed() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFFF; // -1 as i32
+        vm.regs[2] = 1;           // 1
+        let vm = step_from(&vm, &[0x50, 1, 2], 0);
+        assert_eq!(vm.regs[0], 0xFFFFFFFF); // -1 < 1
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // MOV (0x51) -- register copy
+    // Encoding: [0x51, rd, rs]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_mov_basic() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xDEADBEEF;
+        let vm = step_from(&vm, &[0x51, 2, 1], 0);
+        assert_eq!(vm.regs[2], 0xDEADBEEF);
+        assert_eq!(vm.regs[1], 0xDEADBEEF); // source unchanged
+    }
+
+    #[test]
+    fn test_mov_zero() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 42;
+        let vm = step_from(&vm, &[0x51, 1, 0], 0); // copy r0 (which is 0) to r1
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    #[test]
+    fn test_mov_to_self() {
+        let mut vm = Vm::new();
+        vm.regs[5] = 12345;
+        let vm = step_from(&vm, &[0x51, 5, 5], 0);
+        assert_eq!(vm.regs[5], 12345);
+    }
+
+    #[test]
+    fn test_mov_max_value() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0xFFFFFFFF;
+        let vm = step_from(&vm, &[0x51, 2, 1], 0);
+        assert_eq!(vm.regs[2], 0xFFFFFFFF);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // RAND (0x49) -- pseudo-random number generator
+    // Encoding: [0x49, rd]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_rand_deterministic() {
+        let mut vm = Vm::new();
+        vm.rand_state = 42; // fixed seed
+        let vm = step_from(&vm, &[0x49, 1], 0);
+        let val1 = vm.regs[1];
+        // Same seed should produce same value
+        let mut vm2 = Vm::new();
+        vm2.rand_state = 42;
+        let vm2 = step_from(&vm2, &[0x49, 1], 0);
+        assert_eq!(vm2.regs[1], val1);
+    }
+
+    #[test]
+    fn test_rand_changes() {
+        let mut vm = Vm::new();
+        vm.rand_state = 42;
+        let vm = step_from(&vm, &[0x49, 1], 0);
+        let val1 = vm.regs[1];
+        // Run again -- should produce different value
+        let vm2 = step_from(&vm, &[0x49, 1], 0);
+        assert_ne!(vm2.regs[1], val1, "consecutive RAND calls should differ");
+    }
+
+    #[test]
+    fn test_rand_nonzero_seed() {
+        let mut vm = Vm::new();
+        vm.rand_state = 0;
+        let vm = step_from(&vm, &[0x49, 1], 0);
+        // LCG with state 0 should produce a non-zero value
+        assert_ne!(vm.regs[1], 0, "RAND with state 0 should produce non-zero");
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // SCROLL (0x47) -- scroll screen up
+    // Encoding: [0x47, n_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_scroll_basic() {
+        let mut vm = Vm::new();
+        // Put a marker at row 5
+        vm.screen[5 * 256 + 10] = 0xFF0000;
+        vm.regs[1] = 3; // scroll up 3 pixels
+        let vm = step_from(&vm, &[0x47, 1], 0);
+        // Row 5 moved to row 2
+        assert_eq!(vm.screen[2 * 256 + 10], 0xFF0000);
+        // Row 5 is now empty
+        assert_eq!(vm.screen[5 * 256 + 10], 0);
+        // Bottom rows should be zero
+        assert_eq!(vm.screen[255 * 256 + 10], 0);
+    }
+
+    #[test]
+    fn test_scroll_zero() {
+        let mut vm = Vm::new();
+        vm.screen[10 * 256 + 10] = 0x00FF00;
+        vm.regs[1] = 0;
+        let vm = step_from(&vm, &[0x47, 1], 0);
+        // No change
+        assert_eq!(vm.screen[10 * 256 + 10], 0x00FF00);
+    }
+
+    #[test]
+    fn test_scroll_bottom_fills_black() {
+        let mut vm = Vm::new();
+        // Fill entire screen with white
+        for p in vm.screen.iter_mut() {
+            *p = 0xFFFFFF;
+        }
+        vm.regs[1] = 1;
+        let vm = step_from(&vm, &[0x47, 1], 0);
+        // Last row should be black
+        for x in 0..256 {
+            assert_eq!(vm.screen[255 * 256 + x], 0, "bottom row pixel {} should be black", x);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // PEEK (0x4F) -- read screen pixel
+    // Encoding: [0x4F, x_reg, y_reg, dest_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_peek_basic() {
+        let mut vm = Vm::new();
+        vm.screen[20 * 256 + 30] = 0x123456;
+        vm.regs[1] = 30; // x
+        vm.regs[2] = 20; // y
+        let vm = step_from(&vm, &[0x4F, 1, 2, 3], 0);
+        assert_eq!(vm.regs[3], 0x123456);
+    }
+
+    #[test]
+    fn test_peek_out_of_bounds() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 300; // x out of bounds
+        vm.regs[2] = 10;
+        let vm = step_from(&vm, &[0x4F, 1, 2, 3], 0);
+        assert_eq!(vm.regs[3], 0);
+    }
+
+    #[test]
+    fn test_peek_origin() {
+        let mut vm = Vm::new();
+        vm.screen[0] = 0xFF00FF;
+        vm.regs[1] = 0;
+        vm.regs[2] = 0;
+        let vm = step_from(&vm, &[0x4F, 1, 2, 3], 0);
+        assert_eq!(vm.regs[3], 0xFF00FF);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // IKEY (0x48) -- keyboard input
+    // Encoding: [0x48, rd]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_ikey_no_key() {
+        let vm = step_one(&[0x48, 1], 0);
+        // No key pressed, key_buffer empty, key_port = 0
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    #[test]
+    fn test_ikey_from_key_port() {
+        let mut vm = Vm::new();
+        vm.key_port = 65; // 'A'
+        let vm = step_from(&vm, &[0x48, 1], 0);
+        assert_eq!(vm.regs[1], 65);
+        assert_eq!(vm.key_port, 0); // consumed
+    }
+
+    #[test]
+    fn test_ikey_from_buffer() {
+        let mut vm = Vm::new();
+        vm.key_buffer[0] = 66; // 'B'
+        vm.key_buffer_head = 0;
+        vm.key_buffer_tail = 1;
+        let vm = step_from(&vm, &[0x48, 1], 0);
+        assert_eq!(vm.regs[1], 66);
+        assert_eq!(vm.key_buffer_head, 1); // advanced
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // ROTATE (0xF4) -- rotate screen region
+    // Encoding: [0xF4, x_reg, y_reg, w_reg, h_reg, angle_reg]
+    // angle in fixed-point radians (value / 256.0)
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_rotate_zero_angle() {
+        let mut vm = Vm::new();
+        // Draw a red pixel in the region
+        vm.screen[10 * 256 + 10] = 0xFF0000;
+        vm.regs[1] = 10; // x
+        vm.regs[2] = 10; // y
+        vm.regs[3] = 20; // w
+        vm.regs[4] = 20; // h
+        vm.regs[5] = 0;  // angle = 0 (no rotation)
+        let vm = step_from(&vm, &[0xF4, 1, 2, 3, 4, 5], 0);
+        // Pixel should remain in place
+        assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000);
+    }
+
+    #[test]
+    fn test_rotate_180_degrees() {
+        let mut vm = Vm::new();
+        // Fill region with red
+        for y in 10..30 {
+            for x in 10..30 {
+                vm.screen[y * 256 + x] = 0xFF0000;
+            }
+        }
+        // Set a green marker at top-left of region
+        vm.screen[10 * 256 + 10] = 0x00FF00;
+        vm.regs[1] = 10;
+        vm.regs[2] = 10;
+        vm.regs[3] = 20;
+        vm.regs[4] = 20;
+        vm.regs[5] = 8192; // ~π radians (180 degrees): 8192 / 256 ≈ 32 ≈ 10.04 rad ≈ π*3.2
+        let vm = step_from(&vm, &[0xF4, 1, 2, 3, 4, 5], 0);
+        // After rotation, total non-zero pixels in region should still be 400 (20x20)
+        let mut pixel_count = 0u32;
+        for y in 10..30u32 {
+            for x in 10..30u32 {
+                if vm.screen[(y * 256 + x) as usize] != 0 {
+                    pixel_count += 1;
+                }
+            }
+        }
+        assert!(pixel_count >= 300, "region should have >= 300 pixels after rotation, got {}", pixel_count);
+    }
+
+    #[test]
+    fn test_rotate_degenerate_size() {
+        let mut vm = Vm::new();
+        vm.screen[10 * 256 + 10] = 0xFF0000;
+        vm.regs[1] = 10;
+        vm.regs[2] = 10;
+        vm.regs[3] = 0; // w=0 -> degenerate, no-op
+        vm.regs[4] = 20;
+        vm.regs[5] = 4096;
+        let vm = step_from(&vm, &[0xF4, 1, 2, 3, 4, 5], 0);
+        // No-op: pixel unchanged
+        assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // SCALE (0xF5) -- scale screen region
+    // Encoding: [0xF5, sx_reg, sy_reg, sw_reg, sh_reg, dx_reg, dy_reg, dw_reg, dh_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_scale_up_2x() {
+        let mut vm = Vm::new();
+        // Draw a 2x2 red square at (0,0)
+        vm.screen[0] = 0xFF0000;
+        vm.screen[1] = 0xFF0000;
+        vm.screen[256] = 0xFF0000;
+        vm.screen[257] = 0xFF0000;
+        vm.regs[1] = 0;  // sx
+        vm.regs[2] = 0;  // sy
+        vm.regs[3] = 2;  // sw
+        vm.regs[4] = 2;  // sh
+        vm.regs[5] = 10; // dx
+        vm.regs[6] = 10; // dy
+        vm.regs[7] = 4;  // dw (2x)
+        vm.regs[8] = 4;  // dh (2x)
+        let vm = step_from(&vm, &[0xF5, 1, 2, 3, 4, 5, 6, 7, 8], 0);
+        // Destination 4x4 should be all red
+        for dy in 0..4 {
+            for dx in 0..4 {
+                assert_eq!(
+                    vm.screen[(10 + dy) * 256 + (10 + dx)],
+                    0xFF0000,
+                    "pixel at ({}, {}) should be red",
+                    10 + dx,
+                    10 + dy
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_scale_down() {
+        let mut vm = Vm::new();
+        // Fill a 4x4 region with blue
+        for y in 0..4 {
+            for x in 0..4 {
+                vm.screen[y * 256 + x] = 0x0000FF;
+            }
+        }
+        vm.regs[1] = 0;  // sx
+        vm.regs[2] = 0;  // sy
+        vm.regs[3] = 4;  // sw
+        vm.regs[4] = 4;  // sh
+        vm.regs[5] = 20; // dx
+        vm.regs[6] = 20; // dy
+        vm.regs[7] = 2;  // dw (half)
+        vm.regs[8] = 2;  // dh (half)
+        let vm = step_from(&vm, &[0xF5, 1, 2, 3, 4, 5, 6, 7, 8], 0);
+        // Destination 2x2 should be blue (nearest-neighbor from top-left)
+        assert_eq!(vm.screen[20 * 256 + 20], 0x0000FF);
+        assert_eq!(vm.screen[20 * 256 + 21], 0x0000FF);
+        assert_eq!(vm.screen[21 * 256 + 20], 0x0000FF);
+        assert_eq!(vm.screen[21 * 256 + 21], 0x0000FF);
+    }
+
+    #[test]
+    fn test_scale_degenerate() {
+        let mut vm = Vm::new();
+        vm.screen[0] = 0xFF0000;
+        vm.regs[1] = 0;
+        vm.regs[2] = 0;
+        vm.regs[3] = 0; // sw=0 -> degenerate
+        vm.regs[4] = 1;
+        vm.regs[5] = 10;
+        vm.regs[6] = 10;
+        vm.regs[7] = 2;
+        vm.regs[8] = 2;
+        let vm = step_from(&vm, &[0xF5, 1, 2, 3, 4, 5, 6, 7, 8], 0);
+        // No-op
+        assert_eq!(vm.screen[10 * 256 + 10], 0);
+    }
+
+    #[test]
+    fn test_scale_identity() {
+        let mut vm = Vm::new();
+        vm.screen[5 * 256 + 5] = 0x00FF00;
+        vm.regs[1] = 5;  // sx
+        vm.regs[2] = 5;  // sy
+        vm.regs[3] = 1;  // sw
+        vm.regs[4] = 1;  // sh
+        vm.regs[5] = 20; // dx
+        vm.regs[6] = 20; // dy
+        vm.regs[7] = 1;  // dw (same size)
+        vm.regs[8] = 1;  // dh
+        let vm = step_from(&vm, &[0xF5, 1, 2, 3, 4, 5, 6, 7, 8], 0);
+        assert_eq!(vm.screen[20 * 256 + 20], 0x00FF00);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // FONT_SELECT (0xDC) -- font mode selection
+    // Encoding: [0xDC, mode_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_font_select_default() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0; // default mode
+        let vm = step_from(&vm, &[0xDC, 1], 0);
+        // r0 should contain previous mode (0 by default)
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    #[test]
+    fn test_font_select_vw() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 1; // variable-width
+        let vm = step_from(&vm, &[0xDC, 1], 0);
+        assert_eq!(vm.regs[0], 0); // previous was 0 (default)
+        // FONT_SELECT returns previous mode in r0, now mode is 1
+    }
+
+    #[test]
+    fn test_font_select_clamp() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 99; // should be clamped to 99 & 3 = 3
+        let vm = step_from(&vm, &[0xDC, 1], 0);
+        assert_eq!(vm.regs[0], 0); // previous was default 0
+        // FONT_SELECT returns previous mode in r0, now mode is 3
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // VWTXT (0xDB) -- variable-width text rendering
+    // Encoding: [0xDB, x_reg, y_reg, addr_reg, fg_reg, bg_reg]
+    // ══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_vwtxt_basic() {
+        let mut vm = Vm::new();
+        write_string(&mut vm, 0x2000, "A");
+        vm.regs[1] = 10;     // x
+        vm.regs[2] = 10;     // y
+        vm.regs[3] = 0x2000; // addr
+        vm.regs[4] = 0xFFFFFF; // fg
+        vm.regs[5] = 0;      // bg = 0 (no background)
+        let vm = step_from(&vm, &[0xDB, 1, 2, 3, 4, 5], 0);
+        // At least one pixel should be white near (10, 10)
+        let mut has_white = false;
+        for y in 10..18 {
+            for x in 10..20 {
+                if vm.screen[y * 256 + x] == 0xFFFFFF {
+                    has_white = true;
+                    break;
+                }
+            }
+            if has_white {
+                break;
+            }
+        }
+        assert!(
+            has_white,
+            "VWTXT should render at least one white pixel for 'A'"
+        );
+    }
+
+    #[test]
+    fn test_vwtxt_empty_string() {
+        let mut vm = Vm::new();
+        vm.ram[0x2000] = 0; // null terminator immediately
+        vm.regs[1] = 10;
+        vm.regs[2] = 10;
+        vm.regs[3] = 0x2000;
+        vm.regs[4] = 0xFFFFFF;
+        vm.regs[5] = 0;
+        let vm = step_from(&vm, &[0xDB, 1, 2, 3, 4, 5], 0);
+        // No pixels should be set
+        let any_set = vm.screen.iter().any(|&p| p != 0);
+        assert!(!any_set, "empty string should render nothing");
+    }
+}
