@@ -132,10 +132,10 @@ impl RiscvCpu {
                         &mut bus.clint,
                     );
 
-                    // Debug: log ECALLs (skip TIMER to avoid spam)
-                    if self.ecall_count < 100 && a7 != 0x54494D45 && a7 != 0 {
+                    // Debug: log ECALLs
+                    if a7 != 0x54494D45 { // skip TIMER to avoid spam
                         eprintln!(
-                            "[sbi] ECALL #{} at PC=0x{:08X} a7=0x{:08X} a6=0x{:X} a0=0x{:X} -> {}",
+                            "[sbi-debug] ECALL #{} at PC=0x{:08X} eid=0x{:08X} fid=0x{:X} a0=0x{:X} -> {}",
                             self.ecall_count,
                             self.pc,
                             a7,
@@ -293,15 +293,11 @@ impl RiscvCpu {
                 StepResult::Ok
             }
             Operation::Ebreak => {
-                // RISC-V spec: EBREAK raises a breakpoint exception (cause 3).
-                // In S-mode (Linux guests), deliver as a trap so the kernel's
-                // WARN_ON/BUG handler can decide what to do.
-                // In M-mode (bare-metal test programs), halt immediately --
-                // those programs use EBREAK to signal "I'm done".
                 if self.privilege == Privilege::Supervisor {
                     let cause = csr::CAUSE_BREAKPOINT;
                     let trap_priv = self.csr.trap_target_priv(cause, self.privilege);
                     let vector = self.csr.trap_vector(trap_priv);
+                    eprintln!("[trap-debug] EBREAK at PC=0x{:08X} -> trap to 0x{:08X} (priv={:?})", self.pc, vector, trap_priv);
                     self.csr
                         .trap_enter(trap_priv, self.privilege, self.pc, cause);
                     self.privilege = trap_priv;

@@ -451,16 +451,16 @@ impl RiscvVm {
         //   PA 0x0040495E: sw a5, 12(s1)  -- writes &_start (0xC0000000) to phys_addr
         //   PA 0x00404968: sw a1, 20(s1)  -- writes PAGE_OFFSET - _start (0) to va_pa_offset
         //
-        // kernel_map struct is at VA 0xC0C79E90 (PA 0x00C7A098), layout:
+        // kernel_map struct is at VA 0xC163AE18 (PA 0x0163AE18), layout:
         //   offset 0: page_offset, 4: virt_addr, 8: virt_offset,
         //   12: phys_addr (need 0), 16: size, 20: va_pa_offset (need 0xC0000000), 24: va_kernel_pa_offset
         //
-        // The assertion `slli a5, a5, 10; beqz a5` at PA 0x00404972 still passes
+        // The assertion `slli a5, a5, 10; beqz a5` at PA 0x00C04F24 still passes
         // because a5=0xC0000000 << 10 overflows to 0 in 32-bit.
-        let setup_vm_phys_addr_store: u64 = 0x00404AB2; // C.SW a5, 12(s1) (2 bytes)
-        let setup_vm_va_kernel_pa_store: u64 = 0x00404AB8; // SW a6, 24(s1) (4 bytes!)
-        let setup_vm_va_pa_offset_store: u64 = 0x00404ABC; // C.SW a1, 20(s1) (2 bytes)
-        let kernel_map_phys: u64 = 0x00C7A098;
+        let setup_vm_phys_addr_store: u64 = 0x00C04F0E; // C.SW a5, 12(s1) (2 bytes)
+        let setup_vm_va_kernel_pa_store: u64 = 0x00C04F14; // SW a6, 24(s1) (4 bytes!)
+        let setup_vm_va_pa_offset_store: u64 = 0x00C04F18; // C.SW a1, 20(s1) (2 bytes)
+        let kernel_map_phys: u64 = 0x0163AE18;
 
         // Verify the instructions match before patching (safety check).
         // The two C.SW instructions are 16-bit; the SW a6,24(s1) is 32-bit.
@@ -670,6 +670,22 @@ impl RiscvVm {
                 "[boot] WARNING: ndelay first insn = 0x{:04X} (expected 0x1141)",
                 ndelay_insn
             );
+        }
+
+        // Phase 257: NOP out problematic ebreak in up_read
+        // c006ce7c: 9002 ebreak
+        let up_read_ebreak_pa: u64 = 0x0006CE7C;
+        if vm.bus.read_half(up_read_ebreak_pa).unwrap_or(0) == 0x9002 {
+            vm.bus.write_half(up_read_ebreak_pa, 0x0001).ok(); // C.NOP
+            eprintln!("[boot] Patched ebreak at PA 0x0006CE7C to NOP (unblocking up_read)");
+        }
+
+        // Also patch down_read_trylock ebreak
+        // c006c748: 9002 ebreak
+        let down_read_ebreak_pa: u64 = 0x0006C748;
+        if vm.bus.read_half(down_read_ebreak_pa).unwrap_or(0) == 0x9002 {
+            vm.bus.write_half(down_read_ebreak_pa, 0x0001).ok(); // C.NOP
+            eprintln!("[boot] Patched ebreak at PA 0x0006C748 to NOP (unblocking down_read_trylock)");
         }
 
         let entry_vaddr: u32 = load_info.entry;

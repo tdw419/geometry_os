@@ -225,20 +225,53 @@ mod tests {
     #[test]
     fn test_all_letters_have_mappings() {
         let letters = [
-            Key::A, Key::B, Key::C, Key::D, Key::E, Key::F, Key::G, Key::H, Key::I,
-            Key::J, Key::K, Key::L, Key::M, Key::N, Key::O, Key::P, Key::Q, Key::R,
-            Key::S, Key::T, Key::U, Key::V, Key::W, Key::X, Key::Y, Key::Z,
+            Key::A,
+            Key::B,
+            Key::C,
+            Key::D,
+            Key::E,
+            Key::F,
+            Key::G,
+            Key::H,
+            Key::I,
+            Key::J,
+            Key::K,
+            Key::L,
+            Key::M,
+            Key::N,
+            Key::O,
+            Key::P,
+            Key::Q,
+            Key::R,
+            Key::S,
+            Key::T,
+            Key::U,
+            Key::V,
+            Key::W,
+            Key::X,
+            Key::Y,
+            Key::Z,
         ];
         for key in &letters {
-            assert!(key_to_ascii(*key).is_some(), "{:?} should map to uppercase", key);
+            assert!(
+                key_to_ascii(*key).is_some(),
+                "{:?} should map to uppercase",
+                key
+            );
         }
     }
 
     #[test]
     fn test_extended_codes_in_high_range() {
         let extended = [
-            (Key::Up, 0x80), (Key::Down, 0x81), (Key::Left, 0x82), (Key::Right, 0x83),
-            (Key::Home, 0x84), (Key::End, 0x85), (Key::PageUp, 0x86), (Key::PageDown, 0x87),
+            (Key::Up, 0x80),
+            (Key::Down, 0x81),
+            (Key::Left, 0x82),
+            (Key::Right, 0x83),
+            (Key::Home, 0x84),
+            (Key::End, 0x85),
+            (Key::PageUp, 0x86),
+            (Key::PageDown, 0x87),
             (Key::Insert, 0x88),
         ];
         for (key, expected) in &extended {
@@ -321,9 +354,32 @@ mod tests {
     #[test]
     fn test_shifted_all_letters_covered() {
         let letters = [
-            Key::A, Key::B, Key::C, Key::D, Key::E, Key::F, Key::G, Key::H, Key::I,
-            Key::J, Key::K, Key::L, Key::M, Key::N, Key::O, Key::P, Key::Q, Key::R,
-            Key::S, Key::T, Key::U, Key::V, Key::W, Key::X, Key::Y, Key::Z,
+            Key::A,
+            Key::B,
+            Key::C,
+            Key::D,
+            Key::E,
+            Key::F,
+            Key::G,
+            Key::H,
+            Key::I,
+            Key::J,
+            Key::K,
+            Key::L,
+            Key::M,
+            Key::N,
+            Key::O,
+            Key::P,
+            Key::Q,
+            Key::R,
+            Key::S,
+            Key::T,
+            Key::U,
+            Key::V,
+            Key::W,
+            Key::X,
+            Key::Y,
+            Key::Z,
         ];
         for key in &letters {
             assert!(key_to_ascii_shifted(*key, false).is_some());
@@ -372,8 +428,12 @@ mod tests {
     fn test_key_to_ascii_always_uppercase() {
         for key in &[Key::A, Key::M, Key::Z] {
             let result = key_to_ascii(*key).unwrap();
-            assert!(result.is_ascii_uppercase() || result >= 0x7F,
-                "key_to_ascii should return uppercase for letters, got {:?} for {:?}", result, key);
+            assert!(
+                result.is_ascii_uppercase() || result >= 0x7F,
+                "key_to_ascii should return uppercase for letters, got {:?} for {:?}",
+                result,
+                key
+            );
         }
     }
 
@@ -381,8 +441,12 @@ mod tests {
     fn test_key_to_ascii_shifted_lowercase_by_default() {
         for key in &[Key::A, Key::M, Key::Z] {
             let result = key_to_ascii_shifted(*key, false).unwrap();
-            assert!(result.is_ascii_lowercase(),
-                "shifted=false should be lowercase, got {:?} for {:?}", result as char, key);
+            assert!(
+                result.is_ascii_lowercase(),
+                "shifted=false should be lowercase, got {:?} for {:?}",
+                result as char,
+                key
+            );
         }
     }
 
@@ -401,7 +465,7 @@ mod tests {
     #[test]
     fn test_extended_key_ranges_dont_overlap() {
         let standard = key_to_ascii(Key::Enter).unwrap(); // 0x0D
-        let extended = key_to_ascii(Key::Up).unwrap();    // 0x80
+        let extended = key_to_ascii(Key::Up).unwrap(); // 0x80
         assert!(standard < 0x80, "standard keys should be below 0x80");
         assert!(extended >= 0x80, "extended keys should be at or above 0x80");
     }

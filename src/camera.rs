@@ -263,8 +263,15 @@ mod tests {
                     let rgb = [*r, *g, *b];
                     let pixels = rgb24_to_pixels(&rgb);
                     assert_eq!(pixels.len(), 1);
-                    assert_eq!(pixels[0], (*r as u32) << 16 | (*g as u32) << 8 | *b as u32,
-                        "R={:02X} G={:02X} B={:02X} -> {:08X}", r, g, b, pixels[0]);
+                    assert_eq!(
+                        pixels[0],
+                        (*r as u32) << 16 | (*g as u32) << 8 | *b as u32,
+                        "R={:02X} G={:02X} B={:02X} -> {:08X}",
+                        r,
+                        g,
+                        b,
+                        pixels[0]
+                    );
                 }
             }
         }
@@ -283,7 +290,9 @@ mod tests {
 
     #[test]
     fn test_camera_frame_debug() {
-        let frame = CameraFrame { pixels: vec![0x00FF0000, 0x0000FF00] };
+        let frame = CameraFrame {
+            pixels: vec![0x00FF0000, 0x0000FF00],
+        };
         let debug_str = format!("{:?}", frame);
         assert!(debug_str.contains("CameraFrame"));
         assert!(debug_str.contains("pixels"));
@@ -291,7 +300,9 @@ mod tests {
 
     #[test]
     fn test_camera_frame_clone() {
-        let frame = CameraFrame { pixels: vec![0x00FF0000] };
+        let frame = CameraFrame {
+            pixels: vec![0x00FF0000],
+        };
         let cloned = frame.clone();
         assert_eq!(cloned.pixels, frame.pixels);
         // Verify independence
@@ -302,7 +313,9 @@ mod tests {
 
     #[test]
     fn test_camera_frame_default_black() {
-        let frame = CameraFrame { pixels: vec![0u32; 4] };
+        let frame = CameraFrame {
+            pixels: vec![0u32; 4],
+        };
         assert!(frame.pixels.iter().all(|&p| p == 0));
     }
 

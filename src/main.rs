@@ -3491,6 +3491,7 @@ fn main() {
 
                                             // Kill existing
                                             if riscv_handle.is_some() {
+                                                eprintln!("[geos] Killing existing RISC-V VM for Linux boot");
                                                 riscv_handle = None;
                                                 riscv_latest_frame = None;
                                             }

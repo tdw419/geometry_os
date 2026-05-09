@@ -309,13 +309,14 @@ impl Sbi {
         uart: &mut Uart,
         clint: &mut super::clint::Clint,
     ) -> Option<(u32, u32)> {
-        self.ecall_log.push((a7, a6, a0));
+        eprintln!("[sbi-trace] a7=0x{:08X} a6=0x{:X} a0=0x{:X}", a7, a6, a0);
         match a7 {
             // SBI v0.1 legacy calls (extension ID is the function ID, a6=0)
             SBI_CONSOLE_PUTCHAR => {
                 // a0 = character to print
                 let ch = a0 as u8;
                 if ch != 0 {
+                    eprintln!("[sbi-legacy] character: 0x{:02X} ('{}')", ch, ch as char);
                     self.console_output.push(ch);
                 }
                 Some((SBI_SUCCESS as u32, 0))
@@ -497,7 +498,7 @@ impl Sbi {
                         // Write single byte: a0 = byte value
                         let ch = a0 as u8;
                         if ch != 0 {
-                            uart.write_byte(0, ch);
+                            eprintln!("[sbi-dbcn-byte] character: 0x{:02X} ('{}')", ch, ch as char);
                             self.console_output.push(ch);
                         }
                         Some((SBI_SUCCESS as u32, 0))

@@ -1516,7 +1516,10 @@ mod tests {
         // r1 + (r2-r1)*t = 255 + (0-255)*(-1) = 255+255 = 510.0 -> 510
         // g1 + (g2-g1)*t = 0 + (255-0)*(-1) = -255.0 -> as u32 is UB/implementation-defined
         // Just verify it doesn't return the base color (no lower clamp)
-        assert_ne!(result, 0xFF0000, "negative t should NOT return base (no lower clamp)");
+        assert_ne!(
+            result, 0xFF0000,
+            "negative t should NOT return base (no lower clamp)"
+        );
     }
 
     #[test]
@@ -1584,11 +1587,7 @@ mod tests {
 
     #[test]
     fn test_cursor_style_next_cycles() {
-        let styles = [
-            CursorStyle::Block,
-            CursorStyle::Underline,
-            CursorStyle::Bar,
-        ];
+        let styles = [CursorStyle::Block, CursorStyle::Underline, CursorStyle::Bar];
         for (i, &style) in styles.iter().enumerate() {
             let next = style.next();
             let expected = styles[(i + 1) % styles.len()];
@@ -1637,7 +1636,7 @@ mod tests {
         assert_eq!(buf[10 * WIDTH + 12], 0xFF0000); // col 2 of row 0
         assert_eq!(buf[10 * WIDTH + 13], 0xFF0000); // col 3 of row 0
         assert_eq!(buf[10 * WIDTH + 14], 0xFF0000); // col 4 of row 0
-        // Col 0 and 1 should NOT be set (0x38 = 0b00111000)
+                                                    // Col 0 and 1 should NOT be set (0x38 = 0b00111000)
         assert_eq!(buf[10 * WIDTH + 10], 0);
         assert_eq!(buf[10 * WIDTH + 11], 0);
     }
@@ -1650,10 +1649,10 @@ mod tests {
         // 'A' starts at x=0, 'B' starts at x=9
         // Check that 'B' glyph is at x=9
         // 'B' glyph row 0: 0xFC = 11111100 -> cols 0-5 set
-        assert_eq!(buf[0 * WIDTH + 9], 0x00FF00);  // B col 0
+        assert_eq!(buf[0 * WIDTH + 9], 0x00FF00); // B col 0
         assert_eq!(buf[0 * WIDTH + 14], 0x00FF00); // B col 5
-        assert_eq!(buf[0 * WIDTH + 15], 0);        // B col 6 (not set)
-        // Gap pixel between chars (x=8) should be background
+        assert_eq!(buf[0 * WIDTH + 15], 0); // B col 6 (not set)
+                                            // Gap pixel between chars (x=8) should be background
         assert_eq!(buf[0 * WIDTH + 8], 0);
     }
 
@@ -1869,9 +1868,9 @@ mod tests {
     #[test]
     fn test_syntax_highlight_multiple_lines() {
         let buf = make_canvas_filled(&["LDI r1, 10", "; comment", "ADD r2, r3"]);
-        assert_eq!(syntax_highlight_color(&buf, 0, 0), SYN_OPCODE);  // LDI
+        assert_eq!(syntax_highlight_color(&buf, 0, 0), SYN_OPCODE); // LDI
         assert_eq!(syntax_highlight_color(&buf, 1, 2), SYN_COMMENT); // comment
-        assert_eq!(syntax_highlight_color(&buf, 2, 0), SYN_OPCODE);  // ADD
+        assert_eq!(syntax_highlight_color(&buf, 2, 0), SYN_OPCODE); // ADD
         assert_eq!(syntax_highlight_color(&buf, 2, 4), SYN_REGISTER); // r2
     }
 
@@ -1905,12 +1904,21 @@ mod tests {
 
     #[test]
     fn test_syn_colors_are_distinct() {
-        let colors = [SYN_OPCODE, SYN_REGISTER, SYN_NUMBER, SYN_LABEL, SYN_COMMENT, SYN_DEFAULT];
+        let colors = [
+            SYN_OPCODE,
+            SYN_REGISTER,
+            SYN_NUMBER,
+            SYN_LABEL,
+            SYN_COMMENT,
+            SYN_DEFAULT,
+        ];
         for i in 0..colors.len() {
             for j in (i + 1)..colors.len() {
-                assert_ne!(colors[i], colors[j],
+                assert_ne!(
+                    colors[i], colors[j],
                     "SYN colors at indices {} and {} are identical: {:#X}",
-                    i, j, colors[i]);
+                    i, j, colors[i]
+                );
             }
         }
     }

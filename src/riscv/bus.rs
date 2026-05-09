@@ -183,6 +183,7 @@ impl Bus {
         // Write-protected address check: silently drop writes to protected addresses.
         for &(pa, _protected_val) in &self.protected_addrs {
             if addr == pa {
+                eprintln!("[bus-debug] Write-protection hit at PA 0x{:08X} (val 0x{:08X} ignored)", addr, val);
                 return Ok(());
             }
         }
