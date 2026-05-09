@@ -575,12 +575,13 @@ impl super::Vm {
         }
         if written > 0 {
             let preview: String = (0..written.min(80))
-                .map(|i| {
-                    let b = (self.ram[buf_addr + i] & 0xFF) as u8;
-                    if b >= 0x20 && b < 0x7F {
-                        b as char
+                .filter_map(|i| {
+                    let idx = buf_addr + i;
+                    if idx < self.ram.len() {
+                        let b = (self.ram[idx] & 0xFF) as u8;
+                        Some(if b >= 0x20 && b < 0x7F { b as char } else { '.' })
                     } else {
-                        '.'
+                        None
                     }
                 })
                 .collect();
