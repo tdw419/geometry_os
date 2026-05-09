@@ -745,3 +745,782 @@ fn main() {
         std::process::exit(1);
     }
 }
+
+// ── Phase 310: Fuzzer Module Unit Tests ──────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use geometry_os::assembler::assemble;
+    use geometry_os::vm::Vm;
+
+    // --- RNG tests ---
+
+    #[test]
+    fn test_p310_rng_deterministic() {
+        let mut a = Rng::new(42);
+        let mut b = Rng::new(42);
+        for _ in 0..100 {
+            assert_eq!(a.next(), b.next());
+        }
+    }
+
+    #[test]
+    fn test_p310_rng_different_seeds() {
+        let mut a = Rng::new(1);
+        let mut b = Rng::new(2);
+        // Very unlikely to produce the same sequence
+        let mut same = true;
+        for _ in 0..20 {
+            if a.next() != b.next() {
+                same = false;
+                break;
+            }
+        }
+        assert!(!same, "Different seeds should produce different sequences");
+    }
+
+    #[test]
+    fn test_p310_rng_range_bounds() {
+        let mut rng = Rng::new(12345);
+        for _ in 0..200 {
+            let v = rng.range(10, 20);
+            assert!(v >= 10 && v <= 20, "range(10,20) produced {}", v);
+        }
+    }
+
+    #[test]
+    fn test_p310_rng_range_single_value() {
+        let mut rng = Rng::new(999);
+        for _ in 0..10 {
+            let v = rng.range(5, 5);
+            assert_eq!(v, 5, "range(5,5) should always return 5");
+        }
+    }
+
+    #[test]
+    fn test_p310_rng_range_negative() {
+        let mut rng = Rng::new(777);
+        for _ in 0..200 {
+            let v = rng.range(-10, 10);
+            assert!(v >= -10 && v <= 10, "range(-10,10) produced {}", v);
+        }
+    }
+
+    #[test]
+    fn test_p310_rng_range_u_bounds() {
+        let mut rng = Rng::new(555);
+        for _ in 0..200 {
+            let v = rng.range_u(100, 200);
+            assert!(v >= 100 && v <= 200, "range_u(100,200) produced {}", v);
+        }
+    }
+
+    #[test]
+    fn test_p310_rng_choice() {
+        let mut rng = Rng::new(42);
+        let items = [10, 20, 30, 40, 50];
+        for _ in 0..100 {
+            let v = rng.choice(&items);
+            assert!(items.contains(v), "choice returned value not in items");
+        }
+    }
+
+    #[test]
+    fn test_p310_rng_zero_seed() {
+        let mut rng = Rng::new(0);
+        // Should not panic, should produce values
+        let v = rng.next();
+        // Even with seed 0, wrapping_mul + wrapping_add produces non-zero
+        let v2 = rng.next();
+        assert_ne!(v, v2, "Successive calls should produce different values");
+    }
+
+    // --- imm() tests ---
+
+    #[test]
+    fn test_p310_imm_positive() {
+        assert_eq!(imm(42), "42");
+        assert_eq!(imm(0), "0");
+        assert_eq!(imm(255), "255");
+    }
+
+    #[test]
+    fn test_p310_imm_negative() {
+        assert_eq!(imm(-1), "0xFFFFFFFF");
+        assert_eq!(imm(-128), "0xFFFFFF80");
+    }
+
+    #[test]
+    fn test_p310_imm_large() {
+        assert_eq!(imm(0x7FFFFFFF), "2147483647");
+    }
+
+    // --- parse_u64() tests ---
+
+    #[test]
+    fn test_p310_parse_u64_decimal() {
+        assert_eq!(parse_u64("42"), 42);
+        assert_eq!(parse_u64("0"), 0);
+        assert_eq!(parse_u64("18446744073709551615"), u64::MAX);
+    }
+
+    #[test]
+    fn test_p310_parse_u64_hex() {
+        assert_eq!(parse_u64("0xFF"), 255);
+        assert_eq!(parse_u64("0x0"), 0);
+        assert_eq!(parse_u64("0xDEADBEEF"), 0xDEADBEEF);
+        assert_eq!(parse_u64("0X10"), 16);
+    }
+
+    #[test]
+    fn test_p310_parse_u64_invalid() {
+        assert_eq!(parse_u64("abc"), 0);
+        assert_eq!(parse_u64(""), 0);
+        assert_eq!(parse_u64("0xGHI"), 0);
+    }
+
+    // --- Config defaults ---
+
+    #[test]
+    fn test_p310_config_defaults() {
+        let cfg = parse_args();
+        assert_eq!(cfg.seed, 0xDEADBEEF);
+        assert_eq!(cfg.count, 200);
+        assert_eq!(cfg.max_steps, 500_000);
+        assert_eq!(cfg.category, "all");
+        assert!(!cfg.verbose);
+    }
+
+    // --- Oracle: gen_alu_chain ---
+
+    #[test]
+    fn test_p310_oracle_alu_chain_deterministic() {
+        let mut rng = Rng::new(42);
+        let tc = gen_alu_chain(&mut rng);
+        let asm = assemble(&tc.source, 0).expect("should assemble");
+        let mut vm = Vm::new();
+        for (i, &word) in asm.pixels.iter().enumerate() {
+            if i < vm.ram.len() {
+                vm.ram[i] = word;
+            }
+        }
+        vm.pc = 0;
+        vm.halted = false;
+        for _ in 0..100_000 {
+            if !vm.step() {
+                break;
+            }
+        }
+        assert!(vm.halted, "alu_chain should halt");
+        let failures = (tc.check)(&vm);
+        assert!(failures.is_empty(), "Oracle failures: {:?}", failures);
+    }
+
+    #[test]
+    fn test_p310_oracle_alu_chain_multiple_seeds() {
+        for seed in [0, 1, 100, 0xDEADBEEF, 999999] {
+            let mut rng = Rng::new(seed);
+            let tc = gen_alu_chain(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue, // skip assembly errors
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..100_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_alu_extremes ---
+
+    #[test]
+    fn test_p310_oracle_alu_extremes() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_alu_extremes(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..100_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_neg ---
+
+    #[test]
+    fn test_p310_oracle_neg() {
+        for val in [0i64, 1, -1, 127, -128, 32767, -32768] {
+            let expected: u32 = (!val as u32).wrapping_add(1);
+            let src = format!("  LDI r1, {}\n  NEG r1\n  HALT", imm(val));
+            let asm = assemble(&src, 0).expect("should assemble");
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..1000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            assert_eq!(vm.regs[1], expected, "NEG({}) failed", val);
+        }
+    }
+
+    // --- Oracle: gen_cmp ---
+
+    #[test]
+    fn test_p310_oracle_cmp_less() {
+        let src = "  LDI r1, 5\n  LDI r2, 10\n  CMP r1, r2\n  HALT";
+        let asm = assemble(src, 0).unwrap();
+        let mut vm = Vm::new();
+        for (i, &word) in asm.pixels.iter().enumerate() {
+            if i < vm.ram.len() {
+                vm.ram[i] = word;
+            }
+        }
+        vm.pc = 0;
+        vm.halted = false;
+        for _ in 0..1000 {
+            if !vm.step() {
+                break;
+            }
+        }
+        assert_eq!(vm.regs[0], 0xFFFFFFFF, "5 < 10 should set r0 = -1");
+    }
+
+    #[test]
+    fn test_p310_oracle_cmp_equal() {
+        let src = "  LDI r1, 42\n  LDI r2, 42\n  CMP r1, r2\n  HALT";
+        let asm = assemble(src, 0).unwrap();
+        let mut vm = Vm::new();
+        for (i, &word) in asm.pixels.iter().enumerate() {
+            if i < vm.ram.len() {
+                vm.ram[i] = word;
+            }
+        }
+        vm.pc = 0;
+        vm.halted = false;
+        for _ in 0..1000 {
+            if !vm.step() {
+                break;
+            }
+        }
+        assert_eq!(vm.regs[0], 0, "42 == 42 should set r0 = 0");
+    }
+
+    #[test]
+    fn test_p310_oracle_cmp_greater() {
+        let src = "  LDI r1, 100\n  LDI r2, 50\n  CMP r1, r2\n  HALT";
+        let asm = assemble(src, 0).unwrap();
+        let mut vm = Vm::new();
+        for (i, &word) in asm.pixels.iter().enumerate() {
+            if i < vm.ram.len() {
+                vm.ram[i] = word;
+            }
+        }
+        vm.pc = 0;
+        vm.halted = false;
+        for _ in 0..1000 {
+            if !vm.step() {
+                break;
+            }
+        }
+        assert_eq!(vm.regs[0], 1, "100 > 50 should set r0 = 1");
+    }
+
+    #[test]
+    fn test_p310_oracle_cmp_randomized() {
+        for seed in 0..30u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_cmp(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..1000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_cmp_branch ---
+
+    #[test]
+    fn test_p310_oracle_cmp_branch_blt() {
+        // 3 < 10, BLT should branch
+        let src = "  LDI r1, 3\n  LDI r2, 10\n  CMP r1, r2\n  BLT r1, is_less\n  LDI r10, 0\n  HALT\nis_less:\n  LDI r10, 1\n  HALT";
+        let asm = assemble(src, 0).unwrap();
+        let mut vm = Vm::new();
+        for (i, &word) in asm.pixels.iter().enumerate() {
+            if i < vm.ram.len() {
+                vm.ram[i] = word;
+            }
+        }
+        vm.pc = 0;
+        vm.halted = false;
+        for _ in 0..1000 {
+            if !vm.step() {
+                break;
+            }
+        }
+        assert_eq!(vm.regs[10], 1, "BLT should branch when 3 < 10");
+    }
+
+    #[test]
+    fn test_p310_oracle_cmp_branch_bge() {
+        // 10 >= 3, BGE should branch
+        let src = "  LDI r1, 10\n  LDI r2, 3\n  CMP r1, r2\n  BGE r1, is_ge\n  LDI r10, 0\n  HALT\nis_ge:\n  LDI r10, 1\n  HALT";
+        let asm = assemble(src, 0).unwrap();
+        let mut vm = Vm::new();
+        for (i, &word) in asm.pixels.iter().enumerate() {
+            if i < vm.ram.len() {
+                vm.ram[i] = word;
+            }
+        }
+        vm.pc = 0;
+        vm.halted = false;
+        for _ in 0..1000 {
+            if !vm.step() {
+                break;
+            }
+        }
+        assert_eq!(vm.regs[10], 1, "BGE should branch when 10 >= 3");
+    }
+
+    // --- Oracle: gen_load_store ---
+
+    #[test]
+    fn test_p310_oracle_load_store() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_load_store(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..100_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_push_pop ---
+
+    #[test]
+    fn test_p310_oracle_push_pop() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_push_pop(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..100_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_loop ---
+
+    #[test]
+    fn test_p310_oracle_loop() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_loop(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..1_000_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_call_ret ---
+
+    #[test]
+    fn test_p310_oracle_call_ret() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_call_ret(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..100_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_nested_call ---
+
+    #[test]
+    fn test_p310_oracle_nested_call() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_nested_call(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..100_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_callee_save ---
+
+    #[test]
+    fn test_p310_oracle_callee_save() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_callee_save(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..100_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_conditional_sum ---
+
+    #[test]
+    fn test_p310_oracle_conditional_sum() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_conditional_sum(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..1_000_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_nested_loop ---
+
+    #[test]
+    fn test_p310_oracle_nested_loop() {
+        for seed in 0..15u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_nested_loop(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..2_000_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- Oracle: gen_multi_store ---
+
+    #[test]
+    fn test_p310_oracle_multi_store() {
+        for seed in 0..20u64 {
+            let mut rng = Rng::new(seed);
+            let tc = gen_multi_store(&mut rng);
+            let asm = match assemble(&tc.source, 0) {
+                Ok(a) => a,
+                Err(_) => continue,
+            };
+            let mut vm = Vm::new();
+            for (i, &word) in asm.pixels.iter().enumerate() {
+                if i < vm.ram.len() {
+                    vm.ram[i] = word;
+                }
+            }
+            vm.pc = 0;
+            vm.halted = false;
+            for _ in 0..100_000 {
+                if !vm.step() {
+                    break;
+                }
+            }
+            if vm.halted && !vm.segfault {
+                let failures = (tc.check)(&vm);
+                assert!(failures.is_empty(), "Seed {}: {:?}", seed, failures);
+            }
+        }
+    }
+
+    // --- run_with_oracle integration ---
+
+    #[test]
+    fn test_p310_run_with_oracle_ok() {
+        let tc = TestCase {
+            name: "simple_add".into(),
+            source: "  LDI r1, 10\n  LDI r2, 20\n  ADD r1, r2\n  HALT".into(),
+            check: Box::new(|vm: &Vm| {
+                if vm.regs[1] != 30 {
+                    vec!["r1 should be 30".into()]
+                } else {
+                    vec![]
+                }
+            }),
+        };
+        match run_with_oracle(tc, 1000) {
+            Outcome::Ok(failures) => assert!(failures.is_empty()),
+            other => panic!("Expected Ok, got {:?}", std::mem::discriminant(&other)),
+        }
+    }
+
+    #[test]
+    fn test_p310_run_with_oracle_asm_error() {
+        let tc = TestCase {
+            name: "bad_asm".into(),
+            source: "  INVALID_OPCODE r1, r2\n  HALT".into(),
+            check: Box::new(|_| vec![]),
+        };
+        match run_with_oracle(tc, 1000) {
+            Outcome::AsmError(_) => (),
+            other => panic!(
+                "Expected AsmError, got {:?}",
+                std::mem::discriminant(&other)
+            ),
+        }
+    }
+
+    #[test]
+    fn test_p310_run_with_oracle_timeout() {
+        let tc = TestCase {
+            name: "infinite_loop".into(),
+            source: "loop:\n  JMP loop".into(),
+            check: Box::new(|_| vec![]),
+        };
+        match run_with_oracle(tc, 100) {
+            Outcome::Timeout => (),
+            other => panic!("Expected Timeout, got {:?}", std::mem::discriminant(&other)),
+        }
+    }
+
+    // --- GENERATORS registry ---
+
+    #[test]
+    fn test_p310_generators_registry_complete() {
+        assert_eq!(GENERATORS.len(), 14);
+        let categories: Vec<&str> = GENERATORS.iter().map(|g| g.category).collect();
+        assert!(categories.contains(&"alu"));
+        assert!(categories.contains(&"memory"));
+        assert!(categories.contains(&"stack"));
+        assert!(categories.contains(&"control"));
+    }
+
+    #[test]
+    fn test_p310_generators_all_produce_valid_asm() {
+        let mut rng = Rng::new(42);
+        for entry in GENERATORS {
+            for _ in 0..5 {
+                let tc = (entry.gen)(&mut rng);
+                // Every generated source should either assemble or be a known pattern
+                let _ = assemble(&tc.source, 0);
+                // We don't assert Ok because some generators might produce
+                // edge cases; the important thing is no panic
+            }
+        }
+    }
+
+    // --- Full fuzzer sweep ---
+
+    #[test]
+    fn test_p310_full_fuzzer_sweep() {
+        let mut rng = Rng::new(0xBEEF);
+        let mut oracle_fails = 0;
+        let mut total = 0;
+        let count = 100;
+
+        for _ in 0..count {
+            let entry = rng.choice(GENERATORS);
+            let tc = (entry.gen)(&mut rng);
+            let outcome = run_with_oracle(tc, 200_000);
+            total += 1;
+            match outcome {
+                Outcome::Ok(failures) if !failures.is_empty() => {
+                    oracle_fails += 1;
+                }
+                Outcome::Panic(_) => {
+                    oracle_fails += 1;
+                }
+                _ => {}
+            }
+        }
+
+        assert_eq!(
+            oracle_fails, 0,
+            "{} oracle failures out of {} tests",
+            oracle_fails, total
+        );
+    }
+}

@@ -5599,7 +5599,7 @@ phases:
     validation: grep -c "#[test]" src/vm/memory.rs >= 15
 - id: phase-310
   title: GeOS VM -- Fuzzer Module Tests
-  status: todo
+  status: done
   goal: Add unit tests for the fuzzer module (fuzzer.rs, 747 LOC, 0 tests).
   description: 'The VM bytecode fuzzer generates random valid programs and runs them
     against an oracle to catch VM bugs. With 747 LOC and zero tests, the fuzzer itself
@@ -5608,11 +5608,11 @@ phases:
     parsing, and fuzzer lifecycle (start, run, report).'
   deliverables:
   - name: Unit tests for random bytecode generation
-    status: todo
+    status: done
   - name: Unit tests for oracle checking logic
-    status: todo
+    status: done
   - name: Unit tests for fuzzer configuration
-    status: todo
+    status: done
   acceptance_criteria:
   - description: fuzzer.rs has at least 10 unit tests
     validation: grep -c "#[test]" src/fuzzer.rs >= 10
