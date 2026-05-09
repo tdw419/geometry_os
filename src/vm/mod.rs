@@ -1783,6 +1783,7 @@ impl Vm {
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
                     let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    let mut prev_ch: u8 = 0;
                     loop {
                         if addr >= self.ram.len() {
                             break;
@@ -1794,15 +1795,27 @@ impl Vm {
                         if ch == b'\n' {
                             sx = self.regs[xr] as usize;
                             sy += 10;
+                            prev_ch = 0;
                             addr += 1;
                             continue;
                         }
+                        // Apply kerning: adjust x position based on previous character pair
+                        if prev_ch != 0 {
+                            let kern = crate::font::get_kerning(prev_ch, ch);
+                            if kern < 0 {
+                                sx = sx.saturating_sub(-kern as usize);
+                            } else {
+                                sx += kern as usize;
+                            }
+                        }
                         let advance = self.draw_char_vw(ch, sx, sy, fg, bg);
                         sx += advance as usize;
+                        prev_ch = ch;
                         // Word wrap: if we're past column 248, go to next line
                         if sx > 248 {
                             sx = self.regs[xr] as usize;
                             sy += 10;
+                            prev_ch = 0;
                         }
                         addr += 1;
                     }
@@ -5730,8 +5743,7 @@ impl Vm {
                     let vaddr = self.regs[addr_reg];
                     match self.translate_va_or_fault(vaddr) {
                         Some(addr) => {
-                            if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
-                                .contains(&addr)
+                            if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE).contains(&addr)
                             {
                                 self.regs[reg] = self.canvas_buffer[addr - CANVAS_RAM_BASE] & 0xFF;
                             } else if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
@@ -5763,11 +5775,10 @@ impl Vm {
                     self.resolve_cow_if_needed(vaddr);
                     match self.translate_va_or_fault(vaddr) {
                         Some(addr) => {
-                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
-                                .contains(&addr)
-                            {
+                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE).contains(&addr) {
                                 let mask = self.screen[addr - SCREEN_RAM_BASE] & !0xFF;
-                                self.screen[addr - SCREEN_RAM_BASE] = mask | (self.regs[reg] & 0xFF);
+                                self.screen[addr - SCREEN_RAM_BASE] =
+                                    mask | (self.regs[reg] & 0xFF);
                             } else if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
                                 .contains(&addr)
                             {
@@ -5804,10 +5815,10 @@ impl Vm {
                     let vaddr = self.regs[addr_reg];
                     match self.translate_va_or_fault(vaddr) {
                         Some(addr) => {
-                            if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
-                                .contains(&addr)
+                            if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE).contains(&addr)
                             {
-                                self.regs[reg] = self.canvas_buffer[addr - CANVAS_RAM_BASE] & 0xFFFF;
+                                self.regs[reg] =
+                                    self.canvas_buffer[addr - CANVAS_RAM_BASE] & 0xFFFF;
                             } else if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
                                 .contains(&addr)
                             {
@@ -5837,9 +5848,7 @@ impl Vm {
                     self.resolve_cow_if_needed(vaddr);
                     match self.translate_va_or_fault(vaddr) {
                         Some(addr) => {
-                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
-                                .contains(&addr)
-                            {
+                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE).contains(&addr) {
                                 let mask = self.screen[addr - SCREEN_RAM_BASE] & !0xFFFF;
                                 self.screen[addr - SCREEN_RAM_BASE] =
                                     mask | (self.regs[reg] & 0xFFFF);

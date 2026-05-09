@@ -4996,7 +4996,7 @@ phases:
   _claimed_at: 1778288974
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
-  status: planned
+  status: in_progress
   goal: Extend the 8x8 fixed-width font system to support proportional (variable-width)
     character rendering.
   description: The current font system uses uniform 8x8 pixel glyphs. Adding variable-width
@@ -5021,6 +5021,8 @@ phases:
     validation: Pixel collision test between adjacent characters
   - description: Fixed-width mode produces identical output to current TEXT opcode
     validation: Checksum comparison with existing text programs
+  _claimed_by: worker-0
+  _claimed_at: 1778290388
 - id: phase-287
   title: RISC-V Guest -- VirtIO GPU (Simple Display)
   status: planned

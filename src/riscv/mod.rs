@@ -285,7 +285,11 @@ impl RiscvVm {
             self.bus.sbi.gpu_compute_requested.take()
         {
             let req = gpu_bridge::GpuComputeRequest {
-                code_addr, num_words, max_steps, num_tiles, result_addr,
+                code_addr,
+                num_words,
+                max_steps,
+                num_tiles,
+                result_addr,
             };
             let bus_ptr = &mut self.bus as *mut bus::Bus;
             let result_code = unsafe {
@@ -293,7 +297,9 @@ impl RiscvVm {
                 gpu_bridge.execute(
                     &req,
                     |addr| (*bus_ptr).mem.read_word(addr).unwrap_or(0),
-                    |addr, val| { let _ = (*bus_ptr).mem.write_word(addr, val); },
+                    |addr, val| {
+                        let _ = (*bus_ptr).mem.write_word(addr, val);
+                    },
                 )
             };
             self.cpu.x[10] = result_code;

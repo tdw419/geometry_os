@@ -1,142 +1,153 @@
-; font_demo.asm -- Custom Bitmap Font Demo (Phase 98)
-; Loads a custom font into RAM, sets it via IOCTL on /dev/screen,
-; then renders text using TEXT opcode. The custom font replaces
-; the default 5x7 mini font with 8x8 glyphs.
+; font_demo.asm -- Fixed vs proportional text comparison
+; Top half: fixed-width TEXT (opcode 0x44)
+; Bottom half: variable-width VWTXT (opcode 0xDB)
+; Visual demo for Phase 286
 
-; ── Constants ──
-LDI r7, 1
-LDI r8, 0xFF00
-MOV r30, r8           ; SP = 0xFF00
-
-; ── Step 1: Write "/dev/screen" string to RAM at 0x3000 ──
-LDI r10, 0x3000
-LDI r11, 47           ; '/'
+; Write "AVATAR" to RAM at 0x2000
+LDI r10, 0x2000
+LDI r11, 65     ; A
 STORE r10, r11
-ADD r10, r7
-LDI r11, 100          ; 'd'
+LDI r11, 86     ; V
+LDI r12, 1
+ADD r10, r12
 STORE r10, r11
-ADD r10, r7
-LDI r11, 101          ; 'e'
+ADD r10, r12
+LDI r11, 65     ; A
 STORE r10, r11
-ADD r10, r7
-LDI r11, 118          ; 'v'
+ADD r10, r12
+LDI r11, 84     ; T
 STORE r10, r11
-ADD r10, r7
-LDI r11, 47           ; '/'
+ADD r10, r12
+LDI r11, 65     ; A
 STORE r10, r11
-ADD r10, r7
-LDI r11, 115          ; 's'
+ADD r10, r12
+LDI r11, 82     ; R
 STORE r10, r11
-ADD r10, r7
-LDI r11, 99           ; 'c'
-STORE r10, r11
-ADD r10, r7
-LDI r11, 114          ; 'r'
-STORE r10, r11
-ADD r10, r7
-LDI r11, 101          ; 'e'
-STORE r10, r11
-ADD r10, r7
-LDI r11, 101          ; 'e'
-STORE r10, r11
-ADD r10, r7
-LDI r11, 110          ; 'n'
-STORE r10, r11
-ADD r10, r7
-LDI r11, 0            ; null terminator
+ADD r10, r12
+LDI r11, 0      ; null
 STORE r10, r11
 
-; ── Step 2: Build custom font in RAM at 0x2000 ──
-; Font: 128 glyphs x 8 rows = 1024 u32 words
-LDI r14, 0x2000       ; font base address
-
-; Set glyph 'A' (index 65) to a distinctive 8x8 pattern
-; This differs from default 5x7 mini font
-LDI r17, 65
-LDI r18, 8
-MUL r17, r18          ; offset = 65*8 = 520
-ADD r17, r14          ; r17 = 0x2000 + 520
-
-LDI r20, 0x7E         ; row 0: arch top
-STORE r17, r20
-ADD r17, r7
-LDI r20, 0x81         ; row 1
-STORE r17, r20
-ADD r17, r7
-STORE r17, r20        ; row 2
-ADD r17, r7
-LDI r20, 0xFF         ; row 3: middle bar
-STORE r17, r20
-ADD r17, r7
-LDI r20, 0x81         ; row 4
-STORE r17, r20
-ADD r17, r7
-STORE r17, r20        ; row 5
-ADD r17, r7
-STORE r17, r20        ; row 6
-ADD r17, r7
-LDI r20, 0            ; row 7
-STORE r17, r20
-
-; Set glyph 'B' (index 66) to distinctive pattern
-LDI r17, 66
-LDI r18, 8
-MUL r17, r18
-ADD r17, r14
-
-LDI r20, 0xFE         ; row 0
-STORE r17, r20
-ADD r17, r7
-LDI r20, 0x81         ; row 1
-STORE r17, r20
-ADD r17, r7
-STORE r17, r20        ; row 2
-ADD r17, r7
-LDI r20, 0xFE         ; row 3
-STORE r17, r20
-ADD r17, r7
-LDI r20, 0x81         ; row 4
-STORE r17, r20
-ADD r17, r7
-STORE r17, r20        ; row 5
-ADD r17, r7
-LDI r20, 0xFE         ; row 6
-STORE r17, r20
-ADD r17, r7
-LDI r20, 0            ; row 7
-STORE r17, r20
-
-; ── Step 3: Open /dev/screen ──
-LDI r1, 0x3000        ; path addr
-LDI r2, 0             ; mode = 0 (read)
-OPEN r1, r2           ; fd in r0
-
-; ── Step 4: Set custom font via IOCTL cmd 2 ──
-MOV r3, r0            ; r3 = screen fd
-LDI r4, 2             ; cmd = 2 (set font)
-LDI r5, 0x2000        ; arg = font RAM address
-IOCTL r3, r4, r5
-; r0 = 0 on success
-
-; ── Step 5: Write "AB" to RAM ──
-LDI r10, 0x4000
-LDI r11, 65           ; 'A'
+; Write "MILLION" to RAM at 0x2100
+LDI r10, 0x2100
+LDI r11, 77     ; M
 STORE r10, r11
-ADD r10, r7
-LDI r11, 66           ; 'B'
+LDI r12, 1
+LDI r13, 73     ; I
+ADD r10, r12
+STORE r10, r13
+ADD r10, r12
+STORE r10, r13   ; I
+ADD r10, r12
+LDI r13, 76     ; L
+STORE r10, r13
+ADD r10, r12
+LDI r13, 76     ; L
+STORE r10, r13
+ADD r10, r12
+LDI r13, 73     ; I
+STORE r10, r13
+ADD r10, r12
+LDI r13, 79     ; O
+STORE r10, r13
+ADD r10, r12
+LDI r13, 78     ; N
+STORE r10, r13
+ADD r10, r12
+LDI r13, 0
+STORE r10, r13
+
+; Write "illi" to RAM at 0x2200 (narrow test)
+LDI r10, 0x2200
+LDI r11, 105    ; i
 STORE r10, r11
-ADD r10, r7
-LDI r11, 0            ; null
+LDI r12, 1
+ADD r10, r12
+LDI r11, 108    ; l
+STORE r10, r11
+ADD r10, r12
+STORE r10, r11
+ADD r10, r12
+LDI r11, 105    ; i
+STORE r10, r11
+ADD r10, r12
+LDI r11, 0
 STORE r10, r11
 
-; ── Step 6: Render text with custom font ──
-LDI r1, 10            ; x = 10
-LDI r2, 10            ; y = 10
-LDI r3, 0x4000        ; addr of string
-TEXT r1, r2, r3
+; ── Top half: Fixed-width TEXT ──
+; Row label
+LDI r1, 5
+LDI r2, 2
+LDI r3, 0x888888
+LDI r0, 0x2300
+LDI r11, 70     ; F
+STORE r0, r11
+LDI r12, 1
+ADD r0, r12
+LDI r11, 73     ; I
+STORE r0, r11
+ADD r0, r12
+LDI r11, 88     ; X
+STORE r0, r11
+ADD r0, r12
+LDI r11, 69     ; E
+STORE r0, r11
+ADD r0, r12
+LDI r11, 68     ; D
+STORE r0, r11
+ADD r0, r12
+LDI r11, 0
+STORE r0, r11
+; TEXT x_reg, y_reg, addr_reg
+LDI r10, 0x2300
+TEXT r1, r2, r10
 
-; ── Step 7: Clear font via IOCTL cmd 3 ──
-LDI r4, 3             ; cmd = 3 (clear font)
-IOCTL r3, r4, r5
+; "AVATAR" in fixed-width at y=20
+LDI r2, 20
+LDI r3, 0xFFFFFF
+LDI r10, 0x2000
+TEXT r1, r2, r10
+
+; "MILLION" in fixed-width at y=40
+LDI r2, 40
+LDI r10, 0x2100
+TEXT r1, r2, r10
+
+; "illi" in fixed-width at y=60
+LDI r2, 60
+LDI r10, 0x2200
+TEXT r1, r2, r10
+
+; ── Divider line ──
+LDI r1, 0
+LDI r2, 90
+LDI r3, 255
+LDI r4, 0x444444
+LINE r1, r2, r3, r2, r4
+
+; ── Bottom half: Variable-width VWTXT ──
+; Row label (same text, VWTXT)
+LDI r1, 5
+LDI r2, 100
+LDI r3, 0x888888
+LDI r10, 0x2300
+; VWTXT x_reg, y_reg, addr_reg, fg_reg, bg_reg
+LDI r4, 0x000000
+VWTXT r1, r2, r10, r3, r4
+
+; "AVATAR" in proportional at y=120
+LDI r2, 120
+LDI r3, 0xFFFFFF
+LDI r10, 0x2000
+VWTXT r1, r2, r10, r3, r4
+
+; "MILLION" in proportional at y=140
+LDI r2, 140
+LDI r10, 0x2100
+VWTXT r1, r2, r10, r3, r4
+
+; "illi" in proportional at y=160
+LDI r2, 160
+LDI r10, 0x2200
+VWTXT r1, r2, r10, r3, r4
 
 HALT

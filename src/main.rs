@@ -3476,7 +3476,8 @@ fn main() {
                                 }
 
                                 if kernel_path.is_empty() {
-                                    response.push_str("[error: linux_boot requires kernel=<path>]\n");
+                                    response
+                                        .push_str("[error: linux_boot requires kernel=<path>]\n");
                                 } else {
                                     match std::fs::read(&kernel_path) {
                                         Ok(kernel_data) => {
@@ -3485,7 +3486,7 @@ fn main() {
                                             } else {
                                                 None
                                             };
-                                            
+
                                             // Kill existing
                                             if riscv_handle.is_some() {
                                                 riscv_handle = None;
@@ -3505,7 +3506,10 @@ fn main() {
                                             match spawn_vm_thread(config) {
                                                 Ok(h) => {
                                                     riscv_handle = Some(h);
-                                                    response.push_str(&format!("[linux: booting kernel={} ram={}MB]\n", kernel_path, ram_mb));
+                                                    response.push_str(&format!(
+                                                        "[linux: booting kernel={} ram={}MB]\n",
+                                                        kernel_path, ram_mb
+                                                    ));
                                                 }
                                                 Err(e) => {
                                                     response.push_str(&format!("[error: {}]\n", e));
@@ -3513,7 +3517,10 @@ fn main() {
                                             }
                                         }
                                         Err(e) => {
-                                            response.push_str(&format!("[error: could not read kernel {}: {}]\n", kernel_path, e));
+                                            response.push_str(&format!(
+                                                "[error: could not read kernel {}: {}]\n",
+                                                kernel_path, e
+                                            ));
                                         }
                                     }
                                 }

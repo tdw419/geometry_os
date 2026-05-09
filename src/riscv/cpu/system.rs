@@ -132,8 +132,13 @@ impl RiscvCpu {
                         &mut bus.clint,
                     );
 
-                    eprintln!("[cpu] ECALL at PC=0x{:08X}, a7=0x{:08X}, a6=0x{:X}, sbi_hit={}", 
-                        self.pc, a7, a6, sbi_result.is_some());
+                    eprintln!(
+                        "[cpu] ECALL at PC=0x{:08X}, a7=0x{:08X}, a6=0x{:X}, sbi_hit={}",
+                        self.pc,
+                        a7,
+                        a6,
+                        sbi_result.is_some()
+                    );
 
                     if let Some((ret_a0, ret_a1)) = sbi_result {
                         self.x[10] = ret_a0;

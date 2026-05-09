@@ -1918,7 +1918,11 @@ fn test_asmself_handles_invalid_assembly_gracefully() {
     vm.step();
 
     // Status port should be error sentinel
-    assert_eq!(vm.ram[0xFFD], geos_errno(GEOS_EIO), "ASMSELF should report error");
+    assert_eq!(
+        vm.ram[0xFFD],
+        geos_errno(GEOS_EIO),
+        "ASMSELF should report error"
+    );
 
     // VM should NOT be halted -- continues executing
     assert!(!vm.halted, "VM should survive ASMSELF error");
@@ -12623,7 +12627,8 @@ fn test_scrshot_error_on_bad_path() {
     }
 
     assert_eq!(
-        vm.regs[0], geos_errno(GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(GEOS_EINVAL),
         "SCRSHOT should fail with empty filename"
     );
 }
@@ -12746,7 +12751,8 @@ fn test_savepng_error_on_bad_path() {
     }
 
     assert_eq!(
-        vm.regs[0], geos_errno(GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(GEOS_EINVAL),
         "SAVEPNG should fail with empty filename"
     );
 }
@@ -17887,10 +17893,10 @@ fn test_font_demo_assembles() {
         "should have bytecode, got {} words",
         asm.pixels.len()
     );
-    // Verify IOCTL opcode present
+    // Verify VWTXT opcode present
     assert!(
-        asm.pixels.iter().any(|&p| p == 0x62),
-        "should contain IOCTL opcode (0x62)"
+        asm.pixels.iter().any(|&p| p == 0xDB),
+        "should contain VWTXT opcode (0xDB)"
     );
 }
 
@@ -22561,7 +22567,8 @@ fn test_unlink_nonexistent_file() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], geos_errno(GEOS_ENOENT),
+        vm.regs[0],
+        geos_errno(GEOS_ENOENT),
         "UNLINK should return error for nonexistent file"
     );
 }
@@ -22587,7 +22594,11 @@ fn test_unlink_path_traversal_blocked() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL), "UNLINK should block path traversal");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(GEOS_EINVAL),
+        "UNLINK should block path traversal"
+    );
 }
 
 #[test]
@@ -22656,7 +22667,8 @@ fn test_fcopy_nonexistent_source() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], geos_errno(GEOS_EIO),
+        vm.regs[0],
+        geos_errno(GEOS_EIO),
         "FCOPY should error on nonexistent source"
     );
 }
@@ -35022,12 +35034,15 @@ fn test_loadb_zero_extends_low_byte() {
     vm.ram[0x2000] = 0xAABBCCDD;
     // LOADB r1, r10 where r10 = 0x2000
     vm.ram[0] = 0xFB; // LOADB
-    vm.ram[1] = 1;    // dest = r1
-    vm.ram[2] = 10;   // addr = r10
+    vm.ram[1] = 1; // dest = r1
+    vm.ram[2] = 10; // addr = r10
     vm.regs[10] = 0x2000;
     vm.pc = 0;
     vm.step();
-    assert_eq!(vm.regs[1], 0xDD, "LOADB should extract low byte and zero-extend");
+    assert_eq!(
+        vm.regs[1], 0xDD,
+        "LOADB should extract low byte and zero-extend"
+    );
 }
 
 #[test]
@@ -35036,12 +35051,15 @@ fn test_loadh_zero_extends_low_halfword() {
     vm.ram[0x2000] = 0xAABBCCDD;
     // LOADH r1, r10 where r10 = 0x2000
     vm.ram[0] = 0xFD; // LOADH
-    vm.ram[1] = 1;    // dest = r1
-    vm.ram[2] = 10;   // addr = r10
+    vm.ram[1] = 1; // dest = r1
+    vm.ram[2] = 10; // addr = r10
     vm.regs[10] = 0x2000;
     vm.pc = 0;
     vm.step();
-    assert_eq!(vm.regs[1], 0xCCDD, "LOADH should extract low halfword and zero-extend");
+    assert_eq!(
+        vm.regs[1], 0xCCDD,
+        "LOADH should extract low halfword and zero-extend"
+    );
 }
 
 #[test]
@@ -35050,13 +35068,16 @@ fn test_storeb_preserves_upper_bytes() {
     vm.ram[0x2000] = 0xAABBCC00;
     // STOREB r10, r1 where r10 = 0x2000, r1 = 0xFF
     vm.ram[0] = 0xFC; // STOREB
-    vm.ram[1] = 10;   // addr = r10
-    vm.ram[2] = 1;    // src = r1
+    vm.ram[1] = 10; // addr = r10
+    vm.ram[2] = 1; // src = r1
     vm.regs[10] = 0x2000;
     vm.regs[1] = 0xFF;
     vm.pc = 0;
     vm.step();
-    assert_eq!(vm.ram[0x2000], 0xAABBCCFF, "STOREB should preserve upper 24 bits");
+    assert_eq!(
+        vm.ram[0x2000], 0xAABBCCFF,
+        "STOREB should preserve upper 24 bits"
+    );
 }
 
 #[test]
@@ -35065,13 +35086,16 @@ fn test_storeh_preserves_upper_halfword() {
     vm.ram[0x2000] = 0xAA000000;
     // STOREH r10, r1 where r10 = 0x2000, r1 = 0xBEEF
     vm.ram[0] = 0xFE; // STOREH
-    vm.ram[1] = 10;   // addr = r10
-    vm.ram[2] = 1;    // src = r1
+    vm.ram[1] = 10; // addr = r10
+    vm.ram[2] = 1; // src = r1
     vm.regs[10] = 0x2000;
     vm.regs[1] = 0xBEEF;
     vm.pc = 0;
     vm.step();
-    assert_eq!(vm.ram[0x2000], 0xAA00BEEF, "STOREH should preserve upper 16 bits");
+    assert_eq!(
+        vm.ram[0x2000], 0xAA00BEEF,
+        "STOREH should preserve upper 16 bits"
+    );
 }
 
 #[test]
@@ -35086,7 +35110,10 @@ fn test_storeb_masks_high_bits_of_source() {
     vm.regs[1] = 0x1FF;
     vm.pc = 0;
     vm.step();
-    assert_eq!(vm.ram[0x2000], 0x000000FF, "STOREB should mask source to low 8 bits");
+    assert_eq!(
+        vm.ram[0x2000], 0x000000FF,
+        "STOREB should mask source to low 8 bits"
+    );
 }
 
 #[test]
@@ -35101,7 +35128,10 @@ fn test_storeh_masks_high_bits_of_source() {
     vm.regs[1] = 0x1FFFF;
     vm.pc = 0;
     vm.step();
-    assert_eq!(vm.ram[0x2000], 0x0000FFFF, "STOREH should mask source to low 16 bits");
+    assert_eq!(
+        vm.ram[0x2000], 0x0000FFFF,
+        "STOREH should mask source to low 16 bits"
+    );
 }
 
 #[test]
@@ -35151,7 +35181,10 @@ fn test_loadb_storeb_roundtrip() {
     vm.regs[11] = 0x2001;
     vm.pc = 3;
     vm.step();
-    assert_eq!(vm.ram[0x2001], 0xDEADBE78, "STOREB roundtrip should write extracted byte");
+    assert_eq!(
+        vm.ram[0x2001], 0xDEADBE78,
+        "STOREB roundtrip should write extracted byte"
+    );
 }
 
 #[test]
@@ -35175,7 +35208,10 @@ fn test_loadh_storeh_roundtrip() {
     vm.regs[11] = 0x2001;
     vm.pc = 3;
     vm.step();
-    assert_eq!(vm.ram[0x2001], 0xDEAD5678, "STOREH roundtrip should write extracted halfword");
+    assert_eq!(
+        vm.ram[0x2001], 0xDEAD5678,
+        "STOREH roundtrip should write extracted halfword"
+    );
 }
 
 #[test]

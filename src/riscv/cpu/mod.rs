@@ -360,7 +360,10 @@ impl RiscvCpu {
         };
 
         if word == 0x00000073 {
-            eprintln!("[cpu] ECALL at PC=0x{:08X}, priv={:?}, a7=0x{:08X}", self.pc, self.privilege, self.x[17]);
+            eprintln!(
+                "[cpu] ECALL at PC=0x{:08X}, priv={:?}, a7=0x{:08X}",
+                self.pc, self.privilege, self.x[17]
+            );
         }
         let result = self.execute(op, bus, inst_len);
 

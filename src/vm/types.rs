@@ -190,17 +190,17 @@ pub const DEVICE_COUNT: usize = 4;
 ///
 /// Encoding: -(error_number). The absolute value is the error number.
 /// This makes error detection trivial: if r0 has bit 31 set, it's an error.
-pub const GEOS_ENOMEM: u32 = 1;  // Out of memory / no fd slots available
-pub const GEOS_ENOENT: u32 = 2;  // No such file or directory
-pub const GEOS_EPERM:  u32 = 3;  // Operation not permitted (capability denied)
-pub const GEOS_EIO:    u32 = 4;  // I/O error (read/write failed)
-pub const GEOS_EISDIR: u32 = 5;  // Is a directory (can't open dir as file)
-pub const GEOS_ENOSPC: u32 = 6;  // No space left on device
-pub const GEOS_EINVAL: u32 = 7;  // Invalid argument
-pub const GEOS_EBADF:  u32 = 8;  // Bad file descriptor
-pub const GEOS_EACCES: u32 = 9;  // Permission denied (wrong mode)
+pub const GEOS_ENOMEM: u32 = 1; // Out of memory / no fd slots available
+pub const GEOS_ENOENT: u32 = 2; // No such file or directory
+pub const GEOS_EPERM: u32 = 3; // Operation not permitted (capability denied)
+pub const GEOS_EIO: u32 = 4; // I/O error (read/write failed)
+pub const GEOS_EISDIR: u32 = 5; // Is a directory (can't open dir as file)
+pub const GEOS_ENOSPC: u32 = 6; // No space left on device
+pub const GEOS_EINVAL: u32 = 7; // Invalid argument
+pub const GEOS_EBADF: u32 = 8; // Bad file descriptor
+pub const GEOS_EACCES: u32 = 9; // Permission denied (wrong mode)
 pub const GEOS_ENFILE: u32 = 10; // File table overflow (too many open files)
-pub const GEOS_ESRCH:  u32 = 11; // No such process (for MSGSND)
+pub const GEOS_ESRCH: u32 = 11; // No such process (for MSGSND)
 
 /// Encode a GEOS error code as a negative u32 for return in r0.
 /// Example: geos_errno(GEOS_ENOENT) returns 0xFFFFFFFE (-2 in two's complement).
@@ -1561,7 +1561,8 @@ mod capability_tests {
 
         // Should return EPERM, not the device fd
         assert_eq!(
-            vm.regs[0], geos_errno(GEOS_EPERM),
+            vm.regs[0],
+            geos_errno(GEOS_EPERM),
             "Should deny access to /dev/keyboard"
         );
     }
@@ -1661,7 +1662,8 @@ mod capability_tests {
 
         // Should deny write access
         assert_eq!(
-            vm.regs[0], geos_errno(GEOS_EPERM),
+            vm.regs[0],
+            geos_errno(GEOS_EPERM),
             "Should deny write to /dev/screen with read-only cap"
         );
     }

@@ -674,7 +674,6 @@ impl RiscvVm {
             eprintln!("[boot] Patched sbi_debug_console_write to force enable output");
         }
 
-
         // Patch calibrate_delay to return immediately.
         // calibrate_delay() at VA 0xC00080DA (PA 0x00080DA) runs an
         // exponentially-growing loop calling udelay() to measure CPU speed.

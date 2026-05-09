@@ -323,20 +323,12 @@ impl Bus {
             let processed = match queue_idx {
                 1 => {
                     // TX queue
-                    virtio_net.process_tx_queue(
-                        &mut read_word,
-                        &mut write_word,
-                        &mut read_bytes,
-                    )
+                    virtio_net.process_tx_queue(&mut read_word, &mut write_word, &mut read_bytes)
                 }
                 0 => {
                     // RX queue -- first poll UDP socket, then deliver
                     virtio_net.poll_udp_socket();
-                    virtio_net.process_rx_queue(
-                        &mut read_word,
-                        &mut write_word,
-                        &mut write_bytes,
-                    )
+                    virtio_net.process_rx_queue(&mut read_word, &mut write_word, &mut write_bytes)
                 }
                 _ => 0, // Control queue (2) not implemented
             };
@@ -1156,12 +1148,14 @@ mod tests {
     fn bus_virtio_net_read_magic_and_device_id() {
         let mut bus = Bus::new(0x8000_0000, 4096);
         // Read magic value at VIRTIO_NET_BASE
-        let magic = bus.read_word(super::super::virtio_net::VIRTIO_NET_BASE)
+        let magic = bus
+            .read_word(super::super::virtio_net::VIRTIO_NET_BASE)
             .expect("should read magic");
         assert_eq!(magic, 0x7472_6976); // "virt"
 
         // Read device ID (net = 1)
-        let dev_id = bus.read_word(super::super::virtio_net::VIRTIO_NET_BASE + 8)
+        let dev_id = bus
+            .read_word(super::super::virtio_net::VIRTIO_NET_BASE + 8)
             .expect("should read device ID");
         assert_eq!(dev_id, 1);
     }
@@ -1215,8 +1209,14 @@ mod tests {
 
         let features = bus.read_word(base + 16).expect("device_features");
         // MAC and STATUS feature bits should be set
-        assert!(features & (1 << 5) != 0, "MAC feature (bit 5) should be set");
-        assert!(features & (1 << 16) != 0, "STATUS feature (bit 16) should be set");
+        assert!(
+            features & (1 << 5) != 0,
+            "MAC feature (bit 5) should be set"
+        );
+        assert!(
+            features & (1 << 16) != 0,
+            "STATUS feature (bit 16) should be set"
+        );
     }
 
     #[test]

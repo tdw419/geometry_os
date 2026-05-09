@@ -217,7 +217,11 @@ impl VirtioNet {
         Self {
             status: 0,
             queue_sel: 0,
-            queues: [VirtQueue::default(), VirtQueue::default(), VirtQueue::default()],
+            queues: [
+                VirtQueue::default(),
+                VirtQueue::default(),
+                VirtQueue::default(),
+            ],
             driver_features: 0,
             // Advertise MAC and STATUS feature bits
             device_features: (1 << VIRTIO_NET_F_MAC) | (1 << VIRTIO_NET_F_STATUS),
@@ -247,9 +251,7 @@ impl VirtioNet {
         }
         match UdpSocket::bind(("0.0.0.0", port)) {
             Ok(socket) => {
-                socket
-                    .set_nonblocking(true)
-                    .ok(); // best-effort non-blocking
+                socket.set_nonblocking(true).ok(); // best-effort non-blocking
                 dev.udp_socket = Some(socket);
             }
             Err(e) => {
@@ -736,10 +738,7 @@ mod tests {
         let dev = VirtioNet::new();
         // First config word: mac[0..4]
         let w0 = dev.read(VIRTIO_NET_BASE + CONFIG).unwrap();
-        assert_eq!(
-            w0,
-            u32::from_le_bytes([0xDE, 0xAD, 0xBE, 0xEF])
-        );
+        assert_eq!(w0, u32::from_le_bytes([0xDE, 0xAD, 0xBE, 0xEF]));
         // Second config word: mac[4..6] + link_status
         let w1 = dev.read(VIRTIO_NET_BASE + CONFIG_MAC_HI).unwrap();
         assert_eq!(

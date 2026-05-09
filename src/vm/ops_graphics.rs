@@ -675,6 +675,7 @@ impl Vm {
                         addr as u32
                     );
                     let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    let mut prev_ch: u8 = 0;
                     loop {
                         if addr >= self.ram.len() {
                             break;
@@ -686,15 +687,27 @@ impl Vm {
                         if ch == b'\n' {
                             sx = self.regs[xr] as usize;
                             sy += 10;
+                            prev_ch = 0;
                             addr += 1;
                             continue;
                         }
+                        // Apply kerning: adjust x position based on previous character pair
+                        if prev_ch != 0 {
+                            let kern = crate::font::get_kerning(prev_ch, ch);
+                            if kern < 0 {
+                                sx = sx.saturating_sub(-kern as usize);
+                            } else {
+                                sx += kern as usize;
+                            }
+                        }
                         let advance = self.draw_char_vw(ch, sx, sy, fg, bg);
                         sx += advance as usize;
+                        prev_ch = ch;
                         // Word wrap: if we're past column 248, go to next line
                         if sx > 248 {
                             sx = self.regs[xr] as usize;
                             sy += 10;
+                            prev_ch = 0;
                         }
                         addr += 1;
                     }

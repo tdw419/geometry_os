@@ -310,7 +310,13 @@ impl Sbi {
         clint: &mut super::clint::Clint,
     ) -> Option<(u32, u32)> {
         // Log ECALL arguments for debugging (before they're modified)
-        if a7 != 0x54494D45 && a7 != 0 { eprintln!("[sbi] call a7=0x{:08X} a6=0x{:X} a0=0x{:X} a1=0x{:X} a2=0x{:X} a3=0x{:X}", a7, a6, a0, a1, a2, a3); } self.ecall_log.push((a7, a6, a0));
+        if a7 != 0x54494D45 && a7 != 0 {
+            eprintln!(
+                "[sbi] call a7=0x{:08X} a6=0x{:X} a0=0x{:X} a1=0x{:X} a2=0x{:X} a3=0x{:X}",
+                a7, a6, a0, a1, a2, a3
+            );
+        }
+        self.ecall_log.push((a7, a6, a0));
         match a7 {
             // SBI v0.1 legacy calls (extension ID is the function ID, a6=0)
             SBI_CONSOLE_PUTCHAR => {
@@ -344,9 +350,12 @@ impl Sbi {
                 clint.mtimecmp = new_mtimecmp;
                 // Debug: log first few timer sets
                 if clint.timer_set_count < 10 {
-                    eprintln!("[sbi] SET_TIMER: mtimecmp={} mtime={} delta={}",
-                        new_mtimecmp, current_mtime,
-                        new_mtimecmp.wrapping_sub(current_mtime));
+                    eprintln!(
+                        "[sbi] SET_TIMER: mtimecmp={} mtime={} delta={}",
+                        new_mtimecmp,
+                        current_mtime,
+                        new_mtimecmp.wrapping_sub(current_mtime)
+                    );
                     clint.timer_set_count += 1;
                 }
                 Some((SBI_SUCCESS as u32, 0))

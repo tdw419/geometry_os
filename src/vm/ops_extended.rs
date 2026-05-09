@@ -63,7 +63,8 @@ impl Vm {
                                             }
                                             self.regs[0] = 0; // success
                                         } else {
-                                            self.regs[0] = geos_errno(GEOS_EINVAL); // bad address
+                                            self.regs[0] = geos_errno(GEOS_EINVAL);
+                                            // bad address
                                         }
                                     }
                                     // cmd 3: clear custom font (revert to default)

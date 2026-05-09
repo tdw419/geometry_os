@@ -435,8 +435,13 @@ fn vm_thread_main(
             *instruction_count.borrow_mut() = count;
 
             if count % 2_000_000 == 0 {
-                eprintln!("[riscv-vm] Executed {}M instructions, mtime={}, PC=0x{:08X}, priv={:?}",
-                    count / 1_000_000, vm.bus.clint.mtime, vm.cpu.pc, vm.cpu.privilege);
+                eprintln!(
+                    "[riscv-vm] Executed {}M instructions, mtime={}, PC=0x{:08X}, priv={:?}",
+                    count / 1_000_000,
+                    vm.bus.clint.mtime,
+                    vm.cpu.pc,
+                    vm.cpu.privilege
+                );
             }
 
             // Print any new console output from the guest (SBI or UART)
@@ -473,7 +478,8 @@ fn vm_thread_main(
             // Linux-mode trap forwarding
             if is_linux && vm.cpu.pc == fw_addr_u32 {
                 let cause = vm.cpu.csr.mcause;
-                if cause != 0xB { // Not ECALL_M
+                if cause != 0xB {
+                    // Not ECALL_M
                     // Forward M-mode trap to S-mode
                     vm.cpu.csr.stval = vm.cpu.csr.mtval;
                     vm.cpu.csr.sepc = vm.cpu.csr.mepc;
@@ -526,7 +532,10 @@ fn vm_thread_main(
         // Yield to host
         thread::yield_now();
     }
-    eprintln!("[riscv-vm] Thread exited cleanly after {} instructions", count);
+    eprintln!(
+        "[riscv-vm] Thread exited cleanly after {} instructions",
+        count
+    );
 }
 
 // ── Tests ────────────────────────────────────────────────────────
