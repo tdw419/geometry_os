@@ -931,4 +931,282 @@ mod tests {
 
         let _ = fs::remove_dir_all(&dir);
     }
+
+    // ── Error code propagation tests ───────────────────────────────
+
+    #[test]
+    fn test_vfs_open_nonexistent_returns_enoent() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_enoent");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        let mut ram = vec![0u32; 256];
+        let name = "missing.txt";
+        for (i, ch) in name.bytes().enumerate() {
+            ram[100 + i] = ch as u32;
+        }
+        ram[100 + name.len()] = 0;
+
+        let fd = vfs.fopen(&ram, 100, FOPEN_READ, 0);
+        assert_eq!(fd, geos_errno(GEOS_ENOENT));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_open_directory_returns_eisdir() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_eisdir");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+        let subdir = dir.join("subdir");
+        let _ = fs::create_dir_all(&subdir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        let mut ram = vec![0u32; 256];
+        let name = "subdir";
+        for (i, ch) in name.bytes().enumerate() {
+            ram[100 + i] = ch as u32;
+        }
+        ram[100 + name.len()] = 0;
+
+        let fd = vfs.fopen(&ram, 100, FOPEN_READ, 0);
+        assert_eq!(fd, geos_errno(GEOS_EISDIR));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_open_invalid_name_returns_einval() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_einval");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        let mut ram = vec![0u32; 256];
+
+        // Empty name
+        ram[100] = 0;
+        assert_eq!(vfs.fopen(&ram, 100, FOPEN_READ, 0), geos_errno(GEOS_EINVAL));
+
+        // Name with path separator
+        let path_name = "sub/file.txt";
+        for (i, ch) in path_name.bytes().enumerate() {
+            ram[100 + i] = ch as u32;
+        }
+        ram[100 + path_name.len()] = 0;
+        assert_eq!(vfs.fopen(&ram, 100, FOPEN_READ, 0), geos_errno(GEOS_EINVAL));
+
+        // Name with parent traversal
+        let dotdot = "..";
+        for (i, ch) in dotdot.bytes().enumerate() {
+            ram[100 + i] = ch as u32;
+        }
+        ram[100 + dotdot.len()] = 0;
+        assert_eq!(vfs.fopen(&ram, 100, FOPEN_READ, 0), geos_errno(GEOS_EINVAL));
+
+        // Invalid mode
+        let name = "test.txt";
+        for (i, ch) in name.bytes().enumerate() {
+            ram[100 + i] = ch as u32;
+        }
+        ram[100 + name.len()] = 0;
+        assert_eq!(vfs.fopen(&ram, 100, 99, 0), geos_errno(GEOS_EINVAL));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_read_bad_fd_returns_ebadf() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_read_ebadf");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+        let mut ram = vec![0u32; 256];
+
+        let n = vfs.fread(&mut ram, 99, 0, 10, 0);
+        assert_eq!(n, geos_errno(GEOS_EBADF));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_read_write_only_returns_eacces() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_read_eacces");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        let mut ram = vec![0u32; 256];
+        let name = "writeonly.txt";
+        for (i, ch) in name.bytes().enumerate() {
+            ram[100 + i] = ch as u32;
+        }
+        ram[100 + name.len()] = 0;
+
+        let fd = vfs.fopen(&ram, 100, FOPEN_WRITE, 0);
+        assert_ne!(fd, FD_ERROR);
+
+        let n = vfs.fread(&mut ram, fd, 200, 10, 0);
+        assert_eq!(n, geos_errno(GEOS_EACCES));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_write_bad_fd_returns_ebadf() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_write_ebadf");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+        let ram = vec![0u32; 256];
+
+        let n = vfs.fwrite(&ram, 99, 0, 10, 0);
+        assert_eq!(n, geos_errno(GEOS_EBADF));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_write_read_only_returns_eacces() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_write_eacces");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+        fs::write(dir.join("readonly.txt"), b"data").expect("filesystem operation failed");
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        let mut ram = vec![0u32; 256];
+        let name = "readonly.txt";
+        for (i, ch) in name.bytes().enumerate() {
+            ram[100 + i] = ch as u32;
+        }
+        ram[100 + name.len()] = 0;
+
+        let fd = vfs.fopen(&ram, 100, FOPEN_READ, 0);
+        assert_ne!(fd, FD_ERROR);
+
+        let n = vfs.fwrite(&ram, fd, 200, 10, 0);
+        assert_eq!(n, geos_errno(GEOS_EACCES));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_close_bad_fd_returns_ebadf() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_close_ebadf");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        assert_eq!(vfs.fclose(99, 0), geos_errno(GEOS_EBADF));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_seek_bad_fd_returns_ebadf() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_seek_ebadf");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        let pos = vfs.fseek(99, 0, FSEEK_SET, 0);
+        assert_eq!(pos, geos_errno(GEOS_EBADF));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_seek_invalid_whence_returns_einval() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_seek_einval");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+        fs::write(dir.join("seek.txt"), b"Hello World").expect("filesystem operation failed");
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        let mut ram = vec![0u32; 256];
+        let name = "seek.txt";
+        for (i, ch) in name.bytes().enumerate() {
+            ram[100 + i] = ch as u32;
+        }
+        ram[100 + name.len()] = 0;
+
+        let fd = vfs.fopen(&ram, 100, FOPEN_READ, 0);
+        assert_ne!(fd, FD_ERROR);
+
+        let pos = vfs.fseek(fd, 0, 99, 0);
+        assert_eq!(pos, geos_errno(GEOS_EINVAL));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_vfs_open_null_address_returns_einval() {
+        let dir = std::env::temp_dir().join("geo_test_vfs_null");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::create_dir_all(&dir);
+
+        let mut vfs = Vfs::new();
+        vfs.base_dir = dir.clone();
+
+        // Address 0 with null byte = empty string = invalid
+        let ram = vec![0u32; 256];
+        let fd = vfs.fopen(&ram, 0, FOPEN_READ, 0);
+        assert_eq!(fd, geos_errno(GEOS_EINVAL));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_geos_errno_negative() {
+        // Verify geos_errno produces two's complement negative values
+        assert_eq!(geos_errno(GEOS_ENOENT), 0xFFFFFFFE); // -2
+        assert_eq!(geos_errno(GEOS_EPERM), 0xFFFFFFFD);  // -3
+        assert_eq!(geos_errno(GEOS_EIO), 0xFFFFFFFC);    // -4
+        assert_eq!(geos_errno(GEOS_EINVAL), 0xFFFFFFF9); // -7
+        assert_eq!(geos_errno(GEOS_EBADF), 0xFFFFFFF8);  // -8
+    }
+
+    #[test]
+    fn test_is_geos_errno_detects_errors() {
+        // Positive values and zero are NOT errors
+        assert!(!is_geos_errno(0));
+        assert!(!is_geos_errno(1));
+        assert!(!is_geos_errno(100));
+        assert!(!is_geos_errno(0x7FFFFFFF));
+
+        // geos_errno results ARE errors
+        assert!(is_geos_errno(geos_errno(GEOS_ENOENT)));
+        assert!(is_geos_errno(geos_errno(GEOS_EPERM)));
+        assert!(is_geos_errno(geos_errno(GEOS_EIO)));
+        assert!(is_geos_errno(geos_errno(GEOS_EINVAL)));
+        assert!(is_geos_errno(geos_errno(GEOS_EBADF)));
+        assert!(is_geos_errno(geos_errno(GEOS_ENOSPC)));
+        assert!(is_geos_errno(geos_errno(GEOS_EISDIR)));
+        assert!(is_geos_errno(geos_errno(GEOS_EACCES)));
+        assert!(is_geos_errno(geos_errno(GEOS_ENFILE)));
+
+        // The old sentinel 0xFFFFFFFF is also detected
+        assert!(is_geos_errno(0xFFFFFFFF));
+    }
 }

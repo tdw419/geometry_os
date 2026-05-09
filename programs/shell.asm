@@ -1097,12 +1097,18 @@ do_cat:
     ; Argument (filename) at 0x0600
     LDI r1, 0x0600       ; filename addr
     LDI r2, 0            ; mode = read
-    OPEN r1, r2           ; r0 = fd
-    ; Check for error
-    LDI r1, 0xFFFFFFFF
-    CMP r0, r1
-    JZ r0, exec_done      ; error, skip
+    OPEN r1, r2           ; r0 = fd or error code
+    ; Check for error using print_error
+    MOV r10, r0
+    LDI r11, 31
+    SAR r10, r11
+    JZ r10, cat_has_fd    ; not an error, proceed
+    PUSH r31
+    CALL print_error
+    POP r31
+    JMP exec_done
 
+cat_has_fd:
     MOV r5, r0            ; save fd in r5
     LDI r3, 0x1000        ; read buffer
     LDI r4, 200           ; max bytes
@@ -1578,12 +1584,18 @@ do_edit:
     ; Open file for reading
     LDI r1, 0x0600       ; filename addr
     LDI r2, 0            ; mode = read
-    OPEN r1, r2           ; r0 = fd
-    ; Check for error
-    LDI r1, 0xFFFFFFFF
-    CMP r0, r1
-    JZ r0, edit_err      ; file not found
+    OPEN r1, r2           ; r0 = fd or error code
+    ; Check for error using print_error
+    MOV r10, r0
+    LDI r11, 31
+    SAR r10, r11
+    JZ r10, edit_has_fd   ; not an error, proceed
+    PUSH r31
+    CALL print_error
+    POP r31
+    JMP edit_err
 
+edit_has_fd:
     MOV r5, r0            ; save fd in r5
 
     ; Read file content into buffer at 0x2000
@@ -1733,12 +1745,19 @@ do_save:
     ; Open file for writing (mode 1 = write/create)
     LDI r1, 0x0600       ; filename addr
     LDI r2, 1            ; mode = write
-    OPEN r1, r2           ; r0 = fd
-    ; Check for error
-    LDI r1, 0xFFFFFFFF
-    CMP r0, r1
-    JZ r0, save_err      ; could not create file
+    OPEN r1, r2           ; r0 = fd or error code
+    ; Check for error using print_error
+    MOV r14, r0           ; save result (r14 safe here)
+    LDI r11, 31
+    SAR r14, r11
+    JZ r14, save_has_fd   ; not an error, proceed
+    PUSH r31
+    MOV r10, r0
+    CALL print_error
+    POP r31
+    JMP save_cleanup
 
+save_has_fd:
     MOV r5, r0            ; save fd in r5
 
     ; Calculate content length from edit buffer at 0x2000
@@ -1764,8 +1783,21 @@ save_scan_done:
     MOV r1, r5             ; r1 = fd
     LDI r2, 0x2000         ; buf addr
     MOV r3, r11            ; length
-    WRITE r1, r2, r3       ; r0 = bytes written
+    WRITE r1, r2, r3       ; r0 = bytes written or -ENOSPC
 
+    ; Check for write error (negative result)
+    MOV r14, r0
+    LDI r11, 31
+    SAR r14, r11
+    JZ r14, save_write_ok  ; not an error
+    CLOSE r5               ; close file first
+    PUSH r31
+    MOV r10, r0
+    CALL print_error
+    POP r31
+    JMP save_cleanup
+
+save_write_ok:
     CLOSE r5               ; close file
 
     ; Show "[saved: N bytes]" message
@@ -3853,5 +3885,290 @@ run_msg:
     .byte 46  ; .
     .byte 46  ; .
     .byte 0
+
+.org 0x1E80
+
+; ═══════════════════════════════════════════════════════════════
+; Error code message strings (used by print_error subroutine)
+; ═══════════════════════════════════════════════════════════════
+err_prefix:
+    .byte 69  ; E
+    .byte 114 ; r
+    .byte 114 ; r
+    .byte 111 ; o
+    .byte 114 ; r
+    .byte 58  ; :
+    .byte 32  ; space
+    .byte 0
+
+err_noent_msg:
+    .byte 78  ; N
+    .byte 111 ; o
+    .byte 32  ; space
+    .byte 115 ; s
+    .byte 117 ; u
+    .byte 99  ; c
+    .byte 104 ; h
+    .byte 32  ; space
+    .byte 102 ; f
+    .byte 105 ; i
+    .byte 108 ; l
+    .byte 101 ; e
+    .byte 0
+
+err_eperm_msg:
+    .byte 80  ; P
+    .byte 101 ; e
+    .byte 114 ; r
+    .byte 109 ; m
+    .byte 105 ; i
+    .byte 115 ; s
+    .byte 115 ; s
+    .byte 105 ; i
+    .byte 111 ; o
+    .byte 110 ; n
+    .byte 32  ; space
+    .byte 100 ; d
+    .byte 101 ; e
+    .byte 110 ; n
+    .byte 105 ; i
+    .byte 101 ; e
+    .byte 100 ; d
+    .byte 0
+
+err_eio_msg:
+    .byte 73  ; I
+    .byte 47  ; /
+    .byte 79  ; O
+    .byte 32  ; space
+    .byte 101 ; e
+    .byte 114 ; r
+    .byte 114 ; r
+    .byte 111 ; o
+    .byte 114 ; r
+    .byte 0
+
+err_eisdir_msg:
+    .byte 73  ; I
+    .byte 115 ; s
+    .byte 32  ; space
+    .byte 97  ; a
+    .byte 32  ; space
+    .byte 100 ; d
+    .byte 105 ; i
+    .byte 114 ; r
+    .byte 101 ; e
+    .byte 99  ; c
+    .byte 116 ; t
+    .byte 111 ; o
+    .byte 114 ; r
+    .byte 121 ; y
+    .byte 0
+
+err_enospc_msg:
+    .byte 78  ; N
+    .byte 111 ; o
+    .byte 32  ; space
+    .byte 115 ; s
+    .byte 112 ; p
+    .byte 97  ; a
+    .byte 99  ; c
+    .byte 101 ; e
+    .byte 32  ; space
+    .byte 108 ; l
+    .byte 101 ; e
+    .byte 102  ; f
+    .byte 116 ; t
+    .byte 0
+
+err_einval_msg:
+    .byte 73  ; I
+    .byte 110 ; n
+    .byte 118 ; v
+    .byte 97  ; a
+    .byte 108 ; l
+    .byte 105 ; i
+    .byte 100 ; d
+    .byte 32  ; space
+    .byte 97  ; a
+    .byte 114 ; r
+    .byte 103 ; g
+    .byte 117 ; u
+    .byte 109 ; m
+    .byte 101 ; e
+    .byte 110 ; n
+    .byte 116 ; t
+    .byte 0
+
+err_ebadf_msg:
+    .byte 66  ; B
+    .byte 97  ; a
+    .byte 100 ; d
+    .byte 32  ; space
+    .byte 102 ; f
+    .byte 105 ; i
+    .byte 108 ; l
+    .byte 101 ; e
+    .byte 32  ; space
+    .byte 100 ; d
+    .byte 101 ; e
+    .byte 115 ; s
+    .byte 99  ; c
+    .byte 114 ; r
+    .byte 105 ; i
+    .byte 112 ; p
+    .byte 116 ; t
+    .byte 111 ; o
+    .byte 114 ; r
+    .byte 0
+
+err_unknown_msg:
+    .byte 85  ; U
+    .byte 110 ; n
+    .byte 107  ; k
+    .byte 110 ; n
+    .byte 111 ; o
+    .byte 119 ; w
+    .byte 110 ; n
+    .byte 32  ; space
+    .byte 101 ; e
+    .byte 114 ; r
+    .byte 114 ; r
+    .byte 111 ; o
+    .byte 114 ; r
+    .byte 0
+
+.org 0x2000
+
+; ═══════════════════════════════════════════════════════════════
+; print_error -- print human-readable error message for r0
+; Input: r0 = error code (geos_errno result)
+; Uses: r1-r6, r10-r12
+; Clobbers: r0 (set to 1 = error flag for caller)
+; ═══════════════════════════════════════════════════════════════
+print_error:
+    ; Check if r0 is actually an error (top bit set)
+    MOV r10, r0           ; save error code in r10
+    LDI r11, 31
+    SAR r10, r11          ; r10 = 0xFFFFFFFF if negative, 0 if positive
+    JZ r10, print_err_done ; not an error, skip
+
+    ; Print "Error: " prefix
+    LDI r9, 0x1201
+    LOAD r1, r9           ; r1 = y position
+    LDI r2, 2             ; x = 2
+    LDI r3, err_prefix
+    TEXT r2, r1, r3
+
+    ; Increment y for the error message line
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r0, 10
+    ADD r1, r0
+    STORE r9, r1
+
+    ; Check specific error codes (r10 still has the saved error code)
+    LDI r3, 0xFFFFFFFE    ; GEOS_ENOENT = -2
+    CMP r10, r3
+    JZ r0, print_err_noent
+
+    LDI r3, 0xFFFFFFFD    ; GEOS_EPERM = -3
+    CMP r10, r3
+    JZ r0, print_err_eperm
+
+    LDI r3, 0xFFFFFFFC    ; GEOS_EIO = -4
+    CMP r10, r3
+    JZ r0, print_err_eio
+
+    LDI r3, 0xFFFFFFFB    ; GEOS_EISDIR = -5
+    CMP r10, r3
+    JZ r0, print_err_eisdir
+
+    LDI r3, 0xFFFFFFFA    ; GEOS_ENOSPC = -6
+    CMP r10, r3
+    JZ r0, print_err_enospc
+
+    LDI r3, 0xFFFFFFF9    ; GEOS_EINVAL = -7
+    CMP r10, r3
+    JZ r0, print_err_einval
+
+    LDI r3, 0xFFFFFFF8    ; GEOS_EBADF = -8
+    CMP r10, r3
+    JZ r0, print_err_ebadf
+
+    ; Unknown error
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r2, 2
+    LDI r3, err_unknown_msg
+    TEXT r2, r1, r3
+    JMP print_err_advance
+
+print_err_noent:
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r2, 2
+    LDI r3, err_noent_msg
+    TEXT r2, r1, r3
+    JMP print_err_advance
+
+print_err_eperm:
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r2, 2
+    LDI r3, err_eperm_msg
+    TEXT r2, r1, r3
+    JMP print_err_advance
+
+print_err_eio:
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r2, 2
+    LDI r3, err_eio_msg
+    TEXT r2, r1, r3
+    JMP print_err_advance
+
+print_err_eisdir:
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r2, 2
+    LDI r3, err_eisdir_msg
+    TEXT r2, r1, r3
+    JMP print_err_advance
+
+print_err_enospc:
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r2, 2
+    LDI r3, err_enospc_msg
+    TEXT r2, r1, r3
+    JMP print_err_advance
+
+print_err_einval:
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r2, 2
+    LDI r3, err_einval_msg
+    TEXT r2, r1, r3
+    JMP print_err_advance
+
+print_err_ebadf:
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r2, 2
+    LDI r3, err_ebadf_msg
+    TEXT r2, r1, r3
+
+print_err_advance:
+    ; Advance y by 10 for next prompt
+    LDI r9, 0x1201
+    LOAD r1, r9
+    LDI r0, 10
+    ADD r1, r0
+    STORE r9, r1
+
+    LDI r0, 1             ; signal error to caller
+print_err_done:
+    RET
 
 HALT
