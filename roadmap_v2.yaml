@@ -5648,7 +5648,7 @@ phases:
     validation: Screen has >50 distinct vertical stripe colors after 1 frame
 - id: phase-312
   title: GeOS Program -- L-System Fractal Tree
-  status: todo
+  status: done
   goal: Implement an L-system fractal tree renderer demonstrating string rewriting,
     turtle graphics, and recursive structure.
   description: 'An L-system uses string rewriting rules to generate complex fractal
@@ -5659,15 +5659,15 @@ phases:
     sets produce trees, ferns, snowflakes, and dragon curves.'
   deliverables:
   - name: L-system string rewriting engine in assembly
-    status: todo
+    status: done
   - name: Turtle graphics interpreter (F, +, -, [, ])
-    status: todo
+    status: done
   - name: Multiple rule sets (tree, fern, Koch curve)
-    status: todo
+    status: done
   - name: Color gradient based on recursion depth
-    status: todo
+    status: done
   - name: Integration test verifying fractal renders
-    status: todo
+    status: done
   acceptance_criteria:
   - description: Program assembles and draws a recognizable tree structure
     validation: Screen has LINE opcode segments forming a branching pattern

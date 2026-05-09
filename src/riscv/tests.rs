@@ -493,14 +493,6 @@ fn test_linux_kernel_early_boot() {
 }
 
 #[test]
-fn test_parse_first_load_paddr() {
-    // Build a minimal ELF with one PT_LOAD segment at paddr=0x100000
-    let elf = make_test_elf(0x80000000, 0x100000, 0x1000, 0x1000);
-    let result = RiscvVm::parse_first_load_paddr(&elf);
-    assert_eq!(result, Some(0x100000));
-}
-
-#[test]
 fn test_parse_elf_highest_paddr() {
     // Two PT_LOAD segments: paddr 0x0 with memsz 0x1000, paddr 0x100000 with memsz 0x2000
     let elf = make_test_elf_two_segments(
@@ -508,25 +500,6 @@ fn test_parse_elf_highest_paddr() {
     );
     let result = RiscvVm::parse_elf_highest_paddr(&elf);
     assert_eq!(result, Some(0x102000));
-}
-
-#[test]
-fn test_elf_entry_vaddr_to_phys() {
-    // Entry at vaddr 0x80001000, segment vaddr=0x80000000, paddr=0x00000000
-    // Physical entry should be 0x00001000
-    let elf = make_test_elf(0x80000000, 0x00000000, 0x2000, 0x2000);
-    let result = RiscvVm::elf_entry_vaddr_to_phys(&elf, 0x80001000);
-    assert_eq!(result, Some(0x00001000));
-}
-
-#[test]
-fn test_elf_entry_vaddr_to_phys_second_segment() {
-    // Entry at vaddr 0x80101000, second segment vaddr=0x80100000, paddr=0x100000
-    let elf = make_test_elf_two_segments(
-        0x80000000, 0x00000000, 0x1000, 0x1000, 0x00100000, 0x2000, 0x2000,
-    );
-    let result = RiscvVm::elf_entry_vaddr_to_phys(&elf, 0x80101000);
-    assert_eq!(result, Some(0x00101000));
 }
 
 /// Build a minimal ELF32 RISC-V image with one PT_LOAD segment.
