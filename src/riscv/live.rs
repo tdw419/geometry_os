@@ -336,6 +336,9 @@ fn vm_thread_main(
     // Linux diagnostic state
     let mut linux_diag_count: u64 = 0;
     let mut linux_last_pc: u32 = 0;
+    let mut linux_fault_count: u64 = 0;
+
+    eprintln!("[riscv-vm] Starting loop, is_linux={}", is_linux);
 
     while running {
         // 1. Process control commands
@@ -569,8 +572,36 @@ fn vm_thread_main(
                 }
                 StepResult::Ecall => {}
                 StepResult::FetchFault | StepResult::LoadFault | StepResult::StoreFault => {
-                    halt_reason = Some(format!("FAULT at PC=0x{:08X}", vm.cpu.pc));
-                    break;
+                    if is_linux {
+                        // Linux guests: page faults are normal traps handled by the kernel.
+                        // Log first 20 faults for debugging, then continue.
+                        if linux_fault_count < 20 {
+                            linux_fault_count += 1;
+                            use std::io::Write;
+                            // Derive fault type from scause instead of StepResult
+                            // (avoids borrow-after-move in match arm)
+                            let fault_type = match vm.cpu.csr.scause {
+                                12 => "fetch",
+                                13 => "load",
+                                15 => "store",
+                                _ => "unknown",
+                            };
+                            let msg = format!(
+                                "[riscv-vm] S-mode {} fault #{} at PC=0x{:08X} scause=0x{:X} stval=0x{:08X} stvec=0x{:08X}\n",
+                                fault_type, linux_fault_count,
+                                vm.cpu.pc, vm.cpu.csr.scause, vm.cpu.csr.stval, vm.cpu.csr.stvec
+                            );
+                            eprintln!("{}", msg);
+                            if let Ok(mut f) = std::fs::OpenOptions::new()
+                                .create(true).append(true).open("/tmp/geos_guest.log")
+                            {
+                                let _ = f.write_all(msg.as_bytes());
+                            }
+                        }
+                    } else {
+                        halt_reason = Some(format!("FAULT at PC=0x{:08X}", vm.cpu.pc));
+                        break;
+                    }
                 }
                 StepResult::Yielded => {}
             }
