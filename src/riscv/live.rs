@@ -504,8 +504,9 @@ fn vm_thread_main(
                     }
                     vm.bus.sbi.console_output.clear();
                 }
-                if !is_linux && !vm.bus.uart.tx_buf.is_empty() {
+                if !vm.bus.uart.tx_buf.is_empty() {
                     let s = String::from_utf8_lossy(&vm.bus.uart.tx_buf);
+                    // Only print UART if not duplicated in SBI (simple heuristic)
                     eprint!("{}", s);
                     if let Some(ref mut f) = log_file {
                         let _ = f.write_all(s.as_bytes());

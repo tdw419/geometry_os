@@ -162,7 +162,6 @@ impl RiscvCpu {
                             for i in 0..num_bytes {
                                 if let Ok(b) = bus.read_byte(phys_addr + i as u64) {
                                     if b != 0 {
-                                        bus.uart.write_byte(0, b);
                                         bus.sbi.console_output.push(b);
                                     }
                                 }
