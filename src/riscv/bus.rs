@@ -12,6 +12,7 @@ use super::socket::GuestSockets;
 use super::uart::Uart;
 use super::vfs_surface::VfsSurface;
 use super::virtio_blk::VirtioBlk;
+use super::virtio_net::VirtioNet;
 use std::collections::HashSet;
 
 /// CLINT MMIO address range.
@@ -30,6 +31,8 @@ pub struct Bus {
     pub plic: Plic,
     /// Virtio block device.
     pub virtio_blk: VirtioBlk,
+    /// Virtio network device.
+    pub virtio_net: VirtioNet,
     /// VFS Pixel Surface MMIO device.
     pub vfs_surface: VfsSurface,
     /// MMIO Framebuffer (256x256 RGBA at 0x6000_0000).
@@ -102,6 +105,7 @@ impl Bus {
             uart: Uart::new(),
             plic: Plic::new(),
             virtio_blk: VirtioBlk::new(),
+            virtio_net: VirtioNet::new(),
             vfs_surface,
             framebuf: Framebuffer::new(),
             sbi: Sbi::new(),
@@ -143,6 +147,10 @@ impl Bus {
             self.plic.read(addr).ok_or(MemoryError { addr, size: 4 })
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
             self.virtio_blk
+                .read(addr)
+                .ok_or(MemoryError { addr, size: 4 })
+        } else if super::virtio_net::VirtioNet::contains(addr) {
+            self.virtio_net
                 .read(addr)
                 .ok_or(MemoryError { addr, size: 4 })
         } else if super::vfs_surface::VfsSurface::contains(addr) {
@@ -204,6 +212,11 @@ impl Bus {
             // VirtioBlk::write() returns Some(queue_idx) on QUEUE_NOTIFY
             if let Some(queue_idx) = self.virtio_blk.write(addr, val) {
                 self.process_virtio_blk_queue(queue_idx);
+            }
+            Ok(())
+        } else if super::virtio_net::VirtioNet::contains(addr) {
+            if let Some(queue_idx) = self.virtio_net.write(addr, val) {
+                self.process_virtio_net_queue(queue_idx);
             }
             Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
@@ -274,6 +287,67 @@ impl Bus {
         }
     }
 
+    /// Process pending requests on the virtio-net virtqueues.
+    ///
+    /// Called when the guest writes to QUEUE_NOTIFY. Queue 0 is RX,
+    /// queue 1 is TX. For TX, packets are read from guest memory and
+    /// optionally sent via UDP. For RX, pending packets are delivered
+    /// to guest-provided buffers.
+    fn process_virtio_net_queue(&mut self, queue_idx: u32) {
+        let bus = self as *mut Bus;
+        // SAFETY: Same pattern as process_virtio_blk_queue --
+        // virtio_net only accesses its own state, closures only access mem.
+        unsafe {
+            let virtio_net = &mut (*bus).virtio_net;
+
+            let mut read_word = |addr: u64| -> u32 { (*bus).mem.read_word(addr).unwrap_or(0) };
+            let mut write_word = |addr: u64, val: u32| {
+                let _ = (*bus).mem.write_word(addr, val);
+            };
+            let mut read_bytes = |addr: u64, len: usize| -> Vec<u8> {
+                let mut data = vec![0u8; len];
+                for i in 0..len {
+                    match (*bus).mem.read_byte(addr + i as u64) {
+                        Ok(b) => data[i] = b,
+                        Err(_) => break,
+                    }
+                }
+                data
+            };
+            let mut write_bytes = |addr: u64, data: &[u8]| {
+                for (i, &b) in data.iter().enumerate() {
+                    let _ = (*bus).mem.write_byte(addr + i as u64, b);
+                }
+            };
+
+            let processed = match queue_idx {
+                1 => {
+                    // TX queue
+                    virtio_net.process_tx_queue(
+                        &mut read_word,
+                        &mut write_word,
+                        &mut read_bytes,
+                    )
+                }
+                0 => {
+                    // RX queue -- first poll UDP socket, then deliver
+                    virtio_net.poll_udp_socket();
+                    virtio_net.process_rx_queue(
+                        &mut read_word,
+                        &mut write_word,
+                        &mut write_bytes,
+                    )
+                }
+                _ => 0, // Control queue (2) not implemented
+            };
+
+            if processed > 0 {
+                // Signal PLIC interrupt for virtio-net device
+                (*bus).plic.signal(super::plic::IRQ_VIRTIO_NET);
+            }
+        }
+    }
+
     /// Read a byte. Routes to device MMIO or RAM.
     /// Takes &mut self because device reads can have side effects.
     pub fn read_byte(&mut self, addr: u64) -> Result<u8, MemoryError> {
@@ -303,6 +377,13 @@ impl Bus {
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
             let word = self
                 .virtio_blk
+                .read(addr & !3)
+                .ok_or(MemoryError { addr, size: 1 })?;
+            let byte_off = (addr & 3) as usize;
+            Ok((word >> (byte_off * 8)) as u8)
+        } else if super::virtio_net::VirtioNet::contains(addr) {
+            let word = self
+                .virtio_net
                 .read(addr & !3)
                 .ok_or(MemoryError { addr, size: 1 })?;
             let byte_off = (addr & 3) as usize;
@@ -369,6 +450,9 @@ impl Bus {
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
             // Virtio doesn't have byte-level writes; ignore
             Ok(())
+        } else if super::virtio_net::VirtioNet::contains(addr) {
+            // Virtio doesn't have byte-level writes; ignore
+            Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
             let word_addr = addr & !3;
             let byte_off = (addr & 3) as usize;
@@ -420,6 +504,13 @@ impl Bus {
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
             let word = self
                 .virtio_blk
+                .read(addr & !3)
+                .ok_or(MemoryError { addr, size: 2 })?;
+            let half_off = ((addr >> 1) & 1) as usize;
+            Ok((word >> (half_off * 16)) as u16)
+        } else if super::virtio_net::VirtioNet::contains(addr) {
+            let word = self
+                .virtio_net
                 .read(addr & !3)
                 .ok_or(MemoryError { addr, size: 2 })?;
             let half_off = ((addr >> 1) & 1) as usize;
@@ -482,6 +573,9 @@ impl Bus {
                 Err(MemoryError { addr, size: 2 })
             }
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
+            // Virtio doesn't have half-word writes; ignore
+            Ok(())
+        } else if super::virtio_net::VirtioNet::contains(addr) {
             // Virtio doesn't have half-word writes; ignore
             Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
@@ -1054,5 +1148,161 @@ mod tests {
             normal_pte,
             "Low PPN PTE should pass through unchanged"
         );
+    }
+
+    // ---- VirtIO Network integration tests ----
+
+    #[test]
+    fn bus_virtio_net_read_magic_and_device_id() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        // Read magic value at VIRTIO_NET_BASE
+        let magic = bus.read_word(super::super::virtio_net::VIRTIO_NET_BASE)
+            .expect("should read magic");
+        assert_eq!(magic, 0x7472_6976); // "virt"
+
+        // Read device ID (net = 1)
+        let dev_id = bus.read_word(super::super::virtio_net::VIRTIO_NET_BASE + 8)
+            .expect("should read device ID");
+        assert_eq!(dev_id, 1);
+    }
+
+    #[test]
+    fn bus_virtio_net_read_write_status() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let base = super::super::virtio_net::VIRTIO_NET_BASE;
+
+        // STATUS register is at offset 0x28
+        let status_addr = base + 0x28;
+
+        // Write ACKNOWLEDGE | DRIVER
+        bus.write_word(status_addr, 0x03).expect("write status");
+        let val = bus.read_word(status_addr).expect("read status");
+        assert_eq!(val, 0x03);
+
+        // Reset by writing 0
+        bus.write_word(status_addr, 0).expect("reset status");
+        let val = bus.read_word(status_addr).expect("read status");
+        assert_eq!(val, 0);
+    }
+
+    #[test]
+    fn bus_virtio_net_queue_setup_and_ready() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let base = super::super::virtio_net::VIRTIO_NET_BASE;
+
+        // QUEUE_SEL=0x30, QUEUE_NUM=0x38, QUEUE_READY=0x44
+        bus.write_word(base + 0x30, 0).expect("queue_sel=0");
+        bus.write_word(base + 0x38, 8).expect("queue_num=8");
+        bus.write_word(base + 0x44, 1).expect("queue_ready=1");
+
+        // Verify via the device field
+        assert!(bus.virtio_net.queues[0].ready);
+        assert_eq!(bus.virtio_net.queues[0].size, 8);
+
+        // Select TX queue (1), set size, mark ready
+        bus.write_word(base + 0x30, 1).expect("queue_sel=1");
+        bus.write_word(base + 0x38, 16).expect("queue_num=16");
+        bus.write_word(base + 0x44, 1).expect("queue_ready=1");
+
+        assert!(bus.virtio_net.queues[1].ready);
+        assert_eq!(bus.virtio_net.queues[1].size, 16);
+    }
+
+    #[test]
+    fn bus_virtio_net_features() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let base = super::super::virtio_net::VIRTIO_NET_BASE;
+
+        let features = bus.read_word(base + 16).expect("device_features");
+        // MAC and STATUS feature bits should be set
+        assert!(features & (1 << 5) != 0, "MAC feature (bit 5) should be set");
+        assert!(features & (1 << 16) != 0, "STATUS feature (bit 16) should be set");
+    }
+
+    #[test]
+    fn bus_virtio_net_config_mac() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let base = super::super::virtio_net::VIRTIO_NET_BASE;
+
+        // Config space starts at offset 0x100 (256 bytes after common regs)
+        let config_base = base + 0x100;
+        let mac_lo = bus.read_word(config_base).expect("mac_lo");
+        // Default MAC: DE:AD:BE:EF:00:01
+        assert_eq!(mac_lo, u32::from_le_bytes([0xDE, 0xAD, 0xBE, 0xEF]));
+
+        let mac_hi = bus.read_word(config_base + 4).expect("mac_hi");
+        assert_eq!(mac_hi, u32::from_le_bytes([0x00, 0x01, 0x01, 0x00]));
+    }
+
+    #[test]
+    fn bus_virtio_net_interrupt_ack() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let base = super::super::virtio_net::VIRTIO_NET_BASE;
+
+        // Simulate an interrupt pending
+        bus.virtio_net.int_status = 0x03; // CONFIG | USED_RING
+
+        // INTERRUPT_STATUS=0x70, INTERRUPT_ACK=0x64
+        let status = bus.read_word(base + 0x70).expect("int_status");
+        assert_eq!(status, 0x03);
+
+        // Acknowledge USED_RING interrupt
+        bus.write_word(base + 0x64, 0x02).expect("int_ack=0x02");
+        let status = bus.read_word(base + 0x70).expect("int_status after ack");
+        assert_eq!(status, 0x01); // Only CONFIG remains
+    }
+
+    #[test]
+    fn bus_virtio_net_inject_and_rx_pending_count() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        assert_eq!(bus.virtio_net.rx_pending_count(), 0);
+
+        // Inject a packet directly
+        bus.virtio_net.inject_packet(&[0x45, 0x00, 0x00, 0x28]);
+        assert_eq!(bus.virtio_net.rx_pending_count(), 1);
+
+        bus.virtio_net.inject_packet(&[0xFF, 0xFF]);
+        assert_eq!(bus.virtio_net.rx_pending_count(), 2);
+    }
+
+    #[test]
+    fn bus_virtio_net_read_half_byte_routing() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let base = super::super::virtio_net::VIRTIO_NET_BASE;
+
+        // Write a full word to STATUS (offset 0x28), read back as half-word
+        bus.write_word(base + 0x28, 0x1234_5678)
+            .expect("write status word");
+        // LE: word 0x12345678 stored as bytes [0x78, 0x56, 0x34, 0x12]
+        // Half-word at 0x28 = 0x5678, half-word at 0x2A = 0x1234
+        let lo_half = bus.read_half(base + 0x28).expect("read lo half");
+        let hi_half = bus.read_half(base + 0x2A).expect("read hi half");
+        assert_eq!(lo_half, 0x5678);
+        assert_eq!(hi_half, 0x1234);
+
+        // Byte reads
+        let b0 = bus.read_byte(base + 0x28).expect("read byte 0");
+        let b1 = bus.read_byte(base + 0x29).expect("read byte 1");
+        assert_eq!(b0, 0x78);
+        assert_eq!(b1, 0x56);
+    }
+
+    #[test]
+    fn bus_virtio_net_does_not_overlap_virtio_blk() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        // VirtIO-blk is at 0x1000_1000, virtio-net at 0x1000_2000
+        let blk_magic = bus.read_word(0x1000_1000).expect("blk magic");
+        assert_eq!(blk_magic, 0x7472_6976); // same magic
+
+        let net_magic = bus.read_word(0x1000_2000).expect("net magic");
+        assert_eq!(net_magic, 0x7472_6976);
+
+        // Device IDs differ
+        let blk_id = bus.read_word(0x1000_1000 + 8).expect("blk dev_id");
+        let net_id = bus.read_word(0x1000_2000 + 8).expect("net dev_id");
+        assert_eq!(blk_id, 2); // block
+        assert_eq!(net_id, 1); // network
     }
 }

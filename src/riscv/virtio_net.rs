@@ -146,14 +146,14 @@ struct VirtDesc {
 /// Per-queue state.
 /// Duplicated from virtio_blk.rs since it's a generic VirtIO transport structure.
 #[derive(Debug, Clone, Copy)]
-struct VirtQueue {
-    size: u32,
-    ready: bool,
-    desc_addr: u64,
-    avail_addr: u64,
-    used_addr: u64,
-    last_avail_idx: u16,
-    used_idx: u16,
+pub(crate) struct VirtQueue {
+    pub(crate) size: u32,
+    pub(crate) ready: bool,
+    pub(crate) desc_addr: u64,
+    pub(crate) avail_addr: u64,
+    pub(crate) used_addr: u64,
+    pub(crate) last_avail_idx: u16,
+    pub(crate) used_idx: u16,
 }
 
 impl Default for VirtQueue {
@@ -177,7 +177,7 @@ pub struct VirtioNet {
     /// Current queue selector.
     pub queue_sel: u32,
     /// Per-queue state (RX=0, TX=1, CTRL=2).
-    queues: [VirtQueue; NUM_QUEUES],
+    pub(crate) queues: [VirtQueue; NUM_QUEUES],
     /// Driver features.
     pub driver_features: u32,
     /// Device features (what we support).

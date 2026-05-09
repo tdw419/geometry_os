@@ -4796,7 +4796,7 @@ phases:
   _claimed_at: 1778272032
 - id: phase-280
   title: GeOS VM -- String Library Opcodes (STRLEN, STRCMP, STRCPY, STRCAT)
-  status: planned
+  status: done
   goal: Add string manipulation opcodes to reduce boilerplate in shell, editor, and
     text-heavy programs.
   description: Current string operations require manual null-terminator scanning loops
@@ -4804,29 +4804,29 @@ phases:
     as VM opcodes eliminates ~50 instructions per string operation and reduces bugs.
     These are foundational for any text-processing application running in the VM.
   deliverables:
-  - name: 'STRLEN opcode (0xD6): count bytes until null terminator'
-    status: planned
-  - name: 'STRCMP opcode (0xD7): lexicographic comparison returning -1/0/1 in r0'
-    status: planned
-  - name: 'STRCPY opcode (0xD8): copy null-terminated string from src to dst'
-    status: planned
-  - name: 'STRCAT opcode (0xD9): append null-terminated string to destination'
-    status: planned
+  - name: 'STRLEN opcode (0xF7): count bytes until null terminator'
+    status: done
+  - name: 'STRCMP opcode (0xF8): lexicographic comparison returning -1/0/1 in r0'
+    status: done
+  - name: 'STRCPY opcode (0xF9): copy null-terminated string from src to dst'
+    status: done
+  - name: 'STRCAT opcode (0xFA): append null-terminated string to destination'
+    status: done
   - name: Assembler support for all four opcodes
-    status: planned
+    status: done
   - name: Disassembler support for all four opcodes
-    status: planned
+    status: done
   - name: Unit tests for each opcode (empty strings, max length, buffer overlap)
-    status: planned
-  - name: 'Integration test: string_demo.asm using all four opcodes'
-    status: planned
+    status: done
+  - name: 'Integration test: string_ops_demo.asm using all four opcodes'
+    status: done
   acceptance_criteria:
   - description: All four opcodes assemble, execute, and produce correct results
     validation: cargo test --lib strlen strcmp strcpy strcat
   - description: Disassembler shows correct mnemonic for each opcode
     validation: cargo test --lib disasm_str
   _claimed_by: worker-0
-  _claimed_at: 1778277471
+  _claimed_at: 1778286675
 - id: phase-281
   title: Documentation -- Modernize CANVAS_TEXT_SURFACE.md and ARCHITECTURE.md
   status: done
@@ -4890,7 +4890,7 @@ phases:
     validation: cargo test --lib test_byte_ops_assemble
 - id: phase-283
   title: RISC-V Guest -- VirtIO Network Driver
-  status: in_progress
+  status: planned
   goal: Implement VirtIO network device emulation so RISC-V guests can send and receive
     network packets.
   description: 'The RISC-V interpreter already has VirtIO block device support (virtio_blk.rs).
@@ -4915,8 +4915,6 @@ phases:
     validation: Guest kernel detects virtio_net in boot log
   - description: Packet round-trip between guest and host
     validation: UDP echo test passes
-  _claimed_by: worker-0
-  _claimed_at: 1778280304
 - id: phase-284
   title: GeOS Program -- Mandelbrot Fractal Renderer
   status: done
@@ -4964,7 +4962,7 @@ phases:
   _completed_at: 1778297900
 - id: phase-285
   title: GeOS VM -- Error Code Propagation in Syscalls
-  status: in_progress
+  status: planned
   goal: Replace silent failures in VFS/syscall opcodes with meaningful error codes
     returned in r0.
   description: Currently, OPEN/READ/WRITE/CLOSE failures silently return 0 or garbage.
@@ -4992,8 +4990,6 @@ phases:
     validation: cargo test --lib syscall_error_codes
   - description: Shell displays error messages for failed operations
     validation: Integration test verifies error message in terminal output
-  _claimed_by: worker-0
-  _claimed_at: 1778284666
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
   status: planned
