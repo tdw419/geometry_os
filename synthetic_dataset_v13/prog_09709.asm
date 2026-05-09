@@ -1,0 +1,7 @@
+; DESCRIPTION: Sets a single purple pixel at (31, 28).
+; PLAN: r0=31(x), r1=28(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 31
+LDI r1, 28
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+HALT

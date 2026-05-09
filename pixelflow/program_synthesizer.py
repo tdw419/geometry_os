@@ -69,7 +69,7 @@ PSET_PHRASINGS = [
 
 
 class CoTSynthesizer:
-    def __init__(self, output_dir="synthetic_dataset_v12"):
+    def __init__(self, output_dir="synthetic_dataset_v13"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.counts = {"rectf": 0, "circle": 0, "fill": 0, "line": 0,
@@ -161,25 +161,25 @@ class CoTSynthesizer:
         color_val = COLORS[color_name]
 
         desc = f"; DESCRIPTION: Fills the screen with a vertical {color_name} gradient from dark to bright."
-        plan = (f"; PLAN: r0={color_val}(base color), r1=0(y), r2=0(x), "
-                f"r3={SCREEN_W}(width), r4={SCREEN_H}(height). "
-                f"r10 is comparison result.")
-        code = f"""LDI r0, {color_val}
+        plan = (f"; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), "
+                f"r3={SCREEN_W}(width), r4={SCREEN_H}(height), "
+                f"r7={color_val}(color). CMP stores result in r0.")
+        code = f"""LDI r7, {color_val}
 LDI r1, 0
 y_loop:
 LDI r2, 0
 x_loop:
-PSET r2, r1, r0
+PSET r2, r1, r7
 LDI r5, 1
 ADD r2, r5
 LDI r6, {SCREEN_W}
 CMP r2, r6
-BLT r10, x_loop
+BLT r0, x_loop
 LDI r5, 1
 ADD r1, r5
 LDI r6, {SCREEN_H}
 CMP r1, r6
-BLT r10, y_loop
+BLT r0, y_loop
 HALT"""
         self.counts["gradient"] += 1
         return f"{desc}\n{plan}\n{code.strip()}"

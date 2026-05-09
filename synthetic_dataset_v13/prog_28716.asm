@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a yellow box of size 43x79 starting at (334, 27).
+; PLAN: r0=334(x), r1=27(y), r2=43(width), r3=79(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 334
+LDI r1, 27
+LDI r2, 43
+LDI r3, 79
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
+HALT

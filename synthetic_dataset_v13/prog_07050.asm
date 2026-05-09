@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a magenta line between points (190, 8) and (439, 105).
+; PLAN: r0=190(x1), r1=8(y1), r2=439(x2), r3=105(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 8
+LDI r2, 439
+LDI r3, 105
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+HALT

@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a magenta line from (215, 0) to (310, 213).
+; PLAN: r0=215(x1), r1=0(y1), r2=310(x2), r3=213(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 215
+LDI r1, 0
+LDI r2, 310
+LDI r3, 213
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+HALT

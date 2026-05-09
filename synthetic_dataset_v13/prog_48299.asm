@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a yellow line from (375, 228) to (390, 198).
+; PLAN: r0=375(x1), r1=228(y1), r2=390(x2), r3=198(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 375
+LDI r1, 228
+LDI r2, 390
+LDI r3, 198
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
+HALT

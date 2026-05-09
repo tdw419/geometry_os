@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a orange line from (376, 8) to (396, 147).
+; PLAN: r0=376(x1), r1=8(y1), r2=396(x2), r3=147(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 376
+LDI r1, 8
+LDI r2, 396
+LDI r3, 147
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

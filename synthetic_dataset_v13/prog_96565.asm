@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a black line between points (131, 83) and (295, 203).
+; PLAN: r0=131(x1), r1=83(y1), r2=295(x2), r3=203(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 131
+LDI r1, 83
+LDI r2, 295
+LDI r3, 203
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+HALT

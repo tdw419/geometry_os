@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a white line from (47, 64) to (421, 34).
+; PLAN: r0=47(x1), r1=64(y1), r2=421(x2), r3=34(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 47
+LDI r1, 64
+LDI r2, 421
+LDI r3, 34
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+HALT

@@ -1,0 +1,7 @@
+; DESCRIPTION: Sets a single blue pixel at (7, 28).
+; PLAN: r0=7(x), r1=28(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 7
+LDI r1, 28
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+HALT

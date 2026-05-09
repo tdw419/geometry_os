@@ -81,8 +81,16 @@ def train(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args.epochs * len(loader))
 
+    start_epoch = 0
+    if args.resume and os.path.exists(args.checkpoint):
+        print(f"[*] Resuming from {args.checkpoint}...")
+        checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
+        model.load_state_dict(checkpoint["model"])
+        start_epoch = checkpoint.get("epoch", 0)
+        print(f"[*] Resumed from epoch {start_epoch}")
+
     best_loss = float('inf')
-    for epoch in range(args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         model.train()
         total_loss = 0
         n_batches = 0
@@ -175,6 +183,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--resume", action="store_true", help="Resume from checkpoint")
     args = parser.parse_args()
     
     train(args)

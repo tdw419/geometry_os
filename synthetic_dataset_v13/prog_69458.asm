@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a blue rectangle at (373, 142) with width 27 and height 72.
+; PLAN: r0=373(x), r1=142(y), r2=27(width), r3=72(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 373
+LDI r1, 142
+LDI r2, 27
+LDI r3, 72
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
+HALT

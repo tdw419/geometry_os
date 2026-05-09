@@ -24,7 +24,9 @@ ISA_SIGNATURES = {
     "JMP": 1,    # JMP label
     "JZ": 2,     # JZ reg, label
     "JNZ": 2,    # JNZ reg, label
-    "BLT": 3,    # BLT r1, r2, label
+    "BLT": 2,    # BLT reg, label (reg ignored, checks r0)
+    "BGE": 2,    # BGE reg, label (reg ignored, checks r0)
+    "CMP": 2,    # CMP rd, rs (sets r0 = flag)
     "HALT": 0,
     "FRAME": 0,
     "CALL": 1,
@@ -54,7 +56,9 @@ ISA_GRAMMAR = {
     "JMP": ["L"],
     "JZ": ["R", "L"],
     "JNZ": ["R", "L"],
-    "BLT": ["R", "R", "L"],
+    "BLT": ["R", "L"],
+    "BGE": ["R", "L"],
+    "CMP": ["R", "R"],
     "HALT": [],
     "FRAME": [],
     "CALL": ["L"],
@@ -179,7 +183,15 @@ class ISAConstraintEngine:
                 for cid in self.char_range:
                     char = self.id_to_char.get(cid, "")
                     if curr_type == "I":
-                        if char in self.hex_chars: mask[cid] = 1.0
+                        # Logic for hex literals (0x...)
+                        if char == "x":
+                            if self.literal_text == "0": mask[cid] = 1.0
+                        elif char in "0123456789ABCDEFabcdef":
+                            # Don't allow leading zeros unless followed by x
+                            if self.literal_text == "0":
+                                if char != "x": mask[cid] = 1.0
+                            else:
+                                mask[cid] = 1.0
                     else:
                         mask[cid] = 1.0 # Labels can be anything
             

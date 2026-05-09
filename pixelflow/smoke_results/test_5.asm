@@ -1,9 +1,7 @@
 ; DESCRIPTION: Clears the screen to black and then halts.
-
-LDI r0, 10
-LDI r1, 10
-LDI r2, 32
-LDI r3, 10
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; PLAN: r0=0x1121(y), r2=0x000000(color). Op: SUB r0, r1, r2.
+LDI r0, 000
+LDI r1, 159
+LDI r2, 0x0000
+FILL r0
 HALT

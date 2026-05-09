@@ -1,0 +1,13 @@
+; DESCRIPTION: Composite: Places a orange dot at position (169, 42) then Draws a purple rectangle at (403, 91) with width 39 and height 30.
+; PLAN: r0=169(x), r1=42(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=403(x), r6=91(y), r7=39(width), r8=30(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 169
+LDI r1, 42
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 403
+LDI r6, 91
+LDI r7, 39
+LDI r8, 30
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
+HALT
