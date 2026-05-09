@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from opcode_tokenizer import OPCODES, REGISTERS, COMMA, NEWLINE, EOS, BOS, NUM, LABEL, STR, COMMENT
+from bilingual_tokenizer import ID_TO_CHAR
 
 # Define operand counts for common GeOS opcodes
 # (Opcode) -> (Number of Operands)
@@ -78,7 +79,7 @@ class ISAConstraintEngine:
         
         # Hex/Decimal allowed chars
         self.hex_chars = set("0123456789ABCDEFabcdefx")
-        self.id_to_char = {v: k for k, v in self.tokenizer.ID_TO_CHAR.items()} if hasattr(self.tokenizer, 'ID_TO_CHAR') else {}
+        self.id_to_char = ID_TO_CHAR
         
         # State
         self.current_opcode = None
@@ -101,9 +102,10 @@ class ISAConstraintEngine:
             self.literal_text = ""
             return
 
-        if not self.in_comment and last_token_id == COMMENT:
-            self.in_comment = True
-            return
+        if not self.in_comment:
+            if last_token_id == COMMENT or last_token_id >= self.bpe_start:
+                self.in_comment = True
+                return
 
         if self.in_comment:
             return
@@ -155,6 +157,8 @@ class ISAConstraintEngine:
             mask[COMMENT] = 1.0
             mask[NEWLINE] = 1.0
             mask[EOS] = 1.0
+            # Allow BPE at start of line (for comments)
+            mask[self.bpe_start:] = 1.0
             logits[mask == 0] = float('-inf')
             return logits
 

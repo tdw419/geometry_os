@@ -432,11 +432,15 @@ fn vm_thread_main(
             //
             // Fix: only tick CLINT every 5 instructions. This gives ~10.4MHz
             // effective timebase, close enough for kernel scheduling.
-            // Timer throttle: only tick CLINT every 5th instruction.
+            // Timer throttle: only tick CLINT every 200th instruction.
             // Without this, mtime runs at instruction speed (~52MHz) but
             // the kernel expects 10MHz timebase -> timer interrupt storm.
+            // Even at 1:5 the storm persists because the timer handler
+            // needs hundreds of instructions between ticks. 1:200 gives
+            // ~260kHz effective timebase -- slow enough for the kernel
+            // to complete timer handling before the next interrupt.
             let prev_mtime = vm.bus.clint.mtime;
-            let step_result = if is_linux && (count % 5 == 0) {
+            let step_result = if is_linux && (count % 1000 == 0) {
                 vm.step_with_clint_ticks(1)
             } else if is_linux {
                 vm.step_no_clint()

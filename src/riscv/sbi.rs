@@ -342,7 +342,7 @@ impl Sbi {
                 let current_mtime = clint.mtime;
                 clint.mtimecmp = new_mtimecmp;
                 // Debug: log first few timer sets
-                if clint.timer_set_count < 10 {
+                if clint.timer_set_count < 100 {
                     eprintln!(
                         "[sbi] SET_TIMER: mtimecmp={} mtime={} delta={}",
                         new_mtimecmp,

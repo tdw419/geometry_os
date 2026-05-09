@@ -139,7 +139,7 @@ def validate_plan_consistency(asm_text):
 
 
 def main():
-    checkpoint_path = "pixelflow/bilingual_llm_v10_ckpt.pt"
+    checkpoint_path = "pixelflow/bilingual_llm_v12_ckpt.pt"
     tokenizer_path = "pixelflow/bilingual_tokenizer_v4"
 
     output_dir = Path("pixelflow/smoke_results")
