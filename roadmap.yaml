@@ -11239,7 +11239,7 @@ phases:
   test_target: 0
 - id: phase-263
   title: Fix suspicious_open_options in ops_host_fs.rs mode 3
-  status: planned
+  status: complete
   goal: Explicitly define behavior for read+write file open mode
   description: src/vm/ops_host_fs.rs line 128 opens files in mode 3 (read+write) with
     .create(true) but no explicit clearing. Rust default preserves existing content
@@ -11307,7 +11307,7 @@ phases:
   test_target: 0
 - id: phase-265
   title: Fix socket 'halt' killing GeOS process in terminal_direct_mode
-  status: planned
+  status: complete
   goal: Allow socket halt/run cycle without process exit
   description: The socket 'halt' command (src/main.rs line 2551) sets both is_running=false
     AND vm.halted=true. When terminal_direct_mode is true (set during terminal.asm
