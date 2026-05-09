@@ -3395,8 +3395,6 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 220
-  _claimed_by: worker-0
-  _claimed_at: 1778182537
 - id: phase-245
   title: Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests
   status: done
@@ -3577,8 +3575,6 @@ phases:
       status: done
   test_target: 10
   scope_lines_total: 250
-  _claimed_by: worker-0
-  _claimed_at: 1778181464
 - id: phase-249
   title: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET)
   status: done
@@ -3626,8 +3622,6 @@ phases:
       scope_lines: 50
   test_target: 12
   scope_lines_total: 270
-  _claimed_by: worker-0
-  _claimed_at: 1778183461
 - id: phase-250
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
   status: done
@@ -3676,8 +3670,6 @@ phases:
       scope_lines: 60
   test_target: 10
   scope_lines_total: 250
-  _claimed_by: worker-0
-  _claimed_at: 1778184577
 - id: phase-251
   title: GeOS Program -- Mandelbrot Fractal Explorer
   status: done
@@ -3715,8 +3707,6 @@ phases:
       scope_lines: 50
   test_target: 2
   scope_lines_total: 280
-  _claimed_by: worker-0
-  _claimed_at: 1778185724
 - id: phase-252
   title: GeOS Program -- Raycasting 3D Engine (Wolfenstein-style)
   status: done
@@ -3754,8 +3744,6 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 360
-  _claimed_by: worker-0
-  _claimed_at: 1778208114
 - id: phase-253
   title: GeOS VM -- Audio System Tests and Improvements
   status: complete
@@ -3806,8 +3794,6 @@ phases:
       status: done
   test_target: 6
   scope_lines_total: 280
-  _claimed_by: worker-0
-  _claimed_at: 1778188766
 - id: phase-254
   title: GeOS Program -- Procedural Dungeon Generator with Fog of War
   status: done
@@ -3885,8 +3871,6 @@ phases:
       scope_lines: 60
   test_target: 8
   scope_lines_total: 150
-  _claimed_by: worker-0
-  _claimed_at: 1778199849
 - id: phase-256
   title: RISC-V Guest -- Shared Memory IPC Between Processes
   status: complete
@@ -4007,8 +3991,6 @@ phases:
       scope_lines: 100
   test_target: 8
   scope_lines_total: 300
-  _claimed_by: worker-0
-  _claimed_at: 1778205927
 - id: phase-259
   title: GeOS Program -- Cellular Automata Sandbox (Life, HighLife, Seeds)
   status: done
@@ -4045,8 +4027,6 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 330
-  _claimed_by: worker-0
-  _claimed_at: 1778218612
 - id: phase-260
   title: GeOS VM -- Matrix Multiply Opcode (MATMUL)
   status: complete
@@ -4667,8 +4647,6 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 180
-  _claimed_by: worker-0
-  _claimed_at: 1778228389
 - id: phase-276
   title: GeOS VM -- ops_graphics.rs Unit Test Suite
   status: complete
@@ -4730,8 +4708,6 @@ phases:
     validation: grep -c 'fn test_' src/vm/ops_extended.rs >= 25
   - description: All tests pass
     validation: cargo test --lib ops_extended
-  _claimed_by: worker-0
-  _claimed_at: 1778270023
 - id: phase-278
   title: GeOS VM -- ops_memory.rs and scheduler.rs Unit Tests
   status: done
@@ -4760,8 +4736,6 @@ phases:
       >= 30
   - description: All tests pass
     validation: cargo test --lib ops_memory scheduler
-  _claimed_by: worker-0
-  _claimed_at: 1778270894
 - id: phase-279
   title: GeOS Program -- Platformer Game with Physics
   status: done
@@ -4792,8 +4766,6 @@ phases:
     validation: cargo test --lib test_platformer
   - description: Player responds to jump input within 5 frames
     validation: Manual verification via MCP or visual test
-  _claimed_by: worker-0
-  _claimed_at: 1778272032
 - id: phase-280
   title: GeOS VM -- String Library Opcodes (STRLEN, STRCMP, STRCPY, STRCAT)
   status: done
@@ -4825,8 +4797,6 @@ phases:
     validation: cargo test --lib strlen strcmp strcpy strcat
   - description: Disassembler shows correct mnemonic for each opcode
     validation: cargo test --lib disasm_str
-  _claimed_by: worker-0
-  _claimed_at: 1778286675
 - id: phase-281
   title: Documentation -- Modernize CANVAS_TEXT_SURFACE.md and ARCHITECTURE.md
   status: done
@@ -4937,8 +4907,6 @@ phases:
   - description: Packet round-trip between guest and host
     validation: UDP echo test passes
     met: true
-  _claimed_by: worker-0
-  _claimed_at: 1778300870
 - id: phase-284
   title: GeOS Program -- Mandelbrot Fractal Renderer
   status: done
@@ -4981,8 +4949,6 @@ phases:
   - description: Zoom changes the rendered region
     validation: Two zoom levels produce different screen checksums
     met: true
-  _claimed_by: worker-0
-  _claimed_at: 1778281446
   _completed_at: 1778297900
 - id: phase-285
   title: GeOS VM -- Error Code Propagation in Syscalls
@@ -5014,8 +4980,6 @@ phases:
     validation: cargo test --lib syscall_error_codes
   - description: Shell displays error messages for failed operations
     validation: Integration test verifies error message in terminal output
-  _claimed_by: worker-0
-  _claimed_at: 1778311608
   _completed_at: 1778311800
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
@@ -5044,8 +5008,6 @@ phases:
     validation: Pixel collision test between adjacent characters
   - description: Fixed-width mode produces identical output to current TEXT opcode
     validation: Checksum comparison with existing text programs
-  _claimed_by: worker-0
-  _claimed_at: 1778310445
 - id: phase-287
   title: RISC-V Guest -- VirtIO GPU (Simple Display)
   status: in_progress
@@ -5073,8 +5035,6 @@ phases:
     validation: Boot log shows virtio_gpu probe success
   - description: Guest can write pixels that appear on GeOS canvas
     validation: fbtest program produces visible output
-  _claimed_by: worker-0
-  _claimed_at: 1778329953
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
   status: in_progress
@@ -5105,8 +5065,6 @@ phases:
     validation: cargo test --lib test_tetris
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
-  _claimed_by: worker-0
-  _claimed_at: 1778327006
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: done
@@ -5167,7 +5125,6 @@ phases:
     validation: Three runs within 5% variance
   - description: Performance doc includes per-benchmark numbers and methodology
     validation: docs/PERFORMANCE_BENCHMARK.md updated
-  _claimed_at: 1778327634
 - id: phase-291
   title: GeOS VM -- ops_host_fs.rs Unit Test Suite
   status: todo
