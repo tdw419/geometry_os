@@ -7,7 +7,6 @@
 use super::cpu::{self, StepResult};
 use super::csr;
 use super::loader;
-use super::sbi::SBI_SUCCESS;
 use super::{dtb, BootResult, RiscvVm};
 
 #[allow(dead_code)]
@@ -109,7 +108,7 @@ impl RiscvVm {
     /// Returns (vm, fw_addr, entry, dtb_addr) so callers can run their own loop.
     pub fn boot_linux_setup(
         kernel_image: &[u8],
-        initramfs: Option<&[u8]>,
+        _initramfs: Option<&[u8]>,
         ram_size_mb: u32,
         bootargs: &str,
     ) -> Result<(Self, u64, u32, u64), loader::LoadError> {
@@ -127,7 +126,8 @@ impl RiscvVm {
         let mut vm = Self::new_with_base(mem_base, actual_ram_size);
         vm.bus.auto_pte_fixup = true; // Phase 124
 
-        // 3. Load kernel.
+        // 3. Load kernel at physical addresses (p_paddr from ELF segments).
+        // The bus routes writes to RAM at 0x80000000+ automatically.
         let load_info = loader::load_elf(&mut vm.bus, kernel_image)?;
         // Highest address used by the kernel in physical memory.
         let ram_size = actual_ram_size as u64;
@@ -140,9 +140,12 @@ impl RiscvVm {
         dtb_config.ram_base = mem_base;
         dtb_config.ram_size = ram_size;
         dtb_config.bootargs = bootargs.to_string();
+        let dtb_blob = dtb::generate_dtb(&dtb_config);
+        for (i, &byte) in dtb_blob.iter().enumerate() {
+            vm.bus.write_byte(dtb_addr + i as u64, byte).ok();
+        }
 
         // 5. Hardcoded kernel patches and pointers (Phase 124).
-        // The local Linux 6.14 build expects early pointers in BSS.
         // VA 0xC0801008 -> PA 0x80801008.
         let dtb_early_va_pa: u64 = 0x80801008;
         let dtb_early_pa_pa: u64 = 0x8080100C;
@@ -277,7 +280,7 @@ impl RiscvVm {
         }
 
         let entry_vaddr: u32 = load_info.entry;
-        vm.cpu.csr.mepc = entry_vaddr;
+        vm.cpu.csr.mepc = entry_vaddr - 0x40000000; // Physical entry point!
         vm.cpu.csr.mstatus = 1u32 << csr::MSTATUS_MPP_LSB;
         vm.cpu.csr.mstatus |= 1 << csr::MSTATUS_MPIE;
         let restored = vm.cpu.csr.trap_return(cpu::Privilege::Machine);

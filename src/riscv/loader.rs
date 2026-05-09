@@ -40,10 +40,10 @@ pub enum LoadError {
     WrongEndian,
     /// Wrong machine type (expected RISC-V).
     WrongMachine,
-    /// No loadable segments found.
-    NoLoadSegments,
     /// Segment doesn't fit in guest RAM.
     SegmentOverflow,
+    /// No loadable segments found.
+    NoLoadSegments,
     /// Entry point outside loaded regions.
     BadEntryPoint,
 }
