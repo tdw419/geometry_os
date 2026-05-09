@@ -170,6 +170,8 @@ impl RiscvCpu {
                         StepResult::Ok
                     }
                     Err(_) => {
+                        eprintln!("[store-fail] sw va=0x{:08X} pa=0x{:08X} val=0x{:08X} pc=0x{:08X} ram_size=0x{:X}",
+                            va, pa, val, self.pc, bus.mem.size());
                         self.deliver_trap(csr::CAUSE_STORE_ACCESS, va);
                         StepResult::Ok
                     }

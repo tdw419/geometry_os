@@ -106,6 +106,8 @@ pub struct RiscvCpu {
     pub last_step: Option<LastStepInfo>,
     /// Count of ECALL instructions executed (diagnostic).
     pub ecall_count: u64,
+    /// Count of non-timer traps delivered (diagnostic).
+    pub trap_debug_count: u64,
 }
 
 impl RiscvCpu {
@@ -121,6 +123,7 @@ impl RiscvCpu {
             reservation: None,
             last_step: None,
             ecall_count: 0,
+            trap_debug_count: 0,
         };
         cpu.x[10] = 0; // a0 = 0 (no Hart ID)
         cpu.x[11] = 0; // a1 = 0 (no DTB)
@@ -269,6 +272,19 @@ impl RiscvCpu {
 
     /// Deliver a trap: set cause/epc/tval CSRs, update privilege, jump to vector.
     pub(crate) fn deliver_trap(&mut self, cause: u32, tval: u32) {
+        // Log non-timer-interrupt traps for debugging (first 50)
+        if cause != 0x80000007 {
+            self.trap_debug_count = self.trap_debug_count.saturating_add(1);
+            if self.trap_debug_count <= 50 {
+                eprintln!(
+                    "[trap] #{} deliver cause=0x{:08X} tval=0x{:08X} pc=0x{:08X}",
+                    self.trap_debug_count,
+                    cause,
+                    tval,
+                    self.pc
+                );
+            }
+        }
         let trap_priv = self.csr.trap_target_priv(cause, self.privilege);
         let vector = self.csr.trap_vector(trap_priv);
         self.csr

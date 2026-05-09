@@ -604,22 +604,25 @@ fn vm_thread_main(
                 StepResult::FetchFault | StepResult::LoadFault | StepResult::StoreFault => {
                     if is_linux {
                         // Linux guests: page faults are normal traps handled by the kernel.
-                        // Log first 20 faults for debugging, then continue.
-                        if linux_fault_count < 20 {
-                            linux_fault_count += 1;
+                        linux_fault_count += 1;
+                        // Log first 5 faults with full page table walk diagnostics
+                        if linux_fault_count <= 5 {
                             use std::io::Write;
-                            // Derive fault type from scause instead of StepResult
-                            // (avoids borrow-after-move in match arm)
-                            let fault_type = match vm.cpu.csr.scause {
-                                12 => "fetch",
-                                13 => "load",
-                                15 => "store",
+                            let scause = vm.cpu.csr.scause;
+                            let fault_type = match scause {
+                                12 => "fetch-page",
+                                13 => "load-page",
+                                15 => "store-page",
+                                7 => "store-access",
+                                5 => "load-access",
+                                3 => "fetch-access",
+                                1 => "instruction-misaligned",
                                 _ => "unknown",
                             };
                             let msg = format!(
-                                "[riscv-vm] S-mode {} fault #{} at PC=0x{:08X} scause=0x{:X} stval=0x{:08X} stvec=0x{:08X}\n",
-                                fault_type, linux_fault_count,
-                                vm.cpu.pc, vm.cpu.csr.scause, vm.cpu.csr.stval, vm.cpu.csr.stvec
+                                "[fault] #{} {} scause=0x{:X} sepc=0x{:08X} stval=0x{:08X} stvec=0x{:08X}\n",
+                                linux_fault_count, fault_type,
+                                scause, vm.cpu.csr.sepc, vm.cpu.csr.stval, vm.cpu.csr.stvec
                             );
                             eprintln!("{}", msg);
                             if let Ok(mut f) = std::fs::OpenOptions::new()
@@ -628,51 +631,48 @@ fn vm_thread_main(
                                 .open("/tmp/geos_guest.log")
                             {
                                 let _ = f.write_all(msg.as_bytes());
-                                // On first fault: dump page table walk for stval
-                                if linux_fault_count == 1 {
-                                    let stval = vm.cpu.csr.stval;
-                                    let vpn1 = (stval >> 22) & 0x3FF;
-                                    let vpn0 = (stval >> 12) & 0x3FF;
-                                    let satp = vm.cpu.csr.satp;
-                                    let root_ppn = satp & 0x003FFFFF;
-                                    let l1_pa = (root_ppn as u64) << 12;
-                                    let l1_entry_addr = l1_pa + (vpn1 as u64) * 4;
-                                    let l1_pte =
-                                        vm.bus.read_word(l1_entry_addr).unwrap_or(0xFFFFFFFF);
-                                    let diag = format!(
-                                        "[pt-walk] stval=0x{:08X} vpn1={} vpn0={} satp=0x{:08X} root_ppn=0x{:06X}\n\
-                                         [pt-walk] L1[{}] @ PA 0x{:08X} = 0x{:08X}\n",
-                                        stval, vpn1, vpn0, satp, root_ppn,
-                                        vpn1, l1_entry_addr, l1_pte
+                                // Dump page table walk for stval
+                                let stval = vm.cpu.csr.stval;
+                                let vpn1 = (stval >> 22) & 0x3FF;
+                                let vpn0 = (stval >> 12) & 0x3FF;
+                                let satp = vm.cpu.csr.satp;
+                                let root_ppn = satp & 0x003FFFFF;
+                                let l1_pa = (root_ppn as u64) << 12;
+                                let l1_entry_addr = l1_pa + (vpn1 as u64) * 4;
+                                let l1_pte =
+                                    vm.bus.read_word(l1_entry_addr).unwrap_or(0xFFFFFFFF);
+                                let diag = format!(
+                                    "[pt-walk] stval=0x{:08X} vpn1={} vpn0={} satp=0x{:08X}\n\
+                                     [pt-walk] L1[{}] @ PA 0x{:08X} = 0x{:08X}\n",
+                                    stval, vpn1, vpn0, satp,
+                                    vpn1, l1_entry_addr, l1_pte
+                                );
+                                let _ = f.write_all(diag.as_bytes());
+                                // If L1 is non-leaf, follow to L2
+                                if (l1_pte & 1) != 0 && (l1_pte & 0xE) == 0 {
+                                    let l1_ppn = (l1_pte >> 10) & 0xFFFFF;
+                                    let fixed_l1_ppn = if l1_ppn >= 0xC0000 {
+                                        l1_ppn - 0xC0000
+                                    } else {
+                                        l1_ppn
+                                    };
+                                    let l2_base = (fixed_l1_ppn as u64) << 12;
+                                    let l2_addr = l2_base + (vpn0 as u64) * 4;
+                                    let l2_pte =
+                                        vm.bus.read_word(l2_addr).unwrap_or(0xFFFFFFFF);
+                                    let l2_diag = format!(
+                                        "[pt-walk] L1 PPN=0x{:05X} -> L2 base PA 0x{:08X}\n\
+                                         [pt-walk] L2[{}] @ PA 0x{:08X} = 0x{:08X}\n",
+                                        l1_ppn, l2_base,
+                                        vpn0, l2_addr, l2_pte
                                     );
-                                    let _ = f.write_all(diag.as_bytes());
-                                    // If L1 is non-leaf, follow to L2
-                                    if (l1_pte & 1) != 0 && (l1_pte & 0xE) == 0 {
-                                        let l1_ppn = (l1_pte >> 10) & 0xFFFFF;
-                                        let fixed_l1_ppn = if l1_ppn >= 0xC0000 {
-                                            l1_ppn - 0xC0000
-                                        } else {
-                                            l1_ppn
-                                        };
-                                        let l2_base = (fixed_l1_ppn as u64) << 12;
-                                        let l2_addr = l2_base + (vpn0 as u64) * 4;
-                                        let l2_pte =
-                                            vm.bus.read_word(l2_addr).unwrap_or(0xFFFFFFFF);
-                                        let l2_diag = format!(
-                                            "[pt-walk] L1 PPN=0x{:05X} fixup=0x{:05X} -> L2 base PA 0x{:08X}\n\
-                                             [pt-walk] L2[{}] @ PA 0x{:08X} = 0x{:08X}\n",
-                                            l1_ppn, fixed_l1_ppn, l2_base,
-                                            vpn0, l2_addr, l2_pte
-                                        );
-                                        let _ = f.write_all(l2_diag.as_bytes());
-                                    }
-                                    // Also dump registers for context
-                                    let reg_diag = format!(
-                                        "[pt-walk] SP=0x{:08X} RA=0x{:08X} mstatus=0x{:08X}\n",
-                                        vm.cpu.x[2], vm.cpu.x[1], vm.cpu.csr.mstatus
-                                    );
-                                    let _ = f.write_all(reg_diag.as_bytes());
+                                    let _ = f.write_all(l2_diag.as_bytes());
                                 }
+                                let reg_diag = format!(
+                                    "[pt-walk] SP=0x{:08X} RA=0x{:08X} satp=0x{:08X}\n",
+                                    vm.cpu.x[2], vm.cpu.x[1], vm.cpu.csr.satp
+                                );
+                                let _ = f.write_all(reg_diag.as_bytes());
                             }
                         }
                     } else {

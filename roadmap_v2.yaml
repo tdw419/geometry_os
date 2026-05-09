@@ -5692,7 +5692,7 @@ phases:
     validation: grep -c "#[test]" src/assembler/formula_ops.rs >= 5
 - id: phase-314
   title: GeOS VM -- VM IO Serialization Tests
-  status: todo
+  status: done
   goal: Add unit tests for the VM IO module (io.rs, 582 LOC, 5046 refs, 0 in-file
     tests).
   description: The IO module handles VM state serialization/deserialization for save/load,
@@ -5702,17 +5702,17 @@ phases:
     and corrupted state handling.
   deliverables:
   - name: Unit tests for save state serialization round-trip
-    status: todo
+    status: done
   - name: Unit tests for canvas buffer save/load
-    status: todo
+    status: done
   - name: Unit tests for corrupted state handling
-    status: todo
+    status: done
   acceptance_criteria:
   - description: io.rs has at least 15 unit tests
     validation: grep -c "#[test]" src/vm/io.rs >= 15
 - id: phase-315
   title: GeOS Program -- Music Sequencer
-  status: todo
+  status: done
   goal: Implement a step sequencer demonstrating the WAVE/SMALLTEXT opcodes and timed
     audio playback.
   description: 'A step sequencer displays a grid of notes that the user can toggle
@@ -5723,15 +5723,15 @@ phases:
     playback position.'
   deliverables:
   - name: Note grid rendering (16 rows x 16 steps)
-    status: todo
+    status: done
   - name: Interactive note toggling with keyboard
-    status: todo
+    status: done
   - name: Playback engine with TICKS-based timing
-    status: todo
+    status: done
   - name: Visual playback position indicator
-    status: todo
+    status: done
   - name: Integration test verifying grid renders and state changes
-    status: todo
+    status: done
   acceptance_criteria:
   - description: Program assembles and renders the note grid
     validation: Screen has a grid pattern with toggleable cells
