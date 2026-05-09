@@ -5035,6 +5035,8 @@ phases:
     validation: Boot log shows virtio_gpu probe success
   - description: Guest can write pixels that appear on GeOS canvas
     validation: fbtest program produces visible output
+  _claimed_by: worker-0
+  _claimed_at: 1778332111
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
   status: in_progress
@@ -5065,6 +5067,8 @@ phases:
     validation: cargo test --lib test_tetris
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
+  _claimed_by: worker-0
+  _claimed_at: 1778333895
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: done
