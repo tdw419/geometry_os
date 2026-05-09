@@ -79,9 +79,9 @@ const INTERRUPT_STATUS: u64 = 0x70;
 const CONFIG_GENERATION: u64 = 0x80;
 const CONFIG: u64 = 0x100;
 const CONFIG_MAC_HI: u64 = 0x104;
-const CONFIG_LINK: u64 = 0x106;
+const _CONFIG_LINK: u64 = 0x106;
 const CONFIG_MQP: u64 = 0x108;
-const CONFIG_MTU: u64 = 0x10A;
+const _CONFIG_MTU: u64 = 0x10A;
 
 /// Virtio magic value ("virt" in little-endian).
 const VIRTIO_MAGIC: u32 = 0x7472_6976;
@@ -112,9 +112,9 @@ const VIRTQ_DESC_F_NEXT: u16 = 1;
 const VIRTQ_DESC_F_WRITE: u16 = 2;
 
 /// VirtIO network feature bits.
-const VIRTIO_NET_F_CSUM: u32 = 0; // Device handles partial checksum
+const _VIRTIO_NET_F_CSUM: u32 = 0; // Device handles partial checksum
 const VIRTIO_NET_F_MAC: u32 = 5; // Device has a MAC address
-const VIRTIO_NET_F_MTU: u32 = 3; // Device has MTU
+const _VIRTIO_NET_F_MTU: u32 = 3; // Device has MTU
 const VIRTIO_NET_F_STATUS: u32 = 16; // Device has link status
 
 /// Default MAC address: DE:AD:BE:EF:00:01
@@ -558,7 +558,6 @@ impl VirtioNet {
 
             // Walk the descriptor chain to find the writeable buffer
             let mut buf_addr: Option<u64> = None;
-            let mut buf_len: u32 = 0;
             let mut current_idx = head_idx;
             let mut total_buf_len: u32 = 0;
 
@@ -568,7 +567,6 @@ impl VirtioNet {
                 if d.flags & VIRTQ_DESC_F_WRITE != 0 {
                     if buf_addr.is_none() {
                         buf_addr = Some(d.addr);
-                        buf_len = d.len;
                     }
                     total_buf_len += d.len;
                 }

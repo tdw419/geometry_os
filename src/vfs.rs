@@ -6,12 +6,12 @@
 
 use std::collections::HashMap;
 use std::fs;
-use std::io::{self, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use crate::vm::types::{
     geos_errno, is_geos_errno, GEOS_EACCES, GEOS_EBADF, GEOS_EINVAL, GEOS_EIO, GEOS_EISDIR,
-    GEOS_ENFILE, GEOS_ENOENT, GEOS_ENOMEM, GEOS_ENOSPC, GEOS_EPERM,
+    GEOS_ENFILE, GEOS_ENOENT, GEOS_ENOSPC, GEOS_EPERM,
 };
 
 /// Maximum open file descriptors per process

@@ -228,7 +228,7 @@ impl ScrollbackBuffer {
         }
         // Shift all lines after `index` one position toward the start
         // by copying them in order from index+1 to the end
-        let target_idx = (self.oldest + index) % self.capacity;
+        let _target_idx = (self.oldest + index) % self.capacity;
         let mut src = index + 1;
         while src < self.count {
             let src_idx = (self.oldest + src) % self.capacity;

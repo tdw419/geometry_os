@@ -519,28 +519,28 @@ impl RiscvVm {
         // Verified: memblock at VA 0xC100369C, memory.regions=0xC10036E0 (offset 20),
         // reserved.regions=0xC1003CE0 (offset 44).
         let memblock_pa: u64 = 0x0100369C;
-        let res_cnt_addr = memblock_pa + 32; // reserved.cnt (4+4+24 = 32 on rv32?)
-                                             // Let's re-verify offsets from the hexdump:
-                                             // memblock:
-                                             //   00: bottom_up (0)
-                                             //   04: current_limit (0xFFFFFFFF)
-                                             //   08: memory.cnt (0)
-                                             //   12: memory.max (0x80000000)
-                                             //   16: memory.total_size (0)
-                                             //   20: memory.regions (0xC10036E0)
-                                             //   ...
-                                             // Struct memblock_type is 24 bytes?
-                                             //   cnt (4), max (4), total_size (4), regions (4), name (4) -> 20 bytes.
-                                             // Wait, why did reserved.regions end up at 44?
-                                             // bottom_up (4) + current_limit (4) + memory (20) = 28.
-                                             // reserved starts at 28.
-                                             // reserved.cnt (28), reserved.max (32), reserved.total_size (36), reserved.regions (40).
-                                             // My hexdump showed:
-                                             // c10036bc 80000000 00000000 e03c00c1 3c895bc1
-                                             // Offset 32: 0x80000000 (reserved.max)
-                                             // Offset 36: 0 (reserved.total_size)
-                                             // Offset 40: 0xC1003CE0 (reserved.regions)
-                                             // Offset 44: 0xC15B893C (name?)
+        let _res_cnt_addr = memblock_pa + 32; // reserved.cnt (4+4+24 = 32 on rv32?)
+                                              // Let's re-verify offsets from the hexdump:
+                                              // memblock:
+                                              //   00: bottom_up (0)
+                                              //   04: current_limit (0xFFFFFFFF)
+                                              //   08: memory.cnt (0)
+                                              //   12: memory.max (0x80000000)
+                                              //   16: memory.total_size (0)
+                                              //   20: memory.regions (0xC10036E0)
+                                              //   ...
+                                              // Struct memblock_type is 24 bytes?
+                                              //   cnt (4), max (4), total_size (4), regions (4), name (4) -> 20 bytes.
+                                              // Wait, why did reserved.regions end up at 44?
+                                              // bottom_up (4) + current_limit (4) + memory (20) = 28.
+                                              // reserved starts at 28.
+                                              // reserved.cnt (28), reserved.max (32), reserved.total_size (36), reserved.regions (40).
+                                              // My hexdump showed:
+                                              // c10036bc 80000000 00000000 e03c00c1 3c895bc1
+                                              // Offset 32: 0x80000000 (reserved.max)
+                                              // Offset 36: 0 (reserved.total_size)
+                                              // Offset 40: 0xC1003CE0 (reserved.regions)
+                                              // Offset 44: 0xC15B893C (name?)
 
         let res_cnt_addr = memblock_pa + 28;
         let res_regions_ptr_addr = memblock_pa + 40;

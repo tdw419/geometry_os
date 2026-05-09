@@ -119,14 +119,21 @@ impl Vm {
             0 => std::fs::File::open(&safe_path),   // read
             1 => std::fs::File::create(&safe_path), // write (create/truncate)
             2 => std::fs::OpenOptions::new() // append
-                .write(true)
                 .append(true)
-                .open(&safe_path),
-            3 => std::fs::OpenOptions::new() // read+write
-                .read(true)
-                .write(true)
                 .create(true)
                 .open(&safe_path),
+            3 => {
+                // read+write: create if needed, truncate like mode 1
+                let f = std::fs::OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .create(true)
+                    .open(&safe_path);
+                f.map(|file| {
+                    let _ = file.set_len(0); // truncate on create, matching mode 1 behavior
+                    file
+                })
+            }
             _ => {
                 self.regs[0] = 0xFFFFFFFF; // EINVAL
                 return;

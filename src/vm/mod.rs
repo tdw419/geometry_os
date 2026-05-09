@@ -2232,7 +2232,7 @@ impl Vm {
                             if self.clipboard_text.len() > 1 {
                                 let data = &self.clipboard_text[1..];
                                 let mut bytes_written = 0u32;
-                                for (idx, &word) in data.iter().enumerate() {
+                                for (_idx, &word) in data.iter().enumerate() {
                                     for byte_pos in 0..4u32 {
                                         let ram_addr = addr + bytes_written as usize;
                                         if ram_addr >= RAM_SIZE || bytes_written >= len as u32 {

@@ -774,7 +774,7 @@ impl Sbi {
                                     &addr,
                                     std::time::Duration::from_secs(2),
                                 ) {
-                                    Ok(mut stream) => {
+                                    Ok(stream) => {
                                         stream
                                             .set_read_timeout(Some(std::time::Duration::from_secs(
                                                 1,

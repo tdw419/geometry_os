@@ -2639,7 +2639,9 @@ fn main() {
                             }
                             "halt" => {
                                 is_running = false;
-                                vm.halted = true;
+                                // Don't set vm.halted = true here -- that signals
+                                // program completion and triggers should_quit in
+                                // terminal_direct_mode. Socket halt is a pause, not exit.
                                 status_msg = "[HALTED]".into();
                             }
                             "loadbin" => {

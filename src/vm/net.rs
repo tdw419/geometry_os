@@ -410,9 +410,9 @@ pub const HTTP_OK: u32 = 0;
 pub const HTTP_ERR_BAD_URL: u32 = 1;
 pub const HTTP_ERR_CONNECT: u32 = 2;
 pub const HTTP_ERR_SEND: u32 = 3;
-pub const HTTP_ERR_RECV: u32 = 4;
+pub const _HTTP_ERR_RECV: u32 = 4;
 pub const HTTP_ERR_TOO_LARGE: u32 = 5;
-pub const HTTP_ERR_PARSE: u32 = 6;
+pub const _HTTP_ERR_PARSE: u32 = 6;
 
 /// Parse a URL string into (host, port, path).
 /// Format: "host[:port][/path]"
