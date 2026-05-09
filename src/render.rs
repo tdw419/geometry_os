@@ -1470,3 +1470,448 @@ pub fn syntax_highlight_color(canvas_buffer: &[u32], row: usize, col: usize) -> 
 
     SYN_DEFAULT
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── lerp_color tests ─────────────────────────────────────────
+
+    #[test]
+    fn test_lerp_color_t_zero_returns_base() {
+        assert_eq!(lerp_color(0xFF0000, 0x00FF00, 0.0), 0xFF0000);
+    }
+
+    #[test]
+    fn test_lerp_color_t_one_returns_tint() {
+        assert_eq!(lerp_color(0xFF0000, 0x00FF00, 1.0), 0x00FF00);
+    }
+
+    #[test]
+    fn test_lerp_color_t_half_midpoint() {
+        // R: (255 + (0-255)*0.5) = 127.5 -> 127
+        // G: (0 + (255-0)*0.5) = 127.5 -> 127
+        // B: (0 + (0-0)*0.5) = 0
+        let result = lerp_color(0xFF0000, 0x00FF00, 0.5);
+        assert_eq!(result & 0xFF0000, 0x7F0000); // R channel
+        assert_eq!(result & 0x00FF00, 0x007F00); // G channel
+        assert_eq!(result & 0x0000FF, 0x000000); // B channel
+    }
+
+    #[test]
+    fn test_lerp_color_clamps_t_above_one() {
+        assert_eq!(lerp_color(0xFF0000, 0x00FF00, 2.0), 0x00FF00);
+    }
+
+    #[test]
+    fn test_lerp_color_negative_t_does_not_clamp() {
+        // lerp_color only clamps t.min(1.0), not t.max(0.0)
+        // Negative t causes the interpolation to go beyond base
+        let result = lerp_color(0xFF0000, 0x00FF00, -1.0);
+        // With t clamped to... actually t is NOT clamped below 0
+        // t = -1.0, r = (255 + (0-255)*(-1)) = 255+255 = 510 -> truncated to u8: 254
+        // g = (0 + (255-0)*(-1)) = -255 -> truncated: wraps to 1 as u32 (but cast to f32 then as u32...)
+        // Actually f32::as u32 for negative is undefined behavior... but in practice:
+        // The function does `(r1 + (r2 - r1) * t) as u32` where t = -1.0
+        // r1 + (r2-r1)*t = 255 + (0-255)*(-1) = 255+255 = 510.0 -> 510
+        // g1 + (g2-g1)*t = 0 + (255-0)*(-1) = -255.0 -> as u32 is UB/implementation-defined
+        // Just verify it doesn't return the base color (no lower clamp)
+        assert_ne!(result, 0xFF0000, "negative t should NOT return base (no lower clamp)");
+    }
+
+    #[test]
+    fn test_lerp_color_same_color_no_change() {
+        assert_eq!(lerp_color(0x123456, 0x123456, 0.75), 0x123456);
+    }
+
+    #[test]
+    fn test_lerp_color_black_to_white() {
+        assert_eq!(lerp_color(0x000000, 0xFFFFFF, 0.5), 0x7F7F7F);
+    }
+
+    #[test]
+    fn test_lerp_color_preserves_channel_independence() {
+        // Only R changes, G and B stay at their base
+        let result = lerp_color(0xFF0088, 0x00000088, 0.5);
+        // R: (255 + (0-255)*0.5) = 127 -> 0x7F
+        // G: (0 + (0-0)*0.5) = 0
+        // B: (0x88 + (0x88-0x88)*0.5) = 0x88
+        assert_eq!(result, 0x007F0088);
+    }
+
+    // ── FontMode tests ───────────────────────────────────────────
+
+    #[test]
+    fn test_font_mode_small_dimensions() {
+        assert_eq!(FontMode::Small.cell_size(), 12);
+        assert_eq!(FontMode::Small.vis_cols(), 85);
+        assert_eq!(FontMode::Small.vis_rows(), 64);
+        assert!(FontMode::Small.is_fullwidth()); // Small IS fullwidth (only Normal is not)
+        assert_eq!(FontMode::Small.name(), "SMALLTEXT");
+    }
+
+    #[test]
+    fn test_font_mode_normal_dimensions() {
+        assert_eq!(FontMode::Normal.cell_size(), 16);
+        assert_eq!(FontMode::Normal.vis_cols(), 32);
+        assert_eq!(FontMode::Normal.vis_rows(), 48);
+        assert!(!FontMode::Normal.is_fullwidth());
+        assert_eq!(FontMode::Normal.name(), "NORMAL");
+    }
+
+    #[test]
+    fn test_font_mode_zoom_in_cycles() {
+        let m = FontMode::Small.zoom_in();
+        assert_eq!(m.name(), "NORMAL");
+        let m2 = m.zoom_in();
+        assert_eq!(m2.name(), "MEDTEXT");
+    }
+
+    #[test]
+    fn test_font_mode_zoom_out_cycles() {
+        let m = FontMode::Medium.zoom_out();
+        assert_eq!(m.name(), "NORMAL");
+        let m2 = m.zoom_out();
+        assert_eq!(m2.name(), "SMALLTEXT");
+    }
+
+    #[test]
+    fn test_font_mode_medium_is_fullwidth() {
+        assert!(FontMode::Medium.is_fullwidth());
+    }
+
+    // ── CursorStyle tests ────────────────────────────────────────
+
+    #[test]
+    fn test_cursor_style_next_cycles() {
+        let styles = [
+            CursorStyle::Block,
+            CursorStyle::Underline,
+            CursorStyle::Bar,
+        ];
+        for (i, &style) in styles.iter().enumerate() {
+            let next = style.next();
+            let expected = styles[(i + 1) % styles.len()];
+            assert_eq!(next, expected);
+        }
+    }
+
+    #[test]
+    fn test_cursor_style_names() {
+        assert_eq!(CursorStyle::Block.name(), "BLOCK");
+        assert_eq!(CursorStyle::Underline.name(), "UNDERLINE");
+        assert_eq!(CursorStyle::Bar.name(), "BAR");
+    }
+
+    // ── BuildingIconCache tests ──────────────────────────────────
+
+    #[test]
+    fn test_building_icon_cache_new() {
+        let cache = BuildingIconCache::new();
+        assert!(cache.get("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_building_icon_cache_load_invalid_file() {
+        let mut cache = BuildingIconCache::new();
+        assert!(!cache.load_icon("test", "/nonexistent/path.png", 8, 8));
+        assert!(cache.get("test").is_none());
+    }
+
+    #[test]
+    fn test_building_icon_cache_load_invalid_data() {
+        let mut cache = BuildingIconCache::new();
+        assert!(!cache.load_icon_from_data("test", b"not a png", 8, 8));
+        assert!(cache.get("test").is_none());
+    }
+
+    // ── render_text tests ────────────────────────────────────────
+
+    #[test]
+    fn test_render_text_single_char() {
+        let mut buf = vec![0u32; WIDTH * HEIGHT];
+        render_text(&mut buf, 10, 10, "A", 0xFF0000);
+        // 'A' glyph: [0x38, 0x6C, 0xC6, 0xC6, 0xFE, 0xC6, 0xC6, 0x00]
+        // Row 0: 0x38 = 00111000 -> cols 2,3,4 set
+        // At (10, 10), the pixel at (12, 10) should be colored
+        assert_eq!(buf[10 * WIDTH + 12], 0xFF0000); // col 2 of row 0
+        assert_eq!(buf[10 * WIDTH + 13], 0xFF0000); // col 3 of row 0
+        assert_eq!(buf[10 * WIDTH + 14], 0xFF0000); // col 4 of row 0
+        // Col 0 and 1 should NOT be set (0x38 = 0b00111000)
+        assert_eq!(buf[10 * WIDTH + 10], 0);
+        assert_eq!(buf[10 * WIDTH + 11], 0);
+    }
+
+    #[test]
+    fn test_render_text_multiple_chars_spaced() {
+        let mut buf = vec![0u32; WIDTH * HEIGHT];
+        render_text(&mut buf, 0, 0, "AB", 0x00FF00);
+        // Each char is GLYPH_W (8) + 1 = 9 pixels wide
+        // 'A' starts at x=0, 'B' starts at x=9
+        // Check that 'B' glyph is at x=9
+        // 'B' glyph row 0: 0xFC = 11111100 -> cols 0-5 set
+        assert_eq!(buf[0 * WIDTH + 9], 0x00FF00);  // B col 0
+        assert_eq!(buf[0 * WIDTH + 14], 0x00FF00); // B col 5
+        assert_eq!(buf[0 * WIDTH + 15], 0);        // B col 6 (not set)
+        // Gap pixel between chars (x=8) should be background
+        assert_eq!(buf[0 * WIDTH + 8], 0);
+    }
+
+    #[test]
+    fn test_render_text_does_not_write_background() {
+        let mut buf = vec![0xDEADBEEF; WIDTH * HEIGHT];
+        render_text(&mut buf, 10, 10, "A", 0xFF0000);
+        // Pixel at (10, 20) (not part of any glyph) should be unchanged
+        assert_eq!(buf[20 * WIDTH + 10], 0xDEADBEEF);
+    }
+
+    #[test]
+    fn test_render_text_empty_string() {
+        let mut buf = vec![0u32; WIDTH * HEIGHT];
+        render_text(&mut buf, 10, 10, "", 0xFF0000);
+        // Nothing should be written
+        assert!(buf.iter().all(|&p| p == 0));
+    }
+
+    #[test]
+    fn test_render_text_space_produces_no_pixels() {
+        let mut buf = vec![0u32; WIDTH * HEIGHT];
+        render_text(&mut buf, 0, 0, " ", 0xFF0000);
+        // Space glyph is all zeros, no pixels written
+        assert!(buf.iter().all(|&p| p == 0));
+    }
+
+    #[test]
+    fn test_render_text_out_of_bounds_clamped() {
+        let mut buf = vec![0u32; WIDTH * HEIGHT];
+        // Start at y = HEIGHT - 2 (only 2 rows fit)
+        render_text(&mut buf, 0, HEIGHT - 2, "A", 0xFF0000);
+        // Should not panic; some rows are clipped
+        let colored = buf.iter().filter(|&&p| p == 0xFF0000).count();
+        assert!(colored > 0, "some glyph pixels should be rendered");
+        assert!(colored < 20, "most glyph rows should be clipped");
+    }
+
+    #[test]
+    fn test_render_text_high_ascii_clipped() {
+        let mut buf = vec![0u32; WIDTH * HEIGHT];
+        // Characters >= 128 should not be rendered (idx < 128 check)
+        // Use char::from_u32 to construct high-ASCII characters
+        let high_str: String = [0x80u32, 0xFFu32]
+            .iter()
+            .filter_map(|&c| char::from_u32(c))
+            .collect();
+        render_text(&mut buf, 0, 0, &high_str, 0xFF0000);
+        assert!(buf.iter().all(|&p| p == 0));
+    }
+
+    // ── draw_title_bar tests ─────────────────────────────────────
+
+    #[test]
+    fn test_draw_title_bar_basic_background() {
+        let mut buf = vec![0u32; 256 * 128];
+        draw_title_bar(&mut buf, 256, 0, 0, 100, "Test", false, 1);
+        // Background is TITLE_BAR_BG, but edges are overridden by highlight/shadow
+        // Center pixel (not on any edge) should be TITLE_BAR_BG
+        assert_eq!(buf[5 * 256 + 50], TITLE_BAR_BG);
+        // Bottom-right inside corner (not on shadow edge)
+        assert_eq!(buf[11 * 256 + 98], TITLE_BAR_BG);
+    }
+
+    #[test]
+    fn test_draw_title_bar_active_uses_active_bg() {
+        let mut buf = vec![0u32; 256 * 128];
+        draw_title_bar(&mut buf, 256, 0, 0, 100, "Test", true, 1);
+        // buf[0] is on the top edge highlight, not the bg
+        // Check a center pixel instead
+        assert_eq!(buf[5 * 256 + 50], TITLE_BAR_BG_ACTIVE);
+    }
+
+    #[test]
+    fn test_draw_title_bar_top_highlight() {
+        let mut buf = vec![0u32; 256 * 128];
+        draw_title_bar(&mut buf, 256, 0, 0, 100, "Test", false, 1);
+        // Top row (y=0) should be highlight color
+        assert_eq!(buf[0], TITLE_BAR_HIGHLIGHT);
+        // Left col (x=0, y=1) should also be highlight
+        assert_eq!(buf[1 * 256 + 0], TITLE_BAR_HIGHLIGHT);
+    }
+
+    #[test]
+    fn test_draw_title_bar_right_shadow() {
+        let mut buf = vec![0u32; 256 * 128];
+        draw_title_bar(&mut buf, 256, 0, 0, 100, "Test", false, 1);
+        // Right edge: x=99, y=0..11
+        assert_eq!(buf[0 * 256 + 99], TITLE_BAR_SHADOW);
+        assert_eq!(buf[5 * 256 + 99], TITLE_BAR_SHADOW);
+    }
+
+    #[test]
+    fn test_draw_title_bar_border_under() {
+        let mut buf = vec![0u32; 256 * 128];
+        draw_title_bar(&mut buf, 256, 0, 0, 100, "Test", false, 1);
+        // Border line at y = TITLE_BAR_HEIGHT (12)
+        assert_eq!(buf[12 * 256 + 0], WINDOW_BORDER_COLOR);
+        assert_eq!(buf[12 * 256 + 50], WINDOW_BORDER_COLOR);
+    }
+
+    #[test]
+    fn test_draw_title_bar_scaled() {
+        let mut buf = vec![0u32; 256 * 128];
+        draw_title_bar(&mut buf, 256, 0, 0, 20, "T", false, 2);
+        // With scale=2, bar_h = 12*2 = 24, bar_w = 20*2 = 40
+        // Check center pixel away from close button (right edge)
+        assert_eq!(buf[12 * 256 + 10], TITLE_BAR_BG);
+        // Below bar at y=24 should be border
+        assert_eq!(buf[24 * 256 + 10], WINDOW_BORDER_COLOR);
+    }
+
+    #[test]
+    fn test_draw_title_bar_negative_offset_clamped() {
+        let mut buf = vec![0u32; 256 * 128];
+        // Negative offsets should be clamped, not panic
+        draw_title_bar(&mut buf, 256, -10, -5, 20, "T", false, 1);
+        // The buffer should have some colored pixels but not all
+        let colored = buf.iter().filter(|&&p| p != 0).count();
+        assert!(colored > 0);
+    }
+
+    #[test]
+    fn test_draw_title_bar_close_button() {
+        let mut buf = vec![0u32; 256 * 128];
+        draw_title_bar(&mut buf, 256, 0, 0, 100, "Test", false, 1);
+        // Close button background is at top-right corner area
+        // Close button X pixels should be TITLE_BAR_CLOSE
+        let has_close = buf.iter().any(|&p| p == TITLE_BAR_CLOSE);
+        assert!(has_close, "close button X should be rendered");
+    }
+
+    // ── syntax_highlight_color tests ─────────────────────────────
+    //
+    // Note: syntax_highlight_color builds a line string from canvas cells,
+    // breaking at val==0. It then adjusts col positions via
+    //   trimmed_start = CANVAS_COLS - line_chars.trim_start().len()
+    // which is correct when line_chars includes leading/trailing spaces
+    // (real canvas cells use 0x20 for space). Tests must fill unused
+    // cells with spaces (0x20), not zeros, for the column math to work.
+
+    fn make_canvas_filled(lines: &[&str]) -> Vec<u32> {
+        let mut buf = vec![0x20u32; CANVAS_COLS * CANVAS_MAX_ROWS]; // fill with spaces
+        for (i, line) in lines.iter().enumerate() {
+            for (j, ch) in line.chars().enumerate() {
+                if j < CANVAS_COLS && i < CANVAS_MAX_ROWS {
+                    buf[i * CANVAS_COLS + j] = ch as u32;
+                }
+            }
+        }
+        buf
+    }
+
+    #[test]
+    fn test_syntax_highlight_opcode() {
+        let buf = make_canvas_filled(&["LDI r1, 10"]);
+        // Col 0-2 = "LDI" should be SYN_OPCODE
+        assert_eq!(syntax_highlight_color(&buf, 0, 0), SYN_OPCODE);
+        assert_eq!(syntax_highlight_color(&buf, 0, 1), SYN_OPCODE);
+        assert_eq!(syntax_highlight_color(&buf, 0, 2), SYN_OPCODE);
+    }
+
+    #[test]
+    fn test_syntax_highlight_register() {
+        let buf = make_canvas_filled(&["LDI r1, 10"]);
+        // Col 4-5 = "r1" should be SYN_REGISTER
+        assert_eq!(syntax_highlight_color(&buf, 0, 4), SYN_REGISTER);
+        assert_eq!(syntax_highlight_color(&buf, 0, 5), SYN_REGISTER);
+    }
+
+    #[test]
+    fn test_syntax_highlight_number() {
+        let buf = make_canvas_filled(&["LDI r1, 10"]);
+        // Col 8-9 = "10" should be SYN_NUMBER
+        assert_eq!(syntax_highlight_color(&buf, 0, 8), SYN_NUMBER);
+        assert_eq!(syntax_highlight_color(&buf, 0, 9), SYN_NUMBER);
+    }
+
+    #[test]
+    fn test_syntax_highlight_comment() {
+        let buf = make_canvas_filled(&["; this is a comment"]);
+        // After semicolon should be SYN_COMMENT
+        assert_eq!(syntax_highlight_color(&buf, 0, 2), SYN_COMMENT);
+    }
+
+    #[test]
+    fn test_syntax_highlight_label() {
+        let buf = make_canvas_filled(&["loop:"]);
+        // "loop" before colon should be SYN_LABEL
+        assert_eq!(syntax_highlight_color(&buf, 0, 0), SYN_LABEL);
+    }
+
+    #[test]
+    fn test_syntax_highlight_empty_line() {
+        let buf = vec![0u32; CANVAS_COLS * CANVAS_MAX_ROWS];
+        assert_eq!(syntax_highlight_color(&buf, 0, 0), SYN_DEFAULT);
+    }
+
+    #[test]
+    fn test_syntax_highlight_default_for_non_token() {
+        let buf = make_canvas_filled(&["xyz"]);
+        // "xyz" is not an opcode/register/number/label/comment
+        assert_eq!(syntax_highlight_color(&buf, 0, 0), SYN_DEFAULT);
+    }
+
+    #[test]
+    fn test_syntax_highlight_out_of_bounds_row() {
+        let buf = vec![0u32; CANVAS_COLS * CANVAS_MAX_ROWS];
+        // Row beyond content should return SYN_DEFAULT
+        assert_eq!(syntax_highlight_color(&buf, 100, 0), SYN_DEFAULT);
+    }
+
+    #[test]
+    fn test_syntax_highlight_multiple_lines() {
+        let buf = make_canvas_filled(&["LDI r1, 10", "; comment", "ADD r2, r3"]);
+        assert_eq!(syntax_highlight_color(&buf, 0, 0), SYN_OPCODE);  // LDI
+        assert_eq!(syntax_highlight_color(&buf, 1, 2), SYN_COMMENT); // comment
+        assert_eq!(syntax_highlight_color(&buf, 2, 0), SYN_OPCODE);  // ADD
+        assert_eq!(syntax_highlight_color(&buf, 2, 4), SYN_REGISTER); // r2
+    }
+
+    #[test]
+    fn test_syntax_highlight_comma_is_default() {
+        let buf = make_canvas_filled(&["LDI r1, 10"]);
+        // Comma at col 6 should be SYN_DEFAULT (punctuation)
+        assert_eq!(syntax_highlight_color(&buf, 0, 6), SYN_DEFAULT);
+    }
+
+    // ── Layout constant tests ────────────────────────────────────
+
+    #[test]
+    fn test_layout_constants_sensible() {
+        assert!(WIDTH >= 256);
+        assert!(HEIGHT >= 256);
+        assert!(CANVAS_COLS <= WIDTH);
+        assert!(CANVAS_ROWS > 0);
+        assert!(CANVAS_MAX_ROWS >= CANVAS_ROWS);
+        assert!(VM_SCREEN_X < WIDTH);
+        assert!(VM_SCREEN_Y < HEIGHT);
+        assert!(REGS_X < WIDTH);
+        assert!(REGS_Y < HEIGHT);
+        assert_eq!(CANVAS_BYTECODE_ADDR, 0x1000);
+    }
+
+    #[test]
+    fn test_canvas_scale_is_positive() {
+        assert!(CANVAS_SCALE > 0);
+    }
+
+    #[test]
+    fn test_syn_colors_are_distinct() {
+        let colors = [SYN_OPCODE, SYN_REGISTER, SYN_NUMBER, SYN_LABEL, SYN_COMMENT, SYN_DEFAULT];
+        for i in 0..colors.len() {
+            for j in (i + 1)..colors.len() {
+                assert_ne!(colors[i], colors[j],
+                    "SYN colors at indices {} and {} are identical: {:#X}",
+                    i, j, colors[i]);
+            }
+        }
+    }
+}
