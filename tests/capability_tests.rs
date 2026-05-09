@@ -516,11 +516,11 @@ fn test_spawnc_sandbox_denies_vfs_path_outside_capabilities() {
         vm.step_all_processes();
     }
 
-    // Child's r0 should be EPERM (0xFFFFFFFE) because /secret/data
+    // Child's r0 should be EPERM because /secret/data
     // doesn't match /tmp/* or /lib/*
     let child = vm.processes.iter().find(|p| p.pid == child_pid).unwrap();
     assert_eq!(
-        child.regs[0], 0xFFFFFFFE,
+        child.regs[0], geos_errno(GEOS_EPERM),
         "child should get EPERM when opening /secret/data -- not in sandbox capabilities"
     );
 }
