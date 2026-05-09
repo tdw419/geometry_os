@@ -5735,6 +5735,249 @@ phases:
   acceptance_criteria:
   - description: Program assembles and renders the note grid
     validation: Screen has a grid pattern with toggleable cells
+- id: phase-316
+  title: GeOS VM -- ops_graphics.rs Unit Tests
+  status: todo
+  description: Add comprehensive unit tests for the graphics opcode handlers in ops_graphics.rs
+    (909 lines, 0 tests).
+  deliverables:
+  - name: PSET/PSETI pixel rendering tests (bounds, color, coordinate edge cases)
+    status: todo
+  - name: RECTF filled rectangle tests (zero-size, full-screen, partial overlap)
+    status: todo
+  - name: LINE Bresenham tests (horizontal, vertical, diagonal)
+    status: todo
+  - name: CIRCLE midpoint tests (radius 0, large radius, screen edge clipping)
+    status: todo
+  - name: SPRITE blit tests (transparent pixels, out-of-bounds, NxM sizes)
+    status: todo
+  - name: ROTATE/SCALE/BLEND transform tests (angle wrapping, scale factors)
+    status: todo
+  dependencies: []
+- id: phase-317
+  title: GeOS VM -- RISC-V CPU Core Unit Tests
+  status: todo
+  description: 'Add unit tests for the RISC-V CPU execution pipeline. Zero-test modules:
+    cpu/system.rs, cpu/execute.rs, cpu/alu.rs, cpu/loadstore.rs, cpu/atomic.rs.'
+  deliverables:
+  - name: ALU arithmetic tests (ADD, SUB, AND, OR, XOR, SLT, SLTU)
+    status: todo
+  - name: Load/store alignment tests (misaligned word/half/byte)
+    status: todo
+  - name: CPU execute pipeline tests (decoding, PC advancement, exceptions)
+    status: todo
+  - name: Atomic AMO tests (LR/SC, AMOSWAP, AMOADD)
+    status: todo
+  dependencies: []
+- id: phase-318
+  title: GeOS Program -- Mandelbrot Fractal Renderer
+  status: todo
+  description: A Mandelbrot set fractal renderer with per-pixel iteration and fixed-point
+    arithmetic.
+  deliverables:
+  - name: Complex plane to screen coordinate mapping with zoom/pan
+    status: todo
+  - name: Fixed-point complex multiplication and squaring
+    status: todo
+  - name: Iteration-based coloring with escape radius check
+    status: todo
+  - name: Arrow key zoom and pan controls
+    status: todo
+  - name: Integration test verifying non-trivial pixel distribution
+    status: todo
+  dependencies: []
+- id: phase-319
+  title: GeOS VM -- RISC-V Decode Module Unit Tests
+  status: todo
+  description: 'Add unit tests for RISC-V instruction decoding. Zero-test: decode/compressed.rs,
+    decode/operation.rs, decode/rv32i.rs.'
+  deliverables:
+  - name: C-extension dispatch order tests (bits[1:0] grouping)
+    status: todo
+  - name: Sign extension tests (C.LUI bit 17, C.J 12-bit)
+    status: todo
+  - name: RV64-only instruction rejection tests
+    status: todo
+  - name: I-type/U-type/J-type immediate encoding tests
+    status: todo
+  dependencies: []
+- id: phase-320
+  title: GeOS Program -- Drum Machine and Melody Player
+  status: todo
+  description: A drum machine and melody player using the BEEP opcode with note sequences
+    in RAM.
+  deliverables:
+  - name: Note sequence storage in RAM with frequency/duration pairs
+    status: todo
+  - name: Sequencer playback loop with BEEP and TICKS-based tempo
+    status: todo
+  - name: Visual playback position indicator on screen
+    status: todo
+  - name: Keyboard controls for play/stop/tempo and pattern selection
+    status: todo
+  - name: Integration test verifying BEEP activation during playback
+    status: todo
+  dependencies: []
+- id: phase-321
+  title: GeOS VM -- RISC-V Boot and Module Integration Tests
+  status: todo
+  description: 'Add unit tests for RISC-V boot sequence and module integration. Zero-test:
+    boot.rs, mod.rs, trace.rs.'
+  deliverables:
+  - name: Boot setup tests (MRET, SATP, page table injection)
+    status: todo
+  - name: ELF loader edge case tests (invalid header, misaligned segments)
+    status: todo
+  - name: Trace format verification tests
+    status: todo
+  - name: Module integration test (RiscvVm creation, reset)
+    status: todo
+  dependencies: []
+- id: phase-322
+  title: GeOS Program -- 3D Terrain Flyover
+  status: todo
+  description: A 3D terrain flyover using heightmap-based rendering with perspective
+    projection.
+  deliverables:
+  - name: Procedural heightmap generation in RAM
+    status: todo
+  - name: Per-column perspective height projection
+    status: todo
+  - name: Distance-based fog and color fade
+    status: todo
+  - name: Forward flight with altitude/speed controls
+    status: todo
+  - name: Integration test verifying heightmap-dependent screen output
+    status: todo
+  dependencies: []
+- id: phase-323
+  title: GeOS VM -- Memory and Formula Module Unit Tests
+  status: todo
+  description: 'Add unit tests for VM memory management and reactive canvas formulas.
+    Zero-test: memory.rs, formula.rs, boot.rs.'
+  deliverables:
+  - name: Page allocation and free tests (alloc_pages, free_page, ref counting)
+    status: todo
+  - name: COW fork page table tests (shared pages, write-triggered copy)
+    status: todo
+  - name: Formula registration and evaluation tests
+    status: todo
+  - name: Boot initialization tests (register state, RAM clearing, SP setup)
+    status: todo
+  dependencies: []
+- id: phase-324
+  title: GeOS Program -- Network Chat Demo
+  status: todo
+  description: A chat application demonstrating NET_SEND/NET_UDP opcodes and /dev/net
+    device driver.
+  deliverables:
+  - name: Chat message rendering with scrolling history
+    status: todo
+  - name: UDP message sending via NET_SEND opcode
+    status: todo
+  - name: Incoming message display from /dev/net read
+    status: todo
+  - name: Text input area with cursor and backspace support
+    status: todo
+  - name: Integration test verifying screen layout
+    status: todo
+  dependencies: []
+- id: phase-325
+  title: GeOS VM -- Assembler Instructions Module Unit Tests
+  status: todo
+  description: 'Add unit tests for the assembler instructions module. Zero-test: instructions.rs
+    (111 lines).'
+  deliverables:
+  - name: Instruction classification tests (opcode category detection)
+    status: todo
+  - name: Opcode-to-name mapping tests (all 214 opcodes have valid names)
+    status: todo
+  - name: Instruction metadata tests (word count, argument count per opcode)
+    status: todo
+  dependencies: []
+- id: phase-326
+  title: GeOS Program -- Paint Program with Tools
+  status: todo
+  description: A paint program with pencil, rectangle, circle, line, and fill tools
+    with color palette and undo.
+  deliverables:
+  - name: Tool selection UI with visual toolbar
+    status: todo
+  - name: Pencil and shape drawing tools (rect, circle, line)
+    status: todo
+  - name: FLOOD fill tool with tolerance
+    status: todo
+  - name: Color palette with selection highlight
+    status: todo
+  - name: Undo support via RAM-based screen snapshots
+    status: todo
+  - name: Integration test verifying toolbar rendering and tool switching
+    status: todo
+  dependencies: []
+- id: phase-327
+  title: GeOS VM -- Trace Module Unit Tests
+  status: todo
+  description: 'Add unit tests for the VM trace module. Zero-test: trace.rs (754 lines).'
+  deliverables:
+  - name: Instruction trace formatting tests (arithmetic, branch, memory, graphics)
+    status: todo
+  - name: Register state serialization tests (hex formatting, flag display)
+    status: todo
+  - name: Trace enable/disable toggling tests
+    status: todo
+  dependencies: []
+- id: phase-328
+  title: GeOS Program -- Tower Defense Game
+  status: todo
+  description: A tower defense game with path-based enemy movement, placeable towers,
+    projectile animation, and wave progression.
+  deliverables:
+  - name: Enemy path following with waypoint-based movement
+    status: todo
+  - name: Tower placement UI with adjacency constraint
+    status: todo
+  - name: Auto-targeting and projectile rendering
+    status: todo
+  - name: Wave progression with increasing difficulty
+    status: todo
+  - name: HUD display (gold, HP, score, wave number)
+    status: todo
+  - name: Integration test verifying path rendering and entity placement
+    status: todo
+  dependencies: []
+- id: phase-329
+  title: GeOS VM -- RISC-V CSR Module Unit Tests
+  status: todo
+  description: 'Add unit tests for the RISC-V CSR module. Zero-test: csr/mod.rs, csr/constants.rs.'
+  deliverables:
+  - name: CSR read/write tests for mstatus, mepc, mtvec, satp
+    status: todo
+  - name: Privilege mode transition tests (M-mode to S-mode via MRET)
+    status: todo
+  - name: Interrupt enable/disable tests (mie, mideleg, sie)
+    status: todo
+  - name: CSR bank context save/restore tests
+    status: todo
+  dependencies: []
+- id: phase-330
+  title: GeOS Program -- Particle System Demo
+  status: todo
+  description: 'A particle system with physics-based effects: fountain, explosion,
+    rain, firework modes.'
+  deliverables:
+  - name: Particle pool allocation and recycling in RAM
+    status: todo
+  - name: Physics simulation (gravity, velocity, lifetime decay)
+    status: todo
+  - name: Fountain mode (continuous upward emission with gravity)
+    status: todo
+  - name: Explosion mode (radial burst from center point)
+    status: todo
+  - name: Mode switching via keyboard (1-4 for fountain/explosion/rain/fireworks)
+    status: todo
+  - name: Integration test verifying particle count exceeds threshold per frame
+    status: todo
+  dependencies: []
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
