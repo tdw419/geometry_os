@@ -3136,7 +3136,7 @@ impl Vm {
             // SCRSHOT path_addr_reg (0x98) -- Screenshot: save screen to VFS file
             // Reads null-terminated path from RAM at address in register.
             // Writes 256x256 raw RGBA u32 pixels to the VFS file.
-            // Returns fd in r0 (or 0xFFFFFFFF on error).
+            // Returns total bytes written in r0, or GEOS error code on failure.
             0x98 => {
                 let pr = self.fetch() as usize;
                 if pr < NUM_REGS {
@@ -3144,7 +3144,9 @@ impl Vm {
                     // Read the current process's PID for VFS
                     let pid = self.current_pid;
                     let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid); // FOPEN_WRITE
-                    if fd != 0xFFFFFFFF {
+                    if is_geos_errno(fd) {
+                        self.regs[0] = fd; // propagate fopen error
+                    } else {
                         // Write screen pixels to file
                         // Pack screen as bytes: each u32 pixel = 4 bytes (RGBA)
                         let mut pixel_bytes: Vec<u8> = Vec::with_capacity(256 * 256 * 4);
@@ -3173,9 +3175,9 @@ impl Vm {
                                 }
                             }
                             let n = self.vfs.fwrite(&self.ram, fd, stage_base, len, pid);
-                            if n == 0xFFFFFFFF {
+                            if is_geos_errno(n) {
                                 let _ = self.vfs.fclose(fd, pid);
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = n; // propagate fwrite error
                                 written = 0;
                                 break;
                             }
@@ -3184,8 +3186,6 @@ impl Vm {
                         }
                         self.vfs.fclose(fd, pid);
                         self.regs[0] = written; // total bytes written
-                    } else {
-                        self.regs[0] = 0xFFFFFFFF;
                     }
                 }
             }
@@ -4022,7 +4022,9 @@ impl Vm {
                                 // Write PNG to VFS file
                                 // First, create the file
                                 let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid); // FOPEN_WRITE
-                                if fd != 0xFFFFFFFF {
+                                if is_geos_errno(fd) {
+                                    self.regs[0] = fd; // propagate fopen error
+                                } else {
                                     // Stage PNG bytes in RAM at a temporary area, write in chunks
                                     let stage_base = 0x9000u32;
                                     let chunk_size = 512u32;
@@ -4078,8 +4080,6 @@ impl Vm {
                                     }
                                     self.vfs.fclose(fd, pid);
                                     self.regs[0] = written; // total bytes written
-                                } else {
-                                    self.regs[0] = 0xFFFFFFFF; // error
                                 }
                             } else {
                                 self.regs[0] = 0xFFFFFFFF;
@@ -5039,7 +5039,9 @@ impl Vm {
                         Ok(png_bytes) => {
                             // Write PNG to VFS file
                             let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid);
-                            if fd != 0xFFFFFFFF {
+                            if is_geos_errno(fd) {
+                                self.regs[0] = fd; // propagate fopen error
+                            } else {
                                 // Stage PNG bytes in RAM: one byte per u32 word
                                 let stage_base = 0x9000u32;
                                 let chunk_size = 512u32;
@@ -5058,9 +5060,9 @@ impl Vm {
                                     }
                                     let bytes_written =
                                         self.vfs.fwrite(&self.ram, fd, stage_base, n, pid);
-                                    if bytes_written == 0xFFFFFFFF {
+                                    if is_geos_errno(bytes_written) {
                                         let _ = self.vfs.fclose(fd, pid);
-                                        self.regs[0] = 0xFFFFFFFF;
+                                        self.regs[0] = bytes_written; // propagate fwrite error
                                         written = 0;
                                         break;
                                     }
@@ -5069,8 +5071,6 @@ impl Vm {
                                 }
                                 self.vfs.fclose(fd, pid);
                                 self.regs[0] = written;
-                            } else {
-                                self.regs[0] = 0xFFFFFFFF;
                             }
                         }
                         Err(_) => {
@@ -5087,7 +5087,7 @@ impl Vm {
             // Reads null-terminated path from RAM at address in register.
             // Encodes the 256x256 screen as a PNG file (RGB, 8-bit per channel).
             // Uses pure-Rust zero-dependency PNG encoder (vision::encode_png).
-            // Returns total bytes written in r0, or 0xFFFFFFFF on error.
+            // Returns total bytes written in r0, or GEOS error code on failure.
             0xAF => {
                 let pr = self.fetch() as usize;
                 if pr < NUM_REGS {
@@ -5099,7 +5099,9 @@ impl Vm {
 
                     // Open VFS file for writing
                     let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid); // FOPEN_WRITE
-                    if fd != 0xFFFFFFFF {
+                    if is_geos_errno(fd) {
+                        self.regs[0] = fd; // propagate fopen error
+                    } else {
                         // Stage PNG bytes in RAM and write in chunks.
                         // VFS fwrite reads low 8 bits of each u32 word, so we store
                         // one byte per RAM word.
@@ -5122,9 +5124,9 @@ impl Vm {
                                 &self.ram, fd, stage_base, n, // one word per byte
                                 pid,
                             );
-                            if bytes_written == 0xFFFFFFFF {
+                            if is_geos_errno(bytes_written) {
                                 let _ = self.vfs.fclose(fd, pid);
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = bytes_written; // propagate fwrite error
                                 written = 0;
                                 break;
                             }
@@ -5133,11 +5135,9 @@ impl Vm {
                         }
                         self.vfs.fclose(fd, pid);
                         self.regs[0] = written; // total bytes written
-                    } else {
-                        self.regs[0] = 0xFFFFFFFF; // error: could not open file
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF; // error: invalid register
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // error: invalid register
                 }
             }
 

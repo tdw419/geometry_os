@@ -3474,7 +3474,7 @@ fn test_pixel_history_invalid_mode() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
 }
 
 #[test]
@@ -12623,7 +12623,7 @@ fn test_scrshot_error_on_bad_path() {
     }
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(GEOS_EINVAL),
         "SCRSHOT should fail with empty filename"
     );
 }
@@ -12746,7 +12746,7 @@ fn test_savepng_error_on_bad_path() {
     }
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(GEOS_EINVAL),
         "SAVEPNG should fail with empty filename"
     );
 }
@@ -22561,7 +22561,7 @@ fn test_unlink_nonexistent_file() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(GEOS_ENOENT),
         "UNLINK should return error for nonexistent file"
     );
 }
@@ -22587,7 +22587,7 @@ fn test_unlink_path_traversal_blocked() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "UNLINK should block path traversal");
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL), "UNLINK should block path traversal");
 }
 
 #[test]
@@ -22656,7 +22656,7 @@ fn test_fcopy_nonexistent_source() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(GEOS_EIO),
         "FCOPY should error on nonexistent source"
     );
 }
@@ -26255,7 +26255,7 @@ fn test_vstat_nonexistent_returns_error() {
     vm.step(); // VSTAT
     vm.step(); // HALT
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT));
 }
 
 #[test]

@@ -11,7 +11,7 @@ impl Vm {
     pub(super) fn step_extended(&mut self, opcode: u32) -> bool {
         match opcode {
             // IOCTL fd_reg, cmd_reg, arg_reg  -- device-specific control operations
-            // r0 = result (device-dependent), 0xFFFFFFFF on error
+            // r0 = result (device-dependent), GEOS error code on error
             // Screen: cmd 0 = get width in r0, cmd 1 = get height in r0
             // Keyboard: cmd 0 = get echo mode, cmd 1 = set echo mode (arg)
             // Audio: cmd 0 = get volume, cmd 1 = set volume (arg 0-100)
@@ -63,7 +63,7 @@ impl Vm {
                                             }
                                             self.regs[0] = 0; // success
                                         } else {
-                                            self.regs[0] = 0xFFFFFFFF; // bad address
+                                            self.regs[0] = geos_errno(GEOS_EINVAL); // bad address
                                         }
                                     }
                                     // cmd 3: clear custom font (revert to default)
@@ -81,7 +81,7 @@ impl Vm {
                                         }
                                         self.regs[0] = 0; // success
                                     }
-                                    _ => self.regs[0] = 0xFFFFFFFF,
+                                    _ => self.regs[0] = geos_errno(GEOS_EINVAL),
                                 }
                             }
                             1 => {
@@ -92,7 +92,7 @@ impl Vm {
                                         self.ram[0xFF8] = arg;
                                         self.regs[0] = 0;
                                     }
-                                    _ => self.regs[0] = 0xFFFFFFFF,
+                                    _ => self.regs[0] = geos_errno(GEOS_EINVAL),
                                 }
                             }
                             2 => {
@@ -103,23 +103,23 @@ impl Vm {
                                         self.ram[0xFF7] = arg.min(100);
                                         self.regs[0] = 0;
                                     }
-                                    _ => self.regs[0] = 0xFFFFFFFF,
+                                    _ => self.regs[0] = geos_errno(GEOS_EINVAL),
                                 }
                             }
                             3 => {
                                 // /dev/net
                                 match cmd {
                                     0 => self.regs[0] = 1, // status: up
-                                    _ => self.regs[0] = 0xFFFFFFFF,
+                                    _ => self.regs[0] = geos_errno(GEOS_EINVAL),
                                 }
                             }
-                            _ => self.regs[0] = 0xFFFFFFFF,
+                            _ => self.regs[0] = geos_errno(GEOS_EBADF),
                         }
                     } else {
-                        self.regs[0] = 0xFFFFFFFF; // not a device fd
+                        self.regs[0] = geos_errno(GEOS_EBADF); // not a device fd
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -1180,7 +1180,7 @@ impl Vm {
                         }
                     }
                     _ => {
-                        self.regs[0] = 0xFFFFFFFF; // invalid mode
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // invalid mode
                     }
                 }
             }
@@ -1320,28 +1320,28 @@ mod tests {
 
     #[test]
     fn test_ioctl_invalid_device_fd() {
-        // fd not in device range -> r0 = 0xFFFFFFFF
+        // fd not in device range -> r0 = GEOS_EBADF
         let mut vm = Vm::new();
         vm.regs[1] = 10; // fd = 10 (not in 0xE000-0xE003 range)
         let vm = step_one_from(&vm, &[0x62, 1, 0, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF));
     }
 
     #[test]
     fn test_ioctl_unknown_cmd() {
-        // /dev/screen cmd=99 -> r0 = 0xFFFFFFFF
+        // /dev/screen cmd=99 -> r0 = GEOS_EINVAL
         let mut vm = Vm::new();
         vm.regs[1] = 0xE000; // fd = /dev/screen
         vm.regs[2] = 99; // cmd = 99 (unknown)
         let vm = step_one_from(&vm, &[0x62, 1, 2, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     #[test]
     fn test_ioctl_out_of_range_register() {
-        // reg index >= NUM_REGS -> r0 = 0xFFFFFFFF
+        // reg index >= NUM_REGS -> r0 = GEOS_EINVAL
         let vm = step_one(&[0x62, 32, 0, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     #[test]
@@ -1945,7 +1945,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.regs[0] = 99;
         let vm = step_one_from(&vm, &[0x84, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     #[test]
@@ -2015,13 +2015,13 @@ mod tests {
 
     #[test]
     fn test_ioctl_screen_custom_font_bad_address() {
-        // cmd=2 with bad font address -> r0 = 0xFFFFFFFF
+        // cmd=2 with bad font address -> r0 = GEOS_EINVAL
         let mut vm = Vm::new();
         vm.regs[0] = 0xE000; // /dev/screen fd
         vm.regs[1] = 2; // set custom font
         vm.regs[2] = 0xFFFF; // bad address (would overflow)
         let vm = step_one_from(&vm, &[0x62, 0, 1, 2], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     #[test]

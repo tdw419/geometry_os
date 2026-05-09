@@ -21,11 +21,11 @@ impl Vm {
                         self.mode = CpuMode::Kernel;
                         self.pc = handler;
                     } else {
-                        // No handler registered: set r0 = 0xFFFFFFFF (error)
-                        self.regs[0] = 0xFFFFFFFF;
+                        // No handler registered: set r0 = error
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -76,7 +76,7 @@ impl Vm {
                             crate::vm::types::Capability::PERM_WRITE
                         };
                         if !crate::vm::types::check_path_capability(&caps, path, perm) {
-                            self.regs[0] = 0xFFFFFFFE; // EPERM
+                            self.regs[0] = geos_errno(GEOS_EPERM);
                             return true;
                         }
                     }
@@ -98,7 +98,7 @@ impl Vm {
                         self.regs[0] = fd;
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -175,7 +175,7 @@ impl Vm {
                                 // (writer may have been blocked if pipe was full)
                             }
                         } else {
-                            self.regs[0] = 0xFFFFFFFF; // bad pipe fd
+                            self.regs[0] = geos_errno(GEOS_EBADF); // bad pipe fd
                         }
                     } else {
                         let buf_addr = self.regs[buf_reg];
@@ -185,7 +185,7 @@ impl Vm {
                         self.regs[0] = n;
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -282,7 +282,7 @@ impl Vm {
                                 }
                             }
                         } else {
-                            self.regs[0] = 0xFFFFFFFF; // bad pipe fd or pipe closed
+                            self.regs[0] = geos_errno(GEOS_EBADF); // bad pipe fd or pipe closed
                         }
                     } else {
                         let buf_addr = self.regs[buf_reg];
@@ -292,7 +292,7 @@ impl Vm {
                         self.regs[0] = n;
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -318,14 +318,14 @@ impl Vm {
                             self.pipes[pipe_idx].alive = false;
                             self.regs[0] = 0;
                         } else {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EBADF);
                         }
                     } else {
                         let result = self.vfs.fclose(fd, pid);
                         self.regs[0] = result;
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -343,7 +343,7 @@ impl Vm {
                     let pos = self.vfs.fseek(fd, offset, whence, pid);
                     self.regs[0] = pos;
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -356,7 +356,7 @@ impl Vm {
                     let count = self.vfs.fls(&mut self.ram, buf_addr);
                     self.regs[0] = count;
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -382,7 +382,7 @@ impl Vm {
             }
 
             // PIPE rd_read, rd_write -- create a unidirectional pipe
-            // r0 = read_fd (0x8000+idx) or 0xFFFFFFFF on error, r1 = write_fd (0xC000+idx)
+            // r0 = read_fd (0x8000+idx) or error code on error, r1 = write_fd (0xC000+idx)
             0x5D => {
                 let rr = self.fetch() as usize;
                 let rw = self.fetch() as usize;
@@ -395,15 +395,15 @@ impl Vm {
                         self.regs[rw] = 0xC000 | idx;
                         self.regs[0] = 0; // success
                     } else {
-                        self.regs[0] = 0xFFFFFFFF; // too many pipes
+                        self.regs[0] = geos_errno(GEOS_ENFILE); // too many pipes
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
             // MSGSND pid_reg -- send r1..r4 as a 4-word message to target PID
-            // r0 = 0 on success, 0xFFFFFFFF on error
+            // r0 = 0 on success, error code on error
             0x5E => {
                 let pid_reg = self.fetch() as usize;
                 if pid_reg < NUM_REGS {
@@ -428,10 +428,10 @@ impl Vm {
                     if delivered {
                         self.regs[0] = 0;
                     } else {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_ESRCH); // no such process or queue full
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -459,7 +459,7 @@ impl Vm {
                     }
                 } else {
                     // Main process: check msg queue on VM (non-blocking for simplicity)
-                    self.regs[0] = 0xFFFFFFFF; // main process has no msg queue in current design
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // main process has no msg queue
                 }
             }
             _ => {}
@@ -527,7 +527,7 @@ mod tests {
         vm.ram[1] = 1;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
         // Vm::new() starts in Kernel mode; no-handler path doesn't change it
         assert_eq!(vm.mode, CpuMode::Kernel);
         assert_eq!(vm.kernel_stack.len(), 0);
@@ -542,7 +542,7 @@ mod tests {
         vm.ram[1] = 0xFFFF;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     #[test]
@@ -675,7 +675,7 @@ mod tests {
         vm.ram[2] = 0;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── READ (0x55) ────────────────────────────────────────────────
@@ -756,7 +756,7 @@ mod tests {
         vm.ram[3] = 0;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── WRITE (0x56) ───────────────────────────────────────────────
@@ -884,7 +884,7 @@ mod tests {
         vm.ram[3] = 0;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── CLOSE (0x57) ───────────────────────────────────────────────
@@ -908,7 +908,7 @@ mod tests {
         vm.ram[1] = 32;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     #[test]
@@ -945,7 +945,7 @@ mod tests {
         vm.ram[1] = 1;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF));
     }
 
     // ── SEEK (0x58) ────────────────────────────────────────────────
@@ -960,7 +960,7 @@ mod tests {
         vm.ram[3] = 0;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── LS (0x59) ──────────────────────────────────────────────────
@@ -973,7 +973,7 @@ mod tests {
         vm.ram[1] = 32;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── YIELD (0x5A) ───────────────────────────────────────────────
@@ -1105,7 +1105,7 @@ mod tests {
         vm.ram[2] = 2;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENFILE));
     }
 
     #[test]
@@ -1116,7 +1116,7 @@ mod tests {
         vm.ram[2] = 0;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── MSGSND (0x5E) ──────────────────────────────────────────────
@@ -1166,7 +1166,7 @@ mod tests {
         vm.ram[1] = 10;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ESRCH));
     }
 
     #[test]
@@ -1180,7 +1180,7 @@ mod tests {
         vm.ram[1] = 10;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ESRCH));
     }
 
     #[test]
@@ -1196,7 +1196,7 @@ mod tests {
         vm.ram[1] = 10;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ESRCH));
     }
 
     #[test]
@@ -1206,7 +1206,7 @@ mod tests {
         vm.ram[1] = 32;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── MSGRCV (0x5F) ──────────────────────────────────────────────
@@ -1248,7 +1248,7 @@ mod tests {
         vm.ram[0] = 0x5F;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     #[test]
@@ -1330,7 +1330,7 @@ mod tests {
         vm.ram[3] = 3;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF));
     }
 
     #[test]
@@ -1345,7 +1345,7 @@ mod tests {
         vm.ram[3] = 3;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF));
     }
 
     #[test]
@@ -1510,7 +1510,7 @@ mod tests {
         vm.ram[2] = 2;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFE); // EPERM
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EPERM));
     }
 
     #[test]
@@ -1589,7 +1589,7 @@ mod tests {
         vm.ram[2] = 2;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFE); // EPERM
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EPERM));
     }
 
     #[test]
@@ -1651,7 +1651,7 @@ mod tests {
         vm.ram[3] = 3;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // bad pipe fd
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF));
     }
 
     #[test]
@@ -1753,7 +1753,7 @@ mod tests {
         vm.ram[3] = 3;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF));
     }
 
     #[test]
@@ -1885,7 +1885,7 @@ mod tests {
         vm.pc = 0;
         vm.step();
         // Result depends on VFS -- just verify no panic
-        assert!(vm.regs[0] == 0xFFFFFFFF || vm.regs[0] == 0);
+        assert!(is_geos_errno(vm.regs[0]) || vm.regs[0] == 0);
     }
 
     #[test]
@@ -2168,7 +2168,7 @@ mod tests {
         vm.ram[101] = 0;
         vm.pc = 100;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // no handler
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL)); // no handler
     }
 
     // ── READ: invalid fd range falls through to VFS ────────────────

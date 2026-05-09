@@ -6,8 +6,13 @@
 
 use std::collections::HashMap;
 use std::fs;
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{self, ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+
+use crate::vm::types::{
+    geos_errno, is_geos_errno, GEOS_EACCES, GEOS_EBADF, GEOS_EINVAL, GEOS_EIO,
+    GEOS_ENFILE, GEOS_ENOENT, GEOS_ENOMEM, GEOS_ENOSPC, GEOS_EPERM, GEOS_EISDIR,
+};
 
 /// Maximum open file descriptors per process
 pub const MAX_FDS: usize = 16;
@@ -363,14 +368,14 @@ impl Vfs {
         self.fd_tables.entry(pid).or_default()
     }
 
-    /// Open a file. Returns fd number or FD_ERROR.
+    /// Open a file. Returns fd number or a GEOS error code (negative u32).
     ///
     /// `name_addr` reads a null-terminated filename from RAM.
     /// `mode`: 0=read, 1=write, 2=append.
     pub fn fopen(&mut self, ram: &[u32], name_addr: u32, mode: u32, pid: u32) -> u32 {
         let filename = match Self::read_string(ram, name_addr as usize) {
             Some(s) => s,
-            None => return FD_ERROR,
+            None => return geos_errno(GEOS_EINVAL), // null/invalid address
         };
 
         // Sanitize: no path separators, no parent directory traversal
@@ -380,10 +385,15 @@ impl Vfs {
             || filename.contains("..")
             || filename.len() > 64
         {
-            return FD_ERROR;
+            return geos_errno(GEOS_EINVAL);
         }
 
         let filepath = self.base_dir.join(&filename);
+
+        // Check if path is a directory
+        if filepath.is_dir() {
+            return geos_errno(GEOS_EISDIR);
+        }
 
         let result = match mode {
             FOPEN_READ => fs::File::open(&filepath),
@@ -398,18 +408,24 @@ impl Vfs {
                     Err(_) => fs::File::create(&filepath),
                 }
             }
-            _ => return FD_ERROR,
+            _ => return geos_errno(GEOS_EINVAL), // invalid mode
         };
 
         let file = match result {
             Ok(f) => f,
-            Err(_) => return FD_ERROR,
+            Err(e) => {
+                return match e.kind() {
+                    ErrorKind::NotFound => geos_errno(GEOS_ENOENT),
+                    ErrorKind::PermissionDenied => geos_errno(GEOS_EPERM),
+                    _ => geos_errno(GEOS_EIO),
+                };
+            }
         };
 
         let table = self.fd_table(pid);
         let fd = table.alloc_fd();
         if fd == FD_ERROR {
-            return FD_ERROR;
+            return geos_errno(GEOS_ENFILE); // fd table full
         }
 
         if let Some(slot) = table.fds.get_mut(fd as usize) {
@@ -424,16 +440,16 @@ impl Vfs {
     }
 
     /// Read from a file descriptor into RAM.
-    /// Returns number of bytes read (each RAM cell holds one byte in low 8 bits).
+    /// Returns number of bytes read, or a GEOS error code on failure.
     pub fn fread(&mut self, ram: &mut [u32], fd: u32, buf_addr: u32, len: u32, pid: u32) -> u32 {
         let table = self.fd_table(pid);
         let open_file = match table.fds.get_mut(fd as usize) {
             Some(Some(f)) => f,
-            _ => return FD_ERROR,
+            _ => return geos_errno(GEOS_EBADF),
         };
 
         if open_file.mode == FOPEN_WRITE {
-            return FD_ERROR; // can't read a write-only file
+            return geos_errno(GEOS_EACCES); // can't read a write-only file
         }
 
         let mut buf = vec![0u8; len as usize];
@@ -448,21 +464,21 @@ impl Vfs {
                 }
                 bytes_read as u32
             }
-            Err(_) => FD_ERROR,
+            Err(_) => geos_errno(GEOS_EIO),
         }
     }
 
     /// Write from RAM to a file descriptor.
-    /// Returns number of bytes written.
+    /// Returns number of bytes written, or a GEOS error code on failure.
     pub fn fwrite(&mut self, ram: &[u32], fd: u32, buf_addr: u32, len: u32, pid: u32) -> u32 {
         let table = self.fd_table(pid);
         let open_file = match table.fds.get_mut(fd as usize) {
             Some(Some(f)) => f,
-            _ => return FD_ERROR,
+            _ => return geos_errno(GEOS_EBADF),
         };
 
         if open_file.mode == FOPEN_READ {
-            return FD_ERROR; // can't write a read-only file
+            return geos_errno(GEOS_EACCES); // can't write a read-only file
         }
 
         // Read bytes from RAM (low 8 bits of each u32)
@@ -482,51 +498,51 @@ impl Vfs {
                 let _ = open_file.file.flush();
                 bytes_written as u32
             }
-            Err(_) => FD_ERROR,
+            Err(_) => geos_errno(GEOS_ENOSPC),
         }
     }
 
-    /// Close a file descriptor. Returns 0 on success, FD_ERROR on error.
+    /// Close a file descriptor. Returns 0 on success, GEOS error code on error.
     pub fn fclose(&mut self, fd: u32, pid: u32) -> u32 {
         let table = self.fd_table(pid);
         if table.close(fd) {
             0
         } else {
-            FD_ERROR
+            geos_errno(GEOS_EBADF)
         }
     }
 
     /// Seek within a file descriptor.
     /// `whence`: 0=SET, 1=CUR, 2=END.
-    /// Returns new position from start of file, or FD_ERROR on error.
+    /// Returns new position from start of file, or GEOS error code on error.
     pub fn fseek(&mut self, fd: u32, offset: u32, whence: u32, pid: u32) -> u32 {
         let table = self.fd_table(pid);
         let open_file = match table.fds.get_mut(fd as usize) {
             Some(Some(f)) => f,
-            _ => return FD_ERROR,
+            _ => return geos_errno(GEOS_EBADF),
         };
 
         let seek_from = match whence {
             FSEEK_SET => SeekFrom::Start(offset as u64),
             FSEEK_CUR => SeekFrom::Current(offset as i64),
             FSEEK_END => SeekFrom::End(offset as i64),
-            _ => return FD_ERROR,
+            _ => return geos_errno(GEOS_EINVAL),
         };
 
         match open_file.file.seek(seek_from) {
             Ok(pos) => pos as u32,
-            Err(_) => FD_ERROR,
+            Err(_) => geos_errno(GEOS_EIO),
         }
     }
 
     /// List files in the VFS directory.
     /// Writes null-terminated filenames into RAM at `buf_addr`.
     /// Each filename is followed by a null byte. The list ends with an empty string (double null).
-    /// Returns number of entries found, or FD_ERROR on error.
+    /// Returns number of entries found, or GEOS error code on error.
     pub fn fls(&mut self, ram: &mut [u32], buf_addr: u32) -> u32 {
         let entries = match fs::read_dir(&self.base_dir) {
             Ok(rd) => rd,
-            Err(_) => return FD_ERROR,
+            Err(_) => return geos_errno(GEOS_EIO),
         };
 
         let mut addr = buf_addr as usize;
@@ -566,69 +582,75 @@ impl Vfs {
 
     /// Delete a file from the VFS directory.
     /// `name_addr` is RAM address of null-terminated filename.
-    /// Returns 0 on success, FD_ERROR on error.
+    /// Returns 0 on success, GEOS error code on error.
     pub fn funlink(&mut self, ram: &[u32], name_addr: u32, _pid: u32) -> u32 {
         // Capability checks are done at the call site (mod.rs UNLINK handler).
         let name = match Self::read_string(ram, name_addr as usize) {
             Some(s) => s,
-            None => return FD_ERROR,
+            None => return geos_errno(GEOS_EINVAL),
         };
         // Sanitize: no path traversal
-        if name.contains('/') || name.contains('\\') || name.starts_with('.') {
-            return FD_ERROR;
+        if name.is_empty() || name.contains('/') || name.contains('\\') || name.starts_with('.') {
+            return geos_errno(GEOS_EINVAL);
         }
         let path = self.base_dir.join(&name);
         match fs::remove_file(&path) {
             Ok(()) => 0,
-            Err(_) => FD_ERROR,
+            Err(e) => match e.kind() {
+                ErrorKind::NotFound => geos_errno(GEOS_ENOENT),
+                ErrorKind::PermissionDenied => geos_errno(GEOS_EPERM),
+                _ => geos_errno(GEOS_EIO),
+            },
         }
     }
 
     /// Get file size by name. `name_addr` is RAM address of null-terminated filename.
-    /// Returns file size in bytes on success, FD_ERROR on error.
+    /// Returns file size in bytes on success, GEOS error code on error.
     pub fn fstat(&self, ram: &[u32], name_addr: u32) -> u32 {
         let name = match Self::read_string(ram, name_addr as usize) {
             Some(s) => s,
-            None => return FD_ERROR,
+            None => return geos_errno(GEOS_EINVAL),
         };
-        if name.contains('/') || name.contains('\\') || name.starts_with('.') {
-            return FD_ERROR;
+        if name.is_empty() || name.contains('/') || name.contains('\\') || name.starts_with('.') {
+            return geos_errno(GEOS_EINVAL);
         }
         let path = self.base_dir.join(&name);
         match fs::metadata(&path) {
             Ok(m) => m.len().min(u32::MAX as u64) as u32,
-            Err(_) => FD_ERROR,
+            Err(_) => geos_errno(GEOS_ENOENT),
         }
     }
 
     /// Copy a file within the VFS directory.
     /// `src_addr` and `dst_addr` are RAM addresses of null-terminated filenames.
-    /// Returns 0 on success, FD_ERROR on error.
+    /// Returns 0 on success, GEOS error code on error.
     pub fn fcopy(&mut self, ram: &[u32], src_addr: u32, dst_addr: u32, _pid: u32) -> u32 {
         // Capability checks are done at the call site (mod.rs FCOPY handler).
         let src_name = match Self::read_string(ram, src_addr as usize) {
             Some(s) => s,
-            None => return FD_ERROR,
+            None => return geos_errno(GEOS_EINVAL),
         };
         let dst_name = match Self::read_string(ram, dst_addr as usize) {
             Some(s) => s,
-            None => return FD_ERROR,
+            None => return geos_errno(GEOS_EINVAL),
         };
         // Sanitize
-        if src_name.contains('/')
+        if src_name.is_empty()
+            || src_name.contains('/')
             || src_name.contains('\\')
             || src_name.starts_with('.')
+            || dst_name.is_empty()
             || dst_name.contains('/')
             || dst_name.contains('\\')
             || dst_name.starts_with('.')
         {
-            return FD_ERROR;
+            return geos_errno(GEOS_EINVAL);
         }
         let src_path = self.base_dir.join(&src_name);
         let dst_path = self.base_dir.join(&dst_name);
         match fs::copy(&src_path, &dst_path) {
             Ok(_) => 0,
-            Err(_) => FD_ERROR,
+            Err(_) => geos_errno(GEOS_EIO),
         }
     }
 

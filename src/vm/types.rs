@@ -182,6 +182,41 @@ pub const DEVICE_AUDIO: u32 = 2; // /dev/audio -> fd 0xE002
 pub const DEVICE_NET: u32 = 3; // /dev/net -> fd 0xE003
 pub const DEVICE_COUNT: usize = 4;
 
+/// GEOS Error Code System (Phase 285).
+/// Error codes are returned in r0 by syscall opcodes (OPEN, READ, WRITE, etc.)
+/// and IOCTL. Positive values or zero indicate success; negative values (high bit set)
+/// indicate errors. Programs can check for errors with a simple signed comparison
+/// or by using the `is_geos_err()` helper in assembly (SAR r0, 31; JNZ r0, error).
+///
+/// Encoding: -(error_number). The absolute value is the error number.
+/// This makes error detection trivial: if r0 has bit 31 set, it's an error.
+pub const GEOS_ENOMEM: u32 = 1;  // Out of memory / no fd slots available
+pub const GEOS_ENOENT: u32 = 2;  // No such file or directory
+pub const GEOS_EPERM:  u32 = 3;  // Operation not permitted (capability denied)
+pub const GEOS_EIO:    u32 = 4;  // I/O error (read/write failed)
+pub const GEOS_EISDIR: u32 = 5;  // Is a directory (can't open dir as file)
+pub const GEOS_ENOSPC: u32 = 6;  // No space left on device
+pub const GEOS_EINVAL: u32 = 7;  // Invalid argument
+pub const GEOS_EBADF:  u32 = 8;  // Bad file descriptor
+pub const GEOS_EACCES: u32 = 9;  // Permission denied (wrong mode)
+pub const GEOS_ENFILE: u32 = 10; // File table overflow (too many open files)
+pub const GEOS_ESRCH:  u32 = 11; // No such process (for MSGSND)
+
+/// Encode a GEOS error code as a negative u32 for return in r0.
+/// Example: geos_errno(GEOS_ENOENT) returns 0xFFFFFFFE (-2 in two's complement).
+#[inline]
+pub const fn geos_errno(code: u32) -> u32 {
+    code.wrapping_neg() // -(code as i32) as u32
+}
+
+/// Check if a value returned in r0 is a GEOS error code.
+/// Returns true if the high bit is set (negative in signed interpretation).
+/// Assembly equivalent: SAR r0, 31; result is 0xFFFFFFFF if error, 0 if ok.
+#[inline]
+pub const fn is_geos_errno(val: u32) -> bool {
+    val & 0x8000_0000 != 0
+}
+
 /// Mailbox constants (Phase 4.1: Inter-tile mailbox communication).
 /// Each tile has one incoming message slot. Messages are (sender_id, data) pairs.
 /// Double-buffered: writes go to write_buf, FRAME swaps write_buf into read_buf.
@@ -1524,9 +1559,9 @@ mod capability_tests {
         vm.halted = false;
         vm.step();
 
-        // Should return EPERM (0xFFFFFFFE), not the device fd
+        // Should return EPERM, not the device fd
         assert_eq!(
-            vm.regs[0], 0xFFFFFFFE,
+            vm.regs[0], geos_errno(GEOS_EPERM),
             "Should deny access to /dev/keyboard"
         );
     }
@@ -1626,7 +1661,7 @@ mod capability_tests {
 
         // Should deny write access
         assert_eq!(
-            vm.regs[0], 0xFFFFFFFE,
+            vm.regs[0], geos_errno(GEOS_EPERM),
             "Should deny write to /dev/screen with read-only cap"
         );
     }
