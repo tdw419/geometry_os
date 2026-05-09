@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (382, 129) and radius 21.
-; PLAN: r0=382(x), r1=129(y), r2=21(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 382
-LDI r1, 129
-LDI r2, 21
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (415, 19) to (468, 210).
+; PLAN: r0=415(x1), r1=19(y1), r2=468(x2), r3=210(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 415
+LDI r1, 19
+LDI r2, 468
+LDI r3, 210
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

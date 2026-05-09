@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single orange pixel at (135, 194).
-; PLAN: r0=135(x), r1=194(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 135
-LDI r1, 194
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green box of size 80x115 starting at (203, 60).
+; PLAN: r0=203(x), r1=60(y), r2=80(width), r3=115(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 203
+LDI r1, 60
+LDI r2, 80
+LDI r3, 115
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

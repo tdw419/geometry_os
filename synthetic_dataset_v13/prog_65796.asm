@@ -1,8 +1,13 @@
-; DESCRIPTION: Draws a black circle centered at (226, 220) with radius 26.
-; PLAN: r0=226(x), r1=220(y), r2=26(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 226
-LDI r1, 220
-LDI r2, 26
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Draws a black rectangle at (377, 49) with width 19 and height 10 then Places a black dot at position (282, 103).
+; PLAN: r0=377(x), r1=49(y), r2=19(width), r3=10(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=282(x), r6=103(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 377
+LDI r1, 49
+LDI r2, 19
+LDI r3, 10
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 282
+LDI r6, 103
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 21x40 starting at (381, 137).
-; PLAN: r0=381(x), r1=137(y), r2=21(width), r3=40(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 381
-LDI r1, 137
-LDI r2, 21
-LDI r3, 40
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (360, 116) to (309, 158).
+; PLAN: r0=360(x1), r1=116(y1), r2=309(x2), r3=158(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 360
+LDI r1, 116
+LDI r2, 309
+LDI r3, 158
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a white line from (418, 32) to (485, 87).
-; PLAN: r0=418(x1), r1=32(y1), r2=485(x2), r3=87(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 418
-LDI r1, 32
-LDI r2, 485
-LDI r3, 87
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (287, 200).
+; PLAN: r0=287(x), r1=200(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 287
+LDI r1, 200
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

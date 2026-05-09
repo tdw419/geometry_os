@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a orange line segment connecting (501, 88) to (145, 36).
-; PLAN: r0=501(x1), r1=88(y1), r2=145(x2), r3=36(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 501
-LDI r1, 88
-LDI r2, 145
-LDI r3, 36
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a blue disk with center (313, 178) and radius 76 then Renders a orange line between points (130, 244) and (38, 95).
+; PLAN: r0=313(x), r1=178(y), r2=76(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=130(x1), r6=244(y1), r7=38(x2), r8=95(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 313
+LDI r1, 178
+LDI r2, 76
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 130
+LDI r6, 244
+LDI r7, 38
+LDI r8, 95
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

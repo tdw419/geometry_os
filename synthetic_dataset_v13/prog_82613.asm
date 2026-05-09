@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a white dot at position (327, 29).
-; PLAN: r0=327(x), r1=29(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 327
-LDI r1, 29
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a orange disk with center (134, 190) and radius 15.
+; PLAN: r0=134(x), r1=190(y), r2=15(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 134
+LDI r1, 190
+LDI r2, 15
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

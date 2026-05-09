@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a white line between points (210, 164) and (11, 159).
-; PLAN: r0=210(x1), r1=164(y1), r2=11(x2), r3=159(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 210
-LDI r1, 164
-LDI r2, 11
-LDI r3, 159
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (478, 68) then Creates a red circular shape at (296, 66) with radius 62.
+; PLAN: r0=478(x), r1=68(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=296(x), r6=66(y), r7=62(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 478
+LDI r1, 68
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 296
+LDI r6, 66
+LDI r7, 62
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

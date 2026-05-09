@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (332, 121) and (277, 141).
-; PLAN: r0=332(x1), r1=121(y1), r2=277(x2), r3=141(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 332
-LDI r1, 121
-LDI r2, 277
-LDI r3, 141
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 81x27 rectangle at position (155, 210).
+; PLAN: r0=155(x), r1=210(y), r2=81(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 155
+LDI r1, 210
+LDI r2, 81
+LDI r3, 27
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (411, 104) and (217, 76).
-; PLAN: r0=411(x1), r1=104(y1), r2=217(x2), r3=76(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 411
-LDI r1, 104
-LDI r2, 217
-LDI r3, 76
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 119x118 rectangle at position (331, 62).
+; PLAN: r0=331(x), r1=62(y), r2=119(width), r3=118(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 331
+LDI r1, 62
+LDI r2, 119
+LDI r3, 118
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

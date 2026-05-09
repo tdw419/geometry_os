@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (209, 200) then Renders a orange line between points (431, 159) and (380, 143).
-; PLAN: r0=209(x), r1=200(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=431(x1), r6=159(y1), r7=380(x2), r8=143(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 209
-LDI r1, 200
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 431
-LDI r6, 159
-LDI r7, 380
-LDI r8, 143
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a orange line between points (321, 64) and (144, 16) then Sets a single cyan pixel at (494, 26).
+; PLAN: r0=321(x1), r1=64(y1), r2=144(x2), r3=16(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=494(x), r6=26(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 321
+LDI r1, 64
+LDI r2, 144
+LDI r3, 16
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 494
+LDI r6, 26
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

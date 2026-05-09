@@ -1,8 +1,14 @@
-; DESCRIPTION: Loads 42 into r1 and decrements it in a loop until zero.
-; PLAN: r1=42(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 42
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Draws a cyan line from (195, 72) to (438, 136) then Places a purple circle of radius 30 at center (399, 222).
+; PLAN: r0=195(x1), r1=72(y1), r2=438(x2), r3=136(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=399(x), r6=222(y), r7=30(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 195
+LDI r1, 72
+LDI r2, 438
+LDI r3, 136
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 399
+LDI r6, 222
+LDI r7, 30
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

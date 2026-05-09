@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Renders a blue box of size 109x110 starting at (162, 134) then Places a orange dot at position (450, 221).
-; PLAN: r0=162(x), r1=134(y), r2=109(width), r3=110(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=450(x), r6=221(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 162
-LDI r1, 134
-LDI r2, 109
-LDI r3, 110
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 450
-LDI r6, 221
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Renders a orange line between points (146, 22) and (51, 165).
+; PLAN: r0=146(x1), r1=22(y1), r2=51(x2), r3=165(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 146
+LDI r1, 22
+LDI r2, 51
+LDI r3, 165
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (216, 17) with width 76 and height 53.
-; PLAN: r0=216(x), r1=17(y), r2=76(width), r3=53(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 216
-LDI r1, 17
-LDI r2, 76
-LDI r3, 53
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a orange rectangle at (104, 120) with width 26 and height 87.
+; PLAN: r0=104(x), r1=120(y), r2=26(width), r3=87(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 104
+LDI r1, 120
+LDI r2, 26
+LDI r3, 87
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

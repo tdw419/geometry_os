@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 100x36 starting at (207, 110).
-; PLAN: r0=207(x), r1=110(y), r2=100(width), r3=36(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 207
-LDI r1, 110
-LDI r2, 100
-LDI r3, 36
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 20 into r1 and decrements it in a loop until zero.
+; PLAN: r1=20(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 20
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

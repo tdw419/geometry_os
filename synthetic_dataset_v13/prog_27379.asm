@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (77, 114) with width 14 and height 81.
-; PLAN: r0=77(x), r1=114(y), r2=14(width), r3=81(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 114
-LDI r2, 14
-LDI r3, 81
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (134, 89) to (395, 157).
+; PLAN: r0=134(x1), r1=89(y1), r2=395(x2), r3=157(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 134
+LDI r1, 89
+LDI r2, 395
+LDI r3, 157
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

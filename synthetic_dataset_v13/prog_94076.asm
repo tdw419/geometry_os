@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single black pixel at (364, 212).
-; PLAN: r0=364(x), r1=212(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 364
-LDI r1, 212
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Loads 20 into r1 and decrements it in a loop until zero.
+; PLAN: r1=20(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 20
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

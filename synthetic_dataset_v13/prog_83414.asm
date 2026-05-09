@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (376, 246) to (375, 173).
-; PLAN: r0=376(x1), r1=246(y1), r2=375(x2), r3=173(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 376
-LDI r1, 246
-LDI r2, 375
-LDI r3, 173
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a blue line from (409, 45) to (51, 50).
+; PLAN: r0=409(x1), r1=45(y1), r2=51(x2), r3=50(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 409
+LDI r1, 45
+LDI r2, 51
+LDI r3, 50
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

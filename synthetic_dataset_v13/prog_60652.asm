@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (23, 213) and (92, 7).
-; PLAN: r0=23(x1), r1=213(y1), r2=92(x2), r3=7(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 23
-LDI r1, 213
-LDI r2, 92
-LDI r3, 7
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a red line segment connecting (401, 21) to (298, 197).
+; PLAN: r0=401(x1), r1=21(y1), r2=298(x2), r3=197(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 401
+LDI r1, 21
+LDI r2, 298
+LDI r3, 197
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

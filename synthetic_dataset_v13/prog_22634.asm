@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 51x94 rectangle at position (13, 90).
-; PLAN: r0=13(x), r1=90(y), r2=51(width), r3=94(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 13
-LDI r1, 90
-LDI r2, 51
-LDI r3, 94
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a orange box of size 47x106 starting at (43, 9).
+; PLAN: r0=43(x), r1=9(y), r2=47(width), r3=106(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 43
+LDI r1, 9
+LDI r2, 47
+LDI r3, 106
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

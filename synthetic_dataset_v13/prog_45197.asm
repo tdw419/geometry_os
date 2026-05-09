@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a green line segment connecting (360, 111) to (6, 38).
-; PLAN: r0=360(x1), r1=111(y1), r2=6(x2), r3=38(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 360
-LDI r1, 111
-LDI r2, 6
-LDI r3, 38
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue dot at position (475, 50).
+; PLAN: r0=475(x), r1=50(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 475
+LDI r1, 50
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

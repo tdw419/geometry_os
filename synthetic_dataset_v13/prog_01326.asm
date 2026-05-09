@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 66x23 rectangle at position (164, 228).
-; PLAN: r0=164(x), r1=228(y), r2=66(width), r3=23(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 228
-LDI r2, 66
-LDI r3, 23
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (264, 162) with radius 38.
+; PLAN: r0=264(x), r1=162(y), r2=38(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 264
+LDI r1, 162
+LDI r2, 38
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

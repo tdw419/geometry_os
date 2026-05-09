@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (39, 104) to (510, 231).
-; PLAN: r0=39(x1), r1=104(y1), r2=510(x2), r3=231(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 39
-LDI r1, 104
-LDI r2, 510
-LDI r3, 231
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta box of size 112x51 starting at (353, 157).
+; PLAN: r0=353(x), r1=157(y), r2=112(width), r3=51(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 157
+LDI r2, 112
+LDI r3, 51
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

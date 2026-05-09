@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (419, 97) then Renders a orange disk with center (40, 161) and radius 19 then Renders a red box of size 84x97 starting at (374, 108).
-; PLAN: r0=419(x), r1=97(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=40(x), r6=161(y), r7=19(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=374(x), r11=108(y), r12=84(width), r13=97(height), r14=0xFF0000(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 419
-LDI r1, 97
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 40
-LDI r6, 161
-LDI r7, 19
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
-LDI r10, 374
-LDI r11, 108
-LDI r12, 84
-LDI r13, 97
-LDI r14, 0xFF0000
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Draws a white circle centered at (269, 93) with radius 80 then Draws a black line from (460, 108) to (234, 201).
+; PLAN: r0=269(x), r1=93(y), r2=80(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=460(x1), r6=108(y1), r7=234(x2), r8=201(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 269
+LDI r1, 93
+LDI r2, 80
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 460
+LDI r6, 108
+LDI r7, 234
+LDI r8, 201
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
 HALT

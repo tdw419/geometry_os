@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (485, 139) and (91, 238).
-; PLAN: r0=485(x1), r1=139(y1), r2=91(x2), r3=238(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 485
-LDI r1, 139
-LDI r2, 91
-LDI r3, 238
-LDI r4, 0x000000
+; DESCRIPTION: Renders a cyan line between points (124, 129) and (14, 76).
+; PLAN: r0=124(x1), r1=129(y1), r2=14(x2), r3=76(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 129
+LDI r2, 14
+LDI r3, 76
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 48x49 starting at (443, 178).
-; PLAN: r0=443(x), r1=178(y), r2=48(width), r3=49(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 443
-LDI r1, 178
-LDI r2, 48
-LDI r3, 49
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a red rectangle at (20, 76) with width 85 and height 78.
+; PLAN: r0=20(x), r1=76(y), r2=85(width), r3=78(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 20
+LDI r1, 76
+LDI r2, 85
+LDI r3, 78
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

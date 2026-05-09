@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (68, 132) with radius 65.
-; PLAN: r0=68(x), r1=132(y), r2=65(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 68
-LDI r1, 132
-LDI r2, 65
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan line segment connecting (357, 155) to (70, 240).
+; PLAN: r0=357(x1), r1=155(y1), r2=70(x2), r3=240(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 155
+LDI r2, 70
+LDI r3, 240
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

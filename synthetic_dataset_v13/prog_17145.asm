@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a green circular shape at (409, 96) with radius 63.
-; PLAN: r0=409(x), r1=96(y), r2=63(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 409
-LDI r1, 96
-LDI r2, 63
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (266, 171).
+; PLAN: r0=266(x), r1=171(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 266
+LDI r1, 171
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

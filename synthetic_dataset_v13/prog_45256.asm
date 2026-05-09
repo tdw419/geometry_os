@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (333, 163).
-; PLAN: r0=333(x), r1=163(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 333
-LDI r1, 163
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a red rectangular region at (68, 20) spanning 38 by 60 pixels.
+; PLAN: r0=68(x), r1=20(y), r2=38(width), r3=60(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 68
+LDI r1, 20
+LDI r2, 38
+LDI r3, 60
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

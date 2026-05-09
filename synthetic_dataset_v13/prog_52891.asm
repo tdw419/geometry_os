@@ -1,5 +1,8 @@
-; DESCRIPTION: Clears the screen to white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Creates a blue circular shape at (12, 89) with radius 12.
+; PLAN: r0=12(x), r1=89(y), r2=12(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 12
+LDI r1, 89
+LDI r2, 12
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

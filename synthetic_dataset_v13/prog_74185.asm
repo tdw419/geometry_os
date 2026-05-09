@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a yellow rectangular region at (112, 126) spanning 83 by 49 pixels.
-; PLAN: r0=112(x), r1=126(y), r2=83(width), r3=49(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 126
-LDI r2, 83
-LDI r3, 49
+; DESCRIPTION: Renders a yellow box of size 113x71 starting at (265, 8).
+; PLAN: r0=265(x), r1=8(y), r2=113(width), r3=71(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 265
+LDI r1, 8
+LDI r2, 113
+LDI r3, 71
 LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

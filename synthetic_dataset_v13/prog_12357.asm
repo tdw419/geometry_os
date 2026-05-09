@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 89x107 starting at (406, 71).
-; PLAN: r0=406(x), r1=71(y), r2=89(width), r3=107(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 406
-LDI r1, 71
-LDI r2, 89
-LDI r3, 107
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a red rectangle at (77, 6) with width 88 and height 20.
+; PLAN: r0=77(x), r1=6(y), r2=88(width), r3=20(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 77
+LDI r1, 6
+LDI r2, 88
+LDI r3, 20
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

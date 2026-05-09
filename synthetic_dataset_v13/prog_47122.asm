@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 11 at center (296, 99).
-; PLAN: r0=296(x), r1=99(y), r2=11(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 296
-LDI r1, 99
-LDI r2, 11
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (467, 187) and (56, 238).
+; PLAN: r0=467(x1), r1=187(y1), r2=56(x2), r3=238(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 467
+LDI r1, 187
+LDI r2, 56
+LDI r3, 238
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

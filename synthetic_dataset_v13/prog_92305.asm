@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (315, 56) with radius 42.
-; PLAN: r0=315(x), r1=56(y), r2=42(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 315
-LDI r1, 56
-LDI r2, 42
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (144, 141) to (237, 171).
+; PLAN: r0=144(x1), r1=141(y1), r2=237(x2), r3=171(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 144
+LDI r1, 141
+LDI r2, 237
+LDI r3, 171
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

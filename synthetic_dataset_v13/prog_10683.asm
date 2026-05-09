@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (369, 194) to (225, 220).
-; PLAN: r0=369(x1), r1=194(y1), r2=225(x2), r3=220(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 369
-LDI r1, 194
-LDI r2, 225
-LDI r3, 220
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (59, 135) and radius 39.
+; PLAN: r0=59(x), r1=135(y), r2=39(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 59
+LDI r1, 135
+LDI r2, 39
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

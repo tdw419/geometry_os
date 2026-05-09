@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Places a magenta 111x117 rectangle at position (323, 47) then Draws a white line from (87, 92) to (475, 156) then Sets a single blue pixel at (230, 18).
-; PLAN: r0=323(x), r1=47(y), r2=111(width), r3=117(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=87(x1), r6=92(y1), r7=475(x2), r8=156(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=230(x), r11=18(y), r12=0x0000FF(color). Op: PSET r10, r11, r12.
-LDI r0, 323
-LDI r1, 47
-LDI r2, 111
-LDI r3, 117
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 87
-LDI r6, 92
-LDI r7, 475
-LDI r8, 156
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
-LDI r10, 230
-LDI r11, 18
-LDI r12, 0x0000FF
-PSET r10, r11, r12
+; DESCRIPTION: Fills the screen with a vertical green gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x00FF00(color). CMP stores result in r0.
+LDI r7, 0x00FF00
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

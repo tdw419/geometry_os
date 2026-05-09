@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (373, 112) to (417, 210).
-; PLAN: r0=373(x1), r1=112(y1), r2=417(x2), r3=210(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 373
-LDI r1, 112
-LDI r2, 417
-LDI r3, 210
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (322, 155) with radius 26.
+; PLAN: r0=322(x), r1=155(y), r2=26(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 322
+LDI r1, 155
+LDI r2, 26
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

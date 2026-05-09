@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single orange pixel at (509, 84).
-; PLAN: r0=509(x), r1=84(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 509
-LDI r1, 84
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

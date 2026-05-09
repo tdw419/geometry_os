@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (259, 76) with radius 51.
-; PLAN: r0=259(x), r1=76(y), r2=51(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 259
-LDI r1, 76
-LDI r2, 51
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 78x60 rectangle at position (419, 158).
+; PLAN: r0=419(x), r1=158(y), r2=78(width), r3=60(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 419
+LDI r1, 158
+LDI r2, 78
+LDI r3, 60
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

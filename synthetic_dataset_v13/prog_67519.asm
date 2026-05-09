@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a yellow line segment connecting (160, 179) to (398, 212).
-; PLAN: r0=160(x1), r1=179(y1), r2=398(x2), r3=212(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 179
-LDI r2, 398
-LDI r3, 212
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a yellow circular shape at (350, 94) with radius 69 then Places a red 44x103 rectangle at position (208, 13).
+; PLAN: r0=350(x), r1=94(y), r2=69(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=208(x), r6=13(y), r7=44(width), r8=103(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 350
+LDI r1, 94
+LDI r2, 69
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 208
+LDI r6, 13
+LDI r7, 44
+LDI r8, 103
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

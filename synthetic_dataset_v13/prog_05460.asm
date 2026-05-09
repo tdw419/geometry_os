@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a yellow rectangle at (52, 57) with width 117 and height 65.
-; PLAN: r0=52(x), r1=57(y), r2=117(width), r3=65(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 52
-LDI r1, 57
-LDI r2, 117
-LDI r3, 65
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single white pixel at (435, 70).
+; PLAN: r0=435(x), r1=70(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 435
+LDI r1, 70
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

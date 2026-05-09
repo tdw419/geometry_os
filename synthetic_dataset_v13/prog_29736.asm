@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (4, 123) to (347, 163).
-; PLAN: r0=4(x1), r1=123(y1), r2=347(x2), r3=163(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 4
-LDI r1, 123
-LDI r2, 347
-LDI r3, 163
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (192, 182) and radius 24.
+; PLAN: r0=192(x), r1=182(y), r2=24(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 192
+LDI r1, 182
+LDI r2, 24
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

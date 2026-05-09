@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (202, 126) to (133, 81).
-; PLAN: r0=202(x1), r1=126(y1), r2=133(x2), r3=81(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 126
-LDI r2, 133
-LDI r3, 81
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (281, 179) with radius 41.
+; PLAN: r0=281(x), r1=179(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 281
+LDI r1, 179
+LDI r2, 41
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

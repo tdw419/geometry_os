@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (318, 221) to (248, 52).
-; PLAN: r0=318(x1), r1=221(y1), r2=248(x2), r3=52(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 318
-LDI r1, 221
-LDI r2, 248
-LDI r3, 52
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 9 into r1 and decrements it in a loop until zero.
+; PLAN: r1=9(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 9
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

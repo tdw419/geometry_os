@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (202, 111) with radius 50.
-; PLAN: r0=202(x), r1=111(y), r2=50(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 202
-LDI r1, 111
-LDI r2, 50
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (336, 124) and (71, 200).
+; PLAN: r0=336(x1), r1=124(y1), r2=71(x2), r3=200(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 336
+LDI r1, 124
+LDI r2, 71
+LDI r3, 200
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

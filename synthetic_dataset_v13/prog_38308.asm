@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single green pixel at (454, 228).
-; PLAN: r0=454(x), r1=228(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 454
-LDI r1, 228
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

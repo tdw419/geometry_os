@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 98x29 rectangle at position (167, 28).
-; PLAN: r0=167(x), r1=28(y), r2=98(width), r3=29(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 167
-LDI r1, 28
-LDI r2, 98
-LDI r3, 29
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (225, 147) with radius 23.
+; PLAN: r0=225(x), r1=147(y), r2=23(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 225
+LDI r1, 147
+LDI r2, 23
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

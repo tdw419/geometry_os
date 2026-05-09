@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (453, 27).
-; PLAN: r0=453(x), r1=27(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 453
-LDI r1, 27
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a blue 48x105 rectangle at position (150, 21).
+; PLAN: r0=150(x), r1=21(y), r2=48(width), r3=105(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 21
+LDI r2, 48
+LDI r3, 105
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

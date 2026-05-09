@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a black circle centered at (423, 98) with radius 34.
-; PLAN: r0=423(x), r1=98(y), r2=34(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 423
-LDI r1, 98
-LDI r2, 34
-LDI r3, 0x000000
+; DESCRIPTION: Creates a red circular shape at (134, 85) with radius 14.
+; PLAN: r0=134(x), r1=85(y), r2=14(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 134
+LDI r1, 85
+LDI r2, 14
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

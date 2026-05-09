@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Renders a black disk with center (292, 76) and radius 72 then Sets a single red pixel at (21, 225) then Renders a white line between points (319, 242) and (504, 70).
-; PLAN: r0=292(x), r1=76(y), r2=72(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=21(x), r6=225(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=319(x1), r11=242(y1), r12=504(x2), r13=70(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 292
-LDI r1, 76
-LDI r2, 72
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 21
-LDI r6, 225
-LDI r7, 0xFF0000
-PSET r5, r6, r7
-LDI r10, 319
-LDI r11, 242
-LDI r12, 504
-LDI r13, 70
-LDI r14, 0xFFFFFF
+; DESCRIPTION: Composite: Sets a single magenta pixel at (458, 6) then Creates a yellow circular shape at (389, 100) with radius 71 then Renders a yellow line between points (139, 2) and (318, 244).
+; PLAN: r0=458(x), r1=6(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=389(x), r6=100(y), r7=71(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=139(x1), r11=2(y1), r12=318(x2), r13=244(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 458
+LDI r1, 6
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 389
+LDI r6, 100
+LDI r7, 71
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
+LDI r10, 139
+LDI r11, 2
+LDI r12, 318
+LDI r13, 244
+LDI r14, 0xFFFF00
 LINE r10, r11, r12, r13, r14
 HALT

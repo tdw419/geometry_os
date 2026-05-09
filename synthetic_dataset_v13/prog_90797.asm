@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a white line segment connecting (381, 156) to (50, 172).
-; PLAN: r0=381(x1), r1=156(y1), r2=50(x2), r3=172(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 381
-LDI r1, 156
-LDI r2, 50
-LDI r3, 172
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

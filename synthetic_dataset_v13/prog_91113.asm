@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (59, 41).
-; PLAN: r0=59(x), r1=41(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 59
-LDI r1, 41
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Places a red 92x96 rectangle at position (41, 35).
+; PLAN: r0=41(x), r1=35(y), r2=92(width), r3=96(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 41
+LDI r1, 35
+LDI r2, 92
+LDI r3, 96
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

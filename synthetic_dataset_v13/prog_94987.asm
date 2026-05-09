@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Places a blue line segment connecting (313, 86) to (154, 207) then Draws a yellow circle centered at (59, 142) with radius 37.
-; PLAN: r0=313(x1), r1=86(y1), r2=154(x2), r3=207(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=59(x), r6=142(y), r7=37(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 313
-LDI r1, 86
-LDI r2, 154
-LDI r3, 207
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 59
-LDI r6, 142
-LDI r7, 37
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Sets a single white pixel at (482, 70) then Renders a green line between points (253, 141) and (8, 52) then Renders a orange disk with center (414, 84) and radius 63.
+; PLAN: r0=482(x), r1=70(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=253(x1), r6=141(y1), r7=8(x2), r8=52(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=414(x), r11=84(y), r12=63(radius), r13=0xFF8800(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 482
+LDI r1, 70
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 253
+LDI r6, 141
+LDI r7, 8
+LDI r8, 52
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
+LDI r10, 414
+LDI r11, 84
+LDI r12, 63
+LDI r13, 0xFF8800
+CIRCLE r10, r11, r12, r13
 HALT

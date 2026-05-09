@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 31x61 rectangle at position (197, 79).
-; PLAN: r0=197(x), r1=79(y), r2=31(width), r3=61(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 197
-LDI r1, 79
-LDI r2, 31
-LDI r3, 61
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (114, 191) with radius 15.
+; PLAN: r0=114(x), r1=191(y), r2=15(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 114
+LDI r1, 191
+LDI r2, 15
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

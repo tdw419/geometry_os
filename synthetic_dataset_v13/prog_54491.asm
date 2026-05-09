@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a blue line from (158, 210) to (384, 236).
-; PLAN: r0=158(x1), r1=210(y1), r2=384(x2), r3=236(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 158
-LDI r1, 210
-LDI r2, 384
-LDI r3, 236
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (311, 223).
+; PLAN: r0=311(x), r1=223(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 311
+LDI r1, 223
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

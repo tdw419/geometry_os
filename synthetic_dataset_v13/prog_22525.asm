@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a red rectangle at (117, 103) with width 97 and height 110.
-; PLAN: r0=117(x), r1=103(y), r2=97(width), r3=110(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 117
-LDI r1, 103
-LDI r2, 97
-LDI r3, 110
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green circle of radius 70 at center (256, 127) then Creates a blue rectangular region at (376, 15) spanning 49 by 66 pixels.
+; PLAN: r0=256(x), r1=127(y), r2=70(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=376(x), r6=15(y), r7=49(width), r8=66(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 256
+LDI r1, 127
+LDI r2, 70
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 376
+LDI r6, 15
+LDI r7, 49
+LDI r8, 66
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

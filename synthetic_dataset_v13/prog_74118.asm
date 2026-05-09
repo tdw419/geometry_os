@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange rectangle at (6, 59) with width 103 and height 89.
-; PLAN: r0=6(x), r1=59(y), r2=103(width), r3=89(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 6
-LDI r1, 59
-LDI r2, 103
-LDI r3, 89
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (275, 165) with radius 41.
+; PLAN: r0=275(x), r1=165(y), r2=41(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 275
+LDI r1, 165
+LDI r2, 41
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (500, 204) to (204, 179).
-; PLAN: r0=500(x1), r1=204(y1), r2=204(x2), r3=179(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 500
-LDI r1, 204
-LDI r2, 204
-LDI r3, 179
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (219, 175) with radius 36.
+; PLAN: r0=219(x), r1=175(y), r2=36(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 219
+LDI r1, 175
+LDI r2, 36
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

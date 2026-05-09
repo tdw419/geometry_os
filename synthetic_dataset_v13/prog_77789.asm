@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a purple line segment connecting (305, 242) to (297, 217).
-; PLAN: r0=305(x1), r1=242(y1), r2=297(x2), r3=217(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 305
-LDI r1, 242
-LDI r2, 297
-LDI r3, 217
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (266, 185).
+; PLAN: r0=266(x), r1=185(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 266
+LDI r1, 185
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

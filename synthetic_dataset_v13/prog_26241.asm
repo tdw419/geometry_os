@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (347, 192).
-; PLAN: r0=347(x), r1=192(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 347
-LDI r1, 192
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a blue rectangular region at (13, 48) spanning 31 by 99 pixels.
+; PLAN: r0=13(x), r1=48(y), r2=31(width), r3=99(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 13
+LDI r1, 48
+LDI r2, 31
+LDI r3, 99
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

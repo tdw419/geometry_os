@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a yellow circular shape at (488, 168) with radius 15.
-; PLAN: r0=488(x), r1=168(y), r2=15(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 488
-LDI r1, 168
-LDI r2, 15
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (292, 13).
+; PLAN: r0=292(x), r1=13(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 292
+LDI r1, 13
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

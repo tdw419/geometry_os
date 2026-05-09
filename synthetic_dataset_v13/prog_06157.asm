@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a white rectangular region at (157, 11) spanning 41 by 83 pixels.
-; PLAN: r0=157(x), r1=11(y), r2=41(width), r3=83(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 157
-LDI r1, 11
-LDI r2, 41
-LDI r3, 83
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (469, 91).
+; PLAN: r0=469(x), r1=91(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 469
+LDI r1, 91
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

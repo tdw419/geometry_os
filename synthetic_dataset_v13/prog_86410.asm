@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a red line segment connecting (117, 175) to (162, 215).
-; PLAN: r0=117(x1), r1=175(y1), r2=162(x2), r3=215(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 117
-LDI r1, 175
-LDI r2, 162
-LDI r3, 215
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

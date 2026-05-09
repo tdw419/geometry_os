@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (343, 10) and (435, 210).
-; PLAN: r0=343(x1), r1=10(y1), r2=435(x2), r3=210(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 343
-LDI r1, 10
-LDI r2, 435
-LDI r3, 210
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 16x104 starting at (291, 112).
+; PLAN: r0=291(x), r1=112(y), r2=16(width), r3=104(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 291
+LDI r1, 112
+LDI r2, 16
+LDI r3, 104
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (109, 83) and radius 32.
-; PLAN: r0=109(x), r1=83(y), r2=32(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 109
-LDI r1, 83
-LDI r2, 32
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple line from (92, 221) to (282, 150).
+; PLAN: r0=92(x1), r1=221(y1), r2=282(x2), r3=150(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 92
+LDI r1, 221
+LDI r2, 282
+LDI r3, 150
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

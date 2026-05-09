@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (254, 62) and (153, 102).
-; PLAN: r0=254(x1), r1=62(y1), r2=153(x2), r3=102(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 254
-LDI r1, 62
-LDI r2, 153
-LDI r3, 102
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (280, 83) with radius 72.
+; PLAN: r0=280(x), r1=83(y), r2=72(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 280
+LDI r1, 83
+LDI r2, 72
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

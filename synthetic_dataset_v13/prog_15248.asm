@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 16x80 rectangle at position (271, 145).
-; PLAN: r0=271(x), r1=145(y), r2=16(width), r3=80(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 271
-LDI r1, 145
-LDI r2, 16
-LDI r3, 80
-LDI r4, 0x00FFFF
+; DESCRIPTION: Creates a purple rectangular region at (83, 156) spanning 49 by 16 pixels.
+; PLAN: r0=83(x), r1=156(y), r2=49(width), r3=16(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 83
+LDI r1, 156
+LDI r2, 49
+LDI r3, 16
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

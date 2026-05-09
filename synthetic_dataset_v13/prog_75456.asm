@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (119, 104) with radius 80.
-; PLAN: r0=119(x), r1=104(y), r2=80(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 119
-LDI r1, 104
-LDI r2, 80
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 41x50 rectangle at position (408, 142).
+; PLAN: r0=408(x), r1=142(y), r2=41(width), r3=50(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 408
+LDI r1, 142
+LDI r2, 41
+LDI r3, 50
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

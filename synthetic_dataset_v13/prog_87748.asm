@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a white circle centered at (463, 199) with radius 12.
-; PLAN: r0=463(x), r1=199(y), r2=12(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 463
-LDI r1, 199
-LDI r2, 12
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Places a red circle of radius 73 at center (350, 139).
+; PLAN: r0=350(x), r1=139(y), r2=73(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 350
+LDI r1, 139
+LDI r2, 73
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

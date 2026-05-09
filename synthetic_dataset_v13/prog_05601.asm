@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 50 into r1 and decrements it in a loop until zero.
-; PLAN: r1=50(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 50
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a orange 67x41 rectangle at position (44, 138).
+; PLAN: r0=44(x), r1=138(y), r2=67(width), r3=41(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 138
+LDI r2, 67
+LDI r3, 41
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

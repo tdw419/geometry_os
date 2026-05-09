@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 24x87 rectangle at position (202, 163).
-; PLAN: r0=202(x), r1=163(y), r2=24(width), r3=87(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 163
-LDI r2, 24
-LDI r3, 87
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (418, 196) with radius 13.
+; PLAN: r0=418(x), r1=196(y), r2=13(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 418
+LDI r1, 196
+LDI r2, 13
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

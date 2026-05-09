@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a black circular shape at (42, 58) with radius 17.
-; PLAN: r0=42(x), r1=58(y), r2=17(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 42
-LDI r1, 58
-LDI r2, 17
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (409, 170).
+; PLAN: r0=409(x), r1=170(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 409
+LDI r1, 170
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

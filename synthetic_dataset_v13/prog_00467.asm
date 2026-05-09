@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (472, 15) to (246, 104).
-; PLAN: r0=472(x1), r1=15(y1), r2=246(x2), r3=104(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 472
-LDI r1, 15
-LDI r2, 246
-LDI r3, 104
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (394, 167) and radius 25.
+; PLAN: r0=394(x), r1=167(y), r2=25(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 394
+LDI r1, 167
+LDI r2, 25
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

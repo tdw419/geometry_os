@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (180, 38) with width 95 and height 103.
-; PLAN: r0=180(x), r1=38(y), r2=95(width), r3=103(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 38
-LDI r2, 95
-LDI r3, 103
+; DESCRIPTION: Draws a green line from (290, 239) to (67, 76).
+; PLAN: r0=290(x1), r1=239(y1), r2=67(x2), r3=76(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 290
+LDI r1, 239
+LDI r2, 67
+LDI r3, 76
 LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

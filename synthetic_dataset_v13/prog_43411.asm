@@ -1,19 +1,20 @@
-; DESCRIPTION: Composite: Places a blue dot at position (380, 113) then Draws a magenta line from (220, 236) to (189, 210) then Renders a cyan box of size 10x11 starting at (4, 169).
-; PLAN: r0=380(x), r1=113(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=220(x1), r6=236(y1), r7=189(x2), r8=210(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=4(x), r11=169(y), r12=10(width), r13=11(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 380
-LDI r1, 113
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 220
-LDI r6, 236
-LDI r7, 189
-LDI r8, 210
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
-LDI r10, 4
-LDI r11, 169
-LDI r12, 10
-LDI r13, 11
-LDI r14, 0x00FFFF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Draws a white rectangle at (253, 48) with width 61 and height 75 then Draws a cyan circle centered at (337, 92) with radius 79 then Places a white line segment connecting (189, 6) to (404, 6).
+; PLAN: r0=253(x), r1=48(y), r2=61(width), r3=75(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=337(x), r6=92(y), r7=79(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=189(x1), r11=6(y1), r12=404(x2), r13=6(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 253
+LDI r1, 48
+LDI r2, 61
+LDI r3, 75
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 337
+LDI r6, 92
+LDI r7, 79
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
+LDI r10, 189
+LDI r11, 6
+LDI r12, 404
+LDI r13, 6
+LDI r14, 0xFFFFFF
+LINE r10, r11, r12, r13, r14
 HALT

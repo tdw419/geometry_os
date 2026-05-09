@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a green circle centered at (210, 208) with radius 19.
-; PLAN: r0=210(x), r1=208(y), r2=19(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 210
-LDI r1, 208
-LDI r2, 19
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single white pixel at (104, 54).
+; PLAN: r0=104(x), r1=54(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 104
+LDI r1, 54
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

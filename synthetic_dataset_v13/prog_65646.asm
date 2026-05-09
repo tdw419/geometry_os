@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (190, 136) to (72, 84).
-; PLAN: r0=190(x1), r1=136(y1), r2=72(x2), r3=84(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 136
-LDI r2, 72
-LDI r3, 84
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (123, 62) and radius 40.
+; PLAN: r0=123(x), r1=62(y), r2=40(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 123
+LDI r1, 62
+LDI r2, 40
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

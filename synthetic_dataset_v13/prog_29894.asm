@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (181, 100) with radius 36.
-; PLAN: r0=181(x), r1=100(y), r2=36(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 181
-LDI r1, 100
-LDI r2, 36
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 10x38 rectangle at position (196, 169).
+; PLAN: r0=196(x), r1=169(y), r2=10(width), r3=38(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 196
+LDI r1, 169
+LDI r2, 10
+LDI r3, 38
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

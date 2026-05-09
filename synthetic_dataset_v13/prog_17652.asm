@@ -1,8 +1,12 @@
-; DESCRIPTION: Creates a blue circular shape at (431, 133) with radius 33.
-; PLAN: r0=431(x), r1=133(y), r2=33(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 431
-LDI r1, 133
-LDI r2, 33
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a black dot at position (140, 64) then Draws a purple circle centered at (310, 90) with radius 43.
+; PLAN: r0=140(x), r1=64(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=310(x), r6=90(y), r7=43(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 140
+LDI r1, 64
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 310
+LDI r6, 90
+LDI r7, 43
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

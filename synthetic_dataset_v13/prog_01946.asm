@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a purple box of size 59x39 starting at (132, 141).
-; PLAN: r0=132(x), r1=141(y), r2=59(width), r3=39(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 132
-LDI r1, 141
-LDI r2, 59
-LDI r3, 39
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (124, 141) with radius 60.
-; PLAN: r0=124(x), r1=141(y), r2=60(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 124
-LDI r1, 141
-LDI r2, 60
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (70, 219) to (399, 149).
+; PLAN: r0=70(x1), r1=219(y1), r2=399(x2), r3=149(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 70
+LDI r1, 219
+LDI r2, 399
+LDI r3, 149
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 116x82 starting at (295, 61).
-; PLAN: r0=295(x), r1=61(y), r2=116(width), r3=82(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 295
-LDI r1, 61
-LDI r2, 116
-LDI r3, 82
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (451, 245) to (178, 12).
+; PLAN: r0=451(x1), r1=245(y1), r2=178(x2), r3=12(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 451
+LDI r1, 245
+LDI r2, 178
+LDI r3, 12
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

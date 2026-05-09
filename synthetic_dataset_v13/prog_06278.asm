@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (420, 121) with radius 49.
-; PLAN: r0=420(x), r1=121(y), r2=49(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 420
-LDI r1, 121
-LDI r2, 49
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (378, 209) and (160, 29).
+; PLAN: r0=378(x1), r1=209(y1), r2=160(x2), r3=29(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 378
+LDI r1, 209
+LDI r2, 160
+LDI r3, 29
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

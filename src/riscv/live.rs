@@ -526,7 +526,11 @@ fn vm_thread_main(
                             "[pc-diag] #{} PC=0x{:08X} priv={:?} scause=0x{:X} sepc=0x{:08X} mtime={}\n",
                             count, cur_pc, vm.cpu.privilege, vm.cpu.csr.scause, vm.cpu.csr.sepc, vm.bus.clint.mtime
                         );
-                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/geos_guest.log") {
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/geos_guest.log")
+                        {
                             let _ = f.write_all(msg.as_bytes());
                         }
                         linux_diag_count += 1;

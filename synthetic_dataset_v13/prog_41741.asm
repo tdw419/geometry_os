@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (78, 31) spanning 81 by 85 pixels.
-; PLAN: r0=78(x), r1=31(y), r2=81(width), r3=85(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 78
-LDI r1, 31
-LDI r2, 81
-LDI r3, 85
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a magenta rectangle at (454, 1) with width 45 and height 59.
+; PLAN: r0=454(x), r1=1(y), r2=45(width), r3=59(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 454
+LDI r1, 1
+LDI r2, 45
+LDI r3, 59
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

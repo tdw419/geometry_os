@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (455, 76) to (378, 138).
-; PLAN: r0=455(x1), r1=76(y1), r2=378(x2), r3=138(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 455
-LDI r1, 76
-LDI r2, 378
-LDI r3, 138
+; DESCRIPTION: Creates a black rectangular region at (53, 218) spanning 58 by 15 pixels.
+; PLAN: r0=53(x), r1=218(y), r2=58(width), r3=15(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 53
+LDI r1, 218
+LDI r2, 58
+LDI r3, 15
 LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

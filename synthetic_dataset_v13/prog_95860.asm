@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a purple line between points (135, 244) and (511, 147).
-; PLAN: r0=135(x1), r1=244(y1), r2=511(x2), r3=147(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 135
-LDI r1, 244
-LDI r2, 511
-LDI r3, 147
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

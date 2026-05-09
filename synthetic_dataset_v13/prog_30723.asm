@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single yellow pixel at (352, 103).
-; PLAN: r0=352(x), r1=103(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 352
-LDI r1, 103
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a white disk with center (485, 231) and radius 11.
+; PLAN: r0=485(x), r1=231(y), r2=11(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 485
+LDI r1, 231
+LDI r2, 11
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

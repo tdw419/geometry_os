@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (362, 6) to (485, 28).
-; PLAN: r0=362(x1), r1=6(y1), r2=485(x2), r3=28(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 6
-LDI r2, 485
-LDI r3, 28
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 48 at center (440, 49).
+; PLAN: r0=440(x), r1=49(y), r2=48(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 440
+LDI r1, 49
+LDI r2, 48
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

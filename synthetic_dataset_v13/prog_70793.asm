@@ -1,8 +1,13 @@
-; DESCRIPTION: Creates a purple circular shape at (216, 60) with radius 27.
-; PLAN: r0=216(x), r1=60(y), r2=27(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 216
-LDI r1, 60
-LDI r2, 27
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a green dot at position (400, 30) then Places a cyan 78x21 rectangle at position (125, 230).
+; PLAN: r0=400(x), r1=30(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=125(x), r6=230(y), r7=78(width), r8=21(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 400
+LDI r1, 30
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 125
+LDI r6, 230
+LDI r7, 78
+LDI r8, 21
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

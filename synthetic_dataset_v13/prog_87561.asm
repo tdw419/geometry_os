@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 16 into r1 and decrements it in a loop until zero.
-; PLAN: r1=16(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 16
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a black rectangle at (347, 12) with width 45 and height 92.
+; PLAN: r0=347(x), r1=12(y), r2=45(width), r3=92(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 347
+LDI r1, 12
+LDI r2, 45
+LDI r3, 92
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

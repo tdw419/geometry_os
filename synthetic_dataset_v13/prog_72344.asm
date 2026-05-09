@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (500, 8) to (442, 83).
-; PLAN: r0=500(x1), r1=8(y1), r2=442(x2), r3=83(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 500
-LDI r1, 8
-LDI r2, 442
-LDI r3, 83
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 57 at center (374, 89).
+; PLAN: r0=374(x), r1=89(y), r2=57(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 374
+LDI r1, 89
+LDI r2, 57
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

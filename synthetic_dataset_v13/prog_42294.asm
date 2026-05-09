@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (19, 88) to (348, 140).
-; PLAN: r0=19(x1), r1=88(y1), r2=348(x2), r3=140(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 19
-LDI r1, 88
-LDI r2, 348
-LDI r3, 140
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a purple line from (187, 126) to (443, 139).
+; PLAN: r0=187(x1), r1=126(y1), r2=443(x2), r3=139(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 187
+LDI r1, 126
+LDI r2, 443
+LDI r3, 139
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

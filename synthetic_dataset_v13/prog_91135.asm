@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 39x31 rectangle at position (441, 190).
-; PLAN: r0=441(x), r1=190(y), r2=39(width), r3=31(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 441
-LDI r1, 190
-LDI r2, 39
-LDI r3, 31
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (134, 198) and (135, 222).
+; PLAN: r0=134(x1), r1=198(y1), r2=135(x2), r3=222(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 134
+LDI r1, 198
+LDI r2, 135
+LDI r3, 222
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

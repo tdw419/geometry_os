@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 35x117 rectangle at position (75, 14).
-; PLAN: r0=75(x), r1=14(y), r2=35(width), r3=117(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 75
-LDI r1, 14
-LDI r2, 35
-LDI r3, 117
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a blue rectangle at (33, 72) with width 110 and height 109.
+; PLAN: r0=33(x), r1=72(y), r2=110(width), r3=109(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 33
+LDI r1, 72
+LDI r2, 110
+LDI r3, 109
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

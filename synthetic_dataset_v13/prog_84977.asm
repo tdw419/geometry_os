@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 50x63 rectangle at position (40, 148).
-; PLAN: r0=40(x), r1=148(y), r2=50(width), r3=63(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 40
-LDI r1, 148
-LDI r2, 50
-LDI r3, 63
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (450, 212) to (428, 78).
+; PLAN: r0=450(x1), r1=212(y1), r2=428(x2), r3=78(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 450
+LDI r1, 212
+LDI r2, 428
+LDI r3, 78
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

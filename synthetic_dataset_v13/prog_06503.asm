@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a black box of size 13x81 starting at (20, 151).
-; PLAN: r0=20(x), r1=151(y), r2=13(width), r3=81(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 20
-LDI r1, 151
-LDI r2, 13
-LDI r3, 81
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single black pixel at (137, 2).
+; PLAN: r0=137(x), r1=2(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 137
+LDI r1, 2
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

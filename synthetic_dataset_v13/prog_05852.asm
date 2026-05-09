@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a purple line between points (341, 221) and (26, 66).
-; PLAN: r0=341(x1), r1=221(y1), r2=26(x2), r3=66(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 341
-LDI r1, 221
-LDI r2, 26
-LDI r3, 66
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (260, 51) then Renders a orange disk with center (242, 159) and radius 34.
+; PLAN: r0=260(x), r1=51(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=242(x), r6=159(y), r7=34(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 260
+LDI r1, 51
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 242
+LDI r6, 159
+LDI r7, 34
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

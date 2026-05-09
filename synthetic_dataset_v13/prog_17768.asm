@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (397, 223) with radius 17.
-; PLAN: r0=397(x), r1=223(y), r2=17(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 397
-LDI r1, 223
-LDI r2, 17
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (355, 94) and (432, 167).
+; PLAN: r0=355(x1), r1=94(y1), r2=432(x2), r3=167(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 355
+LDI r1, 94
+LDI r2, 432
+LDI r3, 167
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

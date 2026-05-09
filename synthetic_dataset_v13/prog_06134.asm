@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (149, 159) to (147, 118).
-; PLAN: r0=149(x1), r1=159(y1), r2=147(x2), r3=118(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 149
-LDI r1, 159
-LDI r2, 147
-LDI r3, 118
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a red line from (467, 11) to (459, 18).
+; PLAN: r0=467(x1), r1=11(y1), r2=459(x2), r3=18(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 467
+LDI r1, 11
+LDI r2, 459
+LDI r3, 18
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (321, 49) to (491, 166).
-; PLAN: r0=321(x1), r1=49(y1), r2=491(x2), r3=166(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 321
-LDI r1, 49
-LDI r2, 491
-LDI r3, 166
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a white line between points (418, 217) and (30, 186).
+; PLAN: r0=418(x1), r1=217(y1), r2=30(x2), r3=186(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 418
+LDI r1, 217
+LDI r2, 30
+LDI r3, 186
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

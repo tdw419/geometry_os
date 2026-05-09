@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (125, 105) to (318, 241).
-; PLAN: r0=125(x1), r1=105(y1), r2=318(x2), r3=241(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 125
-LDI r1, 105
-LDI r2, 318
-LDI r3, 241
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (378, 68) and radius 63.
+; PLAN: r0=378(x), r1=68(y), r2=63(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 378
+LDI r1, 68
+LDI r2, 63
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 10x43 starting at (353, 138).
-; PLAN: r0=353(x), r1=138(y), r2=10(width), r3=43(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 353
-LDI r1, 138
-LDI r2, 10
-LDI r3, 43
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a cyan 81x68 rectangle at position (102, 27).
+; PLAN: r0=102(x), r1=27(y), r2=81(width), r3=68(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 102
+LDI r1, 27
+LDI r2, 81
+LDI r3, 68
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

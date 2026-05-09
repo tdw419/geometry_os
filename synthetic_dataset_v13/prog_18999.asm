@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Draws a green line from (347, 108) to (222, 43) then Creates a orange circular shape at (268, 132) with radius 16 then Creates a blue rectangular region at (226, 39) spanning 73 by 53 pixels.
-; PLAN: r0=347(x1), r1=108(y1), r2=222(x2), r3=43(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=268(x), r6=132(y), r7=16(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=226(x), r11=39(y), r12=73(width), r13=53(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 347
-LDI r1, 108
-LDI r2, 222
-LDI r3, 43
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 268
-LDI r6, 132
-LDI r7, 16
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
-LDI r10, 226
-LDI r11, 39
-LDI r12, 73
-LDI r13, 53
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single purple pixel at (189, 240) then Draws a red rectangle at (383, 40) with width 119 and height 100 then Draws a green line from (103, 49) to (402, 147).
+; PLAN: r0=189(x), r1=240(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=383(x), r6=40(y), r7=119(width), r8=100(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=103(x1), r11=49(y1), r12=402(x2), r13=147(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 189
+LDI r1, 240
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 383
+LDI r6, 40
+LDI r7, 119
+LDI r8, 100
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
+LDI r10, 103
+LDI r11, 49
+LDI r12, 402
+LDI r13, 147
+LDI r14, 0x00FF00
+LINE r10, r11, r12, r13, r14
 HALT

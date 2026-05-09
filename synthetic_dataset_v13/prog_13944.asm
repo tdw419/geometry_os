@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a purple circle of radius 27 at center (344, 94).
-; PLAN: r0=344(x), r1=94(y), r2=27(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 344
-LDI r1, 94
-LDI r2, 27
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple line from (301, 54) to (83, 126).
+; PLAN: r0=301(x1), r1=54(y1), r2=83(x2), r3=126(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 301
+LDI r1, 54
+LDI r2, 83
+LDI r3, 126
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

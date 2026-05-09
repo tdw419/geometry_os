@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (356, 175) and (118, 167).
-; PLAN: r0=356(x1), r1=175(y1), r2=118(x2), r3=167(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 175
-LDI r2, 118
-LDI r3, 167
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (207, 165) and radius 13.
+; PLAN: r0=207(x), r1=165(y), r2=13(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 207
+LDI r1, 165
+LDI r2, 13
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (25, 176) to (396, 90).
-; PLAN: r0=25(x1), r1=176(y1), r2=396(x2), r3=90(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 25
-LDI r1, 176
-LDI r2, 396
-LDI r3, 90
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a yellow line between points (465, 226) and (229, 5).
+; PLAN: r0=465(x1), r1=226(y1), r2=229(x2), r3=5(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 465
+LDI r1, 226
+LDI r2, 229
+LDI r3, 5
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

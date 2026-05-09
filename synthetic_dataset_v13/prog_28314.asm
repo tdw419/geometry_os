@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 70x26 rectangle at position (430, 94).
-; PLAN: r0=430(x), r1=94(y), r2=70(width), r3=26(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 94
-LDI r2, 70
-LDI r3, 26
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (138, 63) to (466, 178).
+; PLAN: r0=138(x1), r1=63(y1), r2=466(x2), r3=178(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 138
+LDI r1, 63
+LDI r2, 466
+LDI r3, 178
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

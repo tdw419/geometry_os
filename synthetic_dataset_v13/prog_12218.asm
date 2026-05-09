@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (219, 164) and radius 70.
-; PLAN: r0=219(x), r1=164(y), r2=70(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 219
-LDI r1, 164
-LDI r2, 70
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green box of size 84x120 starting at (380, 90).
+; PLAN: r0=380(x), r1=90(y), r2=84(width), r3=120(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 380
+LDI r1, 90
+LDI r2, 84
+LDI r3, 120
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

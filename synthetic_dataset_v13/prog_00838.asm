@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (5, 204) to (19, 154).
-; PLAN: r0=5(x1), r1=204(y1), r2=19(x2), r3=154(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 204
-LDI r2, 19
-LDI r3, 154
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (303, 128) and radius 15.
+; PLAN: r0=303(x), r1=128(y), r2=15(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 303
+LDI r1, 128
+LDI r2, 15
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

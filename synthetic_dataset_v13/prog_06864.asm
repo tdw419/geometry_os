@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 104x66 starting at (88, 23).
-; PLAN: r0=88(x), r1=23(y), r2=104(width), r3=66(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 23
-LDI r2, 104
-LDI r3, 66
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (71, 53) with radius 30.
+; PLAN: r0=71(x), r1=53(y), r2=30(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 71
+LDI r1, 53
+LDI r2, 30
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

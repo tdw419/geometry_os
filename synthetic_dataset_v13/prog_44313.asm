@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (281, 141) and (179, 66).
-; PLAN: r0=281(x1), r1=141(y1), r2=179(x2), r3=66(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 281
-LDI r1, 141
-LDI r2, 179
-LDI r3, 66
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 67 at center (163, 95).
+; PLAN: r0=163(x), r1=95(y), r2=67(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 163
+LDI r1, 95
+LDI r2, 67
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

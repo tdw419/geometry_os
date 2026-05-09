@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (125, 10).
-; PLAN: r0=125(x), r1=10(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 125
-LDI r1, 10
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan line from (65, 23) to (281, 136).
+; PLAN: r0=65(x1), r1=23(y1), r2=281(x2), r3=136(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 65
+LDI r1, 23
+LDI r2, 281
+LDI r3, 136
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a white circle centered at (452, 115) with radius 21.
-; PLAN: r0=452(x), r1=115(y), r2=21(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 452
-LDI r1, 115
-LDI r2, 21
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Places a green circle of radius 28 at center (322, 80).
+; PLAN: r0=322(x), r1=80(y), r2=28(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 322
+LDI r1, 80
+LDI r2, 28
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (382, 79) then Renders a purple disk with center (409, 213) and radius 37.
-; PLAN: r0=382(x), r1=79(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=409(x), r6=213(y), r7=37(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 382
-LDI r1, 79
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 409
-LDI r6, 213
-LDI r7, 37
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a yellow circle centered at (285, 99) with radius 64.
+; PLAN: r0=285(x), r1=99(y), r2=64(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 285
+LDI r1, 99
+LDI r2, 64
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

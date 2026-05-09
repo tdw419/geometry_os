@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a blue disk with center (195, 27) and radius 23.
-; PLAN: r0=195(x), r1=27(y), r2=23(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 195
-LDI r1, 27
-LDI r2, 23
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white dot at position (88, 106).
+; PLAN: r0=88(x), r1=106(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 88
+LDI r1, 106
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

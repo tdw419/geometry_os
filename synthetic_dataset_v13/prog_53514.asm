@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (62, 34) with radius 27.
-; PLAN: r0=62(x), r1=34(y), r2=27(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 62
-LDI r1, 34
-LDI r2, 27
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow box of size 58x75 starting at (154, 103).
+; PLAN: r0=154(x), r1=103(y), r2=58(width), r3=75(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 154
+LDI r1, 103
+LDI r2, 58
+LDI r3, 75
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single purple pixel at (331, 139).
-; PLAN: r0=331(x), r1=139(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 331
-LDI r1, 139
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a orange circle centered at (363, 194) with radius 41.
+; PLAN: r0=363(x), r1=194(y), r2=41(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 363
+LDI r1, 194
+LDI r2, 41
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

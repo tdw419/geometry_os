@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (54, 140) to (196, 96).
-; PLAN: r0=54(x1), r1=140(y1), r2=196(x2), r3=96(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 54
-LDI r1, 140
-LDI r2, 196
-LDI r3, 96
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow rectangular region at (287, 108) spanning 54 by 25 pixels.
+; PLAN: r0=287(x), r1=108(y), r2=54(width), r3=25(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 287
+LDI r1, 108
+LDI r2, 54
+LDI r3, 25
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (151, 102) spanning 24 by 34 pixels.
-; PLAN: r0=151(x), r1=102(y), r2=24(width), r3=34(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 151
-LDI r1, 102
-LDI r2, 24
-LDI r3, 34
-LDI r4, 0x000000
+; DESCRIPTION: Creates a purple rectangular region at (38, 89) spanning 97 by 13 pixels.
+; PLAN: r0=38(x), r1=89(y), r2=97(width), r3=13(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 38
+LDI r1, 89
+LDI r2, 97
+LDI r3, 13
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

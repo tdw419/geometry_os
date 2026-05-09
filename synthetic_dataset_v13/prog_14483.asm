@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (13, 171) then Renders a blue disk with center (80, 111) and radius 70 then Renders a magenta line between points (475, 168) and (463, 233).
-; PLAN: r0=13(x), r1=171(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=80(x), r6=111(y), r7=70(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=475(x1), r11=168(y1), r12=463(x2), r13=233(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 13
-LDI r1, 171
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 80
-LDI r6, 111
+; DESCRIPTION: Composite: Draws a magenta line from (500, 182) to (125, 196) then Renders a orange box of size 70x59 starting at (198, 134) then Sets a single orange pixel at (31, 33).
+; PLAN: r0=500(x1), r1=182(y1), r2=125(x2), r3=196(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=198(x), r6=134(y), r7=70(width), r8=59(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=31(x), r11=33(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
+LDI r0, 500
+LDI r1, 182
+LDI r2, 125
+LDI r3, 196
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 198
+LDI r6, 134
 LDI r7, 70
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
-LDI r10, 475
-LDI r11, 168
-LDI r12, 463
-LDI r13, 233
-LDI r14, 0xFF00FF
-LINE r10, r11, r12, r13, r14
+LDI r8, 59
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
+LDI r10, 31
+LDI r11, 33
+LDI r12, 0xFF8800
+PSET r10, r11, r12
 HALT

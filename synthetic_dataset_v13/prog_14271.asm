@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Creates a purple rectangular region at (127, 131) spanning 109 by 107 pixels then Places a magenta dot at position (487, 239).
-; PLAN: r0=127(x), r1=131(y), r2=109(width), r3=107(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=487(x), r6=239(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 127
-LDI r1, 131
-LDI r2, 109
-LDI r3, 107
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 487
-LDI r6, 239
-LDI r7, 0xFF00FF
-PSET r5, r6, r7
+; DESCRIPTION: Places a red line segment connecting (57, 61) to (330, 133).
+; PLAN: r0=57(x1), r1=61(y1), r2=330(x2), r3=133(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 57
+LDI r1, 61
+LDI r2, 330
+LDI r3, 133
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

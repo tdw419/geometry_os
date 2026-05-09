@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single white pixel at (28, 161).
-; PLAN: r0=28(x), r1=161(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 28
-LDI r1, 161
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a purple circular shape at (203, 154) with radius 63.
+; PLAN: r0=203(x), r1=154(y), r2=63(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 203
+LDI r1, 154
+LDI r2, 63
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

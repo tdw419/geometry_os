@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a cyan dot at position (341, 67).
-; PLAN: r0=341(x), r1=67(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 341
-LDI r1, 67
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

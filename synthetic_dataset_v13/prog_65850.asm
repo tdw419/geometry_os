@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta circle of radius 61 at center (297, 155) then Sets a single cyan pixel at (171, 236) then Renders a blue box of size 99x74 starting at (68, 169).
-; PLAN: r0=297(x), r1=155(y), r2=61(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=171(x), r6=236(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=68(x), r11=169(y), r12=99(width), r13=74(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 297
-LDI r1, 155
-LDI r2, 61
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 171
-LDI r6, 236
-LDI r7, 0x00FFFF
-PSET r5, r6, r7
-LDI r10, 68
-LDI r11, 169
-LDI r12, 99
-LDI r13, 74
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Creates a orange rectangular region at (404, 30) spanning 66 by 83 pixels.
+; PLAN: r0=404(x), r1=30(y), r2=66(width), r3=83(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 404
+LDI r1, 30
+LDI r2, 66
+LDI r3, 83
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

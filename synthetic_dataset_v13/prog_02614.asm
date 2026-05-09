@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (442, 231) to (482, 55).
-; PLAN: r0=442(x1), r1=231(y1), r2=482(x2), r3=55(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 442
-LDI r1, 231
-LDI r2, 482
-LDI r3, 55
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 25 at center (157, 184).
+; PLAN: r0=157(x), r1=184(y), r2=25(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 157
+LDI r1, 184
+LDI r2, 25
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

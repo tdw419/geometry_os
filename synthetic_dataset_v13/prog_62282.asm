@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (297, 28) with width 51 and height 75.
-; PLAN: r0=297(x), r1=28(y), r2=51(width), r3=75(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 297
-LDI r1, 28
-LDI r2, 51
-LDI r3, 75
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a magenta 85x45 rectangle at position (5, 31).
+; PLAN: r0=5(x), r1=31(y), r2=85(width), r3=45(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 5
+LDI r1, 31
+LDI r2, 85
+LDI r3, 45
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

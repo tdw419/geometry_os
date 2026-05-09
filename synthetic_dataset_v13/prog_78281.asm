@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a orange line between points (246, 19) and (25, 208).
-; PLAN: r0=246(x1), r1=19(y1), r2=25(x2), r3=208(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 246
-LDI r1, 19
-LDI r2, 25
-LDI r3, 208
+; DESCRIPTION: Composite: Renders a orange box of size 96x103 starting at (124, 60) then Places a black circle of radius 26 at center (312, 155).
+; PLAN: r0=124(x), r1=60(y), r2=96(width), r3=103(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=312(x), r6=155(y), r7=26(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 124
+LDI r1, 60
+LDI r2, 96
+LDI r3, 103
 LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
+LDI r5, 312
+LDI r6, 155
+LDI r7, 26
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

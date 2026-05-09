@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (479, 47) to (429, 165).
-; PLAN: r0=479(x1), r1=47(y1), r2=429(x2), r3=165(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 479
-LDI r1, 47
-LDI r2, 429
-LDI r3, 165
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 119x19 rectangle at position (151, 153).
+; PLAN: r0=151(x), r1=153(y), r2=119(width), r3=19(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 153
+LDI r2, 119
+LDI r3, 19
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

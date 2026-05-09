@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (118, 178) to (451, 167).
-; PLAN: r0=118(x1), r1=178(y1), r2=451(x2), r3=167(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 118
-LDI r1, 178
-LDI r2, 451
-LDI r3, 167
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a purple line segment connecting (43, 72) to (446, 65).
+; PLAN: r0=43(x1), r1=72(y1), r2=446(x2), r3=65(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 43
+LDI r1, 72
+LDI r2, 446
+LDI r3, 65
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

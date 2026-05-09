@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (106, 42) and radius 17.
-; PLAN: r0=106(x), r1=42(y), r2=17(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 106
-LDI r1, 42
-LDI r2, 17
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (89, 167) to (421, 8).
+; PLAN: r0=89(x1), r1=167(y1), r2=421(x2), r3=8(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 89
+LDI r1, 167
+LDI r2, 421
+LDI r3, 8
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

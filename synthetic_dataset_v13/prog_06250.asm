@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 12x24 starting at (253, 192).
-; PLAN: r0=253(x), r1=192(y), r2=12(width), r3=24(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 253
-LDI r1, 192
-LDI r2, 12
-LDI r3, 24
-LDI r4, 0x000000
+; DESCRIPTION: Places a yellow 78x85 rectangle at position (425, 122).
+; PLAN: r0=425(x), r1=122(y), r2=78(width), r3=85(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 122
+LDI r2, 78
+LDI r3, 85
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

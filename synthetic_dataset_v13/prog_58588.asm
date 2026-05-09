@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 22x86 starting at (40, 100).
-; PLAN: r0=40(x), r1=100(y), r2=22(width), r3=86(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 40
-LDI r1, 100
-LDI r2, 22
-LDI r3, 86
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (441, 148) and (392, 235).
+; PLAN: r0=441(x1), r1=148(y1), r2=392(x2), r3=235(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 441
+LDI r1, 148
+LDI r2, 392
+LDI r3, 235
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (464, 150) then Places a black 11x52 rectangle at position (284, 118).
-; PLAN: r0=464(x), r1=150(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=284(x), r6=118(y), r7=11(width), r8=52(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 464
-LDI r1, 150
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 284
-LDI r6, 118
-LDI r7, 11
-LDI r8, 52
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a yellow rectangular region at (311, 207) spanning 38 by 41 pixels.
+; PLAN: r0=311(x), r1=207(y), r2=38(width), r3=41(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 311
+LDI r1, 207
+LDI r2, 38
+LDI r3, 41
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

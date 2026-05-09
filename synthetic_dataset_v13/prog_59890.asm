@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a red rectangular region at (49, 190) spanning 35 by 34 pixels.
-; PLAN: r0=49(x), r1=190(y), r2=35(width), r3=34(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 190
-LDI r2, 35
-LDI r3, 34
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow dot at position (484, 23) then Renders a magenta disk with center (405, 130) and radius 62.
+; PLAN: r0=484(x), r1=23(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=405(x), r6=130(y), r7=62(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 484
+LDI r1, 23
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 405
+LDI r6, 130
+LDI r7, 62
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

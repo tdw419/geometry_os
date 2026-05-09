@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Places a orange 117x113 rectangle at position (379, 29) then Places a yellow dot at position (33, 89).
-; PLAN: r0=379(x), r1=29(y), r2=117(width), r3=113(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=33(x), r6=89(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 379
-LDI r1, 29
-LDI r2, 117
-LDI r3, 113
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
-LDI r5, 33
-LDI r6, 89
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single white pixel at (127, 201) then Renders a white line between points (12, 96) and (464, 37) then Places a orange 60x117 rectangle at position (377, 130).
+; PLAN: r0=127(x), r1=201(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=12(x1), r6=96(y1), r7=464(x2), r8=37(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=377(x), r11=130(y), r12=60(width), r13=117(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 127
+LDI r1, 201
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 12
+LDI r6, 96
+LDI r7, 464
+LDI r8, 37
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
+LDI r10, 377
+LDI r11, 130
+LDI r12, 60
+LDI r13, 117
+LDI r14, 0xFF8800
+RECTF r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a red rectangle at (386, 62) with width 13 and height 94.
-; PLAN: r0=386(x), r1=62(y), r2=13(width), r3=94(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 386
-LDI r1, 62
-LDI r2, 13
-LDI r3, 94
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (9, 126) then Places a white 49x119 rectangle at position (226, 96).
+; PLAN: r0=9(x), r1=126(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=226(x), r6=96(y), r7=49(width), r8=119(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 9
+LDI r1, 126
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 226
+LDI r6, 96
+LDI r7, 49
+LDI r8, 119
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

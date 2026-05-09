@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a red dot at position (334, 40) then Places a magenta 93x34 rectangle at position (349, 20).
-; PLAN: r0=334(x), r1=40(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=349(x), r6=20(y), r7=93(width), r8=34(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 334
-LDI r1, 40
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 349
-LDI r6, 20
-LDI r7, 93
-LDI r8, 34
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a yellow 12x37 rectangle at position (100, 71).
+; PLAN: r0=100(x), r1=71(y), r2=12(width), r3=37(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 100
+LDI r1, 71
+LDI r2, 12
+LDI r3, 37
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

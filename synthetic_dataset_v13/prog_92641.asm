@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (313, 77) to (96, 255).
-; PLAN: r0=313(x1), r1=77(y1), r2=96(x2), r3=255(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 313
-LDI r1, 77
-LDI r2, 96
-LDI r3, 255
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 40 at center (91, 138).
+; PLAN: r0=91(x), r1=138(y), r2=40(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 91
+LDI r1, 138
+LDI r2, 40
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (366, 113) with radius 64.
-; PLAN: r0=366(x), r1=113(y), r2=64(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 366
-LDI r1, 113
-LDI r2, 64
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (372, 102) to (423, 219).
+; PLAN: r0=372(x1), r1=102(y1), r2=423(x2), r3=219(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 372
+LDI r1, 102
+LDI r2, 423
+LDI r3, 219
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

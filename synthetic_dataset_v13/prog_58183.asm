@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (350, 191) and (338, 205).
-; PLAN: r0=350(x1), r1=191(y1), r2=338(x2), r3=205(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 350
-LDI r1, 191
-LDI r2, 338
-LDI r3, 205
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red rectangular region at (353, 103) spanning 13 by 11 pixels.
+; PLAN: r0=353(x), r1=103(y), r2=13(width), r3=11(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 103
+LDI r2, 13
+LDI r3, 11
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

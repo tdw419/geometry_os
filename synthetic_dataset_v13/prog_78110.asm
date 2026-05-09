@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (299, 98) to (260, 69).
-; PLAN: r0=299(x1), r1=98(y1), r2=260(x2), r3=69(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 299
-LDI r1, 98
-LDI r2, 260
-LDI r3, 69
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a black line between points (427, 252) and (130, 129).
+; PLAN: r0=427(x1), r1=252(y1), r2=130(x2), r3=129(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 427
+LDI r1, 252
+LDI r2, 130
+LDI r3, 129
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a purple rectangle at (195, 118) with width 27 and height 22.
-; PLAN: r0=195(x), r1=118(y), r2=27(width), r3=22(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 195
-LDI r1, 118
-LDI r2, 27
-LDI r3, 22
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

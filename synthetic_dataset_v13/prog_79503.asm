@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (70, 22) to (186, 240).
-; PLAN: r0=70(x1), r1=22(y1), r2=186(x2), r3=240(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 70
-LDI r1, 22
-LDI r2, 186
-LDI r3, 240
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (242, 30) spanning 10 by 79 pixels.
+; PLAN: r0=242(x), r1=30(y), r2=10(width), r3=79(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 242
+LDI r1, 30
+LDI r2, 10
+LDI r3, 79
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

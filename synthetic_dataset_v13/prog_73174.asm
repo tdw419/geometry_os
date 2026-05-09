@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a red circle centered at (255, 74) with radius 69.
-; PLAN: r0=255(x), r1=74(y), r2=69(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 255
-LDI r1, 74
-LDI r2, 69
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

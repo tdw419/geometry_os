@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (93, 71) to (318, 185).
-; PLAN: r0=93(x1), r1=71(y1), r2=318(x2), r3=185(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 93
-LDI r1, 71
-LDI r2, 318
-LDI r3, 185
+; DESCRIPTION: Creates a black rectangular region at (87, 2) spanning 100 by 53 pixels.
+; PLAN: r0=87(x), r1=2(y), r2=100(width), r3=53(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 87
+LDI r1, 2
+LDI r2, 100
+LDI r3, 53
 LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

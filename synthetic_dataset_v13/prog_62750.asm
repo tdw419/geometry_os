@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 46x87 rectangle at position (261, 13).
-; PLAN: r0=261(x), r1=13(y), r2=46(width), r3=87(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 261
-LDI r1, 13
-LDI r2, 46
-LDI r3, 87
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red circular shape at (443, 24) with radius 24.
+; PLAN: r0=443(x), r1=24(y), r2=24(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 443
+LDI r1, 24
+LDI r2, 24
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

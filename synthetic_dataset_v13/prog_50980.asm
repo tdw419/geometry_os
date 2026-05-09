@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a cyan circle centered at (357, 112) with radius 52.
-; PLAN: r0=357(x), r1=112(y), r2=52(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 357
-LDI r1, 112
-LDI r2, 52
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single blue pixel at (43, 133).
+; PLAN: r0=43(x), r1=133(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 43
+LDI r1, 133
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

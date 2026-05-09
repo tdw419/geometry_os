@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a black disk with center (364, 128) and radius 17.
-; PLAN: r0=364(x), r1=128(y), r2=17(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 364
-LDI r1, 128
-LDI r2, 17
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single black pixel at (72, 71).
+; PLAN: r0=72(x), r1=71(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 72
+LDI r1, 71
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

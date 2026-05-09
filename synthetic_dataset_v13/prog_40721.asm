@@ -1,15 +1,14 @@
-; DESCRIPTION: Composite: Renders a yellow box of size 15x30 starting at (294, 196) then Places a cyan line segment connecting (240, 0) to (115, 223).
-; PLAN: r0=294(x), r1=196(y), r2=15(width), r3=30(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=240(x1), r6=0(y1), r7=115(x2), r8=223(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 294
-LDI r1, 196
-LDI r2, 15
-LDI r3, 30
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 240
-LDI r6, 0
-LDI r7, 115
-LDI r8, 223
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Creates a black circular shape at (371, 98) with radius 58 then Renders a green box of size 84x23 starting at (256, 17).
+; PLAN: r0=371(x), r1=98(y), r2=58(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=256(x), r6=17(y), r7=84(width), r8=23(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 371
+LDI r1, 98
+LDI r2, 58
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 256
+LDI r6, 17
+LDI r7, 84
+LDI r8, 23
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

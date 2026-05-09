@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a black rectangular region at (47, 9) spanning 31 by 115 pixels.
-; PLAN: r0=47(x), r1=9(y), r2=31(width), r3=115(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 47
-LDI r1, 9
-LDI r2, 31
-LDI r3, 115
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (96, 143) then Renders a blue line between points (510, 57) and (299, 208).
+; PLAN: r0=96(x), r1=143(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=510(x1), r6=57(y1), r7=299(x2), r8=208(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 96
+LDI r1, 143
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 510
+LDI r6, 57
+LDI r7, 299
+LDI r8, 208
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

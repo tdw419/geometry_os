@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 53x91 rectangle at position (339, 148).
-; PLAN: r0=339(x), r1=148(y), r2=53(width), r3=91(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 339
-LDI r1, 148
-LDI r2, 53
-LDI r3, 91
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (86, 33) to (124, 115).
+; PLAN: r0=86(x1), r1=33(y1), r2=124(x2), r3=115(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 86
+LDI r1, 33
+LDI r2, 124
+LDI r3, 115
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

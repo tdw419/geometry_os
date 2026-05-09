@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a blue line segment connecting (506, 101) to (257, 107).
-; PLAN: r0=506(x1), r1=101(y1), r2=257(x2), r3=107(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 506
-LDI r1, 101
-LDI r2, 257
-LDI r3, 107
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (423, 10).
+; PLAN: r0=423(x), r1=10(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 423
+LDI r1, 10
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

@@ -1,12 +1,14 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (99, 141) then Draws a red circle centered at (457, 216) with radius 26.
-; PLAN: r0=99(x), r1=141(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=457(x), r6=216(y), r7=26(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 99
-LDI r1, 141
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 457
-LDI r6, 216
-LDI r7, 26
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Creates a purple circular shape at (413, 209) with radius 30 then Renders a green line between points (458, 249) and (411, 7).
+; PLAN: r0=413(x), r1=209(y), r2=30(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=458(x1), r6=249(y1), r7=411(x2), r8=7(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 413
+LDI r1, 209
+LDI r2, 30
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 458
+LDI r6, 249
+LDI r7, 411
+LDI r8, 7
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

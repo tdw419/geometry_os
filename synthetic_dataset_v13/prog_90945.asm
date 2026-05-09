@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (247, 125) with width 74 and height 94.
-; PLAN: r0=247(x), r1=125(y), r2=74(width), r3=94(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 247
-LDI r1, 125
-LDI r2, 74
-LDI r3, 94
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a black box of size 23x25 starting at (249, 49).
+; PLAN: r0=249(x), r1=49(y), r2=23(width), r3=25(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 249
+LDI r1, 49
+LDI r2, 23
+LDI r3, 25
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

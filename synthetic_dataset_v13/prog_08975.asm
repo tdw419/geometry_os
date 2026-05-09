@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (491, 94) and (289, 57).
-; PLAN: r0=491(x1), r1=94(y1), r2=289(x2), r3=57(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 491
-LDI r1, 94
-LDI r2, 289
-LDI r3, 57
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple rectangular region at (246, 39) spanning 119 by 88 pixels.
+; PLAN: r0=246(x), r1=39(y), r2=119(width), r3=88(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 246
+LDI r1, 39
+LDI r2, 119
+LDI r3, 88
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

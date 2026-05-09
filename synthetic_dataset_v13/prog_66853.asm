@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 92x12 rectangle at position (160, 126).
-; PLAN: r0=160(x), r1=126(y), r2=92(width), r3=12(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 126
-LDI r2, 92
-LDI r3, 12
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a black 28x22 rectangle at position (200, 59).
+; PLAN: r0=200(x), r1=59(y), r2=28(width), r3=22(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 200
+LDI r1, 59
+LDI r2, 28
+LDI r3, 22
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

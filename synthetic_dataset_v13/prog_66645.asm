@@ -1,8 +1,12 @@
-; DESCRIPTION: Loads 9 into r1 and decrements it in a loop until zero.
-; PLAN: r1=9(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 9
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Places a yellow dot at position (102, 82) then Creates a purple circular shape at (200, 112) with radius 53.
+; PLAN: r0=102(x), r1=82(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=200(x), r6=112(y), r7=53(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 102
+LDI r1, 82
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 200
+LDI r6, 112
+LDI r7, 53
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

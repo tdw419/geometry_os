@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 16 into r1 and decrements it in a loop until zero.
-; PLAN: r1=16(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 16
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a purple line segment connecting (310, 208) to (340, 160).
+; PLAN: r0=310(x1), r1=208(y1), r2=340(x2), r3=160(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 310
+LDI r1, 208
+LDI r2, 340
+LDI r3, 160
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

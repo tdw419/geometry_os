@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black box of size 84x17 starting at (255, 107).
-; PLAN: r0=255(x), r1=107(y), r2=84(width), r3=17(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 255
-LDI r1, 107
-LDI r2, 84
-LDI r3, 17
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (404, 233) with radius 16.
+; PLAN: r0=404(x), r1=233(y), r2=16(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 404
+LDI r1, 233
+LDI r2, 16
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

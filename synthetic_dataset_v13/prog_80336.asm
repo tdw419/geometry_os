@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 90x29 rectangle at position (61, 94).
-; PLAN: r0=61(x), r1=94(y), r2=90(width), r3=29(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 61
-LDI r1, 94
-LDI r2, 90
-LDI r3, 29
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 44 into r1 and decrements it in a loop until zero.
+; PLAN: r1=44(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 44
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

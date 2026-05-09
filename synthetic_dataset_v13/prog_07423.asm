@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (255, 40) to (394, 92).
-; PLAN: r0=255(x1), r1=40(y1), r2=394(x2), r3=92(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 255
-LDI r1, 40
-LDI r2, 394
-LDI r3, 92
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (247, 102) with width 14 and height 85.
+; PLAN: r0=247(x), r1=102(y), r2=14(width), r3=85(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 102
+LDI r2, 14
+LDI r3, 85
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

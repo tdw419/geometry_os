@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 116x26 rectangle at position (45, 221).
-; PLAN: r0=45(x), r1=221(y), r2=116(width), r3=26(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 221
-LDI r2, 116
-LDI r3, 26
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a red rectangle at (145, 137) with width 47 and height 53.
+; PLAN: r0=145(x), r1=137(y), r2=47(width), r3=53(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 145
+LDI r1, 137
+LDI r2, 47
+LDI r3, 53
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a red rectangular region at (309, 156) spanning 19 by 81 pixels.
-; PLAN: r0=309(x), r1=156(y), r2=19(width), r3=81(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 156
-LDI r2, 19
-LDI r3, 81
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (128, 238).
+; PLAN: r0=128(x), r1=238(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 128
+LDI r1, 238
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

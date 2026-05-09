@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (31, 59) and (309, 49).
-; PLAN: r0=31(x1), r1=59(y1), r2=309(x2), r3=49(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 31
-LDI r1, 59
-LDI r2, 309
-LDI r3, 49
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white rectangular region at (132, 49) spanning 119 by 84 pixels.
+; PLAN: r0=132(x), r1=49(y), r2=119(width), r3=84(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 132
+LDI r1, 49
+LDI r2, 119
+LDI r3, 84
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

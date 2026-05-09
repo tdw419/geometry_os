@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 25 into r1 and decrements it in a loop until zero.
-; PLAN: r1=25(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 25
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a yellow line from (117, 121) to (301, 88).
+; PLAN: r0=117(x1), r1=121(y1), r2=301(x2), r3=88(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 117
+LDI r1, 121
+LDI r2, 301
+LDI r3, 88
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

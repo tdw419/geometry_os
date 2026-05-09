@@ -1,18 +1,15 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (282, 159) then Draws a green circle centered at (280, 169) with radius 41 then Places a blue 50x90 rectangle at position (447, 119).
-; PLAN: r0=282(x), r1=159(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=280(x), r6=169(y), r7=41(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=447(x), r11=119(y), r12=50(width), r13=90(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 282
-LDI r1, 159
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 280
-LDI r6, 169
-LDI r7, 41
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
-LDI r10, 447
-LDI r11, 119
-LDI r12, 50
-LDI r13, 90
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Draws a orange line from (190, 39) to (245, 103) then Places a red 91x11 rectangle at position (33, 143).
+; PLAN: r0=190(x1), r1=39(y1), r2=245(x2), r3=103(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=33(x), r6=143(y), r7=91(width), r8=11(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 190
+LDI r1, 39
+LDI r2, 245
+LDI r3, 103
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 33
+LDI r6, 143
+LDI r7, 91
+LDI r8, 11
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

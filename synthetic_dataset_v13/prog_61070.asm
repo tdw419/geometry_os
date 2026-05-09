@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (270, 179) with radius 61.
-; PLAN: r0=270(x), r1=179(y), r2=61(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 270
-LDI r1, 179
-LDI r2, 61
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow box of size 95x77 starting at (348, 48).
+; PLAN: r0=348(x), r1=48(y), r2=95(width), r3=77(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 348
+LDI r1, 48
+LDI r2, 95
+LDI r3, 77
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

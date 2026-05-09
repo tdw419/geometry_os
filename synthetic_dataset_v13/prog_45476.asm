@@ -1,8 +1,12 @@
-; DESCRIPTION: Creates a magenta circular shape at (366, 136) with radius 37.
-; PLAN: r0=366(x), r1=136(y), r2=37(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 366
-LDI r1, 136
-LDI r2, 37
-LDI r3, 0xFF00FF
+; DESCRIPTION: Composite: Renders a yellow disk with center (123, 74) and radius 68 then Places a orange dot at position (120, 118).
+; PLAN: r0=123(x), r1=74(y), r2=68(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=120(x), r6=118(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 123
+LDI r1, 74
+LDI r2, 68
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
+LDI r5, 120
+LDI r6, 118
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

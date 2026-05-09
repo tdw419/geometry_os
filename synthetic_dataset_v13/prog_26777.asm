@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 52 at center (190, 193).
-; PLAN: r0=190(x), r1=193(y), r2=52(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 190
-LDI r1, 193
-LDI r2, 52
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (205, 207) to (468, 123).
+; PLAN: r0=205(x1), r1=207(y1), r2=468(x2), r3=123(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 205
+LDI r1, 207
+LDI r2, 468
+LDI r3, 123
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

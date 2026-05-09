@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (275, 208) and radius 38.
-; PLAN: r0=275(x), r1=208(y), r2=38(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 275
-LDI r1, 208
-LDI r2, 38
+; DESCRIPTION: Places a black circle of radius 49 at center (336, 200).
+; PLAN: r0=336(x), r1=200(y), r2=49(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 336
+LDI r1, 200
+LDI r2, 49
 LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

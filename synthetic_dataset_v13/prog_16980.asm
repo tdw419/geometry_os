@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Sets a single green pixel at (265, 20).
+; PLAN: r0=265(x), r1=20(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 265
+LDI r1, 20
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

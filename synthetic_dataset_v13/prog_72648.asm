@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a blue circle of radius 30 at center (41, 208).
-; PLAN: r0=41(x), r1=208(y), r2=30(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 41
-LDI r1, 208
-LDI r2, 30
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a cyan circle centered at (201, 109) with radius 71.
+; PLAN: r0=201(x), r1=109(y), r2=71(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 201
+LDI r1, 109
+LDI r2, 71
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

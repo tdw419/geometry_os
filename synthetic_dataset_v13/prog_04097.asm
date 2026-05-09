@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a cyan rectangular region at (373, 150) spanning 104 by 85 pixels.
-; PLAN: r0=373(x), r1=150(y), r2=104(width), r3=85(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 373
-LDI r1, 150
-LDI r2, 104
-LDI r3, 85
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (418, 144) and radius 33.
+; PLAN: r0=418(x), r1=144(y), r2=33(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 418
+LDI r1, 144
+LDI r2, 33
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

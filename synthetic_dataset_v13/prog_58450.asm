@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 92x71 starting at (166, 145).
-; PLAN: r0=166(x), r1=145(y), r2=92(width), r3=71(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 166
-LDI r1, 145
-LDI r2, 92
-LDI r3, 71
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (400, 176) and (156, 156).
+; PLAN: r0=400(x1), r1=176(y1), r2=156(x2), r3=156(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 176
+LDI r2, 156
+LDI r3, 156
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

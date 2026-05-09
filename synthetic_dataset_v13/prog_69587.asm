@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (118, 150) with width 92 and height 48.
-; PLAN: r0=118(x), r1=150(y), r2=92(width), r3=48(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 118
-LDI r1, 150
-LDI r2, 92
-LDI r3, 48
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a purple box of size 77x18 starting at (411, 74).
+; PLAN: r0=411(x), r1=74(y), r2=77(width), r3=18(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 411
+LDI r1, 74
+LDI r2, 77
+LDI r3, 18
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

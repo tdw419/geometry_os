@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (117, 69) and radius 56.
-; PLAN: r0=117(x), r1=69(y), r2=56(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 117
-LDI r1, 69
-LDI r2, 56
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue line segment connecting (464, 75) to (27, 181).
+; PLAN: r0=464(x1), r1=75(y1), r2=27(x2), r3=181(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 464
+LDI r1, 75
+LDI r2, 27
+LDI r3, 181
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

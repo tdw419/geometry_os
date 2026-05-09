@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 86x13 rectangle at position (128, 41).
-; PLAN: r0=128(x), r1=41(y), r2=86(width), r3=13(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 128
-LDI r1, 41
-LDI r2, 86
-LDI r3, 13
+; DESCRIPTION: Places a black line segment connecting (305, 98) to (253, 214).
+; PLAN: r0=305(x1), r1=98(y1), r2=253(x2), r3=214(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 305
+LDI r1, 98
+LDI r2, 253
+LDI r3, 214
 LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

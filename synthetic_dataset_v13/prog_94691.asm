@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Places a magenta line segment connecting (437, 128) to (311, 54) then Places a blue dot at position (322, 116).
-; PLAN: r0=437(x1), r1=128(y1), r2=311(x2), r3=54(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=322(x), r6=116(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 437
-LDI r1, 128
-LDI r2, 311
-LDI r3, 54
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 322
-LDI r6, 116
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Places a white dot at position (507, 126) then Places a orange line segment connecting (260, 179) to (428, 242) then Creates a cyan rectangular region at (438, 137) spanning 38 by 89 pixels.
+; PLAN: r0=507(x), r1=126(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=260(x1), r6=179(y1), r7=428(x2), r8=242(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=438(x), r11=137(y), r12=38(width), r13=89(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 507
+LDI r1, 126
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 260
+LDI r6, 179
+LDI r7, 428
+LDI r8, 242
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
+LDI r10, 438
+LDI r11, 137
+LDI r12, 38
+LDI r13, 89
+LDI r14, 0x00FFFF
+RECTF r10, r11, r12, r13, r14
 HALT

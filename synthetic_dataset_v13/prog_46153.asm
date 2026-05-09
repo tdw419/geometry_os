@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green box of size 40x102 starting at (26, 83).
-; PLAN: r0=26(x), r1=83(y), r2=40(width), r3=102(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 26
-LDI r1, 83
-LDI r2, 40
-LDI r3, 102
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 42 into r1 and decrements it in a loop until zero.
+; PLAN: r1=42(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 42
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

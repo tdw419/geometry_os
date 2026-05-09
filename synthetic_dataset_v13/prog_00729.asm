@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (376, 8) to (396, 147).
-; PLAN: r0=376(x1), r1=8(y1), r2=396(x2), r3=147(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 376
-LDI r1, 8
-LDI r2, 396
-LDI r3, 147
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (332, 132) with radius 18.
+; PLAN: r0=332(x), r1=132(y), r2=18(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 332
+LDI r1, 132
+LDI r2, 18
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

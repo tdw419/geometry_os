@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 83x41 rectangle at position (183, 182).
-; PLAN: r0=183(x), r1=182(y), r2=83(width), r3=41(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 183
-LDI r1, 182
-LDI r2, 83
-LDI r3, 41
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (72, 101) with radius 38.
+; PLAN: r0=72(x), r1=101(y), r2=38(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 72
+LDI r1, 101
+LDI r2, 38
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

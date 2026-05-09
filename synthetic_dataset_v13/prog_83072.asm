@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (210, 249) and (57, 128).
-; PLAN: r0=210(x1), r1=249(y1), r2=57(x2), r3=128(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 210
-LDI r1, 249
-LDI r2, 57
-LDI r3, 128
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a blue line between points (395, 115) and (231, 227).
+; PLAN: r0=395(x1), r1=115(y1), r2=231(x2), r3=227(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 395
+LDI r1, 115
+LDI r2, 231
+LDI r3, 227
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

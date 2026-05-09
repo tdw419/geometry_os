@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (419, 201) to (251, 194).
-; PLAN: r0=419(x1), r1=201(y1), r2=251(x2), r3=194(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 419
-LDI r1, 201
-LDI r2, 251
-LDI r3, 194
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a blue line segment connecting (230, 171) to (162, 13).
+; PLAN: r0=230(x1), r1=171(y1), r2=162(x2), r3=13(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 230
+LDI r1, 171
+LDI r2, 162
+LDI r3, 13
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

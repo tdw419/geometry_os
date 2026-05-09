@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 107x94 starting at (119, 24).
-; PLAN: r0=119(x), r1=24(y), r2=107(width), r3=94(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 119
-LDI r1, 24
-LDI r2, 107
-LDI r3, 94
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (160, 162) and (25, 141).
+; PLAN: r0=160(x1), r1=162(y1), r2=25(x2), r3=141(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 162
+LDI r2, 25
+LDI r3, 141
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

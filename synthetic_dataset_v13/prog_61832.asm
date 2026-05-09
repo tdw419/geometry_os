@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single yellow pixel at (3, 240).
-; PLAN: r0=3(x), r1=240(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 3
-LDI r1, 240
-LDI r2, 0xFFFF00
+; DESCRIPTION: Sets a single magenta pixel at (269, 49).
+; PLAN: r0=269(x), r1=49(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 269
+LDI r1, 49
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
 HALT

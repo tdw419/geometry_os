@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a red dot at position (460, 126).
-; PLAN: r0=460(x), r1=126(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 460
-LDI r1, 126
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a green circular shape at (199, 42) with radius 29.
+; PLAN: r0=199(x), r1=42(y), r2=29(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 199
+LDI r1, 42
+LDI r2, 29
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

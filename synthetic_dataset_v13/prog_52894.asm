@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (178, 38) then Creates a yellow rectangular region at (327, 73) spanning 99 by 76 pixels.
-; PLAN: r0=178(x), r1=38(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=327(x), r6=73(y), r7=99(width), r8=76(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 178
-LDI r1, 38
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 327
-LDI r6, 73
-LDI r7, 99
-LDI r8, 76
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a white line segment connecting (84, 129) to (6, 82).
+; PLAN: r0=84(x1), r1=129(y1), r2=6(x2), r3=82(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 84
+LDI r1, 129
+LDI r2, 6
+LDI r3, 82
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

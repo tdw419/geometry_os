@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (213, 122).
-; PLAN: r0=213(x), r1=122(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 213
-LDI r1, 122
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Creates a orange rectangular region at (356, 226) spanning 91 by 23 pixels.
+; PLAN: r0=356(x), r1=226(y), r2=91(width), r3=23(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 356
+LDI r1, 226
+LDI r2, 91
+LDI r3, 23
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

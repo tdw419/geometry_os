@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a green rectangular region at (429, 38) spanning 78 by 72 pixels.
-; PLAN: r0=429(x), r1=38(y), r2=78(width), r3=72(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 429
-LDI r1, 38
-LDI r2, 78
-LDI r3, 72
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white circle of radius 74 at center (380, 169).
+; PLAN: r0=380(x), r1=169(y), r2=74(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 380
+LDI r1, 169
+LDI r2, 74
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

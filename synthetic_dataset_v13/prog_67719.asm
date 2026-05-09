@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (362, 234) to (301, 23).
-; PLAN: r0=362(x1), r1=234(y1), r2=301(x2), r3=23(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 234
-LDI r2, 301
-LDI r3, 23
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 30 at center (293, 116).
+; PLAN: r0=293(x), r1=116(y), r2=30(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 293
+LDI r1, 116
+LDI r2, 30
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

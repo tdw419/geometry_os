@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a blue circle of radius 60 at center (299, 165).
-; PLAN: r0=299(x), r1=165(y), r2=60(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 299
-LDI r1, 165
-LDI r2, 60
-LDI r3, 0x0000FF
+; DESCRIPTION: Places a yellow circle of radius 74 at center (237, 117).
+; PLAN: r0=237(x), r1=117(y), r2=74(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 237
+LDI r1, 117
+LDI r2, 74
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

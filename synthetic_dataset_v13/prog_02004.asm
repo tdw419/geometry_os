@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black line segment connecting (297, 141) to (99, 10).
-; PLAN: r0=297(x1), r1=141(y1), r2=99(x2), r3=10(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 297
-LDI r1, 141
-LDI r2, 99
-LDI r3, 10
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (162, 157) and radius 37.
+; PLAN: r0=162(x), r1=157(y), r2=37(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 162
+LDI r1, 157
+LDI r2, 37
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

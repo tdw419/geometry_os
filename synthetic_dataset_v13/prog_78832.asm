@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (51, 7) to (144, 100).
-; PLAN: r0=51(x1), r1=7(y1), r2=144(x2), r3=100(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 51
-LDI r1, 7
-LDI r2, 144
-LDI r3, 100
+; DESCRIPTION: Places a red 106x98 rectangle at position (61, 115).
+; PLAN: r0=61(x), r1=115(y), r2=106(width), r3=98(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 61
+LDI r1, 115
+LDI r2, 106
+LDI r3, 98
 LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

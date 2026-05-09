@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 21 at center (61, 141).
-; PLAN: r0=61(x), r1=141(y), r2=21(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 61
-LDI r1, 141
-LDI r2, 21
-LDI r3, 0xFF00FF
+; DESCRIPTION: Draws a purple circle centered at (354, 190) with radius 54.
+; PLAN: r0=354(x), r1=190(y), r2=54(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 354
+LDI r1, 190
+LDI r2, 54
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

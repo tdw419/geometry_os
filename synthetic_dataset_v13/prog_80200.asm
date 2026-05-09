@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a green 12x22 rectangle at position (438, 101).
-; PLAN: r0=438(x), r1=101(y), r2=12(width), r3=22(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 438
-LDI r1, 101
-LDI r2, 12
-LDI r3, 22
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single yellow pixel at (404, 153).
+; PLAN: r0=404(x), r1=153(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 404
+LDI r1, 153
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a cyan dot at position (261, 177).
-; PLAN: r0=261(x), r1=177(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 261
-LDI r1, 177
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a blue rectangle at (201, 211) with width 76 and height 27.
+; PLAN: r0=201(x), r1=211(y), r2=76(width), r3=27(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 201
+LDI r1, 211
+LDI r2, 76
+LDI r3, 27
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 25 at center (350, 222).
-; PLAN: r0=350(x), r1=222(y), r2=25(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 350
-LDI r1, 222
-LDI r2, 25
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (160, 124) and (432, 127).
+; PLAN: r0=160(x1), r1=124(y1), r2=432(x2), r3=127(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 124
+LDI r2, 432
+LDI r3, 127
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

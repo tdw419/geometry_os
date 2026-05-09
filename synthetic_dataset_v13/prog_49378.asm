@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (88, 153) with width 26 and height 69.
-; PLAN: r0=88(x), r1=153(y), r2=26(width), r3=69(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 153
-LDI r2, 26
-LDI r3, 69
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (146, 90) to (286, 73).
+; PLAN: r0=146(x1), r1=90(y1), r2=286(x2), r3=73(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 146
+LDI r1, 90
+LDI r2, 286
+LDI r3, 73
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

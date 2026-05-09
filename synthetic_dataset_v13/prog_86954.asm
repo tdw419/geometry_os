@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (362, 2) and (337, 10).
-; PLAN: r0=362(x1), r1=2(y1), r2=337(x2), r3=10(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 2
-LDI r2, 337
-LDI r3, 10
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 3 into r1 and decrements it in a loop until zero.
+; PLAN: r1=3(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 3
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

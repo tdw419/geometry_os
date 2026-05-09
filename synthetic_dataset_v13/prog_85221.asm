@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Creates a red rectangular region at (301, 49) spanning 62 by 34 pixels then Places a yellow dot at position (1, 110).
-; PLAN: r0=301(x), r1=49(y), r2=62(width), r3=34(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=1(x), r6=110(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 301
-LDI r1, 49
-LDI r2, 62
-LDI r3, 34
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 1
-LDI r6, 110
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
+; DESCRIPTION: Draws a black line from (317, 80) to (249, 99).
+; PLAN: r0=317(x1), r1=80(y1), r2=249(x2), r3=99(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 317
+LDI r1, 80
+LDI r2, 249
+LDI r3, 99
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

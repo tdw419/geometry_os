@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 13x112 rectangle at position (449, 108).
-; PLAN: r0=449(x), r1=108(y), r2=13(width), r3=112(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 449
-LDI r1, 108
-LDI r2, 13
-LDI r3, 112
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (373, 153) with radius 69.
+; PLAN: r0=373(x), r1=153(y), r2=69(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 373
+LDI r1, 153
+LDI r2, 69
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

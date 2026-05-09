@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (326, 51) to (146, 18).
-; PLAN: r0=326(x1), r1=51(y1), r2=146(x2), r3=18(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 326
-LDI r1, 51
-LDI r2, 146
-LDI r3, 18
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a green line from (339, 207) to (101, 46).
+; PLAN: r0=339(x1), r1=207(y1), r2=101(x2), r3=46(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 339
+LDI r1, 207
+LDI r2, 101
+LDI r3, 46
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

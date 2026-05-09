@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange line segment connecting (169, 90) to (432, 2).
-; PLAN: r0=169(x1), r1=90(y1), r2=432(x2), r3=2(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 169
-LDI r1, 90
-LDI r2, 432
-LDI r3, 2
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (155, 186) with radius 30.
+; PLAN: r0=155(x), r1=186(y), r2=30(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 155
+LDI r1, 186
+LDI r2, 30
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

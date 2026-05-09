@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (448, 233).
-; PLAN: r0=448(x), r1=233(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 448
-LDI r1, 233
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow line segment connecting (83, 100) to (68, 197).
+; PLAN: r0=83(x1), r1=100(y1), r2=68(x2), r3=197(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 83
+LDI r1, 100
+LDI r2, 68
+LDI r3, 197
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

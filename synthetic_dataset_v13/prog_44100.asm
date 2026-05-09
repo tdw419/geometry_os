@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (147, 144) with radius 57.
-; PLAN: r0=147(x), r1=144(y), r2=57(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 147
-LDI r1, 144
-LDI r2, 57
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a white rectangular region at (51, 107) spanning 17 by 76 pixels.
+; PLAN: r0=51(x), r1=107(y), r2=17(width), r3=76(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 51
+LDI r1, 107
+LDI r2, 17
+LDI r3, 76
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

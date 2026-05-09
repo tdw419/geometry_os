@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 109x70 rectangle at position (242, 27).
-; PLAN: r0=242(x), r1=27(y), r2=109(width), r3=70(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 242
-LDI r1, 27
-LDI r2, 109
-LDI r3, 70
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 67 at center (420, 96).
+; PLAN: r0=420(x), r1=96(y), r2=67(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 420
+LDI r1, 96
+LDI r2, 67
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

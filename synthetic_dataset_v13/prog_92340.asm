@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (49, 131) to (409, 150).
-; PLAN: r0=49(x1), r1=131(y1), r2=409(x2), r3=150(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 131
-LDI r2, 409
-LDI r3, 150
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 101x38 rectangle at position (88, 87).
+; PLAN: r0=88(x), r1=87(y), r2=101(width), r3=38(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 88
+LDI r1, 87
+LDI r2, 101
+LDI r3, 38
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

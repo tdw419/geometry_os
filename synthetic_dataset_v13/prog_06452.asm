@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (89, 27) with width 102 and height 29.
-; PLAN: r0=89(x), r1=27(y), r2=102(width), r3=29(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 89
-LDI r1, 27
-LDI r2, 102
-LDI r3, 29
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a red rectangle at (17, 135) with width 52 and height 35.
+; PLAN: r0=17(x), r1=135(y), r2=52(width), r3=35(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 17
+LDI r1, 135
+LDI r2, 52
+LDI r3, 35
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a purple line from (367, 84) to (389, 95).
-; PLAN: r0=367(x1), r1=84(y1), r2=389(x2), r3=95(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 367
-LDI r1, 84
-LDI r2, 389
-LDI r3, 95
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

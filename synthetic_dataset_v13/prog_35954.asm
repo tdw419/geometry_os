@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (257, 79) with width 78 and height 70.
-; PLAN: r0=257(x), r1=79(y), r2=78(width), r3=70(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 257
-LDI r1, 79
-LDI r2, 78
-LDI r3, 70
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a yellow box of size 110x116 starting at (36, 100).
+; PLAN: r0=36(x), r1=100(y), r2=110(width), r3=116(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 36
+LDI r1, 100
+LDI r2, 110
+LDI r3, 116
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

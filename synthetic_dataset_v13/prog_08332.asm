@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a orange dot at position (136, 137) then Creates a blue rectangular region at (436, 75) spanning 37 by 90 pixels.
-; PLAN: r0=136(x), r1=137(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=436(x), r6=75(y), r7=37(width), r8=90(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 136
-LDI r1, 137
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 436
-LDI r6, 75
-LDI r7, 37
-LDI r8, 90
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Loads 3 into r1 and decrements it in a loop until zero.
+; PLAN: r1=3(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 3
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

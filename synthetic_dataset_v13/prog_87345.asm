@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 24x27 starting at (401, 216).
-; PLAN: r0=401(x), r1=216(y), r2=24(width), r3=27(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 401
-LDI r1, 216
-LDI r2, 24
-LDI r3, 27
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a red rectangle at (2, 142) with width 29 and height 12.
+; PLAN: r0=2(x), r1=142(y), r2=29(width), r3=12(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 2
+LDI r1, 142
+LDI r2, 29
+LDI r3, 12
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (410, 130) and radius 36.
-; PLAN: r0=410(x), r1=130(y), r2=36(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 410
-LDI r1, 130
-LDI r2, 36
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (500, 27) to (508, 172).
+; PLAN: r0=500(x1), r1=27(y1), r2=508(x2), r3=172(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 500
+LDI r1, 27
+LDI r2, 508
+LDI r3, 172
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

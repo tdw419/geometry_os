@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (442, 137).
-; PLAN: r0=442(x), r1=137(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 442
-LDI r1, 137
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a magenta line between points (124, 104) and (18, 40).
+; PLAN: r0=124(x1), r1=104(y1), r2=18(x2), r3=40(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 104
+LDI r2, 18
+LDI r3, 40
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

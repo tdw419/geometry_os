@@ -1,9 +1,19 @@
-; DESCRIPTION: Places a orange 120x45 rectangle at position (261, 86).
-; PLAN: r0=261(x), r1=86(y), r2=120(width), r3=45(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 261
-LDI r1, 86
-LDI r2, 120
-LDI r3, 45
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (316, 27) then Creates a green rectangular region at (108, 90) spanning 113 by 31 pixels then Renders a green line between points (489, 199) and (261, 22).
+; PLAN: r0=316(x), r1=27(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=108(x), r6=90(y), r7=113(width), r8=31(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=489(x1), r11=199(y1), r12=261(x2), r13=22(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 316
+LDI r1, 27
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 108
+LDI r6, 90
+LDI r7, 113
+LDI r8, 31
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 489
+LDI r11, 199
+LDI r12, 261
+LDI r13, 22
+LDI r14, 0x00FF00
+LINE r10, r11, r12, r13, r14
 HALT

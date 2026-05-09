@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a white line from (420, 7) to (469, 91).
-; PLAN: r0=420(x1), r1=7(y1), r2=469(x2), r3=91(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 420
-LDI r1, 7
-LDI r2, 469
-LDI r3, 91
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a red circular shape at (116, 83) with radius 65 then Places a blue dot at position (279, 90).
+; PLAN: r0=116(x), r1=83(y), r2=65(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=279(x), r6=90(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 116
+LDI r1, 83
+LDI r2, 65
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 279
+LDI r6, 90
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (135, 246) to (344, 247).
-; PLAN: r0=135(x1), r1=246(y1), r2=344(x2), r3=247(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 135
-LDI r1, 246
-LDI r2, 344
-LDI r3, 247
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 48 into r1 and decrements it in a loop until zero.
+; PLAN: r1=48(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 48
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

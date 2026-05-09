@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (5, 20) and (119, 4).
-; PLAN: r0=5(x1), r1=20(y1), r2=119(x2), r3=4(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 20
-LDI r2, 119
-LDI r3, 4
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (382, 83) with width 14 and height 96.
+; PLAN: r0=382(x), r1=83(y), r2=14(width), r3=96(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 382
+LDI r1, 83
+LDI r2, 14
+LDI r3, 96
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

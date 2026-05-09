@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (193, 182) with radius 63.
-; PLAN: r0=193(x), r1=182(y), r2=63(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 193
-LDI r1, 182
-LDI r2, 63
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (422, 18) to (159, 7).
+; PLAN: r0=422(x1), r1=18(y1), r2=159(x2), r3=7(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 422
+LDI r1, 18
+LDI r2, 159
+LDI r3, 7
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

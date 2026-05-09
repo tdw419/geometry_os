@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 102x30 rectangle at position (71, 53).
-; PLAN: r0=71(x), r1=53(y), r2=102(width), r3=30(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 71
-LDI r1, 53
-LDI r2, 102
-LDI r3, 30
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a cyan 62x34 rectangle at position (388, 58).
+; PLAN: r0=388(x), r1=58(y), r2=62(width), r3=34(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 58
+LDI r2, 62
+LDI r3, 34
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

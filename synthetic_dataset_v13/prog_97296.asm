@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (137, 189) to (475, 14).
-; PLAN: r0=137(x1), r1=189(y1), r2=475(x2), r3=14(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 137
-LDI r1, 189
-LDI r2, 475
-LDI r3, 14
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a yellow line between points (265, 202) and (394, 137).
+; PLAN: r0=265(x1), r1=202(y1), r2=394(x2), r3=137(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 265
+LDI r1, 202
+LDI r2, 394
+LDI r3, 137
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

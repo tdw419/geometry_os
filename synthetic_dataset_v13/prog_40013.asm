@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (211, 177) spanning 12 by 74 pixels.
-; PLAN: r0=211(x), r1=177(y), r2=12(width), r3=74(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 211
-LDI r1, 177
-LDI r2, 12
-LDI r3, 74
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (220, 127) and (84, 222).
+; PLAN: r0=220(x1), r1=127(y1), r2=84(x2), r3=222(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 127
+LDI r2, 84
+LDI r3, 222
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

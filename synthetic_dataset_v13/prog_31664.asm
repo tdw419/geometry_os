@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a blue circle of radius 28 at center (462, 152).
-; PLAN: r0=462(x), r1=152(y), r2=28(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 462
-LDI r1, 152
-LDI r2, 28
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a black circle centered at (223, 144) with radius 60.
+; PLAN: r0=223(x), r1=144(y), r2=60(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 223
+LDI r1, 144
+LDI r2, 60
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

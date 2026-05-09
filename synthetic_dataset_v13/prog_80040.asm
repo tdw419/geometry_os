@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (241, 248) to (254, 254).
-; PLAN: r0=241(x1), r1=248(y1), r2=254(x2), r3=254(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 248
-LDI r2, 254
-LDI r3, 254
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue box of size 32x78 starting at (434, 157).
+; PLAN: r0=434(x), r1=157(y), r2=32(width), r3=78(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 434
+LDI r1, 157
+LDI r2, 32
+LDI r3, 78
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (386, 195) and (357, 33).
-; PLAN: r0=386(x1), r1=195(y1), r2=357(x2), r3=33(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 386
-LDI r1, 195
-LDI r2, 357
-LDI r3, 33
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a white line between points (180, 47) and (282, 216).
+; PLAN: r0=180(x1), r1=47(y1), r2=282(x2), r3=216(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 180
+LDI r1, 47
+LDI r2, 282
+LDI r3, 216
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

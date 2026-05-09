@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 23 at center (464, 160).
-; PLAN: r0=464(x), r1=160(y), r2=23(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 464
-LDI r1, 160
-LDI r2, 23
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (151, 178) and (149, 106).
+; PLAN: r0=151(x1), r1=178(y1), r2=149(x2), r3=106(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 178
+LDI r2, 149
+LDI r3, 106
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

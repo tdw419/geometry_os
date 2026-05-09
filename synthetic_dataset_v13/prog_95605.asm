@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 118x47 rectangle at position (339, 177).
-; PLAN: r0=339(x), r1=177(y), r2=118(width), r3=47(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 339
-LDI r1, 177
-LDI r2, 118
-LDI r3, 47
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (191, 134) and (25, 230).
+; PLAN: r0=191(x1), r1=134(y1), r2=25(x2), r3=230(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 191
+LDI r1, 134
+LDI r2, 25
+LDI r3, 230
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

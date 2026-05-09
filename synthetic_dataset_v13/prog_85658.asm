@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Renders a blue line between points (469, 229) and (10, 59) then Creates a blue circular shape at (261, 43) with radius 42.
-; PLAN: r0=469(x1), r1=229(y1), r2=10(x2), r3=59(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=261(x), r6=43(y), r7=42(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 469
-LDI r1, 229
-LDI r2, 10
-LDI r3, 59
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 261
-LDI r6, 43
-LDI r7, 42
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Creates a magenta circular shape at (119, 104) with radius 62 then Draws a yellow line from (250, 177) to (99, 39).
+; PLAN: r0=119(x), r1=104(y), r2=62(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=250(x1), r6=177(y1), r7=99(x2), r8=39(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 119
+LDI r1, 104
+LDI r2, 62
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 250
+LDI r6, 177
+LDI r7, 99
+LDI r8, 39
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

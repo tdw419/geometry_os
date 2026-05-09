@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a yellow circle of radius 17 at center (459, 207).
-; PLAN: r0=459(x), r1=207(y), r2=17(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 459
-LDI r1, 207
-LDI r2, 17
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (331, 234).
+; PLAN: r0=331(x), r1=234(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 331
+LDI r1, 234
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

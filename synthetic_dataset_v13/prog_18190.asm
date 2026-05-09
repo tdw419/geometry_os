@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan box of size 33x70 starting at (45, 151).
-; PLAN: r0=45(x), r1=151(y), r2=33(width), r3=70(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 151
-LDI r2, 33
-LDI r3, 70
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (257, 87) with radius 61.
+; PLAN: r0=257(x), r1=87(y), r2=61(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 257
+LDI r1, 87
+LDI r2, 61
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

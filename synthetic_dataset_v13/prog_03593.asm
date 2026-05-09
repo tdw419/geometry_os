@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a purple circle of radius 46 at center (76, 57).
-; PLAN: r0=76(x), r1=57(y), r2=46(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 76
-LDI r1, 57
-LDI r2, 46
-LDI r3, 0xAA00FF
+; DESCRIPTION: Renders a white disk with center (202, 54) and radius 44.
+; PLAN: r0=202(x), r1=54(y), r2=44(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 202
+LDI r1, 54
+LDI r2, 44
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

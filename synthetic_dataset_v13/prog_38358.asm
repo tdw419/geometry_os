@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a orange line between points (80, 101) and (457, 164).
-; PLAN: r0=80(x1), r1=101(y1), r2=457(x2), r3=164(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 80
-LDI r1, 101
-LDI r2, 457
-LDI r3, 164
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (407, 124).
+; PLAN: r0=407(x), r1=124(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 407
+LDI r1, 124
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

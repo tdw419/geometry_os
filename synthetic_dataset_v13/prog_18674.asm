@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Creates a magenta circular shape at (84, 95) with radius 69 then Renders a blue box of size 23x102 starting at (272, 141) then Places a yellow dot at position (72, 36).
-; PLAN: r0=84(x), r1=95(y), r2=69(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=272(x), r6=141(y), r7=23(width), r8=102(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=72(x), r11=36(y), r12=0xFFFF00(color). Op: PSET r10, r11, r12.
-LDI r0, 84
-LDI r1, 95
-LDI r2, 69
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 272
-LDI r6, 141
-LDI r7, 23
-LDI r8, 102
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 72
-LDI r11, 36
-LDI r12, 0xFFFF00
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Places a white line segment connecting (393, 131) to (160, 204) then Sets a single white pixel at (428, 101) then Renders a cyan box of size 90x24 starting at (407, 46).
+; PLAN: r0=393(x1), r1=131(y1), r2=160(x2), r3=204(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=428(x), r6=101(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=407(x), r11=46(y), r12=90(width), r13=24(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 393
+LDI r1, 131
+LDI r2, 160
+LDI r3, 204
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 428
+LDI r6, 101
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
+LDI r10, 407
+LDI r11, 46
+LDI r12, 90
+LDI r13, 24
+LDI r14, 0x00FFFF
+RECTF r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (398, 187) to (134, 134).
-; PLAN: r0=398(x1), r1=187(y1), r2=134(x2), r3=134(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 398
-LDI r1, 187
-LDI r2, 134
-LDI r3, 134
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (393, 89) with radius 59.
+; PLAN: r0=393(x), r1=89(y), r2=59(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 393
+LDI r1, 89
+LDI r2, 59
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a orange box of size 31x44 starting at (336, 140).
-; PLAN: r0=336(x), r1=140(y), r2=31(width), r3=44(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 336
-LDI r1, 140
-LDI r2, 31
-LDI r3, 44
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (209, 163) then Renders a orange box of size 24x32 starting at (334, 13).
+; PLAN: r0=209(x), r1=163(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=334(x), r6=13(y), r7=24(width), r8=32(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 209
+LDI r1, 163
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 334
+LDI r6, 13
+LDI r7, 24
+LDI r8, 32
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

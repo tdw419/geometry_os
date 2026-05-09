@@ -1,13 +1,12 @@
-; DESCRIPTION: Composite: Creates a white rectangular region at (56, 13) spanning 105 by 52 pixels then Places a cyan dot at position (186, 47).
-; PLAN: r0=56(x), r1=13(y), r2=105(width), r3=52(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=186(x), r6=47(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 56
-LDI r1, 13
-LDI r2, 105
-LDI r3, 52
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 186
-LDI r6, 47
-LDI r7, 0x00FFFF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single blue pixel at (52, 183) then Creates a yellow circular shape at (78, 166) with radius 65.
+; PLAN: r0=52(x), r1=183(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=78(x), r6=166(y), r7=65(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 52
+LDI r1, 183
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 78
+LDI r6, 166
+LDI r7, 65
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Renders a cyan box of size 40x102 starting at (24, 6).
+; PLAN: r0=24(x), r1=6(y), r2=40(width), r3=102(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 24
+LDI r1, 6
+LDI r2, 40
+LDI r3, 102
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

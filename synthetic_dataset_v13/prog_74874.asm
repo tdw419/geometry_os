@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (169, 254) then Places a red line segment connecting (85, 156) to (259, 74) then Places a white circle of radius 14 at center (227, 234).
-; PLAN: r0=169(x), r1=254(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=85(x1), r6=156(y1), r7=259(x2), r8=74(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=227(x), r11=234(y), r12=14(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 169
-LDI r1, 254
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 85
-LDI r6, 156
-LDI r7, 259
-LDI r8, 74
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
-LDI r10, 227
-LDI r11, 234
-LDI r12, 14
-LDI r13, 0xFFFFFF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Renders a yellow line between points (166, 220) and (447, 177).
+; PLAN: r0=166(x1), r1=220(y1), r2=447(x2), r3=177(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 166
+LDI r1, 220
+LDI r2, 447
+LDI r3, 177
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (61, 97) spanning 61 by 58 pixels.
-; PLAN: r0=61(x), r1=97(y), r2=61(width), r3=58(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 61
-LDI r1, 97
-LDI r2, 61
-LDI r3, 58
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black line from (83, 134) to (95, 217).
+; PLAN: r0=83(x1), r1=134(y1), r2=95(x2), r3=217(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 83
+LDI r1, 134
+LDI r2, 95
+LDI r3, 217
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

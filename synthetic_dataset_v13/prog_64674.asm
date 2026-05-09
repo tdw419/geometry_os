@@ -1,9 +1,5 @@
-; DESCRIPTION: Creates a purple rectangular region at (355, 46) spanning 106 by 23 pixels.
-; PLAN: r0=355(x), r1=46(y), r2=106(width), r3=23(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 355
-LDI r1, 46
-LDI r2, 106
-LDI r3, 23
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

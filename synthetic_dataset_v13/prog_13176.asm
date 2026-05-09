@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a orange dot at position (113, 179).
-; PLAN: r0=113(x), r1=179(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 113
-LDI r1, 179
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black circle centered at (287, 140) with radius 55.
+; PLAN: r0=287(x), r1=140(y), r2=55(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 287
+LDI r1, 140
+LDI r2, 55
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

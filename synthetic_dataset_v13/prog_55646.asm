@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 97x48 starting at (240, 179).
-; PLAN: r0=240(x), r1=179(y), r2=97(width), r3=48(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 240
-LDI r1, 179
-LDI r2, 97
-LDI r3, 48
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (197, 96) and (234, 196).
+; PLAN: r0=197(x1), r1=96(y1), r2=234(x2), r3=196(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 197
+LDI r1, 96
+LDI r2, 234
+LDI r3, 196
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

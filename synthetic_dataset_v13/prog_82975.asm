@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single blue pixel at (492, 157).
-; PLAN: r0=492(x), r1=157(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 492
-LDI r1, 157
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a purple 45x81 rectangle at position (110, 174).
+; PLAN: r0=110(x), r1=174(y), r2=45(width), r3=81(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 110
+LDI r1, 174
+LDI r2, 45
+LDI r3, 81
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

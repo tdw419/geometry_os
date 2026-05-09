@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (388, 159) and (496, 189).
-; PLAN: r0=388(x1), r1=159(y1), r2=496(x2), r3=189(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 388
-LDI r1, 159
-LDI r2, 496
-LDI r3, 189
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a black line between points (226, 123) and (144, 15).
+; PLAN: r0=226(x1), r1=123(y1), r2=144(x2), r3=15(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 123
+LDI r2, 144
+LDI r3, 15
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

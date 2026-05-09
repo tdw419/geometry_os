@@ -1,19 +1,15 @@
-; DESCRIPTION: Composite: Places a red line segment connecting (56, 153) to (153, 111) then Sets a single white pixel at (199, 12) then Draws a blue rectangle at (158, 183) with width 62 and height 55.
-; PLAN: r0=56(x1), r1=153(y1), r2=153(x2), r3=111(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=199(x), r6=12(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=158(x), r11=183(y), r12=62(width), r13=55(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 56
-LDI r1, 153
-LDI r2, 153
-LDI r3, 111
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
-LDI r5, 199
-LDI r6, 12
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
-LDI r10, 158
-LDI r11, 183
-LDI r12, 62
-LDI r13, 55
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Creates a green rectangular region at (389, 52) spanning 67 by 51 pixels then Draws a magenta line from (421, 213) to (238, 27).
+; PLAN: r0=389(x), r1=52(y), r2=67(width), r3=51(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=421(x1), r6=213(y1), r7=238(x2), r8=27(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 389
+LDI r1, 52
+LDI r2, 67
+LDI r3, 51
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 421
+LDI r6, 213
+LDI r7, 238
+LDI r8, 27
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

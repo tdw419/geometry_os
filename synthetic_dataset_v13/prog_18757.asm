@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a orange line segment connecting (112, 185) to (34, 22).
-; PLAN: r0=112(x1), r1=185(y1), r2=34(x2), r3=22(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 185
-LDI r2, 34
-LDI r3, 22
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red dot at position (199, 133).
+; PLAN: r0=199(x), r1=133(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 199
+LDI r1, 133
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

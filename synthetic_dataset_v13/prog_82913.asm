@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a white dot at position (458, 72) then Renders a white disk with center (171, 79) and radius 58.
-; PLAN: r0=458(x), r1=72(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=171(x), r6=79(y), r7=58(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 458
-LDI r1, 72
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 171
-LDI r6, 79
-LDI r7, 58
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a black line between points (172, 228) and (418, 18).
+; PLAN: r0=172(x1), r1=228(y1), r2=418(x2), r3=18(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 172
+LDI r1, 228
+LDI r2, 418
+LDI r3, 18
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

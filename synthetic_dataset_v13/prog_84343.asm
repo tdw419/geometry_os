@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 7 into r1 and decrements it in a loop until zero.
-; PLAN: r1=7(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 7
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a black circle centered at (422, 198) with radius 58.
+; PLAN: r0=422(x), r1=198(y), r2=58(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 422
+LDI r1, 198
+LDI r2, 58
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

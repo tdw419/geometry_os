@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a blue circular shape at (378, 85) with radius 73.
-; PLAN: r0=378(x), r1=85(y), r2=73(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 378
-LDI r1, 85
-LDI r2, 73
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (189, 102).
+; PLAN: r0=189(x), r1=102(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 189
+LDI r1, 102
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

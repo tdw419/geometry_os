@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (416, 148) and radius 33.
-; PLAN: r0=416(x), r1=148(y), r2=33(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+; DESCRIPTION: Renders a yellow box of size 70x44 starting at (416, 10).
+; PLAN: r0=416(x), r1=10(y), r2=70(width), r3=44(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
 LDI r0, 416
-LDI r1, 148
-LDI r2, 33
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+LDI r1, 10
+LDI r2, 70
+LDI r3, 44
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

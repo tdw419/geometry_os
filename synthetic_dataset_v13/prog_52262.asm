@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Renders a white disk with center (135, 183) and radius 63 then Places a purple line segment connecting (302, 148) to (357, 22).
-; PLAN: r0=135(x), r1=183(y), r2=63(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=302(x1), r6=148(y1), r7=357(x2), r8=22(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 135
-LDI r1, 183
-LDI r2, 63
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 302
-LDI r6, 148
-LDI r7, 357
-LDI r8, 22
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a red dot at position (128, 10) then Creates a white circular shape at (263, 164) with radius 36 then Draws a purple line from (432, 174) to (56, 80).
+; PLAN: r0=128(x), r1=10(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=263(x), r6=164(y), r7=36(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=432(x1), r11=174(y1), r12=56(x2), r13=80(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 128
+LDI r1, 10
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 263
+LDI r6, 164
+LDI r7, 36
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
+LDI r10, 432
+LDI r11, 174
+LDI r12, 56
+LDI r13, 80
+LDI r14, 0xAA00FF
+LINE r10, r11, r12, r13, r14
 HALT

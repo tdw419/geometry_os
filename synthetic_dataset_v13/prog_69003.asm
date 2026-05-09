@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a red line between points (40, 87) and (313, 152).
-; PLAN: r0=40(x1), r1=87(y1), r2=313(x2), r3=152(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 40
-LDI r1, 87
-LDI r2, 313
-LDI r3, 152
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (218, 185) then Draws a red circle centered at (153, 96) with radius 66.
+; PLAN: r0=218(x), r1=185(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=153(x), r6=96(y), r7=66(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 218
+LDI r1, 185
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 153
+LDI r6, 96
+LDI r7, 66
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

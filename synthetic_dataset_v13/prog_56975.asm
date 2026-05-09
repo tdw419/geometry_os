@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single black pixel at (278, 206).
-; PLAN: r0=278(x), r1=206(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 278
-LDI r1, 206
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

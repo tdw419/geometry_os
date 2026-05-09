@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (94, 107) and radius 20.
-; PLAN: r0=94(x), r1=107(y), r2=20(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 94
-LDI r1, 107
-LDI r2, 20
-LDI r3, 0x000000
+; DESCRIPTION: Places a orange circle of radius 78 at center (256, 140).
+; PLAN: r0=256(x), r1=140(y), r2=78(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 256
+LDI r1, 140
+LDI r2, 78
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

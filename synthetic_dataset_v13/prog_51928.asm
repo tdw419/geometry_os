@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a blue line segment connecting (436, 104) to (489, 154).
-; PLAN: r0=436(x1), r1=104(y1), r2=489(x2), r3=154(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 436
-LDI r1, 104
-LDI r2, 489
-LDI r3, 154
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a white disk with center (213, 205) and radius 26 then Draws a red line from (69, 240) to (267, 212).
+; PLAN: r0=213(x), r1=205(y), r2=26(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=69(x1), r6=240(y1), r7=267(x2), r8=212(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 213
+LDI r1, 205
+LDI r2, 26
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 69
+LDI r6, 240
+LDI r7, 267
+LDI r8, 212
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

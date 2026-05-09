@@ -1,15 +1,19 @@
-; DESCRIPTION: Composite: Draws a orange line from (233, 50) to (159, 29) then Draws a white rectangle at (215, 207) with width 67 and height 19.
-; PLAN: r0=233(x1), r1=50(y1), r2=159(x2), r3=29(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=215(x), r6=207(y), r7=67(width), r8=19(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 233
-LDI r1, 50
-LDI r2, 159
-LDI r3, 29
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Draws a green line from (247, 117) to (138, 150) then Places a purple dot at position (112, 227) then Renders a cyan box of size 32x18 starting at (383, 58).
+; PLAN: r0=247(x1), r1=117(y1), r2=138(x2), r3=150(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=112(x), r6=227(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=383(x), r11=58(y), r12=32(width), r13=18(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 247
+LDI r1, 117
+LDI r2, 138
+LDI r3, 150
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
-LDI r5, 215
-LDI r6, 207
-LDI r7, 67
-LDI r8, 19
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+LDI r5, 112
+LDI r6, 227
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
+LDI r10, 383
+LDI r11, 58
+LDI r12, 32
+LDI r13, 18
+LDI r14, 0x00FFFF
+RECTF r10, r11, r12, r13, r14
 HALT

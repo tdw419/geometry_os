@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Renders a magenta disk with center (33, 89) and radius 25 then Places a orange 86x62 rectangle at position (420, 142).
-; PLAN: r0=33(x), r1=89(y), r2=25(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=420(x), r6=142(y), r7=86(width), r8=62(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 33
-LDI r1, 89
-LDI r2, 25
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 420
-LDI r6, 142
-LDI r7, 86
-LDI r8, 62
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a green line segment connecting (397, 143) to (45, 208).
+; PLAN: r0=397(x1), r1=143(y1), r2=45(x2), r3=208(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 397
+LDI r1, 143
+LDI r2, 45
+LDI r3, 208
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

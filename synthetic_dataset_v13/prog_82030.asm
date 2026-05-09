@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (271, 94) spanning 104 by 119 pixels.
-; PLAN: r0=271(x), r1=94(y), r2=104(width), r3=119(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 271
-LDI r1, 94
-LDI r2, 104
-LDI r3, 119
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a yellow rectangle at (121, 142) with width 117 and height 74.
+; PLAN: r0=121(x), r1=142(y), r2=117(width), r3=74(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 121
+LDI r1, 142
+LDI r2, 117
+LDI r3, 74
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

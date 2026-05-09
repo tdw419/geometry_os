@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a yellow line between points (190, 178) and (157, 109).
-; PLAN: r0=190(x1), r1=178(y1), r2=157(x2), r3=109(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 178
-LDI r2, 157
-LDI r3, 109
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a red rectangle at (60, 162) with width 51 and height 52 then Places a yellow dot at position (110, 246).
+; PLAN: r0=60(x), r1=162(y), r2=51(width), r3=52(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=110(x), r6=246(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
+LDI r0, 60
+LDI r1, 162
+LDI r2, 51
+LDI r3, 52
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 110
+LDI r6, 246
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (100, 136) with radius 73.
-; PLAN: r0=100(x), r1=136(y), r2=73(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 100
-LDI r1, 136
-LDI r2, 73
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan line segment connecting (336, 162) to (490, 140).
+; PLAN: r0=336(x1), r1=162(y1), r2=490(x2), r3=140(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 336
+LDI r1, 162
+LDI r2, 490
+LDI r3, 140
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

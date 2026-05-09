@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a green circle of radius 26 at center (159, 157).
-; PLAN: r0=159(x), r1=157(y), r2=26(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 159
-LDI r1, 157
-LDI r2, 26
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (6, 221).
+; PLAN: r0=6(x), r1=221(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 6
+LDI r1, 221
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

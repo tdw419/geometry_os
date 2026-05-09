@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 76 at center (417, 82).
-; PLAN: r0=417(x), r1=82(y), r2=76(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 417
-LDI r1, 82
-LDI r2, 76
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 13 into r1 and decrements it in a loop until zero.
+; PLAN: r1=13(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 13
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

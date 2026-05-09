@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (345, 25) spanning 107 by 22 pixels.
-; PLAN: r0=345(x), r1=25(y), r2=107(width), r3=22(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 25
-LDI r2, 107
-LDI r3, 22
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (386, 60) and (192, 74).
+; PLAN: r0=386(x1), r1=60(y1), r2=192(x2), r3=74(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 386
+LDI r1, 60
+LDI r2, 192
+LDI r3, 74
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

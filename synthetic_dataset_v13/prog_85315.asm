@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (263, 148) with radius 76.
-; PLAN: r0=263(x), r1=148(y), r2=76(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 263
-LDI r1, 148
-LDI r2, 76
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 24x16 rectangle at position (131, 195).
+; PLAN: r0=131(x), r1=195(y), r2=24(width), r3=16(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 131
+LDI r1, 195
+LDI r2, 24
+LDI r3, 16
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

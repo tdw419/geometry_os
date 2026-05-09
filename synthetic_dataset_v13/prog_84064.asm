@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (30, 186) to (59, 243).
-; PLAN: r0=30(x1), r1=186(y1), r2=59(x2), r3=243(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 30
-LDI r1, 186
-LDI r2, 59
-LDI r3, 243
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a magenta line from (168, 19) to (144, 144).
+; PLAN: r0=168(x1), r1=19(y1), r2=144(x2), r3=144(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 168
+LDI r1, 19
+LDI r2, 144
+LDI r3, 144
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (187, 132).
-; PLAN: r0=187(x), r1=132(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 187
-LDI r1, 132
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a black 13x13 rectangle at position (136, 56).
+; PLAN: r0=136(x), r1=56(y), r2=13(width), r3=13(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 136
+LDI r1, 56
+LDI r2, 13
+LDI r3, 13
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

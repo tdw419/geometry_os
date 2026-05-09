@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a white line between points (242, 205) and (272, 11).
-; PLAN: r0=242(x1), r1=205(y1), r2=272(x2), r3=11(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 242
-LDI r1, 205
-LDI r2, 272
-LDI r3, 11
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a orange 45x44 rectangle at position (30, 59) then Places a black dot at position (208, 148).
+; PLAN: r0=30(x), r1=59(y), r2=45(width), r3=44(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=208(x), r6=148(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 30
+LDI r1, 59
+LDI r2, 45
+LDI r3, 44
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 208
+LDI r6, 148
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

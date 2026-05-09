@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (269, 187) and (420, 75).
-; PLAN: r0=269(x1), r1=187(y1), r2=420(x2), r3=75(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 269
-LDI r1, 187
-LDI r2, 420
-LDI r3, 75
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (56, 158) with radius 37.
+; PLAN: r0=56(x), r1=158(y), r2=37(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 56
+LDI r1, 158
+LDI r2, 37
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

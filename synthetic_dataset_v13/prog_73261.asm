@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 17 at center (97, 23).
-; PLAN: r0=97(x), r1=23(y), r2=17(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 97
-LDI r1, 23
-LDI r2, 17
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 92x37 rectangle at position (417, 86).
+; PLAN: r0=417(x), r1=86(y), r2=92(width), r3=37(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 86
+LDI r2, 92
+LDI r3, 37
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

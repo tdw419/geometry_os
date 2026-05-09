@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (433, 56) then Renders a red line between points (337, 227) and (44, 221).
-; PLAN: r0=433(x), r1=56(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=337(x1), r6=227(y1), r7=44(x2), r8=221(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 433
-LDI r1, 56
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 337
-LDI r6, 227
-LDI r7, 44
-LDI r8, 221
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a white line between points (420, 83) and (444, 124) then Creates a orange circular shape at (420, 101) with radius 55.
+; PLAN: r0=420(x1), r1=83(y1), r2=444(x2), r3=124(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=420(x), r6=101(y), r7=55(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 420
+LDI r1, 83
+LDI r2, 444
+LDI r3, 124
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 420
+LDI r6, 101
+LDI r7, 55
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

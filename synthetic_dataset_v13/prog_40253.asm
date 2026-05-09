@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red rectangle at (11, 139) with width 103 and height 35.
-; PLAN: r0=11(x), r1=139(y), r2=103(width), r3=35(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 11
-LDI r1, 139
-LDI r2, 103
-LDI r3, 35
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 42 at center (85, 150).
+; PLAN: r0=85(x), r1=150(y), r2=42(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 85
+LDI r1, 150
+LDI r2, 42
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

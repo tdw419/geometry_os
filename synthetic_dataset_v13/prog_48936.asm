@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a magenta circular shape at (400, 79) with radius 53.
-; PLAN: r0=400(x), r1=79(y), r2=53(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 400
-LDI r1, 79
-LDI r2, 53
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (316, 62).
+; PLAN: r0=316(x), r1=62(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 316
+LDI r1, 62
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

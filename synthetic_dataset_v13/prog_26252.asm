@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (416, 138) with radius 65.
-; PLAN: r0=416(x), r1=138(y), r2=65(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 416
-LDI r1, 138
-LDI r2, 65
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (80, 69) to (391, 187).
+; PLAN: r0=80(x1), r1=69(y1), r2=391(x2), r3=187(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 80
+LDI r1, 69
+LDI r2, 391
+LDI r3, 187
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (78, 46) with radius 44.
-; PLAN: r0=78(x), r1=46(y), r2=44(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 78
-LDI r1, 46
-LDI r2, 44
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow box of size 41x49 starting at (459, 50).
+; PLAN: r0=459(x), r1=50(y), r2=41(width), r3=49(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 459
+LDI r1, 50
+LDI r2, 41
+LDI r3, 49
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (60, 100) to (340, 101).
-; PLAN: r0=60(x1), r1=100(y1), r2=340(x2), r3=101(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 60
-LDI r1, 100
-LDI r2, 340
-LDI r3, 101
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 11 into r1 and decrements it in a loop until zero.
+; PLAN: r1=11(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 11
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

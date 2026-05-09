@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Places a magenta dot at position (135, 107).
+; PLAN: r0=135(x), r1=107(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 135
+LDI r1, 107
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

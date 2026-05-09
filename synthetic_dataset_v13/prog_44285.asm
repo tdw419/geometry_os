@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single magenta pixel at (282, 244).
-; PLAN: r0=282(x), r1=244(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 282
-LDI r1, 244
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan disk with center (100, 153) and radius 41.
+; PLAN: r0=100(x), r1=153(y), r2=41(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 100
+LDI r1, 153
+LDI r2, 41
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

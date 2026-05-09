@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (119, 213) and (116, 186).
-; PLAN: r0=119(x1), r1=213(y1), r2=116(x2), r3=186(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 119
-LDI r1, 213
-LDI r2, 116
-LDI r3, 186
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (277, 98) with radius 68.
+; PLAN: r0=277(x), r1=98(y), r2=68(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 277
+LDI r1, 98
+LDI r2, 68
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

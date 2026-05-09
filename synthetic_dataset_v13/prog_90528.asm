@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (187, 182) to (285, 84).
-; PLAN: r0=187(x1), r1=182(y1), r2=285(x2), r3=84(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 187
-LDI r1, 182
-LDI r2, 285
-LDI r3, 84
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 80 at center (181, 152).
+; PLAN: r0=181(x), r1=152(y), r2=80(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 181
+LDI r1, 152
+LDI r2, 80
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

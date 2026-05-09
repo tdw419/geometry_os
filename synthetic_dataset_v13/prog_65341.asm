@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (424, 183) with radius 21.
-; PLAN: r0=424(x), r1=183(y), r2=21(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 424
-LDI r1, 183
-LDI r2, 21
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 91x26 rectangle at position (92, 229).
+; PLAN: r0=92(x), r1=229(y), r2=91(width), r3=26(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 92
+LDI r1, 229
+LDI r2, 91
+LDI r3, 26
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

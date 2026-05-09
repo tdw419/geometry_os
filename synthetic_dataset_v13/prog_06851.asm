@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 96x102 starting at (60, 46).
-; PLAN: r0=60(x), r1=46(y), r2=96(width), r3=102(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 60
-LDI r1, 46
-LDI r2, 96
-LDI r3, 102
-LDI r4, 0x000000
+; DESCRIPTION: Renders a magenta box of size 59x17 starting at (29, 209).
+; PLAN: r0=29(x), r1=209(y), r2=59(width), r3=17(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 29
+LDI r1, 209
+LDI r2, 59
+LDI r3, 17
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

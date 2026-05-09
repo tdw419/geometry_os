@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a blue circle of radius 61 at center (435, 63).
-; PLAN: r0=435(x), r1=63(y), r2=61(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 435
-LDI r1, 63
-LDI r2, 61
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a cyan circle centered at (44, 169) with radius 44.
+; PLAN: r0=44(x), r1=169(y), r2=44(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 44
+LDI r1, 169
+LDI r2, 44
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

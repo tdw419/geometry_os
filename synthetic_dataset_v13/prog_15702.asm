@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a yellow line from (18, 74) to (442, 227).
-; PLAN: r0=18(x1), r1=74(y1), r2=442(x2), r3=227(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 18
-LDI r1, 74
-LDI r2, 442
-LDI r3, 227
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (1, 1).
+; PLAN: r0=1(x), r1=1(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 1
+LDI r1, 1
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

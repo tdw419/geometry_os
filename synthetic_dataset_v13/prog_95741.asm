@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a white circle of radius 41 at center (251, 160).
-; PLAN: r0=251(x), r1=160(y), r2=41(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 251
-LDI r1, 160
-LDI r2, 41
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (507, 255).
+; PLAN: r0=507(x), r1=255(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 507
+LDI r1, 255
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

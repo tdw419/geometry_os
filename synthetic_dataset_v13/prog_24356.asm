@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 115x87 rectangle at position (88, 137).
-; PLAN: r0=88(x), r1=137(y), r2=115(width), r3=87(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 137
-LDI r2, 115
-LDI r3, 87
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a purple box of size 76x50 starting at (314, 105).
+; PLAN: r0=314(x), r1=105(y), r2=76(width), r3=50(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 314
+LDI r1, 105
+LDI r2, 76
+LDI r3, 50
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

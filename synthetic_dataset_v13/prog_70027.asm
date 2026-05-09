@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a blue rectangle at (261, 192) with width 35 and height 50.
-; PLAN: r0=261(x), r1=192(y), r2=35(width), r3=50(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 261
-LDI r1, 192
-LDI r2, 35
-LDI r3, 50
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red dot at position (209, 160).
+; PLAN: r0=209(x), r1=160(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 209
+LDI r1, 160
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

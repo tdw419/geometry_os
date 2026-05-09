@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 11 at center (119, 91).
-; PLAN: r0=119(x), r1=91(y), r2=11(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 119
-LDI r1, 91
-LDI r2, 11
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (114, 101) and (359, 101).
+; PLAN: r0=114(x1), r1=101(y1), r2=359(x2), r3=101(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 114
+LDI r1, 101
+LDI r2, 359
+LDI r3, 101
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

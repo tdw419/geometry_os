@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a purple circle of radius 19 at center (292, 19).
-; PLAN: r0=292(x), r1=19(y), r2=19(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 292
-LDI r1, 19
-LDI r2, 19
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single green pixel at (95, 59).
+; PLAN: r0=95(x), r1=59(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 95
+LDI r1, 59
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

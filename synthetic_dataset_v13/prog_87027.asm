@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a yellow rectangular region at (298, 167) spanning 44 by 80 pixels.
-; PLAN: r0=298(x), r1=167(y), r2=44(width), r3=80(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 298
-LDI r1, 167
-LDI r2, 44
-LDI r3, 80
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (112, 117) then Creates a red rectangular region at (126, 57) spanning 40 by 88 pixels.
+; PLAN: r0=112(x), r1=117(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=126(x), r6=57(y), r7=40(width), r8=88(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 112
+LDI r1, 117
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 126
+LDI r6, 57
+LDI r7, 40
+LDI r8, 88
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

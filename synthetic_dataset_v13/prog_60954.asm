@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (151, 56) to (27, 50).
-; PLAN: r0=151(x1), r1=56(y1), r2=27(x2), r3=50(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 151
-LDI r1, 56
-LDI r2, 27
-LDI r3, 50
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 73x27 rectangle at position (246, 209).
+; PLAN: r0=246(x), r1=209(y), r2=73(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 246
+LDI r1, 209
+LDI r2, 73
+LDI r3, 27
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

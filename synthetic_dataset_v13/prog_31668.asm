@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (9, 0) to (426, 73).
-; PLAN: r0=9(x1), r1=0(y1), r2=426(x2), r3=73(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 9
-LDI r1, 0
-LDI r2, 426
-LDI r3, 73
+; DESCRIPTION: Places a white 72x114 rectangle at position (239, 105).
+; PLAN: r0=239(x), r1=105(y), r2=72(width), r3=114(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 239
+LDI r1, 105
+LDI r2, 72
+LDI r3, 114
 LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

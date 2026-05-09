@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 61x58 starting at (368, 141).
-; PLAN: r0=368(x), r1=141(y), r2=61(width), r3=58(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 368
-LDI r1, 141
-LDI r2, 61
-LDI r3, 58
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black line from (146, 27) to (477, 120).
+; PLAN: r0=146(x1), r1=27(y1), r2=477(x2), r3=120(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 146
+LDI r1, 27
+LDI r2, 477
+LDI r3, 120
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

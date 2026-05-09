@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a red 71x56 rectangle at position (271, 97) then Creates a orange circular shape at (357, 109) with radius 50.
-; PLAN: r0=271(x), r1=97(y), r2=71(width), r3=56(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=357(x), r6=109(y), r7=50(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 271
-LDI r1, 97
-LDI r2, 71
-LDI r3, 56
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 357
-LDI r6, 109
-LDI r7, 50
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a cyan line between points (291, 23) and (419, 229).
+; PLAN: r0=291(x1), r1=23(y1), r2=419(x2), r3=229(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 291
+LDI r1, 23
+LDI r2, 419
+LDI r3, 229
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (435, 210) with radius 37.
-; PLAN: r0=435(x), r1=210(y), r2=37(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 435
-LDI r1, 210
-LDI r2, 37
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white line segment connecting (179, 117) to (260, 183).
+; PLAN: r0=179(x1), r1=117(y1), r2=260(x2), r3=183(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 179
+LDI r1, 117
+LDI r2, 260
+LDI r3, 183
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

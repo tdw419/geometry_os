@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 52x95 rectangle at position (213, 147).
-; PLAN: r0=213(x), r1=147(y), r2=52(width), r3=95(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 213
-LDI r1, 147
-LDI r2, 52
-LDI r3, 95
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a magenta box of size 115x107 starting at (53, 25).
+; PLAN: r0=53(x), r1=25(y), r2=115(width), r3=107(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 53
+LDI r1, 25
+LDI r2, 115
+LDI r3, 107
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

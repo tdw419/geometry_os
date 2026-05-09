@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a orange circular shape at (335, 200) with radius 28.
-; PLAN: r0=335(x), r1=200(y), r2=28(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+; DESCRIPTION: Creates a yellow circular shape at (335, 159) with radius 52.
+; PLAN: r0=335(x), r1=159(y), r2=52(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
 LDI r0, 335
-LDI r1, 200
-LDI r2, 28
-LDI r3, 0xFF8800
+LDI r1, 159
+LDI r2, 52
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

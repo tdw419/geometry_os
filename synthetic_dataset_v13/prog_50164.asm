@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (329, 230) to (376, 197).
-; PLAN: r0=329(x1), r1=230(y1), r2=376(x2), r3=197(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 329
-LDI r1, 230
-LDI r2, 376
-LDI r3, 197
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (82, 167) with radius 34.
+; PLAN: r0=82(x), r1=167(y), r2=34(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 82
+LDI r1, 167
+LDI r2, 34
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

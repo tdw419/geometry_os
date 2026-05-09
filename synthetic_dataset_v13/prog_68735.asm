@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a yellow circular shape at (490, 71) with radius 10.
-; PLAN: r0=490(x), r1=71(y), r2=10(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 490
-LDI r1, 71
-LDI r2, 10
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 50 into r1 and decrements it in a loop until zero.
+; PLAN: r1=50(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 50
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

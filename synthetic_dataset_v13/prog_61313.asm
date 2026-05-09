@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (346, 175) to (35, 216).
-; PLAN: r0=346(x1), r1=175(y1), r2=35(x2), r3=216(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 346
-LDI r1, 175
-LDI r2, 35
-LDI r3, 216
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (225, 153) and radius 36.
+; PLAN: r0=225(x), r1=153(y), r2=36(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 225
+LDI r1, 153
+LDI r2, 36
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

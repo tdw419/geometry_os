@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (485, 109) to (347, 188).
-; PLAN: r0=485(x1), r1=109(y1), r2=347(x2), r3=188(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 485
-LDI r1, 109
-LDI r2, 347
-LDI r3, 188
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (174, 56) with radius 18.
+; PLAN: r0=174(x), r1=56(y), r2=18(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 174
+LDI r1, 56
+LDI r2, 18
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

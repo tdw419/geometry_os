@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (183, 166) spanning 21 by 76 pixels.
-; PLAN: r0=183(x), r1=166(y), r2=21(width), r3=76(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 183
-LDI r1, 166
-LDI r2, 21
-LDI r3, 76
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a white 37x66 rectangle at position (438, 122).
+; PLAN: r0=438(x), r1=122(y), r2=37(width), r3=66(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 438
+LDI r1, 122
+LDI r2, 37
+LDI r3, 66
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

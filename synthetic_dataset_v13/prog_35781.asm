@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a orange box of size 37x45 starting at (359, 66).
-; PLAN: r0=359(x), r1=66(y), r2=37(width), r3=45(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 66
-LDI r2, 37
-LDI r3, 45
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

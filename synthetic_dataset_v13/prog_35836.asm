@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Draws a orange line from (155, 112) to (393, 228).
+; PLAN: r0=155(x1), r1=112(y1), r2=393(x2), r3=228(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 155
+LDI r1, 112
+LDI r2, 393
+LDI r3, 228
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

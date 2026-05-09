@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a cyan dot at position (478, 165).
-; PLAN: r0=478(x), r1=165(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 478
-LDI r1, 165
-LDI r2, 0x00FFFF
+; DESCRIPTION: Places a purple dot at position (237, 27).
+; PLAN: r0=237(x), r1=27(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 237
+LDI r1, 27
+LDI r2, 0xAA00FF
 PSET r0, r1, r2
 HALT

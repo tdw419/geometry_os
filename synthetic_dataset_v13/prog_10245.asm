@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (177, 133) with width 58 and height 51.
-; PLAN: r0=177(x), r1=133(y), r2=58(width), r3=51(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 133
-LDI r2, 58
-LDI r3, 51
+; DESCRIPTION: Renders a orange line between points (183, 104) and (231, 60).
+; PLAN: r0=183(x1), r1=104(y1), r2=231(x2), r3=60(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 183
+LDI r1, 104
+LDI r2, 231
+LDI r3, 60
 LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

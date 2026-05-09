@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (285, 30) with width 76 and height 26.
-; PLAN: r0=285(x), r1=30(y), r2=76(width), r3=26(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 285
-LDI r1, 30
-LDI r2, 76
-LDI r3, 26
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (139, 97) and (299, 31).
+; PLAN: r0=139(x1), r1=97(y1), r2=299(x2), r3=31(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 97
+LDI r2, 299
+LDI r3, 31
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

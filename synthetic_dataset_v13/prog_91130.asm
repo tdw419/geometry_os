@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (208, 119) and (156, 175).
-; PLAN: r0=208(x1), r1=119(y1), r2=156(x2), r3=175(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 208
-LDI r1, 119
-LDI r2, 156
-LDI r3, 175
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (330, 146) with width 61 and height 36.
+; PLAN: r0=330(x), r1=146(y), r2=61(width), r3=36(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 330
+LDI r1, 146
+LDI r2, 61
+LDI r3, 36
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

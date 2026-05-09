@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (316, 177) with radius 75.
-; PLAN: r0=316(x), r1=177(y), r2=75(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 316
-LDI r1, 177
-LDI r2, 75
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 77x13 rectangle at position (348, 12).
+; PLAN: r0=348(x), r1=12(y), r2=77(width), r3=13(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 348
+LDI r1, 12
+LDI r2, 77
+LDI r3, 13
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

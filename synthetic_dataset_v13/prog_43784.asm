@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (351, 110) to (374, 199).
-; PLAN: r0=351(x1), r1=110(y1), r2=374(x2), r3=199(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 351
-LDI r1, 110
-LDI r2, 374
-LDI r3, 199
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a magenta line segment connecting (416, 220) to (186, 60).
+; PLAN: r0=416(x1), r1=220(y1), r2=186(x2), r3=60(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 416
+LDI r1, 220
+LDI r2, 186
+LDI r3, 60
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

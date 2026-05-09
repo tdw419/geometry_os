@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a black circle of radius 65 at center (432, 85).
-; PLAN: r0=432(x), r1=85(y), r2=65(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 432
-LDI r1, 85
-LDI r2, 65
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

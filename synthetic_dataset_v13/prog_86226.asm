@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 38x28 rectangle at position (256, 170).
-; PLAN: r0=256(x), r1=170(y), r2=38(width), r3=28(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 170
-LDI r2, 38
-LDI r3, 28
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (239, 74) with radius 24.
+; PLAN: r0=239(x), r1=74(y), r2=24(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 239
+LDI r1, 74
+LDI r2, 24
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

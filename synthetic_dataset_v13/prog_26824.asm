@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (308, 59) and radius 22.
-; PLAN: r0=308(x), r1=59(y), r2=22(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 308
-LDI r1, 59
-LDI r2, 22
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (335, 210) to (290, 184).
+; PLAN: r0=335(x1), r1=210(y1), r2=290(x2), r3=184(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 335
+LDI r1, 210
+LDI r2, 290
+LDI r3, 184
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 40 at center (58, 82).
-; PLAN: r0=58(x), r1=82(y), r2=40(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 58
-LDI r1, 82
-LDI r2, 40
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (472, 3) to (221, 157).
+; PLAN: r0=472(x1), r1=3(y1), r2=221(x2), r3=157(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 472
+LDI r1, 3
+LDI r2, 221
+LDI r3, 157
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

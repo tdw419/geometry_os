@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (394, 81) with radius 34.
-; PLAN: r0=394(x), r1=81(y), r2=34(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 394
-LDI r1, 81
-LDI r2, 34
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a red rectangular region at (367, 26) spanning 18 by 18 pixels.
+; PLAN: r0=367(x), r1=26(y), r2=18(width), r3=18(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 367
+LDI r1, 26
+LDI r2, 18
+LDI r3, 18
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

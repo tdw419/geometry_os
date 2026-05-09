@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a blue box of size 17x94 starting at (335, 29).
-; PLAN: r0=335(x), r1=29(y), r2=17(width), r3=94(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 335
-LDI r1, 29
-LDI r2, 17
-LDI r3, 94
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

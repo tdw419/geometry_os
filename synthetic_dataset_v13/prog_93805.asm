@@ -1,8 +1,13 @@
-; DESCRIPTION: Creates a magenta circular shape at (148, 154) with radius 50.
-; PLAN: r0=148(x), r1=154(y), r2=50(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 148
-LDI r1, 154
-LDI r2, 50
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a purple dot at position (7, 220) then Draws a magenta line from (106, 248) to (186, 211).
+; PLAN: r0=7(x), r1=220(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=106(x1), r6=248(y1), r7=186(x2), r8=211(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 7
+LDI r1, 220
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 106
+LDI r6, 248
+LDI r7, 186
+LDI r8, 211
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

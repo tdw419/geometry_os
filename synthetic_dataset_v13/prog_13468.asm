@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (180, 170) and radius 27.
-; PLAN: r0=180(x), r1=170(y), r2=27(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 180
-LDI r1, 170
-LDI r2, 27
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan line segment connecting (492, 141) to (394, 91).
+; PLAN: r0=492(x1), r1=141(y1), r2=394(x2), r3=91(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 492
+LDI r1, 141
+LDI r2, 394
+LDI r3, 91
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

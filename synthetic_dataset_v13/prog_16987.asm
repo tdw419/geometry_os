@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a orange line segment connecting (270, 95) to (325, 170).
-; PLAN: r0=270(x1), r1=95(y1), r2=325(x2), r3=170(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 270
-LDI r1, 95
-LDI r2, 325
-LDI r3, 170
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (276, 232).
+; PLAN: r0=276(x), r1=232(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 276
+LDI r1, 232
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

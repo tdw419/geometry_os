@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Draws a red circle centered at (184, 118) with radius 23 then Sets a single yellow pixel at (104, 209) then Draws a blue rectangle at (417, 50) with width 57 and height 25.
-; PLAN: r0=184(x), r1=118(y), r2=23(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=104(x), r6=209(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=417(x), r11=50(y), r12=57(width), r13=25(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 184
-LDI r1, 118
-LDI r2, 23
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 104
-LDI r6, 209
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
-LDI r10, 417
-LDI r11, 50
-LDI r12, 57
-LDI r13, 25
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single green pixel at (201, 59) then Renders a yellow box of size 42x17 starting at (125, 194) then Places a white line segment connecting (186, 13) to (443, 99).
+; PLAN: r0=201(x), r1=59(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=125(x), r6=194(y), r7=42(width), r8=17(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=186(x1), r11=13(y1), r12=443(x2), r13=99(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 201
+LDI r1, 59
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 125
+LDI r6, 194
+LDI r7, 42
+LDI r8, 17
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 186
+LDI r11, 13
+LDI r12, 443
+LDI r13, 99
+LDI r14, 0xFFFFFF
+LINE r10, r11, r12, r13, r14
 HALT

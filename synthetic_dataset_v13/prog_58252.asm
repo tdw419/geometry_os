@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 34x95 rectangle at position (59, 88).
-; PLAN: r0=59(x), r1=88(y), r2=34(width), r3=95(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 59
-LDI r1, 88
-LDI r2, 34
-LDI r3, 95
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (38, 210) and (307, 94).
+; PLAN: r0=38(x1), r1=210(y1), r2=307(x2), r3=94(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 38
+LDI r1, 210
+LDI r2, 307
+LDI r3, 94
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

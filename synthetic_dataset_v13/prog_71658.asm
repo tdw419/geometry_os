@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a orange 56x34 rectangle at position (111, 148).
-; PLAN: r0=111(x), r1=148(y), r2=56(width), r3=34(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 148
-LDI r2, 56
-LDI r3, 34
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Creates a red rectangular region at (83, 95) spanning 90 by 62 pixels then Renders a yellow disk with center (193, 140) and radius 79.
+; PLAN: r0=83(x), r1=95(y), r2=90(width), r3=62(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=193(x), r6=140(y), r7=79(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 83
+LDI r1, 95
+LDI r2, 90
+LDI r3, 62
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
+LDI r5, 193
+LDI r6, 140
+LDI r7, 79
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

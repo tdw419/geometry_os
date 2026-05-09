@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (193, 198) to (98, 243).
-; PLAN: r0=193(x1), r1=198(y1), r2=98(x2), r3=243(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 193
-LDI r1, 198
-LDI r2, 98
-LDI r3, 243
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (192, 89) with radius 25.
+; PLAN: r0=192(x), r1=89(y), r2=25(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 192
+LDI r1, 89
+LDI r2, 25
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

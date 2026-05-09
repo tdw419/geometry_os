@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a black line segment connecting (433, 101) to (465, 179).
-; PLAN: r0=433(x1), r1=101(y1), r2=465(x2), r3=179(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 433
-LDI r1, 101
-LDI r2, 465
-LDI r3, 179
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (248, 77).
+; PLAN: r0=248(x), r1=77(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 248
+LDI r1, 77
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

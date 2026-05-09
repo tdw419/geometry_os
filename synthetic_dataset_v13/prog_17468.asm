@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a red rectangular region at (89, 72) spanning 54 by 50 pixels.
-; PLAN: r0=89(x), r1=72(y), r2=54(width), r3=50(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 89
-LDI r1, 72
-LDI r2, 54
-LDI r3, 50
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 40 at center (388, 56).
+; PLAN: r0=388(x), r1=56(y), r2=40(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 388
+LDI r1, 56
+LDI r2, 40
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a purple circular shape at (314, 79) with radius 30 then Places a yellow dot at position (176, 141).
-; PLAN: r0=314(x), r1=79(y), r2=30(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=176(x), r6=141(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 314
-LDI r1, 79
-LDI r2, 30
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 176
-LDI r6, 141
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
+; DESCRIPTION: Places a cyan line segment connecting (148, 99) to (261, 211).
+; PLAN: r0=148(x1), r1=99(y1), r2=261(x2), r3=211(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 148
+LDI r1, 99
+LDI r2, 261
+LDI r3, 211
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

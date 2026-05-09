@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow 55x95 rectangle at position (67, 69).
-; PLAN: r0=67(x), r1=69(y), r2=55(width), r3=95(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 67
-LDI r1, 69
-LDI r2, 55
-LDI r3, 95
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single yellow pixel at (369, 94).
+; PLAN: r0=369(x), r1=94(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 369
+LDI r1, 94
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

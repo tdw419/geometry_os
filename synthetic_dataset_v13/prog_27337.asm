@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 31x115 starting at (185, 111).
-; PLAN: r0=185(x), r1=111(y), r2=31(width), r3=115(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 185
-LDI r1, 111
-LDI r2, 31
-LDI r3, 115
-LDI r4, 0x000000
+; DESCRIPTION: Draws a white rectangle at (399, 70) with width 28 and height 24.
+; PLAN: r0=399(x), r1=70(y), r2=28(width), r3=24(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 399
+LDI r1, 70
+LDI r2, 28
+LDI r3, 24
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

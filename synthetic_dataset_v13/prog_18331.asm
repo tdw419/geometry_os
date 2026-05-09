@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Renders a yellow line between points (146, 76) and (433, 155) then Renders a yellow box of size 31x100 starting at (60, 127).
-; PLAN: r0=146(x1), r1=76(y1), r2=433(x2), r3=155(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=60(x), r6=127(y), r7=31(width), r8=100(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 146
-LDI r1, 76
-LDI r2, 433
-LDI r3, 155
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 60
-LDI r6, 127
-LDI r7, 31
-LDI r8, 100
-LDI r9, 0xFFFF00
+; DESCRIPTION: Composite: Sets a single magenta pixel at (473, 24) then Creates a cyan rectangular region at (364, 117) spanning 61 by 42 pixels then Creates a yellow circular shape at (180, 42) with radius 11.
+; PLAN: r0=473(x), r1=24(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=364(x), r6=117(y), r7=61(width), r8=42(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=180(x), r11=42(y), r12=11(radius), r13=0xFFFF00(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 473
+LDI r1, 24
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 364
+LDI r6, 117
+LDI r7, 61
+LDI r8, 42
+LDI r9, 0x00FFFF
 RECTF r5, r6, r7, r8, r9
+LDI r10, 180
+LDI r11, 42
+LDI r12, 11
+LDI r13, 0xFFFF00
+CIRCLE r10, r11, r12, r13
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 19 at center (193, 36).
-; PLAN: r0=193(x), r1=36(y), r2=19(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 193
-LDI r1, 36
-LDI r2, 19
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (124, 49) with width 95 and height 49.
+; PLAN: r0=124(x), r1=49(y), r2=95(width), r3=49(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 49
+LDI r2, 95
+LDI r3, 49
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

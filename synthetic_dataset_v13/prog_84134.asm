@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 118x98 rectangle at position (197, 59).
-; PLAN: r0=197(x), r1=59(y), r2=118(width), r3=98(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 197
-LDI r1, 59
-LDI r2, 118
-LDI r3, 98
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple line segment connecting (444, 219) to (125, 187).
+; PLAN: r0=444(x1), r1=219(y1), r2=125(x2), r3=187(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 444
+LDI r1, 219
+LDI r2, 125
+LDI r3, 187
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

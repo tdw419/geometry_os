@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (135, 129) to (276, 2).
-; PLAN: r0=135(x1), r1=129(y1), r2=276(x2), r3=2(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 135
-LDI r1, 129
-LDI r2, 276
-LDI r3, 2
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (92, 97) with radius 38.
+; PLAN: r0=92(x), r1=97(y), r2=38(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 92
+LDI r1, 97
+LDI r2, 38
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

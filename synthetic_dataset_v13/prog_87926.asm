@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 25x59 starting at (201, 47).
-; PLAN: r0=201(x), r1=47(y), r2=25(width), r3=59(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 201
-LDI r1, 47
-LDI r2, 25
-LDI r3, 59
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (200, 240) and (195, 250).
+; PLAN: r0=200(x1), r1=240(y1), r2=195(x2), r3=250(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 200
+LDI r1, 240
+LDI r2, 195
+LDI r3, 250
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

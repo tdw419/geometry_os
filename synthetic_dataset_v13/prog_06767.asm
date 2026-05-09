@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow line from (394, 74) to (477, 111).
-; PLAN: r0=394(x1), r1=74(y1), r2=477(x2), r3=111(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 394
-LDI r1, 74
-LDI r2, 477
-LDI r3, 111
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 19 at center (270, 55).
+; PLAN: r0=270(x), r1=55(y), r2=19(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 270
+LDI r1, 55
+LDI r2, 19
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

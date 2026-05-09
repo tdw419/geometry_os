@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a cyan line from (205, 48) to (206, 217).
-; PLAN: r0=205(x1), r1=48(y1), r2=206(x2), r3=217(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 205
-LDI r1, 48
-LDI r2, 206
-LDI r3, 217
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single black pixel at (385, 40).
+; PLAN: r0=385(x), r1=40(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 385
+LDI r1, 40
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

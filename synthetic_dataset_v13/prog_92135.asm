@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Draws a red line from (394, 124) to (298, 218) then Sets a single magenta pixel at (78, 176) then Renders a white box of size 42x93 starting at (161, 125).
-; PLAN: r0=394(x1), r1=124(y1), r2=298(x2), r3=218(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=78(x), r6=176(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7 Next: r10=161(x), r11=125(y), r12=42(width), r13=93(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 394
-LDI r1, 124
-LDI r2, 298
-LDI r3, 218
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
-LDI r5, 78
-LDI r6, 176
-LDI r7, 0xFF00FF
-PSET r5, r6, r7
-LDI r10, 161
-LDI r11, 125
-LDI r12, 42
-LDI r13, 93
+; DESCRIPTION: Composite: Places a magenta dot at position (400, 17) then Renders a black disk with center (144, 164) and radius 33 then Draws a white rectangle at (44, 1) with width 86 and height 111.
+; PLAN: r0=400(x), r1=17(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=144(x), r6=164(y), r7=33(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=44(x), r11=1(y), r12=86(width), r13=111(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 400
+LDI r1, 17
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 144
+LDI r6, 164
+LDI r7, 33
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
+LDI r10, 44
+LDI r11, 1
+LDI r12, 86
+LDI r13, 111
 LDI r14, 0xFFFFFF
 RECTF r10, r11, r12, r13, r14
 HALT

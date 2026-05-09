@@ -1,8 +1,12 @@
-; DESCRIPTION: Places a purple circle of radius 49 at center (255, 164).
-; PLAN: r0=255(x), r1=164(y), r2=49(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 255
-LDI r1, 164
-LDI r2, 49
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single purple pixel at (100, 255) then Draws a white circle centered at (318, 151) with radius 10.
+; PLAN: r0=100(x), r1=255(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=318(x), r6=151(y), r7=10(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 100
+LDI r1, 255
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 318
+LDI r6, 151
+LDI r7, 10
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

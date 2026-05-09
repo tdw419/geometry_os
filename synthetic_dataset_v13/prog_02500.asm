@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a green 98x80 rectangle at position (180, 139).
-; PLAN: r0=180(x), r1=139(y), r2=98(width), r3=80(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 139
-LDI r2, 98
-LDI r3, 80
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a black disk with center (295, 63) and radius 19 then Places a green dot at position (92, 213).
+; PLAN: r0=295(x), r1=63(y), r2=19(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=92(x), r6=213(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 295
+LDI r1, 63
+LDI r2, 19
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 92
+LDI r6, 213
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

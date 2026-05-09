@@ -1,8 +1,7 @@
-; DESCRIPTION: Loads 45 into r1 and decrements it in a loop until zero.
-; PLAN: r1=45(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 45
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Sets a single black pixel at (212, 67).
+; PLAN: r0=212(x), r1=67(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 212
+LDI r1, 67
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a red line between points (310, 201) and (26, 108).
-; PLAN: r0=310(x1), r1=201(y1), r2=26(x2), r3=108(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 201
-LDI r2, 26
-LDI r3, 108
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (34, 128) then Renders a blue line between points (180, 90) and (3, 149).
+; PLAN: r0=34(x), r1=128(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=180(x1), r6=90(y1), r7=3(x2), r8=149(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 34
+LDI r1, 128
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 180
+LDI r6, 90
+LDI r7, 3
+LDI r8, 149
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

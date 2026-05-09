@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a black circle of radius 39 at center (300, 55).
-; PLAN: r0=300(x), r1=55(y), r2=39(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 300
-LDI r1, 55
-LDI r2, 39
-LDI r3, 0x000000
+; DESCRIPTION: Creates a white circular shape at (309, 164) with radius 30.
+; PLAN: r0=309(x), r1=164(y), r2=30(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 309
+LDI r1, 164
+LDI r2, 30
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a magenta circle centered at (113, 165) with radius 35.
-; PLAN: r0=113(x), r1=165(y), r2=35(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 113
-LDI r1, 165
-LDI r2, 35
-LDI r3, 0xFF00FF
+; DESCRIPTION: Creates a cyan circular shape at (259, 60) with radius 28.
+; PLAN: r0=259(x), r1=60(y), r2=28(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 259
+LDI r1, 60
+LDI r2, 28
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

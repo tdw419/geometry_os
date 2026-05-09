@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 63x39 starting at (402, 162).
-; PLAN: r0=402(x), r1=162(y), r2=63(width), r3=39(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 402
-LDI r1, 162
-LDI r2, 63
-LDI r3, 39
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red line from (166, 79) to (490, 181).
+; PLAN: r0=166(x1), r1=79(y1), r2=490(x2), r3=181(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 166
+LDI r1, 79
+LDI r2, 490
+LDI r3, 181
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

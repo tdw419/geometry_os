@@ -1,15 +1,13 @@
-; DESCRIPTION: Composite: Renders a blue line between points (276, 48) and (40, 146) then Renders a orange box of size 115x57 starting at (356, 129).
-; PLAN: r0=276(x1), r1=48(y1), r2=40(x2), r3=146(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=356(x), r6=129(y), r7=115(width), r8=57(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 276
-LDI r1, 48
-LDI r2, 40
-LDI r3, 146
-LDI r4, 0x0000FF
+; DESCRIPTION: Composite: Draws a black line from (343, 220) to (298, 86) then Sets a single blue pixel at (480, 200).
+; PLAN: r0=343(x1), r1=220(y1), r2=298(x2), r3=86(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=480(x), r6=200(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 343
+LDI r1, 220
+LDI r2, 298
+LDI r3, 86
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
-LDI r5, 356
-LDI r6, 129
-LDI r7, 115
-LDI r8, 57
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
+LDI r5, 480
+LDI r6, 200
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

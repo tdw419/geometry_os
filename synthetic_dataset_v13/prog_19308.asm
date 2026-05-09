@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (217, 152) with radius 18.
-; PLAN: r0=217(x), r1=152(y), r2=18(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 217
-LDI r1, 152
-LDI r2, 18
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow box of size 37x27 starting at (39, 212).
+; PLAN: r0=39(x), r1=212(y), r2=37(width), r3=27(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 39
+LDI r1, 212
+LDI r2, 37
+LDI r3, 27
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

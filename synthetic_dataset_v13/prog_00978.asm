@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Places a yellow line segment connecting (428, 87) to (123, 4).
+; PLAN: r0=428(x1), r1=87(y1), r2=123(x2), r3=4(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 428
+LDI r1, 87
+LDI r2, 123
+LDI r3, 4
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

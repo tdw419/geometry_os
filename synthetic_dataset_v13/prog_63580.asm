@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (134, 204) to (422, 125).
-; PLAN: r0=134(x1), r1=204(y1), r2=422(x2), r3=125(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 134
-LDI r1, 204
-LDI r2, 422
-LDI r3, 125
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (274, 98) with width 31 and height 78.
+; PLAN: r0=274(x), r1=98(y), r2=31(width), r3=78(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 274
+LDI r1, 98
+LDI r2, 31
+LDI r3, 78
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

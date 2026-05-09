@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 69x89 starting at (129, 67).
-; PLAN: r0=129(x), r1=67(y), r2=69(width), r3=89(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 67
-LDI r2, 69
-LDI r3, 89
-LDI r4, 0x0000FF
+; DESCRIPTION: Creates a cyan rectangular region at (15, 11) spanning 43 by 80 pixels.
+; PLAN: r0=15(x), r1=11(y), r2=43(width), r3=80(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 15
+LDI r1, 11
+LDI r2, 43
+LDI r3, 80
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

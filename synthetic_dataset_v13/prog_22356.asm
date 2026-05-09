@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a purple line between points (395, 100) and (81, 89).
-; PLAN: r0=395(x1), r1=100(y1), r2=81(x2), r3=89(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 395
-LDI r1, 100
-LDI r2, 81
-LDI r3, 89
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (144, 64) then Draws a orange line from (485, 150) to (294, 239).
+; PLAN: r0=144(x), r1=64(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=485(x1), r6=150(y1), r7=294(x2), r8=239(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 144
+LDI r1, 64
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 485
+LDI r6, 150
+LDI r7, 294
+LDI r8, 239
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

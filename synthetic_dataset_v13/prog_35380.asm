@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a purple disk with center (278, 76) and radius 37.
-; PLAN: r0=278(x), r1=76(y), r2=37(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 278
-LDI r1, 76
-LDI r2, 37
-LDI r3, 0xAA00FF
+; DESCRIPTION: Draws a green circle centered at (403, 149) with radius 67.
+; PLAN: r0=403(x), r1=149(y), r2=67(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 403
+LDI r1, 149
+LDI r2, 67
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

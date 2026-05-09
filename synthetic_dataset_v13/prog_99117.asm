@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (393, 112) with width 119 and height 53.
-; PLAN: r0=393(x), r1=112(y), r2=119(width), r3=53(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 112
-LDI r2, 119
-LDI r3, 53
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a purple box of size 33x33 starting at (45, 58).
+; PLAN: r0=45(x), r1=58(y), r2=33(width), r3=33(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 45
+LDI r1, 58
+LDI r2, 33
+LDI r3, 33
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 22x82 rectangle at position (112, 71).
-; PLAN: r0=112(x), r1=71(y), r2=22(width), r3=82(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 71
-LDI r2, 22
-LDI r3, 82
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (281, 248) to (451, 245).
+; PLAN: r0=281(x1), r1=248(y1), r2=451(x2), r3=245(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 281
+LDI r1, 248
+LDI r2, 451
+LDI r3, 245
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (136, 253) to (262, 112).
-; PLAN: r0=136(x1), r1=253(y1), r2=262(x2), r3=112(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 136
-LDI r1, 253
-LDI r2, 262
-LDI r3, 112
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 48 at center (115, 65).
+; PLAN: r0=115(x), r1=65(y), r2=48(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 115
+LDI r1, 65
+LDI r2, 48
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

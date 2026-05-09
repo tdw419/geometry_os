@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 88x39 rectangle at position (380, 183).
-; PLAN: r0=380(x), r1=183(y), r2=88(width), r3=39(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 380
-LDI r1, 183
-LDI r2, 88
-LDI r3, 39
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (443, 224) and (464, 252).
+; PLAN: r0=443(x1), r1=224(y1), r2=464(x2), r3=252(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 443
+LDI r1, 224
+LDI r2, 464
+LDI r3, 252
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

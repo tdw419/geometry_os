@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (257, 230) and (277, 177).
-; PLAN: r0=257(x1), r1=230(y1), r2=277(x2), r3=177(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 257
-LDI r1, 230
-LDI r2, 277
-LDI r3, 177
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow rectangular region at (310, 116) spanning 120 by 96 pixels.
+; PLAN: r0=310(x), r1=116(y), r2=120(width), r3=96(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 310
+LDI r1, 116
+LDI r2, 120
+LDI r3, 96
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

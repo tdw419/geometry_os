@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (386, 135) spanning 105 by 13 pixels.
-; PLAN: r0=386(x), r1=135(y), r2=105(width), r3=13(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 386
-LDI r1, 135
-LDI r2, 105
-LDI r3, 13
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (284, 199) to (312, 215).
+; PLAN: r0=284(x1), r1=199(y1), r2=312(x2), r3=215(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 284
+LDI r1, 199
+LDI r2, 312
+LDI r3, 215
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

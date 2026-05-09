@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan rectangle at (127, 41) with width 109 and height 22.
-; PLAN: r0=127(x), r1=41(y), r2=109(width), r3=22(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 127
-LDI r1, 41
-LDI r2, 109
-LDI r3, 22
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (448, 113) with radius 55.
+; PLAN: r0=448(x), r1=113(y), r2=55(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 448
+LDI r1, 113
+LDI r2, 55
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

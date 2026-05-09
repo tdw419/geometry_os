@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a blue circular shape at (230, 62) with radius 52.
-; PLAN: r0=230(x), r1=62(y), r2=52(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 230
-LDI r1, 62
-LDI r2, 52
-LDI r3, 0x0000FF
+; DESCRIPTION: Renders a yellow disk with center (347, 175) and radius 77.
+; PLAN: r0=347(x), r1=175(y), r2=77(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 347
+LDI r1, 175
+LDI r2, 77
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

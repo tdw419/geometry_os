@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 46x54 rectangle at position (315, 30).
-; PLAN: r0=315(x), r1=30(y), r2=46(width), r3=54(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 315
-LDI r1, 30
-LDI r2, 46
-LDI r3, 54
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (274, 58) with radius 57.
+; PLAN: r0=274(x), r1=58(y), r2=57(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 274
+LDI r1, 58
+LDI r2, 57
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

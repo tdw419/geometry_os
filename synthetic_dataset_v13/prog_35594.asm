@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (43, 182) and (74, 197).
-; PLAN: r0=43(x1), r1=182(y1), r2=74(x2), r3=197(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 43
-LDI r1, 182
-LDI r2, 74
-LDI r3, 197
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (311, 109) with radius 36.
+; PLAN: r0=311(x), r1=109(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 311
+LDI r1, 109
+LDI r2, 36
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

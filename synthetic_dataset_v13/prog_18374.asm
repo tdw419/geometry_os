@@ -1,9 +1,15 @@
-; DESCRIPTION: Places a cyan line segment connecting (250, 40) to (455, 215).
-; PLAN: r0=250(x1), r1=40(y1), r2=455(x2), r3=215(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 250
-LDI r1, 40
-LDI r2, 455
-LDI r3, 215
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a red rectangle at (402, 110) with width 78 and height 100 then Renders a cyan line between points (169, 179) and (253, 150).
+; PLAN: r0=402(x), r1=110(y), r2=78(width), r3=100(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=169(x1), r6=179(y1), r7=253(x2), r8=150(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 402
+LDI r1, 110
+LDI r2, 78
+LDI r3, 100
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 169
+LDI r6, 179
+LDI r7, 253
+LDI r8, 150
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
 HALT

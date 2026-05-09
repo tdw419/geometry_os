@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a yellow line from (497, 48) to (384, 39).
-; PLAN: r0=497(x1), r1=48(y1), r2=384(x2), r3=39(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 497
-LDI r1, 48
-LDI r2, 384
-LDI r3, 39
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single black pixel at (144, 222).
+; PLAN: r0=144(x), r1=222(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 144
+LDI r1, 222
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

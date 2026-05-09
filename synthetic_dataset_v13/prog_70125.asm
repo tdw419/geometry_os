@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Creates a orange rectangular region at (126, 191) spanning 53 by 29 pixels then Draws a purple line from (446, 111) to (457, 131).
-; PLAN: r0=126(x), r1=191(y), r2=53(width), r3=29(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=446(x1), r6=111(y1), r7=457(x2), r8=131(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 126
-LDI r1, 191
-LDI r2, 53
-LDI r3, 29
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
-LDI r5, 446
-LDI r6, 111
-LDI r7, 457
-LDI r8, 131
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a green disk with center (453, 194) and radius 34 then Places a green dot at position (81, 248) then Places a blue 31x83 rectangle at position (81, 156).
+; PLAN: r0=453(x), r1=194(y), r2=34(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=81(x), r6=248(y), r7=0x00FF00(color). Op: PSET r5, r6, r7 Next: r10=81(x), r11=156(y), r12=31(width), r13=83(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 453
+LDI r1, 194
+LDI r2, 34
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 81
+LDI r6, 248
+LDI r7, 0x00FF00
+PSET r5, r6, r7
+LDI r10, 81
+LDI r11, 156
+LDI r12, 31
+LDI r13, 83
+LDI r14, 0x0000FF
+RECTF r10, r11, r12, r13, r14
 HALT

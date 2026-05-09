@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (9, 75).
-; PLAN: r0=9(x), r1=75(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 9
-LDI r1, 75
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow box of size 63x57 starting at (130, 73).
+; PLAN: r0=130(x), r1=73(y), r2=63(width), r3=57(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 130
+LDI r1, 73
+LDI r2, 63
+LDI r3, 57
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

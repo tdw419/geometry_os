@@ -1,8 +1,15 @@
-; DESCRIPTION: Places a green circle of radius 14 at center (90, 87).
-; PLAN: r0=90(x), r1=87(y), r2=14(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 90
-LDI r1, 87
-LDI r2, 14
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a yellow 81x58 rectangle at position (104, 15) then Places a purple line segment connecting (309, 116) to (365, 248).
+; PLAN: r0=104(x), r1=15(y), r2=81(width), r3=58(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=309(x1), r6=116(y1), r7=365(x2), r8=248(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 104
+LDI r1, 15
+LDI r2, 81
+LDI r3, 58
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 309
+LDI r6, 116
+LDI r7, 365
+LDI r8, 248
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

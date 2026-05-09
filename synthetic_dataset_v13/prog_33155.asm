@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (425, 181) and radius 45.
-; PLAN: r0=425(x), r1=181(y), r2=45(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 425
-LDI r1, 181
-LDI r2, 45
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (196, 103) with width 37 and height 63.
+; PLAN: r0=196(x), r1=103(y), r2=37(width), r3=63(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 196
+LDI r1, 103
+LDI r2, 37
+LDI r3, 63
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

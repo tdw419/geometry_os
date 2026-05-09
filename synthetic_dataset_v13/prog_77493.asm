@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (358, 173) to (75, 20).
-; PLAN: r0=358(x1), r1=173(y1), r2=75(x2), r3=20(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 358
-LDI r1, 173
-LDI r2, 75
-LDI r3, 20
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange rectangle at (125, 170) with width 71 and height 77.
+; PLAN: r0=125(x), r1=170(y), r2=71(width), r3=77(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 125
+LDI r1, 170
+LDI r2, 71
+LDI r3, 77
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

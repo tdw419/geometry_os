@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a green circle centered at (18, 215) with radius 10.
-; PLAN: r0=18(x), r1=215(y), r2=10(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 18
-LDI r1, 215
-LDI r2, 10
-LDI r3, 0x00FF00
+; DESCRIPTION: Creates a black circular shape at (275, 239) with radius 12.
+; PLAN: r0=275(x), r1=239(y), r2=12(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 275
+LDI r1, 239
+LDI r2, 12
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a purple dot at position (476, 197).
-; PLAN: r0=476(x), r1=197(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 476
-LDI r1, 197
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a cyan circular shape at (238, 41) with radius 35.
+; PLAN: r0=238(x), r1=41(y), r2=35(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 238
+LDI r1, 41
+LDI r2, 35
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

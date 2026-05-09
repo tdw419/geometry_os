@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 44x36 rectangle at position (159, 166).
-; PLAN: r0=159(x), r1=166(y), r2=44(width), r3=36(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 159
-LDI r1, 166
-LDI r2, 44
-LDI r3, 36
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (425, 51) to (184, 47).
+; PLAN: r0=425(x1), r1=51(y1), r2=184(x2), r3=47(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 51
+LDI r2, 184
+LDI r3, 47
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a cyan line from (49, 68) to (372, 184).
-; PLAN: r0=49(x1), r1=68(y1), r2=372(x2), r3=184(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 68
-LDI r2, 372
-LDI r3, 184
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single blue pixel at (402, 125) then Places a orange circle of radius 75 at center (155, 79).
+; PLAN: r0=402(x), r1=125(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=155(x), r6=79(y), r7=75(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 402
+LDI r1, 125
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 155
+LDI r6, 79
+LDI r7, 75
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

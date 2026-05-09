@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a red dot at position (105, 218) then Draws a red circle centered at (100, 125) with radius 61.
-; PLAN: r0=105(x), r1=218(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=100(x), r6=125(y), r7=61(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 105
-LDI r1, 218
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 100
-LDI r6, 125
-LDI r7, 61
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a orange line segment connecting (226, 45) to (13, 151).
+; PLAN: r0=226(x1), r1=45(y1), r2=13(x2), r3=151(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 45
+LDI r2, 13
+LDI r3, 151
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

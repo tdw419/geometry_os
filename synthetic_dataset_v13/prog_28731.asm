@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (445, 225) to (499, 252).
-; PLAN: r0=445(x1), r1=225(y1), r2=499(x2), r3=252(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 445
-LDI r1, 225
-LDI r2, 499
-LDI r3, 252
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a orange line segment connecting (435, 184) to (169, 95).
+; PLAN: r0=435(x1), r1=184(y1), r2=169(x2), r3=95(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 435
+LDI r1, 184
+LDI r2, 169
+LDI r3, 95
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

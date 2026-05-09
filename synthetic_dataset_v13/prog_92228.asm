@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 94x115 rectangle at position (191, 126).
-; PLAN: r0=191(x), r1=126(y), r2=94(width), r3=115(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 191
-LDI r1, 126
-LDI r2, 94
-LDI r3, 115
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (282, 114) and radius 43.
+; PLAN: r0=282(x), r1=114(y), r2=43(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 282
+LDI r1, 114
+LDI r2, 43
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

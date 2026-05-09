@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Draws a red rectangle at (120, 68) with width 88 and height 106 then Places a black dot at position (364, 221) then Draws a black circle centered at (339, 129) with radius 30.
-; PLAN: r0=120(x), r1=68(y), r2=88(width), r3=106(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=364(x), r6=221(y), r7=0x000000(color). Op: PSET r5, r6, r7 Next: r10=339(x), r11=129(y), r12=30(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 120
-LDI r1, 68
-LDI r2, 88
-LDI r3, 106
+; DESCRIPTION: Composite: Renders a red line between points (66, 158) and (97, 60) then Creates a red circular shape at (153, 67) with radius 67 then Renders a orange box of size 94x33 starting at (176, 183).
+; PLAN: r0=66(x1), r1=158(y1), r2=97(x2), r3=60(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=153(x), r6=67(y), r7=67(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=176(x), r11=183(y), r12=94(width), r13=33(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 66
+LDI r1, 158
+LDI r2, 97
+LDI r3, 60
 LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 364
-LDI r6, 221
-LDI r7, 0x000000
-PSET r5, r6, r7
-LDI r10, 339
-LDI r11, 129
-LDI r12, 30
-LDI r13, 0x000000
-CIRCLE r10, r11, r12, r13
+LINE r0, r1, r2, r3, r4
+LDI r5, 153
+LDI r6, 67
+LDI r7, 67
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
+LDI r10, 176
+LDI r11, 183
+LDI r12, 94
+LDI r13, 33
+LDI r14, 0xFF8800
+RECTF r10, r11, r12, r13, r14
 HALT

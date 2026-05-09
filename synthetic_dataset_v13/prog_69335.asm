@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a yellow rectangular region at (163, 108) spanning 21 by 87 pixels.
-; PLAN: r0=163(x), r1=108(y), r2=21(width), r3=87(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 163
-LDI r1, 108
-LDI r2, 21
-LDI r3, 87
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a magenta rectangle at (245, 60) with width 19 and height 45.
+; PLAN: r0=245(x), r1=60(y), r2=19(width), r3=45(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 245
+LDI r1, 60
+LDI r2, 19
+LDI r3, 45
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (107, 88) with radius 63.
-; PLAN: r0=107(x), r1=88(y), r2=63(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 107
-LDI r1, 88
-LDI r2, 63
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white box of size 62x101 starting at (282, 146).
+; PLAN: r0=282(x), r1=146(y), r2=62(width), r3=101(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 282
+LDI r1, 146
+LDI r2, 62
+LDI r3, 101
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

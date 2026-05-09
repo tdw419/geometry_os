@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a orange rectangular region at (417, 127) spanning 68 by 115 pixels.
-; PLAN: r0=417(x), r1=127(y), r2=68(width), r3=115(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 417
-LDI r1, 127
-LDI r2, 68
-LDI r3, 115
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 59 at center (276, 90).
+; PLAN: r0=276(x), r1=90(y), r2=59(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 276
+LDI r1, 90
+LDI r2, 59
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

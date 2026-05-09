@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 11x114 rectangle at position (154, 107).
-; PLAN: r0=154(x), r1=107(y), r2=11(width), r3=114(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 154
-LDI r1, 107
-LDI r2, 11
-LDI r3, 114
-LDI r4, 0x000000
+; DESCRIPTION: Creates a blue rectangular region at (145, 120) spanning 31 by 101 pixels.
+; PLAN: r0=145(x), r1=120(y), r2=31(width), r3=101(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 145
+LDI r1, 120
+LDI r2, 31
+LDI r3, 101
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

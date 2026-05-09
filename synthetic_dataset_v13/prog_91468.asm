@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a purple circle of radius 59 at center (298, 70).
-; PLAN: r0=298(x), r1=70(y), r2=59(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 298
-LDI r1, 70
-LDI r2, 59
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single orange pixel at (165, 32).
+; PLAN: r0=165(x), r1=32(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 165
+LDI r1, 32
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

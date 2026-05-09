@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (416, 213) then Renders a green line between points (282, 235) and (96, 9).
-; PLAN: r0=416(x), r1=213(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=282(x1), r6=235(y1), r7=96(x2), r8=9(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 416
-LDI r1, 213
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 282
-LDI r6, 235
-LDI r7, 96
-LDI r8, 9
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a white rectangular region at (337, 5) spanning 60 by 74 pixels.
+; PLAN: r0=337(x), r1=5(y), r2=60(width), r3=74(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 337
+LDI r1, 5
+LDI r2, 60
+LDI r3, 74
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

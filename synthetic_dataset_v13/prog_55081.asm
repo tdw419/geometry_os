@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (131, 97) and radius 56.
-; PLAN: r0=131(x), r1=97(y), r2=56(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 131
-LDI r1, 97
-LDI r2, 56
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white 62x29 rectangle at position (75, 70).
+; PLAN: r0=75(x), r1=70(y), r2=62(width), r3=29(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 70
+LDI r2, 62
+LDI r3, 29
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

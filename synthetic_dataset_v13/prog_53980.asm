@@ -1,19 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta 62x78 rectangle at position (278, 149) then Renders a green line between points (165, 131) and (307, 172) then Places a green dot at position (150, 188).
-; PLAN: r0=278(x), r1=149(y), r2=62(width), r3=78(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=165(x1), r6=131(y1), r7=307(x2), r8=172(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=150(x), r11=188(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
-LDI r0, 278
-LDI r1, 149
-LDI r2, 62
-LDI r3, 78
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 165
-LDI r6, 131
-LDI r7, 307
-LDI r8, 172
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 150
-LDI r11, 188
-LDI r12, 0x00FF00
-PSET r10, r11, r12
+; DESCRIPTION: Renders a black line between points (243, 238) and (330, 222).
+; PLAN: r0=243(x1), r1=238(y1), r2=330(x2), r3=222(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 243
+LDI r1, 238
+LDI r2, 330
+LDI r3, 222
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

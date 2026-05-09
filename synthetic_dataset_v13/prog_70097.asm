@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (95, 109) then Draws a purple rectangle at (143, 97) with width 35 and height 50.
-; PLAN: r0=95(x), r1=109(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=143(x), r6=97(y), r7=35(width), r8=50(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 95
-LDI r1, 109
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 143
-LDI r6, 97
-LDI r7, 35
-LDI r8, 50
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a orange 50x86 rectangle at position (325, 57).
+; PLAN: r0=325(x), r1=57(y), r2=50(width), r3=86(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 325
+LDI r1, 57
+LDI r2, 50
+LDI r3, 86
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

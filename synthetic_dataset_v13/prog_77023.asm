@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (368, 95) with radius 69.
-; PLAN: r0=368(x), r1=95(y), r2=69(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 368
-LDI r1, 95
-LDI r2, 69
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 82x96 rectangle at position (192, 144).
+; PLAN: r0=192(x), r1=144(y), r2=82(width), r3=96(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 192
+LDI r1, 144
+LDI r2, 82
+LDI r3, 96
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (221, 71) with radius 38.
-; PLAN: r0=221(x), r1=71(y), r2=38(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 221
-LDI r1, 71
-LDI r2, 38
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red line between points (94, 221) and (172, 30).
+; PLAN: r0=94(x1), r1=221(y1), r2=172(x2), r3=30(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 94
+LDI r1, 221
+LDI r2, 172
+LDI r3, 30
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

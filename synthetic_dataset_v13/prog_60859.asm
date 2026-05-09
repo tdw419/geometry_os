@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a magenta line from (88, 250) to (334, 141).
-; PLAN: r0=88(x1), r1=250(y1), r2=334(x2), r3=141(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 250
-LDI r2, 334
-LDI r3, 141
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (497, 129) then Renders a purple disk with center (249, 70) and radius 51.
+; PLAN: r0=497(x), r1=129(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=249(x), r6=70(y), r7=51(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 497
+LDI r1, 129
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 249
+LDI r6, 70
+LDI r7, 51
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

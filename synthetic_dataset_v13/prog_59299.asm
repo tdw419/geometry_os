@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (231, 110) with radius 15.
-; PLAN: r0=231(x), r1=110(y), r2=15(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 231
-LDI r1, 110
-LDI r2, 15
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow line segment connecting (353, 226) to (3, 184).
+; PLAN: r0=353(x1), r1=226(y1), r2=3(x2), r3=184(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 226
+LDI r2, 3
+LDI r3, 184
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

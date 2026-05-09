@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a white circle centered at (450, 87) with radius 58.
-; PLAN: r0=450(x), r1=87(y), r2=58(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 450
-LDI r1, 87
-LDI r2, 58
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

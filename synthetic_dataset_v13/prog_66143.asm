@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a blue dot at position (370, 114).
-; PLAN: r0=370(x), r1=114(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 370
-LDI r1, 114
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a black circular shape at (412, 164) with radius 37.
+; PLAN: r0=412(x), r1=164(y), r2=37(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 412
+LDI r1, 164
+LDI r2, 37
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

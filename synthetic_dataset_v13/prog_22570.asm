@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 88x10 rectangle at position (417, 198).
-; PLAN: r0=417(x), r1=198(y), r2=88(width), r3=10(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 417
-LDI r1, 198
-LDI r2, 88
-LDI r3, 10
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (373, 108) with radius 60.
+; PLAN: r0=373(x), r1=108(y), r2=60(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 373
+LDI r1, 108
+LDI r2, 60
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (510, 181) to (5, 102).
-; PLAN: r0=510(x1), r1=181(y1), r2=5(x2), r3=102(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 510
-LDI r1, 181
-LDI r2, 5
-LDI r3, 102
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a green line segment connecting (141, 151) to (421, 181).
+; PLAN: r0=141(x1), r1=151(y1), r2=421(x2), r3=181(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 141
+LDI r1, 151
+LDI r2, 421
+LDI r3, 181
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

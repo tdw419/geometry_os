@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue rectangle at (391, 31) with width 99 and height 84.
-; PLAN: r0=391(x), r1=31(y), r2=99(width), r3=84(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 391
-LDI r1, 31
-LDI r2, 99
-LDI r3, 84
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (260, 164) with radius 45.
+; PLAN: r0=260(x), r1=164(y), r2=45(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 260
+LDI r1, 164
+LDI r2, 45
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

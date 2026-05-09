@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a black line between points (492, 250) and (330, 131).
-; PLAN: r0=492(x1), r1=250(y1), r2=330(x2), r3=131(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 492
-LDI r1, 250
-LDI r2, 330
-LDI r3, 131
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow circle of radius 29 at center (224, 141) then Renders a yellow line between points (469, 229) and (187, 8).
+; PLAN: r0=224(x), r1=141(y), r2=29(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=469(x1), r6=229(y1), r7=187(x2), r8=8(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 224
+LDI r1, 141
+LDI r2, 29
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 469
+LDI r6, 229
+LDI r7, 187
+LDI r8, 8
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

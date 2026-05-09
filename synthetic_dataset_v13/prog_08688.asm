@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (442, 85) spanning 49 by 84 pixels.
-; PLAN: r0=442(x), r1=85(y), r2=49(width), r3=84(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 442
-LDI r1, 85
-LDI r2, 49
-LDI r3, 84
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (27, 125) and (188, 250).
+; PLAN: r0=27(x1), r1=125(y1), r2=188(x2), r3=250(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 27
+LDI r1, 125
+LDI r2, 188
+LDI r3, 250
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

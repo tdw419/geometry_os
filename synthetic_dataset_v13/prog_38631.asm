@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a black line from (500, 190) to (474, 150).
-; PLAN: r0=500(x1), r1=190(y1), r2=474(x2), r3=150(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 500
-LDI r1, 190
-LDI r2, 474
-LDI r3, 150
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (4, 164).
+; PLAN: r0=4(x), r1=164(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 4
+LDI r1, 164
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

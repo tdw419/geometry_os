@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 35 at center (149, 51).
-; PLAN: r0=149(x), r1=51(y), r2=35(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 149
-LDI r1, 51
-LDI r2, 35
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 31x18 rectangle at position (327, 120).
+; PLAN: r0=327(x), r1=120(y), r2=31(width), r3=18(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 327
+LDI r1, 120
+LDI r2, 31
+LDI r3, 18
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

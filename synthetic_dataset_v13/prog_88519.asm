@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a purple circle centered at (339, 160) with radius 78.
-; PLAN: r0=339(x), r1=160(y), r2=78(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 339
-LDI r1, 160
-LDI r2, 78
-LDI r3, 0xAA00FF
+; DESCRIPTION: Places a red circle of radius 30 at center (149, 115).
+; PLAN: r0=149(x), r1=115(y), r2=30(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 149
+LDI r1, 115
+LDI r2, 30
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

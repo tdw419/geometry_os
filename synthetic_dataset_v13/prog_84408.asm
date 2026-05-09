@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (98, 165) to (142, 222).
-; PLAN: r0=98(x1), r1=165(y1), r2=142(x2), r3=222(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 98
-LDI r1, 165
-LDI r2, 142
-LDI r3, 222
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a black line segment connecting (480, 6) to (478, 150).
+; PLAN: r0=480(x1), r1=6(y1), r2=478(x2), r3=150(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 480
+LDI r1, 6
+LDI r2, 478
+LDI r3, 150
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

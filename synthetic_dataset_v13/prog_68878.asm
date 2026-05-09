@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (183, 43) to (116, 237).
-; PLAN: r0=183(x1), r1=43(y1), r2=116(x2), r3=237(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 183
-LDI r1, 43
-LDI r2, 116
-LDI r3, 237
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (244, 100) with radius 68.
+; PLAN: r0=244(x), r1=100(y), r2=68(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 244
+LDI r1, 100
+LDI r2, 68
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

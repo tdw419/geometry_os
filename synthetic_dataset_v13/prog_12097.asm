@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Draws a purple rectangle at (275, 76) with width 115 and height 87 then Places a purple dot at position (120, 23).
-; PLAN: r0=275(x), r1=76(y), r2=115(width), r3=87(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=120(x), r6=23(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 275
-LDI r1, 76
-LDI r2, 115
-LDI r3, 87
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 120
-LDI r6, 23
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Renders a blue line between points (392, 111) and (276, 31) then Places a yellow circle of radius 66 at center (369, 190) then Sets a single white pixel at (175, 142).
+; PLAN: r0=392(x1), r1=111(y1), r2=276(x2), r3=31(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=369(x), r6=190(y), r7=66(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=175(x), r11=142(y), r12=0xFFFFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 392
+LDI r1, 111
+LDI r2, 276
+LDI r3, 31
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 369
+LDI r6, 190
+LDI r7, 66
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
+LDI r10, 175
+LDI r11, 142
+LDI r12, 0xFFFFFF
+PSET r10, r11, r12
 HALT

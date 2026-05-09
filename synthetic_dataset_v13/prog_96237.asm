@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (71, 207) with radius 47.
-; PLAN: r0=71(x), r1=207(y), r2=47(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 71
-LDI r1, 207
-LDI r2, 47
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (418, 181) and (166, 106).
+; PLAN: r0=418(x1), r1=181(y1), r2=166(x2), r3=106(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 418
+LDI r1, 181
+LDI r2, 166
+LDI r3, 106
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a cyan disk with center (324, 75) and radius 42.
-; PLAN: r0=324(x), r1=75(y), r2=42(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 324
-LDI r1, 75
-LDI r2, 42
-LDI r3, 0x00FFFF
+; DESCRIPTION: Draws a green circle centered at (160, 110) with radius 17.
+; PLAN: r0=160(x), r1=110(y), r2=17(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 160
+LDI r1, 110
+LDI r2, 17
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

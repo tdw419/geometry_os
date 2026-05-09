@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (305, 176).
-; PLAN: r0=305(x), r1=176(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 305
-LDI r1, 176
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a magenta box of size 55x44 starting at (35, 140).
+; PLAN: r0=35(x), r1=140(y), r2=55(width), r3=44(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 35
+LDI r1, 140
+LDI r2, 55
+LDI r3, 44
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

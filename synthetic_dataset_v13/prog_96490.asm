@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a black rectangular region at (401, 206) spanning 90 by 27 pixels.
-; PLAN: r0=401(x), r1=206(y), r2=90(width), r3=27(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 401
-LDI r1, 206
-LDI r2, 90
-LDI r3, 27
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange circle of radius 60 at center (172, 188).
+; PLAN: r0=172(x), r1=188(y), r2=60(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 172
+LDI r1, 188
+LDI r2, 60
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

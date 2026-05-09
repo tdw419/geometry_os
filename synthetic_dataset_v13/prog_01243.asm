@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (371, 212).
-; PLAN: r0=371(x), r1=212(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 371
-LDI r1, 212
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a blue box of size 41x19 starting at (403, 197).
+; PLAN: r0=403(x), r1=197(y), r2=41(width), r3=19(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 403
+LDI r1, 197
+LDI r2, 41
+LDI r3, 19
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

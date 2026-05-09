@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Renders a cyan line between points (19, 212) and (333, 106) then Places a green dot at position (142, 217).
-; PLAN: r0=19(x1), r1=212(y1), r2=333(x2), r3=106(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=142(x), r6=217(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 19
-LDI r1, 212
-LDI r2, 333
-LDI r3, 106
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 142
-LDI r6, 217
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single yellow pixel at (447, 64) then Places a white 106x97 rectangle at position (285, 109).
+; PLAN: r0=447(x), r1=64(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=285(x), r6=109(y), r7=106(width), r8=97(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 447
+LDI r1, 64
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 285
+LDI r6, 109
+LDI r7, 106
+LDI r8, 97
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

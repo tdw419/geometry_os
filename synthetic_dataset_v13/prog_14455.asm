@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (474, 124) to (398, 146).
-; PLAN: r0=474(x1), r1=124(y1), r2=398(x2), r3=146(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 474
-LDI r1, 124
-LDI r2, 398
-LDI r3, 146
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a orange line segment connecting (270, 86) to (229, 183).
+; PLAN: r0=270(x1), r1=86(y1), r2=229(x2), r3=183(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 270
+LDI r1, 86
+LDI r2, 229
+LDI r3, 183
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

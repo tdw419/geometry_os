@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (337, 136) then Places a cyan 86x81 rectangle at position (404, 35).
-; PLAN: r0=337(x), r1=136(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=404(x), r6=35(y), r7=86(width), r8=81(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 337
-LDI r1, 136
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 404
-LDI r6, 35
-LDI r7, 86
-LDI r8, 81
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a black line between points (470, 72) and (146, 131).
+; PLAN: r0=470(x1), r1=72(y1), r2=146(x2), r3=131(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 470
+LDI r1, 72
+LDI r2, 146
+LDI r3, 131
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

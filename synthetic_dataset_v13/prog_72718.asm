@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a cyan rectangular region at (117, 63) spanning 66 by 68 pixels.
-; PLAN: r0=117(x), r1=63(y), r2=66(width), r3=68(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 117
-LDI r1, 63
-LDI r2, 66
-LDI r3, 68
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (335, 69).
+; PLAN: r0=335(x), r1=69(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 335
+LDI r1, 69
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single cyan pixel at (379, 105).
-; PLAN: r0=379(x), r1=105(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 379
-LDI r1, 105
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

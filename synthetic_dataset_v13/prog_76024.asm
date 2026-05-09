@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a blue line between points (283, 38) and (307, 179).
-; PLAN: r0=283(x1), r1=38(y1), r2=307(x2), r3=179(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 283
-LDI r1, 38
-LDI r2, 307
-LDI r3, 179
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a blue circular shape at (289, 81) with radius 17 then Sets a single magenta pixel at (161, 133).
+; PLAN: r0=289(x), r1=81(y), r2=17(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=161(x), r6=133(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 289
+LDI r1, 81
+LDI r2, 17
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 161
+LDI r6, 133
+LDI r7, 0xFF00FF
+PSET r5, r6, r7
 HALT

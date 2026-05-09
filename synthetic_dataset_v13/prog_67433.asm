@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a green dot at position (495, 106).
-; PLAN: r0=495(x), r1=106(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 495
-LDI r1, 106
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a red disk with center (89, 66) and radius 41.
+; PLAN: r0=89(x), r1=66(y), r2=41(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 89
+LDI r1, 66
+LDI r2, 41
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

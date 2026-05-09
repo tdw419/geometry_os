@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
-FILL r0
+; DESCRIPTION: Sets a single purple pixel at (301, 19).
+; PLAN: r0=301(x), r1=19(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 301
+LDI r1, 19
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

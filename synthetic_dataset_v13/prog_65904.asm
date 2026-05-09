@@ -1,5 +1,7 @@
-; DESCRIPTION: Fills the entire screen with solid white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Sets a single yellow pixel at (76, 189).
+; PLAN: r0=76(x), r1=189(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 76
+LDI r1, 189
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow 77x20 rectangle at position (425, 5).
-; PLAN: r0=425(x), r1=5(y), r2=77(width), r3=20(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 425
-LDI r1, 5
-LDI r2, 77
-LDI r3, 20
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (317, 248).
+; PLAN: r0=317(x), r1=248(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 317
+LDI r1, 248
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

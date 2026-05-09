@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (288, 159) with radius 56.
-; PLAN: r0=288(x), r1=159(y), r2=56(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 288
-LDI r1, 159
-LDI r2, 56
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue line segment connecting (201, 211) to (484, 100).
+; PLAN: r0=201(x1), r1=211(y1), r2=484(x2), r3=100(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 201
+LDI r1, 211
+LDI r2, 484
+LDI r3, 100
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a magenta disk with center (457, 48) and radius 33.
-; PLAN: r0=457(x), r1=48(y), r2=33(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 457
-LDI r1, 48
-LDI r2, 33
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (252, 110) to (249, 175).
+; PLAN: r0=252(x1), r1=110(y1), r2=249(x2), r3=175(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 252
+LDI r1, 110
+LDI r2, 249
+LDI r3, 175
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

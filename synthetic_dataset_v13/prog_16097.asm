@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a red dot at position (498, 69).
-; PLAN: r0=498(x), r1=69(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 498
-LDI r1, 69
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple line between points (188, 135) and (480, 62).
+; PLAN: r0=188(x1), r1=135(y1), r2=480(x2), r3=62(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 188
+LDI r1, 135
+LDI r2, 480
+LDI r3, 62
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

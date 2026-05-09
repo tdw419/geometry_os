@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a red circle of radius 55 at center (313, 168).
-; PLAN: r0=313(x), r1=168(y), r2=55(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 313
-LDI r1, 168
-LDI r2, 55
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange dot at position (328, 97).
+; PLAN: r0=328(x), r1=97(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 328
+LDI r1, 97
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

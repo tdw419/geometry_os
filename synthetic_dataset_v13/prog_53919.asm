@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Draws a white line from (251, 40) to (445, 252).
+; PLAN: r0=251(x1), r1=40(y1), r2=445(x2), r3=252(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 251
+LDI r1, 40
+LDI r2, 445
+LDI r3, 252
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

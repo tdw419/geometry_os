@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 84x92 starting at (372, 138).
-; PLAN: r0=372(x), r1=138(y), r2=84(width), r3=92(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 372
-LDI r1, 138
-LDI r2, 84
-LDI r3, 92
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (209, 86) and (40, 2).
+; PLAN: r0=209(x1), r1=86(y1), r2=40(x2), r3=2(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 209
+LDI r1, 86
+LDI r2, 40
+LDI r3, 2
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

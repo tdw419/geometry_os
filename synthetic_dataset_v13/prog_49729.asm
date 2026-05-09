@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a white dot at position (375, 79) then Places a cyan line segment connecting (319, 119) to (358, 177).
-; PLAN: r0=375(x), r1=79(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=319(x1), r6=119(y1), r7=358(x2), r8=177(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 375
-LDI r1, 79
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 319
-LDI r6, 119
-LDI r7, 358
-LDI r8, 177
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a orange line between points (68, 8) and (259, 143).
+; PLAN: r0=68(x1), r1=8(y1), r2=259(x2), r3=143(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 68
+LDI r1, 8
+LDI r2, 259
+LDI r3, 143
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

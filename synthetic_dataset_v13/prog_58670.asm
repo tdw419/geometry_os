@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a orange dot at position (25, 33).
-; PLAN: r0=25(x), r1=33(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 25
-LDI r1, 33
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Creates a purple circular shape at (69, 146) with radius 35.
+; PLAN: r0=69(x), r1=146(y), r2=35(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 69
+LDI r1, 146
+LDI r2, 35
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a blue box of size 103x81 starting at (76, 45).
-; PLAN: r0=76(x), r1=45(y), r2=103(width), r3=81(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 76
-LDI r1, 45
-LDI r2, 103
-LDI r3, 81
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a white circle of radius 71 at center (86, 170) then Places a white dot at position (164, 162).
+; PLAN: r0=86(x), r1=170(y), r2=71(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=164(x), r6=162(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 86
+LDI r1, 170
+LDI r2, 71
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 164
+LDI r6, 162
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

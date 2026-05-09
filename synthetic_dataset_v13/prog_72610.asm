@@ -1,8 +1,13 @@
-; DESCRIPTION: Loads 18 into r1 and decrements it in a loop until zero.
-; PLAN: r1=18(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 18
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Places a cyan dot at position (291, 241) then Creates a magenta rectangular region at (12, 48) spanning 118 by 105 pixels.
+; PLAN: r0=291(x), r1=241(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=12(x), r6=48(y), r7=118(width), r8=105(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 291
+LDI r1, 241
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 12
+LDI r6, 48
+LDI r7, 118
+LDI r8, 105
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

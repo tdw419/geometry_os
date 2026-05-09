@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (452, 233) to (379, 84).
-; PLAN: r0=452(x1), r1=233(y1), r2=379(x2), r3=84(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 452
-LDI r1, 233
-LDI r2, 379
-LDI r3, 84
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (187, 186) with radius 44.
+; PLAN: r0=187(x), r1=186(y), r2=44(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 187
+LDI r1, 186
+LDI r2, 44
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

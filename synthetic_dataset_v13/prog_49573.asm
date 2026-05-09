@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 44x67 rectangle at position (414, 132).
-; PLAN: r0=414(x), r1=132(y), r2=44(width), r3=67(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 414
-LDI r1, 132
-LDI r2, 44
-LDI r3, 67
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (206, 192) with radius 63.
+; PLAN: r0=206(x), r1=192(y), r2=63(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 206
+LDI r1, 192
+LDI r2, 63
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

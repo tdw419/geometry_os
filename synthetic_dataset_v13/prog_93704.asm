@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (9, 65) spanning 104 by 99 pixels.
-; PLAN: r0=9(x), r1=65(y), r2=104(width), r3=99(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 9
-LDI r1, 65
-LDI r2, 104
-LDI r3, 99
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a green rectangular region at (315, 137) spanning 18 by 96 pixels.
+; PLAN: r0=315(x), r1=137(y), r2=18(width), r3=96(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 315
+LDI r1, 137
+LDI r2, 18
+LDI r3, 96
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

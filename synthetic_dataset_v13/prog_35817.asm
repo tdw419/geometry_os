@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (463, 248) to (162, 206).
-; PLAN: r0=463(x1), r1=248(y1), r2=162(x2), r3=206(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 463
-LDI r1, 248
-LDI r2, 162
-LDI r3, 206
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (392, 102) and radius 75.
+; PLAN: r0=392(x), r1=102(y), r2=75(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 392
+LDI r1, 102
+LDI r2, 75
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

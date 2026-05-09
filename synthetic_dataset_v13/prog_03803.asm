@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a magenta circular shape at (336, 72) with radius 68.
-; PLAN: r0=336(x), r1=72(y), r2=68(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 336
-LDI r1, 72
-LDI r2, 68
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange dot at position (78, 129).
+; PLAN: r0=78(x), r1=129(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 78
+LDI r1, 129
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

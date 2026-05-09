@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Renders a green box of size 111x59 starting at (114, 167).
+; PLAN: r0=114(x), r1=167(y), r2=111(width), r3=59(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 114
+LDI r1, 167
+LDI r2, 111
+LDI r3, 59
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

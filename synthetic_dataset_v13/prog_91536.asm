@@ -1,8 +1,7 @@
-; DESCRIPTION: Loads 17 into r1 and decrements it in a loop until zero.
-; PLAN: r1=17(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 17
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a orange dot at position (489, 181).
+; PLAN: r0=489(x), r1=181(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 489
+LDI r1, 181
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

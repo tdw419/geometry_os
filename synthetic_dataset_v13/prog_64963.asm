@@ -1,9 +1,18 @@
-; DESCRIPTION: Places a yellow line segment connecting (14, 72) to (161, 85).
-; PLAN: r0=14(x1), r1=72(y1), r2=161(x2), r3=85(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 14
-LDI r1, 72
-LDI r2, 161
-LDI r3, 85
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single cyan pixel at (111, 102) then Creates a orange circular shape at (304, 203) with radius 47 then Renders a red line between points (449, 91) and (109, 166).
+; PLAN: r0=111(x), r1=102(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=304(x), r6=203(y), r7=47(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=449(x1), r11=91(y1), r12=109(x2), r13=166(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 111
+LDI r1, 102
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 304
+LDI r6, 203
+LDI r7, 47
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
+LDI r10, 449
+LDI r11, 91
+LDI r12, 109
+LDI r13, 166
+LDI r14, 0xFF0000
+LINE r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 116x59 rectangle at position (217, 81).
-; PLAN: r0=217(x), r1=81(y), r2=116(width), r3=59(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 217
-LDI r1, 81
-LDI r2, 116
-LDI r3, 59
-LDI r4, 0xFFFF00
+; DESCRIPTION: Creates a magenta rectangular region at (247, 22) spanning 91 by 76 pixels.
+; PLAN: r0=247(x), r1=22(y), r2=91(width), r3=76(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 22
+LDI r2, 91
+LDI r3, 76
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

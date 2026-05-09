@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (38, 38) spanning 98 by 99 pixels.
-; PLAN: r0=38(x), r1=38(y), r2=98(width), r3=99(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 38
-LDI r1, 38
-LDI r2, 98
-LDI r3, 99
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (10, 78) to (5, 134).
+; PLAN: r0=10(x1), r1=78(y1), r2=5(x2), r3=134(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 10
+LDI r1, 78
+LDI r2, 5
+LDI r3, 134
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

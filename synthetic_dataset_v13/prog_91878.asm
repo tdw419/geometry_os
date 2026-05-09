@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a red circle of radius 10 at center (141, 102).
-; PLAN: r0=141(x), r1=102(y), r2=10(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 141
-LDI r1, 102
-LDI r2, 10
-LDI r3, 0xFF0000
+; DESCRIPTION: Draws a orange circle centered at (411, 179) with radius 58.
+; PLAN: r0=411(x), r1=179(y), r2=58(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 411
+LDI r1, 179
+LDI r2, 58
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

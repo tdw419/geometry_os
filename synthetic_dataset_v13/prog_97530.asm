@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a orange line from (65, 36) to (509, 134).
-; PLAN: r0=65(x1), r1=36(y1), r2=509(x2), r3=134(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 65
-LDI r1, 36
-LDI r2, 509
-LDI r3, 134
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow dot at position (93, 138) then Renders a blue box of size 33x12 starting at (296, 173).
+; PLAN: r0=93(x), r1=138(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=296(x), r6=173(y), r7=33(width), r8=12(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 93
+LDI r1, 138
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 296
+LDI r6, 173
+LDI r7, 33
+LDI r8, 12
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a white line from (79, 27) to (63, 42).
-; PLAN: r0=79(x1), r1=27(y1), r2=63(x2), r3=42(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 79
-LDI r1, 27
-LDI r2, 63
-LDI r3, 42
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (321, 255).
+; PLAN: r0=321(x), r1=255(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 321
+LDI r1, 255
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a cyan box of size 23x98 starting at (6, 120).
-; PLAN: r0=6(x), r1=120(y), r2=23(width), r3=98(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 6
-LDI r1, 120
-LDI r2, 23
-LDI r3, 98
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a cyan disk with center (292, 158) and radius 55 then Sets a single green pixel at (499, 73).
+; PLAN: r0=292(x), r1=158(y), r2=55(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=499(x), r6=73(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 292
+LDI r1, 158
+LDI r2, 55
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 499
+LDI r6, 73
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

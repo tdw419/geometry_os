@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 57x10 rectangle at position (394, 60).
-; PLAN: r0=394(x), r1=60(y), r2=57(width), r3=10(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 394
-LDI r1, 60
-LDI r2, 57
-LDI r3, 10
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple circle of radius 34 at center (426, 104).
+; PLAN: r0=426(x), r1=104(y), r2=34(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 426
+LDI r1, 104
+LDI r2, 34
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

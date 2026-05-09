@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 18x36 rectangle at position (331, 183).
-; PLAN: r0=331(x), r1=183(y), r2=18(width), r3=36(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 331
-LDI r1, 183
-LDI r2, 18
-LDI r3, 36
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (303, 173) and (37, 32).
+; PLAN: r0=303(x1), r1=173(y1), r2=37(x2), r3=32(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 303
+LDI r1, 173
+LDI r2, 37
+LDI r3, 32
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

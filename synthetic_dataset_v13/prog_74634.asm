@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 63x77 rectangle at position (177, 59).
-; PLAN: r0=177(x), r1=59(y), r2=63(width), r3=77(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 59
-LDI r2, 63
-LDI r3, 77
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange line from (368, 8) to (122, 235).
+; PLAN: r0=368(x1), r1=8(y1), r2=122(x2), r3=235(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 368
+LDI r1, 8
+LDI r2, 122
+LDI r3, 235
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

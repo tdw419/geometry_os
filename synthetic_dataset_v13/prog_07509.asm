@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a magenta disk with center (454, 94) and radius 50.
-; PLAN: r0=454(x), r1=94(y), r2=50(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 454
-LDI r1, 94
-LDI r2, 50
-LDI r3, 0xFF00FF
+; DESCRIPTION: Draws a cyan circle centered at (428, 125) with radius 36.
+; PLAN: r0=428(x), r1=125(y), r2=36(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 428
+LDI r1, 125
+LDI r2, 36
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

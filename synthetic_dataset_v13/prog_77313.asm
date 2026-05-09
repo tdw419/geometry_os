@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (14, 193) and (374, 57).
-; PLAN: r0=14(x1), r1=193(y1), r2=374(x2), r3=57(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 14
-LDI r1, 193
-LDI r2, 374
-LDI r3, 57
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 49 into r1 and decrements it in a loop until zero.
+; PLAN: r1=49(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 49
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

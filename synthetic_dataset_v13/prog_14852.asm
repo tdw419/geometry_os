@@ -1,19 +1,14 @@
-; DESCRIPTION: Composite: Draws a purple line from (232, 191) to (148, 110) then Places a white dot at position (487, 35) then Draws a white rectangle at (55, 48) with width 97 and height 73.
-; PLAN: r0=232(x1), r1=191(y1), r2=148(x2), r3=110(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=487(x), r6=35(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=55(x), r11=48(y), r12=97(width), r13=73(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 232
-LDI r1, 191
-LDI r2, 148
-LDI r3, 110
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 487
-LDI r6, 35
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
-LDI r10, 55
-LDI r11, 48
-LDI r12, 97
-LDI r13, 73
-LDI r14, 0xFFFFFF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a magenta disk with center (197, 132) and radius 75 then Places a magenta 94x117 rectangle at position (261, 120).
+; PLAN: r0=197(x), r1=132(y), r2=75(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=261(x), r6=120(y), r7=94(width), r8=117(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 197
+LDI r1, 132
+LDI r2, 75
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 261
+LDI r6, 120
+LDI r7, 94
+LDI r8, 117
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

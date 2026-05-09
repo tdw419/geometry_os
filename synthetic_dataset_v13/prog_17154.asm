@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (23, 106) and (430, 96).
-; PLAN: r0=23(x1), r1=106(y1), r2=430(x2), r3=96(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 23
-LDI r1, 106
-LDI r2, 430
-LDI r3, 96
+; DESCRIPTION: Renders a black box of size 96x74 starting at (394, 44).
+; PLAN: r0=394(x), r1=44(y), r2=96(width), r3=74(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 394
+LDI r1, 44
+LDI r2, 96
+LDI r3, 74
 LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

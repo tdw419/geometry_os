@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Creates a cyan rectangular region at (283, 195) spanning 42 by 32 pixels.
+; PLAN: r0=283(x), r1=195(y), r2=42(width), r3=32(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 283
+LDI r1, 195
+LDI r2, 42
+LDI r3, 32
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

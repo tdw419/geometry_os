@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Places a magenta line segment connecting (509, 188) to (148, 26).
+; PLAN: r0=509(x1), r1=188(y1), r2=148(x2), r3=26(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 509
+LDI r1, 188
+LDI r2, 148
+LDI r3, 26
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 59x47 starting at (29, 83).
-; PLAN: r0=29(x), r1=83(y), r2=59(width), r3=47(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 29
-LDI r1, 83
-LDI r2, 59
-LDI r3, 47
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (313, 207) to (435, 36).
+; PLAN: r0=313(x1), r1=207(y1), r2=435(x2), r3=36(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 313
+LDI r1, 207
+LDI r2, 435
+LDI r3, 36
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (394, 161).
-; PLAN: r0=394(x), r1=161(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 394
-LDI r1, 161
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a purple line from (452, 78) to (17, 185).
+; PLAN: r0=452(x1), r1=78(y1), r2=17(x2), r3=185(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 452
+LDI r1, 78
+LDI r2, 17
+LDI r3, 185
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (267, 131) to (392, 132).
-; PLAN: r0=267(x1), r1=131(y1), r2=392(x2), r3=132(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 267
-LDI r1, 131
-LDI r2, 392
-LDI r3, 132
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 32 at center (470, 81).
+; PLAN: r0=470(x), r1=81(y), r2=32(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 470
+LDI r1, 81
+LDI r2, 32
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

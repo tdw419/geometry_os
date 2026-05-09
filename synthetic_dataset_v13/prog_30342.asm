@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (129, 211) with radius 11.
-; PLAN: r0=129(x), r1=211(y), r2=11(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 129
-LDI r1, 211
-LDI r2, 11
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (298, 142) to (264, 187).
+; PLAN: r0=298(x1), r1=142(y1), r2=264(x2), r3=187(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 298
+LDI r1, 142
+LDI r2, 264
+LDI r3, 187
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

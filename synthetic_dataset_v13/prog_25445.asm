@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 113x20 rectangle at position (302, 165).
-; PLAN: r0=302(x), r1=165(y), r2=113(width), r3=20(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 302
-LDI r1, 165
-LDI r2, 113
-LDI r3, 20
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a black 38x34 rectangle at position (442, 72).
+; PLAN: r0=442(x), r1=72(y), r2=38(width), r3=34(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 442
+LDI r1, 72
+LDI r2, 38
+LDI r3, 34
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

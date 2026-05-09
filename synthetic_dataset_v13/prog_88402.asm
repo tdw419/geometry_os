@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (72, 234) and (363, 133).
-; PLAN: r0=72(x1), r1=234(y1), r2=363(x2), r3=133(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 72
-LDI r1, 234
-LDI r2, 363
-LDI r3, 133
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 44x21 rectangle at position (232, 19).
+; PLAN: r0=232(x), r1=19(y), r2=44(width), r3=21(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 232
+LDI r1, 19
+LDI r2, 44
+LDI r3, 21
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

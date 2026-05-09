@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (150, 179) with radius 52.
-; PLAN: r0=150(x), r1=179(y), r2=52(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 150
-LDI r1, 179
-LDI r2, 52
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (281, 154) and (35, 212).
+; PLAN: r0=281(x1), r1=154(y1), r2=35(x2), r3=212(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 281
+LDI r1, 154
+LDI r2, 35
+LDI r3, 212
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

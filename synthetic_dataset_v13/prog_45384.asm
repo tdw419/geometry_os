@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 117x58 rectangle at position (30, 188).
-; PLAN: r0=30(x), r1=188(y), r2=117(width), r3=58(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 30
-LDI r1, 188
-LDI r2, 117
-LDI r3, 58
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a green box of size 16x71 starting at (69, 148).
+; PLAN: r0=69(x), r1=148(y), r2=16(width), r3=71(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 69
+LDI r1, 148
+LDI r2, 16
+LDI r3, 71
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a red circle centered at (371, 196) with radius 52.
-; PLAN: r0=371(x), r1=196(y), r2=52(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 371
-LDI r1, 196
-LDI r2, 52
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (108, 12).
+; PLAN: r0=108(x), r1=12(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 108
+LDI r1, 12
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

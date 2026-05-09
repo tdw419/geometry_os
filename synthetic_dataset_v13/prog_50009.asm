@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a purple box of size 42x55 starting at (392, 192).
-; PLAN: r0=392(x), r1=192(y), r2=42(width), r3=55(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 392
-LDI r1, 192
-LDI r2, 42
-LDI r3, 55
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a white dot at position (482, 159) then Creates a magenta circular shape at (70, 206) with radius 50.
+; PLAN: r0=482(x), r1=159(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=70(x), r6=206(y), r7=50(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 482
+LDI r1, 159
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 70
+LDI r6, 206
+LDI r7, 50
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

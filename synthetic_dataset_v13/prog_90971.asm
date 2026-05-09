@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (77, 175) and (466, 149).
-; PLAN: r0=77(x1), r1=175(y1), r2=466(x2), r3=149(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 175
-LDI r2, 466
-LDI r3, 149
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a white line between points (324, 33) and (388, 177).
+; PLAN: r0=324(x1), r1=33(y1), r2=388(x2), r3=177(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 324
+LDI r1, 33
+LDI r2, 388
+LDI r3, 177
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

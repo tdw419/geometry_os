@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a purple circular shape at (351, 134) with radius 32.
-; PLAN: r0=351(x), r1=134(y), r2=32(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 351
-LDI r1, 134
-LDI r2, 32
-LDI r3, 0xAA00FF
+; DESCRIPTION: Creates a green circular shape at (208, 169) with radius 65.
+; PLAN: r0=208(x), r1=169(y), r2=65(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 208
+LDI r1, 169
+LDI r2, 65
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 38x44 starting at (52, 87).
-; PLAN: r0=52(x), r1=87(y), r2=38(width), r3=44(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 52
-LDI r1, 87
-LDI r2, 38
-LDI r3, 44
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a black 22x74 rectangle at position (438, 74).
+; PLAN: r0=438(x), r1=74(y), r2=22(width), r3=74(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 438
+LDI r1, 74
+LDI r2, 22
+LDI r3, 74
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

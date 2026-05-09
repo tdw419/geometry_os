@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a red circular shape at (182, 191) with radius 46.
-; PLAN: r0=182(x), r1=191(y), r2=46(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 182
-LDI r1, 191
-LDI r2, 46
-LDI r3, 0xFF0000
+; DESCRIPTION: Places a green circle of radius 51 at center (86, 199).
+; PLAN: r0=86(x), r1=199(y), r2=51(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 86
+LDI r1, 199
+LDI r2, 51
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

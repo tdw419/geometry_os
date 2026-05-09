@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a red dot at position (473, 31).
-; PLAN: r0=473(x), r1=31(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 473
-LDI r1, 31
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a red box of size 45x67 starting at (432, 64).
+; PLAN: r0=432(x), r1=64(y), r2=45(width), r3=67(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 432
+LDI r1, 64
+LDI r2, 45
+LDI r3, 67
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

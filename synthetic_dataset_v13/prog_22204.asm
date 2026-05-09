@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (452, 78) with width 38 and height 55.
-; PLAN: r0=452(x), r1=78(y), r2=38(width), r3=55(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 452
-LDI r1, 78
-LDI r2, 38
-LDI r3, 55
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a blue 62x11 rectangle at position (89, 30).
+; PLAN: r0=89(x), r1=30(y), r2=62(width), r3=11(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 89
+LDI r1, 30
+LDI r2, 62
+LDI r3, 11
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

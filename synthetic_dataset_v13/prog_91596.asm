@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (339, 157) with radius 79.
-; PLAN: r0=339(x), r1=157(y), r2=79(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 339
-LDI r1, 157
-LDI r2, 79
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange rectangle at (353, 112) with width 93 and height 34.
+; PLAN: r0=353(x), r1=112(y), r2=93(width), r3=34(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 112
+LDI r2, 93
+LDI r3, 34
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

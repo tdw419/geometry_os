@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta box of size 33x107 starting at (58, 42).
-; PLAN: r0=58(x), r1=42(y), r2=33(width), r3=107(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 58
-LDI r1, 42
-LDI r2, 33
-LDI r3, 107
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (82, 131) and radius 16.
+; PLAN: r0=82(x), r1=131(y), r2=16(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 82
+LDI r1, 131
+LDI r2, 16
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

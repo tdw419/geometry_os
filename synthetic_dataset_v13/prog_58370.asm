@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a red dot at position (485, 254).
-; PLAN: r0=485(x), r1=254(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 485
-LDI r1, 254
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a orange circle centered at (204, 121) with radius 56.
+; PLAN: r0=204(x), r1=121(y), r2=56(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 204
+LDI r1, 121
+LDI r2, 56
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

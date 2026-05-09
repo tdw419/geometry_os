@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 80x104 rectangle at position (417, 64).
-; PLAN: r0=417(x), r1=64(y), r2=80(width), r3=104(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 417
-LDI r1, 64
-LDI r2, 80
-LDI r3, 104
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black line from (51, 115) to (251, 211).
+; PLAN: r0=51(x1), r1=115(y1), r2=251(x2), r3=211(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 51
+LDI r1, 115
+LDI r2, 251
+LDI r3, 211
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a orange rectangular region at (394, 104) spanning 82 by 96 pixels.
-; PLAN: r0=394(x), r1=104(y), r2=82(width), r3=96(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 394
-LDI r1, 104
-LDI r2, 82
-LDI r3, 96
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single black pixel at (266, 166).
+; PLAN: r0=266(x), r1=166(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 266
+LDI r1, 166
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

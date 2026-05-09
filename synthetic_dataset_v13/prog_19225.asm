@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (359, 233) with radius 11.
-; PLAN: r0=359(x), r1=233(y), r2=11(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 359
-LDI r1, 233
-LDI r2, 11
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (164, 87) to (302, 71).
+; PLAN: r0=164(x1), r1=87(y1), r2=302(x2), r3=71(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 87
+LDI r2, 302
+LDI r3, 71
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

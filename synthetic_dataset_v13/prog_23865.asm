@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (360, 36) to (448, 77).
-; PLAN: r0=360(x1), r1=36(y1), r2=448(x2), r3=77(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 360
-LDI r1, 36
-LDI r2, 448
-LDI r3, 77
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a purple line segment connecting (74, 189) to (90, 81).
+; PLAN: r0=74(x1), r1=189(y1), r2=90(x2), r3=81(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 74
+LDI r1, 189
+LDI r2, 90
+LDI r3, 81
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

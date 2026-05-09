@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (46, 45) and radius 43.
-; PLAN: r0=46(x), r1=45(y), r2=43(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 46
-LDI r1, 45
-LDI r2, 43
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan box of size 22x36 starting at (317, 21).
+; PLAN: r0=317(x), r1=21(y), r2=22(width), r3=36(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 317
+LDI r1, 21
+LDI r2, 22
+LDI r3, 36
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

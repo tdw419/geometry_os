@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 27x66 rectangle at position (185, 175).
-; PLAN: r0=185(x), r1=175(y), r2=27(width), r3=66(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 185
-LDI r1, 175
-LDI r2, 27
-LDI r3, 66
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red circular shape at (331, 212) with radius 32.
+; PLAN: r0=331(x), r1=212(y), r2=32(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 331
+LDI r1, 212
+LDI r2, 32
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

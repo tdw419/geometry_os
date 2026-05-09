@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (263, 165) with radius 77.
-; PLAN: r0=263(x), r1=165(y), r2=77(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 263
-LDI r1, 165
-LDI r2, 77
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (164, 119) and (143, 157).
+; PLAN: r0=164(x1), r1=119(y1), r2=143(x2), r3=157(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 119
+LDI r2, 143
+LDI r3, 157
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

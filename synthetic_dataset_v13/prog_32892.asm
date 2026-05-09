@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a purple line from (309, 213) to (260, 229).
-; PLAN: r0=309(x1), r1=213(y1), r2=260(x2), r3=229(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 213
-LDI r2, 260
-LDI r3, 229
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (178, 226).
+; PLAN: r0=178(x), r1=226(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 178
+LDI r1, 226
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

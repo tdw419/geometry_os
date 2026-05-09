@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a green box of size 37x114 starting at (398, 85).
-; PLAN: r0=398(x), r1=85(y), r2=37(width), r3=114(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 398
-LDI r1, 85
-LDI r2, 37
-LDI r3, 114
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (343, 253).
+; PLAN: r0=343(x), r1=253(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 343
+LDI r1, 253
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

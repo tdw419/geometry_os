@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a orange circle centered at (273, 92) with radius 52.
-; PLAN: r0=273(x), r1=92(y), r2=52(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 273
-LDI r1, 92
-LDI r2, 52
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow dot at position (37, 115).
+; PLAN: r0=37(x), r1=115(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 37
+LDI r1, 115
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 97x57 rectangle at position (187, 121).
-; PLAN: r0=187(x), r1=121(y), r2=97(width), r3=57(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 187
-LDI r1, 121
-LDI r2, 97
+; DESCRIPTION: Renders a yellow box of size 45x57 starting at (412, 167).
+; PLAN: r0=412(x), r1=167(y), r2=45(width), r3=57(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 412
+LDI r1, 167
+LDI r2, 45
 LDI r3, 57
-LDI r4, 0x0000FF
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

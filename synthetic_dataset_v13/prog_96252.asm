@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a purple circle of radius 14 at center (183, 30).
-; PLAN: r0=183(x), r1=30(y), r2=14(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 183
-LDI r1, 30
-LDI r2, 14
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (445, 94).
+; PLAN: r0=445(x), r1=94(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 445
+LDI r1, 94
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

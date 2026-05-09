@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a blue line from (359, 177) to (306, 163).
-; PLAN: r0=359(x1), r1=177(y1), r2=306(x2), r3=163(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 177
-LDI r2, 306
-LDI r3, 163
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow dot at position (333, 69).
+; PLAN: r0=333(x), r1=69(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 333
+LDI r1, 69
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

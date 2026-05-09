@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (170, 182).
-; PLAN: r0=170(x), r1=182(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 170
-LDI r1, 182
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple line between points (137, 56) and (493, 40).
+; PLAN: r0=137(x1), r1=56(y1), r2=493(x2), r3=40(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 137
+LDI r1, 56
+LDI r2, 493
+LDI r3, 40
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

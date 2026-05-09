@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 58x22 rectangle at position (12, 29).
-; PLAN: r0=12(x), r1=29(y), r2=58(width), r3=22(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 12
-LDI r1, 29
-LDI r2, 58
-LDI r3, 22
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (189, 66) and (383, 222).
+; PLAN: r0=189(x1), r1=66(y1), r2=383(x2), r3=222(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 189
+LDI r1, 66
+LDI r2, 383
+LDI r3, 222
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

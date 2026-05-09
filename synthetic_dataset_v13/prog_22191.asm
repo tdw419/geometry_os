@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (246, 104) to (490, 255).
-; PLAN: r0=246(x1), r1=104(y1), r2=490(x2), r3=255(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 246
-LDI r1, 104
-LDI r2, 490
-LDI r3, 255
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a purple line between points (110, 16) and (281, 170).
+; PLAN: r0=110(x1), r1=16(y1), r2=281(x2), r3=170(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 110
+LDI r1, 16
+LDI r2, 281
+LDI r3, 170
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

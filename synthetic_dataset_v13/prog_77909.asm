@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 34x63 rectangle at position (408, 143).
-; PLAN: r0=408(x), r1=143(y), r2=34(width), r3=63(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 408
-LDI r1, 143
-LDI r2, 34
-LDI r3, 63
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (477, 21) to (403, 150).
+; PLAN: r0=477(x1), r1=21(y1), r2=403(x2), r3=150(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 477
+LDI r1, 21
+LDI r2, 403
+LDI r3, 150
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

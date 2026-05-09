@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (225, 150) with radius 45.
-; PLAN: r0=225(x), r1=150(y), r2=45(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 225
-LDI r1, 150
-LDI r2, 45
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a orange rectangular region at (322, 142) spanning 50 by 87 pixels.
+; PLAN: r0=322(x), r1=142(y), r2=50(width), r3=87(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 322
+LDI r1, 142
+LDI r2, 50
+LDI r3, 87
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

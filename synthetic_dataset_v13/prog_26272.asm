@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (162, 155) and radius 38.
-; PLAN: r0=162(x), r1=155(y), r2=38(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 162
-LDI r1, 155
-LDI r2, 38
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (478, 119) to (28, 106).
+; PLAN: r0=478(x1), r1=119(y1), r2=28(x2), r3=106(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 478
+LDI r1, 119
+LDI r2, 28
+LDI r3, 106
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

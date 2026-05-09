@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (381, 75) and (502, 192).
-; PLAN: r0=381(x1), r1=75(y1), r2=502(x2), r3=192(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 381
-LDI r1, 75
-LDI r2, 502
-LDI r3, 192
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue circle centered at (473, 63) with radius 30.
+; PLAN: r0=473(x), r1=63(y), r2=30(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 473
+LDI r1, 63
+LDI r2, 30
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

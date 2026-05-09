@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Creates a green rectangular region at (18, 3) spanning 77 by 98 pixels then Sets a single green pixel at (447, 138).
-; PLAN: r0=18(x), r1=3(y), r2=77(width), r3=98(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=447(x), r6=138(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 18
-LDI r1, 3
-LDI r2, 77
-LDI r3, 98
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 447
-LDI r6, 138
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Places a green circle of radius 58 at center (282, 159).
+; PLAN: r0=282(x), r1=159(y), r2=58(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 282
+LDI r1, 159
+LDI r2, 58
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

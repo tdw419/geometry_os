@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 59 at center (239, 86).
-; PLAN: r0=239(x), r1=86(y), r2=59(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 239
-LDI r1, 86
-LDI r2, 59
-LDI r3, 0xFF00FF
+; DESCRIPTION: Creates a black circular shape at (77, 117) with radius 20.
+; PLAN: r0=77(x), r1=117(y), r2=20(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 77
+LDI r1, 117
+LDI r2, 20
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

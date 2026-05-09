@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 61x13 rectangle at position (250, 92).
-; PLAN: r0=250(x), r1=92(y), r2=61(width), r3=13(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 250
-LDI r1, 92
-LDI r2, 61
-LDI r3, 13
-LDI r4, 0x000000
+; DESCRIPTION: Places a blue 108x100 rectangle at position (2, 33).
+; PLAN: r0=2(x), r1=33(y), r2=108(width), r3=100(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 2
+LDI r1, 33
+LDI r2, 108
+LDI r3, 100
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

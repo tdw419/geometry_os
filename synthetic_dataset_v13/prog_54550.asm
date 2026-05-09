@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (37, 84) and (346, 70).
-; PLAN: r0=37(x1), r1=84(y1), r2=346(x2), r3=70(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 37
-LDI r1, 84
-LDI r2, 346
-LDI r3, 70
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a black line from (334, 130) to (100, 72).
+; PLAN: r0=334(x1), r1=130(y1), r2=100(x2), r3=72(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 334
+LDI r1, 130
+LDI r2, 100
+LDI r3, 72
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

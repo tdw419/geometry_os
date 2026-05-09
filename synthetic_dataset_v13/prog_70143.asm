@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a red circle of radius 68 at center (432, 116).
-; PLAN: r0=432(x), r1=116(y), r2=68(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 432
-LDI r1, 116
-LDI r2, 68
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single red pixel at (242, 202).
+; PLAN: r0=242(x), r1=202(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 242
+LDI r1, 202
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (414, 64) spanning 85 by 113 pixels.
-; PLAN: r0=414(x), r1=64(y), r2=85(width), r3=113(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 414
-LDI r1, 64
-LDI r2, 85
-LDI r3, 113
-LDI r4, 0xFF00FF
+; DESCRIPTION: Creates a green rectangular region at (35, 128) spanning 91 by 96 pixels.
+; PLAN: r0=35(x), r1=128(y), r2=91(width), r3=96(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 35
+LDI r1, 128
+LDI r2, 91
+LDI r3, 96
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,13 @@
-; DESCRIPTION: Loads 3 into r1 and decrements it in a loop until zero.
-; PLAN: r1=3(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 3
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Sets a single orange pixel at (238, 91) then Draws a white rectangle at (183, 136) with width 67 and height 63.
+; PLAN: r0=238(x), r1=91(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=183(x), r6=136(y), r7=67(width), r8=63(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 238
+LDI r1, 91
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 183
+LDI r6, 136
+LDI r7, 67
+LDI r8, 63
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

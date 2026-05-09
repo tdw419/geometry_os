@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (118, 178) with width 78 and height 71.
-; PLAN: r0=118(x), r1=178(y), r2=78(width), r3=71(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 118
-LDI r1, 178
-LDI r2, 78
-LDI r3, 71
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (346, 30) and (116, 105).
+; PLAN: r0=346(x1), r1=30(y1), r2=116(x2), r3=105(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 346
+LDI r1, 30
+LDI r2, 116
+LDI r3, 105
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 87x109 starting at (410, 66).
-; PLAN: r0=410(x), r1=66(y), r2=87(width), r3=109(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 410
-LDI r1, 66
-LDI r2, 87
-LDI r3, 109
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (441, 83) to (167, 59).
+; PLAN: r0=441(x1), r1=83(y1), r2=167(x2), r3=59(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 441
+LDI r1, 83
+LDI r2, 167
+LDI r3, 59
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

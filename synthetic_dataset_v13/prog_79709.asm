@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (107, 43) and (422, 33).
-; PLAN: r0=107(x1), r1=43(y1), r2=422(x2), r3=33(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 107
-LDI r1, 43
-LDI r2, 422
-LDI r3, 33
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 92x109 rectangle at position (146, 57).
+; PLAN: r0=146(x), r1=57(y), r2=92(width), r3=109(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 146
+LDI r1, 57
+LDI r2, 92
+LDI r3, 109
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

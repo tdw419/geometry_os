@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a magenta circular shape at (407, 80) with radius 49 then Sets a single orange pixel at (373, 123).
-; PLAN: r0=407(x), r1=80(y), r2=49(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=373(x), r6=123(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 407
-LDI r1, 80
-LDI r2, 49
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 373
-LDI r6, 123
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Places a magenta 54x74 rectangle at position (400, 39).
+; PLAN: r0=400(x), r1=39(y), r2=54(width), r3=74(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 39
+LDI r2, 54
+LDI r3, 74
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

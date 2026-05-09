@@ -1,7 +1,13 @@
-; DESCRIPTION: Sets a single blue pixel at (108, 251).
-; PLAN: r0=108(x), r1=251(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 108
-LDI r1, 251
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Composite: Draws a black line from (383, 115) to (390, 17) then Places a orange dot at position (79, 167).
+; PLAN: r0=383(x1), r1=115(y1), r2=390(x2), r3=17(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=79(x), r6=167(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 383
+LDI r1, 115
+LDI r2, 390
+LDI r3, 17
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+LDI r5, 79
+LDI r6, 167
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

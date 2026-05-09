@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (340, 85) to (204, 22).
-; PLAN: r0=340(x1), r1=85(y1), r2=204(x2), r3=22(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 340
-LDI r1, 85
-LDI r2, 204
-LDI r3, 22
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a blue line between points (370, 16) and (193, 103).
+; PLAN: r0=370(x1), r1=16(y1), r2=193(x2), r3=103(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 370
+LDI r1, 16
+LDI r2, 193
+LDI r3, 103
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

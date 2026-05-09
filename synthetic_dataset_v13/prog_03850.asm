@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a cyan line from (253, 23) to (440, 15).
-; PLAN: r0=253(x1), r1=23(y1), r2=440(x2), r3=15(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 253
-LDI r1, 23
-LDI r2, 440
-LDI r3, 15
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (80, 211) then Draws a black rectangle at (78, 70) with width 95 and height 75.
+; PLAN: r0=80(x), r1=211(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=78(x), r6=70(y), r7=95(width), r8=75(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 80
+LDI r1, 211
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 78
+LDI r6, 70
+LDI r7, 95
+LDI r8, 75
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

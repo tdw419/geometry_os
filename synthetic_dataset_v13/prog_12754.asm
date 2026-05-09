@@ -1,8 +1,12 @@
-; DESCRIPTION: Places a orange circle of radius 58 at center (63, 193).
-; PLAN: r0=63(x), r1=193(y), r2=58(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 63
-LDI r1, 193
-LDI r2, 58
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single yellow pixel at (117, 179) then Renders a white disk with center (305, 142) and radius 28.
+; PLAN: r0=117(x), r1=179(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=305(x), r6=142(y), r7=28(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 117
+LDI r1, 179
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 305
+LDI r6, 142
+LDI r7, 28
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

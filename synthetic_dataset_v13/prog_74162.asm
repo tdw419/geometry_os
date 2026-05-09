@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a black disk with center (88, 179) and radius 27.
-; PLAN: r0=88(x), r1=179(y), r2=27(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 88
-LDI r1, 179
-LDI r2, 27
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (172, 206).
+; PLAN: r0=172(x), r1=206(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 172
+LDI r1, 206
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

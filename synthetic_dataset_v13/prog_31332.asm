@@ -1,13 +1,12 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (239, 150) then Creates a purple rectangular region at (231, 32) spanning 115 by 95 pixels.
-; PLAN: r0=239(x), r1=150(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=231(x), r6=32(y), r7=115(width), r8=95(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 239
-LDI r1, 150
-LDI r2, 0x00FFFF
+; DESCRIPTION: Composite: Sets a single blue pixel at (374, 47) then Renders a yellow disk with center (162, 191) and radius 49.
+; PLAN: r0=374(x), r1=47(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=162(x), r6=191(y), r7=49(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 374
+LDI r1, 47
+LDI r2, 0x0000FF
 PSET r0, r1, r2
-LDI r5, 231
-LDI r6, 32
-LDI r7, 115
-LDI r8, 95
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+LDI r5, 162
+LDI r6, 191
+LDI r7, 49
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

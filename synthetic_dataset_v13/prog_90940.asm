@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (495, 248).
-; PLAN: r0=495(x), r1=248(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 495
-LDI r1, 248
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a green line segment connecting (198, 249) to (277, 183).
+; PLAN: r0=198(x1), r1=249(y1), r2=277(x2), r3=183(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 198
+LDI r1, 249
+LDI r2, 277
+LDI r3, 183
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

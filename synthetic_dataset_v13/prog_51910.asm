@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 30x90 rectangle at position (437, 159).
-; PLAN: r0=437(x), r1=159(y), r2=30(width), r3=90(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 437
-LDI r1, 159
-LDI r2, 30
-LDI r3, 90
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (412, 247) and (67, 221).
+; PLAN: r0=412(x1), r1=247(y1), r2=67(x2), r3=221(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 412
+LDI r1, 247
+LDI r2, 67
+LDI r3, 221
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

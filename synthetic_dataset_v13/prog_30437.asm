@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a red rectangle at (327, 166) with width 78 and height 33.
-; PLAN: r0=327(x), r1=166(y), r2=78(width), r3=33(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 327
-LDI r1, 166
-LDI r2, 78
-LDI r3, 33
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (292, 75).
+; PLAN: r0=292(x), r1=75(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 292
+LDI r1, 75
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

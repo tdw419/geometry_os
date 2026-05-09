@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a orange line segment connecting (103, 222) to (34, 169).
-; PLAN: r0=103(x1), r1=222(y1), r2=34(x2), r3=169(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 103
-LDI r1, 222
-LDI r2, 34
-LDI r3, 169
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (268, 110).
+; PLAN: r0=268(x), r1=110(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 268
+LDI r1, 110
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

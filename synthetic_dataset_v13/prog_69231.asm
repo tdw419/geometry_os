@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (439, 83).
-; PLAN: r0=439(x), r1=83(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 439
-LDI r1, 83
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a red line between points (136, 49) and (95, 205).
+; PLAN: r0=136(x1), r1=49(y1), r2=95(x2), r3=205(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 136
+LDI r1, 49
+LDI r2, 95
+LDI r3, 205
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

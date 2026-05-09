@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 17 at center (469, 130).
-; PLAN: r0=469(x), r1=130(y), r2=17(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 469
-LDI r1, 130
-LDI r2, 17
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple box of size 56x35 starting at (17, 101).
+; PLAN: r0=17(x), r1=101(y), r2=56(width), r3=35(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 17
+LDI r1, 101
+LDI r2, 56
+LDI r3, 35
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

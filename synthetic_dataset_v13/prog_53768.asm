@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single orange pixel at (341, 97) then Draws a yellow circle centered at (312, 100) with radius 17.
-; PLAN: r0=341(x), r1=97(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=312(x), r6=100(y), r7=17(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 341
-LDI r1, 97
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 312
-LDI r6, 100
-LDI r7, 17
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a green rectangular region at (336, 111) spanning 117 by 47 pixels.
+; PLAN: r0=336(x), r1=111(y), r2=117(width), r3=47(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 336
+LDI r1, 111
+LDI r2, 117
+LDI r3, 47
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (120, 156) spanning 102 by 63 pixels.
-; PLAN: r0=120(x), r1=156(y), r2=102(width), r3=63(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 120
-LDI r1, 156
-LDI r2, 102
-LDI r3, 63
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a orange box of size 60x110 starting at (10, 133).
+; PLAN: r0=10(x), r1=133(y), r2=60(width), r3=110(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 10
+LDI r1, 133
+LDI r2, 60
+LDI r3, 110
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

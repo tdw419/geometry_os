@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a magenta 14x38 rectangle at position (173, 129).
-; PLAN: r0=173(x), r1=129(y), r2=14(width), r3=38(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 173
-LDI r1, 129
-LDI r2, 14
-LDI r3, 38
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (130, 50).
+; PLAN: r0=130(x), r1=50(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 130
+LDI r1, 50
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

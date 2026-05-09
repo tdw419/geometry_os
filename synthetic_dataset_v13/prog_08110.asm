@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a orange rectangular region at (364, 13) spanning 49 by 87 pixels.
-; PLAN: r0=364(x), r1=13(y), r2=49(width), r3=87(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 364
-LDI r1, 13
-LDI r2, 49
-LDI r3, 87
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (70, 216) with radius 10.
+; PLAN: r0=70(x), r1=216(y), r2=10(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 70
+LDI r1, 216
+LDI r2, 10
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

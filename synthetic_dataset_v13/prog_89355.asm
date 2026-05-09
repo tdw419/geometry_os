@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a purple line segment connecting (86, 239) to (306, 204) then Renders a magenta disk with center (333, 138) and radius 78.
-; PLAN: r0=86(x1), r1=239(y1), r2=306(x2), r3=204(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=333(x), r6=138(y), r7=78(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 86
-LDI r1, 239
-LDI r2, 306
-LDI r3, 204
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 333
-LDI r6, 138
-LDI r7, 78
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a black rectangular region at (407, 58) spanning 55 by 103 pixels.
+; PLAN: r0=407(x), r1=58(y), r2=55(width), r3=103(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 407
+LDI r1, 58
+LDI r2, 55
+LDI r3, 103
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

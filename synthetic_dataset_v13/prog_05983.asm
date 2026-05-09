@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple box of size 27x81 starting at (319, 110).
-; PLAN: r0=319(x), r1=110(y), r2=27(width), r3=81(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 319
-LDI r1, 110
-LDI r2, 27
-LDI r3, 81
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 6 into r1 and decrements it in a loop until zero.
+; PLAN: r1=6(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 6
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

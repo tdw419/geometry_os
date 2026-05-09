@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (379, 232) with radius 19.
-; PLAN: r0=379(x), r1=232(y), r2=19(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 379
-LDI r1, 232
-LDI r2, 19
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red line between points (227, 194) and (177, 227).
+; PLAN: r0=227(x1), r1=194(y1), r2=177(x2), r3=227(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 227
+LDI r1, 194
+LDI r2, 177
+LDI r3, 227
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

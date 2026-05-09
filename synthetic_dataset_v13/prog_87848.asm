@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (455, 198) and radius 53.
-; PLAN: r0=455(x), r1=198(y), r2=53(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 455
-LDI r1, 198
-LDI r2, 53
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green rectangle at (394, 80) with width 95 and height 21.
+; PLAN: r0=394(x), r1=80(y), r2=95(width), r3=21(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 394
+LDI r1, 80
+LDI r2, 95
+LDI r3, 21
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

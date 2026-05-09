@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (496, 233) to (47, 43).
-; PLAN: r0=496(x1), r1=233(y1), r2=47(x2), r3=43(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 496
-LDI r1, 233
-LDI r2, 47
-LDI r3, 43
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (382, 70) and radius 22.
+; PLAN: r0=382(x), r1=70(y), r2=22(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 382
+LDI r1, 70
+LDI r2, 22
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

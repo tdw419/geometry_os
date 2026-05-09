@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a orange circular shape at (64, 171) with radius 44.
-; PLAN: r0=64(x), r1=171(y), r2=44(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 64
-LDI r1, 171
-LDI r2, 44
-LDI r3, 0xFF8800
+; DESCRIPTION: Renders a green disk with center (474, 122) and radius 24.
+; PLAN: r0=474(x), r1=122(y), r2=24(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 474
+LDI r1, 122
+LDI r2, 24
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

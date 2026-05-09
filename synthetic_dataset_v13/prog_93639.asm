@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a orange box of size 60x66 starting at (232, 14).
-; PLAN: r0=232(x), r1=14(y), r2=60(width), r3=66(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 232
-LDI r1, 14
-LDI r2, 60
-LDI r3, 66
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single blue pixel at (356, 231) then Places a cyan line segment connecting (67, 165) to (496, 92).
+; PLAN: r0=356(x), r1=231(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=67(x1), r6=165(y1), r7=496(x2), r8=92(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 356
+LDI r1, 231
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 67
+LDI r6, 165
+LDI r7, 496
+LDI r8, 92
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
 HALT

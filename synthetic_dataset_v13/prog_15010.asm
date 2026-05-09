@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (283, 78) with radius 26.
-; PLAN: r0=283(x), r1=78(y), r2=26(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 283
-LDI r1, 78
-LDI r2, 26
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white rectangle at (64, 134) with width 44 and height 27.
+; PLAN: r0=64(x), r1=134(y), r2=44(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 64
+LDI r1, 134
+LDI r2, 44
+LDI r3, 27
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

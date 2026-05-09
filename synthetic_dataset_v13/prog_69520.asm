@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (344, 167) and radius 62.
-; PLAN: r0=344(x), r1=167(y), r2=62(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 344
-LDI r1, 167
-LDI r2, 62
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (25, 3) and (349, 166).
+; PLAN: r0=25(x1), r1=3(y1), r2=349(x2), r3=166(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 25
+LDI r1, 3
+LDI r2, 349
+LDI r3, 166
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

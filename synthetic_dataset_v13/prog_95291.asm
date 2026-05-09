@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (288, 249) to (288, 146).
-; PLAN: r0=288(x1), r1=249(y1), r2=288(x2), r3=146(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 249
-LDI r2, 288
-LDI r3, 146
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white box of size 59x70 starting at (381, 170).
+; PLAN: r0=381(x), r1=170(y), r2=59(width), r3=70(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 381
+LDI r1, 170
+LDI r2, 59
+LDI r3, 70
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

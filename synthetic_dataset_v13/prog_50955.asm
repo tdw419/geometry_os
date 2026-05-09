@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 31 at center (312, 168).
-; PLAN: r0=312(x), r1=168(y), r2=31(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 312
-LDI r1, 168
-LDI r2, 31
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (402, 166) and (398, 103).
+; PLAN: r0=402(x1), r1=166(y1), r2=398(x2), r3=103(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 402
+LDI r1, 166
+LDI r2, 398
+LDI r3, 103
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

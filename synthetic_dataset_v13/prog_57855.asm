@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Renders a cyan disk with center (156, 92) and radius 40 then Draws a purple rectangle at (350, 31) with width 58 and height 116.
-; PLAN: r0=156(x), r1=92(y), r2=40(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=350(x), r6=31(y), r7=58(width), r8=116(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 156
-LDI r1, 92
-LDI r2, 40
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 350
-LDI r6, 31
-LDI r7, 58
-LDI r8, 116
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a green line between points (144, 27) and (261, 48).
+; PLAN: r0=144(x1), r1=27(y1), r2=261(x2), r3=48(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 144
+LDI r1, 27
+LDI r2, 261
+LDI r3, 48
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

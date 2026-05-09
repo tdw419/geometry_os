@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a purple line between points (242, 123) and (241, 34).
-; PLAN: r0=242(x1), r1=123(y1), r2=241(x2), r3=34(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 242
-LDI r1, 123
-LDI r2, 241
-LDI r3, 34
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a black rectangular region at (432, 78) spanning 26 by 116 pixels then Places a purple dot at position (109, 255).
+; PLAN: r0=432(x), r1=78(y), r2=26(width), r3=116(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=109(x), r6=255(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 432
+LDI r1, 78
+LDI r2, 26
+LDI r3, 116
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 109
+LDI r6, 255
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

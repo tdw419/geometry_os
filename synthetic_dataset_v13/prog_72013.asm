@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black rectangle at (346, 47) with width 52 and height 104.
-; PLAN: r0=346(x), r1=47(y), r2=52(width), r3=104(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 346
-LDI r1, 47
-LDI r2, 52
-LDI r3, 104
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 79 at center (304, 89).
+; PLAN: r0=304(x), r1=89(y), r2=79(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 304
+LDI r1, 89
+LDI r2, 79
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

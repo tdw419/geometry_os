@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single blue pixel at (188, 123).
-; PLAN: r0=188(x), r1=123(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 188
-LDI r1, 123
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple disk with center (386, 54) and radius 12.
+; PLAN: r0=386(x), r1=54(y), r2=12(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 386
+LDI r1, 54
+LDI r2, 12
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

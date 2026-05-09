@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (268, 156) with radius 36.
-; PLAN: r0=268(x), r1=156(y), r2=36(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 268
-LDI r1, 156
-LDI r2, 36
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 31x62 rectangle at position (407, 13).
+; PLAN: r0=407(x), r1=13(y), r2=31(width), r3=62(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 407
+LDI r1, 13
+LDI r2, 31
+LDI r3, 62
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

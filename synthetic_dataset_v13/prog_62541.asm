@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (45, 32).
-; PLAN: r0=45(x), r1=32(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 45
-LDI r1, 32
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a purple line segment connecting (187, 185) to (144, 128).
+; PLAN: r0=187(x1), r1=185(y1), r2=144(x2), r3=128(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 187
+LDI r1, 185
+LDI r2, 144
+LDI r3, 128
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

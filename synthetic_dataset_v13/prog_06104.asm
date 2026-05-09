@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (212, 29) with radius 25.
-; PLAN: r0=212(x), r1=29(y), r2=25(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 212
-LDI r1, 29
-LDI r2, 25
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 11x27 rectangle at position (423, 218).
+; PLAN: r0=423(x), r1=218(y), r2=11(width), r3=27(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 423
+LDI r1, 218
+LDI r2, 11
+LDI r3, 27
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

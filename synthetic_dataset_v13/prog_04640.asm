@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (365, 154) to (95, 12).
-; PLAN: r0=365(x1), r1=154(y1), r2=95(x2), r3=12(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 365
-LDI r1, 154
-LDI r2, 95
-LDI r3, 12
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (77, 147) with radius 44.
+; PLAN: r0=77(x), r1=147(y), r2=44(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 77
+LDI r1, 147
+LDI r2, 44
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

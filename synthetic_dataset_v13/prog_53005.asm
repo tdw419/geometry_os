@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 67x26 starting at (228, 194).
-; PLAN: r0=228(x), r1=194(y), r2=67(width), r3=26(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 228
-LDI r1, 194
-LDI r2, 67
-LDI r3, 26
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a purple rectangle at (407, 123) with width 61 and height 32.
+; PLAN: r0=407(x), r1=123(y), r2=61(width), r3=32(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 407
+LDI r1, 123
+LDI r2, 61
+LDI r3, 32
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

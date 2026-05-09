@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Draws a magenta rectangle at (346, 90) with width 58 and height 64 then Creates a magenta circular shape at (260, 171) with radius 16 then Sets a single magenta pixel at (481, 227).
-; PLAN: r0=346(x), r1=90(y), r2=58(width), r3=64(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=260(x), r6=171(y), r7=16(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=481(x), r11=227(y), r12=0xFF00FF(color). Op: PSET r10, r11, r12.
-LDI r0, 346
-LDI r1, 90
-LDI r2, 58
-LDI r3, 64
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 260
-LDI r6, 171
-LDI r7, 16
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
-LDI r10, 481
-LDI r11, 227
-LDI r12, 0xFF00FF
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Sets a single black pixel at (135, 204) then Creates a green rectangular region at (17, 78) spanning 103 by 35 pixels then Renders a black disk with center (331, 108) and radius 63.
+; PLAN: r0=135(x), r1=204(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=17(x), r6=78(y), r7=103(width), r8=35(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=331(x), r11=108(y), r12=63(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 135
+LDI r1, 204
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 17
+LDI r6, 78
+LDI r7, 103
+LDI r8, 35
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 331
+LDI r11, 108
+LDI r12, 63
+LDI r13, 0x000000
+CIRCLE r10, r11, r12, r13
 HALT

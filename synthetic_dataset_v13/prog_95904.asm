@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a blue circle centered at (416, 117) with radius 38.
-; PLAN: r0=416(x), r1=117(y), r2=38(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 416
-LDI r1, 117
-LDI r2, 38
-LDI r3, 0x0000FF
+; DESCRIPTION: Places a orange circle of radius 43 at center (308, 74).
+; PLAN: r0=308(x), r1=74(y), r2=43(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 308
+LDI r1, 74
+LDI r2, 43
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 105x61 starting at (350, 112).
-; PLAN: r0=350(x), r1=112(y), r2=105(width), r3=61(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 350
-LDI r1, 112
-LDI r2, 105
-LDI r3, 61
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (139, 28) to (27, 76).
+; PLAN: r0=139(x1), r1=28(y1), r2=27(x2), r3=76(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 28
+LDI r2, 27
+LDI r3, 76
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 120x92 rectangle at position (262, 46).
-; PLAN: r0=262(x), r1=46(y), r2=120(width), r3=92(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 262
-LDI r1, 46
-LDI r2, 120
-LDI r3, 92
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a black box of size 95x116 starting at (286, 111).
+; PLAN: r0=286(x), r1=111(y), r2=95(width), r3=116(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 286
+LDI r1, 111
+LDI r2, 95
+LDI r3, 116
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

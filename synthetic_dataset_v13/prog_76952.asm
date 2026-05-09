@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a yellow circular shape at (204, 53) with radius 20.
-; PLAN: r0=204(x), r1=53(y), r2=20(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 204
-LDI r1, 53
-LDI r2, 20
+; DESCRIPTION: Places a yellow circle of radius 12 at center (225, 170).
+; PLAN: r0=225(x), r1=170(y), r2=12(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 225
+LDI r1, 170
+LDI r2, 12
 LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

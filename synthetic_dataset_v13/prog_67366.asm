@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single black pixel at (343, 211).
-; PLAN: r0=343(x), r1=211(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 343
-LDI r1, 211
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

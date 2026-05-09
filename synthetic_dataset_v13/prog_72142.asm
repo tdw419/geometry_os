@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (421, 178) to (253, 177).
-; PLAN: r0=421(x1), r1=178(y1), r2=253(x2), r3=177(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 421
-LDI r1, 178
-LDI r2, 253
-LDI r3, 177
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 18 into r1 and decrements it in a loop until zero.
+; PLAN: r1=18(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 18
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Sets a single green pixel at (185, 97).
+; PLAN: r0=185(x), r1=97(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 185
+LDI r1, 97
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

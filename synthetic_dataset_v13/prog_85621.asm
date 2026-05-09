@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 12x79 rectangle at position (490, 138).
-; PLAN: r0=490(x), r1=138(y), r2=12(width), r3=79(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 490
-LDI r1, 138
-LDI r2, 12
-LDI r3, 79
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 20 at center (396, 171).
+; PLAN: r0=396(x), r1=171(y), r2=20(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 396
+LDI r1, 171
+LDI r2, 20
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

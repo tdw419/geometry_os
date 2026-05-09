@@ -1,8 +1,13 @@
-; DESCRIPTION: Draws a cyan circle centered at (209, 92) with radius 74.
-; PLAN: r0=209(x), r1=92(y), r2=74(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 209
-LDI r1, 92
-LDI r2, 74
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a blue dot at position (332, 78) then Draws a orange rectangle at (340, 149) with width 103 and height 103.
+; PLAN: r0=332(x), r1=78(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=340(x), r6=149(y), r7=103(width), r8=103(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 332
+LDI r1, 78
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 340
+LDI r6, 149
+LDI r7, 103
+LDI r8, 103
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

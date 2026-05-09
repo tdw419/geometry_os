@@ -1,5 +1,5 @@
-; DESCRIPTION: Paints the whole screen purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
 FILL r0
 HALT

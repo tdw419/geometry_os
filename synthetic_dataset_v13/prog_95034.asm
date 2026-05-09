@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (97, 89) with width 40 and height 110.
-; PLAN: r0=97(x), r1=89(y), r2=40(width), r3=110(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 97
-LDI r1, 89
-LDI r2, 40
-LDI r3, 110
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (165, 64) to (311, 55).
+; PLAN: r0=165(x1), r1=64(y1), r2=311(x2), r3=55(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 165
+LDI r1, 64
+LDI r2, 311
+LDI r3, 55
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

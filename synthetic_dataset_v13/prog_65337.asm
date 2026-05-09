@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Places a magenta line segment connecting (98, 118) to (162, 31) then Places a yellow 107x19 rectangle at position (332, 87) then Creates a blue circular shape at (402, 124) with radius 74.
-; PLAN: r0=98(x1), r1=118(y1), r2=162(x2), r3=31(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=332(x), r6=87(y), r7=107(width), r8=19(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=402(x), r11=124(y), r12=74(radius), r13=0x0000FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 98
-LDI r1, 118
-LDI r2, 162
-LDI r3, 31
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 332
-LDI r6, 87
-LDI r7, 107
-LDI r8, 19
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
-LDI r10, 402
-LDI r11, 124
-LDI r12, 74
-LDI r13, 0x0000FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Renders a orange box of size 79x60 starting at (171, 132) then Places a purple dot at position (334, 102) then Places a green line segment connecting (357, 237) to (384, 21).
+; PLAN: r0=171(x), r1=132(y), r2=79(width), r3=60(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=334(x), r6=102(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=357(x1), r11=237(y1), r12=384(x2), r13=21(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 171
+LDI r1, 132
+LDI r2, 79
+LDI r3, 60
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 334
+LDI r6, 102
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
+LDI r10, 357
+LDI r11, 237
+LDI r12, 384
+LDI r13, 21
+LDI r14, 0x00FF00
+LINE r10, r11, r12, r13, r14
 HALT

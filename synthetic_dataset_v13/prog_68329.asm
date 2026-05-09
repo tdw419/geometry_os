@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (251, 157) to (133, 59).
-; PLAN: r0=251(x1), r1=157(y1), r2=133(x2), r3=59(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 251
-LDI r1, 157
-LDI r2, 133
-LDI r3, 59
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white rectangular region at (344, 2) spanning 19 by 48 pixels.
+; PLAN: r0=344(x), r1=2(y), r2=19(width), r3=48(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 344
+LDI r1, 2
+LDI r2, 19
+LDI r3, 48
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

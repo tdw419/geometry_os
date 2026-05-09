@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (425, 154) with radius 56.
-; PLAN: r0=425(x), r1=154(y), r2=56(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 425
-LDI r1, 154
-LDI r2, 56
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (342, 205) and (22, 187).
+; PLAN: r0=342(x1), r1=205(y1), r2=22(x2), r3=187(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 342
+LDI r1, 205
+LDI r2, 22
+LDI r3, 187
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

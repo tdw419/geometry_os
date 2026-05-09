@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 59x29 rectangle at position (53, 175).
-; PLAN: r0=53(x), r1=175(y), r2=59(width), r3=29(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 175
-LDI r2, 59
-LDI r3, 29
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (414, 16) to (201, 147).
+; PLAN: r0=414(x1), r1=16(y1), r2=201(x2), r3=147(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 414
+LDI r1, 16
+LDI r2, 201
+LDI r3, 147
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

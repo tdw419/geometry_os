@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single orange pixel at (144, 205).
-; PLAN: r0=144(x), r1=205(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 144
-LDI r1, 205
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Creates a blue rectangular region at (394, 173) spanning 87 by 37 pixels.
+; PLAN: r0=394(x), r1=173(y), r2=87(width), r3=37(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 394
+LDI r1, 173
+LDI r2, 87
+LDI r3, 37
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

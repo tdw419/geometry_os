@@ -1,15 +1,14 @@
-; DESCRIPTION: Composite: Draws a magenta line from (76, 218) to (110, 32) then Renders a red box of size 18x51 starting at (307, 0).
-; PLAN: r0=76(x1), r1=218(y1), r2=110(x2), r3=32(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=307(x), r6=0(y), r7=18(width), r8=51(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 76
-LDI r1, 218
-LDI r2, 110
-LDI r3, 32
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 307
-LDI r6, 0
-LDI r7, 18
-LDI r8, 51
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a black rectangle at (12, 97) with width 19 and height 119 then Renders a magenta disk with center (364, 98) and radius 56.
+; PLAN: r0=12(x), r1=97(y), r2=19(width), r3=119(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=364(x), r6=98(y), r7=56(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 12
+LDI r1, 97
+LDI r2, 19
+LDI r3, 119
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 364
+LDI r6, 98
+LDI r7, 56
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

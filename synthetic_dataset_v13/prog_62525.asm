@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple box of size 42x59 starting at (244, 113).
-; PLAN: r0=244(x), r1=113(y), r2=42(width), r3=59(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 244
-LDI r1, 113
-LDI r2, 42
-LDI r3, 59
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (65, 33) with radius 14.
+; PLAN: r0=65(x), r1=33(y), r2=14(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 65
+LDI r1, 33
+LDI r2, 14
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

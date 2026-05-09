@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (212, 181) to (169, 26).
-; PLAN: r0=212(x1), r1=181(y1), r2=169(x2), r3=26(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 212
-LDI r1, 181
-LDI r2, 169
-LDI r3, 26
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange rectangle at (213, 97) with width 116 and height 92.
+; PLAN: r0=213(x), r1=97(y), r2=116(width), r3=92(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 213
+LDI r1, 97
+LDI r2, 116
+LDI r3, 92
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

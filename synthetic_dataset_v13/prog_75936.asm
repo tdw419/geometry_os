@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan box of size 53x115 starting at (220, 115).
-; PLAN: r0=220(x), r1=115(y), r2=53(width), r3=115(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 220
-LDI r1, 115
-LDI r2, 53
-LDI r3, 115
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (366, 159) with radius 79.
+; PLAN: r0=366(x), r1=159(y), r2=79(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 366
+LDI r1, 159
+LDI r2, 79
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

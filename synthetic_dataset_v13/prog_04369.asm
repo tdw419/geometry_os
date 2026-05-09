@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 30x99 starting at (207, 9).
-; PLAN: r0=207(x), r1=9(y), r2=30(width), r3=99(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 207
-LDI r1, 9
-LDI r2, 30
-LDI r3, 99
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (491, 15) to (53, 107).
+; PLAN: r0=491(x1), r1=15(y1), r2=53(x2), r3=107(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 491
+LDI r1, 15
+LDI r2, 53
+LDI r3, 107
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

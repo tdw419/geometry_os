@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (440, 207) then Renders a red line between points (270, 153) and (159, 135).
-; PLAN: r0=440(x), r1=207(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=270(x1), r6=153(y1), r7=159(x2), r8=135(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 440
-LDI r1, 207
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 270
-LDI r6, 153
-LDI r7, 159
-LDI r8, 135
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a cyan circle centered at (329, 155) with radius 47.
+; PLAN: r0=329(x), r1=155(y), r2=47(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 329
+LDI r1, 155
+LDI r2, 47
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

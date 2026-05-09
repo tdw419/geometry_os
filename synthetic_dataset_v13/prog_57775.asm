@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (233, 15) spanning 82 by 96 pixels.
-; PLAN: r0=233(x), r1=15(y), r2=82(width), r3=96(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 233
-LDI r1, 15
-LDI r2, 82
-LDI r3, 96
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (211, 160) to (175, 228).
+; PLAN: r0=211(x1), r1=160(y1), r2=175(x2), r3=228(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 211
+LDI r1, 160
+LDI r2, 175
+LDI r3, 228
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

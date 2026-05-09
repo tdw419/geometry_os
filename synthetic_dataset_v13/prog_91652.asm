@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (180, 118) to (458, 239).
-; PLAN: r0=180(x1), r1=118(y1), r2=458(x2), r3=239(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 118
-LDI r2, 458
-LDI r3, 239
-LDI r4, 0x000000
+; DESCRIPTION: Renders a white line between points (235, 54) and (398, 187).
+; PLAN: r0=235(x1), r1=54(y1), r2=398(x2), r3=187(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 235
+LDI r1, 54
+LDI r2, 398
+LDI r3, 187
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

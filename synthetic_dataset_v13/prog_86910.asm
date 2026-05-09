@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 47x23 starting at (2, 109).
-; PLAN: r0=2(x), r1=109(y), r2=47(width), r3=23(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 2
-LDI r1, 109
-LDI r2, 47
-LDI r3, 23
+; DESCRIPTION: Draws a cyan rectangle at (338, 124) with width 82 and height 98.
+; PLAN: r0=338(x), r1=124(y), r2=82(width), r3=98(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 338
+LDI r1, 124
+LDI r2, 82
+LDI r3, 98
 LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

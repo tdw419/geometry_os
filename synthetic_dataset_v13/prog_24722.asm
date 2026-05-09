@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 92x34 rectangle at position (195, 204).
-; PLAN: r0=195(x), r1=204(y), r2=92(width), r3=34(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 195
-LDI r1, 204
-LDI r2, 92
-LDI r3, 34
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red line from (507, 180) to (476, 135).
+; PLAN: r0=507(x1), r1=180(y1), r2=476(x2), r3=135(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 507
+LDI r1, 180
+LDI r2, 476
+LDI r3, 135
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

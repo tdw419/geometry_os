@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single orange pixel at (443, 242).
-; PLAN: r0=443(x), r1=242(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 443
-LDI r1, 242
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a white circle centered at (445, 130) with radius 42.
+; PLAN: r0=445(x), r1=130(y), r2=42(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 445
+LDI r1, 130
+LDI r2, 42
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

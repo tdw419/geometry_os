@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (396, 35) to (277, 155).
-; PLAN: r0=396(x1), r1=35(y1), r2=277(x2), r3=155(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 396
-LDI r1, 35
-LDI r2, 277
-LDI r3, 155
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a yellow line between points (413, 63) and (405, 253).
+; PLAN: r0=413(x1), r1=63(y1), r2=405(x2), r3=253(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 413
+LDI r1, 63
+LDI r2, 405
+LDI r3, 253
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

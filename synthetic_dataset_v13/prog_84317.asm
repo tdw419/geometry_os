@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 43 at center (119, 89).
-; PLAN: r0=119(x), r1=89(y), r2=43(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 119
-LDI r1, 89
-LDI r2, 43
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (353, 242) to (86, 156).
+; PLAN: r0=353(x1), r1=242(y1), r2=86(x2), r3=156(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 242
+LDI r2, 86
+LDI r3, 156
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

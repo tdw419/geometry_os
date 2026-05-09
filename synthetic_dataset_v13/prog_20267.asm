@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a magenta dot at position (174, 236).
-; PLAN: r0=174(x), r1=236(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 174
-LDI r1, 236
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a cyan circular shape at (256, 233) with radius 16.
+; PLAN: r0=256(x), r1=233(y), r2=16(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 256
+LDI r1, 233
+LDI r2, 16
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

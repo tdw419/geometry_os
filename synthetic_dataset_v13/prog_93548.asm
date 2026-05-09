@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 39x80 rectangle at position (182, 107).
-; PLAN: r0=182(x), r1=107(y), r2=39(width), r3=80(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 182
-LDI r1, 107
-LDI r2, 39
-LDI r3, 80
-LDI r4, 0x000000
+; DESCRIPTION: Renders a purple box of size 56x60 starting at (404, 182).
+; PLAN: r0=404(x), r1=182(y), r2=56(width), r3=60(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 404
+LDI r1, 182
+LDI r2, 56
+LDI r3, 60
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

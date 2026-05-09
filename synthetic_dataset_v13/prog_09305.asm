@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 42 at center (287, 183).
-; PLAN: r0=287(x), r1=183(y), r2=42(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 287
-LDI r1, 183
-LDI r2, 42
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (264, 215) and (282, 25).
+; PLAN: r0=264(x1), r1=215(y1), r2=282(x2), r3=25(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 264
+LDI r1, 215
+LDI r2, 282
+LDI r3, 25
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

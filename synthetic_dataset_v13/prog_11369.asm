@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single yellow pixel at (263, 87).
-; PLAN: r0=263(x), r1=87(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 263
-LDI r1, 87
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Creates a purple circular shape at (229, 110) with radius 69.
+; PLAN: r0=229(x), r1=110(y), r2=69(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 229
+LDI r1, 110
+LDI r2, 69
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

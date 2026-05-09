@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (430, 52) to (427, 198).
-; PLAN: r0=430(x1), r1=52(y1), r2=427(x2), r3=198(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 52
-LDI r2, 427
-LDI r3, 198
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow 47x77 rectangle at position (237, 173).
+; PLAN: r0=237(x), r1=173(y), r2=47(width), r3=77(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 237
+LDI r1, 173
+LDI r2, 47
+LDI r3, 77
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

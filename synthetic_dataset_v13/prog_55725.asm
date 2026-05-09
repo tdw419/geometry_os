@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a black line between points (304, 172) and (84, 63).
-; PLAN: r0=304(x1), r1=172(y1), r2=84(x2), r3=63(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 304
-LDI r1, 172
-LDI r2, 84
-LDI r3, 63
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (223, 219) then Renders a red disk with center (339, 155) and radius 30.
+; PLAN: r0=223(x), r1=219(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=339(x), r6=155(y), r7=30(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 223
+LDI r1, 219
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 339
+LDI r6, 155
+LDI r7, 30
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

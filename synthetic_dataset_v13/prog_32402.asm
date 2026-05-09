@@ -1,12 +1,7 @@
-; DESCRIPTION: Composite: Renders a black disk with center (205, 108) and radius 72 then Places a purple dot at position (316, 192).
-; PLAN: r0=205(x), r1=108(y), r2=72(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=316(x), r6=192(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 205
-LDI r1, 108
-LDI r2, 72
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 316
-LDI r6, 192
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Sets a single green pixel at (430, 52).
+; PLAN: r0=430(x), r1=52(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 430
+LDI r1, 52
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

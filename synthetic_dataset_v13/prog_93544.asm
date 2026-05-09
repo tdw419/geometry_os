@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 54x117 rectangle at position (429, 16).
-; PLAN: r0=429(x), r1=16(y), r2=54(width), r3=117(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 429
-LDI r1, 16
-LDI r2, 54
-LDI r3, 117
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan line segment connecting (248, 227) to (322, 180).
+; PLAN: r0=248(x1), r1=227(y1), r2=322(x2), r3=180(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 227
+LDI r2, 322
+LDI r3, 180
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

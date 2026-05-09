@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (179, 146) and (273, 29).
-; PLAN: r0=179(x1), r1=146(y1), r2=273(x2), r3=29(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 146
-LDI r2, 273
-LDI r3, 29
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a white line from (47, 23) to (87, 109).
+; PLAN: r0=47(x1), r1=23(y1), r2=87(x2), r3=109(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 47
+LDI r1, 23
+LDI r2, 87
+LDI r3, 109
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

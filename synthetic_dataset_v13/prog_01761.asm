@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (413, 73) with radius 45.
-; PLAN: r0=413(x), r1=73(y), r2=45(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 413
-LDI r1, 73
-LDI r2, 45
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (403, 91) to (26, 94).
+; PLAN: r0=403(x1), r1=91(y1), r2=26(x2), r3=94(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 403
+LDI r1, 91
+LDI r2, 26
+LDI r3, 94
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

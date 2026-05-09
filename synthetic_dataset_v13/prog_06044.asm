@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Renders a green disk with center (97, 92) and radius 67 then Draws a red line from (60, 174) to (215, 180).
-; PLAN: r0=97(x), r1=92(y), r2=67(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=60(x1), r6=174(y1), r7=215(x2), r8=180(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 97
-LDI r1, 92
-LDI r2, 67
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 60
-LDI r6, 174
-LDI r7, 215
-LDI r8, 180
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

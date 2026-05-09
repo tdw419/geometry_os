@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (455, 135) and (201, 253).
-; PLAN: r0=455(x1), r1=135(y1), r2=201(x2), r3=253(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 455
-LDI r1, 135
-LDI r2, 201
-LDI r3, 253
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (193, 0) with width 118 and height 29.
+; PLAN: r0=193(x), r1=0(y), r2=118(width), r3=29(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 193
+LDI r1, 0
+LDI r2, 118
+LDI r3, 29
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

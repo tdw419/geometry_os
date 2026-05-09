@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 70x10 starting at (106, 56).
-; PLAN: r0=106(x), r1=56(y), r2=70(width), r3=10(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 106
-LDI r1, 56
-LDI r2, 70
-LDI r3, 10
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (291, 43) to (149, 152).
+; PLAN: r0=291(x1), r1=43(y1), r2=149(x2), r3=152(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 291
+LDI r1, 43
+LDI r2, 149
+LDI r3, 152
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a magenta line segment connecting (347, 50) to (492, 56).
-; PLAN: r0=347(x1), r1=50(y1), r2=492(x2), r3=56(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 347
-LDI r1, 50
-LDI r2, 492
-LDI r3, 56
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single red pixel at (141, 53) then Draws a cyan line from (422, 158) to (503, 153).
+; PLAN: r0=141(x), r1=53(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=422(x1), r6=158(y1), r7=503(x2), r8=153(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 141
+LDI r1, 53
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 422
+LDI r6, 158
+LDI r7, 503
+LDI r8, 153
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
 HALT

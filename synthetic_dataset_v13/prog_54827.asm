@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (428, 87) and radius 79.
-; PLAN: r0=428(x), r1=87(y), r2=79(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 428
-LDI r1, 87
-LDI r2, 79
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (113, 143) to (388, 236).
+; PLAN: r0=113(x1), r1=143(y1), r2=388(x2), r3=236(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 113
+LDI r1, 143
+LDI r2, 388
+LDI r3, 236
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

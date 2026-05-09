@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a cyan circular shape at (296, 137) with radius 66 then Sets a single orange pixel at (114, 163).
-; PLAN: r0=296(x), r1=137(y), r2=66(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=114(x), r6=163(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 296
-LDI r1, 137
-LDI r2, 66
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 114
-LDI r6, 163
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Places a yellow line segment connecting (402, 95) to (94, 110).
+; PLAN: r0=402(x1), r1=95(y1), r2=94(x2), r3=110(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 402
+LDI r1, 95
+LDI r2, 94
+LDI r3, 110
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

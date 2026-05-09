@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (414, 135).
-; PLAN: r0=414(x), r1=135(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 414
-LDI r1, 135
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a blue box of size 84x112 starting at (138, 108).
+; PLAN: r0=138(x), r1=108(y), r2=84(width), r3=112(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 138
+LDI r1, 108
+LDI r2, 84
+LDI r3, 112
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

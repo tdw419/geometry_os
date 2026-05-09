@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a magenta dot at position (356, 190).
-; PLAN: r0=356(x), r1=190(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 356
-LDI r1, 190
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black disk with center (228, 80) and radius 50.
+; PLAN: r0=228(x), r1=80(y), r2=50(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 228
+LDI r1, 80
+LDI r2, 50
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 22x92 rectangle at position (39, 20).
-; PLAN: r0=39(x), r1=20(y), r2=22(width), r3=92(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 39
-LDI r1, 20
-LDI r2, 22
-LDI r3, 92
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a red 23x49 rectangle at position (262, 51).
+; PLAN: r0=262(x), r1=51(y), r2=23(width), r3=49(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 51
+LDI r2, 23
+LDI r3, 49
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

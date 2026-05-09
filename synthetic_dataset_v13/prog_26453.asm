@@ -1,9 +1,19 @@
-; DESCRIPTION: Renders a cyan line between points (75, 203) and (383, 204).
-; PLAN: r0=75(x1), r1=203(y1), r2=383(x2), r3=204(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 75
-LDI r1, 203
-LDI r2, 383
-LDI r3, 204
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
+LDI r7, 0x0000FF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

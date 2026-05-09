@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Places a blue dot at position (507, 202).
+; PLAN: r0=507(x), r1=202(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 507
+LDI r1, 202
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

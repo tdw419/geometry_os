@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (199, 51).
-; PLAN: r0=199(x), r1=51(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 199
-LDI r1, 51
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan rectangle at (247, 191) with width 48 and height 53.
+; PLAN: r0=247(x), r1=191(y), r2=48(width), r3=53(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 191
+LDI r2, 48
+LDI r3, 53
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a magenta 17x74 rectangle at position (268, 75).
-; PLAN: r0=268(x), r1=75(y), r2=17(width), r3=74(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 268
-LDI r1, 75
-LDI r2, 17
-LDI r3, 74
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a orange dot at position (426, 94) then Renders a purple line between points (37, 61) and (484, 91).
+; PLAN: r0=426(x), r1=94(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=37(x1), r6=61(y1), r7=484(x2), r8=91(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 426
+LDI r1, 94
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 37
+LDI r6, 61
+LDI r7, 484
+LDI r8, 91
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

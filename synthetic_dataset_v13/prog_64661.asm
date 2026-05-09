@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (498, 59) then Places a magenta line segment connecting (386, 126) to (446, 230).
-; PLAN: r0=498(x), r1=59(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=386(x1), r6=126(y1), r7=446(x2), r8=230(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 498
-LDI r1, 59
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 386
-LDI r6, 126
-LDI r7, 446
-LDI r8, 230
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a orange box of size 109x118 starting at (177, 57).
+; PLAN: r0=177(x), r1=57(y), r2=109(width), r3=118(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 177
+LDI r1, 57
+LDI r2, 109
+LDI r3, 118
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

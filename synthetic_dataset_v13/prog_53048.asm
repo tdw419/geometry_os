@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a green line between points (324, 103) and (365, 147).
-; PLAN: r0=324(x1), r1=103(y1), r2=365(x2), r3=147(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 324
-LDI r1, 103
-LDI r2, 365
-LDI r3, 147
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (201, 226).
+; PLAN: r0=201(x), r1=226(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 201
+LDI r1, 226
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

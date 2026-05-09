@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 59x63 starting at (61, 192).
-; PLAN: r0=61(x), r1=192(y), r2=59(width), r3=63(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 61
-LDI r1, 192
-LDI r2, 59
-LDI r3, 63
-LDI r4, 0xFF00FF
+; DESCRIPTION: Places a red 31x40 rectangle at position (393, 120).
+; PLAN: r0=393(x), r1=120(y), r2=31(width), r3=40(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 393
+LDI r1, 120
+LDI r2, 31
+LDI r3, 40
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

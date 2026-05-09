@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 57 at center (303, 74).
-; PLAN: r0=303(x), r1=74(y), r2=57(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 303
-LDI r1, 74
-LDI r2, 57
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (45, 115) and (473, 45).
+; PLAN: r0=45(x1), r1=115(y1), r2=473(x2), r3=45(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 45
+LDI r1, 115
+LDI r2, 473
+LDI r3, 45
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (198, 43) then Renders a purple box of size 19x43 starting at (482, 132).
-; PLAN: r0=198(x), r1=43(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=482(x), r6=132(y), r7=19(width), r8=43(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 198
-LDI r1, 43
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 482
-LDI r6, 132
-LDI r7, 19
-LDI r8, 43
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Loads 35 into r1 and decrements it in a loop until zero.
+; PLAN: r1=35(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 35
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

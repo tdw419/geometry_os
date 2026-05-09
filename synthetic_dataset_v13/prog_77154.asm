@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a magenta rectangle at (337, 118) with width 92 and height 28.
-; PLAN: r0=337(x), r1=118(y), r2=92(width), r3=28(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 337
-LDI r1, 118
-LDI r2, 92
-LDI r3, 28
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow dot at position (371, 40) then Places a black circle of radius 61 at center (278, 81).
+; PLAN: r0=371(x), r1=40(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=278(x), r6=81(y), r7=61(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 371
+LDI r1, 40
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 278
+LDI r6, 81
+LDI r7, 61
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

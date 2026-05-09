@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (264, 211).
-; PLAN: r0=264(x), r1=211(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 264
-LDI r1, 211
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a blue disk with center (132, 150) and radius 72.
+; PLAN: r0=132(x), r1=150(y), r2=72(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 132
+LDI r1, 150
+LDI r2, 72
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

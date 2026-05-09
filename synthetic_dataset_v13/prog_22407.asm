@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (296, 114) with radius 43.
-; PLAN: r0=296(x), r1=114(y), r2=43(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 296
-LDI r1, 114
-LDI r2, 43
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (43, 236) to (288, 203).
+; PLAN: r0=43(x1), r1=236(y1), r2=288(x2), r3=203(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 43
+LDI r1, 236
+LDI r2, 288
+LDI r3, 203
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

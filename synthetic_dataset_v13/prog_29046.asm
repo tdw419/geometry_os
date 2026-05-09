@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a black 105x54 rectangle at position (313, 117).
-; PLAN: r0=313(x), r1=117(y), r2=105(width), r3=54(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 313
-LDI r1, 117
-LDI r2, 105
-LDI r3, 54
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (400, 68).
+; PLAN: r0=400(x), r1=68(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 400
+LDI r1, 68
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

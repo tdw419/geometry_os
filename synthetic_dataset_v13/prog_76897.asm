@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (82, 157).
-; PLAN: r0=82(x), r1=157(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 82
-LDI r1, 157
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a yellow line from (322, 57) to (120, 73).
+; PLAN: r0=322(x1), r1=57(y1), r2=120(x2), r3=73(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 322
+LDI r1, 57
+LDI r2, 120
+LDI r3, 73
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

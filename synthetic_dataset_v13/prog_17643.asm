@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (47, 142) spanning 112 by 112 pixels.
-; PLAN: r0=47(x), r1=142(y), r2=112(width), r3=112(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 47
-LDI r1, 142
-LDI r2, 112
-LDI r3, 112
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (338, 93) to (79, 156).
+; PLAN: r0=338(x1), r1=93(y1), r2=79(x2), r3=156(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 338
+LDI r1, 93
+LDI r2, 79
+LDI r3, 156
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a magenta line between points (126, 63) and (395, 103).
-; PLAN: r0=126(x1), r1=63(y1), r2=395(x2), r3=103(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 63
-LDI r2, 395
-LDI r3, 103
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (118, 5) then Creates a blue rectangular region at (379, 4) spanning 31 by 23 pixels.
+; PLAN: r0=118(x), r1=5(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=379(x), r6=4(y), r7=31(width), r8=23(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 118
+LDI r1, 5
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 379
+LDI r6, 4
+LDI r7, 31
+LDI r8, 23
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

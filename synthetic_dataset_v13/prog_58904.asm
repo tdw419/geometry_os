@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (376, 27) and radius 23.
-; PLAN: r0=376(x), r1=27(y), r2=23(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 376
-LDI r1, 27
-LDI r2, 23
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (365, 194) spanning 96 by 34 pixels.
+; PLAN: r0=365(x), r1=194(y), r2=96(width), r3=34(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 365
+LDI r1, 194
+LDI r2, 96
+LDI r3, 34
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

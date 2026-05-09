@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (207, 50) with width 80 and height 26.
-; PLAN: r0=207(x), r1=50(y), r2=80(width), r3=26(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 207
-LDI r1, 50
-LDI r2, 80
-LDI r3, 26
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Creates a black rectangular region at (209, 169) spanning 28 by 22 pixels.
+; PLAN: r0=209(x), r1=169(y), r2=28(width), r3=22(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 209
+LDI r1, 169
+LDI r2, 28
+LDI r3, 22
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

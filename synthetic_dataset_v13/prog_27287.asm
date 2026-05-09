@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (221, 175) and (398, 113).
-; PLAN: r0=221(x1), r1=175(y1), r2=398(x2), r3=113(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 221
-LDI r1, 175
-LDI r2, 398
-LDI r3, 113
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black rectangular region at (410, 149) spanning 46 by 75 pixels.
+; PLAN: r0=410(x), r1=149(y), r2=46(width), r3=75(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 410
+LDI r1, 149
+LDI r2, 46
+LDI r3, 75
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

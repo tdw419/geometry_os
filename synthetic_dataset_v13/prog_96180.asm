@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 10 at center (389, 158).
-; PLAN: r0=389(x), r1=158(y), r2=10(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 389
-LDI r1, 158
-LDI r2, 10
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 30x60 starting at (251, 156).
+; PLAN: r0=251(x), r1=156(y), r2=30(width), r3=60(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 251
+LDI r1, 156
+LDI r2, 30
+LDI r3, 60
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

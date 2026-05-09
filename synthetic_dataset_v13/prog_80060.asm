@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a green line between points (92, 247) and (49, 141).
-; PLAN: r0=92(x1), r1=247(y1), r2=49(x2), r3=141(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 247
-LDI r2, 49
-LDI r3, 141
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a black circle centered at (454, 179) with radius 47 then Places a yellow dot at position (70, 26).
+; PLAN: r0=454(x), r1=179(y), r2=47(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=70(x), r6=26(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
+LDI r0, 454
+LDI r1, 179
+LDI r2, 47
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 70
+LDI r6, 26
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
 HALT

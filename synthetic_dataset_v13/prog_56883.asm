@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow line segment connecting (310, 223) to (223, 99).
-; PLAN: r0=310(x1), r1=223(y1), r2=223(x2), r3=99(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 223
-LDI r2, 223
-LDI r3, 99
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue dot at position (361, 245).
+; PLAN: r0=361(x), r1=245(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 361
+LDI r1, 245
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

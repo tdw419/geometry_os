@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 14 into r1 and decrements it in a loop until zero.
-; PLAN: r1=14(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 14
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a purple disk with center (256, 89) and radius 26.
+; PLAN: r0=256(x), r1=89(y), r2=26(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 256
+LDI r1, 89
+LDI r2, 26
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

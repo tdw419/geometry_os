@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (67, 204) to (192, 175).
-; PLAN: r0=67(x1), r1=204(y1), r2=192(x2), r3=175(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 67
-LDI r1, 204
-LDI r2, 192
-LDI r3, 175
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (442, 219) with radius 20.
+; PLAN: r0=442(x), r1=219(y), r2=20(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 442
+LDI r1, 219
+LDI r2, 20
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

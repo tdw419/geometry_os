@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (306, 72) to (223, 255).
-; PLAN: r0=306(x1), r1=72(y1), r2=223(x2), r3=255(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 306
-LDI r1, 72
-LDI r2, 223
-LDI r3, 255
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a orange line between points (448, 184) and (327, 188).
+; PLAN: r0=448(x1), r1=184(y1), r2=327(x2), r3=188(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 448
+LDI r1, 184
+LDI r2, 327
+LDI r3, 188
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (176, 85) to (168, 107).
-; PLAN: r0=176(x1), r1=85(y1), r2=168(x2), r3=107(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 176
-LDI r1, 85
-LDI r2, 168
-LDI r3, 107
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a black line from (193, 135) to (491, 13).
+; PLAN: r0=193(x1), r1=135(y1), r2=491(x2), r3=13(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 193
+LDI r1, 135
+LDI r2, 491
+LDI r3, 13
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

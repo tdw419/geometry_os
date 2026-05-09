@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a black circle of radius 60 at center (312, 194).
-; PLAN: r0=312(x), r1=194(y), r2=60(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 312
-LDI r1, 194
-LDI r2, 60
-LDI r3, 0x000000
+; DESCRIPTION: Draws a green circle centered at (313, 92) with radius 35.
+; PLAN: r0=313(x), r1=92(y), r2=35(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 313
+LDI r1, 92
+LDI r2, 35
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

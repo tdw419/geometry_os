@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (458, 173) with width 40 and height 74.
-; PLAN: r0=458(x), r1=173(y), r2=40(width), r3=74(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 458
-LDI r1, 173
-LDI r2, 40
-LDI r3, 74
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a magenta rectangle at (127, 75) with width 33 and height 59.
+; PLAN: r0=127(x), r1=75(y), r2=33(width), r3=59(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 75
+LDI r2, 33
+LDI r3, 59
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

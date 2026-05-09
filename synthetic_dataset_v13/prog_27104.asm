@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (164, 176) then Renders a white line between points (401, 50) and (402, 87) then Draws a black circle centered at (331, 159) with radius 79.
-; PLAN: r0=164(x), r1=176(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=401(x1), r6=50(y1), r7=402(x2), r8=87(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=331(x), r11=159(y), r12=79(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 164
-LDI r1, 176
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 401
-LDI r6, 50
-LDI r7, 402
-LDI r8, 87
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
-LDI r10, 331
-LDI r11, 159
-LDI r12, 79
-LDI r13, 0x000000
+; DESCRIPTION: Composite: Draws a purple rectangle at (384, 235) with width 41 and height 18 then Places a cyan dot at position (319, 184) then Places a blue circle of radius 26 at center (175, 216).
+; PLAN: r0=384(x), r1=235(y), r2=41(width), r3=18(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=319(x), r6=184(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=175(x), r11=216(y), r12=26(radius), r13=0x0000FF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 384
+LDI r1, 235
+LDI r2, 41
+LDI r3, 18
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 319
+LDI r6, 184
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
+LDI r10, 175
+LDI r11, 216
+LDI r12, 26
+LDI r13, 0x0000FF
 CIRCLE r10, r11, r12, r13
 HALT

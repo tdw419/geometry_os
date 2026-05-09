@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 15 at center (185, 227).
-; PLAN: r0=185(x), r1=227(y), r2=15(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 185
-LDI r1, 227
-LDI r2, 15
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 51x59 rectangle at position (294, 2).
+; PLAN: r0=294(x), r1=2(y), r2=51(width), r3=59(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 294
+LDI r1, 2
+LDI r2, 51
+LDI r3, 59
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green box of size 18x87 starting at (0, 96).
-; PLAN: r0=0(x), r1=96(y), r2=18(width), r3=87(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 0
-LDI r1, 96
+; DESCRIPTION: Places a green circle of radius 18 at center (450, 224).
+; PLAN: r0=450(x), r1=224(y), r2=18(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 450
+LDI r1, 224
 LDI r2, 18
-LDI r3, 87
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

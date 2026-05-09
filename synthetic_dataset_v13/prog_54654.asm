@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a red rectangular region at (164, 164) spanning 14 by 33 pixels.
-; PLAN: r0=164(x), r1=164(y), r2=14(width), r3=33(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 164
-LDI r2, 14
-LDI r3, 33
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (452, 128) then Renders a white disk with center (389, 157) and radius 52.
+; PLAN: r0=452(x), r1=128(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=389(x), r6=157(y), r7=52(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 452
+LDI r1, 128
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 389
+LDI r6, 157
+LDI r7, 52
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

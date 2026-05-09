@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Renders a yellow line between points (154, 168) and (245, 88) then Renders a red box of size 68x94 starting at (204, 80) then Places a red circle of radius 78 at center (429, 133).
-; PLAN: r0=154(x1), r1=168(y1), r2=245(x2), r3=88(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=204(x), r6=80(y), r7=68(width), r8=94(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=429(x), r11=133(y), r12=78(radius), r13=0xFF0000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 154
-LDI r1, 168
-LDI r2, 245
-LDI r3, 88
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 204
-LDI r6, 80
-LDI r7, 68
-LDI r8, 94
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
-LDI r10, 429
-LDI r11, 133
-LDI r12, 78
-LDI r13, 0xFF0000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Draws a black rectangle at (190, 154) with width 51 and height 43 then Draws a green line from (120, 48) to (425, 107) then Places a cyan dot at position (144, 216).
+; PLAN: r0=190(x), r1=154(y), r2=51(width), r3=43(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=120(x1), r6=48(y1), r7=425(x2), r8=107(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=144(x), r11=216(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 190
+LDI r1, 154
+LDI r2, 51
+LDI r3, 43
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 120
+LDI r6, 48
+LDI r7, 425
+LDI r8, 107
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
+LDI r10, 144
+LDI r11, 216
+LDI r12, 0x00FFFF
+PSET r10, r11, r12
 HALT

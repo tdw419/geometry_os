@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a yellow 44x22 rectangle at position (146, 0).
-; PLAN: r0=146(x), r1=0(y), r2=44(width), r3=22(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 146
-LDI r1, 0
-LDI r2, 44
-LDI r3, 22
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

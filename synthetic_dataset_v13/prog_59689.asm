@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 90x58 rectangle at position (225, 83).
-; PLAN: r0=225(x), r1=83(y), r2=90(width), r3=58(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 225
-LDI r1, 83
-LDI r2, 90
-LDI r3, 58
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a red box of size 18x19 starting at (122, 20).
+; PLAN: r0=122(x), r1=20(y), r2=18(width), r3=19(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 122
+LDI r1, 20
+LDI r2, 18
+LDI r3, 19
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

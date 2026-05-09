@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 103x86 rectangle at position (133, 33).
-; PLAN: r0=133(x), r1=33(y), r2=103(width), r3=86(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 133
-LDI r1, 33
-LDI r2, 103
-LDI r3, 86
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (139, 253) to (108, 79).
+; PLAN: r0=139(x1), r1=253(y1), r2=108(x2), r3=79(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 253
+LDI r2, 108
+LDI r3, 79
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

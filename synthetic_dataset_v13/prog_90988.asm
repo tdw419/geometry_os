@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 71x54 starting at (208, 38).
-; PLAN: r0=208(x), r1=38(y), r2=71(width), r3=54(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 208
-LDI r1, 38
-LDI r2, 71
-LDI r3, 54
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a green rectangle at (77, 121) with width 105 and height 111.
+; PLAN: r0=77(x), r1=121(y), r2=105(width), r3=111(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 77
+LDI r1, 121
+LDI r2, 105
+LDI r3, 111
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (324, 38) with radius 32.
-; PLAN: r0=324(x), r1=38(y), r2=32(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 324
-LDI r1, 38
-LDI r2, 32
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (439, 28) and (104, 143).
+; PLAN: r0=439(x1), r1=28(y1), r2=104(x2), r3=143(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 439
+LDI r1, 28
+LDI r2, 104
+LDI r3, 143
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

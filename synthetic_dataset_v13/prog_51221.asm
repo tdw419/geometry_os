@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a red rectangle at (108, 15) with width 37 and height 64.
-; PLAN: r0=108(x), r1=15(y), r2=37(width), r3=64(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 108
-LDI r1, 15
-LDI r2, 37
-LDI r3, 64
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a white circle of radius 53 at center (244, 143) then Creates a purple rectangular region at (400, 149) spanning 91 by 69 pixels.
+; PLAN: r0=244(x), r1=143(y), r2=53(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=400(x), r6=149(y), r7=91(width), r8=69(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 244
+LDI r1, 143
+LDI r2, 53
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 400
+LDI r6, 149
+LDI r7, 91
+LDI r8, 69
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

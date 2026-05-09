@@ -1,15 +1,19 @@
-; DESCRIPTION: Composite: Places a orange line segment connecting (148, 147) to (50, 221) then Creates a cyan rectangular region at (107, 191) spanning 108 by 57 pixels.
-; PLAN: r0=148(x1), r1=147(y1), r2=50(x2), r3=221(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=107(x), r6=191(y), r7=108(width), r8=57(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 148
-LDI r1, 147
-LDI r2, 50
-LDI r3, 221
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
-LDI r5, 107
-LDI r6, 191
-LDI r7, 108
-LDI r8, 57
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

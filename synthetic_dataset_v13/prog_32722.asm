@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 71 at center (339, 155).
-; PLAN: r0=339(x), r1=155(y), r2=71(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 339
-LDI r1, 155
-LDI r2, 71
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (305, 99) with width 112 and height 63.
+; PLAN: r0=305(x), r1=99(y), r2=112(width), r3=63(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 305
+LDI r1, 99
+LDI r2, 112
+LDI r3, 63
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

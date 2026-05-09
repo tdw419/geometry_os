@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (433, 223) to (125, 208).
-; PLAN: r0=433(x1), r1=223(y1), r2=125(x2), r3=208(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 433
-LDI r1, 223
-LDI r2, 125
-LDI r3, 208
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (60, 40) with radius 20.
+; PLAN: r0=60(x), r1=40(y), r2=20(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 60
+LDI r1, 40
+LDI r2, 20
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

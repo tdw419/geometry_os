@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 10x40 starting at (3, 68).
-; PLAN: r0=3(x), r1=68(y), r2=10(width), r3=40(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 3
-LDI r1, 68
-LDI r2, 10
-LDI r3, 40
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (139, 166) with radius 72.
+; PLAN: r0=139(x), r1=166(y), r2=72(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 139
+LDI r1, 166
+LDI r2, 72
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

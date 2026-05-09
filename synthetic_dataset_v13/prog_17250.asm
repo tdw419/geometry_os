@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (390, 156) with radius 66.
-; PLAN: r0=390(x), r1=156(y), r2=66(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 390
-LDI r1, 156
-LDI r2, 66
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue line segment connecting (366, 161) to (30, 61).
+; PLAN: r0=366(x1), r1=161(y1), r2=30(x2), r3=61(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 366
+LDI r1, 161
+LDI r2, 30
+LDI r3, 61
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

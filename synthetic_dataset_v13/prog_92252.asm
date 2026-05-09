@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (243, 110) and radius 75.
-; PLAN: r0=243(x), r1=110(y), r2=75(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 243
-LDI r1, 110
-LDI r2, 75
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (95, 53) and (463, 216).
+; PLAN: r0=95(x1), r1=53(y1), r2=463(x2), r3=216(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 95
+LDI r1, 53
+LDI r2, 463
+LDI r3, 216
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

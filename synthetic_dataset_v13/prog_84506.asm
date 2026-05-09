@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (114, 164) spanning 31 by 83 pixels.
-; PLAN: r0=114(x), r1=164(y), r2=31(width), r3=83(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 114
-LDI r1, 164
-LDI r2, 31
-LDI r3, 83
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (94, 93) and (165, 4).
+; PLAN: r0=94(x1), r1=93(y1), r2=165(x2), r3=4(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 94
+LDI r1, 93
+LDI r2, 165
+LDI r3, 4
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

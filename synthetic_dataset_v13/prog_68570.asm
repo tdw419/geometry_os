@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Places a blue dot at position (80, 117).
+; PLAN: r0=80(x), r1=117(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 80
+LDI r1, 117
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan box of size 96x104 starting at (309, 5).
-; PLAN: r0=309(x), r1=5(y), r2=96(width), r3=104(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 5
-LDI r2, 96
-LDI r3, 104
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (430, 166) and radius 48.
+; PLAN: r0=430(x), r1=166(y), r2=48(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 430
+LDI r1, 166
+LDI r2, 48
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

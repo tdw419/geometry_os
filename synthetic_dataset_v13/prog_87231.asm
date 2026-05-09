@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta line between points (116, 136) and (363, 72).
-; PLAN: r0=116(x1), r1=136(y1), r2=363(x2), r3=72(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 116
-LDI r1, 136
-LDI r2, 363
-LDI r3, 72
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (351, 185) with radius 66.
+; PLAN: r0=351(x), r1=185(y), r2=66(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 351
+LDI r1, 185
+LDI r2, 66
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

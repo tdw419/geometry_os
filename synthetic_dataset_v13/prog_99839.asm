@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (254, 172) with radius 41.
-; PLAN: r0=254(x), r1=172(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 254
-LDI r1, 172
-LDI r2, 41
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (177, 53) to (341, 42).
+; PLAN: r0=177(x1), r1=53(y1), r2=341(x2), r3=42(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 177
+LDI r1, 53
+LDI r2, 341
+LDI r3, 42
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

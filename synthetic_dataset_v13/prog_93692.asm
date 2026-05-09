@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a magenta rectangle at (6, 27) with width 62 and height 118.
-; PLAN: r0=6(x), r1=27(y), r2=62(width), r3=118(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 6
-LDI r1, 27
-LDI r2, 62
-LDI r3, 118
-LDI r4, 0xFF00FF
+; DESCRIPTION: Composite: Creates a black rectangular region at (171, 31) spanning 105 by 82 pixels then Places a red dot at position (3, 67).
+; PLAN: r0=171(x), r1=31(y), r2=105(width), r3=82(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=3(x), r6=67(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 171
+LDI r1, 31
+LDI r2, 105
+LDI r3, 82
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
+LDI r5, 3
+LDI r6, 67
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

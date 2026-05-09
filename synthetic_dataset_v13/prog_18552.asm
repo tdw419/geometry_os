@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (166, 136) to (226, 36).
-; PLAN: r0=166(x1), r1=136(y1), r2=226(x2), r3=36(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 166
-LDI r1, 136
-LDI r2, 226
-LDI r3, 36
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (110, 68) and radius 58.
+; PLAN: r0=110(x), r1=68(y), r2=58(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 110
+LDI r1, 68
+LDI r2, 58
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

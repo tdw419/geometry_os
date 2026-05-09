@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (300, 136) to (12, 26).
-; PLAN: r0=300(x1), r1=136(y1), r2=12(x2), r3=26(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 136
-LDI r2, 12
-LDI r3, 26
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 56 at center (159, 193).
+; PLAN: r0=159(x), r1=193(y), r2=56(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 159
+LDI r1, 193
+LDI r2, 56
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

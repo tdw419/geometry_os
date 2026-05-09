@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a black dot at position (99, 175) then Draws a blue rectangle at (138, 103) with width 44 and height 53.
-; PLAN: r0=99(x), r1=175(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=138(x), r6=103(y), r7=44(width), r8=53(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 99
-LDI r1, 175
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 138
-LDI r6, 103
-LDI r7, 44
-LDI r8, 53
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a black line segment connecting (340, 43) to (38, 125).
+; PLAN: r0=340(x1), r1=43(y1), r2=38(x2), r3=125(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 340
+LDI r1, 43
+LDI r2, 38
+LDI r3, 125
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

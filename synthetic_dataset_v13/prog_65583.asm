@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (93, 178) and (417, 7).
-; PLAN: r0=93(x1), r1=178(y1), r2=417(x2), r3=7(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 93
-LDI r1, 178
-LDI r2, 417
-LDI r3, 7
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan rectangular region at (7, 113) spanning 60 by 27 pixels.
+; PLAN: r0=7(x), r1=113(y), r2=60(width), r3=27(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 7
+LDI r1, 113
+LDI r2, 60
+LDI r3, 27
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

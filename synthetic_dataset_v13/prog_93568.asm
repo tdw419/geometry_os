@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a white box of size 65x109 starting at (420, 97).
-; PLAN: r0=420(x), r1=97(y), r2=65(width), r3=109(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 420
-LDI r1, 97
-LDI r2, 65
-LDI r3, 109
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (64, 15) then Draws a green rectangle at (459, 177) with width 27 and height 33.
+; PLAN: r0=64(x), r1=15(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=459(x), r6=177(y), r7=27(width), r8=33(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 64
+LDI r1, 15
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 459
+LDI r6, 177
+LDI r7, 27
+LDI r8, 33
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

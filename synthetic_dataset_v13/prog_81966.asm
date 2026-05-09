@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (174, 180) with width 115 and height 67.
-; PLAN: r0=174(x), r1=180(y), r2=115(width), r3=67(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 174
-LDI r1, 180
-LDI r2, 115
-LDI r3, 67
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a white 72x28 rectangle at position (119, 20).
+; PLAN: r0=119(x), r1=20(y), r2=72(width), r3=28(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 119
+LDI r1, 20
+LDI r2, 72
+LDI r3, 28
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

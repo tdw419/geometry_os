@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a red circle of radius 38 at center (330, 129).
-; PLAN: r0=330(x), r1=129(y), r2=38(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 330
-LDI r1, 129
-LDI r2, 38
-LDI r3, 0xFF0000
+; DESCRIPTION: Draws a green circle centered at (278, 124) with radius 79.
+; PLAN: r0=278(x), r1=124(y), r2=79(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 278
+LDI r1, 124
+LDI r2, 79
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

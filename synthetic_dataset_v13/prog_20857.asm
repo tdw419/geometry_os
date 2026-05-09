@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Places a red dot at position (271, 21) then Renders a yellow box of size 120x82 starting at (114, 64).
-; PLAN: r0=271(x), r1=21(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=114(x), r6=64(y), r7=120(width), r8=82(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 271
-LDI r1, 21
-LDI r2, 0xFF0000
+; DESCRIPTION: Composite: Places a orange dot at position (91, 181) then Renders a blue line between points (21, 212) and (365, 32).
+; PLAN: r0=91(x), r1=181(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=21(x1), r6=212(y1), r7=365(x2), r8=32(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 91
+LDI r1, 181
+LDI r2, 0xFF8800
 PSET r0, r1, r2
-LDI r5, 114
-LDI r6, 64
-LDI r7, 120
-LDI r8, 82
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+LDI r5, 21
+LDI r6, 212
+LDI r7, 365
+LDI r8, 32
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

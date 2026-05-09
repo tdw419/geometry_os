@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (449, 31) to (230, 9).
-; PLAN: r0=449(x1), r1=31(y1), r2=230(x2), r3=9(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 449
-LDI r1, 31
-LDI r2, 230
-LDI r3, 9
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 59x33 rectangle at position (49, 77).
+; PLAN: r0=49(x), r1=77(y), r2=59(width), r3=33(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 49
+LDI r1, 77
+LDI r2, 59
+LDI r3, 33
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

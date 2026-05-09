@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 114x20 starting at (294, 151).
-; PLAN: r0=294(x), r1=151(y), r2=114(width), r3=20(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 294
-LDI r1, 151
-LDI r2, 114
-LDI r3, 20
-LDI r4, 0x0000FF
+; DESCRIPTION: Creates a yellow rectangular region at (100, 138) spanning 35 by 73 pixels.
+; PLAN: r0=100(x), r1=138(y), r2=35(width), r3=73(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 100
+LDI r1, 138
+LDI r2, 35
+LDI r3, 73
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

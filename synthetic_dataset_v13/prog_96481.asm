@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a purple dot at position (309, 32).
-; PLAN: r0=309(x), r1=32(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 309
-LDI r1, 32
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a black circular shape at (335, 188) with radius 32.
+; PLAN: r0=335(x), r1=188(y), r2=32(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 335
+LDI r1, 188
+LDI r2, 32
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

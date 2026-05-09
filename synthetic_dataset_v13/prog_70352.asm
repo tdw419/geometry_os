@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a white rectangle at (12, 38) with width 59 and height 93.
-; PLAN: r0=12(x), r1=38(y), r2=59(width), r3=93(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 12
-LDI r1, 38
-LDI r2, 59
-LDI r3, 93
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black dot at position (369, 110) then Creates a cyan rectangular region at (345, 86) spanning 120 by 107 pixels.
+; PLAN: r0=369(x), r1=110(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=345(x), r6=86(y), r7=120(width), r8=107(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 369
+LDI r1, 110
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 345
+LDI r6, 86
+LDI r7, 120
+LDI r8, 107
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (9, 128) and (144, 72).
-; PLAN: r0=9(x1), r1=128(y1), r2=144(x2), r3=72(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 9
-LDI r1, 128
-LDI r2, 144
-LDI r3, 72
-LDI r4, 0x000000
+; DESCRIPTION: Places a red line segment connecting (414, 136) to (450, 74).
+; PLAN: r0=414(x1), r1=136(y1), r2=450(x2), r3=74(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 414
+LDI r1, 136
+LDI r2, 450
+LDI r3, 74
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

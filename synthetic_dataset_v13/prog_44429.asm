@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (202, 246) then Places a orange circle of radius 79 at center (122, 112).
-; PLAN: r0=202(x), r1=246(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=122(x), r6=112(y), r7=79(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 202
-LDI r1, 246
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 122
-LDI r6, 112
-LDI r7, 79
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a orange rectangular region at (435, 34) spanning 76 by 111 pixels.
+; PLAN: r0=435(x), r1=34(y), r2=76(width), r3=111(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 435
+LDI r1, 34
+LDI r2, 76
+LDI r3, 111
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

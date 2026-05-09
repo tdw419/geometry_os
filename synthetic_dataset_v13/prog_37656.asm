@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (8, 154) to (222, 230).
-; PLAN: r0=8(x1), r1=154(y1), r2=222(x2), r3=230(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 8
-LDI r1, 154
-LDI r2, 222
-LDI r3, 230
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 36x116 rectangle at position (318, 107).
+; PLAN: r0=318(x), r1=107(y), r2=36(width), r3=116(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 318
+LDI r1, 107
+LDI r2, 36
+LDI r3, 116
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Renders a black line between points (301, 115) and (291, 16) then Places a cyan circle of radius 62 at center (188, 176) then Places a black dot at position (153, 253).
-; PLAN: r0=301(x1), r1=115(y1), r2=291(x2), r3=16(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=188(x), r6=176(y), r7=62(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=153(x), r11=253(y), r12=0x000000(color). Op: PSET r10, r11, r12.
-LDI r0, 301
-LDI r1, 115
-LDI r2, 291
-LDI r3, 16
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
-LDI r5, 188
-LDI r6, 176
-LDI r7, 62
-LDI r8, 0x00FFFF
+; DESCRIPTION: Composite: Places a red 19x66 rectangle at position (249, 162) then Renders a yellow disk with center (116, 138) and radius 72.
+; PLAN: r0=249(x), r1=162(y), r2=19(width), r3=66(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=116(x), r6=138(y), r7=72(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 249
+LDI r1, 162
+LDI r2, 19
+LDI r3, 66
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 116
+LDI r6, 138
+LDI r7, 72
+LDI r8, 0xFFFF00
 CIRCLE r5, r6, r7, r8
-LDI r10, 153
-LDI r11, 253
-LDI r12, 0x000000
-PSET r10, r11, r12
 HALT

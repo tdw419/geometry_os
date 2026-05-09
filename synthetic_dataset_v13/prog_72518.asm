@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 33 at center (66, 126).
-; PLAN: r0=66(x), r1=126(y), r2=33(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 66
-LDI r1, 126
-LDI r2, 33
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (94, 207) to (269, 91).
+; PLAN: r0=94(x1), r1=207(y1), r2=269(x2), r3=91(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 94
+LDI r1, 207
+LDI r2, 269
+LDI r3, 91
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

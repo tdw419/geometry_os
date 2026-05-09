@@ -1,15 +1,14 @@
-; DESCRIPTION: Composite: Draws a white line from (253, 238) to (200, 86) then Renders a yellow box of size 96x14 starting at (208, 7).
-; PLAN: r0=253(x1), r1=238(y1), r2=200(x2), r3=86(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=208(x), r6=7(y), r7=96(width), r8=14(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 253
-LDI r1, 238
-LDI r2, 200
-LDI r3, 86
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 208
-LDI r6, 7
-LDI r7, 96
-LDI r8, 14
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a orange rectangle at (49, 129) with width 58 and height 66 then Renders a green disk with center (100, 66) and radius 62.
+; PLAN: r0=49(x), r1=129(y), r2=58(width), r3=66(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=100(x), r6=66(y), r7=62(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 49
+LDI r1, 129
+LDI r2, 58
+LDI r3, 66
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 100
+LDI r6, 66
+LDI r7, 62
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

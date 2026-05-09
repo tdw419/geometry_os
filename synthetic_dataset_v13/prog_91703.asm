@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (98, 84) with width 71 and height 50.
-; PLAN: r0=98(x), r1=84(y), r2=71(width), r3=50(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 98
+; DESCRIPTION: Draws a purple line from (195, 84) to (314, 11).
+; PLAN: r0=195(x1), r1=84(y1), r2=314(x2), r3=11(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 195
 LDI r1, 84
-LDI r2, 71
-LDI r3, 50
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+LDI r2, 314
+LDI r3, 11
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

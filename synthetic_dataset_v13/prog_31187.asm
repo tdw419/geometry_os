@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a magenta line segment connecting (88, 102) to (30, 234).
-; PLAN: r0=88(x1), r1=102(y1), r2=30(x2), r3=234(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 102
-LDI r2, 30
-LDI r3, 234
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (155, 188) then Creates a cyan rectangular region at (391, 44) spanning 87 by 63 pixels.
+; PLAN: r0=155(x), r1=188(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=391(x), r6=44(y), r7=87(width), r8=63(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 155
+LDI r1, 188
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 391
+LDI r6, 44
+LDI r7, 87
+LDI r8, 63
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Creates a green circular shape at (129, 89) with radius 74 then Draws a orange line from (438, 106) to (228, 48).
-; PLAN: r0=129(x), r1=89(y), r2=74(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=438(x1), r6=106(y1), r7=228(x2), r8=48(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 129
-LDI r1, 89
-LDI r2, 74
-LDI r3, 0x00FF00
+; DESCRIPTION: Composite: Creates a purple circular shape at (414, 16) with radius 15 then Places a magenta dot at position (261, 75).
+; PLAN: r0=414(x), r1=16(y), r2=15(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=261(x), r6=75(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 414
+LDI r1, 16
+LDI r2, 15
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
-LDI r5, 438
-LDI r6, 106
-LDI r7, 228
-LDI r8, 48
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+LDI r5, 261
+LDI r6, 75
+LDI r7, 0xFF00FF
+PSET r5, r6, r7
 HALT

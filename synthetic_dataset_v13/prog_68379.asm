@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a yellow rectangular region at (35, 123) spanning 79 by 91 pixels.
-; PLAN: r0=35(x), r1=123(y), r2=79(width), r3=91(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 35
-LDI r1, 123
-LDI r2, 79
-LDI r3, 91
+; DESCRIPTION: Composite: Renders a yellow line between points (190, 174) and (446, 123) then Sets a single white pixel at (37, 180).
+; PLAN: r0=190(x1), r1=174(y1), r2=446(x2), r3=123(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=37(x), r6=180(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 190
+LDI r1, 174
+LDI r2, 446
+LDI r3, 123
 LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
+LDI r5, 37
+LDI r6, 180
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (110, 249) to (242, 232).
-; PLAN: r0=110(x1), r1=249(y1), r2=242(x2), r3=232(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 110
-LDI r1, 249
-LDI r2, 242
-LDI r3, 232
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (37, 230) and radius 20.
+; PLAN: r0=37(x), r1=230(y), r2=20(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 37
+LDI r1, 230
+LDI r2, 20
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

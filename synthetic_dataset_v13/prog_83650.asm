@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (39, 110) to (192, 218).
-; PLAN: r0=39(x1), r1=110(y1), r2=192(x2), r3=218(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 39
-LDI r1, 110
-LDI r2, 192
-LDI r3, 218
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a yellow line between points (276, 66) and (110, 253).
+; PLAN: r0=276(x1), r1=66(y1), r2=110(x2), r3=253(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 276
+LDI r1, 66
+LDI r2, 110
+LDI r3, 253
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

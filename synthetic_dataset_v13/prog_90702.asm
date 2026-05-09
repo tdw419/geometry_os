@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a red dot at position (61, 166).
-; PLAN: r0=61(x), r1=166(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 61
-LDI r1, 166
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple disk with center (312, 77) and radius 23.
+; PLAN: r0=312(x), r1=77(y), r2=23(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 312
+LDI r1, 77
+LDI r2, 23
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

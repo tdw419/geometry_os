@@ -1,8 +1,12 @@
-; DESCRIPTION: Draws a black circle centered at (163, 191) with radius 26.
-; PLAN: r0=163(x), r1=191(y), r2=26(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 163
-LDI r1, 191
-LDI r2, 26
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single black pixel at (102, 166) then Places a yellow circle of radius 78 at center (399, 167).
+; PLAN: r0=102(x), r1=166(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=399(x), r6=167(y), r7=78(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 102
+LDI r1, 166
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 399
+LDI r6, 167
+LDI r7, 78
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

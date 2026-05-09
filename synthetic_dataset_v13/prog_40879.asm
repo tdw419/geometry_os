@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red box of size 85x27 starting at (238, 112).
-; PLAN: r0=238(x), r1=112(y), r2=85(width), r3=27(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 238
-LDI r1, 112
-LDI r2, 85
-LDI r3, 27
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 58 at center (343, 107).
+; PLAN: r0=343(x), r1=107(y), r2=58(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 343
+LDI r1, 107
+LDI r2, 58
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

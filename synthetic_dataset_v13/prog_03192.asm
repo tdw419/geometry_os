@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (464, 103) and (330, 59).
-; PLAN: r0=464(x1), r1=103(y1), r2=330(x2), r3=59(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 464
-LDI r1, 103
-LDI r2, 330
-LDI r3, 59
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (449, 214) and radius 31.
+; PLAN: r0=449(x), r1=214(y), r2=31(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 449
+LDI r1, 214
+LDI r2, 31
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 10 at center (153, 15).
-; PLAN: r0=153(x), r1=15(y), r2=10(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 153
-LDI r1, 15
-LDI r2, 10
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta rectangle at (186, 47) with width 88 and height 91.
+; PLAN: r0=186(x), r1=47(y), r2=88(width), r3=91(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 186
+LDI r1, 47
+LDI r2, 88
+LDI r3, 91
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

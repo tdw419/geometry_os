@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (204, 108).
-; PLAN: r0=204(x), r1=108(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 204
-LDI r1, 108
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a red 35x15 rectangle at position (441, 175).
+; PLAN: r0=441(x), r1=175(y), r2=35(width), r3=15(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 441
+LDI r1, 175
+LDI r2, 35
+LDI r3, 15
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

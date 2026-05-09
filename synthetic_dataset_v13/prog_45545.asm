@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (382, 254) to (35, 225).
-; PLAN: r0=382(x1), r1=254(y1), r2=35(x2), r3=225(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 382
-LDI r1, 254
-LDI r2, 35
-LDI r3, 225
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (105, 144) with radius 67.
+; PLAN: r0=105(x), r1=144(y), r2=67(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 105
+LDI r1, 144
+LDI r2, 67
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

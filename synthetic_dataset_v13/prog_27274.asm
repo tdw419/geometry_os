@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a green circle centered at (189, 161) with radius 79.
-; PLAN: r0=189(x), r1=161(y), r2=79(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 189
-LDI r1, 161
-LDI r2, 79
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange dot at position (403, 143).
+; PLAN: r0=403(x), r1=143(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 403
+LDI r1, 143
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

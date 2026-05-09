@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (95, 111) with radius 67.
-; PLAN: r0=95(x), r1=111(y), r2=67(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 95
-LDI r1, 111
-LDI r2, 67
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (66, 28) and (298, 95).
+; PLAN: r0=66(x1), r1=28(y1), r2=298(x2), r3=95(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 66
+LDI r1, 28
+LDI r2, 298
+LDI r3, 95
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

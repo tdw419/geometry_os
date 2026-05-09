@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single orange pixel at (280, 143).
-; PLAN: r0=280(x), r1=143(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 280
-LDI r1, 143
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

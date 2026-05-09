@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a red circle of radius 55 at center (320, 84).
-; PLAN: r0=320(x), r1=84(y), r2=55(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 320
-LDI r1, 84
-LDI r2, 55
-LDI r3, 0xFF0000
+; DESCRIPTION: Places a cyan circle of radius 21 at center (163, 37).
+; PLAN: r0=163(x), r1=37(y), r2=21(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 163
+LDI r1, 37
+LDI r2, 21
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

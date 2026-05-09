@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (227, 45) with radius 45.
-; PLAN: r0=227(x), r1=45(y), r2=45(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 227
-LDI r1, 45
-LDI r2, 45
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (211, 155) and (31, 142).
+; PLAN: r0=211(x1), r1=155(y1), r2=31(x2), r3=142(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 211
+LDI r1, 155
+LDI r2, 31
+LDI r3, 142
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

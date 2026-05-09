@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (427, 32) to (435, 180).
-; PLAN: r0=427(x1), r1=32(y1), r2=435(x2), r3=180(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 427
-LDI r1, 32
-LDI r2, 435
-LDI r3, 180
-LDI r4, 0x000000
+; DESCRIPTION: Renders a white line between points (470, 2) and (282, 62).
+; PLAN: r0=470(x1), r1=2(y1), r2=282(x2), r3=62(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 470
+LDI r1, 2
+LDI r2, 282
+LDI r3, 62
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

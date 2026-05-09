@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 94x62 rectangle at position (14, 5).
-; PLAN: r0=14(x), r1=5(y), r2=94(width), r3=62(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 14
-LDI r1, 5
-LDI r2, 94
-LDI r3, 62
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 6 into r1 and decrements it in a loop until zero.
+; PLAN: r1=6(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 6
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

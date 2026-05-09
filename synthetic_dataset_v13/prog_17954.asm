@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 30x29 starting at (315, 186).
-; PLAN: r0=315(x), r1=186(y), r2=30(width), r3=29(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 315
-LDI r1, 186
-LDI r2, 30
-LDI r3, 29
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a yellow box of size 74x62 starting at (404, 125).
+; PLAN: r0=404(x), r1=125(y), r2=74(width), r3=62(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 404
+LDI r1, 125
+LDI r2, 74
+LDI r3, 62
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

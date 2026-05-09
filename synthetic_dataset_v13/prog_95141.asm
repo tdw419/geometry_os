@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (256, 70) and (0, 85).
-; PLAN: r0=256(x1), r1=70(y1), r2=0(x2), r3=85(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 70
-LDI r2, 0
-LDI r3, 85
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a magenta line from (364, 45) to (298, 88).
+; PLAN: r0=364(x1), r1=45(y1), r2=298(x2), r3=88(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 364
+LDI r1, 45
+LDI r2, 298
+LDI r3, 88
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

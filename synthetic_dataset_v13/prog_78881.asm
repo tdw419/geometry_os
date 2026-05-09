@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (420, 107) with radius 39.
-; PLAN: r0=420(x), r1=107(y), r2=39(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 420
-LDI r1, 107
-LDI r2, 39
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black line segment connecting (345, 209) to (47, 90).
+; PLAN: r0=345(x1), r1=209(y1), r2=47(x2), r3=90(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 345
+LDI r1, 209
+LDI r2, 47
+LDI r3, 90
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

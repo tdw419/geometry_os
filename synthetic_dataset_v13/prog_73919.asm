@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple line segment connecting (334, 58) to (475, 155).
-; PLAN: r0=334(x1), r1=58(y1), r2=475(x2), r3=155(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 334
-LDI r1, 58
-LDI r2, 475
-LDI r3, 155
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple circle of radius 62 at center (83, 192).
+; PLAN: r0=83(x), r1=192(y), r2=62(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 83
+LDI r1, 192
+LDI r2, 62
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

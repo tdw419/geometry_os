@@ -1,5 +1,5 @@
-; DESCRIPTION: Fills the entire screen with solid white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
+; DESCRIPTION: Clears the screen to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
 FILL r0
 HALT

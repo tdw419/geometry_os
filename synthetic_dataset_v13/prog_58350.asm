@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (120, 164) with radius 43.
-; PLAN: r0=120(x), r1=164(y), r2=43(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 120
-LDI r1, 164
-LDI r2, 43
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black line segment connecting (460, 5) to (262, 130).
+; PLAN: r0=460(x1), r1=5(y1), r2=262(x2), r3=130(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 460
+LDI r1, 5
+LDI r2, 262
+LDI r3, 130
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

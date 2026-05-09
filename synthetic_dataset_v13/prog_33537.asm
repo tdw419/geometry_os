@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (190, 62) with width 37 and height 114.
-; PLAN: r0=190(x), r1=62(y), r2=37(width), r3=114(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 62
-LDI r2, 37
-LDI r3, 114
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue circle centered at (491, 32) with radius 20.
+; PLAN: r0=491(x), r1=32(y), r2=20(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 491
+LDI r1, 32
+LDI r2, 20
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (421, 90) with radius 65.
-; PLAN: r0=421(x), r1=90(y), r2=65(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 421
-LDI r1, 90
-LDI r2, 65
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (397, 152) to (463, 204).
+; PLAN: r0=397(x1), r1=152(y1), r2=463(x2), r3=204(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 397
+LDI r1, 152
+LDI r2, 463
+LDI r3, 204
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

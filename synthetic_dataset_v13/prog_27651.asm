@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Draws a orange circle centered at (63, 189) with radius 48 then Places a magenta 62x50 rectangle at position (286, 103) then Sets a single black pixel at (401, 10).
-; PLAN: r0=63(x), r1=189(y), r2=48(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=286(x), r6=103(y), r7=62(width), r8=50(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=401(x), r11=10(y), r12=0x000000(color). Op: PSET r10, r11, r12.
-LDI r0, 63
-LDI r1, 189
-LDI r2, 48
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 286
-LDI r6, 103
-LDI r7, 62
-LDI r8, 50
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 401
-LDI r11, 10
-LDI r12, 0x000000
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Places a white dot at position (28, 2) then Places a red circle of radius 68 at center (105, 162) then Draws a purple rectangle at (370, 221) with width 68 and height 31.
+; PLAN: r0=28(x), r1=2(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=105(x), r6=162(y), r7=68(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=370(x), r11=221(y), r12=68(width), r13=31(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 28
+LDI r1, 2
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 105
+LDI r6, 162
+LDI r7, 68
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
+LDI r10, 370
+LDI r11, 221
+LDI r12, 68
+LDI r13, 31
+LDI r14, 0xAA00FF
+RECTF r10, r11, r12, r13, r14
 HALT

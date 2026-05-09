@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 54x11 rectangle at position (108, 131).
-; PLAN: r0=108(x), r1=131(y), r2=54(width), r3=11(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 108
-LDI r1, 131
-LDI r2, 54
-LDI r3, 11
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange circle centered at (473, 186) with radius 12.
+; PLAN: r0=473(x), r1=186(y), r2=12(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 473
+LDI r1, 186
+LDI r2, 12
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

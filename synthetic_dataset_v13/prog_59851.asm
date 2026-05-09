@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Draws a cyan rectangle at (284, 36) with width 80 and height 87 then Places a white circle of radius 67 at center (96, 166).
-; PLAN: r0=284(x), r1=36(y), r2=80(width), r3=87(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=96(x), r6=166(y), r7=67(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 284
-LDI r1, 36
-LDI r2, 80
-LDI r3, 87
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 96
-LDI r6, 166
-LDI r7, 67
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Sets a single orange pixel at (187, 49) then Places a white 119x119 rectangle at position (223, 117) then Draws a blue circle centered at (63, 26) with radius 15.
+; PLAN: r0=187(x), r1=49(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=223(x), r6=117(y), r7=119(width), r8=119(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=63(x), r11=26(y), r12=15(radius), r13=0x0000FF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 187
+LDI r1, 49
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 223
+LDI r6, 117
+LDI r7, 119
+LDI r8, 119
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 63
+LDI r11, 26
+LDI r12, 15
+LDI r13, 0x0000FF
+CIRCLE r10, r11, r12, r13
 HALT

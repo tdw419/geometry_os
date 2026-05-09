@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (391, 168) to (330, 48).
-; PLAN: r0=391(x1), r1=168(y1), r2=330(x2), r3=48(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 391
-LDI r1, 168
-LDI r2, 330
-LDI r3, 48
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 83x33 starting at (417, 61).
+; PLAN: r0=417(x), r1=61(y), r2=83(width), r3=33(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 61
+LDI r2, 83
+LDI r3, 33
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

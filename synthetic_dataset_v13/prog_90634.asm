@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a cyan circular shape at (235, 225) with radius 20.
-; PLAN: r0=235(x), r1=225(y), r2=20(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 235
-LDI r1, 225
-LDI r2, 20
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

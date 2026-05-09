@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (318, 122) then Renders a cyan line between points (261, 221) and (219, 242).
-; PLAN: r0=318(x), r1=122(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=261(x1), r6=221(y1), r7=219(x2), r8=242(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 318
-LDI r1, 122
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 261
-LDI r6, 221
-LDI r7, 219
-LDI r8, 242
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a yellow line between points (189, 82) and (201, 249).
+; PLAN: r0=189(x1), r1=82(y1), r2=201(x2), r3=249(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 189
+LDI r1, 82
+LDI r2, 201
+LDI r3, 249
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,5 +1,8 @@
-; DESCRIPTION: Sets the background to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Renders a green disk with center (419, 195) and radius 61.
+; PLAN: r0=419(x), r1=195(y), r2=61(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 419
+LDI r1, 195
+LDI r2, 61
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

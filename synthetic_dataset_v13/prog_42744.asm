@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (95, 212).
-; PLAN: r0=95(x), r1=212(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 95
-LDI r1, 212
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a magenta rectangle at (259, 150) with width 103 and height 22.
+; PLAN: r0=259(x), r1=150(y), r2=103(width), r3=22(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 259
+LDI r1, 150
+LDI r2, 103
+LDI r3, 22
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

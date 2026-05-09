@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (330, 139) with radius 66.
-; PLAN: r0=330(x), r1=139(y), r2=66(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 330
-LDI r1, 139
-LDI r2, 66
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red line between points (451, 83) and (147, 238).
+; PLAN: r0=451(x1), r1=83(y1), r2=147(x2), r3=238(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 451
+LDI r1, 83
+LDI r2, 147
+LDI r3, 238
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

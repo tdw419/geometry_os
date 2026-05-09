@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta line between points (283, 147) and (165, 209).
-; PLAN: r0=283(x1), r1=147(y1), r2=165(x2), r3=209(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 283
-LDI r1, 147
-LDI r2, 165
-LDI r3, 209
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red circular shape at (237, 152) with radius 56.
+; PLAN: r0=237(x), r1=152(y), r2=56(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 237
+LDI r1, 152
+LDI r2, 56
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

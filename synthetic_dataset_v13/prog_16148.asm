@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a green rectangle at (392, 10) with width 76 and height 16.
-; PLAN: r0=392(x), r1=10(y), r2=76(width), r3=16(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 392
-LDI r1, 10
-LDI r2, 76
-LDI r3, 16
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

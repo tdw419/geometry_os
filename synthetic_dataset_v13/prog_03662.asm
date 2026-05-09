@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (430, 168) with radius 15.
-; PLAN: r0=430(x), r1=168(y), r2=15(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 430
-LDI r1, 168
-LDI r2, 15
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white rectangle at (172, 0) with width 84 and height 72.
+; PLAN: r0=172(x), r1=0(y), r2=84(width), r3=72(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 172
+LDI r1, 0
+LDI r2, 84
+LDI r3, 72
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

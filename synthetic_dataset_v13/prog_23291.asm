@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Draws a cyan circle centered at (151, 190) with radius 22.
+; PLAN: r0=151(x), r1=190(y), r2=22(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 151
+LDI r1, 190
+LDI r2, 22
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

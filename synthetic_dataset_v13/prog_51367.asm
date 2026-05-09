@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a purple circular shape at (177, 20) with radius 17.
-; PLAN: r0=177(x), r1=20(y), r2=17(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 177
-LDI r1, 20
-LDI r2, 17
+; DESCRIPTION: Places a purple circle of radius 79 at center (357, 172).
+; PLAN: r0=357(x), r1=172(y), r2=79(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 357
+LDI r1, 172
+LDI r2, 79
 LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

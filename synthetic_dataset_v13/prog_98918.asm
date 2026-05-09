@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (349, 143) then Draws a cyan circle centered at (340, 211) with radius 11 then Places a blue 119x79 rectangle at position (311, 36).
-; PLAN: r0=349(x), r1=143(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=340(x), r6=211(y), r7=11(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=311(x), r11=36(y), r12=119(width), r13=79(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 349
-LDI r1, 143
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 340
-LDI r6, 211
-LDI r7, 11
-LDI r8, 0x00FFFF
+; DESCRIPTION: Composite: Creates a magenta rectangular region at (82, 77) spanning 16 by 80 pixels then Draws a magenta circle centered at (225, 126) with radius 44 then Draws a orange line from (327, 169) to (362, 110).
+; PLAN: r0=82(x), r1=77(y), r2=16(width), r3=80(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=225(x), r6=126(y), r7=44(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=327(x1), r11=169(y1), r12=362(x2), r13=110(y2), r14=0xFF8800(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 82
+LDI r1, 77
+LDI r2, 16
+LDI r3, 80
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 225
+LDI r6, 126
+LDI r7, 44
+LDI r8, 0xFF00FF
 CIRCLE r5, r6, r7, r8
-LDI r10, 311
-LDI r11, 36
-LDI r12, 119
-LDI r13, 79
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+LDI r10, 327
+LDI r11, 169
+LDI r12, 362
+LDI r13, 110
+LDI r14, 0xFF8800
+LINE r10, r11, r12, r13, r14
 HALT

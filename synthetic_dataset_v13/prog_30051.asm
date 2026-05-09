@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (5, 146) and (55, 206).
-; PLAN: r0=5(x1), r1=146(y1), r2=55(x2), r3=206(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 146
-LDI r2, 55
-LDI r3, 206
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 45 at center (315, 137).
+; PLAN: r0=315(x), r1=137(y), r2=45(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 315
+LDI r1, 137
+LDI r2, 45
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

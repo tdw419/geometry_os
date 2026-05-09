@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 48 into r1 and decrements it in a loop until zero.
-; PLAN: r1=48(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 48
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a red 16x52 rectangle at position (350, 178).
+; PLAN: r0=350(x), r1=178(y), r2=16(width), r3=52(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 350
+LDI r1, 178
+LDI r2, 16
+LDI r3, 52
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

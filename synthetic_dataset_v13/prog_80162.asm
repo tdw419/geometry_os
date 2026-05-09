@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (168, 128) spanning 74 by 10 pixels.
-; PLAN: r0=168(x), r1=128(y), r2=74(width), r3=10(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 168
-LDI r1, 128
-LDI r2, 74
-LDI r3, 10
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (75, 82) to (331, 152).
+; PLAN: r0=75(x1), r1=82(y1), r2=331(x2), r3=152(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 82
+LDI r2, 331
+LDI r3, 152
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

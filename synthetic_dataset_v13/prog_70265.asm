@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (315, 251) then Draws a white rectangle at (53, 128) with width 92 and height 32 then Renders a cyan line between points (479, 102) and (243, 173).
-; PLAN: r0=315(x), r1=251(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=53(x), r6=128(y), r7=92(width), r8=32(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=479(x1), r11=102(y1), r12=243(x2), r13=173(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 315
-LDI r1, 251
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 53
-LDI r6, 128
-LDI r7, 92
-LDI r8, 32
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 479
-LDI r11, 102
-LDI r12, 243
-LDI r13, 173
-LDI r14, 0x00FFFF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a cyan 26x36 rectangle at position (263, 123) then Draws a blue line from (415, 41) to (401, 42) then Places a green dot at position (365, 180).
+; PLAN: r0=263(x), r1=123(y), r2=26(width), r3=36(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=415(x1), r6=41(y1), r7=401(x2), r8=42(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=365(x), r11=180(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
+LDI r0, 263
+LDI r1, 123
+LDI r2, 26
+LDI r3, 36
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 415
+LDI r6, 41
+LDI r7, 401
+LDI r8, 42
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
+LDI r10, 365
+LDI r11, 180
+LDI r12, 0x00FF00
+PSET r10, r11, r12
 HALT

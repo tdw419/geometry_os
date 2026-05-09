@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (300, 47) to (96, 148).
-; PLAN: r0=300(x1), r1=47(y1), r2=96(x2), r3=148(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 47
-LDI r2, 96
-LDI r3, 148
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 34 at center (377, 209).
+; PLAN: r0=377(x), r1=209(y), r2=34(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 377
+LDI r1, 209
+LDI r2, 34
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

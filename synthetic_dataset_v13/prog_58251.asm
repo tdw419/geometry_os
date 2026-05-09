@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (343, 141) with radius 67.
-; PLAN: r0=343(x), r1=141(y), r2=67(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 343
-LDI r1, 141
-LDI r2, 67
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 38x66 rectangle at position (106, 70).
+; PLAN: r0=106(x), r1=70(y), r2=38(width), r3=66(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 106
+LDI r1, 70
+LDI r2, 38
+LDI r3, 66
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

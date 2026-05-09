@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (398, 77) and radius 40.
-; PLAN: r0=398(x), r1=77(y), r2=40(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 398
-LDI r1, 77
-LDI r2, 40
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue rectangle at (349, 2) with width 104 and height 46.
+; PLAN: r0=349(x), r1=2(y), r2=104(width), r3=46(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 349
+LDI r1, 2
+LDI r2, 104
+LDI r3, 46
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

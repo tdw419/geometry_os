@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a green box of size 40x38 starting at (331, 24).
-; PLAN: r0=331(x), r1=24(y), r2=40(width), r3=38(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 331
-LDI r1, 24
-LDI r2, 40
-LDI r3, 38
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a white circle of radius 59 at center (285, 74) then Places a black dot at position (303, 119).
+; PLAN: r0=285(x), r1=74(y), r2=59(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=303(x), r6=119(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 285
+LDI r1, 74
+LDI r2, 59
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 303
+LDI r6, 119
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

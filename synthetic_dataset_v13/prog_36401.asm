@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a black disk with center (393, 94) and radius 58.
-; PLAN: r0=393(x), r1=94(y), r2=58(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 393
-LDI r1, 94
-LDI r2, 58
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

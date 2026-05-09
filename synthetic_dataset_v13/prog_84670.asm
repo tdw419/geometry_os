@@ -1,14 +1,13 @@
-; DESCRIPTION: Composite: Creates a cyan rectangular region at (176, 97) spanning 96 by 97 pixels then Draws a white circle centered at (349, 112) with radius 45.
-; PLAN: r0=176(x), r1=97(y), r2=96(width), r3=97(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=349(x), r6=112(y), r7=45(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 176
-LDI r1, 97
-LDI r2, 96
-LDI r3, 97
-LDI r4, 0x00FFFF
+; DESCRIPTION: Composite: Creates a white rectangular region at (139, 35) spanning 93 by 42 pixels then Places a green dot at position (220, 136).
+; PLAN: r0=139(x), r1=35(y), r2=93(width), r3=42(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=220(x), r6=136(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 139
+LDI r1, 35
+LDI r2, 93
+LDI r3, 42
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 349
-LDI r6, 112
-LDI r7, 45
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+LDI r5, 220
+LDI r6, 136
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a purple circle of radius 21 at center (300, 52).
-; PLAN: r0=300(x), r1=52(y), r2=21(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 300
-LDI r1, 52
-LDI r2, 21
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 56x110 rectangle at position (437, 72).
+; PLAN: r0=437(x), r1=72(y), r2=56(width), r3=110(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 437
+LDI r1, 72
+LDI r2, 56
+LDI r3, 110
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

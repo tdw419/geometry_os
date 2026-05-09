@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 75x81 rectangle at position (104, 103).
-; PLAN: r0=104(x), r1=103(y), r2=75(width), r3=81(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 104
-LDI r1, 103
-LDI r2, 75
-LDI r3, 81
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (274, 151) with radius 65.
+; PLAN: r0=274(x), r1=151(y), r2=65(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 274
+LDI r1, 151
+LDI r2, 65
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

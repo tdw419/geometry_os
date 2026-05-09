@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (495, 4).
-; PLAN: r0=495(x), r1=4(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 495
-LDI r1, 4
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a red line from (463, 251) to (199, 253).
+; PLAN: r0=463(x1), r1=251(y1), r2=199(x2), r3=253(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 463
+LDI r1, 251
+LDI r2, 199
+LDI r3, 253
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

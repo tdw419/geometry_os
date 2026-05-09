@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a yellow circle of radius 52 at center (389, 62).
-; PLAN: r0=389(x), r1=62(y), r2=52(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 389
-LDI r1, 62
-LDI r2, 52
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

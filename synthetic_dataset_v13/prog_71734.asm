@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (469, 227) and (187, 19).
-; PLAN: r0=469(x1), r1=227(y1), r2=187(x2), r3=19(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 469
-LDI r1, 227
-LDI r2, 187
-LDI r3, 19
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a orange line from (435, 114) to (157, 0).
+; PLAN: r0=435(x1), r1=114(y1), r2=157(x2), r3=0(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 435
+LDI r1, 114
+LDI r2, 157
+LDI r3, 0
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

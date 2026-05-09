@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (501, 13).
-; PLAN: r0=501(x), r1=13(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 501
-LDI r1, 13
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a orange line from (233, 62) to (109, 105).
+; PLAN: r0=233(x1), r1=62(y1), r2=109(x2), r3=105(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 233
+LDI r1, 62
+LDI r2, 109
+LDI r3, 105
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

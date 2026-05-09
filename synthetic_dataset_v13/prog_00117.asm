@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a yellow circle of radius 41 at center (90, 160).
-; PLAN: r0=90(x), r1=160(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 90
-LDI r1, 160
-LDI r2, 41
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 16 into r1 and decrements it in a loop until zero.
+; PLAN: r1=16(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 16
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

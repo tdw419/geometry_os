@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (347, 1) to (285, 198).
-; PLAN: r0=347(x1), r1=1(y1), r2=285(x2), r3=198(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 347
-LDI r1, 1
-LDI r2, 285
-LDI r3, 198
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow 43x19 rectangle at position (222, 92).
+; PLAN: r0=222(x), r1=92(y), r2=43(width), r3=19(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 222
+LDI r1, 92
+LDI r2, 43
+LDI r3, 19
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

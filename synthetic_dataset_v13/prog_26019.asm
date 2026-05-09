@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 50x89 rectangle at position (252, 86).
-; PLAN: r0=252(x), r1=86(y), r2=50(width), r3=89(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 252
-LDI r1, 86
-LDI r2, 50
-LDI r3, 89
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (141, 173) and radius 52.
+; PLAN: r0=141(x), r1=173(y), r2=52(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 141
+LDI r1, 173
+LDI r2, 52
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

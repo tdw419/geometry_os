@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a magenta disk with center (132, 91) and radius 63.
-; PLAN: r0=132(x), r1=91(y), r2=63(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 132
-LDI r1, 91
-LDI r2, 63
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

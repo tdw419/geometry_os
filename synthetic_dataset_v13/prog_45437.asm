@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (407, 198) and (46, 196).
-; PLAN: r0=407(x1), r1=198(y1), r2=46(x2), r3=196(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 407
-LDI r1, 198
-LDI r2, 46
-LDI r3, 196
+; DESCRIPTION: Renders a purple box of size 19x40 starting at (61, 118).
+; PLAN: r0=61(x), r1=118(y), r2=19(width), r3=40(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 61
+LDI r1, 118
+LDI r2, 19
+LDI r3, 40
 LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

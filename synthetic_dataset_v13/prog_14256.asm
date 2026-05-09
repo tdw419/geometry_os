@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (86, 27) to (454, 144).
-; PLAN: r0=86(x1), r1=27(y1), r2=454(x2), r3=144(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 86
-LDI r1, 27
-LDI r2, 454
-LDI r3, 144
+; DESCRIPTION: Places a cyan 89x71 rectangle at position (150, 32).
+; PLAN: r0=150(x), r1=32(y), r2=89(width), r3=71(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 32
+LDI r2, 89
+LDI r3, 71
 LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

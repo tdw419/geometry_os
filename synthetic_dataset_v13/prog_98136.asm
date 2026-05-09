@@ -1,19 +1,13 @@
-; DESCRIPTION: Composite: Draws a green rectangle at (284, 77) with width 82 and height 118 then Sets a single blue pixel at (509, 70) then Renders a yellow line between points (94, 7) and (503, 81).
-; PLAN: r0=284(x), r1=77(y), r2=82(width), r3=118(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=509(x), r6=70(y), r7=0x0000FF(color). Op: PSET r5, r6, r7 Next: r10=94(x1), r11=7(y1), r12=503(x2), r13=81(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 284
-LDI r1, 77
-LDI r2, 82
-LDI r3, 118
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 509
-LDI r6, 70
-LDI r7, 0x0000FF
-PSET r5, r6, r7
-LDI r10, 94
-LDI r11, 7
-LDI r12, 503
-LDI r13, 81
-LDI r14, 0xFFFF00
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a orange dot at position (401, 175) then Places a black line segment connecting (486, 132) to (322, 138).
+; PLAN: r0=401(x), r1=175(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=486(x1), r6=132(y1), r7=322(x2), r8=138(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 401
+LDI r1, 175
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 486
+LDI r6, 132
+LDI r7, 322
+LDI r8, 138
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
 HALT

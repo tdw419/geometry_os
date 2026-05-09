@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (327, 184).
-; PLAN: r0=327(x), r1=184(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 327
-LDI r1, 184
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a white rectangle at (281, 176) with width 43 and height 29.
+; PLAN: r0=281(x), r1=176(y), r2=43(width), r3=29(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 281
+LDI r1, 176
+LDI r2, 43
+LDI r3, 29
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Draws a cyan circle centered at (154, 124) with radius 68 then Places a blue 22x53 rectangle at position (153, 95).
-; PLAN: r0=154(x), r1=124(y), r2=68(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=153(x), r6=95(y), r7=22(width), r8=53(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 154
-LDI r1, 124
-LDI r2, 68
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 153
-LDI r6, 95
-LDI r7, 22
-LDI r8, 53
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
+LDI r7, 0xFFFFFF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

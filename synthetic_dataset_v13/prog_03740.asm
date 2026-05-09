@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a cyan dot at position (221, 134).
-; PLAN: r0=221(x), r1=134(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 221
-LDI r1, 134
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a orange circle centered at (348, 197) with radius 54.
+; PLAN: r0=348(x), r1=197(y), r2=54(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 348
+LDI r1, 197
+LDI r2, 54
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

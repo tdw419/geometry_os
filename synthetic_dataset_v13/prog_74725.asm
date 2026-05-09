@@ -1,8 +1,12 @@
-; DESCRIPTION: Draws a orange circle centered at (117, 141) with radius 32.
-; PLAN: r0=117(x), r1=141(y), r2=32(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 117
-LDI r1, 141
-LDI r2, 32
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a white dot at position (299, 146) then Draws a cyan circle centered at (279, 43) with radius 41.
+; PLAN: r0=299(x), r1=146(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=279(x), r6=43(y), r7=41(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 299
+LDI r1, 146
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 279
+LDI r6, 43
+LDI r7, 41
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

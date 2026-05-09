@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a orange disk with center (295, 208) and radius 35.
-; PLAN: r0=295(x), r1=208(y), r2=35(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 295
-LDI r1, 208
-LDI r2, 35
-LDI r3, 0xFF8800
+; DESCRIPTION: Creates a blue circular shape at (145, 177) with radius 77.
+; PLAN: r0=145(x), r1=177(y), r2=77(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 145
+LDI r1, 177
+LDI r2, 77
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

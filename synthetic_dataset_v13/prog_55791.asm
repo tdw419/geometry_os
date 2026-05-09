@@ -1,12 +1,13 @@
-; DESCRIPTION: Composite: Places a magenta circle of radius 75 at center (212, 171) then Sets a single black pixel at (397, 51).
-; PLAN: r0=212(x), r1=171(y), r2=75(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=397(x), r6=51(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 212
-LDI r1, 171
-LDI r2, 75
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 397
-LDI r6, 51
-LDI r7, 0x000000
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Places a green dot at position (208, 175) then Renders a cyan line between points (354, 160) and (104, 123).
+; PLAN: r0=208(x), r1=175(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=354(x1), r6=160(y1), r7=104(x2), r8=123(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 208
+LDI r1, 175
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 354
+LDI r6, 160
+LDI r7, 104
+LDI r8, 123
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
 HALT

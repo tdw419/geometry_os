@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Places a yellow line segment connecting (249, 41) to (412, 8) then Places a white circle of radius 67 at center (220, 183).
-; PLAN: r0=249(x1), r1=41(y1), r2=412(x2), r3=8(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=220(x), r6=183(y), r7=67(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 249
-LDI r1, 41
-LDI r2, 412
-LDI r3, 8
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 220
-LDI r6, 183
-LDI r7, 67
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Draws a magenta circle centered at (331, 175) with radius 80 then Sets a single magenta pixel at (372, 218).
+; PLAN: r0=331(x), r1=175(y), r2=80(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=372(x), r6=218(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 331
+LDI r1, 175
+LDI r2, 80
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 372
+LDI r6, 218
+LDI r7, 0xFF00FF
+PSET r5, r6, r7
 HALT

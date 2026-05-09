@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a white dot at position (84, 207).
-; PLAN: r0=84(x), r1=207(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 84
-LDI r1, 207
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a cyan circle of radius 75 at center (384, 119).
+; PLAN: r0=384(x), r1=119(y), r2=75(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 384
+LDI r1, 119
+LDI r2, 75
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

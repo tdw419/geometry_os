@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (205, 56) with radius 25.
-; PLAN: r0=205(x), r1=56(y), r2=25(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 205
-LDI r1, 56
-LDI r2, 25
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow line segment connecting (107, 41) to (353, 90).
+; PLAN: r0=107(x1), r1=41(y1), r2=353(x2), r3=90(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 107
+LDI r1, 41
+LDI r2, 353
+LDI r3, 90
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

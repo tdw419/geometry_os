@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (111, 36) to (229, 71).
-; PLAN: r0=111(x1), r1=36(y1), r2=229(x2), r3=71(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 111
+; DESCRIPTION: Places a black 90x114 rectangle at position (165, 36).
+; PLAN: r0=165(x), r1=36(y), r2=90(width), r3=114(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 165
 LDI r1, 36
-LDI r2, 229
-LDI r3, 71
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+LDI r2, 90
+LDI r3, 114
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 26x102 rectangle at position (217, 72).
-; PLAN: r0=217(x), r1=72(y), r2=26(width), r3=102(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 217
-LDI r1, 72
-LDI r2, 26
-LDI r3, 102
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a yellow rectangle at (14, 141) with width 43 and height 108.
+; PLAN: r0=14(x), r1=141(y), r2=43(width), r3=108(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 14
+LDI r1, 141
+LDI r2, 43
+LDI r3, 108
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

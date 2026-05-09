@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a white line segment connecting (257, 247) to (353, 52).
-; PLAN: r0=257(x1), r1=247(y1), r2=353(x2), r3=52(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 257
-LDI r1, 247
-LDI r2, 353
-LDI r3, 52
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a orange dot at position (393, 108) then Places a blue 92x64 rectangle at position (291, 33).
+; PLAN: r0=393(x), r1=108(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=291(x), r6=33(y), r7=92(width), r8=64(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 393
+LDI r1, 108
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 291
+LDI r6, 33
+LDI r7, 92
+LDI r8, 64
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

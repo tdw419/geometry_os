@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a green dot at position (159, 191).
-; PLAN: r0=159(x), r1=191(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 159
-LDI r1, 191
-LDI r2, 0x00FF00
+; DESCRIPTION: Sets a single white pixel at (492, 249).
+; PLAN: r0=492(x), r1=249(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 492
+LDI r1, 249
+LDI r2, 0xFFFFFF
 PSET r0, r1, r2
 HALT

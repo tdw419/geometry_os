@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a cyan line between points (151, 149) and (324, 152).
-; PLAN: r0=151(x1), r1=149(y1), r2=324(x2), r3=152(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 151
-LDI r1, 149
-LDI r2, 324
-LDI r3, 152
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan circle of radius 79 at center (206, 101) then Places a white dot at position (311, 95).
+; PLAN: r0=206(x), r1=101(y), r2=79(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=311(x), r6=95(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 206
+LDI r1, 101
+LDI r2, 79
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 311
+LDI r6, 95
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

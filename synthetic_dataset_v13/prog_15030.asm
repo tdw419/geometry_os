@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (311, 149) with radius 71.
-; PLAN: r0=311(x), r1=149(y), r2=71(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 311
-LDI r1, 149
-LDI r2, 71
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (281, 122) and (192, 3).
+; PLAN: r0=281(x1), r1=122(y1), r2=192(x2), r3=3(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 281
+LDI r1, 122
+LDI r2, 192
+LDI r3, 3
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

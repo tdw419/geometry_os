@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a cyan circle of radius 59 at center (416, 107).
-; PLAN: r0=416(x), r1=107(y), r2=59(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 416
-LDI r1, 107
-LDI r2, 59
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

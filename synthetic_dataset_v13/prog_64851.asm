@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (225, 108) and (498, 149).
-; PLAN: r0=225(x1), r1=108(y1), r2=498(x2), r3=149(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 225
-LDI r1, 108
-LDI r2, 498
-LDI r3, 149
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (36, 242) with radius 13.
+; PLAN: r0=36(x), r1=242(y), r2=13(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 36
+LDI r1, 242
+LDI r2, 13
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

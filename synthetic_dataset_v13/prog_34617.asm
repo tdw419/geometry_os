@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a magenta dot at position (398, 91).
-; PLAN: r0=398(x), r1=91(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 398
-LDI r1, 91
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

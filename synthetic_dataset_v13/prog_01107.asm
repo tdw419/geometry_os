@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a white dot at position (209, 77) then Places a blue line segment connecting (62, 208) to (10, 215).
-; PLAN: r0=209(x), r1=77(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=62(x1), r6=208(y1), r7=10(x2), r8=215(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 209
-LDI r1, 77
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 62
-LDI r6, 208
-LDI r7, 10
-LDI r8, 215
-LDI r9, 0x0000FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a blue line from (77, 186) to (455, 116).
+; PLAN: r0=77(x1), r1=186(y1), r2=455(x2), r3=116(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 77
+LDI r1, 186
+LDI r2, 455
+LDI r3, 116
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a yellow dot at position (17, 7).
-; PLAN: r0=17(x), r1=7(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 17
-LDI r1, 7
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a black box of size 110x83 starting at (138, 44).
-; PLAN: r0=138(x), r1=44(y), r2=110(width), r3=83(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 138
-LDI r1, 44
-LDI r2, 110
-LDI r3, 83
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan dot at position (339, 143).
+; PLAN: r0=339(x), r1=143(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 339
+LDI r1, 143
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

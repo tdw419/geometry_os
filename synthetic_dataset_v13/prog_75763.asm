@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (100, 127) and (187, 112).
-; PLAN: r0=100(x1), r1=127(y1), r2=187(x2), r3=112(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 100
-LDI r1, 127
-LDI r2, 187
-LDI r3, 112
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange rectangle at (247, 147) with width 101 and height 60.
+; PLAN: r0=247(x), r1=147(y), r2=101(width), r3=60(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 147
+LDI r2, 101
+LDI r3, 60
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

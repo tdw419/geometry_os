@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a white circle of radius 19 at center (419, 56).
-; PLAN: r0=419(x), r1=56(y), r2=19(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 419
-LDI r1, 56
-LDI r2, 19
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan dot at position (274, 87).
+; PLAN: r0=274(x), r1=87(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 274
+LDI r1, 87
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

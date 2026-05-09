@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (83, 211) and (8, 242).
-; PLAN: r0=83(x1), r1=211(y1), r2=8(x2), r3=242(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 83
-LDI r1, 211
-LDI r2, 8
-LDI r3, 242
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 64x31 rectangle at position (397, 201).
+; PLAN: r0=397(x), r1=201(y), r2=64(width), r3=31(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 397
+LDI r1, 201
+LDI r2, 64
+LDI r3, 31
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

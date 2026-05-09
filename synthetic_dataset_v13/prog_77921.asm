@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (309, 139) spanning 20 by 83 pixels.
-; PLAN: r0=309(x), r1=139(y), r2=20(width), r3=83(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 139
-LDI r2, 20
-LDI r3, 83
-LDI r4, 0x000000
+; DESCRIPTION: Renders a purple box of size 25x84 starting at (176, 150).
+; PLAN: r0=176(x), r1=150(y), r2=25(width), r3=84(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 176
+LDI r1, 150
+LDI r2, 25
+LDI r3, 84
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

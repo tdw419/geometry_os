@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple box of size 105x32 starting at (363, 173).
-; PLAN: r0=363(x), r1=173(y), r2=105(width), r3=32(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 173
-LDI r2, 105
-LDI r3, 32
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (274, 145) with radius 72.
+; PLAN: r0=274(x), r1=145(y), r2=72(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 274
+LDI r1, 145
+LDI r2, 72
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

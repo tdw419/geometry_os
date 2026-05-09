@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (175, 224) with radius 24.
-; PLAN: r0=175(x), r1=224(y), r2=24(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 175
-LDI r1, 224
-LDI r2, 24
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (492, 158) to (250, 226).
+; PLAN: r0=492(x1), r1=158(y1), r2=250(x2), r3=226(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 492
+LDI r1, 158
+LDI r2, 250
+LDI r3, 226
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

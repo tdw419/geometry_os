@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a red circular shape at (82, 139) with radius 16.
-; PLAN: r0=82(x), r1=139(y), r2=16(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 82
-LDI r1, 139
-LDI r2, 16
-LDI r3, 0xFF0000
+; DESCRIPTION: Places a orange circle of radius 15 at center (452, 240).
+; PLAN: r0=452(x), r1=240(y), r2=15(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 452
+LDI r1, 240
+LDI r2, 15
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

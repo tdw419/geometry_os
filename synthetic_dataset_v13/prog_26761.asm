@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a cyan line from (292, 17) to (143, 31).
-; PLAN: r0=292(x1), r1=17(y1), r2=143(x2), r3=31(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 292
-LDI r1, 17
-LDI r2, 143
-LDI r3, 31
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a orange box of size 80x61 starting at (389, 88) then Sets a single green pixel at (325, 104).
+; PLAN: r0=389(x), r1=88(y), r2=80(width), r3=61(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=325(x), r6=104(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 389
+LDI r1, 88
+LDI r2, 80
+LDI r3, 61
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 325
+LDI r6, 104
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (77, 82) spanning 75 by 110 pixels.
-; PLAN: r0=77(x), r1=82(y), r2=75(width), r3=110(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 82
-LDI r2, 75
-LDI r3, 110
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white line between points (423, 138) and (109, 158).
+; PLAN: r0=423(x1), r1=138(y1), r2=109(x2), r3=158(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 423
+LDI r1, 138
+LDI r2, 109
+LDI r3, 158
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

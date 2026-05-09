@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (247, 170) and (0, 247).
-; PLAN: r0=247(x1), r1=170(y1), r2=0(x2), r3=247(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 247
-LDI r1, 170
-LDI r2, 0
-LDI r3, 247
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (209, 66) and radius 28.
+; PLAN: r0=209(x), r1=66(y), r2=28(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 209
+LDI r1, 66
+LDI r2, 28
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

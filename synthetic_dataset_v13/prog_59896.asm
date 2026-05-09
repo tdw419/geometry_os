@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 103x57 rectangle at position (232, 31).
-; PLAN: r0=232(x), r1=31(y), r2=103(width), r3=57(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 232
-LDI r1, 31
-LDI r2, 103
-LDI r3, 57
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (415, 106) with radius 28.
+; PLAN: r0=415(x), r1=106(y), r2=28(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 415
+LDI r1, 106
+LDI r2, 28
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

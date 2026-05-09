@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (296, 1) and (417, 133).
-; PLAN: r0=296(x1), r1=1(y1), r2=417(x2), r3=133(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 296
-LDI r1, 1
-LDI r2, 417
-LDI r3, 133
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (116, 130) with radius 24.
+; PLAN: r0=116(x), r1=130(y), r2=24(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 116
+LDI r1, 130
+LDI r2, 24
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

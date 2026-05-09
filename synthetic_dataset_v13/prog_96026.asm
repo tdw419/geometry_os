@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 43x86 rectangle at position (393, 143).
-; PLAN: r0=393(x), r1=143(y), r2=43(width), r3=86(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 143
-LDI r2, 43
-LDI r3, 86
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 39 at center (445, 85).
+; PLAN: r0=445(x), r1=85(y), r2=39(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 445
+LDI r1, 85
+LDI r2, 39
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

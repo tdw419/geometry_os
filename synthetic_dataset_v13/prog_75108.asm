@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 31x67 rectangle at position (160, 111).
-; PLAN: r0=160(x), r1=111(y), r2=31(width), r3=67(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 111
-LDI r2, 31
-LDI r3, 67
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (269, 160) with radius 63.
+; PLAN: r0=269(x), r1=160(y), r2=63(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 269
+LDI r1, 160
+LDI r2, 63
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

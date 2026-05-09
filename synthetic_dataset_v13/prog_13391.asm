@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a black circle centered at (446, 131) with radius 17.
-; PLAN: r0=446(x), r1=131(y), r2=17(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 446
-LDI r1, 131
-LDI r2, 17
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

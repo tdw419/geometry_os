@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 24x26 rectangle at position (165, 20).
-; PLAN: r0=165(x), r1=20(y), r2=24(width), r3=26(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 20
-LDI r2, 24
-LDI r3, 26
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (220, 40) to (47, 32).
+; PLAN: r0=220(x1), r1=40(y1), r2=47(x2), r3=32(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 40
+LDI r2, 47
+LDI r3, 32
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

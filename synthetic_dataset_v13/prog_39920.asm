@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (227, 233) and (497, 80).
-; PLAN: r0=227(x1), r1=233(y1), r2=497(x2), r3=80(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 227
-LDI r1, 233
-LDI r2, 497
-LDI r3, 80
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 36 at center (360, 114).
+; PLAN: r0=360(x), r1=114(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 360
+LDI r1, 114
+LDI r2, 36
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

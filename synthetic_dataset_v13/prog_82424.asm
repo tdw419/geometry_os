@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (354, 21) to (399, 36).
-; PLAN: r0=354(x1), r1=21(y1), r2=399(x2), r3=36(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 354
-LDI r1, 21
-LDI r2, 399
-LDI r3, 36
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (299, 108) with radius 36.
+; PLAN: r0=299(x), r1=108(y), r2=36(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 299
+LDI r1, 108
+LDI r2, 36
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

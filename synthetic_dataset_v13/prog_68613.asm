@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a yellow disk with center (144, 37) and radius 22.
-; PLAN: r0=144(x), r1=37(y), r2=22(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 144
-LDI r1, 37
-LDI r2, 22
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

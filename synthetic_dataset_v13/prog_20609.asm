@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (345, 129) with radius 77.
-; PLAN: r0=345(x), r1=129(y), r2=77(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 345
-LDI r1, 129
-LDI r2, 77
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (205, 91) to (486, 25).
+; PLAN: r0=205(x1), r1=91(y1), r2=486(x2), r3=25(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 205
+LDI r1, 91
+LDI r2, 486
+LDI r3, 25
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (444, 232) and (366, 147).
-; PLAN: r0=444(x1), r1=232(y1), r2=366(x2), r3=147(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 444
-LDI r1, 232
-LDI r2, 366
-LDI r3, 147
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a green line between points (190, 104) and (57, 87).
+; PLAN: r0=190(x1), r1=104(y1), r2=57(x2), r3=87(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 104
+LDI r2, 57
+LDI r3, 87
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

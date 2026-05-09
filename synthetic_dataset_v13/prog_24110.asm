@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan box of size 77x50 starting at (34, 109).
-; PLAN: r0=34(x), r1=109(y), r2=77(width), r3=50(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 34
-LDI r1, 109
-LDI r2, 77
-LDI r3, 50
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (445, 58).
+; PLAN: r0=445(x), r1=58(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 445
+LDI r1, 58
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

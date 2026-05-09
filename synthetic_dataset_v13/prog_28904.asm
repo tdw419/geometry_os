@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (351, 244) with radius 12.
-; PLAN: r0=351(x), r1=244(y), r2=12(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 351
-LDI r1, 244
-LDI r2, 12
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 101x41 rectangle at position (224, 20).
+; PLAN: r0=224(x), r1=20(y), r2=101(width), r3=41(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 224
+LDI r1, 20
+LDI r2, 101
+LDI r3, 41
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a blue line segment connecting (322, 65) to (211, 139).
-; PLAN: r0=322(x1), r1=65(y1), r2=211(x2), r3=139(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 322
-LDI r1, 65
-LDI r2, 211
-LDI r3, 139
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a orange dot at position (499, 250) then Draws a magenta circle centered at (289, 232) with radius 19.
+; PLAN: r0=499(x), r1=250(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=289(x), r6=232(y), r7=19(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 499
+LDI r1, 250
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 289
+LDI r6, 232
+LDI r7, 19
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

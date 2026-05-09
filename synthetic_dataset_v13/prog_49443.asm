@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a purple 88x37 rectangle at position (372, 51).
-; PLAN: r0=372(x), r1=51(y), r2=88(width), r3=37(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 372
-LDI r1, 51
-LDI r2, 88
-LDI r3, 37
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (202, 42) then Creates a cyan circular shape at (183, 52) with radius 16.
+; PLAN: r0=202(x), r1=42(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=183(x), r6=52(y), r7=16(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 202
+LDI r1, 42
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 183
+LDI r6, 52
+LDI r7, 16
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

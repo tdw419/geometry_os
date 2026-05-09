@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 39x92 starting at (240, 106).
-; PLAN: r0=240(x), r1=106(y), r2=39(width), r3=92(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 240
-LDI r1, 106
-LDI r2, 39
-LDI r3, 92
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (101, 39) with radius 28.
+; PLAN: r0=101(x), r1=39(y), r2=28(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 101
+LDI r1, 39
+LDI r2, 28
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

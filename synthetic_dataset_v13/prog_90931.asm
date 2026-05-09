@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a cyan line from (3, 26) to (43, 2) then Renders a white disk with center (208, 181) and radius 35.
-; PLAN: r0=3(x1), r1=26(y1), r2=43(x2), r3=2(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=208(x), r6=181(y), r7=35(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 3
-LDI r1, 26
-LDI r2, 43
-LDI r3, 2
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 208
-LDI r6, 181
-LDI r7, 35
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a white rectangular region at (447, 41) spanning 53 by 39 pixels.
+; PLAN: r0=447(x), r1=41(y), r2=53(width), r3=39(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 447
+LDI r1, 41
+LDI r2, 53
+LDI r3, 39
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

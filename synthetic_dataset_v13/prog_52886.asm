@@ -1,5 +1,13 @@
-; DESCRIPTION: Clears the screen to red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Composite: Places a yellow dot at position (6, 198) then Creates a magenta rectangular region at (223, 161) spanning 110 by 37 pixels.
+; PLAN: r0=6(x), r1=198(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=223(x), r6=161(y), r7=110(width), r8=37(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 6
+LDI r1, 198
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 223
+LDI r6, 161
+LDI r7, 110
+LDI r8, 37
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

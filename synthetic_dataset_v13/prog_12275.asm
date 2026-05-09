@@ -1,8 +1,13 @@
-; DESCRIPTION: Draws a red circle centered at (144, 41) with radius 11.
-; PLAN: r0=144(x), r1=41(y), r2=11(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 144
-LDI r1, 41
-LDI r2, 11
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single black pixel at (254, 205) then Draws a blue line from (35, 82) to (137, 97).
+; PLAN: r0=254(x), r1=205(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=35(x1), r6=82(y1), r7=137(x2), r8=97(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 254
+LDI r1, 205
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 35
+LDI r6, 82
+LDI r7, 137
+LDI r8, 97
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (405, 198) then Creates a cyan rectangular region at (224, 70) spanning 99 by 75 pixels.
-; PLAN: r0=405(x), r1=198(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=224(x), r6=70(y), r7=99(width), r8=75(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 405
-LDI r1, 198
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 224
-LDI r6, 70
-LDI r7, 99
-LDI r8, 75
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Loads 39 into r1 and decrements it in a loop until zero.
+; PLAN: r1=39(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 39
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

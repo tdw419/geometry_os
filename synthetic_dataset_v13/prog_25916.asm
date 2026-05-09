@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a black circular shape at (256, 181) with radius 72.
-; PLAN: r0=256(x), r1=181(y), r2=72(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 256
-LDI r1, 181
-LDI r2, 72
-LDI r3, 0x000000
+; DESCRIPTION: Renders a green disk with center (342, 85) and radius 20.
+; PLAN: r0=342(x), r1=85(y), r2=20(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 342
+LDI r1, 85
+LDI r2, 20
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

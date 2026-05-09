@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (119, 137) to (108, 2).
-; PLAN: r0=119(x1), r1=137(y1), r2=108(x2), r3=2(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 119
-LDI r1, 137
-LDI r2, 108
-LDI r3, 2
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 87x60 starting at (168, 72).
+; PLAN: r0=168(x), r1=72(y), r2=87(width), r3=60(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 168
+LDI r1, 72
+LDI r2, 87
+LDI r3, 60
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

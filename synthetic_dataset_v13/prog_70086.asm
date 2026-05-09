@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (253, 115) with radius 78.
-; PLAN: r0=253(x), r1=115(y), r2=78(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 253
-LDI r1, 115
-LDI r2, 78
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a red rectangular region at (67, 88) spanning 97 by 109 pixels.
+; PLAN: r0=67(x), r1=88(y), r2=97(width), r3=109(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 67
+LDI r1, 88
+LDI r2, 97
+LDI r3, 109
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

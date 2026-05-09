@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (216, 41) spanning 70 by 90 pixels.
-; PLAN: r0=216(x), r1=41(y), r2=70(width), r3=90(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 216
-LDI r1, 41
-LDI r2, 70
-LDI r3, 90
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (209, 80) and (459, 147).
+; PLAN: r0=209(x1), r1=80(y1), r2=459(x2), r3=147(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 209
+LDI r1, 80
+LDI r2, 459
+LDI r3, 147
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

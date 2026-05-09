@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 94x90 rectangle at position (259, 127).
-; PLAN: r0=259(x), r1=127(y), r2=94(width), r3=90(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 259
-LDI r1, 127
-LDI r2, 94
-LDI r3, 90
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (82, 114) and radius 42.
+; PLAN: r0=82(x), r1=114(y), r2=42(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 82
+LDI r1, 114
+LDI r2, 42
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

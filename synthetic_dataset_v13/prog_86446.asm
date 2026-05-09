@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a purple circle of radius 63 at center (279, 99).
-; PLAN: r0=279(x), r1=99(y), r2=63(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 279
-LDI r1, 99
-LDI r2, 63
-LDI r3, 0xAA00FF
+; DESCRIPTION: Renders a cyan disk with center (389, 78) and radius 23.
+; PLAN: r0=389(x), r1=78(y), r2=23(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 389
+LDI r1, 78
+LDI r2, 23
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

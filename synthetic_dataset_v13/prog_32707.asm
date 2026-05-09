@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (401, 105) to (134, 57).
-; PLAN: r0=401(x1), r1=105(y1), r2=134(x2), r3=57(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 401
-LDI r1, 105
-LDI r2, 134
-LDI r3, 57
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (230, 78) with radius 29.
+; PLAN: r0=230(x), r1=78(y), r2=29(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 230
+LDI r1, 78
+LDI r2, 29
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

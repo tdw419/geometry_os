@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a yellow disk with center (437, 187) and radius 41.
-; PLAN: r0=437(x), r1=187(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 437
-LDI r1, 187
-LDI r2, 41
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single purple pixel at (53, 63).
+; PLAN: r0=53(x), r1=63(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 53
+LDI r1, 63
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

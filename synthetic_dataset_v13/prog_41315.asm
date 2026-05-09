@@ -1,15 +1,13 @@
-; DESCRIPTION: Composite: Renders a white line between points (351, 116) and (44, 199) then Draws a black rectangle at (1, 147) with width 99 and height 64.
-; PLAN: r0=351(x1), r1=116(y1), r2=44(x2), r3=199(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=1(x), r6=147(y), r7=99(width), r8=64(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 351
-LDI r1, 116
-LDI r2, 44
-LDI r3, 199
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Composite: Places a purple line segment connecting (409, 162) to (22, 176) then Places a red dot at position (484, 6).
+; PLAN: r0=409(x1), r1=162(y1), r2=22(x2), r3=176(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=484(x), r6=6(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 409
+LDI r1, 162
+LDI r2, 22
+LDI r3, 176
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
-LDI r5, 1
-LDI r6, 147
-LDI r7, 99
-LDI r8, 64
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
+LDI r5, 484
+LDI r6, 6
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

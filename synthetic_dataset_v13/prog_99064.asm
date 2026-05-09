@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a green disk with center (469, 206) and radius 10.
-; PLAN: r0=469(x), r1=206(y), r2=10(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 469
-LDI r1, 206
-LDI r2, 10
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 14 into r1 and decrements it in a loop until zero.
+; PLAN: r1=14(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 14
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

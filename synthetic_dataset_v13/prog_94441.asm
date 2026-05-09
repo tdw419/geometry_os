@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 50x72 starting at (137, 60).
-; PLAN: r0=137(x), r1=60(y), r2=50(width), r3=72(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 137
-LDI r1, 60
-LDI r2, 50
-LDI r3, 72
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a red 62x80 rectangle at position (15, 138).
+; PLAN: r0=15(x), r1=138(y), r2=62(width), r3=80(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 15
+LDI r1, 138
+LDI r2, 62
+LDI r3, 80
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (194, 111) and (148, 210).
-; PLAN: r0=194(x1), r1=111(y1), r2=148(x2), r3=210(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 194
-LDI r1, 111
-LDI r2, 148
-LDI r3, 210
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (121, 151) and radius 45.
+; PLAN: r0=121(x), r1=151(y), r2=45(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 121
+LDI r1, 151
+LDI r2, 45
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

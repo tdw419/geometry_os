@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a white 59x36 rectangle at position (343, 118).
-; PLAN: r0=343(x), r1=118(y), r2=59(width), r3=36(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 343
-LDI r1, 118
-LDI r2, 59
-LDI r3, 36
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a magenta line between points (72, 227) and (264, 230) then Sets a single purple pixel at (229, 144).
+; PLAN: r0=72(x1), r1=227(y1), r2=264(x2), r3=230(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=229(x), r6=144(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 72
+LDI r1, 227
+LDI r2, 264
+LDI r3, 230
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 229
+LDI r6, 144
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

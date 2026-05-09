@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red rectangle at (81, 233) with width 88 and height 15.
-; PLAN: r0=81(x), r1=233(y), r2=88(width), r3=15(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 81
-LDI r1, 233
-LDI r2, 88
-LDI r3, 15
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (47, 103) and radius 28.
+; PLAN: r0=47(x), r1=103(y), r2=28(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 47
+LDI r1, 103
+LDI r2, 28
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

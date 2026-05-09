@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 107x33 rectangle at position (352, 101).
-; PLAN: r0=352(x), r1=101(y), r2=107(width), r3=33(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 352
-LDI r1, 101
-LDI r2, 107
-LDI r3, 33
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (101, 85) with radius 35.
+; PLAN: r0=101(x), r1=85(y), r2=35(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 101
+LDI r1, 85
+LDI r2, 35
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a black line segment connecting (262, 134) to (353, 123).
-; PLAN: r0=262(x1), r1=134(y1), r2=353(x2), r3=123(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 262
-LDI r1, 134
-LDI r2, 353
-LDI r3, 123
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a white disk with center (422, 117) and radius 38 then Renders a yellow box of size 106x75 starting at (131, 36).
+; PLAN: r0=422(x), r1=117(y), r2=38(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=131(x), r6=36(y), r7=106(width), r8=75(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 422
+LDI r1, 117
+LDI r2, 38
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 131
+LDI r6, 36
+LDI r7, 106
+LDI r8, 75
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
 HALT

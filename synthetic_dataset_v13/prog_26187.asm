@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Renders a magenta line between points (70, 81) and (458, 253) then Places a green circle of radius 71 at center (182, 169) then Sets a single green pixel at (511, 104).
-; PLAN: r0=70(x1), r1=81(y1), r2=458(x2), r3=253(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=182(x), r6=169(y), r7=71(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=511(x), r11=104(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
-LDI r0, 70
-LDI r1, 81
-LDI r2, 458
-LDI r3, 253
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 182
-LDI r6, 169
-LDI r7, 71
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
-LDI r10, 511
-LDI r11, 104
-LDI r12, 0x00FF00
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Sets a single orange pixel at (236, 43) then Places a yellow line segment connecting (242, 49) to (487, 35).
+; PLAN: r0=236(x), r1=43(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=242(x1), r6=49(y1), r7=487(x2), r8=35(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 236
+LDI r1, 43
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 242
+LDI r6, 49
+LDI r7, 487
+LDI r8, 35
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

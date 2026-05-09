@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a blue rectangular region at (381, 118) spanning 108 by 78 pixels.
-; PLAN: r0=381(x), r1=118(y), r2=108(width), r3=78(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 381
-LDI r1, 118
-LDI r2, 108
-LDI r3, 78
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single blue pixel at (464, 143) then Places a green line segment connecting (113, 87) to (440, 20).
+; PLAN: r0=464(x), r1=143(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=113(x1), r6=87(y1), r7=440(x2), r8=20(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 464
+LDI r1, 143
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 113
+LDI r6, 87
+LDI r7, 440
+LDI r8, 20
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

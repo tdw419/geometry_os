@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (32, 104) to (492, 46).
-; PLAN: r0=32(x1), r1=104(y1), r2=492(x2), r3=46(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 32
-LDI r1, 104
-LDI r2, 492
-LDI r3, 46
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow 72x68 rectangle at position (415, 174).
+; PLAN: r0=415(x), r1=174(y), r2=72(width), r3=68(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 415
+LDI r1, 174
+LDI r2, 72
+LDI r3, 68
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

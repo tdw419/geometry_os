@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 75x119 rectangle at position (432, 50).
-; PLAN: r0=432(x), r1=50(y), r2=75(width), r3=119(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 432
-LDI r1, 50
-LDI r2, 75
-LDI r3, 119
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 51 at center (297, 99).
+; PLAN: r0=297(x), r1=99(y), r2=51(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 297
+LDI r1, 99
+LDI r2, 51
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

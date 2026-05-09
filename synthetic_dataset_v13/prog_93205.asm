@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (437, 241) then Creates a black circular shape at (406, 141) with radius 72 then Creates a white rectangular region at (153, 46) spanning 96 by 71 pixels.
-; PLAN: r0=437(x), r1=241(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=406(x), r6=141(y), r7=72(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=153(x), r11=46(y), r12=96(width), r13=71(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 437
-LDI r1, 241
-LDI r2, 0x000000
+; DESCRIPTION: Composite: Places a cyan dot at position (305, 23) then Creates a green circular shape at (52, 140) with radius 26 then Creates a magenta rectangular region at (330, 85) spanning 47 by 18 pixels.
+; PLAN: r0=305(x), r1=23(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=52(x), r6=140(y), r7=26(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=330(x), r11=85(y), r12=47(width), r13=18(height), r14=0xFF00FF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 305
+LDI r1, 23
+LDI r2, 0x00FFFF
 PSET r0, r1, r2
-LDI r5, 406
-LDI r6, 141
-LDI r7, 72
-LDI r8, 0x000000
+LDI r5, 52
+LDI r6, 140
+LDI r7, 26
+LDI r8, 0x00FF00
 CIRCLE r5, r6, r7, r8
-LDI r10, 153
-LDI r11, 46
-LDI r12, 96
-LDI r13, 71
-LDI r14, 0xFFFFFF
+LDI r10, 330
+LDI r11, 85
+LDI r12, 47
+LDI r13, 18
+LDI r14, 0xFF00FF
 RECTF r10, r11, r12, r13, r14
 HALT

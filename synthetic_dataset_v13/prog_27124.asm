@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a black dot at position (129, 231).
-; PLAN: r0=129(x), r1=231(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 129
-LDI r1, 231
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan circle centered at (210, 170) with radius 55.
+; PLAN: r0=210(x), r1=170(y), r2=55(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 210
+LDI r1, 170
+LDI r2, 55
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

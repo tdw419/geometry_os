@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (270, 17) and (181, 83).
-; PLAN: r0=270(x1), r1=17(y1), r2=181(x2), r3=83(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 270
-LDI r1, 17
-LDI r2, 181
-LDI r3, 83
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (328, 121) with radius 70.
+; PLAN: r0=328(x), r1=121(y), r2=70(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 328
+LDI r1, 121
+LDI r2, 70
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

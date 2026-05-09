@@ -1,18 +1,12 @@
-; DESCRIPTION: Composite: Renders a magenta disk with center (179, 124) and radius 41 then Sets a single blue pixel at (151, 148) then Places a purple line segment connecting (401, 106) to (390, 40).
-; PLAN: r0=179(x), r1=124(y), r2=41(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=151(x), r6=148(y), r7=0x0000FF(color). Op: PSET r5, r6, r7 Next: r10=401(x1), r11=106(y1), r12=390(x2), r13=40(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 179
-LDI r1, 124
-LDI r2, 41
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 151
-LDI r6, 148
-LDI r7, 0x0000FF
-PSET r5, r6, r7
-LDI r10, 401
-LDI r11, 106
-LDI r12, 390
-LDI r13, 40
-LDI r14, 0xAA00FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single purple pixel at (35, 255) then Renders a black disk with center (176, 133) and radius 16.
+; PLAN: r0=35(x), r1=255(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=176(x), r6=133(y), r7=16(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 35
+LDI r1, 255
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 176
+LDI r6, 133
+LDI r7, 16
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

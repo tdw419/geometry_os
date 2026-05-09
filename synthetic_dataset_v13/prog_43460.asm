@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 14x88 rectangle at position (95, 46).
-; PLAN: r0=95(x), r1=46(y), r2=14(width), r3=88(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 95
-LDI r1, 46
-LDI r2, 14
-LDI r3, 88
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 37 at center (150, 113).
+; PLAN: r0=150(x), r1=113(y), r2=37(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 150
+LDI r1, 113
+LDI r2, 37
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

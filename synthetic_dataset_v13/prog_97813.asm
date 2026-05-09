@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a black dot at position (365, 127).
-; PLAN: r0=365(x), r1=127(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 365
-LDI r1, 127
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow disk with center (370, 95) and radius 31.
+; PLAN: r0=370(x), r1=95(y), r2=31(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 370
+LDI r1, 95
+LDI r2, 31
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

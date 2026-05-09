@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (187, 100).
-; PLAN: r0=187(x), r1=100(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 187
-LDI r1, 100
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a black 45x99 rectangle at position (130, 46).
+; PLAN: r0=130(x), r1=46(y), r2=45(width), r3=99(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 130
+LDI r1, 46
+LDI r2, 45
+LDI r3, 99
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (156, 171) to (29, 195).
-; PLAN: r0=156(x1), r1=171(y1), r2=29(x2), r3=195(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 156
-LDI r1, 171
-LDI r2, 29
-LDI r3, 195
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (337, 86) with radius 24.
+; PLAN: r0=337(x), r1=86(y), r2=24(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 337
+LDI r1, 86
+LDI r2, 24
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a red circle centered at (36, 114) with radius 13.
-; PLAN: r0=36(x), r1=114(y), r2=13(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 36
-LDI r1, 114
-LDI r2, 13
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white dot at position (17, 158).
+; PLAN: r0=17(x), r1=158(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 17
+LDI r1, 158
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

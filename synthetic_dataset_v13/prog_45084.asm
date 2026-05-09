@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (45, 0) and (162, 155).
-; PLAN: r0=45(x1), r1=0(y1), r2=162(x2), r3=155(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 0
-LDI r2, 162
-LDI r3, 155
-LDI r4, 0x000000
+; DESCRIPTION: Draws a purple line from (483, 68) to (346, 247).
+; PLAN: r0=483(x1), r1=68(y1), r2=346(x2), r3=247(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 483
+LDI r1, 68
+LDI r2, 346
+LDI r3, 247
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

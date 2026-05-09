@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (177, 103).
-; PLAN: r0=177(x), r1=103(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 177
-LDI r1, 103
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a purple line segment connecting (400, 60) to (3, 67).
+; PLAN: r0=400(x1), r1=60(y1), r2=3(x2), r3=67(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 60
+LDI r2, 3
+LDI r3, 67
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

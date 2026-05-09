@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (156, 213) to (101, 147).
-; PLAN: r0=156(x1), r1=213(y1), r2=101(x2), r3=147(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 156
-LDI r1, 213
-LDI r2, 101
-LDI r3, 147
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (163, 5) with width 81 and height 70.
+; PLAN: r0=163(x), r1=5(y), r2=81(width), r3=70(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 163
+LDI r1, 5
+LDI r2, 81
+LDI r3, 70
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

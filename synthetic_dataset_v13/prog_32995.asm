@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (394, 173) then Places a green line segment connecting (324, 218) to (443, 151) then Draws a green rectangle at (187, 46) with width 24 and height 34.
-; PLAN: r0=394(x), r1=173(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=324(x1), r6=218(y1), r7=443(x2), r8=151(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=187(x), r11=46(y), r12=24(width), r13=34(height), r14=0x00FF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 394
-LDI r1, 173
-LDI r2, 0x0000FF
+; DESCRIPTION: Composite: Places a magenta dot at position (225, 163) then Places a orange circle of radius 13 at center (289, 19) then Draws a white rectangle at (310, 0) with width 97 and height 31.
+; PLAN: r0=225(x), r1=163(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=289(x), r6=19(y), r7=13(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=310(x), r11=0(y), r12=97(width), r13=31(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 225
+LDI r1, 163
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
-LDI r5, 324
-LDI r6, 218
-LDI r7, 443
-LDI r8, 151
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 187
-LDI r11, 46
-LDI r12, 24
-LDI r13, 34
-LDI r14, 0x00FF00
+LDI r5, 289
+LDI r6, 19
+LDI r7, 13
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
+LDI r10, 310
+LDI r11, 0
+LDI r12, 97
+LDI r13, 31
+LDI r14, 0xFFFFFF
 RECTF r10, r11, r12, r13, r14
 HALT

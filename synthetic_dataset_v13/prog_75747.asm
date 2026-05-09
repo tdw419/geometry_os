@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Creates a white rectangular region at (229, 168) spanning 68 by 78 pixels then Renders a green disk with center (143, 169) and radius 74 then Draws a yellow line from (43, 221) to (255, 249).
-; PLAN: r0=229(x), r1=168(y), r2=68(width), r3=78(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=143(x), r6=169(y), r7=74(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=43(x1), r11=221(y1), r12=255(x2), r13=249(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 229
-LDI r1, 168
-LDI r2, 68
-LDI r3, 78
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Composite: Renders a blue box of size 11x69 starting at (91, 133) then Sets a single yellow pixel at (240, 223) then Places a blue line segment connecting (158, 217) to (181, 185).
+; PLAN: r0=91(x), r1=133(y), r2=11(width), r3=69(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=240(x), r6=223(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=158(x1), r11=217(y1), r12=181(x2), r13=185(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 91
+LDI r1, 133
+LDI r2, 11
+LDI r3, 69
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 143
-LDI r6, 169
-LDI r7, 74
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
-LDI r10, 43
-LDI r11, 221
-LDI r12, 255
-LDI r13, 249
-LDI r14, 0xFFFF00
+LDI r5, 240
+LDI r6, 223
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
+LDI r10, 158
+LDI r11, 217
+LDI r12, 181
+LDI r13, 185
+LDI r14, 0x0000FF
 LINE r10, r11, r12, r13, r14
 HALT

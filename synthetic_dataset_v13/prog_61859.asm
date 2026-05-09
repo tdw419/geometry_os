@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (435, 105) with radius 28.
-; PLAN: r0=435(x), r1=105(y), r2=28(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 435
-LDI r1, 105
-LDI r2, 28
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow rectangle at (371, 34) with width 29 and height 118.
+; PLAN: r0=371(x), r1=34(y), r2=29(width), r3=118(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 371
+LDI r1, 34
+LDI r2, 29
+LDI r3, 118
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

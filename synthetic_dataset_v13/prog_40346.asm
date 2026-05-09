@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Places a white 66x22 rectangle at position (328, 29).
+; PLAN: r0=328(x), r1=29(y), r2=66(width), r3=22(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 328
+LDI r1, 29
+LDI r2, 66
+LDI r3, 22
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

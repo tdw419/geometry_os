@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a green circular shape at (251, 180) with radius 27.
-; PLAN: r0=251(x), r1=180(y), r2=27(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 251
-LDI r1, 180
-LDI r2, 27
-LDI r3, 0x00FF00
+; DESCRIPTION: Creates a cyan circular shape at (336, 191) with radius 43.
+; PLAN: r0=336(x), r1=191(y), r2=43(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 336
+LDI r1, 191
+LDI r2, 43
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

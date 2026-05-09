@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 42 at center (63, 87).
-; PLAN: r0=63(x), r1=87(y), r2=42(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 63
-LDI r1, 87
-LDI r2, 42
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple box of size 17x69 starting at (284, 38).
+; PLAN: r0=284(x), r1=38(y), r2=17(width), r3=69(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 284
+LDI r1, 38
+LDI r2, 17
+LDI r3, 69
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

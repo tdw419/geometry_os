@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 47 into r1 and decrements it in a loop until zero.
-; PLAN: r1=47(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 47
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a red line from (148, 219) to (130, 240).
+; PLAN: r0=148(x1), r1=219(y1), r2=130(x2), r3=240(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 148
+LDI r1, 219
+LDI r2, 130
+LDI r3, 240
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

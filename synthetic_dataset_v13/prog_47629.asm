@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a purple circle centered at (49, 225) with radius 25.
-; PLAN: r0=49(x), r1=225(y), r2=25(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 49
-LDI r1, 225
-LDI r2, 25
-LDI r3, 0xAA00FF
+; DESCRIPTION: Creates a orange circular shape at (395, 173) with radius 10.
+; PLAN: r0=395(x), r1=173(y), r2=10(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 395
+LDI r1, 173
+LDI r2, 10
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

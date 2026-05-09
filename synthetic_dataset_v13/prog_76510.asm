@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (384, 118) and (440, 174).
-; PLAN: r0=384(x1), r1=118(y1), r2=440(x2), r3=174(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 384
-LDI r1, 118
-LDI r2, 440
-LDI r3, 174
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a red line from (1, 204) to (187, 145).
+; PLAN: r0=1(x1), r1=204(y1), r2=187(x2), r3=145(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 1
+LDI r1, 204
+LDI r2, 187
+LDI r3, 145
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow rectangle at (191, 129) with width 37 and height 83.
-; PLAN: r0=191(x), r1=129(y), r2=37(width), r3=83(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 191
-LDI r1, 129
-LDI r2, 37
-LDI r3, 83
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (268, 164) with radius 71.
+; PLAN: r0=268(x), r1=164(y), r2=71(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 268
+LDI r1, 164
+LDI r2, 71
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

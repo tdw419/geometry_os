@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Creates a red circular shape at (106, 130) with radius 59 then Sets a single white pixel at (121, 78) then Draws a white rectangle at (281, 53) with width 61 and height 57.
-; PLAN: r0=106(x), r1=130(y), r2=59(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=121(x), r6=78(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=281(x), r11=53(y), r12=61(width), r13=57(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 106
-LDI r1, 130
-LDI r2, 59
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 121
-LDI r6, 78
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
-LDI r10, 281
-LDI r11, 53
-LDI r12, 61
-LDI r13, 57
-LDI r14, 0xFFFFFF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Renders a purple line between points (159, 237) and (207, 184).
+; PLAN: r0=159(x1), r1=237(y1), r2=207(x2), r3=184(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 159
+LDI r1, 237
+LDI r2, 207
+LDI r3, 184
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

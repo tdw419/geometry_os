@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (510, 19) and (411, 118).
-; PLAN: r0=510(x1), r1=19(y1), r2=411(x2), r3=118(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 510
-LDI r1, 19
-LDI r2, 411
-LDI r3, 118
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a black line from (383, 61) to (336, 201).
+; PLAN: r0=383(x1), r1=61(y1), r2=336(x2), r3=201(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 383
+LDI r1, 61
+LDI r2, 336
+LDI r3, 201
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

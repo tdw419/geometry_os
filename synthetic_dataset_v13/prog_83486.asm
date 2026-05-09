@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (393, 98) spanning 51 by 50 pixels.
-; PLAN: r0=393(x), r1=98(y), r2=51(width), r3=50(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 98
-LDI r2, 51
-LDI r3, 50
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a yellow rectangle at (83, 80) with width 29 and height 113.
+; PLAN: r0=83(x), r1=80(y), r2=29(width), r3=113(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 83
+LDI r1, 80
+LDI r2, 29
+LDI r3, 113
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

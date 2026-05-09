@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (79, 224) to (321, 95).
-; PLAN: r0=79(x1), r1=224(y1), r2=321(x2), r3=95(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 79
-LDI r1, 224
-LDI r2, 321
-LDI r3, 95
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (162, 158) with radius 75.
+; PLAN: r0=162(x), r1=158(y), r2=75(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 162
+LDI r1, 158
+LDI r2, 75
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

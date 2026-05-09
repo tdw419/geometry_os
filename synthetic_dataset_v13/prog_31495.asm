@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta dot at position (465, 148) then Places a white 104x111 rectangle at position (235, 108).
-; PLAN: r0=465(x), r1=148(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=235(x), r6=108(y), r7=104(width), r8=111(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 465
-LDI r1, 148
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 235
-LDI r6, 108
-LDI r7, 104
-LDI r8, 111
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a red rectangular region at (273, 41) spanning 94 by 65 pixels.
+; PLAN: r0=273(x), r1=41(y), r2=94(width), r3=65(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 273
+LDI r1, 41
+LDI r2, 94
+LDI r3, 65
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

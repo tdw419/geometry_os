@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single orange pixel at (303, 96).
-; PLAN: r0=303(x), r1=96(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 303
-LDI r1, 96
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a orange circle centered at (188, 91) with radius 73.
+; PLAN: r0=188(x), r1=91(y), r2=73(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 188
+LDI r1, 91
+LDI r2, 73
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

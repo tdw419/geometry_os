@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (285, 120) with width 61 and height 67.
-; PLAN: r0=285(x), r1=120(y), r2=61(width), r3=67(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 285
-LDI r1, 120
-LDI r2, 61
-LDI r3, 67
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (388, 78) and radius 65.
+; PLAN: r0=388(x), r1=78(y), r2=65(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 388
+LDI r1, 78
+LDI r2, 65
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

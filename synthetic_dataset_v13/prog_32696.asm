@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a magenta 93x68 rectangle at position (273, 174).
-; PLAN: r0=273(x), r1=174(y), r2=93(width), r3=68(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 273
-LDI r1, 174
-LDI r2, 93
-LDI r3, 68
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (232, 173) then Places a magenta circle of radius 80 at center (221, 91).
+; PLAN: r0=232(x), r1=173(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=221(x), r6=91(y), r7=80(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 232
+LDI r1, 173
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 221
+LDI r6, 91
+LDI r7, 80
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

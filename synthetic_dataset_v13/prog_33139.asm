@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a white circular shape at (70, 132) with radius 13.
-; PLAN: r0=70(x), r1=132(y), r2=13(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 70
-LDI r1, 132
-LDI r2, 13
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

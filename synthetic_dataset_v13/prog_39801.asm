@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 70x20 rectangle at position (190, 87).
-; PLAN: r0=190(x), r1=87(y), r2=70(width), r3=20(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 87
-LDI r2, 70
-LDI r3, 20
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (46, 59) and radius 38.
+; PLAN: r0=46(x), r1=59(y), r2=38(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 46
+LDI r1, 59
+LDI r2, 38
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

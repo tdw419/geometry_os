@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Places a black 89x56 rectangle at position (387, 195) then Renders a red disk with center (180, 168) and radius 48 then Sets a single red pixel at (496, 37).
-; PLAN: r0=387(x), r1=195(y), r2=89(width), r3=56(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=180(x), r6=168(y), r7=48(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=496(x), r11=37(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
-LDI r0, 387
-LDI r1, 195
-LDI r2, 89
-LDI r3, 56
-LDI r4, 0x000000
+; DESCRIPTION: Composite: Draws a red rectangle at (291, 34) with width 77 and height 53 then Places a purple dot at position (422, 240) then Places a magenta line segment connecting (121, 140) to (92, 18).
+; PLAN: r0=291(x), r1=34(y), r2=77(width), r3=53(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=422(x), r6=240(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=121(x1), r11=140(y1), r12=92(x2), r13=18(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 291
+LDI r1, 34
+LDI r2, 77
+LDI r3, 53
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
-LDI r5, 180
-LDI r6, 168
-LDI r7, 48
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
-LDI r10, 496
-LDI r11, 37
-LDI r12, 0xFF0000
-PSET r10, r11, r12
+LDI r5, 422
+LDI r6, 240
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
+LDI r10, 121
+LDI r11, 140
+LDI r12, 92
+LDI r13, 18
+LDI r14, 0xFF00FF
+LINE r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (114, 244) to (105, 103).
-; PLAN: r0=114(x1), r1=244(y1), r2=105(x2), r3=103(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 114
-LDI r1, 244
-LDI r2, 105
-LDI r3, 103
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (352, 105) and radius 53.
+; PLAN: r0=352(x), r1=105(y), r2=53(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 352
+LDI r1, 105
+LDI r2, 53
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (112, 218) to (452, 7).
-; PLAN: r0=112(x1), r1=218(y1), r2=452(x2), r3=7(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 218
-LDI r2, 452
-LDI r3, 7
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a cyan line from (41, 73) to (253, 255).
+; PLAN: r0=41(x1), r1=73(y1), r2=253(x2), r3=255(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 41
+LDI r1, 73
+LDI r2, 253
+LDI r3, 255
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

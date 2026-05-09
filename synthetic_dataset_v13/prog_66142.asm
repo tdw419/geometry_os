@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (252, 66) and radius 22.
-; PLAN: r0=252(x), r1=66(y), r2=22(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 252
-LDI r1, 66
-LDI r2, 22
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a black rectangular region at (164, 58) spanning 35 by 97 pixels.
+; PLAN: r0=164(x), r1=58(y), r2=35(width), r3=97(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 58
+LDI r2, 35
+LDI r3, 97
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

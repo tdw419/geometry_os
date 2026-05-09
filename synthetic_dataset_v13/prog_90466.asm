@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Draws a magenta rectangle at (403, 204) with width 107 and height 10 then Draws a green circle centered at (86, 123) with radius 66 then Renders a red line between points (388, 0) and (262, 150).
-; PLAN: r0=403(x), r1=204(y), r2=107(width), r3=10(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=86(x), r6=123(y), r7=66(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=388(x1), r11=0(y1), r12=262(x2), r13=150(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 403
-LDI r1, 204
-LDI r2, 107
-LDI r3, 10
-LDI r4, 0xFF00FF
+; DESCRIPTION: Composite: Draws a cyan rectangle at (90, 129) with width 120 and height 75 then Draws a orange line from (249, 44) to (150, 91) then Sets a single black pixel at (328, 81).
+; PLAN: r0=90(x), r1=129(y), r2=120(width), r3=75(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=249(x1), r6=44(y1), r7=150(x2), r8=91(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=328(x), r11=81(y), r12=0x000000(color). Op: PSET r10, r11, r12.
+LDI r0, 90
+LDI r1, 129
+LDI r2, 120
+LDI r3, 75
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 86
-LDI r6, 123
-LDI r7, 66
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
-LDI r10, 388
-LDI r11, 0
-LDI r12, 262
-LDI r13, 150
-LDI r14, 0xFF0000
-LINE r10, r11, r12, r13, r14
+LDI r5, 249
+LDI r6, 44
+LDI r7, 150
+LDI r8, 91
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
+LDI r10, 328
+LDI r11, 81
+LDI r12, 0x000000
+PSET r10, r11, r12
 HALT

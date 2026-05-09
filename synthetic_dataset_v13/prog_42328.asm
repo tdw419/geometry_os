@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a white disk with center (351, 161) and radius 27.
-; PLAN: r0=351(x), r1=161(y), r2=27(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 351
-LDI r1, 161
-LDI r2, 27
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Draws a orange circle centered at (158, 158) with radius 63.
+; PLAN: r0=158(x), r1=158(y), r2=63(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 158
+LDI r1, 158
+LDI r2, 63
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

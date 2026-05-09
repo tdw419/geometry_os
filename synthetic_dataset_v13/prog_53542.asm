@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (374, 172) with width 77 and height 48.
-; PLAN: r0=374(x), r1=172(y), r2=77(width), r3=48(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 374
-LDI r1, 172
-LDI r2, 77
-LDI r3, 48
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (474, 79) and (202, 221).
+; PLAN: r0=474(x1), r1=79(y1), r2=202(x2), r3=221(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 474
+LDI r1, 79
+LDI r2, 202
+LDI r3, 221
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

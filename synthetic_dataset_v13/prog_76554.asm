@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 111x10 rectangle at position (191, 234).
-; PLAN: r0=191(x), r1=234(y), r2=111(width), r3=10(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 191
-LDI r1, 234
-LDI r2, 111
-LDI r3, 10
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (115, 82) with radius 66.
+; PLAN: r0=115(x), r1=82(y), r2=66(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 115
+LDI r1, 82
+LDI r2, 66
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

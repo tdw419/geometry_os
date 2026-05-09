@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a magenta rectangular region at (15, 15) spanning 95 by 84 pixels.
-; PLAN: r0=15(x), r1=15(y), r2=95(width), r3=84(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 15
-LDI r1, 15
-LDI r2, 95
-LDI r3, 84
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (112, 198) then Renders a green line between points (52, 18) and (25, 69).
+; PLAN: r0=112(x), r1=198(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=52(x1), r6=18(y1), r7=25(x2), r8=69(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 112
+LDI r1, 198
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 52
+LDI r6, 18
+LDI r7, 25
+LDI r8, 69
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

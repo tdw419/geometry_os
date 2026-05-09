@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 86x65 rectangle at position (316, 159).
-; PLAN: r0=316(x), r1=159(y), r2=86(width), r3=65(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 316
-LDI r1, 159
-LDI r2, 86
-LDI r3, 65
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (282, 156) with radius 75.
+; PLAN: r0=282(x), r1=156(y), r2=75(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 282
+LDI r1, 156
+LDI r2, 75
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a cyan circle centered at (370, 96) with radius 80.
-; PLAN: r0=370(x), r1=96(y), r2=80(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 370
-LDI r1, 96
-LDI r2, 80
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

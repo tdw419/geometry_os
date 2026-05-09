@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a red circle of radius 20 at center (370, 147).
-; PLAN: r0=370(x), r1=147(y), r2=20(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 370
-LDI r1, 147
-LDI r2, 20
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

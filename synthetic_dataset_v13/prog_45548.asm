@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Draws a orange line from (333, 180) to (262, 218) then Draws a red circle centered at (290, 173) with radius 75 then Places a magenta 51x112 rectangle at position (106, 109).
-; PLAN: r0=333(x1), r1=180(y1), r2=262(x2), r3=218(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=290(x), r6=173(y), r7=75(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=106(x), r11=109(y), r12=51(width), r13=112(height), r14=0xFF00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 333
-LDI r1, 180
-LDI r2, 262
-LDI r3, 218
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Places a blue line segment connecting (336, 110) to (502, 19) then Creates a red rectangular region at (28, 84) spanning 110 by 105 pixels then Places a cyan dot at position (154, 214).
+; PLAN: r0=336(x1), r1=110(y1), r2=502(x2), r3=19(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=28(x), r6=84(y), r7=110(width), r8=105(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=154(x), r11=214(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 336
+LDI r1, 110
+LDI r2, 502
+LDI r3, 19
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
-LDI r5, 290
-LDI r6, 173
-LDI r7, 75
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
-LDI r10, 106
-LDI r11, 109
-LDI r12, 51
-LDI r13, 112
-LDI r14, 0xFF00FF
-RECTF r10, r11, r12, r13, r14
+LDI r5, 28
+LDI r6, 84
+LDI r7, 110
+LDI r8, 105
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
+LDI r10, 154
+LDI r11, 214
+LDI r12, 0x00FFFF
+PSET r10, r11, r12
 HALT

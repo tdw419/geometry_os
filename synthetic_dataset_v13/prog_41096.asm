@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a purple circle centered at (55, 46) with radius 39.
-; PLAN: r0=55(x), r1=46(y), r2=39(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 55
-LDI r1, 46
-LDI r2, 39
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

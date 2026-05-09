@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (446, 111) and (505, 1).
-; PLAN: r0=446(x1), r1=111(y1), r2=505(x2), r3=1(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 446
-LDI r1, 111
-LDI r2, 505
-LDI r3, 1
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (93, 106) with width 117 and height 94.
+; PLAN: r0=93(x), r1=106(y), r2=117(width), r3=94(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 106
+LDI r2, 117
+LDI r3, 94
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

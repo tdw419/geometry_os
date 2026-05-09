@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (353, 77) with radius 60.
-; PLAN: r0=353(x), r1=77(y), r2=60(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 353
-LDI r1, 77
-LDI r2, 60
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (277, 157) and (480, 78).
+; PLAN: r0=277(x1), r1=157(y1), r2=480(x2), r3=78(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 277
+LDI r1, 157
+LDI r2, 480
+LDI r3, 78
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

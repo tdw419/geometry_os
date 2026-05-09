@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (281, 14) to (286, 209).
-; PLAN: r0=281(x1), r1=14(y1), r2=286(x2), r3=209(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 281
-LDI r1, 14
-LDI r2, 286
-LDI r3, 209
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (474, 164) and radius 13.
+; PLAN: r0=474(x), r1=164(y), r2=13(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 474
+LDI r1, 164
+LDI r2, 13
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

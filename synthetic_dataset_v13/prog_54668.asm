@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (224, 60) and (397, 120).
-; PLAN: r0=224(x1), r1=60(y1), r2=397(x2), r3=120(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+; DESCRIPTION: Places a cyan 55x27 rectangle at position (224, 29).
+; PLAN: r0=224(x), r1=29(y), r2=55(width), r3=27(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
 LDI r0, 224
-LDI r1, 60
-LDI r2, 397
-LDI r3, 120
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+LDI r1, 29
+LDI r2, 55
+LDI r3, 27
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

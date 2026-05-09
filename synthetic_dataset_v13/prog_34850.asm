@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (196, 234) to (507, 187).
-; PLAN: r0=196(x1), r1=234(y1), r2=507(x2), r3=187(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 196
-LDI r1, 234
-LDI r2, 507
-LDI r3, 187
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 30 at center (355, 101).
+; PLAN: r0=355(x), r1=101(y), r2=30(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 355
+LDI r1, 101
+LDI r2, 30
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

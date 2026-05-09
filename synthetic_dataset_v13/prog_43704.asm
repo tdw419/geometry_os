@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a blue disk with center (243, 181) and radius 20.
-; PLAN: r0=243(x), r1=181(y), r2=20(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 243
-LDI r1, 181
-LDI r2, 20
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (395, 229).
+; PLAN: r0=395(x), r1=229(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 395
+LDI r1, 229
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

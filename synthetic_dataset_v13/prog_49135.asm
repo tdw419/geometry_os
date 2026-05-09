@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (400, 23) with width 99 and height 50.
-; PLAN: r0=400(x), r1=23(y), r2=99(width), r3=50(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 400
-LDI r1, 23
-LDI r2, 99
-LDI r3, 50
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (95, 91) and (490, 72).
+; PLAN: r0=95(x1), r1=91(y1), r2=490(x2), r3=72(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 95
+LDI r1, 91
+LDI r2, 490
+LDI r3, 72
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

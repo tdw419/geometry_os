@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Renders a blue box of size 63x49 starting at (333, 81) then Sets a single red pixel at (299, 198).
-; PLAN: r0=333(x), r1=81(y), r2=63(width), r3=49(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=299(x), r6=198(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 333
-LDI r1, 81
-LDI r2, 63
-LDI r3, 49
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a yellow rectangle at (198, 168) with width 12 and height 71.
+; PLAN: r0=198(x), r1=168(y), r2=12(width), r3=71(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 198
+LDI r1, 168
+LDI r2, 12
+LDI r3, 71
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
-LDI r5, 299
-LDI r6, 198
-LDI r7, 0xFF0000
-PSET r5, r6, r7
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a green line between points (292, 246) and (339, 208).
-; PLAN: r0=292(x1), r1=246(y1), r2=339(x2), r3=208(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 292
-LDI r1, 246
-LDI r2, 339
-LDI r3, 208
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (27, 82).
+; PLAN: r0=27(x), r1=82(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 27
+LDI r1, 82
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

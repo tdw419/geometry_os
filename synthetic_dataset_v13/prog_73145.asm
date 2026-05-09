@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (100, 147) and radius 77.
-; PLAN: r0=100(x), r1=147(y), r2=77(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 100
-LDI r1, 147
-LDI r2, 77
-LDI r3, 0x000000
+; DESCRIPTION: Creates a blue circular shape at (314, 92) with radius 62.
+; PLAN: r0=314(x), r1=92(y), r2=62(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 314
+LDI r1, 92
+LDI r2, 62
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

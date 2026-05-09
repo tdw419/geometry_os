@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (33, 204) with radius 18.
-; PLAN: r0=33(x), r1=204(y), r2=18(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 33
-LDI r1, 204
-LDI r2, 18
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (257, 208) and (221, 56).
+; PLAN: r0=257(x1), r1=208(y1), r2=221(x2), r3=56(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 257
+LDI r1, 208
+LDI r2, 221
+LDI r3, 56
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

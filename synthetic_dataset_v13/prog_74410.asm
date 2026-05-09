@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (119, 26) to (185, 249).
-; PLAN: r0=119(x1), r1=26(y1), r2=185(x2), r3=249(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 119
-LDI r1, 26
-LDI r2, 185
-LDI r3, 249
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow rectangle at (235, 36) with width 72 and height 60.
+; PLAN: r0=235(x), r1=36(y), r2=72(width), r3=60(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 235
+LDI r1, 36
+LDI r2, 72
+LDI r3, 60
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

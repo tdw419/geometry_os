@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (420, 119) with radius 12.
-; PLAN: r0=420(x), r1=119(y), r2=12(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 420
-LDI r1, 119
-LDI r2, 12
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a black rectangular region at (113, 124) spanning 99 by 107 pixels.
+; PLAN: r0=113(x), r1=124(y), r2=99(width), r3=107(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 113
+LDI r1, 124
+LDI r2, 99
+LDI r3, 107
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

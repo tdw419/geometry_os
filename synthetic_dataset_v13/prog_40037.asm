@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (32, 133) to (503, 185).
-; PLAN: r0=32(x1), r1=133(y1), r2=503(x2), r3=185(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 32
-LDI r1, 133
-LDI r2, 503
-LDI r3, 185
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a black line segment connecting (365, 233) to (229, 184).
+; PLAN: r0=365(x1), r1=233(y1), r2=229(x2), r3=184(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 365
+LDI r1, 233
+LDI r2, 229
+LDI r3, 184
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

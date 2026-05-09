@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Draws a green line from (301, 6) to (92, 92).
+; PLAN: r0=301(x1), r1=6(y1), r2=92(x2), r3=92(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 301
+LDI r1, 6
+LDI r2, 92
+LDI r3, 92
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (509, 210) to (37, 224).
-; PLAN: r0=509(x1), r1=210(y1), r2=37(x2), r3=224(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 509
-LDI r1, 210
-LDI r2, 37
-LDI r3, 224
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (70, 131) with radius 27.
+; PLAN: r0=70(x), r1=131(y), r2=27(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 70
+LDI r1, 131
+LDI r2, 27
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

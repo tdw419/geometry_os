@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (176, 105) and radius 54.
-; PLAN: r0=176(x), r1=105(y), r2=54(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 176
-LDI r1, 105
-LDI r2, 54
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (423, 134) to (400, 12).
+; PLAN: r0=423(x1), r1=134(y1), r2=400(x2), r3=12(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 423
+LDI r1, 134
+LDI r2, 400
+LDI r3, 12
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a orange disk with center (425, 188) and radius 41.
-; PLAN: r0=425(x), r1=188(y), r2=41(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 425
-LDI r1, 188
-LDI r2, 41
-LDI r3, 0xFF8800
+; DESCRIPTION: Draws a cyan circle centered at (478, 130) with radius 30.
+; PLAN: r0=478(x), r1=130(y), r2=30(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 478
+LDI r1, 130
+LDI r2, 30
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

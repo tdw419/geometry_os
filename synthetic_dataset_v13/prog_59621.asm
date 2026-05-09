@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (318, 224) then Places a green 66x52 rectangle at position (341, 98).
-; PLAN: r0=318(x), r1=224(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=341(x), r6=98(y), r7=66(width), r8=52(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 318
-LDI r1, 224
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 341
-LDI r6, 98
-LDI r7, 66
-LDI r8, 52
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a black circle of radius 49 at center (259, 169).
+; PLAN: r0=259(x), r1=169(y), r2=49(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 259
+LDI r1, 169
+LDI r2, 49
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

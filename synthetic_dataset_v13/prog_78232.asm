@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 55x106 rectangle at position (154, 19).
-; PLAN: r0=154(x), r1=19(y), r2=55(width), r3=106(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 154
-LDI r1, 19
-LDI r2, 55
-LDI r3, 106
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (122, 161) with radius 80.
+; PLAN: r0=122(x), r1=161(y), r2=80(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 122
+LDI r1, 161
+LDI r2, 80
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a red line segment connecting (121, 2) to (448, 147).
-; PLAN: r0=121(x1), r1=2(y1), r2=448(x2), r3=147(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 121
-LDI r1, 2
-LDI r2, 448
-LDI r3, 147
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (78, 108).
+; PLAN: r0=78(x), r1=108(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 78
+LDI r1, 108
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (185, 133) with radius 37.
-; PLAN: r0=185(x), r1=133(y), r2=37(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 185
-LDI r1, 133
-LDI r2, 37
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple rectangle at (135, 65) with width 67 and height 76.
+; PLAN: r0=135(x), r1=65(y), r2=67(width), r3=76(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 135
+LDI r1, 65
+LDI r2, 67
+LDI r3, 76
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

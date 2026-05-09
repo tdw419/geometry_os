@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (345, 1) with width 49 and height 53.
-; PLAN: r0=345(x), r1=1(y), r2=49(width), r3=53(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 1
-LDI r2, 49
-LDI r3, 53
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a blue rectangle at (313, 185) with width 66 and height 23.
+; PLAN: r0=313(x), r1=185(y), r2=66(width), r3=23(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 313
+LDI r1, 185
+LDI r2, 66
+LDI r3, 23
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

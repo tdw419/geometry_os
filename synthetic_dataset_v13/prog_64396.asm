@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a green line between points (31, 188) and (508, 139).
-; PLAN: r0=31(x1), r1=188(y1), r2=508(x2), r3=139(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 31
-LDI r1, 188
-LDI r2, 508
-LDI r3, 139
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (343, 220) then Draws a green line from (230, 132) to (258, 135).
+; PLAN: r0=343(x), r1=220(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=230(x1), r6=132(y1), r7=258(x2), r8=135(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 343
+LDI r1, 220
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 230
+LDI r6, 132
+LDI r7, 258
+LDI r8, 135
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

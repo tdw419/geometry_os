@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a yellow 50x42 rectangle at position (63, 121).
-; PLAN: r0=63(x), r1=121(y), r2=50(width), r3=42(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 63
-LDI r1, 121
-LDI r2, 50
-LDI r3, 42
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (109, 144) then Places a blue circle of radius 14 at center (136, 16).
+; PLAN: r0=109(x), r1=144(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=136(x), r6=16(y), r7=14(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 109
+LDI r1, 144
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 136
+LDI r6, 16
+LDI r7, 14
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

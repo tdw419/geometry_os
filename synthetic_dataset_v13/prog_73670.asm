@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a green dot at position (448, 0) then Places a green line segment connecting (180, 232) to (462, 56).
-; PLAN: r0=448(x), r1=0(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=180(x1), r6=232(y1), r7=462(x2), r8=56(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 448
-LDI r1, 0
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 180
-LDI r6, 232
-LDI r7, 462
-LDI r8, 56
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a yellow rectangular region at (25, 34) spanning 105 by 14 pixels.
+; PLAN: r0=25(x), r1=34(y), r2=105(width), r3=14(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 25
+LDI r1, 34
+LDI r2, 105
+LDI r3, 14
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a magenta line segment connecting (288, 189) to (293, 73).
-; PLAN: r0=288(x1), r1=189(y1), r2=293(x2), r3=73(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 189
-LDI r2, 293
-LDI r3, 73
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (83, 153).
+; PLAN: r0=83(x), r1=153(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 83
+LDI r1, 153
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

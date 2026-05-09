@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 34x89 rectangle at position (198, 12).
-; PLAN: r0=198(x), r1=12(y), r2=34(width), r3=89(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 198
-LDI r1, 12
-LDI r2, 34
-LDI r3, 89
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (412, 164) to (107, 53).
+; PLAN: r0=412(x1), r1=164(y1), r2=107(x2), r3=53(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 412
+LDI r1, 164
+LDI r2, 107
+LDI r3, 53
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

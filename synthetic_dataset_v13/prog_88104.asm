@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (417, 103) to (498, 248).
-; PLAN: r0=417(x1), r1=103(y1), r2=498(x2), r3=248(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 417
-LDI r1, 103
-LDI r2, 498
-LDI r3, 248
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a cyan line between points (277, 200) and (1, 73).
+; PLAN: r0=277(x1), r1=200(y1), r2=1(x2), r3=73(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 277
+LDI r1, 200
+LDI r2, 1
+LDI r3, 73
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

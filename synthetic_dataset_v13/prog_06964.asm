@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a white 30x16 rectangle at position (219, 170) then Sets a single yellow pixel at (380, 163).
-; PLAN: r0=219(x), r1=170(y), r2=30(width), r3=16(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=380(x), r6=163(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 219
-LDI r1, 170
-LDI r2, 30
-LDI r3, 16
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 380
-LDI r6, 163
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
+; DESCRIPTION: Places a purple line segment connecting (117, 175) to (194, 208).
+; PLAN: r0=117(x1), r1=175(y1), r2=194(x2), r3=208(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 117
+LDI r1, 175
+LDI r2, 194
+LDI r3, 208
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

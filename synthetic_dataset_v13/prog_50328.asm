@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a blue 116x22 rectangle at position (127, 141).
-; PLAN: r0=127(x), r1=141(y), r2=116(width), r3=22(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 127
-LDI r1, 141
-LDI r2, 116
-LDI r3, 22
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

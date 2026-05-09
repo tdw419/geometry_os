@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a black box of size 95x47 starting at (222, 115).
-; PLAN: r0=222(x), r1=115(y), r2=95(width), r3=47(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 222
-LDI r1, 115
-LDI r2, 95
-LDI r3, 47
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

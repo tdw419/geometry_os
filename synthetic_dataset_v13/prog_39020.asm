@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (22, 66) with width 75 and height 56.
-; PLAN: r0=22(x), r1=66(y), r2=75(width), r3=56(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 22
-LDI r1, 66
-LDI r2, 75
-LDI r3, 56
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (187, 113) to (293, 220).
+; PLAN: r0=187(x1), r1=113(y1), r2=293(x2), r3=220(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 187
+LDI r1, 113
+LDI r2, 293
+LDI r3, 220
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

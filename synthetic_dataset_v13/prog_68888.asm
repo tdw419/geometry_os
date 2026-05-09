@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 118x42 starting at (13, 86).
-; PLAN: r0=13(x), r1=86(y), r2=118(width), r3=42(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 13
-LDI r1, 86
-LDI r2, 118
-LDI r3, 42
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (457, 48) with radius 21.
+; PLAN: r0=457(x), r1=48(y), r2=21(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 457
+LDI r1, 48
+LDI r2, 21
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

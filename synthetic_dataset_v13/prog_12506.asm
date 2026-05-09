@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple line segment connecting (216, 46) to (97, 25).
-; PLAN: r0=216(x1), r1=46(y1), r2=97(x2), r3=25(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 216
-LDI r1, 46
-LDI r2, 97
-LDI r3, 25
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (443, 167) with radius 54.
+; PLAN: r0=443(x), r1=167(y), r2=54(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 443
+LDI r1, 167
+LDI r2, 54
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

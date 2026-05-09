@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (203, 141) with radius 40.
-; PLAN: r0=203(x), r1=141(y), r2=40(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 203
-LDI r1, 141
-LDI r2, 40
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 56x98 rectangle at position (40, 103).
+; PLAN: r0=40(x), r1=103(y), r2=56(width), r3=98(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 40
+LDI r1, 103
+LDI r2, 56
+LDI r3, 98
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

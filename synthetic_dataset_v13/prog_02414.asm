@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (19, 30) and (182, 42).
-; PLAN: r0=19(x1), r1=30(y1), r2=182(x2), r3=42(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 19
-LDI r1, 30
-LDI r2, 182
-LDI r3, 42
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (187, 104) with width 88 and height 97.
+; PLAN: r0=187(x), r1=104(y), r2=88(width), r3=97(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 187
+LDI r1, 104
+LDI r2, 88
+LDI r3, 97
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

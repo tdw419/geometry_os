@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a white dot at position (213, 118).
-; PLAN: r0=213(x), r1=118(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 213
-LDI r1, 118
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a purple circular shape at (377, 125) with radius 27.
+; PLAN: r0=377(x), r1=125(y), r2=27(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 377
+LDI r1, 125
+LDI r2, 27
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

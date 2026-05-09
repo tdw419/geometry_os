@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (56, 199) and (118, 246).
-; PLAN: r0=56(x1), r1=199(y1), r2=118(x2), r3=246(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 56
-LDI r1, 199
-LDI r2, 118
-LDI r3, 246
-LDI r4, 0x000000
+; DESCRIPTION: Places a cyan line segment connecting (428, 20) to (27, 108).
+; PLAN: r0=428(x1), r1=20(y1), r2=27(x2), r3=108(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 428
+LDI r1, 20
+LDI r2, 27
+LDI r3, 108
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

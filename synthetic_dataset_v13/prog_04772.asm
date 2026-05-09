@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (319, 135) with radius 67.
-; PLAN: r0=319(x), r1=135(y), r2=67(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 319
-LDI r1, 135
-LDI r2, 67
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (122, 131) to (45, 76).
+; PLAN: r0=122(x1), r1=131(y1), r2=45(x2), r3=76(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 122
+LDI r1, 131
+LDI r2, 45
+LDI r3, 76
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

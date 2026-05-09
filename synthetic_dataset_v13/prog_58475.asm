@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Renders a yellow box of size 23x102 starting at (341, 86) then Places a red circle of radius 39 at center (85, 91).
-; PLAN: r0=341(x), r1=86(y), r2=23(width), r3=102(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=85(x), r6=91(y), r7=39(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 341
-LDI r1, 86
-LDI r2, 23
-LDI r3, 102
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 85
-LDI r6, 91
-LDI r7, 39
-LDI r8, 0xFF0000
+; DESCRIPTION: Composite: Sets a single white pixel at (507, 189) then Renders a orange disk with center (163, 162) and radius 44.
+; PLAN: r0=507(x), r1=189(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=163(x), r6=162(y), r7=44(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 507
+LDI r1, 189
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 163
+LDI r6, 162
+LDI r7, 44
+LDI r8, 0xFF8800
 CIRCLE r5, r6, r7, r8
 HALT

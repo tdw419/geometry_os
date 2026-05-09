@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (223, 191) spanning 47 by 47 pixels then Sets a single black pixel at (375, 134).
-; PLAN: r0=223(x), r1=191(y), r2=47(width), r3=47(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=375(x), r6=134(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 223
-LDI r1, 191
-LDI r2, 47
-LDI r3, 47
+; DESCRIPTION: Composite: Creates a black rectangular region at (258, 173) spanning 30 by 69 pixels then Places a black dot at position (226, 65) then Renders a cyan disk with center (449, 224) and radius 17.
+; PLAN: r0=258(x), r1=173(y), r2=30(width), r3=69(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=226(x), r6=65(y), r7=0x000000(color). Op: PSET r5, r6, r7 Next: r10=449(x), r11=224(y), r12=17(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 258
+LDI r1, 173
+LDI r2, 30
+LDI r3, 69
 LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
-LDI r5, 375
-LDI r6, 134
+LDI r5, 226
+LDI r6, 65
 LDI r7, 0x000000
 PSET r5, r6, r7
+LDI r10, 449
+LDI r11, 224
+LDI r12, 17
+LDI r13, 0x00FFFF
+CIRCLE r10, r11, r12, r13
 HALT

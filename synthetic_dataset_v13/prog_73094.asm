@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a cyan circular shape at (442, 71) with radius 24.
-; PLAN: r0=442(x), r1=71(y), r2=24(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 442
-LDI r1, 71
-LDI r2, 24
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

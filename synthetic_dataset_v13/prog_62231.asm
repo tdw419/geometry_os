@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a orange line segment connecting (71, 32) to (287, 242).
-; PLAN: r0=71(x1), r1=32(y1), r2=287(x2), r3=242(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 71
-LDI r1, 32
-LDI r2, 287
-LDI r3, 242
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (269, 41) then Places a purple line segment connecting (406, 163) to (266, 39).
+; PLAN: r0=269(x), r1=41(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=406(x1), r6=163(y1), r7=266(x2), r8=39(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 269
+LDI r1, 41
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 406
+LDI r6, 163
+LDI r7, 266
+LDI r8, 39
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

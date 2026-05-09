@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Places a purple line segment connecting (415, 158) to (112, 137).
+; PLAN: r0=415(x1), r1=158(y1), r2=112(x2), r3=137(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 415
+LDI r1, 158
+LDI r2, 112
+LDI r3, 137
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

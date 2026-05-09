@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (62, 96) and (108, 132).
-; PLAN: r0=62(x1), r1=96(y1), r2=108(x2), r3=132(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 62
-LDI r1, 96
-LDI r2, 108
-LDI r3, 132
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 43 at center (234, 192).
+; PLAN: r0=234(x), r1=192(y), r2=43(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 234
+LDI r1, 192
+LDI r2, 43
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

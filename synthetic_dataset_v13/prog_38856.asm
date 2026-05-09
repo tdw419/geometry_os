@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single cyan pixel at (348, 154).
-; PLAN: r0=348(x), r1=154(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 348
-LDI r1, 154
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a orange circular shape at (296, 131) with radius 20.
+; PLAN: r0=296(x), r1=131(y), r2=20(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 296
+LDI r1, 131
+LDI r2, 20
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (164, 130) spanning 81 by 62 pixels.
-; PLAN: r0=164(x), r1=130(y), r2=81(width), r3=62(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 130
-LDI r2, 81
-LDI r3, 62
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a orange 106x82 rectangle at position (166, 26).
+; PLAN: r0=166(x), r1=26(y), r2=106(width), r3=82(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 166
+LDI r1, 26
+LDI r2, 106
+LDI r3, 82
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

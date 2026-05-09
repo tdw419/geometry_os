@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a red circular shape at (386, 121) with radius 43.
-; PLAN: r0=386(x), r1=121(y), r2=43(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 386
-LDI r1, 121
-LDI r2, 43
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (313, 155).
+; PLAN: r0=313(x), r1=155(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 313
+LDI r1, 155
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

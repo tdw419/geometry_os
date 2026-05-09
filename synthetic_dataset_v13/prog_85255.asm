@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a purple circle centered at (89, 122) with radius 77.
-; PLAN: r0=89(x), r1=122(y), r2=77(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 89
-LDI r1, 122
-LDI r2, 77
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black dot at position (493, 53).
+; PLAN: r0=493(x), r1=53(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 493
+LDI r1, 53
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

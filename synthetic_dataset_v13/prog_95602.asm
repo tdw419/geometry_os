@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (372, 194) with radius 44.
-; PLAN: r0=372(x), r1=194(y), r2=44(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 372
-LDI r1, 194
-LDI r2, 44
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 48x103 starting at (251, 84).
+; PLAN: r0=251(x), r1=84(y), r2=48(width), r3=103(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 251
+LDI r1, 84
+LDI r2, 48
+LDI r3, 103
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

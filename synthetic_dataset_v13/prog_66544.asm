@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 34x88 rectangle at position (302, 165).
-; PLAN: r0=302(x), r1=165(y), r2=34(width), r3=88(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 302
-LDI r1, 165
-LDI r2, 34
-LDI r3, 88
+; DESCRIPTION: Renders a orange line between points (199, 38) and (460, 76).
+; PLAN: r0=199(x1), r1=38(y1), r2=460(x2), r3=76(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 199
+LDI r1, 38
+LDI r2, 460
+LDI r3, 76
 LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

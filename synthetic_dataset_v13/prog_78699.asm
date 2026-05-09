@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (67, 117) to (463, 58).
-; PLAN: r0=67(x1), r1=117(y1), r2=463(x2), r3=58(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 67
-LDI r1, 117
-LDI r2, 463
-LDI r3, 58
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black box of size 48x109 starting at (170, 58).
+; PLAN: r0=170(x), r1=58(y), r2=48(width), r3=109(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 58
+LDI r2, 48
+LDI r3, 109
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,14 @@
-; DESCRIPTION: Creates a green rectangular region at (237, 43) spanning 33 by 75 pixels.
-; PLAN: r0=237(x), r1=43(y), r2=33(width), r3=75(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 237
-LDI r1, 43
-LDI r2, 33
-LDI r3, 75
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a white line between points (178, 33) and (196, 164) then Places a cyan circle of radius 41 at center (352, 110).
+; PLAN: r0=178(x1), r1=33(y1), r2=196(x2), r3=164(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=352(x), r6=110(y), r7=41(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 178
+LDI r1, 33
+LDI r2, 196
+LDI r3, 164
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 352
+LDI r6, 110
+LDI r7, 41
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

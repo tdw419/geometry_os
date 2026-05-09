@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (314, 126) and (27, 116).
-; PLAN: r0=314(x1), r1=126(y1), r2=27(x2), r3=116(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 314
-LDI r1, 126
-LDI r2, 27
-LDI r3, 116
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 39x17 rectangle at position (82, 172).
+; PLAN: r0=82(x), r1=172(y), r2=39(width), r3=17(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 82
+LDI r1, 172
+LDI r2, 39
+LDI r3, 17
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

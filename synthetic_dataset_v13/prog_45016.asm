@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a green circle centered at (425, 101) with radius 65.
-; PLAN: r0=425(x), r1=101(y), r2=65(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 425
-LDI r1, 101
-LDI r2, 65
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (486, 122).
+; PLAN: r0=486(x), r1=122(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 486
+LDI r1, 122
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

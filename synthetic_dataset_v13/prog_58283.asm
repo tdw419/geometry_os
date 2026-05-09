@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single cyan pixel at (298, 246).
-; PLAN: r0=298(x), r1=246(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 298
-LDI r1, 246
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow line segment connecting (271, 66) to (115, 45).
+; PLAN: r0=271(x1), r1=66(y1), r2=115(x2), r3=45(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 271
+LDI r1, 66
+LDI r2, 115
+LDI r3, 45
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

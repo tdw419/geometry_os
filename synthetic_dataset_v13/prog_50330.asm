@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (372, 102) with radius 79.
-; PLAN: r0=372(x), r1=102(y), r2=79(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 372
-LDI r1, 102
-LDI r2, 79
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 97x83 starting at (333, 99).
+; PLAN: r0=333(x), r1=99(y), r2=97(width), r3=83(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 333
+LDI r1, 99
+LDI r2, 97
+LDI r3, 83
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

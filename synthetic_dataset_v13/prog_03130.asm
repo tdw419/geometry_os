@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 20 at center (194, 84).
-; PLAN: r0=194(x), r1=84(y), r2=20(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 194
-LDI r1, 84
-LDI r2, 20
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (131, 125) spanning 91 by 95 pixels.
+; PLAN: r0=131(x), r1=125(y), r2=91(width), r3=95(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 131
+LDI r1, 125
+LDI r2, 91
+LDI r3, 95
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

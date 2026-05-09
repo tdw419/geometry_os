@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (386, 18) then Renders a magenta box of size 69x56 starting at (425, 166) then Draws a cyan circle centered at (111, 111) with radius 68.
-; PLAN: r0=386(x), r1=18(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=425(x), r6=166(y), r7=69(width), r8=56(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=111(x), r11=111(y), r12=68(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 386
-LDI r1, 18
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 425
-LDI r6, 166
-LDI r7, 69
-LDI r8, 56
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 111
-LDI r11, 111
-LDI r12, 68
-LDI r13, 0x00FFFF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Places a yellow circle of radius 41 at center (171, 43) then Sets a single blue pixel at (100, 245) then Draws a green line from (65, 239) to (486, 62).
+; PLAN: r0=171(x), r1=43(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=100(x), r6=245(y), r7=0x0000FF(color). Op: PSET r5, r6, r7 Next: r10=65(x1), r11=239(y1), r12=486(x2), r13=62(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 171
+LDI r1, 43
+LDI r2, 41
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 100
+LDI r6, 245
+LDI r7, 0x0000FF
+PSET r5, r6, r7
+LDI r10, 65
+LDI r11, 239
+LDI r12, 486
+LDI r13, 62
+LDI r14, 0x00FF00
+LINE r10, r11, r12, r13, r14
 HALT

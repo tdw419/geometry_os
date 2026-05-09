@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (22, 243).
-; PLAN: r0=22(x), r1=243(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 22
-LDI r1, 243
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a red box of size 87x115 starting at (263, 61).
+; PLAN: r0=263(x), r1=61(y), r2=87(width), r3=115(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 263
+LDI r1, 61
+LDI r2, 87
+LDI r3, 115
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

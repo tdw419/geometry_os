@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (267, 119) to (194, 250).
-; PLAN: r0=267(x1), r1=119(y1), r2=194(x2), r3=250(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 267
-LDI r1, 119
-LDI r2, 194
-LDI r3, 250
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 78x74 rectangle at position (407, 35).
+; PLAN: r0=407(x), r1=35(y), r2=78(width), r3=74(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 407
+LDI r1, 35
+LDI r2, 78
+LDI r3, 74
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

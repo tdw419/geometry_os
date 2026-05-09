@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Draws a orange line from (306, 168) to (436, 66) then Places a magenta dot at position (198, 186) then Renders a blue disk with center (183, 214) and radius 13.
-; PLAN: r0=306(x1), r1=168(y1), r2=436(x2), r3=66(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=198(x), r6=186(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7 Next: r10=183(x), r11=214(y), r12=13(radius), r13=0x0000FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 306
-LDI r1, 168
-LDI r2, 436
-LDI r3, 66
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
-LDI r5, 198
-LDI r6, 186
-LDI r7, 0xFF00FF
-PSET r5, r6, r7
-LDI r10, 183
-LDI r11, 214
-LDI r12, 13
-LDI r13, 0x0000FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Places a cyan circle of radius 53 at center (413, 133) then Draws a magenta line from (220, 201) to (238, 242).
+; PLAN: r0=413(x), r1=133(y), r2=53(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=220(x1), r6=201(y1), r7=238(x2), r8=242(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 413
+LDI r1, 133
+LDI r2, 53
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 220
+LDI r6, 201
+LDI r7, 238
+LDI r8, 242
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

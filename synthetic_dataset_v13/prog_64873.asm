@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (79, 140) and radius 15.
-; PLAN: r0=79(x), r1=140(y), r2=15(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 79
-LDI r1, 140
-LDI r2, 15
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green line segment connecting (213, 122) to (488, 10).
+; PLAN: r0=213(x1), r1=122(y1), r2=488(x2), r3=10(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 213
+LDI r1, 122
+LDI r2, 488
+LDI r3, 10
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

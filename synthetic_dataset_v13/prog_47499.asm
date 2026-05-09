@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (305, 219) to (443, 214).
-; PLAN: r0=305(x1), r1=219(y1), r2=443(x2), r3=214(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 305
-LDI r1, 219
-LDI r2, 443
-LDI r3, 214
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (312, 69) with radius 64.
+; PLAN: r0=312(x), r1=69(y), r2=64(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 312
+LDI r1, 69
+LDI r2, 64
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

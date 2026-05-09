@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a cyan circle centered at (181, 81) with radius 43.
-; PLAN: r0=181(x), r1=81(y), r2=43(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 181
-LDI r1, 81
-LDI r2, 43
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green dot at position (61, 159).
+; PLAN: r0=61(x), r1=159(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 61
+LDI r1, 159
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

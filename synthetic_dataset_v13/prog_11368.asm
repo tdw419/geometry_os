@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a orange line between points (272, 252) and (508, 152).
-; PLAN: r0=272(x1), r1=252(y1), r2=508(x2), r3=152(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 272
-LDI r1, 252
-LDI r2, 508
-LDI r3, 152
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (1, 10) then Renders a black box of size 67x21 starting at (62, 99).
+; PLAN: r0=1(x), r1=10(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=62(x), r6=99(y), r7=67(width), r8=21(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 1
+LDI r1, 10
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 62
+LDI r6, 99
+LDI r7, 67
+LDI r8, 21
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

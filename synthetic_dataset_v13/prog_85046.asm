@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a black circle of radius 43 at center (320, 155).
-; PLAN: r0=320(x), r1=155(y), r2=43(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 320
-LDI r1, 155
-LDI r2, 43
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange dot at position (26, 151).
+; PLAN: r0=26(x), r1=151(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 26
+LDI r1, 151
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

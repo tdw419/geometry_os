@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (477, 139) to (119, 249).
-; PLAN: r0=477(x1), r1=139(y1), r2=119(x2), r3=249(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 477
-LDI r1, 139
-LDI r2, 119
-LDI r3, 249
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (420, 146) with width 51 and height 50.
+; PLAN: r0=420(x), r1=146(y), r2=51(width), r3=50(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 420
+LDI r1, 146
+LDI r2, 51
+LDI r3, 50
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

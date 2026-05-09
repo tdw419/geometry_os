@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a black line between points (247, 159) and (172, 237).
-; PLAN: r0=247(x1), r1=159(y1), r2=172(x2), r3=237(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 247
-LDI r1, 159
-LDI r2, 172
-LDI r3, 237
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (91, 165).
+; PLAN: r0=91(x), r1=165(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 91
+LDI r1, 165
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (316, 17) with width 107 and height 87.
-; PLAN: r0=316(x), r1=17(y), r2=107(width), r3=87(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 316
-LDI r1, 17
-LDI r2, 107
-LDI r3, 87
+; DESCRIPTION: Draws a cyan line from (107, 92) to (358, 64).
+; PLAN: r0=107(x1), r1=92(y1), r2=358(x2), r3=64(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 107
+LDI r1, 92
+LDI r2, 358
+LDI r3, 64
 LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

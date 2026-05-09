@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (68, 152) to (45, 206).
-; PLAN: r0=68(x1), r1=152(y1), r2=45(x2), r3=206(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 68
-LDI r1, 152
-LDI r2, 45
-LDI r3, 206
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (322, 158) with radius 77.
+; PLAN: r0=322(x), r1=158(y), r2=77(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 322
+LDI r1, 158
+LDI r2, 77
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

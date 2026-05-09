@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a orange box of size 114x77 starting at (190, 53).
-; PLAN: r0=190(x), r1=53(y), r2=114(width), r3=77(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 53
-LDI r2, 114
-LDI r3, 77
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (48, 27).
+; PLAN: r0=48(x), r1=27(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 48
+LDI r1, 27
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

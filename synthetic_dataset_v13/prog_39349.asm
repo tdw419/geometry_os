@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (173, 171) with radius 23.
-; PLAN: r0=173(x), r1=171(y), r2=23(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 173
-LDI r1, 171
-LDI r2, 23
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (494, 217) to (77, 41).
+; PLAN: r0=494(x1), r1=217(y1), r2=77(x2), r3=41(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 494
+LDI r1, 217
+LDI r2, 77
+LDI r3, 41
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

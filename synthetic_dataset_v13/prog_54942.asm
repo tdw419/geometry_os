@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (452, 214) with radius 36.
-; PLAN: r0=452(x), r1=214(y), r2=36(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 452
-LDI r1, 214
-LDI r2, 36
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (388, 80) to (145, 47).
+; PLAN: r0=388(x1), r1=80(y1), r2=145(x2), r3=47(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 80
+LDI r2, 145
+LDI r3, 47
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

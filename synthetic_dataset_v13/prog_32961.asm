@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (154, 189) and radius 30.
-; PLAN: r0=154(x), r1=189(y), r2=30(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 154
-LDI r1, 189
-LDI r2, 30
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white box of size 56x87 starting at (285, 25).
+; PLAN: r0=285(x), r1=25(y), r2=56(width), r3=87(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 285
+LDI r1, 25
+LDI r2, 56
+LDI r3, 87
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

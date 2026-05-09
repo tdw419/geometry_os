@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a black disk with center (182, 221) and radius 27.
-; PLAN: r0=182(x), r1=221(y), r2=27(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 182
-LDI r1, 221
-LDI r2, 27
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (274, 184).
+; PLAN: r0=274(x), r1=184(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 274
+LDI r1, 184
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

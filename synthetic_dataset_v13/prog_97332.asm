@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (91, 142) then Creates a purple circular shape at (387, 182) with radius 28.
-; PLAN: r0=91(x), r1=142(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=387(x), r6=182(y), r7=28(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 91
-LDI r1, 142
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 387
-LDI r6, 182
-LDI r7, 28
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a green circular shape at (321, 13) with radius 12.
+; PLAN: r0=321(x), r1=13(y), r2=12(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 321
+LDI r1, 13
+LDI r2, 12
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

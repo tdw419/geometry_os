@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (343, 54) and (260, 18).
-; PLAN: r0=343(x1), r1=54(y1), r2=260(x2), r3=18(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 343
-LDI r1, 54
-LDI r2, 260
-LDI r3, 18
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 98x86 rectangle at position (134, 78).
+; PLAN: r0=134(x), r1=78(y), r2=98(width), r3=86(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 134
+LDI r1, 78
+LDI r2, 98
+LDI r3, 86
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

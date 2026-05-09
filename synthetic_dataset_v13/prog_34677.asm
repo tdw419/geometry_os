@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (334, 145) with radius 65.
-; PLAN: r0=334(x), r1=145(y), r2=65(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 334
-LDI r1, 145
-LDI r2, 65
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple line from (286, 2) to (415, 119).
+; PLAN: r0=286(x1), r1=2(y1), r2=415(x2), r3=119(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 286
+LDI r1, 2
+LDI r2, 415
+LDI r3, 119
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single black pixel at (369, 124).
-; PLAN: r0=369(x), r1=124(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 369
-LDI r1, 124
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a cyan circle of radius 63 at center (82, 155).
+; PLAN: r0=82(x), r1=155(y), r2=63(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 82
+LDI r1, 155
+LDI r2, 63
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

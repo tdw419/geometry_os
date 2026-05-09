@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a magenta dot at position (285, 76).
-; PLAN: r0=285(x), r1=76(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 285
-LDI r1, 76
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

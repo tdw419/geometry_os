@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single orange pixel at (182, 47).
-; PLAN: r0=182(x), r1=47(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 182
-LDI r1, 47
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Places a white 28x25 rectangle at position (272, 49).
+; PLAN: r0=272(x), r1=49(y), r2=28(width), r3=25(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 272
+LDI r1, 49
+LDI r2, 28
+LDI r3, 25
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

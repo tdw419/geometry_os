@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 44x28 rectangle at position (339, 67).
-; PLAN: r0=339(x), r1=67(y), r2=44(width), r3=28(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 339
-LDI r1, 67
-LDI r2, 44
-LDI r3, 28
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (83, 185) and (305, 30).
+; PLAN: r0=83(x1), r1=185(y1), r2=305(x2), r3=30(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 83
+LDI r1, 185
+LDI r2, 305
+LDI r3, 30
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

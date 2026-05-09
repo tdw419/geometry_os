@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (330, 187) with radius 63.
-; PLAN: r0=330(x), r1=187(y), r2=63(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 330
-LDI r1, 187
-LDI r2, 63
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white rectangle at (315, 228) with width 92 and height 20.
+; PLAN: r0=315(x), r1=228(y), r2=92(width), r3=20(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 315
+LDI r1, 228
+LDI r2, 92
+LDI r3, 20
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

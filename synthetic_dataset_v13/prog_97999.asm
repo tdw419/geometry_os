@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a orange circular shape at (359, 174) with radius 43.
-; PLAN: r0=359(x), r1=174(y), r2=43(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 359
-LDI r1, 174
-LDI r2, 43
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 18 into r1 and decrements it in a loop until zero.
+; PLAN: r1=18(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 18
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

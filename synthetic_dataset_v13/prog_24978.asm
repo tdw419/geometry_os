@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Draws a cyan rectangle at (173, 133) with width 88 and height 111.
+; PLAN: r0=173(x), r1=133(y), r2=88(width), r3=111(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 173
+LDI r1, 133
+LDI r2, 88
+LDI r3, 111
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (404, 7).
-; PLAN: r0=404(x), r1=7(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 404
-LDI r1, 7
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a red rectangle at (6, 143) with width 66 and height 112.
+; PLAN: r0=6(x), r1=143(y), r2=66(width), r3=112(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 6
+LDI r1, 143
+LDI r2, 66
+LDI r3, 112
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

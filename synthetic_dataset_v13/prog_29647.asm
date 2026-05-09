@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (205, 59) with radius 25.
-; PLAN: r0=205(x), r1=59(y), r2=25(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 205
-LDI r1, 59
-LDI r2, 25
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 99x24 starting at (125, 19).
+; PLAN: r0=125(x), r1=19(y), r2=99(width), r3=24(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 125
+LDI r1, 19
+LDI r2, 99
+LDI r3, 24
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

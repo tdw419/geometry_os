@@ -1,20 +1,15 @@
-; DESCRIPTION: Composite: Creates a red circular shape at (380, 126) with radius 78 then Renders a magenta box of size 33x24 starting at (205, 3) then Renders a green line between points (155, 67) and (289, 101).
-; PLAN: r0=380(x), r1=126(y), r2=78(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=205(x), r6=3(y), r7=33(width), r8=24(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=155(x1), r11=67(y1), r12=289(x2), r13=101(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 380
-LDI r1, 126
-LDI r2, 78
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 205
-LDI r6, 3
-LDI r7, 33
-LDI r8, 24
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 155
-LDI r11, 67
-LDI r12, 289
-LDI r13, 101
-LDI r14, 0x00FF00
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Creates a blue rectangular region at (146, 82) spanning 90 by 111 pixels then Draws a yellow line from (204, 118) to (378, 38).
+; PLAN: r0=146(x), r1=82(y), r2=90(width), r3=111(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=204(x1), r6=118(y1), r7=378(x2), r8=38(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 146
+LDI r1, 82
+LDI r2, 90
+LDI r3, 111
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 204
+LDI r6, 118
+LDI r7, 378
+LDI r8, 38
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

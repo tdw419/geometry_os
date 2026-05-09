@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (494, 61) to (391, 102).
-; PLAN: r0=494(x1), r1=61(y1), r2=391(x2), r3=102(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 494
-LDI r1, 61
-LDI r2, 391
-LDI r3, 102
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 45x116 starting at (297, 17).
+; PLAN: r0=297(x), r1=17(y), r2=45(width), r3=116(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 297
+LDI r1, 17
+LDI r2, 45
+LDI r3, 116
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Draws a cyan line from (412, 171) to (62, 173) then Sets a single black pixel at (52, 169).
-; PLAN: r0=412(x1), r1=171(y1), r2=62(x2), r3=173(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=52(x), r6=169(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 412
-LDI r1, 171
-LDI r2, 62
-LDI r3, 173
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 52
-LDI r6, 169
-LDI r7, 0x000000
-PSET r5, r6, r7
+; DESCRIPTION: Creates a yellow rectangular region at (202, 17) spanning 20 by 59 pixels.
+; PLAN: r0=202(x), r1=17(y), r2=20(width), r3=59(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 202
+LDI r1, 17
+LDI r2, 20
+LDI r3, 59
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

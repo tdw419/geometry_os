@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a blue circle centered at (198, 76) with radius 51.
-; PLAN: r0=198(x), r1=76(y), r2=51(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 198
-LDI r1, 76
-LDI r2, 51
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

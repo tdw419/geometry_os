@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a blue rectangular region at (342, 103) spanning 114 by 79 pixels.
-; PLAN: r0=342(x), r1=103(y), r2=114(width), r3=79(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 342
-LDI r1, 103
-LDI r2, 114
-LDI r3, 79
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (333, 64) then Draws a blue line from (200, 42) to (4, 8).
+; PLAN: r0=333(x), r1=64(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=200(x1), r6=42(y1), r7=4(x2), r8=8(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 333
+LDI r1, 64
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 200
+LDI r6, 42
+LDI r7, 4
+LDI r8, 8
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

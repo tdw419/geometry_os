@@ -1,12 +1,19 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (359, 29) then Creates a cyan circular shape at (422, 118) with radius 11.
-; PLAN: r0=359(x), r1=29(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=422(x), r6=118(y), r7=11(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 359
-LDI r1, 29
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 422
-LDI r6, 118
-LDI r7, 11
-LDI r8, 0x00FFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Draws a red line from (349, 141) to (236, 225) then Places a yellow 92x78 rectangle at position (251, 10) then Sets a single blue pixel at (409, 245).
+; PLAN: r0=349(x1), r1=141(y1), r2=236(x2), r3=225(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=251(x), r6=10(y), r7=92(width), r8=78(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=409(x), r11=245(y), r12=0x0000FF(color). Op: PSET r10, r11, r12.
+LDI r0, 349
+LDI r1, 141
+LDI r2, 236
+LDI r3, 225
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
+LDI r5, 251
+LDI r6, 10
+LDI r7, 92
+LDI r8, 78
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 409
+LDI r11, 245
+LDI r12, 0x0000FF
+PSET r10, r11, r12
 HALT

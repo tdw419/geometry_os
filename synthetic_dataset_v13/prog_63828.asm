@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (507, 68) and (187, 204).
-; PLAN: r0=507(x1), r1=68(y1), r2=187(x2), r3=204(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 507
-LDI r1, 68
-LDI r2, 187
-LDI r3, 204
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange rectangle at (224, 153) with width 113 and height 35.
+; PLAN: r0=224(x), r1=153(y), r2=113(width), r3=35(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 224
+LDI r1, 153
+LDI r2, 113
+LDI r3, 35
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

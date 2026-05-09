@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a black circle centered at (328, 184) with radius 21.
-; PLAN: r0=328(x), r1=184(y), r2=21(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 328
-LDI r1, 184
-LDI r2, 21
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (344, 56).
+; PLAN: r0=344(x), r1=56(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 344
+LDI r1, 56
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

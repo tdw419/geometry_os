@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (32, 247).
-; PLAN: r0=32(x), r1=247(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 32
-LDI r1, 247
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan box of size 51x35 starting at (438, 118).
+; PLAN: r0=438(x), r1=118(y), r2=51(width), r3=35(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 438
+LDI r1, 118
+LDI r2, 51
+LDI r3, 35
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

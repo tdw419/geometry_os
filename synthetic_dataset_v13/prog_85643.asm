@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Draws a purple circle centered at (266, 192) with radius 61 then Creates a green rectangular region at (385, 79) spanning 85 by 119 pixels.
-; PLAN: r0=266(x), r1=192(y), r2=61(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=385(x), r6=79(y), r7=85(width), r8=119(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 266
-LDI r1, 192
-LDI r2, 61
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 385
-LDI r6, 79
-LDI r7, 85
-LDI r8, 119
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
+LDI r7, 0xFFFFFF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

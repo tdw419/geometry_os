@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Draws a yellow rectangle at (66, 70) with width 26 and height 60 then Sets a single green pixel at (95, 54) then Renders a black disk with center (458, 112) and radius 15.
-; PLAN: r0=66(x), r1=70(y), r2=26(width), r3=60(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=95(x), r6=54(y), r7=0x00FF00(color). Op: PSET r5, r6, r7 Next: r10=458(x), r11=112(y), r12=15(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 66
-LDI r1, 70
-LDI r2, 26
-LDI r3, 60
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 95
-LDI r6, 54
-LDI r7, 0x00FF00
-PSET r5, r6, r7
-LDI r10, 458
-LDI r11, 112
-LDI r12, 15
-LDI r13, 0x000000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Places a black circle of radius 40 at center (421, 117) then Creates a green rectangular region at (10, 39) spanning 40 by 71 pixels then Sets a single black pixel at (60, 4).
+; PLAN: r0=421(x), r1=117(y), r2=40(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=10(x), r6=39(y), r7=40(width), r8=71(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=60(x), r11=4(y), r12=0x000000(color). Op: PSET r10, r11, r12.
+LDI r0, 421
+LDI r1, 117
+LDI r2, 40
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 10
+LDI r6, 39
+LDI r7, 40
+LDI r8, 71
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 60
+LDI r11, 4
+LDI r12, 0x000000
+PSET r10, r11, r12
 HALT

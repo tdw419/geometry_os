@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (112, 3).
-; PLAN: r0=112(x), r1=3(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 112
-LDI r1, 3
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow line segment connecting (336, 246) to (336, 149).
+; PLAN: r0=336(x1), r1=246(y1), r2=336(x2), r3=149(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 336
+LDI r1, 246
+LDI r2, 336
+LDI r3, 149
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (391, 104).
-; PLAN: r0=391(x), r1=104(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 391
-LDI r1, 104
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange line segment connecting (490, 188) to (33, 126).
+; PLAN: r0=490(x1), r1=188(y1), r2=33(x2), r3=126(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 490
+LDI r1, 188
+LDI r2, 33
+LDI r3, 126
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

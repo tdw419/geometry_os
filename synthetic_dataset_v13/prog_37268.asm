@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 51x69 rectangle at position (101, 38).
-; PLAN: r0=101(x), r1=38(y), r2=51(width), r3=69(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 101
-LDI r1, 38
-LDI r2, 51
-LDI r3, 69
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 48 at center (301, 174).
+; PLAN: r0=301(x), r1=174(y), r2=48(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 301
+LDI r1, 174
+LDI r2, 48
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

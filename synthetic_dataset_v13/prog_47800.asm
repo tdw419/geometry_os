@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (274, 115) with radius 68.
-; PLAN: r0=274(x), r1=115(y), r2=68(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 274
-LDI r1, 115
-LDI r2, 68
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (53, 56) to (256, 167).
+; PLAN: r0=53(x1), r1=56(y1), r2=256(x2), r3=167(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 53
+LDI r1, 56
+LDI r2, 256
+LDI r3, 167
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

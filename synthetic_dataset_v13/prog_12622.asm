@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 16x70 rectangle at position (83, 40).
-; PLAN: r0=83(x), r1=40(y), r2=16(width), r3=70(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 83
-LDI r1, 40
-LDI r2, 16
-LDI r3, 70
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (397, 234) and (97, 94).
+; PLAN: r0=397(x1), r1=234(y1), r2=97(x2), r3=94(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 397
+LDI r1, 234
+LDI r2, 97
+LDI r3, 94
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (32, 222) with radius 19.
-; PLAN: r0=32(x), r1=222(y), r2=19(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 32
-LDI r1, 222
-LDI r2, 19
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (405, 246) and (401, 167).
+; PLAN: r0=405(x1), r1=246(y1), r2=401(x2), r3=167(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 405
+LDI r1, 246
+LDI r2, 401
+LDI r3, 167
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

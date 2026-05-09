@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a orange rectangular region at (334, 19) spanning 90 by 64 pixels.
-; PLAN: r0=334(x), r1=19(y), r2=90(width), r3=64(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 334
-LDI r1, 19
-LDI r2, 90
-LDI r3, 64
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black dot at position (198, 122) then Places a purple circle of radius 32 at center (457, 131).
+; PLAN: r0=198(x), r1=122(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=457(x), r6=131(y), r7=32(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 198
+LDI r1, 122
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 457
+LDI r6, 131
+LDI r7, 32
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

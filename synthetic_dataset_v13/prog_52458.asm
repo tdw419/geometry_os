@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 15x53 starting at (419, 133).
-; PLAN: r0=419(x), r1=133(y), r2=15(width), r3=53(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 419
-LDI r1, 133
-LDI r2, 15
-LDI r3, 53
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue line segment connecting (220, 55) to (142, 227).
+; PLAN: r0=220(x1), r1=55(y1), r2=142(x2), r3=227(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 55
+LDI r2, 142
+LDI r3, 227
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

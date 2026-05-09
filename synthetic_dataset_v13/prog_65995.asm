@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black box of size 111x34 starting at (299, 3).
-; PLAN: r0=299(x), r1=3(y), r2=111(width), r3=34(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 299
-LDI r1, 3
-LDI r2, 111
-LDI r3, 34
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (286, 144) with radius 72.
+; PLAN: r0=286(x), r1=144(y), r2=72(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 286
+LDI r1, 144
+LDI r2, 72
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

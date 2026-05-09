@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (310, 156) and (251, 212).
-; PLAN: r0=310(x1), r1=156(y1), r2=251(x2), r3=212(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 156
-LDI r2, 251
-LDI r3, 212
+; DESCRIPTION: Creates a black rectangular region at (364, 208) spanning 119 by 20 pixels.
+; PLAN: r0=364(x), r1=208(y), r2=119(width), r3=20(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 364
+LDI r1, 208
+LDI r2, 119
+LDI r3, 20
 LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

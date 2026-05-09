@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (265, 180) spanning 93 by 38 pixels.
-; PLAN: r0=265(x), r1=180(y), r2=93(width), r3=38(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 265
-LDI r1, 180
-LDI r2, 93
-LDI r3, 38
-LDI r4, 0x00FFFF
+; DESCRIPTION: Places a white 71x66 rectangle at position (176, 15).
+; PLAN: r0=176(x), r1=15(y), r2=71(width), r3=66(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 176
+LDI r1, 15
+LDI r2, 71
+LDI r3, 66
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 12 into r1 and decrements it in a loop until zero.
-; PLAN: r1=12(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 12
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a yellow circle centered at (300, 133) with radius 26.
+; PLAN: r0=300(x), r1=133(y), r2=26(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 300
+LDI r1, 133
+LDI r2, 26
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

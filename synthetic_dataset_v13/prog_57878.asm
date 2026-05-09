@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (68, 247).
-; PLAN: r0=68(x), r1=247(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 68
-LDI r1, 247
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a purple line segment connecting (235, 243) to (83, 205).
+; PLAN: r0=235(x1), r1=243(y1), r2=83(x2), r3=205(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 235
+LDI r1, 243
+LDI r2, 83
+LDI r3, 205
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

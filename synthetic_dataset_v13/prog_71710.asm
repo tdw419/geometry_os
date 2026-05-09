@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black box of size 41x34 starting at (160, 19).
-; PLAN: r0=160(x), r1=19(y), r2=41(width), r3=34(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 19
-LDI r2, 41
-LDI r3, 34
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (78, 160) and radius 54.
+; PLAN: r0=78(x), r1=160(y), r2=54(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 78
+LDI r1, 160
+LDI r2, 54
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

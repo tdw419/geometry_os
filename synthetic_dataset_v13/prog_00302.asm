@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (229, 203) with radius 10.
-; PLAN: r0=229(x), r1=203(y), r2=10(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 229
-LDI r1, 203
-LDI r2, 10
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a green rectangular region at (254, 120) spanning 92 by 109 pixels.
+; PLAN: r0=254(x), r1=120(y), r2=92(width), r3=109(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 254
+LDI r1, 120
+LDI r2, 92
+LDI r3, 109
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a purple line from (53, 215) to (503, 111).
-; PLAN: r0=53(x1), r1=215(y1), r2=503(x2), r3=111(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 215
-LDI r2, 503
-LDI r3, 111
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (279, 143) then Draws a white line from (256, 48) to (399, 32).
+; PLAN: r0=279(x), r1=143(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=256(x1), r6=48(y1), r7=399(x2), r8=32(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 279
+LDI r1, 143
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 256
+LDI r6, 48
+LDI r7, 399
+LDI r8, 32
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

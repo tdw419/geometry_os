@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a black box of size 102x111 starting at (315, 4).
-; PLAN: r0=315(x), r1=4(y), r2=102(width), r3=111(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 315
-LDI r1, 4
-LDI r2, 102
-LDI r3, 111
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (182, 9) then Draws a orange circle centered at (268, 210) with radius 29.
+; PLAN: r0=182(x), r1=9(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=268(x), r6=210(y), r7=29(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 182
+LDI r1, 9
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 268
+LDI r6, 210
+LDI r7, 29
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

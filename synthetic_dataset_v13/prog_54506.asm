@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a green circle centered at (405, 135) with radius 20.
-; PLAN: r0=405(x), r1=135(y), r2=20(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 405
-LDI r1, 135
-LDI r2, 20
-LDI r3, 0x00FF00
+; DESCRIPTION: Renders a purple disk with center (286, 124) and radius 10.
+; PLAN: r0=286(x), r1=124(y), r2=10(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 286
+LDI r1, 124
+LDI r2, 10
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

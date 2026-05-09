@@ -1,12 +1,15 @@
-; DESCRIPTION: Composite: Draws a blue circle centered at (322, 148) with radius 67 then Sets a single blue pixel at (289, 129).
-; PLAN: r0=322(x), r1=148(y), r2=67(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=289(x), r6=129(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 322
-LDI r1, 148
-LDI r2, 67
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 289
-LDI r6, 129
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Creates a blue rectangular region at (161, 87) spanning 101 by 62 pixels then Draws a white line from (363, 184) to (173, 202).
+; PLAN: r0=161(x), r1=87(y), r2=101(width), r3=62(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=363(x1), r6=184(y1), r7=173(x2), r8=202(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 161
+LDI r1, 87
+LDI r2, 101
+LDI r3, 62
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 363
+LDI r6, 184
+LDI r7, 173
+LDI r8, 202
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

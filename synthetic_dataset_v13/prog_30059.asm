@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (283, 178) to (141, 56).
-; PLAN: r0=283(x1), r1=178(y1), r2=141(x2), r3=56(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 283
-LDI r1, 178
-LDI r2, 141
-LDI r3, 56
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a yellow line between points (246, 76) and (435, 136).
+; PLAN: r0=246(x1), r1=76(y1), r2=435(x2), r3=136(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 246
+LDI r1, 76
+LDI r2, 435
+LDI r3, 136
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a white rectangular region at (305, 38) spanning 94 by 104 pixels.
-; PLAN: r0=305(x), r1=38(y), r2=94(width), r3=104(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 305
-LDI r1, 38
-LDI r2, 94
-LDI r3, 104
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (314, 69) with radius 69.
+; PLAN: r0=314(x), r1=69(y), r2=69(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 314
+LDI r1, 69
+LDI r2, 69
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

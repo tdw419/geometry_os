@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Sets a single red pixel at (500, 204).
+; PLAN: r0=500(x), r1=204(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 500
+LDI r1, 204
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

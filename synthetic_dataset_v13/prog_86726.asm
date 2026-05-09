@@ -1,5 +1,7 @@
-; DESCRIPTION: Fills the entire screen with solid orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Sets a single white pixel at (56, 11).
+; PLAN: r0=56(x), r1=11(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 56
+LDI r1, 11
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

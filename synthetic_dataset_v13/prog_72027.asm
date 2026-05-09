@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a white circle of radius 15 at center (127, 101).
-; PLAN: r0=127(x), r1=101(y), r2=15(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 127
-LDI r1, 101
-LDI r2, 15
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

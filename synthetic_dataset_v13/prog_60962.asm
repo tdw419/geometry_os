@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 63 at center (75, 144).
-; PLAN: r0=75(x), r1=144(y), r2=63(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 75
-LDI r1, 144
-LDI r2, 63
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (206, 91) and (297, 250).
+; PLAN: r0=206(x1), r1=91(y1), r2=297(x2), r3=250(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 206
+LDI r1, 91
+LDI r2, 297
+LDI r3, 250
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

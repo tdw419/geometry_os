@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (82, 252) to (150, 235).
-; PLAN: r0=82(x1), r1=252(y1), r2=150(x2), r3=235(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 82
-LDI r1, 252
-LDI r2, 150
-LDI r3, 235
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 81x78 starting at (46, 156).
+; PLAN: r0=46(x), r1=156(y), r2=81(width), r3=78(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 46
+LDI r1, 156
+LDI r2, 81
+LDI r3, 78
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

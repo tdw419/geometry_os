@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a red rectangular region at (395, 78) spanning 53 by 68 pixels.
-; PLAN: r0=395(x), r1=78(y), r2=53(width), r3=68(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 395
-LDI r1, 78
-LDI r2, 53
-LDI r3, 68
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (229, 160) then Draws a red rectangle at (292, 102) with width 76 and height 103.
+; PLAN: r0=229(x), r1=160(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=292(x), r6=102(y), r7=76(width), r8=103(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 229
+LDI r1, 160
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 292
+LDI r6, 102
+LDI r7, 76
+LDI r8, 103
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

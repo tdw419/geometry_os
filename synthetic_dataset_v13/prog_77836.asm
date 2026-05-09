@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (344, 194) spanning 93 by 57 pixels then Draws a red circle centered at (262, 228) with radius 17 then Renders a white line between points (317, 136) and (213, 17).
-; PLAN: r0=344(x), r1=194(y), r2=93(width), r3=57(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=262(x), r6=228(y), r7=17(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=317(x1), r11=136(y1), r12=213(x2), r13=17(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 344
-LDI r1, 194
-LDI r2, 93
-LDI r3, 57
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 262
-LDI r6, 228
-LDI r7, 17
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
-LDI r10, 317
-LDI r11, 136
-LDI r12, 213
-LDI r13, 17
-LDI r14, 0xFFFFFF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a yellow dot at position (368, 170) then Renders a yellow box of size 45x56 starting at (376, 109) then Places a yellow circle of radius 30 at center (214, 173).
+; PLAN: r0=368(x), r1=170(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=376(x), r6=109(y), r7=45(width), r8=56(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=214(x), r11=173(y), r12=30(radius), r13=0xFFFF00(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 368
+LDI r1, 170
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 376
+LDI r6, 109
+LDI r7, 45
+LDI r8, 56
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 214
+LDI r11, 173
+LDI r12, 30
+LDI r13, 0xFFFF00
+CIRCLE r10, r11, r12, r13
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single magenta pixel at (401, 197).
-; PLAN: r0=401(x), r1=197(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 401
-LDI r1, 197
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow circle of radius 76 at center (250, 94).
+; PLAN: r0=250(x), r1=94(y), r2=76(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 250
+LDI r1, 94
+LDI r2, 76
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

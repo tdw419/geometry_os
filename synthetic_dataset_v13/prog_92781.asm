@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a blue line from (336, 194) to (16, 51).
-; PLAN: r0=336(x1), r1=194(y1), r2=16(x2), r3=51(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 336
-LDI r1, 194
-LDI r2, 16
-LDI r3, 51
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (321, 99) then Renders a purple disk with center (78, 114) and radius 68.
+; PLAN: r0=321(x), r1=99(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=78(x), r6=114(y), r7=68(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 321
+LDI r1, 99
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 78
+LDI r6, 114
+LDI r7, 68
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

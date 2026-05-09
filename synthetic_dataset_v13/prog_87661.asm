@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (297, 72) with width 90 and height 16.
-; PLAN: r0=297(x), r1=72(y), r2=90(width), r3=16(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 297
-LDI r1, 72
-LDI r2, 90
-LDI r3, 16
+; DESCRIPTION: Renders a red line between points (244, 160) and (266, 141).
+; PLAN: r0=244(x1), r1=160(y1), r2=266(x2), r3=141(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 244
+LDI r1, 160
+LDI r2, 266
+LDI r3, 141
 LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

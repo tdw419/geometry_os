@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Creates a blue rectangular region at (297, 97) spanning 55 by 117 pixels then Draws a black line from (291, 126) to (338, 202) then Places a magenta dot at position (352, 66).
-; PLAN: r0=297(x), r1=97(y), r2=55(width), r3=117(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=291(x1), r6=126(y1), r7=338(x2), r8=202(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=352(x), r11=66(y), r12=0xFF00FF(color). Op: PSET r10, r11, r12.
-LDI r0, 297
-LDI r1, 97
-LDI r2, 55
-LDI r3, 117
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 291
-LDI r6, 126
-LDI r7, 338
-LDI r8, 202
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
-LDI r10, 352
-LDI r11, 66
-LDI r12, 0xFF00FF
+; DESCRIPTION: Composite: Renders a yellow line between points (56, 220) and (223, 116) then Creates a white rectangular region at (131, 206) spanning 97 by 22 pixels then Places a purple dot at position (73, 55).
+; PLAN: r0=56(x1), r1=220(y1), r2=223(x2), r3=116(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=131(x), r6=206(y), r7=97(width), r8=22(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=73(x), r11=55(y), r12=0xAA00FF(color). Op: PSET r10, r11, r12.
+LDI r0, 56
+LDI r1, 220
+LDI r2, 223
+LDI r3, 116
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 131
+LDI r6, 206
+LDI r7, 97
+LDI r8, 22
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 73
+LDI r11, 55
+LDI r12, 0xAA00FF
 PSET r10, r11, r12
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 12 at center (419, 31).
-; PLAN: r0=419(x), r1=31(y), r2=12(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 419
-LDI r1, 31
-LDI r2, 12
-LDI r3, 0xFF00FF
+; DESCRIPTION: Renders a yellow disk with center (190, 194) and radius 57.
+; PLAN: r0=190(x), r1=194(y), r2=57(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 190
+LDI r1, 194
+LDI r2, 57
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

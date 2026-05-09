@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 52x111 starting at (420, 97).
-; PLAN: r0=420(x), r1=97(y), r2=52(width), r3=111(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 420
-LDI r1, 97
-LDI r2, 52
-LDI r3, 111
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white line segment connecting (361, 206) to (85, 4).
+; PLAN: r0=361(x1), r1=206(y1), r2=85(x2), r3=4(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 361
+LDI r1, 206
+LDI r2, 85
+LDI r3, 4
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

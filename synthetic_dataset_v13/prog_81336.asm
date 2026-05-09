@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 12 into r1 and decrements it in a loop until zero.
-; PLAN: r1=12(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 12
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a black line segment connecting (413, 113) to (429, 221).
+; PLAN: r0=413(x1), r1=113(y1), r2=429(x2), r3=221(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 413
+LDI r1, 113
+LDI r2, 429
+LDI r3, 221
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

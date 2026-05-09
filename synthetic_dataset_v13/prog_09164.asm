@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 106x88 rectangle at position (194, 25).
-; PLAN: r0=194(x), r1=25(y), r2=106(width), r3=88(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 194
-LDI r1, 25
-LDI r2, 106
-LDI r3, 88
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (192, 192) with radius 57.
+; PLAN: r0=192(x), r1=192(y), r2=57(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 192
+LDI r1, 192
+LDI r2, 57
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

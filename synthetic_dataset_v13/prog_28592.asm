@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Renders a purple disk with center (322, 144) and radius 68 then Places a purple line segment connecting (476, 140) to (125, 58).
-; PLAN: r0=322(x), r1=144(y), r2=68(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=476(x1), r6=140(y1), r7=125(x2), r8=58(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 322
-LDI r1, 144
-LDI r2, 68
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 476
-LDI r6, 140
-LDI r7, 125
-LDI r8, 58
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a cyan line from (256, 207) to (376, 19).
+; PLAN: r0=256(x1), r1=207(y1), r2=376(x2), r3=19(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 256
+LDI r1, 207
+LDI r2, 376
+LDI r3, 19
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

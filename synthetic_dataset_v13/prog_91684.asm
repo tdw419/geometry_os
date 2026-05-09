@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Renders a black box of size 101x101 starting at (236, 33) then Creates a purple circular shape at (386, 176) with radius 30 then Sets a single magenta pixel at (155, 55).
-; PLAN: r0=236(x), r1=33(y), r2=101(width), r3=101(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=386(x), r6=176(y), r7=30(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=155(x), r11=55(y), r12=0xFF00FF(color). Op: PSET r10, r11, r12.
-LDI r0, 236
-LDI r1, 33
-LDI r2, 101
-LDI r3, 101
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 386
-LDI r6, 176
-LDI r7, 30
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
-LDI r10, 155
-LDI r11, 55
-LDI r12, 0xFF00FF
-PSET r10, r11, r12
+; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
+LDI r7, 0x0000FF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

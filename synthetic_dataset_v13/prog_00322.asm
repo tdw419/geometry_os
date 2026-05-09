@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Renders a white disk with center (369, 159) and radius 42 then Draws a magenta rectangle at (379, 35) with width 71 and height 70 then Draws a green line from (469, 175) to (377, 213).
-; PLAN: r0=369(x), r1=159(y), r2=42(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=379(x), r6=35(y), r7=71(width), r8=70(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=469(x1), r11=175(y1), r12=377(x2), r13=213(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 369
-LDI r1, 159
-LDI r2, 42
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 379
-LDI r6, 35
-LDI r7, 71
-LDI r8, 70
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 469
-LDI r11, 175
-LDI r12, 377
-LDI r13, 213
-LDI r14, 0x00FF00
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a red line segment connecting (319, 251) to (55, 101) then Sets a single cyan pixel at (183, 231) then Places a cyan 65x108 rectangle at position (329, 95).
+; PLAN: r0=319(x1), r1=251(y1), r2=55(x2), r3=101(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=183(x), r6=231(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=329(x), r11=95(y), r12=65(width), r13=108(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 319
+LDI r1, 251
+LDI r2, 55
+LDI r3, 101
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
+LDI r5, 183
+LDI r6, 231
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
+LDI r10, 329
+LDI r11, 95
+LDI r12, 65
+LDI r13, 108
+LDI r14, 0x00FFFF
+RECTF r10, r11, r12, r13, r14
 HALT

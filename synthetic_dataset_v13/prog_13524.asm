@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (505, 48) and (175, 146).
-; PLAN: r0=505(x1), r1=48(y1), r2=175(x2), r3=146(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 505
-LDI r1, 48
-LDI r2, 175
-LDI r3, 146
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a orange line from (502, 28) to (73, 88).
+; PLAN: r0=502(x1), r1=28(y1), r2=73(x2), r3=88(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 502
+LDI r1, 28
+LDI r2, 73
+LDI r3, 88
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

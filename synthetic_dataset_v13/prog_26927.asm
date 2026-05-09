@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (106, 100) and radius 12.
-; PLAN: r0=106(x), r1=100(y), r2=12(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 106
-LDI r1, 100
-LDI r2, 12
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (150, 144) spanning 40 by 65 pixels.
+; PLAN: r0=150(x), r1=144(y), r2=40(width), r3=65(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 144
+LDI r2, 40
+LDI r3, 65
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

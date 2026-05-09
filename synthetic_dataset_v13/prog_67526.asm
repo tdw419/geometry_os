@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (504, 136) to (270, 213).
-; PLAN: r0=504(x1), r1=136(y1), r2=270(x2), r3=213(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 504
-LDI r1, 136
-LDI r2, 270
-LDI r3, 213
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red 47x17 rectangle at position (348, 92).
+; PLAN: r0=348(x), r1=92(y), r2=47(width), r3=17(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 348
+LDI r1, 92
+LDI r2, 47
+LDI r3, 17
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (15, 108) spanning 46 by 46 pixels.
-; PLAN: r0=15(x), r1=108(y), r2=46(width), r3=46(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 15
-LDI r1, 108
-LDI r2, 46
-LDI r3, 46
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (158, 110) and (452, 245).
+; PLAN: r0=158(x1), r1=110(y1), r2=452(x2), r3=245(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 158
+LDI r1, 110
+LDI r2, 452
+LDI r3, 245
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

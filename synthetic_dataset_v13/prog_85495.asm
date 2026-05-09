@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan line segment connecting (334, 83) to (73, 219) then Sets a single magenta pixel at (77, 233) then Places a cyan circle of radius 50 at center (163, 59).
-; PLAN: r0=334(x1), r1=83(y1), r2=73(x2), r3=219(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=77(x), r6=233(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7 Next: r10=163(x), r11=59(y), r12=50(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 334
-LDI r1, 83
-LDI r2, 73
-LDI r3, 219
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 77
-LDI r6, 233
-LDI r7, 0xFF00FF
-PSET r5, r6, r7
-LDI r10, 163
-LDI r11, 59
-LDI r12, 50
-LDI r13, 0x00FFFF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Creates a yellow rectangular region at (190, 148) spanning 87 by 105 pixels.
+; PLAN: r0=190(x), r1=148(y), r2=87(width), r3=105(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 148
+LDI r2, 87
+LDI r3, 105
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (391, 137) and (463, 124).
-; PLAN: r0=391(x1), r1=137(y1), r2=463(x2), r3=124(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 391
-LDI r1, 137
-LDI r2, 463
-LDI r3, 124
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan rectangle at (113, 46) with width 104 and height 72.
+; PLAN: r0=113(x), r1=46(y), r2=104(width), r3=72(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 113
+LDI r1, 46
+LDI r2, 104
+LDI r3, 72
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (441, 40) and (451, 211).
-; PLAN: r0=441(x1), r1=40(y1), r2=451(x2), r3=211(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 441
-LDI r1, 40
-LDI r2, 451
-LDI r3, 211
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan box of size 46x83 starting at (171, 30).
+; PLAN: r0=171(x), r1=30(y), r2=46(width), r3=83(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 171
+LDI r1, 30
+LDI r2, 46
+LDI r3, 83
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

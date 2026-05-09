@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 71x83 starting at (0, 33).
-; PLAN: r0=0(x), r1=33(y), r2=71(width), r3=83(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 0
-LDI r1, 33
-LDI r2, 71
-LDI r3, 83
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (203, 82) and (425, 89).
+; PLAN: r0=203(x1), r1=82(y1), r2=425(x2), r3=89(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 203
+LDI r1, 82
+LDI r2, 425
+LDI r3, 89
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

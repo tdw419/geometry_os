@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (278, 21) to (321, 216).
-; PLAN: r0=278(x1), r1=21(y1), r2=321(x2), r3=216(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 278
-LDI r1, 21
-LDI r2, 321
-LDI r3, 216
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 78x67 starting at (239, 141).
+; PLAN: r0=239(x), r1=141(y), r2=78(width), r3=67(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 239
+LDI r1, 141
+LDI r2, 78
+LDI r3, 67
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (313, 144) with width 41 and height 62.
-; PLAN: r0=313(x), r1=144(y), r2=41(width), r3=62(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 313
-LDI r1, 144
-LDI r2, 41
-LDI r3, 62
+; DESCRIPTION: Renders a red box of size 38x103 starting at (388, 100).
+; PLAN: r0=388(x), r1=100(y), r2=38(width), r3=103(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 100
+LDI r2, 38
+LDI r3, 103
 LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

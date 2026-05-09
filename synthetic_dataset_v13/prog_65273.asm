@@ -1,12 +1,13 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (211, 155) then Places a green circle of radius 42 at center (140, 124).
-; PLAN: r0=211(x), r1=155(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=140(x), r6=124(y), r7=42(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 211
-LDI r1, 155
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 140
-LDI r6, 124
-LDI r7, 42
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Creates a orange rectangular region at (393, 181) spanning 62 by 38 pixels then Sets a single yellow pixel at (115, 66).
+; PLAN: r0=393(x), r1=181(y), r2=62(width), r3=38(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=115(x), r6=66(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
+LDI r0, 393
+LDI r1, 181
+LDI r2, 62
+LDI r3, 38
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 115
+LDI r6, 66
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
 HALT

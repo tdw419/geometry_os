@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 36 at center (92, 144).
-; PLAN: r0=92(x), r1=144(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 92
-LDI r1, 144
-LDI r2, 36
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple line from (458, 23) to (274, 99).
+; PLAN: r0=458(x1), r1=23(y1), r2=274(x2), r3=99(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 458
+LDI r1, 23
+LDI r2, 274
+LDI r3, 99
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

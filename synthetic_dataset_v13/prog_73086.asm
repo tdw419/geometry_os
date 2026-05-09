@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 16x77 rectangle at position (224, 83).
-; PLAN: r0=224(x), r1=83(y), r2=16(width), r3=77(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 224
-LDI r1, 83
-LDI r2, 16
-LDI r3, 77
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green line segment connecting (19, 22) to (303, 54).
+; PLAN: r0=19(x1), r1=22(y1), r2=303(x2), r3=54(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 19
+LDI r1, 22
+LDI r2, 303
+LDI r3, 54
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

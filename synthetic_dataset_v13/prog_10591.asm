@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (330, 112).
-; PLAN: r0=330(x), r1=112(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 330
-LDI r1, 112
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a orange line between points (425, 170) and (461, 132).
+; PLAN: r0=425(x1), r1=170(y1), r2=461(x2), r3=132(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 170
+LDI r2, 461
+LDI r3, 132
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

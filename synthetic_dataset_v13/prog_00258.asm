@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a blue line segment connecting (362, 13) to (406, 104).
-; PLAN: r0=362(x1), r1=13(y1), r2=406(x2), r3=104(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 13
-LDI r2, 406
-LDI r3, 104
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (44, 33) then Places a purple line segment connecting (452, 150) to (281, 239).
+; PLAN: r0=44(x), r1=33(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=452(x1), r6=150(y1), r7=281(x2), r8=239(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 44
+LDI r1, 33
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 452
+LDI r6, 150
+LDI r7, 281
+LDI r8, 239
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

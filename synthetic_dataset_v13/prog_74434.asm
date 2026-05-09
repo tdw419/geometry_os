@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a green 30x74 rectangle at position (143, 85).
-; PLAN: r0=143(x), r1=85(y), r2=30(width), r3=74(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 85
-LDI r2, 30
-LDI r3, 74
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

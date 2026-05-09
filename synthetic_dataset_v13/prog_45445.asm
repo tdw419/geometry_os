@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (69, 103) with radius 20.
-; PLAN: r0=69(x), r1=103(y), r2=20(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 69
-LDI r1, 103
-LDI r2, 20
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 78x34 starting at (351, 86).
+; PLAN: r0=351(x), r1=86(y), r2=78(width), r3=34(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 351
+LDI r1, 86
+LDI r2, 78
+LDI r3, 34
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

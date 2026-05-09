@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (249, 160) and (498, 190).
-; PLAN: r0=249(x1), r1=160(y1), r2=498(x2), r3=190(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 249
-LDI r1, 160
-LDI r2, 498
-LDI r3, 190
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white rectangular region at (325, 100) spanning 114 by 46 pixels.
+; PLAN: r0=325(x), r1=100(y), r2=114(width), r3=46(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 325
+LDI r1, 100
+LDI r2, 114
+LDI r3, 46
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

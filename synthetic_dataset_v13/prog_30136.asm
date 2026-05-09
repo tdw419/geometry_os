@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (299, 64) to (49, 37).
-; PLAN: r0=299(x1), r1=64(y1), r2=49(x2), r3=37(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 299
-LDI r1, 64
-LDI r2, 49
-LDI r3, 37
+; DESCRIPTION: Renders a blue box of size 56x106 starting at (312, 136).
+; PLAN: r0=312(x), r1=136(y), r2=56(width), r3=106(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 312
+LDI r1, 136
+LDI r2, 56
+LDI r3, 106
 LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (432, 54) and (475, 97).
-; PLAN: r0=432(x1), r1=54(y1), r2=475(x2), r3=97(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 432
-LDI r1, 54
-LDI r2, 475
-LDI r3, 97
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow box of size 109x85 starting at (323, 65).
+; PLAN: r0=323(x), r1=65(y), r2=109(width), r3=85(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 323
+LDI r1, 65
+LDI r2, 109
+LDI r3, 85
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

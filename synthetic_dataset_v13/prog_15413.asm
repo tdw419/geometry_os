@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a magenta line from (349, 231) to (151, 250).
-; PLAN: r0=349(x1), r1=231(y1), r2=151(x2), r3=250(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 349
-LDI r1, 231
-LDI r2, 151
-LDI r3, 250
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green circle of radius 73 at center (278, 117) then Places a black 24x119 rectangle at position (217, 38).
+; PLAN: r0=278(x), r1=117(y), r2=73(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=217(x), r6=38(y), r7=24(width), r8=119(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 278
+LDI r1, 117
+LDI r2, 73
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 217
+LDI r6, 38
+LDI r7, 24
+LDI r8, 119
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

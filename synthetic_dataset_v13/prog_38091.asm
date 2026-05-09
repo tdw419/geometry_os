@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow box of size 51x118 starting at (368, 53).
-; PLAN: r0=368(x), r1=53(y), r2=51(width), r3=118(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 368
-LDI r1, 53
-LDI r2, 51
-LDI r3, 118
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (270, 70) and radius 60.
+; PLAN: r0=270(x), r1=70(y), r2=60(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 270
+LDI r1, 70
+LDI r2, 60
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a white circle centered at (359, 145) with radius 50.
-; PLAN: r0=359(x), r1=145(y), r2=50(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 359
-LDI r1, 145
-LDI r2, 50
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single white pixel at (338, 1).
+; PLAN: r0=338(x), r1=1(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 338
+LDI r1, 1
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

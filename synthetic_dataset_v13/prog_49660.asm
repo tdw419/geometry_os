@@ -1,8 +1,12 @@
-; DESCRIPTION: Loads 15 into r1 and decrements it in a loop until zero.
-; PLAN: r1=15(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 15
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Places a white dot at position (28, 229) then Creates a white circular shape at (237, 86) with radius 15.
+; PLAN: r0=28(x), r1=229(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=237(x), r6=86(y), r7=15(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 28
+LDI r1, 229
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 237
+LDI r6, 86
+LDI r7, 15
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

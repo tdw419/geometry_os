@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (322, 98) to (349, 95).
-; PLAN: r0=322(x1), r1=98(y1), r2=349(x2), r3=95(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 322
-LDI r1, 98
-LDI r2, 349
-LDI r3, 95
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 119x110 starting at (236, 69).
+; PLAN: r0=236(x), r1=69(y), r2=119(width), r3=110(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 236
+LDI r1, 69
+LDI r2, 119
+LDI r3, 110
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

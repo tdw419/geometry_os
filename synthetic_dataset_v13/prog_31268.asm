@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (387, 4) spanning 115 by 18 pixels.
-; PLAN: r0=387(x), r1=4(y), r2=115(width), r3=18(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 387
-LDI r1, 4
-LDI r2, 115
-LDI r3, 18
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a purple box of size 72x65 starting at (190, 78).
+; PLAN: r0=190(x), r1=78(y), r2=72(width), r3=65(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 78
+LDI r2, 72
+LDI r3, 65
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Creates a white rectangular region at (220, 105) spanning 12 by 106 pixels then Sets a single red pixel at (252, 224).
-; PLAN: r0=220(x), r1=105(y), r2=12(width), r3=106(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=252(x), r6=224(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 220
-LDI r1, 105
-LDI r2, 12
-LDI r3, 106
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 252
-LDI r6, 224
-LDI r7, 0xFF0000
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Places a purple line segment connecting (280, 140) to (276, 213) then Renders a magenta disk with center (483, 26) and radius 17.
+; PLAN: r0=280(x1), r1=140(y1), r2=276(x2), r3=213(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=483(x), r6=26(y), r7=17(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 280
+LDI r1, 140
+LDI r2, 276
+LDI r3, 213
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 483
+LDI r6, 26
+LDI r7, 17
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

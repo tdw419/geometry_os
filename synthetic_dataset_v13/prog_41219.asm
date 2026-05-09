@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a cyan circular shape at (333, 99) with radius 25.
-; PLAN: r0=333(x), r1=99(y), r2=25(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 333
-LDI r1, 99
-LDI r2, 25
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

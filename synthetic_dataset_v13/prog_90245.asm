@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a purple circular shape at (56, 71) with radius 36.
-; PLAN: r0=56(x), r1=71(y), r2=36(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 56
-LDI r1, 71
-LDI r2, 36
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single white pixel at (334, 153).
+; PLAN: r0=334(x), r1=153(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 334
+LDI r1, 153
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

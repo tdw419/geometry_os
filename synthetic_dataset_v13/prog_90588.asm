@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 42x118 rectangle at position (356, 114).
-; PLAN: r0=356(x), r1=114(y), r2=42(width), r3=118(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 114
-LDI r2, 42
-LDI r3, 118
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 19 at center (89, 209).
+; PLAN: r0=89(x), r1=209(y), r2=19(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 89
+LDI r1, 209
+LDI r2, 19
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

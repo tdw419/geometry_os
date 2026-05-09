@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Places a red line segment connecting (165, 120) to (118, 201) then Sets a single blue pixel at (270, 73).
-; PLAN: r0=165(x1), r1=120(y1), r2=118(x2), r3=201(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=270(x), r6=73(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 165
-LDI r1, 120
-LDI r2, 118
-LDI r3, 201
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
-LDI r5, 270
-LDI r6, 73
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Draws a magenta rectangle at (52, 4) with width 73 and height 40 then Draws a purple circle centered at (93, 165) with radius 74 then Sets a single cyan pixel at (217, 34).
+; PLAN: r0=52(x), r1=4(y), r2=73(width), r3=40(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=93(x), r6=165(y), r7=74(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=217(x), r11=34(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 52
+LDI r1, 4
+LDI r2, 73
+LDI r3, 40
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 93
+LDI r6, 165
+LDI r7, 74
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 217
+LDI r11, 34
+LDI r12, 0x00FFFF
+PSET r10, r11, r12
 HALT

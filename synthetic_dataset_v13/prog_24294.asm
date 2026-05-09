@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a cyan circle centered at (215, 124) with radius 46.
-; PLAN: r0=215(x), r1=124(y), r2=46(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 215
-LDI r1, 124
-LDI r2, 46
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (286, 253).
+; PLAN: r0=286(x), r1=253(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 286
+LDI r1, 253
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

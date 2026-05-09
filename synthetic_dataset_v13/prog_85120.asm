@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (361, 96) and radius 39.
-; PLAN: r0=361(x), r1=96(y), r2=39(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 361
-LDI r1, 96
-LDI r2, 39
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (309, 133) to (343, 13).
+; PLAN: r0=309(x1), r1=133(y1), r2=343(x2), r3=13(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 309
+LDI r1, 133
+LDI r2, 343
+LDI r3, 13
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green rectangle at (373, 156) with width 85 and height 71.
-; PLAN: r0=373(x), r1=156(y), r2=85(width), r3=71(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 373
-LDI r1, 156
-LDI r2, 85
-LDI r3, 71
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (249, 120) with radius 72.
+; PLAN: r0=249(x), r1=120(y), r2=72(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 249
+LDI r1, 120
+LDI r2, 72
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

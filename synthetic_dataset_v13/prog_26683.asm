@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 112x37 rectangle at position (120, 65).
-; PLAN: r0=120(x), r1=65(y), r2=112(width), r3=37(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 120
-LDI r1, 65
-LDI r2, 112
-LDI r3, 37
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 12 into r1 and decrements it in a loop until zero.
+; PLAN: r1=12(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 12
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

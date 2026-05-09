@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a green dot at position (506, 67).
-; PLAN: r0=506(x), r1=67(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 506
-LDI r1, 67
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow disk with center (318, 75) and radius 45.
+; PLAN: r0=318(x), r1=75(y), r2=45(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 318
+LDI r1, 75
+LDI r2, 45
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 62x86 starting at (305, 158).
-; PLAN: r0=305(x), r1=158(y), r2=62(width), r3=86(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 305
-LDI r1, 158
-LDI r2, 62
-LDI r3, 86
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (171, 89) to (468, 42).
+; PLAN: r0=171(x1), r1=89(y1), r2=468(x2), r3=42(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 171
+LDI r1, 89
+LDI r2, 468
+LDI r3, 42
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

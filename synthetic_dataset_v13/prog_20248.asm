@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (388, 153) and (105, 219).
-; PLAN: r0=388(x1), r1=153(y1), r2=105(x2), r3=219(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 388
-LDI r1, 153
-LDI r2, 105
-LDI r3, 219
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (260, 200) with radius 13.
+; PLAN: r0=260(x), r1=200(y), r2=13(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 260
+LDI r1, 200
+LDI r2, 13
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

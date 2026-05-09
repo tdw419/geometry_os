@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black line segment connecting (53, 76) to (11, 35).
-; PLAN: r0=53(x1), r1=76(y1), r2=11(x2), r3=35(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 76
-LDI r2, 11
-LDI r3, 35
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (25, 106) with radius 24.
+; PLAN: r0=25(x), r1=106(y), r2=24(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 25
+LDI r1, 106
+LDI r2, 24
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

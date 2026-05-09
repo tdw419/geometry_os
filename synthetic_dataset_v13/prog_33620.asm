@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a green 90x19 rectangle at position (334, 129) then Places a red circle of radius 71 at center (357, 180).
-; PLAN: r0=334(x), r1=129(y), r2=90(width), r3=19(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=357(x), r6=180(y), r7=71(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 334
-LDI r1, 129
-LDI r2, 90
-LDI r3, 19
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 357
-LDI r6, 180
-LDI r7, 71
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a orange line from (270, 125) to (318, 227).
+; PLAN: r0=270(x1), r1=125(y1), r2=318(x2), r3=227(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 270
+LDI r1, 125
+LDI r2, 318
+LDI r3, 227
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

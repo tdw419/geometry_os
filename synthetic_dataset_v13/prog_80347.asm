@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (82, 17) to (325, 62).
-; PLAN: r0=82(x1), r1=17(y1), r2=325(x2), r3=62(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 82
-LDI r1, 17
-LDI r2, 325
-LDI r3, 62
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a purple line from (170, 7) to (248, 21).
+; PLAN: r0=170(x1), r1=7(y1), r2=248(x2), r3=21(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 7
+LDI r2, 248
+LDI r3, 21
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

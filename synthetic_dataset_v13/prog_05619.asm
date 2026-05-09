@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a cyan line between points (41, 205) and (489, 222).
-; PLAN: r0=41(x1), r1=205(y1), r2=489(x2), r3=222(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 41
-LDI r1, 205
-LDI r2, 489
-LDI r3, 222
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (389, 51) then Renders a white disk with center (382, 102) and radius 52.
+; PLAN: r0=389(x), r1=51(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=382(x), r6=102(y), r7=52(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 389
+LDI r1, 51
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 382
+LDI r6, 102
+LDI r7, 52
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

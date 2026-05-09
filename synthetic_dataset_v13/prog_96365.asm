@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 120x23 starting at (67, 88).
-; PLAN: r0=67(x), r1=88(y), r2=120(width), r3=23(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 67
-LDI r1, 88
-LDI r2, 120
-LDI r3, 23
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple line segment connecting (130, 38) to (102, 143).
+; PLAN: r0=130(x1), r1=38(y1), r2=102(x2), r3=143(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 130
+LDI r1, 38
+LDI r2, 102
+LDI r3, 143
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

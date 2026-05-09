@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (100, 22) and radius 17.
-; PLAN: r0=100(x), r1=22(y), r2=17(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 100
-LDI r1, 22
-LDI r2, 17
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (333, 25) to (259, 62).
+; PLAN: r0=333(x1), r1=25(y1), r2=259(x2), r3=62(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 333
+LDI r1, 25
+LDI r2, 259
+LDI r3, 62
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

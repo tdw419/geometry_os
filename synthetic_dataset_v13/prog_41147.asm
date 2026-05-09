@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a white circle of radius 79 at center (139, 108).
-; PLAN: r0=139(x), r1=108(y), r2=79(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 139
-LDI r1, 108
-LDI r2, 79
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single red pixel at (114, 139).
+; PLAN: r0=114(x), r1=139(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 114
+LDI r1, 139
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a black circle of radius 44 at center (231, 94).
-; PLAN: r0=231(x), r1=94(y), r2=44(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 231
-LDI r1, 94
-LDI r2, 44
-LDI r3, 0x000000
+; DESCRIPTION: Renders a cyan disk with center (299, 110) and radius 13.
+; PLAN: r0=299(x), r1=110(y), r2=13(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 299
+LDI r1, 110
+LDI r2, 13
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

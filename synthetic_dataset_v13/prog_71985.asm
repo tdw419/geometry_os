@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a black circular shape at (107, 113) with radius 66.
-; PLAN: r0=107(x), r1=113(y), r2=66(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 107
-LDI r1, 113
-LDI r2, 66
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 33 into r1 and decrements it in a loop until zero.
+; PLAN: r1=33(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 33
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

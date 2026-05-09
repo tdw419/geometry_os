@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Draws a green line from (45, 86) to (105, 86) then Places a red circle of radius 44 at center (174, 186).
-; PLAN: r0=45(x1), r1=86(y1), r2=105(x2), r3=86(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=174(x), r6=186(y), r7=44(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 45
-LDI r1, 86
-LDI r2, 105
-LDI r3, 86
-LDI r4, 0x00FF00
+; DESCRIPTION: Composite: Renders a orange line between points (298, 166) and (161, 81) then Sets a single red pixel at (441, 10) then Draws a magenta circle centered at (50, 56) with radius 44.
+; PLAN: r0=298(x1), r1=166(y1), r2=161(x2), r3=81(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=441(x), r6=10(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=50(x), r11=56(y), r12=44(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 298
+LDI r1, 166
+LDI r2, 161
+LDI r3, 81
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
-LDI r5, 174
-LDI r6, 186
-LDI r7, 44
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+LDI r5, 441
+LDI r6, 10
+LDI r7, 0xFF0000
+PSET r5, r6, r7
+LDI r10, 50
+LDI r11, 56
+LDI r12, 44
+LDI r13, 0xFF00FF
+CIRCLE r10, r11, r12, r13
 HALT

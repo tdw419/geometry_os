@@ -1,15 +1,14 @@
-; DESCRIPTION: Composite: Places a cyan 92x41 rectangle at position (76, 123) then Places a magenta line segment connecting (414, 88) to (437, 58).
-; PLAN: r0=76(x), r1=123(y), r2=92(width), r3=41(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=414(x1), r6=88(y1), r7=437(x2), r8=58(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 76
-LDI r1, 123
-LDI r2, 92
-LDI r3, 41
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 414
-LDI r6, 88
-LDI r7, 437
-LDI r8, 58
-LDI r9, 0xFF00FF
+; DESCRIPTION: Composite: Draws a black circle centered at (461, 129) with radius 27 then Places a orange line segment connecting (135, 141) to (306, 116).
+; PLAN: r0=461(x), r1=129(y), r2=27(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=135(x1), r6=141(y1), r7=306(x2), r8=116(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 461
+LDI r1, 129
+LDI r2, 27
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 135
+LDI r6, 141
+LDI r7, 306
+LDI r8, 116
+LDI r9, 0xFF8800
 LINE r5, r6, r7, r8, r9
 HALT

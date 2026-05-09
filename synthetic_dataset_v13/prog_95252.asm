@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a green disk with center (404, 98) and radius 61.
-; PLAN: r0=404(x), r1=98(y), r2=61(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 404
-LDI r1, 98
-LDI r2, 61
-LDI r3, 0x00FF00
+; DESCRIPTION: Places a blue circle of radius 24 at center (377, 223).
+; PLAN: r0=377(x), r1=223(y), r2=24(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 377
+LDI r1, 223
+LDI r2, 24
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

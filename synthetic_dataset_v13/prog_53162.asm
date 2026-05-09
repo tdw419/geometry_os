@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (229, 52) to (223, 56).
-; PLAN: r0=229(x1), r1=52(y1), r2=223(x2), r3=56(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 229
-LDI r1, 52
-LDI r2, 223
-LDI r3, 56
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (94, 156) and radius 56.
+; PLAN: r0=94(x), r1=156(y), r2=56(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 94
+LDI r1, 156
+LDI r2, 56
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

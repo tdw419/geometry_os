@@ -1,13 +1,5 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (15, 47) then Renders a red box of size 81x54 starting at (314, 66).
-; PLAN: r0=15(x), r1=47(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=314(x), r6=66(y), r7=81(width), r8=54(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 15
-LDI r1, 47
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 314
-LDI r6, 66
-LDI r7, 81
-LDI r8, 54
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Clears the screen to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

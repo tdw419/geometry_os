@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (146, 63) spanning 101 by 113 pixels.
-; PLAN: r0=146(x), r1=63(y), r2=101(width), r3=113(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 146
-LDI r1, 63
-LDI r2, 101
-LDI r3, 113
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a blue box of size 54x48 starting at (310, 127).
+; PLAN: r0=310(x), r1=127(y), r2=54(width), r3=48(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 310
+LDI r1, 127
+LDI r2, 54
+LDI r3, 48
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

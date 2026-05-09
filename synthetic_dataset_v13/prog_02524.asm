@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (248, 74) then Draws a black rectangle at (168, 182) with width 47 and height 68.
-; PLAN: r0=248(x), r1=74(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=168(x), r6=182(y), r7=47(width), r8=68(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 248
-LDI r1, 74
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 168
-LDI r6, 182
-LDI r7, 47
-LDI r8, 68
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a magenta line segment connecting (66, 112) to (10, 170).
+; PLAN: r0=66(x1), r1=112(y1), r2=10(x2), r3=170(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 66
+LDI r1, 112
+LDI r2, 10
+LDI r3, 170
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 19 into r1 and decrements it in a loop until zero.
-; PLAN: r1=19(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 19
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Creates a blue circular shape at (270, 69) with radius 46.
+; PLAN: r0=270(x), r1=69(y), r2=46(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 270
+LDI r1, 69
+LDI r2, 46
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

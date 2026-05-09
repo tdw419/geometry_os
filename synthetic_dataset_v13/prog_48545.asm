@@ -1,5 +1,5 @@
-; DESCRIPTION: Paints the whole screen yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
+; DESCRIPTION: Fills the entire screen with solid magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
 FILL r0
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 77x97 rectangle at position (128, 134).
-; PLAN: r0=128(x), r1=134(y), r2=77(width), r3=97(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 128
-LDI r1, 134
-LDI r2, 77
-LDI r3, 97
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (160, 197) to (219, 30).
+; PLAN: r0=160(x1), r1=197(y1), r2=219(x2), r3=30(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 197
+LDI r2, 219
+LDI r3, 30
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

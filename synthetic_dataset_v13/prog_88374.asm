@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a purple 42x92 rectangle at position (69, 53).
-; PLAN: r0=69(x), r1=53(y), r2=42(width), r3=92(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 69
-LDI r1, 53
-LDI r2, 42
-LDI r3, 92
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (452, 187).
+; PLAN: r0=452(x), r1=187(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 452
+LDI r1, 187
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

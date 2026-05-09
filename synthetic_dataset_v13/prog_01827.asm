@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 33x87 rectangle at position (176, 89).
-; PLAN: r0=176(x), r1=89(y), r2=33(width), r3=87(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 176
-LDI r1, 89
-LDI r2, 33
-LDI r3, 87
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red line segment connecting (164, 30) to (94, 72).
+; PLAN: r0=164(x1), r1=30(y1), r2=94(x2), r3=72(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 30
+LDI r2, 94
+LDI r3, 72
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

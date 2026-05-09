@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (430, 162) with width 31 and height 80.
-; PLAN: r0=430(x), r1=162(y), r2=31(width), r3=80(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 162
-LDI r2, 31
-LDI r3, 80
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (338, 183) to (162, 40).
+; PLAN: r0=338(x1), r1=183(y1), r2=162(x2), r3=40(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 338
+LDI r1, 183
+LDI r2, 162
+LDI r3, 40
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

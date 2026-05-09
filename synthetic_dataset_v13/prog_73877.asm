@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white rectangle at (189, 185) with width 110 and height 68.
-; PLAN: r0=189(x), r1=185(y), r2=110(width), r3=68(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 189
-LDI r1, 185
-LDI r2, 110
-LDI r3, 68
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (120, 170) and radius 73.
+; PLAN: r0=120(x), r1=170(y), r2=73(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 120
+LDI r1, 170
+LDI r2, 73
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

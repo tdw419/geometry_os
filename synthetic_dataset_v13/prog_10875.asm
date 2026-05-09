@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (333, 212) and (424, 214).
-; PLAN: r0=333(x1), r1=212(y1), r2=424(x2), r3=214(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 333
-LDI r1, 212
-LDI r2, 424
-LDI r3, 214
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (26, 78) spanning 111 by 94 pixels.
+; PLAN: r0=26(x), r1=78(y), r2=111(width), r3=94(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 26
+LDI r1, 78
+LDI r2, 111
+LDI r3, 94
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

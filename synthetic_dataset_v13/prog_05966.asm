@@ -1,13 +1,15 @@
-; DESCRIPTION: Composite: Sets a single yellow pixel at (398, 219) then Places a red 114x61 rectangle at position (38, 165).
-; PLAN: r0=398(x), r1=219(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=38(x), r6=165(y), r7=114(width), r8=61(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 398
-LDI r1, 219
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 38
-LDI r6, 165
-LDI r7, 114
-LDI r8, 61
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Creates a white rectangular region at (67, 190) spanning 50 by 12 pixels then Places a orange line segment connecting (249, 144) to (464, 68).
+; PLAN: r0=67(x), r1=190(y), r2=50(width), r3=12(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=249(x1), r6=144(y1), r7=464(x2), r8=68(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 67
+LDI r1, 190
+LDI r2, 50
+LDI r3, 12
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 249
+LDI r6, 144
+LDI r7, 464
+LDI r8, 68
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

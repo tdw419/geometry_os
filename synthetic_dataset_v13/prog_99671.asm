@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (112, 180) to (209, 201).
-; PLAN: r0=112(x1), r1=180(y1), r2=209(x2), r3=201(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 180
-LDI r2, 209
-LDI r3, 201
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a purple line between points (189, 115) and (319, 141).
+; PLAN: r0=189(x1), r1=115(y1), r2=319(x2), r3=141(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 189
+LDI r1, 115
+LDI r2, 319
+LDI r3, 141
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a magenta line from (129, 150) to (259, 37).
-; PLAN: r0=129(x1), r1=150(y1), r2=259(x2), r3=37(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 150
-LDI r2, 259
-LDI r3, 37
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a purple disk with center (347, 103) and radius 36 then Places a red 55x39 rectangle at position (226, 58).
+; PLAN: r0=347(x), r1=103(y), r2=36(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=226(x), r6=58(y), r7=55(width), r8=39(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 347
+LDI r1, 103
+LDI r2, 36
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 226
+LDI r6, 58
+LDI r7, 55
+LDI r8, 39
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

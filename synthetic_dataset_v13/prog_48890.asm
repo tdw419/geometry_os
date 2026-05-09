@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Places a blue 96x107 rectangle at position (150, 34).
+; PLAN: r0=150(x), r1=34(y), r2=96(width), r3=107(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 34
+LDI r2, 96
+LDI r3, 107
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

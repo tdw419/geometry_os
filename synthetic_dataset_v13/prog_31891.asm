@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a purple dot at position (415, 122).
-; PLAN: r0=415(x), r1=122(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 415
-LDI r1, 122
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Paints the whole screen blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

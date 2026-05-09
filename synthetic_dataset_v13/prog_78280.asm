@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Draws a white line from (439, 65) to (6, 113) then Sets a single green pixel at (338, 222).
-; PLAN: r0=439(x1), r1=65(y1), r2=6(x2), r3=113(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=338(x), r6=222(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 439
-LDI r1, 65
-LDI r2, 6
-LDI r3, 113
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 338
-LDI r6, 222
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Draws a cyan circle centered at (240, 149) with radius 73 then Draws a purple line from (77, 98) to (373, 73).
+; PLAN: r0=240(x), r1=149(y), r2=73(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=77(x1), r6=98(y1), r7=373(x2), r8=73(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 240
+LDI r1, 149
+LDI r2, 73
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 77
+LDI r6, 98
+LDI r7, 373
+LDI r8, 73
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

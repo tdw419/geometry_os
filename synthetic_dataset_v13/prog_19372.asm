@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 105x25 rectangle at position (249, 190).
-; PLAN: r0=249(x), r1=190(y), r2=105(width), r3=25(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 249
-LDI r1, 190
-LDI r2, 105
-LDI r3, 25
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a magenta rectangle at (404, 85) with width 21 and height 62.
+; PLAN: r0=404(x), r1=85(y), r2=21(width), r3=62(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 404
+LDI r1, 85
+LDI r2, 21
+LDI r3, 62
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

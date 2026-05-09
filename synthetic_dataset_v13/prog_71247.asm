@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (160, 121) spanning 92 by 103 pixels.
-; PLAN: r0=160(x), r1=121(y), r2=92(width), r3=103(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 121
-LDI r2, 92
-LDI r3, 103
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a white rectangle at (162, 86) with width 111 and height 66.
+; PLAN: r0=162(x), r1=86(y), r2=111(width), r3=66(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 162
+LDI r1, 86
+LDI r2, 111
+LDI r3, 66
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

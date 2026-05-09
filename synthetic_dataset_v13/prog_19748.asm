@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (202, 183) and (453, 255).
-; PLAN: r0=202(x1), r1=183(y1), r2=453(x2), r3=255(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 183
-LDI r2, 453
-LDI r3, 255
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black box of size 106x87 starting at (38, 138).
+; PLAN: r0=38(x), r1=138(y), r2=106(width), r3=87(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 38
+LDI r1, 138
+LDI r2, 106
+LDI r3, 87
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

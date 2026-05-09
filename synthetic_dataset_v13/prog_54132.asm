@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (396, 155) to (80, 231).
-; PLAN: r0=396(x1), r1=155(y1), r2=80(x2), r3=231(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 396
-LDI r1, 155
-LDI r2, 80
-LDI r3, 231
+; DESCRIPTION: Renders a magenta box of size 75x56 starting at (426, 71).
+; PLAN: r0=426(x), r1=71(y), r2=75(width), r3=56(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 426
+LDI r1, 71
+LDI r2, 75
+LDI r3, 56
 LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

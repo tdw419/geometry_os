@@ -1,15 +1,19 @@
-; DESCRIPTION: Composite: Draws a purple rectangle at (221, 81) with width 50 and height 26 then Draws a purple line from (119, 50) to (453, 166).
-; PLAN: r0=221(x), r1=81(y), r2=50(width), r3=26(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=119(x1), r6=50(y1), r7=453(x2), r8=166(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 221
-LDI r1, 81
-LDI r2, 50
-LDI r3, 26
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 119
-LDI r6, 50
-LDI r7, 453
-LDI r8, 166
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
+LDI r7, 0xFFFFFF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

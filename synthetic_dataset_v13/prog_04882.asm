@@ -1,13 +1,15 @@
-; DESCRIPTION: Composite: Sets a single orange pixel at (414, 136) then Renders a purple line between points (315, 165) and (207, 94).
-; PLAN: r0=414(x), r1=136(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=315(x1), r6=165(y1), r7=207(x2), r8=94(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 414
-LDI r1, 136
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 315
-LDI r6, 165
-LDI r7, 207
-LDI r8, 94
-LDI r9, 0xAA00FF
+; DESCRIPTION: Composite: Draws a white rectangle at (127, 159) with width 94 and height 56 then Draws a green line from (16, 99) to (328, 203).
+; PLAN: r0=127(x), r1=159(y), r2=94(width), r3=56(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=16(x1), r6=99(y1), r7=328(x2), r8=203(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 127
+LDI r1, 159
+LDI r2, 94
+LDI r3, 56
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 16
+LDI r6, 99
+LDI r7, 328
+LDI r8, 203
+LDI r9, 0x00FF00
 LINE r5, r6, r7, r8, r9
 HALT

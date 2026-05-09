@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 11 at center (422, 36).
-; PLAN: r0=422(x), r1=36(y), r2=11(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 422
-LDI r1, 36
-LDI r2, 11
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (21, 190) to (96, 29).
+; PLAN: r0=21(x1), r1=190(y1), r2=96(x2), r3=29(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 21
+LDI r1, 190
+LDI r2, 96
+LDI r3, 29
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (226, 151) and (61, 18).
-; PLAN: r0=226(x1), r1=151(y1), r2=61(x2), r3=18(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 226
-LDI r1, 151
-LDI r2, 61
-LDI r3, 18
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a red line from (151, 210) to (458, 202).
+; PLAN: r0=151(x1), r1=210(y1), r2=458(x2), r3=202(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 210
+LDI r2, 458
+LDI r3, 202
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (420, 70) with width 36 and height 70.
-; PLAN: r0=420(x), r1=70(y), r2=36(width), r3=70(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 420
-LDI r1, 70
-LDI r2, 36
-LDI r3, 70
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (205, 236) to (89, 50).
+; PLAN: r0=205(x1), r1=236(y1), r2=89(x2), r3=50(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 205
+LDI r1, 236
+LDI r2, 89
+LDI r3, 50
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

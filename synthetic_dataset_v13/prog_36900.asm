@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 40x57 rectangle at position (115, 65).
-; PLAN: r0=115(x), r1=65(y), r2=40(width), r3=57(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 115
-LDI r1, 65
-LDI r2, 40
-LDI r3, 57
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a orange box of size 95x61 starting at (148, 135).
+; PLAN: r0=148(x), r1=135(y), r2=95(width), r3=61(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 148
+LDI r1, 135
+LDI r2, 95
+LDI r3, 61
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

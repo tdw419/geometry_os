@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a cyan line from (124, 79) to (59, 51).
-; PLAN: r0=124(x1), r1=79(y1), r2=59(x2), r3=51(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 124
-LDI r1, 79
-LDI r2, 59
-LDI r3, 51
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single blue pixel at (500, 20) then Renders a purple line between points (73, 112) and (478, 65).
+; PLAN: r0=500(x), r1=20(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=73(x1), r6=112(y1), r7=478(x2), r8=65(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 500
+LDI r1, 20
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 73
+LDI r6, 112
+LDI r7, 478
+LDI r8, 65
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

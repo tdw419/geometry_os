@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (2, 198) to (331, 101).
-; PLAN: r0=2(x1), r1=198(y1), r2=331(x2), r3=101(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 2
-LDI r1, 198
-LDI r2, 331
-LDI r3, 101
+; DESCRIPTION: Places a cyan 89x13 rectangle at position (377, 191).
+; PLAN: r0=377(x), r1=191(y), r2=89(width), r3=13(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 377
+LDI r1, 191
+LDI r2, 89
+LDI r3, 13
 LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

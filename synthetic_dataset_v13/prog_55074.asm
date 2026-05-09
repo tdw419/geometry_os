@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 109x85 rectangle at position (318, 168).
-; PLAN: r0=318(x), r1=168(y), r2=109(width), r3=85(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 318
+; DESCRIPTION: Renders a orange disk with center (159, 168) and radius 54.
+; PLAN: r0=159(x), r1=168(y), r2=54(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 159
 LDI r1, 168
-LDI r2, 109
-LDI r3, 85
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+LDI r2, 54
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

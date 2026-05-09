@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (143, 122) and radius 45.
-; PLAN: r0=143(x), r1=122(y), r2=45(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 143
-LDI r1, 122
-LDI r2, 45
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black line segment connecting (510, 209) to (278, 36).
+; PLAN: r0=510(x1), r1=209(y1), r2=278(x2), r3=36(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 510
+LDI r1, 209
+LDI r2, 278
+LDI r3, 36
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

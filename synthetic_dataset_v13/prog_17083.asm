@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a black box of size 77x59 starting at (299, 141).
-; PLAN: r0=299(x), r1=141(y), r2=77(width), r3=59(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 299
-LDI r1, 141
-LDI r2, 77
-LDI r3, 59
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a green circle centered at (259, 51) with radius 34 then Places a magenta 40x57 rectangle at position (471, 193).
+; PLAN: r0=259(x), r1=51(y), r2=34(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=471(x), r6=193(y), r7=40(width), r8=57(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 259
+LDI r1, 51
+LDI r2, 34
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 471
+LDI r6, 193
+LDI r7, 40
+LDI r8, 57
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

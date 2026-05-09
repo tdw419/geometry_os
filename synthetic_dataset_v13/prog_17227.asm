@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Renders a red box of size 94x45 starting at (329, 163).
+; PLAN: r0=329(x), r1=163(y), r2=94(width), r3=45(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 329
+LDI r1, 163
+LDI r2, 94
+LDI r3, 45
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

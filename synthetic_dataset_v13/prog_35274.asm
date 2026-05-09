@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 68x16 rectangle at position (206, 106).
-; PLAN: r0=206(x), r1=106(y), r2=68(width), r3=16(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 206
-LDI r1, 106
-LDI r2, 68
-LDI r3, 16
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green line segment connecting (356, 151) to (476, 60).
+; PLAN: r0=356(x1), r1=151(y1), r2=476(x2), r3=60(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 356
+LDI r1, 151
+LDI r2, 476
+LDI r3, 60
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

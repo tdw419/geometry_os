@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single yellow pixel at (368, 202).
-; PLAN: r0=368(x), r1=202(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 368
-LDI r1, 202
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

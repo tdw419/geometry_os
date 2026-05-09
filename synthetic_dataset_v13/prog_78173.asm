@@ -1,9 +1,14 @@
-; DESCRIPTION: Creates a white rectangular region at (209, 56) spanning 82 by 92 pixels.
-; PLAN: r0=209(x), r1=56(y), r2=82(width), r3=92(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 209
-LDI r1, 56
-LDI r2, 82
-LDI r3, 92
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a cyan circle centered at (80, 73) with radius 31 then Draws a blue rectangle at (298, 103) with width 40 and height 76.
+; PLAN: r0=80(x), r1=73(y), r2=31(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=298(x), r6=103(y), r7=40(width), r8=76(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 80
+LDI r1, 73
+LDI r2, 31
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 298
+LDI r6, 103
+LDI r7, 40
+LDI r8, 76
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

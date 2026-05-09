@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (448, 70) and (329, 77).
-; PLAN: r0=448(x1), r1=70(y1), r2=329(x2), r3=77(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 448
-LDI r1, 70
-LDI r2, 329
-LDI r3, 77
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (337, 119) with radius 43.
+; PLAN: r0=337(x), r1=119(y), r2=43(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 337
+LDI r1, 119
+LDI r2, 43
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (401, 67) with radius 36.
-; PLAN: r0=401(x), r1=67(y), r2=36(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 401
-LDI r1, 67
-LDI r2, 36
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 106x97 rectangle at position (332, 10).
+; PLAN: r0=332(x), r1=10(y), r2=106(width), r3=97(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 332
+LDI r1, 10
+LDI r2, 106
+LDI r3, 97
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

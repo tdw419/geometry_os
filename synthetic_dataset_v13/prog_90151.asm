@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a white dot at position (114, 247).
-; PLAN: r0=114(x), r1=247(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 114
-LDI r1, 247
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

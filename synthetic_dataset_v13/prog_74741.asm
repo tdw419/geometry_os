@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a green line segment connecting (215, 151) to (323, 241) then Sets a single orange pixel at (342, 198).
-; PLAN: r0=215(x1), r1=151(y1), r2=323(x2), r3=241(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=342(x), r6=198(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 215
-LDI r1, 151
-LDI r2, 323
-LDI r3, 241
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 342
-LDI r6, 198
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Places a cyan 39x37 rectangle at position (103, 110).
+; PLAN: r0=103(x), r1=110(y), r2=39(width), r3=37(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 103
+LDI r1, 110
+LDI r2, 39
+LDI r3, 37
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

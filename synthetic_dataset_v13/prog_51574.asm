@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (386, 155) with radius 48.
-; PLAN: r0=386(x), r1=155(y), r2=48(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 386
-LDI r1, 155
-LDI r2, 48
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (364, 132) spanning 102 by 69 pixels.
+; PLAN: r0=364(x), r1=132(y), r2=102(width), r3=69(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 364
+LDI r1, 132
+LDI r2, 102
+LDI r3, 69
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

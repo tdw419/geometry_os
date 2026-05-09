@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (362, 48) to (324, 130).
-; PLAN: r0=362(x1), r1=48(y1), r2=324(x2), r3=130(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 48
-LDI r2, 324
-LDI r3, 130
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a magenta line between points (69, 37) and (356, 70).
+; PLAN: r0=69(x1), r1=37(y1), r2=356(x2), r3=70(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 69
+LDI r1, 37
+LDI r2, 356
+LDI r3, 70
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

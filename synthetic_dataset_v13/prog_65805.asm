@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a red dot at position (292, 40).
-; PLAN: r0=292(x), r1=40(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 292
-LDI r1, 40
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a magenta line between points (13, 242) and (152, 248).
+; PLAN: r0=13(x1), r1=242(y1), r2=152(x2), r3=248(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 13
+LDI r1, 242
+LDI r2, 152
+LDI r3, 248
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a red rectangular region at (415, 122) spanning 75 by 118 pixels.
-; PLAN: r0=415(x), r1=122(y), r2=75(width), r3=118(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 415
-LDI r1, 122
-LDI r2, 75
-LDI r3, 118
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 46 at center (111, 158).
+; PLAN: r0=111(x), r1=158(y), r2=46(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 111
+LDI r1, 158
+LDI r2, 46
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

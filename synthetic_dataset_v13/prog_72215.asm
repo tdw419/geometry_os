@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 87x51 starting at (212, 100).
-; PLAN: r0=212(x), r1=100(y), r2=87(width), r3=51(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 212
-LDI r1, 100
-LDI r2, 87
-LDI r3, 51
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a white rectangle at (139, 117) with width 107 and height 96.
+; PLAN: r0=139(x), r1=117(y), r2=107(width), r3=96(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 117
+LDI r2, 107
+LDI r3, 96
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

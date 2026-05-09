@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green box of size 80x55 starting at (387, 106).
-; PLAN: r0=387(x), r1=106(y), r2=80(width), r3=55(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 387
-LDI r1, 106
-LDI r2, 80
-LDI r3, 55
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (290, 69) with radius 59.
+; PLAN: r0=290(x), r1=69(y), r2=59(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 290
+LDI r1, 69
+LDI r2, 59
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Draws a purple rectangle at (353, 154) with width 98 and height 101 then Creates a white circular shape at (200, 219) with radius 22.
-; PLAN: r0=353(x), r1=154(y), r2=98(width), r3=101(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=200(x), r6=219(y), r7=22(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 353
-LDI r1, 154
-LDI r2, 98
-LDI r3, 101
-LDI r4, 0xAA00FF
+; DESCRIPTION: Composite: Creates a cyan rectangular region at (18, 56) spanning 106 by 76 pixels then Sets a single purple pixel at (450, 185) then Places a black circle of radius 69 at center (298, 84).
+; PLAN: r0=18(x), r1=56(y), r2=106(width), r3=76(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=450(x), r6=185(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=298(x), r11=84(y), r12=69(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 18
+LDI r1, 56
+LDI r2, 106
+LDI r3, 76
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 200
-LDI r6, 219
-LDI r7, 22
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+LDI r5, 450
+LDI r6, 185
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
+LDI r10, 298
+LDI r11, 84
+LDI r12, 69
+LDI r13, 0x000000
+CIRCLE r10, r11, r12, r13
 HALT

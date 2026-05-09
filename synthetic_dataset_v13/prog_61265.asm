@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Draws a magenta rectangle at (116, 167) with width 101 and height 67 then Sets a single white pixel at (18, 165) then Creates a yellow circular shape at (229, 217) with radius 20.
-; PLAN: r0=116(x), r1=167(y), r2=101(width), r3=67(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=18(x), r6=165(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=229(x), r11=217(y), r12=20(radius), r13=0xFFFF00(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 116
-LDI r1, 167
-LDI r2, 101
-LDI r3, 67
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 18
-LDI r6, 165
-LDI r7, 0xFFFFFF
+; DESCRIPTION: Composite: Places a white line segment connecting (302, 208) to (183, 249) then Sets a single cyan pixel at (197, 236).
+; PLAN: r0=302(x1), r1=208(y1), r2=183(x2), r3=249(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=197(x), r6=236(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 302
+LDI r1, 208
+LDI r2, 183
+LDI r3, 249
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 197
+LDI r6, 236
+LDI r7, 0x00FFFF
 PSET r5, r6, r7
-LDI r10, 229
-LDI r11, 217
-LDI r12, 20
-LDI r13, 0xFFFF00
-CIRCLE r10, r11, r12, r13
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (379, 187) spanning 47 by 42 pixels.
-; PLAN: r0=379(x), r1=187(y), r2=47(width), r3=42(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 379
-LDI r1, 187
-LDI r2, 47
-LDI r3, 42
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (404, 244) to (292, 26).
+; PLAN: r0=404(x1), r1=244(y1), r2=292(x2), r3=26(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 404
+LDI r1, 244
+LDI r2, 292
+LDI r3, 26
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

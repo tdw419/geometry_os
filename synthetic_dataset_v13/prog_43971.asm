@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 43x61 rectangle at position (80, 57).
-; PLAN: r0=80(x), r1=57(y), r2=43(width), r3=61(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 80
-LDI r1, 57
-LDI r2, 43
-LDI r3, 61
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (33, 131) and (245, 6).
+; PLAN: r0=33(x1), r1=131(y1), r2=245(x2), r3=6(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 33
+LDI r1, 131
+LDI r2, 245
+LDI r3, 6
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (369, 227) to (433, 136).
-; PLAN: r0=369(x1), r1=227(y1), r2=433(x2), r3=136(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 369
-LDI r1, 227
-LDI r2, 433
-LDI r3, 136
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 59 at center (334, 117).
+; PLAN: r0=334(x), r1=117(y), r2=59(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 334
+LDI r1, 117
+LDI r2, 59
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (506, 150) then Creates a white circular shape at (418, 165) with radius 71.
-; PLAN: r0=506(x), r1=150(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=418(x), r6=165(y), r7=71(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 506
-LDI r1, 150
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 418
-LDI r6, 165
-LDI r7, 71
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a white rectangle at (140, 133) with width 95 and height 115.
+; PLAN: r0=140(x), r1=133(y), r2=95(width), r3=115(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 140
+LDI r1, 133
+LDI r2, 95
+LDI r3, 115
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (284, 31) and (477, 0).
-; PLAN: r0=284(x1), r1=31(y1), r2=477(x2), r3=0(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 31
-LDI r2, 477
-LDI r3, 0
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (176, 120) with radius 25.
+; PLAN: r0=176(x), r1=120(y), r2=25(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 176
+LDI r1, 120
+LDI r2, 25
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

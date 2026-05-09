@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (487, 83) to (259, 72).
-; PLAN: r0=487(x1), r1=83(y1), r2=259(x2), r3=72(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 487
-LDI r1, 83
-LDI r2, 259
-LDI r3, 72
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 70x86 rectangle at position (141, 48).
+; PLAN: r0=141(x), r1=48(y), r2=70(width), r3=86(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 141
+LDI r1, 48
+LDI r2, 70
+LDI r3, 86
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

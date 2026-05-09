@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a green line between points (494, 174) and (57, 175).
-; PLAN: r0=494(x1), r1=174(y1), r2=57(x2), r3=175(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 494
-LDI r1, 174
-LDI r2, 57
-LDI r3, 175
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a white circular shape at (421, 100) with radius 63 then Places a green dot at position (472, 132).
+; PLAN: r0=421(x), r1=100(y), r2=63(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=472(x), r6=132(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 421
+LDI r1, 100
+LDI r2, 63
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 472
+LDI r6, 132
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

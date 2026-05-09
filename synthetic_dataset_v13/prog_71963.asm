@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (185, 41) and (200, 1).
-; PLAN: r0=185(x1), r1=41(y1), r2=200(x2), r3=1(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 185
-LDI r1, 41
-LDI r2, 200
-LDI r3, 1
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue 33x22 rectangle at position (318, 18).
+; PLAN: r0=318(x), r1=18(y), r2=33(width), r3=22(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 318
+LDI r1, 18
+LDI r2, 33
+LDI r3, 22
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

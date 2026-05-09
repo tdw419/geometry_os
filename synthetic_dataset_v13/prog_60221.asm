@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (355, 82) with radius 72.
-; PLAN: r0=355(x), r1=82(y), r2=72(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 355
-LDI r1, 82
-LDI r2, 72
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (367, 98) to (114, 122).
+; PLAN: r0=367(x1), r1=98(y1), r2=114(x2), r3=122(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 367
+LDI r1, 98
+LDI r2, 114
+LDI r3, 122
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

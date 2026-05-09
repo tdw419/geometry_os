@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 52x104 rectangle at position (259, 59).
-; PLAN: r0=259(x), r1=59(y), r2=52(width), r3=104(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 259
-LDI r1, 59
-LDI r2, 52
-LDI r3, 104
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a black rectangular region at (350, 157) spanning 53 by 67 pixels.
+; PLAN: r0=350(x), r1=157(y), r2=53(width), r3=67(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 350
+LDI r1, 157
+LDI r2, 53
+LDI r3, 67
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (23, 87) with width 75 and height 87.
-; PLAN: r0=23(x), r1=87(y), r2=75(width), r3=87(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 23
-LDI r1, 87
-LDI r2, 75
-LDI r3, 87
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue line segment connecting (385, 11) to (392, 149).
+; PLAN: r0=385(x1), r1=11(y1), r2=392(x2), r3=149(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 385
+LDI r1, 11
+LDI r2, 392
+LDI r3, 149
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

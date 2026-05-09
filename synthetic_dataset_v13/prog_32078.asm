@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 69x101 starting at (57, 108).
-; PLAN: r0=57(x), r1=108(y), r2=69(width), r3=101(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 57
-LDI r1, 108
-LDI r2, 69
-LDI r3, 101
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (103, 40) to (125, 51).
+; PLAN: r0=103(x1), r1=40(y1), r2=125(x2), r3=51(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 103
+LDI r1, 40
+LDI r2, 125
+LDI r3, 51
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

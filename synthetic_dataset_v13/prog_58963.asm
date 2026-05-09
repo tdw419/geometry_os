@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a cyan dot at position (478, 106).
-; PLAN: r0=478(x), r1=106(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 478
-LDI r1, 106
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange 36x17 rectangle at position (71, 166).
+; PLAN: r0=71(x), r1=166(y), r2=36(width), r3=17(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 71
+LDI r1, 166
+LDI r2, 36
+LDI r3, 17
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (440, 7) to (438, 105).
-; PLAN: r0=440(x1), r1=7(y1), r2=438(x2), r3=105(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 440
-LDI r1, 7
-LDI r2, 438
-LDI r3, 105
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange rectangle at (73, 8) with width 80 and height 107.
+; PLAN: r0=73(x), r1=8(y), r2=80(width), r3=107(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 73
+LDI r1, 8
+LDI r2, 80
+LDI r3, 107
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

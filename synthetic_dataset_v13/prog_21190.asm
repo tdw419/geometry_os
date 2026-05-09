@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Creates a magenta circular shape at (230, 181) with radius 33 then Draws a magenta line from (168, 146) to (124, 46).
-; PLAN: r0=230(x), r1=181(y), r2=33(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=168(x1), r6=146(y1), r7=124(x2), r8=46(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 230
-LDI r1, 181
-LDI r2, 33
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 168
-LDI r6, 146
-LDI r7, 124
-LDI r8, 46
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a orange box of size 69x17 starting at (408, 116).
+; PLAN: r0=408(x), r1=116(y), r2=69(width), r3=17(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 408
+LDI r1, 116
+LDI r2, 69
+LDI r3, 17
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (141, 26) and (22, 82).
-; PLAN: r0=141(x1), r1=26(y1), r2=22(x2), r3=82(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 141
-LDI r1, 26
-LDI r2, 22
-LDI r3, 82
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 68 at center (430, 144).
+; PLAN: r0=430(x), r1=144(y), r2=68(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 430
+LDI r1, 144
+LDI r2, 68
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

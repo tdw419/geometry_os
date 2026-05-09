@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single orange pixel at (69, 150).
-; PLAN: r0=69(x), r1=150(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 69
-LDI r1, 150
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan box of size 18x93 starting at (192, 148).
+; PLAN: r0=192(x), r1=148(y), r2=18(width), r3=93(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 192
+LDI r1, 148
+LDI r2, 18
+LDI r3, 93
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

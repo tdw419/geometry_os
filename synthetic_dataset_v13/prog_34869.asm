@@ -1,5 +1,7 @@
-; DESCRIPTION: Fills the entire screen with solid cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Sets a single black pixel at (303, 77).
+; PLAN: r0=303(x), r1=77(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 303
+LDI r1, 77
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

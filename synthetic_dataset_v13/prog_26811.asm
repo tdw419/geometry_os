@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 32 into r1 and decrements it in a loop until zero.
-; PLAN: r1=32(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 32
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a cyan box of size 26x17 starting at (265, 127).
+; PLAN: r0=265(x), r1=127(y), r2=26(width), r3=17(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 265
+LDI r1, 127
+LDI r2, 26
+LDI r3, 17
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

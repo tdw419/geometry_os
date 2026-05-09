@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a purple box of size 76x50 starting at (271, 112).
-; PLAN: r0=271(x), r1=112(y), r2=76(width), r3=50(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 271
-LDI r1, 112
-LDI r2, 76
-LDI r3, 50
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (147, 196).
+; PLAN: r0=147(x), r1=196(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 147
+LDI r1, 196
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

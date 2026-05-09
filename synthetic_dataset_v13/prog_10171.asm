@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a magenta circle centered at (322, 90) with radius 75 then Draws a black rectangle at (111, 39) with width 26 and height 102.
-; PLAN: r0=322(x), r1=90(y), r2=75(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=111(x), r6=39(y), r7=26(width), r8=102(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 322
-LDI r1, 90
-LDI r2, 75
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 111
-LDI r6, 39
-LDI r7, 26
-LDI r8, 102
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a yellow line between points (442, 234) and (103, 131).
+; PLAN: r0=442(x1), r1=234(y1), r2=103(x2), r3=131(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 442
+LDI r1, 234
+LDI r2, 103
+LDI r3, 131
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (150, 14) to (428, 111).
-; PLAN: r0=150(x1), r1=14(y1), r2=428(x2), r3=111(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 150
-LDI r1, 14
-LDI r2, 428
-LDI r3, 111
+; DESCRIPTION: Places a white 40x45 rectangle at position (467, 134).
+; PLAN: r0=467(x), r1=134(y), r2=40(width), r3=45(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 467
+LDI r1, 134
+LDI r2, 40
+LDI r3, 45
 LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

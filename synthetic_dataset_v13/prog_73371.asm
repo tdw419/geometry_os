@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black box of size 45x97 starting at (143, 70).
-; PLAN: r0=143(x), r1=70(y), r2=45(width), r3=97(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 70
-LDI r2, 45
-LDI r3, 97
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 45 into r1 and decrements it in a loop until zero.
+; PLAN: r1=45(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 45
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

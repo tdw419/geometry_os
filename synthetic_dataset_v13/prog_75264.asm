@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (388, 218) to (504, 237).
-; PLAN: r0=388(x1), r1=218(y1), r2=504(x2), r3=237(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 388
-LDI r1, 218
-LDI r2, 504
-LDI r3, 237
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 58x13 rectangle at position (58, 133).
+; PLAN: r0=58(x), r1=133(y), r2=58(width), r3=13(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 58
+LDI r1, 133
+LDI r2, 58
+LDI r3, 13
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

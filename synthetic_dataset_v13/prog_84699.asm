@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a black rectangle at (290, 18) with width 117 and height 56.
-; PLAN: r0=290(x), r1=18(y), r2=117(width), r3=56(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 290
-LDI r1, 18
-LDI r2, 117
-LDI r3, 56
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single yellow pixel at (409, 140).
+; PLAN: r0=409(x), r1=140(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 409
+LDI r1, 140
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

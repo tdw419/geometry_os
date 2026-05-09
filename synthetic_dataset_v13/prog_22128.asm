@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a blue rectangular region at (350, 84) spanning 38 by 93 pixels.
-; PLAN: r0=350(x), r1=84(y), r2=38(width), r3=93(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 350
-LDI r1, 84
-LDI r2, 38
-LDI r3, 93
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (358, 106) with radius 49.
+; PLAN: r0=358(x), r1=106(y), r2=49(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 358
+LDI r1, 106
+LDI r2, 49
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

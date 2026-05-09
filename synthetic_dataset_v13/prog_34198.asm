@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (350, 99) spanning 56 by 34 pixels.
-; PLAN: r0=350(x), r1=99(y), r2=56(width), r3=34(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 350
-LDI r1, 99
-LDI r2, 56
-LDI r3, 34
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (148, 250) to (442, 126).
+; PLAN: r0=148(x1), r1=250(y1), r2=442(x2), r3=126(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 148
+LDI r1, 250
+LDI r2, 442
+LDI r3, 126
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

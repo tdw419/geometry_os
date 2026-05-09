@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a orange line segment connecting (26, 0) to (267, 55).
-; PLAN: r0=26(x1), r1=0(y1), r2=267(x2), r3=55(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 26
-LDI r1, 0
-LDI r2, 267
-LDI r3, 55
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (32, 74) then Places a purple 48x39 rectangle at position (217, 211).
+; PLAN: r0=32(x), r1=74(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=217(x), r6=211(y), r7=48(width), r8=39(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 32
+LDI r1, 74
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 217
+LDI r6, 211
+LDI r7, 48
+LDI r8, 39
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

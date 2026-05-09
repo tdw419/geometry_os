@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (426, 39) spanning 75 by 64 pixels.
-; PLAN: r0=426(x), r1=39(y), r2=75(width), r3=64(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 426
-LDI r1, 39
-LDI r2, 75
-LDI r3, 64
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (128, 101) and (285, 46).
+; PLAN: r0=128(x1), r1=101(y1), r2=285(x2), r3=46(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 128
+LDI r1, 101
+LDI r2, 285
+LDI r3, 46
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

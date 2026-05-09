@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (94, 111) to (222, 135).
-; PLAN: r0=94(x1), r1=111(y1), r2=222(x2), r3=135(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 94
-LDI r1, 111
-LDI r2, 222
-LDI r3, 135
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (272, 127) with width 69 and height 49.
+; PLAN: r0=272(x), r1=127(y), r2=69(width), r3=49(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 272
+LDI r1, 127
+LDI r2, 69
+LDI r3, 49
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

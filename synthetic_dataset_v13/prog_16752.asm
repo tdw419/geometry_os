@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Draws a white line from (49, 179) to (389, 159) then Places a yellow dot at position (511, 60) then Draws a black circle centered at (287, 62) with radius 56.
-; PLAN: r0=49(x1), r1=179(y1), r2=389(x2), r3=159(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=511(x), r6=60(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=287(x), r11=62(y), r12=56(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 49
-LDI r1, 179
-LDI r2, 389
-LDI r3, 159
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 511
-LDI r6, 60
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
-LDI r10, 287
-LDI r11, 62
-LDI r12, 56
-LDI r13, 0x000000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Sets a single red pixel at (203, 25) then Places a black line segment connecting (10, 254) to (379, 22) then Draws a black rectangle at (76, 10) with width 13 and height 103.
+; PLAN: r0=203(x), r1=25(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=10(x1), r6=254(y1), r7=379(x2), r8=22(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=76(x), r11=10(y), r12=13(width), r13=103(height), r14=0x000000(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 203
+LDI r1, 25
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 10
+LDI r6, 254
+LDI r7, 379
+LDI r8, 22
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
+LDI r10, 76
+LDI r11, 10
+LDI r12, 13
+LDI r13, 103
+LDI r14, 0x000000
+RECTF r10, r11, r12, r13, r14
 HALT

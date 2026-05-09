@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (110, 222) to (67, 9).
-; PLAN: r0=110(x1), r1=222(y1), r2=67(x2), r3=9(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 110
-LDI r1, 222
-LDI r2, 67
-LDI r3, 9
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green box of size 80x90 starting at (336, 112).
+; PLAN: r0=336(x), r1=112(y), r2=80(width), r3=90(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 336
+LDI r1, 112
+LDI r2, 80
+LDI r3, 90
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

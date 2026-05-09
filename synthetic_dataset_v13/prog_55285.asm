@@ -1,14 +1,8 @@
-; DESCRIPTION: Composite: Renders a white disk with center (240, 91) and radius 70 then Renders a yellow box of size 68x32 starting at (244, 52).
-; PLAN: r0=240(x), r1=91(y), r2=70(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=244(x), r6=52(y), r7=68(width), r8=32(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 240
-LDI r1, 91
-LDI r2, 70
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 244
-LDI r6, 52
-LDI r7, 68
-LDI r8, 32
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Loads 16 into r1 and decrements it in a loop until zero.
+; PLAN: r1=16(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 16
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

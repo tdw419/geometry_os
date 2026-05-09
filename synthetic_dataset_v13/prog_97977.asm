@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Places a green dot at position (206, 124).
+; PLAN: r0=206(x), r1=124(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 206
+LDI r1, 124
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

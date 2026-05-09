@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a white dot at position (203, 194) then Draws a purple rectangle at (24, 20) with width 89 and height 63.
-; PLAN: r0=203(x), r1=194(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=24(x), r6=20(y), r7=89(width), r8=63(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 203
-LDI r1, 194
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 24
-LDI r6, 20
-LDI r7, 89
-LDI r8, 63
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a orange rectangular region at (375, 125) spanning 72 by 82 pixels.
+; PLAN: r0=375(x), r1=125(y), r2=72(width), r3=82(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 375
+LDI r1, 125
+LDI r2, 72
+LDI r3, 82
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

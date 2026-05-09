@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (270, 111) to (484, 100).
-; PLAN: r0=270(x1), r1=111(y1), r2=484(x2), r3=100(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 270
-LDI r1, 111
-LDI r2, 484
-LDI r3, 100
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a orange line segment connecting (482, 95) to (436, 200).
+; PLAN: r0=482(x1), r1=95(y1), r2=436(x2), r3=200(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 482
+LDI r1, 95
+LDI r2, 436
+LDI r3, 200
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

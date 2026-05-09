@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 63x14 rectangle at position (303, 192).
-; PLAN: r0=303(x), r1=192(y), r2=63(width), r3=14(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 303
-LDI r1, 192
-LDI r2, 63
-LDI r3, 14
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white line between points (2, 201) and (161, 23).
+; PLAN: r0=2(x1), r1=201(y1), r2=161(x2), r3=23(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 2
+LDI r1, 201
+LDI r2, 161
+LDI r3, 23
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

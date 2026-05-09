@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single blue pixel at (265, 79).
-; PLAN: r0=265(x), r1=79(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 265
-LDI r1, 79
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green line between points (152, 247) and (374, 189).
+; PLAN: r0=152(x1), r1=247(y1), r2=374(x2), r3=189(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 152
+LDI r1, 247
+LDI r2, 374
+LDI r3, 189
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

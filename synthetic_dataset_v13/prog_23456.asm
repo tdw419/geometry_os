@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (112, 143) and (360, 238).
-; PLAN: r0=112(x1), r1=143(y1), r2=360(x2), r3=238(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 143
-LDI r2, 360
-LDI r3, 238
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 101x48 starting at (121, 172).
+; PLAN: r0=121(x), r1=172(y), r2=101(width), r3=48(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 121
+LDI r1, 172
+LDI r2, 101
+LDI r3, 48
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

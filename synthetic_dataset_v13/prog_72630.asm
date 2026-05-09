@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a green line between points (31, 246) and (309, 106).
-; PLAN: r0=31(x1), r1=246(y1), r2=309(x2), r3=106(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 31
-LDI r1, 246
-LDI r2, 309
-LDI r3, 106
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (466, 113) then Creates a white circular shape at (398, 109) with radius 23.
+; PLAN: r0=466(x), r1=113(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=398(x), r6=109(y), r7=23(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 466
+LDI r1, 113
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 398
+LDI r6, 109
+LDI r7, 23
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

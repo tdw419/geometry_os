@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (306, 73) to (446, 56).
-; PLAN: r0=306(x1), r1=73(y1), r2=446(x2), r3=56(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 306
-LDI r1, 73
-LDI r2, 446
-LDI r3, 56
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a magenta line segment connecting (496, 251) to (487, 121).
+; PLAN: r0=496(x1), r1=251(y1), r2=487(x2), r3=121(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 496
+LDI r1, 251
+LDI r2, 487
+LDI r3, 121
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

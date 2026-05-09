@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (174, 25) and (460, 151).
-; PLAN: r0=174(x1), r1=25(y1), r2=460(x2), r3=151(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 174
-LDI r1, 25
-LDI r2, 460
-LDI r3, 151
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (361, 154) with radius 63.
+; PLAN: r0=361(x), r1=154(y), r2=63(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 361
+LDI r1, 154
+LDI r2, 63
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

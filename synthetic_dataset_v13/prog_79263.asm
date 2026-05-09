@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a magenta box of size 32x93 starting at (355, 106).
-; PLAN: r0=355(x), r1=106(y), r2=32(width), r3=93(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 355
-LDI r1, 106
-LDI r2, 32
-LDI r3, 93
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a orange circle centered at (397, 114) with radius 80 then Places a blue dot at position (174, 86).
+; PLAN: r0=397(x), r1=114(y), r2=80(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=174(x), r6=86(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 397
+LDI r1, 114
+LDI r2, 80
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
+LDI r5, 174
+LDI r6, 86
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

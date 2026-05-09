@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
-FILL r0
+; DESCRIPTION: Sets a single cyan pixel at (98, 48).
+; PLAN: r0=98(x), r1=48(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 98
+LDI r1, 48
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

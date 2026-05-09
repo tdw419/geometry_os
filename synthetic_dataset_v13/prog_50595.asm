@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (439, 92) with radius 12.
-; PLAN: r0=439(x), r1=92(y), r2=12(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 439
-LDI r1, 92
-LDI r2, 12
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white rectangle at (371, 11) with width 82 and height 64.
+; PLAN: r0=371(x), r1=11(y), r2=82(width), r3=64(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 371
+LDI r1, 11
+LDI r2, 82
+LDI r3, 64
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

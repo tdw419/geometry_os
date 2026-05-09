@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 13 at center (417, 68).
-; PLAN: r0=417(x), r1=68(y), r2=13(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 417
-LDI r1, 68
-LDI r2, 13
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (324, 119) to (103, 76).
+; PLAN: r0=324(x1), r1=119(y1), r2=103(x2), r3=76(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 324
+LDI r1, 119
+LDI r2, 103
+LDI r3, 76
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

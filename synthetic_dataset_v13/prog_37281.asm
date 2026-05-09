@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (138, 51) to (457, 61).
-; PLAN: r0=138(x1), r1=51(y1), r2=457(x2), r3=61(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 138
-LDI r1, 51
-LDI r2, 457
-LDI r3, 61
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (5, 161) with width 93 and height 88.
+; PLAN: r0=5(x), r1=161(y), r2=93(width), r3=88(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 5
+LDI r1, 161
+LDI r2, 93
+LDI r3, 88
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

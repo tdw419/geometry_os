@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 11 into r1 and decrements it in a loop until zero.
-; PLAN: r1=11(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 11
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a red rectangle at (368, 146) with width 54 and height 31.
+; PLAN: r0=368(x), r1=146(y), r2=54(width), r3=31(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 368
+LDI r1, 146
+LDI r2, 54
+LDI r3, 31
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

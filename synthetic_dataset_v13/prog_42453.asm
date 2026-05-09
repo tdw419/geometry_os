@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (75, 35) to (332, 100).
-; PLAN: r0=75(x1), r1=35(y1), r2=332(x2), r3=100(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 75
-LDI r1, 35
-LDI r2, 332
-LDI r3, 100
+; DESCRIPTION: Draws a white rectangle at (415, 130) with width 59 and height 117.
+; PLAN: r0=415(x), r1=130(y), r2=59(width), r3=117(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 415
+LDI r1, 130
+LDI r2, 59
+LDI r3, 117
 LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

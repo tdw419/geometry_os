@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a yellow rectangle at (187, 135) with width 100 and height 38.
-; PLAN: r0=187(x), r1=135(y), r2=100(width), r3=38(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 187
-LDI r1, 135
-LDI r2, 100
-LDI r3, 38
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single red pixel at (278, 158) then Creates a red rectangular region at (327, 24) spanning 17 by 67 pixels.
+; PLAN: r0=278(x), r1=158(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=327(x), r6=24(y), r7=17(width), r8=67(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 278
+LDI r1, 158
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 327
+LDI r6, 24
+LDI r7, 17
+LDI r8, 67
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

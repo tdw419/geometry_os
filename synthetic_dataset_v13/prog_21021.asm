@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Draws a blue rectangle at (266, 112) with width 67 and height 45 then Draws a yellow line from (464, 2) to (152, 203).
-; PLAN: r0=266(x), r1=112(y), r2=67(width), r3=45(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=464(x1), r6=2(y1), r7=152(x2), r8=203(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 266
-LDI r1, 112
-LDI r2, 67
-LDI r3, 45
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 464
-LDI r6, 2
-LDI r7, 152
-LDI r8, 203
-LDI r9, 0xFFFF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a black disk with center (120, 169) and radius 58 then Draws a purple rectangle at (9, 81) with width 47 and height 89 then Sets a single magenta pixel at (435, 205).
+; PLAN: r0=120(x), r1=169(y), r2=58(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=9(x), r6=81(y), r7=47(width), r8=89(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=435(x), r11=205(y), r12=0xFF00FF(color). Op: PSET r10, r11, r12.
+LDI r0, 120
+LDI r1, 169
+LDI r2, 58
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 9
+LDI r6, 81
+LDI r7, 47
+LDI r8, 89
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 435
+LDI r11, 205
+LDI r12, 0xFF00FF
+PSET r10, r11, r12
 HALT

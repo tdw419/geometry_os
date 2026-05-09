@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a yellow 93x64 rectangle at position (151, 168).
-; PLAN: r0=151(x), r1=168(y), r2=93(width), r3=64(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 151
-LDI r1, 168
-LDI r2, 93
-LDI r3, 64
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

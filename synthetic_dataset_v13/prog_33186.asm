@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Places a purple 103x86 rectangle at position (33, 109) then Sets a single magenta pixel at (37, 225).
-; PLAN: r0=33(x), r1=109(y), r2=103(width), r3=86(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=37(x), r6=225(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 33
-LDI r1, 109
-LDI r2, 103
-LDI r3, 86
-LDI r4, 0xAA00FF
+; DESCRIPTION: Composite: Places a red 64x20 rectangle at position (259, 78) then Sets a single white pixel at (509, 72).
+; PLAN: r0=259(x), r1=78(y), r2=64(width), r3=20(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=509(x), r6=72(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 259
+LDI r1, 78
+LDI r2, 64
+LDI r3, 20
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
-LDI r5, 37
-LDI r6, 225
-LDI r7, 0xFF00FF
+LDI r5, 509
+LDI r6, 72
+LDI r7, 0xFFFFFF
 PSET r5, r6, r7
 HALT

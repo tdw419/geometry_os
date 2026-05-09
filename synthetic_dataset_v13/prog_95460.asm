@@ -1,19 +1,12 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (438, 113) then Places a cyan 37x105 rectangle at position (211, 94) then Places a cyan line segment connecting (356, 158) to (189, 83).
-; PLAN: r0=438(x), r1=113(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=211(x), r6=94(y), r7=37(width), r8=105(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=356(x1), r11=158(y1), r12=189(x2), r13=83(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 438
-LDI r1, 113
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 211
-LDI r6, 94
-LDI r7, 37
-LDI r8, 105
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 356
-LDI r11, 158
-LDI r12, 189
-LDI r13, 83
-LDI r14, 0x00FFFF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a green disk with center (199, 136) and radius 62 then Places a orange dot at position (33, 25).
+; PLAN: r0=199(x), r1=136(y), r2=62(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=33(x), r6=25(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 199
+LDI r1, 136
+LDI r2, 62
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 33
+LDI r6, 25
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

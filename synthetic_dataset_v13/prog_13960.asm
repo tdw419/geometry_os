@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a orange line from (363, 100) to (241, 192).
-; PLAN: r0=363(x1), r1=100(y1), r2=241(x2), r3=192(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 100
-LDI r2, 241
-LDI r3, 192
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (196, 110).
+; PLAN: r0=196(x), r1=110(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 196
+LDI r1, 110
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

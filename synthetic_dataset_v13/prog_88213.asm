@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (219, 51) to (217, 221).
-; PLAN: r0=219(x1), r1=51(y1), r2=217(x2), r3=221(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 219
-LDI r1, 51
-LDI r2, 217
-LDI r3, 221
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 31x32 starting at (297, 147).
+; PLAN: r0=297(x), r1=147(y), r2=31(width), r3=32(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 297
+LDI r1, 147
+LDI r2, 31
+LDI r3, 32
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

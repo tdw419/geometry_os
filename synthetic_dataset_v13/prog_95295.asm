@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a green rectangle at (108, 52) with width 79 and height 115.
-; PLAN: r0=108(x), r1=52(y), r2=79(width), r3=115(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 108
-LDI r1, 52
-LDI r2, 79
-LDI r3, 115
-LDI r4, 0x00FF00
+; DESCRIPTION: Composite: Places a yellow 117x35 rectangle at position (96, 207) then Places a black dot at position (154, 48).
+; PLAN: r0=96(x), r1=207(y), r2=117(width), r3=35(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=154(x), r6=48(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 96
+LDI r1, 207
+LDI r2, 117
+LDI r3, 35
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
+LDI r5, 154
+LDI r6, 48
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

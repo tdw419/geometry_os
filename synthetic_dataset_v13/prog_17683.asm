@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (180, 112).
-; PLAN: r0=180(x), r1=112(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 180
-LDI r1, 112
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a white circular shape at (335, 191) with radius 45.
+; PLAN: r0=335(x), r1=191(y), r2=45(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 335
+LDI r1, 191
+LDI r2, 45
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (310, 91) and radius 52.
-; PLAN: r0=310(x), r1=91(y), r2=52(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 310
-LDI r1, 91
-LDI r2, 52
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (72, 3) with width 101 and height 73.
+; PLAN: r0=72(x), r1=3(y), r2=101(width), r3=73(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 72
+LDI r1, 3
+LDI r2, 101
+LDI r3, 73
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

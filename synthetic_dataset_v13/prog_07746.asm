@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 74 at center (409, 156).
-; PLAN: r0=409(x), r1=156(y), r2=74(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 409
-LDI r1, 156
-LDI r2, 74
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (504, 225) and (281, 110).
+; PLAN: r0=504(x1), r1=225(y1), r2=281(x2), r3=110(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 504
+LDI r1, 225
+LDI r2, 281
+LDI r3, 110
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

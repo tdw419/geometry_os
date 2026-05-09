@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (59, 107) with width 67 and height 109.
-; PLAN: r0=59(x), r1=107(y), r2=67(width), r3=109(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 59
-LDI r1, 107
-LDI r2, 67
-LDI r3, 109
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (498, 154) to (270, 228).
+; PLAN: r0=498(x1), r1=154(y1), r2=270(x2), r3=228(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 498
+LDI r1, 154
+LDI r2, 270
+LDI r3, 228
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

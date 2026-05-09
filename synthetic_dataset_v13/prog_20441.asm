@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (380, 105) with width 52 and height 81.
-; PLAN: r0=380(x), r1=105(y), r2=52(width), r3=81(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 380
-LDI r1, 105
-LDI r2, 52
-LDI r3, 81
-LDI r4, 0x00FFFF
+; DESCRIPTION: Places a yellow 15x10 rectangle at position (474, 40).
+; PLAN: r0=474(x), r1=40(y), r2=15(width), r3=10(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 474
+LDI r1, 40
+LDI r2, 15
+LDI r3, 10
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

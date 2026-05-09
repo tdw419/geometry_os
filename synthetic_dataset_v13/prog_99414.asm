@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 118x45 rectangle at position (362, 16).
-; PLAN: r0=362(x), r1=16(y), r2=118(width), r3=45(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 16
-LDI r2, 118
-LDI r3, 45
+; DESCRIPTION: Renders a blue line between points (440, 154) and (472, 221).
+; PLAN: r0=440(x1), r1=154(y1), r2=472(x2), r3=221(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 440
+LDI r1, 154
+LDI r2, 472
+LDI r3, 221
 LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

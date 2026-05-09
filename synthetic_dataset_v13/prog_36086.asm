@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a green line from (474, 252) to (248, 38).
-; PLAN: r0=474(x1), r1=252(y1), r2=248(x2), r3=38(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 474
-LDI r1, 252
-LDI r2, 248
-LDI r3, 38
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (454, 230) then Draws a cyan rectangle at (149, 58) with width 54 and height 35.
+; PLAN: r0=454(x), r1=230(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=149(x), r6=58(y), r7=54(width), r8=35(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 454
+LDI r1, 230
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 149
+LDI r6, 58
+LDI r7, 54
+LDI r8, 35
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

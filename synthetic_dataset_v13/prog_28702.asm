@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a yellow rectangle at (35, 183) with width 110 and height 69.
-; PLAN: r0=35(x), r1=183(y), r2=110(width), r3=69(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 35
-LDI r1, 183
-LDI r2, 110
-LDI r3, 69
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (100, 110).
+; PLAN: r0=100(x), r1=110(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 100
+LDI r1, 110
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

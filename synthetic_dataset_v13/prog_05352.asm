@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Draws a yellow circle centered at (265, 179) with radius 22 then Renders a red box of size 15x72 starting at (39, 114).
-; PLAN: r0=265(x), r1=179(y), r2=22(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=39(x), r6=114(y), r7=15(width), r8=72(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 265
-LDI r1, 179
-LDI r2, 22
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 39
-LDI r6, 114
-LDI r7, 15
-LDI r8, 72
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Sets a single orange pixel at (301, 85) then Places a cyan circle of radius 78 at center (174, 153).
+; PLAN: r0=301(x), r1=85(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=174(x), r6=153(y), r7=78(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 301
+LDI r1, 85
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 174
+LDI r6, 153
+LDI r7, 78
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 110x37 starting at (90, 137).
-; PLAN: r0=90(x), r1=137(y), r2=110(width), r3=37(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 90
-LDI r1, 137
-LDI r2, 110
-LDI r3, 37
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a blue 10x63 rectangle at position (64, 116).
+; PLAN: r0=64(x), r1=116(y), r2=10(width), r3=63(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 64
+LDI r1, 116
+LDI r2, 10
+LDI r3, 63
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (96, 93) and radius 72.
-; PLAN: r0=96(x), r1=93(y), r2=72(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 96
-LDI r1, 93
-LDI r2, 72
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (163, 63) to (263, 65).
+; PLAN: r0=163(x1), r1=63(y1), r2=263(x2), r3=65(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 163
+LDI r1, 63
+LDI r2, 263
+LDI r3, 65
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

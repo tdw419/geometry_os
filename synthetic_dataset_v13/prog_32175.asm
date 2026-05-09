@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (43, 244) to (9, 13).
-; PLAN: r0=43(x1), r1=244(y1), r2=9(x2), r3=13(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 43
-LDI r1, 244
-LDI r2, 9
-LDI r3, 13
-LDI r4, 0x000000
+; DESCRIPTION: Renders a white line between points (84, 165) and (321, 174).
+; PLAN: r0=84(x1), r1=165(y1), r2=321(x2), r3=174(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 84
+LDI r1, 165
+LDI r2, 321
+LDI r3, 174
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

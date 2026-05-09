@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 90x75 rectangle at position (52, 176).
-; PLAN: r0=52(x), r1=176(y), r2=90(width), r3=75(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 52
-LDI r1, 176
-LDI r2, 90
-LDI r3, 75
-LDI r4, 0xFFFF00
+; DESCRIPTION: Creates a white rectangular region at (119, 205) spanning 73 by 48 pixels.
+; PLAN: r0=119(x), r1=205(y), r2=73(width), r3=48(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 119
+LDI r1, 205
+LDI r2, 73
+LDI r3, 48
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

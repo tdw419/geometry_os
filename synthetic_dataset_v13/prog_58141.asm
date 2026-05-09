@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (362, 151) with radius 46.
-; PLAN: r0=362(x), r1=151(y), r2=46(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 362
-LDI r1, 151
-LDI r2, 46
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue line segment connecting (422, 178) to (218, 28).
+; PLAN: r0=422(x1), r1=178(y1), r2=218(x2), r3=28(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 422
+LDI r1, 178
+LDI r2, 218
+LDI r3, 28
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

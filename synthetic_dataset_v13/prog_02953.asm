@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single green pixel at (387, 186).
-; PLAN: r0=387(x), r1=186(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 387
-LDI r1, 186
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a red circle of radius 31 at center (291, 225).
+; PLAN: r0=291(x), r1=225(y), r2=31(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 291
+LDI r1, 225
+LDI r2, 31
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

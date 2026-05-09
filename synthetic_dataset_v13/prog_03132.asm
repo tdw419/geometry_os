@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (206, 119) and (269, 39).
-; PLAN: r0=206(x1), r1=119(y1), r2=269(x2), r3=39(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 206
-LDI r1, 119
-LDI r2, 269
-LDI r3, 39
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a white line from (146, 36) to (30, 226).
+; PLAN: r0=146(x1), r1=36(y1), r2=30(x2), r3=226(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 146
+LDI r1, 36
+LDI r2, 30
+LDI r3, 226
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

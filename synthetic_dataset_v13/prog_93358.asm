@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 63 at center (335, 154).
-; PLAN: r0=335(x), r1=154(y), r2=63(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 335
-LDI r1, 154
-LDI r2, 63
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a blue rectangular region at (430, 125) spanning 21 by 120 pixels.
+; PLAN: r0=430(x), r1=125(y), r2=21(width), r3=120(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 430
+LDI r1, 125
+LDI r2, 21
+LDI r3, 120
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

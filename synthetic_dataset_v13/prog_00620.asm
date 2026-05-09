@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 82x82 rectangle at position (161, 36).
-; PLAN: r0=161(x), r1=36(y), r2=82(width), r3=82(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 161
-LDI r1, 36
-LDI r2, 82
-LDI r3, 82
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a magenta box of size 31x52 starting at (85, 64).
+; PLAN: r0=85(x), r1=64(y), r2=31(width), r3=52(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 85
+LDI r1, 64
+LDI r2, 31
+LDI r3, 52
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

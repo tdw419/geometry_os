@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a black rectangle at (155, 58) with width 14 and height 20.
-; PLAN: r0=155(x), r1=58(y), r2=14(width), r3=20(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 155
-LDI r1, 58
-LDI r2, 14
-LDI r3, 20
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow dot at position (95, 161) then Places a green line segment connecting (75, 49) to (279, 6).
+; PLAN: r0=95(x), r1=161(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=75(x1), r6=49(y1), r7=279(x2), r8=6(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 95
+LDI r1, 161
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 75
+LDI r6, 49
+LDI r7, 279
+LDI r8, 6
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

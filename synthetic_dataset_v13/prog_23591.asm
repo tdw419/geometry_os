@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (366, 216) spanning 100 by 20 pixels.
-; PLAN: r0=366(x), r1=216(y), r2=100(width), r3=20(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 366
-LDI r1, 216
-LDI r2, 100
-LDI r3, 20
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (368, 67) to (217, 181).
+; PLAN: r0=368(x1), r1=67(y1), r2=217(x2), r3=181(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 368
+LDI r1, 67
+LDI r2, 217
+LDI r3, 181
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

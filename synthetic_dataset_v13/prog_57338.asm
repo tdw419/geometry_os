@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (425, 148) with radius 15.
-; PLAN: r0=425(x), r1=148(y), r2=15(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 425
-LDI r1, 148
-LDI r2, 15
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (444, 130) to (340, 226).
+; PLAN: r0=444(x1), r1=130(y1), r2=340(x2), r3=226(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 444
+LDI r1, 130
+LDI r2, 340
+LDI r3, 226
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

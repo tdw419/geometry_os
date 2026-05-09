@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a cyan circular shape at (407, 162) with radius 26.
-; PLAN: r0=407(x), r1=162(y), r2=26(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 407
-LDI r1, 162
-LDI r2, 26
+; DESCRIPTION: Draws a cyan circle centered at (153, 181) with radius 61.
+; PLAN: r0=153(x), r1=181(y), r2=61(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 153
+LDI r1, 181
+LDI r2, 61
 LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

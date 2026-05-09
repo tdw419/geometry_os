@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (206, 220) to (183, 201).
-; PLAN: r0=206(x1), r1=220(y1), r2=183(x2), r3=201(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 206
-LDI r1, 220
-LDI r2, 183
-LDI r3, 201
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 80x25 rectangle at position (400, 164).
+; PLAN: r0=400(x), r1=164(y), r2=80(width), r3=25(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 164
+LDI r2, 80
+LDI r3, 25
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

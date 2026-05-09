@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (415, 38) to (3, 76).
-; PLAN: r0=415(x1), r1=38(y1), r2=3(x2), r3=76(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 415
-LDI r1, 38
-LDI r2, 3
-LDI r3, 76
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 66 at center (165, 109).
+; PLAN: r0=165(x), r1=109(y), r2=66(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 165
+LDI r1, 109
+LDI r2, 66
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

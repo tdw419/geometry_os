@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Renders a cyan disk with center (279, 146) and radius 79 then Renders a green box of size 69x76 starting at (294, 102) then Places a orange dot at position (172, 87).
-; PLAN: r0=279(x), r1=146(y), r2=79(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=294(x), r6=102(y), r7=69(width), r8=76(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=172(x), r11=87(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
-LDI r0, 279
-LDI r1, 146
-LDI r2, 79
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 294
-LDI r6, 102
-LDI r7, 69
-LDI r8, 76
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
-LDI r10, 172
-LDI r11, 87
-LDI r12, 0xFF8800
-PSET r10, r11, r12
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (380, 0) and (31, 186).
-; PLAN: r0=380(x1), r1=0(y1), r2=31(x2), r3=186(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 380
-LDI r1, 0
-LDI r2, 31
-LDI r3, 186
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (30, 30) spanning 76 by 27 pixels.
+; PLAN: r0=30(x), r1=30(y), r2=76(width), r3=27(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 30
+LDI r1, 30
+LDI r2, 76
+LDI r3, 27
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

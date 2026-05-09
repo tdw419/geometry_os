@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (265, 38) to (351, 118).
-; PLAN: r0=265(x1), r1=38(y1), r2=351(x2), r3=118(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 265
-LDI r1, 38
-LDI r2, 351
-LDI r3, 118
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green rectangle at (162, 117) with width 11 and height 35.
+; PLAN: r0=162(x), r1=117(y), r2=11(width), r3=35(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 162
+LDI r1, 117
+LDI r2, 11
+LDI r3, 35
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

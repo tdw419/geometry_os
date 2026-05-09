@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (456, 88) with radius 13.
-; PLAN: r0=456(x), r1=88(y), r2=13(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 456
-LDI r1, 88
-LDI r2, 13
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (475, 65) to (53, 128).
+; PLAN: r0=475(x1), r1=65(y1), r2=53(x2), r3=128(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 475
+LDI r1, 65
+LDI r2, 53
+LDI r3, 128
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

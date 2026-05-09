@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Renders a blue disk with center (220, 98) and radius 33 then Places a purple dot at position (188, 148) then Draws a cyan line from (452, 242) to (171, 68).
-; PLAN: r0=220(x), r1=98(y), r2=33(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=188(x), r6=148(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=452(x1), r11=242(y1), r12=171(x2), r13=68(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 220
-LDI r1, 98
-LDI r2, 33
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 188
-LDI r6, 148
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
-LDI r10, 452
-LDI r11, 242
-LDI r12, 171
-LDI r13, 68
-LDI r14, 0x00FFFF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single white pixel at (445, 117) then Places a orange line segment connecting (189, 178) to (358, 167).
+; PLAN: r0=445(x), r1=117(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=189(x1), r6=178(y1), r7=358(x2), r8=167(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 445
+LDI r1, 117
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 189
+LDI r6, 178
+LDI r7, 358
+LDI r8, 167
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

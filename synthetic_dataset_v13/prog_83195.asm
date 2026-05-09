@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (341, 131) and radius 13.
-; PLAN: r0=341(x), r1=131(y), r2=13(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 341
-LDI r1, 131
-LDI r2, 13
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (80, 125) and (368, 17).
+; PLAN: r0=80(x1), r1=125(y1), r2=368(x2), r3=17(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 80
+LDI r1, 125
+LDI r2, 368
+LDI r3, 17
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

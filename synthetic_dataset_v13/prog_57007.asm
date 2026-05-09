@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (437, 63) and (93, 103).
-; PLAN: r0=437(x1), r1=63(y1), r2=93(x2), r3=103(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 437
-LDI r1, 63
-LDI r2, 93
-LDI r3, 103
+; DESCRIPTION: Renders a magenta box of size 63x22 starting at (369, 44).
+; PLAN: r0=369(x), r1=44(y), r2=63(width), r3=22(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 369
+LDI r1, 44
+LDI r2, 63
+LDI r3, 22
 LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

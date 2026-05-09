@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (326, 126) to (460, 68).
-; PLAN: r0=326(x1), r1=126(y1), r2=460(x2), r3=68(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 326
-LDI r1, 126
-LDI r2, 460
-LDI r3, 68
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 82x34 rectangle at position (342, 30).
+; PLAN: r0=342(x), r1=30(y), r2=82(width), r3=34(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 342
+LDI r1, 30
+LDI r2, 82
+LDI r3, 34
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

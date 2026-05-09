@@ -1,14 +1,15 @@
-; DESCRIPTION: Composite: Places a purple line segment connecting (371, 147) to (455, 220) then Creates a white circular shape at (273, 125) with radius 59.
-; PLAN: r0=371(x1), r1=147(y1), r2=455(x2), r3=220(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=273(x), r6=125(y), r7=59(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 371
-LDI r1, 147
-LDI r2, 455
-LDI r3, 220
-LDI r4, 0xAA00FF
+; DESCRIPTION: Composite: Draws a blue line from (195, 12) to (47, 130) then Draws a red rectangle at (268, 109) with width 22 and height 54.
+; PLAN: r0=195(x1), r1=12(y1), r2=47(x2), r3=130(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=268(x), r6=109(y), r7=22(width), r8=54(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 195
+LDI r1, 12
+LDI r2, 47
+LDI r3, 130
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
-LDI r5, 273
-LDI r6, 125
-LDI r7, 59
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+LDI r5, 268
+LDI r6, 109
+LDI r7, 22
+LDI r8, 54
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

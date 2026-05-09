@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Draws a red circle centered at (287, 149) with radius 77 then Draws a green rectangle at (280, 118) with width 80 and height 92.
-; PLAN: r0=287(x), r1=149(y), r2=77(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=280(x), r6=118(y), r7=80(width), r8=92(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 287
-LDI r1, 149
-LDI r2, 77
-LDI r3, 0xFF0000
+; DESCRIPTION: Composite: Draws a black circle centered at (372, 103) with radius 32 then Places a yellow line segment connecting (391, 23) to (146, 153) then Sets a single black pixel at (446, 243).
+; PLAN: r0=372(x), r1=103(y), r2=32(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=391(x1), r6=23(y1), r7=146(x2), r8=153(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=446(x), r11=243(y), r12=0x000000(color). Op: PSET r10, r11, r12.
+LDI r0, 372
+LDI r1, 103
+LDI r2, 32
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
-LDI r5, 280
-LDI r6, 118
-LDI r7, 80
-LDI r8, 92
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
+LDI r5, 391
+LDI r6, 23
+LDI r7, 146
+LDI r8, 153
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
+LDI r10, 446
+LDI r11, 243
+LDI r12, 0x000000
+PSET r10, r11, r12
 HALT

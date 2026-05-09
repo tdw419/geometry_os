@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a orange box of size 60x89 starting at (194, 83).
-; PLAN: r0=194(x), r1=83(y), r2=60(width), r3=89(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 194
-LDI r1, 83
-LDI r2, 60
-LDI r3, 89
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single cyan pixel at (31, 149) then Places a black 105x12 rectangle at position (67, 178).
+; PLAN: r0=31(x), r1=149(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=67(x), r6=178(y), r7=105(width), r8=12(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 31
+LDI r1, 149
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 67
+LDI r6, 178
+LDI r7, 105
+LDI r8, 12
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

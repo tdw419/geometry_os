@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 12x14 rectangle at position (58, 142).
-; PLAN: r0=58(x), r1=142(y), r2=12(width), r3=14(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 58
+; DESCRIPTION: Places a purple circle of radius 57 at center (308, 142).
+; PLAN: r0=308(x), r1=142(y), r2=57(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 308
 LDI r1, 142
-LDI r2, 12
-LDI r3, 14
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+LDI r2, 57
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

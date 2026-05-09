@@ -1,14 +1,13 @@
-; DESCRIPTION: Composite: Places a blue circle of radius 69 at center (383, 83) then Renders a white box of size 112x98 starting at (117, 70).
-; PLAN: r0=383(x), r1=83(y), r2=69(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=117(x), r6=70(y), r7=112(width), r8=98(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 383
-LDI r1, 83
-LDI r2, 69
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 117
-LDI r6, 70
-LDI r7, 112
-LDI r8, 98
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a orange line segment connecting (332, 197) to (317, 39) then Sets a single orange pixel at (462, 201).
+; PLAN: r0=332(x1), r1=197(y1), r2=317(x2), r3=39(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=462(x), r6=201(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 332
+LDI r1, 197
+LDI r2, 317
+LDI r3, 39
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 462
+LDI r6, 201
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

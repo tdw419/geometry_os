@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 10x49 rectangle at position (99, 130).
-; PLAN: r0=99(x), r1=130(y), r2=10(width), r3=49(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 99
-LDI r1, 130
-LDI r2, 10
-LDI r3, 49
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black line from (150, 158) to (450, 28).
+; PLAN: r0=150(x1), r1=158(y1), r2=450(x2), r3=28(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 158
+LDI r2, 450
+LDI r3, 28
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

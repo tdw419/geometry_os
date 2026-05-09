@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a purple circle centered at (297, 183) with radius 45.
-; PLAN: r0=297(x), r1=183(y), r2=45(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 297
-LDI r1, 183
-LDI r2, 45
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (137, 20).
+; PLAN: r0=137(x), r1=20(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 137
+LDI r1, 20
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

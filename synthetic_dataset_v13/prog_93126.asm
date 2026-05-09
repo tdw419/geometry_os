@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a purple line segment connecting (237, 84) to (155, 1).
-; PLAN: r0=237(x1), r1=84(y1), r2=155(x2), r3=1(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 237
-LDI r1, 84
-LDI r2, 155
-LDI r3, 1
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a black disk with center (356, 151) and radius 78 then Places a purple dot at position (476, 87).
+; PLAN: r0=356(x), r1=151(y), r2=78(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=476(x), r6=87(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 356
+LDI r1, 151
+LDI r2, 78
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 476
+LDI r6, 87
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

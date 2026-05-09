@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (186, 60) to (354, 207).
-; PLAN: r0=186(x1), r1=60(y1), r2=354(x2), r3=207(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 186
-LDI r1, 60
-LDI r2, 354
-LDI r3, 207
-LDI r4, 0x000000
+; DESCRIPTION: Renders a cyan line between points (44, 181) and (232, 244).
+; PLAN: r0=44(x1), r1=181(y1), r2=232(x2), r3=244(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 181
+LDI r2, 232
+LDI r3, 244
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

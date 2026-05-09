@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a red line from (148, 96) to (153, 17).
-; PLAN: r0=148(x1), r1=96(y1), r2=153(x2), r3=17(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 148
-LDI r1, 96
-LDI r2, 153
-LDI r3, 17
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (66, 248).
+; PLAN: r0=66(x), r1=248(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 66
+LDI r1, 248
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

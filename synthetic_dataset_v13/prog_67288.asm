@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white line between points (170, 180) and (384, 173).
-; PLAN: r0=170(x1), r1=180(y1), r2=384(x2), r3=173(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 170
-LDI r1, 180
-LDI r2, 384
-LDI r3, 173
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue dot at position (467, 67).
+; PLAN: r0=467(x), r1=67(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 467
+LDI r1, 67
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

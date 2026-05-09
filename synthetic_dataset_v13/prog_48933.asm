@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (335, 56) with radius 26.
-; PLAN: r0=335(x), r1=56(y), r2=26(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 335
-LDI r1, 56
-LDI r2, 26
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (102, 147) and (456, 162).
+; PLAN: r0=102(x1), r1=147(y1), r2=456(x2), r3=162(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 102
+LDI r1, 147
+LDI r2, 456
+LDI r3, 162
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

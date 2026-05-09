@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 54x22 starting at (0, 207).
-; PLAN: r0=0(x), r1=207(y), r2=54(width), r3=22(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 0
-LDI r1, 207
-LDI r2, 54
-LDI r3, 22
+; DESCRIPTION: Draws a magenta rectangle at (175, 86) with width 51 and height 48.
+; PLAN: r0=175(x), r1=86(y), r2=51(width), r3=48(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 175
+LDI r1, 86
+LDI r2, 51
+LDI r3, 48
 LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

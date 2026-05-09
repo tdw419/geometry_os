@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a orange circle of radius 41 at center (201, 84).
-; PLAN: r0=201(x), r1=84(y), r2=41(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 201
-LDI r1, 84
-LDI r2, 41
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

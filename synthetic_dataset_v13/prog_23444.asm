@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a magenta rectangular region at (388, 24) spanning 13 by 95 pixels.
-; PLAN: r0=388(x), r1=24(y), r2=13(width), r3=95(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 388
+; DESCRIPTION: Sets a single blue pixel at (253, 24).
+; PLAN: r0=253(x), r1=24(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 253
 LDI r1, 24
-LDI r2, 13
-LDI r3, 95
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

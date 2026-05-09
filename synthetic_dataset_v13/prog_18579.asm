@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (83, 45) and (51, 62).
-; PLAN: r0=83(x1), r1=45(y1), r2=51(x2), r3=62(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 83
-LDI r1, 45
-LDI r2, 51
-LDI r3, 62
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (226, 159) with radius 76.
+; PLAN: r0=226(x), r1=159(y), r2=76(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 226
+LDI r1, 159
+LDI r2, 76
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (125, 43) with radius 25.
-; PLAN: r0=125(x), r1=43(y), r2=25(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 125
-LDI r1, 43
-LDI r2, 25
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (435, 2) to (44, 222).
+; PLAN: r0=435(x1), r1=2(y1), r2=44(x2), r3=222(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 435
+LDI r1, 2
+LDI r2, 44
+LDI r3, 222
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

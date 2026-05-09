@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (409, 130) to (366, 7).
-; PLAN: r0=409(x1), r1=130(y1), r2=366(x2), r3=7(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 409
-LDI r1, 130
-LDI r2, 366
-LDI r3, 7
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (407, 108) and radius 66.
+; PLAN: r0=407(x), r1=108(y), r2=66(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 407
+LDI r1, 108
+LDI r2, 66
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

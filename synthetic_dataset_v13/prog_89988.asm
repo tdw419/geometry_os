@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single red pixel at (50, 185).
-; PLAN: r0=50(x), r1=185(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 50
-LDI r1, 185
-LDI r2, 0xFF0000
+; DESCRIPTION: Places a purple dot at position (112, 179).
+; PLAN: r0=112(x), r1=179(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 112
+LDI r1, 179
+LDI r2, 0xAA00FF
 PSET r0, r1, r2
 HALT

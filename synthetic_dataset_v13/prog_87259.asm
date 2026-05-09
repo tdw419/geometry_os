@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a cyan box of size 14x12 starting at (263, 121).
-; PLAN: r0=263(x), r1=121(y), r2=14(width), r3=12(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 263
-LDI r1, 121
-LDI r2, 14
-LDI r3, 12
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (256, 230) then Draws a green line from (475, 155) to (200, 109).
+; PLAN: r0=256(x), r1=230(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=475(x1), r6=155(y1), r7=200(x2), r8=109(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 256
+LDI r1, 230
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 475
+LDI r6, 155
+LDI r7, 200
+LDI r8, 109
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

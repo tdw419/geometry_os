@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a blue disk with center (367, 129) and radius 66.
-; PLAN: r0=367(x), r1=129(y), r2=66(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 367
-LDI r1, 129
-LDI r2, 66
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 48 into r1 and decrements it in a loop until zero.
+; PLAN: r1=48(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 48
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

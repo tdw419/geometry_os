@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 34 at center (369, 133).
-; PLAN: r0=369(x), r1=133(y), r2=34(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 369
-LDI r1, 133
-LDI r2, 34
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta rectangle at (81, 104) with width 87 and height 59.
+; PLAN: r0=81(x), r1=104(y), r2=87(width), r3=59(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 81
+LDI r1, 104
+LDI r2, 87
+LDI r3, 59
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single cyan pixel at (457, 190).
-; PLAN: r0=457(x), r1=190(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 457
-LDI r1, 190
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a magenta rectangle at (298, 118) with width 70 and height 40.
+; PLAN: r0=298(x), r1=118(y), r2=70(width), r3=40(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 298
+LDI r1, 118
+LDI r2, 70
+LDI r3, 40
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

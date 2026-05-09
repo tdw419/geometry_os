@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a orange line from (469, 196) to (58, 106).
-; PLAN: r0=469(x1), r1=196(y1), r2=58(x2), r3=106(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 469
-LDI r1, 196
-LDI r2, 58
-LDI r3, 106
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (358, 147).
+; PLAN: r0=358(x), r1=147(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 358
+LDI r1, 147
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

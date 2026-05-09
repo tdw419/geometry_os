@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a orange circle of radius 55 at center (382, 76).
-; PLAN: r0=382(x), r1=76(y), r2=55(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 382
-LDI r1, 76
-LDI r2, 55
-LDI r3, 0xFF8800
+; DESCRIPTION: Places a cyan circle of radius 56 at center (285, 64).
+; PLAN: r0=285(x), r1=64(y), r2=56(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 285
+LDI r1, 64
+LDI r2, 56
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

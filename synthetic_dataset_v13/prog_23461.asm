@@ -1,19 +1,13 @@
-; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
-LDI r7, 0xFF0000
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Renders a yellow box of size 114x48 starting at (208, 119) then Places a blue dot at position (128, 119).
+; PLAN: r0=208(x), r1=119(y), r2=114(width), r3=48(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=128(x), r6=119(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 208
+LDI r1, 119
+LDI r2, 114
+LDI r3, 48
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 128
+LDI r6, 119
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

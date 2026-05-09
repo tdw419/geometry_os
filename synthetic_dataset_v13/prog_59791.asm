@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 49x34 rectangle at position (29, 12).
-; PLAN: r0=29(x), r1=12(y), r2=49(width), r3=34(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 29
-LDI r1, 12
-LDI r2, 49
-LDI r3, 34
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a white box of size 84x100 starting at (57, 148).
+; PLAN: r0=57(x), r1=148(y), r2=84(width), r3=100(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 57
+LDI r1, 148
+LDI r2, 84
+LDI r3, 100
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

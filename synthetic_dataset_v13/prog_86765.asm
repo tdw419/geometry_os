@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a blue rectangle at (323, 161) with width 113 and height 14.
-; PLAN: r0=323(x), r1=161(y), r2=113(width), r3=14(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 323
-LDI r1, 161
-LDI r2, 113
-LDI r3, 14
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

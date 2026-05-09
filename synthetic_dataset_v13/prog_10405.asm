@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (487, 135) and (83, 165).
-; PLAN: r0=487(x1), r1=135(y1), r2=83(x2), r3=165(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 487
-LDI r1, 135
-LDI r2, 83
-LDI r3, 165
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan rectangular region at (58, 147) spanning 91 by 51 pixels.
+; PLAN: r0=58(x), r1=147(y), r2=91(width), r3=51(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 58
+LDI r1, 147
+LDI r2, 91
+LDI r3, 51
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

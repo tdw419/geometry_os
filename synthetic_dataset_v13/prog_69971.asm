@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple box of size 26x23 starting at (421, 104).
-; PLAN: r0=421(x), r1=104(y), r2=26(width), r3=23(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 421
-LDI r1, 104
-LDI r2, 26
-LDI r3, 23
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (258, 55) with radius 15.
+; PLAN: r0=258(x), r1=55(y), r2=15(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 258
+LDI r1, 55
+LDI r2, 15
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

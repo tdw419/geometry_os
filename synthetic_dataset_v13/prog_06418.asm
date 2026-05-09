@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (86, 146) to (261, 4).
-; PLAN: r0=86(x1), r1=146(y1), r2=261(x2), r3=4(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 86
-LDI r1, 146
-LDI r2, 261
-LDI r3, 4
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a purple line from (71, 153) to (122, 37).
+; PLAN: r0=71(x1), r1=153(y1), r2=122(x2), r3=37(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 71
+LDI r1, 153
+LDI r2, 122
+LDI r3, 37
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

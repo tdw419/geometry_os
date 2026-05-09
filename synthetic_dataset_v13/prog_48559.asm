@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (74, 186) to (418, 197).
-; PLAN: r0=74(x1), r1=186(y1), r2=418(x2), r3=197(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 74
-LDI r1, 186
-LDI r2, 418
-LDI r3, 197
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 19x50 starting at (492, 187).
+; PLAN: r0=492(x), r1=187(y), r2=19(width), r3=50(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 492
+LDI r1, 187
+LDI r2, 19
+LDI r3, 50
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

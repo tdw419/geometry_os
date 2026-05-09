@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (124, 94) to (85, 41).
-; PLAN: r0=124(x1), r1=94(y1), r2=85(x2), r3=41(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 124
-LDI r1, 94
-LDI r2, 85
-LDI r3, 41
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (392, 78) with width 86 and height 98.
+; PLAN: r0=392(x), r1=78(y), r2=86(width), r3=98(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 392
+LDI r1, 78
+LDI r2, 86
+LDI r3, 98
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

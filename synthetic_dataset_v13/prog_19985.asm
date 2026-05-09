@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a magenta rectangle at (118, 154) with width 33 and height 52.
-; PLAN: r0=118(x), r1=154(y), r2=33(width), r3=52(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 118
-LDI r1, 154
-LDI r2, 33
-LDI r3, 52
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a orange disk with center (202, 99) and radius 68 then Draws a purple rectangle at (83, 200) with width 57 and height 18.
+; PLAN: r0=202(x), r1=99(y), r2=68(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=83(x), r6=200(y), r7=57(width), r8=18(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 202
+LDI r1, 99
+LDI r2, 68
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
+LDI r5, 83
+LDI r6, 200
+LDI r7, 57
+LDI r8, 18
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

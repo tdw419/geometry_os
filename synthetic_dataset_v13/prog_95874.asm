@@ -1,5 +1,7 @@
-; DESCRIPTION: Fills the entire screen with solid purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Sets a single magenta pixel at (504, 7).
+; PLAN: r0=504(x), r1=7(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 504
+LDI r1, 7
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

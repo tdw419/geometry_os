@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a cyan rectangular region at (56, 159) spanning 31 by 95 pixels.
-; PLAN: r0=56(x), r1=159(y), r2=31(width), r3=95(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 56
-LDI r1, 159
-LDI r2, 31
-LDI r3, 95
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (91, 26) then Creates a red circular shape at (94, 87) with radius 76.
+; PLAN: r0=91(x), r1=26(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=94(x), r6=87(y), r7=76(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 91
+LDI r1, 26
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 94
+LDI r6, 87
+LDI r7, 76
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

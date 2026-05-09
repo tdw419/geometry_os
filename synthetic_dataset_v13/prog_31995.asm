@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a cyan 104x109 rectangle at position (144, 36).
-; PLAN: r0=144(x), r1=36(y), r2=104(width), r3=109(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 144
-LDI r1, 36
-LDI r2, 104
-LDI r3, 109
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta line segment connecting (78, 131) to (163, 89) then Sets a single black pixel at (256, 208).
+; PLAN: r0=78(x1), r1=131(y1), r2=163(x2), r3=89(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=256(x), r6=208(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 78
+LDI r1, 131
+LDI r2, 163
+LDI r3, 89
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 256
+LDI r6, 208
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

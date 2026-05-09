@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Creates a cyan circular shape at (312, 190) with radius 62.
+; PLAN: r0=312(x), r1=190(y), r2=62(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 312
+LDI r1, 190
+LDI r2, 62
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

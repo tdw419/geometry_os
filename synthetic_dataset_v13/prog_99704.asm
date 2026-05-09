@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single purple pixel at (120, 30).
-; PLAN: r0=120(x), r1=30(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 120
-LDI r1, 30
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

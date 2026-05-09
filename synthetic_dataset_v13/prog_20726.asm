@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a red rectangle at (230, 21) with width 105 and height 91.
-; PLAN: r0=230(x), r1=21(y), r2=105(width), r3=91(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 230
-LDI r1, 21
-LDI r2, 105
-LDI r3, 91
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (62, 138) then Renders a cyan disk with center (305, 179) and radius 74.
+; PLAN: r0=62(x), r1=138(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=305(x), r6=179(y), r7=74(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 62
+LDI r1, 138
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 305
+LDI r6, 179
+LDI r7, 74
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

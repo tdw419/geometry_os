@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 25 into r1 and decrements it in a loop until zero.
-; PLAN: r1=25(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 25
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a red line between points (38, 224) and (243, 238).
+; PLAN: r0=38(x1), r1=224(y1), r2=243(x2), r3=238(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 38
+LDI r1, 224
+LDI r2, 243
+LDI r3, 238
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 57x40 rectangle at position (169, 171).
-; PLAN: r0=169(x), r1=171(y), r2=57(width), r3=40(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 169
-LDI r1, 171
-LDI r2, 57
-LDI r3, 40
+; DESCRIPTION: Places a green line segment connecting (298, 158) to (256, 180).
+; PLAN: r0=298(x1), r1=158(y1), r2=256(x2), r3=180(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 298
+LDI r1, 158
+LDI r2, 256
+LDI r3, 180
 LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

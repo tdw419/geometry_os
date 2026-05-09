@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (259, 150) and (39, 127).
-; PLAN: r0=259(x1), r1=150(y1), r2=39(x2), r3=127(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 259
-LDI r1, 150
-LDI r2, 39
-LDI r3, 127
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 19x72 rectangle at position (22, 154).
+; PLAN: r0=22(x), r1=154(y), r2=19(width), r3=72(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 22
+LDI r1, 154
+LDI r2, 19
+LDI r3, 72
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

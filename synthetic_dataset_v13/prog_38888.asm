@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Creates a cyan circular shape at (335, 160) with radius 29 then Draws a purple rectangle at (96, 8) with width 87 and height 86.
-; PLAN: r0=335(x), r1=160(y), r2=29(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=96(x), r6=8(y), r7=87(width), r8=86(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 335
-LDI r1, 160
-LDI r2, 29
-LDI r3, 0x00FFFF
+; DESCRIPTION: Composite: Draws a white circle centered at (263, 179) with radius 60 then Sets a single green pixel at (108, 151).
+; PLAN: r0=263(x), r1=179(y), r2=60(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=108(x), r6=151(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 263
+LDI r1, 179
+LDI r2, 60
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
-LDI r5, 96
-LDI r6, 8
-LDI r7, 87
-LDI r8, 86
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+LDI r5, 108
+LDI r6, 151
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

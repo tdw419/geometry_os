@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (16, 158).
-; PLAN: r0=16(x), r1=158(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 16
-LDI r1, 158
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a blue box of size 96x64 starting at (168, 24).
+; PLAN: r0=168(x), r1=24(y), r2=96(width), r3=64(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 168
+LDI r1, 24
+LDI r2, 96
+LDI r3, 64
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a white circle of radius 43 at center (75, 161).
-; PLAN: r0=75(x), r1=161(y), r2=43(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 75
-LDI r1, 161
-LDI r2, 43
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single orange pixel at (119, 210).
+; PLAN: r0=119(x), r1=210(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 119
+LDI r1, 210
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

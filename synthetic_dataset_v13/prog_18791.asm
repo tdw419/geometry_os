@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a green circle of radius 28 at center (471, 72).
-; PLAN: r0=471(x), r1=72(y), r2=28(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 471
-LDI r1, 72
-LDI r2, 28
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 27 into r1 and decrements it in a loop until zero.
+; PLAN: r1=27(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 27
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

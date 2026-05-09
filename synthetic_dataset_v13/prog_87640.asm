@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 11x91 rectangle at position (108, 48).
-; PLAN: r0=108(x), r1=48(y), r2=11(width), r3=91(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 108
-LDI r1, 48
-LDI r2, 11
-LDI r3, 91
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (99, 64) to (359, 156).
+; PLAN: r0=99(x1), r1=64(y1), r2=359(x2), r3=156(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 64
+LDI r2, 359
+LDI r3, 156
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

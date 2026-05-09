@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Draws a cyan line from (126, 232) to (239, 58) then Draws a yellow rectangle at (298, 104) with width 19 and height 58 then Sets a single orange pixel at (243, 102).
-; PLAN: r0=126(x1), r1=232(y1), r2=239(x2), r3=58(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=298(x), r6=104(y), r7=19(width), r8=58(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=243(x), r11=102(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
-LDI r0, 126
-LDI r1, 232
-LDI r2, 239
-LDI r3, 58
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 298
-LDI r6, 104
-LDI r7, 19
-LDI r8, 58
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
-LDI r10, 243
-LDI r11, 102
-LDI r12, 0xFF8800
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Places a magenta 90x103 rectangle at position (351, 88) then Sets a single magenta pixel at (458, 18) then Places a cyan line segment connecting (472, 150) to (292, 204).
+; PLAN: r0=351(x), r1=88(y), r2=90(width), r3=103(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=458(x), r6=18(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7 Next: r10=472(x1), r11=150(y1), r12=292(x2), r13=204(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 351
+LDI r1, 88
+LDI r2, 90
+LDI r3, 103
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 458
+LDI r6, 18
+LDI r7, 0xFF00FF
+PSET r5, r6, r7
+LDI r10, 472
+LDI r11, 150
+LDI r12, 292
+LDI r13, 204
+LDI r14, 0x00FFFF
+LINE r10, r11, r12, r13, r14
 HALT

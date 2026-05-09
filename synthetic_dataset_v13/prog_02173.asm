@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a blue disk with center (336, 100) and radius 38.
-; PLAN: r0=336(x), r1=100(y), r2=38(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 336
-LDI r1, 100
-LDI r2, 38
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a magenta circle centered at (249, 135) with radius 74.
+; PLAN: r0=249(x), r1=135(y), r2=74(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 249
+LDI r1, 135
+LDI r2, 74
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

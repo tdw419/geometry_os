@@ -1,9 +1,19 @@
-; DESCRIPTION: Draws a orange line from (359, 21) to (390, 200).
-; PLAN: r0=359(x1), r1=21(y1), r2=390(x2), r3=200(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 21
-LDI r2, 390
-LDI r3, 200
+; DESCRIPTION: Composite: Draws a orange rectangle at (333, 158) with width 53 and height 95 then Draws a magenta line from (121, 215) to (18, 113) then Places a green dot at position (33, 135).
+; PLAN: r0=333(x), r1=158(y), r2=53(width), r3=95(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=121(x1), r6=215(y1), r7=18(x2), r8=113(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=33(x), r11=135(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
+LDI r0, 333
+LDI r1, 158
+LDI r2, 53
+LDI r3, 95
 LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
+LDI r5, 121
+LDI r6, 215
+LDI r7, 18
+LDI r8, 113
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
+LDI r10, 33
+LDI r11, 135
+LDI r12, 0x00FF00
+PSET r10, r11, r12
 HALT

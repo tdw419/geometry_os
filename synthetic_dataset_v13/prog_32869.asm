@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (429, 28) to (342, 113).
-; PLAN: r0=429(x1), r1=28(y1), r2=342(x2), r3=113(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 429
-LDI r1, 28
-LDI r2, 342
-LDI r3, 113
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 53x11 rectangle at position (138, 190).
+; PLAN: r0=138(x), r1=190(y), r2=53(width), r3=11(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 138
+LDI r1, 190
+LDI r2, 53
+LDI r3, 11
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

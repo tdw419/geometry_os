@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (309, 8) to (5, 65).
-; PLAN: r0=309(x1), r1=8(y1), r2=5(x2), r3=65(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 8
-LDI r2, 5
-LDI r3, 65
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (92, 177) with radius 67.
+; PLAN: r0=92(x), r1=177(y), r2=67(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 92
+LDI r1, 177
+LDI r2, 67
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

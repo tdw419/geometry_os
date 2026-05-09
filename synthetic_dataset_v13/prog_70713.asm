@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (57, 108) to (271, 101).
-; PLAN: r0=57(x1), r1=108(y1), r2=271(x2), r3=101(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 57
-LDI r1, 108
-LDI r2, 271
-LDI r3, 101
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a black line between points (201, 228) and (464, 142).
+; PLAN: r0=201(x1), r1=228(y1), r2=464(x2), r3=142(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 201
+LDI r1, 228
+LDI r2, 464
+LDI r3, 142
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

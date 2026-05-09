@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a yellow circular shape at (368, 64) with radius 64.
-; PLAN: r0=368(x), r1=64(y), r2=64(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 368
-LDI r1, 64
-LDI r2, 64
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

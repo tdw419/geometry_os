@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (288, 117) with width 81 and height 88.
-; PLAN: r0=288(x), r1=117(y), r2=81(width), r3=88(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 117
-LDI r2, 81
-LDI r3, 88
-LDI r4, 0x0000FF
+; DESCRIPTION: Creates a orange rectangular region at (106, 27) spanning 120 by 72 pixels.
+; PLAN: r0=106(x), r1=27(y), r2=120(width), r3=72(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 106
+LDI r1, 27
+LDI r2, 120
+LDI r3, 72
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

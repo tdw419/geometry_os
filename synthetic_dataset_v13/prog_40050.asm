@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (165, 138) and (478, 140).
-; PLAN: r0=165(x1), r1=138(y1), r2=478(x2), r3=140(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 138
-LDI r2, 478
-LDI r3, 140
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (402, 173) with radius 73.
+; PLAN: r0=402(x), r1=173(y), r2=73(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 402
+LDI r1, 173
+LDI r2, 73
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

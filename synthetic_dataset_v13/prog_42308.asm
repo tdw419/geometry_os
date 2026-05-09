@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a black line between points (401, 233) and (135, 58).
-; PLAN: r0=401(x1), r1=233(y1), r2=135(x2), r3=58(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 401
-LDI r1, 233
-LDI r2, 135
-LDI r3, 58
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (102, 232) then Draws a yellow circle centered at (468, 75) with radius 33.
+; PLAN: r0=102(x), r1=232(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=468(x), r6=75(y), r7=33(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 102
+LDI r1, 232
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 468
+LDI r6, 75
+LDI r7, 33
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

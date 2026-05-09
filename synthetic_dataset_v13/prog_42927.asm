@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (103, 137) and radius 56.
-; PLAN: r0=103(x), r1=137(y), r2=56(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 103
-LDI r1, 137
-LDI r2, 56
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (9, 203) and (369, 66).
+; PLAN: r0=9(x1), r1=203(y1), r2=369(x2), r3=66(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 9
+LDI r1, 203
+LDI r2, 369
+LDI r3, 66
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

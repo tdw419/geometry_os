@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a yellow circle centered at (400, 158) with radius 19.
-; PLAN: r0=400(x), r1=158(y), r2=19(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 400
-LDI r1, 158
-LDI r2, 19
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

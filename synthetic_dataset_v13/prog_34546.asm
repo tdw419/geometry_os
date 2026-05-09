@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (203, 181) and (412, 249).
-; PLAN: r0=203(x1), r1=181(y1), r2=412(x2), r3=249(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 203
-LDI r1, 181
-LDI r2, 412
-LDI r3, 249
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow rectangular region at (115, 185) spanning 100 by 69 pixels.
+; PLAN: r0=115(x), r1=185(y), r2=100(width), r3=69(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 115
+LDI r1, 185
+LDI r2, 100
+LDI r3, 69
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

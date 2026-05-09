@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a red circle centered at (49, 191) with radius 41.
-; PLAN: r0=49(x), r1=191(y), r2=41(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 49
-LDI r1, 191
-LDI r2, 41
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single purple pixel at (307, 232).
+; PLAN: r0=307(x), r1=232(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 307
+LDI r1, 232
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

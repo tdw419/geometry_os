@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a blue circle of radius 23 at center (57, 144).
-; PLAN: r0=57(x), r1=144(y), r2=23(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 57
-LDI r1, 144
-LDI r2, 23
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green dot at position (359, 35).
+; PLAN: r0=359(x), r1=35(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 359
+LDI r1, 35
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

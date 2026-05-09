@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 15x42 rectangle at position (235, 8).
-; PLAN: r0=235(x), r1=8(y), r2=15(width), r3=42(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 235
-LDI r1, 8
-LDI r2, 15
-LDI r3, 42
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white circle of radius 14 at center (483, 164).
+; PLAN: r0=483(x), r1=164(y), r2=14(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 483
+LDI r1, 164
+LDI r2, 14
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (43, 71) and (187, 250).
-; PLAN: r0=43(x1), r1=71(y1), r2=187(x2), r3=250(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 43
-LDI r1, 71
-LDI r2, 187
-LDI r3, 250
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow rectangular region at (149, 107) spanning 37 by 58 pixels.
+; PLAN: r0=149(x), r1=107(y), r2=37(width), r3=58(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 149
+LDI r1, 107
+LDI r2, 37
+LDI r3, 58
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

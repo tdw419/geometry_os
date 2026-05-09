@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 85x51 rectangle at position (236, 180).
-; PLAN: r0=236(x), r1=180(y), r2=85(width), r3=51(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 236
-LDI r1, 180
-LDI r2, 85
-LDI r3, 51
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (341, 146) with radius 79.
+; PLAN: r0=341(x), r1=146(y), r2=79(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 341
+LDI r1, 146
+LDI r2, 79
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

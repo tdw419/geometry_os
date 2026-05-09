@@ -1,19 +1,13 @@
-; DESCRIPTION: Composite: Places a red 41x91 rectangle at position (207, 162) then Renders a cyan line between points (328, 146) and (308, 218) then Sets a single purple pixel at (251, 141).
-; PLAN: r0=207(x), r1=162(y), r2=41(width), r3=91(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=328(x1), r6=146(y1), r7=308(x2), r8=218(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=251(x), r11=141(y), r12=0xAA00FF(color). Op: PSET r10, r11, r12.
-LDI r0, 207
-LDI r1, 162
-LDI r2, 41
-LDI r3, 91
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 328
-LDI r6, 146
-LDI r7, 308
-LDI r8, 218
-LDI r9, 0x00FFFF
+; DESCRIPTION: Composite: Places a magenta dot at position (255, 107) then Draws a orange line from (178, 219) to (204, 124).
+; PLAN: r0=255(x), r1=107(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=178(x1), r6=219(y1), r7=204(x2), r8=124(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 255
+LDI r1, 107
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 178
+LDI r6, 219
+LDI r7, 204
+LDI r8, 124
+LDI r9, 0xFF8800
 LINE r5, r6, r7, r8, r9
-LDI r10, 251
-LDI r11, 141
-LDI r12, 0xAA00FF
-PSET r10, r11, r12
 HALT

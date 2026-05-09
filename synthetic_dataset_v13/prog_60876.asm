@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a orange circle centered at (68, 165) with radius 42.
-; PLAN: r0=68(x), r1=165(y), r2=42(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 68
-LDI r1, 165
-LDI r2, 42
-LDI r3, 0xFF8800
+; DESCRIPTION: Creates a cyan circular shape at (443, 190) with radius 33.
+; PLAN: r0=443(x), r1=190(y), r2=33(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 443
+LDI r1, 190
+LDI r2, 33
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

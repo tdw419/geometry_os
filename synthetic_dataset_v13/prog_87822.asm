@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Renders a magenta disk with center (425, 108) and radius 79 then Creates a white rectangular region at (64, 114) spanning 30 by 69 pixels.
-; PLAN: r0=425(x), r1=108(y), r2=79(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=64(x), r6=114(y), r7=30(width), r8=69(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 425
-LDI r1, 108
-LDI r2, 79
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 64
-LDI r6, 114
-LDI r7, 30
-LDI r8, 69
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
+LDI r7, 0xFFFFFF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

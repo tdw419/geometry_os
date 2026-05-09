@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (153, 240) then Renders a purple box of size 62x109 starting at (289, 125) then Renders a black disk with center (93, 105) and radius 20.
-; PLAN: r0=153(x), r1=240(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=289(x), r6=125(y), r7=62(width), r8=109(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=93(x), r11=105(y), r12=20(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 153
-LDI r1, 240
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 289
-LDI r6, 125
-LDI r7, 62
-LDI r8, 109
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 93
-LDI r11, 105
-LDI r12, 20
-LDI r13, 0x000000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Places a magenta line segment connecting (345, 237) to (486, 183) then Draws a magenta circle centered at (127, 49) with radius 33 then Sets a single yellow pixel at (79, 143).
+; PLAN: r0=345(x1), r1=237(y1), r2=486(x2), r3=183(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=127(x), r6=49(y), r7=33(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=79(x), r11=143(y), r12=0xFFFF00(color). Op: PSET r10, r11, r12.
+LDI r0, 345
+LDI r1, 237
+LDI r2, 486
+LDI r3, 183
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 127
+LDI r6, 49
+LDI r7, 33
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 79
+LDI r11, 143
+LDI r12, 0xFFFF00
+PSET r10, r11, r12
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 80x23 rectangle at position (123, 216).
-; PLAN: r0=123(x), r1=216(y), r2=80(width), r3=23(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 123
-LDI r1, 216
-LDI r2, 80
-LDI r3, 23
+; DESCRIPTION: Renders a white line between points (163, 37) and (499, 54).
+; PLAN: r0=163(x1), r1=37(y1), r2=499(x2), r3=54(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 163
+LDI r1, 37
+LDI r2, 499
+LDI r3, 54
 LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

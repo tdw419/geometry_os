@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (26, 181) and (494, 188).
-; PLAN: r0=26(x1), r1=181(y1), r2=494(x2), r3=188(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 26
-LDI r1, 181
-LDI r2, 494
-LDI r3, 188
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 19 into r1 and decrements it in a loop until zero.
+; PLAN: r1=19(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 19
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

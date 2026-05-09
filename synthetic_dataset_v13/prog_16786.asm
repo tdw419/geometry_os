@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (187, 178) with radius 74.
-; PLAN: r0=187(x), r1=178(y), r2=74(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 187
-LDI r1, 178
-LDI r2, 74
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green rectangle at (291, 19) with width 30 and height 15.
+; PLAN: r0=291(x), r1=19(y), r2=30(width), r3=15(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 291
+LDI r1, 19
+LDI r2, 30
+LDI r3, 15
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

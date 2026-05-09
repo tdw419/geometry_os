@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (112, 33) with width 108 and height 112.
-; PLAN: r0=112(x), r1=33(y), r2=108(width), r3=112(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 33
-LDI r2, 108
-LDI r3, 112
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (415, 179) and (321, 200).
+; PLAN: r0=415(x1), r1=179(y1), r2=321(x2), r3=200(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 415
+LDI r1, 179
+LDI r2, 321
+LDI r3, 200
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

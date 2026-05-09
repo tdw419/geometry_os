@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a green disk with center (404, 141) and radius 52.
-; PLAN: r0=404(x), r1=141(y), r2=52(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 404
-LDI r1, 141
-LDI r2, 52
-LDI r3, 0x00FF00
+; DESCRIPTION: Draws a magenta circle centered at (104, 142) with radius 45.
+; PLAN: r0=104(x), r1=142(y), r2=45(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 104
+LDI r1, 142
+LDI r2, 45
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

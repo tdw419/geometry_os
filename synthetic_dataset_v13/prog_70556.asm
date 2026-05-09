@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (15, 100) and (124, 95).
-; PLAN: r0=15(x1), r1=100(y1), r2=124(x2), r3=95(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 15
-LDI r1, 100
-LDI r2, 124
-LDI r3, 95
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a purple line from (81, 24) to (247, 243).
+; PLAN: r0=81(x1), r1=24(y1), r2=247(x2), r3=243(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 81
+LDI r1, 24
+LDI r2, 247
+LDI r3, 243
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

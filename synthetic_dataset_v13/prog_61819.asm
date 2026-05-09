@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (445, 12) spanning 66 by 120 pixels.
-; PLAN: r0=445(x), r1=12(y), r2=66(width), r3=120(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 445
-LDI r1, 12
-LDI r2, 66
-LDI r3, 120
+; DESCRIPTION: Renders a red line between points (66, 44) and (29, 91).
+; PLAN: r0=66(x1), r1=44(y1), r2=29(x2), r3=91(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 66
+LDI r1, 44
+LDI r2, 29
+LDI r3, 91
 LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

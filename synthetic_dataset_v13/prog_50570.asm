@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 62x99 rectangle at position (31, 17).
-; PLAN: r0=31(x), r1=17(y), r2=62(width), r3=99(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 31
-LDI r1, 17
-LDI r2, 62
-LDI r3, 99
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a magenta rectangle at (302, 25) with width 109 and height 27.
+; PLAN: r0=302(x), r1=25(y), r2=109(width), r3=27(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 302
+LDI r1, 25
+LDI r2, 109
+LDI r3, 27
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

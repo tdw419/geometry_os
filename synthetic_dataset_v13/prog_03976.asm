@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (489, 112) to (1, 59).
-; PLAN: r0=489(x1), r1=112(y1), r2=1(x2), r3=59(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 489
-LDI r1, 112
-LDI r2, 1
-LDI r3, 59
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan rectangle at (123, 236) with width 22 and height 19.
+; PLAN: r0=123(x), r1=236(y), r2=22(width), r3=19(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 123
+LDI r1, 236
+LDI r2, 22
+LDI r3, 19
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

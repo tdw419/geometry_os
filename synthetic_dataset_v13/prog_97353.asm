@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 74 at center (323, 104).
-; PLAN: r0=323(x), r1=104(y), r2=74(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 323
-LDI r1, 104
-LDI r2, 74
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (327, 175) and (307, 248).
+; PLAN: r0=327(x1), r1=175(y1), r2=307(x2), r3=248(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 327
+LDI r1, 175
+LDI r2, 307
+LDI r3, 248
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

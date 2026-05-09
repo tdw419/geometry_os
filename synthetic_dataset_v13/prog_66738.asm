@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a magenta circle centered at (143, 76) with radius 46.
-; PLAN: r0=143(x), r1=76(y), r2=46(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 143
-LDI r1, 76
-LDI r2, 46
-LDI r3, 0xFF00FF
+; DESCRIPTION: Draws a green circle centered at (340, 136) with radius 25.
+; PLAN: r0=340(x), r1=136(y), r2=25(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 340
+LDI r1, 136
+LDI r2, 25
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

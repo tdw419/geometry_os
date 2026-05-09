@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 31x58 starting at (146, 0).
-; PLAN: r0=146(x), r1=0(y), r2=31(width), r3=58(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 146
-LDI r1, 0
-LDI r2, 31
-LDI r3, 58
-LDI r4, 0xFFFF00
+; DESCRIPTION: Creates a magenta rectangular region at (395, 156) spanning 24 by 63 pixels.
+; PLAN: r0=395(x), r1=156(y), r2=24(width), r3=63(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 395
+LDI r1, 156
+LDI r2, 24
+LDI r3, 63
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

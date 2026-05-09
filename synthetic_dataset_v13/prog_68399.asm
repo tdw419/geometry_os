@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 118x77 starting at (329, 174).
-; PLAN: r0=329(x), r1=174(y), r2=118(width), r3=77(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 329
-LDI r1, 174
-LDI r2, 118
-LDI r3, 77
+; DESCRIPTION: Draws a yellow line from (339, 97) to (373, 130).
+; PLAN: r0=339(x1), r1=97(y1), r2=373(x2), r3=130(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 339
+LDI r1, 97
+LDI r2, 373
+LDI r3, 130
 LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

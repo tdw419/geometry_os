@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (260, 110) and (472, 129).
-; PLAN: r0=260(x1), r1=110(y1), r2=472(x2), r3=129(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 260
+; DESCRIPTION: Places a black circle of radius 31 at center (36, 110).
+; PLAN: r0=36(x), r1=110(y), r2=31(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 36
 LDI r1, 110
-LDI r2, 472
-LDI r3, 129
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+LDI r2, 31
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

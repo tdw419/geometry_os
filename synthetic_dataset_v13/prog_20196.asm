@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (355, 162) and (394, 107).
-; PLAN: r0=355(x1), r1=162(y1), r2=394(x2), r3=107(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 355
-LDI r1, 162
-LDI r2, 394
-LDI r3, 107
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 84x113 rectangle at position (284, 108).
+; PLAN: r0=284(x), r1=108(y), r2=84(width), r3=113(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 284
+LDI r1, 108
+LDI r2, 84
+LDI r3, 113
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

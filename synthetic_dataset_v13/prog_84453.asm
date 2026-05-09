@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (4, 3) and (275, 146).
-; PLAN: r0=4(x1), r1=3(y1), r2=275(x2), r3=146(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 4
-LDI r1, 3
-LDI r2, 275
-LDI r3, 146
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 72x66 starting at (160, 79).
+; PLAN: r0=160(x), r1=79(y), r2=72(width), r3=66(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 79
+LDI r2, 72
+LDI r3, 66
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

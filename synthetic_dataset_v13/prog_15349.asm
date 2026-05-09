@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Places a orange dot at position (286, 231) then Places a white circle of radius 26 at center (374, 128).
-; PLAN: r0=286(x), r1=231(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=374(x), r6=128(y), r7=26(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 286
-LDI r1, 231
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 374
-LDI r6, 128
-LDI r7, 26
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Loads 9 into r1 and decrements it in a loop until zero.
+; PLAN: r1=9(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 9
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

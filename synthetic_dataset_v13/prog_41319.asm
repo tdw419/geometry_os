@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Renders a purple box of size 119x31 starting at (294, 162) then Places a red dot at position (446, 128).
-; PLAN: r0=294(x), r1=162(y), r2=119(width), r3=31(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=446(x), r6=128(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 294
-LDI r1, 162
-LDI r2, 119
-LDI r3, 31
+; DESCRIPTION: Composite: Places a purple line segment connecting (211, 61) to (9, 46) then Draws a green rectangle at (161, 45) with width 70 and height 92 then Places a black dot at position (301, 85).
+; PLAN: r0=211(x1), r1=61(y1), r2=9(x2), r3=46(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=161(x), r6=45(y), r7=70(width), r8=92(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=301(x), r11=85(y), r12=0x000000(color). Op: PSET r10, r11, r12.
+LDI r0, 211
+LDI r1, 61
+LDI r2, 9
+LDI r3, 46
 LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 446
-LDI r6, 128
-LDI r7, 0xFF0000
-PSET r5, r6, r7
+LINE r0, r1, r2, r3, r4
+LDI r5, 161
+LDI r6, 45
+LDI r7, 70
+LDI r8, 92
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 301
+LDI r11, 85
+LDI r12, 0x000000
+PSET r10, r11, r12
 HALT

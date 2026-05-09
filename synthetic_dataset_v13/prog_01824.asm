@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (310, 125) and (212, 112).
-; PLAN: r0=310(x1), r1=125(y1), r2=212(x2), r3=112(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 125
-LDI r2, 212
-LDI r3, 112
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white box of size 111x57 starting at (153, 3).
+; PLAN: r0=153(x), r1=3(y), r2=111(width), r3=57(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 153
+LDI r1, 3
+LDI r2, 111
+LDI r3, 57
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

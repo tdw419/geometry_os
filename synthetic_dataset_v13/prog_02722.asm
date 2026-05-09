@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 10x95 rectangle at position (461, 59).
-; PLAN: r0=461(x), r1=59(y), r2=10(width), r3=95(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 461
-LDI r1, 59
-LDI r2, 10
-LDI r3, 95
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a orange 49x40 rectangle at position (258, 51).
+; PLAN: r0=258(x), r1=51(y), r2=49(width), r3=40(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 258
+LDI r1, 51
+LDI r2, 49
+LDI r3, 40
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

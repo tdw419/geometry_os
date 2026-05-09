@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 41x48 rectangle at position (289, 55).
-; PLAN: r0=289(x), r1=55(y), r2=41(width), r3=48(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 289
-LDI r1, 55
-LDI r2, 41
-LDI r3, 48
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (74, 123) to (472, 14).
+; PLAN: r0=74(x1), r1=123(y1), r2=472(x2), r3=14(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 74
+LDI r1, 123
+LDI r2, 472
+LDI r3, 14
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

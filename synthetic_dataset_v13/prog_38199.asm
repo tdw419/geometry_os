@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a magenta circular shape at (137, 168) with radius 50 then Sets a single cyan pixel at (64, 90).
-; PLAN: r0=137(x), r1=168(y), r2=50(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=64(x), r6=90(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 137
-LDI r1, 168
-LDI r2, 50
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 64
-LDI r6, 90
-LDI r7, 0x00FFFF
-PSET r5, r6, r7
+; DESCRIPTION: Renders a purple line between points (196, 91) and (503, 47).
+; PLAN: r0=196(x1), r1=91(y1), r2=503(x2), r3=47(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 196
+LDI r1, 91
+LDI r2, 503
+LDI r3, 47
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (55, 239) to (192, 217).
-; PLAN: r0=55(x1), r1=239(y1), r2=192(x2), r3=217(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 55
-LDI r1, 239
-LDI r2, 192
-LDI r3, 217
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (218, 19) with radius 18.
+; PLAN: r0=218(x), r1=19(y), r2=18(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 218
+LDI r1, 19
+LDI r2, 18
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

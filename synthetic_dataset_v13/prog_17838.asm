@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (432, 164) to (426, 77).
-; PLAN: r0=432(x1), r1=164(y1), r2=426(x2), r3=77(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 432
-LDI r1, 164
-LDI r2, 426
-LDI r3, 77
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 64x27 rectangle at position (222, 111).
+; PLAN: r0=222(x), r1=111(y), r2=64(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 222
+LDI r1, 111
+LDI r2, 64
+LDI r3, 27
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

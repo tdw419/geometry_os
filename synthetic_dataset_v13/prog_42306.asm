@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (419, 38) to (392, 44).
-; PLAN: r0=419(x1), r1=38(y1), r2=392(x2), r3=44(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 419
-LDI r1, 38
-LDI r2, 392
-LDI r3, 44
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a black line segment connecting (237, 120) to (274, 79).
+; PLAN: r0=237(x1), r1=120(y1), r2=274(x2), r3=79(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 237
+LDI r1, 120
+LDI r2, 274
+LDI r3, 79
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 45x110 starting at (245, 126).
-; PLAN: r0=245(x), r1=126(y), r2=45(width), r3=110(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 245
-LDI r1, 126
-LDI r2, 45
-LDI r3, 110
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (399, 190) with radius 36.
+; PLAN: r0=399(x), r1=190(y), r2=36(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 399
+LDI r1, 190
+LDI r2, 36
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

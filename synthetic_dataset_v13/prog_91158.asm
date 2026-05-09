@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (465, 93) and (303, 145).
-; PLAN: r0=465(x1), r1=93(y1), r2=303(x2), r3=145(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 465
-LDI r1, 93
-LDI r2, 303
-LDI r3, 145
+; DESCRIPTION: Renders a green box of size 95x96 starting at (395, 125).
+; PLAN: r0=395(x), r1=125(y), r2=95(width), r3=96(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 395
+LDI r1, 125
+LDI r2, 95
+LDI r3, 96
 LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

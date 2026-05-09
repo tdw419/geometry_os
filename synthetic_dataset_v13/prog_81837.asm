@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (500, 23) to (370, 246).
-; PLAN: r0=500(x1), r1=23(y1), r2=370(x2), r3=246(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 500
-LDI r1, 23
-LDI r2, 370
-LDI r3, 246
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (10, 40) with width 115 and height 14.
+; PLAN: r0=10(x), r1=40(y), r2=115(width), r3=14(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 10
+LDI r1, 40
+LDI r2, 115
+LDI r3, 14
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

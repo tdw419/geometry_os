@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a red rectangular region at (263, 146) spanning 59 by 70 pixels.
-; PLAN: r0=263(x), r1=146(y), r2=59(width), r3=70(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 263
-LDI r1, 146
-LDI r2, 59
-LDI r3, 70
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple line segment connecting (449, 108) to (400, 78) then Places a red dot at position (63, 78).
+; PLAN: r0=449(x1), r1=108(y1), r2=400(x2), r3=78(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=63(x), r6=78(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 449
+LDI r1, 108
+LDI r2, 400
+LDI r3, 78
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 63
+LDI r6, 78
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

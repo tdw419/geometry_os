@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Places a magenta line segment connecting (83, 191) to (274, 146) then Creates a yellow rectangular region at (44, 72) spanning 53 by 67 pixels.
-; PLAN: r0=83(x1), r1=191(y1), r2=274(x2), r3=146(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=44(x), r6=72(y), r7=53(width), r8=67(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 83
-LDI r1, 191
-LDI r2, 274
-LDI r3, 146
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 44
-LDI r6, 72
-LDI r7, 53
-LDI r8, 67
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a red box of size 103x98 starting at (154, 20) then Renders a magenta disk with center (180, 181) and radius 38 then Sets a single yellow pixel at (391, 192).
+; PLAN: r0=154(x), r1=20(y), r2=103(width), r3=98(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=180(x), r6=181(y), r7=38(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=391(x), r11=192(y), r12=0xFFFF00(color). Op: PSET r10, r11, r12.
+LDI r0, 154
+LDI r1, 20
+LDI r2, 103
+LDI r3, 98
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 180
+LDI r6, 181
+LDI r7, 38
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 391
+LDI r11, 192
+LDI r12, 0xFFFF00
+PSET r10, r11, r12
 HALT

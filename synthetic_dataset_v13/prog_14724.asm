@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (130, 61) with radius 34.
-; PLAN: r0=130(x), r1=61(y), r2=34(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 130
-LDI r1, 61
-LDI r2, 34
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (123, 246) and (370, 127).
+; PLAN: r0=123(x1), r1=246(y1), r2=370(x2), r3=127(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 123
+LDI r1, 246
+LDI r2, 370
+LDI r3, 127
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

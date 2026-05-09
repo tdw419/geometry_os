@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (45, 215) to (354, 235).
-; PLAN: r0=45(x1), r1=215(y1), r2=354(x2), r3=235(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 215
-LDI r2, 354
-LDI r3, 235
+; DESCRIPTION: Draws a green rectangle at (345, 13) with width 103 and height 35.
+; PLAN: r0=345(x), r1=13(y), r2=103(width), r3=35(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 345
+LDI r1, 13
+LDI r2, 103
+LDI r3, 35
 LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

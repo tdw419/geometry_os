@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single red pixel at (164, 68).
-; PLAN: r0=164(x), r1=68(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 164
-LDI r1, 68
-LDI r2, 0xFF0000
+; DESCRIPTION: Sets a single orange pixel at (494, 70).
+; PLAN: r0=494(x), r1=70(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 494
+LDI r1, 70
+LDI r2, 0xFF8800
 PSET r0, r1, r2
 HALT

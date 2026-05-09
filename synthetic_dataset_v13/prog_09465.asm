@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a orange circle of radius 76 at center (122, 138).
-; PLAN: r0=122(x), r1=138(y), r2=76(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 122
-LDI r1, 138
-LDI r2, 76
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 6 into r1 and decrements it in a loop until zero.
+; PLAN: r1=6(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 6
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

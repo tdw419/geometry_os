@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (397, 96) then Renders a white line between points (25, 37) and (158, 56).
-; PLAN: r0=397(x), r1=96(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=25(x1), r6=37(y1), r7=158(x2), r8=56(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 397
-LDI r1, 96
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 25
-LDI r6, 37
-LDI r7, 158
-LDI r8, 56
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a red 87x61 rectangle at position (73, 152).
+; PLAN: r0=73(x), r1=152(y), r2=87(width), r3=61(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 73
+LDI r1, 152
+LDI r2, 87
+LDI r3, 61
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

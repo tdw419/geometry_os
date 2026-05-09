@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (329, 178) with radius 33.
-; PLAN: r0=329(x), r1=178(y), r2=33(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 329
-LDI r1, 178
-LDI r2, 33
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta box of size 89x35 starting at (253, 42).
+; PLAN: r0=253(x), r1=42(y), r2=89(width), r3=35(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 253
+LDI r1, 42
+LDI r2, 89
+LDI r3, 35
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

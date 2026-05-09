@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Creates a blue circular shape at (282, 107) with radius 69 then Places a purple 87x15 rectangle at position (282, 59).
-; PLAN: r0=282(x), r1=107(y), r2=69(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=282(x), r6=59(y), r7=87(width), r8=15(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 282
-LDI r1, 107
-LDI r2, 69
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 282
-LDI r6, 59
-LDI r7, 87
-LDI r8, 15
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
+LDI r7, 0x0000FF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

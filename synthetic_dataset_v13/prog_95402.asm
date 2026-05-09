@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 82x120 rectangle at position (214, 95).
-; PLAN: r0=214(x), r1=95(y), r2=82(width), r3=120(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 214
-LDI r1, 95
-LDI r2, 82
-LDI r3, 120
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a purple 94x42 rectangle at position (318, 152).
+; PLAN: r0=318(x), r1=152(y), r2=94(width), r3=42(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 318
+LDI r1, 152
+LDI r2, 94
+LDI r3, 42
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

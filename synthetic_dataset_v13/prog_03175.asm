@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (35, 206) to (33, 89).
-; PLAN: r0=35(x1), r1=206(y1), r2=33(x2), r3=89(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 35
-LDI r1, 206
-LDI r2, 33
-LDI r3, 89
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (333, 87) spanning 59 by 57 pixels.
+; PLAN: r0=333(x), r1=87(y), r2=59(width), r3=57(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 333
+LDI r1, 87
+LDI r2, 59
+LDI r3, 57
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

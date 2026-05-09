@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a purple box of size 62x79 starting at (311, 50).
-; PLAN: r0=311(x), r1=50(y), r2=62(width), r3=79(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 311
-LDI r1, 50
-LDI r2, 62
-LDI r3, 79
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (260, 211) then Places a green line segment connecting (385, 46) to (250, 46).
+; PLAN: r0=260(x), r1=211(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=385(x1), r6=46(y1), r7=250(x2), r8=46(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 260
+LDI r1, 211
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 385
+LDI r6, 46
+LDI r7, 250
+LDI r8, 46
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,13 @@
-; DESCRIPTION: Loads 14 into r1 and decrements it in a loop until zero.
-; PLAN: r1=14(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 14
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Places a magenta line segment connecting (135, 224) to (178, 150) then Sets a single cyan pixel at (509, 63).
+; PLAN: r0=135(x1), r1=224(y1), r2=178(x2), r3=150(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=509(x), r6=63(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 135
+LDI r1, 224
+LDI r2, 178
+LDI r3, 150
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 509
+LDI r6, 63
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

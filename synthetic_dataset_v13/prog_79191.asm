@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black rectangle at (124, 99) with width 21 and height 23.
-; PLAN: r0=124(x), r1=99(y), r2=21(width), r3=23(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 124
+; DESCRIPTION: Renders a orange disk with center (47, 99) and radius 32.
+; PLAN: r0=47(x), r1=99(y), r2=32(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 47
 LDI r1, 99
-LDI r2, 21
-LDI r3, 23
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+LDI r2, 32
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

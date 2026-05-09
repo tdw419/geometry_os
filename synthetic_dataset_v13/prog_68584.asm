@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (245, 222) to (312, 113).
-; PLAN: r0=245(x1), r1=222(y1), r2=312(x2), r3=113(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 245
-LDI r1, 222
-LDI r2, 312
-LDI r3, 113
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue circle centered at (231, 184) with radius 30.
+; PLAN: r0=231(x), r1=184(y), r2=30(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 231
+LDI r1, 184
+LDI r2, 30
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

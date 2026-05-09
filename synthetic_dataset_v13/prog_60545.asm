@@ -1,19 +1,13 @@
-; DESCRIPTION: Composite: Renders a black box of size 20x11 starting at (237, 164) then Draws a blue line from (85, 189) to (379, 185) then Places a orange dot at position (399, 190).
-; PLAN: r0=237(x), r1=164(y), r2=20(width), r3=11(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=85(x1), r6=189(y1), r7=379(x2), r8=185(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=399(x), r11=190(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
-LDI r0, 237
-LDI r1, 164
-LDI r2, 20
-LDI r3, 11
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 85
-LDI r6, 189
-LDI r7, 379
-LDI r8, 185
-LDI r9, 0x0000FF
-LINE r5, r6, r7, r8, r9
-LDI r10, 399
-LDI r11, 190
-LDI r12, 0xFF8800
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Places a purple dot at position (243, 44) then Renders a black box of size 117x63 starting at (345, 2).
+; PLAN: r0=243(x), r1=44(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=345(x), r6=2(y), r7=117(width), r8=63(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 243
+LDI r1, 44
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 345
+LDI r6, 2
+LDI r7, 117
+LDI r8, 63
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

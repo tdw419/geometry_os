@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a green circular shape at (302, 144) with radius 61.
-; PLAN: r0=302(x), r1=144(y), r2=61(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 302
-LDI r1, 144
-LDI r2, 61
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single purple pixel at (12, 103).
+; PLAN: r0=12(x), r1=103(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 12
+LDI r1, 103
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (155, 12) and (511, 98).
-; PLAN: r0=155(x1), r1=12(y1), r2=511(x2), r3=98(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 155
-LDI r1, 12
-LDI r2, 511
-LDI r3, 98
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (320, 153) with width 104 and height 35.
+; PLAN: r0=320(x), r1=153(y), r2=104(width), r3=35(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 320
+LDI r1, 153
+LDI r2, 104
+LDI r3, 35
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Places a yellow dot at position (401, 19).
+; PLAN: r0=401(x), r1=19(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 401
+LDI r1, 19
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

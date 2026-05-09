@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a yellow line from (29, 241) to (39, 249).
-; PLAN: r0=29(x1), r1=241(y1), r2=39(x2), r3=249(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 29
-LDI r1, 241
-LDI r2, 39
-LDI r3, 249
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (27, 229) then Places a green circle of radius 13 at center (117, 103).
+; PLAN: r0=27(x), r1=229(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=117(x), r6=103(y), r7=13(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 27
+LDI r1, 229
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 117
+LDI r6, 103
+LDI r7, 13
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (202, 77) with radius 47.
-; PLAN: r0=202(x), r1=77(y), r2=47(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 202
-LDI r1, 77
-LDI r2, 47
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow rectangle at (220, 57) with width 17 and height 38.
+; PLAN: r0=220(x), r1=57(y), r2=17(width), r3=38(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 57
+LDI r2, 17
+LDI r3, 38
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

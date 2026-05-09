@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a magenta circular shape at (143, 135) with radius 28.
-; PLAN: r0=143(x), r1=135(y), r2=28(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 143
-LDI r1, 135
-LDI r2, 28
+; DESCRIPTION: Creates a magenta circular shape at (472, 68) with radius 36.
+; PLAN: r0=472(x), r1=68(y), r2=36(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 472
+LDI r1, 68
+LDI r2, 36
 LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

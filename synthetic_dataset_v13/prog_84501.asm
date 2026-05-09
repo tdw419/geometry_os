@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Creates a magenta circular shape at (288, 132) with radius 60.
+; PLAN: r0=288(x), r1=132(y), r2=60(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 288
+LDI r1, 132
+LDI r2, 60
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (466, 12) and (91, 40).
-; PLAN: r0=466(x1), r1=12(y1), r2=91(x2), r3=40(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 466
-LDI r1, 12
-LDI r2, 91
-LDI r3, 40
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 24x106 starting at (26, 61).
+; PLAN: r0=26(x), r1=61(y), r2=24(width), r3=106(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 26
+LDI r1, 61
+LDI r2, 24
+LDI r3, 106
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

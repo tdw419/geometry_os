@@ -1,8 +1,12 @@
-; DESCRIPTION: Renders a magenta disk with center (300, 53) and radius 18.
-; PLAN: r0=300(x), r1=53(y), r2=18(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 300
-LDI r1, 53
-LDI r2, 18
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single blue pixel at (353, 114) then Renders a white disk with center (339, 128) and radius 38.
+; PLAN: r0=353(x), r1=114(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=339(x), r6=128(y), r7=38(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 353
+LDI r1, 114
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 339
+LDI r6, 128
+LDI r7, 38
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

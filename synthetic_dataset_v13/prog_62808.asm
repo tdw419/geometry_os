@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Places a purple dot at position (14, 43) then Draws a cyan circle centered at (272, 183) with radius 28 then Draws a purple rectangle at (380, 62) with width 97 and height 12.
-; PLAN: r0=14(x), r1=43(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=272(x), r6=183(y), r7=28(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=380(x), r11=62(y), r12=97(width), r13=12(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 14
-LDI r1, 43
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 272
-LDI r6, 183
-LDI r7, 28
-LDI r8, 0x00FFFF
-CIRCLE r5, r6, r7, r8
-LDI r10, 380
-LDI r11, 62
-LDI r12, 97
-LDI r13, 12
-LDI r14, 0xAA00FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a orange circle of radius 40 at center (338, 68) then Places a red dot at position (352, 103) then Renders a blue line between points (503, 66) and (388, 85).
+; PLAN: r0=338(x), r1=68(y), r2=40(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=352(x), r6=103(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=503(x1), r11=66(y1), r12=388(x2), r13=85(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 338
+LDI r1, 68
+LDI r2, 40
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
+LDI r5, 352
+LDI r6, 103
+LDI r7, 0xFF0000
+PSET r5, r6, r7
+LDI r10, 503
+LDI r11, 66
+LDI r12, 388
+LDI r13, 85
+LDI r14, 0x0000FF
+LINE r10, r11, r12, r13, r14
 HALT

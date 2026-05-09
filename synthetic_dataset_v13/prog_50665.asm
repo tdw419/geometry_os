@@ -1,15 +1,12 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (441, 44) spanning 38 by 65 pixels then Renders a orange line between points (38, 105) and (48, 46).
-; PLAN: r0=441(x), r1=44(y), r2=38(width), r3=65(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=38(x1), r6=105(y1), r7=48(x2), r8=46(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 441
-LDI r1, 44
-LDI r2, 38
-LDI r3, 65
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 38
-LDI r6, 105
-LDI r7, 48
-LDI r8, 46
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a white circle centered at (135, 183) with radius 36 then Places a blue dot at position (83, 92).
+; PLAN: r0=135(x), r1=183(y), r2=36(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=83(x), r6=92(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 135
+LDI r1, 183
+LDI r2, 36
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 83
+LDI r6, 92
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

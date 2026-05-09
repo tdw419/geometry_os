@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (247, 34) and (433, 251).
-; PLAN: r0=247(x1), r1=34(y1), r2=433(x2), r3=251(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 247
-LDI r1, 34
-LDI r2, 433
-LDI r3, 251
+; DESCRIPTION: Places a black 31x53 rectangle at position (423, 166).
+; PLAN: r0=423(x), r1=166(y), r2=31(width), r3=53(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 423
+LDI r1, 166
+LDI r2, 31
+LDI r3, 53
 LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

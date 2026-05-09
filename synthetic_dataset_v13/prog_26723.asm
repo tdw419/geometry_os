@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (198, 88) with radius 75.
-; PLAN: r0=198(x), r1=88(y), r2=75(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 198
-LDI r1, 88
-LDI r2, 75
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange box of size 66x41 starting at (100, 75).
+; PLAN: r0=100(x), r1=75(y), r2=66(width), r3=41(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 100
+LDI r1, 75
+LDI r2, 66
+LDI r3, 41
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

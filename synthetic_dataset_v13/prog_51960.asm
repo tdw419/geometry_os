@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (121, 21) and (177, 36).
-; PLAN: r0=121(x1), r1=21(y1), r2=177(x2), r3=36(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 121
-LDI r1, 21
-LDI r2, 177
-LDI r3, 36
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (107, 134) with radius 21.
+; PLAN: r0=107(x), r1=134(y), r2=21(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 107
+LDI r1, 134
+LDI r2, 21
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

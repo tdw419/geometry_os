@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (275, 68) and (17, 254).
-; PLAN: r0=275(x1), r1=68(y1), r2=17(x2), r3=254(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 275
-LDI r1, 68
-LDI r2, 17
-LDI r3, 254
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan rectangular region at (354, 1) spanning 97 by 74 pixels.
+; PLAN: r0=354(x), r1=1(y), r2=97(width), r3=74(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 354
+LDI r1, 1
+LDI r2, 97
+LDI r3, 74
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

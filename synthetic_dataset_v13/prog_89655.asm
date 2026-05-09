@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a orange circle of radius 44 at center (366, 166).
-; PLAN: r0=366(x), r1=166(y), r2=44(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 366
-LDI r1, 166
-LDI r2, 44
-LDI r3, 0xFF8800
+; DESCRIPTION: Renders a purple disk with center (309, 174) and radius 73.
+; PLAN: r0=309(x), r1=174(y), r2=73(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 309
+LDI r1, 174
+LDI r2, 73
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

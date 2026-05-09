@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (249, 155) to (408, 50).
-; PLAN: r0=249(x1), r1=155(y1), r2=408(x2), r3=50(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 249
-LDI r1, 155
-LDI r2, 408
-LDI r3, 50
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 64x109 rectangle at position (153, 84).
+; PLAN: r0=153(x), r1=84(y), r2=64(width), r3=109(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 153
+LDI r1, 84
+LDI r2, 64
+LDI r3, 109
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

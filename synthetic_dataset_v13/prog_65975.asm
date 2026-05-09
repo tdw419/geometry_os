@@ -1,5 +1,5 @@
-; DESCRIPTION: Sets the background to white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
+; DESCRIPTION: Sets the background to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
 FILL r0
 HALT

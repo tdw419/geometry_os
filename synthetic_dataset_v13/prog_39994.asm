@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a purple circle of radius 11 at center (226, 15).
-; PLAN: r0=226(x), r1=15(y), r2=11(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 226
-LDI r1, 15
-LDI r2, 11
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (18, 60) with width 88 and height 111.
+; PLAN: r0=18(x), r1=60(y), r2=88(width), r3=111(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 18
+LDI r1, 60
+LDI r2, 88
+LDI r3, 111
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

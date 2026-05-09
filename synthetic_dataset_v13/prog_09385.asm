@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (427, 163) with width 80 and height 90.
-; PLAN: r0=427(x), r1=163(y), r2=80(width), r3=90(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 427
-LDI r1, 163
-LDI r2, 80
-LDI r3, 90
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue line segment connecting (323, 121) to (21, 238).
+; PLAN: r0=323(x1), r1=121(y1), r2=21(x2), r3=238(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 323
+LDI r1, 121
+LDI r2, 21
+LDI r3, 238
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

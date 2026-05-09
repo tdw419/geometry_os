@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a black rectangle at (448, 167) with width 47 and height 52.
-; PLAN: r0=448(x), r1=167(y), r2=47(width), r3=52(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 448
-LDI r1, 167
-LDI r2, 47
-LDI r3, 52
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (475, 216).
+; PLAN: r0=475(x), r1=216(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 475
+LDI r1, 216
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

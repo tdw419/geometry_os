@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 107x10 starting at (13, 220).
-; PLAN: r0=13(x), r1=220(y), r2=107(width), r3=10(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 13
-LDI r1, 220
-LDI r2, 107
-LDI r3, 10
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a purple box of size 36x21 starting at (216, 61).
+; PLAN: r0=216(x), r1=61(y), r2=36(width), r3=21(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 216
+LDI r1, 61
+LDI r2, 36
+LDI r3, 21
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

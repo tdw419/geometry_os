@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (177, 160) with radius 64.
-; PLAN: r0=177(x), r1=160(y), r2=64(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 177
-LDI r1, 160
-LDI r2, 64
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (485, 112) to (24, 64).
+; PLAN: r0=485(x1), r1=112(y1), r2=24(x2), r3=64(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 485
+LDI r1, 112
+LDI r2, 24
+LDI r3, 64
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

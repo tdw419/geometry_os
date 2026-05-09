@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (477, 108) and (64, 244).
-; PLAN: r0=477(x1), r1=108(y1), r2=64(x2), r3=244(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 477
-LDI r1, 108
-LDI r2, 64
-LDI r3, 244
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 115x89 rectangle at position (379, 93).
+; PLAN: r0=379(x), r1=93(y), r2=115(width), r3=89(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 379
+LDI r1, 93
+LDI r2, 115
+LDI r3, 89
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

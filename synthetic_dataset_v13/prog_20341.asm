@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (28, 14) and (373, 153).
-; PLAN: r0=28(x1), r1=14(y1), r2=373(x2), r3=153(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 28
-LDI r1, 14
-LDI r2, 373
-LDI r3, 153
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a black line from (489, 246) to (414, 128).
+; PLAN: r0=489(x1), r1=246(y1), r2=414(x2), r3=128(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 489
+LDI r1, 246
+LDI r2, 414
+LDI r3, 128
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

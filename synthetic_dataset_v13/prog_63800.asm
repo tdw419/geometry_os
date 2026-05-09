@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (52, 101) with width 52 and height 113.
-; PLAN: r0=52(x), r1=101(y), r2=52(width), r3=113(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 52
-LDI r1, 101
-LDI r2, 52
-LDI r3, 113
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a purple box of size 93x112 starting at (62, 93).
+; PLAN: r0=62(x), r1=93(y), r2=93(width), r3=112(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 62
+LDI r1, 93
+LDI r2, 93
+LDI r3, 112
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

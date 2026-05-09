@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 80x30 rectangle at position (233, 224).
-; PLAN: r0=233(x), r1=224(y), r2=80(width), r3=30(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 233
-LDI r1, 224
-LDI r2, 80
-LDI r3, 30
+; DESCRIPTION: Renders a red line between points (363, 88) and (54, 150).
+; PLAN: r0=363(x1), r1=88(y1), r2=54(x2), r3=150(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 363
+LDI r1, 88
+LDI r2, 54
+LDI r3, 150
 LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

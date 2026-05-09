@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a red line between points (469, 54) and (436, 251).
-; PLAN: r0=469(x1), r1=54(y1), r2=436(x2), r3=251(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 469
-LDI r1, 54
-LDI r2, 436
-LDI r3, 251
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (471, 61) then Draws a red circle centered at (443, 85) with radius 19.
+; PLAN: r0=471(x), r1=61(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=443(x), r6=85(y), r7=19(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 471
+LDI r1, 61
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 443
+LDI r6, 85
+LDI r7, 19
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

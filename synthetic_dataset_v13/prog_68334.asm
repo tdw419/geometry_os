@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (270, 78) to (507, 230).
-; PLAN: r0=270(x1), r1=78(y1), r2=507(x2), r3=230(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 270
-LDI r1, 78
-LDI r2, 507
-LDI r3, 230
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (381, 119) with radius 42.
+; PLAN: r0=381(x), r1=119(y), r2=42(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 381
+LDI r1, 119
+LDI r2, 42
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

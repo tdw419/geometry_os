@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (445, 59) to (433, 101).
-; PLAN: r0=445(x1), r1=59(y1), r2=433(x2), r3=101(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 445
-LDI r1, 59
-LDI r2, 433
-LDI r3, 101
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 12 at center (473, 95).
+; PLAN: r0=473(x), r1=95(y), r2=12(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 473
+LDI r1, 95
+LDI r2, 12
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

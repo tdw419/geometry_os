@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
-FILL r0
+; DESCRIPTION: Places a green dot at position (141, 242).
+; PLAN: r0=141(x), r1=242(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 141
+LDI r1, 242
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

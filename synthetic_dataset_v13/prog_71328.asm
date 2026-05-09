@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white rectangle at (334, 70) with width 115 and height 118.
-; PLAN: r0=334(x), r1=70(y), r2=115(width), r3=118(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 334
-LDI r1, 70
-LDI r2, 115
-LDI r3, 118
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (202, 113) with radius 73.
+; PLAN: r0=202(x), r1=113(y), r2=73(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 202
+LDI r1, 113
+LDI r2, 73
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

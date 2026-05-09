@@ -1,14 +1,15 @@
-; DESCRIPTION: Composite: Draws a orange rectangle at (1, 72) with width 66 and height 78 then Places a red circle of radius 71 at center (127, 90).
-; PLAN: r0=1(x), r1=72(y), r2=66(width), r3=78(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=127(x), r6=90(y), r7=71(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 1
-LDI r1, 72
-LDI r2, 66
-LDI r3, 78
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Places a yellow 116x22 rectangle at position (108, 179) then Places a black line segment connecting (342, 184) to (102, 188).
+; PLAN: r0=108(x), r1=179(y), r2=116(width), r3=22(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=342(x1), r6=184(y1), r7=102(x2), r8=188(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 108
+LDI r1, 179
+LDI r2, 116
+LDI r3, 22
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
-LDI r5, 127
-LDI r6, 90
-LDI r7, 71
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+LDI r5, 342
+LDI r6, 184
+LDI r7, 102
+LDI r8, 188
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
 HALT

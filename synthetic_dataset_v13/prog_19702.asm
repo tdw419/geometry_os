@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (128, 98) with radius 55.
-; PLAN: r0=128(x), r1=98(y), r2=55(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 128
-LDI r1, 98
-LDI r2, 55
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow line segment connecting (431, 78) to (64, 42).
+; PLAN: r0=431(x1), r1=78(y1), r2=64(x2), r3=42(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 431
+LDI r1, 78
+LDI r2, 64
+LDI r3, 42
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

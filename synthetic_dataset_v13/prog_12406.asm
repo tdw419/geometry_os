@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a white rectangle at (320, 86) with width 77 and height 87.
-; PLAN: r0=320(x), r1=86(y), r2=77(width), r3=87(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 320
-LDI r1, 86
-LDI r2, 77
-LDI r3, 87
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow circle of radius 35 at center (147, 197) then Renders a red line between points (503, 163) and (176, 47).
+; PLAN: r0=147(x), r1=197(y), r2=35(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=503(x1), r6=163(y1), r7=176(x2), r8=47(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 147
+LDI r1, 197
+LDI r2, 35
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 503
+LDI r6, 163
+LDI r7, 176
+LDI r8, 47
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

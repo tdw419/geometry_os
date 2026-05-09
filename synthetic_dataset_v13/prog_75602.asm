@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 98x50 rectangle at position (373, 59).
-; PLAN: r0=373(x), r1=59(y), r2=98(width), r3=50(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 373
-LDI r1, 59
-LDI r2, 98
-LDI r3, 50
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (400, 114) to (154, 113).
+; PLAN: r0=400(x1), r1=114(y1), r2=154(x2), r3=113(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 114
+LDI r2, 154
+LDI r3, 113
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

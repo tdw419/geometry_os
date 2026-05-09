@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a black 60x82 rectangle at position (226, 87).
-; PLAN: r0=226(x), r1=87(y), r2=60(width), r3=82(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 226
-LDI r1, 87
-LDI r2, 60
-LDI r3, 82
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (240, 10).
+; PLAN: r0=240(x), r1=10(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 240
+LDI r1, 10
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

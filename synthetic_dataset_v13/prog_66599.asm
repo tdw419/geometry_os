@@ -1,8 +1,14 @@
-; DESCRIPTION: Renders a orange disk with center (274, 181) and radius 20.
-; PLAN: r0=274(x), r1=181(y), r2=20(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 274
-LDI r1, 181
-LDI r2, 20
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Renders a magenta box of size 100x41 starting at (402, 34) then Draws a red circle centered at (103, 155) with radius 51.
+; PLAN: r0=402(x), r1=34(y), r2=100(width), r3=41(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=103(x), r6=155(y), r7=51(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 402
+LDI r1, 34
+LDI r2, 100
+LDI r3, 41
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 103
+LDI r6, 155
+LDI r7, 51
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

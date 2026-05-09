@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (356, 190) and radius 33.
-; PLAN: r0=356(x), r1=190(y), r2=33(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 356
-LDI r1, 190
-LDI r2, 33
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green rectangle at (261, 55) with width 117 and height 21.
+; PLAN: r0=261(x), r1=55(y), r2=117(width), r3=21(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 261
+LDI r1, 55
+LDI r2, 117
+LDI r3, 21
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

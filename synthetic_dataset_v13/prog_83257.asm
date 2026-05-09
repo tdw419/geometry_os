@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (423, 61) and radius 60.
-; PLAN: r0=423(x), r1=61(y), r2=60(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 423
-LDI r1, 61
-LDI r2, 60
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 104x18 rectangle at position (304, 24).
+; PLAN: r0=304(x), r1=24(y), r2=104(width), r3=18(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 304
+LDI r1, 24
+LDI r2, 104
+LDI r3, 18
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a black circle centered at (310, 158) with radius 65.
-; PLAN: r0=310(x), r1=158(y), r2=65(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 310
-LDI r1, 158
-LDI r2, 65
+; DESCRIPTION: Creates a black circular shape at (459, 80) with radius 32.
+; PLAN: r0=459(x), r1=80(y), r2=32(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 459
+LDI r1, 80
+LDI r2, 32
 LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (248, 244) then Draws a orange line from (244, 8) to (471, 200) then Draws a blue rectangle at (100, 168) with width 103 and height 45.
-; PLAN: r0=248(x), r1=244(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=244(x1), r6=8(y1), r7=471(x2), r8=200(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=100(x), r11=168(y), r12=103(width), r13=45(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 248
-LDI r1, 244
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 244
-LDI r6, 8
-LDI r7, 471
-LDI r8, 200
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
-LDI r10, 100
-LDI r11, 168
-LDI r12, 103
-LDI r13, 45
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a green line between points (312, 7) and (16, 240) then Sets a single orange pixel at (461, 106) then Creates a white circular shape at (303, 153) with radius 35.
+; PLAN: r0=312(x1), r1=7(y1), r2=16(x2), r3=240(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=461(x), r6=106(y), r7=0xFF8800(color). Op: PSET r5, r6, r7 Next: r10=303(x), r11=153(y), r12=35(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 312
+LDI r1, 7
+LDI r2, 16
+LDI r3, 240
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 461
+LDI r6, 106
+LDI r7, 0xFF8800
+PSET r5, r6, r7
+LDI r10, 303
+LDI r11, 153
+LDI r12, 35
+LDI r13, 0xFFFFFF
+CIRCLE r10, r11, r12, r13
 HALT

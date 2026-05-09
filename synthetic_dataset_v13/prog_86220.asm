@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (433, 82) with radius 14.
-; PLAN: r0=433(x), r1=82(y), r2=14(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 433
-LDI r1, 82
-LDI r2, 14
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 93x90 starting at (122, 119).
+; PLAN: r0=122(x), r1=119(y), r2=93(width), r3=90(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 122
+LDI r1, 119
+LDI r2, 93
+LDI r3, 90
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

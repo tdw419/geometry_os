@@ -1,9 +1,19 @@
-; DESCRIPTION: Draws a black rectangle at (204, 6) with width 94 and height 109.
-; PLAN: r0=204(x), r1=6(y), r2=94(width), r3=109(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 204
-LDI r1, 6
-LDI r2, 94
-LDI r3, 109
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

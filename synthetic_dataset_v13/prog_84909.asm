@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 119x47 rectangle at position (241, 56).
-; PLAN: r0=241(x), r1=56(y), r2=119(width), r3=47(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 56
-LDI r2, 119
-LDI r3, 47
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (302, 4) and (122, 18).
+; PLAN: r0=302(x1), r1=4(y1), r2=122(x2), r3=18(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 302
+LDI r1, 4
+LDI r2, 122
+LDI r3, 18
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

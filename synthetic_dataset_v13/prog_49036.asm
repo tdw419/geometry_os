@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (195, 7).
-; PLAN: r0=195(x), r1=7(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 195
-LDI r1, 7
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a magenta rectangle at (23, 18) with width 40 and height 108.
+; PLAN: r0=23(x), r1=18(y), r2=40(width), r3=108(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 23
+LDI r1, 18
+LDI r2, 40
+LDI r3, 108
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

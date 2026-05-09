@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 64x55 rectangle at position (46, 57).
-; PLAN: r0=46(x), r1=57(y), r2=64(width), r3=55(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 46
-LDI r1, 57
-LDI r2, 64
-LDI r3, 55
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (436, 172) and (205, 58).
+; PLAN: r0=436(x1), r1=172(y1), r2=205(x2), r3=58(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 436
+LDI r1, 172
+LDI r2, 205
+LDI r3, 58
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

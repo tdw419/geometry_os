@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (99, 74) to (251, 18).
-; PLAN: r0=99(x1), r1=74(y1), r2=251(x2), r3=18(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 99
-LDI r1, 74
-LDI r2, 251
-LDI r3, 18
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (396, 153) and radius 62.
+; PLAN: r0=396(x), r1=153(y), r2=62(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 396
+LDI r1, 153
+LDI r2, 62
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

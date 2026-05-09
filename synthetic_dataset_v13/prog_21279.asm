@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (424, 33) with radius 33.
-; PLAN: r0=424(x), r1=33(y), r2=33(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 424
-LDI r1, 33
-LDI r2, 33
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (124, 172) to (403, 83).
+; PLAN: r0=124(x1), r1=172(y1), r2=403(x2), r3=83(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 172
+LDI r2, 403
+LDI r3, 83
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

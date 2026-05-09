@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (468, 151) and (87, 249).
-; PLAN: r0=468(x1), r1=151(y1), r2=87(x2), r3=249(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 468
-LDI r1, 151
-LDI r2, 87
-LDI r3, 249
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green rectangle at (374, 191) with width 30 and height 51.
+; PLAN: r0=374(x), r1=191(y), r2=30(width), r3=51(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 374
+LDI r1, 191
+LDI r2, 30
+LDI r3, 51
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

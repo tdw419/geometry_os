@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a red circle centered at (94, 101) with radius 80.
-; PLAN: r0=94(x), r1=101(y), r2=80(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 94
-LDI r1, 101
-LDI r2, 80
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green dot at position (101, 78).
+; PLAN: r0=101(x), r1=78(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 101
+LDI r1, 78
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

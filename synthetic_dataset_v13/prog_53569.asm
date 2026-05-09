@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 50 into r1 and decrements it in a loop until zero.
-; PLAN: r1=50(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 50
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a magenta rectangle at (371, 74) with width 76 and height 53.
+; PLAN: r0=371(x), r1=74(y), r2=76(width), r3=53(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 371
+LDI r1, 74
+LDI r2, 76
+LDI r3, 53
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (346, 42) spanning 10 by 11 pixels.
-; PLAN: r0=346(x), r1=42(y), r2=10(width), r3=11(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 346
-LDI r1, 42
-LDI r2, 10
-LDI r3, 11
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a yellow box of size 100x50 starting at (16, 59).
+; PLAN: r0=16(x), r1=59(y), r2=100(width), r3=50(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 16
+LDI r1, 59
+LDI r2, 100
+LDI r3, 50
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

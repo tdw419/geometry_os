@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (288, 162) to (159, 79).
-; PLAN: r0=288(x1), r1=162(y1), r2=159(x2), r3=79(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 162
-LDI r2, 159
-LDI r3, 79
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red rectangular region at (313, 76) spanning 88 by 69 pixels.
+; PLAN: r0=313(x), r1=76(y), r2=88(width), r3=69(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 313
+LDI r1, 76
+LDI r2, 88
+LDI r3, 69
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

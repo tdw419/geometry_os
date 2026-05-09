@@ -1,15 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta 23x96 rectangle at position (257, 98) then Draws a black line from (182, 105) to (375, 255).
-; PLAN: r0=257(x), r1=98(y), r2=23(width), r3=96(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=182(x1), r6=105(y1), r7=375(x2), r8=255(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 257
-LDI r1, 98
-LDI r2, 23
-LDI r3, 96
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 182
-LDI r6, 105
-LDI r7, 375
-LDI r8, 255
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a orange line between points (79, 61) and (138, 109).
+; PLAN: r0=79(x1), r1=61(y1), r2=138(x2), r3=109(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 79
+LDI r1, 61
+LDI r2, 138
+LDI r3, 109
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

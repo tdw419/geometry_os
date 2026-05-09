@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a yellow circle of radius 50 at center (427, 76).
-; PLAN: r0=427(x), r1=76(y), r2=50(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 427
-LDI r1, 76
-LDI r2, 50
-LDI r3, 0xFFFF00
+; DESCRIPTION: Draws a blue circle centered at (223, 177) with radius 62.
+; PLAN: r0=223(x), r1=177(y), r2=62(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 223
+LDI r1, 177
+LDI r2, 62
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

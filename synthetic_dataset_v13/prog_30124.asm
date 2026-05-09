@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a orange rectangular region at (149, 91) spanning 47 by 23 pixels.
-; PLAN: r0=149(x), r1=91(y), r2=47(width), r3=23(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 149
-LDI r1, 91
-LDI r2, 47
-LDI r3, 23
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (234, 141) with radius 79.
+; PLAN: r0=234(x), r1=141(y), r2=79(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 234
+LDI r1, 141
+LDI r2, 79
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

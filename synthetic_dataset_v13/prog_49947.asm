@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a orange dot at position (309, 58).
-; PLAN: r0=309(x), r1=58(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 309
-LDI r1, 58
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Creates a orange circular shape at (300, 93) with radius 23.
+; PLAN: r0=300(x), r1=93(y), r2=23(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 300
+LDI r1, 93
+LDI r2, 23
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

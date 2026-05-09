@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 94x91 starting at (320, 147).
-; PLAN: r0=320(x), r1=147(y), r2=94(width), r3=91(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 320
-LDI r1, 147
-LDI r2, 94
-LDI r3, 91
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a black 11x112 rectangle at position (406, 8).
+; PLAN: r0=406(x), r1=8(y), r2=11(width), r3=112(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 406
+LDI r1, 8
+LDI r2, 11
+LDI r3, 112
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

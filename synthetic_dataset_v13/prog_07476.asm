@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 53 at center (152, 150).
-; PLAN: r0=152(x), r1=150(y), r2=53(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 152
-LDI r1, 150
-LDI r2, 53
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white 48x119 rectangle at position (52, 134).
+; PLAN: r0=52(x), r1=134(y), r2=48(width), r3=119(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 52
+LDI r1, 134
+LDI r2, 48
+LDI r3, 119
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 50 at center (119, 86).
-; PLAN: r0=119(x), r1=86(y), r2=50(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 119
-LDI r1, 86
-LDI r2, 50
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (464, 46) to (351, 76).
+; PLAN: r0=464(x1), r1=46(y1), r2=351(x2), r3=76(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 464
+LDI r1, 46
+LDI r2, 351
+LDI r3, 76
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

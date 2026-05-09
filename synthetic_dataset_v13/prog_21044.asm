@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a orange circle centered at (77, 148) with radius 76.
-; PLAN: r0=77(x), r1=148(y), r2=76(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 77
-LDI r1, 148
-LDI r2, 76
-LDI r3, 0xFF8800
+; DESCRIPTION: Renders a green disk with center (468, 58) and radius 24.
+; PLAN: r0=468(x), r1=58(y), r2=24(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 468
+LDI r1, 58
+LDI r2, 24
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

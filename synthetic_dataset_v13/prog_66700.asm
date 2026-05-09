@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a purple disk with center (290, 117) and radius 52.
-; PLAN: r0=290(x), r1=117(y), r2=52(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 290
-LDI r1, 117
-LDI r2, 52
-LDI r3, 0xAA00FF
+; DESCRIPTION: Renders a cyan disk with center (421, 71) and radius 51.
+; PLAN: r0=421(x), r1=71(y), r2=51(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 421
+LDI r1, 71
+LDI r2, 51
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

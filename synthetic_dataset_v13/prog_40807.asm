@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Draws a yellow circle centered at (353, 106) with radius 77 then Renders a yellow line between points (356, 15) and (26, 96).
-; PLAN: r0=353(x), r1=106(y), r2=77(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=356(x1), r6=15(y1), r7=26(x2), r8=96(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 353
-LDI r1, 106
-LDI r2, 77
-LDI r3, 0xFFFF00
+; DESCRIPTION: Composite: Creates a white circular shape at (312, 134) with radius 60 then Draws a blue rectangle at (15, 60) with width 89 and height 46 then Places a purple dot at position (309, 242).
+; PLAN: r0=312(x), r1=134(y), r2=60(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=15(x), r6=60(y), r7=89(width), r8=46(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=309(x), r11=242(y), r12=0xAA00FF(color). Op: PSET r10, r11, r12.
+LDI r0, 312
+LDI r1, 134
+LDI r2, 60
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
-LDI r5, 356
-LDI r6, 15
-LDI r7, 26
-LDI r8, 96
-LDI r9, 0xFFFF00
-LINE r5, r6, r7, r8, r9
+LDI r5, 15
+LDI r6, 60
+LDI r7, 89
+LDI r8, 46
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 309
+LDI r11, 242
+LDI r12, 0xAA00FF
+PSET r10, r11, r12
 HALT

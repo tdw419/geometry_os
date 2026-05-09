@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (406, 138) with radius 28.
-; PLAN: r0=406(x), r1=138(y), r2=28(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 406
-LDI r1, 138
-LDI r2, 28
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (293, 121) with width 44 and height 53.
+; PLAN: r0=293(x), r1=121(y), r2=44(width), r3=53(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 293
+LDI r1, 121
+LDI r2, 44
+LDI r3, 53
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Draws a black rectangle at (248, 22) with width 49 and height 83.
+; PLAN: r0=248(x), r1=22(y), r2=49(width), r3=83(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 22
+LDI r2, 49
+LDI r3, 83
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

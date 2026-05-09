@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Creates a green rectangular region at (198, 126) spanning 74 by 105 pixels.
+; PLAN: r0=198(x), r1=126(y), r2=74(width), r3=105(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 198
+LDI r1, 126
+LDI r2, 74
+LDI r3, 105
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

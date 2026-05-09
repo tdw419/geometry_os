@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 9 into r1 and decrements it in a loop until zero.
-; PLAN: r1=9(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 9
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a orange line segment connecting (31, 255) to (37, 152).
+; PLAN: r0=31(x1), r1=255(y1), r2=37(x2), r3=152(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 31
+LDI r1, 255
+LDI r2, 37
+LDI r3, 152
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

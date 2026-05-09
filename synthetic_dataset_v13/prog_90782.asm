@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (356, 114) to (487, 209).
-; PLAN: r0=356(x1), r1=114(y1), r2=487(x2), r3=209(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 114
-LDI r2, 487
-LDI r3, 209
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 18x13 rectangle at position (49, 189).
+; PLAN: r0=49(x), r1=189(y), r2=18(width), r3=13(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 49
+LDI r1, 189
+LDI r2, 18
+LDI r3, 13
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

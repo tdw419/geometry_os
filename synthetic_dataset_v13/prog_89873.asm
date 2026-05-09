@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (217, 223) to (269, 108).
-; PLAN: r0=217(x1), r1=223(y1), r2=269(x2), r3=108(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 217
-LDI r1, 223
-LDI r2, 269
-LDI r3, 108
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (120, 109) with radius 42.
+; PLAN: r0=120(x), r1=109(y), r2=42(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 120
+LDI r1, 109
+LDI r2, 42
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

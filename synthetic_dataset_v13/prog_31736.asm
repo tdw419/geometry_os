@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (377, 69) with radius 31.
-; PLAN: r0=377(x), r1=69(y), r2=31(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 377
-LDI r1, 69
-LDI r2, 31
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (170, 80) to (392, 111).
+; PLAN: r0=170(x1), r1=80(y1), r2=392(x2), r3=111(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 80
+LDI r2, 392
+LDI r3, 111
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

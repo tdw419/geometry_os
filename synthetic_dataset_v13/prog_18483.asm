@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red line segment connecting (179, 47) to (249, 158).
-; PLAN: r0=179(x1), r1=47(y1), r2=249(x2), r3=158(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 47
-LDI r2, 249
-LDI r3, 158
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (351, 163) with radius 27.
+; PLAN: r0=351(x), r1=163(y), r2=27(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 351
+LDI r1, 163
+LDI r2, 27
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

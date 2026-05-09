@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Places a orange line segment connecting (427, 220) to (118, 180).
+; PLAN: r0=427(x1), r1=220(y1), r2=118(x2), r3=180(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 427
+LDI r1, 220
+LDI r2, 118
+LDI r3, 180
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

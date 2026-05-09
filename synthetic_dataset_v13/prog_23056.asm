@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (278, 173) and radius 35.
-; PLAN: r0=278(x), r1=173(y), r2=35(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 278
-LDI r1, 173
-LDI r2, 35
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 107x67 rectangle at position (288, 73).
+; PLAN: r0=288(x), r1=73(y), r2=107(width), r3=67(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 288
+LDI r1, 73
+LDI r2, 107
+LDI r3, 67
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

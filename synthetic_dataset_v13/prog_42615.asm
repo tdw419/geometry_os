@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a yellow 33x85 rectangle at position (160, 0).
-; PLAN: r0=160(x), r1=0(y), r2=33(width), r3=85(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 0
-LDI r2, 33
-LDI r3, 85
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (6, 218) then Creates a yellow rectangular region at (411, 64) spanning 98 by 113 pixels.
+; PLAN: r0=6(x), r1=218(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=411(x), r6=64(y), r7=98(width), r8=113(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 6
+LDI r1, 218
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 411
+LDI r6, 64
+LDI r7, 98
+LDI r8, 113
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
 HALT

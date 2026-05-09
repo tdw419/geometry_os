@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (300, 228) to (439, 50).
-; PLAN: r0=300(x1), r1=228(y1), r2=439(x2), r3=50(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 228
-LDI r2, 439
-LDI r3, 50
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (424, 67) with width 22 and height 93.
+; PLAN: r0=424(x), r1=67(y), r2=22(width), r3=93(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 424
+LDI r1, 67
+LDI r2, 22
+LDI r3, 93
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

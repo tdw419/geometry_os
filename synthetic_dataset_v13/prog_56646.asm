@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (96, 190) with radius 41.
-; PLAN: r0=96(x), r1=190(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 96
-LDI r1, 190
-LDI r2, 41
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 86x91 rectangle at position (421, 10).
+; PLAN: r0=421(x), r1=10(y), r2=86(width), r3=91(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 421
+LDI r1, 10
+LDI r2, 86
+LDI r3, 91
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

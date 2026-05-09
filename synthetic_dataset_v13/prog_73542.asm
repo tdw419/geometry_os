@@ -1,8 +1,12 @@
-; DESCRIPTION: Loads 6 into r1 and decrements it in a loop until zero.
-; PLAN: r1=6(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 6
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Sets a single red pixel at (95, 139) then Places a magenta circle of radius 79 at center (346, 168).
+; PLAN: r0=95(x), r1=139(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=346(x), r6=168(y), r7=79(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 95
+LDI r1, 139
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 346
+LDI r6, 168
+LDI r7, 79
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

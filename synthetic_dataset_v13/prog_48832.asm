@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a blue circle of radius 32 at center (348, 99).
-; PLAN: r0=348(x), r1=99(y), r2=32(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 348
-LDI r1, 99
-LDI r2, 32
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (434, 159).
+; PLAN: r0=434(x), r1=159(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 434
+LDI r1, 159
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

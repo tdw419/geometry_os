@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green rectangle at (37, 191) with width 49 and height 27.
-; PLAN: r0=37(x), r1=191(y), r2=49(width), r3=27(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 37
-LDI r1, 191
-LDI r2, 49
-LDI r3, 27
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 16 at center (465, 35).
+; PLAN: r0=465(x), r1=35(y), r2=16(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 465
+LDI r1, 35
+LDI r2, 16
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

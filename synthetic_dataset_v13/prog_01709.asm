@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Renders a magenta disk with center (320, 87) and radius 71 then Places a white line segment connecting (28, 82) to (317, 49) then Places a magenta dot at position (175, 46).
-; PLAN: r0=320(x), r1=87(y), r2=71(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=28(x1), r6=82(y1), r7=317(x2), r8=49(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=175(x), r11=46(y), r12=0xFF00FF(color). Op: PSET r10, r11, r12.
-LDI r0, 320
-LDI r1, 87
-LDI r2, 71
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 28
-LDI r6, 82
-LDI r7, 317
-LDI r8, 49
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
-LDI r10, 175
-LDI r11, 46
-LDI r12, 0xFF00FF
+; DESCRIPTION: Composite: Renders a green line between points (323, 52) and (361, 27) then Creates a black rectangular region at (262, 104) spanning 107 by 115 pixels then Sets a single red pixel at (245, 149).
+; PLAN: r0=323(x1), r1=52(y1), r2=361(x2), r3=27(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=262(x), r6=104(y), r7=107(width), r8=115(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=245(x), r11=149(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
+LDI r0, 323
+LDI r1, 52
+LDI r2, 361
+LDI r3, 27
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 262
+LDI r6, 104
+LDI r7, 107
+LDI r8, 115
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
+LDI r10, 245
+LDI r11, 149
+LDI r12, 0xFF0000
 PSET r10, r11, r12
 HALT

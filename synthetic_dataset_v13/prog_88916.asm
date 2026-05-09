@@ -1,5 +1,7 @@
-; DESCRIPTION: Fills the entire screen with solid white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Sets a single red pixel at (146, 120).
+; PLAN: r0=146(x), r1=120(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 146
+LDI r1, 120
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

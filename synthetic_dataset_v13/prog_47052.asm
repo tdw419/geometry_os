@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 112x104 starting at (300, 32).
-; PLAN: r0=300(x), r1=32(y), r2=112(width), r3=104(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 32
-LDI r2, 112
-LDI r3, 104
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (16, 186) to (355, 55).
+; PLAN: r0=16(x1), r1=186(y1), r2=355(x2), r3=55(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 16
+LDI r1, 186
+LDI r2, 355
+LDI r3, 55
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

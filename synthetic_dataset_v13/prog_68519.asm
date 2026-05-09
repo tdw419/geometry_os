@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (328, 219) to (418, 162).
-; PLAN: r0=328(x1), r1=219(y1), r2=418(x2), r3=162(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 328
-LDI r1, 219
-LDI r2, 418
-LDI r3, 162
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (471, 24) and radius 18.
+; PLAN: r0=471(x), r1=24(y), r2=18(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 471
+LDI r1, 24
+LDI r2, 18
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

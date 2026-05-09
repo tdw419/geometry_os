@@ -1,9 +1,19 @@
-; DESCRIPTION: Renders a black box of size 83x47 starting at (82, 145).
-; PLAN: r0=82(x), r1=145(y), r2=83(width), r3=47(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 82
-LDI r1, 145
-LDI r2, 83
-LDI r3, 47
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the screen with a vertical green gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x00FF00(color). CMP stores result in r0.
+LDI r7, 0x00FF00
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

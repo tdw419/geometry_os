@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (252, 252) to (281, 39).
-; PLAN: r0=252(x1), r1=252(y1), r2=281(x2), r3=39(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 252
-LDI r1, 252
-LDI r2, 281
-LDI r3, 39
-LDI r4, 0x000000
+; DESCRIPTION: Renders a green line between points (217, 52) and (131, 210).
+; PLAN: r0=217(x1), r1=52(y1), r2=131(x2), r3=210(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 217
+LDI r1, 52
+LDI r2, 131
+LDI r3, 210
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

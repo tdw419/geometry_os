@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a green 81x75 rectangle at position (373, 27).
-; PLAN: r0=373(x), r1=27(y), r2=81(width), r3=75(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 373
-LDI r1, 27
-LDI r2, 81
-LDI r3, 75
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (445, 0) then Renders a white disk with center (338, 141) and radius 19.
+; PLAN: r0=445(x), r1=0(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=338(x), r6=141(y), r7=19(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 445
+LDI r1, 0
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 338
+LDI r6, 141
+LDI r7, 19
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

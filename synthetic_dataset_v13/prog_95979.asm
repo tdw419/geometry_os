@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a black circular shape at (326, 226) with radius 26 then Places a black dot at position (192, 100).
-; PLAN: r0=326(x), r1=226(y), r2=26(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=192(x), r6=100(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 326
-LDI r1, 226
-LDI r2, 26
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 192
-LDI r6, 100
-LDI r7, 0x000000
-PSET r5, r6, r7
+; DESCRIPTION: Renders a white line between points (494, 114) and (504, 221).
+; PLAN: r0=494(x1), r1=114(y1), r2=504(x2), r3=221(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 494
+LDI r1, 114
+LDI r2, 504
+LDI r3, 221
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

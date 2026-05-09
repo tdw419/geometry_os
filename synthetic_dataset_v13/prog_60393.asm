@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a blue line segment connecting (70, 240) to (353, 176).
-; PLAN: r0=70(x1), r1=240(y1), r2=353(x2), r3=176(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 70
-LDI r1, 240
-LDI r2, 353
-LDI r3, 176
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta circle of radius 53 at center (211, 71) then Draws a red line from (224, 34) to (240, 205).
+; PLAN: r0=211(x), r1=71(y), r2=53(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=224(x1), r6=34(y1), r7=240(x2), r8=205(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 211
+LDI r1, 71
+LDI r2, 53
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 224
+LDI r6, 34
+LDI r7, 240
+LDI r8, 205
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

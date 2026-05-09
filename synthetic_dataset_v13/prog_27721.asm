@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (32, 217) and radius 18.
-; PLAN: r0=32(x), r1=217(y), r2=18(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 32
-LDI r1, 217
-LDI r2, 18
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 106x43 rectangle at position (164, 130).
+; PLAN: r0=164(x), r1=130(y), r2=106(width), r3=43(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 130
+LDI r2, 106
+LDI r3, 43
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 35x119 rectangle at position (309, 115).
-; PLAN: r0=309(x), r1=115(y), r2=35(width), r3=119(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 115
-LDI r2, 35
-LDI r3, 119
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a orange 55x65 rectangle at position (381, 25).
+; PLAN: r0=381(x), r1=25(y), r2=55(width), r3=65(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 381
+LDI r1, 25
+LDI r2, 55
+LDI r3, 65
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

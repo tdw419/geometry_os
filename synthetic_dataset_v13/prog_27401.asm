@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Creates a red rectangular region at (449, 9) spanning 33 by 16 pixels then Sets a single orange pixel at (66, 218) then Renders a red disk with center (424, 176) and radius 49.
-; PLAN: r0=449(x), r1=9(y), r2=33(width), r3=16(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=66(x), r6=218(y), r7=0xFF8800(color). Op: PSET r5, r6, r7 Next: r10=424(x), r11=176(y), r12=49(radius), r13=0xFF0000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 449
-LDI r1, 9
-LDI r2, 33
-LDI r3, 16
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 66
-LDI r6, 218
-LDI r7, 0xFF8800
-PSET r5, r6, r7
-LDI r10, 424
-LDI r11, 176
-LDI r12, 49
-LDI r13, 0xFF0000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Draws a magenta circle centered at (95, 216) with radius 12 then Creates a green rectangular region at (319, 96) spanning 62 by 87 pixels.
+; PLAN: r0=95(x), r1=216(y), r2=12(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=319(x), r6=96(y), r7=62(width), r8=87(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 95
+LDI r1, 216
+LDI r2, 12
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 319
+LDI r6, 96
+LDI r7, 62
+LDI r8, 87
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

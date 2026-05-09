@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (291, 121) to (190, 84).
-; PLAN: r0=291(x1), r1=121(y1), r2=190(x2), r3=84(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 291
-LDI r1, 121
-LDI r2, 190
-LDI r3, 84
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white box of size 117x107 starting at (46, 74).
+; PLAN: r0=46(x), r1=74(y), r2=117(width), r3=107(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 46
+LDI r1, 74
+LDI r2, 117
+LDI r3, 107
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

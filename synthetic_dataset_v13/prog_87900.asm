@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a red dot at position (476, 246).
-; PLAN: r0=476(x), r1=246(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 476
-LDI r1, 246
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

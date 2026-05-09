@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a green circle centered at (278, 97) with radius 75.
-; PLAN: r0=278(x), r1=97(y), r2=75(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 278
-LDI r1, 97
-LDI r2, 75
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

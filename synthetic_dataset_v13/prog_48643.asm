@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 21 into r1 and decrements it in a loop until zero.
-; PLAN: r1=21(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 21
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a cyan line from (156, 159) to (487, 61).
+; PLAN: r0=156(x1), r1=159(y1), r2=487(x2), r3=61(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 156
+LDI r1, 159
+LDI r2, 487
+LDI r3, 61
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

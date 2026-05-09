@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 42x103 rectangle at position (25, 53).
-; PLAN: r0=25(x), r1=53(y), r2=42(width), r3=103(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 25
-LDI r1, 53
-LDI r2, 42
-LDI r3, 103
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a blue box of size 18x104 starting at (51, 72).
+; PLAN: r0=51(x), r1=72(y), r2=18(width), r3=104(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 51
+LDI r1, 72
+LDI r2, 18
+LDI r3, 104
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (40, 242) to (123, 202).
-; PLAN: r0=40(x1), r1=242(y1), r2=123(x2), r3=202(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 40
-LDI r1, 242
-LDI r2, 123
-LDI r3, 202
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 80x115 rectangle at position (315, 3).
+; PLAN: r0=315(x), r1=3(y), r2=80(width), r3=115(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 315
+LDI r1, 3
+LDI r2, 80
+LDI r3, 115
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

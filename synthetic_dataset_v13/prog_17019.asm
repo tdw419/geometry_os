@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (387, 50) with width 98 and height 88.
-; PLAN: r0=387(x), r1=50(y), r2=98(width), r3=88(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 387
-LDI r1, 50
-LDI r2, 98
-LDI r3, 88
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (80, 178) and radius 55.
+; PLAN: r0=80(x), r1=178(y), r2=55(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 80
+LDI r1, 178
+LDI r2, 55
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

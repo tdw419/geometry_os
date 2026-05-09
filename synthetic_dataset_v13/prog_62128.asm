@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a purple line segment connecting (55, 74) to (491, 56).
-; PLAN: r0=55(x1), r1=74(y1), r2=491(x2), r3=56(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 55
-LDI r1, 74
-LDI r2, 491
-LDI r3, 56
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (439, 124) then Renders a yellow box of size 21x112 starting at (462, 102).
+; PLAN: r0=439(x), r1=124(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=462(x), r6=102(y), r7=21(width), r8=112(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 439
+LDI r1, 124
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 462
+LDI r6, 102
+LDI r7, 21
+LDI r8, 112
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Loads 36 into r1 and decrements it in a loop until zero.
-; PLAN: r1=36(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 36
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a green dot at position (3, 98).
+; PLAN: r0=3(x), r1=98(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 3
+LDI r1, 98
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

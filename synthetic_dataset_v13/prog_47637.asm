@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 21 at center (432, 56).
-; PLAN: r0=432(x), r1=56(y), r2=21(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 432
-LDI r1, 56
-LDI r2, 21
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (226, 238) and (421, 121).
+; PLAN: r0=226(x1), r1=238(y1), r2=421(x2), r3=121(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 238
+LDI r2, 421
+LDI r3, 121
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

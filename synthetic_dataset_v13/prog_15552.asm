@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (468, 69) then Creates a purple circular shape at (175, 161) with radius 35.
-; PLAN: r0=468(x), r1=69(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=175(x), r6=161(y), r7=35(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 468
-LDI r1, 69
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 175
-LDI r6, 161
-LDI r7, 35
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a purple line from (246, 52) to (45, 18).
+; PLAN: r0=246(x1), r1=52(y1), r2=45(x2), r3=18(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 246
+LDI r1, 52
+LDI r2, 45
+LDI r3, 18
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

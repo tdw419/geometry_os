@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a white line from (75, 244) to (56, 176).
-; PLAN: r0=75(x1), r1=244(y1), r2=56(x2), r3=176(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 75
-LDI r1, 244
-LDI r2, 56
-LDI r3, 176
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (203, 80) then Renders a blue box of size 66x33 starting at (60, 4).
+; PLAN: r0=203(x), r1=80(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=60(x), r6=4(y), r7=66(width), r8=33(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 203
+LDI r1, 80
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 60
+LDI r6, 4
+LDI r7, 66
+LDI r8, 33
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

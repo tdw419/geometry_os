@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a yellow line from (289, 120) to (158, 9).
-; PLAN: r0=289(x1), r1=120(y1), r2=158(x2), r3=9(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 289
-LDI r1, 120
-LDI r2, 158
-LDI r3, 9
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a magenta disk with center (333, 188) and radius 57 then Places a black dot at position (379, 149).
+; PLAN: r0=333(x), r1=188(y), r2=57(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=379(x), r6=149(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 333
+LDI r1, 188
+LDI r2, 57
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 379
+LDI r6, 149
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

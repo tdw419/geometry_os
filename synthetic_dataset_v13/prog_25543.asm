@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (385, 51) with width 60 and height 101.
-; PLAN: r0=385(x), r1=51(y), r2=60(width), r3=101(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 385
-LDI r1, 51
-LDI r2, 60
-LDI r3, 101
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red line segment connecting (76, 230) to (434, 245).
+; PLAN: r0=76(x1), r1=230(y1), r2=434(x2), r3=245(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 76
+LDI r1, 230
+LDI r2, 434
+LDI r3, 245
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

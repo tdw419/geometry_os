@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (23, 244) and (485, 57).
-; PLAN: r0=23(x1), r1=244(y1), r2=485(x2), r3=57(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 23
-LDI r1, 244
-LDI r2, 485
-LDI r3, 57
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (106, 99) with width 91 and height 88.
+; PLAN: r0=106(x), r1=99(y), r2=91(width), r3=88(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 106
+LDI r1, 99
+LDI r2, 91
+LDI r3, 88
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

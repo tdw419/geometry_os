@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a purple circle of radius 62 at center (86, 65).
-; PLAN: r0=86(x), r1=65(y), r2=62(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 86
-LDI r1, 65
-LDI r2, 62
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (400, 183) to (378, 62).
+; PLAN: r0=400(x1), r1=183(y1), r2=378(x2), r3=62(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 183
+LDI r2, 378
+LDI r3, 62
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

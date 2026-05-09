@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single white pixel at (29, 15).
-; PLAN: r0=29(x), r1=15(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 29
-LDI r1, 15
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a blue 109x90 rectangle at position (208, 44).
+; PLAN: r0=208(x), r1=44(y), r2=109(width), r3=90(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 208
+LDI r1, 44
+LDI r2, 109
+LDI r3, 90
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

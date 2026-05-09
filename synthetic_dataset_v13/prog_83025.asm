@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 37 at center (225, 159).
-; PLAN: r0=225(x), r1=159(y), r2=37(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 225
-LDI r1, 159
-LDI r2, 37
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (161, 68) to (474, 78).
+; PLAN: r0=161(x1), r1=68(y1), r2=474(x2), r3=78(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 161
+LDI r1, 68
+LDI r2, 474
+LDI r3, 78
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

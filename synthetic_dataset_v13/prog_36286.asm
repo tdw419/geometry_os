@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (305, 64) with width 102 and height 14.
-; PLAN: r0=305(x), r1=64(y), r2=102(width), r3=14(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 305
-LDI r1, 64
-LDI r2, 102
-LDI r3, 14
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (269, 197) to (505, 31).
+; PLAN: r0=269(x1), r1=197(y1), r2=505(x2), r3=31(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 269
+LDI r1, 197
+LDI r2, 505
+LDI r3, 31
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

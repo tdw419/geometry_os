@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 114x90 starting at (28, 102).
-; PLAN: r0=28(x), r1=102(y), r2=114(width), r3=90(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 28
-LDI r1, 102
-LDI r2, 114
-LDI r3, 90
+; DESCRIPTION: Renders a purple line between points (446, 3) and (481, 25).
+; PLAN: r0=446(x1), r1=3(y1), r2=481(x2), r3=25(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 446
+LDI r1, 3
+LDI r2, 481
+LDI r3, 25
 LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (503, 152).
-; PLAN: r0=503(x), r1=152(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 503
-LDI r1, 152
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a green 15x117 rectangle at position (246, 103).
+; PLAN: r0=246(x), r1=103(y), r2=15(width), r3=117(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 246
+LDI r1, 103
+LDI r2, 15
+LDI r3, 117
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

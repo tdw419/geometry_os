@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (57, 54) to (180, 178).
-; PLAN: r0=57(x1), r1=54(y1), r2=180(x2), r3=178(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 57
-LDI r1, 54
-LDI r2, 180
-LDI r3, 178
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow 56x82 rectangle at position (376, 102).
+; PLAN: r0=376(x), r1=102(y), r2=56(width), r3=82(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 376
+LDI r1, 102
+LDI r2, 56
+LDI r3, 82
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

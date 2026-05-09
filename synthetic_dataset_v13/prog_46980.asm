@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange rectangle at (19, 226) with width 54 and height 22.
-; PLAN: r0=19(x), r1=226(y), r2=54(width), r3=22(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 19
-LDI r1, 226
-LDI r2, 54
-LDI r3, 22
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (292, 150) with radius 18.
+; PLAN: r0=292(x), r1=150(y), r2=18(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 292
+LDI r1, 150
+LDI r2, 18
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,5 @@
-; DESCRIPTION: Creates a green rectangular region at (347, 136) spanning 65 by 104 pixels.
-; PLAN: r0=347(x), r1=136(y), r2=65(width), r3=104(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 347
-LDI r1, 136
-LDI r2, 65
-LDI r3, 104
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

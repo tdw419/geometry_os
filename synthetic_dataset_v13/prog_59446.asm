@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (391, 0).
-; PLAN: r0=391(x), r1=0(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 391
-LDI r1, 0
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a magenta line between points (164, 21) and (2, 162).
+; PLAN: r0=164(x1), r1=21(y1), r2=2(x2), r3=162(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 21
+LDI r2, 2
+LDI r3, 162
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

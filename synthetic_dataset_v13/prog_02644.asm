@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 111x65 rectangle at position (365, 94).
-; PLAN: r0=365(x), r1=94(y), r2=111(width), r3=65(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 365
-LDI r1, 94
-LDI r2, 111
-LDI r3, 65
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a purple box of size 49x52 starting at (113, 24).
+; PLAN: r0=113(x), r1=24(y), r2=49(width), r3=52(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 113
+LDI r1, 24
+LDI r2, 49
+LDI r3, 52
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

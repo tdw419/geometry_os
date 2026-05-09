@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 58 at center (94, 111).
-; PLAN: r0=94(x), r1=111(y), r2=58(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 94
-LDI r1, 111
-LDI r2, 58
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 13x78 starting at (12, 5).
+; PLAN: r0=12(x), r1=5(y), r2=13(width), r3=78(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 12
+LDI r1, 5
+LDI r2, 13
+LDI r3, 78
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a blue rectangular region at (165, 117) spanning 49 by 112 pixels.
-; PLAN: r0=165(x), r1=117(y), r2=49(width), r3=112(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 117
-LDI r2, 49
-LDI r3, 112
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 12 at center (19, 124).
+; PLAN: r0=19(x), r1=124(y), r2=12(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 19
+LDI r1, 124
+LDI r2, 12
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

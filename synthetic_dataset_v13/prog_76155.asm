@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 66x29 rectangle at position (406, 200).
-; PLAN: r0=406(x), r1=200(y), r2=66(width), r3=29(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 406
-LDI r1, 200
-LDI r2, 66
-LDI r3, 29
+; DESCRIPTION: Draws a green line from (151, 240) to (253, 192).
+; PLAN: r0=151(x1), r1=240(y1), r2=253(x2), r3=192(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 240
+LDI r2, 253
+LDI r3, 192
 LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

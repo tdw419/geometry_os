@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 75 at center (370, 161).
-; PLAN: r0=370(x), r1=161(y), r2=75(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 370
-LDI r1, 161
-LDI r2, 75
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange box of size 41x24 starting at (387, 12).
+; PLAN: r0=387(x), r1=12(y), r2=41(width), r3=24(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 387
+LDI r1, 12
+LDI r2, 41
+LDI r3, 24
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a white line segment connecting (180, 224) to (413, 236).
-; PLAN: r0=180(x1), r1=224(y1), r2=413(x2), r3=236(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 224
-LDI r2, 413
-LDI r3, 236
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a black disk with center (331, 70) and radius 23 then Draws a orange rectangle at (287, 114) with width 114 and height 45.
+; PLAN: r0=331(x), r1=70(y), r2=23(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=287(x), r6=114(y), r7=114(width), r8=45(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 331
+LDI r1, 70
+LDI r2, 23
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 287
+LDI r6, 114
+LDI r7, 114
+LDI r8, 45
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

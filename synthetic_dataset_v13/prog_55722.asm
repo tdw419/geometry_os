@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Draws a yellow line from (327, 195) to (13, 6).
+; PLAN: r0=327(x1), r1=195(y1), r2=13(x2), r3=6(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 327
+LDI r1, 195
+LDI r2, 13
+LDI r3, 6
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

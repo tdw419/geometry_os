@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Renders a black box of size 76x21 starting at (105, 3).
+; PLAN: r0=105(x), r1=3(y), r2=76(width), r3=21(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 105
+LDI r1, 3
+LDI r2, 76
+LDI r3, 21
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

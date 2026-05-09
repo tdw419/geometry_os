@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow line segment connecting (323, 230) to (434, 210).
-; PLAN: r0=323(x1), r1=230(y1), r2=434(x2), r3=210(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 323
-LDI r1, 230
-LDI r2, 434
-LDI r3, 210
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single black pixel at (104, 86).
+; PLAN: r0=104(x), r1=86(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 104
+LDI r1, 86
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

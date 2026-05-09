@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 17x88 rectangle at position (136, 119).
-; PLAN: r0=136(x), r1=119(y), r2=17(width), r3=88(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 136
-LDI r1, 119
-LDI r2, 17
-LDI r3, 88
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a black box of size 19x32 starting at (289, 81).
+; PLAN: r0=289(x), r1=81(y), r2=19(width), r3=32(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 289
+LDI r1, 81
+LDI r2, 19
+LDI r3, 32
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

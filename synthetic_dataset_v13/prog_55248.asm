@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a orange rectangle at (25, 113) with width 12 and height 118.
-; PLAN: r0=25(x), r1=113(y), r2=12(width), r3=118(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 25
-LDI r1, 113
-LDI r2, 12
-LDI r3, 118
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (509, 90).
+; PLAN: r0=509(x), r1=90(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 509
+LDI r1, 90
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

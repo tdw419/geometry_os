@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (377, 47) and radius 42.
-; PLAN: r0=377(x), r1=47(y), r2=42(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 377
-LDI r1, 47
-LDI r2, 42
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (181, 132) to (113, 73).
+; PLAN: r0=181(x1), r1=132(y1), r2=113(x2), r3=73(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 181
+LDI r1, 132
+LDI r2, 113
+LDI r3, 73
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

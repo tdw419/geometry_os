@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (171, 40) and (445, 136).
-; PLAN: r0=171(x1), r1=40(y1), r2=445(x2), r3=136(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 171
-LDI r1, 40
-LDI r2, 445
-LDI r3, 136
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 17 at center (314, 22).
+; PLAN: r0=314(x), r1=22(y), r2=17(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 314
+LDI r1, 22
+LDI r2, 17
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

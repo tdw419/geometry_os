@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a purple box of size 15x69 starting at (145, 142).
-; PLAN: r0=145(x), r1=142(y), r2=15(width), r3=69(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 145
-LDI r1, 142
-LDI r2, 15
-LDI r3, 69
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single white pixel at (81, 214).
+; PLAN: r0=81(x), r1=214(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 81
+LDI r1, 214
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

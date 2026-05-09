@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a blue line between points (321, 61) and (281, 187).
-; PLAN: r0=321(x1), r1=61(y1), r2=281(x2), r3=187(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 321
-LDI r1, 61
-LDI r2, 281
-LDI r3, 187
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a black box of size 107x115 starting at (295, 51) then Sets a single white pixel at (492, 45).
+; PLAN: r0=295(x), r1=51(y), r2=107(width), r3=115(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=492(x), r6=45(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 295
+LDI r1, 51
+LDI r2, 107
+LDI r3, 115
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 492
+LDI r6, 45
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

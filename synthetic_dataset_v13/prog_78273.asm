@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (384, 152) with radius 68.
-; PLAN: r0=384(x), r1=152(y), r2=68(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 384
-LDI r1, 152
-LDI r2, 68
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (284, 224) to (187, 141).
+; PLAN: r0=284(x1), r1=224(y1), r2=187(x2), r3=141(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 284
+LDI r1, 224
+LDI r2, 187
+LDI r3, 141
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

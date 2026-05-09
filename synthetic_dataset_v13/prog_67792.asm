@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a red line from (344, 114) to (339, 203).
-; PLAN: r0=344(x1), r1=114(y1), r2=339(x2), r3=203(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 344
-LDI r1, 114
-LDI r2, 339
-LDI r3, 203
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red circle of radius 59 at center (251, 182) then Places a black dot at position (286, 160).
+; PLAN: r0=251(x), r1=182(y), r2=59(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=286(x), r6=160(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 251
+LDI r1, 182
+LDI r2, 59
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 286
+LDI r6, 160
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

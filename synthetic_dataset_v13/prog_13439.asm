@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (435, 47) with radius 31.
-; PLAN: r0=435(x), r1=47(y), r2=31(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 435
-LDI r1, 47
-LDI r2, 31
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (73, 73) spanning 61 by 22 pixels.
+; PLAN: r0=73(x), r1=73(y), r2=61(width), r3=22(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 73
+LDI r1, 73
+LDI r2, 61
+LDI r3, 22
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

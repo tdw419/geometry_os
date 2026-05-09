@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (396, 101) and radius 11.
-; PLAN: r0=396(x), r1=101(y), r2=11(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 396
-LDI r1, 101
-LDI r2, 11
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (145, 252) and (99, 102).
+; PLAN: r0=145(x1), r1=252(y1), r2=99(x2), r3=102(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 145
+LDI r1, 252
+LDI r2, 99
+LDI r3, 102
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (427, 130) with radius 50.
-; PLAN: r0=427(x), r1=130(y), r2=50(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 427
-LDI r1, 130
-LDI r2, 50
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (196, 13) with width 106 and height 85.
+; PLAN: r0=196(x), r1=13(y), r2=106(width), r3=85(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 196
+LDI r1, 13
+LDI r2, 106
+LDI r3, 85
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

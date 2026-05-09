@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a cyan circle of radius 22 at center (441, 23).
-; PLAN: r0=441(x), r1=23(y), r2=22(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 441
-LDI r1, 23
-LDI r2, 22
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red rectangle at (312, 43) with width 30 and height 76.
-; PLAN: r0=312(x), r1=43(y), r2=30(width), r3=76(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 312
-LDI r1, 43
-LDI r2, 30
-LDI r3, 76
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (412, 61) with radius 42.
+; PLAN: r0=412(x), r1=61(y), r2=42(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 412
+LDI r1, 61
+LDI r2, 42
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

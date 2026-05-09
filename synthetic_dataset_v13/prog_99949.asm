@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a purple circle of radius 42 at center (468, 54).
-; PLAN: r0=468(x), r1=54(y), r2=42(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 468
-LDI r1, 54
-LDI r2, 42
-LDI r3, 0xAA00FF
+; DESCRIPTION: Creates a blue circular shape at (371, 103) with radius 59.
+; PLAN: r0=371(x), r1=103(y), r2=59(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 371
+LDI r1, 103
+LDI r2, 59
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

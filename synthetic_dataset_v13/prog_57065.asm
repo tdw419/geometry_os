@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (378, 78) with width 113 and height 45.
-; PLAN: r0=378(x), r1=78(y), r2=113(width), r3=45(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 378
-LDI r1, 78
-LDI r2, 113
-LDI r3, 45
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a magenta box of size 46x35 starting at (58, 136).
+; PLAN: r0=58(x), r1=136(y), r2=46(width), r3=35(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 58
+LDI r1, 136
+LDI r2, 46
+LDI r3, 35
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

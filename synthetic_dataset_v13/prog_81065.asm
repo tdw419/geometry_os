@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (88, 36).
-; PLAN: r0=88(x), r1=36(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 88
-LDI r1, 36
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a white line from (108, 249) to (321, 191).
+; PLAN: r0=108(x1), r1=249(y1), r2=321(x2), r3=191(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 108
+LDI r1, 249
+LDI r2, 321
+LDI r3, 191
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

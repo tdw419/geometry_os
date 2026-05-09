@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a purple dot at position (344, 21).
-; PLAN: r0=344(x), r1=21(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 344
-LDI r1, 21
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a white circular shape at (201, 186) with radius 22.
+; PLAN: r0=201(x), r1=186(y), r2=22(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 201
+LDI r1, 186
+LDI r2, 22
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single purple pixel at (188, 215).
-; PLAN: r0=188(x), r1=215(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 188
-LDI r1, 215
-LDI r2, 0xAA00FF
+; DESCRIPTION: Sets a single magenta pixel at (257, 225).
+; PLAN: r0=257(x), r1=225(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 257
+LDI r1, 225
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
 HALT

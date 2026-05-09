@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a red dot at position (49, 87).
-; PLAN: r0=49(x), r1=87(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 49
-LDI r1, 87
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a white circular shape at (328, 114) with radius 12.
+; PLAN: r0=328(x), r1=114(y), r2=12(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 328
+LDI r1, 114
+LDI r2, 12
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

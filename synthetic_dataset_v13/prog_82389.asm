@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (249, 138) with radius 78.
-; PLAN: r0=249(x), r1=138(y), r2=78(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 249
-LDI r1, 138
-LDI r2, 78
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 21x53 rectangle at position (436, 154).
+; PLAN: r0=436(x), r1=154(y), r2=21(width), r3=53(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 436
+LDI r1, 154
+LDI r2, 21
+LDI r3, 53
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

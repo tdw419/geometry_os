@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a white circle centered at (266, 94) with radius 49.
-; PLAN: r0=266(x), r1=94(y), r2=49(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 266
-LDI r1, 94
-LDI r2, 49
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (167, 240).
+; PLAN: r0=167(x), r1=240(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 167
+LDI r1, 240
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

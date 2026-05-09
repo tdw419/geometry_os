@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (400, 61) to (425, 63).
-; PLAN: r0=400(x1), r1=61(y1), r2=425(x2), r3=63(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 400
-LDI r1, 61
-LDI r2, 425
-LDI r3, 63
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue 63x112 rectangle at position (44, 75).
+; PLAN: r0=44(x), r1=75(y), r2=63(width), r3=112(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 75
+LDI r2, 63
+LDI r3, 112
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

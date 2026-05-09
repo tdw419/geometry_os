@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (322, 60) with width 73 and height 46.
-; PLAN: r0=322(x), r1=60(y), r2=73(width), r3=46(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 322
-LDI r1, 60
-LDI r2, 73
-LDI r3, 46
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a magenta rectangle at (125, 51) with width 54 and height 21.
+; PLAN: r0=125(x), r1=51(y), r2=54(width), r3=21(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 125
+LDI r1, 51
+LDI r2, 54
+LDI r3, 21
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a white line segment connecting (296, 61) to (55, 142).
-; PLAN: r0=296(x1), r1=61(y1), r2=55(x2), r3=142(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 296
-LDI r1, 61
-LDI r2, 55
-LDI r3, 142
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (244, 133) then Creates a blue circular shape at (434, 165) with radius 59.
+; PLAN: r0=244(x), r1=133(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=434(x), r6=165(y), r7=59(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 244
+LDI r1, 133
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 434
+LDI r6, 165
+LDI r7, 59
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

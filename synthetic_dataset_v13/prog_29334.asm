@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 58x100 rectangle at position (139, 40).
-; PLAN: r0=139(x), r1=40(y), r2=58(width), r3=100(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 139
-LDI r1, 40
-LDI r2, 58
-LDI r3, 100
-LDI r4, 0x0000FF
+; DESCRIPTION: Creates a red rectangular region at (380, 115) spanning 42 by 40 pixels.
+; PLAN: r0=380(x), r1=115(y), r2=42(width), r3=40(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 380
+LDI r1, 115
+LDI r2, 42
+LDI r3, 40
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

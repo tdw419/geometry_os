@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (274, 170) with radius 65.
-; PLAN: r0=274(x), r1=170(y), r2=65(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 274
-LDI r1, 170
-LDI r2, 65
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green line segment connecting (232, 248) to (213, 173).
+; PLAN: r0=232(x1), r1=248(y1), r2=213(x2), r3=173(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 232
+LDI r1, 248
+LDI r2, 213
+LDI r3, 173
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

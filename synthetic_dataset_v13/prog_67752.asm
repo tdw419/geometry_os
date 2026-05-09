@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (277, 225) and (353, 99).
-; PLAN: r0=277(x1), r1=225(y1), r2=353(x2), r3=99(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 277
-LDI r1, 225
-LDI r2, 353
-LDI r3, 99
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (464, 76) and radius 16.
+; PLAN: r0=464(x), r1=76(y), r2=16(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 464
+LDI r1, 76
+LDI r2, 16
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

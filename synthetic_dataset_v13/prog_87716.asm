@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (165, 174) spanning 38 by 16 pixels then Draws a orange circle centered at (281, 89) with radius 72.
-; PLAN: r0=165(x), r1=174(y), r2=38(width), r3=16(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=281(x), r6=89(y), r7=72(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 165
-LDI r1, 174
-LDI r2, 38
-LDI r3, 16
+; DESCRIPTION: Composite: Draws a black rectangle at (39, 189) with width 21 and height 33 then Sets a single orange pixel at (480, 129) then Places a white circle of radius 80 at center (184, 113).
+; PLAN: r0=39(x), r1=189(y), r2=21(width), r3=33(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=480(x), r6=129(y), r7=0xFF8800(color). Op: PSET r5, r6, r7 Next: r10=184(x), r11=113(y), r12=80(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 39
+LDI r1, 189
+LDI r2, 21
+LDI r3, 33
 LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
-LDI r5, 281
-LDI r6, 89
-LDI r7, 72
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+LDI r5, 480
+LDI r6, 129
+LDI r7, 0xFF8800
+PSET r5, r6, r7
+LDI r10, 184
+LDI r11, 113
+LDI r12, 80
+LDI r13, 0xFFFFFF
+CIRCLE r10, r11, r12, r13
 HALT

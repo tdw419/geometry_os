@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (248, 76) and (369, 15).
-; PLAN: r0=248(x1), r1=76(y1), r2=369(x2), r3=15(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 248
-LDI r1, 76
-LDI r2, 369
-LDI r3, 15
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a magenta line between points (104, 77) and (393, 225).
+; PLAN: r0=104(x1), r1=77(y1), r2=393(x2), r3=225(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 104
+LDI r1, 77
+LDI r2, 393
+LDI r3, 225
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

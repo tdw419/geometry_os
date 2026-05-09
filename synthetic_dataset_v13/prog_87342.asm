@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single green pixel at (116, 47).
-; PLAN: r0=116(x), r1=47(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 116
-LDI r1, 47
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Paints the whole screen white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (250, 169) with radius 80.
-; PLAN: r0=250(x), r1=169(y), r2=80(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 250
-LDI r1, 169
-LDI r2, 80
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (278, 60) to (500, 176).
+; PLAN: r0=278(x1), r1=60(y1), r2=500(x2), r3=176(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 278
+LDI r1, 60
+LDI r2, 500
+LDI r3, 176
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

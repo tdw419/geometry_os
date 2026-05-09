@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (113, 157) with width 66 and height 28.
-; PLAN: r0=113(x), r1=157(y), r2=66(width), r3=28(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 113
-LDI r1, 157
-LDI r2, 66
-LDI r3, 28
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (487, 69) to (15, 111).
+; PLAN: r0=487(x1), r1=69(y1), r2=15(x2), r3=111(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 487
+LDI r1, 69
+LDI r2, 15
+LDI r3, 111
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

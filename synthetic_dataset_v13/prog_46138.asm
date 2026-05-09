@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (310, 86) to (451, 214).
-; PLAN: r0=310(x1), r1=86(y1), r2=451(x2), r3=214(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 86
-LDI r2, 451
-LDI r3, 214
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (408, 103) with width 66 and height 56.
+; PLAN: r0=408(x), r1=103(y), r2=66(width), r3=56(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 408
+LDI r1, 103
+LDI r2, 66
+LDI r3, 56
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

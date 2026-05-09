@@ -1,19 +1,13 @@
-; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
-LDI r7, 0xFF0000
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Sets a single cyan pixel at (166, 148) then Draws a green line from (107, 86) to (345, 134).
+; PLAN: r0=166(x), r1=148(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=107(x1), r6=86(y1), r7=345(x2), r8=134(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 166
+LDI r1, 148
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 107
+LDI r6, 86
+LDI r7, 345
+LDI r8, 134
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

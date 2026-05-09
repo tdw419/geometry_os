@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (350, 118) with radius 71.
-; PLAN: r0=350(x), r1=118(y), r2=71(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 350
-LDI r1, 118
-LDI r2, 71
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (307, 228) and (298, 107).
+; PLAN: r0=307(x1), r1=228(y1), r2=298(x2), r3=107(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 307
+LDI r1, 228
+LDI r2, 298
+LDI r3, 107
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

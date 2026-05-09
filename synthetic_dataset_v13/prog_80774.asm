@@ -1,20 +1,15 @@
-; DESCRIPTION: Composite: Renders a black disk with center (472, 82) and radius 17 then Creates a magenta rectangular region at (412, 121) spanning 87 by 84 pixels then Renders a white line between points (349, 72) and (229, 133).
-; PLAN: r0=472(x), r1=82(y), r2=17(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=412(x), r6=121(y), r7=87(width), r8=84(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=349(x1), r11=72(y1), r12=229(x2), r13=133(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 472
-LDI r1, 82
-LDI r2, 17
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 412
-LDI r6, 121
-LDI r7, 87
-LDI r8, 84
-LDI r9, 0xFF00FF
+; DESCRIPTION: Composite: Places a green line segment connecting (209, 254) to (234, 155) then Creates a cyan rectangular region at (230, 127) spanning 68 by 17 pixels.
+; PLAN: r0=209(x1), r1=254(y1), r2=234(x2), r3=155(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=230(x), r6=127(y), r7=68(width), r8=17(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 209
+LDI r1, 254
+LDI r2, 234
+LDI r3, 155
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 230
+LDI r6, 127
+LDI r7, 68
+LDI r8, 17
+LDI r9, 0x00FFFF
 RECTF r5, r6, r7, r8, r9
-LDI r10, 349
-LDI r11, 72
-LDI r12, 229
-LDI r13, 133
-LDI r14, 0xFFFFFF
-LINE r10, r11, r12, r13, r14
 HALT

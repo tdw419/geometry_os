@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a magenta 70x67 rectangle at position (292, 55).
-; PLAN: r0=292(x), r1=55(y), r2=70(width), r3=67(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 292
-LDI r1, 55
-LDI r2, 70
-LDI r3, 67
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

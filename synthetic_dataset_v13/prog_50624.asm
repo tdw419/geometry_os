@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 15 at center (139, 124).
-; PLAN: r0=139(x), r1=124(y), r2=15(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 139
-LDI r1, 124
-LDI r2, 15
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (497, 174) to (272, 82).
+; PLAN: r0=497(x1), r1=174(y1), r2=272(x2), r3=82(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 497
+LDI r1, 174
+LDI r2, 272
+LDI r3, 82
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

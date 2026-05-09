@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (225, 238).
-; PLAN: r0=225(x), r1=238(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 225
-LDI r1, 238
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan line from (343, 217) to (254, 28).
+; PLAN: r0=343(x1), r1=217(y1), r2=254(x2), r3=28(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 343
+LDI r1, 217
+LDI r2, 254
+LDI r3, 28
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

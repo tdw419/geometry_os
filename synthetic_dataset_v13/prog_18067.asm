@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single cyan pixel at (100, 122).
-; PLAN: r0=100(x), r1=122(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 100
-LDI r1, 122
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a magenta 70x102 rectangle at position (428, 130).
+; PLAN: r0=428(x), r1=130(y), r2=70(width), r3=102(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 428
+LDI r1, 130
+LDI r2, 70
+LDI r3, 102
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

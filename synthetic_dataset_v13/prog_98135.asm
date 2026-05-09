@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 96x112 rectangle at position (63, 65).
-; PLAN: r0=63(x), r1=65(y), r2=96(width), r3=112(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 63
-LDI r1, 65
-LDI r2, 96
-LDI r3, 112
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a orange 87x111 rectangle at position (395, 27).
+; PLAN: r0=395(x), r1=27(y), r2=87(width), r3=111(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 395
+LDI r1, 27
+LDI r2, 87
+LDI r3, 111
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

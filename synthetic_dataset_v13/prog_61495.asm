@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 52 at center (320, 123).
-; PLAN: r0=320(x), r1=123(y), r2=52(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 320
-LDI r1, 123
-LDI r2, 52
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan 86x86 rectangle at position (51, 32).
+; PLAN: r0=51(x), r1=32(y), r2=86(width), r3=86(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 51
+LDI r1, 32
+LDI r2, 86
+LDI r3, 86
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

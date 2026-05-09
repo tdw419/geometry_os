@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Draws a magenta rectangle at (13, 48) with width 16 and height 93 then Places a green dot at position (201, 18).
-; PLAN: r0=13(x), r1=48(y), r2=16(width), r3=93(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=201(x), r6=18(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 13
-LDI r1, 48
-LDI r2, 16
-LDI r3, 93
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 201
-LDI r6, 18
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Draws a cyan line from (415, 2) to (124, 125).
+; PLAN: r0=415(x1), r1=2(y1), r2=124(x2), r3=125(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 415
+LDI r1, 2
+LDI r2, 124
+LDI r3, 125
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

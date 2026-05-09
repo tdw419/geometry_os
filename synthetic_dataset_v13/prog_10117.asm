@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (451, 80) with radius 45.
-; PLAN: r0=451(x), r1=80(y), r2=45(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 451
-LDI r1, 80
-LDI r2, 45
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan box of size 30x38 starting at (411, 157).
+; PLAN: r0=411(x), r1=157(y), r2=30(width), r3=38(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 411
+LDI r1, 157
+LDI r2, 30
+LDI r3, 38
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

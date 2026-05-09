@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 17 at center (360, 98).
-; PLAN: r0=360(x), r1=98(y), r2=17(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 98
-LDI r2, 17
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple line from (268, 132) to (326, 118).
+; PLAN: r0=268(x1), r1=132(y1), r2=326(x2), r3=118(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 268
+LDI r1, 132
+LDI r2, 326
+LDI r3, 118
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

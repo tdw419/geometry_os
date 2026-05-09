@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Renders a orange disk with center (285, 70) and radius 68 then Renders a purple line between points (240, 24) and (203, 245).
-; PLAN: r0=285(x), r1=70(y), r2=68(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=240(x1), r6=24(y1), r7=203(x2), r8=245(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 285
-LDI r1, 70
-LDI r2, 68
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 240
-LDI r6, 24
-LDI r7, 203
-LDI r8, 245
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a white 80x89 rectangle at position (355, 38) then Creates a magenta circular shape at (306, 85) with radius 10.
+; PLAN: r0=355(x), r1=38(y), r2=80(width), r3=89(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=306(x), r6=85(y), r7=10(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 355
+LDI r1, 38
+LDI r2, 80
+LDI r3, 89
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 306
+LDI r6, 85
+LDI r7, 10
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

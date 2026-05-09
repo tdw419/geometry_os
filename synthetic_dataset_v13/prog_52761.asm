@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a green disk with center (375, 126) and radius 66.
-; PLAN: r0=375(x), r1=126(y), r2=66(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 375
-LDI r1, 126
-LDI r2, 66
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single purple pixel at (109, 117).
+; PLAN: r0=109(x), r1=117(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 109
+LDI r1, 117
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

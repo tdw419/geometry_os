@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a green circular shape at (274, 155) with radius 11.
-; PLAN: r0=274(x), r1=155(y), r2=11(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 274
-LDI r1, 155
-LDI r2, 11
-LDI r3, 0x00FF00
+; DESCRIPTION: Places a purple circle of radius 18 at center (321, 88).
+; PLAN: r0=321(x), r1=88(y), r2=18(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 321
+LDI r1, 88
+LDI r2, 18
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

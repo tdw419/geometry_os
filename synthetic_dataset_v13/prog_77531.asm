@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single magenta pixel at (77, 14).
-; PLAN: r0=77(x), r1=14(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 77
-LDI r1, 14
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a purple circular shape at (109, 68) with radius 62.
+; PLAN: r0=109(x), r1=68(y), r2=62(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 109
+LDI r1, 68
+LDI r2, 62
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

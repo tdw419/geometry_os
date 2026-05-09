@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (201, 9) to (200, 64).
-; PLAN: r0=201(x1), r1=9(y1), r2=200(x2), r3=64(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 201
-LDI r1, 9
-LDI r2, 200
-LDI r3, 64
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (101, 65) and radius 65.
+; PLAN: r0=101(x), r1=65(y), r2=65(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 101
+LDI r1, 65
+LDI r2, 65
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

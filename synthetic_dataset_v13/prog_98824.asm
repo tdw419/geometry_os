@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 54x81 rectangle at position (263, 56).
-; PLAN: r0=263(x), r1=56(y), r2=54(width), r3=81(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 263
-LDI r1, 56
-LDI r2, 54
-LDI r3, 81
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (41, 191) to (3, 22).
+; PLAN: r0=41(x1), r1=191(y1), r2=3(x2), r3=22(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 41
+LDI r1, 191
+LDI r2, 3
+LDI r3, 22
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

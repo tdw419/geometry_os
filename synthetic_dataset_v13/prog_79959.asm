@@ -1,15 +1,13 @@
-; DESCRIPTION: Composite: Renders a cyan box of size 30x44 starting at (217, 51) then Draws a magenta line from (71, 188) to (153, 90).
-; PLAN: r0=217(x), r1=51(y), r2=30(width), r3=44(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=71(x1), r6=188(y1), r7=153(x2), r8=90(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 217
-LDI r1, 51
-LDI r2, 30
-LDI r3, 44
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 71
-LDI r6, 188
-LDI r7, 153
-LDI r8, 90
-LDI r9, 0xFF00FF
+; DESCRIPTION: Composite: Sets a single yellow pixel at (265, 206) then Draws a black line from (337, 62) to (506, 65).
+; PLAN: r0=265(x), r1=206(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=337(x1), r6=62(y1), r7=506(x2), r8=65(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 265
+LDI r1, 206
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 337
+LDI r6, 62
+LDI r7, 506
+LDI r8, 65
+LDI r9, 0x000000
 LINE r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (127, 232) with radius 24.
-; PLAN: r0=127(x), r1=232(y), r2=24(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 127
-LDI r1, 232
-LDI r2, 24
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (321, 191) and (89, 57).
+; PLAN: r0=321(x1), r1=191(y1), r2=89(x2), r3=57(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 321
+LDI r1, 191
+LDI r2, 89
+LDI r3, 57
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

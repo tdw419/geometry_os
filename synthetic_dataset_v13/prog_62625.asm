@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (484, 86) and (432, 51).
-; PLAN: r0=484(x1), r1=86(y1), r2=432(x2), r3=51(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 484
-LDI r1, 86
-LDI r2, 432
-LDI r3, 51
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange rectangular region at (231, 40) spanning 34 by 72 pixels.
+; PLAN: r0=231(x), r1=40(y), r2=34(width), r3=72(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 231
+LDI r1, 40
+LDI r2, 34
+LDI r3, 72
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

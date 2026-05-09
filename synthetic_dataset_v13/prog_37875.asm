@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a yellow line between points (111, 174) and (46, 68).
-; PLAN: r0=111(x1), r1=174(y1), r2=46(x2), r3=68(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 174
-LDI r2, 46
-LDI r3, 68
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

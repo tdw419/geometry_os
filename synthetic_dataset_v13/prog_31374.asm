@@ -1,8 +1,13 @@
-; DESCRIPTION: Renders a yellow disk with center (106, 83) and radius 75.
-; PLAN: r0=106(x), r1=83(y), r2=75(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 106
-LDI r1, 83
-LDI r2, 75
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single white pixel at (169, 109) then Creates a magenta rectangular region at (300, 33) spanning 52 by 17 pixels.
+; PLAN: r0=169(x), r1=109(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=300(x), r6=33(y), r7=52(width), r8=17(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 169
+LDI r1, 109
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 300
+LDI r6, 33
+LDI r7, 52
+LDI r8, 17
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (346, 161) with radius 68.
-; PLAN: r0=346(x), r1=161(y), r2=68(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 346
-LDI r1, 161
-LDI r2, 68
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 16x61 rectangle at position (242, 48).
+; PLAN: r0=242(x), r1=48(y), r2=16(width), r3=61(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 242
+LDI r1, 48
+LDI r2, 16
+LDI r3, 61
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

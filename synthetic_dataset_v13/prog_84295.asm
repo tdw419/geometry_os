@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (23, 47) with width 14 and height 13.
-; PLAN: r0=23(x), r1=47(y), r2=14(width), r3=13(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 23
-LDI r1, 47
-LDI r2, 14
-LDI r3, 13
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a black box of size 65x98 starting at (60, 78).
+; PLAN: r0=60(x), r1=78(y), r2=65(width), r3=98(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 60
+LDI r1, 78
+LDI r2, 65
+LDI r3, 98
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

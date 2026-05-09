@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (491, 21) and (255, 4).
-; PLAN: r0=491(x1), r1=21(y1), r2=255(x2), r3=4(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 491
-LDI r1, 21
-LDI r2, 255
-LDI r3, 4
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 103x94 rectangle at position (288, 62).
+; PLAN: r0=288(x), r1=62(y), r2=103(width), r3=94(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 288
+LDI r1, 62
+LDI r2, 103
+LDI r3, 94
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

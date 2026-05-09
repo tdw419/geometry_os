@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Creates a white rectangular region at (367, 167) spanning 92 by 37 pixels.
+; PLAN: r0=367(x), r1=167(y), r2=92(width), r3=37(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 367
+LDI r1, 167
+LDI r2, 92
+LDI r3, 37
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

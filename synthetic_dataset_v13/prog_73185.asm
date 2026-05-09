@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a yellow circle centered at (439, 97) with radius 73.
-; PLAN: r0=439(x), r1=97(y), r2=73(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 439
-LDI r1, 97
-LDI r2, 73
-LDI r3, 0xFFFF00
+; DESCRIPTION: Places a green circle of radius 30 at center (376, 87).
+; PLAN: r0=376(x), r1=87(y), r2=30(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 376
+LDI r1, 87
+LDI r2, 30
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

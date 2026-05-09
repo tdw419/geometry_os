@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a black line from (471, 99) to (234, 205) then Creates a red circular shape at (128, 114) with radius 31.
-; PLAN: r0=471(x1), r1=99(y1), r2=234(x2), r3=205(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=128(x), r6=114(y), r7=31(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 471
-LDI r1, 99
-LDI r2, 234
-LDI r3, 205
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
-LDI r5, 128
-LDI r6, 114
-LDI r7, 31
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a cyan rectangle at (268, 19) with width 120 and height 39.
+; PLAN: r0=268(x), r1=19(y), r2=120(width), r3=39(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 268
+LDI r1, 19
+LDI r2, 120
+LDI r3, 39
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

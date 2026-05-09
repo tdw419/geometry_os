@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (278, 131) and (198, 146).
-; PLAN: r0=278(x1), r1=131(y1), r2=198(x2), r3=146(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 278
-LDI r1, 131
-LDI r2, 198
-LDI r3, 146
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a magenta line between points (229, 249) and (482, 92).
+; PLAN: r0=229(x1), r1=249(y1), r2=482(x2), r3=92(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 229
+LDI r1, 249
+LDI r2, 482
+LDI r3, 92
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

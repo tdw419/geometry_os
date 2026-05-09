@@ -1,5 +1,8 @@
-; DESCRIPTION: Sets the background to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Creates a magenta circular shape at (227, 140) with radius 69.
+; PLAN: r0=227(x), r1=140(y), r2=69(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 227
+LDI r1, 140
+LDI r2, 69
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

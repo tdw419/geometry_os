@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (194, 110) with radius 21.
-; PLAN: r0=194(x), r1=110(y), r2=21(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 194
-LDI r1, 110
-LDI r2, 21
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple box of size 79x87 starting at (329, 136).
+; PLAN: r0=329(x), r1=136(y), r2=79(width), r3=87(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 329
+LDI r1, 136
+LDI r2, 79
+LDI r3, 87
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a magenta line between points (223, 200) and (184, 20).
-; PLAN: r0=223(x1), r1=200(y1), r2=184(x2), r3=20(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 223
-LDI r1, 200
-LDI r2, 184
-LDI r3, 20
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (252, 239) then Places a magenta 106x52 rectangle at position (314, 50).
+; PLAN: r0=252(x), r1=239(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=314(x), r6=50(y), r7=106(width), r8=52(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 252
+LDI r1, 239
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 314
+LDI r6, 50
+LDI r7, 106
+LDI r8, 52
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

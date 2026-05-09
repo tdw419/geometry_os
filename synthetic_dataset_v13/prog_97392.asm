@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a blue rectangular region at (151, 167) spanning 25 by 80 pixels.
-; PLAN: r0=151(x), r1=167(y), r2=25(width), r3=80(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 151
-LDI r1, 167
-LDI r2, 25
-LDI r3, 80
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (292, 62) then Draws a white circle centered at (432, 69) with radius 22.
+; PLAN: r0=292(x), r1=62(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=432(x), r6=69(y), r7=22(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 292
+LDI r1, 62
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 432
+LDI r6, 69
+LDI r7, 22
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

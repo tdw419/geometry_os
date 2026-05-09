@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 71x77 rectangle at position (309, 83).
-; PLAN: r0=309(x), r1=83(y), r2=71(width), r3=77(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 83
-LDI r2, 71
-LDI r3, 77
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (403, 153) and radius 65.
+; PLAN: r0=403(x), r1=153(y), r2=65(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 403
+LDI r1, 153
+LDI r2, 65
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

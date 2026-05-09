@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green rectangle at (8, 77) with width 71 and height 119.
-; PLAN: r0=8(x), r1=77(y), r2=71(width), r3=119(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 8
-LDI r1, 77
-LDI r2, 71
-LDI r3, 119
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (410, 122) with radius 73.
+; PLAN: r0=410(x), r1=122(y), r2=73(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 410
+LDI r1, 122
+LDI r2, 73
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

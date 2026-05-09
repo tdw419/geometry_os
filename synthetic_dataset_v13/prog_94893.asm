@@ -1,9 +1,18 @@
-; DESCRIPTION: Places a orange line segment connecting (78, 166) to (467, 21).
-; PLAN: r0=78(x1), r1=166(y1), r2=467(x2), r3=21(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 78
-LDI r1, 166
-LDI r2, 467
-LDI r3, 21
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (330, 10) then Renders a black disk with center (247, 61) and radius 33 then Draws a cyan line from (427, 174) to (261, 26).
+; PLAN: r0=330(x), r1=10(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=247(x), r6=61(y), r7=33(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=427(x1), r11=174(y1), r12=261(x2), r13=26(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 330
+LDI r1, 10
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 247
+LDI r6, 61
+LDI r7, 33
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
+LDI r10, 427
+LDI r11, 174
+LDI r12, 261
+LDI r13, 26
+LDI r14, 0x00FFFF
+LINE r10, r11, r12, r13, r14
 HALT

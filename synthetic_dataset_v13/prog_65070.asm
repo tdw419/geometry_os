@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a blue circle of radius 32 at center (320, 220) then Draws a orange line from (2, 206) to (470, 195).
-; PLAN: r0=320(x), r1=220(y), r2=32(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=2(x1), r6=206(y1), r7=470(x2), r8=195(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 320
-LDI r1, 220
-LDI r2, 32
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 2
-LDI r6, 206
-LDI r7, 470
-LDI r8, 195
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a yellow line segment connecting (425, 37) to (492, 229).
+; PLAN: r0=425(x1), r1=37(y1), r2=492(x2), r3=229(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 37
+LDI r2, 492
+LDI r3, 229
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (181, 189) then Renders a orange disk with center (175, 165) and radius 61.
-; PLAN: r0=181(x), r1=189(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=175(x), r6=165(y), r7=61(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 181
-LDI r1, 189
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 175
-LDI r6, 165
-LDI r7, 61
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a cyan line segment connecting (164, 71) to (131, 87).
+; PLAN: r0=164(x1), r1=71(y1), r2=131(x2), r3=87(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 71
+LDI r2, 131
+LDI r3, 87
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (7, 1) to (270, 120).
-; PLAN: r0=7(x1), r1=1(y1), r2=270(x2), r3=120(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 7
-LDI r1, 1
-LDI r2, 270
-LDI r3, 120
+; DESCRIPTION: Draws a black rectangle at (189, 145) with width 26 and height 96.
+; PLAN: r0=189(x), r1=145(y), r2=26(width), r3=96(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 189
+LDI r1, 145
+LDI r2, 26
+LDI r3, 96
 LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

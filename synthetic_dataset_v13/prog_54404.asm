@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single white pixel at (65, 128) then Draws a green line from (197, 44) to (80, 126).
-; PLAN: r0=65(x), r1=128(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=197(x1), r6=44(y1), r7=80(x2), r8=126(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 65
-LDI r1, 128
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 197
-LDI r6, 44
-LDI r7, 80
-LDI r8, 126
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a black line between points (151, 204) and (394, 113).
+; PLAN: r0=151(x1), r1=204(y1), r2=394(x2), r3=113(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 204
+LDI r2, 394
+LDI r3, 113
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

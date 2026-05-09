@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (489, 80).
-; PLAN: r0=489(x), r1=80(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 489
-LDI r1, 80
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a orange rectangular region at (170, 128) spanning 77 by 65 pixels.
+; PLAN: r0=170(x), r1=128(y), r2=77(width), r3=65(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 128
+LDI r2, 77
+LDI r3, 65
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

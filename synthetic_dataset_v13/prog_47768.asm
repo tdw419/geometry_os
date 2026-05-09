@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (185, 40) and (323, 118).
-; PLAN: r0=185(x1), r1=40(y1), r2=323(x2), r3=118(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 185
-LDI r1, 40
-LDI r2, 323
-LDI r3, 118
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a cyan line segment connecting (107, 27) to (105, 55).
+; PLAN: r0=107(x1), r1=27(y1), r2=105(x2), r3=55(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 107
+LDI r1, 27
+LDI r2, 105
+LDI r3, 55
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

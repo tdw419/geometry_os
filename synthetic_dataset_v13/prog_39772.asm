@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 39x77 rectangle at position (241, 178).
-; PLAN: r0=241(x), r1=178(y), r2=39(width), r3=77(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 178
-LDI r2, 39
-LDI r3, 77
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (64, 210) with radius 21.
+; PLAN: r0=64(x), r1=210(y), r2=21(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 64
+LDI r1, 210
+LDI r2, 21
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

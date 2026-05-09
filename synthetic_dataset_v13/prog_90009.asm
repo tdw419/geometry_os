@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a white circle centered at (93, 239) with radius 15 then Renders a purple box of size 37x24 starting at (94, 63).
-; PLAN: r0=93(x), r1=239(y), r2=15(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=94(x), r6=63(y), r7=37(width), r8=24(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 93
-LDI r1, 239
-LDI r2, 15
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 94
-LDI r6, 63
-LDI r7, 37
-LDI r8, 24
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a blue line between points (389, 247) and (379, 63).
+; PLAN: r0=389(x1), r1=247(y1), r2=379(x2), r3=63(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 389
+LDI r1, 247
+LDI r2, 379
+LDI r3, 63
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

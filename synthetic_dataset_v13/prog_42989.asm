@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (376, 34).
-; PLAN: r0=376(x), r1=34(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 376
-LDI r1, 34
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange 68x101 rectangle at position (340, 0).
+; PLAN: r0=340(x), r1=0(y), r2=68(width), r3=101(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 340
+LDI r1, 0
+LDI r2, 68
+LDI r3, 101
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a magenta disk with center (364, 110) and radius 59.
-; PLAN: r0=364(x), r1=110(y), r2=59(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 364
-LDI r1, 110
-LDI r2, 59
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow 53x81 rectangle at position (85, 68).
+; PLAN: r0=85(x), r1=68(y), r2=53(width), r3=81(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 85
+LDI r1, 68
+LDI r2, 53
+LDI r3, 81
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

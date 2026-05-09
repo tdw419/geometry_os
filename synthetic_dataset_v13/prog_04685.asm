@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow box of size 58x46 starting at (437, 166).
-; PLAN: r0=437(x), r1=166(y), r2=58(width), r3=46(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 437
-LDI r1, 166
-LDI r2, 58
-LDI r3, 46
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (352, 132) with radius 22.
+; PLAN: r0=352(x), r1=132(y), r2=22(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 352
+LDI r1, 132
+LDI r2, 22
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

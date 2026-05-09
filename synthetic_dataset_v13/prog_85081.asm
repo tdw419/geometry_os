@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a black circle of radius 49 at center (183, 54).
-; PLAN: r0=183(x), r1=54(y), r2=49(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 183
-LDI r1, 54
-LDI r2, 49
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single green pixel at (216, 106).
+; PLAN: r0=216(x), r1=106(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 216
+LDI r1, 106
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

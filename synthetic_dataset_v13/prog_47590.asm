@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (345, 7) and (53, 76).
-; PLAN: r0=345(x1), r1=7(y1), r2=53(x2), r3=76(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 7
-LDI r2, 53
-LDI r3, 76
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (276, 92) spanning 85 by 42 pixels.
+; PLAN: r0=276(x), r1=92(y), r2=85(width), r3=42(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 276
+LDI r1, 92
+LDI r2, 85
+LDI r3, 42
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

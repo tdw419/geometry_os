@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a white circle centered at (171, 123) with radius 56.
-; PLAN: r0=171(x), r1=123(y), r2=56(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 171
-LDI r1, 123
-LDI r2, 56
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (363, 118).
+; PLAN: r0=363(x), r1=118(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 363
+LDI r1, 118
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (221, 14) spanning 50 by 68 pixels.
-; PLAN: r0=221(x), r1=14(y), r2=50(width), r3=68(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 221
-LDI r1, 14
-LDI r2, 50
-LDI r3, 68
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a black box of size 115x58 starting at (264, 177).
+; PLAN: r0=264(x), r1=177(y), r2=115(width), r3=58(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 264
+LDI r1, 177
+LDI r2, 115
+LDI r3, 58
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

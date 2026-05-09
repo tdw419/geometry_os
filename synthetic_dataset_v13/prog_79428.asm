@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (374, 123) to (109, 76).
-; PLAN: r0=374(x1), r1=123(y1), r2=109(x2), r3=76(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 374
-LDI r1, 123
-LDI r2, 109
-LDI r3, 76
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (469, 157) with radius 32.
+; PLAN: r0=469(x), r1=157(y), r2=32(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 469
+LDI r1, 157
+LDI r2, 32
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

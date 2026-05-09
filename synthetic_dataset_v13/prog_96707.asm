@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a cyan circle centered at (313, 103) with radius 30.
-; PLAN: r0=313(x), r1=103(y), r2=30(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 313
-LDI r1, 103
+; DESCRIPTION: Places a magenta circle of radius 30 at center (255, 104).
+; PLAN: r0=255(x), r1=104(y), r2=30(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 255
+LDI r1, 104
 LDI r2, 30
-LDI r3, 0x00FFFF
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single yellow pixel at (107, 246) then Draws a white circle centered at (367, 127) with radius 49.
-; PLAN: r0=107(x), r1=246(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=367(x), r6=127(y), r7=49(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 107
-LDI r1, 246
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 367
-LDI r6, 127
-LDI r7, 49
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a black rectangle at (144, 117) with width 33 and height 20.
+; PLAN: r0=144(x), r1=117(y), r2=33(width), r3=20(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 144
+LDI r1, 117
+LDI r2, 33
+LDI r3, 20
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

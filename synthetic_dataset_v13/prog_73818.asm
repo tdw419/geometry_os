@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a purple rectangular region at (227, 180) spanning 89 by 48 pixels.
-; PLAN: r0=227(x), r1=180(y), r2=89(width), r3=48(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 227
-LDI r1, 180
-LDI r2, 89
-LDI r3, 48
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a magenta line between points (23, 97) and (453, 121) then Places a white dot at position (231, 114).
+; PLAN: r0=23(x1), r1=97(y1), r2=453(x2), r3=121(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=231(x), r6=114(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 23
+LDI r1, 97
+LDI r2, 453
+LDI r3, 121
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 231
+LDI r6, 114
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

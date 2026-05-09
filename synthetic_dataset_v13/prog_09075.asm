@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a green circle centered at (406, 134) with radius 74.
-; PLAN: r0=406(x), r1=134(y), r2=74(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 406
-LDI r1, 134
-LDI r2, 74
-LDI r3, 0x00FF00
+; DESCRIPTION: Draws a orange circle centered at (402, 118) with radius 52.
+; PLAN: r0=402(x), r1=118(y), r2=52(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 402
+LDI r1, 118
+LDI r2, 52
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (341, 170) then Creates a red circular shape at (50, 159) with radius 41.
-; PLAN: r0=341(x), r1=170(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=50(x), r6=159(y), r7=41(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 341
-LDI r1, 170
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 50
-LDI r6, 159
-LDI r7, 41
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a black rectangular region at (253, 101) spanning 116 by 56 pixels.
+; PLAN: r0=253(x), r1=101(y), r2=116(width), r3=56(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 253
+LDI r1, 101
+LDI r2, 116
+LDI r3, 56
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

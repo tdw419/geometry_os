@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Places a black circle of radius 55 at center (205, 92) then Draws a purple rectangle at (366, 111) with width 58 and height 113.
-; PLAN: r0=205(x), r1=92(y), r2=55(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=366(x), r6=111(y), r7=58(width), r8=113(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 205
-LDI r1, 92
-LDI r2, 55
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 366
-LDI r6, 111
-LDI r7, 58
-LDI r8, 113
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a white dot at position (156, 156) then Places a cyan circle of radius 44 at center (335, 199).
+; PLAN: r0=156(x), r1=156(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=335(x), r6=199(y), r7=44(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 156
+LDI r1, 156
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 335
+LDI r6, 199
+LDI r7, 44
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

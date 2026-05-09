@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (278, 118) with width 64 and height 60.
-; PLAN: r0=278(x), r1=118(y), r2=64(width), r3=60(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 278
-LDI r1, 118
-LDI r2, 64
-LDI r3, 60
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a magenta 61x51 rectangle at position (2, 121).
+; PLAN: r0=2(x), r1=121(y), r2=61(width), r3=51(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 2
+LDI r1, 121
+LDI r2, 61
+LDI r3, 51
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (430, 10) and (224, 32).
-; PLAN: r0=430(x1), r1=10(y1), r2=224(x2), r3=32(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 10
-LDI r2, 224
-LDI r3, 32
+; DESCRIPTION: Draws a cyan rectangle at (292, 95) with width 78 and height 101.
+; PLAN: r0=292(x), r1=95(y), r2=78(width), r3=101(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 292
+LDI r1, 95
+LDI r2, 78
+LDI r3, 101
 LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (207, 249) then Places a green line segment connecting (170, 132) to (499, 93).
-; PLAN: r0=207(x), r1=249(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=170(x1), r6=132(y1), r7=499(x2), r8=93(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 207
-LDI r1, 249
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 170
-LDI r6, 132
-LDI r7, 499
-LDI r8, 93
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a blue line from (473, 53) to (263, 34).
+; PLAN: r0=473(x1), r1=53(y1), r2=263(x2), r3=34(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 473
+LDI r1, 53
+LDI r2, 263
+LDI r3, 34
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

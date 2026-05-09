@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a blue line from (453, 227) to (181, 181).
-; PLAN: r0=453(x1), r1=227(y1), r2=181(x2), r3=181(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 453
-LDI r1, 227
-LDI r2, 181
-LDI r3, 181
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black dot at position (350, 93) then Places a red circle of radius 77 at center (344, 138).
+; PLAN: r0=350(x), r1=93(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=344(x), r6=138(y), r7=77(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 350
+LDI r1, 93
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 344
+LDI r6, 138
+LDI r7, 77
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

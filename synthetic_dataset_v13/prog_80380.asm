@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 17 into r1 and decrements it in a loop until zero.
-; PLAN: r1=17(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 17
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a orange box of size 111x102 starting at (331, 133).
+; PLAN: r0=331(x), r1=133(y), r2=111(width), r3=102(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 331
+LDI r1, 133
+LDI r2, 111
+LDI r3, 102
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

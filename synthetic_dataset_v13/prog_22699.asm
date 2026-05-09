@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (142, 211) and (355, 137).
-; PLAN: r0=142(x1), r1=211(y1), r2=355(x2), r3=137(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 142
-LDI r1, 211
-LDI r2, 355
-LDI r3, 137
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta box of size 83x108 starting at (106, 106).
+; PLAN: r0=106(x), r1=106(y), r2=83(width), r3=108(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 106
+LDI r1, 106
+LDI r2, 83
+LDI r3, 108
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

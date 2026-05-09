@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Creates a orange rectangular region at (371, 78) spanning 16 by 51 pixels then Places a cyan dot at position (47, 200) then Draws a magenta circle centered at (210, 170) with radius 14.
-; PLAN: r0=371(x), r1=78(y), r2=16(width), r3=51(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=47(x), r6=200(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=210(x), r11=170(y), r12=14(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 371
-LDI r1, 78
-LDI r2, 16
-LDI r3, 51
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
-LDI r5, 47
-LDI r6, 200
-LDI r7, 0x00FFFF
+; DESCRIPTION: Composite: Renders a blue disk with center (123, 109) and radius 12 then Sets a single purple pixel at (290, 228) then Renders a white line between points (107, 167) and (81, 55).
+; PLAN: r0=123(x), r1=109(y), r2=12(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=290(x), r6=228(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=107(x1), r11=167(y1), r12=81(x2), r13=55(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 123
+LDI r1, 109
+LDI r2, 12
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 290
+LDI r6, 228
+LDI r7, 0xAA00FF
 PSET r5, r6, r7
-LDI r10, 210
-LDI r11, 170
-LDI r12, 14
-LDI r13, 0xFF00FF
-CIRCLE r10, r11, r12, r13
+LDI r10, 107
+LDI r11, 167
+LDI r12, 81
+LDI r13, 55
+LDI r14, 0xFFFFFF
+LINE r10, r11, r12, r13, r14
 HALT

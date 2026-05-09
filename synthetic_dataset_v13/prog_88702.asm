@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (264, 1) spanning 19 by 107 pixels.
-; PLAN: r0=264(x), r1=1(y), r2=19(width), r3=107(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 264
-LDI r1, 1
-LDI r2, 19
-LDI r3, 107
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (416, 122) to (207, 115).
+; PLAN: r0=416(x1), r1=122(y1), r2=207(x2), r3=115(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 416
+LDI r1, 122
+LDI r2, 207
+LDI r3, 115
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

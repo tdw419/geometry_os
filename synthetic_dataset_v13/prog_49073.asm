@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 25 at center (153, 92).
-; PLAN: r0=153(x), r1=92(y), r2=25(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 153
-LDI r1, 92
-LDI r2, 25
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (15, 99) to (382, 163).
+; PLAN: r0=15(x1), r1=99(y1), r2=382(x2), r3=163(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 15
+LDI r1, 99
+LDI r2, 382
+LDI r3, 163
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

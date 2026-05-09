@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (299, 252) and (261, 251).
-; PLAN: r0=299(x1), r1=252(y1), r2=261(x2), r3=251(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 299
-LDI r1, 252
-LDI r2, 261
-LDI r3, 251
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange rectangular region at (367, 12) spanning 58 by 110 pixels.
+; PLAN: r0=367(x), r1=12(y), r2=58(width), r3=110(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 367
+LDI r1, 12
+LDI r2, 58
+LDI r3, 110
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

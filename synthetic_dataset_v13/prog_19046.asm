@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (314, 200) to (419, 158).
-; PLAN: r0=314(x1), r1=200(y1), r2=419(x2), r3=158(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 314
-LDI r1, 200
-LDI r2, 419
-LDI r3, 158
-LDI r4, 0x000000
+; DESCRIPTION: Renders a yellow line between points (389, 171) and (503, 89).
+; PLAN: r0=389(x1), r1=171(y1), r2=503(x2), r3=89(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 389
+LDI r1, 171
+LDI r2, 503
+LDI r3, 89
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

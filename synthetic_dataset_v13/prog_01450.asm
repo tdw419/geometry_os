@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a purple dot at position (223, 180) then Places a orange circle of radius 79 at center (255, 140).
-; PLAN: r0=223(x), r1=180(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=255(x), r6=140(y), r7=79(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 223
-LDI r1, 180
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 255
-LDI r6, 140
-LDI r7, 79
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a yellow rectangle at (389, 68) with width 107 and height 97.
+; PLAN: r0=389(x), r1=68(y), r2=107(width), r3=97(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 389
+LDI r1, 68
+LDI r2, 107
+LDI r3, 97
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

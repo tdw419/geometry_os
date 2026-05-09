@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (402, 41) spanning 60 by 101 pixels.
-; PLAN: r0=402(x), r1=41(y), r2=60(width), r3=101(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 402
-LDI r1, 41
-LDI r2, 60
-LDI r3, 101
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (182, 76) to (308, 145).
+; PLAN: r0=182(x1), r1=76(y1), r2=308(x2), r3=145(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 182
+LDI r1, 76
+LDI r2, 308
+LDI r3, 145
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

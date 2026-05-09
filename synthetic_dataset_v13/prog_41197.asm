@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 78 at center (266, 125).
-; PLAN: r0=266(x), r1=125(y), r2=78(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 266
-LDI r1, 125
-LDI r2, 78
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (251, 250) to (332, 159).
+; PLAN: r0=251(x1), r1=250(y1), r2=332(x2), r3=159(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 251
+LDI r1, 250
+LDI r2, 332
+LDI r3, 159
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

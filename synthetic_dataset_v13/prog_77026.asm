@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a white box of size 67x102 starting at (365, 149).
-; PLAN: r0=365(x), r1=149(y), r2=67(width), r3=102(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 365
-LDI r1, 149
-LDI r2, 67
-LDI r3, 102
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (358, 79) then Draws a orange rectangle at (228, 162) with width 23 and height 35.
+; PLAN: r0=358(x), r1=79(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=228(x), r6=162(y), r7=23(width), r8=35(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 358
+LDI r1, 79
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 228
+LDI r6, 162
+LDI r7, 23
+LDI r8, 35
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 17x17 rectangle at position (485, 200).
-; PLAN: r0=485(x), r1=200(y), r2=17(width), r3=17(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 485
-LDI r1, 200
-LDI r2, 17
-LDI r3, 17
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black line segment connecting (423, 20) to (285, 101).
+; PLAN: r0=423(x1), r1=20(y1), r2=285(x2), r3=101(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 423
+LDI r1, 20
+LDI r2, 285
+LDI r3, 101
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

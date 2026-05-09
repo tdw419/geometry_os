@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (195, 121).
-; PLAN: r0=195(x), r1=121(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 195
-LDI r1, 121
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan line between points (124, 201) and (155, 243).
+; PLAN: r0=124(x1), r1=201(y1), r2=155(x2), r3=243(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 201
+LDI r2, 155
+LDI r3, 243
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

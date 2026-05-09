@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a orange line from (216, 204) to (401, 125).
-; PLAN: r0=216(x1), r1=204(y1), r2=401(x2), r3=125(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 216
-LDI r1, 204
-LDI r2, 401
-LDI r3, 125
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (270, 111) then Creates a black rectangular region at (431, 155) spanning 61 by 26 pixels.
+; PLAN: r0=270(x), r1=111(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=431(x), r6=155(y), r7=61(width), r8=26(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 270
+LDI r1, 111
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 431
+LDI r6, 155
+LDI r7, 61
+LDI r8, 26
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 62 at center (224, 65).
-; PLAN: r0=224(x), r1=65(y), r2=62(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 224
-LDI r1, 65
-LDI r2, 62
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (256, 93) and (456, 115).
+; PLAN: r0=256(x1), r1=93(y1), r2=456(x2), r3=115(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 256
+LDI r1, 93
+LDI r2, 456
+LDI r3, 115
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

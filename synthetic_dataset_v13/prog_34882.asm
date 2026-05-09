@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a blue line between points (175, 116) and (100, 146).
-; PLAN: r0=175(x1), r1=116(y1), r2=100(x2), r3=146(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 175
-LDI r1, 116
-LDI r2, 100
-LDI r3, 146
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (85, 148).
+; PLAN: r0=85(x), r1=148(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 85
+LDI r1, 148
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

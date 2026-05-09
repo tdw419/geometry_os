@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (168, 40) with radius 20.
-; PLAN: r0=168(x), r1=40(y), r2=20(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 168
-LDI r1, 40
-LDI r2, 20
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (150, 211) and (8, 212).
+; PLAN: r0=150(x1), r1=211(y1), r2=8(x2), r3=212(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 211
+LDI r2, 8
+LDI r3, 212
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

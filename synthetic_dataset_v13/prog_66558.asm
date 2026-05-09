@@ -1,9 +1,5 @@
-; DESCRIPTION: Creates a yellow rectangular region at (406, 1) spanning 78 by 62 pixels.
-; PLAN: r0=406(x), r1=1(y), r2=78(width), r3=62(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 406
-LDI r1, 1
-LDI r2, 78
-LDI r3, 62
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

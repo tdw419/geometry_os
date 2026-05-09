@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single red pixel at (212, 42).
-; PLAN: r0=212(x), r1=42(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 212
-LDI r1, 42
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

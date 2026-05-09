@@ -1,8 +1,12 @@
-; DESCRIPTION: Loads 47 into r1 and decrements it in a loop until zero.
-; PLAN: r1=47(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 47
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Places a green dot at position (114, 95) then Renders a red disk with center (173, 198) and radius 56.
+; PLAN: r0=114(x), r1=95(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=173(x), r6=198(y), r7=56(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 114
+LDI r1, 95
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 173
+LDI r6, 198
+LDI r7, 56
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

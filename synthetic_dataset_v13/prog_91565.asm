@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a white rectangular region at (209, 49) spanning 107 by 96 pixels.
-; PLAN: r0=209(x), r1=49(y), r2=107(width), r3=96(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 209
-LDI r1, 49
-LDI r2, 107
-LDI r3, 96
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (68, 62) then Renders a green disk with center (60, 194) and radius 38.
+; PLAN: r0=68(x), r1=62(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=60(x), r6=194(y), r7=38(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 68
+LDI r1, 62
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 60
+LDI r6, 194
+LDI r7, 38
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

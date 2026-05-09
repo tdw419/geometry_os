@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a red box of size 18x19 starting at (261, 76).
-; PLAN: r0=261(x), r1=76(y), r2=18(width), r3=19(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 261
-LDI r1, 76
-LDI r2, 18
-LDI r3, 19
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a cyan disk with center (369, 160) and radius 47 then Sets a single black pixel at (462, 13).
+; PLAN: r0=369(x), r1=160(y), r2=47(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=462(x), r6=13(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 369
+LDI r1, 160
+LDI r2, 47
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 462
+LDI r6, 13
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

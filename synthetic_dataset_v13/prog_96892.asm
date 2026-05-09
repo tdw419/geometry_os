@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (345, 50) to (220, 200).
-; PLAN: r0=345(x1), r1=50(y1), r2=220(x2), r3=200(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 50
-LDI r2, 220
-LDI r3, 200
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (213, 58) with radius 19.
+; PLAN: r0=213(x), r1=58(y), r2=19(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 213
+LDI r1, 58
+LDI r2, 19
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

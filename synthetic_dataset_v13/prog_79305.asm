@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 20x25 rectangle at position (316, 48).
-; PLAN: r0=316(x), r1=48(y), r2=20(width), r3=25(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 316
-LDI r1, 48
-LDI r2, 20
-LDI r3, 25
-LDI r4, 0x000000
+; DESCRIPTION: Renders a purple box of size 29x81 starting at (175, 34).
+; PLAN: r0=175(x), r1=34(y), r2=29(width), r3=81(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 175
+LDI r1, 34
+LDI r2, 29
+LDI r3, 81
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

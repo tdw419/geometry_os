@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 12 at center (409, 69).
-; PLAN: r0=409(x), r1=69(y), r2=12(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 409
-LDI r1, 69
-LDI r2, 12
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 106x56 rectangle at position (318, 191).
+; PLAN: r0=318(x), r1=191(y), r2=106(width), r3=56(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 318
+LDI r1, 191
+LDI r2, 106
+LDI r3, 56
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

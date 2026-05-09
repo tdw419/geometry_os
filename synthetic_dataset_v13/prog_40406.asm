@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 24x59 rectangle at position (116, 130).
-; PLAN: r0=116(x), r1=130(y), r2=24(width), r3=59(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 116
-LDI r1, 130
-LDI r2, 24
-LDI r3, 59
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (36, 112) and radius 14.
+; PLAN: r0=36(x), r1=112(y), r2=14(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 36
+LDI r1, 112
+LDI r2, 14
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

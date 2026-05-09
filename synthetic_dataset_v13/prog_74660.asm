@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (8, 124) to (502, 126).
-; PLAN: r0=8(x1), r1=124(y1), r2=502(x2), r3=126(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 8
-LDI r1, 124
-LDI r2, 502
-LDI r3, 126
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 5 into r1 and decrements it in a loop until zero.
+; PLAN: r1=5(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 5
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

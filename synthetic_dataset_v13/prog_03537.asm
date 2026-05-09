@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 100x94 rectangle at position (363, 132).
-; PLAN: r0=363(x), r1=132(y), r2=100(width), r3=94(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 132
-LDI r2, 100
-LDI r3, 94
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red line segment connecting (331, 116) to (39, 161).
+; PLAN: r0=331(x1), r1=116(y1), r2=39(x2), r3=161(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 331
+LDI r1, 116
+LDI r2, 39
+LDI r3, 161
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

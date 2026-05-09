@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a green disk with center (444, 30) and radius 15.
-; PLAN: r0=444(x), r1=30(y), r2=15(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 444
-LDI r1, 30
-LDI r2, 15
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

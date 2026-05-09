@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a red circle centered at (189, 119) with radius 79.
-; PLAN: r0=189(x), r1=119(y), r2=79(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 189
-LDI r1, 119
-LDI r2, 79
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single red pixel at (74, 16).
+; PLAN: r0=74(x), r1=16(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 74
+LDI r1, 16
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a cyan disk with center (259, 97) and radius 71.
-; PLAN: r0=259(x), r1=97(y), r2=71(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 259
-LDI r1, 97
-LDI r2, 71
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (95, 89).
+; PLAN: r0=95(x), r1=89(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 95
+LDI r1, 89
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

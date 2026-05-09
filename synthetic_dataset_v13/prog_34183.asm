@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (215, 255) to (483, 250).
-; PLAN: r0=215(x1), r1=255(y1), r2=483(x2), r3=250(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 215
-LDI r1, 255
-LDI r2, 483
-LDI r3, 250
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a orange line between points (46, 38) and (310, 93).
+; PLAN: r0=46(x1), r1=38(y1), r2=310(x2), r3=93(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 46
+LDI r1, 38
+LDI r2, 310
+LDI r3, 93
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (443, 182).
-; PLAN: r0=443(x), r1=182(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 443
-LDI r1, 182
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a magenta rectangular region at (359, 24) spanning 24 by 39 pixels.
+; PLAN: r0=359(x), r1=24(y), r2=24(width), r3=39(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 359
+LDI r1, 24
+LDI r2, 24
+LDI r3, 39
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

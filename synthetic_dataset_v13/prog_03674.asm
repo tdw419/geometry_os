@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 36 into r1 and decrements it in a loop until zero.
-; PLAN: r1=36(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 36
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a blue box of size 90x78 starting at (123, 169).
+; PLAN: r0=123(x), r1=169(y), r2=90(width), r3=78(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 123
+LDI r1, 169
+LDI r2, 90
+LDI r3, 78
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

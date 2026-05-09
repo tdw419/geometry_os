@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (282, 79) with radius 67.
-; PLAN: r0=282(x), r1=79(y), r2=67(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 282
-LDI r1, 79
-LDI r2, 67
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 100x21 rectangle at position (157, 27).
+; PLAN: r0=157(x), r1=27(y), r2=100(width), r3=21(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 157
+LDI r1, 27
+LDI r2, 100
+LDI r3, 21
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

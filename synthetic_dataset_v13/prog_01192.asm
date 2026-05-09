@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (337, 170) with radius 62.
-; PLAN: r0=337(x), r1=170(y), r2=62(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 337
-LDI r1, 170
-LDI r2, 62
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 83x23 starting at (378, 124).
+; PLAN: r0=378(x), r1=124(y), r2=83(width), r3=23(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 378
+LDI r1, 124
+LDI r2, 83
+LDI r3, 23
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

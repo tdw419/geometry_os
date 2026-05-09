@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a red circular shape at (337, 75) with radius 23.
-; PLAN: r0=337(x), r1=75(y), r2=23(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 337
-LDI r1, 75
-LDI r2, 23
-LDI r3, 0xFF0000
+; DESCRIPTION: Draws a green circle centered at (344, 95) with radius 77.
+; PLAN: r0=344(x), r1=95(y), r2=77(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 344
+LDI r1, 95
+LDI r2, 77
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

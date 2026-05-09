@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 31x28 starting at (175, 80).
-; PLAN: r0=175(x), r1=80(y), r2=31(width), r3=28(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 175
-LDI r1, 80
-LDI r2, 31
-LDI r3, 28
-LDI r4, 0x000000
+; DESCRIPTION: Renders a magenta box of size 74x64 starting at (359, 122).
+; PLAN: r0=359(x), r1=122(y), r2=74(width), r3=64(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 359
+LDI r1, 122
+LDI r2, 74
+LDI r3, 64
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Draws a white line from (455, 5) to (498, 115) then Places a blue circle of radius 52 at center (255, 153).
-; PLAN: r0=455(x1), r1=5(y1), r2=498(x2), r3=115(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=255(x), r6=153(y), r7=52(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 455
-LDI r1, 5
-LDI r2, 498
-LDI r3, 115
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 255
-LDI r6, 153
-LDI r7, 52
+; DESCRIPTION: Composite: Sets a single orange pixel at (458, 138) then Creates a blue circular shape at (122, 166) with radius 53.
+; PLAN: r0=458(x), r1=138(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=122(x), r6=166(y), r7=53(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 458
+LDI r1, 138
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 122
+LDI r6, 166
+LDI r7, 53
 LDI r8, 0x0000FF
 CIRCLE r5, r6, r7, r8
 HALT

@@ -1,8 +1,12 @@
-; DESCRIPTION: Places a cyan circle of radius 32 at center (285, 175).
-; PLAN: r0=285(x), r1=175(y), r2=32(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 285
-LDI r1, 175
-LDI r2, 32
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single orange pixel at (164, 186) then Places a green circle of radius 49 at center (392, 62).
+; PLAN: r0=164(x), r1=186(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=392(x), r6=62(y), r7=49(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 164
+LDI r1, 186
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 392
+LDI r6, 62
+LDI r7, 49
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

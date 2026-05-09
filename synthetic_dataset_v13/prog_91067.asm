@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Places a cyan 72x99 rectangle at position (124, 18) then Places a blue line segment connecting (248, 236) to (181, 104).
-; PLAN: r0=124(x), r1=18(y), r2=72(width), r3=99(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=248(x1), r6=236(y1), r7=181(x2), r8=104(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 124
-LDI r1, 18
-LDI r2, 72
-LDI r3, 99
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 248
-LDI r6, 236
-LDI r7, 181
-LDI r8, 104
-LDI r9, 0x0000FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a blue line between points (163, 97) and (14, 69) then Draws a white circle centered at (205, 77) with radius 69 then Places a orange dot at position (497, 75).
+; PLAN: r0=163(x1), r1=97(y1), r2=14(x2), r3=69(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=205(x), r6=77(y), r7=69(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=497(x), r11=75(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
+LDI r0, 163
+LDI r1, 97
+LDI r2, 14
+LDI r3, 69
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 205
+LDI r6, 77
+LDI r7, 69
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
+LDI r10, 497
+LDI r11, 75
+LDI r12, 0xFF8800
+PSET r10, r11, r12
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (217, 155) with radius 71.
-; PLAN: r0=217(x), r1=155(y), r2=71(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 217
-LDI r1, 155
-LDI r2, 71
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta box of size 18x23 starting at (177, 62).
+; PLAN: r0=177(x), r1=62(y), r2=18(width), r3=23(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 177
+LDI r1, 62
+LDI r2, 18
+LDI r3, 23
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

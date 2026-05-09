@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Places a black dot at position (212, 202) then Places a black line segment connecting (332, 26) to (159, 160) then Creates a green circular shape at (453, 173) with radius 55.
-; PLAN: r0=212(x), r1=202(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=332(x1), r6=26(y1), r7=159(x2), r8=160(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=453(x), r11=173(y), r12=55(radius), r13=0x00FF00(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 212
-LDI r1, 202
+; DESCRIPTION: Composite: Sets a single black pixel at (418, 116) then Creates a green rectangular region at (371, 230) spanning 49 by 23 pixels.
+; PLAN: r0=418(x), r1=116(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=371(x), r6=230(y), r7=49(width), r8=23(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 418
+LDI r1, 116
 LDI r2, 0x000000
 PSET r0, r1, r2
-LDI r5, 332
-LDI r6, 26
-LDI r7, 159
-LDI r8, 160
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
-LDI r10, 453
-LDI r11, 173
-LDI r12, 55
-LDI r13, 0x00FF00
-CIRCLE r10, r11, r12, r13
+LDI r5, 371
+LDI r6, 230
+LDI r7, 49
+LDI r8, 23
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

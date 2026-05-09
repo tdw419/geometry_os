@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a orange line segment connecting (332, 21) to (321, 32).
-; PLAN: r0=332(x1), r1=21(y1), r2=321(x2), r3=32(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 332
-LDI r1, 21
-LDI r2, 321
-LDI r3, 32
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (328, 136) then Draws a red line from (462, 128) to (13, 234).
+; PLAN: r0=328(x), r1=136(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=462(x1), r6=128(y1), r7=13(x2), r8=234(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 328
+LDI r1, 136
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 462
+LDI r6, 128
+LDI r7, 13
+LDI r8, 234
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

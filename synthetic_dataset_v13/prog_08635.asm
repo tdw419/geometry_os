@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (61, 118) and (388, 193).
-; PLAN: r0=61(x1), r1=118(y1), r2=388(x2), r3=193(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 61
-LDI r1, 118
-LDI r2, 388
-LDI r3, 193
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 25x119 rectangle at position (94, 0).
+; PLAN: r0=94(x), r1=0(y), r2=25(width), r3=119(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 94
+LDI r1, 0
+LDI r2, 25
+LDI r3, 119
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

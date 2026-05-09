@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 61 at center (260, 142).
-; PLAN: r0=260(x), r1=142(y), r2=61(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 260
-LDI r1, 142
-LDI r2, 61
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (393, 91) and (491, 178).
+; PLAN: r0=393(x1), r1=91(y1), r2=491(x2), r3=178(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 393
+LDI r1, 91
+LDI r2, 491
+LDI r3, 178
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

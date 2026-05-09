@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (501, 241) to (190, 5).
-; PLAN: r0=501(x1), r1=241(y1), r2=190(x2), r3=5(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 501
-LDI r1, 241
-LDI r2, 190
-LDI r3, 5
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 58 at center (385, 191).
+; PLAN: r0=385(x), r1=191(y), r2=58(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 385
+LDI r1, 191
+LDI r2, 58
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (140, 49) with radius 40.
-; PLAN: r0=140(x), r1=49(y), r2=40(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 140
-LDI r1, 49
-LDI r2, 40
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (183, 197) and (288, 198).
+; PLAN: r0=183(x1), r1=197(y1), r2=288(x2), r3=198(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 183
+LDI r1, 197
+LDI r2, 288
+LDI r3, 198
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

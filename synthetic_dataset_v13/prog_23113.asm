@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Places a black 83x69 rectangle at position (5, 156) then Creates a magenta circular shape at (236, 158) with radius 32 then Renders a blue line between points (90, 203) and (458, 169).
-; PLAN: r0=5(x), r1=156(y), r2=83(width), r3=69(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=236(x), r6=158(y), r7=32(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=90(x1), r11=203(y1), r12=458(x2), r13=169(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 5
-LDI r1, 156
-LDI r2, 83
-LDI r3, 69
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 236
-LDI r6, 158
-LDI r7, 32
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
-LDI r10, 90
-LDI r11, 203
-LDI r12, 458
-LDI r13, 169
-LDI r14, 0x0000FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Creates a yellow circular shape at (426, 148) with radius 80 then Renders a blue line between points (80, 176) and (93, 14) then Sets a single magenta pixel at (262, 233).
+; PLAN: r0=426(x), r1=148(y), r2=80(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=80(x1), r6=176(y1), r7=93(x2), r8=14(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=262(x), r11=233(y), r12=0xFF00FF(color). Op: PSET r10, r11, r12.
+LDI r0, 426
+LDI r1, 148
+LDI r2, 80
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 80
+LDI r6, 176
+LDI r7, 93
+LDI r8, 14
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
+LDI r10, 262
+LDI r11, 233
+LDI r12, 0xFF00FF
+PSET r10, r11, r12
 HALT

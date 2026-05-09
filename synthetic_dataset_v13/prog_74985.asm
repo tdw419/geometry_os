@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (465, 248) to (235, 99).
-; PLAN: r0=465(x1), r1=248(y1), r2=235(x2), r3=99(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 465
-LDI r1, 248
-LDI r2, 235
-LDI r3, 99
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue 80x107 rectangle at position (300, 113).
+; PLAN: r0=300(x), r1=113(y), r2=80(width), r3=107(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 300
+LDI r1, 113
+LDI r2, 80
+LDI r3, 107
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

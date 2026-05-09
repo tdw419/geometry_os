@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (102, 212) and radius 27.
-; PLAN: r0=102(x), r1=212(y), r2=27(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 102
-LDI r1, 212
-LDI r2, 27
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue line segment connecting (50, 124) to (272, 224).
+; PLAN: r0=50(x1), r1=124(y1), r2=272(x2), r3=224(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 50
+LDI r1, 124
+LDI r2, 272
+LDI r3, 224
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

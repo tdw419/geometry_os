@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a cyan line from (436, 188) to (155, 188).
-; PLAN: r0=436(x1), r1=188(y1), r2=155(x2), r3=188(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 436
-LDI r1, 188
-LDI r2, 155
-LDI r3, 188
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a green disk with center (46, 135) and radius 36 then Creates a red rectangular region at (267, 55) spanning 101 by 44 pixels.
+; PLAN: r0=46(x), r1=135(y), r2=36(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=267(x), r6=55(y), r7=101(width), r8=44(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 46
+LDI r1, 135
+LDI r2, 36
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 267
+LDI r6, 55
+LDI r7, 101
+LDI r8, 44
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange line segment connecting (198, 141) to (49, 6).
-; PLAN: r0=198(x1), r1=141(y1), r2=49(x2), r3=6(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 198
-LDI r1, 141
-LDI r2, 49
-LDI r3, 6
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 28 at center (132, 75).
+; PLAN: r0=132(x), r1=75(y), r2=28(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 132
+LDI r1, 75
+LDI r2, 28
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

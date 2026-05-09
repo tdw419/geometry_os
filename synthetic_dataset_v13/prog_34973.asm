@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single yellow pixel at (90, 150).
-; PLAN: r0=90(x), r1=150(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 90
-LDI r1, 150
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

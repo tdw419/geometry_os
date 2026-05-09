@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Places a purple line segment connecting (339, 45) to (144, 115) then Places a orange dot at position (51, 120) then Places a purple 40x88 rectangle at position (130, 120).
-; PLAN: r0=339(x1), r1=45(y1), r2=144(x2), r3=115(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=51(x), r6=120(y), r7=0xFF8800(color). Op: PSET r5, r6, r7 Next: r10=130(x), r11=120(y), r12=40(width), r13=88(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 339
-LDI r1, 45
-LDI r2, 144
-LDI r3, 115
-LDI r4, 0xAA00FF
+; DESCRIPTION: Composite: Renders a cyan line between points (128, 1) and (440, 129) then Renders a white disk with center (375, 210) and radius 12 then Sets a single purple pixel at (293, 204).
+; PLAN: r0=128(x1), r1=1(y1), r2=440(x2), r3=129(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=375(x), r6=210(y), r7=12(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=293(x), r11=204(y), r12=0xAA00FF(color). Op: PSET r10, r11, r12.
+LDI r0, 128
+LDI r1, 1
+LDI r2, 440
+LDI r3, 129
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
-LDI r5, 51
-LDI r6, 120
-LDI r7, 0xFF8800
-PSET r5, r6, r7
-LDI r10, 130
-LDI r11, 120
-LDI r12, 40
-LDI r13, 88
-LDI r14, 0xAA00FF
-RECTF r10, r11, r12, r13, r14
+LDI r5, 375
+LDI r6, 210
+LDI r7, 12
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
+LDI r10, 293
+LDI r11, 204
+LDI r12, 0xAA00FF
+PSET r10, r11, r12
 HALT

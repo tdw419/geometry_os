@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a orange circle of radius 35 at center (125, 88).
-; PLAN: r0=125(x), r1=88(y), r2=35(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 125
-LDI r1, 88
-LDI r2, 35
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single black pixel at (77, 140).
+; PLAN: r0=77(x), r1=140(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 77
+LDI r1, 140
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

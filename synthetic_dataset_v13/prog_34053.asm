@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 67x48 starting at (379, 180).
-; PLAN: r0=379(x), r1=180(y), r2=67(width), r3=48(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 379
-LDI r1, 180
-LDI r2, 67
-LDI r3, 48
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 46 into r1 and decrements it in a loop until zero.
+; PLAN: r1=46(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 46
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

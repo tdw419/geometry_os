@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (270, 77) and radius 59.
-; PLAN: r0=270(x), r1=77(y), r2=59(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 270
-LDI r1, 77
-LDI r2, 59
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (392, 176) to (155, 127).
+; PLAN: r0=392(x1), r1=176(y1), r2=155(x2), r3=127(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 392
+LDI r1, 176
+LDI r2, 155
+LDI r3, 127
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

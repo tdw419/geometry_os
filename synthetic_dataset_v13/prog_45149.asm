@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a white circle centered at (171, 70) with radius 65.
-; PLAN: r0=171(x), r1=70(y), r2=65(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 171
-LDI r1, 70
-LDI r2, 65
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue dot at position (296, 51).
+; PLAN: r0=296(x), r1=51(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 296
+LDI r1, 51
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

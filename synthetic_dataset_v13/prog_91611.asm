@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Draws a yellow line from (359, 51) to (236, 217) then Places a orange dot at position (148, 13).
-; PLAN: r0=359(x1), r1=51(y1), r2=236(x2), r3=217(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=148(x), r6=13(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 359
-LDI r1, 51
-LDI r2, 236
-LDI r3, 217
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 148
-LDI r6, 13
-LDI r7, 0xFF8800
+; DESCRIPTION: Composite: Draws a blue circle centered at (407, 193) with radius 47 then Sets a single green pixel at (229, 187) then Draws a blue line from (140, 66) to (366, 56).
+; PLAN: r0=407(x), r1=193(y), r2=47(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=229(x), r6=187(y), r7=0x00FF00(color). Op: PSET r5, r6, r7 Next: r10=140(x1), r11=66(y1), r12=366(x2), r13=56(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 407
+LDI r1, 193
+LDI r2, 47
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 229
+LDI r6, 187
+LDI r7, 0x00FF00
 PSET r5, r6, r7
+LDI r10, 140
+LDI r11, 66
+LDI r12, 366
+LDI r13, 56
+LDI r14, 0x0000FF
+LINE r10, r11, r12, r13, r14
 HALT

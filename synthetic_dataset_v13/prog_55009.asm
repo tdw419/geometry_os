@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (18, 226) and (282, 84).
-; PLAN: r0=18(x1), r1=226(y1), r2=282(x2), r3=84(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 18
-LDI r1, 226
-LDI r2, 282
-LDI r3, 84
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (149, 120) with radius 74.
+; PLAN: r0=149(x), r1=120(y), r2=74(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 149
+LDI r1, 120
+LDI r2, 74
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (5, 194) with width 59 and height 23.
-; PLAN: r0=5(x), r1=194(y), r2=59(width), r3=23(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 194
-LDI r2, 59
-LDI r3, 23
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (34, 7) and (396, 107).
+; PLAN: r0=34(x1), r1=7(y1), r2=396(x2), r3=107(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 34
+LDI r1, 7
+LDI r2, 396
+LDI r3, 107
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

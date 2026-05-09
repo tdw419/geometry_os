@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (287, 145) and radius 77.
-; PLAN: r0=287(x), r1=145(y), r2=77(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 287
-LDI r1, 145
-LDI r2, 77
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a yellow rectangular region at (66, 91) spanning 103 by 68 pixels.
+; PLAN: r0=66(x), r1=91(y), r2=103(width), r3=68(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 66
+LDI r1, 91
+LDI r2, 103
+LDI r3, 68
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

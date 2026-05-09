@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 80x50 starting at (311, 85).
-; PLAN: r0=311(x), r1=85(y), r2=80(width), r3=50(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 311
-LDI r1, 85
-LDI r2, 80
-LDI r3, 50
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow line segment connecting (123, 220) to (500, 64).
+; PLAN: r0=123(x1), r1=220(y1), r2=500(x2), r3=64(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 123
+LDI r1, 220
+LDI r2, 500
+LDI r3, 64
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

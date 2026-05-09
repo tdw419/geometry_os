@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (348, 70) and (300, 115).
-; PLAN: r0=348(x1), r1=70(y1), r2=300(x2), r3=115(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 348
-LDI r1, 70
-LDI r2, 300
-LDI r3, 115
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 82x57 rectangle at position (141, 87).
+; PLAN: r0=141(x), r1=87(y), r2=82(width), r3=57(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 141
+LDI r1, 87
+LDI r2, 82
+LDI r3, 57
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

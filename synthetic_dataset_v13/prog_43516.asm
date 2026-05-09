@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a green dot at position (260, 144).
-; PLAN: r0=260(x), r1=144(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 260
-LDI r1, 144
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a orange box of size 86x28 starting at (130, 86).
+; PLAN: r0=130(x), r1=86(y), r2=86(width), r3=28(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 130
+LDI r1, 86
+LDI r2, 86
+LDI r3, 28
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a white disk with center (282, 186) and radius 31.
-; PLAN: r0=282(x), r1=186(y), r2=31(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 282
-LDI r1, 186
-LDI r2, 31
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Renders a black disk with center (415, 29) and radius 13.
+; PLAN: r0=415(x), r1=29(y), r2=13(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 415
+LDI r1, 29
+LDI r2, 13
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

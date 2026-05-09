@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (5, 232) to (312, 159).
-; PLAN: r0=5(x1), r1=232(y1), r2=312(x2), r3=159(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 232
-LDI r2, 312
-LDI r3, 159
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 50 into r1 and decrements it in a loop until zero.
+; PLAN: r1=50(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 50
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

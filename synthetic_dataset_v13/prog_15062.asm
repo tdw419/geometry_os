@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a cyan disk with center (168, 72) and radius 30.
-; PLAN: r0=168(x), r1=72(y), r2=30(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 168
-LDI r1, 72
-LDI r2, 30
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

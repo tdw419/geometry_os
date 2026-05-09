@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a blue 18x71 rectangle at position (75, 167).
-; PLAN: r0=75(x), r1=167(y), r2=18(width), r3=71(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 75
-LDI r1, 167
-LDI r2, 18
-LDI r3, 71
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (164, 23) then Draws a purple circle centered at (262, 148) with radius 77.
+; PLAN: r0=164(x), r1=23(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=262(x), r6=148(y), r7=77(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 164
+LDI r1, 23
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 262
+LDI r6, 148
+LDI r7, 77
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,15 +1,19 @@
-; DESCRIPTION: Composite: Places a black line segment connecting (483, 137) to (407, 22) then Renders a yellow box of size 108x13 starting at (24, 117).
-; PLAN: r0=483(x1), r1=137(y1), r2=407(x2), r3=22(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=24(x), r6=117(y), r7=108(width), r8=13(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 483
-LDI r1, 137
-LDI r2, 407
-LDI r3, 22
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
-LDI r5, 24
-LDI r6, 117
-LDI r7, 108
-LDI r8, 13
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

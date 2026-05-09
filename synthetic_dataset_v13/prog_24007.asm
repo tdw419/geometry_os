@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange rectangle at (148, 31) with width 90 and height 102.
-; PLAN: r0=148(x), r1=31(y), r2=90(width), r3=102(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 148
-LDI r1, 31
-LDI r2, 90
-LDI r3, 102
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (171, 100) with radius 16.
+; PLAN: r0=171(x), r1=100(y), r2=16(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 171
+LDI r1, 100
+LDI r2, 16
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

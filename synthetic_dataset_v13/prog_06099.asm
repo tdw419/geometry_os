@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 17 at center (381, 235).
-; PLAN: r0=381(x), r1=235(y), r2=17(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 381
-LDI r1, 235
-LDI r2, 17
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (243, 23) to (202, 252).
+; PLAN: r0=243(x1), r1=23(y1), r2=202(x2), r3=252(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 243
+LDI r1, 23
+LDI r2, 202
+LDI r3, 252
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

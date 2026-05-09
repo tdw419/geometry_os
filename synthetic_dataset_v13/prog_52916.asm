@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a orange line between points (100, 169) and (430, 141).
-; PLAN: r0=100(x1), r1=169(y1), r2=430(x2), r3=141(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 100
-LDI r1, 169
-LDI r2, 430
-LDI r3, 141
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (13, 122).
+; PLAN: r0=13(x), r1=122(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 13
+LDI r1, 122
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

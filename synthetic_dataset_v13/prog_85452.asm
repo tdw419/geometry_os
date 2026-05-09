@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (447, 15) with width 40 and height 120.
-; PLAN: r0=447(x), r1=15(y), r2=40(width), r3=120(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 447
-LDI r1, 15
-LDI r2, 40
-LDI r3, 120
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (218, 23) and (47, 96).
+; PLAN: r0=218(x1), r1=23(y1), r2=47(x2), r3=96(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 218
+LDI r1, 23
+LDI r2, 47
+LDI r3, 96
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

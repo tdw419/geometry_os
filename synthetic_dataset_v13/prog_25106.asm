@@ -1,8 +1,5 @@
-; DESCRIPTION: Loads 26 into r1 and decrements it in a loop until zero.
-; PLAN: r1=26(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 26
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Sets the background to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

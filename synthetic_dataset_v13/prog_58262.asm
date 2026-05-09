@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 31 at center (89, 161).
-; PLAN: r0=89(x), r1=161(y), r2=31(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 89
-LDI r1, 161
-LDI r2, 31
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (352, 6) and (481, 17).
+; PLAN: r0=352(x1), r1=6(y1), r2=481(x2), r3=17(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 352
+LDI r1, 6
+LDI r2, 481
+LDI r3, 17
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

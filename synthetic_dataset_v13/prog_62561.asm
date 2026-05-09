@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (302, 206) with width 106 and height 31.
-; PLAN: r0=302(x), r1=206(y), r2=106(width), r3=31(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 302
-LDI r1, 206
-LDI r2, 106
-LDI r3, 31
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (43, 61) to (369, 229).
+; PLAN: r0=43(x1), r1=61(y1), r2=369(x2), r3=229(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 43
+LDI r1, 61
+LDI r2, 369
+LDI r3, 229
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

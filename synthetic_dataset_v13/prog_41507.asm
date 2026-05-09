@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (379, 138) to (14, 10).
-; PLAN: r0=379(x1), r1=138(y1), r2=14(x2), r3=10(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 379
-LDI r1, 138
-LDI r2, 14
-LDI r3, 10
+; DESCRIPTION: Creates a magenta rectangular region at (129, 123) spanning 118 by 14 pixels.
+; PLAN: r0=129(x), r1=123(y), r2=118(width), r3=14(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 129
+LDI r1, 123
+LDI r2, 118
+LDI r3, 14
 LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

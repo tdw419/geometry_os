@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (441, 65) spanning 29 by 105 pixels.
-; PLAN: r0=441(x), r1=65(y), r2=29(width), r3=105(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 441
-LDI r1, 65
-LDI r2, 29
-LDI r3, 105
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a blue 82x38 rectangle at position (280, 31).
+; PLAN: r0=280(x), r1=31(y), r2=82(width), r3=38(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 280
+LDI r1, 31
+LDI r2, 82
+LDI r3, 38
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

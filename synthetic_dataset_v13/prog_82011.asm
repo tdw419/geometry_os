@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Draws a cyan line from (248, 229) to (132, 186).
+; PLAN: r0=248(x1), r1=229(y1), r2=132(x2), r3=186(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 229
+LDI r2, 132
+LDI r3, 186
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

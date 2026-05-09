@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a white rectangular region at (342, 115) spanning 102 by 24 pixels.
-; PLAN: r0=342(x), r1=115(y), r2=102(width), r3=24(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 342
-LDI r1, 115
-LDI r2, 102
-LDI r3, 24
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 43 into r1 and decrements it in a loop until zero.
+; PLAN: r1=43(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 43
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

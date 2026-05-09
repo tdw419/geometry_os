@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Places a magenta line segment connecting (419, 252) to (351, 243) then Renders a orange disk with center (213, 104) and radius 69 then Sets a single white pixel at (292, 38).
-; PLAN: r0=419(x1), r1=252(y1), r2=351(x2), r3=243(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=213(x), r6=104(y), r7=69(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=292(x), r11=38(y), r12=0xFFFFFF(color). Op: PSET r10, r11, r12.
-LDI r0, 419
-LDI r1, 252
-LDI r2, 351
-LDI r3, 243
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 213
-LDI r6, 104
-LDI r7, 69
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
-LDI r10, 292
-LDI r11, 38
-LDI r12, 0xFFFFFF
-PSET r10, r11, r12
+; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
+LDI r7, 0x0000FF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (204, 105) to (284, 18).
-; PLAN: r0=204(x1), r1=105(y1), r2=284(x2), r3=18(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 204
-LDI r1, 105
-LDI r2, 284
-LDI r3, 18
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a red line between points (47, 233) and (252, 15).
+; PLAN: r0=47(x1), r1=233(y1), r2=252(x2), r3=15(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 47
+LDI r1, 233
+LDI r2, 252
+LDI r3, 15
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

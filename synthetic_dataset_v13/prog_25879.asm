@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 25 at center (197, 122).
-; PLAN: r0=197(x), r1=122(y), r2=25(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 197
-LDI r1, 122
-LDI r2, 25
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a white rectangular region at (357, 18) spanning 112 by 104 pixels.
+; PLAN: r0=357(x), r1=18(y), r2=112(width), r3=104(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 18
+LDI r2, 112
+LDI r3, 104
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

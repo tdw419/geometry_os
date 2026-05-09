@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (461, 130) and (440, 91).
-; PLAN: r0=461(x1), r1=130(y1), r2=440(x2), r3=91(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 461
-LDI r1, 130
-LDI r2, 440
-LDI r3, 91
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 35x103 rectangle at position (125, 92).
+; PLAN: r0=125(x), r1=92(y), r2=35(width), r3=103(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 125
+LDI r1, 92
+LDI r2, 35
+LDI r3, 103
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

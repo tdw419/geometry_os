@@ -1,4 +1,4 @@
-; DESCRIPTION: Sets the background to purple.
+; DESCRIPTION: Paints the whole screen purple.
 ; PLAN: r0=0xAA00FF(color). Op: FILL r0.
 LDI r0, 0xAA00FF
 FILL r0

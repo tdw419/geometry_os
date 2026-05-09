@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black box of size 30x19 starting at (474, 142).
-; PLAN: r0=474(x), r1=142(y), r2=30(width), r3=19(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 474
-LDI r1, 142
-LDI r2, 30
-LDI r3, 19
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (413, 188) with radius 45.
+; PLAN: r0=413(x), r1=188(y), r2=45(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 413
+LDI r1, 188
+LDI r2, 45
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

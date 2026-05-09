@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (64, 63) and (316, 158).
-; PLAN: r0=64(x1), r1=63(y1), r2=316(x2), r3=158(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 63
-LDI r2, 316
-LDI r3, 158
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green rectangle at (416, 155) with width 67 and height 42.
+; PLAN: r0=416(x), r1=155(y), r2=67(width), r3=42(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 416
+LDI r1, 155
+LDI r2, 67
+LDI r3, 42
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a black circular shape at (493, 158) with radius 11.
-; PLAN: r0=493(x), r1=158(y), r2=11(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 493
-LDI r1, 158
-LDI r2, 11
-LDI r3, 0x000000
+; DESCRIPTION: Creates a orange circular shape at (101, 167) with radius 65.
+; PLAN: r0=101(x), r1=167(y), r2=65(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 101
+LDI r1, 167
+LDI r2, 65
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

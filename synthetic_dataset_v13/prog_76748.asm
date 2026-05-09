@@ -1,5 +1,8 @@
-; DESCRIPTION: Sets the background to black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
-FILL r0
+; DESCRIPTION: Places a yellow circle of radius 30 at center (373, 62).
+; PLAN: r0=373(x), r1=62(y), r2=30(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 373
+LDI r1, 62
+LDI r2, 30
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

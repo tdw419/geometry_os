@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a red rectangular region at (223, 58) spanning 106 by 62 pixels.
-; PLAN: r0=223(x), r1=58(y), r2=106(width), r3=62(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 223
-LDI r1, 58
-LDI r2, 106
-LDI r3, 62
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (247, 223) and radius 29.
+; PLAN: r0=247(x), r1=223(y), r2=29(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 247
+LDI r1, 223
+LDI r2, 29
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

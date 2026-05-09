@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a orange rectangular region at (140, 64) spanning 95 by 17 pixels.
-; PLAN: r0=140(x), r1=64(y), r2=95(width), r3=17(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 140
-LDI r1, 64
-LDI r2, 95
-LDI r3, 17
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (451, 146).
+; PLAN: r0=451(x), r1=146(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 451
+LDI r1, 146
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

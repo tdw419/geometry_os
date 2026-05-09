@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 41 at center (403, 73).
-; PLAN: r0=403(x), r1=73(y), r2=41(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 403
-LDI r1, 73
-LDI r2, 41
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue rectangle at (422, 106) with width 21 and height 99.
+; PLAN: r0=422(x), r1=106(y), r2=21(width), r3=99(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 422
+LDI r1, 106
+LDI r2, 21
+LDI r3, 99
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

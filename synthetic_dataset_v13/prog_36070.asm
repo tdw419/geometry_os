@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single green pixel at (55, 83).
-; PLAN: r0=55(x), r1=83(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 55
-LDI r1, 83
-LDI r2, 0x00FF00
+; DESCRIPTION: Places a magenta dot at position (142, 216).
+; PLAN: r0=142(x), r1=216(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 142
+LDI r1, 216
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
 HALT

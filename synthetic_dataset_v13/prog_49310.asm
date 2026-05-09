@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a white dot at position (12, 129).
-; PLAN: r0=12(x), r1=129(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 12
-LDI r1, 129
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a magenta disk with center (318, 113) and radius 61.
-; PLAN: r0=318(x), r1=113(y), r2=61(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 318
-LDI r1, 113
-LDI r2, 61
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 23 into r1 and decrements it in a loop until zero.
+; PLAN: r1=23(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 23
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

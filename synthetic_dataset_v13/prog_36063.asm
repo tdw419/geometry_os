@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 53x114 rectangle at position (241, 36).
-; PLAN: r0=241(x), r1=36(y), r2=53(width), r3=114(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 36
-LDI r2, 53
-LDI r3, 114
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (51, 174) and radius 14.
+; PLAN: r0=51(x), r1=174(y), r2=14(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 51
+LDI r1, 174
+LDI r2, 14
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

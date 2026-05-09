@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 21 at center (130, 190).
-; PLAN: r0=130(x), r1=190(y), r2=21(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 130
-LDI r1, 190
-LDI r2, 21
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 27x76 rectangle at position (26, 6).
+; PLAN: r0=26(x), r1=6(y), r2=27(width), r3=76(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 26
+LDI r1, 6
+LDI r2, 27
+LDI r3, 76
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white line between points (401, 106) and (138, 166).
-; PLAN: r0=401(x1), r1=106(y1), r2=138(x2), r3=166(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 401
-LDI r1, 106
-LDI r2, 138
-LDI r3, 166
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (24, 224).
+; PLAN: r0=24(x), r1=224(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 24
+LDI r1, 224
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

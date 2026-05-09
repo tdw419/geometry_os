@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a purple dot at position (357, 88).
-; PLAN: r0=357(x), r1=88(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 357
-LDI r1, 88
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a magenta rectangle at (250, 70) with width 70 and height 45.
+; PLAN: r0=250(x), r1=70(y), r2=70(width), r3=45(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 250
+LDI r1, 70
+LDI r2, 70
+LDI r3, 45
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

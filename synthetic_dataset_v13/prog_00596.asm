@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 91x93 rectangle at position (47, 83).
-; PLAN: r0=47(x), r1=83(y), r2=91(width), r3=93(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 47
-LDI r1, 83
-LDI r2, 91
-LDI r3, 93
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (358, 103) and radius 38.
+; PLAN: r0=358(x), r1=103(y), r2=38(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 358
+LDI r1, 103
+LDI r2, 38
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a cyan circle of radius 63 at center (249, 131).
-; PLAN: r0=249(x), r1=131(y), r2=63(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 249
-LDI r1, 131
-LDI r2, 63
-LDI r3, 0x00FFFF
+; DESCRIPTION: Creates a purple circular shape at (442, 120) with radius 60.
+; PLAN: r0=442(x), r1=120(y), r2=60(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 442
+LDI r1, 120
+LDI r2, 60
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

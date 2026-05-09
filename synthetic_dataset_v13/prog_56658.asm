@@ -1,5 +1,5 @@
-; DESCRIPTION: Clears the screen to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
+; DESCRIPTION: Fills the entire screen with solid yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
 FILL r0
 HALT

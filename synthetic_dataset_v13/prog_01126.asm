@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a red circle centered at (147, 164) with radius 37.
-; PLAN: r0=147(x), r1=164(y), r2=37(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 147
-LDI r1, 164
-LDI r2, 37
-LDI r3, 0xFF0000
+; DESCRIPTION: Places a cyan circle of radius 50 at center (358, 72).
+; PLAN: r0=358(x), r1=72(y), r2=50(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 358
+LDI r1, 72
+LDI r2, 50
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

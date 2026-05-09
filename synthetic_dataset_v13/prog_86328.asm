@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (351, 62) to (382, 135).
-; PLAN: r0=351(x1), r1=62(y1), r2=382(x2), r3=135(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 351
-LDI r1, 62
-LDI r2, 382
-LDI r3, 135
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 32x117 rectangle at position (420, 67).
+; PLAN: r0=420(x), r1=67(y), r2=32(width), r3=117(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 420
+LDI r1, 67
+LDI r2, 32
+LDI r3, 117
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

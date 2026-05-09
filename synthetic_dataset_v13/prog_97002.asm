@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a magenta box of size 63x119 starting at (228, 131).
-; PLAN: r0=228(x), r1=131(y), r2=63(width), r3=119(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 228
-LDI r1, 131
-LDI r2, 63
-LDI r3, 119
+; DESCRIPTION: Composite: Places a magenta line segment connecting (350, 77) to (27, 73) then Places a blue dot at position (140, 183).
+; PLAN: r0=350(x1), r1=77(y1), r2=27(x2), r3=73(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=140(x), r6=183(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 350
+LDI r1, 77
+LDI r2, 27
+LDI r3, 73
 LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
+LDI r5, 140
+LDI r6, 183
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

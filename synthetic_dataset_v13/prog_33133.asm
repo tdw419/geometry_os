@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (485, 149) to (244, 97).
-; PLAN: r0=485(x1), r1=149(y1), r2=244(x2), r3=97(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 485
-LDI r1, 149
-LDI r2, 244
-LDI r3, 97
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a magenta line between points (417, 205) and (263, 22).
+; PLAN: r0=417(x1), r1=205(y1), r2=263(x2), r3=22(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 205
+LDI r2, 263
+LDI r3, 22
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

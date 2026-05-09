@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan line between points (64, 135) and (201, 239).
-; PLAN: r0=64(x1), r1=135(y1), r2=201(x2), r3=239(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 135
-LDI r2, 201
-LDI r3, 239
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (180, 139).
+; PLAN: r0=180(x), r1=139(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 180
+LDI r1, 139
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

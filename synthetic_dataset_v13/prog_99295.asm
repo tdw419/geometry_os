@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (344, 142) with radius 51.
-; PLAN: r0=344(x), r1=142(y), r2=51(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 344
-LDI r1, 142
-LDI r2, 51
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple box of size 53x14 starting at (295, 234).
+; PLAN: r0=295(x), r1=234(y), r2=53(width), r3=14(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 295
+LDI r1, 234
+LDI r2, 53
+LDI r3, 14
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

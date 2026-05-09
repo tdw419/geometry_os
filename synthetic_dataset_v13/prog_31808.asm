@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (54, 0) to (428, 106).
-; PLAN: r0=54(x1), r1=0(y1), r2=428(x2), r3=106(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 54
-LDI r1, 0
-LDI r2, 428
-LDI r3, 106
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 58x101 rectangle at position (224, 72).
+; PLAN: r0=224(x), r1=72(y), r2=58(width), r3=101(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 224
+LDI r1, 72
+LDI r2, 58
+LDI r3, 101
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

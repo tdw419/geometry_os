@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (478, 219) to (275, 7).
-; PLAN: r0=478(x1), r1=219(y1), r2=275(x2), r3=7(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 478
-LDI r1, 219
-LDI r2, 275
-LDI r3, 7
-LDI r4, 0x000000
+; DESCRIPTION: Renders a orange line between points (272, 234) and (77, 201).
+; PLAN: r0=272(x1), r1=234(y1), r2=77(x2), r3=201(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 272
+LDI r1, 234
+LDI r2, 77
+LDI r3, 201
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

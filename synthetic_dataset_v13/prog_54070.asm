@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (249, 189) and (321, 2).
-; PLAN: r0=249(x1), r1=189(y1), r2=321(x2), r3=2(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 249
-LDI r1, 189
-LDI r2, 321
-LDI r3, 2
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 18x57 starting at (420, 30).
+; PLAN: r0=420(x), r1=30(y), r2=18(width), r3=57(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 420
+LDI r1, 30
+LDI r2, 18
+LDI r3, 57
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

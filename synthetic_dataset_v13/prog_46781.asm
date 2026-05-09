@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a green dot at position (313, 155).
-; PLAN: r0=313(x), r1=155(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 313
-LDI r1, 155
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a magenta 31x22 rectangle at position (63, 84).
+; PLAN: r0=63(x), r1=84(y), r2=31(width), r3=22(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 63
+LDI r1, 84
+LDI r2, 31
+LDI r3, 22
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

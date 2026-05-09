@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (206, 175) then Places a red line segment connecting (20, 59) to (373, 173).
-; PLAN: r0=206(x), r1=175(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=20(x1), r6=59(y1), r7=373(x2), r8=173(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 206
-LDI r1, 175
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 20
-LDI r6, 59
-LDI r7, 373
-LDI r8, 173
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
+LDI r7, 0x0000FF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

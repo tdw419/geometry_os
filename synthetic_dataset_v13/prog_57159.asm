@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a green rectangle at (347, 87) with width 37 and height 108.
-; PLAN: r0=347(x), r1=87(y), r2=37(width), r3=108(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 347
-LDI r1, 87
-LDI r2, 37
-LDI r3, 108
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

@@ -1,14 +1,13 @@
-; DESCRIPTION: Composite: Creates a black circular shape at (377, 53) with radius 40 then Places a orange line segment connecting (53, 125) to (8, 173).
-; PLAN: r0=377(x), r1=53(y), r2=40(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=53(x1), r6=125(y1), r7=8(x2), r8=173(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 377
-LDI r1, 53
-LDI r2, 40
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 53
-LDI r6, 125
-LDI r7, 8
-LDI r8, 173
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a black line segment connecting (501, 103) to (135, 185) then Sets a single red pixel at (321, 112).
+; PLAN: r0=501(x1), r1=103(y1), r2=135(x2), r3=185(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=321(x), r6=112(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 501
+LDI r1, 103
+LDI r2, 135
+LDI r3, 185
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+LDI r5, 321
+LDI r6, 112
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

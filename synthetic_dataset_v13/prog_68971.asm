@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (404, 147) and radius 57.
-; PLAN: r0=404(x), r1=147(y), r2=57(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 404
-LDI r1, 147
-LDI r2, 57
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (45, 163) and (273, 236).
+; PLAN: r0=45(x1), r1=163(y1), r2=273(x2), r3=236(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 45
+LDI r1, 163
+LDI r2, 273
+LDI r3, 236
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

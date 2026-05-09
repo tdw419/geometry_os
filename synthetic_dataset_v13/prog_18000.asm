@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 69x63 rectangle at position (108, 120).
-; PLAN: r0=108(x), r1=120(y), r2=69(width), r3=63(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 108
-LDI r1, 120
-LDI r2, 69
-LDI r3, 63
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 21 into r1 and decrements it in a loop until zero.
+; PLAN: r1=21(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 21
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

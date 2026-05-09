@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a cyan circular shape at (10, 28) with radius 10.
-; PLAN: r0=10(x), r1=28(y), r2=10(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 10
-LDI r1, 28
-LDI r2, 10
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

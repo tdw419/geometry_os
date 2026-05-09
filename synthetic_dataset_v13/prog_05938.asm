@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red box of size 108x38 starting at (47, 190).
-; PLAN: r0=47(x), r1=190(y), r2=108(width), r3=38(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 47
-LDI r1, 190
-LDI r2, 108
-LDI r3, 38
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (388, 84) with radius 76.
+; PLAN: r0=388(x), r1=84(y), r2=76(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 388
+LDI r1, 84
+LDI r2, 76
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

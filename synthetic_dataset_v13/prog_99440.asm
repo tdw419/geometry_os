@@ -1,9 +1,18 @@
-; DESCRIPTION: Places a cyan 87x93 rectangle at position (405, 51).
-; PLAN: r0=405(x), r1=51(y), r2=87(width), r3=93(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 405
-LDI r1, 51
-LDI r2, 87
-LDI r3, 93
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single cyan pixel at (37, 182) then Creates a blue circular shape at (118, 79) with radius 47 then Creates a black rectangular region at (26, 26) spanning 20 by 58 pixels.
+; PLAN: r0=37(x), r1=182(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=118(x), r6=79(y), r7=47(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=26(x), r11=26(y), r12=20(width), r13=58(height), r14=0x000000(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 37
+LDI r1, 182
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 118
+LDI r6, 79
+LDI r7, 47
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 26
+LDI r11, 26
+LDI r12, 20
+LDI r13, 58
+LDI r14, 0x000000
+RECTF r10, r11, r12, r13, r14
 HALT

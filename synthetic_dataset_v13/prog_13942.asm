@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single orange pixel at (17, 36).
-; PLAN: r0=17(x), r1=36(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 17
-LDI r1, 36
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

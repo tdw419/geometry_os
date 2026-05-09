@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a black circle centered at (275, 144) with radius 17.
-; PLAN: r0=275(x), r1=144(y), r2=17(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 275
-LDI r1, 144
-LDI r2, 17
-LDI r3, 0x000000
+; DESCRIPTION: Places a orange circle of radius 41 at center (225, 115).
+; PLAN: r0=225(x), r1=115(y), r2=41(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 225
+LDI r1, 115
+LDI r2, 41
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

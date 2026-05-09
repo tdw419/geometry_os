@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (404, 63) with width 95 and height 61.
-; PLAN: r0=404(x), r1=63(y), r2=95(width), r3=61(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 404
-LDI r1, 63
-LDI r2, 95
-LDI r3, 61
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan line segment connecting (252, 125) to (312, 142).
+; PLAN: r0=252(x1), r1=125(y1), r2=312(x2), r3=142(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 252
+LDI r1, 125
+LDI r2, 312
+LDI r3, 142
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

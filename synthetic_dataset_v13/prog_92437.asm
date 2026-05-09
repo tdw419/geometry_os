@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (83, 246) to (113, 248).
-; PLAN: r0=83(x1), r1=246(y1), r2=113(x2), r3=248(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 83
-LDI r1, 246
-LDI r2, 113
-LDI r3, 248
-LDI r4, 0x000000
+; DESCRIPTION: Renders a blue line between points (25, 133) and (220, 139).
+; PLAN: r0=25(x1), r1=133(y1), r2=220(x2), r3=139(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 25
+LDI r1, 133
+LDI r2, 220
+LDI r3, 139
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

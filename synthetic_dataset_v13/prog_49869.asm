@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 40 at center (291, 202).
-; PLAN: r0=291(x), r1=202(y), r2=40(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 291
-LDI r1, 202
-LDI r2, 40
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a blue rectangular region at (278, 155) spanning 98 by 73 pixels.
+; PLAN: r0=278(x), r1=155(y), r2=98(width), r3=73(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 278
+LDI r1, 155
+LDI r2, 98
+LDI r3, 73
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

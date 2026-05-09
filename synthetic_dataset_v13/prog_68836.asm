@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 103x71 rectangle at position (74, 33).
-; PLAN: r0=74(x), r1=33(y), r2=103(width), r3=71(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 74
-LDI r1, 33
-LDI r2, 103
-LDI r3, 71
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 69 at center (269, 89).
+; PLAN: r0=269(x), r1=89(y), r2=69(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 269
+LDI r1, 89
+LDI r2, 69
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

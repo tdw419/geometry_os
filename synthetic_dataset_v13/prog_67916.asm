@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single green pixel at (61, 100).
-; PLAN: r0=61(x), r1=100(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 61
-LDI r1, 100
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple disk with center (289, 152) and radius 22.
+; PLAN: r0=289(x), r1=152(y), r2=22(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 289
+LDI r1, 152
+LDI r2, 22
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,5 +1,7 @@
-; DESCRIPTION: Fills the entire screen with solid cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Places a yellow dot at position (464, 187).
+; PLAN: r0=464(x), r1=187(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 464
+LDI r1, 187
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 117x59 rectangle at position (97, 54).
-; PLAN: r0=97(x), r1=54(y), r2=117(width), r3=59(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 97
-LDI r1, 54
-LDI r2, 117
-LDI r3, 59
+; DESCRIPTION: Places a orange 84x76 rectangle at position (398, 53).
+; PLAN: r0=398(x), r1=53(y), r2=84(width), r3=76(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 398
+LDI r1, 53
+LDI r2, 84
+LDI r3, 76
 LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

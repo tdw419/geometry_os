@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (128, 196) and (65, 229).
-; PLAN: r0=128(x1), r1=196(y1), r2=65(x2), r3=229(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 128
-LDI r1, 196
-LDI r2, 65
-LDI r3, 229
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 91x13 rectangle at position (333, 226).
+; PLAN: r0=333(x), r1=226(y), r2=91(width), r3=13(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 333
+LDI r1, 226
+LDI r2, 91
+LDI r3, 13
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

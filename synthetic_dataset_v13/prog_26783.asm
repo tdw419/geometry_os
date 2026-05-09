@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a blue circle of radius 30 at center (454, 99).
-; PLAN: r0=454(x), r1=99(y), r2=30(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 454
-LDI r1, 99
-LDI r2, 30
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

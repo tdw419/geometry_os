@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a white circle centered at (392, 90) with radius 56.
-; PLAN: r0=392(x), r1=90(y), r2=56(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 392
-LDI r1, 90
-LDI r2, 56
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

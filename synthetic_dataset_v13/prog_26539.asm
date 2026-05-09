@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (167, 205) with radius 27.
-; PLAN: r0=167(x), r1=205(y), r2=27(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 167
-LDI r1, 205
-LDI r2, 27
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (222, 115) to (307, 119).
+; PLAN: r0=222(x1), r1=115(y1), r2=307(x2), r3=119(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 222
+LDI r1, 115
+LDI r2, 307
+LDI r3, 119
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

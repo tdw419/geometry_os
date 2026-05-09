@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (362, 85) with radius 54.
-; PLAN: r0=362(x), r1=85(y), r2=54(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 362
-LDI r1, 85
-LDI r2, 54
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 23x54 rectangle at position (261, 21).
+; PLAN: r0=261(x), r1=21(y), r2=23(width), r3=54(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 261
+LDI r1, 21
+LDI r2, 23
+LDI r3, 54
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (109, 147) then Creates a yellow rectangular region at (216, 59) spanning 10 by 35 pixels.
-; PLAN: r0=109(x), r1=147(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=216(x), r6=59(y), r7=10(width), r8=35(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 109
-LDI r1, 147
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 216
-LDI r6, 59
-LDI r7, 10
-LDI r8, 35
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Loads 27 into r1 and decrements it in a loop until zero.
+; PLAN: r1=27(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 27
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

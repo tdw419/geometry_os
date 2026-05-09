@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (76, 6) then Creates a blue rectangular region at (447, 125) spanning 44 by 66 pixels.
-; PLAN: r0=76(x), r1=6(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=447(x), r6=125(y), r7=44(width), r8=66(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 76
-LDI r1, 6
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 447
-LDI r6, 125
-LDI r7, 44
-LDI r8, 66
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a black rectangle at (224, 110) with width 86 and height 68.
+; PLAN: r0=224(x), r1=110(y), r2=86(width), r3=68(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 224
+LDI r1, 110
+LDI r2, 86
+LDI r3, 68
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

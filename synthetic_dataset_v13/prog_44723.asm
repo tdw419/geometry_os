@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white line segment connecting (272, 156) to (235, 69).
-; PLAN: r0=272(x1), r1=156(y1), r2=235(x2), r3=69(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 272
-LDI r1, 156
-LDI r2, 235
-LDI r3, 69
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (292, 216).
+; PLAN: r0=292(x), r1=216(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 292
+LDI r1, 216
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Places a green 76x105 rectangle at position (138, 119).
+; PLAN: r0=138(x), r1=119(y), r2=76(width), r3=105(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 138
+LDI r1, 119
+LDI r2, 76
+LDI r3, 105
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

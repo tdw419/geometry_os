@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 92x40 rectangle at position (159, 210).
-; PLAN: r0=159(x), r1=210(y), r2=92(width), r3=40(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 159
-LDI r1, 210
-LDI r2, 92
-LDI r3, 40
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 32 at center (118, 187).
+; PLAN: r0=118(x), r1=187(y), r2=32(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 118
+LDI r1, 187
+LDI r2, 32
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

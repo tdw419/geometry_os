@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Places a yellow 106x16 rectangle at position (301, 146) then Sets a single green pixel at (308, 213).
-; PLAN: r0=301(x), r1=146(y), r2=106(width), r3=16(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=308(x), r6=213(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 301
-LDI r1, 146
-LDI r2, 106
-LDI r3, 16
-LDI r4, 0xFFFF00
+; DESCRIPTION: Composite: Creates a orange rectangular region at (239, 37) spanning 70 by 120 pixels then Places a cyan dot at position (144, 199).
+; PLAN: r0=239(x), r1=37(y), r2=70(width), r3=120(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=144(x), r6=199(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 239
+LDI r1, 37
+LDI r2, 70
+LDI r3, 120
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
-LDI r5, 308
-LDI r6, 213
-LDI r7, 0x00FF00
+LDI r5, 144
+LDI r6, 199
+LDI r7, 0x00FFFF
 PSET r5, r6, r7
 HALT

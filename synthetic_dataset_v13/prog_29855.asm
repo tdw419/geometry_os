@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a purple circle of radius 28 at center (211, 175).
-; PLAN: r0=211(x), r1=175(y), r2=28(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 211
-LDI r1, 175
-LDI r2, 28
-LDI r3, 0xAA00FF
+; DESCRIPTION: Places a yellow circle of radius 15 at center (185, 25).
+; PLAN: r0=185(x), r1=25(y), r2=15(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 185
+LDI r1, 25
+LDI r2, 15
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

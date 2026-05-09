@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (462, 8) to (380, 149).
-; PLAN: r0=462(x1), r1=8(y1), r2=380(x2), r3=149(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 462
-LDI r1, 8
-LDI r2, 380
-LDI r3, 149
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan rectangle at (429, 152) with width 32 and height 77.
+; PLAN: r0=429(x), r1=152(y), r2=32(width), r3=77(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 429
+LDI r1, 152
+LDI r2, 32
+LDI r3, 77
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

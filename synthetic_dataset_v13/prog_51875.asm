@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Places a orange dot at position (421, 133).
+; PLAN: r0=421(x), r1=133(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 421
+LDI r1, 133
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

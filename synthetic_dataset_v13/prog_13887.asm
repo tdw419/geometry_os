@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a yellow circular shape at (198, 103) with radius 59.
-; PLAN: r0=198(x), r1=103(y), r2=59(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 198
-LDI r1, 103
-LDI r2, 59
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green dot at position (327, 75).
+; PLAN: r0=327(x), r1=75(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 327
+LDI r1, 75
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

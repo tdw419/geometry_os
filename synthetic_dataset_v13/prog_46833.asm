@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single blue pixel at (61, 9).
-; PLAN: r0=61(x), r1=9(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 61
-LDI r1, 9
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green box of size 39x98 starting at (418, 86).
+; PLAN: r0=418(x), r1=86(y), r2=39(width), r3=98(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 418
+LDI r1, 86
+LDI r2, 39
+LDI r3, 98
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

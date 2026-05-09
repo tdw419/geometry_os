@@ -1,12 +1,15 @@
-; DESCRIPTION: Composite: Draws a cyan circle centered at (149, 148) with radius 76 then Sets a single green pixel at (326, 172).
-; PLAN: r0=149(x), r1=148(y), r2=76(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=326(x), r6=172(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 149
-LDI r1, 148
-LDI r2, 76
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 326
-LDI r6, 172
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Draws a cyan line from (448, 185) to (95, 163) then Renders a green box of size 42x102 starting at (350, 139).
+; PLAN: r0=448(x1), r1=185(y1), r2=95(x2), r3=163(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=350(x), r6=139(y), r7=42(width), r8=102(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 448
+LDI r1, 185
+LDI r2, 95
+LDI r3, 163
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 350
+LDI r6, 139
+LDI r7, 42
+LDI r8, 102
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

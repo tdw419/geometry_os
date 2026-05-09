@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (184, 231) to (221, 13).
-; PLAN: r0=184(x1), r1=231(y1), r2=221(x2), r3=13(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 184
-LDI r1, 231
-LDI r2, 221
-LDI r3, 13
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a cyan line from (45, 65) to (293, 53).
+; PLAN: r0=45(x1), r1=65(y1), r2=293(x2), r3=53(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 45
+LDI r1, 65
+LDI r2, 293
+LDI r3, 53
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

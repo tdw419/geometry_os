@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (36, 9) to (294, 148).
-; PLAN: r0=36(x1), r1=9(y1), r2=294(x2), r3=148(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 36
-LDI r1, 9
-LDI r2, 294
-LDI r3, 148
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a black line from (398, 221) to (209, 183).
+; PLAN: r0=398(x1), r1=221(y1), r2=209(x2), r3=183(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 398
+LDI r1, 221
+LDI r2, 209
+LDI r3, 183
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

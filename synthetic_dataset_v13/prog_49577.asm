@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a magenta rectangular region at (99, 63) spanning 63 by 77 pixels.
-; PLAN: r0=99(x), r1=63(y), r2=63(width), r3=77(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 99
-LDI r1, 63
-LDI r2, 63
-LDI r3, 77
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 4 into r1 and decrements it in a loop until zero.
+; PLAN: r1=4(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 4
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

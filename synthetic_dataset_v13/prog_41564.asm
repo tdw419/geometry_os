@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 25x97 rectangle at position (47, 94).
-; PLAN: r0=47(x), r1=94(y), r2=25(width), r3=97(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 47
-LDI r1, 94
-LDI r2, 25
-LDI r3, 97
-LDI r4, 0xFF00FF
+; DESCRIPTION: Creates a red rectangular region at (477, 145) spanning 10 by 82 pixels.
+; PLAN: r0=477(x), r1=145(y), r2=10(width), r3=82(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 477
+LDI r1, 145
+LDI r2, 10
+LDI r3, 82
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

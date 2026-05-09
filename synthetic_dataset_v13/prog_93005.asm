@@ -1,8 +1,13 @@
-; DESCRIPTION: Places a magenta circle of radius 59 at center (245, 162).
-; PLAN: r0=245(x), r1=162(y), r2=59(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 245
-LDI r1, 162
-LDI r2, 59
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single purple pixel at (175, 155) then Creates a green rectangular region at (462, 167) spanning 23 by 71 pixels.
+; PLAN: r0=175(x), r1=155(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=462(x), r6=167(y), r7=23(width), r8=71(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 175
+LDI r1, 155
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 462
+LDI r6, 167
+LDI r7, 23
+LDI r8, 71
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

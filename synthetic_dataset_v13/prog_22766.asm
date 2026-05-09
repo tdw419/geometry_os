@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (386, 60) with radius 36.
-; PLAN: r0=386(x), r1=60(y), r2=36(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 386
-LDI r1, 60
-LDI r2, 36
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (498, 184) to (42, 37).
+; PLAN: r0=498(x1), r1=184(y1), r2=42(x2), r3=37(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 498
+LDI r1, 184
+LDI r2, 42
+LDI r3, 37
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

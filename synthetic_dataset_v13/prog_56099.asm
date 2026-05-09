@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (24, 89) to (234, 47).
-; PLAN: r0=24(x1), r1=89(y1), r2=234(x2), r3=47(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 24
-LDI r1, 89
-LDI r2, 234
-LDI r3, 47
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (112, 180) and radius 72.
+; PLAN: r0=112(x), r1=180(y), r2=72(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 112
+LDI r1, 180
+LDI r2, 72
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

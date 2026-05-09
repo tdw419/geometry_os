@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single black pixel at (210, 33).
-; PLAN: r0=210(x), r1=33(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 210
-LDI r1, 33
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a magenta circular shape at (178, 206) with radius 39.
+; PLAN: r0=178(x), r1=206(y), r2=39(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 178
+LDI r1, 206
+LDI r2, 39
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a magenta circular shape at (451, 24) with radius 13.
-; PLAN: r0=451(x), r1=24(y), r2=13(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 451
-LDI r1, 24
-LDI r2, 13
+; DESCRIPTION: Places a magenta circle of radius 28 at center (405, 67).
+; PLAN: r0=405(x), r1=67(y), r2=28(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 405
+LDI r1, 67
+LDI r2, 28
 LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

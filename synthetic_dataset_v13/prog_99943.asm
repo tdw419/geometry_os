@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (241, 81) and radius 72.
-; PLAN: r0=241(x), r1=81(y), r2=72(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 241
-LDI r1, 81
-LDI r2, 72
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white rectangle at (355, 158) with width 86 and height 40.
+; PLAN: r0=355(x), r1=158(y), r2=86(width), r3=40(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 355
+LDI r1, 158
+LDI r2, 86
+LDI r3, 40
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (360, 10) to (371, 245).
-; PLAN: r0=360(x1), r1=10(y1), r2=371(x2), r3=245(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 360
-LDI r1, 10
-LDI r2, 371
-LDI r3, 245
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (394, 127) with radius 77.
+; PLAN: r0=394(x), r1=127(y), r2=77(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 394
+LDI r1, 127
+LDI r2, 77
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

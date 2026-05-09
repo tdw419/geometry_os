@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single black pixel at (366, 52).
-; PLAN: r0=366(x), r1=52(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 366
-LDI r1, 52
-LDI r2, 0x000000
+; DESCRIPTION: Places a magenta dot at position (139, 190).
+; PLAN: r0=139(x), r1=190(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 139
+LDI r1, 190
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 74x116 starting at (364, 40).
-; PLAN: r0=364(x), r1=40(y), r2=74(width), r3=116(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 364
-LDI r1, 40
-LDI r2, 74
-LDI r3, 116
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (142, 160) and (287, 185).
+; PLAN: r0=142(x1), r1=160(y1), r2=287(x2), r3=185(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 142
+LDI r1, 160
+LDI r2, 287
+LDI r3, 185
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

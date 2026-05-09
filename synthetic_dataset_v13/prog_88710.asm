@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a orange circular shape at (380, 86) with radius 60.
-; PLAN: r0=380(x), r1=86(y), r2=60(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 380
-LDI r1, 86
-LDI r2, 60
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan dot at position (373, 228).
+; PLAN: r0=373(x), r1=228(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 373
+LDI r1, 228
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

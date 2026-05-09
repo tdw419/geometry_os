@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a purple dot at position (284, 106) then Renders a blue box of size 117x92 starting at (20, 155).
-; PLAN: r0=284(x), r1=106(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=20(x), r6=155(y), r7=117(width), r8=92(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 284
-LDI r1, 106
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 20
-LDI r6, 155
-LDI r7, 117
-LDI r8, 92
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a white line from (126, 141) to (436, 96).
+; PLAN: r0=126(x1), r1=141(y1), r2=436(x2), r3=96(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 126
+LDI r1, 141
+LDI r2, 436
+LDI r3, 96
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

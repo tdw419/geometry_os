@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a red circle centered at (303, 50) with radius 42.
-; PLAN: r0=303(x), r1=50(y), r2=42(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 303
-LDI r1, 50
-LDI r2, 42
-LDI r3, 0xFF0000
+; DESCRIPTION: Draws a blue circle centered at (93, 83) with radius 46.
+; PLAN: r0=93(x), r1=83(y), r2=46(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 93
+LDI r1, 83
+LDI r2, 46
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

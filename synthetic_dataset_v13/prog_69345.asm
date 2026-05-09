@@ -1,8 +1,13 @@
-; DESCRIPTION: Places a orange circle of radius 54 at center (258, 106).
-; PLAN: r0=258(x), r1=106(y), r2=54(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 258
-LDI r1, 106
-LDI r2, 54
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a white dot at position (217, 62) then Renders a white box of size 112x70 starting at (125, 2).
+; PLAN: r0=217(x), r1=62(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=125(x), r6=2(y), r7=112(width), r8=70(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 217
+LDI r1, 62
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 125
+LDI r6, 2
+LDI r7, 112
+LDI r8, 70
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

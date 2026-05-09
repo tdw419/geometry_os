@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Places a black dot at position (344, 236) then Places a cyan 103x50 rectangle at position (374, 90).
-; PLAN: r0=344(x), r1=236(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=374(x), r6=90(y), r7=103(width), r8=50(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 344
-LDI r1, 236
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 374
-LDI r6, 90
-LDI r7, 103
-LDI r8, 50
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a purple line segment connecting (330, 124) to (210, 29) then Draws a cyan circle centered at (156, 179) with radius 65.
+; PLAN: r0=330(x1), r1=124(y1), r2=210(x2), r3=29(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=156(x), r6=179(y), r7=65(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 330
+LDI r1, 124
+LDI r2, 210
+LDI r3, 29
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 156
+LDI r6, 179
+LDI r7, 65
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

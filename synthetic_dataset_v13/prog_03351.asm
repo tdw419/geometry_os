@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a black rectangular region at (55, 92) spanning 98 by 91 pixels.
-; PLAN: r0=55(x), r1=92(y), r2=98(width), r3=91(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 55
-LDI r1, 92
-LDI r2, 98
-LDI r3, 91
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (81, 94) with radius 15.
+; PLAN: r0=81(x), r1=94(y), r2=15(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 81
+LDI r1, 94
+LDI r2, 15
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

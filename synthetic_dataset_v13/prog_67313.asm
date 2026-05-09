@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (280, 31) to (460, 156).
-; PLAN: r0=280(x1), r1=31(y1), r2=460(x2), r3=156(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 280
-LDI r1, 31
-LDI r2, 460
-LDI r3, 156
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (380, 117) with radius 33.
+; PLAN: r0=380(x), r1=117(y), r2=33(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 380
+LDI r1, 117
+LDI r2, 33
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

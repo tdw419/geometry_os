@@ -1,13 +1,15 @@
-; DESCRIPTION: Composite: Places a black dot at position (91, 41) then Draws a white line from (80, 255) to (37, 204).
-; PLAN: r0=91(x), r1=41(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=80(x1), r6=255(y1), r7=37(x2), r8=204(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 91
-LDI r1, 41
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 80
-LDI r6, 255
-LDI r7, 37
-LDI r8, 204
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a orange line between points (363, 183) and (325, 75) then Renders a blue box of size 31x87 starting at (280, 100).
+; PLAN: r0=363(x1), r1=183(y1), r2=325(x2), r3=75(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=280(x), r6=100(y), r7=31(width), r8=87(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 363
+LDI r1, 183
+LDI r2, 325
+LDI r3, 75
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 280
+LDI r6, 100
+LDI r7, 31
+LDI r8, 87
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

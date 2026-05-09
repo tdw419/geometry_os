@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 23x47 rectangle at position (94, 172).
-; PLAN: r0=94(x), r1=172(y), r2=23(width), r3=47(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 94
-LDI r1, 172
-LDI r2, 23
-LDI r3, 47
+; DESCRIPTION: Draws a orange rectangle at (367, 146) with width 102 and height 71.
+; PLAN: r0=367(x), r1=146(y), r2=102(width), r3=71(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 367
+LDI r1, 146
+LDI r2, 102
+LDI r3, 71
 LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

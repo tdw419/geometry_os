@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a magenta disk with center (275, 134) and radius 23.
-; PLAN: r0=275(x), r1=134(y), r2=23(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 275
-LDI r1, 134
-LDI r2, 23
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green dot at position (17, 57).
+; PLAN: r0=17(x), r1=57(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 17
+LDI r1, 57
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

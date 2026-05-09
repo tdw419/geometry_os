@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Renders a red box of size 106x76 starting at (215, 119) then Creates a red circular shape at (149, 60) with radius 57 then Draws a magenta line from (384, 247) to (328, 166).
-; PLAN: r0=215(x), r1=119(y), r2=106(width), r3=76(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=149(x), r6=60(y), r7=57(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=384(x1), r11=247(y1), r12=328(x2), r13=166(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 215
-LDI r1, 119
-LDI r2, 106
-LDI r3, 76
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 149
-LDI r6, 60
-LDI r7, 57
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
-LDI r10, 384
-LDI r11, 247
-LDI r12, 328
-LDI r13, 166
-LDI r14, 0xFF00FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Creates a red circular shape at (464, 229) with radius 26 then Places a blue dot at position (218, 248) then Draws a orange rectangle at (404, 113) with width 83 and height 96.
+; PLAN: r0=464(x), r1=229(y), r2=26(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=218(x), r6=248(y), r7=0x0000FF(color). Op: PSET r5, r6, r7 Next: r10=404(x), r11=113(y), r12=83(width), r13=96(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 464
+LDI r1, 229
+LDI r2, 26
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 218
+LDI r6, 248
+LDI r7, 0x0000FF
+PSET r5, r6, r7
+LDI r10, 404
+LDI r11, 113
+LDI r12, 83
+LDI r13, 96
+LDI r14, 0xFF8800
+RECTF r10, r11, r12, r13, r14
 HALT

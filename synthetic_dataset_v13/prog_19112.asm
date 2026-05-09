@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a white circle of radius 73 at center (175, 136).
-; PLAN: r0=175(x), r1=136(y), r2=73(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 175
-LDI r1, 136
-LDI r2, 73
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (363, 59) and (458, 160).
-; PLAN: r0=363(x1), r1=59(y1), r2=458(x2), r3=160(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 59
-LDI r2, 458
-LDI r3, 160
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (390, 51) with width 91 and height 45.
+; PLAN: r0=390(x), r1=51(y), r2=91(width), r3=45(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 390
+LDI r1, 51
+LDI r2, 91
+LDI r3, 45
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

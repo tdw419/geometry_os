@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (203, 174) and radius 36.
-; PLAN: r0=203(x), r1=174(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 203
-LDI r1, 174
-LDI r2, 36
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta box of size 35x119 starting at (70, 40).
+; PLAN: r0=70(x), r1=40(y), r2=35(width), r3=119(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 70
+LDI r1, 40
+LDI r2, 35
+LDI r3, 119
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

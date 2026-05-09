@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a blue line between points (168, 216) and (381, 110).
-; PLAN: r0=168(x1), r1=216(y1), r2=381(x2), r3=110(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 168
-LDI r1, 216
-LDI r2, 381
-LDI r3, 110
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (22, 32).
+; PLAN: r0=22(x), r1=32(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 22
+LDI r1, 32
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

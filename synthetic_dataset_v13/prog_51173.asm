@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 80 at center (194, 112).
-; PLAN: r0=194(x), r1=112(y), r2=80(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 194
-LDI r1, 112
-LDI r2, 80
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (260, 115) and (486, 23).
+; PLAN: r0=260(x1), r1=115(y1), r2=486(x2), r3=23(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 260
+LDI r1, 115
+LDI r2, 486
+LDI r3, 23
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

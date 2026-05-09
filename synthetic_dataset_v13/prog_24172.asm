@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (55, 158) and (339, 78).
-; PLAN: r0=55(x1), r1=158(y1), r2=339(x2), r3=78(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 55
-LDI r1, 158
-LDI r2, 339
-LDI r3, 78
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a cyan line from (504, 204) to (414, 26).
+; PLAN: r0=504(x1), r1=204(y1), r2=414(x2), r3=26(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 504
+LDI r1, 204
+LDI r2, 414
+LDI r3, 26
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

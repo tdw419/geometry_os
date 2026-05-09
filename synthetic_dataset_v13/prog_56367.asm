@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 44 into r1 and decrements it in a loop until zero.
-; PLAN: r1=44(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 44
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Creates a green rectangular region at (406, 59) spanning 86 by 82 pixels.
+; PLAN: r0=406(x), r1=59(y), r2=86(width), r3=82(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 406
+LDI r1, 59
+LDI r2, 86
+LDI r3, 82
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

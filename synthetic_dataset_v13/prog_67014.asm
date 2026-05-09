@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a yellow box of size 96x16 starting at (278, 60).
-; PLAN: r0=278(x), r1=60(y), r2=96(width), r3=16(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 278
-LDI r1, 60
-LDI r2, 96
-LDI r3, 16
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a white dot at position (246, 193) then Draws a red line from (160, 139) to (350, 199).
+; PLAN: r0=246(x), r1=193(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=160(x1), r6=139(y1), r7=350(x2), r8=199(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 246
+LDI r1, 193
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 160
+LDI r6, 139
+LDI r7, 350
+LDI r8, 199
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

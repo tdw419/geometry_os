@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (360, 123) with radius 37.
-; PLAN: r0=360(x), r1=123(y), r2=37(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 123
-LDI r2, 37
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (461, 248) and (179, 155).
+; PLAN: r0=461(x1), r1=248(y1), r2=179(x2), r3=155(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 461
+LDI r1, 248
+LDI r2, 179
+LDI r3, 155
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

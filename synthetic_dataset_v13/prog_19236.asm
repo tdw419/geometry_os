@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (256, 144) with width 96 and height 64.
-; PLAN: r0=256(x), r1=144(y), r2=96(width), r3=64(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 144
-LDI r2, 96
-LDI r3, 64
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a magenta 49x49 rectangle at position (309, 8).
+; PLAN: r0=309(x), r1=8(y), r2=49(width), r3=49(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 309
+LDI r1, 8
+LDI r2, 49
+LDI r3, 49
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

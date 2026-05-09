@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (154, 80) to (70, 34).
-; PLAN: r0=154(x1), r1=80(y1), r2=70(x2), r3=34(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 154
-LDI r1, 80
-LDI r2, 70
-LDI r3, 34
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a blue line between points (144, 82) and (484, 241).
+; PLAN: r0=144(x1), r1=82(y1), r2=484(x2), r3=241(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 144
+LDI r1, 82
+LDI r2, 484
+LDI r3, 241
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

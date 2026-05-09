@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple line segment connecting (231, 7) to (153, 69).
-; PLAN: r0=231(x1), r1=7(y1), r2=153(x2), r3=69(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 231
-LDI r1, 7
-LDI r2, 153
-LDI r3, 69
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 49 into r1 and decrements it in a loop until zero.
+; PLAN: r1=49(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 49
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

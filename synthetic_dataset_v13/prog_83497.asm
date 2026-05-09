@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Renders a black box of size 28x50 starting at (164, 33).
+; PLAN: r0=164(x), r1=33(y), r2=28(width), r3=50(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 33
+LDI r2, 28
+LDI r3, 50
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

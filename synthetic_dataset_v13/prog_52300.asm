@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (282, 35).
-; PLAN: r0=282(x), r1=35(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 282
-LDI r1, 35
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a blue line between points (102, 177) and (60, 224).
+; PLAN: r0=102(x1), r1=177(y1), r2=60(x2), r3=224(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 102
+LDI r1, 177
+LDI r2, 60
+LDI r3, 224
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

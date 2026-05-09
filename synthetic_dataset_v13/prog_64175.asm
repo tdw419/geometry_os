@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a white circle of radius 34 at center (115, 197).
-; PLAN: r0=115(x), r1=197(y), r2=34(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 115
-LDI r1, 197
-LDI r2, 34
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single black pixel at (323, 74).
+; PLAN: r0=323(x), r1=74(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 323
+LDI r1, 74
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

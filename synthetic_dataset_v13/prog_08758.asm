@@ -1,5 +1,5 @@
-; DESCRIPTION: Fills the entire screen with solid orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
+; DESCRIPTION: Clears the screen to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
 FILL r0
 HALT

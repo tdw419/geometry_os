@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (311, 152) and (50, 63).
-; PLAN: r0=311(x1), r1=152(y1), r2=50(x2), r3=63(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 311
-LDI r1, 152
-LDI r2, 50
-LDI r3, 63
+; DESCRIPTION: Renders a green box of size 55x47 starting at (8, 208).
+; PLAN: r0=8(x), r1=208(y), r2=55(width), r3=47(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 8
+LDI r1, 208
+LDI r2, 55
+LDI r3, 47
 LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

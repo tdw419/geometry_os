@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 48x66 rectangle at position (165, 27).
-; PLAN: r0=165(x), r1=27(y), r2=48(width), r3=66(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 27
-LDI r2, 48
-LDI r3, 66
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (296, 99) and radius 40.
+; PLAN: r0=296(x), r1=99(y), r2=40(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 296
+LDI r1, 99
+LDI r2, 40
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (77, 58) to (322, 7).
-; PLAN: r0=77(x1), r1=58(y1), r2=322(x2), r3=7(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 58
-LDI r2, 322
-LDI r3, 7
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (89, 114) and radius 66.
+; PLAN: r0=89(x), r1=114(y), r2=66(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 89
+LDI r1, 114
+LDI r2, 66
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

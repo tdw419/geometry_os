@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 19x70 starting at (197, 54).
-; PLAN: r0=197(x), r1=54(y), r2=19(width), r3=70(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 197
-LDI r1, 54
-LDI r2, 19
-LDI r3, 70
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (157, 70) to (486, 69).
+; PLAN: r0=157(x1), r1=70(y1), r2=486(x2), r3=69(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 157
+LDI r1, 70
+LDI r2, 486
+LDI r3, 69
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

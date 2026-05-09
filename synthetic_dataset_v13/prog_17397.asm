@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (376, 200) and (150, 25).
-; PLAN: r0=376(x1), r1=200(y1), r2=150(x2), r3=25(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 376
-LDI r1, 200
-LDI r2, 150
-LDI r3, 25
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a cyan line from (344, 141) to (256, 32).
+; PLAN: r0=344(x1), r1=141(y1), r2=256(x2), r3=32(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 344
+LDI r1, 141
+LDI r2, 256
+LDI r3, 32
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

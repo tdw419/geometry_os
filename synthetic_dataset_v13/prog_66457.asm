@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 96x104 starting at (16, 145).
-; PLAN: r0=16(x), r1=145(y), r2=96(width), r3=104(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 16
-LDI r1, 145
-LDI r2, 96
-LDI r3, 104
+; DESCRIPTION: Places a yellow line segment connecting (403, 120) to (416, 33).
+; PLAN: r0=403(x1), r1=120(y1), r2=416(x2), r3=33(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 403
+LDI r1, 120
+LDI r2, 416
+LDI r3, 33
 LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

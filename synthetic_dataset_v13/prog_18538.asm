@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 108x60 rectangle at position (68, 34).
-; PLAN: r0=68(x), r1=34(y), r2=108(width), r3=60(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 68
-LDI r1, 34
-LDI r2, 108
-LDI r3, 60
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (158, 81) and (486, 244).
+; PLAN: r0=158(x1), r1=81(y1), r2=486(x2), r3=244(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 158
+LDI r1, 81
+LDI r2, 486
+LDI r3, 244
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

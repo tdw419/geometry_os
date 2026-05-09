@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (505, 177) to (52, 6).
-; PLAN: r0=505(x1), r1=177(y1), r2=52(x2), r3=6(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 505
-LDI r1, 177
-LDI r2, 52
-LDI r3, 6
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue 22x112 rectangle at position (457, 7).
+; PLAN: r0=457(x), r1=7(y), r2=22(width), r3=112(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 457
+LDI r1, 7
+LDI r2, 22
+LDI r3, 112
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

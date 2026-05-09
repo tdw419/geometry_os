@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a orange disk with center (247, 144) and radius 30.
-; PLAN: r0=247(x), r1=144(y), r2=30(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 247
-LDI r1, 144
-LDI r2, 30
-LDI r3, 0xFF8800
+; DESCRIPTION: Draws a white circle centered at (365, 118) with radius 40.
+; PLAN: r0=365(x), r1=118(y), r2=40(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 365
+LDI r1, 118
+LDI r2, 40
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

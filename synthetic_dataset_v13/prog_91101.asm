@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan 51x109 rectangle at position (8, 72) then Places a white dot at position (478, 212).
-; PLAN: r0=8(x), r1=72(y), r2=51(width), r3=109(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=478(x), r6=212(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 8
-LDI r1, 72
-LDI r2, 51
-LDI r3, 109
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 478
-LDI r6, 212
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
+; DESCRIPTION: Draws a magenta line from (339, 192) to (194, 21).
+; PLAN: r0=339(x1), r1=192(y1), r2=194(x2), r3=21(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 339
+LDI r1, 192
+LDI r2, 194
+LDI r3, 21
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

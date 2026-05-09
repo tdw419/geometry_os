@@ -1,8 +1,13 @@
-; DESCRIPTION: Draws a cyan circle centered at (147, 180) with radius 51.
-; PLAN: r0=147(x), r1=180(y), r2=51(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 147
-LDI r1, 180
-LDI r2, 51
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a black dot at position (71, 237) then Draws a white line from (428, 109) to (401, 33).
+; PLAN: r0=71(x), r1=237(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=428(x1), r6=109(y1), r7=401(x2), r8=33(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 71
+LDI r1, 237
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 428
+LDI r6, 109
+LDI r7, 401
+LDI r8, 33
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

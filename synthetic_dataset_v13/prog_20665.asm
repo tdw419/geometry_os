@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (357, 142) then Draws a white circle centered at (80, 90) with radius 75.
-; PLAN: r0=357(x), r1=142(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=80(x), r6=90(y), r7=75(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 357
-LDI r1, 142
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 80
-LDI r6, 90
-LDI r7, 75
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a purple rectangle at (8, 102) with width 41 and height 111.
+; PLAN: r0=8(x), r1=102(y), r2=41(width), r3=111(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 8
+LDI r1, 102
+LDI r2, 41
+LDI r3, 111
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

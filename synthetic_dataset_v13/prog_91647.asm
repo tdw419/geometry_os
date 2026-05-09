@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue rectangle at (143, 28) with width 10 and height 75.
-; PLAN: r0=143(x), r1=28(y), r2=10(width), r3=75(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 28
-LDI r2, 10
-LDI r3, 75
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 72 at center (157, 128).
+; PLAN: r0=157(x), r1=128(y), r2=72(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 157
+LDI r1, 128
+LDI r2, 72
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

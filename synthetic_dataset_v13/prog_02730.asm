@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta circle of radius 48 at center (391, 150) then Places a orange dot at position (399, 31).
-; PLAN: r0=391(x), r1=150(y), r2=48(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=399(x), r6=31(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 391
-LDI r1, 150
-LDI r2, 48
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 399
-LDI r6, 31
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Places a blue line segment connecting (145, 241) to (151, 141).
+; PLAN: r0=145(x1), r1=241(y1), r2=151(x2), r3=141(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 145
+LDI r1, 241
+LDI r2, 151
+LDI r3, 141
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

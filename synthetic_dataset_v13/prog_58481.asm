@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 65x105 rectangle at position (140, 146).
-; PLAN: r0=140(x), r1=146(y), r2=65(width), r3=105(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 140
-LDI r1, 146
-LDI r2, 65
-LDI r3, 105
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (208, 60) with radius 13.
+; PLAN: r0=208(x), r1=60(y), r2=13(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 208
+LDI r1, 60
+LDI r2, 13
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

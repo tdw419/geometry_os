@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single white pixel at (511, 206) then Renders a purple disk with center (196, 167) and radius 17.
-; PLAN: r0=511(x), r1=206(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=196(x), r6=167(y), r7=17(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 511
-LDI r1, 206
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 196
-LDI r6, 167
-LDI r7, 17
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a orange rectangle at (46, 170) with width 59 and height 60.
+; PLAN: r0=46(x), r1=170(y), r2=59(width), r3=60(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 46
+LDI r1, 170
+LDI r2, 59
+LDI r3, 60
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

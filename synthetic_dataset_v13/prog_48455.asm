@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (187, 107) with radius 77.
-; PLAN: r0=187(x), r1=107(y), r2=77(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 187
-LDI r1, 107
-LDI r2, 77
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 106x52 rectangle at position (245, 39).
+; PLAN: r0=245(x), r1=39(y), r2=106(width), r3=52(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 245
+LDI r1, 39
+LDI r2, 106
+LDI r3, 52
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

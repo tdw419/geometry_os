@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a yellow line segment connecting (98, 87) to (163, 180).
-; PLAN: r0=98(x1), r1=87(y1), r2=163(x2), r3=180(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 98
-LDI r1, 87
-LDI r2, 163
-LDI r3, 180
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single orange pixel at (470, 84) then Renders a orange box of size 114x47 starting at (181, 161).
+; PLAN: r0=470(x), r1=84(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=181(x), r6=161(y), r7=114(width), r8=47(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 470
+LDI r1, 84
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 181
+LDI r6, 161
+LDI r7, 114
+LDI r8, 47
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

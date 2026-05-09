@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a purple line from (323, 221) to (101, 118).
-; PLAN: r0=323(x1), r1=221(y1), r2=101(x2), r3=118(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 323
-LDI r1, 221
-LDI r2, 101
-LDI r3, 118
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a blue circular shape at (218, 42) with radius 39 then Places a purple dot at position (135, 199).
+; PLAN: r0=218(x), r1=42(y), r2=39(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=135(x), r6=199(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 218
+LDI r1, 42
+LDI r2, 39
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 135
+LDI r6, 199
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

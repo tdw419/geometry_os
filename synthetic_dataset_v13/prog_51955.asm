@@ -1,15 +1,9 @@
-; DESCRIPTION: Composite: Draws a blue rectangle at (243, 227) with width 116 and height 22 then Renders a cyan line between points (404, 62) and (243, 230).
-; PLAN: r0=243(x), r1=227(y), r2=116(width), r3=22(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=404(x1), r6=62(y1), r7=243(x2), r8=230(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 243
-LDI r1, 227
-LDI r2, 116
-LDI r3, 22
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 404
-LDI r6, 62
-LDI r7, 243
-LDI r8, 230
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a magenta line segment connecting (236, 204) to (184, 148).
+; PLAN: r0=236(x1), r1=204(y1), r2=184(x2), r3=148(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 236
+LDI r1, 204
+LDI r2, 184
+LDI r3, 148
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

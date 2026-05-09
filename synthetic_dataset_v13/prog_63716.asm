@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (242, 18) with width 40 and height 19.
-; PLAN: r0=242(x), r1=18(y), r2=40(width), r3=19(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 242
-LDI r1, 18
-LDI r2, 40
-LDI r3, 19
+; DESCRIPTION: Creates a yellow rectangular region at (107, 11) spanning 12 by 27 pixels.
+; PLAN: r0=107(x), r1=11(y), r2=12(width), r3=27(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 107
+LDI r1, 11
+LDI r2, 12
+LDI r3, 27
 LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

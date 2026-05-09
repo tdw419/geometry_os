@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a purple circle centered at (23, 63) with radius 10.
-; PLAN: r0=23(x), r1=63(y), r2=10(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 23
-LDI r1, 63
-LDI r2, 10
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single green pixel at (362, 98).
+; PLAN: r0=362(x), r1=98(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 362
+LDI r1, 98
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

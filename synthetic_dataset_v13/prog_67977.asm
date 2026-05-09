@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (73, 205) spanning 91 by 31 pixels.
-; PLAN: r0=73(x), r1=205(y), r2=91(width), r3=31(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 73
-LDI r1, 205
-LDI r2, 91
-LDI r3, 31
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (455, 33) and (250, 250).
+; PLAN: r0=455(x1), r1=33(y1), r2=250(x2), r3=250(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 455
+LDI r1, 33
+LDI r2, 250
+LDI r3, 250
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (391, 142) with radius 48.
-; PLAN: r0=391(x), r1=142(y), r2=48(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 391
-LDI r1, 142
-LDI r2, 48
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan box of size 14x118 starting at (124, 114).
+; PLAN: r0=124(x), r1=114(y), r2=14(width), r3=118(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 114
+LDI r2, 14
+LDI r3, 118
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

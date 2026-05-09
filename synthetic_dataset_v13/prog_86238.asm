@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Places a yellow 118x120 rectangle at position (98, 9) then Draws a white line from (78, 10) to (504, 129) then Draws a cyan circle centered at (153, 101) with radius 77.
-; PLAN: r0=98(x), r1=9(y), r2=118(width), r3=120(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=78(x1), r6=10(y1), r7=504(x2), r8=129(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=153(x), r11=101(y), r12=77(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 98
-LDI r1, 9
-LDI r2, 118
-LDI r3, 120
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 78
-LDI r6, 10
-LDI r7, 504
-LDI r8, 129
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
-LDI r10, 153
-LDI r11, 101
-LDI r12, 77
-LDI r13, 0x00FFFF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Places a green circle of radius 58 at center (219, 180) then Places a cyan dot at position (327, 46) then Draws a white rectangle at (94, 156) with width 107 and height 44.
+; PLAN: r0=219(x), r1=180(y), r2=58(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=327(x), r6=46(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=94(x), r11=156(y), r12=107(width), r13=44(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 219
+LDI r1, 180
+LDI r2, 58
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 327
+LDI r6, 46
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
+LDI r10, 94
+LDI r11, 156
+LDI r12, 107
+LDI r13, 44
+LDI r14, 0xFFFFFF
+RECTF r10, r11, r12, r13, r14
 HALT

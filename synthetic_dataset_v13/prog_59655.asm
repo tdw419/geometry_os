@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 31x81 rectangle at position (473, 52).
-; PLAN: r0=473(x), r1=52(y), r2=31(width), r3=81(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 473
-LDI r1, 52
-LDI r2, 31
-LDI r3, 81
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (209, 133) to (85, 131).
+; PLAN: r0=209(x1), r1=133(y1), r2=85(x2), r3=131(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 209
+LDI r1, 133
+LDI r2, 85
+LDI r3, 131
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

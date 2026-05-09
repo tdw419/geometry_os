@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a green circle of radius 33 at center (307, 163).
-; PLAN: r0=307(x), r1=163(y), r2=33(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 307
-LDI r1, 163
-LDI r2, 33
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

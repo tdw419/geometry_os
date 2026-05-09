@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Renders a yellow box of size 51x19 starting at (269, 31).
+; PLAN: r0=269(x), r1=31(y), r2=51(width), r3=19(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 269
+LDI r1, 31
+LDI r2, 51
+LDI r3, 19
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

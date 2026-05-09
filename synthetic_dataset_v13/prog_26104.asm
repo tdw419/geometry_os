@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a cyan circular shape at (363, 212) with radius 43.
-; PLAN: r0=363(x), r1=212(y), r2=43(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 363
-LDI r1, 212
-LDI r2, 43
-LDI r3, 0x00FFFF
+; DESCRIPTION: Places a white circle of radius 64 at center (354, 126).
+; PLAN: r0=354(x), r1=126(y), r2=64(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 354
+LDI r1, 126
+LDI r2, 64
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

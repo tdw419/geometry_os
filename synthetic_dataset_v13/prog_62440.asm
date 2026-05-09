@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a cyan box of size 87x17 starting at (213, 219).
-; PLAN: r0=213(x), r1=219(y), r2=87(width), r3=17(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 213
+; DESCRIPTION: Composite: Sets a single yellow pixel at (280, 219) then Places a cyan 114x61 rectangle at position (25, 116).
+; PLAN: r0=280(x), r1=219(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=25(x), r6=116(y), r7=114(width), r8=61(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 280
 LDI r1, 219
-LDI r2, 87
-LDI r3, 17
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 25
+LDI r6, 116
+LDI r7, 114
+LDI r8, 61
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

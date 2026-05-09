@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 23 at center (466, 181).
-; PLAN: r0=466(x), r1=181(y), r2=23(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 466
-LDI r1, 181
-LDI r2, 23
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 110x116 starting at (399, 133).
+; PLAN: r0=399(x), r1=133(y), r2=110(width), r3=116(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 399
+LDI r1, 133
+LDI r2, 110
+LDI r3, 116
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

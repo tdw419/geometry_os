@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (443, 115) to (477, 65).
-; PLAN: r0=443(x1), r1=115(y1), r2=477(x2), r3=65(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 443
-LDI r1, 115
-LDI r2, 477
-LDI r3, 65
+; DESCRIPTION: Renders a cyan line between points (383, 82) and (164, 255).
+; PLAN: r0=383(x1), r1=82(y1), r2=164(x2), r3=255(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 383
+LDI r1, 82
+LDI r2, 164
+LDI r3, 255
 LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

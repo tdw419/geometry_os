@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a magenta disk with center (454, 49) and radius 10.
-; PLAN: r0=454(x), r1=49(y), r2=10(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 454
-LDI r1, 49
-LDI r2, 10
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (395, 10) and (224, 185).
+; PLAN: r0=395(x1), r1=10(y1), r2=224(x2), r3=185(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 395
+LDI r1, 10
+LDI r2, 224
+LDI r3, 185
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

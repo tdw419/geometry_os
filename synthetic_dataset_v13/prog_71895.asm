@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 26x18 rectangle at position (446, 31).
-; PLAN: r0=446(x), r1=31(y), r2=26(width), r3=18(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 446
-LDI r1, 31
-LDI r2, 26
-LDI r3, 18
+; DESCRIPTION: Renders a green line between points (286, 101) and (166, 204).
+; PLAN: r0=286(x1), r1=101(y1), r2=166(x2), r3=204(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 286
+LDI r1, 101
+LDI r2, 166
+LDI r3, 204
 LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

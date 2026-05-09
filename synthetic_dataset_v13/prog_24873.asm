@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (471, 29) spanning 29 by 97 pixels.
-; PLAN: r0=471(x), r1=29(y), r2=29(width), r3=97(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 471
-LDI r1, 29
-LDI r2, 29
-LDI r3, 97
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a green box of size 107x70 starting at (207, 36).
+; PLAN: r0=207(x), r1=36(y), r2=107(width), r3=70(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 207
+LDI r1, 36
+LDI r2, 107
+LDI r3, 70
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

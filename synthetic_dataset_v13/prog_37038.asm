@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange line segment connecting (264, 149) to (171, 132).
-; PLAN: r0=264(x1), r1=149(y1), r2=171(x2), r3=132(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 264
-LDI r1, 149
-LDI r2, 171
-LDI r3, 132
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (267, 100) and radius 59.
+; PLAN: r0=267(x), r1=100(y), r2=59(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 267
+LDI r1, 100
+LDI r2, 59
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue rectangle at (250, 31) with width 62 and height 88.
-; PLAN: r0=250(x), r1=31(y), r2=62(width), r3=88(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 250
-LDI r1, 31
-LDI r2, 62
-LDI r3, 88
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (326, 172) and radius 20.
+; PLAN: r0=326(x), r1=172(y), r2=20(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 326
+LDI r1, 172
+LDI r2, 20
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

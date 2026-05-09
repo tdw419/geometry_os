@@ -1,20 +1,14 @@
-; DESCRIPTION: Composite: Places a purple 107x104 rectangle at position (368, 19) then Draws a red line from (121, 217) to (337, 1) then Renders a black disk with center (362, 123) and radius 23.
-; PLAN: r0=368(x), r1=19(y), r2=107(width), r3=104(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=121(x1), r6=217(y1), r7=337(x2), r8=1(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=362(x), r11=123(y), r12=23(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 368
-LDI r1, 19
-LDI r2, 107
-LDI r3, 104
-LDI r4, 0xAA00FF
+; DESCRIPTION: Composite: Creates a white rectangular region at (320, 191) spanning 118 by 57 pixels then Places a yellow circle of radius 60 at center (289, 191).
+; PLAN: r0=320(x), r1=191(y), r2=118(width), r3=57(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=289(x), r6=191(y), r7=60(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 320
+LDI r1, 191
+LDI r2, 118
+LDI r3, 57
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 121
-LDI r6, 217
-LDI r7, 337
-LDI r8, 1
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
-LDI r10, 362
-LDI r11, 123
-LDI r12, 23
-LDI r13, 0x000000
-CIRCLE r10, r11, r12, r13
+LDI r5, 289
+LDI r6, 191
+LDI r7, 60
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

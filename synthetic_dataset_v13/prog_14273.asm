@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a white line segment connecting (106, 23) to (409, 41) then Places a purple circle of radius 40 at center (450, 126).
-; PLAN: r0=106(x1), r1=23(y1), r2=409(x2), r3=41(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=450(x), r6=126(y), r7=40(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 106
-LDI r1, 23
-LDI r2, 409
-LDI r3, 41
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 450
-LDI r6, 126
-LDI r7, 40
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a black 60x116 rectangle at position (75, 117).
+; PLAN: r0=75(x), r1=117(y), r2=60(width), r3=116(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 117
+LDI r2, 60
+LDI r3, 116
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

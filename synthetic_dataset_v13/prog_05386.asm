@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a cyan disk with center (62, 152) and radius 46.
-; PLAN: r0=62(x), r1=152(y), r2=46(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 62
-LDI r1, 152
-LDI r2, 46
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

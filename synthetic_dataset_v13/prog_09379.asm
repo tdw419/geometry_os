@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (353, 73) with radius 35.
-; PLAN: r0=353(x), r1=73(y), r2=35(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 353
-LDI r1, 73
-LDI r2, 35
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (357, 96) and (227, 100).
+; PLAN: r0=357(x1), r1=96(y1), r2=227(x2), r3=100(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 96
+LDI r2, 227
+LDI r3, 100
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

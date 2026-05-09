@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a black rectangular region at (70, 158) spanning 102 by 57 pixels.
-; PLAN: r0=70(x), r1=158(y), r2=102(width), r3=57(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 70
-LDI r1, 158
-LDI r2, 102
-LDI r3, 57
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (284, 73) with radius 20.
+; PLAN: r0=284(x), r1=73(y), r2=20(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 284
+LDI r1, 73
+LDI r2, 20
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (385, 55) and radius 36.
-; PLAN: r0=385(x), r1=55(y), r2=36(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 385
-LDI r1, 55
-LDI r2, 36
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 12x81 rectangle at position (477, 70).
+; PLAN: r0=477(x), r1=70(y), r2=12(width), r3=81(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 477
+LDI r1, 70
+LDI r2, 12
+LDI r3, 81
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

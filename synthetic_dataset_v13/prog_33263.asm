@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (392, 205) with radius 45.
-; PLAN: r0=392(x), r1=205(y), r2=45(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 392
-LDI r1, 205
-LDI r2, 45
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow rectangle at (96, 33) with width 107 and height 103.
+; PLAN: r0=96(x), r1=33(y), r2=107(width), r3=103(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 96
+LDI r1, 33
+LDI r2, 107
+LDI r3, 103
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

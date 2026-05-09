@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (420, 64) to (261, 97).
-; PLAN: r0=420(x1), r1=64(y1), r2=261(x2), r3=97(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 420
-LDI r1, 64
-LDI r2, 261
-LDI r3, 97
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (261, 143) and radius 27.
+; PLAN: r0=261(x), r1=143(y), r2=27(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 261
+LDI r1, 143
+LDI r2, 27
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

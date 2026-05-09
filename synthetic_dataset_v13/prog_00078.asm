@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 57x108 rectangle at position (146, 85).
-; PLAN: r0=146(x), r1=85(y), r2=57(width), r3=108(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 146
-LDI r1, 85
+; DESCRIPTION: Creates a cyan rectangular region at (225, 69) spanning 57 by 10 pixels.
+; PLAN: r0=225(x), r1=69(y), r2=57(width), r3=10(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 225
+LDI r1, 69
 LDI r2, 57
-LDI r3, 108
-LDI r4, 0xFF00FF
+LDI r3, 10
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,12 @@
-; DESCRIPTION: Renders a green disk with center (284, 55) and radius 15.
-; PLAN: r0=284(x), r1=55(y), r2=15(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 284
-LDI r1, 55
-LDI r2, 15
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single cyan pixel at (481, 112) then Places a yellow circle of radius 23 at center (404, 192).
+; PLAN: r0=481(x), r1=112(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=404(x), r6=192(y), r7=23(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 481
+LDI r1, 112
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 404
+LDI r6, 192
+LDI r7, 23
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

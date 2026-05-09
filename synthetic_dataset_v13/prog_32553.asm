@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a white circle of radius 37 at center (243, 140).
-; PLAN: r0=243(x), r1=140(y), r2=37(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 243
-LDI r1, 140
-LDI r2, 37
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Places a green circle of radius 32 at center (187, 87).
+; PLAN: r0=187(x), r1=87(y), r2=32(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 187
+LDI r1, 87
+LDI r2, 32
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

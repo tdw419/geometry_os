@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (134, 95) with radius 32.
-; PLAN: r0=134(x), r1=95(y), r2=32(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 134
-LDI r1, 95
-LDI r2, 32
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red line between points (455, 2) and (127, 80).
+; PLAN: r0=455(x1), r1=2(y1), r2=127(x2), r3=80(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 455
+LDI r1, 2
+LDI r2, 127
+LDI r3, 80
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

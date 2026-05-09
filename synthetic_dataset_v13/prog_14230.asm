@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (406, 186) with radius 25.
-; PLAN: r0=406(x), r1=186(y), r2=25(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 406
-LDI r1, 186
-LDI r2, 25
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 43x98 rectangle at position (90, 7).
+; PLAN: r0=90(x), r1=7(y), r2=43(width), r3=98(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 90
+LDI r1, 7
+LDI r2, 43
+LDI r3, 98
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

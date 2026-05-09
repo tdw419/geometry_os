@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a green circular shape at (187, 58) with radius 36.
-; PLAN: r0=187(x), r1=58(y), r2=36(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 187
-LDI r1, 58
-LDI r2, 36
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (255, 230).
+; PLAN: r0=255(x), r1=230(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 255
+LDI r1, 230
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (239, 39) to (405, 245).
-; PLAN: r0=239(x1), r1=39(y1), r2=405(x2), r3=245(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 239
-LDI r1, 39
-LDI r2, 405
-LDI r3, 245
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 19 at center (261, 132).
+; PLAN: r0=261(x), r1=132(y), r2=19(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 261
+LDI r1, 132
+LDI r2, 19
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

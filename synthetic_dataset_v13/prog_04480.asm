@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a cyan rectangular region at (342, 1) spanning 94 by 91 pixels.
-; PLAN: r0=342(x), r1=1(y), r2=94(width), r3=91(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 342
-LDI r1, 1
-LDI r2, 94
-LDI r3, 91
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white circle of radius 78 at center (381, 79).
+; PLAN: r0=381(x), r1=79(y), r2=78(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 381
+LDI r1, 79
+LDI r2, 78
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

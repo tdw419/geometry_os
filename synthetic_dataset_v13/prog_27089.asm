@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 18x79 starting at (198, 123).
-; PLAN: r0=198(x), r1=123(y), r2=18(width), r3=79(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 198
-LDI r1, 123
-LDI r2, 18
-LDI r3, 79
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (431, 189) and (179, 134).
+; PLAN: r0=431(x1), r1=189(y1), r2=179(x2), r3=134(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 431
+LDI r1, 189
+LDI r2, 179
+LDI r3, 134
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

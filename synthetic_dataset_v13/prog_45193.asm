@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (444, 103) to (341, 69).
-; PLAN: r0=444(x1), r1=103(y1), r2=341(x2), r3=69(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 444
-LDI r1, 103
-LDI r2, 341
-LDI r3, 69
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a green line from (472, 115) to (85, 228).
+; PLAN: r0=472(x1), r1=115(y1), r2=85(x2), r3=228(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 472
+LDI r1, 115
+LDI r2, 85
+LDI r3, 228
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

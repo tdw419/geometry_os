@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a purple rectangular region at (337, 21) spanning 63 by 113 pixels.
-; PLAN: r0=337(x), r1=21(y), r2=63(width), r3=113(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 337
-LDI r1, 21
-LDI r2, 63
-LDI r3, 113
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 58 at center (190, 132).
+; PLAN: r0=190(x), r1=132(y), r2=58(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 190
+LDI r1, 132
+LDI r2, 58
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

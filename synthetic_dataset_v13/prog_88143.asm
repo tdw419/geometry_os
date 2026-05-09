@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single white pixel at (403, 33).
-; PLAN: r0=403(x), r1=33(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 403
-LDI r1, 33
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a black circular shape at (177, 191) with radius 41.
+; PLAN: r0=177(x), r1=191(y), r2=41(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 177
+LDI r1, 191
+LDI r2, 41
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

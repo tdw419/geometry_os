@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Creates a magenta rectangular region at (300, 185) spanning 63 by 23 pixels then Places a black dot at position (492, 16) then Renders a purple line between points (229, 26) and (135, 148).
-; PLAN: r0=300(x), r1=185(y), r2=63(width), r3=23(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=492(x), r6=16(y), r7=0x000000(color). Op: PSET r5, r6, r7 Next: r10=229(x1), r11=26(y1), r12=135(x2), r13=148(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 300
-LDI r1, 185
-LDI r2, 63
-LDI r3, 23
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 492
-LDI r6, 16
-LDI r7, 0x000000
-PSET r5, r6, r7
-LDI r10, 229
-LDI r11, 26
-LDI r12, 135
-LDI r13, 148
-LDI r14, 0xAA00FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single purple pixel at (231, 60) then Draws a blue line from (79, 35) to (399, 37) then Creates a black circular shape at (392, 43) with radius 33.
+; PLAN: r0=231(x), r1=60(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=79(x1), r6=35(y1), r7=399(x2), r8=37(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=392(x), r11=43(y), r12=33(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 231
+LDI r1, 60
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 79
+LDI r6, 35
+LDI r7, 399
+LDI r8, 37
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
+LDI r10, 392
+LDI r11, 43
+LDI r12, 33
+LDI r13, 0x000000
+CIRCLE r10, r11, r12, r13
 HALT

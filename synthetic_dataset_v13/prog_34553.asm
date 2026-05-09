@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (41, 118) to (314, 121).
-; PLAN: r0=41(x1), r1=118(y1), r2=314(x2), r3=121(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 41
-LDI r1, 118
-LDI r2, 314
-LDI r3, 121
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a white line from (43, 134) to (155, 183).
+; PLAN: r0=43(x1), r1=134(y1), r2=155(x2), r3=183(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 43
+LDI r1, 134
+LDI r2, 155
+LDI r3, 183
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

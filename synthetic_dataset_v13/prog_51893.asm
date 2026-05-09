@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a blue line from (161, 147) to (450, 233).
-; PLAN: r0=161(x1), r1=147(y1), r2=450(x2), r3=233(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 161
-LDI r1, 147
-LDI r2, 450
-LDI r3, 233
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (276, 160) then Places a yellow circle of radius 69 at center (341, 110).
+; PLAN: r0=276(x), r1=160(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=341(x), r6=110(y), r7=69(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 276
+LDI r1, 160
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 341
+LDI r6, 110
+LDI r7, 69
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

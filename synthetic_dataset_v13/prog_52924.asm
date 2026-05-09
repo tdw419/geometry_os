@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (66, 115) with radius 50.
-; PLAN: r0=66(x), r1=115(y), r2=50(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 66
-LDI r1, 115
-LDI r2, 50
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (449, 37) to (191, 104).
+; PLAN: r0=449(x1), r1=37(y1), r2=191(x2), r3=104(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 449
+LDI r1, 37
+LDI r2, 191
+LDI r3, 104
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

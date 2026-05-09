@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan box of size 11x104 starting at (393, 41).
-; PLAN: r0=393(x), r1=41(y), r2=11(width), r3=104(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 41
-LDI r2, 11
-LDI r3, 104
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (436, 194) with radius 57.
+; PLAN: r0=436(x), r1=194(y), r2=57(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 436
+LDI r1, 194
+LDI r2, 57
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

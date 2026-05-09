@@ -1,14 +1,13 @@
-; DESCRIPTION: Composite: Renders a cyan box of size 115x107 starting at (270, 14) then Renders a cyan disk with center (291, 69) and radius 22.
-; PLAN: r0=270(x), r1=14(y), r2=115(width), r3=107(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=291(x), r6=69(y), r7=22(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 270
-LDI r1, 14
-LDI r2, 115
-LDI r3, 107
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 291
-LDI r6, 69
-LDI r7, 22
-LDI r8, 0x00FFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Places a black dot at position (422, 49) then Draws a cyan line from (15, 252) to (237, 236).
+; PLAN: r0=422(x), r1=49(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=15(x1), r6=252(y1), r7=237(x2), r8=236(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 422
+LDI r1, 49
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 15
+LDI r6, 252
+LDI r7, 237
+LDI r8, 236
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
 HALT

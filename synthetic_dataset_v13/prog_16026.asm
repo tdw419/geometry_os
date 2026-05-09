@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (421, 239).
-; PLAN: r0=421(x), r1=239(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 421
-LDI r1, 239
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a cyan 56x79 rectangle at position (28, 65).
+; PLAN: r0=28(x), r1=65(y), r2=56(width), r3=79(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 28
+LDI r1, 65
+LDI r2, 56
+LDI r3, 79
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

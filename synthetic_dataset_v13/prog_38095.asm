@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a green disk with center (76, 191) and radius 62.
-; PLAN: r0=76(x), r1=191(y), r2=62(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 76
-LDI r1, 191
-LDI r2, 62
-LDI r3, 0x00FF00
+; DESCRIPTION: Places a red circle of radius 72 at center (93, 175).
+; PLAN: r0=93(x), r1=175(y), r2=72(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 93
+LDI r1, 175
+LDI r2, 72
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

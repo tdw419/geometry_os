@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 57x48 rectangle at position (202, 40).
-; PLAN: r0=202(x), r1=40(y), r2=57(width), r3=48(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 40
-LDI r2, 57
-LDI r3, 48
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (258, 43) and (445, 216).
+; PLAN: r0=258(x1), r1=43(y1), r2=445(x2), r3=216(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 258
+LDI r1, 43
+LDI r2, 445
+LDI r3, 216
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

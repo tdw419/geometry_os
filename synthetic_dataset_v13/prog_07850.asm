@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 72 at center (197, 155).
-; PLAN: r0=197(x), r1=155(y), r2=72(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 197
-LDI r1, 155
-LDI r2, 72
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (357, 227) and (333, 132).
+; PLAN: r0=357(x1), r1=227(y1), r2=333(x2), r3=132(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 227
+LDI r2, 333
+LDI r3, 132
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

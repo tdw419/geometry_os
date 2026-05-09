@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a white circle centered at (201, 154) with radius 62.
-; PLAN: r0=201(x), r1=154(y), r2=62(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 201
-LDI r1, 154
-LDI r2, 62
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (97, 153).
+; PLAN: r0=97(x), r1=153(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 97
+LDI r1, 153
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

@@ -1,5 +1,8 @@
-; DESCRIPTION: Sets the background to blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Renders a cyan disk with center (393, 65) and radius 37.
+; PLAN: r0=393(x), r1=65(y), r2=37(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 393
+LDI r1, 65
+LDI r2, 37
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

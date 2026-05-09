@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (485, 16) to (496, 33).
-; PLAN: r0=485(x1), r1=16(y1), r2=496(x2), r3=33(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 485
-LDI r1, 16
-LDI r2, 496
-LDI r3, 33
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a yellow line between points (484, 101) and (329, 70).
+; PLAN: r0=484(x1), r1=101(y1), r2=329(x2), r3=70(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 484
+LDI r1, 101
+LDI r2, 329
+LDI r3, 70
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

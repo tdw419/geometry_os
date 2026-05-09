@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow line from (164, 221) to (334, 196).
-; PLAN: r0=164(x1), r1=221(y1), r2=334(x2), r3=196(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 221
-LDI r2, 334
-LDI r3, 196
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (124, 84) with radius 12.
+; PLAN: r0=124(x), r1=84(y), r2=12(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 124
+LDI r1, 84
+LDI r2, 12
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

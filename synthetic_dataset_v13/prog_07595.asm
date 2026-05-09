@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red rectangle at (199, 2) with width 49 and height 63.
-; PLAN: r0=199(x), r1=2(y), r2=49(width), r3=63(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 199
-LDI r1, 2
-LDI r2, 49
-LDI r3, 63
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (153, 139) and radius 20.
+; PLAN: r0=153(x), r1=139(y), r2=20(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 153
+LDI r1, 139
+LDI r2, 20
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

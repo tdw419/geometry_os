@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 49 at center (421, 149).
-; PLAN: r0=421(x), r1=149(y), r2=49(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 421
-LDI r1, 149
-LDI r2, 49
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black line segment connecting (401, 192) to (395, 193).
+; PLAN: r0=401(x1), r1=192(y1), r2=395(x2), r3=193(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 401
+LDI r1, 192
+LDI r2, 395
+LDI r3, 193
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

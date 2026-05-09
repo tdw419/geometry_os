@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 108x80 rectangle at position (84, 140).
-; PLAN: r0=84(x), r1=140(y), r2=108(width), r3=80(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 84
-LDI r1, 140
-LDI r2, 108
-LDI r3, 80
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (140, 86) with radius 42.
+; PLAN: r0=140(x), r1=86(y), r2=42(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 140
+LDI r1, 86
+LDI r2, 42
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (243, 98) to (33, 173).
-; PLAN: r0=243(x1), r1=98(y1), r2=33(x2), r3=173(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 243
-LDI r1, 98
-LDI r2, 33
-LDI r3, 173
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (254, 100) spanning 28 by 94 pixels.
+; PLAN: r0=254(x), r1=100(y), r2=28(width), r3=94(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 254
+LDI r1, 100
+LDI r2, 28
+LDI r3, 94
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

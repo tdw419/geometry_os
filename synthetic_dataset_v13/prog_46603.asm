@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (97, 179) with width 56 and height 60.
-; PLAN: r0=97(x), r1=179(y), r2=56(width), r3=60(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 97
-LDI r1, 179
-LDI r2, 56
-LDI r3, 60
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow line segment connecting (474, 47) to (36, 220).
+; PLAN: r0=474(x1), r1=47(y1), r2=36(x2), r3=220(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 474
+LDI r1, 47
+LDI r2, 36
+LDI r3, 220
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (471, 90) to (436, 136).
-; PLAN: r0=471(x1), r1=90(y1), r2=436(x2), r3=136(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 471
-LDI r1, 90
-LDI r2, 436
-LDI r3, 136
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (88, 154) and radius 25.
+; PLAN: r0=88(x), r1=154(y), r2=25(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 88
+LDI r1, 154
+LDI r2, 25
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

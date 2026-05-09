@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (504, 19) to (283, 254).
-; PLAN: r0=504(x1), r1=19(y1), r2=283(x2), r3=254(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 504
-LDI r1, 19
-LDI r2, 283
-LDI r3, 254
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a black line segment connecting (37, 156) to (236, 10).
+; PLAN: r0=37(x1), r1=156(y1), r2=236(x2), r3=10(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 37
+LDI r1, 156
+LDI r2, 236
+LDI r3, 10
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

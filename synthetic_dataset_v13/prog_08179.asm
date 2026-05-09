@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (501, 211) to (155, 245).
-; PLAN: r0=501(x1), r1=211(y1), r2=155(x2), r3=245(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 501
-LDI r1, 211
-LDI r2, 155
-LDI r3, 245
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 26x10 starting at (176, 110).
+; PLAN: r0=176(x), r1=110(y), r2=26(width), r3=10(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 176
+LDI r1, 110
+LDI r2, 26
+LDI r3, 10
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

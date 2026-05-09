@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a green dot at position (301, 43) then Places a cyan line segment connecting (225, 213) to (273, 202).
-; PLAN: r0=301(x), r1=43(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=225(x1), r6=213(y1), r7=273(x2), r8=202(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 301
-LDI r1, 43
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 225
-LDI r6, 213
-LDI r7, 273
-LDI r8, 202
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a red circle of radius 34 at center (165, 94).
+; PLAN: r0=165(x), r1=94(y), r2=34(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 165
+LDI r1, 94
+LDI r2, 34
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

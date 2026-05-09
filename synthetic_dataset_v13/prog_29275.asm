@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a black line segment connecting (163, 10) to (149, 79).
-; PLAN: r0=163(x1), r1=10(y1), r2=149(x2), r3=79(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 163
-LDI r1, 10
-LDI r2, 149
-LDI r3, 79
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (58, 38) then Draws a white line from (294, 164) to (458, 181).
+; PLAN: r0=58(x), r1=38(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=294(x1), r6=164(y1), r7=458(x2), r8=181(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 58
+LDI r1, 38
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 294
+LDI r6, 164
+LDI r7, 458
+LDI r8, 181
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

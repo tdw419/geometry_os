@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (60, 42) to (184, 93).
-; PLAN: r0=60(x1), r1=42(y1), r2=184(x2), r3=93(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 60
-LDI r1, 42
-LDI r2, 184
-LDI r3, 93
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white box of size 17x61 starting at (89, 144).
+; PLAN: r0=89(x), r1=144(y), r2=17(width), r3=61(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 89
+LDI r1, 144
+LDI r2, 17
+LDI r3, 61
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

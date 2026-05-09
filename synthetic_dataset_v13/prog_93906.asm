@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (489, 58) and (88, 19).
-; PLAN: r0=489(x1), r1=58(y1), r2=88(x2), r3=19(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 489
-LDI r1, 58
-LDI r2, 88
-LDI r3, 19
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (296, 95) with radius 52.
+; PLAN: r0=296(x), r1=95(y), r2=52(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 296
+LDI r1, 95
+LDI r2, 52
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

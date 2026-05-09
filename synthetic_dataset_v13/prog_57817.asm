@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (409, 225) to (294, 6).
-; PLAN: r0=409(x1), r1=225(y1), r2=294(x2), r3=6(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 409
-LDI r1, 225
-LDI r2, 294
-LDI r3, 6
+; DESCRIPTION: Places a blue 100x71 rectangle at position (320, 3).
+; PLAN: r0=320(x), r1=3(y), r2=100(width), r3=71(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 320
+LDI r1, 3
+LDI r2, 100
+LDI r3, 71
 LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

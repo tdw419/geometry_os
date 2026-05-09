@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white line between points (7, 93) and (101, 189).
-; PLAN: r0=7(x1), r1=93(y1), r2=101(x2), r3=189(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 7
-LDI r1, 93
-LDI r2, 101
-LDI r3, 189
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (471, 126).
+; PLAN: r0=471(x), r1=126(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 471
+LDI r1, 126
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

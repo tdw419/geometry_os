@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (263, 67) with width 20 and height 107.
-; PLAN: r0=263(x), r1=67(y), r2=20(width), r3=107(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 263
-LDI r1, 67
-LDI r2, 20
-LDI r3, 107
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (175, 21) to (398, 10).
+; PLAN: r0=175(x1), r1=21(y1), r2=398(x2), r3=10(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 175
+LDI r1, 21
+LDI r2, 398
+LDI r3, 10
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

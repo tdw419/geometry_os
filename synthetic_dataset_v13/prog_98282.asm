@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 58x106 starting at (149, 4).
-; PLAN: r0=149(x), r1=4(y), r2=58(width), r3=106(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 149
-LDI r1, 4
-LDI r2, 58
-LDI r3, 106
+; DESCRIPTION: Renders a red line between points (1, 37) and (451, 128).
+; PLAN: r0=1(x1), r1=37(y1), r2=451(x2), r3=128(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 1
+LDI r1, 37
+LDI r2, 451
+LDI r3, 128
 LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

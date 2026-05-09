@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single blue pixel at (10, 246).
-; PLAN: r0=10(x), r1=246(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 10
-LDI r1, 246
-LDI r2, 0x0000FF
+; DESCRIPTION: Sets a single yellow pixel at (321, 140).
+; PLAN: r0=321(x), r1=140(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 321
+LDI r1, 140
+LDI r2, 0xFFFF00
 PSET r0, r1, r2
 HALT

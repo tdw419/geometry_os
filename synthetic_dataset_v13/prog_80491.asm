@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a blue circle centered at (84, 58) with radius 47.
-; PLAN: r0=84(x), r1=58(y), r2=47(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 84
-LDI r1, 58
-LDI r2, 47
-LDI r3, 0x0000FF
+; DESCRIPTION: Creates a white circular shape at (59, 99) with radius 30.
+; PLAN: r0=59(x), r1=99(y), r2=30(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 59
+LDI r1, 99
+LDI r2, 30
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

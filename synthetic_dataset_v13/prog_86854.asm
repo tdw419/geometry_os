@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a magenta 64x31 rectangle at position (142, 152).
-; PLAN: r0=142(x), r1=152(y), r2=64(width), r3=31(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 142
-LDI r1, 152
-LDI r2, 64
-LDI r3, 31
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (250, 16).
+; PLAN: r0=250(x), r1=16(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 250
+LDI r1, 16
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a magenta circle centered at (288, 79) with radius 35.
-; PLAN: r0=288(x), r1=79(y), r2=35(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 288
-LDI r1, 79
-LDI r2, 35
-LDI r3, 0xFF00FF
+; DESCRIPTION: Renders a yellow disk with center (75, 81) and radius 59.
+; PLAN: r0=75(x), r1=81(y), r2=59(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 75
+LDI r1, 81
+LDI r2, 59
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

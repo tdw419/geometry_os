@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Renders a red disk with center (118, 214) and radius 16 then Places a cyan dot at position (164, 117).
-; PLAN: r0=118(x), r1=214(y), r2=16(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=164(x), r6=117(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 118
-LDI r1, 214
-LDI r2, 16
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 164
-LDI r6, 117
-LDI r7, 0x00FFFF
-PSET r5, r6, r7
+; DESCRIPTION: Places a green line segment connecting (266, 110) to (253, 192).
+; PLAN: r0=266(x1), r1=110(y1), r2=253(x2), r3=192(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 266
+LDI r1, 110
+LDI r2, 253
+LDI r3, 192
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

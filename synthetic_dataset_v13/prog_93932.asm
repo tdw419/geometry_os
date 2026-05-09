@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 104x33 starting at (13, 164).
-; PLAN: r0=13(x), r1=164(y), r2=104(width), r3=33(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 13
-LDI r1, 164
-LDI r2, 104
-LDI r3, 33
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (144, 93) to (333, 81).
+; PLAN: r0=144(x1), r1=93(y1), r2=333(x2), r3=81(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 144
+LDI r1, 93
+LDI r2, 333
+LDI r3, 81
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

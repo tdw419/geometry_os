@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
-FILL r0
+; DESCRIPTION: Draws a green line from (215, 226) to (491, 208).
+; PLAN: r0=215(x1), r1=226(y1), r2=491(x2), r3=208(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 215
+LDI r1, 226
+LDI r2, 491
+LDI r3, 208
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

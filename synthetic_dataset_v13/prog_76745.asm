@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 21x81 rectangle at position (443, 66).
-; PLAN: r0=443(x), r1=66(y), r2=21(width), r3=81(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 443
-LDI r1, 66
-LDI r2, 21
-LDI r3, 81
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a purple box of size 65x29 starting at (164, 90).
+; PLAN: r0=164(x), r1=90(y), r2=65(width), r3=29(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 90
+LDI r2, 65
+LDI r3, 29
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

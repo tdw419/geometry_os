@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (188, 117) with radius 33.
-; PLAN: r0=188(x), r1=117(y), r2=33(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 188
-LDI r1, 117
-LDI r2, 33
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 100x87 starting at (410, 84).
+; PLAN: r0=410(x), r1=84(y), r2=100(width), r3=87(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 410
+LDI r1, 84
+LDI r2, 100
+LDI r3, 87
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

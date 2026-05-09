@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (326, 183).
-; PLAN: r0=326(x), r1=183(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 326
-LDI r1, 183
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan line from (4, 3) to (510, 234).
+; PLAN: r0=4(x1), r1=3(y1), r2=510(x2), r3=234(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 4
+LDI r1, 3
+LDI r2, 510
+LDI r3, 234
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

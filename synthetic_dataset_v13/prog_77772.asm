@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 40 at center (130, 49).
-; PLAN: r0=130(x), r1=49(y), r2=40(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 130
-LDI r1, 49
-LDI r2, 40
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (295, 211) and (459, 57).
+; PLAN: r0=295(x1), r1=211(y1), r2=459(x2), r3=57(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 295
+LDI r1, 211
+LDI r2, 459
+LDI r3, 57
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

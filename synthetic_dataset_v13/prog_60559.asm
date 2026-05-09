@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (395, 73) with radius 43.
-; PLAN: r0=395(x), r1=73(y), r2=43(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 395
-LDI r1, 73
-LDI r2, 43
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (422, 159) to (396, 55).
+; PLAN: r0=422(x1), r1=159(y1), r2=396(x2), r3=55(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 422
+LDI r1, 159
+LDI r2, 396
+LDI r3, 55
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

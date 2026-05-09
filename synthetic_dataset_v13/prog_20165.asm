@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a black dot at position (249, 0).
-; PLAN: r0=249(x), r1=0(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 249
-LDI r1, 0
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black disk with center (219, 187) and radius 69.
+; PLAN: r0=219(x), r1=187(y), r2=69(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 219
+LDI r1, 187
+LDI r2, 69
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

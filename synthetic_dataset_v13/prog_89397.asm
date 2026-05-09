@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a orange disk with center (123, 70) and radius 65.
-; PLAN: r0=123(x), r1=70(y), r2=65(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 123
-LDI r1, 70
-LDI r2, 65
-LDI r3, 0xFF8800
+; DESCRIPTION: Draws a magenta circle centered at (364, 196) with radius 40.
+; PLAN: r0=364(x), r1=196(y), r2=40(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 364
+LDI r1, 196
+LDI r2, 40
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (418, 137) with radius 68.
-; PLAN: r0=418(x), r1=137(y), r2=68(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 418
-LDI r1, 137
-LDI r2, 68
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white box of size 115x73 starting at (315, 91).
+; PLAN: r0=315(x), r1=91(y), r2=115(width), r3=73(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 315
+LDI r1, 91
+LDI r2, 115
+LDI r3, 73
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

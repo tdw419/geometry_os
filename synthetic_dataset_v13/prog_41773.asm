@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (196, 33) with width 35 and height 37.
-; PLAN: r0=196(x), r1=33(y), r2=35(width), r3=37(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 196
-LDI r1, 33
-LDI r2, 35
-LDI r3, 37
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Creates a yellow rectangular region at (37, 83) spanning 31 by 119 pixels.
+; PLAN: r0=37(x), r1=83(y), r2=31(width), r3=119(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 37
+LDI r1, 83
+LDI r2, 31
+LDI r3, 119
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

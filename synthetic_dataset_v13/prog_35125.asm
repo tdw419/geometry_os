@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 99x51 rectangle at position (32, 36).
-; PLAN: r0=32(x), r1=36(y), r2=99(width), r3=51(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 32
-LDI r1, 36
-LDI r2, 99
-LDI r3, 51
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (498, 32) and (186, 73).
+; PLAN: r0=498(x1), r1=32(y1), r2=186(x2), r3=73(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 498
+LDI r1, 32
+LDI r2, 186
+LDI r3, 73
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

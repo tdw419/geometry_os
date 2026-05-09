@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single white pixel at (38, 103).
-; PLAN: r0=38(x), r1=103(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 38
-LDI r1, 103
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

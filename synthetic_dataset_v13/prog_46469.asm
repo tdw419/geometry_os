@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (286, 228) and (471, 12).
-; PLAN: r0=286(x1), r1=228(y1), r2=471(x2), r3=12(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 286
-LDI r1, 228
-LDI r2, 471
-LDI r3, 12
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta box of size 40x54 starting at (7, 84).
+; PLAN: r0=7(x), r1=84(y), r2=40(width), r3=54(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 7
+LDI r1, 84
+LDI r2, 40
+LDI r3, 54
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

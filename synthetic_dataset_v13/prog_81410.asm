@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a green dot at position (475, 35).
-; PLAN: r0=475(x), r1=35(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 475
-LDI r1, 35
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a green circle centered at (229, 198) with radius 32.
+; PLAN: r0=229(x), r1=198(y), r2=32(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 229
+LDI r1, 198
+LDI r2, 32
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

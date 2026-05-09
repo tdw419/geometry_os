@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a black line between points (474, 24) and (378, 35).
-; PLAN: r0=474(x1), r1=24(y1), r2=378(x2), r3=35(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 474
-LDI r1, 24
-LDI r2, 378
-LDI r3, 35
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green 78x39 rectangle at position (12, 80) then Sets a single orange pixel at (96, 69).
+; PLAN: r0=12(x), r1=80(y), r2=78(width), r3=39(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=96(x), r6=69(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 12
+LDI r1, 80
+LDI r2, 78
+LDI r3, 39
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 96
+LDI r6, 69
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

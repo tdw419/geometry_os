@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a orange 90x59 rectangle at position (126, 102).
-; PLAN: r0=126(x), r1=102(y), r2=90(width), r3=59(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 102
-LDI r2, 90
-LDI r3, 59
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single yellow pixel at (390, 234).
+; PLAN: r0=390(x), r1=234(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 390
+LDI r1, 234
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

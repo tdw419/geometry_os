@@ -1,5 +1,5 @@
-; DESCRIPTION: Fills the entire screen with solid black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
 FILL r0
 HALT

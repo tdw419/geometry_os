@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Places a black circle of radius 60 at center (121, 115) then Sets a single black pixel at (506, 253).
-; PLAN: r0=121(x), r1=115(y), r2=60(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=506(x), r6=253(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 121
-LDI r1, 115
-LDI r2, 60
-LDI r3, 0x000000
+; DESCRIPTION: Places a orange circle of radius 80 at center (212, 113).
+; PLAN: r0=212(x), r1=113(y), r2=80(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 212
+LDI r1, 113
+LDI r2, 80
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
-LDI r5, 506
-LDI r6, 253
-LDI r7, 0x000000
-PSET r5, r6, r7
 HALT

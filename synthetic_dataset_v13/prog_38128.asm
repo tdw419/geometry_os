@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (347, 142) with width 79 and height 110.
-; PLAN: r0=347(x), r1=142(y), r2=79(width), r3=110(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 347
-LDI r1, 142
-LDI r2, 79
-LDI r3, 110
-LDI r4, 0x00FFFF
+; DESCRIPTION: Creates a red rectangular region at (344, 12) spanning 114 by 51 pixels.
+; PLAN: r0=344(x), r1=12(y), r2=114(width), r3=51(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 344
+LDI r1, 12
+LDI r2, 114
+LDI r3, 51
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

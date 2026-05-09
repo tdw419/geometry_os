@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Draws a purple circle centered at (281, 197) with radius 19 then Draws a cyan line from (283, 117) to (394, 94).
-; PLAN: r0=281(x), r1=197(y), r2=19(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=283(x1), r6=117(y1), r7=394(x2), r8=94(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 281
-LDI r1, 197
-LDI r2, 19
-LDI r3, 0xAA00FF
+; DESCRIPTION: Composite: Draws a green circle centered at (235, 82) with radius 38 then Places a blue 27x81 rectangle at position (414, 59).
+; PLAN: r0=235(x), r1=82(y), r2=38(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=414(x), r6=59(y), r7=27(width), r8=81(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 235
+LDI r1, 82
+LDI r2, 38
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
-LDI r5, 283
-LDI r6, 117
-LDI r7, 394
-LDI r8, 94
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+LDI r5, 414
+LDI r6, 59
+LDI r7, 27
+LDI r8, 81
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

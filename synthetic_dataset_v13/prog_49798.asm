@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a yellow line between points (64, 38) and (396, 85).
-; PLAN: r0=64(x1), r1=38(y1), r2=396(x2), r3=85(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 38
-LDI r2, 396
-LDI r3, 85
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (5, 195).
+; PLAN: r0=5(x), r1=195(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 5
+LDI r1, 195
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

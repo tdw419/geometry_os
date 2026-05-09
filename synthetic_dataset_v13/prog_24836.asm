@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (491, 193) to (220, 167).
-; PLAN: r0=491(x1), r1=193(y1), r2=220(x2), r3=167(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 491
-LDI r1, 193
-LDI r2, 220
-LDI r3, 167
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 44x87 starting at (392, 27).
+; PLAN: r0=392(x), r1=27(y), r2=44(width), r3=87(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 392
+LDI r1, 27
+LDI r2, 44
+LDI r3, 87
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

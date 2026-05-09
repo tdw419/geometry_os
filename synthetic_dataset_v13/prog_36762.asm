@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a purple circle centered at (278, 131) with radius 79.
-; PLAN: r0=278(x), r1=131(y), r2=79(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 278
-LDI r1, 131
-LDI r2, 79
-LDI r3, 0xAA00FF
+; DESCRIPTION: Draws a white circle centered at (83, 194) with radius 49.
+; PLAN: r0=83(x), r1=194(y), r2=49(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 83
+LDI r1, 194
+LDI r2, 49
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

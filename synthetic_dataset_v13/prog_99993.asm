@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 74x61 starting at (327, 9).
-; PLAN: r0=327(x), r1=9(y), r2=74(width), r3=61(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 327
-LDI r1, 9
-LDI r2, 74
-LDI r3, 61
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (406, 239) to (134, 162).
+; PLAN: r0=406(x1), r1=239(y1), r2=134(x2), r3=162(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 406
+LDI r1, 239
+LDI r2, 134
+LDI r3, 162
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a red 12x88 rectangle at position (209, 6).
-; PLAN: r0=209(x), r1=6(y), r2=12(width), r3=88(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 209
-LDI r1, 6
-LDI r2, 12
-LDI r3, 88
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a green circular shape at (460, 120) with radius 51 then Sets a single green pixel at (356, 197).
+; PLAN: r0=460(x), r1=120(y), r2=51(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=356(x), r6=197(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 460
+LDI r1, 120
+LDI r2, 51
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 356
+LDI r6, 197
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

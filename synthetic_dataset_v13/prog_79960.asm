@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (5, 93) to (151, 221).
-; PLAN: r0=5(x1), r1=93(y1), r2=151(x2), r3=221(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 93
-LDI r2, 151
-LDI r3, 221
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 28x20 rectangle at position (403, 135).
+; PLAN: r0=403(x), r1=135(y), r2=28(width), r3=20(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 403
+LDI r1, 135
+LDI r2, 28
+LDI r3, 20
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

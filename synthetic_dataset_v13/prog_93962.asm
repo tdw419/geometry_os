@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single orange pixel at (340, 199).
-; PLAN: r0=340(x), r1=199(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 340
-LDI r1, 199
-LDI r2, 0xFF8800
+; DESCRIPTION: Places a cyan dot at position (329, 254).
+; PLAN: r0=329(x), r1=254(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 329
+LDI r1, 254
+LDI r2, 0x00FFFF
 PSET r0, r1, r2
 HALT

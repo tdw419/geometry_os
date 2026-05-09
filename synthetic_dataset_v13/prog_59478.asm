@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 63 at center (285, 148).
-; PLAN: r0=285(x), r1=148(y), r2=63(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 285
-LDI r1, 148
-LDI r2, 63
-LDI r3, 0xFF00FF
+; DESCRIPTION: Creates a purple circular shape at (228, 212) with radius 28.
+; PLAN: r0=228(x), r1=212(y), r2=28(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 228
+LDI r1, 212
+LDI r2, 28
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (442, 239) to (61, 56).
-; PLAN: r0=442(x1), r1=239(y1), r2=61(x2), r3=56(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 442
-LDI r1, 239
-LDI r2, 61
-LDI r3, 56
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 78x70 rectangle at position (433, 127).
+; PLAN: r0=433(x), r1=127(y), r2=78(width), r3=70(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 433
+LDI r1, 127
+LDI r2, 78
+LDI r3, 70
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Draws a black rectangle at (415, 71) with width 12 and height 66 then Renders a green disk with center (369, 97) and radius 60 then Places a green dot at position (48, 135).
-; PLAN: r0=415(x), r1=71(y), r2=12(width), r3=66(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=369(x), r6=97(y), r7=60(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=48(x), r11=135(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
-LDI r0, 415
-LDI r1, 71
-LDI r2, 12
-LDI r3, 66
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 369
-LDI r6, 97
-LDI r7, 60
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
-LDI r10, 48
-LDI r11, 135
-LDI r12, 0x00FF00
+; DESCRIPTION: Composite: Draws a orange circle centered at (441, 109) with radius 54 then Renders a black line between points (449, 239) and (315, 199) then Sets a single magenta pixel at (33, 62).
+; PLAN: r0=441(x), r1=109(y), r2=54(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=449(x1), r6=239(y1), r7=315(x2), r8=199(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=33(x), r11=62(y), r12=0xFF00FF(color). Op: PSET r10, r11, r12.
+LDI r0, 441
+LDI r1, 109
+LDI r2, 54
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
+LDI r5, 449
+LDI r6, 239
+LDI r7, 315
+LDI r8, 199
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
+LDI r10, 33
+LDI r11, 62
+LDI r12, 0xFF00FF
 PSET r10, r11, r12
 HALT

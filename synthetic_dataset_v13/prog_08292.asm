@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta line between points (137, 70) and (302, 121).
-; PLAN: r0=137(x1), r1=70(y1), r2=302(x2), r3=121(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 137
-LDI r1, 70
-LDI r2, 302
-LDI r3, 121
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 66 at center (91, 135).
+; PLAN: r0=91(x), r1=135(y), r2=66(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 91
+LDI r1, 135
+LDI r2, 66
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

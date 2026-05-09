@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (64, 107) to (372, 28).
-; PLAN: r0=64(x1), r1=107(y1), r2=372(x2), r3=28(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 107
-LDI r2, 372
-LDI r3, 28
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a white line from (90, 95) to (77, 219).
+; PLAN: r0=90(x1), r1=95(y1), r2=77(x2), r3=219(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 90
+LDI r1, 95
+LDI r2, 77
+LDI r3, 219
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

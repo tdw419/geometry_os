@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Draws a green rectangle at (125, 5) with width 11 and height 97 then Places a red dot at position (182, 200).
-; PLAN: r0=125(x), r1=5(y), r2=11(width), r3=97(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=182(x), r6=200(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 125
-LDI r1, 5
-LDI r2, 11
-LDI r3, 97
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 182
-LDI r6, 200
-LDI r7, 0xFF0000
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Places a red circle of radius 62 at center (196, 73) then Places a magenta line segment connecting (3, 48) to (433, 121).
+; PLAN: r0=196(x), r1=73(y), r2=62(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=3(x1), r6=48(y1), r7=433(x2), r8=121(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 196
+LDI r1, 73
+LDI r2, 62
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 3
+LDI r6, 48
+LDI r7, 433
+LDI r8, 121
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

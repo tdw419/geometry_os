@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (33, 188) and radius 24.
-; PLAN: r0=33(x), r1=188(y), r2=24(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 33
-LDI r1, 188
-LDI r2, 24
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (156, 80) and (245, 90).
+; PLAN: r0=156(x1), r1=80(y1), r2=245(x2), r3=90(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 156
+LDI r1, 80
+LDI r2, 245
+LDI r3, 90
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

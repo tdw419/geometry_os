@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (321, 65) and radius 45.
-; PLAN: r0=321(x), r1=65(y), r2=45(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 321
-LDI r1, 65
-LDI r2, 45
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 66x72 rectangle at position (226, 175).
+; PLAN: r0=226(x), r1=175(y), r2=66(width), r3=72(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 175
+LDI r2, 66
+LDI r3, 72
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

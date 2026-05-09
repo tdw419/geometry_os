@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a green line segment connecting (171, 124) to (319, 66).
-; PLAN: r0=171(x1), r1=124(y1), r2=319(x2), r3=66(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 171
-LDI r1, 124
-LDI r2, 319
-LDI r3, 66
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single red pixel at (266, 209) then Creates a magenta rectangular region at (336, 175) spanning 65 by 52 pixels.
+; PLAN: r0=266(x), r1=209(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=336(x), r6=175(y), r7=65(width), r8=52(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 266
+LDI r1, 209
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 336
+LDI r6, 175
+LDI r7, 65
+LDI r8, 52
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

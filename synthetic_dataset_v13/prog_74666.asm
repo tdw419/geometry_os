@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple rectangle at (410, 91) with width 50 and height 91.
-; PLAN: r0=410(x), r1=91(y), r2=50(width), r3=91(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 410
-LDI r1, 91
-LDI r2, 50
-LDI r3, 91
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (140, 205) with radius 24.
+; PLAN: r0=140(x), r1=205(y), r2=24(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 140
+LDI r1, 205
+LDI r2, 24
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

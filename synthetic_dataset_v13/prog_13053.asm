@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (435, 176) with radius 30.
-; PLAN: r0=435(x), r1=176(y), r2=30(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 435
-LDI r1, 176
-LDI r2, 30
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (226, 182) spanning 17 by 36 pixels.
+; PLAN: r0=226(x), r1=182(y), r2=17(width), r3=36(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 182
+LDI r2, 17
+LDI r3, 36
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

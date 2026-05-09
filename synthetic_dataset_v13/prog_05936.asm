@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a blue circle centered at (308, 109) with radius 27.
-; PLAN: r0=308(x), r1=109(y), r2=27(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 308
-LDI r1, 109
-LDI r2, 27
-LDI r3, 0x0000FF
+; DESCRIPTION: Renders a white disk with center (419, 230) and radius 14.
+; PLAN: r0=419(x), r1=230(y), r2=14(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 419
+LDI r1, 230
+LDI r2, 14
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
-FILL r0
+; DESCRIPTION: Places a magenta dot at position (342, 32).
+; PLAN: r0=342(x), r1=32(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 342
+LDI r1, 32
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

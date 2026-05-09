@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 108x52 rectangle at position (334, 47).
-; PLAN: r0=334(x), r1=47(y), r2=108(width), r3=52(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 334
-LDI r1, 47
-LDI r2, 108
-LDI r3, 52
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (57, 21) to (199, 75).
+; PLAN: r0=57(x1), r1=21(y1), r2=199(x2), r3=75(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 57
+LDI r1, 21
+LDI r2, 199
+LDI r3, 75
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

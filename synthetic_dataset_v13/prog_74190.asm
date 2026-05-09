@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Places a green dot at position (10, 232) then Draws a red rectangle at (77, 176) with width 62 and height 80 then Draws a purple circle centered at (269, 192) with radius 50.
-; PLAN: r0=10(x), r1=232(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=77(x), r6=176(y), r7=62(width), r8=80(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=269(x), r11=192(y), r12=50(radius), r13=0xAA00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 10
-LDI r1, 232
-LDI r2, 0x00FF00
+; DESCRIPTION: Composite: Places a red dot at position (437, 127) then Places a blue circle of radius 50 at center (181, 90) then Creates a orange rectangular region at (6, 58) spanning 74 by 107 pixels.
+; PLAN: r0=437(x), r1=127(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=181(x), r6=90(y), r7=50(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=6(x), r11=58(y), r12=74(width), r13=107(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 437
+LDI r1, 127
+LDI r2, 0xFF0000
 PSET r0, r1, r2
-LDI r5, 77
-LDI r6, 176
-LDI r7, 62
-LDI r8, 80
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
-LDI r10, 269
-LDI r11, 192
-LDI r12, 50
-LDI r13, 0xAA00FF
-CIRCLE r10, r11, r12, r13
+LDI r5, 181
+LDI r6, 90
+LDI r7, 50
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 6
+LDI r11, 58
+LDI r12, 74
+LDI r13, 107
+LDI r14, 0xFF8800
+RECTF r10, r11, r12, r13, r14
 HALT

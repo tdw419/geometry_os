@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a yellow box of size 20x47 starting at (247, 110).
-; PLAN: r0=247(x), r1=110(y), r2=20(width), r3=47(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 247
-LDI r1, 110
-LDI r2, 20
-LDI r3, 47
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue dot at position (270, 0).
+; PLAN: r0=270(x), r1=0(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 270
+LDI r1, 0
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

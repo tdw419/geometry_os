@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Renders a blue disk with center (72, 137) and radius 42 then Sets a single cyan pixel at (240, 251).
-; PLAN: r0=72(x), r1=137(y), r2=42(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=240(x), r6=251(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 72
-LDI r1, 137
-LDI r2, 42
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 240
-LDI r6, 251
-LDI r7, 0x00FFFF
-PSET r5, r6, r7
+; DESCRIPTION: Renders a green line between points (420, 43) and (401, 121).
+; PLAN: r0=420(x1), r1=43(y1), r2=401(x2), r3=121(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 420
+LDI r1, 43
+LDI r2, 401
+LDI r3, 121
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

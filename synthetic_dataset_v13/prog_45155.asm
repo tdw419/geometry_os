@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (466, 137) and radius 30.
-; PLAN: r0=466(x), r1=137(y), r2=30(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 466
-LDI r1, 137
-LDI r2, 30
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (402, 35) with width 66 and height 81.
+; PLAN: r0=402(x), r1=35(y), r2=66(width), r3=81(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 402
+LDI r1, 35
+LDI r2, 66
+LDI r3, 81
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

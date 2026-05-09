@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a red dot at position (233, 153).
-; PLAN: r0=233(x), r1=153(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 233
-LDI r1, 153
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

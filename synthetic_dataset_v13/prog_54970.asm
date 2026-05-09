@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (284, 217) and (269, 172).
-; PLAN: r0=284(x1), r1=217(y1), r2=269(x2), r3=172(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 217
-LDI r2, 269
-LDI r3, 172
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (184, 98) with radius 33.
+; PLAN: r0=184(x), r1=98(y), r2=33(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 184
+LDI r1, 98
+LDI r2, 33
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

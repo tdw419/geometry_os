@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 111x86 rectangle at position (171, 38).
-; PLAN: r0=171(x), r1=38(y), r2=111(width), r3=86(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 171
-LDI r1, 38
-LDI r2, 111
-LDI r3, 86
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (400, 233) to (358, 18).
+; PLAN: r0=400(x1), r1=233(y1), r2=358(x2), r3=18(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 233
+LDI r2, 358
+LDI r3, 18
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

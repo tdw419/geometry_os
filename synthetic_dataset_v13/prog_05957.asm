@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (378, 250) then Draws a white line from (98, 134) to (217, 86).
-; PLAN: r0=378(x), r1=250(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=98(x1), r6=134(y1), r7=217(x2), r8=86(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 378
-LDI r1, 250
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 98
-LDI r6, 134
-LDI r7, 217
-LDI r8, 86
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a black line between points (22, 182) and (26, 101) then Places a orange dot at position (287, 194).
+; PLAN: r0=22(x1), r1=182(y1), r2=26(x2), r3=101(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=287(x), r6=194(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 22
+LDI r1, 182
+LDI r2, 26
+LDI r3, 101
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+LDI r5, 287
+LDI r6, 194
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

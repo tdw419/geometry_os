@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (384, 38) with width 94 and height 36.
-; PLAN: r0=384(x), r1=38(y), r2=94(width), r3=36(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 384
-LDI r1, 38
-LDI r2, 94
-LDI r3, 36
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (228, 252) to (220, 88).
+; PLAN: r0=228(x1), r1=252(y1), r2=220(x2), r3=88(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 228
+LDI r1, 252
+LDI r2, 220
+LDI r3, 88
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 31 at center (184, 35).
-; PLAN: r0=184(x), r1=35(y), r2=31(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 184
-LDI r1, 35
-LDI r2, 31
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow box of size 48x119 starting at (84, 70).
+; PLAN: r0=84(x), r1=70(y), r2=48(width), r3=119(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 84
+LDI r1, 70
+LDI r2, 48
+LDI r3, 119
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

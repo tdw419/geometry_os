@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white line between points (261, 131) and (494, 213).
-; PLAN: r0=261(x1), r1=131(y1), r2=494(x2), r3=213(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 261
-LDI r1, 131
-LDI r2, 494
-LDI r3, 213
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green dot at position (428, 212).
+; PLAN: r0=428(x), r1=212(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 428
+LDI r1, 212
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

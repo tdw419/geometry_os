@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a yellow rectangular region at (392, 182) spanning 73 by 61 pixels.
-; PLAN: r0=392(x), r1=182(y), r2=73(width), r3=61(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 392
-LDI r1, 182
-LDI r2, 73
-LDI r3, 61
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (68, 125).
+; PLAN: r0=68(x), r1=125(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 68
+LDI r1, 125
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

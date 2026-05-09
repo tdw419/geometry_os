@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 30x109 rectangle at position (379, 68).
-; PLAN: r0=379(x), r1=68(y), r2=30(width), r3=109(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 379
-LDI r1, 68
-LDI r2, 30
-LDI r3, 109
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (511, 98) and (197, 162).
+; PLAN: r0=511(x1), r1=98(y1), r2=197(x2), r3=162(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 511
+LDI r1, 98
+LDI r2, 197
+LDI r3, 162
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a red line between points (356, 153) and (432, 171).
-; PLAN: r0=356(x1), r1=153(y1), r2=432(x2), r3=171(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 153
-LDI r2, 432
-LDI r3, 171
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a blue circular shape at (232, 177) with radius 78 then Places a blue dot at position (455, 12).
+; PLAN: r0=232(x), r1=177(y), r2=78(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=455(x), r6=12(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 232
+LDI r1, 177
+LDI r2, 78
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 455
+LDI r6, 12
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

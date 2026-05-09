@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue box of size 72x71 starting at (185, 3).
-; PLAN: r0=185(x), r1=3(y), r2=72(width), r3=71(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 185
-LDI r1, 3
-LDI r2, 72
-LDI r3, 71
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (166, 72) and radius 39.
+; PLAN: r0=166(x), r1=72(y), r2=39(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 166
+LDI r1, 72
+LDI r2, 39
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (400, 93) with width 80 and height 61.
-; PLAN: r0=400(x), r1=93(y), r2=80(width), r3=61(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 400
-LDI r1, 93
-LDI r2, 80
-LDI r3, 61
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (296, 153) with radius 73.
+; PLAN: r0=296(x), r1=153(y), r2=73(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 296
+LDI r1, 153
+LDI r2, 73
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

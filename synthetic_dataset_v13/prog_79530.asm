@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a red line between points (502, 119) and (97, 16).
-; PLAN: r0=502(x1), r1=119(y1), r2=97(x2), r3=16(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 502
-LDI r1, 119
-LDI r2, 97
-LDI r3, 16
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (439, 22).
+; PLAN: r0=439(x), r1=22(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 439
+LDI r1, 22
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

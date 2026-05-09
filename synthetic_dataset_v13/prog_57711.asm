@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a red line between points (310, 141) and (219, 8).
-; PLAN: r0=310(x1), r1=141(y1), r2=219(x2), r3=8(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 141
-LDI r2, 219
-LDI r3, 8
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (8, 30).
+; PLAN: r0=8(x), r1=30(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 8
+LDI r1, 30
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

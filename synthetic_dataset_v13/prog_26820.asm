@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (230, 173) with radius 80.
-; PLAN: r0=230(x), r1=173(y), r2=80(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 230
-LDI r1, 173
-LDI r2, 80
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (463, 63) and (212, 18).
+; PLAN: r0=463(x1), r1=63(y1), r2=212(x2), r3=18(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 463
+LDI r1, 63
+LDI r2, 212
+LDI r3, 18
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

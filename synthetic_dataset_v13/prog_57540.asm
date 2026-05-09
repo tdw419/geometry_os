@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 39x39 rectangle at position (170, 92).
-; PLAN: r0=170(x), r1=92(y), r2=39(width), r3=39(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 170
-LDI r1, 92
-LDI r2, 39
-LDI r3, 39
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a magenta 101x56 rectangle at position (138, 19).
+; PLAN: r0=138(x), r1=19(y), r2=101(width), r3=56(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 138
+LDI r1, 19
+LDI r2, 101
+LDI r3, 56
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

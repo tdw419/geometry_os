@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (288, 190) to (351, 2).
-; PLAN: r0=288(x1), r1=190(y1), r2=351(x2), r3=2(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 190
-LDI r2, 351
-LDI r3, 2
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan box of size 97x49 starting at (368, 110).
+; PLAN: r0=368(x), r1=110(y), r2=97(width), r3=49(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 368
+LDI r1, 110
+LDI r2, 97
+LDI r3, 49
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

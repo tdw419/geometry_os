@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 31 into r1 and decrements it in a loop until zero.
-; PLAN: r1=31(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 31
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a purple rectangle at (162, 69) with width 39 and height 92.
+; PLAN: r0=162(x), r1=69(y), r2=39(width), r3=92(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 162
+LDI r1, 69
+LDI r2, 39
+LDI r3, 92
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

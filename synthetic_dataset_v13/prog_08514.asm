@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (308, 103) and (336, 129).
-; PLAN: r0=308(x1), r1=103(y1), r2=336(x2), r3=129(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 308
-LDI r1, 103
-LDI r2, 336
-LDI r3, 129
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (469, 73) and radius 16.
+; PLAN: r0=469(x), r1=73(y), r2=16(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 469
+LDI r1, 73
+LDI r2, 16
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

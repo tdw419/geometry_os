@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 26x94 rectangle at position (81, 89).
-; PLAN: r0=81(x), r1=89(y), r2=26(width), r3=94(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 81
-LDI r1, 89
-LDI r2, 26
-LDI r3, 94
+; DESCRIPTION: Renders a black line between points (231, 80) and (374, 20).
+; PLAN: r0=231(x1), r1=80(y1), r2=374(x2), r3=20(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 231
+LDI r1, 80
+LDI r2, 374
+LDI r3, 20
 LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

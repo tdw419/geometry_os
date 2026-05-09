@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (204, 18) and (321, 103).
-; PLAN: r0=204(x1), r1=18(y1), r2=321(x2), r3=103(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 204
-LDI r1, 18
-LDI r2, 321
-LDI r3, 103
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (61, 211) and radius 31.
+; PLAN: r0=61(x), r1=211(y), r2=31(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 61
+LDI r1, 211
+LDI r2, 31
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

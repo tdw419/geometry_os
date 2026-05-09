@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (117, 149) spanning 51 by 73 pixels.
-; PLAN: r0=117(x), r1=149(y), r2=51(width), r3=73(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 117
-LDI r1, 149
-LDI r2, 51
-LDI r3, 73
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (155, 205) and (463, 209).
+; PLAN: r0=155(x1), r1=205(y1), r2=463(x2), r3=209(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 155
+LDI r1, 205
+LDI r2, 463
+LDI r3, 209
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

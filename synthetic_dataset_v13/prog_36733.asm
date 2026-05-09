@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (287, 93) and (432, 127).
-; PLAN: r0=287(x1), r1=93(y1), r2=432(x2), r3=127(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 287
-LDI r1, 93
-LDI r2, 432
-LDI r3, 127
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a green line segment connecting (174, 43) to (174, 162).
+; PLAN: r0=174(x1), r1=43(y1), r2=174(x2), r3=162(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 174
+LDI r1, 43
+LDI r2, 174
+LDI r3, 162
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

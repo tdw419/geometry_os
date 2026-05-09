@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a purple dot at position (491, 224) then Renders a green box of size 90x90 starting at (259, 129).
-; PLAN: r0=491(x), r1=224(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=259(x), r6=129(y), r7=90(width), r8=90(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 491
-LDI r1, 224
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 259
-LDI r6, 129
-LDI r7, 90
-LDI r8, 90
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a yellow line between points (439, 153) and (31, 141).
+; PLAN: r0=439(x1), r1=153(y1), r2=31(x2), r3=141(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 439
+LDI r1, 153
+LDI r2, 31
+LDI r3, 141
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

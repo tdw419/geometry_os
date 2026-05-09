@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a blue line segment connecting (14, 93) to (407, 159).
-; PLAN: r0=14(x1), r1=93(y1), r2=407(x2), r3=159(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 14
-LDI r1, 93
-LDI r2, 407
-LDI r3, 159
-LDI r4, 0x0000FF
+; DESCRIPTION: Composite: Places a magenta line segment connecting (36, 238) to (146, 127) then Draws a black circle centered at (391, 151) with radius 80.
+; PLAN: r0=36(x1), r1=238(y1), r2=146(x2), r3=127(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=391(x), r6=151(y), r7=80(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 36
+LDI r1, 238
+LDI r2, 146
+LDI r3, 127
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
+LDI r5, 391
+LDI r6, 151
+LDI r7, 80
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

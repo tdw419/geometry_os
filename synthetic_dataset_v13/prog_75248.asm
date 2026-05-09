@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 113x51 rectangle at position (364, 95).
-; PLAN: r0=364(x), r1=95(y), r2=113(width), r3=51(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 364
-LDI r1, 95
-LDI r2, 113
-LDI r3, 51
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange circle centered at (330, 108) with radius 62.
+; PLAN: r0=330(x), r1=108(y), r2=62(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 330
+LDI r1, 108
+LDI r2, 62
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a blue line from (50, 70) to (227, 39).
-; PLAN: r0=50(x1), r1=70(y1), r2=227(x2), r3=39(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 50
-LDI r1, 70
-LDI r2, 227
-LDI r3, 39
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (137, 125) then Renders a black line between points (52, 238) and (439, 55).
+; PLAN: r0=137(x), r1=125(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=52(x1), r6=238(y1), r7=439(x2), r8=55(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 137
+LDI r1, 125
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 52
+LDI r6, 238
+LDI r7, 439
+LDI r8, 55
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
 HALT

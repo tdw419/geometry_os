@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a green 106x42 rectangle at position (133, 61).
-; PLAN: r0=133(x), r1=61(y), r2=106(width), r3=42(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 133
-LDI r1, 61
-LDI r2, 106
-LDI r3, 42
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (396, 198) then Renders a yellow line between points (251, 213) and (172, 163).
+; PLAN: r0=396(x), r1=198(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=251(x1), r6=213(y1), r7=172(x2), r8=163(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 396
+LDI r1, 198
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 251
+LDI r6, 213
+LDI r7, 172
+LDI r8, 163
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

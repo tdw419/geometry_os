@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 114x105 rectangle at position (260, 5).
-; PLAN: r0=260(x), r1=5(y), r2=114(width), r3=105(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 260
-LDI r1, 5
-LDI r2, 114
-LDI r3, 105
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a magenta rectangle at (349, 6) with width 11 and height 22.
+; PLAN: r0=349(x), r1=6(y), r2=11(width), r3=22(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 349
+LDI r1, 6
+LDI r2, 11
+LDI r3, 22
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

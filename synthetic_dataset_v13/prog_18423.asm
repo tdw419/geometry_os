@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 11x101 starting at (363, 87).
-; PLAN: r0=363(x), r1=87(y), r2=11(width), r3=101(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 87
-LDI r2, 11
-LDI r3, 101
+; DESCRIPTION: Places a red line segment connecting (209, 202) to (246, 149).
+; PLAN: r0=209(x1), r1=202(y1), r2=246(x2), r3=149(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 209
+LDI r1, 202
+LDI r2, 246
+LDI r3, 149
 LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

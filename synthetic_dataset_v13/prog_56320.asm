@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single black pixel at (218, 192).
-; PLAN: r0=218(x), r1=192(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 218
-LDI r1, 192
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

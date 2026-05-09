@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (144, 234) then Draws a purple rectangle at (53, 19) with width 105 and height 38.
-; PLAN: r0=144(x), r1=234(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=53(x), r6=19(y), r7=105(width), r8=38(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 144
-LDI r1, 234
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 53
-LDI r6, 19
-LDI r7, 105
-LDI r8, 38
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a green line between points (183, 124) and (493, 125).
+; PLAN: r0=183(x1), r1=124(y1), r2=493(x2), r3=125(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 183
+LDI r1, 124
+LDI r2, 493
+LDI r3, 125
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

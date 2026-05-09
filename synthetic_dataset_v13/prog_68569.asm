@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (286, 223) to (232, 2).
-; PLAN: r0=286(x1), r1=223(y1), r2=232(x2), r3=2(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 286
-LDI r1, 223
-LDI r2, 232
-LDI r3, 2
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a orange line between points (279, 80) and (67, 147).
+; PLAN: r0=279(x1), r1=80(y1), r2=67(x2), r3=147(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 279
+LDI r1, 80
+LDI r2, 67
+LDI r3, 147
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,19 +1,12 @@
-; DESCRIPTION: Composite: Renders a purple box of size 86x77 starting at (165, 103) then Places a green line segment connecting (486, 135) to (75, 105) then Places a yellow dot at position (129, 40).
-; PLAN: r0=165(x), r1=103(y), r2=86(width), r3=77(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=486(x1), r6=135(y1), r7=75(x2), r8=105(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=129(x), r11=40(y), r12=0xFFFF00(color). Op: PSET r10, r11, r12.
-LDI r0, 165
-LDI r1, 103
-LDI r2, 86
-LDI r3, 77
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 486
-LDI r6, 135
-LDI r7, 75
-LDI r8, 105
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 129
-LDI r11, 40
-LDI r12, 0xFFFF00
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Places a yellow dot at position (113, 227) then Renders a orange disk with center (29, 218) and radius 22.
+; PLAN: r0=113(x), r1=227(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=29(x), r6=218(y), r7=22(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 113
+LDI r1, 227
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 29
+LDI r6, 218
+LDI r7, 22
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

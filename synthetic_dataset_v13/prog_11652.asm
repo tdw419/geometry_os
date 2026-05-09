@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (431, 154) with width 67 and height 76.
-; PLAN: r0=431(x), r1=154(y), r2=67(width), r3=76(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 431
-LDI r1, 154
-LDI r2, 67
-LDI r3, 76
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a blue box of size 39x87 starting at (285, 55).
+; PLAN: r0=285(x), r1=55(y), r2=39(width), r3=87(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 285
+LDI r1, 55
+LDI r2, 39
+LDI r3, 87
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

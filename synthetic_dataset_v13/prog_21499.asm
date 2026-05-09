@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 31 at center (276, 55).
-; PLAN: r0=276(x), r1=55(y), r2=31(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 276
-LDI r1, 55
-LDI r2, 31
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan 53x89 rectangle at position (3, 54).
+; PLAN: r0=3(x), r1=54(y), r2=53(width), r3=89(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 3
+LDI r1, 54
+LDI r2, 53
+LDI r3, 89
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

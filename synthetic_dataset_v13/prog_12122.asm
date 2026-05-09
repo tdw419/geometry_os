@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (5, 80) to (265, 231).
-; PLAN: r0=5(x1), r1=80(y1), r2=265(x2), r3=231(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 80
-LDI r2, 265
-LDI r3, 231
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a purple line segment connecting (111, 164) to (423, 250).
+; PLAN: r0=111(x1), r1=164(y1), r2=423(x2), r3=250(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 111
+LDI r1, 164
+LDI r2, 423
+LDI r3, 250
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a magenta circle centered at (252, 119) with radius 77.
-; PLAN: r0=252(x), r1=119(y), r2=77(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 252
-LDI r1, 119
-LDI r2, 77
+; DESCRIPTION: Places a magenta circle of radius 12 at center (134, 43).
+; PLAN: r0=134(x), r1=43(y), r2=12(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 134
+LDI r1, 43
+LDI r2, 12
 LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

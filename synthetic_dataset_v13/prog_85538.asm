@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a purple line segment connecting (431, 66) to (316, 250).
-; PLAN: r0=431(x1), r1=66(y1), r2=316(x2), r3=250(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 431
-LDI r1, 66
-LDI r2, 316
-LDI r3, 250
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

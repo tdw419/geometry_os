@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (483, 30) and (125, 123).
-; PLAN: r0=483(x1), r1=30(y1), r2=125(x2), r3=123(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 483
-LDI r1, 30
-LDI r2, 125
-LDI r3, 123
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 13x27 rectangle at position (59, 63).
+; PLAN: r0=59(x), r1=63(y), r2=13(width), r3=27(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 59
+LDI r1, 63
+LDI r2, 13
+LDI r3, 27
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

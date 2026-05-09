@@ -1,19 +1,14 @@
-; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
-LDI r7, 0x0000FF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Renders a green disk with center (102, 137) and radius 54 then Creates a purple rectangular region at (68, 71) spanning 32 by 62 pixels.
+; PLAN: r0=102(x), r1=137(y), r2=54(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=68(x), r6=71(y), r7=32(width), r8=62(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 102
+LDI r1, 137
+LDI r2, 54
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 68
+LDI r6, 71
+LDI r7, 32
+LDI r8, 62
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

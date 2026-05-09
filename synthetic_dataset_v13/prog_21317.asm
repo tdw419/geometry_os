@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 50 at center (366, 161).
-; PLAN: r0=366(x), r1=161(y), r2=50(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 366
-LDI r1, 161
-LDI r2, 50
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (183, 250) and (440, 227).
+; PLAN: r0=183(x1), r1=250(y1), r2=440(x2), r3=227(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 183
+LDI r1, 250
+LDI r2, 440
+LDI r3, 227
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

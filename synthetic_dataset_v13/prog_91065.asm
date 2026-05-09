@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Renders a purple disk with center (233, 86) and radius 53.
+; PLAN: r0=233(x), r1=86(y), r2=53(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 233
+LDI r1, 86
+LDI r2, 53
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

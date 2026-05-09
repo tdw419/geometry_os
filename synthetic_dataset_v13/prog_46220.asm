@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single orange pixel at (182, 156).
-; PLAN: r0=182(x), r1=156(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 182
-LDI r1, 156
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Loads 33 into r1 and decrements it in a loop until zero.
+; PLAN: r1=33(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 33
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

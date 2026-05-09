@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a red line segment connecting (59, 254) to (347, 39).
-; PLAN: r0=59(x1), r1=254(y1), r2=347(x2), r3=39(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 59
-LDI r1, 254
-LDI r2, 347
-LDI r3, 39
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (107, 43) to (111, 34).
-; PLAN: r0=107(x1), r1=43(y1), r2=111(x2), r3=34(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 107
-LDI r1, 43
-LDI r2, 111
-LDI r3, 34
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a yellow line segment connecting (251, 69) to (467, 92).
+; PLAN: r0=251(x1), r1=69(y1), r2=467(x2), r3=92(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 251
+LDI r1, 69
+LDI r2, 467
+LDI r3, 92
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

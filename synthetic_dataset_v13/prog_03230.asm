@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (303, 103) with width 36 and height 71.
-; PLAN: r0=303(x), r1=103(y), r2=36(width), r3=71(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 303
-LDI r1, 103
-LDI r2, 36
-LDI r3, 71
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (211, 34) and (197, 149).
+; PLAN: r0=211(x1), r1=34(y1), r2=197(x2), r3=149(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 211
+LDI r1, 34
+LDI r2, 197
+LDI r3, 149
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

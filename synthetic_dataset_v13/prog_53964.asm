@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (477, 87) to (422, 120).
-; PLAN: r0=477(x1), r1=87(y1), r2=422(x2), r3=120(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 477
-LDI r1, 87
-LDI r2, 422
-LDI r3, 120
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green rectangle at (231, 61) with width 46 and height 68.
+; PLAN: r0=231(x), r1=61(y), r2=46(width), r3=68(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 231
+LDI r1, 61
+LDI r2, 46
+LDI r3, 68
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

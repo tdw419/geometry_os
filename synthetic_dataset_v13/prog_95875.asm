@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Draws a orange circle centered at (204, 91) with radius 18 then Sets a single yellow pixel at (223, 240) then Creates a orange rectangular region at (144, 130) spanning 106 by 67 pixels.
-; PLAN: r0=204(x), r1=91(y), r2=18(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=223(x), r6=240(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=144(x), r11=130(y), r12=106(width), r13=67(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 204
-LDI r1, 91
-LDI r2, 18
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 223
-LDI r6, 240
-LDI r7, 0xFFFF00
+; DESCRIPTION: Composite: Creates a magenta rectangular region at (315, 53) spanning 88 by 72 pixels then Places a green dot at position (314, 130) then Places a blue line segment connecting (107, 143) to (76, 226).
+; PLAN: r0=315(x), r1=53(y), r2=88(width), r3=72(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=314(x), r6=130(y), r7=0x00FF00(color). Op: PSET r5, r6, r7 Next: r10=107(x1), r11=143(y1), r12=76(x2), r13=226(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 315
+LDI r1, 53
+LDI r2, 88
+LDI r3, 72
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 314
+LDI r6, 130
+LDI r7, 0x00FF00
 PSET r5, r6, r7
-LDI r10, 144
-LDI r11, 130
-LDI r12, 106
-LDI r13, 67
-LDI r14, 0xFF8800
-RECTF r10, r11, r12, r13, r14
+LDI r10, 107
+LDI r11, 143
+LDI r12, 76
+LDI r13, 226
+LDI r14, 0x0000FF
+LINE r10, r11, r12, r13, r14
 HALT

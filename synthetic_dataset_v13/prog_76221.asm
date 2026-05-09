@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (378, 132) then Places a magenta 62x76 rectangle at position (243, 21).
-; PLAN: r0=378(x), r1=132(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=243(x), r6=21(y), r7=62(width), r8=76(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 378
-LDI r1, 132
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 243
-LDI r6, 21
-LDI r7, 62
-LDI r8, 76
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a yellow rectangular region at (167, 130) spanning 78 by 85 pixels.
+; PLAN: r0=167(x), r1=130(y), r2=78(width), r3=85(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 167
+LDI r1, 130
+LDI r2, 78
+LDI r3, 85
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

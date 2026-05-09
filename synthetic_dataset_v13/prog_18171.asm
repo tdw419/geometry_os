@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a yellow disk with center (29, 71) and radius 14.
-; PLAN: r0=29(x), r1=71(y), r2=14(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 29
-LDI r1, 71
-LDI r2, 14
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (279, 12).
+; PLAN: r0=279(x), r1=12(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 279
+LDI r1, 12
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

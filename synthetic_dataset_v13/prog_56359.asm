@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 54 at center (127, 138).
-; PLAN: r0=127(x), r1=138(y), r2=54(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 127
-LDI r1, 138
-LDI r2, 54
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 114x83 rectangle at position (269, 118).
+; PLAN: r0=269(x), r1=118(y), r2=114(width), r3=83(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 269
+LDI r1, 118
+LDI r2, 114
+LDI r3, 83
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

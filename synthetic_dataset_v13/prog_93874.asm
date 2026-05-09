@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 81x119 starting at (45, 64).
-; PLAN: r0=45(x), r1=64(y), r2=81(width), r3=119(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 64
-LDI r2, 81
-LDI r3, 119
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a magenta box of size 118x108 starting at (106, 21).
+; PLAN: r0=106(x), r1=21(y), r2=118(width), r3=108(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 106
+LDI r1, 21
+LDI r2, 118
+LDI r3, 108
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a red box of size 94x117 starting at (191, 98).
-; PLAN: r0=191(x), r1=98(y), r2=94(width), r3=117(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 191
-LDI r1, 98
-LDI r2, 94
-LDI r3, 117
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (205, 220).
+; PLAN: r0=205(x), r1=220(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 205
+LDI r1, 220
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

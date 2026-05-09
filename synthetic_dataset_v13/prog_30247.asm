@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (353, 228) to (307, 21).
-; PLAN: r0=353(x1), r1=228(y1), r2=307(x2), r3=21(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 353
-LDI r1, 228
-LDI r2, 307
-LDI r3, 21
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 16 into r1 and decrements it in a loop until zero.
+; PLAN: r1=16(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 16
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Draws a black rectangle at (63, 183) with width 48 and height 65.
+; PLAN: r0=63(x), r1=183(y), r2=48(width), r3=65(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 63
+LDI r1, 183
+LDI r2, 48
+LDI r3, 65
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

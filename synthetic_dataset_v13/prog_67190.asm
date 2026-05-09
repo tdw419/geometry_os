@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single green pixel at (86, 9).
-; PLAN: r0=86(x), r1=9(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 86
-LDI r1, 9
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan disk with center (376, 77) and radius 65.
+; PLAN: r0=376(x), r1=77(y), r2=65(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 376
+LDI r1, 77
+LDI r2, 65
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

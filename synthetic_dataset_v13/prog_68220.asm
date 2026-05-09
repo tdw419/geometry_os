@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 44x54 starting at (32, 134).
-; PLAN: r0=32(x), r1=134(y), r2=44(width), r3=54(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 32
-LDI r1, 134
-LDI r2, 44
-LDI r3, 54
-LDI r4, 0xFF00FF
+; DESCRIPTION: Places a yellow 70x100 rectangle at position (282, 138).
+; PLAN: r0=282(x), r1=138(y), r2=70(width), r3=100(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 282
+LDI r1, 138
+LDI r2, 70
+LDI r3, 100
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

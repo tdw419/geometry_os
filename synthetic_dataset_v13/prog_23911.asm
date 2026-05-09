@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a magenta circle centered at (61, 60) with radius 25.
-; PLAN: r0=61(x), r1=60(y), r2=25(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 61
-LDI r1, 60
-LDI r2, 25
-LDI r3, 0xFF00FF
+; DESCRIPTION: Draws a blue circle centered at (196, 165) with radius 68.
+; PLAN: r0=196(x), r1=165(y), r2=68(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 196
+LDI r1, 165
+LDI r2, 68
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

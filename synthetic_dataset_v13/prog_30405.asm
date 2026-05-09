@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a red circle centered at (129, 176) with radius 31 then Places a cyan 48x44 rectangle at position (441, 65).
-; PLAN: r0=129(x), r1=176(y), r2=31(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=441(x), r6=65(y), r7=48(width), r8=44(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 129
-LDI r1, 176
-LDI r2, 31
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 441
-LDI r6, 65
-LDI r7, 48
-LDI r8, 44
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a black line segment connecting (11, 85) to (405, 24).
+; PLAN: r0=11(x1), r1=85(y1), r2=405(x2), r3=24(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 11
+LDI r1, 85
+LDI r2, 405
+LDI r3, 24
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

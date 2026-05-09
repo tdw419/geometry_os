@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (323, 12) to (106, 229).
-; PLAN: r0=323(x1), r1=12(y1), r2=106(x2), r3=229(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 323
-LDI r1, 12
-LDI r2, 106
-LDI r3, 229
+; DESCRIPTION: Draws a white rectangle at (311, 70) with width 46 and height 48.
+; PLAN: r0=311(x), r1=70(y), r2=46(width), r3=48(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 311
+LDI r1, 70
+LDI r2, 46
+LDI r3, 48
 LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

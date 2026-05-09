@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Draws a blue circle centered at (268, 84) with radius 63 then Sets a single blue pixel at (72, 22).
-; PLAN: r0=268(x), r1=84(y), r2=63(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=72(x), r6=22(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 268
-LDI r1, 84
-LDI r2, 63
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 72
-LDI r6, 22
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Places a cyan line segment connecting (433, 138) to (406, 163).
+; PLAN: r0=433(x1), r1=138(y1), r2=406(x2), r3=163(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 433
+LDI r1, 138
+LDI r2, 406
+LDI r3, 163
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

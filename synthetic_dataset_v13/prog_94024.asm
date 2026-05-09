@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a red dot at position (422, 102) then Places a cyan circle of radius 40 at center (368, 44).
-; PLAN: r0=422(x), r1=102(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=368(x), r6=44(y), r7=40(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 422
-LDI r1, 102
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 368
-LDI r6, 44
-LDI r7, 40
-LDI r8, 0x00FFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a purple rectangular region at (235, 207) spanning 118 by 27 pixels.
+; PLAN: r0=235(x), r1=207(y), r2=118(width), r3=27(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 235
+LDI r1, 207
+LDI r2, 118
+LDI r3, 27
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

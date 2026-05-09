@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue rectangle at (92, 11) with width 118 and height 34.
-; PLAN: r0=92(x), r1=11(y), r2=118(width), r3=34(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 11
-LDI r2, 118
-LDI r3, 34
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (348, 174) with radius 17.
+; PLAN: r0=348(x), r1=174(y), r2=17(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 348
+LDI r1, 174
+LDI r2, 17
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

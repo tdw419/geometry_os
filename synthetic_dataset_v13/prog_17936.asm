@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (64, 225) and (169, 7).
-; PLAN: r0=64(x1), r1=225(y1), r2=169(x2), r3=7(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 225
-LDI r2, 169
-LDI r3, 7
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (358, 88) with radius 58.
+; PLAN: r0=358(x), r1=88(y), r2=58(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 358
+LDI r1, 88
+LDI r2, 58
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

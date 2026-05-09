@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (355, 73) with radius 61.
-; PLAN: r0=355(x), r1=73(y), r2=61(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 355
-LDI r1, 73
-LDI r2, 61
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta line segment connecting (364, 242) to (221, 164).
+; PLAN: r0=364(x1), r1=242(y1), r2=221(x2), r3=164(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 364
+LDI r1, 242
+LDI r2, 221
+LDI r3, 164
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

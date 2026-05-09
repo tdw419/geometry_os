@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (360, 157) with radius 53.
-; PLAN: r0=360(x), r1=157(y), r2=53(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 157
-LDI r2, 53
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 71x14 starting at (388, 32).
+; PLAN: r0=388(x), r1=32(y), r2=71(width), r3=14(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 32
+LDI r2, 71
+LDI r3, 14
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

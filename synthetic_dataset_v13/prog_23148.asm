@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 43 into r1 and decrements it in a loop until zero.
-; PLAN: r1=43(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 43
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a magenta line from (122, 185) to (24, 167).
+; PLAN: r0=122(x1), r1=185(y1), r2=24(x2), r3=167(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 122
+LDI r1, 185
+LDI r2, 24
+LDI r3, 167
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

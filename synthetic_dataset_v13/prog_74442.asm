@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (364, 224) to (197, 106).
-; PLAN: r0=364(x1), r1=224(y1), r2=197(x2), r3=106(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 364
-LDI r1, 224
-LDI r2, 197
-LDI r3, 106
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 26x104 starting at (423, 32).
+; PLAN: r0=423(x), r1=32(y), r2=26(width), r3=104(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 423
+LDI r1, 32
+LDI r2, 26
+LDI r3, 104
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

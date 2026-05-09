@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a yellow line from (395, 151) to (158, 24).
-; PLAN: r0=395(x1), r1=151(y1), r2=158(x2), r3=24(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 395
-LDI r1, 151
-LDI r2, 158
-LDI r3, 24
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

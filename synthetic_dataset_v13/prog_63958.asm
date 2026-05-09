@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a red dot at position (417, 34).
-; PLAN: r0=417(x), r1=34(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 417
-LDI r1, 34
-LDI r2, 0xFF0000
+; DESCRIPTION: Sets a single blue pixel at (414, 197).
+; PLAN: r0=414(x), r1=197(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 414
+LDI r1, 197
+LDI r2, 0x0000FF
 PSET r0, r1, r2
 HALT

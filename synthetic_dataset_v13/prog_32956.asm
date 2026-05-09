@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a yellow line segment connecting (87, 201) to (239, 73).
-; PLAN: r0=87(x1), r1=201(y1), r2=239(x2), r3=73(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 87
-LDI r1, 201
-LDI r2, 239
-LDI r3, 73
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (372, 9) then Renders a black disk with center (324, 181) and radius 10.
+; PLAN: r0=372(x), r1=9(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=324(x), r6=181(y), r7=10(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 372
+LDI r1, 9
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 324
+LDI r6, 181
+LDI r7, 10
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

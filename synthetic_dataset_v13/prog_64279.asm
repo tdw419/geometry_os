@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (403, 120) to (349, 88).
-; PLAN: r0=403(x1), r1=120(y1), r2=349(x2), r3=88(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 403
-LDI r1, 120
-LDI r2, 349
-LDI r3, 88
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 9 into r1 and decrements it in a loop until zero.
+; PLAN: r1=9(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 9
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

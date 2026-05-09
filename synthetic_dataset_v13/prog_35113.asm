@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (12, 25).
-; PLAN: r0=12(x), r1=25(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 12
-LDI r1, 25
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Creates a green rectangular region at (135, 109) spanning 46 by 20 pixels.
+; PLAN: r0=135(x), r1=109(y), r2=46(width), r3=20(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 135
+LDI r1, 109
+LDI r2, 46
+LDI r3, 20
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

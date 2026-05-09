@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 15x57 starting at (352, 73).
-; PLAN: r0=352(x), r1=73(y), r2=15(width), r3=57(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 352
-LDI r1, 73
-LDI r2, 15
-LDI r3, 57
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a blue 82x23 rectangle at position (218, 113).
+; PLAN: r0=218(x), r1=113(y), r2=82(width), r3=23(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 218
+LDI r1, 113
+LDI r2, 82
+LDI r3, 23
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

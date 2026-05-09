@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (464, 32) to (97, 39).
-; PLAN: r0=464(x1), r1=32(y1), r2=97(x2), r3=39(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 464
-LDI r1, 32
-LDI r2, 97
-LDI r3, 39
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 42x91 rectangle at position (71, 7).
+; PLAN: r0=71(x), r1=7(y), r2=42(width), r3=91(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 71
+LDI r1, 7
+LDI r2, 42
+LDI r3, 91
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

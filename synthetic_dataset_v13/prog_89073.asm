@@ -1,5 +1,8 @@
-; DESCRIPTION: Clears the screen to blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Creates a magenta circular shape at (165, 71) with radius 54.
+; PLAN: r0=165(x), r1=71(y), r2=54(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 165
+LDI r1, 71
+LDI r2, 54
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

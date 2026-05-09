@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a green disk with center (200, 183) and radius 36.
-; PLAN: r0=200(x), r1=183(y), r2=36(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 200
-LDI r1, 183
-LDI r2, 36
-LDI r3, 0x00FF00
+; DESCRIPTION: Renders a white disk with center (112, 118) and radius 10.
+; PLAN: r0=112(x), r1=118(y), r2=10(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 112
+LDI r1, 118
+LDI r2, 10
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

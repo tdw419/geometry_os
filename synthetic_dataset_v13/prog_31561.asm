@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (240, 61) with radius 15.
-; PLAN: r0=240(x), r1=61(y), r2=15(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 240
-LDI r1, 61
-LDI r2, 15
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Places a yellow circle of radius 24 at center (206, 86).
+; PLAN: r0=206(x), r1=86(y), r2=24(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 206
+LDI r1, 86
+LDI r2, 24
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

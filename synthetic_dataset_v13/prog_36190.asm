@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a cyan rectangle at (407, 91) with width 64 and height 112.
-; PLAN: r0=407(x), r1=91(y), r2=64(width), r3=112(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 407
-LDI r1, 91
-LDI r2, 64
-LDI r3, 112
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single black pixel at (5, 201).
+; PLAN: r0=5(x), r1=201(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 5
+LDI r1, 201
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

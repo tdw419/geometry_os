@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a magenta rectangular region at (117, 69) spanning 99 by 61 pixels.
-; PLAN: r0=117(x), r1=69(y), r2=99(width), r3=61(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 117
-LDI r1, 69
-LDI r2, 99
-LDI r3, 61
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (418, 143) with radius 47.
+; PLAN: r0=418(x), r1=143(y), r2=47(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 418
+LDI r1, 143
+LDI r2, 47
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

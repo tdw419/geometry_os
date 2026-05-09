@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (490, 255) to (30, 109).
-; PLAN: r0=490(x1), r1=255(y1), r2=30(x2), r3=109(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 490
-LDI r1, 255
-LDI r2, 30
-LDI r3, 109
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a black line between points (449, 157) and (297, 45).
+; PLAN: r0=449(x1), r1=157(y1), r2=297(x2), r3=45(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 449
+LDI r1, 157
+LDI r2, 297
+LDI r3, 45
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

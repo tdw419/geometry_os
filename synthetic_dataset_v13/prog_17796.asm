@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single orange pixel at (511, 58).
-; PLAN: r0=511(x), r1=58(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 511
-LDI r1, 58
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

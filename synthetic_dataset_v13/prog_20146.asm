@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Sets a single green pixel at (227, 248).
+; PLAN: r0=227(x), r1=248(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 227
+LDI r1, 248
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

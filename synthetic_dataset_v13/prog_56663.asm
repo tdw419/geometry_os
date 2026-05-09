@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a magenta rectangular region at (212, 32) spanning 40 by 14 pixels.
-; PLAN: r0=212(x), r1=32(y), r2=40(width), r3=14(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 212
-LDI r1, 32
-LDI r2, 40
-LDI r3, 14
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (229, 25) then Draws a orange line from (150, 64) to (438, 72).
+; PLAN: r0=229(x), r1=25(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=150(x1), r6=64(y1), r7=438(x2), r8=72(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 229
+LDI r1, 25
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 150
+LDI r6, 64
+LDI r7, 438
+LDI r8, 72
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue box of size 31x47 starting at (57, 121).
-; PLAN: r0=57(x), r1=121(y), r2=31(width), r3=47(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 57
-LDI r1, 121
-LDI r2, 31
-LDI r3, 47
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (148, 149) with radius 75.
+; PLAN: r0=148(x), r1=149(y), r2=75(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 148
+LDI r1, 149
+LDI r2, 75
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

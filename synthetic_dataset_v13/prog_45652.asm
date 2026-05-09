@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (145, 182) to (217, 141).
-; PLAN: r0=145(x1), r1=182(y1), r2=217(x2), r3=141(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 145
-LDI r1, 182
-LDI r2, 217
-LDI r3, 141
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 35x95 rectangle at position (158, 110).
+; PLAN: r0=158(x), r1=110(y), r2=35(width), r3=95(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 158
+LDI r1, 110
+LDI r2, 35
+LDI r3, 95
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

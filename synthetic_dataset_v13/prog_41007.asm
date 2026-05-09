@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (211, 71) and (353, 203).
-; PLAN: r0=211(x1), r1=71(y1), r2=353(x2), r3=203(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 211
-LDI r1, 71
-LDI r2, 353
-LDI r3, 203
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta box of size 25x58 starting at (244, 84).
+; PLAN: r0=244(x), r1=84(y), r2=25(width), r3=58(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 244
+LDI r1, 84
+LDI r2, 25
+LDI r3, 58
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

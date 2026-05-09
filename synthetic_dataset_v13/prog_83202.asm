@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a purple circle centered at (394, 143) with radius 45.
-; PLAN: r0=394(x), r1=143(y), r2=45(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 394
-LDI r1, 143
-LDI r2, 45
-LDI r3, 0xAA00FF
+; DESCRIPTION: Creates a magenta circular shape at (161, 151) with radius 68.
+; PLAN: r0=161(x), r1=151(y), r2=68(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 161
+LDI r1, 151
+LDI r2, 68
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (433, 165) to (355, 155).
-; PLAN: r0=433(x1), r1=165(y1), r2=355(x2), r3=155(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 433
-LDI r1, 165
-LDI r2, 355
-LDI r3, 155
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (406, 104) spanning 41 by 71 pixels.
+; PLAN: r0=406(x), r1=104(y), r2=41(width), r3=71(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 406
+LDI r1, 104
+LDI r2, 41
+LDI r3, 71
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

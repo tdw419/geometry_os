@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a orange 22x58 rectangle at position (465, 19).
-; PLAN: r0=465(x), r1=19(y), r2=22(width), r3=58(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 465
-LDI r1, 19
-LDI r2, 22
-LDI r3, 58
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan circle of radius 18 at center (275, 236) then Places a black dot at position (407, 150).
+; PLAN: r0=275(x), r1=236(y), r2=18(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=407(x), r6=150(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 275
+LDI r1, 236
+LDI r2, 18
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 407
+LDI r6, 150
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

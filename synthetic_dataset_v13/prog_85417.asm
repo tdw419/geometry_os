@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a black rectangle at (272, 46) with width 25 and height 58.
-; PLAN: r0=272(x), r1=46(y), r2=25(width), r3=58(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 272
-LDI r1, 46
-LDI r2, 25
-LDI r3, 58
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a blue disk with center (466, 103) and radius 34 then Sets a single green pixel at (243, 202).
+; PLAN: r0=466(x), r1=103(y), r2=34(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=243(x), r6=202(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 466
+LDI r1, 103
+LDI r2, 34
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 243
+LDI r6, 202
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

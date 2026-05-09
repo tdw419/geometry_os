@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 48x77 rectangle at position (280, 56).
-; PLAN: r0=280(x), r1=56(y), r2=48(width), r3=77(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 280
-LDI r1, 56
-LDI r2, 48
-LDI r3, 77
+; DESCRIPTION: Renders a yellow box of size 52x40 starting at (180, 183).
+; PLAN: r0=180(x), r1=183(y), r2=52(width), r3=40(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 180
+LDI r1, 183
+LDI r2, 52
+LDI r3, 40
 LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

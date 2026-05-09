@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a orange line between points (152, 24) and (330, 128).
-; PLAN: r0=152(x1), r1=24(y1), r2=330(x2), r3=128(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 152
-LDI r1, 24
-LDI r2, 330
-LDI r3, 128
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a cyan circle centered at (225, 143) with radius 53 then Creates a black rectangular region at (341, 19) spanning 76 by 94 pixels.
+; PLAN: r0=225(x), r1=143(y), r2=53(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=341(x), r6=19(y), r7=76(width), r8=94(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 225
+LDI r1, 143
+LDI r2, 53
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 341
+LDI r6, 19
+LDI r7, 76
+LDI r8, 94
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

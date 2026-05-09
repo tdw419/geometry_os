@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 64x76 starting at (427, 5).
-; PLAN: r0=427(x), r1=5(y), r2=64(width), r3=76(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 427
-LDI r1, 5
-LDI r2, 64
-LDI r3, 76
-LDI r4, 0x000000
+; DESCRIPTION: Renders a orange box of size 16x92 starting at (76, 90).
+; PLAN: r0=76(x), r1=90(y), r2=16(width), r3=92(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 76
+LDI r1, 90
+LDI r2, 16
+LDI r3, 92
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

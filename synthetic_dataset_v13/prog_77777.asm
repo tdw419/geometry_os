@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 29x45 rectangle at position (54, 119).
-; PLAN: r0=54(x), r1=119(y), r2=29(width), r3=45(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 54
-LDI r1, 119
-LDI r2, 29
-LDI r3, 45
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (330, 97) with radius 54.
+; PLAN: r0=330(x), r1=97(y), r2=54(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 330
+LDI r1, 97
+LDI r2, 54
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (277, 138) with radius 12.
-; PLAN: r0=277(x), r1=138(y), r2=12(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 277
-LDI r1, 138
-LDI r2, 12
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan box of size 75x86 starting at (385, 166).
+; PLAN: r0=385(x), r1=166(y), r2=75(width), r3=86(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 385
+LDI r1, 166
+LDI r2, 75
+LDI r3, 86
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

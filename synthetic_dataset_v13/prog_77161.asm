@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a blue disk with center (410, 147) and radius 32.
-; PLAN: r0=410(x), r1=147(y), r2=32(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 410
-LDI r1, 147
-LDI r2, 32
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black dot at position (325, 194).
+; PLAN: r0=325(x), r1=194(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 325
+LDI r1, 194
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

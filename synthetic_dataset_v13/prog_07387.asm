@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Creates a yellow rectangular region at (72, 169) spanning 114 by 82 pixels then Draws a green circle centered at (358, 98) with radius 63 then Places a green dot at position (333, 24).
-; PLAN: r0=72(x), r1=169(y), r2=114(width), r3=82(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=358(x), r6=98(y), r7=63(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=333(x), r11=24(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
-LDI r0, 72
-LDI r1, 169
-LDI r2, 114
-LDI r3, 82
-LDI r4, 0xFFFF00
+; DESCRIPTION: Composite: Draws a cyan rectangle at (83, 117) with width 104 and height 49 then Places a yellow circle of radius 55 at center (248, 105) then Places a magenta line segment connecting (375, 230) to (32, 150).
+; PLAN: r0=83(x), r1=117(y), r2=104(width), r3=49(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=248(x), r6=105(y), r7=55(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=375(x1), r11=230(y1), r12=32(x2), r13=150(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 83
+LDI r1, 117
+LDI r2, 104
+LDI r3, 49
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 358
-LDI r6, 98
-LDI r7, 63
-LDI r8, 0x00FF00
+LDI r5, 248
+LDI r6, 105
+LDI r7, 55
+LDI r8, 0xFFFF00
 CIRCLE r5, r6, r7, r8
-LDI r10, 333
-LDI r11, 24
-LDI r12, 0x00FF00
-PSET r10, r11, r12
+LDI r10, 375
+LDI r11, 230
+LDI r12, 32
+LDI r13, 150
+LDI r14, 0xFF00FF
+LINE r10, r11, r12, r13, r14
 HALT

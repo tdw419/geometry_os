@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (389, 76) with width 95 and height 113.
-; PLAN: r0=389(x), r1=76(y), r2=95(width), r3=113(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 389
-LDI r1, 76
-LDI r2, 95
-LDI r3, 113
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (247, 96) with radius 41.
+; PLAN: r0=247(x), r1=96(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 247
+LDI r1, 96
+LDI r2, 41
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

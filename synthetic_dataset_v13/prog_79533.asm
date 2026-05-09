@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Places a purple line segment connecting (327, 30) to (378, 209) then Creates a white circular shape at (420, 86) with radius 71.
-; PLAN: r0=327(x1), r1=30(y1), r2=378(x2), r3=209(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=420(x), r6=86(y), r7=71(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 327
-LDI r1, 30
-LDI r2, 378
-LDI r3, 209
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 420
-LDI r6, 86
-LDI r7, 71
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Renders a white disk with center (141, 68) and radius 53 then Renders a red line between points (363, 28) and (212, 191).
+; PLAN: r0=141(x), r1=68(y), r2=53(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=363(x1), r6=28(y1), r7=212(x2), r8=191(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 141
+LDI r1, 68
+LDI r2, 53
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 363
+LDI r6, 28
+LDI r7, 212
+LDI r8, 191
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

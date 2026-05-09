@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (53, 62) spanning 69 by 48 pixels.
-; PLAN: r0=53(x), r1=62(y), r2=69(width), r3=48(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 62
-LDI r2, 69
-LDI r3, 48
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a purple rectangle at (74, 122) with width 81 and height 59.
+; PLAN: r0=74(x), r1=122(y), r2=81(width), r3=59(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 74
+LDI r1, 122
+LDI r2, 81
+LDI r3, 59
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

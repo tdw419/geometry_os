@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 48 into r1 and decrements it in a loop until zero.
-; PLAN: r1=48(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 48
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a green rectangle at (424, 130) with width 58 and height 117.
+; PLAN: r0=424(x), r1=130(y), r2=58(width), r3=117(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 424
+LDI r1, 130
+LDI r2, 58
+LDI r3, 117
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

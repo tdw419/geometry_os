@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 117x72 starting at (86, 30).
-; PLAN: r0=86(x), r1=30(y), r2=117(width), r3=72(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 86
-LDI r1, 30
-LDI r2, 117
-LDI r3, 72
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 11 at center (109, 62).
+; PLAN: r0=109(x), r1=62(y), r2=11(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 109
+LDI r1, 62
+LDI r2, 11
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

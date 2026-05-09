@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan line between points (149, 64) and (27, 53).
-; PLAN: r0=149(x1), r1=64(y1), r2=27(x2), r3=53(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 149
-LDI r1, 64
-LDI r2, 27
-LDI r3, 53
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (175, 129).
+; PLAN: r0=175(x), r1=129(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 175
+LDI r1, 129
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

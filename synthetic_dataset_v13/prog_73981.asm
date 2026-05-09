@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (129, 94) then Draws a orange circle centered at (79, 147) with radius 28.
-; PLAN: r0=129(x), r1=94(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=79(x), r6=147(y), r7=28(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 129
-LDI r1, 94
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 79
-LDI r6, 147
-LDI r7, 28
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Loads 27 into r1 and decrements it in a loop until zero.
+; PLAN: r1=27(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 27
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

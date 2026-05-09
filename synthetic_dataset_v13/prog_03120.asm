@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a yellow line between points (190, 186) and (354, 156).
-; PLAN: r0=190(x1), r1=186(y1), r2=354(x2), r3=156(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 186
-LDI r2, 354
-LDI r3, 156
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a blue circle centered at (207, 148) with radius 25 then Renders a red line between points (12, 140) and (3, 77).
+; PLAN: r0=207(x), r1=148(y), r2=25(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=12(x1), r6=140(y1), r7=3(x2), r8=77(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 207
+LDI r1, 148
+LDI r2, 25
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 12
+LDI r6, 140
+LDI r7, 3
+LDI r8, 77
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a black rectangle at (49, 183) with width 25 and height 50.
-; PLAN: r0=49(x), r1=183(y), r2=25(width), r3=50(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 183
-LDI r2, 25
-LDI r3, 50
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (443, 178) then Creates a magenta circular shape at (299, 69) with radius 18.
+; PLAN: r0=443(x), r1=178(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=299(x), r6=69(y), r7=18(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 443
+LDI r1, 178
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 299
+LDI r6, 69
+LDI r7, 18
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 92x95 rectangle at position (370, 83).
-; PLAN: r0=370(x), r1=83(y), r2=92(width), r3=95(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 370
-LDI r1, 83
-LDI r2, 92
-LDI r3, 95
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (425, 43) to (229, 244).
+; PLAN: r0=425(x1), r1=43(y1), r2=229(x2), r3=244(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 43
+LDI r2, 229
+LDI r3, 244
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

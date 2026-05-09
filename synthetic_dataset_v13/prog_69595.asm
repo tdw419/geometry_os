@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (100, 208) with radius 27.
-; PLAN: r0=100(x), r1=208(y), r2=27(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 100
-LDI r1, 208
-LDI r2, 27
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (150, 206) and (427, 231).
+; PLAN: r0=150(x1), r1=206(y1), r2=427(x2), r3=231(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 206
+LDI r2, 427
+LDI r3, 231
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

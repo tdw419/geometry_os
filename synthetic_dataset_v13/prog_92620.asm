@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single orange pixel at (421, 247).
-; PLAN: r0=421(x), r1=247(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 421
-LDI r1, 247
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple disk with center (266, 128) and radius 39.
+; PLAN: r0=266(x), r1=128(y), r2=39(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 266
+LDI r1, 128
+LDI r2, 39
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

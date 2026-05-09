@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 65x81 starting at (49, 34).
-; PLAN: r0=49(x), r1=34(y), r2=65(width), r3=81(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 34
-LDI r2, 65
-LDI r3, 81
+; DESCRIPTION: Places a white line segment connecting (404, 158) to (280, 103).
+; PLAN: r0=404(x1), r1=158(y1), r2=280(x2), r3=103(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 404
+LDI r1, 158
+LDI r2, 280
+LDI r3, 103
 LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

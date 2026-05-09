@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a white line between points (345, 205) and (57, 128).
-; PLAN: r0=345(x1), r1=205(y1), r2=57(x2), r3=128(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 205
-LDI r2, 57
-LDI r3, 128
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan circle of radius 71 at center (322, 96) then Places a yellow dot at position (308, 102).
+; PLAN: r0=322(x), r1=96(y), r2=71(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=308(x), r6=102(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
+LDI r0, 322
+LDI r1, 96
+LDI r2, 71
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 308
+LDI r6, 102
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
 HALT

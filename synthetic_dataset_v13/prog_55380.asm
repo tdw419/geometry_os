@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a green circular shape at (304, 94) with radius 27.
-; PLAN: r0=304(x), r1=94(y), r2=27(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 304
-LDI r1, 94
-LDI r2, 27
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (160, 148).
+; PLAN: r0=160(x), r1=148(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 160
+LDI r1, 148
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

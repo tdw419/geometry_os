@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 61x65 starting at (252, 118).
-; PLAN: r0=252(x), r1=118(y), r2=61(width), r3=65(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 252
-LDI r1, 118
-LDI r2, 61
-LDI r3, 65
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a white 117x80 rectangle at position (66, 168).
+; PLAN: r0=66(x), r1=168(y), r2=117(width), r3=80(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 66
+LDI r1, 168
+LDI r2, 117
+LDI r3, 80
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

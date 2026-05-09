@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a black dot at position (164, 180) then Renders a green disk with center (153, 99) and radius 22.
-; PLAN: r0=164(x), r1=180(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=153(x), r6=99(y), r7=22(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 164
-LDI r1, 180
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 153
-LDI r6, 99
-LDI r7, 22
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a blue rectangle at (220, 119) with width 60 and height 112.
+; PLAN: r0=220(x), r1=119(y), r2=60(width), r3=112(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 119
+LDI r2, 60
+LDI r3, 112
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

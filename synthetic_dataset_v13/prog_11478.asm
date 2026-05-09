@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (274, 38) spanning 58 by 62 pixels.
-; PLAN: r0=274(x), r1=38(y), r2=58(width), r3=62(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 274
-LDI r1, 38
-LDI r2, 58
-LDI r3, 62
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a cyan box of size 15x63 starting at (87, 94).
+; PLAN: r0=87(x), r1=94(y), r2=15(width), r3=63(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 87
+LDI r1, 94
+LDI r2, 15
+LDI r3, 63
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

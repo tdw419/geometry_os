@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a blue dot at position (40, 227).
-; PLAN: r0=40(x), r1=227(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 40
-LDI r1, 227
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a purple circle centered at (328, 106) with radius 26.
+; PLAN: r0=328(x), r1=106(y), r2=26(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 328
+LDI r1, 106
+LDI r2, 26
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

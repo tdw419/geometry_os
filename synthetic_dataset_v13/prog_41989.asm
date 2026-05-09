@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a orange 43x97 rectangle at position (348, 5).
-; PLAN: r0=348(x), r1=5(y), r2=43(width), r3=97(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 348
-LDI r1, 5
-LDI r2, 43
-LDI r3, 97
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (225, 28).
+; PLAN: r0=225(x), r1=28(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 225
+LDI r1, 28
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

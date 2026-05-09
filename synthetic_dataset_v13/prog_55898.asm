@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a white circular shape at (302, 119) with radius 23.
-; PLAN: r0=302(x), r1=119(y), r2=23(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 302
-LDI r1, 119
-LDI r2, 23
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (332, 98).
+; PLAN: r0=332(x), r1=98(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 332
+LDI r1, 98
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

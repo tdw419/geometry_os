@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a yellow box of size 99x43 starting at (83, 139).
-; PLAN: r0=83(x), r1=139(y), r2=99(width), r3=43(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 83
-LDI r1, 139
-LDI r2, 99
-LDI r3, 43
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

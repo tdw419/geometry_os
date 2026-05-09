@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Places a white line segment connecting (339, 110) to (321, 1).
+; PLAN: r0=339(x1), r1=110(y1), r2=321(x2), r3=1(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 339
+LDI r1, 110
+LDI r2, 321
+LDI r3, 1
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

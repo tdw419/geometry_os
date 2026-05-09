@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (74, 141) with radius 19.
-; PLAN: r0=74(x), r1=141(y), r2=19(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 74
-LDI r1, 141
-LDI r2, 19
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue rectangle at (139, 20) with width 10 and height 45.
+; PLAN: r0=139(x), r1=20(y), r2=10(width), r3=45(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 20
+LDI r2, 10
+LDI r3, 45
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

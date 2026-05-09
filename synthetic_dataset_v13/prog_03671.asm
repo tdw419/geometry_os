@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single white pixel at (410, 136).
-; PLAN: r0=410(x), r1=136(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 410
-LDI r1, 136
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a purple circle centered at (186, 190) with radius 19.
+; PLAN: r0=186(x), r1=190(y), r2=19(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 186
+LDI r1, 190
+LDI r2, 19
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 56x17 starting at (105, 120).
-; PLAN: r0=105(x), r1=120(y), r2=56(width), r3=17(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 105
-LDI r1, 120
-LDI r2, 56
-LDI r3, 17
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white disk with center (160, 69) and radius 23.
+; PLAN: r0=160(x), r1=69(y), r2=23(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 160
+LDI r1, 69
+LDI r2, 23
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

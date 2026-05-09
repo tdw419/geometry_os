@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (246, 70) with radius 62.
-; PLAN: r0=246(x), r1=70(y), r2=62(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 246
-LDI r1, 70
-LDI r2, 62
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (80, 129) to (327, 241).
+; PLAN: r0=80(x1), r1=129(y1), r2=327(x2), r3=241(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 80
+LDI r1, 129
+LDI r2, 327
+LDI r3, 241
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

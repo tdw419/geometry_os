@@ -1,9 +1,15 @@
-; DESCRIPTION: Creates a yellow rectangular region at (390, 137) spanning 76 by 27 pixels.
-; PLAN: r0=390(x), r1=137(y), r2=76(width), r3=27(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 390
-LDI r1, 137
-LDI r2, 76
-LDI r3, 27
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a orange line from (341, 11) to (123, 218) then Places a white 86x73 rectangle at position (330, 85).
+; PLAN: r0=341(x1), r1=11(y1), r2=123(x2), r3=218(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=330(x), r6=85(y), r7=86(width), r8=73(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 341
+LDI r1, 11
+LDI r2, 123
+LDI r3, 218
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 330
+LDI r6, 85
+LDI r7, 86
+LDI r8, 73
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

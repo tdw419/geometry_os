@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (162, 42) with radius 33.
-; PLAN: r0=162(x), r1=42(y), r2=33(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 162
-LDI r1, 42
-LDI r2, 33
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan 107x35 rectangle at position (14, 77).
+; PLAN: r0=14(x), r1=77(y), r2=107(width), r3=35(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 14
+LDI r1, 77
+LDI r2, 107
+LDI r3, 35
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (175, 147) with radius 38.
-; PLAN: r0=175(x), r1=147(y), r2=38(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 175
-LDI r1, 147
-LDI r2, 38
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 66x24 starting at (437, 179).
+; PLAN: r0=437(x), r1=179(y), r2=66(width), r3=24(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 437
+LDI r1, 179
+LDI r2, 66
+LDI r3, 24
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

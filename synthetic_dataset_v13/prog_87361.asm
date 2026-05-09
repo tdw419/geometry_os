@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (192, 45) and (277, 241).
-; PLAN: r0=192(x1), r1=45(y1), r2=277(x2), r3=241(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 192
-LDI r1, 45
-LDI r2, 277
-LDI r3, 241
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a orange line segment connecting (356, 85) to (346, 174).
+; PLAN: r0=356(x1), r1=85(y1), r2=346(x2), r3=174(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 356
+LDI r1, 85
+LDI r2, 346
+LDI r3, 174
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

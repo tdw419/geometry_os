@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (270, 121) and radius 78.
-; PLAN: r0=270(x), r1=121(y), r2=78(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 270
-LDI r1, 121
-LDI r2, 78
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a yellow rectangular region at (453, 49) spanning 41 by 41 pixels.
+; PLAN: r0=453(x), r1=49(y), r2=41(width), r3=41(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 453
+LDI r1, 49
+LDI r2, 41
+LDI r3, 41
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

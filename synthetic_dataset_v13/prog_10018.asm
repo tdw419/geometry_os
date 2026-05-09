@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Draws a black circle centered at (277, 93) with radius 18 then Places a red dot at position (257, 247) then Draws a red rectangle at (200, 67) with width 112 and height 49.
-; PLAN: r0=277(x), r1=93(y), r2=18(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=257(x), r6=247(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=200(x), r11=67(y), r12=112(width), r13=49(height), r14=0xFF0000(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 277
-LDI r1, 93
-LDI r2, 18
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 257
-LDI r6, 247
-LDI r7, 0xFF0000
-PSET r5, r6, r7
-LDI r10, 200
-LDI r11, 67
-LDI r12, 112
-LDI r13, 49
-LDI r14, 0xFF0000
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Renders a orange line between points (422, 233) and (149, 216).
+; PLAN: r0=422(x1), r1=233(y1), r2=149(x2), r3=216(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 422
+LDI r1, 233
+LDI r2, 149
+LDI r3, 216
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

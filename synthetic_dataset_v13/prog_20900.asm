@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a black circular shape at (290, 140) with radius 45.
-; PLAN: r0=290(x), r1=140(y), r2=45(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 290
-LDI r1, 140
-LDI r2, 45
-LDI r3, 0x000000
+; DESCRIPTION: Places a red circle of radius 14 at center (167, 27).
+; PLAN: r0=167(x), r1=27(y), r2=14(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 167
+LDI r1, 27
+LDI r2, 14
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

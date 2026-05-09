@@ -1,15 +1,9 @@
-; DESCRIPTION: Composite: Draws a cyan line from (198, 139) to (75, 156) then Renders a blue box of size 80x76 starting at (303, 139).
-; PLAN: r0=198(x1), r1=139(y1), r2=75(x2), r3=156(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=303(x), r6=139(y), r7=80(width), r8=76(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 198
-LDI r1, 139
-LDI r2, 75
-LDI r3, 156
+; DESCRIPTION: Renders a cyan line between points (76, 50) and (218, 160).
+; PLAN: r0=76(x1), r1=50(y1), r2=218(x2), r3=160(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 76
+LDI r1, 50
+LDI r2, 218
+LDI r3, 160
 LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
-LDI r5, 303
-LDI r6, 139
-LDI r7, 80
-LDI r8, 76
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
 HALT

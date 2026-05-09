@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a black line from (6, 114) to (511, 129).
-; PLAN: r0=6(x1), r1=114(y1), r2=511(x2), r3=129(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 6
-LDI r1, 114
-LDI r2, 511
-LDI r3, 129
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (249, 153).
+; PLAN: r0=249(x), r1=153(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 249
+LDI r1, 153
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

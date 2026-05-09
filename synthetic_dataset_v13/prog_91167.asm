@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a red 30x60 rectangle at position (57, 10).
-; PLAN: r0=57(x), r1=10(y), r2=30(width), r3=60(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 57
-LDI r1, 10
-LDI r2, 30
-LDI r3, 60
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (393, 9).
+; PLAN: r0=393(x), r1=9(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 393
+LDI r1, 9
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

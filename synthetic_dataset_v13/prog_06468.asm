@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a blue rectangular region at (3, 158) spanning 76 by 36 pixels.
-; PLAN: r0=3(x), r1=158(y), r2=76(width), r3=36(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 3
-LDI r1, 158
-LDI r2, 76
-LDI r3, 36
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single yellow pixel at (47, 117).
+; PLAN: r0=47(x), r1=117(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 47
+LDI r1, 117
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

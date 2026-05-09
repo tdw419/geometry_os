@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 40x37 rectangle at position (16, 65).
-; PLAN: r0=16(x), r1=65(y), r2=40(width), r3=37(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 16
-LDI r1, 65
-LDI r2, 40
-LDI r3, 37
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue line segment connecting (190, 155) to (227, 233).
+; PLAN: r0=190(x1), r1=155(y1), r2=227(x2), r3=233(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 155
+LDI r2, 227
+LDI r3, 233
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

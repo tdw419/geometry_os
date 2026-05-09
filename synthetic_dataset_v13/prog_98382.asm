@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (393, 170) to (421, 50).
-; PLAN: r0=393(x1), r1=170(y1), r2=421(x2), r3=50(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 170
-LDI r2, 421
-LDI r3, 50
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green rectangle at (221, 34) with width 72 and height 113.
+; PLAN: r0=221(x), r1=34(y), r2=72(width), r3=113(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 221
+LDI r1, 34
+LDI r2, 72
+LDI r3, 113
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

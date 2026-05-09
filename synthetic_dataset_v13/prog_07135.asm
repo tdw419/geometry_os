@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow box of size 11x17 starting at (272, 146).
-; PLAN: r0=272(x), r1=146(y), r2=11(width), r3=17(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 272
-LDI r1, 146
-LDI r2, 11
-LDI r3, 17
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (60, 170) with radius 17.
+; PLAN: r0=60(x), r1=170(y), r2=17(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 60
+LDI r1, 170
+LDI r2, 17
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

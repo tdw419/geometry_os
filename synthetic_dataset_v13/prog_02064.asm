@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 100x68 starting at (290, 78).
-; PLAN: r0=290(x), r1=78(y), r2=100(width), r3=68(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 290
-LDI r1, 78
-LDI r2, 100
-LDI r3, 68
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (180, 95) to (244, 168).
+; PLAN: r0=180(x1), r1=95(y1), r2=244(x2), r3=168(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 180
+LDI r1, 95
+LDI r2, 244
+LDI r3, 168
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

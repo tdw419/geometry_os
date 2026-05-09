@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (505, 148) to (316, 87).
-; PLAN: r0=505(x1), r1=148(y1), r2=316(x2), r3=87(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 505
-LDI r1, 148
-LDI r2, 316
-LDI r3, 87
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red rectangular region at (358, 88) spanning 12 by 36 pixels.
+; PLAN: r0=358(x), r1=88(y), r2=12(width), r3=36(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 358
+LDI r1, 88
+LDI r2, 12
+LDI r3, 36
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

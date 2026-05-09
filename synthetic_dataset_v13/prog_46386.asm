@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a magenta line between points (321, 221) and (202, 71).
-; PLAN: r0=321(x1), r1=221(y1), r2=202(x2), r3=71(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 321
-LDI r1, 221
-LDI r2, 202
-LDI r3, 71
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (337, 136) then Renders a white disk with center (248, 174) and radius 80.
+; PLAN: r0=337(x), r1=136(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=248(x), r6=174(y), r7=80(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 337
+LDI r1, 136
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 248
+LDI r6, 174
+LDI r7, 80
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

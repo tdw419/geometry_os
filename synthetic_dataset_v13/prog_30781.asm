@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (293, 232) to (237, 39).
-; PLAN: r0=293(x1), r1=232(y1), r2=237(x2), r3=39(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 293
-LDI r1, 232
-LDI r2, 237
-LDI r3, 39
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 49 into r1 and decrements it in a loop until zero.
+; PLAN: r1=49(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 49
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

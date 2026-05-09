@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (360, 122) with radius 55.
-; PLAN: r0=360(x), r1=122(y), r2=55(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 122
-LDI r2, 55
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple rectangle at (80, 116) with width 81 and height 28.
+; PLAN: r0=80(x), r1=116(y), r2=81(width), r3=28(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 80
+LDI r1, 116
+LDI r2, 81
+LDI r3, 28
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

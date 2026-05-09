@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a red rectangular region at (76, 103) spanning 24 by 69 pixels.
-; PLAN: r0=76(x), r1=103(y), r2=24(width), r3=69(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 76
-LDI r1, 103
-LDI r2, 24
-LDI r3, 69
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green dot at position (19, 137).
+; PLAN: r0=19(x), r1=137(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 19
+LDI r1, 137
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

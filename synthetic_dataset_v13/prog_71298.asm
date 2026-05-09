@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange rectangle at (461, 81) with width 22 and height 112.
-; PLAN: r0=461(x), r1=81(y), r2=22(width), r3=112(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 461
-LDI r1, 81
-LDI r2, 22
-LDI r3, 112
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 78 at center (174, 149).
+; PLAN: r0=174(x), r1=149(y), r2=78(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 174
+LDI r1, 149
+LDI r2, 78
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

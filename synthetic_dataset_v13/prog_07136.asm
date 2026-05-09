@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (231, 213).
-; PLAN: r0=231(x), r1=213(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 231
-LDI r1, 213
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a yellow rectangular region at (139, 17) spanning 115 by 107 pixels.
+; PLAN: r0=139(x), r1=17(y), r2=115(width), r3=107(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 17
+LDI r2, 115
+LDI r3, 107
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

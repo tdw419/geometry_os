@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a purple disk with center (165, 166) and radius 63.
-; PLAN: r0=165(x), r1=166(y), r2=63(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 165
-LDI r1, 166
-LDI r2, 63
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

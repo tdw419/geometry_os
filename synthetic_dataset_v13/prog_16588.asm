@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 18x22 rectangle at position (145, 5).
-; PLAN: r0=145(x), r1=5(y), r2=18(width), r3=22(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 145
-LDI r1, 5
-LDI r2, 18
-LDI r3, 22
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (272, 32) and (412, 192).
+; PLAN: r0=272(x1), r1=32(y1), r2=412(x2), r3=192(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 272
+LDI r1, 32
+LDI r2, 412
+LDI r3, 192
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (385, 193) and (455, 62).
-; PLAN: r0=385(x1), r1=193(y1), r2=455(x2), r3=62(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 385
-LDI r1, 193
-LDI r2, 455
-LDI r3, 62
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a black line segment connecting (152, 194) to (125, 34).
+; PLAN: r0=152(x1), r1=194(y1), r2=125(x2), r3=34(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 152
+LDI r1, 194
+LDI r2, 125
+LDI r3, 34
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

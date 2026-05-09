@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single blue pixel at (400, 232).
-; PLAN: r0=400(x), r1=232(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 400
-LDI r1, 232
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a cyan circle of radius 70 at center (190, 98).
+; PLAN: r0=190(x), r1=98(y), r2=70(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 190
+LDI r1, 98
+LDI r2, 70
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

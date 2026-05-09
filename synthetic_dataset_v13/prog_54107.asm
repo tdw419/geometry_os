@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a orange rectangular region at (212, 176) spanning 78 by 12 pixels.
-; PLAN: r0=212(x), r1=176(y), r2=78(width), r3=12(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 212
-LDI r1, 176
-LDI r2, 78
-LDI r3, 12
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (3, 244).
+; PLAN: r0=3(x), r1=244(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 3
+LDI r1, 244
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

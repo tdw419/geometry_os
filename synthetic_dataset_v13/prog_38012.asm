@@ -1,9 +1,14 @@
-; DESCRIPTION: Creates a green rectangular region at (34, 81) spanning 78 by 103 pixels.
-; PLAN: r0=34(x), r1=81(y), r2=78(width), r3=103(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 34
-LDI r1, 81
-LDI r2, 78
-LDI r3, 103
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a orange disk with center (425, 188) and radius 20 then Renders a cyan box of size 87x42 starting at (256, 10).
+; PLAN: r0=425(x), r1=188(y), r2=20(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=256(x), r6=10(y), r7=87(width), r8=42(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 425
+LDI r1, 188
+LDI r2, 20
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
+LDI r5, 256
+LDI r6, 10
+LDI r7, 87
+LDI r8, 42
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

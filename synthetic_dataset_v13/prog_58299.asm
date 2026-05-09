@@ -1,5 +1,8 @@
-; DESCRIPTION: Clears the screen to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Renders a cyan disk with center (443, 124) and radius 66.
+; PLAN: r0=443(x), r1=124(y), r2=66(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 443
+LDI r1, 124
+LDI r2, 66
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

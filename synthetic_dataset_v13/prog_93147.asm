@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (87, 185).
-; PLAN: r0=87(x), r1=185(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 87
-LDI r1, 185
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black line from (313, 29) to (409, 242).
+; PLAN: r0=313(x1), r1=29(y1), r2=409(x2), r3=242(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 313
+LDI r1, 29
+LDI r2, 409
+LDI r3, 242
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a red dot at position (0, 117) then Renders a white disk with center (125, 122) and radius 67.
-; PLAN: r0=0(x), r1=117(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=125(x), r6=122(y), r7=67(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 0
-LDI r1, 117
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 125
-LDI r6, 122
-LDI r7, 67
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a black 26x58 rectangle at position (145, 133).
+; PLAN: r0=145(x), r1=133(y), r2=26(width), r3=58(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 145
+LDI r1, 133
+LDI r2, 26
+LDI r3, 58
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (428, 164) and radius 44.
-; PLAN: r0=428(x), r1=164(y), r2=44(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 428
-LDI r1, 164
-LDI r2, 44
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (244, 8) to (475, 127).
+; PLAN: r0=244(x1), r1=8(y1), r2=475(x2), r3=127(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 244
+LDI r1, 8
+LDI r2, 475
+LDI r3, 127
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

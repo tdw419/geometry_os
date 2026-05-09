@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (189, 198) to (389, 143).
-; PLAN: r0=189(x1), r1=198(y1), r2=389(x2), r3=143(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 189
-LDI r1, 198
-LDI r2, 389
-LDI r3, 143
+; DESCRIPTION: Renders a purple box of size 52x23 starting at (250, 11).
+; PLAN: r0=250(x), r1=11(y), r2=52(width), r3=23(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 250
+LDI r1, 11
+LDI r2, 52
+LDI r3, 23
 LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

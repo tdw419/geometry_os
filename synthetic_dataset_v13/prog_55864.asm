@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 101x117 rectangle at position (252, 20).
-; PLAN: r0=252(x), r1=20(y), r2=101(width), r3=117(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 252
-LDI r1, 20
-LDI r2, 101
-LDI r3, 117
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white line between points (438, 144) and (77, 48).
+; PLAN: r0=438(x1), r1=144(y1), r2=77(x2), r3=48(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 438
+LDI r1, 144
+LDI r2, 77
+LDI r3, 48
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

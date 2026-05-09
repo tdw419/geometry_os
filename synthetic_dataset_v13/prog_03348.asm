@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (434, 156) with width 56 and height 64.
-; PLAN: r0=434(x), r1=156(y), r2=56(width), r3=64(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 434
-LDI r1, 156
-LDI r2, 56
-LDI r3, 64
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 18 at center (322, 78).
+; PLAN: r0=322(x), r1=78(y), r2=18(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 322
+LDI r1, 78
+LDI r2, 18
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (312, 33) and (495, 108).
-; PLAN: r0=312(x1), r1=33(y1), r2=495(x2), r3=108(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 312
-LDI r1, 33
-LDI r2, 495
-LDI r3, 108
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (385, 70) with radius 25.
+; PLAN: r0=385(x), r1=70(y), r2=25(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 385
+LDI r1, 70
+LDI r2, 25
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

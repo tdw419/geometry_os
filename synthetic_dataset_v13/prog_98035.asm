@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Places a orange circle of radius 74 at center (200, 93) then Places a orange 42x86 rectangle at position (55, 1).
-; PLAN: r0=200(x), r1=93(y), r2=74(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=55(x), r6=1(y), r7=42(width), r8=86(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 200
-LDI r1, 93
-LDI r2, 74
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 55
-LDI r6, 1
-LDI r7, 42
-LDI r8, 86
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
+LDI r7, 0x0000FF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

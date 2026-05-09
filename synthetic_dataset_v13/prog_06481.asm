@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a white dot at position (461, 72).
-; PLAN: r0=461(x), r1=72(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 461
-LDI r1, 72
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black circle centered at (201, 135) with radius 68.
+; PLAN: r0=201(x), r1=135(y), r2=68(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 201
+LDI r1, 135
+LDI r2, 68
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

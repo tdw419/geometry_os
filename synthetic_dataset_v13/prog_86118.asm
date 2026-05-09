@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (162, 91) and (98, 14).
-; PLAN: r0=162(x1), r1=91(y1), r2=98(x2), r3=14(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 162
-LDI r1, 91
-LDI r2, 98
-LDI r3, 14
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (304, 155) with radius 53.
+; PLAN: r0=304(x), r1=155(y), r2=53(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 304
+LDI r1, 155
+LDI r2, 53
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

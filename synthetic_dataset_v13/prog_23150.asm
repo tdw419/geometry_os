@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (48, 92) with width 32 and height 39.
-; PLAN: r0=48(x), r1=92(y), r2=32(width), r3=39(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 48
-LDI r1, 92
-LDI r2, 32
-LDI r3, 39
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow line segment connecting (190, 37) to (180, 9).
+; PLAN: r0=190(x1), r1=37(y1), r2=180(x2), r3=9(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 37
+LDI r2, 180
+LDI r3, 9
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (332, 128) and (91, 17).
-; PLAN: r0=332(x1), r1=128(y1), r2=91(x2), r3=17(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 332
-LDI r1, 128
-LDI r2, 91
-LDI r3, 17
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a red line segment connecting (135, 249) to (15, 247).
+; PLAN: r0=135(x1), r1=249(y1), r2=15(x2), r3=247(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 135
+LDI r1, 249
+LDI r2, 15
+LDI r3, 247
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

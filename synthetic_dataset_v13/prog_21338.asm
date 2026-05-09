@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 75x92 rectangle at position (155, 45).
-; PLAN: r0=155(x), r1=45(y), r2=75(width), r3=92(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 155
-LDI r1, 45
-LDI r2, 75
-LDI r3, 92
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (420, 153) and (186, 9).
+; PLAN: r0=420(x1), r1=153(y1), r2=186(x2), r3=9(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 420
+LDI r1, 153
+LDI r2, 186
+LDI r3, 9
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 50x34 rectangle at position (333, 32).
-; PLAN: r0=333(x), r1=32(y), r2=50(width), r3=34(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 333
-LDI r1, 32
-LDI r2, 50
-LDI r3, 34
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (64, 216) and (371, 61).
+; PLAN: r0=64(x1), r1=216(y1), r2=371(x2), r3=61(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 64
+LDI r1, 216
+LDI r2, 371
+LDI r3, 61
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

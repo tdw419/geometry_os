@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (407, 202) with width 96 and height 25.
-; PLAN: r0=407(x), r1=202(y), r2=96(width), r3=25(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 407
-LDI r1, 202
-LDI r2, 96
-LDI r3, 25
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a red 14x56 rectangle at position (59, 24).
+; PLAN: r0=59(x), r1=24(y), r2=14(width), r3=56(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 59
+LDI r1, 24
+LDI r2, 14
+LDI r3, 56
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

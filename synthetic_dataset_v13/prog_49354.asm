@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Creates a white rectangular region at (200, 61) spanning 106 by 69 pixels.
+; PLAN: r0=200(x), r1=61(y), r2=106(width), r3=69(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 200
+LDI r1, 61
+LDI r2, 106
+LDI r3, 69
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

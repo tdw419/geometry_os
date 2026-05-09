@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Creates a cyan circular shape at (471, 156) with radius 41 then Places a yellow 58x78 rectangle at position (451, 146) then Sets a single orange pixel at (138, 146).
-; PLAN: r0=471(x), r1=156(y), r2=41(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=451(x), r6=146(y), r7=58(width), r8=78(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=138(x), r11=146(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
-LDI r0, 471
-LDI r1, 156
-LDI r2, 41
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 451
-LDI r6, 146
-LDI r7, 58
-LDI r8, 78
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
-LDI r10, 138
-LDI r11, 146
-LDI r12, 0xFF8800
-PSET r10, r11, r12
+; DESCRIPTION: Draws a cyan rectangle at (205, 187) with width 110 and height 11.
+; PLAN: r0=205(x), r1=187(y), r2=110(width), r3=11(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 205
+LDI r1, 187
+LDI r2, 110
+LDI r3, 11
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (19, 53) with width 102 and height 13.
-; PLAN: r0=19(x), r1=53(y), r2=102(width), r3=13(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 19
-LDI r1, 53
-LDI r2, 102
-LDI r3, 13
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a black rectangle at (164, 46) with width 45 and height 99.
+; PLAN: r0=164(x), r1=46(y), r2=45(width), r3=99(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 46
+LDI r2, 45
+LDI r3, 99
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

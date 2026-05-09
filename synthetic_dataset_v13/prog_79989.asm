@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (21, 174) and (269, 41).
-; PLAN: r0=21(x1), r1=174(y1), r2=269(x2), r3=41(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 21
-LDI r1, 174
-LDI r2, 269
-LDI r3, 41
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (81, 151) and radius 65.
+; PLAN: r0=81(x), r1=151(y), r2=65(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 81
+LDI r1, 151
+LDI r2, 65
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

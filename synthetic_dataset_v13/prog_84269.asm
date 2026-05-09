@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (56, 228) to (273, 23).
-; PLAN: r0=56(x1), r1=228(y1), r2=273(x2), r3=23(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 56
-LDI r1, 228
-LDI r2, 273
-LDI r3, 23
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (196, 147) with radius 26.
+; PLAN: r0=196(x), r1=147(y), r2=26(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 196
+LDI r1, 147
+LDI r2, 26
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

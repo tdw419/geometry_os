@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a red dot at position (295, 214).
-; PLAN: r0=295(x), r1=214(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 295
-LDI r1, 214
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

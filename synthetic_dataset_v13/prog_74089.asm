@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (435, 47) with radius 40.
-; PLAN: r0=435(x), r1=47(y), r2=40(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 435
-LDI r1, 47
-LDI r2, 40
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 16x34 rectangle at position (188, 75).
+; PLAN: r0=188(x), r1=75(y), r2=16(width), r3=34(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 188
+LDI r1, 75
+LDI r2, 16
+LDI r3, 34
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

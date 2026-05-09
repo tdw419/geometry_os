@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red box of size 50x11 starting at (451, 191).
-; PLAN: r0=451(x), r1=191(y), r2=50(width), r3=11(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 451
-LDI r1, 191
-LDI r2, 50
-LDI r3, 11
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 44 at center (340, 73).
+; PLAN: r0=340(x), r1=73(y), r2=44(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 340
+LDI r1, 73
+LDI r2, 44
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

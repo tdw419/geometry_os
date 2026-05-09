@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (44, 9) spanning 88 by 105 pixels.
-; PLAN: r0=44(x), r1=9(y), r2=88(width), r3=105(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 44
-LDI r1, 9
-LDI r2, 88
-LDI r3, 105
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a magenta box of size 114x42 starting at (122, 69).
+; PLAN: r0=122(x), r1=69(y), r2=114(width), r3=42(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 122
+LDI r1, 69
+LDI r2, 114
+LDI r3, 42
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

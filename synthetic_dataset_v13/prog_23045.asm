@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (136, 217) and radius 20.
-; PLAN: r0=136(x), r1=217(y), r2=20(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 136
-LDI r1, 217
-LDI r2, 20
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (264, 49) and (182, 219).
+; PLAN: r0=264(x1), r1=49(y1), r2=182(x2), r3=219(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 264
+LDI r1, 49
+LDI r2, 182
+LDI r3, 219
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

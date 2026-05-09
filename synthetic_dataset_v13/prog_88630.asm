@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta dot at position (148, 145) then Draws a black circle centered at (117, 191) with radius 25.
-; PLAN: r0=148(x), r1=145(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=117(x), r6=191(y), r7=25(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 148
-LDI r1, 145
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 117
-LDI r6, 191
-LDI r7, 25
-LDI r8, 0x000000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a magenta rectangle at (347, 135) with width 13 and height 77.
+; PLAN: r0=347(x), r1=135(y), r2=13(width), r3=77(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 347
+LDI r1, 135
+LDI r2, 13
+LDI r3, 77
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Creates a green circular shape at (248, 126) with radius 75 then Draws a cyan line from (189, 251) to (266, 40).
-; PLAN: r0=248(x), r1=126(y), r2=75(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=189(x1), r6=251(y1), r7=266(x2), r8=40(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 248
-LDI r1, 126
-LDI r2, 75
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 189
-LDI r6, 251
-LDI r7, 266
-LDI r8, 40
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a yellow line from (429, 221) to (82, 121) then Renders a orange disk with center (124, 183) and radius 48.
+; PLAN: r0=429(x1), r1=221(y1), r2=82(x2), r3=121(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=124(x), r6=183(y), r7=48(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 429
+LDI r1, 221
+LDI r2, 82
+LDI r3, 121
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 124
+LDI r6, 183
+LDI r7, 48
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (349, 0) to (57, 12).
-; PLAN: r0=349(x1), r1=0(y1), r2=57(x2), r3=12(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 349
-LDI r1, 0
-LDI r2, 57
-LDI r3, 12
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (377, 141) and radius 28.
+; PLAN: r0=377(x), r1=141(y), r2=28(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 377
+LDI r1, 141
+LDI r2, 28
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

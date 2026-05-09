@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single purple pixel at (262, 31).
-; PLAN: r0=262(x), r1=31(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 262
-LDI r1, 31
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan disk with center (68, 116) and radius 32.
+; PLAN: r0=68(x), r1=116(y), r2=32(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 68
+LDI r1, 116
+LDI r2, 32
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

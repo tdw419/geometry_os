@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (115, 186) with radius 40.
-; PLAN: r0=115(x), r1=186(y), r2=40(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 115
-LDI r1, 186
-LDI r2, 40
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (428, 147) to (327, 92).
+; PLAN: r0=428(x1), r1=147(y1), r2=327(x2), r3=92(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 428
+LDI r1, 147
+LDI r2, 327
+LDI r3, 92
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

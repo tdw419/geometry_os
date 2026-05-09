@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a black rectangular region at (60, 165) spanning 119 by 43 pixels.
-; PLAN: r0=60(x), r1=165(y), r2=119(width), r3=43(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 60
-LDI r1, 165
-LDI r2, 119
-LDI r3, 43
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black circle of radius 73 at center (253, 135) then Places a purple dot at position (418, 57).
+; PLAN: r0=253(x), r1=135(y), r2=73(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=418(x), r6=57(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 253
+LDI r1, 135
+LDI r2, 73
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 418
+LDI r6, 57
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

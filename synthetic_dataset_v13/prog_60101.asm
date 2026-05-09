@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (283, 31).
-; PLAN: r0=283(x), r1=31(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 283
-LDI r1, 31
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a red line from (420, 153) to (494, 169).
+; PLAN: r0=420(x1), r1=153(y1), r2=494(x2), r3=169(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 420
+LDI r1, 153
+LDI r2, 494
+LDI r3, 169
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

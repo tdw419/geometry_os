@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 55x40 rectangle at position (221, 68).
-; PLAN: r0=221(x), r1=68(y), r2=55(width), r3=40(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 221
-LDI r1, 68
-LDI r2, 55
-LDI r3, 40
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (467, 48) and radius 18.
+; PLAN: r0=467(x), r1=48(y), r2=18(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 467
+LDI r1, 48
+LDI r2, 18
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

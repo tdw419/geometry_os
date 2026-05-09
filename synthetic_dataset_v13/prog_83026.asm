@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 40x87 starting at (408, 47).
-; PLAN: r0=408(x), r1=47(y), r2=40(width), r3=87(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 408
-LDI r1, 47
-LDI r2, 40
-LDI r3, 87
-LDI r4, 0x000000
+; DESCRIPTION: Draws a red rectangle at (342, 112) with width 35 and height 40.
+; PLAN: r0=342(x), r1=112(y), r2=35(width), r3=40(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 342
+LDI r1, 112
+LDI r2, 35
+LDI r3, 40
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

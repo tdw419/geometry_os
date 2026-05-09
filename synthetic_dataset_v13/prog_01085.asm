@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 50x113 starting at (231, 91).
-; PLAN: r0=231(x), r1=91(y), r2=50(width), r3=113(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 231
-LDI r1, 91
-LDI r2, 50
-LDI r3, 113
+; DESCRIPTION: Draws a black line from (112, 84) to (452, 197).
+; PLAN: r0=112(x1), r1=84(y1), r2=452(x2), r3=197(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 112
+LDI r1, 84
+LDI r2, 452
+LDI r3, 197
 LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

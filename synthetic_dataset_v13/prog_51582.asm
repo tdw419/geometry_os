@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single black pixel at (481, 174).
-; PLAN: r0=481(x), r1=174(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 481
-LDI r1, 174
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a blue disk with center (403, 124) and radius 79.
+; PLAN: r0=403(x), r1=124(y), r2=79(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 403
+LDI r1, 124
+LDI r2, 79
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

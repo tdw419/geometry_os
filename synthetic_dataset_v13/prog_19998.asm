@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (64, 100) with radius 17.
-; PLAN: r0=64(x), r1=100(y), r2=17(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 64
-LDI r1, 100
-LDI r2, 17
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow line segment connecting (60, 192) to (147, 59).
+; PLAN: r0=60(x1), r1=192(y1), r2=147(x2), r3=59(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 60
+LDI r1, 192
+LDI r2, 147
+LDI r3, 59
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 72 at center (175, 132).
-; PLAN: r0=175(x), r1=132(y), r2=72(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 175
-LDI r1, 132
-LDI r2, 72
-LDI r3, 0xFF00FF
+; DESCRIPTION: Draws a white circle centered at (430, 91) with radius 75.
+; PLAN: r0=430(x), r1=91(y), r2=75(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 430
+LDI r1, 91
+LDI r2, 75
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

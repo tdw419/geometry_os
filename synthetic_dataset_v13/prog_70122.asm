@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a blue line segment connecting (16, 49) to (477, 195).
-; PLAN: r0=16(x1), r1=49(y1), r2=477(x2), r3=195(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 16
-LDI r1, 49
-LDI r2, 477
-LDI r3, 195
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

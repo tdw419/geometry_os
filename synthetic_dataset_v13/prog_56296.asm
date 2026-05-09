@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a black circle centered at (121, 101) with radius 69.
-; PLAN: r0=121(x), r1=101(y), r2=69(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 121
-LDI r1, 101
-LDI r2, 69
-LDI r3, 0x000000
+; DESCRIPTION: Renders a white disk with center (245, 123) and radius 75.
+; PLAN: r0=245(x), r1=123(y), r2=75(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 245
+LDI r1, 123
+LDI r2, 75
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

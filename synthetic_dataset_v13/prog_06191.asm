@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 105x81 rectangle at position (202, 171).
-; PLAN: r0=202(x), r1=171(y), r2=105(width), r3=81(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 171
-LDI r2, 105
-LDI r3, 81
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green line segment connecting (171, 105) to (274, 24).
+; PLAN: r0=171(x1), r1=105(y1), r2=274(x2), r3=24(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 171
+LDI r1, 105
+LDI r2, 274
+LDI r3, 24
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

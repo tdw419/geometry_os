@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a orange circle centered at (393, 134) with radius 69.
-; PLAN: r0=393(x), r1=134(y), r2=69(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 393
-LDI r1, 134
-LDI r2, 69
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (415, 78).
+; PLAN: r0=415(x), r1=78(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 415
+LDI r1, 78
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

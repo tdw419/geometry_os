@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (357, 88) and radius 28.
-; PLAN: r0=357(x), r1=88(y), r2=28(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 357
-LDI r1, 88
-LDI r2, 28
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple rectangle at (391, 79) with width 78 and height 51.
+; PLAN: r0=391(x), r1=79(y), r2=78(width), r3=51(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 391
+LDI r1, 79
+LDI r2, 78
+LDI r3, 51
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

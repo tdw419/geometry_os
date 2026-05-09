@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a black circular shape at (334, 105) with radius 67.
-; PLAN: r0=334(x), r1=105(y), r2=67(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 334
-LDI r1, 105
-LDI r2, 67
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

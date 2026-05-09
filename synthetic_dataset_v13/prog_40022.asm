@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (270, 175) to (445, 118).
-; PLAN: r0=270(x1), r1=175(y1), r2=445(x2), r3=118(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 270
-LDI r1, 175
-LDI r2, 445
-LDI r3, 118
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (159, 105) and radius 35.
+; PLAN: r0=159(x), r1=105(y), r2=35(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 159
+LDI r1, 105
+LDI r2, 35
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

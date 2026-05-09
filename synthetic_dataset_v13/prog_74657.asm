@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a orange rectangle at (342, 16) with width 80 and height 60.
-; PLAN: r0=342(x), r1=16(y), r2=80(width), r3=60(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 342
-LDI r1, 16
-LDI r2, 80
-LDI r3, 60
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (428, 136).
+; PLAN: r0=428(x), r1=136(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 428
+LDI r1, 136
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

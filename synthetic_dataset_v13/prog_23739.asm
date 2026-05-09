@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (426, 202).
-; PLAN: r0=426(x), r1=202(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 426
-LDI r1, 202
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a cyan 58x97 rectangle at position (254, 4).
+; PLAN: r0=254(x), r1=4(y), r2=58(width), r3=97(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 254
+LDI r1, 4
+LDI r2, 58
+LDI r3, 97
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

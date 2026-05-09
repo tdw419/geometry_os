@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (177, 104) and (468, 239).
-; PLAN: r0=177(x1), r1=104(y1), r2=468(x2), r3=239(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 104
-LDI r2, 468
-LDI r3, 239
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a green line segment connecting (300, 97) to (61, 102).
+; PLAN: r0=300(x1), r1=97(y1), r2=61(x2), r3=102(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 300
+LDI r1, 97
+LDI r2, 61
+LDI r3, 102
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

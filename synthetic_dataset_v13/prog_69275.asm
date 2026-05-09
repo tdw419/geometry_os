@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a orange line between points (503, 71) and (25, 122).
-; PLAN: r0=503(x1), r1=71(y1), r2=25(x2), r3=122(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 503
-LDI r1, 71
-LDI r2, 25
-LDI r3, 122
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green 92x109 rectangle at position (218, 115) then Sets a single magenta pixel at (18, 205).
+; PLAN: r0=218(x), r1=115(y), r2=92(width), r3=109(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=18(x), r6=205(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 218
+LDI r1, 115
+LDI r2, 92
+LDI r3, 109
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 18
+LDI r6, 205
+LDI r7, 0xFF00FF
+PSET r5, r6, r7
 HALT

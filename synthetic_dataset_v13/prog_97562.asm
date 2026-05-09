@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Places a cyan 59x101 rectangle at position (199, 140) then Sets a single white pixel at (109, 121) then Draws a purple circle centered at (211, 94) with radius 52.
-; PLAN: r0=199(x), r1=140(y), r2=59(width), r3=101(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=109(x), r6=121(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=211(x), r11=94(y), r12=52(radius), r13=0xAA00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 199
-LDI r1, 140
-LDI r2, 59
-LDI r3, 101
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 109
-LDI r6, 121
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
-LDI r10, 211
-LDI r11, 94
-LDI r12, 52
-LDI r13, 0xAA00FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Renders a orange disk with center (189, 166) and radius 31 then Draws a cyan rectangle at (186, 4) with width 68 and height 71 then Renders a purple line between points (61, 87) and (270, 32).
+; PLAN: r0=189(x), r1=166(y), r2=31(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=186(x), r6=4(y), r7=68(width), r8=71(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=61(x1), r11=87(y1), r12=270(x2), r13=32(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 189
+LDI r1, 166
+LDI r2, 31
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
+LDI r5, 186
+LDI r6, 4
+LDI r7, 68
+LDI r8, 71
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 61
+LDI r11, 87
+LDI r12, 270
+LDI r13, 32
+LDI r14, 0xAA00FF
+LINE r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (425, 21) and (6, 45).
-; PLAN: r0=425(x1), r1=21(y1), r2=6(x2), r3=45(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 425
-LDI r1, 21
-LDI r2, 6
-LDI r3, 45
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 53x98 starting at (424, 102).
+; PLAN: r0=424(x), r1=102(y), r2=53(width), r3=98(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 424
+LDI r1, 102
+LDI r2, 53
+LDI r3, 98
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

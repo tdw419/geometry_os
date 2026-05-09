@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 51x14 rectangle at position (229, 111).
-; PLAN: r0=229(x), r1=111(y), r2=51(width), r3=14(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 229
-LDI r1, 111
-LDI r2, 51
-LDI r3, 14
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a yellow rectangle at (438, 108) with width 18 and height 75.
+; PLAN: r0=438(x), r1=108(y), r2=18(width), r3=75(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 438
+LDI r1, 108
+LDI r2, 18
+LDI r3, 75
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

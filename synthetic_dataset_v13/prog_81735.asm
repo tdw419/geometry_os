@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (213, 202) to (487, 137).
-; PLAN: r0=213(x1), r1=202(y1), r2=487(x2), r3=137(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 213
-LDI r1, 202
-LDI r2, 487
-LDI r3, 137
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 21x14 rectangle at position (20, 189).
+; PLAN: r0=20(x), r1=189(y), r2=21(width), r3=14(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 20
+LDI r1, 189
+LDI r2, 21
+LDI r3, 14
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

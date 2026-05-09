@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (132, 186) with width 112 and height 29.
-; PLAN: r0=132(x), r1=186(y), r2=112(width), r3=29(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 132
-LDI r1, 186
-LDI r2, 112
-LDI r3, 29
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a purple box of size 95x59 starting at (180, 182).
+; PLAN: r0=180(x), r1=182(y), r2=95(width), r3=59(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 180
+LDI r1, 182
+LDI r2, 95
+LDI r3, 59
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

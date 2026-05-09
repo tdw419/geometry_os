@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green line from (72, 204) to (187, 245).
-; PLAN: r0=72(x1), r1=204(y1), r2=187(x2), r3=245(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 72
-LDI r1, 204
-LDI r2, 187
-LDI r3, 245
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue dot at position (202, 56).
+; PLAN: r0=202(x), r1=56(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 202
+LDI r1, 56
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (279, 108) with width 105 and height 50.
-; PLAN: r0=279(x), r1=108(y), r2=105(width), r3=50(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 279
-LDI r1, 108
-LDI r2, 105
-LDI r3, 50
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a red box of size 120x97 starting at (184, 149).
+; PLAN: r0=184(x), r1=149(y), r2=120(width), r3=97(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 184
+LDI r1, 149
+LDI r2, 120
+LDI r3, 97
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

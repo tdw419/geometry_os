@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Renders a yellow disk with center (286, 103) and radius 27 then Renders a purple box of size 47x113 starting at (44, 73) then Places a blue dot at position (201, 81).
-; PLAN: r0=286(x), r1=103(y), r2=27(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=44(x), r6=73(y), r7=47(width), r8=113(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=201(x), r11=81(y), r12=0x0000FF(color). Op: PSET r10, r11, r12.
-LDI r0, 286
-LDI r1, 103
-LDI r2, 27
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 44
-LDI r6, 73
-LDI r7, 47
-LDI r8, 113
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 201
-LDI r11, 81
-LDI r12, 0x0000FF
-PSET r10, r11, r12
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

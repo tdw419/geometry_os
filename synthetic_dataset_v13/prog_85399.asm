@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Sets a single orange pixel at (427, 149) then Renders a purple line between points (141, 173) and (45, 242).
-; PLAN: r0=427(x), r1=149(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=141(x1), r6=173(y1), r7=45(x2), r8=242(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 427
-LDI r1, 149
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 141
-LDI r6, 173
-LDI r7, 45
-LDI r8, 242
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a magenta disk with center (73, 189) and radius 60 then Draws a red rectangle at (316, 185) with width 100 and height 31.
+; PLAN: r0=73(x), r1=189(y), r2=60(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=316(x), r6=185(y), r7=100(width), r8=31(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 73
+LDI r1, 189
+LDI r2, 60
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 316
+LDI r6, 185
+LDI r7, 100
+LDI r8, 31
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

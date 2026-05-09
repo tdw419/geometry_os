@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 40x33 starting at (345, 6).
-; PLAN: r0=345(x), r1=6(y), r2=40(width), r3=33(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 6
-LDI r2, 40
-LDI r3, 33
-LDI r4, 0xFFFF00
+; DESCRIPTION: Creates a cyan rectangular region at (227, 136) spanning 119 by 119 pixels.
+; PLAN: r0=227(x), r1=136(y), r2=119(width), r3=119(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 227
+LDI r1, 136
+LDI r2, 119
+LDI r3, 119
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow line from (90, 50) to (61, 45).
-; PLAN: r0=90(x1), r1=50(y1), r2=61(x2), r3=45(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 90
-LDI r1, 50
-LDI r2, 61
-LDI r3, 45
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (247, 105) and radius 10.
+; PLAN: r0=247(x), r1=105(y), r2=10(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 247
+LDI r1, 105
+LDI r2, 10
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

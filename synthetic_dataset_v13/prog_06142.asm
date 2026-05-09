@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (179, 149) and (36, 4).
-; PLAN: r0=179(x1), r1=149(y1), r2=36(x2), r3=4(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 149
-LDI r2, 36
-LDI r3, 4
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a cyan line segment connecting (159, 28) to (86, 64).
+; PLAN: r0=159(x1), r1=28(y1), r2=86(x2), r3=64(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 159
+LDI r1, 28
+LDI r2, 86
+LDI r3, 64
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

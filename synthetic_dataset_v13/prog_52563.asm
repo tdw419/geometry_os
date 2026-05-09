@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a orange circular shape at (109, 176) with radius 61.
-; PLAN: r0=109(x), r1=176(y), r2=61(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 109
-LDI r1, 176
-LDI r2, 61
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

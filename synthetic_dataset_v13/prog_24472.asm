@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single purple pixel at (34, 130).
-; PLAN: r0=34(x), r1=130(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 34
-LDI r1, 130
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

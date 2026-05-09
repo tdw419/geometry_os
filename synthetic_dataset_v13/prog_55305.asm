@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 103x46 rectangle at position (72, 152).
-; PLAN: r0=72(x), r1=152(y), r2=103(width), r3=46(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 72
-LDI r1, 152
-LDI r2, 103
-LDI r3, 46
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (455, 129) and radius 17.
+; PLAN: r0=455(x), r1=129(y), r2=17(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 455
+LDI r1, 129
+LDI r2, 17
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

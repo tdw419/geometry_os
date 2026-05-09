@@ -1,13 +1,5 @@
-; DESCRIPTION: Composite: Places a magenta dot at position (44, 52) then Creates a black rectangular region at (4, 79) spanning 42 by 89 pixels.
-; PLAN: r0=44(x), r1=52(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=4(x), r6=79(y), r7=42(width), r8=89(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 44
-LDI r1, 52
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 4
-LDI r6, 79
-LDI r7, 42
-LDI r8, 89
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the entire screen with solid cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

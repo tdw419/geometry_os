@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 70x65 starting at (423, 52).
-; PLAN: r0=423(x), r1=52(y), r2=70(width), r3=65(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 423
-LDI r1, 52
-LDI r2, 70
-LDI r3, 65
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (381, 60) and (510, 118).
+; PLAN: r0=381(x1), r1=60(y1), r2=510(x2), r3=118(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 381
+LDI r1, 60
+LDI r2, 510
+LDI r3, 118
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

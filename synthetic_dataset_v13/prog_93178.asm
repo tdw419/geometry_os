@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a black disk with center (255, 110) and radius 31.
-; PLAN: r0=255(x), r1=110(y), r2=31(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 255
-LDI r1, 110
-LDI r2, 31
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

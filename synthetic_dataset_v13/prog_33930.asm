@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (104, 250) and (356, 73).
-; PLAN: r0=104(x1), r1=250(y1), r2=356(x2), r3=73(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 104
-LDI r1, 250
-LDI r2, 356
-LDI r3, 73
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow rectangular region at (276, 120) spanning 23 by 112 pixels.
+; PLAN: r0=276(x), r1=120(y), r2=23(width), r3=112(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 276
+LDI r1, 120
+LDI r2, 23
+LDI r3, 112
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

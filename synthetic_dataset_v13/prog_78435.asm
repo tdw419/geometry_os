@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (377, 13) to (406, 68).
-; PLAN: r0=377(x1), r1=13(y1), r2=406(x2), r3=68(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 377
-LDI r1, 13
-LDI r2, 406
-LDI r3, 68
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 17x16 rectangle at position (226, 158).
+; PLAN: r0=226(x), r1=158(y), r2=17(width), r3=16(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 158
+LDI r2, 17
+LDI r3, 16
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

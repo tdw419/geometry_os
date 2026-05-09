@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (325, 34) with width 93 and height 93.
-; PLAN: r0=325(x), r1=34(y), r2=93(width), r3=93(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 325
-LDI r1, 34
-LDI r2, 93
-LDI r3, 93
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (503, 92) and (395, 184).
+; PLAN: r0=503(x1), r1=92(y1), r2=395(x2), r3=184(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 503
+LDI r1, 92
+LDI r2, 395
+LDI r3, 184
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

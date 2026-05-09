@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (410, 149) and (498, 40).
-; PLAN: r0=410(x1), r1=149(y1), r2=498(x2), r3=40(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 410
-LDI r1, 149
-LDI r2, 498
-LDI r3, 40
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (312, 139) with radius 71.
+; PLAN: r0=312(x), r1=139(y), r2=71(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 312
+LDI r1, 139
+LDI r2, 71
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

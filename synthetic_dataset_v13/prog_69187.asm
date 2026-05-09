@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (389, 163) with radius 79.
-; PLAN: r0=389(x), r1=163(y), r2=79(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 389
-LDI r1, 163
-LDI r2, 79
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (286, 96) and (353, 101).
+; PLAN: r0=286(x1), r1=96(y1), r2=353(x2), r3=101(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 286
+LDI r1, 96
+LDI r2, 353
+LDI r3, 101
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

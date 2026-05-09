@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (92, 135) with radius 18.
-; PLAN: r0=92(x), r1=135(y), r2=18(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 92
-LDI r1, 135
-LDI r2, 18
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 108x86 rectangle at position (400, 19).
+; PLAN: r0=400(x), r1=19(y), r2=108(width), r3=86(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 19
+LDI r2, 108
+LDI r3, 86
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

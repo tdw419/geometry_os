@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 111x19 rectangle at position (31, 231).
-; PLAN: r0=31(x), r1=231(y), r2=111(width), r3=19(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 31
-LDI r1, 231
-LDI r2, 111
-LDI r3, 19
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a cyan box of size 11x31 starting at (65, 190).
+; PLAN: r0=65(x), r1=190(y), r2=11(width), r3=31(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 65
+LDI r1, 190
+LDI r2, 11
+LDI r3, 31
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 56 at center (116, 132).
-; PLAN: r0=116(x), r1=132(y), r2=56(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 116
-LDI r1, 132
-LDI r2, 56
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 111x67 starting at (324, 87).
+; PLAN: r0=324(x), r1=87(y), r2=111(width), r3=67(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 324
+LDI r1, 87
+LDI r2, 111
+LDI r3, 67
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (203, 234) and (300, 245).
-; PLAN: r0=203(x1), r1=234(y1), r2=300(x2), r3=245(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 203
-LDI r1, 234
-LDI r2, 300
-LDI r3, 245
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (402, 46) with width 75 and height 90.
+; PLAN: r0=402(x), r1=46(y), r2=75(width), r3=90(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 402
+LDI r1, 46
+LDI r2, 75
+LDI r3, 90
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

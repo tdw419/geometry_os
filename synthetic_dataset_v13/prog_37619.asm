@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 57 at center (86, 107).
-; PLAN: r0=86(x), r1=107(y), r2=57(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 86
-LDI r1, 107
-LDI r2, 57
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red rectangle at (414, 8) with width 29 and height 98.
+; PLAN: r0=414(x), r1=8(y), r2=29(width), r3=98(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 414
+LDI r1, 8
+LDI r2, 29
+LDI r3, 98
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

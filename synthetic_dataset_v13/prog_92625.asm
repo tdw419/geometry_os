@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (430, 106) with width 17 and height 119.
-; PLAN: r0=430(x), r1=106(y), r2=17(width), r3=119(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 106
-LDI r2, 17
-LDI r3, 119
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (502, 31) to (324, 52).
+; PLAN: r0=502(x1), r1=31(y1), r2=324(x2), r3=52(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 502
+LDI r1, 31
+LDI r2, 324
+LDI r3, 52
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (361, 148) to (5, 33).
-; PLAN: r0=361(x1), r1=148(y1), r2=5(x2), r3=33(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 361
-LDI r1, 148
-LDI r2, 5
-LDI r3, 33
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue box of size 81x50 starting at (365, 96).
+; PLAN: r0=365(x), r1=96(y), r2=81(width), r3=50(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 365
+LDI r1, 96
+LDI r2, 81
+LDI r3, 50
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

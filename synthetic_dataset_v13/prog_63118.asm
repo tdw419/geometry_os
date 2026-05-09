@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (181, 56) with radius 26.
-; PLAN: r0=181(x), r1=56(y), r2=26(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 181
-LDI r1, 56
-LDI r2, 26
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 29x26 starting at (317, 159).
+; PLAN: r0=317(x), r1=159(y), r2=29(width), r3=26(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 317
+LDI r1, 159
+LDI r2, 29
+LDI r3, 26
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

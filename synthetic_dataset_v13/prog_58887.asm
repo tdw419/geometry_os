@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan line between points (376, 182) and (415, 39).
-; PLAN: r0=376(x1), r1=182(y1), r2=415(x2), r3=39(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 376
-LDI r1, 182
-LDI r2, 415
-LDI r3, 39
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (132, 138).
+; PLAN: r0=132(x), r1=138(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 132
+LDI r1, 138
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

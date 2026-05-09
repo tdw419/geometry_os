@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (86, 5) to (281, 136).
-; PLAN: r0=86(x1), r1=5(y1), r2=281(x2), r3=136(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 86
-LDI r1, 5
-LDI r2, 281
-LDI r3, 136
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow box of size 79x10 starting at (386, 108).
+; PLAN: r0=386(x), r1=108(y), r2=79(width), r3=10(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 386
+LDI r1, 108
+LDI r2, 79
+LDI r3, 10
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

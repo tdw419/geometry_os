@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 89x29 starting at (294, 59).
-; PLAN: r0=294(x), r1=59(y), r2=89(width), r3=29(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 294
-LDI r1, 59
-LDI r2, 89
-LDI r3, 29
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (42, 203) with radius 15.
+; PLAN: r0=42(x), r1=203(y), r2=15(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 42
+LDI r1, 203
+LDI r2, 15
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

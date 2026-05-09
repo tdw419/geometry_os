@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (222, 244) and (58, 155).
-; PLAN: r0=222(x1), r1=244(y1), r2=58(x2), r3=155(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 222
-LDI r1, 244
-LDI r2, 58
-LDI r3, 155
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 97x88 rectangle at position (52, 16).
+; PLAN: r0=52(x), r1=16(y), r2=97(width), r3=88(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 52
+LDI r1, 16
+LDI r2, 97
+LDI r3, 88
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

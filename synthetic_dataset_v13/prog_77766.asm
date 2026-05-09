@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 93x22 starting at (246, 34).
-; PLAN: r0=246(x), r1=34(y), r2=93(width), r3=22(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 246
-LDI r1, 34
-LDI r2, 93
-LDI r3, 22
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a cyan rectangle at (344, 52) with width 42 and height 116.
+; PLAN: r0=344(x), r1=52(y), r2=42(width), r3=116(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 344
+LDI r1, 52
+LDI r2, 42
+LDI r3, 116
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

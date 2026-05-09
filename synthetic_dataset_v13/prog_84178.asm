@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange rectangle at (44, 17) with width 91 and height 25.
-; PLAN: r0=44(x), r1=17(y), r2=91(width), r3=25(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 44
-LDI r1, 17
-LDI r2, 91
-LDI r3, 25
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 48 into r1 and decrements it in a loop until zero.
+; PLAN: r1=48(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 48
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

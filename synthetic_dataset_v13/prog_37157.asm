@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a orange line between points (197, 235) and (190, 118).
-; PLAN: r0=197(x1), r1=235(y1), r2=190(x2), r3=118(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 197
-LDI r1, 235
-LDI r2, 190
-LDI r3, 118
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple circle of radius 36 at center (292, 156) then Places a black dot at position (311, 170).
+; PLAN: r0=292(x), r1=156(y), r2=36(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=311(x), r6=170(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 292
+LDI r1, 156
+LDI r2, 36
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 311
+LDI r6, 170
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (426, 170) with radius 68.
-; PLAN: r0=426(x), r1=170(y), r2=68(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 426
-LDI r1, 170
-LDI r2, 68
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow rectangle at (131, 90) with width 103 and height 52.
+; PLAN: r0=131(x), r1=90(y), r2=103(width), r3=52(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 131
+LDI r1, 90
+LDI r2, 103
+LDI r3, 52
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

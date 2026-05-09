@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a yellow dot at position (8, 207).
-; PLAN: r0=8(x), r1=207(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 8
-LDI r1, 207
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a blue circle centered at (337, 85) with radius 58.
+; PLAN: r0=337(x), r1=85(y), r2=58(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 337
+LDI r1, 85
+LDI r2, 58
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 30x81 starting at (150, 88).
-; PLAN: r0=150(x), r1=88(y), r2=30(width), r3=81(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 150
-LDI r1, 88
-LDI r2, 30
-LDI r3, 81
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Creates a orange rectangular region at (88, 14) spanning 47 by 26 pixels.
+; PLAN: r0=88(x), r1=14(y), r2=47(width), r3=26(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 88
+LDI r1, 14
+LDI r2, 47
+LDI r3, 26
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a black rectangle at (2, 71) with width 114 and height 106.
-; PLAN: r0=2(x), r1=71(y), r2=114(width), r3=106(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 2
-LDI r1, 71
-LDI r2, 114
-LDI r3, 106
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (117, 38).
+; PLAN: r0=117(x), r1=38(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 117
+LDI r1, 38
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Renders a purple disk with center (85, 163) and radius 59 then Sets a single green pixel at (124, 216) then Draws a purple rectangle at (138, 64) with width 119 and height 57.
-; PLAN: r0=85(x), r1=163(y), r2=59(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=124(x), r6=216(y), r7=0x00FF00(color). Op: PSET r5, r6, r7 Next: r10=138(x), r11=64(y), r12=119(width), r13=57(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 85
-LDI r1, 163
-LDI r2, 59
-LDI r3, 0xAA00FF
+; DESCRIPTION: Composite: Renders a yellow disk with center (419, 128) and radius 29 then Sets a single purple pixel at (476, 145) then Renders a yellow line between points (186, 210) and (62, 72).
+; PLAN: r0=419(x), r1=128(y), r2=29(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=476(x), r6=145(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=186(x1), r11=210(y1), r12=62(x2), r13=72(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 419
+LDI r1, 128
+LDI r2, 29
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
-LDI r5, 124
-LDI r6, 216
-LDI r7, 0x00FF00
+LDI r5, 476
+LDI r6, 145
+LDI r7, 0xAA00FF
 PSET r5, r6, r7
-LDI r10, 138
-LDI r11, 64
-LDI r12, 119
-LDI r13, 57
-LDI r14, 0xAA00FF
-RECTF r10, r11, r12, r13, r14
+LDI r10, 186
+LDI r11, 210
+LDI r12, 62
+LDI r13, 72
+LDI r14, 0xFFFF00
+LINE r10, r11, r12, r13, r14
 HALT

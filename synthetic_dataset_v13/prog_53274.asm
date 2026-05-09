@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Draws a red line from (400, 30) to (207, 55).
+; PLAN: r0=400(x1), r1=30(y1), r2=207(x2), r3=55(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 30
+LDI r2, 207
+LDI r3, 55
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

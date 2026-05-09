@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (243, 10) with width 95 and height 22.
-; PLAN: r0=243(x), r1=10(y), r2=95(width), r3=22(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 243
-LDI r1, 10
-LDI r2, 95
-LDI r3, 22
+; DESCRIPTION: Renders a magenta line between points (235, 62) and (441, 197).
+; PLAN: r0=235(x1), r1=62(y1), r2=441(x2), r3=197(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 235
+LDI r1, 62
+LDI r2, 441
+LDI r3, 197
 LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

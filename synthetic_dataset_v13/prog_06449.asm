@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (206, 164) to (486, 91).
-; PLAN: r0=206(x1), r1=164(y1), r2=486(x2), r3=91(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 206
-LDI r1, 164
-LDI r2, 486
-LDI r3, 91
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple rectangular region at (80, 117) spanning 53 by 59 pixels.
+; PLAN: r0=80(x), r1=117(y), r2=53(width), r3=59(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 80
+LDI r1, 117
+LDI r2, 53
+LDI r3, 59
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

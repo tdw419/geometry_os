@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 21 into r1 and decrements it in a loop until zero.
-; PLAN: r1=21(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 21
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Creates a purple rectangular region at (108, 124) spanning 113 by 91 pixels.
+; PLAN: r0=108(x), r1=124(y), r2=113(width), r3=91(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 108
+LDI r1, 124
+LDI r2, 113
+LDI r3, 91
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

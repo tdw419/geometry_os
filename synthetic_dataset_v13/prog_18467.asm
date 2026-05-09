@@ -1,9 +1,18 @@
-; DESCRIPTION: Creates a purple rectangular region at (322, 36) spanning 78 by 102 pixels.
-; PLAN: r0=322(x), r1=36(y), r2=78(width), r3=102(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 322
-LDI r1, 36
-LDI r2, 78
-LDI r3, 102
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a magenta circular shape at (108, 39) with radius 26 then Places a magenta 107x81 rectangle at position (397, 65) then Sets a single cyan pixel at (34, 219).
+; PLAN: r0=108(x), r1=39(y), r2=26(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=397(x), r6=65(y), r7=107(width), r8=81(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=34(x), r11=219(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 108
+LDI r1, 39
+LDI r2, 26
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 397
+LDI r6, 65
+LDI r7, 107
+LDI r8, 81
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 34
+LDI r11, 219
+LDI r12, 0x00FFFF
+PSET r10, r11, r12
 HALT

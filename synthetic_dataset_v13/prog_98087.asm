@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a purple line segment connecting (35, 136) to (352, 122).
-; PLAN: r0=35(x1), r1=136(y1), r2=352(x2), r3=122(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 35
-LDI r1, 136
-LDI r2, 352
-LDI r3, 122
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (343, 155) then Places a red circle of radius 37 at center (259, 109).
+; PLAN: r0=343(x), r1=155(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=259(x), r6=109(y), r7=37(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 343
+LDI r1, 155
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 259
+LDI r6, 109
+LDI r7, 37
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

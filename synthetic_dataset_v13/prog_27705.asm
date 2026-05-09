@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 93x90 rectangle at position (69, 60).
-; PLAN: r0=69(x), r1=60(y), r2=93(width), r3=90(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 69
-LDI r1, 60
-LDI r2, 93
-LDI r3, 90
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a white rectangle at (118, 77) with width 46 and height 77.
+; PLAN: r0=118(x), r1=77(y), r2=46(width), r3=77(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 118
+LDI r1, 77
+LDI r2, 46
+LDI r3, 77
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

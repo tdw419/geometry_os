@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 26 at center (348, 198).
-; PLAN: r0=348(x), r1=198(y), r2=26(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 348
-LDI r1, 198
-LDI r2, 26
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (325, 26) to (459, 78).
+; PLAN: r0=325(x1), r1=26(y1), r2=459(x2), r3=78(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 325
+LDI r1, 26
+LDI r2, 459
+LDI r3, 78
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

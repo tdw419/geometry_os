@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a red line segment connecting (112, 36) to (95, 52).
-; PLAN: r0=112(x1), r1=36(y1), r2=95(x2), r3=52(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 36
-LDI r2, 95
-LDI r3, 52
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (28, 137).
+; PLAN: r0=28(x), r1=137(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 28
+LDI r1, 137
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

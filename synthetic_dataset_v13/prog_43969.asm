@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple rectangle at (345, 152) with width 110 and height 65.
-; PLAN: r0=345(x), r1=152(y), r2=110(width), r3=65(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 152
-LDI r2, 110
-LDI r3, 65
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 54 at center (380, 65).
+; PLAN: r0=380(x), r1=65(y), r2=54(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 380
+LDI r1, 65
+LDI r2, 54
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

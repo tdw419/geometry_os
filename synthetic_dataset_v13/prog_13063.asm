@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a purple line segment connecting (467, 69) to (383, 13).
-; PLAN: r0=467(x1), r1=69(y1), r2=383(x2), r3=13(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 467
-LDI r1, 69
-LDI r2, 383
-LDI r3, 13
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

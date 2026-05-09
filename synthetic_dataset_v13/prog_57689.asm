@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a green rectangular region at (295, 177) spanning 50 by 52 pixels.
-; PLAN: r0=295(x), r1=177(y), r2=50(width), r3=52(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 295
-LDI r1, 177
-LDI r2, 50
-LDI r3, 52
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (473, 212) with radius 19.
+; PLAN: r0=473(x), r1=212(y), r2=19(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 473
+LDI r1, 212
+LDI r2, 19
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

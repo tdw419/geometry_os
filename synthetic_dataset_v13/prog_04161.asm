@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (155, 88) with radius 29.
-; PLAN: r0=155(x), r1=88(y), r2=29(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 155
-LDI r1, 88
-LDI r2, 29
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 92x115 rectangle at position (162, 69).
+; PLAN: r0=162(x), r1=69(y), r2=92(width), r3=115(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 162
+LDI r1, 69
+LDI r2, 92
+LDI r3, 115
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

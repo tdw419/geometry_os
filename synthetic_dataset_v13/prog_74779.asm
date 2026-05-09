@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 61x30 starting at (133, 81).
-; PLAN: r0=133(x), r1=81(y), r2=61(width), r3=30(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 133
-LDI r1, 81
-LDI r2, 61
-LDI r3, 30
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple line segment connecting (451, 142) to (450, 145).
+; PLAN: r0=451(x1), r1=142(y1), r2=450(x2), r3=145(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 451
+LDI r1, 142
+LDI r2, 450
+LDI r3, 145
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

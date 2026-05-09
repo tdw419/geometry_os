@@ -1,19 +1,12 @@
-; DESCRIPTION: Fills the screen with a vertical green gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x00FF00(color). CMP stores result in r0.
-LDI r7, 0x00FF00
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Draws a yellow circle centered at (434, 131) with radius 72 then Places a red dot at position (41, 202).
+; PLAN: r0=434(x), r1=131(y), r2=72(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=41(x), r6=202(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 434
+LDI r1, 131
+LDI r2, 72
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 41
+LDI r6, 202
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

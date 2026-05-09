@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (346, 162) with radius 18.
-; PLAN: r0=346(x), r1=162(y), r2=18(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 346
-LDI r1, 162
+; DESCRIPTION: Renders a yellow box of size 18x53 starting at (318, 188).
+; PLAN: r0=318(x), r1=188(y), r2=18(width), r3=53(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 318
+LDI r1, 188
 LDI r2, 18
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+LDI r3, 53
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

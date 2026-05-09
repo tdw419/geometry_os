@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a blue line segment connecting (289, 200) to (175, 182).
-; PLAN: r0=289(x1), r1=200(y1), r2=175(x2), r3=182(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 289
-LDI r1, 200
-LDI r2, 175
-LDI r3, 182
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (443, 25) then Places a magenta circle of radius 42 at center (204, 94).
+; PLAN: r0=443(x), r1=25(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=204(x), r6=94(y), r7=42(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 443
+LDI r1, 25
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 204
+LDI r6, 94
+LDI r7, 42
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

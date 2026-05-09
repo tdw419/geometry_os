@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (49, 119) with width 43 and height 55.
-; PLAN: r0=49(x), r1=119(y), r2=43(width), r3=55(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 119
-LDI r2, 43
-LDI r3, 55
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a yellow box of size 35x49 starting at (234, 100).
+; PLAN: r0=234(x), r1=100(y), r2=35(width), r3=49(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 234
+LDI r1, 100
+LDI r2, 35
+LDI r3, 49
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

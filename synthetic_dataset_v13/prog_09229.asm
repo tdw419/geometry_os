@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a blue circle centered at (461, 195) with radius 20.
-; PLAN: r0=461(x), r1=195(y), r2=20(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 461
-LDI r1, 195
-LDI r2, 20
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a black circle centered at (203, 172) with radius 74.
+; PLAN: r0=203(x), r1=172(y), r2=74(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 203
+LDI r1, 172
+LDI r2, 74
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

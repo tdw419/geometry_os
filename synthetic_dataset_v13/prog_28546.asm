@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (307, 185) with radius 29.
-; PLAN: r0=307(x), r1=185(y), r2=29(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 307
-LDI r1, 185
-LDI r2, 29
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Creates a yellow circular shape at (153, 106) with radius 63.
+; PLAN: r0=153(x), r1=106(y), r2=63(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 153
+LDI r1, 106
+LDI r2, 63
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

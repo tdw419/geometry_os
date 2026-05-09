@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (254, 233) to (77, 133).
-; PLAN: r0=254(x1), r1=233(y1), r2=77(x2), r3=133(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 254
-LDI r1, 233
-LDI r2, 77
-LDI r3, 133
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (389, 148) with radius 37.
+; PLAN: r0=389(x), r1=148(y), r2=37(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 389
+LDI r1, 148
+LDI r2, 37
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

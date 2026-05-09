@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a white 90x107 rectangle at position (117, 127).
-; PLAN: r0=117(x), r1=127(y), r2=90(width), r3=107(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 117
-LDI r1, 127
-LDI r2, 90
-LDI r3, 107
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a magenta disk with center (273, 124) and radius 68 then Sets a single orange pixel at (248, 113).
+; PLAN: r0=273(x), r1=124(y), r2=68(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=248(x), r6=113(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 273
+LDI r1, 124
+LDI r2, 68
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 248
+LDI r6, 113
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

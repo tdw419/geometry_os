@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (445, 95) with radius 60.
-; PLAN: r0=445(x), r1=95(y), r2=60(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 445
-LDI r1, 95
-LDI r2, 60
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white box of size 13x115 starting at (400, 90).
+; PLAN: r0=400(x), r1=90(y), r2=13(width), r3=115(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 90
+LDI r2, 13
+LDI r3, 115
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

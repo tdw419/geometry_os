@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Places a blue dot at position (177, 125) then Renders a purple disk with center (237, 82) and radius 61 then Creates a yellow rectangular region at (380, 8) spanning 43 by 112 pixels.
-; PLAN: r0=177(x), r1=125(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=237(x), r6=82(y), r7=61(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=380(x), r11=8(y), r12=43(width), r13=112(height), r14=0xFFFF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 177
-LDI r1, 125
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 237
-LDI r6, 82
-LDI r7, 61
-LDI r8, 0xAA00FF
+; DESCRIPTION: Composite: Places a magenta 55x26 rectangle at position (183, 130) then Creates a black circular shape at (137, 190) with radius 44 then Sets a single blue pixel at (498, 197).
+; PLAN: r0=183(x), r1=130(y), r2=55(width), r3=26(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=137(x), r6=190(y), r7=44(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=498(x), r11=197(y), r12=0x0000FF(color). Op: PSET r10, r11, r12.
+LDI r0, 183
+LDI r1, 130
+LDI r2, 55
+LDI r3, 26
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 137
+LDI r6, 190
+LDI r7, 44
+LDI r8, 0x000000
 CIRCLE r5, r6, r7, r8
-LDI r10, 380
-LDI r11, 8
-LDI r12, 43
-LDI r13, 112
-LDI r14, 0xFFFF00
-RECTF r10, r11, r12, r13, r14
+LDI r10, 498
+LDI r11, 197
+LDI r12, 0x0000FF
+PSET r10, r11, r12
 HALT

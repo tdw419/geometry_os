@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (413, 208).
-; PLAN: r0=413(x), r1=208(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 413
-LDI r1, 208
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a cyan 105x97 rectangle at position (249, 59).
+; PLAN: r0=249(x), r1=59(y), r2=105(width), r3=97(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 249
+LDI r1, 59
+LDI r2, 105
+LDI r3, 97
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

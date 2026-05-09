@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single green pixel at (251, 176).
-; PLAN: r0=251(x), r1=176(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 251
-LDI r1, 176
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Paints the whole screen orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

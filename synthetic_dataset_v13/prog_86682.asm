@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a green dot at position (9, 111).
-; PLAN: r0=9(x), r1=111(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 9
-LDI r1, 111
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow line between points (247, 192) and (177, 246).
+; PLAN: r0=247(x1), r1=192(y1), r2=177(x2), r3=246(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 192
+LDI r2, 177
+LDI r3, 246
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

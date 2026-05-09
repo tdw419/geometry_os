@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (329, 236) to (174, 157).
-; PLAN: r0=329(x1), r1=236(y1), r2=174(x2), r3=157(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 329
-LDI r1, 236
-LDI r2, 174
-LDI r3, 157
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 48 into r1 and decrements it in a loop until zero.
+; PLAN: r1=48(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 48
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

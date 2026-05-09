@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (81, 178) with radius 43.
-; PLAN: r0=81(x), r1=178(y), r2=43(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 81
-LDI r1, 178
-LDI r2, 43
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (71, 243) and (302, 197).
+; PLAN: r0=71(x1), r1=243(y1), r2=302(x2), r3=197(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 71
+LDI r1, 243
+LDI r2, 302
+LDI r3, 197
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a black box of size 52x109 starting at (418, 74).
-; PLAN: r0=418(x), r1=74(y), r2=52(width), r3=109(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 418
-LDI r1, 74
-LDI r2, 52
-LDI r3, 109
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (40, 80) then Renders a orange line between points (349, 38) and (248, 107).
+; PLAN: r0=40(x), r1=80(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=349(x1), r6=38(y1), r7=248(x2), r8=107(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 40
+LDI r1, 80
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 349
+LDI r6, 38
+LDI r7, 248
+LDI r8, 107
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

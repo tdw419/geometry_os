@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (485, 3) to (425, 36).
-; PLAN: r0=485(x1), r1=3(y1), r2=425(x2), r3=36(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 485
-LDI r1, 3
-LDI r2, 425
-LDI r3, 36
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (28, 6) with width 46 and height 105.
+; PLAN: r0=28(x), r1=6(y), r2=46(width), r3=105(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 28
+LDI r1, 6
+LDI r2, 46
+LDI r3, 105
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

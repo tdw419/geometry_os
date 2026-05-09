@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 73x81 rectangle at position (234, 25).
-; PLAN: r0=234(x), r1=25(y), r2=73(width), r3=81(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 234
-LDI r1, 25
+; DESCRIPTION: Places a white circle of radius 73 at center (157, 117).
+; PLAN: r0=157(x), r1=117(y), r2=73(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 157
+LDI r1, 117
 LDI r2, 73
-LDI r3, 81
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

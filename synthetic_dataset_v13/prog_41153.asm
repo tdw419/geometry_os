@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (411, 46) and (253, 108).
-; PLAN: r0=411(x1), r1=46(y1), r2=253(x2), r3=108(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 411
-LDI r1, 46
-LDI r2, 253
-LDI r3, 108
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a white line segment connecting (272, 133) to (155, 33).
+; PLAN: r0=272(x1), r1=133(y1), r2=155(x2), r3=33(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 272
+LDI r1, 133
+LDI r2, 155
+LDI r3, 33
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

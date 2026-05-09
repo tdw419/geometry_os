@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (293, 131) to (423, 34).
-; PLAN: r0=293(x1), r1=131(y1), r2=423(x2), r3=34(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 293
-LDI r1, 131
-LDI r2, 423
-LDI r3, 34
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green rectangular region at (336, 190) spanning 51 by 43 pixels.
+; PLAN: r0=336(x), r1=190(y), r2=51(width), r3=43(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 336
+LDI r1, 190
+LDI r2, 51
+LDI r3, 43
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

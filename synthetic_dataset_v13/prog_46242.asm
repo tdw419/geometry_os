@@ -1,12 +1,12 @@
-; DESCRIPTION: Composite: Draws a green circle centered at (241, 184) with radius 44 then Places a magenta dot at position (121, 151).
-; PLAN: r0=241(x), r1=184(y), r2=44(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=121(x), r6=151(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 241
-LDI r1, 184
-LDI r2, 44
-LDI r3, 0x00FF00
+; DESCRIPTION: Composite: Places a white circle of radius 46 at center (374, 63) then Places a black dot at position (21, 108).
+; PLAN: r0=374(x), r1=63(y), r2=46(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=21(x), r6=108(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 374
+LDI r1, 63
+LDI r2, 46
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
-LDI r5, 121
-LDI r6, 151
-LDI r7, 0xFF00FF
+LDI r5, 21
+LDI r6, 108
+LDI r7, 0x000000
 PSET r5, r6, r7
 HALT

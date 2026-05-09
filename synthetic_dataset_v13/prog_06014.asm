@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 39 into r1 and decrements it in a loop until zero.
-; PLAN: r1=39(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 39
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a blue 113x42 rectangle at position (121, 190).
+; PLAN: r0=121(x), r1=190(y), r2=113(width), r3=42(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 121
+LDI r1, 190
+LDI r2, 113
+LDI r3, 42
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

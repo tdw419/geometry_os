@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (280, 149) with radius 45.
-; PLAN: r0=280(x), r1=149(y), r2=45(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 280
-LDI r1, 149
-LDI r2, 45
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange line segment connecting (93, 41) to (430, 49).
+; PLAN: r0=93(x1), r1=41(y1), r2=430(x2), r3=49(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 41
+LDI r2, 430
+LDI r3, 49
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a blue dot at position (271, 1).
-; PLAN: r0=271(x), r1=1(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 271
-LDI r1, 1
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green disk with center (263, 64) and radius 46.
+; PLAN: r0=263(x), r1=64(y), r2=46(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 263
+LDI r1, 64
+LDI r2, 46
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

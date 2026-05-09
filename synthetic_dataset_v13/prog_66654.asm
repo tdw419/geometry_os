@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (247, 230) to (35, 31).
-; PLAN: r0=247(x1), r1=230(y1), r2=35(x2), r3=31(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 247
-LDI r1, 230
-LDI r2, 35
-LDI r3, 31
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a red line segment connecting (305, 139) to (459, 89).
+; PLAN: r0=305(x1), r1=139(y1), r2=459(x2), r3=89(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 305
+LDI r1, 139
+LDI r2, 459
+LDI r3, 89
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

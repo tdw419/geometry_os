@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Places a white dot at position (261, 200).
+; PLAN: r0=261(x), r1=200(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 261
+LDI r1, 200
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

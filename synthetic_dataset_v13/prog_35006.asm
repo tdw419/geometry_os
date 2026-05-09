@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 72x55 starting at (73, 200).
-; PLAN: r0=73(x), r1=200(y), r2=72(width), r3=55(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 73
-LDI r1, 200
-LDI r2, 72
-LDI r3, 55
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a green rectangular region at (176, 130) spanning 109 by 34 pixels.
+; PLAN: r0=176(x), r1=130(y), r2=109(width), r3=34(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 176
+LDI r1, 130
+LDI r2, 109
+LDI r3, 34
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (312, 87) spanning 81 by 46 pixels.
-; PLAN: r0=312(x), r1=87(y), r2=81(width), r3=46(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 312
-LDI r1, 87
-LDI r2, 81
-LDI r3, 46
+; DESCRIPTION: Creates a green rectangular region at (366, 3) spanning 54 by 45 pixels.
+; PLAN: r0=366(x), r1=3(y), r2=54(width), r3=45(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 366
+LDI r1, 3
+LDI r2, 54
+LDI r3, 45
 LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

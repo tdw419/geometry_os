@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (203, 187) then Draws a white rectangle at (344, 149) with width 108 and height 86 then Places a blue circle of radius 24 at center (482, 62).
-; PLAN: r0=203(x), r1=187(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=344(x), r6=149(y), r7=108(width), r8=86(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=482(x), r11=62(y), r12=24(radius), r13=0x0000FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 203
-LDI r1, 187
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 344
-LDI r6, 149
-LDI r7, 108
-LDI r8, 86
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 482
-LDI r11, 62
-LDI r12, 24
-LDI r13, 0x0000FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Draws a green rectangle at (79, 125) with width 72 and height 45 then Sets a single red pixel at (21, 123) then Renders a blue line between points (287, 97) and (39, 56).
+; PLAN: r0=79(x), r1=125(y), r2=72(width), r3=45(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=21(x), r6=123(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=287(x1), r11=97(y1), r12=39(x2), r13=56(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 79
+LDI r1, 125
+LDI r2, 72
+LDI r3, 45
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 21
+LDI r6, 123
+LDI r7, 0xFF0000
+PSET r5, r6, r7
+LDI r10, 287
+LDI r11, 97
+LDI r12, 39
+LDI r13, 56
+LDI r14, 0x0000FF
+LINE r10, r11, r12, r13, r14
 HALT

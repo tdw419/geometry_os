@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (165, 89) to (255, 111).
-; PLAN: r0=165(x1), r1=89(y1), r2=255(x2), r3=111(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 89
-LDI r2, 255
-LDI r3, 111
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a cyan line between points (113, 104) and (209, 217).
+; PLAN: r0=113(x1), r1=104(y1), r2=209(x2), r3=217(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 113
+LDI r1, 104
+LDI r2, 209
+LDI r3, 217
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single purple pixel at (395, 33).
-; PLAN: r0=395(x), r1=33(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 395
-LDI r1, 33
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a black circle of radius 36 at center (322, 72).
+; PLAN: r0=322(x), r1=72(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 322
+LDI r1, 72
+LDI r2, 36
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

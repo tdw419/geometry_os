@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (319, 92) to (345, 208).
-; PLAN: r0=319(x1), r1=92(y1), r2=345(x2), r3=208(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 319
-LDI r1, 92
-LDI r2, 345
-LDI r3, 208
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 93x30 rectangle at position (410, 221).
+; PLAN: r0=410(x), r1=221(y), r2=93(width), r3=30(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 410
+LDI r1, 221
+LDI r2, 93
+LDI r3, 30
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a green circle of radius 11 at center (249, 85).
-; PLAN: r0=249(x), r1=85(y), r2=11(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 249
-LDI r1, 85
-LDI r2, 11
-LDI r3, 0x00FF00
+; DESCRIPTION: Draws a cyan circle centered at (291, 192) with radius 12.
+; PLAN: r0=291(x), r1=192(y), r2=12(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 291
+LDI r1, 192
+LDI r2, 12
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

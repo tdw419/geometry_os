@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (321, 126) with radius 68.
-; PLAN: r0=321(x), r1=126(y), r2=68(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 321
-LDI r1, 126
+; DESCRIPTION: Places a black 68x110 rectangle at position (317, 6).
+; PLAN: r0=317(x), r1=6(y), r2=68(width), r3=110(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 317
+LDI r1, 6
 LDI r2, 68
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+LDI r3, 110
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

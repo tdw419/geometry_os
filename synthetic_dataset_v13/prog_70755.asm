@@ -1,9 +1,5 @@
-; DESCRIPTION: Creates a orange rectangular region at (94, 229) spanning 71 by 19 pixels.
-; PLAN: r0=94(x), r1=229(y), r2=71(width), r3=19(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 94
-LDI r1, 229
-LDI r2, 71
-LDI r3, 19
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

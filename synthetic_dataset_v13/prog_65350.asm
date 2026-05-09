@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a green dot at position (328, 191).
-; PLAN: r0=328(x), r1=191(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 328
-LDI r1, 191
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a orange line from (419, 61) to (0, 130).
+; PLAN: r0=419(x1), r1=61(y1), r2=0(x2), r3=130(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 419
+LDI r1, 61
+LDI r2, 0
+LDI r3, 130
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Renders a magenta box of size 11x58 starting at (62, 134) then Sets a single purple pixel at (241, 132).
-; PLAN: r0=62(x), r1=134(y), r2=11(width), r3=58(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=241(x), r6=132(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 62
-LDI r1, 134
-LDI r2, 11
-LDI r3, 58
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 241
-LDI r6, 132
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Draws a cyan line from (391, 158) to (86, 116).
+; PLAN: r0=391(x1), r1=158(y1), r2=86(x2), r3=116(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 391
+LDI r1, 158
+LDI r2, 86
+LDI r3, 116
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

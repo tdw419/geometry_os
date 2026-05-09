@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 60x102 rectangle at position (341, 85).
-; PLAN: r0=341(x), r1=85(y), r2=60(width), r3=102(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 341
-LDI r1, 85
-LDI r2, 60
-LDI r3, 102
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a orange rectangle at (244, 131) with width 80 and height 91.
+; PLAN: r0=244(x), r1=131(y), r2=80(width), r3=91(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 244
+LDI r1, 131
+LDI r2, 80
+LDI r3, 91
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

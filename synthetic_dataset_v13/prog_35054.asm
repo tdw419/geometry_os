@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 118x15 rectangle at position (17, 106).
-; PLAN: r0=17(x), r1=106(y), r2=118(width), r3=15(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 17
-LDI r1, 106
-LDI r2, 118
-LDI r3, 15
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (280, 190) and radius 37.
+; PLAN: r0=280(x), r1=190(y), r2=37(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 280
+LDI r1, 190
+LDI r2, 37
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

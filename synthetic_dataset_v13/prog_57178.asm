@@ -1,5 +1,5 @@
-; DESCRIPTION: Clears the screen to white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
+; DESCRIPTION: Clears the screen to green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
 FILL r0
 HALT

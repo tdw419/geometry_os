@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Renders a yellow box of size 53x47 starting at (296, 59) then Creates a red circular shape at (173, 87) with radius 80.
-; PLAN: r0=296(x), r1=59(y), r2=53(width), r3=47(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=173(x), r6=87(y), r7=80(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 296
-LDI r1, 59
-LDI r2, 53
-LDI r3, 47
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 173
-LDI r6, 87
-LDI r7, 80
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Places a yellow circle of radius 37 at center (324, 180) then Creates a magenta rectangular region at (15, 23) spanning 72 by 84 pixels.
+; PLAN: r0=324(x), r1=180(y), r2=37(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=15(x), r6=23(y), r7=72(width), r8=84(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 324
+LDI r1, 180
+LDI r2, 37
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 15
+LDI r6, 23
+LDI r7, 72
+LDI r8, 84
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

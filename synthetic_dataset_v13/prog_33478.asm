@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a yellow line segment connecting (117, 148) to (225, 73).
-; PLAN: r0=117(x1), r1=148(y1), r2=225(x2), r3=73(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 117
-LDI r1, 148
-LDI r2, 225
-LDI r3, 73
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a cyan disk with center (439, 186) and radius 63 then Places a purple 52x76 rectangle at position (306, 11).
+; PLAN: r0=439(x), r1=186(y), r2=63(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=306(x), r6=11(y), r7=52(width), r8=76(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 439
+LDI r1, 186
+LDI r2, 63
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 306
+LDI r6, 11
+LDI r7, 52
+LDI r8, 76
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single magenta pixel at (147, 78).
-; PLAN: r0=147(x), r1=78(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 147
-LDI r1, 78
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

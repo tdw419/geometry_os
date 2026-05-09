@@ -1,13 +1,15 @@
-; DESCRIPTION: Composite: Places a blue line segment connecting (347, 50) to (207, 133) then Places a red dot at position (454, 101).
-; PLAN: r0=347(x1), r1=50(y1), r2=207(x2), r3=133(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=454(x), r6=101(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 347
-LDI r1, 50
-LDI r2, 207
-LDI r3, 133
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 454
-LDI r6, 101
-LDI r7, 0xFF0000
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Creates a red rectangular region at (119, 79) spanning 119 by 62 pixels then Draws a purple line from (371, 61) to (430, 234).
+; PLAN: r0=119(x), r1=79(y), r2=119(width), r3=62(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=371(x1), r6=61(y1), r7=430(x2), r8=234(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 119
+LDI r1, 79
+LDI r2, 119
+LDI r3, 62
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 371
+LDI r6, 61
+LDI r7, 430
+LDI r8, 234
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

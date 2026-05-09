@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Renders a green box of size 47x100 starting at (391, 21).
+; PLAN: r0=391(x), r1=21(y), r2=47(width), r3=100(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 391
+LDI r1, 21
+LDI r2, 47
+LDI r3, 100
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

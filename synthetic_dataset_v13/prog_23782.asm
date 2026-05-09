@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 46 at center (77, 150).
-; PLAN: r0=77(x), r1=150(y), r2=46(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 77
-LDI r1, 150
-LDI r2, 46
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan line segment connecting (125, 60) to (258, 212).
+; PLAN: r0=125(x1), r1=60(y1), r2=258(x2), r3=212(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 125
+LDI r1, 60
+LDI r2, 258
+LDI r3, 212
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

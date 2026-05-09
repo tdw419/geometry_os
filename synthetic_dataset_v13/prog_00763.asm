@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 17x88 rectangle at position (29, 118).
-; PLAN: r0=29(x), r1=118(y), r2=17(width), r3=88(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 29
-LDI r1, 118
-LDI r2, 17
-LDI r3, 88
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (480, 98) to (59, 42).
+; PLAN: r0=480(x1), r1=98(y1), r2=59(x2), r3=42(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 480
+LDI r1, 98
+LDI r2, 59
+LDI r3, 42
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

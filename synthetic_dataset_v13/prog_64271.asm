@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (498, 41).
-; PLAN: r0=498(x), r1=41(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 498
-LDI r1, 41
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black disk with center (289, 207) and radius 18.
+; PLAN: r0=289(x), r1=207(y), r2=18(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 289
+LDI r1, 207
+LDI r2, 18
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

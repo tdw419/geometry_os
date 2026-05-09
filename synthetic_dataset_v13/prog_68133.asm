@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 67x41 rectangle at position (359, 163).
-; PLAN: r0=359(x), r1=163(y), r2=67(width), r3=41(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 163
-LDI r2, 67
-LDI r3, 41
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (86, 168) and radius 28.
+; PLAN: r0=86(x), r1=168(y), r2=28(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 86
+LDI r1, 168
+LDI r2, 28
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

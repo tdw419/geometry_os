@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a purple circular shape at (122, 176) with radius 46.
-; PLAN: r0=122(x), r1=176(y), r2=46(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 122
-LDI r1, 176
-LDI r2, 46
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (41, 51).
-; PLAN: r0=41(x), r1=51(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 41
-LDI r1, 51
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a magenta rectangular region at (284, 159) spanning 111 by 65 pixels.
+; PLAN: r0=284(x), r1=159(y), r2=111(width), r3=65(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 284
+LDI r1, 159
+LDI r2, 111
+LDI r3, 65
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

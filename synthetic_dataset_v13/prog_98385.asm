@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (298, 67) spanning 105 by 52 pixels.
-; PLAN: r0=298(x), r1=67(y), r2=105(width), r3=52(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 298
-LDI r1, 67
-LDI r2, 105
-LDI r3, 52
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (369, 23) to (100, 165).
+; PLAN: r0=369(x1), r1=23(y1), r2=100(x2), r3=165(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 369
+LDI r1, 23
+LDI r2, 100
+LDI r3, 165
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

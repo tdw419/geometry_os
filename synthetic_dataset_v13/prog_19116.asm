@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (84, 5) to (404, 49).
-; PLAN: r0=84(x1), r1=5(y1), r2=404(x2), r3=49(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 84
-LDI r1, 5
-LDI r2, 404
-LDI r3, 49
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (469, 123) with radius 36.
+; PLAN: r0=469(x), r1=123(y), r2=36(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 469
+LDI r1, 123
+LDI r2, 36
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

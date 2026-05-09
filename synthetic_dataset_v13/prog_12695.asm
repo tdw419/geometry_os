@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (95, 216) to (443, 9).
-; PLAN: r0=95(x1), r1=216(y1), r2=443(x2), r3=9(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 95
-LDI r1, 216
-LDI r2, 443
-LDI r3, 9
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red rectangular region at (465, 44) spanning 30 by 43 pixels.
+; PLAN: r0=465(x), r1=44(y), r2=30(width), r3=43(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 465
+LDI r1, 44
+LDI r2, 30
+LDI r3, 43
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

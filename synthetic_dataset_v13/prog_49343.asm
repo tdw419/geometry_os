@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (356, 238) and (25, 38).
-; PLAN: r0=356(x1), r1=238(y1), r2=25(x2), r3=38(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 238
-LDI r2, 25
-LDI r3, 38
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a green line between points (56, 43) and (338, 46).
+; PLAN: r0=56(x1), r1=43(y1), r2=338(x2), r3=46(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 56
+LDI r1, 43
+LDI r2, 338
+LDI r3, 46
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

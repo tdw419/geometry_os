@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 25 at center (214, 58).
-; PLAN: r0=214(x), r1=58(y), r2=25(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 214
-LDI r1, 58
-LDI r2, 25
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (329, 205) to (340, 179).
+; PLAN: r0=329(x1), r1=205(y1), r2=340(x2), r3=179(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 329
+LDI r1, 205
+LDI r2, 340
+LDI r3, 179
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

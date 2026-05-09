@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (140, 58).
-; PLAN: r0=140(x), r1=58(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 140
-LDI r1, 58
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a purple 101x55 rectangle at position (80, 22).
+; PLAN: r0=80(x), r1=22(y), r2=101(width), r3=55(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 80
+LDI r1, 22
+LDI r2, 101
+LDI r3, 55
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

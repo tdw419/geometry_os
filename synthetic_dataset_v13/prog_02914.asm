@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (353, 60) with width 111 and height 14.
-; PLAN: r0=353(x), r1=60(y), r2=111(width), r3=14(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 353
-LDI r1, 60
-LDI r2, 111
-LDI r3, 14
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a yellow rectangle at (201, 188) with width 45 and height 43.
+; PLAN: r0=201(x), r1=188(y), r2=45(width), r3=43(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 201
+LDI r1, 188
+LDI r2, 45
+LDI r3, 43
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,18 +1,15 @@
-; DESCRIPTION: Composite: Sets a single white pixel at (260, 41) then Renders a red disk with center (317, 218) and radius 23 then Renders a purple line between points (282, 78) and (81, 11).
-; PLAN: r0=260(x), r1=41(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=317(x), r6=218(y), r7=23(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=282(x1), r11=78(y1), r12=81(x2), r13=11(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 260
-LDI r1, 41
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 317
-LDI r6, 218
-LDI r7, 23
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
-LDI r10, 282
-LDI r11, 78
-LDI r12, 81
-LDI r13, 11
-LDI r14, 0xAA00FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Draws a black line from (167, 187) to (437, 101) then Places a red 26x26 rectangle at position (74, 209).
+; PLAN: r0=167(x1), r1=187(y1), r2=437(x2), r3=101(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=74(x), r6=209(y), r7=26(width), r8=26(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 167
+LDI r1, 187
+LDI r2, 437
+LDI r3, 101
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+LDI r5, 74
+LDI r6, 209
+LDI r7, 26
+LDI r8, 26
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

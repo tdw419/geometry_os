@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (224, 172) and (474, 204).
-; PLAN: r0=224(x1), r1=172(y1), r2=474(x2), r3=204(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 224
-LDI r1, 172
-LDI r2, 474
-LDI r3, 204
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 35 into r1 and decrements it in a loop until zero.
+; PLAN: r1=35(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 35
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

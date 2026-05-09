@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a blue dot at position (3, 51).
-; PLAN: r0=3(x), r1=51(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 3
-LDI r1, 51
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

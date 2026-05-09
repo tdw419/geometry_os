@@ -1,8 +1,13 @@
-; DESCRIPTION: Draws a blue circle centered at (381, 82) with radius 78.
-; PLAN: r0=381(x), r1=82(y), r2=78(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 381
-LDI r1, 82
-LDI r2, 78
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Draws a yellow rectangle at (218, 73) with width 26 and height 112 then Sets a single cyan pixel at (356, 110).
+; PLAN: r0=218(x), r1=73(y), r2=26(width), r3=112(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=356(x), r6=110(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 218
+LDI r1, 73
+LDI r2, 26
+LDI r3, 112
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 356
+LDI r6, 110
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

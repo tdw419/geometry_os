@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (350, 120) with radius 66.
-; PLAN: r0=350(x), r1=120(y), r2=66(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 350
-LDI r1, 120
-LDI r2, 66
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red rectangle at (367, 76) with width 10 and height 49.
+; PLAN: r0=367(x), r1=76(y), r2=10(width), r3=49(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 367
+LDI r1, 76
+LDI r2, 10
+LDI r3, 49
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

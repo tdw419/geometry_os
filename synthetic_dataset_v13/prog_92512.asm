@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a purple rectangular region at (388, 165) spanning 53 by 78 pixels.
-; PLAN: r0=388(x), r1=165(y), r2=53(width), r3=78(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 388
-LDI r1, 165
-LDI r2, 53
-LDI r3, 78
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 24 into r1 and decrements it in a loop until zero.
+; PLAN: r1=24(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 24
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a purple rectangle at (234, 224) with width 19 and height 21.
-; PLAN: r0=234(x), r1=224(y), r2=19(width), r3=21(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 234
-LDI r1, 224
-LDI r2, 19
-LDI r3, 21
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (391, 94).
+; PLAN: r0=391(x), r1=94(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 391
+LDI r1, 94
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

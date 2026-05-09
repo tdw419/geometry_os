@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a purple rectangle at (363, 34) with width 34 and height 44.
-; PLAN: r0=363(x), r1=34(y), r2=34(width), r3=44(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 34
-LDI r2, 34
-LDI r3, 44
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (136, 196).
+; PLAN: r0=136(x), r1=196(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 136
+LDI r1, 196
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

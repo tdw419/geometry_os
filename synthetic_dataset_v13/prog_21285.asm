@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (147, 14) spanning 56 by 14 pixels then Sets a single cyan pixel at (53, 173).
-; PLAN: r0=147(x), r1=14(y), r2=56(width), r3=14(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=53(x), r6=173(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 147
-LDI r1, 14
-LDI r2, 56
-LDI r3, 14
-LDI r4, 0x000000
+; DESCRIPTION: Creates a blue rectangular region at (188, 181) spanning 51 by 31 pixels.
+; PLAN: r0=188(x), r1=181(y), r2=51(width), r3=31(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 188
+LDI r1, 181
+LDI r2, 51
+LDI r3, 31
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 53
-LDI r6, 173
-LDI r7, 0x00FFFF
-PSET r5, r6, r7
 HALT

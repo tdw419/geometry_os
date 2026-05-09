@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (310, 42) to (456, 204).
-; PLAN: r0=310(x1), r1=42(y1), r2=456(x2), r3=204(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 42
-LDI r2, 456
-LDI r3, 204
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a red line between points (439, 167) and (232, 62).
+; PLAN: r0=439(x1), r1=167(y1), r2=232(x2), r3=62(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 439
+LDI r1, 167
+LDI r2, 232
+LDI r3, 62
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (304, 57) to (114, 162).
-; PLAN: r0=304(x1), r1=57(y1), r2=114(x2), r3=162(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 304
-LDI r1, 57
-LDI r2, 114
-LDI r3, 162
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (236, 83) and radius 71.
+; PLAN: r0=236(x), r1=83(y), r2=71(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 236
+LDI r1, 83
+LDI r2, 71
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

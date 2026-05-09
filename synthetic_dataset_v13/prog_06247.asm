@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 120x63 rectangle at position (253, 190).
-; PLAN: r0=253(x), r1=190(y), r2=120(width), r3=63(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 253
-LDI r1, 190
-LDI r2, 120
-LDI r3, 63
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 80 at center (213, 119).
+; PLAN: r0=213(x), r1=119(y), r2=80(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 213
+LDI r1, 119
+LDI r2, 80
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

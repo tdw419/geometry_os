@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (318, 105) with width 80 and height 69.
-; PLAN: r0=318(x), r1=105(y), r2=80(width), r3=69(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 318
-LDI r1, 105
-LDI r2, 80
-LDI r3, 69
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple line segment connecting (73, 95) to (67, 228).
+; PLAN: r0=73(x1), r1=95(y1), r2=67(x2), r3=228(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 73
+LDI r1, 95
+LDI r2, 67
+LDI r3, 228
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a cyan dot at position (275, 41).
-; PLAN: r0=275(x), r1=41(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 275
-LDI r1, 41
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a red line segment connecting (158, 129) to (487, 236).
+; PLAN: r0=158(x1), r1=129(y1), r2=487(x2), r3=236(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 158
+LDI r1, 129
+LDI r2, 487
+LDI r3, 236
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

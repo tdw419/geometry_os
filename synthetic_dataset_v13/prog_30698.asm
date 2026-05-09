@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Renders a black disk with center (346, 184) and radius 57 then Creates a magenta rectangular region at (263, 98) spanning 86 by 64 pixels then Sets a single blue pixel at (21, 45).
-; PLAN: r0=346(x), r1=184(y), r2=57(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=263(x), r6=98(y), r7=86(width), r8=64(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=21(x), r11=45(y), r12=0x0000FF(color). Op: PSET r10, r11, r12.
-LDI r0, 346
-LDI r1, 184
-LDI r2, 57
-LDI r3, 0x000000
+; DESCRIPTION: Composite: Renders a yellow disk with center (219, 163) and radius 40 then Draws a orange rectangle at (126, 146) with width 105 and height 17.
+; PLAN: r0=219(x), r1=163(y), r2=40(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=126(x), r6=146(y), r7=105(width), r8=17(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 219
+LDI r1, 163
+LDI r2, 40
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
-LDI r5, 263
-LDI r6, 98
-LDI r7, 86
-LDI r8, 64
-LDI r9, 0xFF00FF
+LDI r5, 126
+LDI r6, 146
+LDI r7, 105
+LDI r8, 17
+LDI r9, 0xFF8800
 RECTF r5, r6, r7, r8, r9
-LDI r10, 21
-LDI r11, 45
-LDI r12, 0x0000FF
-PSET r10, r11, r12
 HALT

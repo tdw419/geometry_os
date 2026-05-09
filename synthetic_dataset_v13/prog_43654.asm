@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (403, 165) to (508, 70).
-; PLAN: r0=403(x1), r1=165(y1), r2=508(x2), r3=70(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 403
-LDI r1, 165
-LDI r2, 508
-LDI r3, 70
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (30, 146) with width 81 and height 55.
+; PLAN: r0=30(x), r1=146(y), r2=81(width), r3=55(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 30
+LDI r1, 146
+LDI r2, 81
+LDI r3, 55
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

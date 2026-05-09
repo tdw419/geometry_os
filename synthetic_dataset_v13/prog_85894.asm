@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (307, 56) with width 32 and height 91.
-; PLAN: r0=307(x), r1=56(y), r2=32(width), r3=91(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 307
-LDI r1, 56
-LDI r2, 32
-LDI r3, 91
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a purple 40x14 rectangle at position (44, 189).
+; PLAN: r0=44(x), r1=189(y), r2=40(width), r3=14(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 189
+LDI r2, 40
+LDI r3, 14
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

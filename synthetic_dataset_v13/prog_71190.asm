@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (327, 3) spanning 70 by 90 pixels.
-; PLAN: r0=327(x), r1=3(y), r2=70(width), r3=90(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 327
-LDI r1, 3
-LDI r2, 70
+; DESCRIPTION: Creates a red rectangular region at (111, 85) spanning 64 by 90 pixels.
+; PLAN: r0=111(x), r1=85(y), r2=64(width), r3=90(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 111
+LDI r1, 85
+LDI r2, 64
 LDI r3, 90
-LDI r4, 0xFF00FF
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

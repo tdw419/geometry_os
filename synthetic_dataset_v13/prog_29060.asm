@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a black rectangle at (46, 223) with width 43 and height 33.
-; PLAN: r0=46(x), r1=223(y), r2=43(width), r3=33(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 46
-LDI r1, 223
-LDI r2, 43
-LDI r3, 33
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black dot at position (304, 220) then Draws a yellow circle centered at (478, 197) with radius 22.
+; PLAN: r0=304(x), r1=220(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=478(x), r6=197(y), r7=22(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 304
+LDI r1, 220
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 478
+LDI r6, 197
+LDI r7, 22
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

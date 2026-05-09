@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a blue circle centered at (192, 206) with radius 28.
-; PLAN: r0=192(x), r1=206(y), r2=28(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 192
-LDI r1, 206
-LDI r2, 28
+; DESCRIPTION: Draws a blue circle centered at (327, 214) with radius 35.
+; PLAN: r0=327(x), r1=214(y), r2=35(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 327
+LDI r1, 214
+LDI r2, 35
 LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

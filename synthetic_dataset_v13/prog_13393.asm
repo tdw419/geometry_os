@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 58x93 rectangle at position (40, 134).
-; PLAN: r0=40(x), r1=134(y), r2=58(width), r3=93(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 40
-LDI r1, 134
-LDI r2, 58
-LDI r3, 93
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (125, 163) and radius 79.
+; PLAN: r0=125(x), r1=163(y), r2=79(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 125
+LDI r1, 163
+LDI r2, 79
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

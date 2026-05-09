@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a purple rectangular region at (245, 134) spanning 70 by 40 pixels.
-; PLAN: r0=245(x), r1=134(y), r2=70(width), r3=40(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 245
-LDI r1, 134
-LDI r2, 70
-LDI r3, 40
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (76, 137) then Draws a yellow rectangle at (53, 55) with width 36 and height 21.
+; PLAN: r0=76(x), r1=137(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=53(x), r6=55(y), r7=36(width), r8=21(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 76
+LDI r1, 137
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 53
+LDI r6, 55
+LDI r7, 36
+LDI r8, 21
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (413, 237) to (511, 251).
-; PLAN: r0=413(x1), r1=237(y1), r2=511(x2), r3=251(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 413
-LDI r1, 237
-LDI r2, 511
-LDI r3, 251
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (176, 127) with radius 32.
+; PLAN: r0=176(x), r1=127(y), r2=32(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 176
+LDI r1, 127
+LDI r2, 32
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

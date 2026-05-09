@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (104, 105) with radius 60.
-; PLAN: r0=104(x), r1=105(y), r2=60(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 104
-LDI r1, 105
-LDI r2, 60
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 117x77 rectangle at position (134, 94).
+; PLAN: r0=134(x), r1=94(y), r2=117(width), r3=77(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 134
+LDI r1, 94
+LDI r2, 117
+LDI r3, 77
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 30 at center (391, 165).
-; PLAN: r0=391(x), r1=165(y), r2=30(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 391
-LDI r1, 165
-LDI r2, 30
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a orange rectangular region at (452, 53) spanning 33 by 35 pixels.
+; PLAN: r0=452(x), r1=53(y), r2=33(width), r3=35(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 452
+LDI r1, 53
+LDI r2, 33
+LDI r3, 35
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

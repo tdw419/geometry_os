@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (141, 165) and radius 77.
-; PLAN: r0=141(x), r1=165(y), r2=77(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 141
-LDI r1, 165
-LDI r2, 77
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan box of size 20x77 starting at (450, 40).
+; PLAN: r0=450(x), r1=40(y), r2=20(width), r3=77(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 450
+LDI r1, 40
+LDI r2, 20
+LDI r3, 77
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

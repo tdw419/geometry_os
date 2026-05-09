@@ -1,8 +1,14 @@
-; DESCRIPTION: Renders a blue disk with center (333, 176) and radius 34.
-; PLAN: r0=333(x), r1=176(y), r2=34(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 333
-LDI r1, 176
-LDI r2, 34
-LDI r3, 0x0000FF
+; DESCRIPTION: Composite: Places a magenta circle of radius 30 at center (68, 152) then Draws a orange line from (99, 155) to (345, 234).
+; PLAN: r0=68(x), r1=152(y), r2=30(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=99(x1), r6=155(y1), r7=345(x2), r8=234(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 68
+LDI r1, 152
+LDI r2, 30
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
+LDI r5, 99
+LDI r6, 155
+LDI r7, 345
+LDI r8, 234
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a orange line between points (162, 100) and (413, 104).
-; PLAN: r0=162(x1), r1=100(y1), r2=413(x2), r3=104(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 162
-LDI r1, 100
-LDI r2, 413
-LDI r3, 104
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (309, 110).
+; PLAN: r0=309(x), r1=110(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 309
+LDI r1, 110
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

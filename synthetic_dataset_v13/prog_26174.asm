@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a white disk with center (441, 128) and radius 30.
-; PLAN: r0=441(x), r1=128(y), r2=30(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 441
-LDI r1, 128
-LDI r2, 30
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (210, 163).
+; PLAN: r0=210(x), r1=163(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 210
+LDI r1, 163
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (247, 36) then Renders a orange disk with center (432, 126) and radius 51 then Renders a blue box of size 15x28 starting at (120, 1).
-; PLAN: r0=247(x), r1=36(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=432(x), r6=126(y), r7=51(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=120(x), r11=1(y), r12=15(width), r13=28(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 247
-LDI r1, 36
-LDI r2, 0x00FF00
+; DESCRIPTION: Composite: Sets a single blue pixel at (326, 145) then Renders a white line between points (464, 89) and (415, 87).
+; PLAN: r0=326(x), r1=145(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=464(x1), r6=89(y1), r7=415(x2), r8=87(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 326
+LDI r1, 145
+LDI r2, 0x0000FF
 PSET r0, r1, r2
-LDI r5, 432
-LDI r6, 126
-LDI r7, 51
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
-LDI r10, 120
-LDI r11, 1
-LDI r12, 15
-LDI r13, 28
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+LDI r5, 464
+LDI r6, 89
+LDI r7, 415
+LDI r8, 87
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

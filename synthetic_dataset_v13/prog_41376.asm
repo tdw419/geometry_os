@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single blue pixel at (297, 211).
-; PLAN: r0=297(x), r1=211(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 297
-LDI r1, 211
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a green circle centered at (396, 135) with radius 71.
+; PLAN: r0=396(x), r1=135(y), r2=71(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 396
+LDI r1, 135
+LDI r2, 71
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

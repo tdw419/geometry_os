@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (411, 88) and radius 50.
-; PLAN: r0=411(x), r1=88(y), r2=50(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 411
-LDI r1, 88
-LDI r2, 50
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow 83x32 rectangle at position (56, 169).
+; PLAN: r0=56(x), r1=169(y), r2=83(width), r3=32(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 56
+LDI r1, 169
+LDI r2, 83
+LDI r3, 32
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

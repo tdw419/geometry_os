@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (393, 190) spanning 58 by 12 pixels.
-; PLAN: r0=393(x), r1=190(y), r2=58(width), r3=12(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 190
-LDI r2, 58
-LDI r3, 12
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow line segment connecting (493, 82) to (294, 139).
+; PLAN: r0=493(x1), r1=82(y1), r2=294(x2), r3=139(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 493
+LDI r1, 82
+LDI r2, 294
+LDI r3, 139
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

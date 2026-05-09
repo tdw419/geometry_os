@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a white dot at position (103, 120).
-; PLAN: r0=103(x), r1=120(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 103
-LDI r1, 120
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

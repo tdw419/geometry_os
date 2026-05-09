@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (153, 124) to (337, 123).
-; PLAN: r0=153(x1), r1=124(y1), r2=337(x2), r3=123(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 153
-LDI r1, 124
-LDI r2, 337
-LDI r3, 123
-LDI r4, 0x000000
+; DESCRIPTION: Draws a green line from (78, 10) to (432, 34).
+; PLAN: r0=78(x1), r1=10(y1), r2=432(x2), r3=34(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 78
+LDI r1, 10
+LDI r2, 432
+LDI r3, 34
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

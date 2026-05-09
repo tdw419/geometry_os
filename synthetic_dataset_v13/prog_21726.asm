@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (123, 117) to (349, 183).
-; PLAN: r0=123(x1), r1=117(y1), r2=349(x2), r3=183(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 123
-LDI r1, 117
-LDI r2, 349
-LDI r3, 183
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (210, 119) and radius 79.
+; PLAN: r0=210(x), r1=119(y), r2=79(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 210
+LDI r1, 119
+LDI r2, 79
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

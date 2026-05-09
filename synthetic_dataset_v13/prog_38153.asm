@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green rectangle at (301, 57) with width 75 and height 75.
-; PLAN: r0=301(x), r1=57(y), r2=75(width), r3=75(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 301
-LDI r1, 57
-LDI r2, 75
-LDI r3, 75
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single white pixel at (391, 134).
+; PLAN: r0=391(x), r1=134(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 391
+LDI r1, 134
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Creates a white circular shape at (424, 113) with radius 26 then Draws a yellow rectangle at (105, 217) with width 40 and height 25 then Draws a green line from (333, 200) to (42, 60).
-; PLAN: r0=424(x), r1=113(y), r2=26(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=105(x), r6=217(y), r7=40(width), r8=25(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=333(x1), r11=200(y1), r12=42(x2), r13=60(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 424
-LDI r1, 113
-LDI r2, 26
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 105
-LDI r6, 217
-LDI r7, 40
-LDI r8, 25
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
-LDI r10, 333
-LDI r11, 200
-LDI r12, 42
-LDI r13, 60
-LDI r14, 0x00FF00
+; DESCRIPTION: Composite: Places a orange 13x41 rectangle at position (185, 122) then Sets a single red pixel at (38, 12) then Renders a white line between points (71, 223) and (403, 6).
+; PLAN: r0=185(x), r1=122(y), r2=13(width), r3=41(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=38(x), r6=12(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=71(x1), r11=223(y1), r12=403(x2), r13=6(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 185
+LDI r1, 122
+LDI r2, 13
+LDI r3, 41
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 38
+LDI r6, 12
+LDI r7, 0xFF0000
+PSET r5, r6, r7
+LDI r10, 71
+LDI r11, 223
+LDI r12, 403
+LDI r13, 6
+LDI r14, 0xFFFFFF
 LINE r10, r11, r12, r13, r14
 HALT

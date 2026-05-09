@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a orange line segment connecting (222, 36) to (364, 98).
-; PLAN: r0=222(x1), r1=36(y1), r2=364(x2), r3=98(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 222
-LDI r1, 36
-LDI r2, 364
-LDI r3, 98
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a green circular shape at (326, 83) with radius 15 then Creates a red rectangular region at (271, 118) spanning 39 by 67 pixels.
+; PLAN: r0=326(x), r1=83(y), r2=15(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=271(x), r6=118(y), r7=39(width), r8=67(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 326
+LDI r1, 83
+LDI r2, 15
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 271
+LDI r6, 118
+LDI r7, 39
+LDI r8, 67
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

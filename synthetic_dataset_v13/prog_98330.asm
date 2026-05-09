@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Creates a white circular shape at (399, 42) with radius 15 then Draws a white rectangle at (336, 50) with width 87 and height 118.
-; PLAN: r0=399(x), r1=42(y), r2=15(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=336(x), r6=50(y), r7=87(width), r8=118(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 399
-LDI r1, 42
-LDI r2, 15
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 336
-LDI r6, 50
-LDI r7, 87
-LDI r8, 118
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Sets a single cyan pixel at (48, 70) then Renders a red disk with center (429, 191) and radius 45 then Renders a red box of size 13x37 starting at (489, 218).
+; PLAN: r0=48(x), r1=70(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=429(x), r6=191(y), r7=45(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=489(x), r11=218(y), r12=13(width), r13=37(height), r14=0xFF0000(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 48
+LDI r1, 70
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 429
+LDI r6, 191
+LDI r7, 45
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
+LDI r10, 489
+LDI r11, 218
+LDI r12, 13
+LDI r13, 37
+LDI r14, 0xFF0000
+RECTF r10, r11, r12, r13, r14
 HALT

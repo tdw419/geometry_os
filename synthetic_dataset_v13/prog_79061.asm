@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a purple disk with center (200, 185) and radius 15.
-; PLAN: r0=200(x), r1=185(y), r2=15(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 200
-LDI r1, 185
-LDI r2, 15
+; DESCRIPTION: Places a purple circle of radius 19 at center (274, 69).
+; PLAN: r0=274(x), r1=69(y), r2=19(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 274
+LDI r1, 69
+LDI r2, 19
 LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white rectangle at (474, 132) with width 27 and height 103.
-; PLAN: r0=474(x), r1=132(y), r2=27(width), r3=103(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 474
-LDI r1, 132
-LDI r2, 27
-LDI r3, 103
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange circle centered at (214, 167) with radius 42.
+; PLAN: r0=214(x), r1=167(y), r2=42(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 214
+LDI r1, 167
+LDI r2, 42
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

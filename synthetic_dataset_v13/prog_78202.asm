@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a white rectangle at (273, 188) with width 110 and height 22.
-; PLAN: r0=273(x), r1=188(y), r2=110(width), r3=22(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 273
-LDI r1, 188
-LDI r2, 110
-LDI r3, 22
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (376, 98).
+; PLAN: r0=376(x), r1=98(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 376
+LDI r1, 98
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

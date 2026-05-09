@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (77, 101) to (270, 9).
-; PLAN: r0=77(x1), r1=101(y1), r2=270(x2), r3=9(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 101
-LDI r2, 270
-LDI r3, 9
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a green line between points (465, 131) and (235, 159).
+; PLAN: r0=465(x1), r1=131(y1), r2=235(x2), r3=159(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 465
+LDI r1, 131
+LDI r2, 235
+LDI r3, 159
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

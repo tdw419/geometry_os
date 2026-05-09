@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 98x70 rectangle at position (272, 31).
-; PLAN: r0=272(x), r1=31(y), r2=98(width), r3=70(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 272
-LDI r1, 31
-LDI r2, 98
-LDI r3, 70
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 35 at center (259, 120).
+; PLAN: r0=259(x), r1=120(y), r2=35(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 259
+LDI r1, 120
+LDI r2, 35
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

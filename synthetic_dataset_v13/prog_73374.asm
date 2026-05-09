@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (274, 146).
-; PLAN: r0=274(x), r1=146(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 274
-LDI r1, 146
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a orange box of size 73x13 starting at (57, 145).
+; PLAN: r0=57(x), r1=145(y), r2=73(width), r3=13(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 57
+LDI r1, 145
+LDI r2, 73
+LDI r3, 13
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

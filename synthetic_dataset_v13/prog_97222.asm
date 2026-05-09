@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (226, 255) and (45, 69).
-; PLAN: r0=226(x1), r1=255(y1), r2=45(x2), r3=69(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 226
-LDI r1, 255
-LDI r2, 45
-LDI r3, 69
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (162, 0) with width 69 and height 64.
+; PLAN: r0=162(x), r1=0(y), r2=69(width), r3=64(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 162
+LDI r1, 0
+LDI r2, 69
+LDI r3, 64
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

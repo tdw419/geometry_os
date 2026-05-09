@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (187, 50) to (86, 75).
-; PLAN: r0=187(x1), r1=50(y1), r2=86(x2), r3=75(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 187
-LDI r1, 50
-LDI r2, 86
-LDI r3, 75
-LDI r4, 0x000000
+; DESCRIPTION: Renders a purple line between points (249, 106) and (222, 63).
+; PLAN: r0=249(x1), r1=106(y1), r2=222(x2), r3=63(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 249
+LDI r1, 106
+LDI r2, 222
+LDI r3, 63
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

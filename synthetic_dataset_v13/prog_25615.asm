@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a blue circular shape at (103, 137) with radius 73.
-; PLAN: r0=103(x), r1=137(y), r2=73(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 103
-LDI r1, 137
-LDI r2, 73
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single purple pixel at (385, 30).
+; PLAN: r0=385(x), r1=30(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 385
+LDI r1, 30
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

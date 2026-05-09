@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a cyan dot at position (488, 125).
-; PLAN: r0=488(x), r1=125(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 488
-LDI r1, 125
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow 80x90 rectangle at position (57, 86).
+; PLAN: r0=57(x), r1=86(y), r2=80(width), r3=90(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 57
+LDI r1, 86
+LDI r2, 80
+LDI r3, 90
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

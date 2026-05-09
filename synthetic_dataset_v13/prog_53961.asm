@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a blue disk with center (194, 233) and radius 22.
-; PLAN: r0=194(x), r1=233(y), r2=22(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 194
-LDI r1, 233
-LDI r2, 22
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

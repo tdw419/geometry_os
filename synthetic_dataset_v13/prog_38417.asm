@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a yellow line from (172, 82) to (99, 249).
-; PLAN: r0=172(x1), r1=82(y1), r2=99(x2), r3=249(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 172
-LDI r1, 82
-LDI r2, 99
-LDI r3, 249
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a blue circle centered at (51, 120) with radius 16 then Places a red dot at position (146, 102).
+; PLAN: r0=51(x), r1=120(y), r2=16(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=146(x), r6=102(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 51
+LDI r1, 120
+LDI r2, 16
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 146
+LDI r6, 102
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

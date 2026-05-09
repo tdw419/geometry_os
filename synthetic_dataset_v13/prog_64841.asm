@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (432, 160) with radius 76.
-; PLAN: r0=432(x), r1=160(y), r2=76(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 432
-LDI r1, 160
-LDI r2, 76
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 69x12 rectangle at position (111, 175).
+; PLAN: r0=111(x), r1=175(y), r2=69(width), r3=12(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 111
+LDI r1, 175
+LDI r2, 69
+LDI r3, 12
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

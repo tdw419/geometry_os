@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (60, 42) then Renders a cyan box of size 79x117 starting at (66, 52).
-; PLAN: r0=60(x), r1=42(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=66(x), r6=52(y), r7=79(width), r8=117(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 60
-LDI r1, 42
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 66
-LDI r6, 52
-LDI r7, 79
-LDI r8, 117
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a purple line segment connecting (243, 71) to (244, 34).
+; PLAN: r0=243(x1), r1=71(y1), r2=244(x2), r3=34(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 243
+LDI r1, 71
+LDI r2, 244
+LDI r3, 34
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

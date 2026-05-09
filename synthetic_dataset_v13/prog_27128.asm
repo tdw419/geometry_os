@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (243, 159) and radius 65.
-; PLAN: r0=243(x), r1=159(y), r2=65(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 243
-LDI r1, 159
-LDI r2, 65
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (37, 84) to (39, 78).
+; PLAN: r0=37(x1), r1=84(y1), r2=39(x2), r3=78(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 37
+LDI r1, 84
+LDI r2, 39
+LDI r3, 78
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a magenta box of size 44x60 starting at (167, 23).
-; PLAN: r0=167(x), r1=23(y), r2=44(width), r3=60(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 167
-LDI r1, 23
-LDI r2, 44
-LDI r3, 60
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single yellow pixel at (384, 46).
+; PLAN: r0=384(x), r1=46(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 384
+LDI r1, 46
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

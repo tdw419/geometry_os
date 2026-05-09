@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a purple line from (414, 47) to (452, 114).
-; PLAN: r0=414(x1), r1=47(y1), r2=452(x2), r3=114(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 414
-LDI r1, 47
-LDI r2, 452
-LDI r3, 114
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple circle of radius 56 at center (401, 149) then Places a purple dot at position (35, 127).
+; PLAN: r0=401(x), r1=149(y), r2=56(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=35(x), r6=127(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 401
+LDI r1, 149
+LDI r2, 56
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 35
+LDI r6, 127
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

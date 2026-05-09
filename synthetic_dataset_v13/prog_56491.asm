@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Draws a cyan circle centered at (113, 133) with radius 63.
+; PLAN: r0=113(x), r1=133(y), r2=63(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 113
+LDI r1, 133
+LDI r2, 63
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

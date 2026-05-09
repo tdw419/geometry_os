@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (415, 238) to (337, 218).
-; PLAN: r0=415(x1), r1=238(y1), r2=337(x2), r3=218(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 415
-LDI r1, 238
-LDI r2, 337
-LDI r3, 218
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (215, 105) with radius 15.
+; PLAN: r0=215(x), r1=105(y), r2=15(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 215
+LDI r1, 105
+LDI r2, 15
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

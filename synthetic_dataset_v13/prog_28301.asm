@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (106, 58) to (341, 224).
-; PLAN: r0=106(x1), r1=58(y1), r2=341(x2), r3=224(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 106
-LDI r1, 58
-LDI r2, 341
-LDI r3, 224
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (284, 114) with radius 71.
+; PLAN: r0=284(x), r1=114(y), r2=71(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 284
+LDI r1, 114
+LDI r2, 71
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

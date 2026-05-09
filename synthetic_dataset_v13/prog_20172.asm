@@ -1,19 +1,20 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (273, 52) then Creates a black rectangular region at (233, 171) spanning 78 by 79 pixels then Draws a orange line from (502, 15) to (96, 69).
-; PLAN: r0=273(x), r1=52(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=233(x), r6=171(y), r7=78(width), r8=79(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=502(x1), r11=15(y1), r12=96(x2), r13=69(y2), r14=0xFF8800(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 273
-LDI r1, 52
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 233
-LDI r6, 171
-LDI r7, 78
-LDI r8, 79
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
-LDI r10, 502
-LDI r11, 15
-LDI r12, 96
-LDI r13, 69
-LDI r14, 0xFF8800
+; DESCRIPTION: Composite: Creates a red rectangular region at (310, 135) spanning 114 by 25 pixels then Creates a yellow circular shape at (234, 167) with radius 63 then Places a cyan line segment connecting (479, 183) to (121, 225).
+; PLAN: r0=310(x), r1=135(y), r2=114(width), r3=25(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=234(x), r6=167(y), r7=63(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=479(x1), r11=183(y1), r12=121(x2), r13=225(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 310
+LDI r1, 135
+LDI r2, 114
+LDI r3, 25
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 234
+LDI r6, 167
+LDI r7, 63
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
+LDI r10, 479
+LDI r11, 183
+LDI r12, 121
+LDI r13, 225
+LDI r14, 0x00FFFF
 LINE r10, r11, r12, r13, r14
 HALT

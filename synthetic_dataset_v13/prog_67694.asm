@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (103, 252) then Creates a yellow circular shape at (210, 153) with radius 36.
-; PLAN: r0=103(x), r1=252(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=210(x), r6=153(y), r7=36(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 103
-LDI r1, 252
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 210
-LDI r6, 153
-LDI r7, 36
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a red line from (140, 249) to (443, 137).
+; PLAN: r0=140(x1), r1=249(y1), r2=443(x2), r3=137(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 140
+LDI r1, 249
+LDI r2, 443
+LDI r3, 137
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

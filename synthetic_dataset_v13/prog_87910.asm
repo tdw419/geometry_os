@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 78x106 starting at (370, 88).
-; PLAN: r0=370(x), r1=88(y), r2=78(width), r3=106(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 370
-LDI r1, 88
-LDI r2, 78
-LDI r3, 106
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (332, 199) and (216, 135).
+; PLAN: r0=332(x1), r1=199(y1), r2=216(x2), r3=135(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 332
+LDI r1, 199
+LDI r2, 216
+LDI r3, 135
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

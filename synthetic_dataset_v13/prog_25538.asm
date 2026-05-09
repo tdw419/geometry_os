@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (178, 145) with radius 68.
-; PLAN: r0=178(x), r1=145(y), r2=68(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 178
-LDI r1, 145
-LDI r2, 68
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (307, 231) to (161, 181).
+; PLAN: r0=307(x1), r1=231(y1), r2=161(x2), r3=181(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 307
+LDI r1, 231
+LDI r2, 161
+LDI r3, 181
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

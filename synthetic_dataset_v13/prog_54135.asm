@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (486, 7).
-; PLAN: r0=486(x), r1=7(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 486
-LDI r1, 7
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Places a red circle of radius 72 at center (130, 146).
+; PLAN: r0=130(x), r1=146(y), r2=72(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 130
+LDI r1, 146
+LDI r2, 72
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

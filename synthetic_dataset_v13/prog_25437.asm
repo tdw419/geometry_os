@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (423, 161) to (408, 193).
-; PLAN: r0=423(x1), r1=161(y1), r2=408(x2), r3=193(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 423
-LDI r1, 161
-LDI r2, 408
-LDI r3, 193
+; DESCRIPTION: Creates a blue rectangular region at (146, 97) spanning 46 by 11 pixels.
+; PLAN: r0=146(x), r1=97(y), r2=46(width), r3=11(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 146
+LDI r1, 97
+LDI r2, 46
+LDI r3, 11
 LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

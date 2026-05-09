@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a black line segment connecting (328, 174) to (35, 150).
-; PLAN: r0=328(x1), r1=174(y1), r2=35(x2), r3=150(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 328
-LDI r1, 174
-LDI r2, 35
-LDI r3, 150
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (232, 163).
+; PLAN: r0=232(x), r1=163(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 232
+LDI r1, 163
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

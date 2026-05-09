@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (8, 98).
-; PLAN: r0=8(x), r1=98(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 8
-LDI r1, 98
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a blue 36x116 rectangle at position (96, 121).
+; PLAN: r0=96(x), r1=121(y), r2=36(width), r3=116(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 96
+LDI r1, 121
+LDI r2, 36
+LDI r3, 116
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (380, 76) with radius 75.
-; PLAN: r0=380(x), r1=76(y), r2=75(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 380
-LDI r1, 76
-LDI r2, 75
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 46x51 rectangle at position (302, 106).
+; PLAN: r0=302(x), r1=106(y), r2=46(width), r3=51(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 302
+LDI r1, 106
+LDI r2, 46
+LDI r3, 51
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

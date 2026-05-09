@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Places a black line segment connecting (205, 67) to (481, 33).
+; PLAN: r0=205(x1), r1=67(y1), r2=481(x2), r3=33(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 205
+LDI r1, 67
+LDI r2, 481
+LDI r3, 33
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (125, 123) then Draws a black rectangle at (403, 17) with width 72 and height 101.
-; PLAN: r0=125(x), r1=123(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=403(x), r6=17(y), r7=72(width), r8=101(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 125
-LDI r1, 123
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 403
-LDI r6, 17
-LDI r7, 72
-LDI r8, 101
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a cyan line between points (403, 236) and (70, 245).
+; PLAN: r0=403(x1), r1=236(y1), r2=70(x2), r3=245(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 403
+LDI r1, 236
+LDI r2, 70
+LDI r3, 245
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

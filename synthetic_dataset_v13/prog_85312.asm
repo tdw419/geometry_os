@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Renders a yellow line between points (206, 5) and (361, 234) then Draws a yellow circle centered at (475, 65) with radius 37.
-; PLAN: r0=206(x1), r1=5(y1), r2=361(x2), r3=234(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=475(x), r6=65(y), r7=37(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 206
-LDI r1, 5
-LDI r2, 361
-LDI r3, 234
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 475
-LDI r6, 65
-LDI r7, 37
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Draws a purple circle centered at (276, 142) with radius 38 then Draws a yellow rectangle at (113, 29) with width 101 and height 113.
+; PLAN: r0=276(x), r1=142(y), r2=38(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=113(x), r6=29(y), r7=101(width), r8=113(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 276
+LDI r1, 142
+LDI r2, 38
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 113
+LDI r6, 29
+LDI r7, 101
+LDI r8, 113
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
 HALT

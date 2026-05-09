@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a orange circle of radius 76 at center (313, 100) then Sets a single black pixel at (307, 149).
-; PLAN: r0=313(x), r1=100(y), r2=76(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=307(x), r6=149(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 313
-LDI r1, 100
-LDI r2, 76
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 307
-LDI r6, 149
-LDI r7, 0x000000
-PSET r5, r6, r7
+; DESCRIPTION: Places a magenta line segment connecting (421, 174) to (121, 133).
+; PLAN: r0=421(x1), r1=174(y1), r2=121(x2), r3=133(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 421
+LDI r1, 174
+LDI r2, 121
+LDI r3, 133
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

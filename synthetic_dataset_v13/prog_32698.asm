@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a orange disk with center (320, 84) and radius 25.
-; PLAN: r0=320(x), r1=84(y), r2=25(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 320
-LDI r1, 84
-LDI r2, 25
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (399, 73).
+; PLAN: r0=399(x), r1=73(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 399
+LDI r1, 73
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

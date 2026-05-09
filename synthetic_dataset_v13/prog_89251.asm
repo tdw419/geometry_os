@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 88x117 starting at (197, 112).
-; PLAN: r0=197(x), r1=112(y), r2=88(width), r3=117(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 197
-LDI r1, 112
-LDI r2, 88
-LDI r3, 117
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (264, 63) to (133, 148).
+; PLAN: r0=264(x1), r1=63(y1), r2=133(x2), r3=148(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 264
+LDI r1, 63
+LDI r2, 133
+LDI r3, 148
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

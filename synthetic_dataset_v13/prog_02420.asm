@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Draws a orange line from (199, 188) to (456, 144) then Renders a black disk with center (122, 112) and radius 10 then Places a red dot at position (407, 134).
-; PLAN: r0=199(x1), r1=188(y1), r2=456(x2), r3=144(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=122(x), r6=112(y), r7=10(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=407(x), r11=134(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
-LDI r0, 199
-LDI r1, 188
-LDI r2, 456
-LDI r3, 144
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Draws a white line from (453, 60) to (227, 44) then Places a cyan dot at position (498, 85).
+; PLAN: r0=453(x1), r1=60(y1), r2=227(x2), r3=44(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=498(x), r6=85(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 453
+LDI r1, 60
+LDI r2, 227
+LDI r3, 44
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
-LDI r5, 122
-LDI r6, 112
-LDI r7, 10
-LDI r8, 0x000000
-CIRCLE r5, r6, r7, r8
-LDI r10, 407
-LDI r11, 134
-LDI r12, 0xFF0000
-PSET r10, r11, r12
+LDI r5, 498
+LDI r6, 85
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

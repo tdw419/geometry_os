@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
-FILL r0
+; DESCRIPTION: Places a red dot at position (191, 80).
+; PLAN: r0=191(x), r1=80(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 191
+LDI r1, 80
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

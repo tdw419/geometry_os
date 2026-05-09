@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Creates a magenta rectangular region at (91, 43) spanning 80 by 90 pixels.
+; PLAN: r0=91(x), r1=43(y), r2=80(width), r3=90(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 91
+LDI r1, 43
+LDI r2, 80
+LDI r3, 90
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

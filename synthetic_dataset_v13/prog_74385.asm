@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (430, 112) with width 30 and height 100.
-; PLAN: r0=430(x), r1=112(y), r2=30(width), r3=100(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 112
-LDI r2, 30
-LDI r3, 100
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a black box of size 39x73 starting at (347, 99).
+; PLAN: r0=347(x), r1=99(y), r2=39(width), r3=73(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 347
+LDI r1, 99
+LDI r2, 39
+LDI r3, 73
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

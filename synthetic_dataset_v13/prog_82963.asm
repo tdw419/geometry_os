@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Creates a green rectangular region at (242, 60) spanning 76 by 60 pixels then Sets a single purple pixel at (455, 200).
-; PLAN: r0=242(x), r1=60(y), r2=76(width), r3=60(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=455(x), r6=200(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 242
-LDI r1, 60
-LDI r2, 76
-LDI r3, 60
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 455
-LDI r6, 200
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Places a cyan dot at position (403, 234) then Creates a red rectangular region at (161, 6) spanning 46 by 91 pixels.
+; PLAN: r0=403(x), r1=234(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=161(x), r6=6(y), r7=46(width), r8=91(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 403
+LDI r1, 234
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 161
+LDI r6, 6
+LDI r7, 46
+LDI r8, 91
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Places a blue line segment connecting (371, 143) to (458, 102) then Renders a green disk with center (240, 187) and radius 65.
-; PLAN: r0=371(x1), r1=143(y1), r2=458(x2), r3=102(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=240(x), r6=187(y), r7=65(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 371
-LDI r1, 143
-LDI r2, 458
-LDI r3, 102
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 240
-LDI r6, 187
-LDI r7, 65
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Renders a magenta box of size 111x59 starting at (97, 73) then Places a red dot at position (261, 80) then Draws a magenta line from (247, 232) to (367, 53).
+; PLAN: r0=97(x), r1=73(y), r2=111(width), r3=59(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=261(x), r6=80(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=247(x1), r11=232(y1), r12=367(x2), r13=53(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 97
+LDI r1, 73
+LDI r2, 111
+LDI r3, 59
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 261
+LDI r6, 80
+LDI r7, 0xFF0000
+PSET r5, r6, r7
+LDI r10, 247
+LDI r11, 232
+LDI r12, 367
+LDI r13, 53
+LDI r14, 0xFF00FF
+LINE r10, r11, r12, r13, r14
 HALT

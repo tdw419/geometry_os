@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a red line between points (145, 122) and (477, 250).
-; PLAN: r0=145(x1), r1=122(y1), r2=477(x2), r3=250(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 145
-LDI r1, 122
-LDI r2, 477
-LDI r3, 250
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a yellow circular shape at (189, 132) with radius 63 then Sets a single cyan pixel at (299, 141).
+; PLAN: r0=189(x), r1=132(y), r2=63(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=299(x), r6=141(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 189
+LDI r1, 132
+LDI r2, 63
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 299
+LDI r6, 141
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

@@ -1,14 +1,13 @@
-; DESCRIPTION: Composite: Draws a cyan line from (334, 238) to (150, 20) then Draws a magenta circle centered at (344, 113) with radius 10.
-; PLAN: r0=334(x1), r1=238(y1), r2=150(x2), r3=20(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=344(x), r6=113(y), r7=10(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 334
-LDI r1, 238
-LDI r2, 150
-LDI r3, 20
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 344
-LDI r6, 113
-LDI r7, 10
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Sets a single orange pixel at (446, 153) then Creates a black rectangular region at (210, 71) spanning 20 by 55 pixels.
+; PLAN: r0=446(x), r1=153(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=210(x), r6=71(y), r7=20(width), r8=55(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 446
+LDI r1, 153
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 210
+LDI r6, 71
+LDI r7, 20
+LDI r8, 55
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (383, 185) to (86, 9).
-; PLAN: r0=383(x1), r1=185(y1), r2=86(x2), r3=9(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 383
-LDI r1, 185
-LDI r2, 86
-LDI r3, 9
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta 88x60 rectangle at position (123, 135).
+; PLAN: r0=123(x), r1=135(y), r2=88(width), r3=60(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 123
+LDI r1, 135
+LDI r2, 88
+LDI r3, 60
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

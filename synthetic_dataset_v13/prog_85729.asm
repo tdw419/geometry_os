@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a black box of size 79x70 starting at (297, 43).
-; PLAN: r0=297(x), r1=43(y), r2=79(width), r3=70(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 297
-LDI r1, 43
-LDI r2, 79
-LDI r3, 70
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (38, 69).
+; PLAN: r0=38(x), r1=69(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 38
+LDI r1, 69
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

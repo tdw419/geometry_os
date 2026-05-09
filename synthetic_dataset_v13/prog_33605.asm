@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (185, 225) and radius 31.
-; PLAN: r0=185(x), r1=225(y), r2=31(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 185
-LDI r1, 225
-LDI r2, 31
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan 87x92 rectangle at position (283, 45).
+; PLAN: r0=283(x), r1=45(y), r2=87(width), r3=92(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 283
+LDI r1, 45
+LDI r2, 87
+LDI r3, 92
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

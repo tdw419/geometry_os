@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 40 at center (449, 81).
-; PLAN: r0=449(x), r1=81(y), r2=40(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 449
-LDI r1, 81
-LDI r2, 40
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (248, 135) and (103, 210).
+; PLAN: r0=248(x1), r1=135(y1), r2=103(x2), r3=210(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 135
+LDI r2, 103
+LDI r3, 210
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

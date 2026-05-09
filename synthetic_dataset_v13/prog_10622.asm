@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (279, 177) and radius 35.
-; PLAN: r0=279(x), r1=177(y), r2=35(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 279
-LDI r1, 177
-LDI r2, 35
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a red rectangular region at (145, 42) spanning 102 by 58 pixels.
+; PLAN: r0=145(x), r1=42(y), r2=102(width), r3=58(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 145
+LDI r1, 42
+LDI r2, 102
+LDI r3, 58
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

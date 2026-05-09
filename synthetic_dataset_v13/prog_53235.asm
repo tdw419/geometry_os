@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 57x86 starting at (142, 91).
-; PLAN: r0=142(x), r1=91(y), r2=57(width), r3=86(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 142
-LDI r1, 91
-LDI r2, 57
-LDI r3, 86
+; DESCRIPTION: Creates a cyan rectangular region at (344, 93) spanning 23 by 103 pixels.
+; PLAN: r0=344(x), r1=93(y), r2=23(width), r3=103(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 344
+LDI r1, 93
+LDI r2, 23
+LDI r3, 103
 LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

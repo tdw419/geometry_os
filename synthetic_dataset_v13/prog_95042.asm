@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (241, 193) to (455, 26).
-; PLAN: r0=241(x1), r1=193(y1), r2=455(x2), r3=26(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 193
-LDI r2, 455
-LDI r3, 26
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green box of size 26x15 starting at (305, 35).
+; PLAN: r0=305(x), r1=35(y), r2=26(width), r3=15(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 305
+LDI r1, 35
+LDI r2, 26
+LDI r3, 15
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (114, 79) and (93, 118).
-; PLAN: r0=114(x1), r1=79(y1), r2=93(x2), r3=118(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 114
-LDI r1, 79
-LDI r2, 93
-LDI r3, 118
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow box of size 58x112 starting at (178, 77).
+; PLAN: r0=178(x), r1=77(y), r2=58(width), r3=112(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 178
+LDI r1, 77
+LDI r2, 58
+LDI r3, 112
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

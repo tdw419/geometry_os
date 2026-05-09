@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a yellow circular shape at (61, 147) with radius 50.
-; PLAN: r0=61(x), r1=147(y), r2=50(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 61
-LDI r1, 147
-LDI r2, 50
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single red pixel at (103, 241).
+; PLAN: r0=103(x), r1=241(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 103
+LDI r1, 241
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

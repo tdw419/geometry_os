@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 76x66 rectangle at position (162, 112).
-; PLAN: r0=162(x), r1=112(y), r2=76(width), r3=66(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 162
-LDI r1, 112
-LDI r2, 76
-LDI r3, 66
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (44, 88) with radius 22.
+; PLAN: r0=44(x), r1=88(y), r2=22(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 44
+LDI r1, 88
+LDI r2, 22
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

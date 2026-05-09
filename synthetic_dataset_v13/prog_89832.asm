@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow rectangle at (385, 161) with width 55 and height 85.
-; PLAN: r0=385(x), r1=161(y), r2=55(width), r3=85(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 385
-LDI r1, 161
-LDI r2, 55
-LDI r3, 85
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (27, 23) with radius 12.
+; PLAN: r0=27(x), r1=23(y), r2=12(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 27
+LDI r1, 23
+LDI r2, 12
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,15 @@
-; DESCRIPTION: Places a green 51x58 rectangle at position (24, 153).
-; PLAN: r0=24(x), r1=153(y), r2=51(width), r3=58(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 24
-LDI r1, 153
-LDI r2, 51
-LDI r3, 58
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a orange line from (0, 46) to (261, 13) then Places a red 23x53 rectangle at position (415, 156).
+; PLAN: r0=0(x1), r1=46(y1), r2=261(x2), r3=13(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=415(x), r6=156(y), r7=23(width), r8=53(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 0
+LDI r1, 46
+LDI r2, 261
+LDI r3, 13
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 415
+LDI r6, 156
+LDI r7, 23
+LDI r8, 53
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

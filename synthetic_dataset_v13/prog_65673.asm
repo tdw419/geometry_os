@@ -1,20 +1,13 @@
-; DESCRIPTION: Composite: Creates a cyan circular shape at (406, 165) with radius 53 then Creates a orange rectangular region at (194, 115) spanning 110 by 116 pixels then Renders a yellow line between points (179, 7) and (298, 70).
-; PLAN: r0=406(x), r1=165(y), r2=53(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=194(x), r6=115(y), r7=110(width), r8=116(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=179(x1), r11=7(y1), r12=298(x2), r13=70(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 406
-LDI r1, 165
-LDI r2, 53
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 194
-LDI r6, 115
-LDI r7, 110
-LDI r8, 116
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
-LDI r10, 179
-LDI r11, 7
-LDI r12, 298
-LDI r13, 70
-LDI r14, 0xFFFF00
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a cyan box of size 90x41 starting at (112, 150) then Sets a single black pixel at (94, 49).
+; PLAN: r0=112(x), r1=150(y), r2=90(width), r3=41(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=94(x), r6=49(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 112
+LDI r1, 150
+LDI r2, 90
+LDI r3, 41
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 94
+LDI r6, 49
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (256, 95) and (495, 99).
-; PLAN: r0=256(x1), r1=95(y1), r2=495(x2), r3=99(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 95
-LDI r2, 495
-LDI r3, 99
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (372, 75) and radius 69.
+; PLAN: r0=372(x), r1=75(y), r2=69(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 372
+LDI r1, 75
+LDI r2, 69
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

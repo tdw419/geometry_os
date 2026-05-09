@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 35x96 rectangle at position (113, 56).
-; PLAN: r0=113(x), r1=56(y), r2=35(width), r3=96(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 113
-LDI r1, 56
-LDI r2, 35
-LDI r3, 96
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (177, 188) to (164, 98).
+; PLAN: r0=177(x1), r1=188(y1), r2=164(x2), r3=98(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 177
+LDI r1, 188
+LDI r2, 164
+LDI r3, 98
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

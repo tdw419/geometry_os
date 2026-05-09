@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (216, 132) with radius 80.
-; PLAN: r0=216(x), r1=132(y), r2=80(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 216
-LDI r1, 132
-LDI r2, 80
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (433, 176) and (467, 0).
+; PLAN: r0=433(x1), r1=176(y1), r2=467(x2), r3=0(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 433
+LDI r1, 176
+LDI r2, 467
+LDI r3, 0
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

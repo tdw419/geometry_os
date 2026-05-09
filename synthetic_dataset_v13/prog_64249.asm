@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (336, 41) and (217, 179).
-; PLAN: r0=336(x1), r1=41(y1), r2=217(x2), r3=179(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 336
-LDI r1, 41
-LDI r2, 217
-LDI r3, 179
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green rectangle at (231, 148) with width 79 and height 49.
+; PLAN: r0=231(x), r1=148(y), r2=79(width), r3=49(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 231
+LDI r1, 148
+LDI r2, 79
+LDI r3, 49
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

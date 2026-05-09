@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a magenta dot at position (95, 9).
-; PLAN: r0=95(x), r1=9(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 95
-LDI r1, 9
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

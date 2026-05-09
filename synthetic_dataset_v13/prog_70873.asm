@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 18x63 rectangle at position (159, 13).
-; PLAN: r0=159(x), r1=13(y), r2=18(width), r3=63(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 159
-LDI r1, 13
-LDI r2, 18
-LDI r3, 63
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white circle of radius 37 at center (37, 153).
+; PLAN: r0=37(x), r1=153(y), r2=37(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 37
+LDI r1, 153
+LDI r2, 37
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a magenta box of size 42x99 starting at (403, 153).
-; PLAN: r0=403(x), r1=153(y), r2=42(width), r3=99(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 403
-LDI r1, 153
-LDI r2, 42
-LDI r3, 99
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

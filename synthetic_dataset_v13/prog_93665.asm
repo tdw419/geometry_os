@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a blue line segment connecting (341, 14) to (1, 155).
-; PLAN: r0=341(x1), r1=14(y1), r2=1(x2), r3=155(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 341
-LDI r1, 14
-LDI r2, 1
-LDI r3, 155
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (399, 106) then Places a magenta line segment connecting (147, 153) to (313, 138).
+; PLAN: r0=399(x), r1=106(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=147(x1), r6=153(y1), r7=313(x2), r8=138(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 399
+LDI r1, 106
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 147
+LDI r6, 153
+LDI r7, 313
+LDI r8, 138
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

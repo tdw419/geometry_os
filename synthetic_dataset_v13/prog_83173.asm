@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 120x12 rectangle at position (59, 101).
-; PLAN: r0=59(x), r1=101(y), r2=120(width), r3=12(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 59
-LDI r1, 101
-LDI r2, 120
-LDI r3, 12
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (473, 246) to (122, 118).
+; PLAN: r0=473(x1), r1=246(y1), r2=122(x2), r3=118(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 473
+LDI r1, 246
+LDI r2, 122
+LDI r3, 118
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

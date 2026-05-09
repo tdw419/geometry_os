@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 99x94 rectangle at position (209, 35).
-; PLAN: r0=209(x), r1=35(y), r2=99(width), r3=94(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 209
-LDI r1, 35
-LDI r2, 99
-LDI r3, 94
-LDI r4, 0xFF0000
+; DESCRIPTION: Creates a yellow rectangular region at (255, 70) spanning 108 by 88 pixels.
+; PLAN: r0=255(x), r1=70(y), r2=108(width), r3=88(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 255
+LDI r1, 70
+LDI r2, 108
+LDI r3, 88
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

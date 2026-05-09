@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a magenta rectangle at (375, 84) with width 107 and height 88.
-; PLAN: r0=375(x), r1=84(y), r2=107(width), r3=88(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 375
-LDI r1, 84
-LDI r2, 107
-LDI r3, 88
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (223, 192).
+; PLAN: r0=223(x), r1=192(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 223
+LDI r1, 192
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

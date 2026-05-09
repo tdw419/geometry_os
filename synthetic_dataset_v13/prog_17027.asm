@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (366, 140) to (2, 135).
-; PLAN: r0=366(x1), r1=140(y1), r2=2(x2), r3=135(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 366
-LDI r1, 140
-LDI r2, 2
-LDI r3, 135
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (344, 74) with radius 48.
+; PLAN: r0=344(x), r1=74(y), r2=48(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 344
+LDI r1, 74
+LDI r2, 48
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a magenta circle centered at (57, 64) with radius 30.
-; PLAN: r0=57(x), r1=64(y), r2=30(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 57
-LDI r1, 64
-LDI r2, 30
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

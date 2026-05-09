@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (485, 226).
-; PLAN: r0=485(x), r1=226(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 485
-LDI r1, 226
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a red line from (333, 186) to (511, 86).
+; PLAN: r0=333(x1), r1=186(y1), r2=511(x2), r3=86(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 333
+LDI r1, 186
+LDI r2, 511
+LDI r3, 86
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

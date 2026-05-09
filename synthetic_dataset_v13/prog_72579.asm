@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black box of size 105x66 starting at (12, 54).
-; PLAN: r0=12(x), r1=54(y), r2=105(width), r3=66(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 12
-LDI r1, 54
-LDI r2, 105
-LDI r3, 66
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (380, 154) with radius 66.
+; PLAN: r0=380(x), r1=154(y), r2=66(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 380
+LDI r1, 154
+LDI r2, 66
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

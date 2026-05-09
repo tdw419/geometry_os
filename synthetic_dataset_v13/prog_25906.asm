@@ -1,5 +1,8 @@
-; DESCRIPTION: Clears the screen to blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Draws a green circle centered at (371, 138) with radius 45.
+; PLAN: r0=371(x), r1=138(y), r2=45(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 371
+LDI r1, 138
+LDI r2, 45
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

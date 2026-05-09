@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (447, 229) and (282, 3).
-; PLAN: r0=447(x1), r1=229(y1), r2=282(x2), r3=3(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 447
-LDI r1, 229
-LDI r2, 282
-LDI r3, 3
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (249, 96) with radius 53.
+; PLAN: r0=249(x), r1=96(y), r2=53(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 249
+LDI r1, 96
+LDI r2, 53
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

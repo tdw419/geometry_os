@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (231, 150) with radius 59.
-; PLAN: r0=231(x), r1=150(y), r2=59(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 231
-LDI r1, 150
-LDI r2, 59
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (271, 192) to (37, 137).
+; PLAN: r0=271(x1), r1=192(y1), r2=37(x2), r3=137(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 271
+LDI r1, 192
+LDI r2, 37
+LDI r3, 137
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

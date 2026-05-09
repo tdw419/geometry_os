@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a yellow rectangular region at (256, 59) spanning 96 by 62 pixels.
-; PLAN: r0=256(x), r1=59(y), r2=96(width), r3=62(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 59
-LDI r2, 96
-LDI r3, 62
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (244, 168) with radius 15.
+; PLAN: r0=244(x), r1=168(y), r2=15(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 244
+LDI r1, 168
+LDI r2, 15
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

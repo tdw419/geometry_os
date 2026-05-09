@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a green circular shape at (413, 191) with radius 36.
-; PLAN: r0=413(x), r1=191(y), r2=36(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 413
-LDI r1, 191
-LDI r2, 36
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single red pixel at (143, 18).
+; PLAN: r0=143(x), r1=18(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 143
+LDI r1, 18
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

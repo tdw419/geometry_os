@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (241, 97) with radius 51.
-; PLAN: r0=241(x), r1=97(y), r2=51(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 241
-LDI r1, 97
-LDI r2, 51
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple line from (281, 37) to (350, 97).
+; PLAN: r0=281(x1), r1=37(y1), r2=350(x2), r3=97(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 281
+LDI r1, 37
+LDI r2, 350
+LDI r3, 97
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

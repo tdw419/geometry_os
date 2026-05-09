@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a yellow disk with center (404, 150) and radius 33.
-; PLAN: r0=404(x), r1=150(y), r2=33(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 404
-LDI r1, 150
-LDI r2, 33
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (54, 62) to (270, 201).
-; PLAN: r0=54(x1), r1=62(y1), r2=270(x2), r3=201(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 54
-LDI r1, 62
-LDI r2, 270
-LDI r3, 201
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue circle centered at (136, 159) with radius 42.
+; PLAN: r0=136(x), r1=159(y), r2=42(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 136
+LDI r1, 159
+LDI r2, 42
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

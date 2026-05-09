@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (302, 79) to (43, 183).
-; PLAN: r0=302(x1), r1=79(y1), r2=43(x2), r3=183(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 302
-LDI r1, 79
-LDI r2, 43
-LDI r3, 183
-LDI r4, 0x000000
+; DESCRIPTION: Places a magenta line segment connecting (415, 139) to (21, 85).
+; PLAN: r0=415(x1), r1=139(y1), r2=21(x2), r3=85(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 415
+LDI r1, 139
+LDI r2, 21
+LDI r3, 85
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (499, 144) and (87, 248).
-; PLAN: r0=499(x1), r1=144(y1), r2=87(x2), r3=248(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 499
-LDI r1, 144
-LDI r2, 87
-LDI r3, 248
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange rectangle at (36, 153) with width 114 and height 55.
+; PLAN: r0=36(x), r1=153(y), r2=114(width), r3=55(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 36
+LDI r1, 153
+LDI r2, 114
+LDI r3, 55
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

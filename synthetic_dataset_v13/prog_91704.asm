@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Draws a black rectangle at (64, 114) with width 42 and height 89 then Places a black dot at position (154, 29).
-; PLAN: r0=64(x), r1=114(y), r2=42(width), r3=89(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=154(x), r6=29(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 64
-LDI r1, 114
-LDI r2, 42
-LDI r3, 89
-LDI r4, 0x000000
+; DESCRIPTION: Creates a yellow rectangular region at (294, 48) spanning 24 by 83 pixels.
+; PLAN: r0=294(x), r1=48(y), r2=24(width), r3=83(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 294
+LDI r1, 48
+LDI r2, 24
+LDI r3, 83
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
-LDI r5, 154
-LDI r6, 29
-LDI r7, 0x000000
-PSET r5, r6, r7
 HALT

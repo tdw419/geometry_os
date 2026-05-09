@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (286, 198) and radius 15.
-; PLAN: r0=286(x), r1=198(y), r2=15(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 286
-LDI r1, 198
-LDI r2, 15
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta box of size 76x29 starting at (409, 153).
+; PLAN: r0=409(x), r1=153(y), r2=76(width), r3=29(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 409
+LDI r1, 153
+LDI r2, 76
+LDI r3, 29
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

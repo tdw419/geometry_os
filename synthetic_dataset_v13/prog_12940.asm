@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (122, 86) with radius 35.
-; PLAN: r0=122(x), r1=86(y), r2=35(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 122
-LDI r1, 86
-LDI r2, 35
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red rectangle at (392, 7) with width 44 and height 89.
+; PLAN: r0=392(x), r1=7(y), r2=44(width), r3=89(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 392
+LDI r1, 7
+LDI r2, 44
+LDI r3, 89
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

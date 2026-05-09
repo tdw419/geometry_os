@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green box of size 113x12 starting at (36, 238).
-; PLAN: r0=36(x), r1=238(y), r2=113(width), r3=12(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 36
-LDI r1, 238
-LDI r2, 113
-LDI r3, 12
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange circle centered at (83, 98) with radius 26.
+; PLAN: r0=83(x), r1=98(y), r2=26(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 83
+LDI r1, 98
+LDI r2, 26
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

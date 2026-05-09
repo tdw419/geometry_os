@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a red line from (264, 247) to (234, 146).
-; PLAN: r0=264(x1), r1=247(y1), r2=234(x2), r3=146(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 264
-LDI r1, 247
-LDI r2, 234
-LDI r3, 146
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single cyan pixel at (446, 173) then Creates a white circular shape at (189, 96) with radius 61.
+; PLAN: r0=446(x), r1=173(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=189(x), r6=96(y), r7=61(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 446
+LDI r1, 173
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 189
+LDI r6, 96
+LDI r7, 61
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

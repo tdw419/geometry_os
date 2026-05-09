@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a cyan line segment connecting (111, 56) to (141, 126).
-; PLAN: r0=111(x1), r1=56(y1), r2=141(x2), r3=126(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 56
-LDI r2, 141
-LDI r3, 126
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a white circular shape at (383, 97) with radius 51 then Draws a red line from (326, 107) to (373, 194).
+; PLAN: r0=383(x), r1=97(y), r2=51(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=326(x1), r6=107(y1), r7=373(x2), r8=194(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 383
+LDI r1, 97
+LDI r2, 51
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 326
+LDI r6, 107
+LDI r7, 373
+LDI r8, 194
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

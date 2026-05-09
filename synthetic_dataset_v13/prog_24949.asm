@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 25x42 rectangle at position (360, 165).
-; PLAN: r0=360(x), r1=165(y), r2=25(width), r3=42(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 360
-LDI r1, 165
-LDI r2, 25
-LDI r3, 42
+; DESCRIPTION: Draws a orange line from (370, 116) to (165, 100).
+; PLAN: r0=370(x1), r1=116(y1), r2=165(x2), r3=100(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 370
+LDI r1, 116
+LDI r2, 165
+LDI r3, 100
 LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

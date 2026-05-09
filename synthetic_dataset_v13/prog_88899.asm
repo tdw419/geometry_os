@@ -1,19 +1,12 @@
-; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
-LDI r7, 0xFFFFFF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Places a orange dot at position (345, 169) then Creates a magenta circular shape at (315, 180) with radius 52.
+; PLAN: r0=345(x), r1=169(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=315(x), r6=180(y), r7=52(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 345
+LDI r1, 169
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 315
+LDI r6, 180
+LDI r7, 52
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (55, 166) and (393, 9).
-; PLAN: r0=55(x1), r1=166(y1), r2=393(x2), r3=9(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 55
-LDI r1, 166
-LDI r2, 393
-LDI r3, 9
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a purple line from (511, 111) to (444, 243).
+; PLAN: r0=511(x1), r1=111(y1), r2=444(x2), r3=243(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 511
+LDI r1, 111
+LDI r2, 444
+LDI r3, 243
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

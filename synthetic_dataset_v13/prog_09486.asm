@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 15x94 starting at (224, 52).
-; PLAN: r0=224(x), r1=52(y), r2=15(width), r3=94(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 224
-LDI r1, 52
-LDI r2, 15
-LDI r3, 94
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a black box of size 64x60 starting at (263, 128).
+; PLAN: r0=263(x), r1=128(y), r2=64(width), r3=60(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 263
+LDI r1, 128
+LDI r2, 64
+LDI r3, 60
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

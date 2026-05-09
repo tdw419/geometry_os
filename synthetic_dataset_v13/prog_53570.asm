@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (83, 81) to (210, 97).
-; PLAN: r0=83(x1), r1=81(y1), r2=210(x2), r3=97(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 83
-LDI r1, 81
-LDI r2, 210
-LDI r3, 97
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red 18x21 rectangle at position (335, 177).
+; PLAN: r0=335(x), r1=177(y), r2=18(width), r3=21(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 335
+LDI r1, 177
+LDI r2, 18
+LDI r3, 21
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

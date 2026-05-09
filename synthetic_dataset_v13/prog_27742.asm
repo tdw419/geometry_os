@@ -1,19 +1,14 @@
-; DESCRIPTION: Composite: Places a purple 103x64 rectangle at position (101, 149) then Renders a cyan line between points (255, 5) and (276, 17) then Places a yellow dot at position (90, 213).
-; PLAN: r0=101(x), r1=149(y), r2=103(width), r3=64(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=255(x1), r6=5(y1), r7=276(x2), r8=17(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=90(x), r11=213(y), r12=0xFFFF00(color). Op: PSET r10, r11, r12.
-LDI r0, 101
-LDI r1, 149
-LDI r2, 103
-LDI r3, 64
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 255
-LDI r6, 5
-LDI r7, 276
-LDI r8, 17
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
-LDI r10, 90
-LDI r11, 213
-LDI r12, 0xFFFF00
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Renders a blue line between points (270, 228) and (279, 223) then Creates a cyan circular shape at (54, 117) with radius 38.
+; PLAN: r0=270(x1), r1=228(y1), r2=279(x2), r3=223(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=54(x), r6=117(y), r7=38(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 270
+LDI r1, 228
+LDI r2, 279
+LDI r3, 223
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 54
+LDI r6, 117
+LDI r7, 38
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

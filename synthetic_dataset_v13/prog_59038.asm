@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (195, 189) to (138, 101).
-; PLAN: r0=195(x1), r1=189(y1), r2=138(x2), r3=101(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 195
-LDI r1, 189
-LDI r2, 138
-LDI r3, 101
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a black line segment connecting (282, 79) to (468, 18).
+; PLAN: r0=282(x1), r1=79(y1), r2=468(x2), r3=18(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 282
+LDI r1, 79
+LDI r2, 468
+LDI r3, 18
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

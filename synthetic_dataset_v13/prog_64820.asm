@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 51 at center (401, 191).
-; PLAN: r0=401(x), r1=191(y), r2=51(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 401
-LDI r1, 191
-LDI r2, 51
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta box of size 97x119 starting at (210, 0).
+; PLAN: r0=210(x), r1=0(y), r2=97(width), r3=119(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 210
+LDI r1, 0
+LDI r2, 97
+LDI r3, 119
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

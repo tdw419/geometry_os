@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (83, 68) and radius 13.
-; PLAN: r0=83(x), r1=68(y), r2=13(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 83
-LDI r1, 68
-LDI r2, 13
-LDI r3, 0x000000
+; DESCRIPTION: Creates a yellow circular shape at (81, 88) with radius 22.
+; PLAN: r0=81(x), r1=88(y), r2=22(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 81
+LDI r1, 88
+LDI r2, 22
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

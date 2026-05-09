@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black rectangle at (34, 126) with width 37 and height 52.
-; PLAN: r0=34(x), r1=126(y), r2=37(width), r3=52(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 34
-LDI r1, 126
-LDI r2, 37
-LDI r3, 52
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple circle of radius 31 at center (164, 165).
+; PLAN: r0=164(x), r1=165(y), r2=31(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 164
+LDI r1, 165
+LDI r2, 31
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (157, 26) to (227, 5).
-; PLAN: r0=157(x1), r1=26(y1), r2=227(x2), r3=5(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 157
-LDI r1, 26
-LDI r2, 227
-LDI r3, 5
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 114x95 rectangle at position (339, 132).
+; PLAN: r0=339(x), r1=132(y), r2=114(width), r3=95(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 339
+LDI r1, 132
+LDI r2, 114
+LDI r3, 95
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

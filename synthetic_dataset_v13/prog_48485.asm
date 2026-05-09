@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Draws a white circle centered at (117, 35) with radius 28.
+; PLAN: r0=117(x), r1=35(y), r2=28(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 117
+LDI r1, 35
+LDI r2, 28
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

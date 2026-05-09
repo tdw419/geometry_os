@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (297, 162) with radius 50.
-; PLAN: r0=297(x), r1=162(y), r2=50(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 297
-LDI r1, 162
-LDI r2, 50
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 55x106 starting at (148, 45).
+; PLAN: r0=148(x), r1=45(y), r2=55(width), r3=106(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 148
+LDI r1, 45
+LDI r2, 55
+LDI r3, 106
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

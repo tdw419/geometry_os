@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single white pixel at (471, 217).
-; PLAN: r0=471(x), r1=217(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 471
-LDI r1, 217
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a white rectangle at (230, 14) with width 78 and height 52.
+; PLAN: r0=230(x), r1=14(y), r2=78(width), r3=52(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 230
+LDI r1, 14
+LDI r2, 78
+LDI r3, 52
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (114, 154) and radius 67.
-; PLAN: r0=114(x), r1=154(y), r2=67(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 114
-LDI r1, 154
-LDI r2, 67
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (440, 8) and (2, 27).
+; PLAN: r0=440(x1), r1=8(y1), r2=2(x2), r3=27(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 440
+LDI r1, 8
+LDI r2, 2
+LDI r3, 27
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

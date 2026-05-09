@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (267, 142) and radius 68.
-; PLAN: r0=267(x), r1=142(y), r2=68(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 267
-LDI r1, 142
-LDI r2, 68
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green line segment connecting (502, 110) to (479, 77).
+; PLAN: r0=502(x1), r1=110(y1), r2=479(x2), r3=77(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 502
+LDI r1, 110
+LDI r2, 479
+LDI r3, 77
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,12 @@
-; DESCRIPTION: Places a green circle of radius 34 at center (468, 141).
-; PLAN: r0=468(x), r1=141(y), r2=34(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 468
-LDI r1, 141
-LDI r2, 34
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single purple pixel at (76, 7) then Creates a purple circular shape at (219, 213) with radius 36.
+; PLAN: r0=76(x), r1=7(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=219(x), r6=213(y), r7=36(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 76
+LDI r1, 7
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 219
+LDI r6, 213
+LDI r7, 36
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

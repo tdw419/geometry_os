@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a red circular shape at (309, 55) with radius 17.
-; PLAN: r0=309(x), r1=55(y), r2=17(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 309
-LDI r1, 55
-LDI r2, 17
-LDI r3, 0xFF0000
+; DESCRIPTION: Draws a purple circle centered at (281, 74) with radius 69.
+; PLAN: r0=281(x), r1=74(y), r2=69(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 281
+LDI r1, 74
+LDI r2, 69
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (253, 58) to (428, 3).
-; PLAN: r0=253(x1), r1=58(y1), r2=428(x2), r3=3(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 253
-LDI r1, 58
-LDI r2, 428
-LDI r3, 3
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a red line from (130, 129) to (220, 131).
+; PLAN: r0=130(x1), r1=129(y1), r2=220(x2), r3=131(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 130
+LDI r1, 129
+LDI r2, 220
+LDI r3, 131
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

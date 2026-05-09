@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (32, 77) and (402, 93).
-; PLAN: r0=32(x1), r1=77(y1), r2=402(x2), r3=93(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 32
-LDI r1, 77
-LDI r2, 402
-LDI r3, 93
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (244, 136) with radius 25.
+; PLAN: r0=244(x), r1=136(y), r2=25(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 244
+LDI r1, 136
+LDI r2, 25
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

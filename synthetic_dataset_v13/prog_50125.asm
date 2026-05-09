@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (180, 168).
-; PLAN: r0=180(x), r1=168(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 180
-LDI r1, 168
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a orange line from (358, 35) to (290, 249).
+; PLAN: r0=358(x1), r1=35(y1), r2=290(x2), r3=249(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 358
+LDI r1, 35
+LDI r2, 290
+LDI r3, 249
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

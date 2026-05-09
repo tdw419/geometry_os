@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow line from (29, 28) to (292, 47).
-; PLAN: r0=29(x1), r1=28(y1), r2=292(x2), r3=47(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 29
-LDI r1, 28
-LDI r2, 292
-LDI r3, 47
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (329, 90) with radius 30.
+; PLAN: r0=329(x), r1=90(y), r2=30(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 329
+LDI r1, 90
+LDI r2, 30
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

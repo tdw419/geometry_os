@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a yellow circle centered at (478, 14) with radius 12.
-; PLAN: r0=478(x), r1=14(y), r2=12(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 478
-LDI r1, 14
-LDI r2, 12
-LDI r3, 0xFFFF00
+; DESCRIPTION: Places a orange circle of radius 10 at center (438, 78).
+; PLAN: r0=438(x), r1=78(y), r2=10(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 438
+LDI r1, 78
+LDI r2, 10
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

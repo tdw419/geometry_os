@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow line from (440, 72) to (491, 165).
-; PLAN: r0=440(x1), r1=72(y1), r2=491(x2), r3=165(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 440
-LDI r1, 72
-LDI r2, 491
-LDI r3, 165
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (187, 80) with radius 32.
+; PLAN: r0=187(x), r1=80(y), r2=32(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 187
+LDI r1, 80
+LDI r2, 32
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

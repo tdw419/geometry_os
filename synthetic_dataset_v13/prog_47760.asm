@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (105, 42) to (12, 58).
-; PLAN: r0=105(x1), r1=42(y1), r2=12(x2), r3=58(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 105
-LDI r1, 42
-LDI r2, 12
-LDI r3, 58
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow 59x112 rectangle at position (24, 60).
+; PLAN: r0=24(x), r1=60(y), r2=59(width), r3=112(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 24
+LDI r1, 60
+LDI r2, 59
+LDI r3, 112
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

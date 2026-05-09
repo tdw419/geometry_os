@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a green dot at position (308, 241) then Draws a yellow rectangle at (270, 100) with width 104 and height 115.
-; PLAN: r0=308(x), r1=241(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=270(x), r6=100(y), r7=104(width), r8=115(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 308
-LDI r1, 241
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 270
-LDI r6, 100
-LDI r7, 104
-LDI r8, 115
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a orange line segment connecting (464, 21) to (477, 110).
+; PLAN: r0=464(x1), r1=21(y1), r2=477(x2), r3=110(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 464
+LDI r1, 21
+LDI r2, 477
+LDI r3, 110
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

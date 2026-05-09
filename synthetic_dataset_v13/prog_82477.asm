@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a purple line from (208, 14) to (78, 84).
-; PLAN: r0=208(x1), r1=14(y1), r2=78(x2), r3=84(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 208
-LDI r1, 14
-LDI r2, 78
-LDI r3, 84
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (65, 6) then Creates a purple rectangular region at (5, 10) spanning 83 by 69 pixels.
+; PLAN: r0=65(x), r1=6(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=5(x), r6=10(y), r7=83(width), r8=69(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 65
+LDI r1, 6
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 5
+LDI r6, 10
+LDI r7, 83
+LDI r8, 69
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

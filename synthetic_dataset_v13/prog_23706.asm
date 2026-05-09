@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (434, 150) to (259, 255).
-; PLAN: r0=434(x1), r1=150(y1), r2=259(x2), r3=255(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 434
-LDI r1, 150
-LDI r2, 259
-LDI r3, 255
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a orange line from (445, 91) to (488, 118).
+; PLAN: r0=445(x1), r1=91(y1), r2=488(x2), r3=118(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 445
+LDI r1, 91
+LDI r2, 488
+LDI r3, 118
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

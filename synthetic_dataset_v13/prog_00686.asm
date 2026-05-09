@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 48x76 rectangle at position (246, 67).
-; PLAN: r0=246(x), r1=67(y), r2=48(width), r3=76(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 246
-LDI r1, 67
-LDI r2, 48
-LDI r3, 76
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (287, 199) to (281, 38).
+; PLAN: r0=287(x1), r1=199(y1), r2=281(x2), r3=38(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 287
+LDI r1, 199
+LDI r2, 281
+LDI r3, 38
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

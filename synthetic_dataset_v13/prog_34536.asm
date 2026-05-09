@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (42, 6) to (233, 242).
-; PLAN: r0=42(x1), r1=6(y1), r2=233(x2), r3=242(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 42
-LDI r1, 6
-LDI r2, 233
-LDI r3, 242
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (140, 134) with radius 13.
+; PLAN: r0=140(x), r1=134(y), r2=13(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 140
+LDI r1, 134
+LDI r2, 13
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

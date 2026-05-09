@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (30, 221) and radius 11.
-; PLAN: r0=30(x), r1=221(y), r2=11(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 30
-LDI r1, 221
-LDI r2, 11
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (4, 224) to (455, 80).
+; PLAN: r0=4(x1), r1=224(y1), r2=455(x2), r3=80(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 4
+LDI r1, 224
+LDI r2, 455
+LDI r3, 80
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Draws a purple line from (458, 231) to (466, 129) then Draws a green rectangle at (286, 99) with width 57 and height 59 then Creates a magenta circular shape at (187, 64) with radius 50.
-; PLAN: r0=458(x1), r1=231(y1), r2=466(x2), r3=129(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=286(x), r6=99(y), r7=57(width), r8=59(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=187(x), r11=64(y), r12=50(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 458
-LDI r1, 231
-LDI r2, 466
-LDI r3, 129
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 286
-LDI r6, 99
-LDI r7, 57
-LDI r8, 59
-LDI r9, 0x00FF00
+; DESCRIPTION: Composite: Places a orange dot at position (148, 37) then Places a purple 78x37 rectangle at position (175, 117) then Creates a magenta circular shape at (268, 134) with radius 58.
+; PLAN: r0=148(x), r1=37(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=175(x), r6=117(y), r7=78(width), r8=37(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=268(x), r11=134(y), r12=58(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 148
+LDI r1, 37
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 175
+LDI r6, 117
+LDI r7, 78
+LDI r8, 37
+LDI r9, 0xAA00FF
 RECTF r5, r6, r7, r8, r9
-LDI r10, 187
-LDI r11, 64
-LDI r12, 50
+LDI r10, 268
+LDI r11, 134
+LDI r12, 58
 LDI r13, 0xFF00FF
 CIRCLE r10, r11, r12, r13
 HALT

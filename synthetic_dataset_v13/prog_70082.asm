@@ -1,14 +1,8 @@
-; DESCRIPTION: Composite: Places a magenta 26x96 rectangle at position (344, 55) then Places a orange circle of radius 74 at center (157, 79).
-; PLAN: r0=344(x), r1=55(y), r2=26(width), r3=96(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=157(x), r6=79(y), r7=74(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 344
-LDI r1, 55
-LDI r2, 26
-LDI r3, 96
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 157
-LDI r6, 79
-LDI r7, 74
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Loads 31 into r1 and decrements it in a loop until zero.
+; PLAN: r1=31(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 31
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

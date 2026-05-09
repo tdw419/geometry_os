@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (405, 111) with width 65 and height 109.
-; PLAN: r0=405(x), r1=111(y), r2=65(width), r3=109(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 405
-LDI r1, 111
-LDI r2, 65
-LDI r3, 109
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a purple rectangle at (232, 106) with width 82 and height 67.
+; PLAN: r0=232(x), r1=106(y), r2=82(width), r3=67(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 232
+LDI r1, 106
+LDI r2, 82
+LDI r3, 67
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (115, 109) to (130, 34).
-; PLAN: r0=115(x1), r1=109(y1), r2=130(x2), r3=34(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 115
-LDI r1, 109
-LDI r2, 130
-LDI r3, 34
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black box of size 92x60 starting at (254, 50).
+; PLAN: r0=254(x), r1=50(y), r2=92(width), r3=60(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 254
+LDI r1, 50
+LDI r2, 92
+LDI r3, 60
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

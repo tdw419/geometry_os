@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (240, 187) and (341, 143).
-; PLAN: r0=240(x1), r1=187(y1), r2=341(x2), r3=143(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 240
-LDI r1, 187
-LDI r2, 341
-LDI r3, 143
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white disk with center (433, 139) and radius 76.
+; PLAN: r0=433(x), r1=139(y), r2=76(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 433
+LDI r1, 139
+LDI r2, 76
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

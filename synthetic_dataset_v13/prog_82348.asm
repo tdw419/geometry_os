@@ -1,8 +1,13 @@
-; DESCRIPTION: Places a yellow circle of radius 17 at center (17, 192).
-; PLAN: r0=17(x), r1=192(y), r2=17(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 17
-LDI r1, 192
-LDI r2, 17
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a orange dot at position (435, 28) then Draws a red line from (57, 5) to (361, 25).
+; PLAN: r0=435(x), r1=28(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=57(x1), r6=5(y1), r7=361(x2), r8=25(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 435
+LDI r1, 28
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 57
+LDI r6, 5
+LDI r7, 361
+LDI r8, 25
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

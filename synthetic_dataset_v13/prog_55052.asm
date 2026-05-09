@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (419, 109) with width 56 and height 93.
-; PLAN: r0=419(x), r1=109(y), r2=56(width), r3=93(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 419
-LDI r1, 109
-LDI r2, 56
-LDI r3, 93
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (261, 46) and (45, 53).
+; PLAN: r0=261(x1), r1=46(y1), r2=45(x2), r3=53(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 261
+LDI r1, 46
+LDI r2, 45
+LDI r3, 53
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

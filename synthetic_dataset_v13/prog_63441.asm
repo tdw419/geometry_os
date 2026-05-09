@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a magenta line from (350, 73) to (149, 71).
-; PLAN: r0=350(x1), r1=73(y1), r2=149(x2), r3=71(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 350
-LDI r1, 73
-LDI r2, 149
-LDI r3, 71
-LDI r4, 0xFF00FF
+; DESCRIPTION: Composite: Renders a red line between points (180, 89) and (318, 92) then Places a purple dot at position (91, 84).
+; PLAN: r0=180(x1), r1=89(y1), r2=318(x2), r3=92(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=91(x), r6=84(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 180
+LDI r1, 89
+LDI r2, 318
+LDI r3, 92
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
+LDI r5, 91
+LDI r6, 84
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

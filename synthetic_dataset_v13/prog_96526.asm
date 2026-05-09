@@ -1,9 +1,18 @@
-; DESCRIPTION: Creates a red rectangular region at (245, 208) spanning 70 by 40 pixels.
-; PLAN: r0=245(x), r1=208(y), r2=70(width), r3=40(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 245
-LDI r1, 208
-LDI r2, 70
-LDI r3, 40
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (388, 136) then Places a green circle of radius 25 at center (28, 100) then Creates a white rectangular region at (39, 148) spanning 53 by 91 pixels.
+; PLAN: r0=388(x), r1=136(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=28(x), r6=100(y), r7=25(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=39(x), r11=148(y), r12=53(width), r13=91(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 388
+LDI r1, 136
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 28
+LDI r6, 100
+LDI r7, 25
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
+LDI r10, 39
+LDI r11, 148
+LDI r12, 53
+LDI r13, 91
+LDI r14, 0xFFFFFF
+RECTF r10, r11, r12, r13, r14
 HALT

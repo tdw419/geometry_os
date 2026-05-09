@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 42x111 starting at (47, 118).
-; PLAN: r0=47(x), r1=118(y), r2=42(width), r3=111(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 47
-LDI r1, 118
-LDI r2, 42
-LDI r3, 111
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a blue box of size 20x62 starting at (42, 84).
+; PLAN: r0=42(x), r1=84(y), r2=20(width), r3=62(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 42
+LDI r1, 84
+LDI r2, 20
+LDI r3, 62
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (284, 185) with width 19 and height 43.
-; PLAN: r0=284(x), r1=185(y), r2=19(width), r3=43(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 185
-LDI r2, 19
-LDI r3, 43
+; DESCRIPTION: Renders a red line between points (159, 1) and (208, 150).
+; PLAN: r0=159(x1), r1=1(y1), r2=208(x2), r3=150(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 159
+LDI r1, 1
+LDI r2, 208
+LDI r3, 150
 LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

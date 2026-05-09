@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a white circular shape at (168, 28) with radius 24 then Sets a single black pixel at (168, 208).
-; PLAN: r0=168(x), r1=28(y), r2=24(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=168(x), r6=208(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 168
-LDI r1, 28
-LDI r2, 24
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 168
-LDI r6, 208
-LDI r7, 0x000000
-PSET r5, r6, r7
+; DESCRIPTION: Creates a cyan rectangular region at (373, 3) spanning 83 by 59 pixels.
+; PLAN: r0=373(x), r1=3(y), r2=83(width), r3=59(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 373
+LDI r1, 3
+LDI r2, 83
+LDI r3, 59
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

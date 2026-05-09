@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (461, 43).
-; PLAN: r0=461(x), r1=43(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 461
-LDI r1, 43
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Creates a magenta rectangular region at (314, 147) spanning 20 by 24 pixels.
+; PLAN: r0=314(x), r1=147(y), r2=20(width), r3=24(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 314
+LDI r1, 147
+LDI r2, 20
+LDI r3, 24
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

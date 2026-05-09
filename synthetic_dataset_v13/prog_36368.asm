@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single orange pixel at (374, 124).
-; PLAN: r0=374(x), r1=124(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 374
-LDI r1, 124
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a orange line from (17, 144) to (309, 181).
+; PLAN: r0=17(x1), r1=144(y1), r2=309(x2), r3=181(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 17
+LDI r1, 144
+LDI r2, 309
+LDI r3, 181
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

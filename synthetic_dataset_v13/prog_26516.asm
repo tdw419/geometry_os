@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (374, 192) and (94, 54).
-; PLAN: r0=374(x1), r1=192(y1), r2=94(x2), r3=54(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 374
-LDI r1, 192
-LDI r2, 94
-LDI r3, 54
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (252, 116) and radius 75.
+; PLAN: r0=252(x), r1=116(y), r2=75(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 252
+LDI r1, 116
+LDI r2, 75
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

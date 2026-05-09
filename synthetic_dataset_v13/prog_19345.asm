@@ -1,19 +1,13 @@
-; DESCRIPTION: Composite: Places a white line segment connecting (308, 106) to (87, 87) then Places a red dot at position (156, 104) then Renders a cyan box of size 31x79 starting at (87, 87).
-; PLAN: r0=308(x1), r1=106(y1), r2=87(x2), r3=87(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=156(x), r6=104(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=87(x), r11=87(y), r12=31(width), r13=79(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 308
-LDI r1, 106
-LDI r2, 87
-LDI r3, 87
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 156
-LDI r6, 104
-LDI r7, 0xFF0000
-PSET r5, r6, r7
-LDI r10, 87
-LDI r11, 87
-LDI r12, 31
-LDI r13, 79
-LDI r14, 0x00FFFF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single cyan pixel at (311, 146) then Places a yellow line segment connecting (428, 75) to (50, 182).
+; PLAN: r0=311(x), r1=146(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=428(x1), r6=75(y1), r7=50(x2), r8=182(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 311
+LDI r1, 146
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 428
+LDI r6, 75
+LDI r7, 50
+LDI r8, 182
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

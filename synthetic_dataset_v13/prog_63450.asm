@@ -1,8 +1,13 @@
-; DESCRIPTION: Creates a yellow circular shape at (270, 195) with radius 20.
-; PLAN: r0=270(x), r1=195(y), r2=20(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 270
-LDI r1, 195
-LDI r2, 20
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a purple dot at position (375, 236) then Places a cyan 120x18 rectangle at position (319, 81).
+; PLAN: r0=375(x), r1=236(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=319(x), r6=81(y), r7=120(width), r8=18(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 375
+LDI r1, 236
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 319
+LDI r6, 81
+LDI r7, 120
+LDI r8, 18
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Loads 31 into r1 and decrements it in a loop until zero.
-; PLAN: r1=31(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 31
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a yellow dot at position (291, 189).
+; PLAN: r0=291(x), r1=189(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 291
+LDI r1, 189
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

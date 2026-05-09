@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a cyan line from (102, 140) to (341, 234).
-; PLAN: r0=102(x1), r1=140(y1), r2=341(x2), r3=234(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 102
-LDI r1, 140
-LDI r2, 341
-LDI r3, 234
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow dot at position (412, 167).
+; PLAN: r0=412(x), r1=167(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 412
+LDI r1, 167
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

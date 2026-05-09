@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (331, 117) and radius 69.
-; PLAN: r0=331(x), r1=117(y), r2=69(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 331
+; DESCRIPTION: Draws a yellow rectangle at (310, 117) with width 48 and height 14.
+; PLAN: r0=310(x), r1=117(y), r2=48(width), r3=14(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 310
 LDI r1, 117
-LDI r2, 69
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+LDI r2, 48
+LDI r3, 14
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

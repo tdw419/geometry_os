@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 19x17 rectangle at position (49, 126).
-; PLAN: r0=49(x), r1=126(y), r2=19(width), r3=17(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 126
-LDI r2, 19
-LDI r3, 17
+; DESCRIPTION: Draws a black line from (495, 191) to (331, 165).
+; PLAN: r0=495(x1), r1=191(y1), r2=331(x2), r3=165(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 495
+LDI r1, 191
+LDI r2, 331
+LDI r3, 165
 LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a cyan circle of radius 64 at center (73, 87).
-; PLAN: r0=73(x), r1=87(y), r2=64(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 73
-LDI r1, 87
-LDI r2, 64
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 35 into r1 and decrements it in a loop until zero.
+; PLAN: r1=35(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 35
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a white rectangle at (8, 25) with width 83 and height 53.
-; PLAN: r0=8(x), r1=25(y), r2=83(width), r3=53(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 8
-LDI r1, 25
-LDI r2, 83
-LDI r3, 53
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (28, 62) then Creates a black circular shape at (451, 57) with radius 20.
+; PLAN: r0=28(x), r1=62(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=451(x), r6=57(y), r7=20(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 28
+LDI r1, 62
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 451
+LDI r6, 57
+LDI r7, 20
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

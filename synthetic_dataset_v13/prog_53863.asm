@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 27x10 rectangle at position (412, 239).
-; PLAN: r0=412(x), r1=239(y), r2=27(width), r3=10(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 412
-LDI r1, 239
-LDI r2, 27
-LDI r3, 10
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (53, 13) to (88, 153).
+; PLAN: r0=53(x1), r1=13(y1), r2=88(x2), r3=153(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 53
+LDI r1, 13
+LDI r2, 88
+LDI r3, 153
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

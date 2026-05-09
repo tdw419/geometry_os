@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single blue pixel at (255, 68).
-; PLAN: r0=255(x), r1=68(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 255
-LDI r1, 68
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a white circular shape at (361, 125) with radius 70.
+; PLAN: r0=361(x), r1=125(y), r2=70(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 361
+LDI r1, 125
+LDI r2, 70
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

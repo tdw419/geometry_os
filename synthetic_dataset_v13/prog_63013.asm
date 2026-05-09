@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (362, 244) to (119, 211).
-; PLAN: r0=362(x1), r1=244(y1), r2=119(x2), r3=211(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 244
-LDI r2, 119
-LDI r3, 211
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a blue line from (178, 125) to (74, 107).
+; PLAN: r0=178(x1), r1=125(y1), r2=74(x2), r3=107(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 178
+LDI r1, 125
+LDI r2, 74
+LDI r3, 107
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

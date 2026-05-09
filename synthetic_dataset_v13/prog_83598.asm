@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (145, 103) then Places a white circle of radius 26 at center (141, 174).
-; PLAN: r0=145(x), r1=103(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=141(x), r6=174(y), r7=26(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 145
-LDI r1, 103
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 141
-LDI r6, 174
-LDI r7, 26
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a red line segment connecting (382, 26) to (377, 101).
+; PLAN: r0=382(x1), r1=26(y1), r2=377(x2), r3=101(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 382
+LDI r1, 26
+LDI r2, 377
+LDI r3, 101
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

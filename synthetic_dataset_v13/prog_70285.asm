@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Draws a white line from (244, 2) to (462, 66) then Sets a single magenta pixel at (346, 135).
-; PLAN: r0=244(x1), r1=2(y1), r2=462(x2), r3=66(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=346(x), r6=135(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 244
-LDI r1, 2
-LDI r2, 462
-LDI r3, 66
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 346
-LDI r6, 135
-LDI r7, 0xFF00FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Creates a magenta circular shape at (263, 172) with radius 24 then Draws a black rectangle at (237, 2) with width 104 and height 61 then Sets a single red pixel at (29, 6).
+; PLAN: r0=263(x), r1=172(y), r2=24(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=237(x), r6=2(y), r7=104(width), r8=61(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=29(x), r11=6(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
+LDI r0, 263
+LDI r1, 172
+LDI r2, 24
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 237
+LDI r6, 2
+LDI r7, 104
+LDI r8, 61
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
+LDI r10, 29
+LDI r11, 6
+LDI r12, 0xFF0000
+PSET r10, r11, r12
 HALT

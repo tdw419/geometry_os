@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (102, 155) with radius 58.
-; PLAN: r0=102(x), r1=155(y), r2=58(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 102
-LDI r1, 155
-LDI r2, 58
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (449, 7) and (367, 112).
+; PLAN: r0=449(x1), r1=7(y1), r2=367(x2), r3=112(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 449
+LDI r1, 7
+LDI r2, 367
+LDI r3, 112
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

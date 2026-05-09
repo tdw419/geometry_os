@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a blue circle centered at (98, 81) with radius 11 then Creates a black rectangular region at (48, 227) spanning 120 by 11 pixels.
-; PLAN: r0=98(x), r1=81(y), r2=11(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=48(x), r6=227(y), r7=120(width), r8=11(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 98
-LDI r1, 81
-LDI r2, 11
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 48
-LDI r6, 227
-LDI r7, 120
-LDI r8, 11
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a white 31x30 rectangle at position (171, 113).
+; PLAN: r0=171(x), r1=113(y), r2=31(width), r3=30(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 171
+LDI r1, 113
+LDI r2, 31
+LDI r3, 30
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

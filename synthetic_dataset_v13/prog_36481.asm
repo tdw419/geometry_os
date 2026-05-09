@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 116x10 rectangle at position (155, 3).
-; PLAN: r0=155(x), r1=3(y), r2=116(width), r3=10(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 155
-LDI r1, 3
-LDI r2, 116
-LDI r3, 10
-LDI r4, 0xFF00FF
+; DESCRIPTION: Creates a white rectangular region at (56, 42) spanning 11 by 40 pixels.
+; PLAN: r0=56(x), r1=42(y), r2=11(width), r3=40(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 56
+LDI r1, 42
+LDI r2, 11
+LDI r3, 40
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

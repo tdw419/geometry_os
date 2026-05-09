@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (17, 151) and (305, 137).
-; PLAN: r0=17(x1), r1=151(y1), r2=305(x2), r3=137(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 17
-LDI r1, 151
-LDI r2, 305
-LDI r3, 137
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 74x63 starting at (239, 70).
+; PLAN: r0=239(x), r1=70(y), r2=74(width), r3=63(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 239
+LDI r1, 70
+LDI r2, 74
+LDI r3, 63
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

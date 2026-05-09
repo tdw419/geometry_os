@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 25x103 starting at (0, 101).
-; PLAN: r0=0(x), r1=101(y), r2=25(width), r3=103(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 0
-LDI r1, 101
+; DESCRIPTION: Renders a white box of size 25x62 starting at (255, 103).
+; PLAN: r0=255(x), r1=103(y), r2=25(width), r3=62(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 255
+LDI r1, 103
 LDI r2, 25
-LDI r3, 103
-LDI r4, 0xAA00FF
+LDI r3, 62
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

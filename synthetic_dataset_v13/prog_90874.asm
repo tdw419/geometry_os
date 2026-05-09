@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (422, 169) with radius 37.
-; PLAN: r0=422(x), r1=169(y), r2=37(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 422
-LDI r1, 169
-LDI r2, 37
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (441, 51) to (231, 198).
+; PLAN: r0=441(x1), r1=51(y1), r2=231(x2), r3=198(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 441
+LDI r1, 51
+LDI r2, 231
+LDI r3, 198
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

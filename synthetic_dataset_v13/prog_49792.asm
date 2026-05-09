@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (367, 147) and (85, 177).
-; PLAN: r0=367(x1), r1=147(y1), r2=85(x2), r3=177(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 367
-LDI r1, 147
-LDI r2, 85
-LDI r3, 177
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a red line segment connecting (75, 247) to (117, 74).
+; PLAN: r0=75(x1), r1=247(y1), r2=117(x2), r3=74(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 247
+LDI r2, 117
+LDI r3, 74
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

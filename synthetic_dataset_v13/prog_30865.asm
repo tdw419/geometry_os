@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a magenta 60x53 rectangle at position (345, 119).
-; PLAN: r0=345(x), r1=119(y), r2=60(width), r3=53(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 119
-LDI r2, 60
-LDI r3, 53
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green dot at position (353, 33).
+; PLAN: r0=353(x), r1=33(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 353
+LDI r1, 33
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

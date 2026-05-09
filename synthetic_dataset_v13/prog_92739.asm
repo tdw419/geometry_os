@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (282, 107) with radius 51.
-; PLAN: r0=282(x), r1=107(y), r2=51(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 282
-LDI r1, 107
-LDI r2, 51
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (62, 38) to (9, 182).
+; PLAN: r0=62(x1), r1=38(y1), r2=9(x2), r3=182(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 62
+LDI r1, 38
+LDI r2, 9
+LDI r3, 182
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

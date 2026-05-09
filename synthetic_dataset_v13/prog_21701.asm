@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a white circle centered at (335, 80) with radius 75.
-; PLAN: r0=335(x), r1=80(y), r2=75(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 335
-LDI r1, 80
-LDI r2, 75
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

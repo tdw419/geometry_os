@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (278, 207) to (168, 143).
-; PLAN: r0=278(x1), r1=207(y1), r2=168(x2), r3=143(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 278
-LDI r1, 207
-LDI r2, 168
-LDI r3, 143
+; DESCRIPTION: Renders a red box of size 17x92 starting at (116, 117).
+; PLAN: r0=116(x), r1=117(y), r2=17(width), r3=92(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 116
+LDI r1, 117
+LDI r2, 17
+LDI r3, 92
 LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

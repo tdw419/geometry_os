@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (92, 197) to (28, 71).
-; PLAN: r0=92(x1), r1=197(y1), r2=28(x2), r3=71(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 197
-LDI r2, 28
-LDI r3, 71
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a magenta line from (447, 122) to (312, 218).
+; PLAN: r0=447(x1), r1=122(y1), r2=312(x2), r3=218(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 447
+LDI r1, 122
+LDI r2, 312
+LDI r3, 218
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

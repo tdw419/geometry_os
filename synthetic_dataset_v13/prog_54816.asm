@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (386, 130) with radius 27.
-; PLAN: r0=386(x), r1=130(y), r2=27(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 386
-LDI r1, 130
-LDI r2, 27
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 53x55 starting at (33, 164).
+; PLAN: r0=33(x), r1=164(y), r2=53(width), r3=55(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 33
+LDI r1, 164
+LDI r2, 53
+LDI r3, 55
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

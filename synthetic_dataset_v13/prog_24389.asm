@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a yellow dot at position (100, 171).
-; PLAN: r0=100(x), r1=171(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 100
-LDI r1, 171
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Creates a orange circular shape at (115, 219) with radius 25.
+; PLAN: r0=115(x), r1=219(y), r2=25(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 115
+LDI r1, 219
+LDI r2, 25
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

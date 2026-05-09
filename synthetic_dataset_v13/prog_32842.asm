@@ -1,5 +1,8 @@
-; DESCRIPTION: Clears the screen to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Creates a white circular shape at (253, 30) with radius 11.
+; PLAN: r0=253(x), r1=30(y), r2=11(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 253
+LDI r1, 30
+LDI r2, 11
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

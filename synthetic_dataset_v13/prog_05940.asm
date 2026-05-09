@@ -1,8 +1,12 @@
-; DESCRIPTION: Creates a cyan circular shape at (439, 113) with radius 60.
-; PLAN: r0=439(x), r1=113(y), r2=60(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 439
-LDI r1, 113
-LDI r2, 60
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single yellow pixel at (327, 162) then Draws a black circle centered at (234, 84) with radius 17.
+; PLAN: r0=327(x), r1=162(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=234(x), r6=84(y), r7=17(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 327
+LDI r1, 162
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 234
+LDI r6, 84
+LDI r7, 17
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

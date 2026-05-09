@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a black box of size 16x103 starting at (50, 10).
-; PLAN: r0=50(x), r1=10(y), r2=16(width), r3=103(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 50
-LDI r1, 10
-LDI r2, 16
-LDI r3, 103
-LDI r4, 0x000000
+; DESCRIPTION: Composite: Draws a purple rectangle at (383, 22) with width 105 and height 80 then Places a black dot at position (23, 116).
+; PLAN: r0=383(x), r1=22(y), r2=105(width), r3=80(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=23(x), r6=116(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 383
+LDI r1, 22
+LDI r2, 105
+LDI r3, 80
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
+LDI r5, 23
+LDI r6, 116
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 52x29 rectangle at position (322, 21).
-; PLAN: r0=322(x), r1=21(y), r2=52(width), r3=29(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 322
-LDI r1, 21
-LDI r2, 52
-LDI r3, 29
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (321, 84) with radius 66.
+; PLAN: r0=321(x), r1=84(y), r2=66(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 321
+LDI r1, 84
+LDI r2, 66
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

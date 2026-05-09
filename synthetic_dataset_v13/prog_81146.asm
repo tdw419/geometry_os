@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (83, 245) to (381, 169).
-; PLAN: r0=83(x1), r1=245(y1), r2=381(x2), r3=169(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 83
-LDI r1, 245
-LDI r2, 381
-LDI r3, 169
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a purple line between points (203, 203) and (506, 124).
+; PLAN: r0=203(x1), r1=203(y1), r2=506(x2), r3=124(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 203
+LDI r1, 203
+LDI r2, 506
+LDI r3, 124
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

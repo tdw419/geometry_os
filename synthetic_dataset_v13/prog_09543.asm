@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (447, 151).
-; PLAN: r0=447(x), r1=151(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 447
-LDI r1, 151
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan rectangle at (5, 2) with width 101 and height 103.
+; PLAN: r0=5(x), r1=2(y), r2=101(width), r3=103(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 5
+LDI r1, 2
+LDI r2, 101
+LDI r3, 103
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

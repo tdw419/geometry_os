@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (477, 131) and (131, 115).
-; PLAN: r0=477(x1), r1=131(y1), r2=131(x2), r3=115(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 477
-LDI r1, 131
-LDI r2, 131
-LDI r3, 115
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black box of size 64x32 starting at (434, 137).
+; PLAN: r0=434(x), r1=137(y), r2=64(width), r3=32(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 434
+LDI r1, 137
+LDI r2, 64
+LDI r3, 32
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

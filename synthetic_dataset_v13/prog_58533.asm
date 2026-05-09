@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (213, 215) to (57, 252).
-; PLAN: r0=213(x1), r1=215(y1), r2=57(x2), r3=252(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 213
-LDI r1, 215
-LDI r2, 57
-LDI r3, 252
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 72 at center (320, 113).
+; PLAN: r0=320(x), r1=113(y), r2=72(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 320
+LDI r1, 113
+LDI r2, 72
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

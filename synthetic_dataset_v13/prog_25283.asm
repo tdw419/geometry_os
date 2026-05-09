@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a red box of size 60x89 starting at (379, 66).
-; PLAN: r0=379(x), r1=66(y), r2=60(width), r3=89(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 379
-LDI r1, 66
-LDI r2, 60
-LDI r3, 89
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single yellow pixel at (17, 162).
+; PLAN: r0=17(x), r1=162(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 17
+LDI r1, 162
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

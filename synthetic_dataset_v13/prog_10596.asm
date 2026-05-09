@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (39, 167).
-; PLAN: r0=39(x), r1=167(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 39
-LDI r1, 167
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange 78x118 rectangle at position (119, 112).
+; PLAN: r0=119(x), r1=112(y), r2=78(width), r3=118(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 119
+LDI r1, 112
+LDI r2, 78
+LDI r3, 118
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 44x80 starting at (351, 83).
-; PLAN: r0=351(x), r1=83(y), r2=44(width), r3=80(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 351
-LDI r1, 83
-LDI r2, 44
-LDI r3, 80
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a purple rectangle at (151, 115) with width 96 and height 36.
+; PLAN: r0=151(x), r1=115(y), r2=96(width), r3=36(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 115
+LDI r2, 96
+LDI r3, 36
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

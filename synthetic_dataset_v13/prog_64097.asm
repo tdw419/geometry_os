@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (79, 3) spanning 83 by 62 pixels.
-; PLAN: r0=79(x), r1=3(y), r2=83(width), r3=62(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 79
-LDI r1, 3
-LDI r2, 83
-LDI r3, 62
-LDI r4, 0x000000
+; DESCRIPTION: Places a magenta 14x90 rectangle at position (443, 118).
+; PLAN: r0=443(x), r1=118(y), r2=14(width), r3=90(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 443
+LDI r1, 118
+LDI r2, 14
+LDI r3, 90
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

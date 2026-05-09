@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (384, 68) then Renders a white disk with center (285, 145) and radius 16.
-; PLAN: r0=384(x), r1=68(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=285(x), r6=145(y), r7=16(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 384
-LDI r1, 68
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 285
-LDI r6, 145
-LDI r7, 16
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a red line segment connecting (383, 161) to (363, 7).
+; PLAN: r0=383(x1), r1=161(y1), r2=363(x2), r3=7(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 383
+LDI r1, 161
+LDI r2, 363
+LDI r3, 7
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

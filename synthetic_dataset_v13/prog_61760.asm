@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (283, 160) with radius 61.
-; PLAN: r0=283(x), r1=160(y), r2=61(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 283
-LDI r1, 160
-LDI r2, 61
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green line segment connecting (151, 11) to (371, 121).
+; PLAN: r0=151(x1), r1=11(y1), r2=371(x2), r3=121(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 11
+LDI r2, 371
+LDI r3, 121
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

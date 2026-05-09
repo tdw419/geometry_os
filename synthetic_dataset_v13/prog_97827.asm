@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow box of size 41x22 starting at (34, 81).
-; PLAN: r0=34(x), r1=81(y), r2=41(width), r3=22(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 34
-LDI r1, 81
-LDI r2, 41
-LDI r3, 22
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (247, 121) and radius 20.
+; PLAN: r0=247(x), r1=121(y), r2=20(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 247
+LDI r1, 121
+LDI r2, 20
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

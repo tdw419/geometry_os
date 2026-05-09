@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (420, 244).
-; PLAN: r0=420(x), r1=244(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 420
-LDI r1, 244
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a red box of size 42x26 starting at (232, 197).
+; PLAN: r0=232(x), r1=197(y), r2=42(width), r3=26(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 232
+LDI r1, 197
+LDI r2, 42
+LDI r3, 26
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

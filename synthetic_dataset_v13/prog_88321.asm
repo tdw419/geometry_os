@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Draws a purple circle centered at (285, 69) with radius 11.
+; PLAN: r0=285(x), r1=69(y), r2=11(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 285
+LDI r1, 69
+LDI r2, 11
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

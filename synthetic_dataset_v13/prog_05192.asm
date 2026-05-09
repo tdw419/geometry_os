@@ -1,13 +1,12 @@
-; DESCRIPTION: Composite: Places a black dot at position (46, 78) then Places a yellow 87x73 rectangle at position (252, 170).
-; PLAN: r0=46(x), r1=78(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=252(x), r6=170(y), r7=87(width), r8=73(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 46
-LDI r1, 78
-LDI r2, 0x000000
+; DESCRIPTION: Composite: Places a magenta dot at position (87, 173) then Places a green circle of radius 39 at center (110, 125).
+; PLAN: r0=87(x), r1=173(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=110(x), r6=125(y), r7=39(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 87
+LDI r1, 173
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
-LDI r5, 252
-LDI r6, 170
-LDI r7, 87
-LDI r8, 73
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+LDI r5, 110
+LDI r6, 125
+LDI r7, 39
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

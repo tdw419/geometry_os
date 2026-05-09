@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (277, 0) and (389, 166).
-; PLAN: r0=277(x1), r1=0(y1), r2=389(x2), r3=166(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 277
-LDI r1, 0
-LDI r2, 389
-LDI r3, 166
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange rectangular region at (85, 152) spanning 101 by 17 pixels.
+; PLAN: r0=85(x), r1=152(y), r2=101(width), r3=17(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 85
+LDI r1, 152
+LDI r2, 101
+LDI r3, 17
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

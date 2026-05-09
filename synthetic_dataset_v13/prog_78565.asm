@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a green circular shape at (445, 106) with radius 53 then Places a cyan dot at position (125, 147).
-; PLAN: r0=445(x), r1=106(y), r2=53(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=125(x), r6=147(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 445
-LDI r1, 106
-LDI r2, 53
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 125
-LDI r6, 147
-LDI r7, 0x00FFFF
-PSET r5, r6, r7
+; DESCRIPTION: Draws a cyan rectangle at (93, 32) with width 104 and height 29.
+; PLAN: r0=93(x), r1=32(y), r2=104(width), r3=29(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 32
+LDI r2, 104
+LDI r3, 29
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (363, 47) and (100, 198).
-; PLAN: r0=363(x1), r1=47(y1), r2=100(x2), r3=198(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 47
-LDI r2, 100
-LDI r3, 198
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 49 at center (153, 178).
+; PLAN: r0=153(x), r1=178(y), r2=49(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 153
+LDI r1, 178
+LDI r2, 49
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

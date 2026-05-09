@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (391, 231) and (107, 123).
-; PLAN: r0=391(x1), r1=231(y1), r2=107(x2), r3=123(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 391
-LDI r1, 231
-LDI r2, 107
-LDI r3, 123
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow box of size 108x98 starting at (352, 127).
+; PLAN: r0=352(x), r1=127(y), r2=108(width), r3=98(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 352
+LDI r1, 127
+LDI r2, 108
+LDI r3, 98
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

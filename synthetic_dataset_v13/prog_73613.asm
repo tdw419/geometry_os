@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow 73x105 rectangle at position (407, 54).
-; PLAN: r0=407(x), r1=54(y), r2=73(width), r3=105(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 407
-LDI r1, 54
-LDI r2, 73
-LDI r3, 105
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan dot at position (45, 45).
+; PLAN: r0=45(x), r1=45(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 45
+LDI r1, 45
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

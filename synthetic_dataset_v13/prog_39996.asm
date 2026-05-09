@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (97, 22) to (442, 231).
-; PLAN: r0=97(x1), r1=22(y1), r2=442(x2), r3=231(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 97
-LDI r1, 22
-LDI r2, 442
-LDI r3, 231
+; DESCRIPTION: Draws a black rectangle at (103, 108) with width 112 and height 26.
+; PLAN: r0=103(x), r1=108(y), r2=112(width), r3=26(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 103
+LDI r1, 108
+LDI r2, 112
+LDI r3, 26
 LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

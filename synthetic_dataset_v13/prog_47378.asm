@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (337, 65) with radius 40.
-; PLAN: r0=337(x), r1=65(y), r2=40(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 337
-LDI r1, 65
-LDI r2, 40
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta line segment connecting (293, 130) to (293, 97).
+; PLAN: r0=293(x1), r1=130(y1), r2=293(x2), r3=97(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 293
+LDI r1, 130
+LDI r2, 293
+LDI r3, 97
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

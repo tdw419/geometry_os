@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 51x61 rectangle at position (371, 132).
-; PLAN: r0=371(x), r1=132(y), r2=51(width), r3=61(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 371
-LDI r1, 132
-LDI r2, 51
-LDI r3, 61
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (107, 54) and radius 50.
+; PLAN: r0=107(x), r1=54(y), r2=50(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 107
+LDI r1, 54
+LDI r2, 50
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

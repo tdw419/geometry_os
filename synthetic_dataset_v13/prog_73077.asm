@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single green pixel at (210, 147).
-; PLAN: r0=210(x), r1=147(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 210
-LDI r1, 147
-LDI r2, 0x00FF00
+; DESCRIPTION: Places a yellow dot at position (234, 201).
+; PLAN: r0=234(x), r1=201(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 234
+LDI r1, 201
+LDI r2, 0xFFFF00
 PSET r0, r1, r2
 HALT

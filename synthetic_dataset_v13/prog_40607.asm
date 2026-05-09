@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (370, 94) and radius 27.
-; PLAN: r0=370(x), r1=94(y), r2=27(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 370
-LDI r1, 94
-LDI r2, 27
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (374, 42) spanning 76 by 26 pixels.
+; PLAN: r0=374(x), r1=42(y), r2=76(width), r3=26(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 374
+LDI r1, 42
+LDI r2, 76
+LDI r3, 26
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

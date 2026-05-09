@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a white disk with center (100, 151) and radius 35.
-; PLAN: r0=100(x), r1=151(y), r2=35(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 100
-LDI r1, 151
-LDI r2, 35
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (20, 5).
+; PLAN: r0=20(x), r1=5(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 20
+LDI r1, 5
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

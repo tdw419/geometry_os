@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single black pixel at (374, 242).
-; PLAN: r0=374(x), r1=242(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 374
-LDI r1, 242
-LDI r2, 0x000000
+; DESCRIPTION: Places a yellow dot at position (336, 254).
+; PLAN: r0=336(x), r1=254(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 336
+LDI r1, 254
+LDI r2, 0xFFFF00
 PSET r0, r1, r2
 HALT

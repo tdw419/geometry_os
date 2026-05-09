@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (299, 93) and (449, 186).
-; PLAN: r0=299(x1), r1=93(y1), r2=449(x2), r3=186(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 299
-LDI r1, 93
-LDI r2, 449
-LDI r3, 186
+; DESCRIPTION: Creates a orange rectangular region at (85, 131) spanning 106 by 48 pixels.
+; PLAN: r0=85(x), r1=131(y), r2=106(width), r3=48(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 85
+LDI r1, 131
+LDI r2, 106
+LDI r3, 48
 LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

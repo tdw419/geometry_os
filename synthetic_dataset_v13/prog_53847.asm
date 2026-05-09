@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (84, 118) to (307, 177).
-; PLAN: r0=84(x1), r1=118(y1), r2=307(x2), r3=177(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 84
-LDI r1, 118
-LDI r2, 307
-LDI r3, 177
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (280, 69) with radius 61.
+; PLAN: r0=280(x), r1=69(y), r2=61(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 280
+LDI r1, 69
+LDI r2, 61
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

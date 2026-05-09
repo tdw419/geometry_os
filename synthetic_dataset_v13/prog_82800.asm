@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a cyan 59x106 rectangle at position (31, 145).
-; PLAN: r0=31(x), r1=145(y), r2=59(width), r3=106(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 31
-LDI r1, 145
-LDI r2, 59
-LDI r3, 106
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (336, 224).
+; PLAN: r0=336(x), r1=224(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 336
+LDI r1, 224
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

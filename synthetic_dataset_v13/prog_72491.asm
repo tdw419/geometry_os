@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (240, 82) with width 80 and height 75.
-; PLAN: r0=240(x), r1=82(y), r2=80(width), r3=75(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 240
-LDI r1, 82
-LDI r2, 80
-LDI r3, 75
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a red rectangle at (177, 105) with width 91 and height 89.
+; PLAN: r0=177(x), r1=105(y), r2=91(width), r3=89(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 177
+LDI r1, 105
+LDI r2, 91
+LDI r3, 89
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

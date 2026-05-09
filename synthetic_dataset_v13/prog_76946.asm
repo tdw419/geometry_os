@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Places a blue circle of radius 31 at center (36, 39) then Draws a purple rectangle at (67, 222) with width 48 and height 10 then Sets a single orange pixel at (422, 66).
-; PLAN: r0=36(x), r1=39(y), r2=31(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=67(x), r6=222(y), r7=48(width), r8=10(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=422(x), r11=66(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
-LDI r0, 36
-LDI r1, 39
-LDI r2, 31
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 67
-LDI r6, 222
-LDI r7, 48
-LDI r8, 10
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 422
-LDI r11, 66
-LDI r12, 0xFF8800
-PSET r10, r11, r12
+; DESCRIPTION: Renders a yellow line between points (322, 232) and (48, 157).
+; PLAN: r0=322(x1), r1=232(y1), r2=48(x2), r3=157(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 322
+LDI r1, 232
+LDI r2, 48
+LDI r3, 157
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

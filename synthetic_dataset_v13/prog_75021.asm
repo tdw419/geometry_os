@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (199, 147) to (207, 16).
-; PLAN: r0=199(x1), r1=147(y1), r2=207(x2), r3=16(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 199
-LDI r1, 147
-LDI r2, 207
-LDI r3, 16
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a magenta line from (244, 204) to (233, 197).
+; PLAN: r0=244(x1), r1=204(y1), r2=233(x2), r3=197(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 244
+LDI r1, 204
+LDI r2, 233
+LDI r3, 197
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

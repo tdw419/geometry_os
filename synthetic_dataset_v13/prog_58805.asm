@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a purple dot at position (464, 159).
-; PLAN: r0=464(x), r1=159(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 464
-LDI r1, 159
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (161, 67) and (320, 94).
-; PLAN: r0=161(x1), r1=67(y1), r2=320(x2), r3=94(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 161
-LDI r1, 67
-LDI r2, 320
-LDI r3, 94
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (190, 175) and radius 54.
+; PLAN: r0=190(x), r1=175(y), r2=54(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 190
+LDI r1, 175
+LDI r2, 54
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

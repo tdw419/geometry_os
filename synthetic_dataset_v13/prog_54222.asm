@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a yellow circular shape at (211, 71) with radius 69.
-; PLAN: r0=211(x), r1=71(y), r2=69(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 211
-LDI r1, 71
-LDI r2, 69
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

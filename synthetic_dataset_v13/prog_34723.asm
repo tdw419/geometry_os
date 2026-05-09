@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single orange pixel at (224, 132).
-; PLAN: r0=224(x), r1=132(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 224
-LDI r1, 132
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green disk with center (328, 211) and radius 36.
+; PLAN: r0=328(x), r1=211(y), r2=36(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 328
+LDI r1, 211
+LDI r2, 36
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

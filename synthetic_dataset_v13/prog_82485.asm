@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (139, 241) with width 103 and height 14.
-; PLAN: r0=139(x), r1=241(y), r2=103(width), r3=14(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 139
-LDI r1, 241
-LDI r2, 103
-LDI r3, 14
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (294, 80) and (188, 114).
+; PLAN: r0=294(x1), r1=80(y1), r2=188(x2), r3=114(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 294
+LDI r1, 80
+LDI r2, 188
+LDI r3, 114
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

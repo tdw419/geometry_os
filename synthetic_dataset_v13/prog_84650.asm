@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (171, 117) with radius 32.
-; PLAN: r0=171(x), r1=117(y), r2=32(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 171
-LDI r1, 117
-LDI r2, 32
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange rectangle at (450, 146) with width 14 and height 55.
+; PLAN: r0=450(x), r1=146(y), r2=14(width), r3=55(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 450
+LDI r1, 146
+LDI r2, 14
+LDI r3, 55
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

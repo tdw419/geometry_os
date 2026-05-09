@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 79x109 starting at (422, 94).
-; PLAN: r0=422(x), r1=94(y), r2=79(width), r3=109(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 422
-LDI r1, 94
-LDI r2, 79
-LDI r3, 109
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a magenta rectangular region at (307, 86) spanning 87 by 54 pixels.
+; PLAN: r0=307(x), r1=86(y), r2=87(width), r3=54(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 307
+LDI r1, 86
+LDI r2, 87
+LDI r3, 54
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (79, 142) to (79, 230).
-; PLAN: r0=79(x1), r1=142(y1), r2=79(x2), r3=230(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 79
-LDI r1, 142
-LDI r2, 79
-LDI r3, 230
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (358, 78) with radius 42.
+; PLAN: r0=358(x), r1=78(y), r2=42(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 358
+LDI r1, 78
+LDI r2, 42
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

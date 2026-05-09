@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 100x30 rectangle at position (133, 34).
-; PLAN: r0=133(x), r1=34(y), r2=100(width), r3=30(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 133
-LDI r1, 34
-LDI r2, 100
-LDI r3, 30
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (185, 132) with radius 59.
+; PLAN: r0=185(x), r1=132(y), r2=59(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 185
+LDI r1, 132
+LDI r2, 59
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

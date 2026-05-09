@@ -1,9 +1,19 @@
-; DESCRIPTION: Draws a black rectangle at (177, 68) with width 18 and height 57.
-; PLAN: r0=177(x), r1=68(y), r2=18(width), r3=57(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 68
-LDI r2, 18
-LDI r3, 57
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
+LDI r7, 0xFFFFFF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

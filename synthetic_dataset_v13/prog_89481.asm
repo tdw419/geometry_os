@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a magenta box of size 78x11 starting at (59, 26).
-; PLAN: r0=59(x), r1=26(y), r2=78(width), r3=11(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 59
-LDI r1, 26
-LDI r2, 78
-LDI r3, 11
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (285, 163).
+; PLAN: r0=285(x), r1=163(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 285
+LDI r1, 163
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

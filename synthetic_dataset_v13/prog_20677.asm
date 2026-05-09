@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a blue rectangular region at (63, 15) spanning 34 by 117 pixels.
-; PLAN: r0=63(x), r1=15(y), r2=34(width), r3=117(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 63
-LDI r1, 15
-LDI r2, 34
-LDI r3, 117
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 78 at center (277, 161).
+; PLAN: r0=277(x), r1=161(y), r2=78(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 277
+LDI r1, 161
+LDI r2, 78
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

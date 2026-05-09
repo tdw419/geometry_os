@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a blue line between points (345, 102) and (323, 165).
-; PLAN: r0=345(x1), r1=102(y1), r2=323(x2), r3=165(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 102
-LDI r2, 323
-LDI r3, 165
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

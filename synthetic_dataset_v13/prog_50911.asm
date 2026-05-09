@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a orange line between points (192, 233) and (78, 156).
-; PLAN: r0=192(x1), r1=233(y1), r2=78(x2), r3=156(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 192
-LDI r1, 233
-LDI r2, 78
-LDI r3, 156
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (327, 72) then Draws a black circle centered at (356, 131) with radius 28.
+; PLAN: r0=327(x), r1=72(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=356(x), r6=131(y), r7=28(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 327
+LDI r1, 72
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 356
+LDI r6, 131
+LDI r7, 28
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

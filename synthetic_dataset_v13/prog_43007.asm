@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 14x86 starting at (171, 97).
-; PLAN: r0=171(x), r1=97(y), r2=14(width), r3=86(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 171
-LDI r1, 97
-LDI r2, 14
-LDI r3, 86
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 66 at center (438, 126).
+; PLAN: r0=438(x), r1=126(y), r2=66(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 438
+LDI r1, 126
+LDI r2, 66
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

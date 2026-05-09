@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 24x108 rectangle at position (336, 6).
-; PLAN: r0=336(x), r1=6(y), r2=24(width), r3=108(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 336
-LDI r1, 6
-LDI r2, 24
-LDI r3, 108
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white disk with center (443, 119) and radius 67.
+; PLAN: r0=443(x), r1=119(y), r2=67(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 443
+LDI r1, 119
+LDI r2, 67
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

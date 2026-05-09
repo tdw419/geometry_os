@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (385, 72) to (145, 97).
-; PLAN: r0=385(x1), r1=72(y1), r2=145(x2), r3=97(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 385
-LDI r1, 72
-LDI r2, 145
-LDI r3, 97
+; DESCRIPTION: Draws a yellow rectangle at (341, 44) with width 108 and height 79.
+; PLAN: r0=341(x), r1=44(y), r2=108(width), r3=79(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 341
+LDI r1, 44
+LDI r2, 108
+LDI r3, 79
 LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

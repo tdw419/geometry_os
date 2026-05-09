@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Draws a red line from (14, 189) to (360, 111).
+; PLAN: r0=14(x1), r1=189(y1), r2=360(x2), r3=111(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 14
+LDI r1, 189
+LDI r2, 360
+LDI r3, 111
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

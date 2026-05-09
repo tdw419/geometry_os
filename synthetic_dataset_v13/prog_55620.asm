@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (246, 89) with radius 65.
-; PLAN: r0=246(x), r1=89(y), r2=65(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 246
-LDI r1, 89
-LDI r2, 65
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (0, 198) and (107, 52).
+; PLAN: r0=0(x1), r1=198(y1), r2=107(x2), r3=52(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 0
+LDI r1, 198
+LDI r2, 107
+LDI r3, 52
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

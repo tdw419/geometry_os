@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single blue pixel at (325, 13).
-; PLAN: r0=325(x), r1=13(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 325
-LDI r1, 13
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

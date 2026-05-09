@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 33x87 rectangle at position (80, 69).
-; PLAN: r0=80(x), r1=69(y), r2=33(width), r3=87(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 80
-LDI r1, 69
-LDI r2, 33
-LDI r3, 87
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan line segment connecting (13, 173) to (455, 201).
+; PLAN: r0=13(x1), r1=173(y1), r2=455(x2), r3=201(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 13
+LDI r1, 173
+LDI r2, 455
+LDI r3, 201
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

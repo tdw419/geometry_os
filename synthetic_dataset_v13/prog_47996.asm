@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (460, 33) and (201, 183).
-; PLAN: r0=460(x1), r1=33(y1), r2=201(x2), r3=183(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 460
-LDI r1, 33
-LDI r2, 201
-LDI r3, 183
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple circle of radius 77 at center (175, 111).
+; PLAN: r0=175(x), r1=111(y), r2=77(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 175
+LDI r1, 111
+LDI r2, 77
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

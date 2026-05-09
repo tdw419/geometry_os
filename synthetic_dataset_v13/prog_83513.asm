@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Draws a black rectangle at (138, 121) with width 24 and height 82 then Renders a green line between points (361, 3) and (459, 120) then Places a orange dot at position (89, 88).
-; PLAN: r0=138(x), r1=121(y), r2=24(width), r3=82(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=361(x1), r6=3(y1), r7=459(x2), r8=120(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=89(x), r11=88(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
+; DESCRIPTION: Composite: Sets a single blue pixel at (138, 171) then Creates a red circular shape at (373, 84) with radius 64 then Draws a yellow line from (384, 176) to (150, 199).
+; PLAN: r0=138(x), r1=171(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=373(x), r6=84(y), r7=64(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=384(x1), r11=176(y1), r12=150(x2), r13=199(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
 LDI r0, 138
-LDI r1, 121
-LDI r2, 24
-LDI r3, 82
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 361
-LDI r6, 3
-LDI r7, 459
-LDI r8, 120
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 89
-LDI r11, 88
-LDI r12, 0xFF8800
-PSET r10, r11, r12
+LDI r1, 171
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 373
+LDI r6, 84
+LDI r7, 64
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
+LDI r10, 384
+LDI r11, 176
+LDI r12, 150
+LDI r13, 199
+LDI r14, 0xFFFF00
+LINE r10, r11, r12, r13, r14
 HALT

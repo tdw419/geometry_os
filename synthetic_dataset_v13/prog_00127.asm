@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (177, 28) and (468, 10).
-; PLAN: r0=177(x1), r1=28(y1), r2=468(x2), r3=10(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 28
-LDI r2, 468
-LDI r3, 10
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red circular shape at (468, 60) with radius 40.
+; PLAN: r0=468(x), r1=60(y), r2=40(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 468
+LDI r1, 60
+LDI r2, 40
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

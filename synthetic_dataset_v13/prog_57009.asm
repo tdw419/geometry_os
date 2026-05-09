@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (108, 101) with radius 34.
-; PLAN: r0=108(x), r1=101(y), r2=34(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 108
-LDI r1, 101
-LDI r2, 34
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (90, 89) to (259, 207).
+; PLAN: r0=90(x1), r1=89(y1), r2=259(x2), r3=207(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 90
+LDI r1, 89
+LDI r2, 259
+LDI r3, 207
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

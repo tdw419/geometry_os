@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta box of size 56x79 starting at (391, 175).
-; PLAN: r0=391(x), r1=175(y), r2=56(width), r3=79(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 391
-LDI r1, 175
-LDI r2, 56
-LDI r3, 79
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (66, 156) with radius 66.
+; PLAN: r0=66(x), r1=156(y), r2=66(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 66
+LDI r1, 156
+LDI r2, 66
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

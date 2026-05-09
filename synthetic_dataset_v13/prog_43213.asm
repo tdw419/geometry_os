@@ -1,15 +1,15 @@
-; DESCRIPTION: Composite: Renders a yellow box of size 93x26 starting at (68, 92) then Renders a magenta line between points (61, 220) and (169, 58).
-; PLAN: r0=68(x), r1=92(y), r2=93(width), r3=26(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=61(x1), r6=220(y1), r7=169(x2), r8=58(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 68
-LDI r1, 92
-LDI r2, 93
-LDI r3, 26
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 61
-LDI r6, 220
-LDI r7, 169
-LDI r8, 58
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a purple line between points (219, 205) and (200, 254) then Draws a purple rectangle at (476, 108) with width 13 and height 53.
+; PLAN: r0=219(x1), r1=205(y1), r2=200(x2), r3=254(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=476(x), r6=108(y), r7=13(width), r8=53(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 219
+LDI r1, 205
+LDI r2, 200
+LDI r3, 254
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 476
+LDI r6, 108
+LDI r7, 13
+LDI r8, 53
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

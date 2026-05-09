@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (410, 62) to (124, 136).
-; PLAN: r0=410(x1), r1=62(y1), r2=124(x2), r3=136(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 410
-LDI r1, 62
-LDI r2, 124
-LDI r3, 136
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (255, 106) and radius 57.
+; PLAN: r0=255(x), r1=106(y), r2=57(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 255
+LDI r1, 106
+LDI r2, 57
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

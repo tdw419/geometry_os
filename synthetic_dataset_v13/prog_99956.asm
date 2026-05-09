@@ -1,20 +1,20 @@
-; DESCRIPTION: Composite: Renders a orange line between points (454, 205) and (102, 158) then Places a white 87x44 rectangle at position (247, 129) then Creates a white circular shape at (173, 93) with radius 18.
-; PLAN: r0=454(x1), r1=205(y1), r2=102(x2), r3=158(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=247(x), r6=129(y), r7=87(width), r8=44(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=173(x), r11=93(y), r12=18(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 454
-LDI r1, 205
-LDI r2, 102
-LDI r3, 158
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Renders a green line between points (448, 173) and (137, 225) then Renders a purple box of size 109x75 starting at (392, 40) then Creates a white circular shape at (21, 203) with radius 17.
+; PLAN: r0=448(x1), r1=173(y1), r2=137(x2), r3=225(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=392(x), r6=40(y), r7=109(width), r8=75(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=21(x), r11=203(y), r12=17(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 448
+LDI r1, 173
+LDI r2, 137
+LDI r3, 225
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
-LDI r5, 247
-LDI r6, 129
-LDI r7, 87
-LDI r8, 44
-LDI r9, 0xFFFFFF
+LDI r5, 392
+LDI r6, 40
+LDI r7, 109
+LDI r8, 75
+LDI r9, 0xAA00FF
 RECTF r5, r6, r7, r8, r9
-LDI r10, 173
-LDI r11, 93
-LDI r12, 18
+LDI r10, 21
+LDI r11, 203
+LDI r12, 17
 LDI r13, 0xFFFFFF
 CIRCLE r10, r11, r12, r13
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (278, 75) to (83, 66).
-; PLAN: r0=278(x1), r1=75(y1), r2=83(x2), r3=66(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 278
-LDI r1, 75
-LDI r2, 83
-LDI r3, 66
+; DESCRIPTION: Draws a green line from (163, 163) to (364, 52).
+; PLAN: r0=163(x1), r1=163(y1), r2=364(x2), r3=52(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 163
+LDI r1, 163
+LDI r2, 364
+LDI r3, 52
 LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

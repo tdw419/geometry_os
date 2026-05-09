@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a white disk with center (454, 198) and radius 19.
-; PLAN: r0=454(x), r1=198(y), r2=19(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 454
-LDI r1, 198
-LDI r2, 19
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single red pixel at (282, 2).
+; PLAN: r0=282(x), r1=2(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 282
+LDI r1, 2
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

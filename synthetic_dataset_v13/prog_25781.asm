@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (97, 10) and (377, 134).
-; PLAN: r0=97(x1), r1=10(y1), r2=377(x2), r3=134(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 97
-LDI r1, 10
-LDI r2, 377
-LDI r3, 134
+; DESCRIPTION: Renders a blue box of size 79x109 starting at (171, 137).
+; PLAN: r0=171(x), r1=137(y), r2=79(width), r3=109(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 171
+LDI r1, 137
+LDI r2, 79
+LDI r3, 109
 LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

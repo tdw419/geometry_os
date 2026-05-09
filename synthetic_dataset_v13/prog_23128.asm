@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black box of size 69x85 starting at (360, 113).
-; PLAN: r0=360(x), r1=113(y), r2=69(width), r3=85(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 360
-LDI r1, 113
-LDI r2, 69
-LDI r3, 85
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 75 at center (80, 155).
+; PLAN: r0=80(x), r1=155(y), r2=75(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 80
+LDI r1, 155
+LDI r2, 75
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

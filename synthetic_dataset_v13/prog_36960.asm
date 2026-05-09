@@ -1,12 +1,12 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (407, 101) then Creates a magenta circular shape at (434, 75) with radius 40.
-; PLAN: r0=407(x), r1=101(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=434(x), r6=75(y), r7=40(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 407
-LDI r1, 101
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 434
-LDI r6, 75
-LDI r7, 40
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Renders a orange disk with center (253, 119) and radius 47 then Places a white dot at position (305, 243).
+; PLAN: r0=253(x), r1=119(y), r2=47(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=305(x), r6=243(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 253
+LDI r1, 119
+LDI r2, 47
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
+LDI r5, 305
+LDI r6, 243
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

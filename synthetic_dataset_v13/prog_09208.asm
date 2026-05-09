@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 42 into r1 and decrements it in a loop until zero.
-; PLAN: r1=42(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 42
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a purple 111x84 rectangle at position (211, 80).
+; PLAN: r0=211(x), r1=80(y), r2=111(width), r3=84(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 211
+LDI r1, 80
+LDI r2, 111
+LDI r3, 84
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

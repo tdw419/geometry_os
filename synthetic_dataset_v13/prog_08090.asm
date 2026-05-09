@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (102, 138) with width 104 and height 24.
-; PLAN: r0=102(x), r1=138(y), r2=104(width), r3=24(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 102
-LDI r1, 138
-LDI r2, 104
-LDI r3, 24
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow line segment connecting (41, 68) to (30, 92).
+; PLAN: r0=41(x1), r1=68(y1), r2=30(x2), r3=92(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 41
+LDI r1, 68
+LDI r2, 30
+LDI r3, 92
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (408, 61) and (169, 68).
-; PLAN: r0=408(x1), r1=61(y1), r2=169(x2), r3=68(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 408
-LDI r1, 61
-LDI r2, 169
-LDI r3, 68
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (222, 139) with radius 53.
+; PLAN: r0=222(x), r1=139(y), r2=53(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 222
+LDI r1, 139
+LDI r2, 53
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

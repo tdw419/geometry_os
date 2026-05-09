@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (84, 176) and radius 43.
-; PLAN: r0=84(x), r1=176(y), r2=43(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 84
-LDI r1, 176
-LDI r2, 43
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (389, 11) to (389, 96).
+; PLAN: r0=389(x1), r1=11(y1), r2=389(x2), r3=96(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 389
+LDI r1, 11
+LDI r2, 389
+LDI r3, 96
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a blue line from (53, 147) to (336, 37).
-; PLAN: r0=53(x1), r1=147(y1), r2=336(x2), r3=37(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 147
-LDI r2, 336
-LDI r3, 37
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (126, 99) then Creates a black circular shape at (211, 44) with radius 15.
+; PLAN: r0=126(x), r1=99(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=211(x), r6=44(y), r7=15(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 126
+LDI r1, 99
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 211
+LDI r6, 44
+LDI r7, 15
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

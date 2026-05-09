@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 64x109 rectangle at position (278, 56).
-; PLAN: r0=278(x), r1=56(y), r2=64(width), r3=109(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 278
-LDI r1, 56
-LDI r2, 64
-LDI r3, 109
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 74 at center (208, 173).
+; PLAN: r0=208(x), r1=173(y), r2=74(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 208
+LDI r1, 173
+LDI r2, 74
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

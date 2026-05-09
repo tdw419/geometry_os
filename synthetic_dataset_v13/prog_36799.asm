@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (502, 247) to (321, 253).
-; PLAN: r0=502(x1), r1=247(y1), r2=321(x2), r3=253(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 502
-LDI r1, 247
-LDI r2, 321
-LDI r3, 253
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a purple line between points (39, 211) and (244, 183).
+; PLAN: r0=39(x1), r1=211(y1), r2=244(x2), r3=183(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 39
+LDI r1, 211
+LDI r2, 244
+LDI r3, 183
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

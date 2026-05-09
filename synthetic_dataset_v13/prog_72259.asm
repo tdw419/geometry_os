@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single orange pixel at (473, 34).
-; PLAN: r0=473(x), r1=34(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 473
-LDI r1, 34
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a magenta box of size 99x103 starting at (112, 36).
+; PLAN: r0=112(x), r1=36(y), r2=99(width), r3=103(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 112
+LDI r1, 36
+LDI r2, 99
+LDI r3, 103
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

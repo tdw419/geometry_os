@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (215, 79) with width 32 and height 102.
-; PLAN: r0=215(x), r1=79(y), r2=32(width), r3=102(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 215
-LDI r1, 79
-LDI r2, 32
-LDI r3, 102
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a orange rectangle at (387, 33) with width 76 and height 50.
+; PLAN: r0=387(x), r1=33(y), r2=76(width), r3=50(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 387
+LDI r1, 33
+LDI r2, 76
+LDI r3, 50
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

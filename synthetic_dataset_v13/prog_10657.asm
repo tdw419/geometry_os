@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a orange circle of radius 21 at center (264, 29).
-; PLAN: r0=264(x), r1=29(y), r2=21(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 264
-LDI r1, 29
-LDI r2, 21
-LDI r3, 0xFF8800
+; DESCRIPTION: Renders a green disk with center (208, 91) and radius 36.
+; PLAN: r0=208(x), r1=91(y), r2=36(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 208
+LDI r1, 91
+LDI r2, 36
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

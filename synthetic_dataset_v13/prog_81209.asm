@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 97x55 rectangle at position (201, 147).
-; PLAN: r0=201(x), r1=147(y), r2=97(width), r3=55(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 201
-LDI r1, 147
-LDI r2, 97
-LDI r3, 55
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (163, 156) with radius 80.
+; PLAN: r0=163(x), r1=156(y), r2=80(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 163
+LDI r1, 156
+LDI r2, 80
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

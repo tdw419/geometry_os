@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a magenta dot at position (252, 245).
-; PLAN: r0=252(x), r1=245(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 252
-LDI r1, 245
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a magenta circle centered at (165, 221) with radius 32.
+; PLAN: r0=165(x), r1=221(y), r2=32(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 165
+LDI r1, 221
+LDI r2, 32
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

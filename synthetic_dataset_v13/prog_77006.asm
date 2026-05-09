@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a yellow rectangle at (180, 175) with width 110 and height 11.
-; PLAN: r0=180(x), r1=175(y), r2=110(width), r3=11(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 175
-LDI r2, 110
-LDI r3, 11
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (245, 198).
+; PLAN: r0=245(x), r1=198(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 245
+LDI r1, 198
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta line between points (451, 203) and (297, 39).
-; PLAN: r0=451(x1), r1=203(y1), r2=297(x2), r3=39(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 451
-LDI r1, 203
-LDI r2, 297
-LDI r3, 39
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 24 into r1 and decrements it in a loop until zero.
+; PLAN: r1=24(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 24
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

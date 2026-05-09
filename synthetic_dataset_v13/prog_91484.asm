@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a blue circular shape at (402, 89) with radius 25.
-; PLAN: r0=402(x), r1=89(y), r2=25(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 402
-LDI r1, 89
-LDI r2, 25
-LDI r3, 0x0000FF
+; DESCRIPTION: Places a green circle of radius 53 at center (264, 138).
+; PLAN: r0=264(x), r1=138(y), r2=53(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 264
+LDI r1, 138
+LDI r2, 53
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

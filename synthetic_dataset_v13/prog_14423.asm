@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a black box of size 94x33 starting at (143, 155).
-; PLAN: r0=143(x), r1=155(y), r2=94(width), r3=33(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 155
-LDI r2, 94
-LDI r3, 33
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (94, 173).
+; PLAN: r0=94(x), r1=173(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 94
+LDI r1, 173
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

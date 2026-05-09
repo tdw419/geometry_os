@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a purple disk with center (344, 86) and radius 35.
-; PLAN: r0=344(x), r1=86(y), r2=35(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 344
-LDI r1, 86
-LDI r2, 35
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green dot at position (479, 111).
+; PLAN: r0=479(x), r1=111(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 479
+LDI r1, 111
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple line segment connecting (263, 39) to (393, 128).
-; PLAN: r0=263(x1), r1=39(y1), r2=393(x2), r3=128(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 263
-LDI r1, 39
-LDI r2, 393
-LDI r3, 128
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 71 at center (130, 149).
+; PLAN: r0=130(x), r1=149(y), r2=71(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 130
+LDI r1, 149
+LDI r2, 71
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

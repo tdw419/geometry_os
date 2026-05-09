@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Draws a yellow rectangle at (164, 0) with width 94 and height 55 then Draws a red circle centered at (421, 112) with radius 21 then Places a purple dot at position (242, 128).
-; PLAN: r0=164(x), r1=0(y), r2=94(width), r3=55(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=421(x), r6=112(y), r7=21(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=242(x), r11=128(y), r12=0xAA00FF(color). Op: PSET r10, r11, r12.
-LDI r0, 164
-LDI r1, 0
-LDI r2, 94
-LDI r3, 55
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 421
-LDI r6, 112
-LDI r7, 21
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
-LDI r10, 242
-LDI r11, 128
-LDI r12, 0xAA00FF
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Places a black dot at position (198, 69) then Draws a black line from (424, 140) to (421, 139) then Renders a black box of size 19x108 starting at (233, 115).
+; PLAN: r0=198(x), r1=69(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=424(x1), r6=140(y1), r7=421(x2), r8=139(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=233(x), r11=115(y), r12=19(width), r13=108(height), r14=0x000000(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 198
+LDI r1, 69
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 424
+LDI r6, 140
+LDI r7, 421
+LDI r8, 139
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
+LDI r10, 233
+LDI r11, 115
+LDI r12, 19
+LDI r13, 108
+LDI r14, 0x000000
+RECTF r10, r11, r12, r13, r14
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (344, 83) and radius 71.
-; PLAN: r0=344(x), r1=83(y), r2=71(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 344
-LDI r1, 83
-LDI r2, 71
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta box of size 45x80 starting at (399, 118).
+; PLAN: r0=399(x), r1=118(y), r2=45(width), r3=80(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 399
+LDI r1, 118
+LDI r2, 45
+LDI r3, 80
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

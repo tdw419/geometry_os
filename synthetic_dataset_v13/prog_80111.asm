@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (273, 243) and (314, 96).
-; PLAN: r0=273(x1), r1=243(y1), r2=314(x2), r3=96(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 273
-LDI r1, 243
-LDI r2, 314
-LDI r3, 96
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 25x82 starting at (250, 119).
+; PLAN: r0=250(x), r1=119(y), r2=25(width), r3=82(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 250
+LDI r1, 119
+LDI r2, 25
+LDI r3, 82
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

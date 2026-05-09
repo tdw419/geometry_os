@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black rectangle at (107, 24) with width 118 and height 103.
-; PLAN: r0=107(x), r1=24(y), r2=118(width), r3=103(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 107
-LDI r1, 24
-LDI r2, 118
-LDI r3, 103
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white circle of radius 56 at center (390, 148).
+; PLAN: r0=390(x), r1=148(y), r2=56(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 390
+LDI r1, 148
+LDI r2, 56
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

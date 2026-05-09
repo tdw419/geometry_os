@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 39 at center (363, 162).
-; PLAN: r0=363(x), r1=162(y), r2=39(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 363
-LDI r1, 162
-LDI r2, 39
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red line between points (503, 88) and (301, 33).
+; PLAN: r0=503(x1), r1=88(y1), r2=301(x2), r3=33(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 503
+LDI r1, 88
+LDI r2, 301
+LDI r3, 33
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

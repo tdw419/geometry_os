@@ -1,9 +1,18 @@
-; DESCRIPTION: Draws a black rectangle at (221, 153) with width 71 and height 92.
-; PLAN: r0=221(x), r1=153(y), r2=71(width), r3=92(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 221
-LDI r1, 153
-LDI r2, 71
-LDI r3, 92
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (235, 85) then Renders a magenta line between points (281, 15) and (295, 251) then Creates a orange circular shape at (188, 204) with radius 33.
+; PLAN: r0=235(x), r1=85(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=281(x1), r6=15(y1), r7=295(x2), r8=251(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=188(x), r11=204(y), r12=33(radius), r13=0xFF8800(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 235
+LDI r1, 85
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 281
+LDI r6, 15
+LDI r7, 295
+LDI r8, 251
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
+LDI r10, 188
+LDI r11, 204
+LDI r12, 33
+LDI r13, 0xFF8800
+CIRCLE r10, r11, r12, r13
 HALT

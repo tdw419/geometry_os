@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (305, 64) with radius 20.
-; PLAN: r0=305(x), r1=64(y), r2=20(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 305
-LDI r1, 64
-LDI r2, 20
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 19x96 rectangle at position (426, 73).
+; PLAN: r0=426(x), r1=73(y), r2=19(width), r3=96(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 426
+LDI r1, 73
+LDI r2, 19
+LDI r3, 96
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

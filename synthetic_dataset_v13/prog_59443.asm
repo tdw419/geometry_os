@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (256, 74) to (157, 241).
-; PLAN: r0=256(x1), r1=74(y1), r2=157(x2), r3=241(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 74
-LDI r2, 157
-LDI r3, 241
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a black line segment connecting (362, 207) to (459, 254).
+; PLAN: r0=362(x1), r1=207(y1), r2=459(x2), r3=254(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 362
+LDI r1, 207
+LDI r2, 459
+LDI r3, 254
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

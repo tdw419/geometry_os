@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (433, 236) and (126, 196).
-; PLAN: r0=433(x1), r1=236(y1), r2=126(x2), r3=196(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 433
-LDI r1, 236
-LDI r2, 126
-LDI r3, 196
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 111x28 rectangle at position (105, 226).
+; PLAN: r0=105(x), r1=226(y), r2=111(width), r3=28(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 105
+LDI r1, 226
+LDI r2, 111
+LDI r3, 28
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

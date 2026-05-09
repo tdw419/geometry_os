@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Places a white dot at position (409, 118).
+; PLAN: r0=409(x), r1=118(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 409
+LDI r1, 118
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

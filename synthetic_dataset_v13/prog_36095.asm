@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 43 at center (242, 60).
-; PLAN: r0=242(x), r1=60(y), r2=43(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 242
-LDI r1, 60
-LDI r2, 43
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 35x10 rectangle at position (112, 189).
+; PLAN: r0=112(x), r1=189(y), r2=35(width), r3=10(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 112
+LDI r1, 189
+LDI r2, 35
+LDI r3, 10
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a purple circle of radius 51 at center (366, 155).
-; PLAN: r0=366(x), r1=155(y), r2=51(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 366
-LDI r1, 155
-LDI r2, 51
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (461, 123) and (329, 192).
+; PLAN: r0=461(x1), r1=123(y1), r2=329(x2), r3=192(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 461
+LDI r1, 123
+LDI r2, 329
+LDI r3, 192
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

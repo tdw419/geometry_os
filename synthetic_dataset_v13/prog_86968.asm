@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (16, 76) to (361, 1).
-; PLAN: r0=16(x1), r1=76(y1), r2=361(x2), r3=1(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 16
-LDI r1, 76
-LDI r2, 361
-LDI r3, 1
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a green line segment connecting (344, 5) to (172, 71).
+; PLAN: r0=344(x1), r1=5(y1), r2=172(x2), r3=71(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 344
+LDI r1, 5
+LDI r2, 172
+LDI r3, 71
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

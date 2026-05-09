@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (171, 86) with radius 54.
-; PLAN: r0=171(x), r1=86(y), r2=54(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 171
-LDI r1, 86
-LDI r2, 54
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan line segment connecting (339, 31) to (260, 240).
+; PLAN: r0=339(x1), r1=31(y1), r2=260(x2), r3=240(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 339
+LDI r1, 31
+LDI r2, 260
+LDI r3, 240
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

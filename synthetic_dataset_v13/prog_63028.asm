@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a green rectangle at (197, 151) with width 47 and height 38.
-; PLAN: r0=197(x), r1=151(y), r2=47(width), r3=38(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 197
-LDI r1, 151
-LDI r2, 47
-LDI r3, 38
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a cyan line from (124, 185) to (480, 170) then Renders a cyan disk with center (148, 174) and radius 67.
+; PLAN: r0=124(x1), r1=185(y1), r2=480(x2), r3=170(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=148(x), r6=174(y), r7=67(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 124
+LDI r1, 185
+LDI r2, 480
+LDI r3, 170
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 148
+LDI r6, 174
+LDI r7, 67
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

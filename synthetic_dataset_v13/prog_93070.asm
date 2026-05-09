@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a blue box of size 53x56 starting at (202, 40).
-; PLAN: r0=202(x), r1=40(y), r2=53(width), r3=56(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 40
-LDI r2, 53
-LDI r3, 56
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (32, 160) then Places a purple 98x39 rectangle at position (241, 139).
+; PLAN: r0=32(x), r1=160(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=241(x), r6=139(y), r7=98(width), r8=39(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 32
+LDI r1, 160
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 241
+LDI r6, 139
+LDI r7, 98
+LDI r8, 39
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

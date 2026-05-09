@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a red dot at position (343, 19).
-; PLAN: r0=343(x), r1=19(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 343
-LDI r1, 19
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Places a black circle of radius 38 at center (470, 116).
+; PLAN: r0=470(x), r1=116(y), r2=38(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 470
+LDI r1, 116
+LDI r2, 38
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

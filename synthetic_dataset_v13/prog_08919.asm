@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (437, 197) and (4, 124).
-; PLAN: r0=437(x1), r1=197(y1), r2=4(x2), r3=124(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 437
-LDI r1, 197
-LDI r2, 4
-LDI r3, 124
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue rectangular region at (151, 167) spanning 107 by 48 pixels.
+; PLAN: r0=151(x), r1=167(y), r2=107(width), r3=48(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 167
+LDI r2, 107
+LDI r3, 48
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

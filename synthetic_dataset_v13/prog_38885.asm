@@ -1,15 +1,20 @@
-; DESCRIPTION: Composite: Draws a black line from (134, 59) to (422, 228) then Draws a black rectangle at (359, 112) with width 81 and height 44.
-; PLAN: r0=134(x1), r1=59(y1), r2=422(x2), r3=228(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=359(x), r6=112(y), r7=81(width), r8=44(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 134
-LDI r1, 59
-LDI r2, 422
-LDI r3, 228
-LDI r4, 0x000000
+; DESCRIPTION: Composite: Places a orange line segment connecting (271, 41) to (339, 54) then Places a red 115x75 rectangle at position (348, 23) then Renders a black disk with center (32, 91) and radius 24.
+; PLAN: r0=271(x1), r1=41(y1), r2=339(x2), r3=54(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=348(x), r6=23(y), r7=115(width), r8=75(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=32(x), r11=91(y), r12=24(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 271
+LDI r1, 41
+LDI r2, 339
+LDI r3, 54
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
-LDI r5, 359
-LDI r6, 112
-LDI r7, 81
-LDI r8, 44
-LDI r9, 0x000000
+LDI r5, 348
+LDI r6, 23
+LDI r7, 115
+LDI r8, 75
+LDI r9, 0xFF0000
 RECTF r5, r6, r7, r8, r9
+LDI r10, 32
+LDI r11, 91
+LDI r12, 24
+LDI r13, 0x000000
+CIRCLE r10, r11, r12, r13
 HALT

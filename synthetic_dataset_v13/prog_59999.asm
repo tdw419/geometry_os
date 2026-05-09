@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 69x63 rectangle at position (202, 181).
-; PLAN: r0=202(x), r1=181(y), r2=69(width), r3=63(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 181
-LDI r2, 69
-LDI r3, 63
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 43 into r1 and decrements it in a loop until zero.
+; PLAN: r1=43(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 43
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

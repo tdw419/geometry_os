@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 10 into r1 and decrements it in a loop until zero.
-; PLAN: r1=10(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 10
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Creates a cyan rectangular region at (4, 59) spanning 41 by 19 pixels.
+; PLAN: r0=4(x), r1=59(y), r2=41(width), r3=19(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 4
+LDI r1, 59
+LDI r2, 41
+LDI r3, 19
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

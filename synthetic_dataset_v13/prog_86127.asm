@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Places a magenta 103x65 rectangle at position (39, 174) then Places a red circle of radius 24 at center (136, 48).
-; PLAN: r0=39(x), r1=174(y), r2=103(width), r3=65(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=136(x), r6=48(y), r7=24(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 39
-LDI r1, 174
-LDI r2, 103
-LDI r3, 65
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 136
-LDI r6, 48
-LDI r7, 24
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Places a yellow dot at position (381, 18) then Draws a purple rectangle at (316, 141) with width 28 and height 58 then Draws a green circle centered at (453, 112) with radius 33.
+; PLAN: r0=381(x), r1=18(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=316(x), r6=141(y), r7=28(width), r8=58(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=453(x), r11=112(y), r12=33(radius), r13=0x00FF00(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 381
+LDI r1, 18
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 316
+LDI r6, 141
+LDI r7, 28
+LDI r8, 58
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 453
+LDI r11, 112
+LDI r12, 33
+LDI r13, 0x00FF00
+CIRCLE r10, r11, r12, r13
 HALT

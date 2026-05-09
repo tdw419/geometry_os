@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (70, 168) and radius 62.
-; PLAN: r0=70(x), r1=168(y), r2=62(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 70
-LDI r1, 168
-LDI r2, 62
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a green rectangular region at (320, 72) spanning 43 by 30 pixels.
+; PLAN: r0=320(x), r1=72(y), r2=43(width), r3=30(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 320
+LDI r1, 72
+LDI r2, 43
+LDI r3, 30
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

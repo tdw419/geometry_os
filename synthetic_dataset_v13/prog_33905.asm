@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a blue circular shape at (402, 131) with radius 18.
-; PLAN: r0=402(x), r1=131(y), r2=18(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 402
-LDI r1, 131
-LDI r2, 18
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

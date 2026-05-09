@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (323, 155) with radius 20.
-; PLAN: r0=323(x), r1=155(y), r2=20(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 323
-LDI r1, 155
-LDI r2, 20
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange box of size 23x102 starting at (423, 148).
+; PLAN: r0=423(x), r1=148(y), r2=23(width), r3=102(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 423
+LDI r1, 148
+LDI r2, 23
+LDI r3, 102
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 43 at center (89, 124).
-; PLAN: r0=89(x), r1=124(y), r2=43(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 89
-LDI r1, 124
-LDI r2, 43
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (187, 92) to (448, 152).
+; PLAN: r0=187(x1), r1=92(y1), r2=448(x2), r3=152(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 187
+LDI r1, 92
+LDI r2, 448
+LDI r3, 152
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

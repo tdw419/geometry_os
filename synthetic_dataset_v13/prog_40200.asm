@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a cyan dot at position (10, 135).
-; PLAN: r0=10(x), r1=135(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 10
-LDI r1, 135
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a blue disk with center (383, 190) and radius 40.
+; PLAN: r0=383(x), r1=190(y), r2=40(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 383
+LDI r1, 190
+LDI r2, 40
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

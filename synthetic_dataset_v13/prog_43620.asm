@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 95x88 rectangle at position (30, 122).
-; PLAN: r0=30(x), r1=122(y), r2=95(width), r3=88(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 30
-LDI r1, 122
-LDI r2, 95
-LDI r3, 88
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a blue box of size 15x57 starting at (161, 138).
+; PLAN: r0=161(x), r1=138(y), r2=15(width), r3=57(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 161
+LDI r1, 138
+LDI r2, 15
+LDI r3, 57
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

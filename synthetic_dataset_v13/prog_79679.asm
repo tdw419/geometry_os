@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Draws a green circle centered at (318, 147) with radius 69.
+; PLAN: r0=318(x), r1=147(y), r2=69(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 318
+LDI r1, 147
+LDI r2, 69
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

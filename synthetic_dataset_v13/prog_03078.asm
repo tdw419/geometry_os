@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (116, 56) to (192, 24).
-; PLAN: r0=116(x1), r1=56(y1), r2=192(x2), r3=24(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 116
-LDI r1, 56
-LDI r2, 192
-LDI r3, 24
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (286, 201) and radius 17.
+; PLAN: r0=286(x), r1=201(y), r2=17(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 286
+LDI r1, 201
+LDI r2, 17
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

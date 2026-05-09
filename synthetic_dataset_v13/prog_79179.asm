@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (335, 9) spanning 73 by 61 pixels.
-; PLAN: r0=335(x), r1=9(y), r2=73(width), r3=61(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 335
-LDI r1, 9
-LDI r2, 73
-LDI r3, 61
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a green box of size 77x87 starting at (180, 87).
+; PLAN: r0=180(x), r1=87(y), r2=77(width), r3=87(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 180
+LDI r1, 87
+LDI r2, 77
+LDI r3, 87
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

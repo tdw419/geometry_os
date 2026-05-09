@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a blue line between points (178, 131) and (186, 14).
-; PLAN: r0=178(x1), r1=131(y1), r2=186(x2), r3=14(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 178
-LDI r1, 131
-LDI r2, 186
-LDI r3, 14
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a cyan rectangle at (4, 107) with width 20 and height 116 then Places a magenta dot at position (16, 82).
+; PLAN: r0=4(x), r1=107(y), r2=20(width), r3=116(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=16(x), r6=82(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 4
+LDI r1, 107
+LDI r2, 20
+LDI r3, 116
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 16
+LDI r6, 82
+LDI r7, 0xFF00FF
+PSET r5, r6, r7
 HALT

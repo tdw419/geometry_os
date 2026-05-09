@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (180, 81) with radius 78.
-; PLAN: r0=180(x), r1=81(y), r2=78(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 180
-LDI r1, 81
-LDI r2, 78
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (345, 160) and (129, 107).
+; PLAN: r0=345(x1), r1=160(y1), r2=129(x2), r3=107(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 345
+LDI r1, 160
+LDI r2, 129
+LDI r3, 107
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

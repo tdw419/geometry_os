@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (264, 211) and radius 25.
-; PLAN: r0=264(x), r1=211(y), r2=25(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 264
-LDI r1, 211
-LDI r2, 25
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (494, 106) to (12, 207).
+; PLAN: r0=494(x1), r1=106(y1), r2=12(x2), r3=207(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 494
+LDI r1, 106
+LDI r2, 12
+LDI r3, 207
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

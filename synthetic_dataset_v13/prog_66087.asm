@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a orange circle of radius 30 at center (208, 171).
-; PLAN: r0=208(x), r1=171(y), r2=30(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 208
-LDI r1, 171
-LDI r2, 30
-LDI r3, 0xFF8800
+; DESCRIPTION: Draws a purple circle centered at (230, 97) with radius 62.
+; PLAN: r0=230(x), r1=97(y), r2=62(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 230
+LDI r1, 97
+LDI r2, 62
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

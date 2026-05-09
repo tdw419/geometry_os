@@ -1,13 +1,12 @@
-; DESCRIPTION: Composite: Places a blue dot at position (88, 76) then Renders a red box of size 28x45 starting at (372, 86).
-; PLAN: r0=88(x), r1=76(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=372(x), r6=86(y), r7=28(width), r8=45(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 88
-LDI r1, 76
-LDI r2, 0x0000FF
+; DESCRIPTION: Composite: Sets a single cyan pixel at (2, 37) then Renders a red disk with center (346, 176) and radius 10.
+; PLAN: r0=2(x), r1=37(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=346(x), r6=176(y), r7=10(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 2
+LDI r1, 37
+LDI r2, 0x00FFFF
 PSET r0, r1, r2
-LDI r5, 372
-LDI r6, 86
-LDI r7, 28
-LDI r8, 45
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+LDI r5, 346
+LDI r6, 176
+LDI r7, 10
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

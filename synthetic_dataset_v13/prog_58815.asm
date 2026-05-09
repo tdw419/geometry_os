@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a orange line from (252, 120) to (323, 1).
-; PLAN: r0=252(x1), r1=120(y1), r2=323(x2), r3=1(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 252
-LDI r1, 120
-LDI r2, 323
-LDI r3, 1
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (424, 10).
+; PLAN: r0=424(x), r1=10(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 424
+LDI r1, 10
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

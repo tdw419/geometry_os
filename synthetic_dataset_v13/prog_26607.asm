@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a white dot at position (379, 124).
-; PLAN: r0=379(x), r1=124(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 379
-LDI r1, 124
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange circle of radius 14 at center (433, 172).
+; PLAN: r0=433(x), r1=172(y), r2=14(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 433
+LDI r1, 172
+LDI r2, 14
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

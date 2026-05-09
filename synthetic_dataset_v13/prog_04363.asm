@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a magenta disk with center (66, 213) and radius 23.
-; PLAN: r0=66(x), r1=213(y), r2=23(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 66
-LDI r1, 213
-LDI r2, 23
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (229, 142) to (67, 167).
+; PLAN: r0=229(x1), r1=142(y1), r2=67(x2), r3=167(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 229
+LDI r1, 142
+LDI r2, 67
+LDI r3, 167
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

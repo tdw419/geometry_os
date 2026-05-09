@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (331, 108) with width 93 and height 79.
-; PLAN: r0=331(x), r1=108(y), r2=93(width), r3=79(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 331
-LDI r1, 108
-LDI r2, 93
-LDI r3, 79
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow line segment connecting (93, 121) to (110, 90).
+; PLAN: r0=93(x1), r1=121(y1), r2=110(x2), r3=90(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 121
+LDI r2, 110
+LDI r3, 90
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

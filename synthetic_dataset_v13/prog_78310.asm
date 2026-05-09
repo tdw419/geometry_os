@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a blue dot at position (375, 154) then Renders a magenta line between points (269, 66) and (191, 210).
-; PLAN: r0=375(x), r1=154(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=269(x1), r6=66(y1), r7=191(x2), r8=210(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 375
-LDI r1, 154
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 269
-LDI r6, 66
-LDI r7, 191
-LDI r8, 210
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a green rectangular region at (178, 37) spanning 32 by 73 pixels.
+; PLAN: r0=178(x), r1=37(y), r2=32(width), r3=73(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 178
+LDI r1, 37
+LDI r2, 32
+LDI r3, 73
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

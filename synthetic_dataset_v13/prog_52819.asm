@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (359, 111).
-; PLAN: r0=359(x), r1=111(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 359
-LDI r1, 111
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a magenta line from (216, 122) to (456, 232).
+; PLAN: r0=216(x1), r1=122(y1), r2=456(x2), r3=232(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 216
+LDI r1, 122
+LDI r2, 456
+LDI r3, 232
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

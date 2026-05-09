@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (8, 30) then Places a yellow 50x105 rectangle at position (429, 51).
-; PLAN: r0=8(x), r1=30(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=429(x), r6=51(y), r7=50(width), r8=105(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 8
-LDI r1, 30
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 429
-LDI r6, 51
-LDI r7, 50
-LDI r8, 105
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a magenta line segment connecting (20, 147) to (179, 9).
+; PLAN: r0=20(x1), r1=147(y1), r2=179(x2), r3=9(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 20
+LDI r1, 147
+LDI r2, 179
+LDI r3, 9
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

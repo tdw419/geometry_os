@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 65 at center (209, 79).
-; PLAN: r0=209(x), r1=79(y), r2=65(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 209
-LDI r1, 79
-LDI r2, 65
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (23, 95) and (491, 183).
+; PLAN: r0=23(x1), r1=95(y1), r2=491(x2), r3=183(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 23
+LDI r1, 95
+LDI r2, 491
+LDI r3, 183
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

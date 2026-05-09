@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (480, 83) to (402, 201).
-; PLAN: r0=480(x1), r1=83(y1), r2=402(x2), r3=201(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 480
-LDI r1, 83
-LDI r2, 402
-LDI r3, 201
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue box of size 28x86 starting at (254, 88).
+; PLAN: r0=254(x), r1=88(y), r2=28(width), r3=86(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 254
+LDI r1, 88
+LDI r2, 28
+LDI r3, 86
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

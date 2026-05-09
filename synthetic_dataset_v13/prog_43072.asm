@@ -1,19 +1,20 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (184, 64) then Draws a cyan rectangle at (158, 136) with width 55 and height 59 then Draws a green line from (11, 149) to (450, 162).
-; PLAN: r0=184(x), r1=64(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=158(x), r6=136(y), r7=55(width), r8=59(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=11(x1), r11=149(y1), r12=450(x2), r13=162(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 184
-LDI r1, 64
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 158
-LDI r6, 136
-LDI r7, 55
-LDI r8, 59
-LDI r9, 0x00FFFF
+; DESCRIPTION: Composite: Places a red line segment connecting (20, 9) to (383, 94) then Draws a purple rectangle at (60, 116) with width 108 and height 76 then Places a yellow circle of radius 62 at center (141, 102).
+; PLAN: r0=20(x1), r1=9(y1), r2=383(x2), r3=94(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=60(x), r6=116(y), r7=108(width), r8=76(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=141(x), r11=102(y), r12=62(radius), r13=0xFFFF00(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 20
+LDI r1, 9
+LDI r2, 383
+LDI r3, 94
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
+LDI r5, 60
+LDI r6, 116
+LDI r7, 108
+LDI r8, 76
+LDI r9, 0xAA00FF
 RECTF r5, r6, r7, r8, r9
-LDI r10, 11
-LDI r11, 149
-LDI r12, 450
-LDI r13, 162
-LDI r14, 0x00FF00
-LINE r10, r11, r12, r13, r14
+LDI r10, 141
+LDI r11, 102
+LDI r12, 62
+LDI r13, 0xFFFF00
+CIRCLE r10, r11, r12, r13
 HALT

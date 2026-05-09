@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 78x39 starting at (192, 204).
-; PLAN: r0=192(x), r1=204(y), r2=78(width), r3=39(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 192
-LDI r1, 204
-LDI r2, 78
-LDI r3, 39
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (40, 4) and (144, 12).
+; PLAN: r0=40(x1), r1=4(y1), r2=144(x2), r3=12(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 40
+LDI r1, 4
+LDI r2, 144
+LDI r3, 12
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

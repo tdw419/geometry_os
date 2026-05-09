@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (214, 159) spanning 108 by 73 pixels.
-; PLAN: r0=214(x), r1=159(y), r2=108(width), r3=73(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 214
-LDI r1, 159
-LDI r2, 108
-LDI r3, 73
-LDI r4, 0xFF00FF
+; DESCRIPTION: Places a blue 24x97 rectangle at position (324, 45).
+; PLAN: r0=324(x), r1=45(y), r2=24(width), r3=97(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 324
+LDI r1, 45
+LDI r2, 24
+LDI r3, 97
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

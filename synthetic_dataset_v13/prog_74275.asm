@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a cyan circular shape at (360, 185) with radius 71.
-; PLAN: r0=360(x), r1=185(y), r2=71(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 185
-LDI r2, 71
-LDI r3, 0x00FFFF
+; DESCRIPTION: Creates a blue circular shape at (271, 212) with radius 37.
+; PLAN: r0=271(x), r1=212(y), r2=37(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 271
+LDI r1, 212
+LDI r2, 37
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

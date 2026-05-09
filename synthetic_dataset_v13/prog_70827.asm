@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a purple dot at position (123, 51) then Renders a white disk with center (259, 213) and radius 31.
-; PLAN: r0=123(x), r1=51(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=259(x), r6=213(y), r7=31(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 123
-LDI r1, 51
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 259
-LDI r6, 213
-LDI r7, 31
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a yellow rectangle at (75, 38) with width 120 and height 106.
+; PLAN: r0=75(x), r1=38(y), r2=120(width), r3=106(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 38
+LDI r2, 120
+LDI r3, 106
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

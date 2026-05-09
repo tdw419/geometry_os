@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a purple dot at position (381, 31).
-; PLAN: r0=381(x), r1=31(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 381
-LDI r1, 31
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Paints the whole screen orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

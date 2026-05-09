@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 36x65 rectangle at position (406, 46).
-; PLAN: r0=406(x), r1=46(y), r2=36(width), r3=65(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 406
-LDI r1, 46
-LDI r2, 36
-LDI r3, 65
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 75 at center (388, 94).
+; PLAN: r0=388(x), r1=94(y), r2=75(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 388
+LDI r1, 94
+LDI r2, 75
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

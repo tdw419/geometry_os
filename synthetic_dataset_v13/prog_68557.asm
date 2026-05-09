@@ -1,9 +1,14 @@
-; DESCRIPTION: Creates a black rectangular region at (438, 165) spanning 63 by 56 pixels.
-; PLAN: r0=438(x), r1=165(y), r2=63(width), r3=56(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 438
-LDI r1, 165
-LDI r2, 63
-LDI r3, 56
-LDI r4, 0x000000
+; DESCRIPTION: Composite: Renders a green box of size 113x16 starting at (95, 33) then Renders a purple disk with center (77, 129) and radius 25.
+; PLAN: r0=95(x), r1=33(y), r2=113(width), r3=16(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=77(x), r6=129(y), r7=25(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 95
+LDI r1, 33
+LDI r2, 113
+LDI r3, 16
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
+LDI r5, 77
+LDI r6, 129
+LDI r7, 25
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

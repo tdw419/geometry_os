@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Creates a purple rectangular region at (271, 0) spanning 75 by 20 pixels.
+; PLAN: r0=271(x), r1=0(y), r2=75(width), r3=20(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 271
+LDI r1, 0
+LDI r2, 75
+LDI r3, 20
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

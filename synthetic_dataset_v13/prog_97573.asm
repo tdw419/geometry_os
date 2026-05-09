@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (386, 101) with radius 75.
-; PLAN: r0=386(x), r1=101(y), r2=75(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 386
-LDI r1, 101
-LDI r2, 75
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 25x76 rectangle at position (124, 46).
+; PLAN: r0=124(x), r1=46(y), r2=25(width), r3=76(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 46
+LDI r2, 25
+LDI r3, 76
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

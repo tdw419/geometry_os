@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Places a magenta 52x46 rectangle at position (222, 186).
+; PLAN: r0=222(x), r1=186(y), r2=52(width), r3=46(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 222
+LDI r1, 186
+LDI r2, 52
+LDI r3, 46
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

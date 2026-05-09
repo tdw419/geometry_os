@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single red pixel at (463, 21).
-; PLAN: r0=463(x), r1=21(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 463
-LDI r1, 21
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

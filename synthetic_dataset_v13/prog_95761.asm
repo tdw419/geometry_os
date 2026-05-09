@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (456, 169) and radius 32.
-; PLAN: r0=456(x), r1=169(y), r2=32(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 456
-LDI r1, 169
-LDI r2, 32
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 52x94 starting at (85, 137).
+; PLAN: r0=85(x), r1=137(y), r2=52(width), r3=94(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 85
+LDI r1, 137
+LDI r2, 52
+LDI r3, 94
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (447, 169) to (163, 142).
-; PLAN: r0=447(x1), r1=169(y1), r2=163(x2), r3=142(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 447
-LDI r1, 169
-LDI r2, 163
-LDI r3, 142
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange rectangle at (215, 160) with width 22 and height 67.
+; PLAN: r0=215(x), r1=160(y), r2=22(width), r3=67(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 215
+LDI r1, 160
+LDI r2, 22
+LDI r3, 67
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a black circle centered at (157, 175) with radius 58.
-; PLAN: r0=157(x), r1=175(y), r2=58(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 157
-LDI r1, 175
-LDI r2, 58
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

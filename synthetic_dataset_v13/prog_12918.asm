@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (84, 78) with radius 48.
-; PLAN: r0=84(x), r1=78(y), r2=48(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 84
-LDI r1, 78
-LDI r2, 48
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (50, 70) and (301, 157).
+; PLAN: r0=50(x1), r1=70(y1), r2=301(x2), r3=157(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 50
+LDI r1, 70
+LDI r2, 301
+LDI r3, 157
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

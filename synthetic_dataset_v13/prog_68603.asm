@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (72, 86) with width 62 and height 17.
-; PLAN: r0=72(x), r1=86(y), r2=62(width), r3=17(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 72
-LDI r1, 86
-LDI r2, 62
-LDI r3, 17
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a purple rectangle at (56, 65) with width 98 and height 12.
+; PLAN: r0=56(x), r1=65(y), r2=98(width), r3=12(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 56
+LDI r1, 65
+LDI r2, 98
+LDI r3, 12
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

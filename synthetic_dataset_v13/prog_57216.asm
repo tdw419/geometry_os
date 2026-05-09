@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a green circle centered at (141, 194) with radius 41.
-; PLAN: r0=141(x), r1=194(y), r2=41(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 141
-LDI r1, 194
-LDI r2, 41
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single orange pixel at (353, 3).
+; PLAN: r0=353(x), r1=3(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 353
+LDI r1, 3
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

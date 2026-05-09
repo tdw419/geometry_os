@@ -1,19 +1,9 @@
-; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
-LDI r7, 0x0000FF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Creates a purple rectangular region at (270, 203) spanning 86 by 13 pixels.
+; PLAN: r0=270(x), r1=203(y), r2=86(width), r3=13(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 270
+LDI r1, 203
+LDI r2, 86
+LDI r3, 13
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

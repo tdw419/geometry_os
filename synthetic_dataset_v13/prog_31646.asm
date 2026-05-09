@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 19 at center (435, 90).
-; PLAN: r0=435(x), r1=90(y), r2=19(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 435
-LDI r1, 90
-LDI r2, 19
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red line between points (367, 144) and (372, 21).
+; PLAN: r0=367(x1), r1=144(y1), r2=372(x2), r3=21(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 367
+LDI r1, 144
+LDI r2, 372
+LDI r3, 21
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

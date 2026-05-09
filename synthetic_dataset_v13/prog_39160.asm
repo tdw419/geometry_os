@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a red rectangular region at (268, 6) spanning 113 by 36 pixels.
-; PLAN: r0=268(x), r1=6(y), r2=113(width), r3=36(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 268
-LDI r1, 6
-LDI r2, 113
-LDI r3, 36
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (282, 234) then Places a green circle of radius 23 at center (117, 203).
+; PLAN: r0=282(x), r1=234(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=117(x), r6=203(y), r7=23(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 282
+LDI r1, 234
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 117
+LDI r6, 203
+LDI r7, 23
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

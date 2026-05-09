@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (365, 98) with radius 78.
-; PLAN: r0=365(x), r1=98(y), r2=78(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 365
-LDI r1, 98
-LDI r2, 78
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (483, 46) to (498, 58).
+; PLAN: r0=483(x1), r1=46(y1), r2=498(x2), r3=58(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 483
+LDI r1, 46
+LDI r2, 498
+LDI r3, 58
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

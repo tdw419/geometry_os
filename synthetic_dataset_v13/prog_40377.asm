@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a cyan disk with center (413, 122) and radius 42.
-; PLAN: r0=413(x), r1=122(y), r2=42(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 413
-LDI r1, 122
-LDI r2, 42
-LDI r3, 0x00FFFF
+; DESCRIPTION: Creates a green circular shape at (476, 213) with radius 29.
+; PLAN: r0=476(x), r1=213(y), r2=29(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 476
+LDI r1, 213
+LDI r2, 29
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

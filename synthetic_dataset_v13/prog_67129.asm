@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 12x120 starting at (359, 48).
-; PLAN: r0=359(x), r1=48(y), r2=12(width), r3=120(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 48
-LDI r2, 12
-LDI r3, 120
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan line segment connecting (345, 42) to (341, 28).
+; PLAN: r0=345(x1), r1=42(y1), r2=341(x2), r3=28(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 345
+LDI r1, 42
+LDI r2, 341
+LDI r3, 28
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

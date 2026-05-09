@@ -1,8 +1,13 @@
-; DESCRIPTION: Draws a orange circle centered at (246, 143) with radius 69.
-; PLAN: r0=246(x), r1=143(y), r2=69(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 246
-LDI r1, 143
-LDI r2, 69
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Creates a yellow rectangular region at (229, 3) spanning 79 by 52 pixels then Sets a single black pixel at (52, 94).
+; PLAN: r0=229(x), r1=3(y), r2=79(width), r3=52(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=52(x), r6=94(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 229
+LDI r1, 3
+LDI r2, 79
+LDI r3, 52
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 52
+LDI r6, 94
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

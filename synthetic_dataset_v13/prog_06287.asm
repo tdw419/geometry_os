@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a cyan circle of radius 40 at center (154, 94).
-; PLAN: r0=154(x), r1=94(y), r2=40(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 154
-LDI r1, 94
-LDI r2, 40
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (103, 2).
+; PLAN: r0=103(x), r1=2(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 103
+LDI r1, 2
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

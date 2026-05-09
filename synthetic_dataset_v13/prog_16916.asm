@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a yellow line segment connecting (384, 35) to (284, 143).
-; PLAN: r0=384(x1), r1=35(y1), r2=284(x2), r3=143(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 384
-LDI r1, 35
-LDI r2, 284
-LDI r3, 143
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (450, 89).
-; PLAN: r0=450(x), r1=89(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 450
-LDI r1, 89
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black line from (255, 16) to (443, 13).
+; PLAN: r0=255(x1), r1=16(y1), r2=443(x2), r3=13(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 255
+LDI r1, 16
+LDI r2, 443
+LDI r3, 13
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

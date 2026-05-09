@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a purple circle of radius 47 at center (319, 58).
-; PLAN: r0=319(x), r1=58(y), r2=47(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 319
-LDI r1, 58
-LDI r2, 47
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 31 into r1 and decrements it in a loop until zero.
+; PLAN: r1=31(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 31
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

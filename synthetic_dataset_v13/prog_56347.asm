@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (71, 67) with width 16 and height 30.
-; PLAN: r0=71(x), r1=67(y), r2=16(width), r3=30(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 71
-LDI r1, 67
-LDI r2, 16
-LDI r3, 30
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (353, 43) and (467, 48).
+; PLAN: r0=353(x1), r1=43(y1), r2=467(x2), r3=48(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 43
+LDI r2, 467
+LDI r3, 48
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

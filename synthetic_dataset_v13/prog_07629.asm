@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single black pixel at (151, 30).
-; PLAN: r0=151(x), r1=30(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 151
-LDI r1, 30
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a green circle centered at (436, 67) with radius 41.
+; PLAN: r0=436(x), r1=67(y), r2=41(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 436
+LDI r1, 67
+LDI r2, 41
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

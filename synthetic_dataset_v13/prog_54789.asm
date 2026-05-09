@@ -1,14 +1,20 @@
-; DESCRIPTION: Composite: Draws a orange circle centered at (135, 61) with radius 20 then Renders a magenta box of size 37x90 starting at (61, 61).
-; PLAN: r0=135(x), r1=61(y), r2=20(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=61(x), r6=61(y), r7=37(width), r8=90(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 135
-LDI r1, 61
-LDI r2, 20
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 61
-LDI r6, 61
-LDI r7, 37
-LDI r8, 90
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a yellow rectangle at (67, 206) with width 54 and height 13 then Creates a purple circular shape at (287, 84) with radius 41 then Draws a yellow line from (489, 68) to (323, 244).
+; PLAN: r0=67(x), r1=206(y), r2=54(width), r3=13(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=287(x), r6=84(y), r7=41(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=489(x1), r11=68(y1), r12=323(x2), r13=244(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 67
+LDI r1, 206
+LDI r2, 54
+LDI r3, 13
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 287
+LDI r6, 84
+LDI r7, 41
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 489
+LDI r11, 68
+LDI r12, 323
+LDI r13, 244
+LDI r14, 0xFFFF00
+LINE r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (480, 183) and (285, 227).
-; PLAN: r0=480(x1), r1=183(y1), r2=285(x2), r3=227(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 480
-LDI r1, 183
-LDI r2, 285
-LDI r3, 227
-LDI r4, 0x000000
+; DESCRIPTION: Places a purple line segment connecting (509, 150) to (192, 164).
+; PLAN: r0=509(x1), r1=150(y1), r2=192(x2), r3=164(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 509
+LDI r1, 150
+LDI r2, 192
+LDI r3, 164
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

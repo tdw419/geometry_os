@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a orange circle of radius 22 at center (229, 46).
-; PLAN: r0=229(x), r1=46(y), r2=22(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 229
-LDI r1, 46
-LDI r2, 22
-LDI r3, 0xFF8800
+; DESCRIPTION: Draws a magenta circle centered at (28, 211) with radius 20.
+; PLAN: r0=28(x), r1=211(y), r2=20(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 28
+LDI r1, 211
+LDI r2, 20
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

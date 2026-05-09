@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (173, 10) and (492, 26).
-; PLAN: r0=173(x1), r1=10(y1), r2=492(x2), r3=26(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 173
-LDI r1, 10
-LDI r2, 492
-LDI r3, 26
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 19x60 rectangle at position (152, 91).
+; PLAN: r0=152(x), r1=91(y), r2=19(width), r3=60(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 152
+LDI r1, 91
+LDI r2, 19
+LDI r3, 60
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

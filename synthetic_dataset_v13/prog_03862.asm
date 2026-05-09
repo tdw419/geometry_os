@@ -1,13 +1,12 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (503, 115) then Draws a white rectangle at (210, 67) with width 61 and height 75.
-; PLAN: r0=503(x), r1=115(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=210(x), r6=67(y), r7=61(width), r8=75(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 503
-LDI r1, 115
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 210
-LDI r6, 67
-LDI r7, 61
-LDI r8, 75
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a red circle centered at (278, 51) with radius 32 then Places a yellow dot at position (303, 194).
+; PLAN: r0=278(x), r1=51(y), r2=32(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=303(x), r6=194(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
+LDI r0, 278
+LDI r1, 51
+LDI r2, 32
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 303
+LDI r6, 194
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
 HALT

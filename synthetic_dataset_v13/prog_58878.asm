@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 75x95 rectangle at position (154, 153).
-; PLAN: r0=154(x), r1=153(y), r2=75(width), r3=95(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 154
-LDI r1, 153
-LDI r2, 75
-LDI r3, 95
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (243, 188) to (418, 230).
+; PLAN: r0=243(x1), r1=188(y1), r2=418(x2), r3=230(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 243
+LDI r1, 188
+LDI r2, 418
+LDI r3, 230
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

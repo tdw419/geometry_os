@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Renders a purple box of size 102x50 starting at (37, 41).
+; PLAN: r0=37(x), r1=41(y), r2=102(width), r3=50(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 37
+LDI r1, 41
+LDI r2, 102
+LDI r3, 50
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

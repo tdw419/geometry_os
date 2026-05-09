@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (288, 9) and (38, 176).
-; PLAN: r0=288(x1), r1=9(y1), r2=38(x2), r3=176(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 9
-LDI r2, 38
-LDI r3, 176
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta 75x21 rectangle at position (113, 169).
+; PLAN: r0=113(x), r1=169(y), r2=75(width), r3=21(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 113
+LDI r1, 169
+LDI r2, 75
+LDI r3, 21
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

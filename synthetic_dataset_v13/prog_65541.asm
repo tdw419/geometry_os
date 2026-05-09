@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (187, 207) to (94, 187).
-; PLAN: r0=187(x1), r1=207(y1), r2=94(x2), r3=187(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 187
-LDI r1, 207
-LDI r2, 94
-LDI r3, 187
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 39 into r1 and decrements it in a loop until zero.
+; PLAN: r1=39(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 39
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

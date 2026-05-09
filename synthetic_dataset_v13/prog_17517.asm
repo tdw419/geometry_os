@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (266, 71) then Places a white circle of radius 57 at center (262, 174).
-; PLAN: r0=266(x), r1=71(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=262(x), r6=174(y), r7=57(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 266
-LDI r1, 71
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 262
-LDI r6, 174
-LDI r7, 57
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Loads 50 into r1 and decrements it in a loop until zero.
+; PLAN: r1=50(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 50
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

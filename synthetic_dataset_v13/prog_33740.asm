@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (389, 38) and (287, 239).
-; PLAN: r0=389(x1), r1=38(y1), r2=287(x2), r3=239(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 389
-LDI r1, 38
-LDI r2, 287
-LDI r3, 239
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan box of size 59x36 starting at (417, 29).
+; PLAN: r0=417(x), r1=29(y), r2=59(width), r3=36(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 29
+LDI r2, 59
+LDI r3, 36
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

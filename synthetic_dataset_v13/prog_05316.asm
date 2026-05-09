@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (79, 111) and (150, 41).
-; PLAN: r0=79(x1), r1=111(y1), r2=150(x2), r3=41(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 79
-LDI r1, 111
-LDI r2, 150
-LDI r3, 41
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 30x112 rectangle at position (213, 1).
+; PLAN: r0=213(x), r1=1(y), r2=30(width), r3=112(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 213
+LDI r1, 1
+LDI r2, 30
+LDI r3, 112
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (123, 83) to (45, 92).
-; PLAN: r0=123(x1), r1=83(y1), r2=45(x2), r3=92(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 123
-LDI r1, 83
-LDI r2, 45
-LDI r3, 92
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 76 at center (142, 142).
+; PLAN: r0=142(x), r1=142(y), r2=76(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 142
+LDI r1, 142
+LDI r2, 76
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

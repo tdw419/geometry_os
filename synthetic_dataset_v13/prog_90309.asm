@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (141, 129) and radius 63.
-; PLAN: r0=141(x), r1=129(y), r2=63(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 141
-LDI r1, 129
-LDI r2, 63
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (497, 142) to (161, 207).
+; PLAN: r0=497(x1), r1=142(y1), r2=161(x2), r3=207(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 497
+LDI r1, 142
+LDI r2, 161
+LDI r3, 207
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

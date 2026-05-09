@@ -1,14 +1,20 @@
-; DESCRIPTION: Composite: Places a white line segment connecting (99, 128) to (351, 85) then Draws a white circle centered at (442, 128) with radius 10.
-; PLAN: r0=99(x1), r1=128(y1), r2=351(x2), r3=85(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=442(x), r6=128(y), r7=10(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 99
-LDI r1, 128
-LDI r2, 351
-LDI r3, 85
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 442
-LDI r6, 128
-LDI r7, 10
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Draws a blue circle centered at (259, 110) with radius 71 then Renders a cyan line between points (341, 160) and (238, 192) then Renders a orange box of size 65x74 starting at (407, 42).
+; PLAN: r0=259(x), r1=110(y), r2=71(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=341(x1), r6=160(y1), r7=238(x2), r8=192(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=407(x), r11=42(y), r12=65(width), r13=74(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 259
+LDI r1, 110
+LDI r2, 71
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 341
+LDI r6, 160
+LDI r7, 238
+LDI r8, 192
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
+LDI r10, 407
+LDI r11, 42
+LDI r12, 65
+LDI r13, 74
+LDI r14, 0xFF8800
+RECTF r10, r11, r12, r13, r14
 HALT

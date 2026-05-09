@@ -1,19 +1,20 @@
-; DESCRIPTION: Composite: Draws a yellow line from (442, 236) to (188, 212) then Renders a orange box of size 35x52 starting at (415, 78) then Places a green dot at position (122, 184).
-; PLAN: r0=442(x1), r1=236(y1), r2=188(x2), r3=212(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=415(x), r6=78(y), r7=35(width), r8=52(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=122(x), r11=184(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
-LDI r0, 442
-LDI r1, 236
-LDI r2, 188
-LDI r3, 212
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 415
-LDI r6, 78
-LDI r7, 35
-LDI r8, 52
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
-LDI r10, 122
-LDI r11, 184
-LDI r12, 0x00FF00
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Renders a red box of size 97x16 starting at (202, 143) then Draws a blue line from (400, 125) to (44, 31) then Places a yellow circle of radius 35 at center (112, 216).
+; PLAN: r0=202(x), r1=143(y), r2=97(width), r3=16(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=400(x1), r6=125(y1), r7=44(x2), r8=31(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=112(x), r11=216(y), r12=35(radius), r13=0xFFFF00(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 202
+LDI r1, 143
+LDI r2, 97
+LDI r3, 16
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 400
+LDI r6, 125
+LDI r7, 44
+LDI r8, 31
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
+LDI r10, 112
+LDI r11, 216
+LDI r12, 35
+LDI r13, 0xFFFF00
+CIRCLE r10, r11, r12, r13
 HALT

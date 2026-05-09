@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green box of size 42x51 starting at (215, 120).
-; PLAN: r0=215(x), r1=120(y), r2=42(width), r3=51(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 215
-LDI r1, 120
-LDI r2, 42
-LDI r3, 51
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (448, 177) with radius 41.
+; PLAN: r0=448(x), r1=177(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 448
+LDI r1, 177
+LDI r2, 41
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

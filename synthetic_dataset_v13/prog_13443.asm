@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 17x120 rectangle at position (149, 53).
-; PLAN: r0=149(x), r1=53(y), r2=17(width), r3=120(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 149
-LDI r1, 53
-LDI r2, 17
-LDI r3, 120
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (490, 149) and (350, 160).
+; PLAN: r0=490(x1), r1=149(y1), r2=350(x2), r3=160(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 490
+LDI r1, 149
+LDI r2, 350
+LDI r3, 160
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

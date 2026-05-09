@@ -245,8 +245,8 @@ HALT"""
             (self.generate_fill, 10),
             (self.generate_line, 20),
             (self.generate_pset, 5),
-            (self.generate_loop, 5),
-            (self.generate_multi, 10),
+            (self.generate_loop, 10),
+            (self.generate_multi, 20),
             (self.generate_gradient, 10),
         ]
         pool = []

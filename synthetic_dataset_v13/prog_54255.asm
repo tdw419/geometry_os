@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white rectangle at (184, 142) with width 38 and height 72.
-; PLAN: r0=184(x), r1=142(y), r2=38(width), r3=72(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 184
-LDI r1, 142
-LDI r2, 38
-LDI r3, 72
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (399, 220) with radius 33.
+; PLAN: r0=399(x), r1=220(y), r2=33(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 399
+LDI r1, 220
+LDI r2, 33
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

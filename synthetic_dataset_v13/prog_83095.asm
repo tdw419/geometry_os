@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (362, 126) spanning 116 by 101 pixels.
-; PLAN: r0=362(x), r1=126(y), r2=116(width), r3=101(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 126
-LDI r2, 116
-LDI r3, 101
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a cyan rectangle at (258, 73) with width 112 and height 61.
+; PLAN: r0=258(x), r1=73(y), r2=112(width), r3=61(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 258
+LDI r1, 73
+LDI r2, 112
+LDI r3, 61
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

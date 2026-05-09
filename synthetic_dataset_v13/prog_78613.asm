@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (462, 32) then Draws a black line from (295, 106) to (2, 51).
-; PLAN: r0=462(x), r1=32(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=295(x1), r6=106(y1), r7=2(x2), r8=51(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 462
-LDI r1, 32
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 295
-LDI r6, 106
-LDI r7, 2
-LDI r8, 51
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a black box of size 31x16 starting at (90, 130).
+; PLAN: r0=90(x), r1=130(y), r2=31(width), r3=16(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 90
+LDI r1, 130
+LDI r2, 31
+LDI r3, 16
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

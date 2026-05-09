@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (220, 152) spanning 119 by 77 pixels then Places a white dot at position (94, 159).
-; PLAN: r0=220(x), r1=152(y), r2=119(width), r3=77(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=94(x), r6=159(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 220
-LDI r1, 152
-LDI r2, 119
-LDI r3, 77
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 94
-LDI r6, 159
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
+; DESCRIPTION: Loads 37 into r1 and decrements it in a loop until zero.
+; PLAN: r1=37(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 37
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

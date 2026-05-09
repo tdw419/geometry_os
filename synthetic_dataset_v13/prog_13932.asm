@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Places a green circle of radius 55 at center (160, 187).
+; PLAN: r0=160(x), r1=187(y), r2=55(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 160
+LDI r1, 187
+LDI r2, 55
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

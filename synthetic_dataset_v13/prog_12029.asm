@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a green circle centered at (145, 126) with radius 51.
-; PLAN: r0=145(x), r1=126(y), r2=51(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 145
-LDI r1, 126
-LDI r2, 51
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (183, 31).
+; PLAN: r0=183(x), r1=31(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 183
+LDI r1, 31
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

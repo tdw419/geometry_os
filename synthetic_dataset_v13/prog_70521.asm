@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a purple rectangle at (251, 9) with width 11 and height 85.
-; PLAN: r0=251(x), r1=9(y), r2=11(width), r3=85(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 251
-LDI r1, 9
-LDI r2, 11
-LDI r3, 85
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

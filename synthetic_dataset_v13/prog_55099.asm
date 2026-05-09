@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a black dot at position (143, 82) then Draws a red line from (205, 42) to (198, 117).
-; PLAN: r0=143(x), r1=82(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=205(x1), r6=42(y1), r7=198(x2), r8=117(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 143
-LDI r1, 82
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 205
-LDI r6, 42
-LDI r7, 198
-LDI r8, 117
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a red rectangle at (306, 197) with width 104 and height 16.
+; PLAN: r0=306(x), r1=197(y), r2=104(width), r3=16(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 306
+LDI r1, 197
+LDI r2, 104
+LDI r3, 16
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a blue line between points (163, 84) and (375, 147).
-; PLAN: r0=163(x1), r1=84(y1), r2=375(x2), r3=147(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 163
-LDI r1, 84
-LDI r2, 375
-LDI r3, 147
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (146, 162) then Draws a green rectangle at (171, 123) with width 49 and height 59.
+; PLAN: r0=146(x), r1=162(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=171(x), r6=123(y), r7=49(width), r8=59(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 146
+LDI r1, 162
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 171
+LDI r6, 123
+LDI r7, 49
+LDI r8, 59
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

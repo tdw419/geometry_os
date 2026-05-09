@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 27x67 rectangle at position (270, 132).
-; PLAN: r0=270(x), r1=132(y), r2=27(width), r3=67(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 270
-LDI r1, 132
-LDI r2, 27
-LDI r3, 67
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (123, 174) and radius 16.
+; PLAN: r0=123(x), r1=174(y), r2=16(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 123
+LDI r1, 174
+LDI r2, 16
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

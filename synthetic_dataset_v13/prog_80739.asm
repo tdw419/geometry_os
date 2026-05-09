@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 41 at center (103, 111).
-; PLAN: r0=103(x), r1=111(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 103
-LDI r1, 111
-LDI r2, 41
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (165, 243) to (242, 209).
+; PLAN: r0=165(x1), r1=243(y1), r2=242(x2), r3=209(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 165
+LDI r1, 243
+LDI r2, 242
+LDI r3, 209
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

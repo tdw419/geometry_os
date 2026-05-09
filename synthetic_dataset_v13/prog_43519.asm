@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (131, 0) and (510, 99).
-; PLAN: r0=131(x1), r1=0(y1), r2=510(x2), r3=99(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 131
-LDI r1, 0
-LDI r2, 510
-LDI r3, 99
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a white line segment connecting (314, 94) to (476, 169).
+; PLAN: r0=314(x1), r1=94(y1), r2=476(x2), r3=169(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 314
+LDI r1, 94
+LDI r2, 476
+LDI r3, 169
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

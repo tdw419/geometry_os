@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (405, 242) to (315, 26).
-; PLAN: r0=405(x1), r1=242(y1), r2=315(x2), r3=26(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 405
-LDI r1, 242
-LDI r2, 315
-LDI r3, 26
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 30x56 rectangle at position (284, 172).
+; PLAN: r0=284(x), r1=172(y), r2=30(width), r3=56(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 284
+LDI r1, 172
+LDI r2, 30
+LDI r3, 56
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

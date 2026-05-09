@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (265, 65) with width 15 and height 59.
-; PLAN: r0=265(x), r1=65(y), r2=15(width), r3=59(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 265
-LDI r1, 65
-LDI r2, 15
-LDI r3, 59
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (471, 96) to (457, 90).
+; PLAN: r0=471(x1), r1=96(y1), r2=457(x2), r3=90(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 471
+LDI r1, 96
+LDI r2, 457
+LDI r3, 90
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (490, 244).
-; PLAN: r0=490(x), r1=244(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 490
-LDI r1, 244
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a orange circular shape at (290, 132) with radius 67.
+; PLAN: r0=290(x), r1=132(y), r2=67(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 290
+LDI r1, 132
+LDI r2, 67
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

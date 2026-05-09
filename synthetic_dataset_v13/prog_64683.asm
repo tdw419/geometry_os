@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 77 at center (394, 160).
-; PLAN: r0=394(x), r1=160(y), r2=77(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 394
-LDI r1, 160
-LDI r2, 77
-LDI r3, 0xFF00FF
+; DESCRIPTION: Places a cyan circle of radius 13 at center (391, 128).
+; PLAN: r0=391(x), r1=128(y), r2=13(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 391
+LDI r1, 128
+LDI r2, 13
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

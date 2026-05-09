@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Draws a magenta circle centered at (231, 86) with radius 71 then Draws a green line from (219, 64) to (119, 80) then Sets a single black pixel at (34, 217).
-; PLAN: r0=231(x), r1=86(y), r2=71(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=219(x1), r6=64(y1), r7=119(x2), r8=80(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=34(x), r11=217(y), r12=0x000000(color). Op: PSET r10, r11, r12.
-LDI r0, 231
-LDI r1, 86
-LDI r2, 71
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 219
-LDI r6, 64
-LDI r7, 119
-LDI r8, 80
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 34
-LDI r11, 217
-LDI r12, 0x000000
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Renders a orange line between points (10, 24) and (385, 160) then Renders a yellow box of size 71x84 starting at (65, 63) then Draws a yellow circle centered at (382, 129) with radius 22.
+; PLAN: r0=10(x1), r1=24(y1), r2=385(x2), r3=160(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=65(x), r6=63(y), r7=71(width), r8=84(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=382(x), r11=129(y), r12=22(radius), r13=0xFFFF00(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 10
+LDI r1, 24
+LDI r2, 385
+LDI r3, 160
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 65
+LDI r6, 63
+LDI r7, 71
+LDI r8, 84
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 382
+LDI r11, 129
+LDI r12, 22
+LDI r13, 0xFFFF00
+CIRCLE r10, r11, r12, r13
 HALT

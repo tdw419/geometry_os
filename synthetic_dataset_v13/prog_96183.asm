@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (47, 37) and radius 12.
-; PLAN: r0=47(x), r1=37(y), r2=12(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 47
-LDI r1, 37
-LDI r2, 12
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (38, 13) with width 68 and height 22.
+; PLAN: r0=38(x), r1=13(y), r2=68(width), r3=22(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 38
+LDI r1, 13
+LDI r2, 68
+LDI r3, 22
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

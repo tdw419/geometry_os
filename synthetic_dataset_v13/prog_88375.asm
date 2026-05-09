@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a white dot at position (503, 226) then Renders a white box of size 102x76 starting at (211, 5).
-; PLAN: r0=503(x), r1=226(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=211(x), r6=5(y), r7=102(width), r8=76(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 503
-LDI r1, 226
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 211
-LDI r6, 5
-LDI r7, 102
-LDI r8, 76
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a yellow rectangular region at (356, 71) spanning 95 by 81 pixels.
+; PLAN: r0=356(x), r1=71(y), r2=95(width), r3=81(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 356
+LDI r1, 71
+LDI r2, 95
+LDI r3, 81
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

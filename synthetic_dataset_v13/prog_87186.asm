@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Places a red dot at position (268, 184) then Draws a black circle centered at (214, 96) with radius 50.
-; PLAN: r0=268(x), r1=184(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=214(x), r6=96(y), r7=50(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 268
-LDI r1, 184
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 214
-LDI r6, 96
-LDI r7, 50
-LDI r8, 0x000000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a cyan disk with center (273, 107) and radius 60.
+; PLAN: r0=273(x), r1=107(y), r2=60(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 273
+LDI r1, 107
+LDI r2, 60
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

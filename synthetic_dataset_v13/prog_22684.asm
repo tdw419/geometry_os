@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (148, 157) with radius 22.
-; PLAN: r0=148(x), r1=157(y), r2=22(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 148
-LDI r1, 157
-LDI r2, 22
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (98, 90) and (282, 158).
+; PLAN: r0=98(x1), r1=90(y1), r2=282(x2), r3=158(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 98
+LDI r1, 90
+LDI r2, 282
+LDI r3, 158
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

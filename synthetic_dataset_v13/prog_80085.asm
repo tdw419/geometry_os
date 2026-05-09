@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (509, 114) then Places a magenta line segment connecting (321, 138) to (431, 81).
-; PLAN: r0=509(x), r1=114(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=321(x1), r6=138(y1), r7=431(x2), r8=81(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 509
-LDI r1, 114
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 321
-LDI r6, 138
-LDI r7, 431
-LDI r8, 81
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a cyan rectangle at (308, 190) with width 113 and height 42.
+; PLAN: r0=308(x), r1=190(y), r2=113(width), r3=42(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 308
+LDI r1, 190
+LDI r2, 113
+LDI r3, 42
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (226, 115) with radius 45.
-; PLAN: r0=226(x), r1=115(y), r2=45(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 226
-LDI r1, 115
-LDI r2, 45
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 120x29 rectangle at position (91, 40).
+; PLAN: r0=91(x), r1=40(y), r2=120(width), r3=29(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 91
+LDI r1, 40
+LDI r2, 120
+LDI r3, 29
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

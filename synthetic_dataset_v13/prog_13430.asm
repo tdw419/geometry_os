@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green rectangle at (161, 167) with width 25 and height 39.
-; PLAN: r0=161(x), r1=167(y), r2=25(width), r3=39(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 161
-LDI r1, 167
-LDI r2, 25
-LDI r3, 39
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (210, 88) with radius 44.
+; PLAN: r0=210(x), r1=88(y), r2=44(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 210
+LDI r1, 88
+LDI r2, 44
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

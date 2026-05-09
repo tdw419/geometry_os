@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 45x103 rectangle at position (34, 20).
-; PLAN: r0=34(x), r1=20(y), r2=45(width), r3=103(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 34
-LDI r1, 20
-LDI r2, 45
-LDI r3, 103
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (192, 184) with radius 69.
+; PLAN: r0=192(x), r1=184(y), r2=69(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 192
+LDI r1, 184
+LDI r2, 69
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

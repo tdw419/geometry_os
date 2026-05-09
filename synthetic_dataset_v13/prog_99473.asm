@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 99x91 starting at (356, 139).
-; PLAN: r0=356(x), r1=139(y), r2=99(width), r3=91(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 139
-LDI r2, 99
-LDI r3, 91
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (78, 74) and (91, 33).
+; PLAN: r0=78(x1), r1=74(y1), r2=91(x2), r3=33(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 78
+LDI r1, 74
+LDI r2, 91
+LDI r3, 33
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

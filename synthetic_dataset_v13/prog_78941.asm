@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 15x99 rectangle at position (57, 129).
-; PLAN: r0=57(x), r1=129(y), r2=15(width), r3=99(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 57
-LDI r1, 129
-LDI r2, 15
-LDI r3, 99
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (435, 32) to (81, 31).
+; PLAN: r0=435(x1), r1=32(y1), r2=81(x2), r3=31(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 435
+LDI r1, 32
+LDI r2, 81
+LDI r3, 31
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

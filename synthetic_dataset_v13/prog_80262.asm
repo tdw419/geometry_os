@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (360, 49) and radius 22.
-; PLAN: r0=360(x), r1=49(y), r2=22(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 49
-LDI r2, 22
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a green rectangular region at (373, 41) spanning 68 by 93 pixels.
+; PLAN: r0=373(x), r1=41(y), r2=68(width), r3=93(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 373
+LDI r1, 41
+LDI r2, 68
+LDI r3, 93
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

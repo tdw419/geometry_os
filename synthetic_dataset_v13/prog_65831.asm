@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (18, 148) to (433, 152).
-; PLAN: r0=18(x1), r1=148(y1), r2=433(x2), r3=152(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 18
-LDI r1, 148
-LDI r2, 433
-LDI r3, 152
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow rectangular region at (59, 120) spanning 108 by 39 pixels.
+; PLAN: r0=59(x), r1=120(y), r2=108(width), r3=39(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 59
+LDI r1, 120
+LDI r2, 108
+LDI r3, 39
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

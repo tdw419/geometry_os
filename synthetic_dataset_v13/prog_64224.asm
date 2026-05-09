@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 98x45 starting at (288, 29).
-; PLAN: r0=288(x), r1=29(y), r2=98(width), r3=45(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 29
-LDI r2, 98
-LDI r3, 45
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (294, 213) with radius 39.
+; PLAN: r0=294(x), r1=213(y), r2=39(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 294
+LDI r1, 213
+LDI r2, 39
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

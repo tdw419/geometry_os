@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (350, 150) and radius 74.
-; PLAN: r0=350(x), r1=150(y), r2=74(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 350
-LDI r1, 150
-LDI r2, 74
-LDI r3, 0x000000
+; DESCRIPTION: Creates a purple circular shape at (77, 81) with radius 71.
+; PLAN: r0=77(x), r1=81(y), r2=71(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 77
+LDI r1, 81
+LDI r2, 71
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

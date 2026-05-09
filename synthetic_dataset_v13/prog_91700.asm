@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (91, 76) and radius 30.
-; PLAN: r0=91(x), r1=76(y), r2=30(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 91
-LDI r1, 76
-LDI r2, 30
-LDI r3, 0x000000
+; DESCRIPTION: Renders a green disk with center (393, 77) and radius 76.
+; PLAN: r0=393(x), r1=77(y), r2=76(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 393
+LDI r1, 77
+LDI r2, 76
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

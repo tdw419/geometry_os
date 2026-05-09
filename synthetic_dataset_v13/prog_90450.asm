@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (64, 95) with radius 39.
-; PLAN: r0=64(x), r1=95(y), r2=39(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 64
-LDI r1, 95
-LDI r2, 39
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 93x30 starting at (323, 106).
+; PLAN: r0=323(x), r1=106(y), r2=93(width), r3=30(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 323
+LDI r1, 106
+LDI r2, 93
+LDI r3, 30
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a white circular shape at (298, 106) with radius 71 then Places a yellow dot at position (64, 13).
-; PLAN: r0=298(x), r1=106(y), r2=71(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=64(x), r6=13(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 298
-LDI r1, 106
-LDI r2, 71
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 64
-LDI r6, 13
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
+; DESCRIPTION: Draws a purple line from (475, 129) to (247, 2).
+; PLAN: r0=475(x1), r1=129(y1), r2=247(x2), r3=2(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 475
+LDI r1, 129
+LDI r2, 247
+LDI r3, 2
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

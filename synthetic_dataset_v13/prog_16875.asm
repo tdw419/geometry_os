@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a white line between points (469, 217) and (407, 222).
-; PLAN: r0=469(x1), r1=217(y1), r2=407(x2), r3=222(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 469
-LDI r1, 217
-LDI r2, 407
-LDI r3, 222
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (43, 43) then Renders a purple box of size 19x72 starting at (168, 62).
+; PLAN: r0=43(x), r1=43(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=168(x), r6=62(y), r7=19(width), r8=72(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 43
+LDI r1, 43
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 168
+LDI r6, 62
+LDI r7, 19
+LDI r8, 72
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

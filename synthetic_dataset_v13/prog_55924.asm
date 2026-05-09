@@ -1,14 +1,8 @@
-; DESCRIPTION: Composite: Places a yellow line segment connecting (5, 225) to (78, 151) then Draws a orange circle centered at (324, 86) with radius 56.
-; PLAN: r0=5(x1), r1=225(y1), r2=78(x2), r3=151(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=324(x), r6=86(y), r7=56(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 5
-LDI r1, 225
-LDI r2, 78
-LDI r3, 151
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 324
-LDI r6, 86
-LDI r7, 56
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a red circular shape at (144, 108) with radius 27.
+; PLAN: r0=144(x), r1=108(y), r2=27(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 144
+LDI r1, 108
+LDI r2, 27
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

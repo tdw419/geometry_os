@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 40x22 rectangle at position (294, 228).
-; PLAN: r0=294(x), r1=228(y), r2=40(width), r3=22(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 294
-LDI r1, 228
-LDI r2, 40
-LDI r3, 22
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange circle of radius 17 at center (465, 82).
+; PLAN: r0=465(x), r1=82(y), r2=17(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 465
+LDI r1, 82
+LDI r2, 17
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

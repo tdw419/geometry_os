@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Draws a cyan line from (102, 253) to (141, 232).
+; PLAN: r0=102(x1), r1=253(y1), r2=141(x2), r3=232(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 102
+LDI r1, 253
+LDI r2, 141
+LDI r3, 232
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

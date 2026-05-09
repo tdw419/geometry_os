@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 28 at center (116, 83).
-; PLAN: r0=116(x), r1=83(y), r2=28(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 116
-LDI r1, 83
-LDI r2, 28
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a orange rectangular region at (256, 29) spanning 98 by 48 pixels.
+; PLAN: r0=256(x), r1=29(y), r2=98(width), r3=48(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 256
+LDI r1, 29
+LDI r2, 98
+LDI r3, 48
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

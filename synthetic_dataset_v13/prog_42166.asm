@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a cyan line between points (136, 50) and (183, 201).
-; PLAN: r0=136(x1), r1=50(y1), r2=183(x2), r3=201(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 136
-LDI r1, 50
-LDI r2, 183
-LDI r3, 201
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (114, 26) then Renders a white disk with center (183, 119) and radius 53.
+; PLAN: r0=114(x), r1=26(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=183(x), r6=119(y), r7=53(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 114
+LDI r1, 26
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 183
+LDI r6, 119
+LDI r7, 53
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

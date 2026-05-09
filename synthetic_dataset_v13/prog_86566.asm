@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Sets a single magenta pixel at (196, 92).
+; PLAN: r0=196(x), r1=92(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 196
+LDI r1, 92
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

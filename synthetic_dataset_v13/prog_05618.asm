@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a magenta line between points (64, 180) and (71, 209).
-; PLAN: r0=64(x1), r1=180(y1), r2=71(x2), r3=209(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 180
-LDI r2, 71
-LDI r3, 209
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan 115x39 rectangle at position (86, 54) then Sets a single blue pixel at (376, 117).
+; PLAN: r0=86(x), r1=54(y), r2=115(width), r3=39(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=376(x), r6=117(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 86
+LDI r1, 54
+LDI r2, 115
+LDI r3, 39
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 376
+LDI r6, 117
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

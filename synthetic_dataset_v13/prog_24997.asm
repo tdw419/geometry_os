@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 95x37 rectangle at position (120, 160).
-; PLAN: r0=120(x), r1=160(y), r2=95(width), r3=37(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 120
-LDI r1, 160
-LDI r2, 95
-LDI r3, 37
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (440, 124) and (33, 5).
+; PLAN: r0=440(x1), r1=124(y1), r2=33(x2), r3=5(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 440
+LDI r1, 124
+LDI r2, 33
+LDI r3, 5
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

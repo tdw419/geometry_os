@@ -1,19 +1,13 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (323, 43) then Renders a black line between points (162, 48) and (230, 178) then Creates a blue rectangular region at (155, 85) spanning 15 by 38 pixels.
-; PLAN: r0=323(x), r1=43(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=162(x1), r6=48(y1), r7=230(x2), r8=178(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=155(x), r11=85(y), r12=15(width), r13=38(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 323
-LDI r1, 43
-LDI r2, 0x00FFFF
+; DESCRIPTION: Composite: Sets a single white pixel at (210, 65) then Renders a black box of size 70x114 starting at (87, 99).
+; PLAN: r0=210(x), r1=65(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=87(x), r6=99(y), r7=70(width), r8=114(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 210
+LDI r1, 65
+LDI r2, 0xFFFFFF
 PSET r0, r1, r2
-LDI r5, 162
-LDI r6, 48
-LDI r7, 230
-LDI r8, 178
+LDI r5, 87
+LDI r6, 99
+LDI r7, 70
+LDI r8, 114
 LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
-LDI r10, 155
-LDI r11, 85
-LDI r12, 15
-LDI r13, 38
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+RECTF r5, r6, r7, r8, r9
 HALT

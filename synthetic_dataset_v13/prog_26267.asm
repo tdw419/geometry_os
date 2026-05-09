@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (177, 88) and radius 68.
-; PLAN: r0=177(x), r1=88(y), r2=68(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 177
-LDI r1, 88
-LDI r2, 68
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (172, 100) and (473, 130).
+; PLAN: r0=172(x1), r1=100(y1), r2=473(x2), r3=130(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 172
+LDI r1, 100
+LDI r2, 473
+LDI r3, 130
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (15, 109) to (477, 129).
-; PLAN: r0=15(x1), r1=109(y1), r2=477(x2), r3=129(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 15
-LDI r1, 109
-LDI r2, 477
-LDI r3, 129
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a red line segment connecting (114, 15) to (315, 198).
+; PLAN: r0=114(x1), r1=15(y1), r2=315(x2), r3=198(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 114
+LDI r1, 15
+LDI r2, 315
+LDI r3, 198
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

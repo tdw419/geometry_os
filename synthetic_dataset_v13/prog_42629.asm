@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow box of size 17x106 starting at (479, 10).
-; PLAN: r0=479(x), r1=10(y), r2=17(width), r3=106(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 479
-LDI r1, 10
-LDI r2, 17
-LDI r3, 106
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (205, 168) with radius 79.
+; PLAN: r0=205(x), r1=168(y), r2=79(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 205
+LDI r1, 168
+LDI r2, 79
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

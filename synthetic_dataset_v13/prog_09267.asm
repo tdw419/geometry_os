@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (62, 200) with radius 10.
-; PLAN: r0=62(x), r1=200(y), r2=10(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 62
-LDI r1, 200
-LDI r2, 10
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (425, 145) and (448, 138).
+; PLAN: r0=425(x1), r1=145(y1), r2=448(x2), r3=138(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 145
+LDI r2, 448
+LDI r3, 138
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

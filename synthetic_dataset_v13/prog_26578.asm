@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a black line segment connecting (243, 182) to (181, 169).
-; PLAN: r0=243(x1), r1=182(y1), r2=181(x2), r3=169(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 243
-LDI r1, 182
-LDI r2, 181
-LDI r3, 169
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (265, 77) then Places a cyan circle of radius 59 at center (155, 111).
+; PLAN: r0=265(x), r1=77(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=155(x), r6=111(y), r7=59(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 265
+LDI r1, 77
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 155
+LDI r6, 111
+LDI r7, 59
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

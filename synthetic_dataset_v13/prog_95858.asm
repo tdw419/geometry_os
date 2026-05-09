@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (88, 64) to (405, 123).
-; PLAN: r0=88(x1), r1=64(y1), r2=405(x2), r3=123(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 64
-LDI r2, 405
-LDI r3, 123
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a red line between points (75, 90) and (61, 252).
+; PLAN: r0=75(x1), r1=90(y1), r2=61(x2), r3=252(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 90
+LDI r2, 61
+LDI r3, 252
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

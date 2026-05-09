@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a white circle centered at (142, 132) with radius 68.
-; PLAN: r0=142(x), r1=132(y), r2=68(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 142
-LDI r1, 132
-LDI r2, 68
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan dot at position (254, 122).
+; PLAN: r0=254(x), r1=122(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 254
+LDI r1, 122
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

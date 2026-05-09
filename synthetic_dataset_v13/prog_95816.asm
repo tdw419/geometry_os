@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a yellow rectangle at (238, 143) with width 55 and height 96.
-; PLAN: r0=238(x), r1=143(y), r2=55(width), r3=96(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 238
-LDI r1, 143
-LDI r2, 55
-LDI r3, 96
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

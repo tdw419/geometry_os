@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Places a purple dot at position (194, 70).
+; PLAN: r0=194(x), r1=70(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 194
+LDI r1, 70
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

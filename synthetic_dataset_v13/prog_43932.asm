@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange line segment connecting (383, 83) to (378, 95).
-; PLAN: r0=383(x1), r1=83(y1), r2=378(x2), r3=95(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 383
-LDI r1, 83
-LDI r2, 378
-LDI r3, 95
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 31 at center (204, 91).
+; PLAN: r0=204(x), r1=91(y), r2=31(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 204
+LDI r1, 91
+LDI r2, 31
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

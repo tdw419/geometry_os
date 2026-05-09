@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (434, 128) and (283, 103).
-; PLAN: r0=434(x1), r1=128(y1), r2=283(x2), r3=103(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 434
-LDI r1, 128
-LDI r2, 283
-LDI r3, 103
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 58x29 rectangle at position (321, 80).
+; PLAN: r0=321(x), r1=80(y), r2=58(width), r3=29(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 321
+LDI r1, 80
+LDI r2, 58
+LDI r3, 29
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 118x22 rectangle at position (6, 113).
-; PLAN: r0=6(x), r1=113(y), r2=118(width), r3=22(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 6
-LDI r1, 113
-LDI r2, 118
-LDI r3, 22
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a green box of size 35x77 starting at (88, 23).
+; PLAN: r0=88(x), r1=23(y), r2=35(width), r3=77(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 88
+LDI r1, 23
+LDI r2, 35
+LDI r3, 77
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

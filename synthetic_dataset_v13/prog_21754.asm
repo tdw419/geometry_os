@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (401, 144) with radius 75.
-; PLAN: r0=401(x), r1=144(y), r2=75(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 401
-LDI r1, 144
-LDI r2, 75
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (289, 111) with width 27 and height 60.
+; PLAN: r0=289(x), r1=111(y), r2=27(width), r3=60(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 289
+LDI r1, 111
+LDI r2, 27
+LDI r3, 60
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

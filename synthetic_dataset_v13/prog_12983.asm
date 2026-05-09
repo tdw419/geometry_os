@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (362, 91) spanning 80 by 40 pixels.
-; PLAN: r0=362(x), r1=91(y), r2=80(width), r3=40(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 91
-LDI r2, 80
-LDI r3, 40
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green line segment connecting (227, 147) to (190, 124).
+; PLAN: r0=227(x1), r1=147(y1), r2=190(x2), r3=124(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 227
+LDI r1, 147
+LDI r2, 190
+LDI r3, 124
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

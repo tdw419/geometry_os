@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Draws a red line from (8, 181) to (18, 129) then Sets a single blue pixel at (419, 118).
-; PLAN: r0=8(x1), r1=181(y1), r2=18(x2), r3=129(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=419(x), r6=118(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 8
-LDI r1, 181
-LDI r2, 18
-LDI r3, 129
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
-LDI r5, 419
-LDI r6, 118
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Places a orange 81x68 rectangle at position (159, 86).
+; PLAN: r0=159(x), r1=86(y), r2=81(width), r3=68(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 159
+LDI r1, 86
+LDI r2, 81
+LDI r3, 68
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a orange box of size 17x54 starting at (123, 133).
-; PLAN: r0=123(x), r1=133(y), r2=17(width), r3=54(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 123
-LDI r1, 133
-LDI r2, 17
-LDI r3, 54
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (66, 58) then Places a yellow circle of radius 49 at center (308, 182).
+; PLAN: r0=66(x), r1=58(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=308(x), r6=182(y), r7=49(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 66
+LDI r1, 58
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 308
+LDI r6, 182
+LDI r7, 49
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

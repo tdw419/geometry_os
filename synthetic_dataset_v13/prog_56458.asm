@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (81, 144) and radius 64.
-; PLAN: r0=81(x), r1=144(y), r2=64(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 81
-LDI r1, 144
-LDI r2, 64
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 81x97 rectangle at position (106, 31).
+; PLAN: r0=106(x), r1=31(y), r2=81(width), r3=97(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 106
+LDI r1, 31
+LDI r2, 81
+LDI r3, 97
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

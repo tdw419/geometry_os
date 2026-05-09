@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 119x62 rectangle at position (303, 98).
-; PLAN: r0=303(x), r1=98(y), r2=119(width), r3=62(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 303
-LDI r1, 98
-LDI r2, 119
-LDI r3, 62
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (309, 240) to (61, 219).
+; PLAN: r0=309(x1), r1=240(y1), r2=61(x2), r3=219(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 309
+LDI r1, 240
+LDI r2, 61
+LDI r3, 219
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

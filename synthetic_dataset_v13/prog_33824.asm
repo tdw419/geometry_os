@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (300, 75) to (152, 219).
-; PLAN: r0=300(x1), r1=75(y1), r2=152(x2), r3=219(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 75
-LDI r2, 152
-LDI r3, 219
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a magenta line from (90, 253) to (117, 55).
+; PLAN: r0=90(x1), r1=253(y1), r2=117(x2), r3=55(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 90
+LDI r1, 253
+LDI r2, 117
+LDI r3, 55
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

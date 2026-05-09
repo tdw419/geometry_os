@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (18, 80) to (490, 138).
-; PLAN: r0=18(x1), r1=80(y1), r2=490(x2), r3=138(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 18
-LDI r1, 80
-LDI r2, 490
-LDI r3, 138
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (319, 130) with radius 76.
+; PLAN: r0=319(x), r1=130(y), r2=76(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 319
+LDI r1, 130
+LDI r2, 76
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

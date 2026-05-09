@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (108, 69) with radius 60.
-; PLAN: r0=108(x), r1=69(y), r2=60(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 108
-LDI r1, 69
-LDI r2, 60
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (481, 254) and (472, 6).
+; PLAN: r0=481(x1), r1=254(y1), r2=472(x2), r3=6(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 481
+LDI r1, 254
+LDI r2, 472
+LDI r3, 6
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (55, 153) and (84, 115).
-; PLAN: r0=55(x1), r1=153(y1), r2=84(x2), r3=115(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 55
-LDI r1, 153
-LDI r2, 84
-LDI r3, 115
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (316, 140) with width 77 and height 48.
+; PLAN: r0=316(x), r1=140(y), r2=77(width), r3=48(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 316
+LDI r1, 140
+LDI r2, 77
+LDI r3, 48
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

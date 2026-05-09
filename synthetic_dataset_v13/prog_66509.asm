@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (443, 88) to (264, 179).
-; PLAN: r0=443(x1), r1=88(y1), r2=264(x2), r3=179(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 443
-LDI r1, 88
-LDI r2, 264
-LDI r3, 179
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a green line between points (397, 251) and (474, 32).
+; PLAN: r0=397(x1), r1=251(y1), r2=474(x2), r3=32(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 397
+LDI r1, 251
+LDI r2, 474
+LDI r3, 32
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 68x79 rectangle at position (21, 12).
-; PLAN: r0=21(x), r1=12(y), r2=68(width), r3=79(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 21
-LDI r1, 12
-LDI r2, 68
-LDI r3, 79
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (33, 121) and (509, 238).
+; PLAN: r0=33(x1), r1=121(y1), r2=509(x2), r3=238(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 33
+LDI r1, 121
+LDI r2, 509
+LDI r3, 238
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (212, 153) with width 107 and height 71.
-; PLAN: r0=212(x), r1=153(y), r2=107(width), r3=71(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 212
-LDI r1, 153
-LDI r2, 107
-LDI r3, 71
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a purple 61x41 rectangle at position (419, 33).
+; PLAN: r0=419(x), r1=33(y), r2=61(width), r3=41(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 419
+LDI r1, 33
+LDI r2, 61
+LDI r3, 41
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

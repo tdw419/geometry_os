@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (373, 90) and (252, 246).
-; PLAN: r0=373(x1), r1=90(y1), r2=252(x2), r3=246(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 373
-LDI r1, 90
-LDI r2, 252
-LDI r3, 246
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (23, 104) with width 91 and height 53.
+; PLAN: r0=23(x), r1=104(y), r2=91(width), r3=53(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 23
+LDI r1, 104
+LDI r2, 91
+LDI r3, 53
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

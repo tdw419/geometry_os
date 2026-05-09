@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a black disk with center (81, 89) and radius 61.
-; PLAN: r0=81(x), r1=89(y), r2=61(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 81
-LDI r1, 89
-LDI r2, 61
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single blue pixel at (247, 132).
+; PLAN: r0=247(x), r1=132(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 247
+LDI r1, 132
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

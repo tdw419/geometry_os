@@ -1,8 +1,12 @@
-; DESCRIPTION: Loads 12 into r1 and decrements it in a loop until zero.
-; PLAN: r1=12(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 12
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Places a black dot at position (361, 96) then Renders a yellow disk with center (406, 139) and radius 69.
+; PLAN: r0=361(x), r1=96(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=406(x), r6=139(y), r7=69(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 361
+LDI r1, 96
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 406
+LDI r6, 139
+LDI r7, 69
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

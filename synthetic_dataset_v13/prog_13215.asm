@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a white 83x90 rectangle at position (300, 65).
-; PLAN: r0=300(x), r1=65(y), r2=83(width), r3=90(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 65
-LDI r2, 83
-LDI r3, 90
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (320, 176) then Renders a orange line between points (75, 203) and (226, 221).
+; PLAN: r0=320(x), r1=176(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=75(x1), r6=203(y1), r7=226(x2), r8=221(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 320
+LDI r1, 176
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 75
+LDI r6, 203
+LDI r7, 226
+LDI r8, 221
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

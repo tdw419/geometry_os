@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (333, 101) with radius 73.
-; PLAN: r0=333(x), r1=101(y), r2=73(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 333
-LDI r1, 101
-LDI r2, 73
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (471, 134) spanning 20 by 76 pixels.
+; PLAN: r0=471(x), r1=134(y), r2=20(width), r3=76(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 471
+LDI r1, 134
+LDI r2, 20
+LDI r3, 76
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

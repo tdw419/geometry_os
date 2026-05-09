@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a blue circle of radius 62 at center (134, 151) then Sets a single red pixel at (134, 103).
-; PLAN: r0=134(x), r1=151(y), r2=62(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=134(x), r6=103(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 134
-LDI r1, 151
-LDI r2, 62
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 134
-LDI r6, 103
-LDI r7, 0xFF0000
-PSET r5, r6, r7
+; DESCRIPTION: Places a magenta line segment connecting (156, 74) to (357, 237).
+; PLAN: r0=156(x1), r1=74(y1), r2=357(x2), r3=237(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 156
+LDI r1, 74
+LDI r2, 357
+LDI r3, 237
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

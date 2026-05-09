@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta circle of radius 76 at center (130, 139) then Creates a magenta rectangular region at (371, 28) spanning 49 by 102 pixels.
-; PLAN: r0=130(x), r1=139(y), r2=76(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=371(x), r6=28(y), r7=49(width), r8=102(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 130
-LDI r1, 139
-LDI r2, 76
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 371
-LDI r6, 28
-LDI r7, 49
-LDI r8, 102
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a red line between points (176, 92) and (25, 68).
+; PLAN: r0=176(x1), r1=92(y1), r2=25(x2), r3=68(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 176
+LDI r1, 92
+LDI r2, 25
+LDI r3, 68
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

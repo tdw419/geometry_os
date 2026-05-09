@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (110, 131) with radius 38.
-; PLAN: r0=110(x), r1=131(y), r2=38(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 110
-LDI r1, 131
-LDI r2, 38
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (411, 44) to (89, 224).
+; PLAN: r0=411(x1), r1=44(y1), r2=89(x2), r3=224(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 411
+LDI r1, 44
+LDI r2, 89
+LDI r3, 224
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

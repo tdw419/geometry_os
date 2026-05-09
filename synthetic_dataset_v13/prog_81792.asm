@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a magenta rectangular region at (413, 54) spanning 91 by 97 pixels.
-; PLAN: r0=413(x), r1=54(y), r2=91(width), r3=97(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 413
-LDI r1, 54
-LDI r2, 91
-LDI r3, 97
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (101, 121) and radius 58.
+; PLAN: r0=101(x), r1=121(y), r2=58(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 101
+LDI r1, 121
+LDI r2, 58
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

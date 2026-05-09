@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (420, 119) then Creates a orange rectangular region at (108, 109) spanning 64 by 100 pixels.
-; PLAN: r0=420(x), r1=119(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=108(x), r6=109(y), r7=64(width), r8=100(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 420
-LDI r1, 119
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 108
-LDI r6, 109
-LDI r7, 64
-LDI r8, 100
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical green gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x00FF00(color). CMP stores result in r0.
+LDI r7, 0x00FF00
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

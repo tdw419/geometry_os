@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 30x98 starting at (142, 59).
-; PLAN: r0=142(x), r1=59(y), r2=30(width), r3=98(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 142
-LDI r1, 59
-LDI r2, 30
-LDI r3, 98
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange line from (10, 220) to (392, 131).
+; PLAN: r0=10(x1), r1=220(y1), r2=392(x2), r3=131(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 10
+LDI r1, 220
+LDI r2, 392
+LDI r3, 131
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

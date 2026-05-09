@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (135, 254).
-; PLAN: r0=135(x), r1=254(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 135
-LDI r1, 254
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan disk with center (424, 205) and radius 32.
+; PLAN: r0=424(x), r1=205(y), r2=32(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 424
+LDI r1, 205
+LDI r2, 32
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

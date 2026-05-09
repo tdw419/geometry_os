@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a green dot at position (251, 12).
-; PLAN: r0=251(x), r1=12(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 251
-LDI r1, 12
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow line segment connecting (407, 71) to (237, 25).
+; PLAN: r0=407(x1), r1=71(y1), r2=237(x2), r3=25(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 407
+LDI r1, 71
+LDI r2, 237
+LDI r3, 25
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

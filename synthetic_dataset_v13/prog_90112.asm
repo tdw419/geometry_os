@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to black.
-; PLAN: r0=0x000000(color). Op: FILL r0.
-LDI r0, 0x000000
-FILL r0
+; DESCRIPTION: Creates a orange rectangular region at (137, 115) spanning 78 by 38 pixels.
+; PLAN: r0=137(x), r1=115(y), r2=78(width), r3=38(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 137
+LDI r1, 115
+LDI r2, 78
+LDI r3, 38
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

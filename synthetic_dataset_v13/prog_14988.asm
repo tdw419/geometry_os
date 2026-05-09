@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 91x113 rectangle at position (139, 50).
-; PLAN: r0=139(x), r1=50(y), r2=91(width), r3=113(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 139
-LDI r1, 50
-LDI r2, 91
-LDI r3, 113
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (387, 106) to (3, 240).
+; PLAN: r0=387(x1), r1=106(y1), r2=3(x2), r3=240(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 387
+LDI r1, 106
+LDI r2, 3
+LDI r3, 240
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

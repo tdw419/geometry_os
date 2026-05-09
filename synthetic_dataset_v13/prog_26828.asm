@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (366, 120) then Draws a cyan circle centered at (265, 129) with radius 69.
-; PLAN: r0=366(x), r1=120(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=265(x), r6=129(y), r7=69(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 366
-LDI r1, 120
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 265
-LDI r6, 129
-LDI r7, 69
-LDI r8, 0x00FFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a magenta circle centered at (444, 174) with radius 47.
+; PLAN: r0=444(x), r1=174(y), r2=47(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 444
+LDI r1, 174
+LDI r2, 47
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

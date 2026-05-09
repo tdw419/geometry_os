@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 22 at center (468, 36).
-; PLAN: r0=468(x), r1=36(y), r2=22(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 468
-LDI r1, 36
-LDI r2, 22
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (46, 58) to (20, 54).
+; PLAN: r0=46(x1), r1=58(y1), r2=20(x2), r3=54(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 46
+LDI r1, 58
+LDI r2, 20
+LDI r3, 54
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

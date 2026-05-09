@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a green dot at position (67, 51) then Creates a purple circular shape at (441, 228) with radius 15.
-; PLAN: r0=67(x), r1=51(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=441(x), r6=228(y), r7=15(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 67
-LDI r1, 51
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 441
-LDI r6, 228
-LDI r7, 15
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a white box of size 72x89 starting at (269, 91).
+; PLAN: r0=269(x), r1=91(y), r2=72(width), r3=89(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 269
+LDI r1, 91
+LDI r2, 72
+LDI r3, 89
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

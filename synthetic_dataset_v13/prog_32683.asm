@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (178, 100) with radius 52.
-; PLAN: r0=178(x), r1=100(y), r2=52(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 178
-LDI r1, 100
-LDI r2, 52
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Renders a black disk with center (324, 95) and radius 49.
+; PLAN: r0=324(x), r1=95(y), r2=49(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 324
+LDI r1, 95
+LDI r2, 49
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

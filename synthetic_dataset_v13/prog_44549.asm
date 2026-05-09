@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 57x119 rectangle at position (68, 42).
-; PLAN: r0=68(x), r1=42(y), r2=57(width), r3=119(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 68
-LDI r1, 42
-LDI r2, 57
-LDI r3, 119
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a magenta rectangle at (163, 92) with width 72 and height 54.
+; PLAN: r0=163(x), r1=92(y), r2=72(width), r3=54(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 163
+LDI r1, 92
+LDI r2, 72
+LDI r3, 54
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

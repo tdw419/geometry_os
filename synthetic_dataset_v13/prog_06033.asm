@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 83x18 rectangle at position (74, 83).
-; PLAN: r0=74(x), r1=83(y), r2=83(width), r3=18(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 74
-LDI r1, 83
-LDI r2, 83
-LDI r3, 18
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a magenta 79x30 rectangle at position (92, 92).
+; PLAN: r0=92(x), r1=92(y), r2=79(width), r3=30(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 92
+LDI r1, 92
+LDI r2, 79
+LDI r3, 30
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

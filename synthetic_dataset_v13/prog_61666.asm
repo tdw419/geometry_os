@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a green dot at position (39, 61).
-; PLAN: r0=39(x), r1=61(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 39
-LDI r1, 61
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

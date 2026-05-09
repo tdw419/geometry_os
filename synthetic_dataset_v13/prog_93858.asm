@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (129, 139) to (134, 234).
-; PLAN: r0=129(x1), r1=139(y1), r2=134(x2), r3=234(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 139
-LDI r2, 134
-LDI r3, 234
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a orange line segment connecting (276, 119) to (302, 26).
+; PLAN: r0=276(x1), r1=119(y1), r2=302(x2), r3=26(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 276
+LDI r1, 119
+LDI r2, 302
+LDI r3, 26
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

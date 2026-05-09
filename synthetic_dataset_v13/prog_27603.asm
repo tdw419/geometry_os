@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (74, 106) and radius 40.
-; PLAN: r0=74(x), r1=106(y), r2=40(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 74
-LDI r1, 106
-LDI r2, 40
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a black rectangular region at (248, 19) spanning 49 by 21 pixels.
+; PLAN: r0=248(x), r1=19(y), r2=49(width), r3=21(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 19
+LDI r2, 49
+LDI r3, 21
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

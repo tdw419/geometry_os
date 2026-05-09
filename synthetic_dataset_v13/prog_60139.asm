@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Draws a cyan rectangle at (243, 48) with width 91 and height 68.
+; PLAN: r0=243(x), r1=48(y), r2=91(width), r3=68(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 243
+LDI r1, 48
+LDI r2, 91
+LDI r3, 68
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

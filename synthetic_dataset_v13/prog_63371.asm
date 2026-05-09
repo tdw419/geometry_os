@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a yellow rectangle at (201, 92) with width 112 and height 95.
-; PLAN: r0=201(x), r1=92(y), r2=112(width), r3=95(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 201
-LDI r1, 92
-LDI r2, 112
-LDI r3, 95
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (368, 85) then Places a white circle of radius 31 at center (52, 97).
+; PLAN: r0=368(x), r1=85(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=52(x), r6=97(y), r7=31(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 368
+LDI r1, 85
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 52
+LDI r6, 97
+LDI r7, 31
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 115x64 starting at (111, 152).
-; PLAN: r0=111(x), r1=152(y), r2=115(width), r3=64(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 152
-LDI r2, 115
-LDI r3, 64
-LDI r4, 0x000000
+; DESCRIPTION: Renders a green box of size 64x31 starting at (225, 92).
+; PLAN: r0=225(x), r1=92(y), r2=64(width), r3=31(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 225
+LDI r1, 92
+LDI r2, 64
+LDI r3, 31
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

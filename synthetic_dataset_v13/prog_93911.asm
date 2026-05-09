@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (291, 182) with radius 26.
-; PLAN: r0=291(x), r1=182(y), r2=26(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 291
-LDI r1, 182
-LDI r2, 26
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 83x95 rectangle at position (178, 97).
+; PLAN: r0=178(x), r1=97(y), r2=83(width), r3=95(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 178
+LDI r1, 97
+LDI r2, 83
+LDI r3, 95
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Creates a yellow rectangular region at (388, 169) spanning 103 by 24 pixels.
+; PLAN: r0=388(x), r1=169(y), r2=103(width), r3=24(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 169
+LDI r2, 103
+LDI r3, 24
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

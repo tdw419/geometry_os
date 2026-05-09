@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a cyan dot at position (120, 191).
-; PLAN: r0=120(x), r1=191(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 120
-LDI r1, 191
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (487, 138) and (348, 183).
-; PLAN: r0=487(x1), r1=138(y1), r2=348(x2), r3=183(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 487
-LDI r1, 138
-LDI r2, 348
-LDI r3, 183
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 81x90 starting at (118, 127).
+; PLAN: r0=118(x), r1=127(y), r2=81(width), r3=90(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 118
+LDI r1, 127
+LDI r2, 81
+LDI r3, 90
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

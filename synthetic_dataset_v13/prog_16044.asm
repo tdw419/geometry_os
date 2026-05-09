@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (407, 192) and (256, 93).
-; PLAN: r0=407(x1), r1=192(y1), r2=256(x2), r3=93(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 407
-LDI r1, 192
-LDI r2, 256
+; DESCRIPTION: Draws a purple rectangle at (135, 22) with width 68 and height 93.
+; PLAN: r0=135(x), r1=22(y), r2=68(width), r3=93(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 135
+LDI r1, 22
+LDI r2, 68
 LDI r3, 93
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

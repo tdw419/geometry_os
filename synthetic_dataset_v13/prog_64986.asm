@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (94, 5) to (89, 194).
-; PLAN: r0=94(x1), r1=5(y1), r2=89(x2), r3=194(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 94
-LDI r1, 5
-LDI r2, 89
-LDI r3, 194
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (329, 123) with radius 79.
+; PLAN: r0=329(x), r1=123(y), r2=79(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 329
+LDI r1, 123
+LDI r2, 79
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

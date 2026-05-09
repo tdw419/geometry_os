@@ -1,12 +1,13 @@
-; DESCRIPTION: Composite: Places a red dot at position (154, 220) then Draws a blue circle centered at (155, 198) with radius 49.
-; PLAN: r0=154(x), r1=220(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=155(x), r6=198(y), r7=49(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 154
-LDI r1, 220
-LDI r2, 0xFF0000
+; DESCRIPTION: Composite: Sets a single orange pixel at (415, 224) then Renders a magenta line between points (211, 99) and (476, 124).
+; PLAN: r0=415(x), r1=224(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=211(x1), r6=99(y1), r7=476(x2), r8=124(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 415
+LDI r1, 224
+LDI r2, 0xFF8800
 PSET r0, r1, r2
-LDI r5, 155
-LDI r6, 198
-LDI r7, 49
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+LDI r5, 211
+LDI r6, 99
+LDI r7, 476
+LDI r8, 124
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

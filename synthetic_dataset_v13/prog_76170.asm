@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 41x119 starting at (237, 7).
-; PLAN: r0=237(x), r1=7(y), r2=41(width), r3=119(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 237
-LDI r1, 7
-LDI r2, 41
-LDI r3, 119
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a cyan rectangle at (308, 206) with width 13 and height 29.
+; PLAN: r0=308(x), r1=206(y), r2=13(width), r3=29(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 308
+LDI r1, 206
+LDI r2, 13
+LDI r3, 29
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

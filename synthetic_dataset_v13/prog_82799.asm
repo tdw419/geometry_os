@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 118x37 starting at (375, 114).
-; PLAN: r0=375(x), r1=114(y), r2=118(width), r3=37(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 375
-LDI r1, 114
-LDI r2, 118
-LDI r3, 37
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 63 at center (343, 186).
+; PLAN: r0=343(x), r1=186(y), r2=63(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 343
+LDI r1, 186
+LDI r2, 63
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

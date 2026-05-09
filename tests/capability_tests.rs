@@ -520,7 +520,8 @@ fn test_spawnc_sandbox_denies_vfs_path_outside_capabilities() {
     // doesn't match /tmp/* or /lib/*
     let child = vm.processes.iter().find(|p| p.pid == child_pid).unwrap();
     assert_eq!(
-        child.regs[0], geos_errno(GEOS_EPERM),
+        child.regs[0],
+        geos_errno(GEOS_EPERM),
         "child should get EPERM when opening /secret/data -- not in sandbox capabilities"
     );
 }

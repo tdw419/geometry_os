@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single blue pixel at (28, 233).
-; PLAN: r0=28(x), r1=233(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 28
-LDI r1, 233
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a purple rectangular region at (419, 129) spanning 50 by 32 pixels.
+; PLAN: r0=419(x), r1=129(y), r2=50(width), r3=32(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 419
+LDI r1, 129
+LDI r2, 50
+LDI r3, 32
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

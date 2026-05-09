@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single magenta pixel at (93, 116).
-; PLAN: r0=93(x), r1=116(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 93
-LDI r1, 116
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a orange disk with center (368, 40) and radius 33.
+; PLAN: r0=368(x), r1=40(y), r2=33(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 368
+LDI r1, 40
+LDI r2, 33
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

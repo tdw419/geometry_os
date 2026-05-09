@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 109x45 rectangle at position (312, 153).
-; PLAN: r0=312(x), r1=153(y), r2=109(width), r3=45(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 312
-LDI r1, 153
-LDI r2, 109
-LDI r3, 45
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (84, 123) and radius 59.
+; PLAN: r0=84(x), r1=123(y), r2=59(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 84
+LDI r1, 123
+LDI r2, 59
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

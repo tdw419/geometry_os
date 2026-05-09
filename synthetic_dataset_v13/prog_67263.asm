@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (232, 193) to (218, 56).
-; PLAN: r0=232(x1), r1=193(y1), r2=218(x2), r3=56(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 232
-LDI r1, 193
-LDI r2, 218
-LDI r3, 56
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a orange line between points (99, 107) and (211, 176).
+; PLAN: r0=99(x1), r1=107(y1), r2=211(x2), r3=176(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 107
+LDI r2, 211
+LDI r3, 176
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

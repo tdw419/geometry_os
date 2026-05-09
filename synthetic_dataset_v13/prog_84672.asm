@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 18x111 rectangle at position (51, 23).
-; PLAN: r0=51(x), r1=23(y), r2=18(width), r3=111(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 51
-LDI r1, 23
-LDI r2, 18
-LDI r3, 111
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a black box of size 54x106 starting at (178, 97).
+; PLAN: r0=178(x), r1=97(y), r2=54(width), r3=106(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 178
+LDI r1, 97
+LDI r2, 54
+LDI r3, 106
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

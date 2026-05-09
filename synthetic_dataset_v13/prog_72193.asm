@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (202, 249) to (58, 202).
-; PLAN: r0=202(x1), r1=249(y1), r2=58(x2), r3=202(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 249
-LDI r2, 58
-LDI r3, 202
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (395, 43) with width 65 and height 93.
+; PLAN: r0=395(x), r1=43(y), r2=65(width), r3=93(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 395
+LDI r1, 43
+LDI r2, 65
+LDI r3, 93
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (134, 174).
-; PLAN: r0=134(x), r1=174(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 134
-LDI r1, 174
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a magenta box of size 51x12 starting at (247, 135).
+; PLAN: r0=247(x), r1=135(y), r2=51(width), r3=12(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 135
+LDI r2, 51
+LDI r3, 12
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

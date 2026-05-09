@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (352, 178) and (363, 118).
-; PLAN: r0=352(x1), r1=178(y1), r2=363(x2), r3=118(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 352
-LDI r1, 178
-LDI r2, 363
-LDI r3, 118
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a magenta line segment connecting (282, 65) to (8, 15).
+; PLAN: r0=282(x1), r1=65(y1), r2=8(x2), r3=15(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 282
+LDI r1, 65
+LDI r2, 8
+LDI r3, 15
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

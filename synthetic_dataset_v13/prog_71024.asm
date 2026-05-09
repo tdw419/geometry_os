@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a white 31x63 rectangle at position (201, 88) then Draws a yellow circle centered at (58, 90) with radius 55.
-; PLAN: r0=201(x), r1=88(y), r2=31(width), r3=63(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=58(x), r6=90(y), r7=55(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 201
-LDI r1, 88
-LDI r2, 31
-LDI r3, 63
+; DESCRIPTION: Creates a white rectangular region at (183, 30) spanning 103 by 83 pixels.
+; PLAN: r0=183(x), r1=30(y), r2=103(width), r3=83(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 183
+LDI r1, 30
+LDI r2, 103
+LDI r3, 83
 LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 58
-LDI r6, 90
-LDI r7, 55
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
 HALT

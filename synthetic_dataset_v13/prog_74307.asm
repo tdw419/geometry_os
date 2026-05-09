@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a green line segment connecting (193, 113) to (148, 32).
-; PLAN: r0=193(x1), r1=113(y1), r2=148(x2), r3=32(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 193
-LDI r1, 113
-LDI r2, 148
-LDI r3, 32
+; DESCRIPTION: Composite: Renders a green box of size 29x41 starting at (53, 132) then Sets a single green pixel at (149, 60).
+; PLAN: r0=53(x), r1=132(y), r2=29(width), r3=41(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=149(x), r6=60(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 53
+LDI r1, 132
+LDI r2, 29
+LDI r3, 41
 LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
+LDI r5, 149
+LDI r6, 60
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

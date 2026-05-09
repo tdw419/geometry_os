@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple rectangle at (254, 80) with width 49 and height 27.
-; PLAN: r0=254(x), r1=80(y), r2=49(width), r3=27(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 254
-LDI r1, 80
-LDI r2, 49
-LDI r3, 27
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (347, 92) and radius 74.
+; PLAN: r0=347(x), r1=92(y), r2=74(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 347
+LDI r1, 92
+LDI r2, 74
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

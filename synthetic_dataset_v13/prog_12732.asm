@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a yellow circular shape at (174, 117) with radius 36.
-; PLAN: r0=174(x), r1=117(y), r2=36(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 174
-LDI r1, 117
-LDI r2, 36
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 36 into r1 and decrements it in a loop until zero.
+; PLAN: r1=36(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 36
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

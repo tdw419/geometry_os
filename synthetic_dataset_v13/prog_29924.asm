@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Creates a white circular shape at (289, 163) with radius 56 then Draws a white line from (112, 143) to (154, 40).
-; PLAN: r0=289(x), r1=163(y), r2=56(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=112(x1), r6=143(y1), r7=154(x2), r8=40(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 289
-LDI r1, 163
-LDI r2, 56
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 112
-LDI r6, 143
-LDI r7, 154
-LDI r8, 40
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a green line from (244, 186) to (272, 108).
+; PLAN: r0=244(x1), r1=186(y1), r2=272(x2), r3=108(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 244
+LDI r1, 186
+LDI r2, 272
+LDI r3, 108
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

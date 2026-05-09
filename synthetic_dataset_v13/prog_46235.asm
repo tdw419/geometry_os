@@ -1,19 +1,14 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (503, 152) then Draws a green rectangle at (164, 105) with width 72 and height 94 then Places a purple line segment connecting (110, 85) to (256, 243).
-; PLAN: r0=503(x), r1=152(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=164(x), r6=105(y), r7=72(width), r8=94(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=110(x1), r11=85(y1), r12=256(x2), r13=243(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 503
-LDI r1, 152
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 164
-LDI r6, 105
+; DESCRIPTION: Composite: Places a black line segment connecting (429, 62) to (320, 233) then Renders a purple disk with center (423, 135) and radius 72.
+; PLAN: r0=429(x1), r1=62(y1), r2=320(x2), r3=233(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=423(x), r6=135(y), r7=72(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 429
+LDI r1, 62
+LDI r2, 320
+LDI r3, 233
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+LDI r5, 423
+LDI r6, 135
 LDI r7, 72
-LDI r8, 94
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
-LDI r10, 110
-LDI r11, 85
-LDI r12, 256
-LDI r13, 243
-LDI r14, 0xAA00FF
-LINE r10, r11, r12, r13, r14
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

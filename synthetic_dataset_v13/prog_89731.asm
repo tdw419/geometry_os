@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (330, 21).
-; PLAN: r0=330(x), r1=21(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 330
-LDI r1, 21
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a purple rectangle at (48, 20) with width 77 and height 33.
+; PLAN: r0=48(x), r1=20(y), r2=77(width), r3=33(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 48
+LDI r1, 20
+LDI r2, 77
+LDI r3, 33
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

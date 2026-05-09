@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (257, 133) to (478, 51).
-; PLAN: r0=257(x1), r1=133(y1), r2=478(x2), r3=51(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 257
-LDI r1, 133
-LDI r2, 478
-LDI r3, 51
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (132, 7) with width 41 and height 96.
+; PLAN: r0=132(x), r1=7(y), r2=41(width), r3=96(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 132
+LDI r1, 7
+LDI r2, 41
+LDI r3, 96
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

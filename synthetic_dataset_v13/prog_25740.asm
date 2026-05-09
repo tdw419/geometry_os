@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a red circle centered at (477, 140) with radius 31.
-; PLAN: r0=477(x), r1=140(y), r2=31(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 477
-LDI r1, 140
-LDI r2, 31
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (210, 142).
+; PLAN: r0=210(x), r1=142(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 210
+LDI r1, 142
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

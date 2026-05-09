@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (72, 251) and (14, 201).
-; PLAN: r0=72(x1), r1=251(y1), r2=14(x2), r3=201(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 72
-LDI r1, 251
-LDI r2, 14
-LDI r3, 201
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a black line between points (379, 249) and (334, 70).
+; PLAN: r0=379(x1), r1=249(y1), r2=334(x2), r3=70(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 379
+LDI r1, 249
+LDI r2, 334
+LDI r3, 70
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

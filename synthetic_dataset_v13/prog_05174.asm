@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (351, 101) with radius 80.
-; PLAN: r0=351(x), r1=101(y), r2=80(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 351
-LDI r1, 101
-LDI r2, 80
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (411, 212) and (402, 135).
+; PLAN: r0=411(x1), r1=212(y1), r2=402(x2), r3=135(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 411
+LDI r1, 212
+LDI r2, 402
+LDI r3, 135
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

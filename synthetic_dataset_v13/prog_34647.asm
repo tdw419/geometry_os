@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow line segment connecting (9, 181) to (5, 164).
-; PLAN: r0=9(x1), r1=181(y1), r2=5(x2), r3=164(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 9
-LDI r1, 181
-LDI r2, 5
-LDI r3, 164
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (275, 115).
+; PLAN: r0=275(x), r1=115(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 275
+LDI r1, 115
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

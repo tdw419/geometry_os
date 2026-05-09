@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (90, 176) then Renders a purple line between points (208, 92) and (501, 21).
-; PLAN: r0=90(x), r1=176(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=208(x1), r6=92(y1), r7=501(x2), r8=21(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 90
-LDI r1, 176
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 208
-LDI r6, 92
-LDI r7, 501
-LDI r8, 21
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a magenta line between points (377, 162) and (366, 206).
+; PLAN: r0=377(x1), r1=162(y1), r2=366(x2), r3=206(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 377
+LDI r1, 162
+LDI r2, 366
+LDI r3, 206
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

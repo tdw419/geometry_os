@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a magenta 53x20 rectangle at position (323, 61).
-; PLAN: r0=323(x), r1=61(y), r2=53(width), r3=20(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 323
-LDI r1, 61
-LDI r2, 53
-LDI r3, 20
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (132, 158) then Renders a magenta box of size 25x93 starting at (191, 114).
+; PLAN: r0=132(x), r1=158(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=191(x), r6=114(y), r7=25(width), r8=93(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 132
+LDI r1, 158
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 191
+LDI r6, 114
+LDI r7, 25
+LDI r8, 93
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

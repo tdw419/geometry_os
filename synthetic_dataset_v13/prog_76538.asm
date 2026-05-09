@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a green circle of radius 15 at center (263, 196).
-; PLAN: r0=263(x), r1=196(y), r2=15(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 263
-LDI r1, 196
-LDI r2, 15
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black dot at position (429, 229).
+; PLAN: r0=429(x), r1=229(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 429
+LDI r1, 229
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

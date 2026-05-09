@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 18x37 starting at (334, 176).
-; PLAN: r0=334(x), r1=176(y), r2=18(width), r3=37(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 334
-LDI r1, 176
-LDI r2, 18
-LDI r3, 37
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (10, 254) and (464, 55).
+; PLAN: r0=10(x1), r1=254(y1), r2=464(x2), r3=55(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 10
+LDI r1, 254
+LDI r2, 464
+LDI r3, 55
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

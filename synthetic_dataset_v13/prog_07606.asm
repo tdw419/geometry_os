@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (192, 142).
-; PLAN: r0=192(x), r1=142(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 192
-LDI r1, 142
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a blue 120x13 rectangle at position (360, 209).
+; PLAN: r0=360(x), r1=209(y), r2=120(width), r3=13(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 360
+LDI r1, 209
+LDI r2, 120
+LDI r3, 13
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

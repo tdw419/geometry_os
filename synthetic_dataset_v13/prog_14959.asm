@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a yellow rectangular region at (82, 61) spanning 69 by 42 pixels.
-; PLAN: r0=82(x), r1=61(y), r2=69(width), r3=42(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 82
-LDI r1, 61
-LDI r2, 69
-LDI r3, 42
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan line segment connecting (431, 26) to (333, 70).
+; PLAN: r0=431(x1), r1=26(y1), r2=333(x2), r3=70(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 431
+LDI r1, 26
+LDI r2, 333
+LDI r3, 70
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

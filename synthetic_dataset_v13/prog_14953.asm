@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a blue circle centered at (87, 111) with radius 31.
-; PLAN: r0=87(x), r1=111(y), r2=31(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 87
-LDI r1, 111
-LDI r2, 31
-LDI r3, 0x0000FF
+; DESCRIPTION: Creates a cyan circular shape at (223, 81) with radius 45.
+; PLAN: r0=223(x), r1=81(y), r2=45(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 223
+LDI r1, 81
+LDI r2, 45
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

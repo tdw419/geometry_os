@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 81x95 rectangle at position (146, 128).
-; PLAN: r0=146(x), r1=128(y), r2=81(width), r3=95(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 146
-LDI r1, 128
-LDI r2, 81
-LDI r3, 95
+; DESCRIPTION: Draws a magenta line from (340, 2) to (227, 5).
+; PLAN: r0=340(x1), r1=2(y1), r2=227(x2), r3=5(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 340
+LDI r1, 2
+LDI r2, 227
+LDI r3, 5
 LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

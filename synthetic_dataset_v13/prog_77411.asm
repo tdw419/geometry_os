@@ -1,12 +1,13 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (429, 140) then Renders a orange disk with center (333, 89) and radius 76.
-; PLAN: r0=429(x), r1=140(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=333(x), r6=89(y), r7=76(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 429
-LDI r1, 140
-LDI r2, 0x00FFFF
+; DESCRIPTION: Composite: Sets a single yellow pixel at (410, 166) then Renders a magenta box of size 105x36 starting at (249, 137).
+; PLAN: r0=410(x), r1=166(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=249(x), r6=137(y), r7=105(width), r8=36(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 410
+LDI r1, 166
+LDI r2, 0xFFFF00
 PSET r0, r1, r2
-LDI r5, 333
-LDI r6, 89
-LDI r7, 76
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+LDI r5, 249
+LDI r6, 137
+LDI r7, 105
+LDI r8, 36
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (428, 88) to (71, 22).
-; PLAN: r0=428(x1), r1=88(y1), r2=71(x2), r3=22(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 428
-LDI r1, 88
-LDI r2, 71
-LDI r3, 22
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (149, 154) and radius 56.
+; PLAN: r0=149(x), r1=154(y), r2=56(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 149
+LDI r1, 154
+LDI r2, 56
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (243, 43) then Creates a black circular shape at (345, 202) with radius 10 then Creates a blue rectangular region at (241, 157) spanning 18 by 81 pixels.
-; PLAN: r0=243(x), r1=43(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=345(x), r6=202(y), r7=10(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=241(x), r11=157(y), r12=18(width), r13=81(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 243
-LDI r1, 43
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 345
-LDI r6, 202
-LDI r7, 10
-LDI r8, 0x000000
-CIRCLE r5, r6, r7, r8
-LDI r10, 241
-LDI r11, 157
-LDI r12, 18
-LDI r13, 81
-LDI r14, 0x0000FF
+; DESCRIPTION: Composite: Draws a purple line from (307, 132) to (460, 49) then Sets a single red pixel at (333, 200) then Renders a yellow box of size 89x35 starting at (134, 139).
+; PLAN: r0=307(x1), r1=132(y1), r2=460(x2), r3=49(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=333(x), r6=200(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=134(x), r11=139(y), r12=89(width), r13=35(height), r14=0xFFFF00(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 307
+LDI r1, 132
+LDI r2, 460
+LDI r3, 49
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 333
+LDI r6, 200
+LDI r7, 0xFF0000
+PSET r5, r6, r7
+LDI r10, 134
+LDI r11, 139
+LDI r12, 89
+LDI r13, 35
+LDI r14, 0xFFFF00
 RECTF r10, r11, r12, r13, r14
 HALT

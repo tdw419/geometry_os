@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Draws a magenta line from (292, 65) to (412, 17) then Sets a single green pixel at (202, 43).
-; PLAN: r0=292(x1), r1=65(y1), r2=412(x2), r3=17(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=202(x), r6=43(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 292
-LDI r1, 65
-LDI r2, 412
-LDI r3, 17
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 202
-LDI r6, 43
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Creates a white rectangular region at (105, 11) spanning 37 by 74 pixels then Renders a red line between points (437, 150) and (331, 140) then Places a white dot at position (177, 131).
+; PLAN: r0=105(x), r1=11(y), r2=37(width), r3=74(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=437(x1), r6=150(y1), r7=331(x2), r8=140(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=177(x), r11=131(y), r12=0xFFFFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 105
+LDI r1, 11
+LDI r2, 37
+LDI r3, 74
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 437
+LDI r6, 150
+LDI r7, 331
+LDI r8, 140
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
+LDI r10, 177
+LDI r11, 131
+LDI r12, 0xFFFFFF
+PSET r10, r11, r12
 HALT

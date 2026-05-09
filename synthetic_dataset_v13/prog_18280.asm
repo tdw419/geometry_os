@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (402, 23) to (508, 210).
-; PLAN: r0=402(x1), r1=23(y1), r2=508(x2), r3=210(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 402
-LDI r1, 23
-LDI r2, 508
-LDI r3, 210
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a magenta line from (59, 252) to (5, 16).
+; PLAN: r0=59(x1), r1=252(y1), r2=5(x2), r3=16(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 59
+LDI r1, 252
+LDI r2, 5
+LDI r3, 16
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

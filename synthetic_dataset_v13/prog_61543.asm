@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a red line from (490, 57) to (151, 94).
-; PLAN: r0=490(x1), r1=57(y1), r2=151(x2), r3=94(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 490
-LDI r1, 57
-LDI r2, 151
-LDI r3, 94
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (13, 68).
+; PLAN: r0=13(x), r1=68(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 13
+LDI r1, 68
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

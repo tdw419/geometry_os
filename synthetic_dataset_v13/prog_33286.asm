@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single red pixel at (393, 58).
-; PLAN: r0=393(x), r1=58(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 393
-LDI r1, 58
-LDI r2, 0xFF0000
+; DESCRIPTION: Sets a single yellow pixel at (399, 168).
+; PLAN: r0=399(x), r1=168(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 399
+LDI r1, 168
+LDI r2, 0xFFFF00
 PSET r0, r1, r2
 HALT

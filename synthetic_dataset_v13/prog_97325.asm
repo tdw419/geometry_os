@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (360, 65) to (483, 250).
-; PLAN: r0=360(x1), r1=65(y1), r2=483(x2), r3=250(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 360
-LDI r1, 65
-LDI r2, 483
-LDI r3, 250
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a blue line between points (449, 203) and (503, 158).
+; PLAN: r0=449(x1), r1=203(y1), r2=503(x2), r3=158(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 449
+LDI r1, 203
+LDI r2, 503
+LDI r3, 158
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

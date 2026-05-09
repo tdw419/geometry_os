@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (366, 57) with radius 32.
-; PLAN: r0=366(x), r1=57(y), r2=32(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 366
-LDI r1, 57
-LDI r2, 32
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (154, 67) spanning 55 by 44 pixels.
+; PLAN: r0=154(x), r1=67(y), r2=55(width), r3=44(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 154
+LDI r1, 67
+LDI r2, 55
+LDI r3, 44
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

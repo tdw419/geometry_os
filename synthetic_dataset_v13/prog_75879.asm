@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (123, 24) with width 34 and height 38.
-; PLAN: r0=123(x), r1=24(y), r2=34(width), r3=38(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 123
-LDI r1, 24
-LDI r2, 34
-LDI r3, 38
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (200, 118) and (147, 10).
+; PLAN: r0=200(x1), r1=118(y1), r2=147(x2), r3=10(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 200
+LDI r1, 118
+LDI r2, 147
+LDI r3, 10
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

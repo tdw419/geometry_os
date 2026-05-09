@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (317, 139) with radius 57.
-; PLAN: r0=317(x), r1=139(y), r2=57(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 317
-LDI r1, 139
+; DESCRIPTION: Places a black 57x77 rectangle at position (170, 27).
+; PLAN: r0=170(x), r1=27(y), r2=57(width), r3=77(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 27
 LDI r2, 57
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+LDI r3, 77
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,5 +1,5 @@
-; DESCRIPTION: Paints the whole screen purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
+; DESCRIPTION: Clears the screen to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
 FILL r0
 HALT

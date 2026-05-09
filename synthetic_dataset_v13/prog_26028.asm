@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (53, 243) to (466, 139).
-; PLAN: r0=53(x1), r1=243(y1), r2=466(x2), r3=139(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 243
-LDI r2, 466
-LDI r3, 139
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 13x84 starting at (405, 33).
+; PLAN: r0=405(x), r1=33(y), r2=13(width), r3=84(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 405
+LDI r1, 33
+LDI r2, 13
+LDI r3, 84
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

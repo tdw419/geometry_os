@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 21x54 rectangle at position (355, 5).
-; PLAN: r0=355(x), r1=5(y), r2=21(width), r3=54(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 355
-LDI r1, 5
-LDI r2, 21
-LDI r3, 54
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (457, 10) to (440, 239).
+; PLAN: r0=457(x1), r1=10(y1), r2=440(x2), r3=239(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 457
+LDI r1, 10
+LDI r2, 440
+LDI r3, 239
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

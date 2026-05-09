@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (402, 215) to (77, 174).
-; PLAN: r0=402(x1), r1=215(y1), r2=77(x2), r3=174(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 402
-LDI r1, 215
-LDI r2, 77
-LDI r3, 174
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (10, 139) spanning 27 by 12 pixels.
+; PLAN: r0=10(x), r1=139(y), r2=27(width), r3=12(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 10
+LDI r1, 139
+LDI r2, 27
+LDI r3, 12
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

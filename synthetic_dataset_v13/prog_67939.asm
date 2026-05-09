@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a yellow circle centered at (155, 186) with radius 63.
-; PLAN: r0=155(x), r1=186(y), r2=63(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 155
-LDI r1, 186
-LDI r2, 63
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single purple pixel at (218, 1).
+; PLAN: r0=218(x), r1=1(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 218
+LDI r1, 1
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

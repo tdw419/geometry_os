@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (103, 185) to (465, 30).
-; PLAN: r0=103(x1), r1=185(y1), r2=465(x2), r3=30(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 103
-LDI r1, 185
-LDI r2, 465
-LDI r3, 30
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (426, 56) with width 12 and height 101.
+; PLAN: r0=426(x), r1=56(y), r2=12(width), r3=101(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 426
+LDI r1, 56
+LDI r2, 12
+LDI r3, 101
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

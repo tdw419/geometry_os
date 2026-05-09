@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a red line between points (77, 202) and (454, 138).
-; PLAN: r0=77(x1), r1=202(y1), r2=454(x2), r3=138(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 202
-LDI r2, 454
-LDI r3, 138
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

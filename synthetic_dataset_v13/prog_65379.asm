@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 20 at center (348, 208).
-; PLAN: r0=348(x), r1=208(y), r2=20(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 348
-LDI r1, 208
-LDI r2, 20
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (292, 182) to (504, 171).
+; PLAN: r0=292(x1), r1=182(y1), r2=504(x2), r3=171(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 292
+LDI r1, 182
+LDI r2, 504
+LDI r3, 171
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

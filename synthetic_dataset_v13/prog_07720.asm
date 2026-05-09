@@ -1,13 +1,12 @@
-; DESCRIPTION: Composite: Renders a green box of size 26x61 starting at (363, 128) then Sets a single white pixel at (127, 109).
-; PLAN: r0=363(x), r1=128(y), r2=26(width), r3=61(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=127(x), r6=109(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 363
-LDI r1, 128
-LDI r2, 26
-LDI r3, 61
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 127
-LDI r6, 109
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single blue pixel at (102, 244) then Renders a cyan disk with center (171, 59) and radius 34.
+; PLAN: r0=102(x), r1=244(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=171(x), r6=59(y), r7=34(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 102
+LDI r1, 244
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 171
+LDI r6, 59
+LDI r7, 34
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a cyan rectangle at (103, 165) with width 113 and height 61.
-; PLAN: r0=103(x), r1=165(y), r2=113(width), r3=61(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 103
-LDI r1, 165
-LDI r2, 113
-LDI r3, 61
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (459, 145).
+; PLAN: r0=459(x), r1=145(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 459
+LDI r1, 145
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

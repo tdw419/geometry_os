@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (268, 23) to (186, 40).
-; PLAN: r0=268(x1), r1=23(y1), r2=186(x2), r3=40(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 268
-LDI r1, 23
-LDI r2, 186
-LDI r3, 40
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a black line between points (257, 208) and (242, 128).
+; PLAN: r0=257(x1), r1=208(y1), r2=242(x2), r3=128(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 257
+LDI r1, 208
+LDI r2, 242
+LDI r3, 128
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

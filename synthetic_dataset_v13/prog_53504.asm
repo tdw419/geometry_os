@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (133, 99) then Creates a yellow circular shape at (389, 158) with radius 17.
-; PLAN: r0=133(x), r1=99(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=389(x), r6=158(y), r7=17(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 133
-LDI r1, 99
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 389
-LDI r6, 158
-LDI r7, 17
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a purple rectangular region at (460, 1) spanning 50 by 102 pixels.
+; PLAN: r0=460(x), r1=1(y), r2=50(width), r3=102(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 460
+LDI r1, 1
+LDI r2, 50
+LDI r3, 102
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

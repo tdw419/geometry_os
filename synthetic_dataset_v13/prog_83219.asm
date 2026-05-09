@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (255, 155).
-; PLAN: r0=255(x), r1=155(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 255
-LDI r1, 155
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple line between points (503, 32) and (227, 78).
+; PLAN: r0=503(x1), r1=32(y1), r2=227(x2), r3=78(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 503
+LDI r1, 32
+LDI r2, 227
+LDI r3, 78
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Places a white 15x28 rectangle at position (239, 173) then Places a white line segment connecting (196, 100) to (30, 254).
-; PLAN: r0=239(x), r1=173(y), r2=15(width), r3=28(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=196(x1), r6=100(y1), r7=30(x2), r8=254(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 239
-LDI r1, 173
-LDI r2, 15
-LDI r3, 28
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 196
-LDI r6, 100
-LDI r7, 30
-LDI r8, 254
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a red dot at position (108, 131) then Renders a magenta disk with center (341, 120) and radius 55 then Renders a white box of size 28x72 starting at (416, 162).
+; PLAN: r0=108(x), r1=131(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=341(x), r6=120(y), r7=55(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=416(x), r11=162(y), r12=28(width), r13=72(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 108
+LDI r1, 131
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 341
+LDI r6, 120
+LDI r7, 55
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 416
+LDI r11, 162
+LDI r12, 28
+LDI r13, 72
+LDI r14, 0xFFFFFF
+RECTF r10, r11, r12, r13, r14
 HALT

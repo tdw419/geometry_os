@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (462, 114) to (370, 146).
-; PLAN: r0=462(x1), r1=114(y1), r2=370(x2), r3=146(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 462
-LDI r1, 114
-LDI r2, 370
-LDI r3, 146
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green rectangle at (142, 103) with width 49 and height 102.
+; PLAN: r0=142(x), r1=103(y), r2=49(width), r3=102(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 142
+LDI r1, 103
+LDI r2, 49
+LDI r3, 102
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

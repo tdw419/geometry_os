@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a magenta dot at position (60, 53) then Draws a white line from (46, 35) to (291, 178).
-; PLAN: r0=60(x), r1=53(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=46(x1), r6=35(y1), r7=291(x2), r8=178(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 60
-LDI r1, 53
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 46
-LDI r6, 35
-LDI r7, 291
-LDI r8, 178
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Loads 42 into r1 and decrements it in a loop until zero.
+; PLAN: r1=42(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 42
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

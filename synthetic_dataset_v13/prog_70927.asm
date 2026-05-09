@@ -1,12 +1,12 @@
-; DESCRIPTION: Composite: Renders a red disk with center (457, 187) and radius 50 then Places a orange dot at position (78, 29).
-; PLAN: r0=457(x), r1=187(y), r2=50(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=78(x), r6=29(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 457
-LDI r1, 187
-LDI r2, 50
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 78
-LDI r6, 29
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single white pixel at (47, 12) then Places a purple circle of radius 77 at center (393, 115).
+; PLAN: r0=47(x), r1=12(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=393(x), r6=115(y), r7=77(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 47
+LDI r1, 12
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 393
+LDI r6, 115
+LDI r7, 77
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 16 into r1 and decrements it in a loop until zero.
-; PLAN: r1=16(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 16
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Creates a orange circular shape at (424, 146) with radius 77.
+; PLAN: r0=424(x), r1=146(y), r2=77(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 424
+LDI r1, 146
+LDI r2, 77
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

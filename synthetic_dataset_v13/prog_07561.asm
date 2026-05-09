@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black rectangle at (111, 100) with width 81 and height 27.
-; PLAN: r0=111(x), r1=100(y), r2=81(width), r3=27(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 100
-LDI r2, 81
-LDI r3, 27
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 25 at center (179, 36).
+; PLAN: r0=179(x), r1=36(y), r2=25(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 179
+LDI r1, 36
+LDI r2, 25
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

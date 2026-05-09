@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 51x56 starting at (112, 34).
-; PLAN: r0=112(x), r1=34(y), r2=51(width), r3=56(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 34
-LDI r2, 51
-LDI r3, 56
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (421, 246) to (122, 52).
+; PLAN: r0=421(x1), r1=246(y1), r2=122(x2), r3=52(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 421
+LDI r1, 246
+LDI r2, 122
+LDI r3, 52
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

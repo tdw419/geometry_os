@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a green box of size 57x56 starting at (8, 40).
-; PLAN: r0=8(x), r1=40(y), r2=57(width), r3=56(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 8
-LDI r1, 40
-LDI r2, 57
-LDI r3, 56
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (107, 103) then Creates a green circular shape at (213, 144) with radius 79.
+; PLAN: r0=107(x), r1=103(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=213(x), r6=144(y), r7=79(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 107
+LDI r1, 103
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 213
+LDI r6, 144
+LDI r7, 79
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

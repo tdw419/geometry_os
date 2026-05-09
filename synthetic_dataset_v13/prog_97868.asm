@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (188, 63) to (376, 224).
-; PLAN: r0=188(x1), r1=63(y1), r2=376(x2), r3=224(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 188
-LDI r1, 63
-LDI r2, 376
-LDI r3, 224
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a orange line from (368, 191) to (136, 213).
+; PLAN: r0=368(x1), r1=191(y1), r2=136(x2), r3=213(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 368
+LDI r1, 191
+LDI r2, 136
+LDI r3, 213
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

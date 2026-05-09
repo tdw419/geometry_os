@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (120, 162) and (483, 246).
-; PLAN: r0=120(x1), r1=162(y1), r2=483(x2), r3=246(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 120
-LDI r1, 162
-LDI r2, 483
-LDI r3, 246
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white box of size 102x82 starting at (160, 165).
+; PLAN: r0=160(x), r1=165(y), r2=102(width), r3=82(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 165
+LDI r2, 102
+LDI r3, 82
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

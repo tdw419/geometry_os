@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (384, 123) with radius 12.
-; PLAN: r0=384(x), r1=123(y), r2=12(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 384
-LDI r1, 123
-LDI r2, 12
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow 111x35 rectangle at position (81, 16).
+; PLAN: r0=81(x), r1=16(y), r2=111(width), r3=35(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 81
+LDI r1, 16
+LDI r2, 111
+LDI r3, 35
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

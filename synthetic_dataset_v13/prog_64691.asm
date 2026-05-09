@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (351, 93) to (165, 46).
-; PLAN: r0=351(x1), r1=93(y1), r2=165(x2), r3=46(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 351
-LDI r1, 93
-LDI r2, 165
-LDI r3, 46
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a purple line between points (498, 46) and (323, 65).
+; PLAN: r0=498(x1), r1=46(y1), r2=323(x2), r3=65(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 498
+LDI r1, 46
+LDI r2, 323
+LDI r3, 65
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

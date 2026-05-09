@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (127, 78) with radius 74.
-; PLAN: r0=127(x), r1=78(y), r2=74(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+; DESCRIPTION: Draws a yellow rectangle at (127, 89) with width 41 and height 101.
+; PLAN: r0=127(x), r1=89(y), r2=41(width), r3=101(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
 LDI r0, 127
-LDI r1, 78
-LDI r2, 74
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+LDI r1, 89
+LDI r2, 41
+LDI r3, 101
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

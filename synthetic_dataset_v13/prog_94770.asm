@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 18 into r1 and decrements it in a loop until zero.
-; PLAN: r1=18(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 18
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a yellow disk with center (94, 121) and radius 13.
+; PLAN: r0=94(x), r1=121(y), r2=13(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 94
+LDI r1, 121
+LDI r2, 13
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

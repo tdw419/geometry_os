@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a black dot at position (511, 29).
-; PLAN: r0=511(x), r1=29(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 511
-LDI r1, 29
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a orange disk with center (100, 176) and radius 77.
+; PLAN: r0=100(x), r1=176(y), r2=77(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 100
+LDI r1, 176
+LDI r2, 77
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

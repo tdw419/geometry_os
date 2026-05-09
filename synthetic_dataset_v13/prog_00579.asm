@@ -1,8 +1,13 @@
-; DESCRIPTION: Places a green circle of radius 13 at center (58, 210).
-; PLAN: r0=58(x), r1=210(y), r2=13(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 58
-LDI r1, 210
-LDI r2, 13
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Draws a black rectangle at (71, 54) with width 102 and height 57 then Sets a single yellow pixel at (408, 236).
+; PLAN: r0=71(x), r1=54(y), r2=102(width), r3=57(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=408(x), r6=236(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
+LDI r0, 71
+LDI r1, 54
+LDI r2, 102
+LDI r3, 57
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 408
+LDI r6, 236
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
 HALT

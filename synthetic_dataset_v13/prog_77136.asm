@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 92x50 rectangle at position (120, 74).
-; PLAN: r0=120(x), r1=74(y), r2=92(width), r3=50(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 120
-LDI r1, 74
-LDI r2, 92
-LDI r3, 50
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange line from (162, 120) to (86, 154).
+; PLAN: r0=162(x1), r1=120(y1), r2=86(x2), r3=154(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 162
+LDI r1, 120
+LDI r2, 86
+LDI r3, 154
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

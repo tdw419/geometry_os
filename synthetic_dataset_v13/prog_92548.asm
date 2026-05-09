@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 104x111 rectangle at position (349, 41).
-; PLAN: r0=349(x), r1=41(y), r2=104(width), r3=111(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 349
-LDI r1, 41
-LDI r2, 104
-LDI r3, 111
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 9 into r1 and decrements it in a loop until zero.
+; PLAN: r1=9(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 9
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

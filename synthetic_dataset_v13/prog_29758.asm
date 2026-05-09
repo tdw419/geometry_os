@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (217, 179).
-; PLAN: r0=217(x), r1=179(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 217
-LDI r1, 179
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black line from (379, 230) to (349, 100).
+; PLAN: r0=379(x1), r1=230(y1), r2=349(x2), r3=100(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 379
+LDI r1, 230
+LDI r2, 349
+LDI r3, 100
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

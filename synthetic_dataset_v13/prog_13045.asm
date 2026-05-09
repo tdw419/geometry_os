@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a purple dot at position (108, 102).
-; PLAN: r0=108(x), r1=102(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 108
-LDI r1, 102
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green box of size 36x35 starting at (220, 129).
+; PLAN: r0=220(x), r1=129(y), r2=36(width), r3=35(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 129
+LDI r2, 36
+LDI r3, 35
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

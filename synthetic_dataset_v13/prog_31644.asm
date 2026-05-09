@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Renders a magenta line between points (369, 210) and (92, 99) then Renders a white disk with center (238, 125) and radius 74.
-; PLAN: r0=369(x1), r1=210(y1), r2=92(x2), r3=99(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=238(x), r6=125(y), r7=74(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 369
-LDI r1, 210
-LDI r2, 92
-LDI r3, 99
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 238
-LDI r6, 125
-LDI r7, 74
-LDI r8, 0xFFFFFF
+; DESCRIPTION: Composite: Sets a single red pixel at (77, 229) then Renders a red disk with center (355, 219) and radius 29 then Draws a red line from (321, 90) to (174, 83).
+; PLAN: r0=77(x), r1=229(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=355(x), r6=219(y), r7=29(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=321(x1), r11=90(y1), r12=174(x2), r13=83(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 77
+LDI r1, 229
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 355
+LDI r6, 219
+LDI r7, 29
+LDI r8, 0xFF0000
 CIRCLE r5, r6, r7, r8
+LDI r10, 321
+LDI r11, 90
+LDI r12, 174
+LDI r13, 83
+LDI r14, 0xFF0000
+LINE r10, r11, r12, r13, r14
 HALT

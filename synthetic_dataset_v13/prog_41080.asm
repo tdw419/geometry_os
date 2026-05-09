@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (48, 40) with width 57 and height 10.
-; PLAN: r0=48(x), r1=40(y), r2=57(width), r3=10(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 48
-LDI r1, 40
-LDI r2, 57
-LDI r3, 10
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a black rectangle at (357, 80) with width 56 and height 40.
+; PLAN: r0=357(x), r1=80(y), r2=56(width), r3=40(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 80
+LDI r2, 56
+LDI r3, 40
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

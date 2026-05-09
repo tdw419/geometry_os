@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (109, 147) to (5, 183).
-; PLAN: r0=109(x1), r1=147(y1), r2=5(x2), r3=183(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 109
-LDI r1, 147
-LDI r2, 5
-LDI r3, 183
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (381, 28) with radius 21.
+; PLAN: r0=381(x), r1=28(y), r2=21(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 381
+LDI r1, 28
+LDI r2, 21
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

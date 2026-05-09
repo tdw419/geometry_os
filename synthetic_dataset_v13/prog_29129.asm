@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a blue disk with center (186, 78) and radius 62.
-; PLAN: r0=186(x), r1=78(y), r2=62(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 186
-LDI r1, 78
-LDI r2, 62
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

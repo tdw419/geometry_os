@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a green dot at position (36, 103) then Renders a purple box of size 105x94 starting at (315, 46).
-; PLAN: r0=36(x), r1=103(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=315(x), r6=46(y), r7=105(width), r8=94(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 36
-LDI r1, 103
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 315
-LDI r6, 46
-LDI r7, 105
-LDI r8, 94
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a orange line segment connecting (85, 123) to (431, 32).
+; PLAN: r0=85(x1), r1=123(y1), r2=431(x2), r3=32(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 85
+LDI r1, 123
+LDI r2, 431
+LDI r3, 32
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

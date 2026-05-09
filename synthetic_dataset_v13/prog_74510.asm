@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (131, 188) with radius 61.
-; PLAN: r0=131(x), r1=188(y), r2=61(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 131
-LDI r1, 188
-LDI r2, 61
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a black rectangular region at (353, 81) spanning 30 by 112 pixels.
+; PLAN: r0=353(x), r1=81(y), r2=30(width), r3=112(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 81
+LDI r2, 30
+LDI r3, 112
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

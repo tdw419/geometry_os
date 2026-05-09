@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (500, 171).
-; PLAN: r0=500(x), r1=171(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 500
-LDI r1, 171
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Creates a green rectangular region at (343, 137) spanning 78 by 38 pixels.
+; PLAN: r0=343(x), r1=137(y), r2=78(width), r3=38(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 343
+LDI r1, 137
+LDI r2, 78
+LDI r3, 38
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

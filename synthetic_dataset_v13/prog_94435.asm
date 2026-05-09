@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (467, 78) then Draws a green circle centered at (263, 192) with radius 24.
-; PLAN: r0=467(x), r1=78(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=263(x), r6=192(y), r7=24(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 467
-LDI r1, 78
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 263
-LDI r6, 192
-LDI r7, 24
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a magenta line segment connecting (507, 121) to (135, 185).
+; PLAN: r0=507(x1), r1=121(y1), r2=135(x2), r3=185(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 507
+LDI r1, 121
+LDI r2, 135
+LDI r3, 185
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

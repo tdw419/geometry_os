@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (92, 18) to (341, 170).
-; PLAN: r0=92(x1), r1=18(y1), r2=341(x2), r3=170(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 18
-LDI r2, 341
-LDI r3, 170
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 51 at center (418, 150).
+; PLAN: r0=418(x), r1=150(y), r2=51(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 418
+LDI r1, 150
+LDI r2, 51
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

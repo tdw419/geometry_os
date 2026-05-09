@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (215, 85) with radius 63.
-; PLAN: r0=215(x), r1=85(y), r2=63(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 215
-LDI r1, 85
-LDI r2, 63
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (464, 182) and (329, 81).
+; PLAN: r0=464(x1), r1=182(y1), r2=329(x2), r3=81(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 464
+LDI r1, 182
+LDI r2, 329
+LDI r3, 81
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

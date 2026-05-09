@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (256, 105) with radius 37.
-; PLAN: r0=256(x), r1=105(y), r2=37(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 256
-LDI r1, 105
-LDI r2, 37
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (4, 229) and (429, 242).
+; PLAN: r0=4(x1), r1=229(y1), r2=429(x2), r3=242(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 4
+LDI r1, 229
+LDI r2, 429
+LDI r3, 242
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

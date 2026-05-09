@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 51 at center (350, 52).
-; PLAN: r0=350(x), r1=52(y), r2=51(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 350
-LDI r1, 52
-LDI r2, 51
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (164, 122) to (363, 141).
+; PLAN: r0=164(x1), r1=122(y1), r2=363(x2), r3=141(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 122
+LDI r2, 363
+LDI r3, 141
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

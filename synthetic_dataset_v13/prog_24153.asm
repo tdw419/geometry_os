@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 82x94 rectangle at position (300, 67).
-; PLAN: r0=300(x), r1=67(y), r2=82(width), r3=94(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 67
-LDI r2, 82
-LDI r3, 94
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 43 at center (221, 182).
+; PLAN: r0=221(x), r1=182(y), r2=43(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 221
+LDI r1, 182
+LDI r2, 43
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

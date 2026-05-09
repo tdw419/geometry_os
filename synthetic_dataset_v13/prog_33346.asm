@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green rectangle at (60, 45) with width 75 and height 46.
-; PLAN: r0=60(x), r1=45(y), r2=75(width), r3=46(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 60
-LDI r1, 45
-LDI r2, 75
-LDI r3, 46
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (98, 150).
+; PLAN: r0=98(x), r1=150(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 98
+LDI r1, 150
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

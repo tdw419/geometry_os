@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (241, 84) to (85, 242).
-; PLAN: r0=241(x1), r1=84(y1), r2=85(x2), r3=242(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 84
-LDI r2, 85
-LDI r3, 242
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a orange line between points (445, 121) and (476, 34).
+; PLAN: r0=445(x1), r1=121(y1), r2=476(x2), r3=34(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 445
+LDI r1, 121
+LDI r2, 476
+LDI r3, 34
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

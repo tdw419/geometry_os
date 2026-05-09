@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Draws a blue circle centered at (314, 157) with radius 64 then Places a magenta dot at position (172, 38).
-; PLAN: r0=314(x), r1=157(y), r2=64(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=172(x), r6=38(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 314
-LDI r1, 157
-LDI r2, 64
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 172
-LDI r6, 38
-LDI r7, 0xFF00FF
-PSET r5, r6, r7
+; DESCRIPTION: Creates a green rectangular region at (248, 147) spanning 105 by 75 pixels.
+; PLAN: r0=248(x), r1=147(y), r2=105(width), r3=75(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 147
+LDI r2, 105
+LDI r3, 75
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 51x116 starting at (135, 17).
-; PLAN: r0=135(x), r1=17(y), r2=51(width), r3=116(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 135
-LDI r1, 17
-LDI r2, 51
-LDI r3, 116
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a yellow rectangle at (153, 121) with width 120 and height 67.
+; PLAN: r0=153(x), r1=121(y), r2=120(width), r3=67(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 153
+LDI r1, 121
+LDI r2, 120
+LDI r3, 67
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

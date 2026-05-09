@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan line between points (60, 155) and (392, 114).
-; PLAN: r0=60(x1), r1=155(y1), r2=392(x2), r3=114(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 60
-LDI r1, 155
-LDI r2, 392
-LDI r3, 114
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (243, 134).
+; PLAN: r0=243(x), r1=134(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 243
+LDI r1, 134
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 36 at center (303, 148).
-; PLAN: r0=303(x), r1=148(y), r2=36(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 303
-LDI r1, 148
-LDI r2, 36
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple box of size 100x34 starting at (201, 213).
+; PLAN: r0=201(x), r1=213(y), r2=100(width), r3=34(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 201
+LDI r1, 213
+LDI r2, 100
+LDI r3, 34
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

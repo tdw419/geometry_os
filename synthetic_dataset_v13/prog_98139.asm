@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (128, 93) with radius 56.
-; PLAN: r0=128(x), r1=93(y), r2=56(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 128
-LDI r1, 93
-LDI r2, 56
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (147, 8) and (232, 155).
+; PLAN: r0=147(x1), r1=8(y1), r2=232(x2), r3=155(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 147
+LDI r1, 8
+LDI r2, 232
+LDI r3, 155
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

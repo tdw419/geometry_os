@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 30 into r1 and decrements it in a loop until zero.
-; PLAN: r1=30(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 30
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a white circle of radius 38 at center (355, 92).
+; PLAN: r0=355(x), r1=92(y), r2=38(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 355
+LDI r1, 92
+LDI r2, 38
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

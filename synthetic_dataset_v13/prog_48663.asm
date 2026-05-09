@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (379, 162) and (505, 228).
-; PLAN: r0=379(x1), r1=162(y1), r2=505(x2), r3=228(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 379
-LDI r1, 162
-LDI r2, 505
-LDI r3, 228
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (334, 165) and radius 44.
+; PLAN: r0=334(x), r1=165(y), r2=44(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 334
+LDI r1, 165
+LDI r2, 44
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

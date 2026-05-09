@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (140, 65) and radius 52.
-; PLAN: r0=140(x), r1=65(y), r2=52(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 140
-LDI r1, 65
-LDI r2, 52
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow rectangle at (379, 125) with width 85 and height 103.
+; PLAN: r0=379(x), r1=125(y), r2=85(width), r3=103(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 379
+LDI r1, 125
+LDI r2, 85
+LDI r3, 103
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

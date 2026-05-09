@@ -1,9 +1,15 @@
-; DESCRIPTION: Renders a red box of size 36x68 starting at (240, 57).
-; PLAN: r0=240(x), r1=57(y), r2=36(width), r3=68(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 240
-LDI r1, 57
-LDI r2, 36
-LDI r3, 68
-LDI r4, 0xFF0000
+; DESCRIPTION: Composite: Draws a yellow rectangle at (441, 161) with width 67 and height 86 then Renders a red line between points (44, 116) and (140, 190).
+; PLAN: r0=441(x), r1=161(y), r2=67(width), r3=86(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=44(x1), r6=116(y1), r7=140(x2), r8=190(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 441
+LDI r1, 161
+LDI r2, 67
+LDI r3, 86
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
+LDI r5, 44
+LDI r6, 116
+LDI r7, 140
+LDI r8, 190
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 117x17 rectangle at position (181, 204).
-; PLAN: r0=181(x), r1=204(y), r2=117(width), r3=17(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 181
-LDI r1, 204
-LDI r2, 117
-LDI r3, 17
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (185, 200) with radius 40.
+; PLAN: r0=185(x), r1=200(y), r2=40(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 185
+LDI r1, 200
+LDI r2, 40
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

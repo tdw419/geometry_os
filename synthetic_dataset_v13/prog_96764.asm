@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (136, 133) to (83, 167).
-; PLAN: r0=136(x1), r1=133(y1), r2=83(x2), r3=167(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 136
-LDI r1, 133
-LDI r2, 83
-LDI r3, 167
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (278, 106) with radius 16.
+; PLAN: r0=278(x), r1=106(y), r2=16(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 278
+LDI r1, 106
+LDI r2, 16
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

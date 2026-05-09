@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (244, 95) to (422, 59).
-; PLAN: r0=244(x1), r1=95(y1), r2=422(x2), r3=59(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 244
-LDI r1, 95
-LDI r2, 422
-LDI r3, 59
+; DESCRIPTION: Places a yellow 24x43 rectangle at position (82, 96).
+; PLAN: r0=82(x), r1=96(y), r2=24(width), r3=43(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 82
+LDI r1, 96
+LDI r2, 24
+LDI r3, 43
 LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

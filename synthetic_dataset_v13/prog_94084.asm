@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (3, 159) spanning 99 by 59 pixels.
-; PLAN: r0=3(x), r1=159(y), r2=99(width), r3=59(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 3
-LDI r1, 159
-LDI r2, 99
-LDI r3, 59
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black line from (501, 138) to (290, 156).
+; PLAN: r0=501(x1), r1=138(y1), r2=290(x2), r3=156(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 501
+LDI r1, 138
+LDI r2, 290
+LDI r3, 156
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

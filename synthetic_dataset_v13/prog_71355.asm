@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 98x53 rectangle at position (25, 119).
-; PLAN: r0=25(x), r1=119(y), r2=98(width), r3=53(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 25
-LDI r1, 119
-LDI r2, 98
-LDI r3, 53
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan line segment connecting (495, 233) to (38, 28).
+; PLAN: r0=495(x1), r1=233(y1), r2=38(x2), r3=28(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 495
+LDI r1, 233
+LDI r2, 38
+LDI r3, 28
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

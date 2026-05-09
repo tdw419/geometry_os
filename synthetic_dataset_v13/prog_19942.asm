@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single white pixel at (5, 36).
-; PLAN: r0=5(x), r1=36(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 5
-LDI r1, 36
-LDI r2, 0xFFFFFF
+; DESCRIPTION: Places a black dot at position (6, 93).
+; PLAN: r0=6(x), r1=93(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 6
+LDI r1, 93
+LDI r2, 0x000000
 PSET r0, r1, r2
 HALT

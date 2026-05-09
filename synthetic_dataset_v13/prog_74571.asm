@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (71, 222) to (175, 118).
-; PLAN: r0=71(x1), r1=222(y1), r2=175(x2), r3=118(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 71
-LDI r1, 222
-LDI r2, 175
-LDI r3, 118
-LDI r4, 0x000000
+; DESCRIPTION: Renders a orange line between points (181, 167) and (418, 49).
+; PLAN: r0=181(x1), r1=167(y1), r2=418(x2), r3=49(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 181
+LDI r1, 167
+LDI r2, 418
+LDI r3, 49
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

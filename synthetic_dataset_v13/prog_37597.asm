@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 61x57 rectangle at position (419, 15).
-; PLAN: r0=419(x), r1=15(y), r2=61(width), r3=57(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 419
-LDI r1, 15
-LDI r2, 61
-LDI r3, 57
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red line segment connecting (12, 169) to (337, 134).
+; PLAN: r0=12(x1), r1=169(y1), r2=337(x2), r3=134(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 12
+LDI r1, 169
+LDI r2, 337
+LDI r3, 134
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

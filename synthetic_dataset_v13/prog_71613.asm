@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 90x27 rectangle at position (381, 58).
-; PLAN: r0=381(x), r1=58(y), r2=90(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 381
-LDI r1, 58
-LDI r2, 90
-LDI r3, 27
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (460, 136) and (506, 41).
+; PLAN: r0=460(x1), r1=136(y1), r2=506(x2), r3=41(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 460
+LDI r1, 136
+LDI r2, 506
+LDI r3, 41
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

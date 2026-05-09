@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (410, 28) to (258, 208).
-; PLAN: r0=410(x1), r1=28(y1), r2=258(x2), r3=208(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 410
-LDI r1, 28
-LDI r2, 258
-LDI r3, 208
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (417, 163) with radius 74.
+; PLAN: r0=417(x), r1=163(y), r2=74(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 417
+LDI r1, 163
+LDI r2, 74
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

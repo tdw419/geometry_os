@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 110x19 rectangle at position (135, 98).
-; PLAN: r0=135(x), r1=98(y), r2=110(width), r3=19(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 135
-LDI r1, 98
-LDI r2, 110
-LDI r3, 19
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (496, 65) and (118, 139).
+; PLAN: r0=496(x1), r1=65(y1), r2=118(x2), r3=139(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 496
+LDI r1, 65
+LDI r2, 118
+LDI r3, 139
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (315, 111) to (332, 156).
-; PLAN: r0=315(x1), r1=111(y1), r2=332(x2), r3=156(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 315
-LDI r1, 111
-LDI r2, 332
-LDI r3, 156
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow 94x77 rectangle at position (205, 116).
+; PLAN: r0=205(x), r1=116(y), r2=94(width), r3=77(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 205
+LDI r1, 116
+LDI r2, 94
+LDI r3, 77
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

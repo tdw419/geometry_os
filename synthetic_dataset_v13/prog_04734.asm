@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (34, 148) to (295, 19).
-; PLAN: r0=34(x1), r1=148(y1), r2=295(x2), r3=19(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 34
-LDI r1, 148
-LDI r2, 295
-LDI r3, 19
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a blue line segment connecting (402, 247) to (299, 66).
+; PLAN: r0=402(x1), r1=247(y1), r2=299(x2), r3=66(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 402
+LDI r1, 247
+LDI r2, 299
+LDI r3, 66
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

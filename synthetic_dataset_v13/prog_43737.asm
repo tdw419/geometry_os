@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black box of size 15x51 starting at (349, 10).
-; PLAN: r0=349(x), r1=10(y), r2=15(width), r3=51(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 349
-LDI r1, 10
-LDI r2, 15
-LDI r3, 51
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (186, 109) and radius 71.
+; PLAN: r0=186(x), r1=109(y), r2=71(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 186
+LDI r1, 109
+LDI r2, 71
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

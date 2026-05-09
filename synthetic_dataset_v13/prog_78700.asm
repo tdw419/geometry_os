@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a purple rectangular region at (443, 216) spanning 45 by 27 pixels.
-; PLAN: r0=443(x), r1=216(y), r2=45(width), r3=27(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+; DESCRIPTION: Composite: Places a cyan dot at position (443, 154) then Renders a purple line between points (259, 245) and (439, 240).
+; PLAN: r0=443(x), r1=154(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=259(x1), r6=245(y1), r7=439(x2), r8=240(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
 LDI r0, 443
-LDI r1, 216
-LDI r2, 45
-LDI r3, 27
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+LDI r1, 154
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 259
+LDI r6, 245
+LDI r7, 439
+LDI r8, 240
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

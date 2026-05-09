@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 71 at center (203, 147).
-; PLAN: r0=203(x), r1=147(y), r2=71(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 203
-LDI r1, 147
-LDI r2, 71
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a cyan rectangular region at (351, 87) spanning 83 by 34 pixels.
+; PLAN: r0=351(x), r1=87(y), r2=83(width), r3=34(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 351
+LDI r1, 87
+LDI r2, 83
+LDI r3, 34
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

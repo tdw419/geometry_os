@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (392, 171) and (393, 158).
-; PLAN: r0=392(x1), r1=171(y1), r2=393(x2), r3=158(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 392
-LDI r1, 171
-LDI r2, 393
-LDI r3, 158
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 64 at center (430, 129).
+; PLAN: r0=430(x), r1=129(y), r2=64(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 430
+LDI r1, 129
+LDI r2, 64
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

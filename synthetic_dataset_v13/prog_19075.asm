@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (389, 168) with radius 67.
-; PLAN: r0=389(x), r1=168(y), r2=67(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 389
-LDI r1, 168
-LDI r2, 67
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (427, 36) to (441, 66).
+; PLAN: r0=427(x1), r1=36(y1), r2=441(x2), r3=66(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 427
+LDI r1, 36
+LDI r2, 441
+LDI r3, 66
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

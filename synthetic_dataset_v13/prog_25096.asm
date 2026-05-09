@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 14 at center (310, 82).
-; PLAN: r0=310(x), r1=82(y), r2=14(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 310
-LDI r1, 82
-LDI r2, 14
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 76x54 rectangle at position (253, 127).
+; PLAN: r0=253(x), r1=127(y), r2=76(width), r3=54(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 253
+LDI r1, 127
+LDI r2, 76
+LDI r3, 54
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 102x109 rectangle at position (107, 21).
-; PLAN: r0=107(x), r1=21(y), r2=102(width), r3=109(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 107
-LDI r1, 21
-LDI r2, 102
-LDI r3, 109
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (471, 56) and (23, 206).
+; PLAN: r0=471(x1), r1=56(y1), r2=23(x2), r3=206(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 471
+LDI r1, 56
+LDI r2, 23
+LDI r3, 206
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

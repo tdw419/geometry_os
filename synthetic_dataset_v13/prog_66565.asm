@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Sets a single purple pixel at (265, 47).
+; PLAN: r0=265(x), r1=47(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 265
+LDI r1, 47
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

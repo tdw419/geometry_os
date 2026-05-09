@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a black box of size 63x120 starting at (163, 98).
-; PLAN: r0=163(x), r1=98(y), r2=63(width), r3=120(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 163
-LDI r1, 98
-LDI r2, 63
-LDI r3, 120
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a black circle centered at (69, 157) with radius 41 then Renders a white box of size 81x82 starting at (12, 48).
+; PLAN: r0=69(x), r1=157(y), r2=41(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=12(x), r6=48(y), r7=81(width), r8=82(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 69
+LDI r1, 157
+LDI r2, 41
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 12
+LDI r6, 48
+LDI r7, 81
+LDI r8, 82
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

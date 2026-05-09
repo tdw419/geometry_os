@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (352, 17) and (147, 180).
-; PLAN: r0=352(x1), r1=17(y1), r2=147(x2), r3=180(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 352
-LDI r1, 17
-LDI r2, 147
-LDI r3, 180
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white rectangular region at (337, 22) spanning 101 by 92 pixels.
+; PLAN: r0=337(x), r1=22(y), r2=101(width), r3=92(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 337
+LDI r1, 22
+LDI r2, 101
+LDI r3, 92
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

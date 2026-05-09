@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (162, 82) and (52, 52).
-; PLAN: r0=162(x1), r1=82(y1), r2=52(x2), r3=52(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 162
-LDI r1, 82
+; DESCRIPTION: Creates a green rectangular region at (335, 124) spanning 52 by 40 pixels.
+; PLAN: r0=335(x), r1=124(y), r2=52(width), r3=40(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 335
+LDI r1, 124
 LDI r2, 52
-LDI r3, 52
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+LDI r3, 40
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

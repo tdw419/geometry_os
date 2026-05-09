@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (293, 170) with radius 74.
-; PLAN: r0=293(x), r1=170(y), r2=74(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 293
-LDI r1, 170
-LDI r2, 74
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (62, 121) and (179, 126).
+; PLAN: r0=62(x1), r1=121(y1), r2=179(x2), r3=126(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 62
+LDI r1, 121
+LDI r2, 179
+LDI r3, 126
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 101x93 starting at (108, 39).
-; PLAN: r0=108(x), r1=39(y), r2=101(width), r3=93(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 108
-LDI r1, 39
-LDI r2, 101
-LDI r3, 93
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a cyan rectangle at (369, 132) with width 64 and height 53.
+; PLAN: r0=369(x), r1=132(y), r2=64(width), r3=53(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 369
+LDI r1, 132
+LDI r2, 64
+LDI r3, 53
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

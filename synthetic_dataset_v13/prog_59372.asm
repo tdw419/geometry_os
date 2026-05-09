@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 32x96 rectangle at position (352, 22).
-; PLAN: r0=352(x), r1=22(y), r2=32(width), r3=96(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 352
-LDI r1, 22
-LDI r2, 32
-LDI r3, 96
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (373, 179) to (166, 120).
+; PLAN: r0=373(x1), r1=179(y1), r2=166(x2), r3=120(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 373
+LDI r1, 179
+LDI r2, 166
+LDI r3, 120
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

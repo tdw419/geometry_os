@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 112x12 starting at (42, 113).
-; PLAN: r0=42(x), r1=113(y), r2=112(width), r3=12(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 42
-LDI r1, 113
-LDI r2, 112
-LDI r3, 12
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a white rectangle at (19, 206) with width 46 and height 47.
+; PLAN: r0=19(x), r1=206(y), r2=46(width), r3=47(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 19
+LDI r1, 206
+LDI r2, 46
+LDI r3, 47
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

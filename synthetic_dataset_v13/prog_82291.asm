@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red line segment connecting (478, 152) to (161, 118).
-; PLAN: r0=478(x1), r1=152(y1), r2=161(x2), r3=118(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 478
-LDI r1, 152
-LDI r2, 161
-LDI r3, 118
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (256, 163) with radius 39.
+; PLAN: r0=256(x), r1=163(y), r2=39(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 256
+LDI r1, 163
+LDI r2, 39
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

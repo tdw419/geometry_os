@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 102x20 rectangle at position (124, 170).
-; PLAN: r0=124(x), r1=170(y), r2=102(width), r3=20(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 124
-LDI r1, 170
-LDI r2, 102
-LDI r3, 20
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (378, 137) and (163, 153).
+; PLAN: r0=378(x1), r1=137(y1), r2=163(x2), r3=153(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 378
+LDI r1, 137
+LDI r2, 163
+LDI r3, 153
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

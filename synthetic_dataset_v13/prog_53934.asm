@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a red rectangle at (177, 0) with width 60 and height 49.
-; PLAN: r0=177(x), r1=0(y), r2=60(width), r3=49(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 0
-LDI r2, 60
-LDI r3, 49
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (80, 238) then Renders a black disk with center (142, 141) and radius 72.
+; PLAN: r0=80(x), r1=238(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=142(x), r6=141(y), r7=72(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 80
+LDI r1, 238
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 142
+LDI r6, 141
+LDI r7, 72
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

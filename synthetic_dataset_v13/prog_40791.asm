@@ -1,15 +1,20 @@
-; DESCRIPTION: Composite: Draws a cyan line from (368, 244) to (95, 163) then Renders a blue box of size 29x59 starting at (63, 74).
-; PLAN: r0=368(x1), r1=244(y1), r2=95(x2), r3=163(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=63(x), r6=74(y), r7=29(width), r8=59(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 368
-LDI r1, 244
-LDI r2, 95
-LDI r3, 163
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 63
-LDI r6, 74
-LDI r7, 29
-LDI r8, 59
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Creates a black rectangular region at (115, 97) spanning 55 by 96 pixels then Renders a magenta disk with center (209, 149) and radius 27 then Draws a white line from (453, 30) to (265, 211).
+; PLAN: r0=115(x), r1=97(y), r2=55(width), r3=96(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=209(x), r6=149(y), r7=27(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=453(x1), r11=30(y1), r12=265(x2), r13=211(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 115
+LDI r1, 97
+LDI r2, 55
+LDI r3, 96
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 209
+LDI r6, 149
+LDI r7, 27
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 453
+LDI r11, 30
+LDI r12, 265
+LDI r13, 211
+LDI r14, 0xFFFFFF
+LINE r10, r11, r12, r13, r14
 HALT

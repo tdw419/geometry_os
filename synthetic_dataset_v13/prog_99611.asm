@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (281, 106) to (230, 125).
-; PLAN: r0=281(x1), r1=106(y1), r2=230(x2), r3=125(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 281
-LDI r1, 106
-LDI r2, 230
-LDI r3, 125
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a cyan line from (419, 140) to (507, 93).
+; PLAN: r0=419(x1), r1=140(y1), r2=507(x2), r3=93(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 419
+LDI r1, 140
+LDI r2, 507
+LDI r3, 93
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

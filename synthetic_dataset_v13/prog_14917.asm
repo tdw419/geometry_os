@@ -1,19 +1,15 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (387, 43) spanning 99 by 98 pixels then Places a red dot at position (260, 6) then Places a black line segment connecting (242, 239) to (108, 181).
-; PLAN: r0=387(x), r1=43(y), r2=99(width), r3=98(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=260(x), r6=6(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=242(x1), r11=239(y1), r12=108(x2), r13=181(y2), r14=0x000000(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 387
-LDI r1, 43
-LDI r2, 99
-LDI r3, 98
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 260
-LDI r6, 6
-LDI r7, 0xFF0000
-PSET r5, r6, r7
-LDI r10, 242
-LDI r11, 239
-LDI r12, 108
-LDI r13, 181
-LDI r14, 0x000000
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a blue line between points (249, 142) and (101, 84) then Creates a green rectangular region at (137, 25) spanning 45 by 62 pixels.
+; PLAN: r0=249(x1), r1=142(y1), r2=101(x2), r3=84(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=137(x), r6=25(y), r7=45(width), r8=62(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 249
+LDI r1, 142
+LDI r2, 101
+LDI r3, 84
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 137
+LDI r6, 25
+LDI r7, 45
+LDI r8, 62
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

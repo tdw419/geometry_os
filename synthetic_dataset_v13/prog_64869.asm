@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (263, 64) to (102, 148).
-; PLAN: r0=263(x1), r1=64(y1), r2=102(x2), r3=148(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 263
-LDI r1, 64
-LDI r2, 102
-LDI r3, 148
-LDI r4, 0x00FFFF
+; DESCRIPTION: Places a black line segment connecting (120, 68) to (343, 145).
+; PLAN: r0=120(x1), r1=68(y1), r2=343(x2), r3=145(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 120
+LDI r1, 68
+LDI r2, 343
+LDI r3, 145
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

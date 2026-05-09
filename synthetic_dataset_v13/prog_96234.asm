@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (70, 135) to (114, 22).
-; PLAN: r0=70(x1), r1=135(y1), r2=114(x2), r3=22(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 70
-LDI r1, 135
-LDI r2, 114
-LDI r3, 22
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (238, 114) with width 42 and height 73.
+; PLAN: r0=238(x), r1=114(y), r2=42(width), r3=73(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 238
+LDI r1, 114
+LDI r2, 42
+LDI r3, 73
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

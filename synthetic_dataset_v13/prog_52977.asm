@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a black circle centered at (338, 192) with radius 18.
-; PLAN: r0=338(x), r1=192(y), r2=18(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 338
-LDI r1, 192
-LDI r2, 18
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single black pixel at (356, 211).
+; PLAN: r0=356(x), r1=211(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 356
+LDI r1, 211
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

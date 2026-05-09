@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a yellow line segment connecting (62, 167) to (352, 162).
-; PLAN: r0=62(x1), r1=167(y1), r2=352(x2), r3=162(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 62
-LDI r1, 167
-LDI r2, 352
-LDI r3, 162
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (109, 225) then Creates a purple circular shape at (328, 110) with radius 51.
+; PLAN: r0=109(x), r1=225(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=328(x), r6=110(y), r7=51(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 109
+LDI r1, 225
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 328
+LDI r6, 110
+LDI r7, 51
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

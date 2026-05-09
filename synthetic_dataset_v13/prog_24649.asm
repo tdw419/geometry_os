@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a yellow line segment connecting (502, 95) to (24, 212).
-; PLAN: r0=502(x1), r1=95(y1), r2=24(x2), r3=212(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 502
-LDI r1, 95
-LDI r2, 24
-LDI r3, 212
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a green circle centered at (66, 116) with radius 63 then Places a red dot at position (48, 228).
+; PLAN: r0=66(x), r1=116(y), r2=63(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=48(x), r6=228(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 66
+LDI r1, 116
+LDI r2, 63
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 48
+LDI r6, 228
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

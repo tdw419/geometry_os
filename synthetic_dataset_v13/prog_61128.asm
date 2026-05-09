@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (115, 134) to (287, 62).
-; PLAN: r0=115(x1), r1=134(y1), r2=287(x2), r3=62(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 115
-LDI r1, 134
-LDI r2, 287
-LDI r3, 62
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan rectangle at (191, 157) with width 119 and height 35.
+; PLAN: r0=191(x), r1=157(y), r2=119(width), r3=35(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 191
+LDI r1, 157
+LDI r2, 119
+LDI r3, 35
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

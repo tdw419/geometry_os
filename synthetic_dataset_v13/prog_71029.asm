@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (179, 220) and (401, 166).
-; PLAN: r0=179(x1), r1=220(y1), r2=401(x2), r3=166(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 220
-LDI r2, 401
-LDI r3, 166
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a purple line segment connecting (340, 141) to (344, 136).
+; PLAN: r0=340(x1), r1=141(y1), r2=344(x2), r3=136(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 340
+LDI r1, 141
+LDI r2, 344
+LDI r3, 136
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

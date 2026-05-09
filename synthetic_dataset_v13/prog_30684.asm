@@ -1,14 +1,15 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (281, 161) spanning 69 by 47 pixels then Draws a yellow circle centered at (165, 66) with radius 24.
-; PLAN: r0=281(x), r1=161(y), r2=69(width), r3=47(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=165(x), r6=66(y), r7=24(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 281
-LDI r1, 161
-LDI r2, 69
-LDI r3, 47
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 165
-LDI r6, 66
-LDI r7, 24
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Renders a blue line between points (440, 247) and (99, 171) then Draws a magenta rectangle at (37, 5) with width 36 and height 104.
+; PLAN: r0=440(x1), r1=247(y1), r2=99(x2), r3=171(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=37(x), r6=5(y), r7=36(width), r8=104(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 440
+LDI r1, 247
+LDI r2, 99
+LDI r3, 171
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 37
+LDI r6, 5
+LDI r7, 36
+LDI r8, 104
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a green line between points (337, 88) and (451, 81).
-; PLAN: r0=337(x1), r1=88(y1), r2=451(x2), r3=81(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 337
-LDI r1, 88
-LDI r2, 451
-LDI r3, 81
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (334, 126).
+; PLAN: r0=334(x), r1=126(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 334
+LDI r1, 126
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

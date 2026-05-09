@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (119, 128) with radius 73.
-; PLAN: r0=119(x), r1=128(y), r2=73(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 119
-LDI r1, 128
-LDI r2, 73
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (84, 143) and (52, 41).
+; PLAN: r0=84(x1), r1=143(y1), r2=52(x2), r3=41(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 84
+LDI r1, 143
+LDI r2, 52
+LDI r3, 41
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

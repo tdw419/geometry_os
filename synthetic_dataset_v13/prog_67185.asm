@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (22, 159) to (220, 66).
-; PLAN: r0=22(x1), r1=159(y1), r2=220(x2), r3=66(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 22
-LDI r1, 159
-LDI r2, 220
-LDI r3, 66
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 77x22 rectangle at position (119, 202).
+; PLAN: r0=119(x), r1=202(y), r2=77(width), r3=22(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 119
+LDI r1, 202
+LDI r2, 77
+LDI r3, 22
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

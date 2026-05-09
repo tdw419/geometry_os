@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a red line from (5, 103) to (230, 65) then Places a white circle of radius 29 at center (480, 217).
-; PLAN: r0=5(x1), r1=103(y1), r2=230(x2), r3=65(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=480(x), r6=217(y), r7=29(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 5
-LDI r1, 103
-LDI r2, 230
-LDI r3, 65
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
-LDI r5, 480
-LDI r6, 217
-LDI r7, 29
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a green rectangle at (398, 44) with width 30 and height 100.
+; PLAN: r0=398(x), r1=44(y), r2=30(width), r3=100(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 398
+LDI r1, 44
+LDI r2, 30
+LDI r3, 100
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

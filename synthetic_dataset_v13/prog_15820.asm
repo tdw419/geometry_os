@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single orange pixel at (363, 20) then Renders a red box of size 11x63 starting at (273, 42).
-; PLAN: r0=363(x), r1=20(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=273(x), r6=42(y), r7=11(width), r8=63(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 363
-LDI r1, 20
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 273
-LDI r6, 42
-LDI r7, 11
-LDI r8, 63
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a white box of size 35x119 starting at (133, 72).
+; PLAN: r0=133(x), r1=72(y), r2=35(width), r3=119(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 133
+LDI r1, 72
+LDI r2, 35
+LDI r3, 119
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

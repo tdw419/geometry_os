@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 3 into r1 and decrements it in a loop until zero.
-; PLAN: r1=3(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 3
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a black 24x68 rectangle at position (347, 55).
+; PLAN: r0=347(x), r1=55(y), r2=24(width), r3=68(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 347
+LDI r1, 55
+LDI r2, 24
+LDI r3, 68
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

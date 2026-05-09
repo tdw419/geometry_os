@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Draws a red circle centered at (316, 68) with radius 54 then Places a yellow dot at position (68, 52) then Draws a blue rectangle at (223, 73) with width 53 and height 65.
-; PLAN: r0=316(x), r1=68(y), r2=54(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=68(x), r6=52(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=223(x), r11=73(y), r12=53(width), r13=65(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 316
-LDI r1, 68
-LDI r2, 54
-LDI r3, 0xFF0000
+; DESCRIPTION: Composite: Renders a green disk with center (340, 157) and radius 56 then Renders a magenta line between points (124, 85) and (113, 1).
+; PLAN: r0=340(x), r1=157(y), r2=56(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=124(x1), r6=85(y1), r7=113(x2), r8=1(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 340
+LDI r1, 157
+LDI r2, 56
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
-LDI r5, 68
-LDI r6, 52
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
-LDI r10, 223
-LDI r11, 73
-LDI r12, 53
-LDI r13, 65
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+LDI r5, 124
+LDI r6, 85
+LDI r7, 113
+LDI r8, 1
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

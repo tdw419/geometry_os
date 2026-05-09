@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a purple dot at position (426, 173) then Draws a magenta rectangle at (406, 46) with width 54 and height 112.
-; PLAN: r0=426(x), r1=173(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=406(x), r6=46(y), r7=54(width), r8=112(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 426
-LDI r1, 173
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 406
-LDI r6, 46
-LDI r7, 54
-LDI r8, 112
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Loads 21 into r1 and decrements it in a loop until zero.
+; PLAN: r1=21(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 21
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

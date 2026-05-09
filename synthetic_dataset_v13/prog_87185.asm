@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (358, 32) then Renders a cyan box of size 26x104 starting at (247, 22).
-; PLAN: r0=358(x), r1=32(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=247(x), r6=22(y), r7=26(width), r8=104(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 358
-LDI r1, 32
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 247
-LDI r6, 22
-LDI r7, 26
-LDI r8, 104
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a black rectangle at (114, 139) with width 61 and height 10.
+; PLAN: r0=114(x), r1=139(y), r2=61(width), r3=10(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 114
+LDI r1, 139
+LDI r2, 61
+LDI r3, 10
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

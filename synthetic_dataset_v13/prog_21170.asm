@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Places a white circle of radius 25 at center (313, 157) then Renders a orange line between points (66, 68) and (210, 129).
-; PLAN: r0=313(x), r1=157(y), r2=25(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=66(x1), r6=68(y1), r7=210(x2), r8=129(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 313
-LDI r1, 157
-LDI r2, 25
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 66
-LDI r6, 68
-LDI r7, 210
-LDI r8, 129
-LDI r9, 0xFF8800
+; DESCRIPTION: Composite: Places a cyan dot at position (351, 123) then Renders a cyan line between points (287, 219) and (353, 95) then Creates a orange circular shape at (186, 107) with radius 67.
+; PLAN: r0=351(x), r1=123(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=287(x1), r6=219(y1), r7=353(x2), r8=95(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=186(x), r11=107(y), r12=67(radius), r13=0xFF8800(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 351
+LDI r1, 123
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 287
+LDI r6, 219
+LDI r7, 353
+LDI r8, 95
+LDI r9, 0x00FFFF
 LINE r5, r6, r7, r8, r9
+LDI r10, 186
+LDI r11, 107
+LDI r12, 67
+LDI r13, 0xFF8800
+CIRCLE r10, r11, r12, r13
 HALT

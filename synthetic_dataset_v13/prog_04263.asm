@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 20x59 rectangle at position (242, 154).
-; PLAN: r0=242(x), r1=154(y), r2=20(width), r3=59(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 242
-LDI r1, 154
-LDI r2, 20
-LDI r3, 59
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (294, 56) and radius 32.
+; PLAN: r0=294(x), r1=56(y), r2=32(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 294
+LDI r1, 56
+LDI r2, 32
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

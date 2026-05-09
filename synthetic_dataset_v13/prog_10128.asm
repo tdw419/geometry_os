@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a purple dot at position (210, 201).
-; PLAN: r0=210(x), r1=201(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 210
-LDI r1, 201
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green line between points (441, 98) and (93, 145).
+; PLAN: r0=441(x1), r1=98(y1), r2=93(x2), r3=145(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 441
+LDI r1, 98
+LDI r2, 93
+LDI r3, 145
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

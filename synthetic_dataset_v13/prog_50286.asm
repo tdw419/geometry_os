@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (393, 215) to (424, 12).
-; PLAN: r0=393(x1), r1=215(y1), r2=424(x2), r3=12(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 215
-LDI r2, 424
-LDI r3, 12
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (54, 44) spanning 86 by 69 pixels.
+; PLAN: r0=54(x), r1=44(y), r2=86(width), r3=69(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 54
+LDI r1, 44
+LDI r2, 86
+LDI r3, 69
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

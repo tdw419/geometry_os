@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (226, 192) and (189, 3).
-; PLAN: r0=226(x1), r1=192(y1), r2=189(x2), r3=3(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 226
-LDI r1, 192
-LDI r2, 189
-LDI r3, 3
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan rectangular region at (348, 108) spanning 22 by 69 pixels.
+; PLAN: r0=348(x), r1=108(y), r2=22(width), r3=69(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 348
+LDI r1, 108
+LDI r2, 22
+LDI r3, 69
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

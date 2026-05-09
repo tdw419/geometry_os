@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (237, 26) spanning 101 by 15 pixels.
-; PLAN: r0=237(x), r1=26(y), r2=101(width), r3=15(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 237
-LDI r1, 26
-LDI r2, 101
-LDI r3, 15
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a cyan rectangle at (72, 150) with width 35 and height 42.
+; PLAN: r0=72(x), r1=150(y), r2=35(width), r3=42(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 72
+LDI r1, 150
+LDI r2, 35
+LDI r3, 42
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

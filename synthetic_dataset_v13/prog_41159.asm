@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a orange line segment connecting (53, 22) to (65, 1).
-; PLAN: r0=53(x1), r1=22(y1), r2=65(x2), r3=1(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 22
-LDI r2, 65
-LDI r3, 1
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (88, 152).
+; PLAN: r0=88(x), r1=152(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 88
+LDI r1, 152
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

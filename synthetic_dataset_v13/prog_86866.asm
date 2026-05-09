@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (230, 157) to (180, 18).
-; PLAN: r0=230(x1), r1=157(y1), r2=180(x2), r3=18(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 230
-LDI r1, 157
-LDI r2, 180
-LDI r3, 18
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black rectangle at (223, 0) with width 18 and height 45.
+; PLAN: r0=223(x), r1=0(y), r2=18(width), r3=45(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 223
+LDI r1, 0
+LDI r2, 18
+LDI r3, 45
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

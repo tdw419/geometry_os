@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 100x91 starting at (333, 47).
-; PLAN: r0=333(x), r1=47(y), r2=100(width), r3=91(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 333
-LDI r1, 47
-LDI r2, 100
-LDI r3, 91
-LDI r4, 0x000000
+; DESCRIPTION: Creates a red rectangular region at (458, 13) spanning 15 by 40 pixels.
+; PLAN: r0=458(x), r1=13(y), r2=15(width), r3=40(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 458
+LDI r1, 13
+LDI r2, 15
+LDI r3, 40
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

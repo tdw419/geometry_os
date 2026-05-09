@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 48x86 rectangle at position (174, 48).
-; PLAN: r0=174(x), r1=48(y), r2=48(width), r3=86(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 174
-LDI r1, 48
-LDI r2, 48
-LDI r3, 86
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white disk with center (367, 115) and radius 18.
+; PLAN: r0=367(x), r1=115(y), r2=18(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 367
+LDI r1, 115
+LDI r2, 18
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

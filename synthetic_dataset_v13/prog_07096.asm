@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a cyan rectangle at (87, 137) with width 109 and height 93.
-; PLAN: r0=87(x), r1=137(y), r2=109(width), r3=93(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 87
-LDI r1, 137
-LDI r2, 109
-LDI r3, 93
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black circle of radius 66 at center (88, 148) then Places a white dot at position (508, 16).
+; PLAN: r0=88(x), r1=148(y), r2=66(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=508(x), r6=16(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 88
+LDI r1, 148
+LDI r2, 66
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 508
+LDI r6, 16
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (357, 125) to (287, 175).
-; PLAN: r0=357(x1), r1=125(y1), r2=287(x2), r3=175(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 357
-LDI r1, 125
-LDI r2, 287
-LDI r3, 175
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a purple line from (436, 48) to (494, 92).
+; PLAN: r0=436(x1), r1=48(y1), r2=494(x2), r3=92(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 436
+LDI r1, 48
+LDI r2, 494
+LDI r3, 92
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

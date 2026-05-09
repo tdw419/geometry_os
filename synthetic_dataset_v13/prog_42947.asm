@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a orange line from (277, 238) to (98, 105).
-; PLAN: r0=277(x1), r1=238(y1), r2=98(x2), r3=105(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 277
-LDI r1, 238
-LDI r2, 98
-LDI r3, 105
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

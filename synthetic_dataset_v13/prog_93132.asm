@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 64x64 rectangle at position (54, 189).
-; PLAN: r0=54(x), r1=189(y), r2=64(width), r3=64(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 54
-LDI r1, 189
-LDI r2, 64
-LDI r3, 64
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a orange box of size 69x33 starting at (375, 213).
+; PLAN: r0=375(x), r1=213(y), r2=69(width), r3=33(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 375
+LDI r1, 213
+LDI r2, 69
+LDI r3, 33
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (455, 166) to (66, 105).
-; PLAN: r0=455(x1), r1=166(y1), r2=66(x2), r3=105(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 455
-LDI r1, 166
-LDI r2, 66
-LDI r3, 105
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (219, 52) with width 69 and height 84.
+; PLAN: r0=219(x), r1=52(y), r2=69(width), r3=84(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 219
+LDI r1, 52
+LDI r2, 69
+LDI r3, 84
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

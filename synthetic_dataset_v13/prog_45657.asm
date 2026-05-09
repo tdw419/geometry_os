@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (429, 68).
-; PLAN: r0=429(x), r1=68(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 429
-LDI r1, 68
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a red line between points (3, 22) and (487, 168).
+; PLAN: r0=3(x1), r1=22(y1), r2=487(x2), r3=168(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 3
+LDI r1, 22
+LDI r2, 487
+LDI r3, 168
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

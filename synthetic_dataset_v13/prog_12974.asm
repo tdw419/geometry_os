@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a white 99x64 rectangle at position (216, 77) then Places a white dot at position (363, 154).
-; PLAN: r0=216(x), r1=77(y), r2=99(width), r3=64(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=363(x), r6=154(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 216
-LDI r1, 77
-LDI r2, 99
-LDI r3, 64
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a blue rectangle at (181, 72) with width 34 and height 119.
+; PLAN: r0=181(x), r1=72(y), r2=34(width), r3=119(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 181
+LDI r1, 72
+LDI r2, 34
+LDI r3, 119
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 363
-LDI r6, 154
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
 HALT

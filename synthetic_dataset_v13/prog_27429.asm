@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (79, 107) with radius 48.
-; PLAN: r0=79(x), r1=107(y), r2=48(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 79
-LDI r1, 107
-LDI r2, 48
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (0, 136) and (82, 214).
+; PLAN: r0=0(x1), r1=136(y1), r2=82(x2), r3=214(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 0
+LDI r1, 136
+LDI r2, 82
+LDI r3, 214
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

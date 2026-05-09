@@ -1,8 +1,7 @@
-; DESCRIPTION: Loads 10 into r1 and decrements it in a loop until zero.
-; PLAN: r1=10(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 10
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a white dot at position (323, 233).
+; PLAN: r0=323(x), r1=233(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 323
+LDI r1, 233
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

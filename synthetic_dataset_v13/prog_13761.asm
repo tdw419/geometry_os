@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a green dot at position (237, 21).
-; PLAN: r0=237(x), r1=21(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 237
-LDI r1, 21
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Paints the whole screen purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

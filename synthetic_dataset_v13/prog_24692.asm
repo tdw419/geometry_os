@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a purple circular shape at (401, 141) with radius 44.
-; PLAN: r0=401(x), r1=141(y), r2=44(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 401
-LDI r1, 141
-LDI r2, 44
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single orange pixel at (317, 151).
+; PLAN: r0=317(x), r1=151(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 317
+LDI r1, 151
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

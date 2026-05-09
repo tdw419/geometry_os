@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Places a white circle of radius 62 at center (323, 192).
+; PLAN: r0=323(x), r1=192(y), r2=62(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 323
+LDI r1, 192
+LDI r2, 62
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

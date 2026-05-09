@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a orange rectangle at (317, 80) with width 74 and height 46.
-; PLAN: r0=317(x), r1=80(y), r2=74(width), r3=46(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 317
-LDI r1, 80
-LDI r2, 74
-LDI r3, 46
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (348, 152).
+; PLAN: r0=348(x), r1=152(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 348
+LDI r1, 152
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

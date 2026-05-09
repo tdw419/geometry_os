@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a red circular shape at (342, 166) with radius 55.
-; PLAN: r0=342(x), r1=166(y), r2=55(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 342
-LDI r1, 166
-LDI r2, 55
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan dot at position (326, 87).
+; PLAN: r0=326(x), r1=87(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 326
+LDI r1, 87
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

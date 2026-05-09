@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (145, 7) to (253, 221).
-; PLAN: r0=145(x1), r1=7(y1), r2=253(x2), r3=221(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 145
-LDI r1, 7
-LDI r2, 253
-LDI r3, 221
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (155, 75) and radius 38.
+; PLAN: r0=155(x), r1=75(y), r2=38(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 155
+LDI r1, 75
+LDI r2, 38
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

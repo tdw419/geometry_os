@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single white pixel at (424, 82).
-; PLAN: r0=424(x), r1=82(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 424
-LDI r1, 82
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a white disk with center (369, 174) and radius 73.
+; PLAN: r0=369(x), r1=174(y), r2=73(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 369
+LDI r1, 174
+LDI r2, 73
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

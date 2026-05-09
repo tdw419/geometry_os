@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (310, 45) and (256, 185).
-; PLAN: r0=310(x1), r1=45(y1), r2=256(x2), r3=185(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 45
-LDI r2, 256
-LDI r3, 185
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a red line between points (67, 58) and (63, 128).
+; PLAN: r0=67(x1), r1=58(y1), r2=63(x2), r3=128(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 67
+LDI r1, 58
+LDI r2, 63
+LDI r3, 128
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

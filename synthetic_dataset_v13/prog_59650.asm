@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a green line between points (291, 202) and (98, 55).
-; PLAN: r0=291(x1), r1=202(y1), r2=98(x2), r3=55(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 291
-LDI r1, 202
-LDI r2, 98
-LDI r3, 55
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (267, 164).
+; PLAN: r0=267(x), r1=164(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 267
+LDI r1, 164
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (150, 125).
-; PLAN: r0=150(x), r1=125(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 150
-LDI r1, 125
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a orange line between points (360, 248) and (248, 244).
+; PLAN: r0=360(x1), r1=248(y1), r2=248(x2), r3=244(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 360
+LDI r1, 248
+LDI r2, 248
+LDI r3, 244
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

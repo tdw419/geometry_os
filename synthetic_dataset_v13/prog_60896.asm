@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (300, 62) to (469, 59).
-; PLAN: r0=300(x1), r1=62(y1), r2=469(x2), r3=59(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 62
-LDI r2, 469
-LDI r3, 59
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta 83x101 rectangle at position (337, 27).
+; PLAN: r0=337(x), r1=27(y), r2=83(width), r3=101(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 337
+LDI r1, 27
+LDI r2, 83
+LDI r3, 101
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 76 at center (126, 148).
-; PLAN: r0=126(x), r1=148(y), r2=76(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 126
-LDI r1, 148
-LDI r2, 76
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta rectangle at (26, 118) with width 33 and height 32.
+; PLAN: r0=26(x), r1=118(y), r2=33(width), r3=32(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 26
+LDI r1, 118
+LDI r2, 33
+LDI r3, 32
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

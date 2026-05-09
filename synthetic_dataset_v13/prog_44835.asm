@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a orange dot at position (289, 19).
-; PLAN: r0=289(x), r1=19(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 289
-LDI r1, 19
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (245, 55) with radius 39.
-; PLAN: r0=245(x), r1=55(y), r2=39(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 245
-LDI r1, 55
-LDI r2, 39
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (274, 249) and (462, 235).
+; PLAN: r0=274(x1), r1=249(y1), r2=462(x2), r3=235(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 274
+LDI r1, 249
+LDI r2, 462
+LDI r3, 235
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

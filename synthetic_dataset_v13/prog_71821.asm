@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 94x80 rectangle at position (165, 137).
-; PLAN: r0=165(x), r1=137(y), r2=94(width), r3=80(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 137
-LDI r2, 94
-LDI r3, 80
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (326, 193) and (372, 137).
+; PLAN: r0=326(x1), r1=193(y1), r2=372(x2), r3=137(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 326
+LDI r1, 193
+LDI r2, 372
+LDI r3, 137
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

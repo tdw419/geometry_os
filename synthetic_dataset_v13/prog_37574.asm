@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Renders a blue disk with center (110, 155) and radius 69 then Renders a red box of size 50x102 starting at (323, 102).
-; PLAN: r0=110(x), r1=155(y), r2=69(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=323(x), r6=102(y), r7=50(width), r8=102(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 110
-LDI r1, 155
-LDI r2, 69
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 323
-LDI r6, 102
-LDI r7, 50
-LDI r8, 102
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a cyan line between points (23, 131) and (149, 129).
+; PLAN: r0=23(x1), r1=131(y1), r2=149(x2), r3=129(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 23
+LDI r1, 131
+LDI r2, 149
+LDI r3, 129
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

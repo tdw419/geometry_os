@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (24, 175) and (55, 79).
-; PLAN: r0=24(x1), r1=175(y1), r2=55(x2), r3=79(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 24
-LDI r1, 175
-LDI r2, 55
-LDI r3, 79
-LDI r4, 0x000000
+; DESCRIPTION: Renders a white line between points (68, 250) and (342, 52).
+; PLAN: r0=68(x1), r1=250(y1), r2=342(x2), r3=52(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 68
+LDI r1, 250
+LDI r2, 342
+LDI r3, 52
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (322, 252) to (200, 64).
-; PLAN: r0=322(x1), r1=252(y1), r2=200(x2), r3=64(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 322
-LDI r1, 252
-LDI r2, 200
-LDI r3, 64
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a white line between points (235, 217) and (330, 37).
+; PLAN: r0=235(x1), r1=217(y1), r2=330(x2), r3=37(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 235
+LDI r1, 217
+LDI r2, 330
+LDI r3, 37
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

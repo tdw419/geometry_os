@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 114x20 starting at (43, 22).
-; PLAN: r0=43(x), r1=22(y), r2=114(width), r3=20(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 43
-LDI r1, 22
-LDI r2, 114
-LDI r3, 20
-LDI r4, 0x00FFFF
+; DESCRIPTION: Places a yellow 25x58 rectangle at position (99, 166).
+; PLAN: r0=99(x), r1=166(y), r2=25(width), r3=58(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 166
+LDI r2, 25
+LDI r3, 58
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

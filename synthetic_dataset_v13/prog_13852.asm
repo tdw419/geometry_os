@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 99x102 starting at (198, 29).
-; PLAN: r0=198(x), r1=29(y), r2=99(width), r3=102(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 198
-LDI r1, 29
-LDI r2, 99
-LDI r3, 102
-LDI r4, 0x00FF00
+; DESCRIPTION: Creates a red rectangular region at (348, 63) spanning 100 by 106 pixels.
+; PLAN: r0=348(x), r1=63(y), r2=100(width), r3=106(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 348
+LDI r1, 63
+LDI r2, 100
+LDI r3, 106
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

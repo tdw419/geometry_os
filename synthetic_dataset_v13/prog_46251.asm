@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red box of size 17x102 starting at (24, 17).
-; PLAN: r0=24(x), r1=17(y), r2=17(width), r3=102(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 24
-LDI r1, 17
+; DESCRIPTION: Places a blue circle of radius 17 at center (292, 118).
+; PLAN: r0=292(x), r1=118(y), r2=17(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 292
+LDI r1, 118
 LDI r2, 17
-LDI r3, 102
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

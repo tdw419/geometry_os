@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta box of size 28x69 starting at (294, 102).
-; PLAN: r0=294(x), r1=102(y), r2=28(width), r3=69(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 294
-LDI r1, 102
-LDI r2, 28
-LDI r3, 69
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (164, 62) and radius 60.
+; PLAN: r0=164(x), r1=62(y), r2=60(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 164
+LDI r1, 62
+LDI r2, 60
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

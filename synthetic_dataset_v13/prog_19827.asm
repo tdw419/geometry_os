@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 23 at center (255, 168).
-; PLAN: r0=255(x), r1=168(y), r2=23(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 255
-LDI r1, 168
-LDI r2, 23
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 50x91 starting at (279, 142).
+; PLAN: r0=279(x), r1=142(y), r2=50(width), r3=91(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 279
+LDI r1, 142
+LDI r2, 50
+LDI r3, 91
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

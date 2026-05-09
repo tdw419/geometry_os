@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 13 at center (202, 206).
-; PLAN: r0=202(x), r1=206(y), r2=13(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 202
-LDI r1, 206
-LDI r2, 13
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 31x70 rectangle at position (214, 101).
+; PLAN: r0=214(x), r1=101(y), r2=31(width), r3=70(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 214
+LDI r1, 101
+LDI r2, 31
+LDI r3, 70
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

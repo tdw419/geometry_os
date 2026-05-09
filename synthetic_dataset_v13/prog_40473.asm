@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow rectangle at (292, 117) with width 57 and height 108.
-; PLAN: r0=292(x), r1=117(y), r2=57(width), r3=108(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 292
-LDI r1, 117
-LDI r2, 57
-LDI r3, 108
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (309, 94) with radius 76.
+; PLAN: r0=309(x), r1=94(y), r2=76(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 309
+LDI r1, 94
+LDI r2, 76
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

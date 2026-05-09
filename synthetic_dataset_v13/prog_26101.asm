@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Renders a cyan box of size 24x11 starting at (301, 72) then Places a white dot at position (65, 102).
-; PLAN: r0=301(x), r1=72(y), r2=24(width), r3=11(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=65(x), r6=102(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 301
-LDI r1, 72
+; DESCRIPTION: Places a orange circle of radius 24 at center (71, 222).
+; PLAN: r0=71(x), r1=222(y), r2=24(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 71
+LDI r1, 222
 LDI r2, 24
-LDI r3, 11
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 65
-LDI r6, 102
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

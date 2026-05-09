@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a magenta circle of radius 28 at center (377, 31).
-; PLAN: r0=377(x), r1=31(y), r2=28(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 377
-LDI r1, 31
-LDI r2, 28
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (245, 244) and (378, 71).
-; PLAN: r0=245(x1), r1=244(y1), r2=378(x2), r3=71(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 245
-LDI r1, 244
-LDI r2, 378
-LDI r3, 71
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a white line from (53, 20) to (189, 179).
+; PLAN: r0=53(x1), r1=20(y1), r2=189(x2), r3=179(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 53
+LDI r1, 20
+LDI r2, 189
+LDI r3, 179
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

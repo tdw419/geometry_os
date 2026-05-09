@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Creates a magenta rectangular region at (429, 214) spanning 78 by 35 pixels.
+; PLAN: r0=429(x), r1=214(y), r2=78(width), r3=35(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 429
+LDI r1, 214
+LDI r2, 78
+LDI r3, 35
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

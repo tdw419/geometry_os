@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 80 at center (193, 110).
-; PLAN: r0=193(x), r1=110(y), r2=80(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 193
-LDI r1, 110
-LDI r2, 80
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (75, 158) and (250, 80).
+; PLAN: r0=75(x1), r1=158(y1), r2=250(x2), r3=80(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 158
+LDI r2, 250
+LDI r3, 80
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

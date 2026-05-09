@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (328, 181) with radius 72.
-; PLAN: r0=328(x), r1=181(y), r2=72(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 328
-LDI r1, 181
-LDI r2, 72
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green box of size 68x103 starting at (150, 112).
+; PLAN: r0=150(x), r1=112(y), r2=68(width), r3=103(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 112
+LDI r2, 68
+LDI r3, 103
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

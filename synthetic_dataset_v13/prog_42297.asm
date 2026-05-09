@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 82x97 rectangle at position (327, 48).
-; PLAN: r0=327(x), r1=48(y), r2=82(width), r3=97(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 327
-LDI r1, 48
-LDI r2, 82
-LDI r3, 97
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 20 at center (421, 54).
+; PLAN: r0=421(x), r1=54(y), r2=20(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 421
+LDI r1, 54
+LDI r2, 20
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (89, 145) to (496, 13).
-; PLAN: r0=89(x1), r1=145(y1), r2=496(x2), r3=13(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 89
-LDI r1, 145
-LDI r2, 496
-LDI r3, 13
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (222, 129) and radius 79.
+; PLAN: r0=222(x), r1=129(y), r2=79(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 222
+LDI r1, 129
+LDI r2, 79
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (161, 65) with radius 63.
-; PLAN: r0=161(x), r1=65(y), r2=63(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 161
-LDI r1, 65
-LDI r2, 63
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 49x39 rectangle at position (456, 119).
+; PLAN: r0=456(x), r1=119(y), r2=49(width), r3=39(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 456
+LDI r1, 119
+LDI r2, 49
+LDI r3, 39
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

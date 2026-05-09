@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (23, 170) to (479, 103).
-; PLAN: r0=23(x1), r1=170(y1), r2=479(x2), r3=103(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 23
-LDI r1, 170
-LDI r2, 479
-LDI r3, 103
+; DESCRIPTION: Draws a magenta line from (179, 216) to (407, 55).
+; PLAN: r0=179(x1), r1=216(y1), r2=407(x2), r3=55(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 179
+LDI r1, 216
+LDI r2, 407
+LDI r3, 55
 LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

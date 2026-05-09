@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 21 at center (137, 70).
-; PLAN: r0=137(x), r1=70(y), r2=21(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 137
-LDI r1, 70
-LDI r2, 21
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 55x32 starting at (260, 3).
+; PLAN: r0=260(x), r1=3(y), r2=55(width), r3=32(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 260
+LDI r1, 3
+LDI r2, 55
+LDI r3, 32
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

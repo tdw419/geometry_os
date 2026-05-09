@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (300, 168) to (467, 121).
-; PLAN: r0=300(x1), r1=168(y1), r2=467(x2), r3=121(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 168
-LDI r2, 467
-LDI r3, 121
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (162, 76) with width 81 and height 72.
+; PLAN: r0=162(x), r1=76(y), r2=81(width), r3=72(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 162
+LDI r1, 76
+LDI r2, 81
+LDI r3, 72
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

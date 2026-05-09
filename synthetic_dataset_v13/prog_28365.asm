@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 117x23 rectangle at position (251, 178).
-; PLAN: r0=251(x), r1=178(y), r2=117(width), r3=23(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 251
-LDI r1, 178
-LDI r2, 117
-LDI r3, 23
+; DESCRIPTION: Draws a white line from (304, 25) to (213, 92).
+; PLAN: r0=304(x1), r1=25(y1), r2=213(x2), r3=92(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 304
+LDI r1, 25
+LDI r2, 213
+LDI r3, 92
 LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

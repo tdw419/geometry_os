@@ -1,19 +1,20 @@
-; DESCRIPTION: Composite: Draws a green rectangle at (355, 193) with width 111 and height 62 then Places a green line segment connecting (108, 15) to (321, 30) then Places a green dot at position (171, 115).
-; PLAN: r0=355(x), r1=193(y), r2=111(width), r3=62(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=108(x1), r6=15(y1), r7=321(x2), r8=30(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=171(x), r11=115(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
-LDI r0, 355
-LDI r1, 193
-LDI r2, 111
-LDI r3, 62
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 108
-LDI r6, 15
-LDI r7, 321
-LDI r8, 30
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 171
-LDI r11, 115
-LDI r12, 0x00FF00
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Creates a green circular shape at (165, 192) with radius 42 then Renders a blue box of size 81x62 starting at (342, 118) then Renders a purple line between points (489, 85) and (489, 75).
+; PLAN: r0=165(x), r1=192(y), r2=42(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=342(x), r6=118(y), r7=81(width), r8=62(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=489(x1), r11=85(y1), r12=489(x2), r13=75(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 165
+LDI r1, 192
+LDI r2, 42
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 342
+LDI r6, 118
+LDI r7, 81
+LDI r8, 62
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 489
+LDI r11, 85
+LDI r12, 489
+LDI r13, 75
+LDI r14, 0xAA00FF
+LINE r10, r11, r12, r13, r14
 HALT

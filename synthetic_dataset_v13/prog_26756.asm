@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 50x22 starting at (240, 68).
-; PLAN: r0=240(x), r1=68(y), r2=50(width), r3=22(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 240
-LDI r1, 68
-LDI r2, 50
-LDI r3, 22
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a white rectangle at (107, 97) with width 34 and height 35.
+; PLAN: r0=107(x), r1=97(y), r2=34(width), r3=35(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 107
+LDI r1, 97
+LDI r2, 34
+LDI r3, 35
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

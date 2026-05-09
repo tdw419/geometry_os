@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 31x21 rectangle at position (479, 58).
-; PLAN: r0=479(x), r1=58(y), r2=31(width), r3=21(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 479
-LDI r1, 58
-LDI r2, 31
-LDI r3, 21
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (336, 214) with radius 41.
+; PLAN: r0=336(x), r1=214(y), r2=41(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 336
+LDI r1, 214
+LDI r2, 41
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

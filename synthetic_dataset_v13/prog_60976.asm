@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (397, 91) with width 24 and height 35.
-; PLAN: r0=397(x), r1=91(y), r2=24(width), r3=35(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 397
-LDI r1, 91
-LDI r2, 24
-LDI r3, 35
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (332, 136) to (153, 202).
+; PLAN: r0=332(x1), r1=136(y1), r2=153(x2), r3=202(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 332
+LDI r1, 136
+LDI r2, 153
+LDI r3, 202
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

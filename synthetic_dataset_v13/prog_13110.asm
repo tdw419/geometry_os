@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 69x98 rectangle at position (257, 34).
-; PLAN: r0=257(x), r1=34(y), r2=69(width), r3=98(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 257
-LDI r1, 34
-LDI r2, 69
-LDI r3, 98
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a white box of size 100x37 starting at (64, 12).
+; PLAN: r0=64(x), r1=12(y), r2=100(width), r3=37(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 64
+LDI r1, 12
+LDI r2, 100
+LDI r3, 37
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

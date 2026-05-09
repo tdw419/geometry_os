@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (430, 183) and (473, 172).
-; PLAN: r0=430(x1), r1=183(y1), r2=473(x2), r3=172(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 183
-LDI r2, 473
-LDI r3, 172
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (425, 8) with width 59 and height 28.
+; PLAN: r0=425(x), r1=8(y), r2=59(width), r3=28(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 8
+LDI r2, 59
+LDI r3, 28
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

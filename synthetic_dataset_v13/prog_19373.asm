@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single white pixel at (275, 231).
-; PLAN: r0=275(x), r1=231(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 275
-LDI r1, 231
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow line segment connecting (218, 182) to (205, 160).
+; PLAN: r0=218(x1), r1=182(y1), r2=205(x2), r3=160(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 218
+LDI r1, 182
+LDI r2, 205
+LDI r3, 160
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

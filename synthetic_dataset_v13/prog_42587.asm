@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 95x101 rectangle at position (284, 92).
-; PLAN: r0=284(x), r1=92(y), r2=95(width), r3=101(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 92
-LDI r2, 95
-LDI r3, 101
+; DESCRIPTION: Draws a black line from (79, 139) to (149, 73).
+; PLAN: r0=79(x1), r1=139(y1), r2=149(x2), r3=73(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 79
+LDI r1, 139
+LDI r2, 149
+LDI r3, 73
 LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

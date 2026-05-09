@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (336, 2) to (287, 167).
-; PLAN: r0=336(x1), r1=2(y1), r2=287(x2), r3=167(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 336
-LDI r1, 2
-LDI r2, 287
-LDI r3, 167
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple circle of radius 15 at center (387, 31).
+; PLAN: r0=387(x), r1=31(y), r2=15(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 387
+LDI r1, 31
+LDI r2, 15
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

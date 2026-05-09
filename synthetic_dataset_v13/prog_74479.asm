@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (152, 105) to (401, 147).
-; PLAN: r0=152(x1), r1=105(y1), r2=401(x2), r3=147(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 152
-LDI r1, 105
-LDI r2, 401
-LDI r3, 147
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (19, 76) with width 36 and height 75.
+; PLAN: r0=19(x), r1=76(y), r2=36(width), r3=75(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 19
+LDI r1, 76
+LDI r2, 36
+LDI r3, 75
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

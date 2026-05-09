@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (350, 70) with width 70 and height 45.
-; PLAN: r0=350(x), r1=70(y), r2=70(width), r3=45(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 350
-LDI r1, 70
-LDI r2, 70
-LDI r3, 45
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a black box of size 61x29 starting at (363, 32).
+; PLAN: r0=363(x), r1=32(y), r2=61(width), r3=29(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 363
+LDI r1, 32
+LDI r2, 61
+LDI r3, 29
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

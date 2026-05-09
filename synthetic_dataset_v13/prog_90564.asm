@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (53, 120) with width 34 and height 106.
-; PLAN: r0=53(x), r1=120(y), r2=34(width), r3=106(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 120
-LDI r2, 34
-LDI r3, 106
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a blue rectangle at (313, 139) with width 69 and height 110.
+; PLAN: r0=313(x), r1=139(y), r2=69(width), r3=110(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 313
+LDI r1, 139
+LDI r2, 69
+LDI r3, 110
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

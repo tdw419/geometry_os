@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 27x10 rectangle at position (452, 1).
-; PLAN: r0=452(x), r1=1(y), r2=27(width), r3=10(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 452
-LDI r1, 1
-LDI r2, 27
-LDI r3, 10
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a red box of size 66x64 starting at (326, 88).
+; PLAN: r0=326(x), r1=88(y), r2=66(width), r3=64(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 326
+LDI r1, 88
+LDI r2, 66
+LDI r3, 64
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

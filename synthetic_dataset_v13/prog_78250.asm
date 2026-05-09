@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a cyan 12x31 rectangle at position (136, 40).
-; PLAN: r0=136(x), r1=40(y), r2=12(width), r3=31(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 136
-LDI r1, 40
-LDI r2, 12
-LDI r3, 31
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (457, 222).
+; PLAN: r0=457(x), r1=222(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 457
+LDI r1, 222
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

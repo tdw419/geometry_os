@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a white 109x19 rectangle at position (296, 215).
-; PLAN: r0=296(x), r1=215(y), r2=109(width), r3=19(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 296
-LDI r1, 215
-LDI r2, 109
-LDI r3, 19
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (312, 52) then Places a orange 87x111 rectangle at position (123, 98).
+; PLAN: r0=312(x), r1=52(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=123(x), r6=98(y), r7=87(width), r8=111(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 312
+LDI r1, 52
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 123
+LDI r6, 98
+LDI r7, 87
+LDI r8, 111
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

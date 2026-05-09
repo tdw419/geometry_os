@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a orange box of size 31x96 starting at (179, 17).
-; PLAN: r0=179(x), r1=17(y), r2=31(width), r3=96(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 17
-LDI r2, 31
-LDI r3, 96
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (480, 105) then Creates a purple circular shape at (83, 110) with radius 29.
+; PLAN: r0=480(x), r1=105(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=83(x), r6=110(y), r7=29(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 480
+LDI r1, 105
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 83
+LDI r6, 110
+LDI r7, 29
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

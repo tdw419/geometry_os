@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 37x38 rectangle at position (242, 90).
-; PLAN: r0=242(x), r1=90(y), r2=37(width), r3=38(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 242
-LDI r1, 90
-LDI r2, 37
-LDI r3, 38
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (217, 81) and radius 10.
+; PLAN: r0=217(x), r1=81(y), r2=10(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 217
+LDI r1, 81
+LDI r2, 10
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

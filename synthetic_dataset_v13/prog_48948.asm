@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a green rectangle at (302, 84) with width 20 and height 105.
-; PLAN: r0=302(x), r1=84(y), r2=20(width), r3=105(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 302
-LDI r1, 84
-LDI r2, 20
-LDI r3, 105
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a orange circle centered at (146, 142) with radius 44 then Sets a single red pixel at (31, 135).
+; PLAN: r0=146(x), r1=142(y), r2=44(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=31(x), r6=135(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 146
+LDI r1, 142
+LDI r2, 44
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
+LDI r5, 31
+LDI r6, 135
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

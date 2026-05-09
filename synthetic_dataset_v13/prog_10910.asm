@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (364, 91) to (46, 242).
-; PLAN: r0=364(x1), r1=91(y1), r2=46(x2), r3=242(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 364
-LDI r1, 91
-LDI r2, 46
-LDI r3, 242
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 15x53 starting at (118, 174).
+; PLAN: r0=118(x), r1=174(y), r2=15(width), r3=53(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 118
+LDI r1, 174
+LDI r2, 15
+LDI r3, 53
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

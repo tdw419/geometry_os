@@ -1,19 +1,8 @@
-; DESCRIPTION: Fills the screen with a vertical green gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x00FF00(color). CMP stores result in r0.
-LDI r7, 0x00FF00
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Creates a green circular shape at (156, 89) with radius 49.
+; PLAN: r0=156(x), r1=89(y), r2=49(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 156
+LDI r1, 89
+LDI r2, 49
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

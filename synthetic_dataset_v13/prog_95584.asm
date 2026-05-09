@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (438, 57) to (465, 165).
-; PLAN: r0=438(x1), r1=57(y1), r2=465(x2), r3=165(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 438
-LDI r1, 57
-LDI r2, 465
-LDI r3, 165
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a black line segment connecting (400, 47) to (375, 67).
+; PLAN: r0=400(x1), r1=47(y1), r2=375(x2), r3=67(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 47
+LDI r2, 375
+LDI r3, 67
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

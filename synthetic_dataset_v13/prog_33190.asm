@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (488, 85) to (13, 247).
-; PLAN: r0=488(x1), r1=85(y1), r2=13(x2), r3=247(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 488
-LDI r1, 85
-LDI r2, 13
-LDI r3, 247
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 57x46 rectangle at position (64, 204).
+; PLAN: r0=64(x), r1=204(y), r2=57(width), r3=46(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 64
+LDI r1, 204
+LDI r2, 57
+LDI r3, 46
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

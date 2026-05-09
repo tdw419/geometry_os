@@ -1,4 +1,4 @@
-; DESCRIPTION: Sets the background to magenta.
+; DESCRIPTION: Clears the screen to magenta.
 ; PLAN: r0=0xFF00FF(color). Op: FILL r0.
 LDI r0, 0xFF00FF
 FILL r0

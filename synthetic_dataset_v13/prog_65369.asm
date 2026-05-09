@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (141, 24) spanning 57 by 14 pixels.
-; PLAN: r0=141(x), r1=24(y), r2=57(width), r3=14(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 141
-LDI r1, 24
-LDI r2, 57
-LDI r3, 14
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a orange box of size 20x19 starting at (478, 33).
+; PLAN: r0=478(x), r1=33(y), r2=20(width), r3=19(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 478
+LDI r1, 33
+LDI r2, 20
+LDI r3, 19
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

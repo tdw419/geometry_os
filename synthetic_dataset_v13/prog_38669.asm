@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (359, 27) to (208, 221).
-; PLAN: r0=359(x1), r1=27(y1), r2=208(x2), r3=221(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 27
-LDI r2, 208
-LDI r3, 221
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a red line from (349, 1) to (279, 46).
+; PLAN: r0=349(x1), r1=1(y1), r2=279(x2), r3=46(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 349
+LDI r1, 1
+LDI r2, 279
+LDI r3, 46
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

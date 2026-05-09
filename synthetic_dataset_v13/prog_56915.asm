@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (488, 131) to (226, 230).
-; PLAN: r0=488(x1), r1=131(y1), r2=226(x2), r3=230(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 488
-LDI r1, 131
-LDI r2, 226
-LDI r3, 230
-LDI r4, 0x000000
+; DESCRIPTION: Places a blue line segment connecting (327, 116) to (31, 114).
+; PLAN: r0=327(x1), r1=116(y1), r2=31(x2), r3=114(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 327
+LDI r1, 116
+LDI r2, 31
+LDI r3, 114
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

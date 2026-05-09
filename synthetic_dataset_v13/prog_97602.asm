@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (420, 35).
-; PLAN: r0=420(x), r1=35(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 420
-LDI r1, 35
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan line between points (460, 104) and (307, 28).
+; PLAN: r0=460(x1), r1=104(y1), r2=307(x2), r3=28(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 460
+LDI r1, 104
+LDI r2, 307
+LDI r3, 28
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

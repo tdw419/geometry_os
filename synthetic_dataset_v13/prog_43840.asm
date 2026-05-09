@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (354, 111) with radius 74.
-; PLAN: r0=354(x), r1=111(y), r2=74(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 354
-LDI r1, 111
-LDI r2, 74
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (355, 114) and (212, 53).
+; PLAN: r0=355(x1), r1=114(y1), r2=212(x2), r3=53(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 355
+LDI r1, 114
+LDI r2, 212
+LDI r3, 53
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

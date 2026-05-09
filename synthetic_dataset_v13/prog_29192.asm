@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 113x73 rectangle at position (164, 119).
-; PLAN: r0=164(x), r1=119(y), r2=113(width), r3=73(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 119
-LDI r2, 113
-LDI r3, 73
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange circle centered at (229, 184) with radius 38.
+; PLAN: r0=229(x), r1=184(y), r2=38(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 229
+LDI r1, 184
+LDI r2, 38
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

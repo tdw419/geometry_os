@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (78, 148) to (261, 11).
-; PLAN: r0=78(x1), r1=148(y1), r2=261(x2), r3=11(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 78
-LDI r1, 148
-LDI r2, 261
-LDI r3, 11
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a purple line between points (211, 127) and (468, 73).
+; PLAN: r0=211(x1), r1=127(y1), r2=468(x2), r3=73(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 211
+LDI r1, 127
+LDI r2, 468
+LDI r3, 73
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

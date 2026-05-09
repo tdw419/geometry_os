@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (290, 98) spanning 71 by 114 pixels.
-; PLAN: r0=290(x), r1=98(y), r2=71(width), r3=114(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 290
-LDI r1, 98
-LDI r2, 71
-LDI r3, 114
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a purple 89x14 rectangle at position (80, 185).
+; PLAN: r0=80(x), r1=185(y), r2=89(width), r3=14(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 80
+LDI r1, 185
+LDI r2, 89
+LDI r3, 14
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (361, 6) with width 53 and height 44.
-; PLAN: r0=361(x), r1=6(y), r2=53(width), r3=44(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 361
-LDI r1, 6
-LDI r2, 53
-LDI r3, 44
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (127, 201) and (423, 6).
+; PLAN: r0=127(x1), r1=201(y1), r2=423(x2), r3=6(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 201
+LDI r2, 423
+LDI r3, 6
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a cyan line from (371, 100) to (234, 183).
-; PLAN: r0=371(x1), r1=100(y1), r2=234(x2), r3=183(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 371
-LDI r1, 100
-LDI r2, 234
-LDI r3, 183
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (90, 61) then Renders a yellow line between points (292, 191) and (172, 210).
+; PLAN: r0=90(x), r1=61(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=292(x1), r6=191(y1), r7=172(x2), r8=210(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 90
+LDI r1, 61
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 292
+LDI r6, 191
+LDI r7, 172
+LDI r8, 210
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

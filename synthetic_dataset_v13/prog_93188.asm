@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Creates a green circular shape at (390, 105) with radius 59 then Draws a blue line from (366, 196) to (490, 204) then Places a blue dot at position (180, 37).
-; PLAN: r0=390(x), r1=105(y), r2=59(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=366(x1), r6=196(y1), r7=490(x2), r8=204(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=180(x), r11=37(y), r12=0x0000FF(color). Op: PSET r10, r11, r12.
-LDI r0, 390
-LDI r1, 105
-LDI r2, 59
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 366
-LDI r6, 196
-LDI r7, 490
-LDI r8, 204
-LDI r9, 0x0000FF
-LINE r5, r6, r7, r8, r9
-LDI r10, 180
-LDI r11, 37
-LDI r12, 0x0000FF
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Places a cyan 31x35 rectangle at position (415, 40) then Places a cyan dot at position (31, 142) then Creates a black circular shape at (365, 168) with radius 44.
+; PLAN: r0=415(x), r1=40(y), r2=31(width), r3=35(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=31(x), r6=142(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=365(x), r11=168(y), r12=44(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 415
+LDI r1, 40
+LDI r2, 31
+LDI r3, 35
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 31
+LDI r6, 142
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
+LDI r10, 365
+LDI r11, 168
+LDI r12, 44
+LDI r13, 0x000000
+CIRCLE r10, r11, r12, r13
 HALT

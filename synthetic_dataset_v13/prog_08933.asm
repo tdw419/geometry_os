@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (30, 129) to (335, 123).
-; PLAN: r0=30(x1), r1=129(y1), r2=335(x2), r3=123(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 30
-LDI r1, 129
-LDI r2, 335
-LDI r3, 123
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue box of size 79x107 starting at (88, 72).
+; PLAN: r0=88(x), r1=72(y), r2=79(width), r3=107(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 88
+LDI r1, 72
+LDI r2, 79
+LDI r3, 107
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

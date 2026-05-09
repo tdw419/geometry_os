@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 23 at center (225, 201).
-; PLAN: r0=225(x), r1=201(y), r2=23(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 225
-LDI r1, 201
-LDI r2, 23
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 69x100 rectangle at position (99, 114).
+; PLAN: r0=99(x), r1=114(y), r2=69(width), r3=100(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 114
+LDI r2, 69
+LDI r3, 100
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (28, 71) and (5, 205).
-; PLAN: r0=28(x1), r1=71(y1), r2=5(x2), r3=205(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 28
-LDI r1, 71
-LDI r2, 5
-LDI r3, 205
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (200, 198) with width 32 and height 44.
+; PLAN: r0=200(x), r1=198(y), r2=32(width), r3=44(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 200
+LDI r1, 198
+LDI r2, 32
+LDI r3, 44
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

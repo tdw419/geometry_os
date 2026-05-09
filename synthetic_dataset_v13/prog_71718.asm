@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (159, 112) to (262, 132).
-; PLAN: r0=159(x1), r1=112(y1), r2=262(x2), r3=132(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 159
-LDI r1, 112
-LDI r2, 262
-LDI r3, 132
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (104, 226) with radius 25.
+; PLAN: r0=104(x), r1=226(y), r2=25(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 104
+LDI r1, 226
+LDI r2, 25
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

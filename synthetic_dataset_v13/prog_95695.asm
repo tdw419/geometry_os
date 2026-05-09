@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Places a black dot at position (56, 118) then Draws a magenta rectangle at (134, 158) with width 58 and height 93.
-; PLAN: r0=56(x), r1=118(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=134(x), r6=158(y), r7=58(width), r8=93(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 56
-LDI r1, 118
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 134
-LDI r6, 158
-LDI r7, 58
-LDI r8, 93
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
+LDI r7, 0x0000FF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

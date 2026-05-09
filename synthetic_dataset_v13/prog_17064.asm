@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a red dot at position (372, 240).
-; PLAN: r0=372(x), r1=240(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 372
-LDI r1, 240
-LDI r2, 0xFF0000
+; DESCRIPTION: Places a magenta dot at position (3, 174).
+; PLAN: r0=3(x), r1=174(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 3
+LDI r1, 174
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white box of size 86x90 starting at (68, 82).
-; PLAN: r0=68(x), r1=82(y), r2=86(width), r3=90(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 68
-LDI r1, 82
-LDI r2, 86
-LDI r3, 90
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (354, 157).
+; PLAN: r0=354(x), r1=157(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 354
+LDI r1, 157
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

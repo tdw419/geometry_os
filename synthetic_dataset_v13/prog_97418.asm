@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a red dot at position (509, 47) then Creates a orange rectangular region at (486, 21) spanning 12 by 15 pixels.
-; PLAN: r0=509(x), r1=47(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=486(x), r6=21(y), r7=12(width), r8=15(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 509
-LDI r1, 47
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 486
-LDI r6, 21
-LDI r7, 12
-LDI r8, 15
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a purple 66x94 rectangle at position (375, 44).
+; PLAN: r0=375(x), r1=44(y), r2=66(width), r3=94(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 375
+LDI r1, 44
+LDI r2, 66
+LDI r3, 94
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

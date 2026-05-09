@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a red line from (511, 142) to (231, 208).
-; PLAN: r0=511(x1), r1=142(y1), r2=231(x2), r3=208(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 511
-LDI r1, 142
-LDI r2, 231
-LDI r3, 208
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (344, 208).
+; PLAN: r0=344(x), r1=208(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 344
+LDI r1, 208
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

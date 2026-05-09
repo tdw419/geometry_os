@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 71x119 rectangle at position (193, 102).
-; PLAN: r0=193(x), r1=102(y), r2=71(width), r3=119(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 193
-LDI r1, 102
-LDI r2, 71
-LDI r3, 119
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 67 at center (289, 176).
+; PLAN: r0=289(x), r1=176(y), r2=67(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 289
+LDI r1, 176
+LDI r2, 67
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

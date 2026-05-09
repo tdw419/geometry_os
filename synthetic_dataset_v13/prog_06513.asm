@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a red dot at position (340, 114).
-; PLAN: r0=340(x), r1=114(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 340
-LDI r1, 114
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a white disk with center (178, 103) and radius 76.
+; PLAN: r0=178(x), r1=103(y), r2=76(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 178
+LDI r1, 103
+LDI r2, 76
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

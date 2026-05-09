@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (255, 71) with radius 70.
-; PLAN: r0=255(x), r1=71(y), r2=70(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 255
-LDI r1, 71
-LDI r2, 70
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white 113x91 rectangle at position (203, 2).
+; PLAN: r0=203(x), r1=2(y), r2=113(width), r3=91(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 203
+LDI r1, 2
+LDI r2, 113
+LDI r3, 91
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

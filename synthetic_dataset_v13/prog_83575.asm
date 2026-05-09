@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 23x55 starting at (24, 128).
-; PLAN: r0=24(x), r1=128(y), r2=23(width), r3=55(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 24
-LDI r1, 128
-LDI r2, 23
-LDI r3, 55
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (304, 198) and (506, 194).
+; PLAN: r0=304(x1), r1=198(y1), r2=506(x2), r3=194(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 304
+LDI r1, 198
+LDI r2, 506
+LDI r3, 194
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

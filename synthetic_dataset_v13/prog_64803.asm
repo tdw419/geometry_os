@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a cyan dot at position (74, 84).
-; PLAN: r0=74(x), r1=84(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 74
-LDI r1, 84
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

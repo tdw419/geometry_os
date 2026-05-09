@@ -1,19 +1,12 @@
-; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
-LDI r7, 0xFF0000
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Renders a green disk with center (403, 124) and radius 76 then Places a orange dot at position (215, 105).
+; PLAN: r0=403(x), r1=124(y), r2=76(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=215(x), r6=105(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 403
+LDI r1, 124
+LDI r2, 76
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 215
+LDI r6, 105
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

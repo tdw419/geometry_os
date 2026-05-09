@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (363, 218) then Draws a black line from (87, 140) to (62, 165).
-; PLAN: r0=363(x), r1=218(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=87(x1), r6=140(y1), r7=62(x2), r8=165(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 363
-LDI r1, 218
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 87
-LDI r6, 140
-LDI r7, 62
-LDI r8, 165
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
+LDI r7, 0xFFFFFF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

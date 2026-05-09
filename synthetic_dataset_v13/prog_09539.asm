@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a green dot at position (160, 72).
-; PLAN: r0=160(x), r1=72(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 160
-LDI r1, 72
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

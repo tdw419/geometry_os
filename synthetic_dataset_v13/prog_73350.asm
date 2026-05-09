@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a blue circular shape at (396, 90) with radius 69 then Sets a single green pixel at (39, 160).
-; PLAN: r0=396(x), r1=90(y), r2=69(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=39(x), r6=160(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 396
-LDI r1, 90
-LDI r2, 69
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 39
-LDI r6, 160
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Places a cyan line segment connecting (431, 103) to (182, 169).
+; PLAN: r0=431(x1), r1=103(y1), r2=182(x2), r3=169(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 431
+LDI r1, 103
+LDI r2, 182
+LDI r3, 169
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 33x75 starting at (396, 34).
-; PLAN: r0=396(x), r1=34(y), r2=33(width), r3=75(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 396
-LDI r1, 34
-LDI r2, 33
-LDI r3, 75
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a yellow box of size 105x25 starting at (235, 60).
+; PLAN: r0=235(x), r1=60(y), r2=105(width), r3=25(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 235
+LDI r1, 60
+LDI r2, 105
+LDI r3, 25
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

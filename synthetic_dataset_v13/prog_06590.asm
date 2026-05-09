@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a orange circle of radius 29 at center (210, 68) then Sets a single orange pixel at (283, 27).
-; PLAN: r0=210(x), r1=68(y), r2=29(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=283(x), r6=27(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 210
-LDI r1, 68
-LDI r2, 29
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 283
-LDI r6, 27
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Renders a cyan line between points (392, 175) and (39, 50).
+; PLAN: r0=392(x1), r1=175(y1), r2=39(x2), r3=50(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 392
+LDI r1, 175
+LDI r2, 39
+LDI r3, 50
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

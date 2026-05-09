@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (68, 162) with width 93 and height 16.
-; PLAN: r0=68(x), r1=162(y), r2=93(width), r3=16(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 68
-LDI r1, 162
-LDI r2, 93
-LDI r3, 16
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a orange rectangle at (93, 0) with width 97 and height 77.
+; PLAN: r0=93(x), r1=0(y), r2=97(width), r3=77(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 0
+LDI r2, 97
+LDI r3, 77
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

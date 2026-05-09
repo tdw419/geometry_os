@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (128, 131) to (510, 251).
-; PLAN: r0=128(x1), r1=131(y1), r2=510(x2), r3=251(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 128
-LDI r1, 131
-LDI r2, 510
-LDI r3, 251
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a yellow line between points (28, 16) and (459, 69).
+; PLAN: r0=28(x1), r1=16(y1), r2=459(x2), r3=69(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 28
+LDI r1, 16
+LDI r2, 459
+LDI r3, 69
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

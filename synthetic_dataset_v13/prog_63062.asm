@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue rectangle at (324, 25) with width 47 and height 102.
-; PLAN: r0=324(x), r1=25(y), r2=47(width), r3=102(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 324
-LDI r1, 25
-LDI r2, 47
-LDI r3, 102
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (366, 62) with radius 13.
+; PLAN: r0=366(x), r1=62(y), r2=13(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 366
+LDI r1, 62
+LDI r2, 13
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

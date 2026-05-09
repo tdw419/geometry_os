@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (437, 139) to (327, 197).
-; PLAN: r0=437(x1), r1=139(y1), r2=327(x2), r3=197(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 437
-LDI r1, 139
-LDI r2, 327
-LDI r3, 197
-LDI r4, 0x000000
+; DESCRIPTION: Draws a magenta line from (253, 74) to (506, 89).
+; PLAN: r0=253(x1), r1=74(y1), r2=506(x2), r3=89(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 253
+LDI r1, 74
+LDI r2, 506
+LDI r3, 89
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

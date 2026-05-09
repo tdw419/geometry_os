@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (14, 174).
-; PLAN: r0=14(x), r1=174(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 14
-LDI r1, 174
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a cyan 55x109 rectangle at position (3, 23).
+; PLAN: r0=3(x), r1=23(y), r2=55(width), r3=109(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 3
+LDI r1, 23
+LDI r2, 55
+LDI r3, 109
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

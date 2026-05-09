@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (451, 33) with radius 20.
-; PLAN: r0=451(x), r1=33(y), r2=20(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 451
-LDI r1, 33
-LDI r2, 20
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Draws a cyan circle centered at (326, 100) with radius 79.
+; PLAN: r0=326(x), r1=100(y), r2=79(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 326
+LDI r1, 100
+LDI r2, 79
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

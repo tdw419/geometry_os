@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange rectangle at (13, 17) with width 92 and height 74.
-; PLAN: r0=13(x), r1=17(y), r2=92(width), r3=74(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 13
-LDI r1, 17
-LDI r2, 92
-LDI r3, 74
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (401, 109) and radius 33.
+; PLAN: r0=401(x), r1=109(y), r2=33(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 401
+LDI r1, 109
+LDI r2, 33
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

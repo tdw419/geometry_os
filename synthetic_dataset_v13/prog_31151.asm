@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 87x14 rectangle at position (32, 73).
-; PLAN: r0=32(x), r1=73(y), r2=87(width), r3=14(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 32
-LDI r1, 73
-LDI r2, 87
-LDI r3, 14
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple line segment connecting (374, 89) to (370, 178).
+; PLAN: r0=374(x1), r1=89(y1), r2=370(x2), r3=178(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 374
+LDI r1, 89
+LDI r2, 370
+LDI r3, 178
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

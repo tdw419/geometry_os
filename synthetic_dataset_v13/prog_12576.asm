@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (20, 211).
-; PLAN: r0=20(x), r1=211(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 20
-LDI r1, 211
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow line segment connecting (200, 252) to (20, 110).
+; PLAN: r0=200(x1), r1=252(y1), r2=20(x2), r3=110(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 200
+LDI r1, 252
+LDI r2, 20
+LDI r3, 110
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange line segment connecting (126, 120) to (134, 198).
-; PLAN: r0=126(x1), r1=120(y1), r2=134(x2), r3=198(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 120
-LDI r2, 134
-LDI r3, 198
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (112, 57) with radius 46.
+; PLAN: r0=112(x), r1=57(y), r2=46(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 112
+LDI r1, 57
+LDI r2, 46
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

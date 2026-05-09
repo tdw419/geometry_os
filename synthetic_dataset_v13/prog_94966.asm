@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a purple rectangular region at (471, 132) spanning 13 by 100 pixels.
-; PLAN: r0=471(x), r1=132(y), r2=13(width), r3=100(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 471
-LDI r1, 132
-LDI r2, 13
-LDI r3, 100
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (230, 74) then Places a black circle of radius 50 at center (392, 98).
+; PLAN: r0=230(x), r1=74(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=392(x), r6=98(y), r7=50(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 230
+LDI r1, 74
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 392
+LDI r6, 98
+LDI r7, 50
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

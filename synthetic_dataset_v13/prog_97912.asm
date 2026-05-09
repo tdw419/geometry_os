@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a white circle of radius 37 at center (349, 187).
-; PLAN: r0=349(x), r1=187(y), r2=37(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 349
-LDI r1, 187
-LDI r2, 37
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Creates a yellow circular shape at (116, 142) with radius 80.
+; PLAN: r0=116(x), r1=142(y), r2=80(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 116
+LDI r1, 142
+LDI r2, 80
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (511, 76) to (90, 215).
-; PLAN: r0=511(x1), r1=76(y1), r2=90(x2), r3=215(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 511
-LDI r1, 76
-LDI r2, 90
-LDI r3, 215
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 42x18 rectangle at position (271, 162).
+; PLAN: r0=271(x), r1=162(y), r2=42(width), r3=18(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 271
+LDI r1, 162
+LDI r2, 42
+LDI r3, 18
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

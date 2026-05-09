@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (147, 169) to (177, 78).
-; PLAN: r0=147(x1), r1=169(y1), r2=177(x2), r3=78(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 147
-LDI r1, 169
-LDI r2, 177
-LDI r3, 78
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 43 at center (189, 67).
+; PLAN: r0=189(x), r1=67(y), r2=43(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 189
+LDI r1, 67
+LDI r2, 43
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

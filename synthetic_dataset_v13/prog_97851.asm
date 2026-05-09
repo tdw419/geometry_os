@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Places a orange circle of radius 22 at center (226, 42).
+; PLAN: r0=226(x), r1=42(y), r2=22(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 226
+LDI r1, 42
+LDI r2, 22
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

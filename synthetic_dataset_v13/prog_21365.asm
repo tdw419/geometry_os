@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (471, 51) and radius 20.
-; PLAN: r0=471(x), r1=51(y), r2=20(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 471
-LDI r1, 51
-LDI r2, 20
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 70x108 rectangle at position (369, 24).
+; PLAN: r0=369(x), r1=24(y), r2=70(width), r3=108(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 369
+LDI r1, 24
+LDI r2, 70
+LDI r3, 108
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

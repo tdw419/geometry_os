@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a green circular shape at (364, 223) with radius 29.
-; PLAN: r0=364(x), r1=223(y), r2=29(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 364
-LDI r1, 223
-LDI r2, 29
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white dot at position (471, 180).
+; PLAN: r0=471(x), r1=180(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 471
+LDI r1, 180
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 71x92 rectangle at position (381, 111).
-; PLAN: r0=381(x), r1=111(y), r2=71(width), r3=92(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 381
-LDI r1, 111
-LDI r2, 71
-LDI r3, 92
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (436, 199) to (188, 194).
+; PLAN: r0=436(x1), r1=199(y1), r2=188(x2), r3=194(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 436
+LDI r1, 199
+LDI r2, 188
+LDI r3, 194
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

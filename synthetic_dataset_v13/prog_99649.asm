@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (443, 111) with radius 10.
-; PLAN: r0=443(x), r1=111(y), r2=10(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 443
-LDI r1, 111
-LDI r2, 10
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (116, 42) with width 119 and height 26.
+; PLAN: r0=116(x), r1=42(y), r2=119(width), r3=26(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 116
+LDI r1, 42
+LDI r2, 119
+LDI r3, 26
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

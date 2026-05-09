@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (437, 147) with radius 74.
-; PLAN: r0=437(x), r1=147(y), r2=74(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 437
-LDI r1, 147
-LDI r2, 74
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow rectangle at (44, 4) with width 43 and height 68.
+; PLAN: r0=44(x), r1=4(y), r2=43(width), r3=68(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 4
+LDI r2, 43
+LDI r3, 68
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

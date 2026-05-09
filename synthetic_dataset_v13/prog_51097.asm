@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 28 at center (130, 95).
-; PLAN: r0=130(x), r1=95(y), r2=28(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 130
-LDI r1, 95
-LDI r2, 28
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (473, 193) and (24, 16).
+; PLAN: r0=473(x1), r1=193(y1), r2=24(x2), r3=16(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 473
+LDI r1, 193
+LDI r2, 24
+LDI r3, 16
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

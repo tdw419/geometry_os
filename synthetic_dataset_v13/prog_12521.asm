@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (202, 123) with width 21 and height 107.
-; PLAN: r0=202(x), r1=123(y), r2=21(width), r3=107(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 123
-LDI r2, 21
-LDI r3, 107
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a red 100x87 rectangle at position (262, 129).
+; PLAN: r0=262(x), r1=129(y), r2=100(width), r3=87(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 129
+LDI r2, 100
+LDI r3, 87
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

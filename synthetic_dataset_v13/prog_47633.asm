@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a purple 54x44 rectangle at position (77, 144).
-; PLAN: r0=77(x), r1=144(y), r2=54(width), r3=44(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 144
-LDI r2, 54
-LDI r3, 44
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

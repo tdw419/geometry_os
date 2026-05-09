@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a purple circle of radius 25 at center (323, 55).
-; PLAN: r0=323(x), r1=55(y), r2=25(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 323
-LDI r1, 55
-LDI r2, 25
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

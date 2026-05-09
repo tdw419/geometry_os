@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (471, 21).
-; PLAN: r0=471(x), r1=21(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 471
-LDI r1, 21
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a yellow line from (417, 64) to (471, 243).
+; PLAN: r0=417(x1), r1=64(y1), r2=471(x2), r3=243(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 64
+LDI r2, 471
+LDI r3, 243
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

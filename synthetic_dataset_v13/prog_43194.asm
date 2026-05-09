@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (196, 38).
-; PLAN: r0=196(x), r1=38(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 196
-LDI r1, 38
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a blue line from (169, 177) to (252, 161).
+; PLAN: r0=169(x1), r1=177(y1), r2=252(x2), r3=161(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 169
+LDI r1, 177
+LDI r2, 252
+LDI r3, 161
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

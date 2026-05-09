@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Renders a green box of size 16x80 starting at (170, 6) then Places a white dot at position (52, 223).
-; PLAN: r0=170(x), r1=6(y), r2=16(width), r3=80(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=52(x), r6=223(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 170
-LDI r1, 6
-LDI r2, 16
-LDI r3, 80
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a yellow 69x83 rectangle at position (168, 82).
+; PLAN: r0=168(x), r1=82(y), r2=69(width), r3=83(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 168
+LDI r1, 82
+LDI r2, 69
+LDI r3, 83
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
-LDI r5, 52
-LDI r6, 223
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
 HALT

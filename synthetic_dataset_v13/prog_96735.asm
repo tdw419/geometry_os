@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (82, 141) and (161, 193).
-; PLAN: r0=82(x1), r1=141(y1), r2=161(x2), r3=193(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 82
-LDI r1, 141
-LDI r2, 161
-LDI r3, 193
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 78x63 rectangle at position (150, 108).
+; PLAN: r0=150(x), r1=108(y), r2=78(width), r3=63(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 108
+LDI r2, 78
+LDI r3, 63
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

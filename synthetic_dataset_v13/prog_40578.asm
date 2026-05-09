@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (171, 167).
-; PLAN: r0=171(x), r1=167(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 171
-LDI r1, 167
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a orange box of size 75x70 starting at (245, 186).
+; PLAN: r0=245(x), r1=186(y), r2=75(width), r3=70(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 245
+LDI r1, 186
+LDI r2, 75
+LDI r3, 70
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

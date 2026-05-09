@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a cyan rectangular region at (30, 190) spanning 62 by 22 pixels.
-; PLAN: r0=30(x), r1=190(y), r2=62(width), r3=22(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 30
-LDI r1, 190
-LDI r2, 62
-LDI r3, 22
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (246, 99).
+; PLAN: r0=246(x), r1=99(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 246
+LDI r1, 99
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

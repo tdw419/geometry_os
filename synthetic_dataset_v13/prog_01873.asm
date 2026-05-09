@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a yellow circle centered at (428, 214) with radius 41.
-; PLAN: r0=428(x), r1=214(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 428
-LDI r1, 214
-LDI r2, 41
-LDI r3, 0xFFFF00
+; DESCRIPTION: Places a blue circle of radius 79 at center (162, 106).
+; PLAN: r0=162(x), r1=106(y), r2=79(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 162
+LDI r1, 106
+LDI r2, 79
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

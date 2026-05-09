@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a magenta dot at position (226, 164).
-; PLAN: r0=226(x), r1=164(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 226
-LDI r1, 164
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple disk with center (429, 136) and radius 68.
+; PLAN: r0=429(x), r1=136(y), r2=68(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 429
+LDI r1, 136
+LDI r2, 68
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

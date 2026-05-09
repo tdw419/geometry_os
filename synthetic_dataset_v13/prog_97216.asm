@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a magenta line segment connecting (488, 220) to (439, 60) then Places a magenta dot at position (232, 2).
-; PLAN: r0=488(x1), r1=220(y1), r2=439(x2), r3=60(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=232(x), r6=2(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 488
-LDI r1, 220
-LDI r2, 439
-LDI r3, 60
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 232
-LDI r6, 2
-LDI r7, 0xFF00FF
-PSET r5, r6, r7
+; DESCRIPTION: Renders a purple disk with center (89, 146) and radius 72.
+; PLAN: r0=89(x), r1=146(y), r2=72(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 89
+LDI r1, 146
+LDI r2, 72
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

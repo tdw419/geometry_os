@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a orange line from (64, 175) to (76, 69).
-; PLAN: r0=64(x1), r1=175(y1), r2=76(x2), r3=69(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 175
-LDI r2, 76
-LDI r3, 69
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black circle of radius 10 at center (29, 186) then Sets a single black pixel at (350, 55).
+; PLAN: r0=29(x), r1=186(y), r2=10(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=350(x), r6=55(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 29
+LDI r1, 186
+LDI r2, 10
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 350
+LDI r6, 55
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

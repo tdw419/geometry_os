@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 35x91 starting at (49, 138).
-; PLAN: r0=49(x), r1=138(y), r2=35(width), r3=91(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 138
-LDI r2, 35
-LDI r3, 91
+; DESCRIPTION: Renders a black line between points (452, 191) and (228, 3).
+; PLAN: r0=452(x1), r1=191(y1), r2=228(x2), r3=3(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 452
+LDI r1, 191
+LDI r2, 228
+LDI r3, 3
 LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

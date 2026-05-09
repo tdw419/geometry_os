@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (358, 58) with radius 14.
-; PLAN: r0=358(x), r1=58(y), r2=14(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 358
-LDI r1, 58
-LDI r2, 14
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta rectangle at (309, 220) with width 46 and height 13.
+; PLAN: r0=309(x), r1=220(y), r2=46(width), r3=13(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 309
+LDI r1, 220
+LDI r2, 46
+LDI r3, 13
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple line segment connecting (408, 174) to (247, 78).
-; PLAN: r0=408(x1), r1=174(y1), r2=247(x2), r3=78(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 408
-LDI r1, 174
-LDI r2, 247
-LDI r3, 78
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (140, 98) and radius 73.
+; PLAN: r0=140(x), r1=98(y), r2=73(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 140
+LDI r1, 98
+LDI r2, 73
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

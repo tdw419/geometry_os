@@ -1,14 +1,20 @@
-; DESCRIPTION: Composite: Draws a blue circle centered at (368, 168) with radius 35 then Places a white 88x81 rectangle at position (178, 4).
-; PLAN: r0=368(x), r1=168(y), r2=35(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=178(x), r6=4(y), r7=88(width), r8=81(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 368
-LDI r1, 168
-LDI r2, 35
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 178
-LDI r6, 4
-LDI r7, 88
-LDI r8, 81
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a white line segment connecting (284, 107) to (485, 164) then Creates a purple circular shape at (240, 123) with radius 63 then Creates a red rectangular region at (158, 51) spanning 79 by 42 pixels.
+; PLAN: r0=284(x1), r1=107(y1), r2=485(x2), r3=164(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=240(x), r6=123(y), r7=63(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=158(x), r11=51(y), r12=79(width), r13=42(height), r14=0xFF0000(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 284
+LDI r1, 107
+LDI r2, 485
+LDI r3, 164
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 240
+LDI r6, 123
+LDI r7, 63
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 158
+LDI r11, 51
+LDI r12, 79
+LDI r13, 42
+LDI r14, 0xFF0000
+RECTF r10, r11, r12, r13, r14
 HALT

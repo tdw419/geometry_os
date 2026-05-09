@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 24 at center (410, 159).
-; PLAN: r0=410(x), r1=159(y), r2=24(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 410
-LDI r1, 159
-LDI r2, 24
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 43x88 starting at (416, 104).
+; PLAN: r0=416(x), r1=104(y), r2=43(width), r3=88(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 416
+LDI r1, 104
+LDI r2, 43
+LDI r3, 88
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

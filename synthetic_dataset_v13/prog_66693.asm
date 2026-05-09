@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a white dot at position (303, 204).
-; PLAN: r0=303(x), r1=204(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 303
-LDI r1, 204
-LDI r2, 0xFFFFFF
+; DESCRIPTION: Places a black dot at position (49, 118).
+; PLAN: r0=49(x), r1=118(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 49
+LDI r1, 118
+LDI r2, 0x000000
 PSET r0, r1, r2
 HALT

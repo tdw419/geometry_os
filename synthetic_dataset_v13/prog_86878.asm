@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 25 at center (409, 61).
-; PLAN: r0=409(x), r1=61(y), r2=25(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 409
-LDI r1, 61
-LDI r2, 25
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange line segment connecting (158, 9) to (144, 157).
+; PLAN: r0=158(x1), r1=9(y1), r2=144(x2), r3=157(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 158
+LDI r1, 9
+LDI r2, 144
+LDI r3, 157
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

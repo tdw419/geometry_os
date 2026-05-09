@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 74x96 rectangle at position (230, 106).
-; PLAN: r0=230(x), r1=106(y), r2=74(width), r3=96(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 230
-LDI r1, 106
-LDI r2, 74
-LDI r3, 96
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (3, 170) and (423, 157).
+; PLAN: r0=3(x1), r1=170(y1), r2=423(x2), r3=157(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 3
+LDI r1, 170
+LDI r2, 423
+LDI r3, 157
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

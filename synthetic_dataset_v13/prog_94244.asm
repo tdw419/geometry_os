@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (164, 207) to (23, 113).
-; PLAN: r0=164(x1), r1=207(y1), r2=23(x2), r3=113(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 207
-LDI r2, 23
-LDI r3, 113
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan box of size 56x18 starting at (299, 48).
+; PLAN: r0=299(x), r1=48(y), r2=56(width), r3=18(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 299
+LDI r1, 48
+LDI r2, 56
+LDI r3, 18
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (221, 156) with radius 47.
-; PLAN: r0=221(x), r1=156(y), r2=47(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 221
-LDI r1, 156
-LDI r2, 47
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta rectangle at (379, 29) with width 21 and height 31.
+; PLAN: r0=379(x), r1=29(y), r2=21(width), r3=31(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 379
+LDI r1, 29
+LDI r2, 21
+LDI r3, 31
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

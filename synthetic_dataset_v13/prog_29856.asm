@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 56 at center (172, 99).
-; PLAN: r0=172(x), r1=99(y), r2=56(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+; DESCRIPTION: Places a black 49x85 rectangle at position (172, 87).
+; PLAN: r0=172(x), r1=87(y), r2=49(width), r3=85(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
 LDI r0, 172
-LDI r1, 99
-LDI r2, 56
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+LDI r1, 87
+LDI r2, 49
+LDI r3, 85
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

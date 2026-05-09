@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple rectangle at (98, 16) with width 35 and height 49.
-; PLAN: r0=98(x), r1=16(y), r2=35(width), r3=49(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 98
-LDI r1, 16
-LDI r2, 35
-LDI r3, 49
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange circle of radius 36 at center (461, 105).
+; PLAN: r0=461(x), r1=105(y), r2=36(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 461
+LDI r1, 105
+LDI r2, 36
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

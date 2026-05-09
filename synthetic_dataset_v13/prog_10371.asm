@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (176, 108) with width 60 and height 94.
-; PLAN: r0=176(x), r1=108(y), r2=60(width), r3=94(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 176
-LDI r1, 108
-LDI r2, 60
-LDI r3, 94
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a red rectangular region at (139, 64) spanning 42 by 109 pixels.
+; PLAN: r0=139(x), r1=64(y), r2=42(width), r3=109(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 64
+LDI r2, 42
+LDI r3, 109
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

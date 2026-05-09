@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (385, 84) with radius 47.
-; PLAN: r0=385(x), r1=84(y), r2=47(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 385
-LDI r1, 84
-LDI r2, 47
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (371, 119) and (441, 113).
+; PLAN: r0=371(x1), r1=119(y1), r2=441(x2), r3=113(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 371
+LDI r1, 119
+LDI r2, 441
+LDI r3, 113
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

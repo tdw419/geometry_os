@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (493, 128).
-; PLAN: r0=493(x), r1=128(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 493
-LDI r1, 128
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a white rectangular region at (169, 117) spanning 74 by 94 pixels.
+; PLAN: r0=169(x), r1=117(y), r2=74(width), r3=94(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 169
+LDI r1, 117
+LDI r2, 74
+LDI r3, 94
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

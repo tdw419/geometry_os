@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (423, 89) with radius 68.
-; PLAN: r0=423(x), r1=89(y), r2=68(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 423
-LDI r1, 89
-LDI r2, 68
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a yellow rectangular region at (365, 197) spanning 40 by 23 pixels.
+; PLAN: r0=365(x), r1=197(y), r2=40(width), r3=23(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 365
+LDI r1, 197
+LDI r2, 40
+LDI r3, 23
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

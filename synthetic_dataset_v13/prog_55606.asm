@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (26, 132).
-; PLAN: r0=26(x), r1=132(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 26
-LDI r1, 132
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple box of size 37x75 starting at (231, 32).
+; PLAN: r0=231(x), r1=32(y), r2=37(width), r3=75(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 231
+LDI r1, 32
+LDI r2, 37
+LDI r3, 75
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

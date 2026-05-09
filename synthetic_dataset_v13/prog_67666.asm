@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Sets a single white pixel at (18, 118) then Draws a white line from (49, 161) to (308, 220).
-; PLAN: r0=18(x), r1=118(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=49(x1), r6=161(y1), r7=308(x2), r8=220(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 18
-LDI r1, 118
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 49
-LDI r6, 161
-LDI r7, 308
-LDI r8, 220
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a cyan disk with center (328, 53) and radius 45.
+; PLAN: r0=328(x), r1=53(y), r2=45(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 328
+LDI r1, 53
+LDI r2, 45
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

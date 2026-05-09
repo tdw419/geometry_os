@@ -1,15 +1,13 @@
-; DESCRIPTION: Composite: Renders a green line between points (318, 58) and (248, 220) then Draws a yellow rectangle at (420, 59) with width 23 and height 39.
-; PLAN: r0=318(x1), r1=58(y1), r2=248(x2), r3=220(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=420(x), r6=59(y), r7=23(width), r8=39(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 318
-LDI r1, 58
-LDI r2, 248
-LDI r3, 220
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 420
-LDI r6, 59
-LDI r7, 23
-LDI r8, 39
-LDI r9, 0xFFFF00
+; DESCRIPTION: Composite: Sets a single yellow pixel at (501, 67) then Draws a purple rectangle at (246, 22) with width 26 and height 104.
+; PLAN: r0=501(x), r1=67(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=246(x), r6=22(y), r7=26(width), r8=104(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 501
+LDI r1, 67
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 246
+LDI r6, 22
+LDI r7, 26
+LDI r8, 104
+LDI r9, 0xAA00FF
 RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a green circle centered at (148, 143) with radius 11.
-; PLAN: r0=148(x), r1=143(y), r2=11(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 148
-LDI r1, 143
-LDI r2, 11
-LDI r3, 0x00FF00
+; DESCRIPTION: Draws a red circle centered at (280, 106) with radius 12.
+; PLAN: r0=280(x), r1=106(y), r2=12(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 280
+LDI r1, 106
+LDI r2, 12
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 118x58 starting at (221, 84).
-; PLAN: r0=221(x), r1=84(y), r2=118(width), r3=58(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 221
-LDI r1, 84
-LDI r2, 118
-LDI r3, 58
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a yellow box of size 88x42 starting at (96, 62).
+; PLAN: r0=96(x), r1=62(y), r2=88(width), r3=42(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 96
+LDI r1, 62
+LDI r2, 88
+LDI r3, 42
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

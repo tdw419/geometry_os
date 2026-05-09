@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (200, 125) with radius 15.
-; PLAN: r0=200(x), r1=125(y), r2=15(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 200
-LDI r1, 125
-LDI r2, 15
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (334, 155) and (444, 221).
+; PLAN: r0=334(x1), r1=155(y1), r2=444(x2), r3=221(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 334
+LDI r1, 155
+LDI r2, 444
+LDI r3, 221
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

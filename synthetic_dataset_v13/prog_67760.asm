@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 72 at center (171, 142).
-; PLAN: r0=171(x), r1=142(y), r2=72(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 171
-LDI r1, 142
-LDI r2, 72
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (125, 3) and (225, 85).
+; PLAN: r0=125(x1), r1=3(y1), r2=225(x2), r3=85(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 125
+LDI r1, 3
+LDI r2, 225
+LDI r3, 85
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

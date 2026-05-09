@@ -1,9 +1,15 @@
-; DESCRIPTION: Creates a black rectangular region at (313, 21) spanning 119 by 96 pixels.
-; PLAN: r0=313(x), r1=21(y), r2=119(width), r3=96(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 313
-LDI r1, 21
-LDI r2, 119
-LDI r3, 96
-LDI r4, 0x000000
+; DESCRIPTION: Composite: Creates a purple rectangular region at (264, 141) spanning 89 by 37 pixels then Draws a red line from (321, 83) to (139, 52).
+; PLAN: r0=264(x), r1=141(y), r2=89(width), r3=37(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=321(x1), r6=83(y1), r7=139(x2), r8=52(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 264
+LDI r1, 141
+LDI r2, 89
+LDI r3, 37
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
+LDI r5, 321
+LDI r6, 83
+LDI r7, 139
+LDI r8, 52
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

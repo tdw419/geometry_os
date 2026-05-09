@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a orange dot at position (75, 137) then Renders a blue disk with center (447, 139) and radius 55.
-; PLAN: r0=75(x), r1=137(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=447(x), r6=139(y), r7=55(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 75
-LDI r1, 137
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 447
-LDI r6, 139
-LDI r7, 55
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a magenta line between points (362, 9) and (34, 62).
+; PLAN: r0=362(x1), r1=9(y1), r2=34(x2), r3=62(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 362
+LDI r1, 9
+LDI r2, 34
+LDI r3, 62
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

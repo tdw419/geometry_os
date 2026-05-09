@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a green rectangular region at (469, 106) spanning 42 by 65 pixels.
-; PLAN: r0=469(x), r1=106(y), r2=42(width), r3=65(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 469
-LDI r1, 106
-LDI r2, 42
-LDI r3, 65
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (442, 179).
+; PLAN: r0=442(x), r1=179(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 442
+LDI r1, 179
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

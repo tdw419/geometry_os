@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (511, 132) and (325, 106).
-; PLAN: r0=511(x1), r1=132(y1), r2=325(x2), r3=106(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 511
-LDI r1, 132
-LDI r2, 325
-LDI r3, 106
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan rectangular region at (29, 22) spanning 87 by 22 pixels.
+; PLAN: r0=29(x), r1=22(y), r2=87(width), r3=22(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 29
+LDI r1, 22
+LDI r2, 87
+LDI r3, 22
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

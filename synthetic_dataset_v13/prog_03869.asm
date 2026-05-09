@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (34, 228) then Draws a purple rectangle at (113, 50) with width 71 and height 51.
-; PLAN: r0=34(x), r1=228(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=113(x), r6=50(y), r7=71(width), r8=51(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 34
-LDI r1, 228
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 113
-LDI r6, 50
-LDI r7, 71
-LDI r8, 51
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Places a yellow 80x109 rectangle at position (127, 76).
+; PLAN: r0=127(x), r1=76(y), r2=80(width), r3=109(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 76
+LDI r2, 80
+LDI r3, 109
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

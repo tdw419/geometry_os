@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (57, 99) to (467, 243).
-; PLAN: r0=57(x1), r1=99(y1), r2=467(x2), r3=243(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 57
-LDI r1, 99
-LDI r2, 467
-LDI r3, 243
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a white line from (253, 229) to (163, 19).
+; PLAN: r0=253(x1), r1=229(y1), r2=163(x2), r3=19(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 253
+LDI r1, 229
+LDI r2, 163
+LDI r3, 19
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

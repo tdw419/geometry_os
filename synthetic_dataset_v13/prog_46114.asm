@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a orange circle centered at (410, 157) with radius 45.
-; PLAN: r0=410(x), r1=157(y), r2=45(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 410
-LDI r1, 157
-LDI r2, 45
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

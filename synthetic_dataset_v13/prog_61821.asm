@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 103x44 rectangle at position (262, 200).
-; PLAN: r0=262(x), r1=200(y), r2=103(width), r3=44(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 262
-LDI r1, 200
-LDI r2, 103
-LDI r3, 44
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (251, 222) to (263, 238).
+; PLAN: r0=251(x1), r1=222(y1), r2=263(x2), r3=238(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 251
+LDI r1, 222
+LDI r2, 263
+LDI r3, 238
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

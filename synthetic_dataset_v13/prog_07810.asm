@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a yellow line segment connecting (366, 1) to (366, 133).
-; PLAN: r0=366(x1), r1=1(y1), r2=366(x2), r3=133(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 366
-LDI r1, 1
-LDI r2, 366
-LDI r3, 133
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single blue pixel at (246, 208) then Draws a green rectangle at (425, 113) with width 29 and height 68.
+; PLAN: r0=246(x), r1=208(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=425(x), r6=113(y), r7=29(width), r8=68(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 246
+LDI r1, 208
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 425
+LDI r6, 113
+LDI r7, 29
+LDI r8, 68
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

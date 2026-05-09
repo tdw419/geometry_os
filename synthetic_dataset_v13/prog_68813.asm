@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (158, 251) to (117, 57).
-; PLAN: r0=158(x1), r1=251(y1), r2=117(x2), r3=57(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 158
-LDI r1, 251
-LDI r2, 117
-LDI r3, 57
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 47x115 starting at (120, 99).
+; PLAN: r0=120(x), r1=99(y), r2=47(width), r3=115(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 120
+LDI r1, 99
+LDI r2, 47
+LDI r3, 115
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Renders a red disk with center (294, 195) and radius 25.
+; PLAN: r0=294(x), r1=195(y), r2=25(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 294
+LDI r1, 195
+LDI r2, 25
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

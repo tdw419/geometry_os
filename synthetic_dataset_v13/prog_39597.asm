@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple line segment connecting (371, 192) to (146, 199).
-; PLAN: r0=371(x1), r1=192(y1), r2=146(x2), r3=199(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 371
-LDI r1, 192
-LDI r2, 146
-LDI r3, 199
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (396, 168) with radius 72.
+; PLAN: r0=396(x), r1=168(y), r2=72(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 396
+LDI r1, 168
+LDI r2, 72
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

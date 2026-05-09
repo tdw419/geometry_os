@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single cyan pixel at (311, 4).
-; PLAN: r0=311(x), r1=4(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 311
-LDI r1, 4
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan box of size 21x54 starting at (25, 133).
+; PLAN: r0=25(x), r1=133(y), r2=21(width), r3=54(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 25
+LDI r1, 133
+LDI r2, 21
+LDI r3, 54
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

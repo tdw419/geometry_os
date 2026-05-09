@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (222, 120) to (453, 210).
-; PLAN: r0=222(x1), r1=120(y1), r2=453(x2), r3=210(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 222
-LDI r1, 120
-LDI r2, 453
-LDI r3, 210
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange circle centered at (255, 46) with radius 10.
+; PLAN: r0=255(x), r1=46(y), r2=10(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 255
+LDI r1, 46
+LDI r2, 10
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

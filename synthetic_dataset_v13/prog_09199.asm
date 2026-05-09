@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Creates a green circular shape at (181, 104) with radius 79.
+; PLAN: r0=181(x), r1=104(y), r2=79(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 181
+LDI r1, 104
+LDI r2, 79
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

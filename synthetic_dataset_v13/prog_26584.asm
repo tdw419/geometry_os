@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Creates a yellow circular shape at (195, 120) with radius 12 then Places a yellow 71x34 rectangle at position (105, 60) then Places a green line segment connecting (201, 227) to (323, 243).
-; PLAN: r0=195(x), r1=120(y), r2=12(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=105(x), r6=60(y), r7=71(width), r8=34(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=201(x1), r11=227(y1), r12=323(x2), r13=243(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 195
-LDI r1, 120
-LDI r2, 12
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 105
-LDI r6, 60
-LDI r7, 71
-LDI r8, 34
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
-LDI r10, 201
-LDI r11, 227
-LDI r12, 323
-LDI r13, 243
-LDI r14, 0x00FF00
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single blue pixel at (487, 16) then Renders a cyan disk with center (136, 98) and radius 34 then Draws a blue rectangle at (1, 31) with width 104 and height 43.
+; PLAN: r0=487(x), r1=16(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=136(x), r6=98(y), r7=34(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=1(x), r11=31(y), r12=104(width), r13=43(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 487
+LDI r1, 16
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 136
+LDI r6, 98
+LDI r7, 34
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
+LDI r10, 1
+LDI r11, 31
+LDI r12, 104
+LDI r13, 43
+LDI r14, 0x0000FF
+RECTF r10, r11, r12, r13, r14
 HALT

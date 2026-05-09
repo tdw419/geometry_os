@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow line from (101, 233) to (38, 125).
-; PLAN: r0=101(x1), r1=233(y1), r2=38(x2), r3=125(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 101
-LDI r1, 233
-LDI r2, 38
-LDI r3, 125
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (48, 206) and radius 26.
+; PLAN: r0=48(x), r1=206(y), r2=26(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 48
+LDI r1, 206
+LDI r2, 26
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

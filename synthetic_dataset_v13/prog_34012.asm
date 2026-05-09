@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a black rectangle at (332, 138) with width 106 and height 37.
-; PLAN: r0=332(x), r1=138(y), r2=106(width), r3=37(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 332
-LDI r1, 138
-LDI r2, 106
-LDI r3, 37
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (373, 25).
+; PLAN: r0=373(x), r1=25(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 373
+LDI r1, 25
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

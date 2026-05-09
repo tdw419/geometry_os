@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (191, 151) with radius 51.
-; PLAN: r0=191(x), r1=151(y), r2=51(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 191
-LDI r1, 151
-LDI r2, 51
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (99, 4) to (358, 10).
+; PLAN: r0=99(x1), r1=4(y1), r2=358(x2), r3=10(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 4
+LDI r2, 358
+LDI r3, 10
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

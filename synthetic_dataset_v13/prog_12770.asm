@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (428, 0) and (441, 127).
-; PLAN: r0=428(x1), r1=0(y1), r2=441(x2), r3=127(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 428
-LDI r1, 0
-LDI r2, 441
-LDI r3, 127
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan rectangular region at (43, 182) spanning 17 by 65 pixels.
+; PLAN: r0=43(x), r1=182(y), r2=17(width), r3=65(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 43
+LDI r1, 182
+LDI r2, 17
+LDI r3, 65
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

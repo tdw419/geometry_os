@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (145, 224) spanning 80 by 18 pixels.
-; PLAN: r0=145(x), r1=224(y), r2=80(width), r3=18(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 145
-LDI r1, 224
-LDI r2, 80
-LDI r3, 18
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (198, 152) to (360, 56).
+; PLAN: r0=198(x1), r1=152(y1), r2=360(x2), r3=56(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 198
+LDI r1, 152
+LDI r2, 360
+LDI r3, 56
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

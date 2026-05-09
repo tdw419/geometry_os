@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (321, 209) to (49, 42).
-; PLAN: r0=321(x1), r1=209(y1), r2=49(x2), r3=42(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 321
-LDI r1, 209
-LDI r2, 49
-LDI r3, 42
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange rectangular region at (28, 132) spanning 61 by 56 pixels.
+; PLAN: r0=28(x), r1=132(y), r2=61(width), r3=56(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 28
+LDI r1, 132
+LDI r2, 61
+LDI r3, 56
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

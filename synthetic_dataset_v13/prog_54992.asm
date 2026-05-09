@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (482, 184).
-; PLAN: r0=482(x), r1=184(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 482
-LDI r1, 184
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black line between points (245, 206) and (453, 213).
+; PLAN: r0=245(x1), r1=206(y1), r2=453(x2), r3=213(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 245
+LDI r1, 206
+LDI r2, 453
+LDI r3, 213
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

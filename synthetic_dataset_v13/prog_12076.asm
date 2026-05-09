@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Places a yellow circle of radius 58 at center (364, 79) then Renders a blue box of size 48x66 starting at (301, 98).
-; PLAN: r0=364(x), r1=79(y), r2=58(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=301(x), r6=98(y), r7=48(width), r8=66(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 364
-LDI r1, 79
-LDI r2, 58
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 301
-LDI r6, 98
-LDI r7, 48
-LDI r8, 66
-LDI r9, 0x0000FF
+; DESCRIPTION: Composite: Places a magenta dot at position (281, 146) then Renders a cyan box of size 55x117 starting at (249, 10) then Renders a purple line between points (480, 238) and (494, 220).
+; PLAN: r0=281(x), r1=146(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=249(x), r6=10(y), r7=55(width), r8=117(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=480(x1), r11=238(y1), r12=494(x2), r13=220(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 281
+LDI r1, 146
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 249
+LDI r6, 10
+LDI r7, 55
+LDI r8, 117
+LDI r9, 0x00FFFF
 RECTF r5, r6, r7, r8, r9
+LDI r10, 480
+LDI r11, 238
+LDI r12, 494
+LDI r13, 220
+LDI r14, 0xAA00FF
+LINE r10, r11, r12, r13, r14
 HALT

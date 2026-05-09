@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (184, 190) then Creates a white rectangular region at (362, 10) spanning 46 by 105 pixels.
-; PLAN: r0=184(x), r1=190(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=362(x), r6=10(y), r7=46(width), r8=105(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 184
-LDI r1, 190
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 362
-LDI r6, 10
+; DESCRIPTION: Composite: Places a magenta line segment connecting (343, 93) to (220, 95) then Creates a black circular shape at (253, 80) with radius 46 then Places a blue dot at position (103, 44).
+; PLAN: r0=343(x1), r1=93(y1), r2=220(x2), r3=95(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=253(x), r6=80(y), r7=46(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=103(x), r11=44(y), r12=0x0000FF(color). Op: PSET r10, r11, r12.
+LDI r0, 343
+LDI r1, 93
+LDI r2, 220
+LDI r3, 95
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 253
+LDI r6, 80
 LDI r7, 46
-LDI r8, 105
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
+LDI r10, 103
+LDI r11, 44
+LDI r12, 0x0000FF
+PSET r10, r11, r12
 HALT

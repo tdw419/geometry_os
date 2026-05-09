@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (387, 249).
-; PLAN: r0=387(x), r1=249(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 387
-LDI r1, 249
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a black 72x13 rectangle at position (73, 234).
+; PLAN: r0=73(x), r1=234(y), r2=72(width), r3=13(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 73
+LDI r1, 234
+LDI r2, 72
+LDI r3, 13
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

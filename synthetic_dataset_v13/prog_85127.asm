@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (39, 33) with radius 22.
-; PLAN: r0=39(x), r1=33(y), r2=22(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 39
-LDI r1, 33
-LDI r2, 22
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow 18x66 rectangle at position (42, 134).
+; PLAN: r0=42(x), r1=134(y), r2=18(width), r3=66(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 42
+LDI r1, 134
+LDI r2, 18
+LDI r3, 66
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

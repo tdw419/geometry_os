@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 78 at center (128, 177).
-; PLAN: r0=128(x), r1=177(y), r2=78(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 128
-LDI r1, 177
-LDI r2, 78
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 80x31 rectangle at position (15, 146).
+; PLAN: r0=15(x), r1=146(y), r2=80(width), r3=31(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 15
+LDI r1, 146
+LDI r2, 80
+LDI r3, 31
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

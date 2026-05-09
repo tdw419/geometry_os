@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a blue circle centered at (106, 141) with radius 37.
-; PLAN: r0=106(x), r1=141(y), r2=37(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 106
-LDI r1, 141
-LDI r2, 37
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan dot at position (299, 13).
+; PLAN: r0=299(x), r1=13(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 299
+LDI r1, 13
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

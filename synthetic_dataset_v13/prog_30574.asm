@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Renders a green disk with center (120, 120) and radius 10.
+; PLAN: r0=120(x), r1=120(y), r2=10(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 120
+LDI r1, 120
+LDI r2, 10
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

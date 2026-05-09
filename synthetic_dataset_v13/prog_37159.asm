@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 89x29 rectangle at position (183, 63).
-; PLAN: r0=183(x), r1=63(y), r2=89(width), r3=29(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 183
-LDI r1, 63
-LDI r2, 89
-LDI r3, 29
-LDI r4, 0x00FF00
+; DESCRIPTION: Creates a magenta rectangular region at (217, 132) spanning 70 by 95 pixels.
+; PLAN: r0=217(x), r1=132(y), r2=70(width), r3=95(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 217
+LDI r1, 132
+LDI r2, 70
+LDI r3, 95
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 54x74 rectangle at position (134, 169).
-; PLAN: r0=134(x), r1=169(y), r2=54(width), r3=74(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 134
-LDI r1, 169
-LDI r2, 54
-LDI r3, 74
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 25 at center (76, 30).
+; PLAN: r0=76(x), r1=30(y), r2=25(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 76
+LDI r1, 30
+LDI r2, 25
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,13 @@
-; DESCRIPTION: Places a blue circle of radius 65 at center (82, 175).
-; PLAN: r0=82(x), r1=175(y), r2=65(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 82
-LDI r1, 175
-LDI r2, 65
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Renders a magenta line between points (483, 125) and (486, 255) then Places a purple dot at position (504, 205).
+; PLAN: r0=483(x1), r1=125(y1), r2=486(x2), r3=255(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=504(x), r6=205(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 483
+LDI r1, 125
+LDI r2, 486
+LDI r3, 255
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 504
+LDI r6, 205
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single orange pixel at (312, 15).
-; PLAN: r0=312(x), r1=15(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 312
-LDI r1, 15
-LDI r2, 0xFF8800
+; DESCRIPTION: Sets a single magenta pixel at (296, 52).
+; PLAN: r0=296(x), r1=52(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 296
+LDI r1, 52
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
 HALT

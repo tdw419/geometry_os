@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (260, 90) and radius 33.
-; PLAN: r0=260(x), r1=90(y), r2=33(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 260
-LDI r1, 90
-LDI r2, 33
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a black rectangular region at (444, 34) spanning 59 by 60 pixels.
+; PLAN: r0=444(x), r1=34(y), r2=59(width), r3=60(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 444
+LDI r1, 34
+LDI r2, 59
+LDI r3, 60
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

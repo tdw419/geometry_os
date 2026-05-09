@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (0, 220) to (464, 197).
-; PLAN: r0=0(x1), r1=220(y1), r2=464(x2), r3=197(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 0
-LDI r1, 220
-LDI r2, 464
-LDI r3, 197
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow box of size 50x46 starting at (315, 179).
+; PLAN: r0=315(x), r1=179(y), r2=50(width), r3=46(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 315
+LDI r1, 179
+LDI r2, 50
+LDI r3, 46
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

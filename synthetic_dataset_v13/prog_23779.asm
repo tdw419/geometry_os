@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a green line segment connecting (339, 54) to (42, 81).
-; PLAN: r0=339(x1), r1=54(y1), r2=42(x2), r3=81(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 339
-LDI r1, 54
-LDI r2, 42
-LDI r3, 81
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (114, 116).
+; PLAN: r0=114(x), r1=116(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 114
+LDI r1, 116
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

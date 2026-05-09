@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 46x70 starting at (303, 151).
-; PLAN: r0=303(x), r1=151(y), r2=46(width), r3=70(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 303
-LDI r1, 151
-LDI r2, 46
-LDI r3, 70
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white line between points (470, 180) and (120, 54).
+; PLAN: r0=470(x1), r1=180(y1), r2=120(x2), r3=54(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 470
+LDI r1, 180
+LDI r2, 120
+LDI r3, 54
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

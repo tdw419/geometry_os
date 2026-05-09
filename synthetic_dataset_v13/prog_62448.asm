@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Places a blue dot at position (404, 147).
+; PLAN: r0=404(x), r1=147(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 404
+LDI r1, 147
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

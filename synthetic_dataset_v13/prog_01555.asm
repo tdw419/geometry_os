@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 65 at center (444, 184).
-; PLAN: r0=444(x), r1=184(y), r2=65(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 444
-LDI r1, 184
-LDI r2, 65
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 63x52 rectangle at position (283, 90).
+; PLAN: r0=283(x), r1=90(y), r2=63(width), r3=52(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 283
+LDI r1, 90
+LDI r2, 63
+LDI r3, 52
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

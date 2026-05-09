@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple box of size 92x57 starting at (188, 154).
-; PLAN: r0=188(x), r1=154(y), r2=92(width), r3=57(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 188
-LDI r1, 154
-LDI r2, 92
-LDI r3, 57
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 36 at center (126, 219).
+; PLAN: r0=126(x), r1=219(y), r2=36(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 126
+LDI r1, 219
+LDI r2, 36
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 27x93 starting at (143, 82).
-; PLAN: r0=143(x), r1=82(y), r2=27(width), r3=93(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 82
-LDI r2, 27
-LDI r3, 93
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green line segment connecting (384, 88) to (289, 108).
+; PLAN: r0=384(x1), r1=88(y1), r2=289(x2), r3=108(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 384
+LDI r1, 88
+LDI r2, 289
+LDI r3, 108
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

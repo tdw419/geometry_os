@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (191, 197) with radius 57.
-; PLAN: r0=191(x), r1=197(y), r2=57(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 191
-LDI r1, 197
-LDI r2, 57
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (52, 152) spanning 39 by 29 pixels.
+; PLAN: r0=52(x), r1=152(y), r2=39(width), r3=29(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 52
+LDI r1, 152
+LDI r2, 39
+LDI r3, 29
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a red rectangular region at (368, 114) spanning 62 by 68 pixels.
-; PLAN: r0=368(x), r1=114(y), r2=62(width), r3=68(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 368
-LDI r1, 114
-LDI r2, 62
-LDI r3, 68
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (173, 166) then Places a magenta circle of radius 43 at center (80, 132).
+; PLAN: r0=173(x), r1=166(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=80(x), r6=132(y), r7=43(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 173
+LDI r1, 166
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 80
+LDI r6, 132
+LDI r7, 43
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

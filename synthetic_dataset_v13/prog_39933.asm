@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (198, 161) with radius 79.
-; PLAN: r0=198(x), r1=161(y), r2=79(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 198
-LDI r1, 161
-LDI r2, 79
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Places a black circle of radius 19 at center (173, 195).
+; PLAN: r0=173(x), r1=195(y), r2=19(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 173
+LDI r1, 195
+LDI r2, 19
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

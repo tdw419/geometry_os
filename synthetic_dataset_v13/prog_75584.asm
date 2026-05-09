@@ -1,15 +1,20 @@
-; DESCRIPTION: Composite: Draws a yellow rectangle at (292, 165) with width 84 and height 87 then Draws a white line from (394, 131) to (258, 105).
-; PLAN: r0=292(x), r1=165(y), r2=84(width), r3=87(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=394(x1), r6=131(y1), r7=258(x2), r8=105(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 292
-LDI r1, 165
-LDI r2, 84
-LDI r3, 87
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 394
-LDI r6, 131
-LDI r7, 258
-LDI r8, 105
-LDI r9, 0xFFFFFF
+; DESCRIPTION: Composite: Places a red circle of radius 40 at center (353, 58) then Places a cyan line segment connecting (140, 66) to (327, 177) then Creates a magenta rectangular region at (63, 138) spanning 56 by 29 pixels.
+; PLAN: r0=353(x), r1=58(y), r2=40(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=140(x1), r6=66(y1), r7=327(x2), r8=177(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=63(x), r11=138(y), r12=56(width), r13=29(height), r14=0xFF00FF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 353
+LDI r1, 58
+LDI r2, 40
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 140
+LDI r6, 66
+LDI r7, 327
+LDI r8, 177
+LDI r9, 0x00FFFF
 LINE r5, r6, r7, r8, r9
+LDI r10, 63
+LDI r11, 138
+LDI r12, 56
+LDI r13, 29
+LDI r14, 0xFF00FF
+RECTF r10, r11, r12, r13, r14
 HALT

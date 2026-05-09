@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single orange pixel at (376, 157).
-; PLAN: r0=376(x), r1=157(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 376
-LDI r1, 157
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow line between points (108, 222) and (124, 143).
+; PLAN: r0=108(x1), r1=222(y1), r2=124(x2), r3=143(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 108
+LDI r1, 222
+LDI r2, 124
+LDI r3, 143
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,13 @@
-; DESCRIPTION: Creates a magenta circular shape at (425, 98) with radius 66.
-; PLAN: r0=425(x), r1=98(y), r2=66(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 425
-LDI r1, 98
-LDI r2, 66
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a cyan dot at position (45, 174) then Places a black 91x83 rectangle at position (172, 12).
+; PLAN: r0=45(x), r1=174(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=172(x), r6=12(y), r7=91(width), r8=83(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 45
+LDI r1, 174
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 172
+LDI r6, 12
+LDI r7, 91
+LDI r8, 83
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a green rectangular region at (241, 148) spanning 19 by 35 pixels.
-; PLAN: r0=241(x), r1=148(y), r2=19(width), r3=35(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 148
-LDI r2, 19
-LDI r3, 35
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single white pixel at (155, 95).
+; PLAN: r0=155(x), r1=95(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 155
+LDI r1, 95
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

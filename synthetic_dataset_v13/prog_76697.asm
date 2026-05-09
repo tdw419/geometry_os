@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a blue line segment connecting (160, 252) to (47, 80).
-; PLAN: r0=160(x1), r1=252(y1), r2=47(x2), r3=80(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 252
-LDI r2, 47
-LDI r3, 80
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (305, 37) then Renders a red disk with center (303, 153) and radius 23.
+; PLAN: r0=305(x), r1=37(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=303(x), r6=153(y), r7=23(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 305
+LDI r1, 37
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 303
+LDI r6, 153
+LDI r7, 23
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

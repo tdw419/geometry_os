@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (247, 233).
-; PLAN: r0=247(x), r1=233(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 247
-LDI r1, 233
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a red 82x111 rectangle at position (167, 124).
+; PLAN: r0=167(x), r1=124(y), r2=82(width), r3=111(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 167
+LDI r1, 124
+LDI r2, 82
+LDI r3, 111
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

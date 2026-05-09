@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (177, 144) with radius 62.
-; PLAN: r0=177(x), r1=144(y), r2=62(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 177
-LDI r1, 144
-LDI r2, 62
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Places a orange circle of radius 27 at center (309, 31).
+; PLAN: r0=309(x), r1=31(y), r2=27(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 309
+LDI r1, 31
+LDI r2, 27
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

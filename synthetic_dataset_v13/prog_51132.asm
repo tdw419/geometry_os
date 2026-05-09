@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a blue 106x107 rectangle at position (11, 128).
-; PLAN: r0=11(x), r1=128(y), r2=106(width), r3=107(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 11
-LDI r1, 128
-LDI r2, 106
-LDI r3, 107
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (351, 201) then Creates a cyan rectangular region at (383, 132) spanning 51 by 48 pixels.
+; PLAN: r0=351(x), r1=201(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=383(x), r6=132(y), r7=51(width), r8=48(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 351
+LDI r1, 201
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 383
+LDI r6, 132
+LDI r7, 51
+LDI r8, 48
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

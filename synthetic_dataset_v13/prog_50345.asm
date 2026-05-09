@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 114x85 rectangle at position (172, 125).
-; PLAN: r0=172(x), r1=125(y), r2=114(width), r3=85(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 172
-LDI r1, 125
-LDI r2, 114
-LDI r3, 85
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a black rectangle at (309, 112) with width 104 and height 73.
+; PLAN: r0=309(x), r1=112(y), r2=104(width), r3=73(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 309
+LDI r1, 112
+LDI r2, 104
+LDI r3, 73
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

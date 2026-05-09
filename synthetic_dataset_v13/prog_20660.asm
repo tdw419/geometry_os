@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 50x29 starting at (342, 14).
-; PLAN: r0=342(x), r1=14(y), r2=50(width), r3=29(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 342
-LDI r1, 14
-LDI r2, 50
-LDI r3, 29
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a orange rectangle at (175, 32) with width 64 and height 72.
+; PLAN: r0=175(x), r1=32(y), r2=64(width), r3=72(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 175
+LDI r1, 32
+LDI r2, 64
+LDI r3, 72
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

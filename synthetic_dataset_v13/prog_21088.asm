@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (315, 159) to (210, 216).
-; PLAN: r0=315(x1), r1=159(y1), r2=210(x2), r3=216(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 315
-LDI r1, 159
-LDI r2, 210
-LDI r3, 216
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a magenta line segment connecting (127, 227) to (450, 155).
+; PLAN: r0=127(x1), r1=227(y1), r2=450(x2), r3=155(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 227
+LDI r2, 450
+LDI r3, 155
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

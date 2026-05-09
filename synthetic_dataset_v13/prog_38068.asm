@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a purple line between points (135, 151) and (328, 115).
-; PLAN: r0=135(x1), r1=151(y1), r2=328(x2), r3=115(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 135
-LDI r1, 151
-LDI r2, 328
-LDI r3, 115
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (29, 146) then Draws a green line from (324, 26) to (503, 202).
+; PLAN: r0=29(x), r1=146(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=324(x1), r6=26(y1), r7=503(x2), r8=202(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 29
+LDI r1, 146
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 324
+LDI r6, 26
+LDI r7, 503
+LDI r8, 202
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,13 +1,15 @@
-; DESCRIPTION: Composite: Places a blue dot at position (359, 137) then Creates a orange rectangular region at (371, 106) spanning 107 by 87 pixels.
-; PLAN: r0=359(x), r1=137(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=371(x), r6=106(y), r7=107(width), r8=87(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 359
-LDI r1, 137
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 371
-LDI r6, 106
-LDI r7, 107
-LDI r8, 87
-LDI r9, 0xFF8800
+; DESCRIPTION: Composite: Draws a blue line from (416, 41) to (366, 133) then Creates a magenta rectangular region at (159, 193) spanning 64 by 13 pixels.
+; PLAN: r0=416(x1), r1=41(y1), r2=366(x2), r3=133(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=159(x), r6=193(y), r7=64(width), r8=13(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 416
+LDI r1, 41
+LDI r2, 366
+LDI r3, 133
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 159
+LDI r6, 193
+LDI r7, 64
+LDI r8, 13
+LDI r9, 0xFF00FF
 RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a black line between points (13, 228) and (292, 45).
-; PLAN: r0=13(x1), r1=228(y1), r2=292(x2), r3=45(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 13
-LDI r1, 228
-LDI r2, 292
-LDI r3, 45
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

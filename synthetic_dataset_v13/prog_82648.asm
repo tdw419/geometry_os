@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a cyan rectangular region at (204, 44) spanning 118 by 46 pixels.
-; PLAN: r0=204(x), r1=44(y), r2=118(width), r3=46(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 204
-LDI r1, 44
-LDI r2, 118
-LDI r3, 46
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (221, 124) with radius 19.
+; PLAN: r0=221(x), r1=124(y), r2=19(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 221
+LDI r1, 124
+LDI r2, 19
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

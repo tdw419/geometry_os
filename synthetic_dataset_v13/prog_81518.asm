@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue box of size 52x75 starting at (394, 115).
-; PLAN: r0=394(x), r1=115(y), r2=52(width), r3=75(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 394
-LDI r1, 115
-LDI r2, 52
-LDI r3, 75
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (453, 159) and radius 44.
+; PLAN: r0=453(x), r1=159(y), r2=44(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 453
+LDI r1, 159
+LDI r2, 44
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

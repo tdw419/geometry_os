@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (150, 22).
-; PLAN: r0=150(x), r1=22(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 150
-LDI r1, 22
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black box of size 84x120 starting at (212, 44).
+; PLAN: r0=212(x), r1=44(y), r2=84(width), r3=120(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 212
+LDI r1, 44
+LDI r2, 84
+LDI r3, 120
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

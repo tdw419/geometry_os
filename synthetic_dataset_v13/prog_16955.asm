@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (266, 152) with radius 66.
-; PLAN: r0=266(x), r1=152(y), r2=66(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 266
-LDI r1, 152
-LDI r2, 66
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (171, 62) and (314, 227).
+; PLAN: r0=171(x1), r1=62(y1), r2=314(x2), r3=227(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 171
+LDI r1, 62
+LDI r2, 314
+LDI r3, 227
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

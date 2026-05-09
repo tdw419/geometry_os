@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a blue disk with center (289, 167) and radius 35.
-; PLAN: r0=289(x), r1=167(y), r2=35(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 289
-LDI r1, 167
-LDI r2, 35
-LDI r3, 0x0000FF
+; DESCRIPTION: Places a yellow circle of radius 64 at center (225, 111).
+; PLAN: r0=225(x), r1=111(y), r2=64(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 225
+LDI r1, 111
+LDI r2, 64
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

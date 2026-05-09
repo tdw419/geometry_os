@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (402, 14) and (69, 241).
-; PLAN: r0=402(x1), r1=14(y1), r2=69(x2), r3=241(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 402
-LDI r1, 14
+; DESCRIPTION: Places a red 69x104 rectangle at position (53, 148).
+; PLAN: r0=53(x), r1=148(y), r2=69(width), r3=104(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 53
+LDI r1, 148
 LDI r2, 69
-LDI r3, 241
+LDI r3, 104
 LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

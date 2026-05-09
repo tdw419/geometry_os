@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (511, 80) to (19, 150).
-; PLAN: r0=511(x1), r1=80(y1), r2=19(x2), r3=150(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 511
-LDI r1, 80
-LDI r2, 19
-LDI r3, 150
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 23 at center (363, 94).
+; PLAN: r0=363(x), r1=94(y), r2=23(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 363
+LDI r1, 94
+LDI r2, 23
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

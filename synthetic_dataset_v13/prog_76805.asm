@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a cyan line segment connecting (375, 249) to (482, 106).
-; PLAN: r0=375(x1), r1=249(y1), r2=482(x2), r3=106(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 375
-LDI r1, 249
-LDI r2, 482
-LDI r3, 106
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green circle of radius 42 at center (151, 124) then Sets a single blue pixel at (260, 102).
+; PLAN: r0=151(x), r1=124(y), r2=42(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=260(x), r6=102(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 151
+LDI r1, 124
+LDI r2, 42
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 260
+LDI r6, 102
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

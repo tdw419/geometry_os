@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a magenta 76x55 rectangle at position (163, 14).
-; PLAN: r0=163(x), r1=14(y), r2=76(width), r3=55(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 163
-LDI r1, 14
-LDI r2, 76
-LDI r3, 55
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red dot at position (5, 66).
+; PLAN: r0=5(x), r1=66(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 5
+LDI r1, 66
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

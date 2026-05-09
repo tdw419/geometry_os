@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (98, 85) and (101, 248).
-; PLAN: r0=98(x1), r1=85(y1), r2=101(x2), r3=248(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 98
-LDI r1, 85
-LDI r2, 101
-LDI r3, 248
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 62 at center (392, 64).
+; PLAN: r0=392(x), r1=64(y), r2=62(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 392
+LDI r1, 64
+LDI r2, 62
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

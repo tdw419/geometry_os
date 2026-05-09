@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue rectangle at (181, 162) with width 102 and height 66.
-; PLAN: r0=181(x), r1=162(y), r2=102(width), r3=66(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 181
-LDI r1, 162
-LDI r2, 102
-LDI r3, 66
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (292, 111) with radius 48.
+; PLAN: r0=292(x), r1=111(y), r2=48(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 292
+LDI r1, 111
+LDI r2, 48
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

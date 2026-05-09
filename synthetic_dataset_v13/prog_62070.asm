@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (430, 132).
-; PLAN: r0=430(x), r1=132(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 430
-LDI r1, 132
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple line between points (127, 222) and (81, 129).
+; PLAN: r0=127(x1), r1=222(y1), r2=81(x2), r3=129(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 222
+LDI r2, 81
+LDI r3, 129
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

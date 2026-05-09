@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a orange line segment connecting (64, 158) to (483, 38) then Places a red dot at position (320, 21).
-; PLAN: r0=64(x1), r1=158(y1), r2=483(x2), r3=38(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=320(x), r6=21(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 64
-LDI r1, 158
-LDI r2, 483
-LDI r3, 38
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
-LDI r5, 320
-LDI r6, 21
-LDI r7, 0xFF0000
-PSET r5, r6, r7
+; DESCRIPTION: Draws a black rectangle at (467, 2) with width 13 and height 59.
+; PLAN: r0=467(x), r1=2(y), r2=13(width), r3=59(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 467
+LDI r1, 2
+LDI r2, 13
+LDI r3, 59
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

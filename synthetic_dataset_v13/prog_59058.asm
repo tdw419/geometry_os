@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a blue dot at position (337, 238).
-; PLAN: r0=337(x), r1=238(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 337
-LDI r1, 238
-LDI r2, 0x0000FF
+; DESCRIPTION: Sets a single orange pixel at (394, 118).
+; PLAN: r0=394(x), r1=118(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 394
+LDI r1, 118
+LDI r2, 0xFF8800
 PSET r0, r1, r2
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a white circle of radius 68 at center (305, 74).
-; PLAN: r0=305(x), r1=74(y), r2=68(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 305
-LDI r1, 74
-LDI r2, 68
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (229, 199).
+; PLAN: r0=229(x), r1=199(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 229
+LDI r1, 199
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

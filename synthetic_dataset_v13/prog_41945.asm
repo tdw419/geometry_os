@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (196, 54) with radius 51.
-; PLAN: r0=196(x), r1=54(y), r2=51(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 196
-LDI r1, 54
-LDI r2, 51
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 77x98 starting at (176, 144).
+; PLAN: r0=176(x), r1=144(y), r2=77(width), r3=98(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 176
+LDI r1, 144
+LDI r2, 77
+LDI r3, 98
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

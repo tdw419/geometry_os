@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (391, 141) and radius 79.
-; PLAN: r0=391(x), r1=141(y), r2=79(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 391
-LDI r1, 141
-LDI r2, 79
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (127, 136) to (151, 133).
+; PLAN: r0=127(x1), r1=136(y1), r2=151(x2), r3=133(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 136
+LDI r2, 151
+LDI r3, 133
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

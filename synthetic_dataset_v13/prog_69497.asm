@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 46 at center (306, 89).
-; PLAN: r0=306(x), r1=89(y), r2=46(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 306
-LDI r1, 89
-LDI r2, 46
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (484, 163) to (344, 75).
+; PLAN: r0=484(x1), r1=163(y1), r2=344(x2), r3=75(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 484
+LDI r1, 163
+LDI r2, 344
+LDI r3, 75
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

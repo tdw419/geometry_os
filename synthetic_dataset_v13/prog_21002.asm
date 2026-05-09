@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 60x73 rectangle at position (64, 110).
-; PLAN: r0=64(x), r1=110(y), r2=60(width), r3=73(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 110
-LDI r2, 60
-LDI r3, 73
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 50 at center (428, 174).
+; PLAN: r0=428(x), r1=174(y), r2=50(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 428
+LDI r1, 174
+LDI r2, 50
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

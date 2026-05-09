@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 78x41 rectangle at position (356, 6).
-; PLAN: r0=356(x), r1=6(y), r2=78(width), r3=41(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 6
-LDI r2, 78
-LDI r3, 41
-LDI r4, 0x0000FF
+; DESCRIPTION: Creates a purple rectangular region at (62, 30) spanning 120 by 54 pixels.
+; PLAN: r0=62(x), r1=30(y), r2=120(width), r3=54(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 62
+LDI r1, 30
+LDI r2, 120
+LDI r3, 54
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

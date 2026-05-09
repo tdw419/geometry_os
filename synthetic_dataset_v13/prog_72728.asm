@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a green 42x93 rectangle at position (18, 47).
-; PLAN: r0=18(x), r1=47(y), r2=42(width), r3=93(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 18
-LDI r1, 47
-LDI r2, 42
-LDI r3, 93
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (138, 96) then Creates a blue circular shape at (257, 120) with radius 37.
+; PLAN: r0=138(x), r1=96(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=257(x), r6=120(y), r7=37(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 138
+LDI r1, 96
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 257
+LDI r6, 120
+LDI r7, 37
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

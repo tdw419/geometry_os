@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (446, 65) to (511, 13).
-; PLAN: r0=446(x1), r1=65(y1), r2=511(x2), r3=13(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 446
-LDI r1, 65
-LDI r2, 511
-LDI r3, 13
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 119x10 rectangle at position (166, 178).
+; PLAN: r0=166(x), r1=178(y), r2=119(width), r3=10(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 166
+LDI r1, 178
+LDI r2, 119
+LDI r3, 10
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

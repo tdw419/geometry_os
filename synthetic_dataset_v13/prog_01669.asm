@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (298, 180) to (411, 235).
-; PLAN: r0=298(x1), r1=180(y1), r2=411(x2), r3=235(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 298
-LDI r1, 180
-LDI r2, 411
-LDI r3, 235
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue rectangular region at (27, 176) spanning 119 by 14 pixels.
+; PLAN: r0=27(x), r1=176(y), r2=119(width), r3=14(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 27
+LDI r1, 176
+LDI r2, 119
+LDI r3, 14
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

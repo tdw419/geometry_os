@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (272, 107) with radius 56.
-; PLAN: r0=272(x), r1=107(y), r2=56(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 272
-LDI r1, 107
-LDI r2, 56
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan 63x75 rectangle at position (215, 25).
+; PLAN: r0=215(x), r1=25(y), r2=63(width), r3=75(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 215
+LDI r1, 25
+LDI r2, 63
+LDI r3, 75
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

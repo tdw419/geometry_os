@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (412, 122) with radius 12.
-; PLAN: r0=412(x), r1=122(y), r2=12(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 412
-LDI r1, 122
-LDI r2, 12
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 42x117 starting at (198, 4).
+; PLAN: r0=198(x), r1=4(y), r2=42(width), r3=117(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 198
+LDI r1, 4
+LDI r2, 42
+LDI r3, 117
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

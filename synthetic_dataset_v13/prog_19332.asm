@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (269, 66).
-; PLAN: r0=269(x), r1=66(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 269
-LDI r1, 66
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green box of size 55x88 starting at (444, 82).
+; PLAN: r0=444(x), r1=82(y), r2=55(width), r3=88(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 444
+LDI r1, 82
+LDI r2, 55
+LDI r3, 88
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

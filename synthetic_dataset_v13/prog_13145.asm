@@ -1,20 +1,15 @@
-; DESCRIPTION: Composite: Renders a yellow line between points (143, 159) and (80, 207) then Renders a orange disk with center (222, 178) and radius 57 then Renders a purple box of size 36x118 starting at (4, 75).
-; PLAN: r0=143(x1), r1=159(y1), r2=80(x2), r3=207(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=222(x), r6=178(y), r7=57(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=4(x), r11=75(y), r12=36(width), r13=118(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 143
-LDI r1, 159
-LDI r2, 80
-LDI r3, 207
-LDI r4, 0xFFFF00
+; DESCRIPTION: Composite: Places a blue line segment connecting (157, 132) to (492, 95) then Places a black 42x100 rectangle at position (259, 134).
+; PLAN: r0=157(x1), r1=132(y1), r2=492(x2), r3=95(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=259(x), r6=134(y), r7=42(width), r8=100(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 157
+LDI r1, 132
+LDI r2, 492
+LDI r3, 95
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
-LDI r5, 222
-LDI r6, 178
-LDI r7, 57
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
-LDI r10, 4
-LDI r11, 75
-LDI r12, 36
-LDI r13, 118
-LDI r14, 0xAA00FF
-RECTF r10, r11, r12, r13, r14
+LDI r5, 259
+LDI r6, 134
+LDI r7, 42
+LDI r8, 100
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

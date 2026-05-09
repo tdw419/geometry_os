@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a red circle of radius 61 at center (64, 74).
-; PLAN: r0=64(x), r1=74(y), r2=61(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 64
-LDI r1, 74
-LDI r2, 61
-LDI r3, 0xFF0000
+; DESCRIPTION: Renders a magenta disk with center (428, 138) and radius 76.
+; PLAN: r0=428(x), r1=138(y), r2=76(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 428
+LDI r1, 138
+LDI r2, 76
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

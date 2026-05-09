@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a magenta rectangular region at (304, 85) spanning 107 by 60 pixels.
-; PLAN: r0=304(x), r1=85(y), r2=107(width), r3=60(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 304
-LDI r1, 85
-LDI r2, 107
-LDI r3, 60
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (38, 49).
+; PLAN: r0=38(x), r1=49(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 38
+LDI r1, 49
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

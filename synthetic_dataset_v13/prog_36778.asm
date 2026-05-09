@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a magenta line between points (427, 127) and (91, 82).
-; PLAN: r0=427(x1), r1=127(y1), r2=91(x2), r3=82(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 427
-LDI r1, 127
-LDI r2, 91
-LDI r3, 82
-LDI r4, 0xFF00FF
+; DESCRIPTION: Composite: Renders a cyan line between points (463, 159) and (329, 20) then Places a cyan dot at position (121, 13).
+; PLAN: r0=463(x1), r1=159(y1), r2=329(x2), r3=20(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=121(x), r6=13(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 463
+LDI r1, 159
+LDI r2, 329
+LDI r3, 20
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
+LDI r5, 121
+LDI r6, 13
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

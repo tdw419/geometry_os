@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (241, 53) then Places a magenta 55x62 rectangle at position (401, 160).
-; PLAN: r0=241(x), r1=53(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=401(x), r6=160(y), r7=55(width), r8=62(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 241
-LDI r1, 53
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 401
-LDI r6, 160
-LDI r7, 55
-LDI r8, 62
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a blue line between points (461, 51) and (351, 153).
+; PLAN: r0=461(x1), r1=51(y1), r2=351(x2), r3=153(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 461
+LDI r1, 51
+LDI r2, 351
+LDI r3, 153
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

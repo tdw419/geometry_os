@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (378, 144) and (507, 181).
-; PLAN: r0=378(x1), r1=144(y1), r2=507(x2), r3=181(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 378
-LDI r1, 144
-LDI r2, 507
-LDI r3, 181
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue 24x90 rectangle at position (284, 77).
+; PLAN: r0=284(x), r1=77(y), r2=24(width), r3=90(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 284
+LDI r1, 77
+LDI r2, 24
+LDI r3, 90
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

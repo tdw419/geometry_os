@@ -1,7 +1,13 @@
-; DESCRIPTION: Places a white dot at position (149, 176).
-; PLAN: r0=149(x), r1=176(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 149
-LDI r1, 176
+; DESCRIPTION: Composite: Places a white dot at position (348, 174) then Creates a orange rectangular region at (219, 99) spanning 110 by 49 pixels.
+; PLAN: r0=348(x), r1=174(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=219(x), r6=99(y), r7=110(width), r8=49(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 348
+LDI r1, 174
 LDI r2, 0xFFFFFF
 PSET r0, r1, r2
+LDI r5, 219
+LDI r6, 99
+LDI r7, 110
+LDI r8, 49
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

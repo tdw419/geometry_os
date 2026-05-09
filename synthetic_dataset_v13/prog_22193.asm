@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a red line between points (104, 160) and (167, 57).
-; PLAN: r0=104(x1), r1=160(y1), r2=167(x2), r3=57(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 104
-LDI r1, 160
-LDI r2, 167
-LDI r3, 57
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (144, 175) then Renders a green line between points (348, 101) and (155, 203).
+; PLAN: r0=144(x), r1=175(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=348(x1), r6=101(y1), r7=155(x2), r8=203(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 144
+LDI r1, 175
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 348
+LDI r6, 101
+LDI r7, 155
+LDI r8, 203
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

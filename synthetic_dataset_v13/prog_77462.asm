@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (375, 127) with radius 62.
-; PLAN: r0=375(x), r1=127(y), r2=62(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 375
-LDI r1, 127
-LDI r2, 62
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 13x83 starting at (343, 62).
+; PLAN: r0=343(x), r1=62(y), r2=13(width), r3=83(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 343
+LDI r1, 62
+LDI r2, 13
+LDI r3, 83
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

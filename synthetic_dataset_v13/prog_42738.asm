@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 51 at center (359, 153).
-; PLAN: r0=359(x), r1=153(y), r2=51(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 359
-LDI r1, 153
-LDI r2, 51
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (426, 245) to (411, 215).
+; PLAN: r0=426(x1), r1=245(y1), r2=411(x2), r3=215(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 426
+LDI r1, 245
+LDI r2, 411
+LDI r3, 215
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

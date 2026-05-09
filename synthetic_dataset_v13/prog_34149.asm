@@ -1,9 +1,14 @@
-; DESCRIPTION: Creates a purple rectangular region at (213, 89) spanning 100 by 44 pixels.
-; PLAN: r0=213(x), r1=89(y), r2=100(width), r3=44(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 213
-LDI r1, 89
-LDI r2, 100
-LDI r3, 44
-LDI r4, 0xAA00FF
+; DESCRIPTION: Composite: Draws a white rectangle at (411, 121) with width 36 and height 115 then Renders a red disk with center (440, 151) and radius 58.
+; PLAN: r0=411(x), r1=121(y), r2=36(width), r3=115(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=440(x), r6=151(y), r7=58(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 411
+LDI r1, 121
+LDI r2, 36
+LDI r3, 115
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
+LDI r5, 440
+LDI r6, 151
+LDI r7, 58
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

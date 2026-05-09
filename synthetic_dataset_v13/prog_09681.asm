@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (197, 106) to (321, 106).
-; PLAN: r0=197(x1), r1=106(y1), r2=321(x2), r3=106(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 197
-LDI r1, 106
-LDI r2, 321
-LDI r3, 106
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a red line segment connecting (30, 2) to (31, 190).
+; PLAN: r0=30(x1), r1=2(y1), r2=31(x2), r3=190(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 30
+LDI r1, 2
+LDI r2, 31
+LDI r3, 190
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

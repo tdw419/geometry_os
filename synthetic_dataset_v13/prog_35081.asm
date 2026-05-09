@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a cyan line from (98, 54) to (424, 108).
-; PLAN: r0=98(x1), r1=54(y1), r2=424(x2), r3=108(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 98
-LDI r1, 54
-LDI r2, 424
-LDI r3, 108
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (125, 56).
+; PLAN: r0=125(x), r1=56(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 125
+LDI r1, 56
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

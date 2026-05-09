@@ -1,5 +1,7 @@
-; DESCRIPTION: Fills the entire screen with solid green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Sets a single purple pixel at (2, 77).
+; PLAN: r0=2(x), r1=77(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 2
+LDI r1, 77
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

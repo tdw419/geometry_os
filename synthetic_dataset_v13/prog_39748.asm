@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (142, 81) and (497, 130).
-; PLAN: r0=142(x1), r1=81(y1), r2=497(x2), r3=130(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 142
-LDI r1, 81
-LDI r2, 497
-LDI r3, 130
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (143, 170) and radius 55.
+; PLAN: r0=143(x), r1=170(y), r2=55(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 143
+LDI r1, 170
+LDI r2, 55
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

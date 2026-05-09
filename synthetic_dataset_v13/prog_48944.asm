@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (176, 168) with radius 53.
-; PLAN: r0=176(x), r1=168(y), r2=53(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 176
-LDI r1, 168
-LDI r2, 53
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (125, 2) and (95, 115).
+; PLAN: r0=125(x1), r1=2(y1), r2=95(x2), r3=115(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 125
+LDI r1, 2
+LDI r2, 95
+LDI r3, 115
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a yellow circle centered at (91, 128) with radius 59.
-; PLAN: r0=91(x), r1=128(y), r2=59(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 91
-LDI r1, 128
-LDI r2, 59
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow dot at position (182, 115).
+; PLAN: r0=182(x), r1=115(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 182
+LDI r1, 115
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

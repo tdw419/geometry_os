@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (241, 64) and (82, 126).
-; PLAN: r0=241(x1), r1=64(y1), r2=82(x2), r3=126(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 64
-LDI r2, 82
-LDI r3, 126
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (366, 70) and radius 48.
+; PLAN: r0=366(x), r1=70(y), r2=48(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 366
+LDI r1, 70
+LDI r2, 48
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a blue circle centered at (241, 214) with radius 38.
-; PLAN: r0=241(x), r1=214(y), r2=38(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 241
-LDI r1, 214
-LDI r2, 38
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single orange pixel at (290, 161).
+; PLAN: r0=290(x), r1=161(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 290
+LDI r1, 161
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

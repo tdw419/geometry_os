@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 20x14 starting at (209, 87).
-; PLAN: r0=209(x), r1=87(y), r2=20(width), r3=14(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 209
-LDI r1, 87
-LDI r2, 20
-LDI r3, 14
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a magenta rectangle at (366, 77) with width 82 and height 110.
+; PLAN: r0=366(x), r1=77(y), r2=82(width), r3=110(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 366
+LDI r1, 77
+LDI r2, 82
+LDI r3, 110
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

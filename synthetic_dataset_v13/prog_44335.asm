@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 98x11 rectangle at position (95, 63).
-; PLAN: r0=95(x), r1=63(y), r2=98(width), r3=11(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 95
-LDI r1, 63
-LDI r2, 98
-LDI r3, 11
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a white rectangular region at (311, 132) spanning 48 by 53 pixels.
+; PLAN: r0=311(x), r1=132(y), r2=48(width), r3=53(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 311
+LDI r1, 132
+LDI r2, 48
+LDI r3, 53
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a purple line segment connecting (492, 219) to (497, 79).
-; PLAN: r0=492(x1), r1=219(y1), r2=497(x2), r3=79(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 492
-LDI r1, 219
-LDI r2, 497
-LDI r3, 79
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a cyan rectangular region at (191, 173) spanning 75 by 80 pixels then Places a green dot at position (10, 81).
+; PLAN: r0=191(x), r1=173(y), r2=75(width), r3=80(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=10(x), r6=81(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 191
+LDI r1, 173
+LDI r2, 75
+LDI r3, 80
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 10
+LDI r6, 81
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan rectangle at (349, 22) with width 104 and height 23.
-; PLAN: r0=349(x), r1=22(y), r2=104(width), r3=23(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 349
-LDI r1, 22
-LDI r2, 104
-LDI r3, 23
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (234, 69) and radius 42.
+; PLAN: r0=234(x), r1=69(y), r2=42(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 234
+LDI r1, 69
+LDI r2, 42
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,20 +1,12 @@
-; DESCRIPTION: Composite: Places a yellow circle of radius 22 at center (130, 37) then Places a white 51x90 rectangle at position (408, 163) then Places a blue line segment connecting (284, 97) to (0, 183).
-; PLAN: r0=130(x), r1=37(y), r2=22(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=408(x), r6=163(y), r7=51(width), r8=90(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=284(x1), r11=97(y1), r12=0(x2), r13=183(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 130
-LDI r1, 37
-LDI r2, 22
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 408
-LDI r6, 163
-LDI r7, 51
-LDI r8, 90
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 284
-LDI r11, 97
-LDI r12, 0
-LDI r13, 183
-LDI r14, 0x0000FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a white dot at position (169, 93) then Renders a yellow disk with center (49, 48) and radius 20.
+; PLAN: r0=169(x), r1=93(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=49(x), r6=48(y), r7=20(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 169
+LDI r1, 93
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 49
+LDI r6, 48
+LDI r7, 20
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

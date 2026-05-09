@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 96x89 rectangle at position (103, 46).
-; PLAN: r0=103(x), r1=46(y), r2=96(width), r3=89(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 103
-LDI r1, 46
-LDI r2, 96
-LDI r3, 89
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple line segment connecting (266, 109) to (404, 199).
+; PLAN: r0=266(x1), r1=109(y1), r2=404(x2), r3=199(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 266
+LDI r1, 109
+LDI r2, 404
+LDI r3, 199
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

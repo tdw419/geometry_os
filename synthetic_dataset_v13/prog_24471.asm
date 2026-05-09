@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (380, 62) to (242, 33).
-; PLAN: r0=380(x1), r1=62(y1), r2=242(x2), r3=33(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 380
-LDI r1, 62
-LDI r2, 242
-LDI r3, 33
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a purple line between points (149, 72) and (433, 111).
+; PLAN: r0=149(x1), r1=72(y1), r2=433(x2), r3=111(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 149
+LDI r1, 72
+LDI r2, 433
+LDI r3, 111
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

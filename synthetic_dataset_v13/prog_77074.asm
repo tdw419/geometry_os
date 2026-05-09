@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (510, 127) to (429, 62).
-; PLAN: r0=510(x1), r1=127(y1), r2=429(x2), r3=62(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 510
-LDI r1, 127
-LDI r2, 429
-LDI r3, 62
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (121, 54) and radius 50.
+; PLAN: r0=121(x), r1=54(y), r2=50(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 121
+LDI r1, 54
+LDI r2, 50
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

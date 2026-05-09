@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (257, 195) to (13, 21).
-; PLAN: r0=257(x1), r1=195(y1), r2=13(x2), r3=21(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 257
-LDI r1, 195
-LDI r2, 13
-LDI r3, 21
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (99, 51) with width 111 and height 118.
+; PLAN: r0=99(x), r1=51(y), r2=111(width), r3=118(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 51
+LDI r2, 111
+LDI r3, 118
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

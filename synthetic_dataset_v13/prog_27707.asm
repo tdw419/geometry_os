@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single blue pixel at (322, 56).
-; PLAN: r0=322(x), r1=56(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 322
-LDI r1, 56
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange 12x44 rectangle at position (438, 89).
+; PLAN: r0=438(x), r1=89(y), r2=12(width), r3=44(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 438
+LDI r1, 89
+LDI r2, 12
+LDI r3, 44
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

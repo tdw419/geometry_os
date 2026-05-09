@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a yellow line from (284, 200) to (483, 249).
-; PLAN: r0=284(x1), r1=200(y1), r2=483(x2), r3=249(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 200
-LDI r2, 483
-LDI r3, 249
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (144, 239) then Places a yellow line segment connecting (493, 196) to (390, 224).
+; PLAN: r0=144(x), r1=239(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=493(x1), r6=196(y1), r7=390(x2), r8=224(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 144
+LDI r1, 239
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 493
+LDI r6, 196
+LDI r7, 390
+LDI r8, 224
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

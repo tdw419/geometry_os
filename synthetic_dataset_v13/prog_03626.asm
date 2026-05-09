@@ -1,4 +1,4 @@
-; DESCRIPTION: Fills the entire screen with solid yellow.
+; DESCRIPTION: Sets the background to yellow.
 ; PLAN: r0=0xFFFF00(color). Op: FILL r0.
 LDI r0, 0xFFFF00
 FILL r0

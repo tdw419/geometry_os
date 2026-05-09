@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a cyan line between points (442, 170) and (496, 164).
-; PLAN: r0=442(x1), r1=170(y1), r2=496(x2), r3=164(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 442
-LDI r1, 170
-LDI r2, 496
-LDI r3, 164
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a black circular shape at (364, 47) with radius 42 then Places a orange dot at position (509, 215).
+; PLAN: r0=364(x), r1=47(y), r2=42(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=509(x), r6=215(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 364
+LDI r1, 47
+LDI r2, 42
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 509
+LDI r6, 215
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

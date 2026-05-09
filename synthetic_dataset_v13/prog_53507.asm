@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 120x106 rectangle at position (57, 11).
-; PLAN: r0=57(x), r1=11(y), r2=120(width), r3=106(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 57
-LDI r1, 11
-LDI r2, 120
-LDI r3, 106
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (169, 146) and radius 16.
+; PLAN: r0=169(x), r1=146(y), r2=16(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 169
+LDI r1, 146
+LDI r2, 16
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

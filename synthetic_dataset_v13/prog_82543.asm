@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a cyan disk with center (81, 106) and radius 53.
-; PLAN: r0=81(x), r1=106(y), r2=53(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 81
-LDI r1, 106
-LDI r2, 53
-LDI r3, 0x00FFFF
+; DESCRIPTION: Renders a white disk with center (66, 147) and radius 64.
+; PLAN: r0=66(x), r1=147(y), r2=64(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 66
+LDI r1, 147
+LDI r2, 64
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

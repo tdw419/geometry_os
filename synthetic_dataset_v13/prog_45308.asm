@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a black box of size 53x16 starting at (450, 126).
-; PLAN: r0=450(x), r1=126(y), r2=53(width), r3=16(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 450
-LDI r1, 126
-LDI r2, 53
-LDI r3, 16
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow dot at position (40, 132) then Renders a blue line between points (446, 146) and (338, 129).
+; PLAN: r0=40(x), r1=132(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=446(x1), r6=146(y1), r7=338(x2), r8=129(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 40
+LDI r1, 132
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 446
+LDI r6, 146
+LDI r7, 338
+LDI r8, 129
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (79, 121) and radius 58.
-; PLAN: r0=79(x), r1=121(y), r2=58(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 79
-LDI r1, 121
-LDI r2, 58
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue rectangle at (373, 93) with width 120 and height 118.
+; PLAN: r0=373(x), r1=93(y), r2=120(width), r3=118(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 373
+LDI r1, 93
+LDI r2, 120
+LDI r3, 118
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

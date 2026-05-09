@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a white line from (405, 57) to (396, 100).
-; PLAN: r0=405(x1), r1=57(y1), r2=396(x2), r3=100(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 405
-LDI r1, 57
-LDI r2, 396
-LDI r3, 100
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (146, 235).
+; PLAN: r0=146(x), r1=235(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 146
+LDI r1, 235
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

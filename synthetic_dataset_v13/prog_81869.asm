@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (363, 42) to (53, 43).
-; PLAN: r0=363(x1), r1=42(y1), r2=53(x2), r3=43(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 42
-LDI r2, 53
-LDI r3, 43
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white circle of radius 52 at center (305, 99).
+; PLAN: r0=305(x), r1=99(y), r2=52(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 305
+LDI r1, 99
+LDI r2, 52
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

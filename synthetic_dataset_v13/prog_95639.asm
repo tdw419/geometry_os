@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (370, 162) to (448, 210).
-; PLAN: r0=370(x1), r1=162(y1), r2=448(x2), r3=210(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 370
-LDI r1, 162
-LDI r2, 448
-LDI r3, 210
+; DESCRIPTION: Places a cyan 120x58 rectangle at position (160, 180).
+; PLAN: r0=160(x), r1=180(y), r2=120(width), r3=58(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 180
+LDI r2, 120
+LDI r3, 58
 LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

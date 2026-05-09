@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (224, 182) with radius 37.
-; PLAN: r0=224(x), r1=182(y), r2=37(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 224
-LDI r1, 182
-LDI r2, 37
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange line segment connecting (177, 66) to (140, 228).
+; PLAN: r0=177(x1), r1=66(y1), r2=140(x2), r3=228(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 177
+LDI r1, 66
+LDI r2, 140
+LDI r3, 228
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

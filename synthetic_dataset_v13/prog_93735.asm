@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 12x115 rectangle at position (134, 0).
-; PLAN: r0=134(x), r1=0(y), r2=12(width), r3=115(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 134
-LDI r1, 0
-LDI r2, 12
-LDI r3, 115
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 22 into r1 and decrements it in a loop until zero.
+; PLAN: r1=22(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 22
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

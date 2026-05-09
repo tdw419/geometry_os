@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (205, 96) and (330, 231).
-; PLAN: r0=205(x1), r1=96(y1), r2=330(x2), r3=231(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 205
-LDI r1, 96
-LDI r2, 330
-LDI r3, 231
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (323, 151) with radius 26.
+; PLAN: r0=323(x), r1=151(y), r2=26(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 323
+LDI r1, 151
+LDI r2, 26
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

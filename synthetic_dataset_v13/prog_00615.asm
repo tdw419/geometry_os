@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Places a orange 50x37 rectangle at position (416, 171) then Places a black line segment connecting (405, 17) to (218, 158) then Places a red dot at position (329, 51).
-; PLAN: r0=416(x), r1=171(y), r2=50(width), r3=37(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=405(x1), r6=17(y1), r7=218(x2), r8=158(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=329(x), r11=51(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
-LDI r0, 416
-LDI r1, 171
-LDI r2, 50
-LDI r3, 37
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Draws a yellow rectangle at (317, 152) with width 11 and height 29 then Sets a single cyan pixel at (459, 254) then Renders a cyan disk with center (393, 79) and radius 70.
+; PLAN: r0=317(x), r1=152(y), r2=11(width), r3=29(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=459(x), r6=254(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=393(x), r11=79(y), r12=70(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 317
+LDI r1, 152
+LDI r2, 11
+LDI r3, 29
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
-LDI r5, 405
-LDI r6, 17
-LDI r7, 218
-LDI r8, 158
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
-LDI r10, 329
-LDI r11, 51
-LDI r12, 0xFF0000
-PSET r10, r11, r12
+LDI r5, 459
+LDI r6, 254
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
+LDI r10, 393
+LDI r11, 79
+LDI r12, 70
+LDI r13, 0x00FFFF
+CIRCLE r10, r11, r12, r13
 HALT

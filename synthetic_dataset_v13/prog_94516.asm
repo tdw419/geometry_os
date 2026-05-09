@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (429, 32) with width 43 and height 15.
-; PLAN: r0=429(x), r1=32(y), r2=43(width), r3=15(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 429
-LDI r1, 32
-LDI r2, 43
-LDI r3, 15
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (131, 36) to (199, 83).
+; PLAN: r0=131(x1), r1=36(y1), r2=199(x2), r3=83(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 131
+LDI r1, 36
+LDI r2, 199
+LDI r3, 83
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

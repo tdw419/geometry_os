@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (106, 156) with radius 46.
-; PLAN: r0=106(x), r1=156(y), r2=46(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 106
-LDI r1, 156
-LDI r2, 46
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (384, 234) to (330, 89).
+; PLAN: r0=384(x1), r1=234(y1), r2=330(x2), r3=89(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 384
+LDI r1, 234
+LDI r2, 330
+LDI r3, 89
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

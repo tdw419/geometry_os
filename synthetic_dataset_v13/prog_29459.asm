@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a red line from (219, 158) to (173, 116).
-; PLAN: r0=219(x1), r1=158(y1), r2=173(x2), r3=116(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 219
-LDI r1, 158
-LDI r2, 173
-LDI r3, 116
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a magenta disk with center (337, 118) and radius 78 then Places a purple dot at position (445, 204).
+; PLAN: r0=337(x), r1=118(y), r2=78(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=445(x), r6=204(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 337
+LDI r1, 118
+LDI r2, 78
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 445
+LDI r6, 204
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

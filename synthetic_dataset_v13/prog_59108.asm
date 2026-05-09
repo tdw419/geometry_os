@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 102x15 rectangle at position (216, 34).
-; PLAN: r0=216(x), r1=34(y), r2=102(width), r3=15(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 216
-LDI r1, 34
-LDI r2, 102
-LDI r3, 15
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (229, 235) to (160, 40).
+; PLAN: r0=229(x1), r1=235(y1), r2=160(x2), r3=40(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 229
+LDI r1, 235
+LDI r2, 160
+LDI r3, 40
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

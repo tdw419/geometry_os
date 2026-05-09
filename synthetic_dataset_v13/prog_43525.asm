@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (110, 135) with radius 77.
-; PLAN: r0=110(x), r1=135(y), r2=77(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 110
-LDI r1, 135
-LDI r2, 77
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white box of size 64x30 starting at (356, 132).
+; PLAN: r0=356(x), r1=132(y), r2=64(width), r3=30(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 356
+LDI r1, 132
+LDI r2, 64
+LDI r3, 30
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,14 @@
-; DESCRIPTION: Renders a red disk with center (358, 81) and radius 67.
-; PLAN: r0=358(x), r1=81(y), r2=67(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 358
-LDI r1, 81
-LDI r2, 67
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a white line segment connecting (138, 103) to (7, 97) then Renders a orange disk with center (415, 117) and radius 11.
+; PLAN: r0=138(x1), r1=103(y1), r2=7(x2), r3=97(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=415(x), r6=117(y), r7=11(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 138
+LDI r1, 103
+LDI r2, 7
+LDI r3, 97
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 415
+LDI r6, 117
+LDI r7, 11
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

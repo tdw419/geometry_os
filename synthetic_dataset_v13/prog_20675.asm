@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (231, 200) to (168, 136).
-; PLAN: r0=231(x1), r1=200(y1), r2=168(x2), r3=136(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 231
-LDI r1, 200
-LDI r2, 168
-LDI r3, 136
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a cyan line from (494, 205) to (197, 212).
+; PLAN: r0=494(x1), r1=205(y1), r2=197(x2), r3=212(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 494
+LDI r1, 205
+LDI r2, 197
+LDI r3, 212
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

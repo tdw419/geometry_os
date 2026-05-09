@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Places a black dot at position (403, 120) then Creates a blue circular shape at (309, 118) with radius 79.
-; PLAN: r0=403(x), r1=120(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=309(x), r6=118(y), r7=79(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 403
-LDI r1, 120
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 309
-LDI r6, 118
-LDI r7, 79
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a blue circle of radius 65 at center (112, 70).
+; PLAN: r0=112(x), r1=70(y), r2=65(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 112
+LDI r1, 70
+LDI r2, 65
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a white line from (161, 99) to (107, 41) then Renders a yellow disk with center (412, 138) and radius 59.
-; PLAN: r0=161(x1), r1=99(y1), r2=107(x2), r3=41(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=412(x), r6=138(y), r7=59(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 161
-LDI r1, 99
-LDI r2, 107
-LDI r3, 41
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a blue line segment connecting (337, 156) to (0, 29).
+; PLAN: r0=337(x1), r1=156(y1), r2=0(x2), r3=29(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 337
+LDI r1, 156
+LDI r2, 0
+LDI r3, 29
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
-LDI r5, 412
-LDI r6, 138
-LDI r7, 59
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
 HALT

@@ -1,18 +1,15 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (481, 196) then Renders a magenta disk with center (230, 174) and radius 22 then Renders a green box of size 114x32 starting at (195, 160).
-; PLAN: r0=481(x), r1=196(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=230(x), r6=174(y), r7=22(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=195(x), r11=160(y), r12=114(width), r13=32(height), r14=0x00FF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 481
-LDI r1, 196
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 230
-LDI r6, 174
-LDI r7, 22
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
-LDI r10, 195
-LDI r11, 160
-LDI r12, 114
-LDI r13, 32
-LDI r14, 0x00FF00
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a red line between points (30, 153) and (312, 228) then Places a purple 23x89 rectangle at position (38, 62).
+; PLAN: r0=30(x1), r1=153(y1), r2=312(x2), r3=228(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=38(x), r6=62(y), r7=23(width), r8=89(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 30
+LDI r1, 153
+LDI r2, 312
+LDI r3, 228
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
+LDI r5, 38
+LDI r6, 62
+LDI r7, 23
+LDI r8, 89
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

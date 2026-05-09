@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (187, 78) and radius 56.
-; PLAN: r0=187(x), r1=78(y), r2=56(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 187
-LDI r1, 78
-LDI r2, 56
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow box of size 32x102 starting at (68, 144).
+; PLAN: r0=68(x), r1=144(y), r2=32(width), r3=102(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 68
+LDI r1, 144
+LDI r2, 32
+LDI r3, 102
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

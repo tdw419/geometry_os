@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (440, 132) and radius 27.
-; PLAN: r0=440(x), r1=132(y), r2=27(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 440
-LDI r1, 132
-LDI r2, 27
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (305, 31) spanning 17 by 23 pixels.
+; PLAN: r0=305(x), r1=31(y), r2=17(width), r3=23(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 305
+LDI r1, 31
+LDI r2, 17
+LDI r3, 23
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

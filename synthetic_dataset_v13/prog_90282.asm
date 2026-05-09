@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a red box of size 56x117 starting at (129, 5).
-; PLAN: r0=129(x), r1=5(y), r2=56(width), r3=117(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 5
-LDI r2, 56
-LDI r3, 117
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single black pixel at (126, 33).
+; PLAN: r0=126(x), r1=33(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 126
+LDI r1, 33
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

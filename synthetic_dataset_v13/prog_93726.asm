@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Places a purple dot at position (169, 200) then Draws a purple rectangle at (368, 198) with width 119 and height 53.
-; PLAN: r0=169(x), r1=200(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=368(x), r6=198(y), r7=119(width), r8=53(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 169
-LDI r1, 200
-LDI r2, 0xAA00FF
+; DESCRIPTION: Composite: Sets a single white pixel at (491, 22) then Renders a purple line between points (77, 43) and (234, 48).
+; PLAN: r0=491(x), r1=22(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=77(x1), r6=43(y1), r7=234(x2), r8=48(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 491
+LDI r1, 22
+LDI r2, 0xFFFFFF
 PSET r0, r1, r2
-LDI r5, 368
-LDI r6, 198
-LDI r7, 119
-LDI r8, 53
+LDI r5, 77
+LDI r6, 43
+LDI r7, 234
+LDI r8, 48
 LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+LINE r5, r6, r7, r8, r9
 HALT

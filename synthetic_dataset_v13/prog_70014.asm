@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single orange pixel at (54, 134).
-; PLAN: r0=54(x), r1=134(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 54
-LDI r1, 134
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow circle of radius 58 at center (286, 179).
+; PLAN: r0=286(x), r1=179(y), r2=58(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 286
+LDI r1, 179
+LDI r2, 58
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

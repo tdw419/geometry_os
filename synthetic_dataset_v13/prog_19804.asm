@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Creates a purple rectangular region at (284, 89) spanning 32 by 55 pixels then Renders a purple line between points (321, 44) and (17, 221) then Places a cyan dot at position (18, 212).
-; PLAN: r0=284(x), r1=89(y), r2=32(width), r3=55(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=321(x1), r6=44(y1), r7=17(x2), r8=221(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=18(x), r11=212(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
-LDI r0, 284
-LDI r1, 89
-LDI r2, 32
-LDI r3, 55
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 321
-LDI r6, 44
-LDI r7, 17
-LDI r8, 221
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
-LDI r10, 18
-LDI r11, 212
-LDI r12, 0x00FFFF
-PSET r10, r11, r12
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

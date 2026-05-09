@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (176, 161) spanning 86 by 90 pixels.
-; PLAN: r0=176(x), r1=161(y), r2=86(width), r3=90(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 176
-LDI r1, 161
-LDI r2, 86
-LDI r3, 90
+; DESCRIPTION: Draws a blue rectangle at (130, 66) with width 32 and height 53.
+; PLAN: r0=130(x), r1=66(y), r2=32(width), r3=53(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 130
+LDI r1, 66
+LDI r2, 32
+LDI r3, 53
 LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

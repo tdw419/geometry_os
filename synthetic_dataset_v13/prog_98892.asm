@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (118, 170) then Draws a cyan rectangle at (227, 228) with width 28 and height 27.
-; PLAN: r0=118(x), r1=170(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=227(x), r6=228(y), r7=28(width), r8=27(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 118
-LDI r1, 170
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 227
-LDI r6, 228
-LDI r7, 28
-LDI r8, 27
-LDI r9, 0x00FFFF
+; DESCRIPTION: Composite: Draws a cyan circle centered at (296, 147) with radius 80 then Creates a red rectangular region at (490, 117) spanning 17 by 22 pixels.
+; PLAN: r0=296(x), r1=147(y), r2=80(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=490(x), r6=117(y), r7=17(width), r8=22(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 296
+LDI r1, 147
+LDI r2, 80
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 490
+LDI r6, 117
+LDI r7, 17
+LDI r8, 22
+LDI r9, 0xFF0000
 RECTF r5, r6, r7, r8, r9
 HALT

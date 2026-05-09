@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 34 at center (65, 221).
-; PLAN: r0=65(x), r1=221(y), r2=34(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 65
-LDI r1, 221
-LDI r2, 34
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (241, 252) and (435, 148).
+; PLAN: r0=241(x1), r1=252(y1), r2=435(x2), r3=148(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 241
+LDI r1, 252
+LDI r2, 435
+LDI r3, 148
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

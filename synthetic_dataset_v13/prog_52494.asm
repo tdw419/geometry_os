@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 14 at center (152, 41).
-; PLAN: r0=152(x), r1=41(y), r2=14(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 152
-LDI r1, 41
-LDI r2, 14
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange rectangle at (310, 77) with width 120 and height 44.
+; PLAN: r0=310(x), r1=77(y), r2=120(width), r3=44(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 310
+LDI r1, 77
+LDI r2, 120
+LDI r3, 44
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

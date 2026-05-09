@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (328, 214) and radius 38.
-; PLAN: r0=328(x), r1=214(y), r2=38(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 328
-LDI r1, 214
-LDI r2, 38
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow box of size 82x10 starting at (378, 178).
+; PLAN: r0=378(x), r1=178(y), r2=82(width), r3=10(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 378
+LDI r1, 178
+LDI r2, 82
+LDI r3, 10
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

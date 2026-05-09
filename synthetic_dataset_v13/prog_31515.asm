@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Draws a magenta circle centered at (189, 131) with radius 65.
+; PLAN: r0=189(x), r1=131(y), r2=65(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 189
+LDI r1, 131
+LDI r2, 65
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

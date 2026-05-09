@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (204, 173) then Places a blue 77x16 rectangle at position (94, 29) then Renders a magenta disk with center (99, 97) and radius 45.
-; PLAN: r0=204(x), r1=173(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=94(x), r6=29(y), r7=77(width), r8=16(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=99(x), r11=97(y), r12=45(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 204
-LDI r1, 173
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 94
-LDI r6, 29
-LDI r7, 77
-LDI r8, 16
-LDI r9, 0x0000FF
+; DESCRIPTION: Composite: Draws a green line from (391, 44) to (47, 217) then Creates a orange rectangular region at (295, 9) spanning 33 by 107 pixels then Places a orange dot at position (238, 123).
+; PLAN: r0=391(x1), r1=44(y1), r2=47(x2), r3=217(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=295(x), r6=9(y), r7=33(width), r8=107(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=238(x), r11=123(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
+LDI r0, 391
+LDI r1, 44
+LDI r2, 47
+LDI r3, 217
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 295
+LDI r6, 9
+LDI r7, 33
+LDI r8, 107
+LDI r9, 0xFF8800
 RECTF r5, r6, r7, r8, r9
-LDI r10, 99
-LDI r11, 97
-LDI r12, 45
-LDI r13, 0xFF00FF
-CIRCLE r10, r11, r12, r13
+LDI r10, 238
+LDI r11, 123
+LDI r12, 0xFF8800
+PSET r10, r11, r12
 HALT

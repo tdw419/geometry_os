@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a green line segment connecting (357, 134) to (133, 16).
-; PLAN: r0=357(x1), r1=134(y1), r2=133(x2), r3=16(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 357
-LDI r1, 134
-LDI r2, 133
-LDI r3, 16
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (460, 59).
+; PLAN: r0=460(x), r1=59(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 460
+LDI r1, 59
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

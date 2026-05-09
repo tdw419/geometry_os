@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a white dot at position (269, 119).
-; PLAN: r0=269(x), r1=119(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 269
-LDI r1, 119
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green disk with center (403, 135) and radius 16.
+; PLAN: r0=403(x), r1=135(y), r2=16(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 403
+LDI r1, 135
+LDI r2, 16
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a magenta disk with center (438, 33) and radius 21.
-; PLAN: r0=438(x), r1=33(y), r2=21(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 438
-LDI r1, 33
-LDI r2, 21
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 68x78 rectangle at position (279, 62).
+; PLAN: r0=279(x), r1=62(y), r2=68(width), r3=78(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 279
+LDI r1, 62
+LDI r2, 68
+LDI r3, 78
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

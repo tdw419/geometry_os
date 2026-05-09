@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a black 22x63 rectangle at position (101, 109).
-; PLAN: r0=101(x), r1=109(y), r2=22(width), r3=63(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 101
-LDI r1, 109
-LDI r2, 22
-LDI r3, 63
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Renders a orange box of size 88x103 starting at (177, 83) then Sets a single yellow pixel at (303, 206) then Draws a cyan line from (246, 181) to (217, 178).
-; PLAN: r0=177(x), r1=83(y), r2=88(width), r3=103(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=303(x), r6=206(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=246(x1), r11=181(y1), r12=217(x2), r13=178(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 177
-LDI r1, 83
-LDI r2, 88
-LDI r3, 103
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
-LDI r5, 303
-LDI r6, 206
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
-LDI r10, 246
-LDI r11, 181
-LDI r12, 217
-LDI r13, 178
-LDI r14, 0x00FFFF
+; DESCRIPTION: Composite: Places a orange dot at position (204, 49) then Places a magenta 34x10 rectangle at position (274, 54) then Draws a red line from (388, 220) to (28, 216).
+; PLAN: r0=204(x), r1=49(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=274(x), r6=54(y), r7=34(width), r8=10(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=388(x1), r11=220(y1), r12=28(x2), r13=216(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 204
+LDI r1, 49
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 274
+LDI r6, 54
+LDI r7, 34
+LDI r8, 10
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 388
+LDI r11, 220
+LDI r12, 28
+LDI r13, 216
+LDI r14, 0xFF0000
 LINE r10, r11, r12, r13, r14
 HALT

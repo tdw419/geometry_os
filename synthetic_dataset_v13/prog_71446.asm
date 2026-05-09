@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 53 at center (439, 104).
-; PLAN: r0=439(x), r1=104(y), r2=53(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 439
-LDI r1, 104
-LDI r2, 53
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (71, 26) and (408, 84).
+; PLAN: r0=71(x1), r1=26(y1), r2=408(x2), r3=84(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 71
+LDI r1, 26
+LDI r2, 408
+LDI r3, 84
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

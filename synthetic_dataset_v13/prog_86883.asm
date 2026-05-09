@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single magenta pixel at (381, 216).
-; PLAN: r0=381(x), r1=216(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 381
-LDI r1, 216
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a orange circular shape at (383, 159) with radius 24.
+; PLAN: r0=383(x), r1=159(y), r2=24(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 383
+LDI r1, 159
+LDI r2, 24
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

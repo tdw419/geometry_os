@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 43x22 rectangle at position (95, 127).
-; PLAN: r0=95(x), r1=127(y), r2=43(width), r3=22(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 95
-LDI r1, 127
-LDI r2, 43
-LDI r3, 22
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (82, 104) with radius 21.
+; PLAN: r0=82(x), r1=104(y), r2=21(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 82
+LDI r1, 104
+LDI r2, 21
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

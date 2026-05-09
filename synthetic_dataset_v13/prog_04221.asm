@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (102, 169) to (19, 238).
-; PLAN: r0=102(x1), r1=169(y1), r2=19(x2), r3=238(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 102
-LDI r1, 169
-LDI r2, 19
-LDI r3, 238
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (162, 72) with width 120 and height 109.
+; PLAN: r0=162(x), r1=72(y), r2=120(width), r3=109(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 162
+LDI r1, 72
+LDI r2, 120
+LDI r3, 109
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

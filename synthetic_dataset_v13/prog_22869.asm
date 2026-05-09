@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (495, 247) and (151, 62).
-; PLAN: r0=495(x1), r1=247(y1), r2=151(x2), r3=62(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 495
-LDI r1, 247
-LDI r2, 151
-LDI r3, 62
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 26 into r1 and decrements it in a loop until zero.
+; PLAN: r1=26(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 26
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

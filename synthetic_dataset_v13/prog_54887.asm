@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (160, 151) to (447, 215).
-; PLAN: r0=160(x1), r1=151(y1), r2=447(x2), r3=215(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 151
-LDI r2, 447
-LDI r3, 215
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a orange line between points (364, 156) and (124, 196).
+; PLAN: r0=364(x1), r1=156(y1), r2=124(x2), r3=196(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 364
+LDI r1, 156
+LDI r2, 124
+LDI r3, 196
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

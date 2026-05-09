@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (379, 57) and (376, 178).
-; PLAN: r0=379(x1), r1=57(y1), r2=376(x2), r3=178(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 379
-LDI r1, 57
-LDI r2, 376
-LDI r3, 178
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a green line from (124, 27) to (26, 160).
+; PLAN: r0=124(x1), r1=27(y1), r2=26(x2), r3=160(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 27
+LDI r2, 26
+LDI r3, 160
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

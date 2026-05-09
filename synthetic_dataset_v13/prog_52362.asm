@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Places a magenta 16x16 rectangle at position (193, 108) then Draws a purple circle centered at (189, 132) with radius 66.
-; PLAN: r0=193(x), r1=108(y), r2=16(width), r3=16(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=189(x), r6=132(y), r7=66(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 193
-LDI r1, 108
-LDI r2, 16
-LDI r3, 16
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 189
-LDI r6, 132
-LDI r7, 66
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Draws a green circle centered at (475, 220) with radius 19 then Places a magenta line segment connecting (322, 105) to (284, 32).
+; PLAN: r0=475(x), r1=220(y), r2=19(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=322(x1), r6=105(y1), r7=284(x2), r8=32(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 475
+LDI r1, 220
+LDI r2, 19
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 322
+LDI r6, 105
+LDI r7, 284
+LDI r8, 32
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

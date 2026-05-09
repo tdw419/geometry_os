@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Creates a red rectangular region at (385, 211) spanning 87 by 20 pixels then Places a black dot at position (376, 116) then Places a red circle of radius 48 at center (120, 136).
-; PLAN: r0=385(x), r1=211(y), r2=87(width), r3=20(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=376(x), r6=116(y), r7=0x000000(color). Op: PSET r5, r6, r7 Next: r10=120(x), r11=136(y), r12=48(radius), r13=0xFF0000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 385
-LDI r1, 211
-LDI r2, 87
-LDI r3, 20
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 376
-LDI r6, 116
-LDI r7, 0x000000
-PSET r5, r6, r7
-LDI r10, 120
-LDI r11, 136
-LDI r12, 48
-LDI r13, 0xFF0000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Sets a single red pixel at (88, 227) then Renders a red box of size 27x93 starting at (432, 7).
+; PLAN: r0=88(x), r1=227(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=432(x), r6=7(y), r7=27(width), r8=93(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 88
+LDI r1, 227
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 432
+LDI r6, 7
+LDI r7, 27
+LDI r8, 93
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

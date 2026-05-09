@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (460, 153) with radius 38.
-; PLAN: r0=460(x), r1=153(y), r2=38(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 460
-LDI r1, 153
-LDI r2, 38
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (388, 190) to (473, 241).
+; PLAN: r0=388(x1), r1=190(y1), r2=473(x2), r3=241(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 190
+LDI r2, 473
+LDI r3, 241
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

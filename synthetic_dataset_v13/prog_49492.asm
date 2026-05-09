@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a purple rectangular region at (80, 102) spanning 73 by 116 pixels.
-; PLAN: r0=80(x), r1=102(y), r2=73(width), r3=116(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 80
-LDI r1, 102
-LDI r2, 73
-LDI r3, 116
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (10, 150).
+; PLAN: r0=10(x), r1=150(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 10
+LDI r1, 150
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

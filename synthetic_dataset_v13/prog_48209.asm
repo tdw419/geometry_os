@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (359, 84) to (333, 241).
-; PLAN: r0=359(x1), r1=84(y1), r2=333(x2), r3=241(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 84
-LDI r2, 333
-LDI r3, 241
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a red line between points (430, 230) and (445, 146).
+; PLAN: r0=430(x1), r1=230(y1), r2=445(x2), r3=146(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 430
+LDI r1, 230
+LDI r2, 445
+LDI r3, 146
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

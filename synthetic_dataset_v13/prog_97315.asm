@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (370, 158) and (305, 134).
-; PLAN: r0=370(x1), r1=158(y1), r2=305(x2), r3=134(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 370
-LDI r1, 158
-LDI r2, 305
-LDI r3, 134
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (139, 111) with radius 63.
+; PLAN: r0=139(x), r1=111(y), r2=63(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 139
+LDI r1, 111
+LDI r2, 63
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

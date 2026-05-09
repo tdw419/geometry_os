@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (386, 122) with radius 77.
-; PLAN: r0=386(x), r1=122(y), r2=77(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 386
-LDI r1, 122
-LDI r2, 77
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange line segment connecting (182, 169) to (439, 115).
+; PLAN: r0=182(x1), r1=169(y1), r2=439(x2), r3=115(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 182
+LDI r1, 169
+LDI r2, 439
+LDI r3, 115
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (35, 39) to (336, 31).
-; PLAN: r0=35(x1), r1=39(y1), r2=336(x2), r3=31(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 35
-LDI r1, 39
-LDI r2, 336
-LDI r3, 31
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (172, 122) and radius 66.
+; PLAN: r0=172(x), r1=122(y), r2=66(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 172
+LDI r1, 122
+LDI r2, 66
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

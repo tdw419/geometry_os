@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single green pixel at (472, 155).
-; PLAN: r0=472(x), r1=155(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 472
-LDI r1, 155
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

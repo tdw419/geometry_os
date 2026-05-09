@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a magenta disk with center (443, 72) and radius 26.
-; PLAN: r0=443(x), r1=72(y), r2=26(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 443
-LDI r1, 72
-LDI r2, 26
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (453, 108) and (105, 77).
+; PLAN: r0=453(x1), r1=108(y1), r2=105(x2), r3=77(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 453
+LDI r1, 108
+LDI r2, 105
+LDI r3, 77
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

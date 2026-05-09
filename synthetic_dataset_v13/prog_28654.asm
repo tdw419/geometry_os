@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single orange pixel at (487, 110).
-; PLAN: r0=487(x), r1=110(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 487
-LDI r1, 110
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a purple rectangle at (256, 73) with width 111 and height 109.
+; PLAN: r0=256(x), r1=73(y), r2=111(width), r3=109(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 256
+LDI r1, 73
+LDI r2, 111
+LDI r3, 109
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,14 +1,13 @@
-; DESCRIPTION: Composite: Renders a black box of size 38x111 starting at (426, 20) then Draws a orange circle centered at (71, 121) with radius 49.
-; PLAN: r0=426(x), r1=20(y), r2=38(width), r3=111(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=71(x), r6=121(y), r7=49(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 426
-LDI r1, 20
-LDI r2, 38
-LDI r3, 111
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 71
-LDI r6, 121
-LDI r7, 49
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Sets a single green pixel at (362, 163) then Renders a cyan box of size 39x68 starting at (442, 177).
+; PLAN: r0=362(x), r1=163(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=442(x), r6=177(y), r7=39(width), r8=68(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 362
+LDI r1, 163
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 442
+LDI r6, 177
+LDI r7, 39
+LDI r8, 68
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

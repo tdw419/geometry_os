@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (204, 175) and (335, 45).
-; PLAN: r0=204(x1), r1=175(y1), r2=335(x2), r3=45(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 204
-LDI r1, 175
-LDI r2, 335
-LDI r3, 45
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (150, 126) with radius 75.
+; PLAN: r0=150(x), r1=126(y), r2=75(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 150
+LDI r1, 126
+LDI r2, 75
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

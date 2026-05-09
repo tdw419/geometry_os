@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 112x19 rectangle at position (301, 171).
-; PLAN: r0=301(x), r1=171(y), r2=112(width), r3=19(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 301
-LDI r1, 171
-LDI r2, 112
-LDI r3, 19
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (234, 205) to (370, 216).
+; PLAN: r0=234(x1), r1=205(y1), r2=370(x2), r3=216(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 234
+LDI r1, 205
+LDI r2, 370
+LDI r3, 216
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

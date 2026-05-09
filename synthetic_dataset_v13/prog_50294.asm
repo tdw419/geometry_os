@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 27 at center (114, 202).
-; PLAN: r0=114(x), r1=202(y), r2=27(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 114
-LDI r1, 202
-LDI r2, 27
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (184, 65) and (353, 141).
+; PLAN: r0=184(x1), r1=65(y1), r2=353(x2), r3=141(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 184
+LDI r1, 65
+LDI r2, 353
+LDI r3, 141
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

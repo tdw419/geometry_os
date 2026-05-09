@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow line from (495, 109) to (450, 160).
-; PLAN: r0=495(x1), r1=109(y1), r2=450(x2), r3=160(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 495
-LDI r1, 109
-LDI r2, 450
-LDI r3, 160
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 62 at center (378, 165).
+; PLAN: r0=378(x), r1=165(y), r2=62(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 378
+LDI r1, 165
+LDI r2, 62
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

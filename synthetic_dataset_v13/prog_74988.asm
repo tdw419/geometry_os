@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (421, 167) with radius 78.
-; PLAN: r0=421(x), r1=167(y), r2=78(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 421
-LDI r1, 167
-LDI r2, 78
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (322, 161) and (297, 167).
+; PLAN: r0=322(x1), r1=161(y1), r2=297(x2), r3=167(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 322
+LDI r1, 161
+LDI r2, 297
+LDI r3, 167
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

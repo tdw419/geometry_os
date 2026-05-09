@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Places a blue line segment connecting (58, 244) to (33, 106) then Places a yellow dot at position (144, 198) then Draws a magenta rectangle at (238, 74) with width 113 and height 31.
-; PLAN: r0=58(x1), r1=244(y1), r2=33(x2), r3=106(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=144(x), r6=198(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=238(x), r11=74(y), r12=113(width), r13=31(height), r14=0xFF00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 58
-LDI r1, 244
-LDI r2, 33
-LDI r3, 106
-LDI r4, 0x0000FF
+; DESCRIPTION: Composite: Draws a purple line from (28, 140) to (433, 110) then Places a white dot at position (205, 237) then Draws a cyan rectangle at (345, 35) with width 14 and height 115.
+; PLAN: r0=28(x1), r1=140(y1), r2=433(x2), r3=110(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=205(x), r6=237(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=345(x), r11=35(y), r12=14(width), r13=115(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 28
+LDI r1, 140
+LDI r2, 433
+LDI r3, 110
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
-LDI r5, 144
-LDI r6, 198
-LDI r7, 0xFFFF00
+LDI r5, 205
+LDI r6, 237
+LDI r7, 0xFFFFFF
 PSET r5, r6, r7
-LDI r10, 238
-LDI r11, 74
-LDI r12, 113
-LDI r13, 31
-LDI r14, 0xFF00FF
+LDI r10, 345
+LDI r11, 35
+LDI r12, 14
+LDI r13, 115
+LDI r14, 0x00FFFF
 RECTF r10, r11, r12, r13, r14
 HALT

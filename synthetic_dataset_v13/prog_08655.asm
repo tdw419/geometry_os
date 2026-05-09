@@ -1,18 +1,12 @@
-; DESCRIPTION: Composite: Places a red circle of radius 33 at center (395, 120) then Sets a single white pixel at (15, 131) then Renders a green box of size 22x52 starting at (174, 165).
-; PLAN: r0=395(x), r1=120(y), r2=33(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=15(x), r6=131(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=174(x), r11=165(y), r12=22(width), r13=52(height), r14=0x00FF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 395
-LDI r1, 120
-LDI r2, 33
-LDI r3, 0xFF0000
+; DESCRIPTION: Composite: Places a black circle of radius 19 at center (106, 92) then Sets a single orange pixel at (352, 242).
+; PLAN: r0=106(x), r1=92(y), r2=19(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=352(x), r6=242(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 106
+LDI r1, 92
+LDI r2, 19
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
-LDI r5, 15
-LDI r6, 131
-LDI r7, 0xFFFFFF
+LDI r5, 352
+LDI r6, 242
+LDI r7, 0xFF8800
 PSET r5, r6, r7
-LDI r10, 174
-LDI r11, 165
-LDI r12, 22
-LDI r13, 52
-LDI r14, 0x00FF00
-RECTF r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a orange rectangle at (176, 107) with width 14 and height 113.
-; PLAN: r0=176(x), r1=107(y), r2=14(width), r3=113(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 176
-LDI r1, 107
-LDI r2, 14
-LDI r3, 113
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (434, 80) then Draws a white line from (201, 131) to (324, 37).
+; PLAN: r0=434(x), r1=80(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=201(x1), r6=131(y1), r7=324(x2), r8=37(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 434
+LDI r1, 80
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 201
+LDI r6, 131
+LDI r7, 324
+LDI r8, 37
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

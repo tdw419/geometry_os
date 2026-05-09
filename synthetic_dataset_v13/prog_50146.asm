@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Draws a red circle centered at (281, 105) with radius 38 then Draws a orange rectangle at (118, 40) with width 113 and height 49.
-; PLAN: r0=281(x), r1=105(y), r2=38(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=118(x), r6=40(y), r7=113(width), r8=49(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 281
-LDI r1, 105
-LDI r2, 38
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 118
-LDI r6, 40
-LDI r7, 113
-LDI r8, 49
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a white rectangle at (354, 19) with width 107 and height 17 then Renders a red disk with center (80, 166) and radius 53.
+; PLAN: r0=354(x), r1=19(y), r2=107(width), r3=17(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=80(x), r6=166(y), r7=53(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 354
+LDI r1, 19
+LDI r2, 107
+LDI r3, 17
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 80
+LDI r6, 166
+LDI r7, 53
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

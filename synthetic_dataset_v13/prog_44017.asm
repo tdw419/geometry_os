@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan box of size 34x40 starting at (304, 168).
-; PLAN: r0=304(x), r1=168(y), r2=34(width), r3=40(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 304
-LDI r1, 168
-LDI r2, 34
-LDI r3, 40
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 18 into r1 and decrements it in a loop until zero.
+; PLAN: r1=18(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 18
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

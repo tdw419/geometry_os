@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (164, 105) with radius 77.
-; PLAN: r0=164(x), r1=105(y), r2=77(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 164
-LDI r1, 105
-LDI r2, 77
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (290, 211) to (285, 28).
+; PLAN: r0=290(x1), r1=211(y1), r2=285(x2), r3=28(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 290
+LDI r1, 211
+LDI r2, 285
+LDI r3, 28
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a black circle of radius 76 at center (219, 120).
-; PLAN: r0=219(x), r1=120(y), r2=76(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 219
-LDI r1, 120
-LDI r2, 76
-LDI r3, 0x000000
+; DESCRIPTION: Draws a cyan circle centered at (165, 57) with radius 36.
+; PLAN: r0=165(x), r1=57(y), r2=36(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 165
+LDI r1, 57
+LDI r2, 36
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

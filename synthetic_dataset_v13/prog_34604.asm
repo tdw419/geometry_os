@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 26 into r1 and decrements it in a loop until zero.
-; PLAN: r1=26(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 26
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a purple line from (194, 75) to (69, 38).
+; PLAN: r0=194(x1), r1=75(y1), r2=69(x2), r3=38(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 194
+LDI r1, 75
+LDI r2, 69
+LDI r3, 38
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

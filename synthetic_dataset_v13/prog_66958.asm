@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 39x43 rectangle at position (452, 7).
-; PLAN: r0=452(x), r1=7(y), r2=39(width), r3=43(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 452
-LDI r1, 7
-LDI r2, 39
-LDI r3, 43
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (210, 90) and radius 45.
+; PLAN: r0=210(x), r1=90(y), r2=45(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 210
+LDI r1, 90
+LDI r2, 45
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

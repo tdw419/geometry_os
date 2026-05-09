@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a purple line from (256, 70) to (466, 182).
-; PLAN: r0=256(x1), r1=70(y1), r2=466(x2), r3=182(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 70
-LDI r2, 466
-LDI r3, 182
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (470, 87).
+; PLAN: r0=470(x), r1=87(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 470
+LDI r1, 87
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

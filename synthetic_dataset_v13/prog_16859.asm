@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (439, 114) to (338, 134).
-; PLAN: r0=439(x1), r1=114(y1), r2=338(x2), r3=134(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 439
-LDI r1, 114
-LDI r2, 338
-LDI r3, 134
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (393, 149) with radius 62.
+; PLAN: r0=393(x), r1=149(y), r2=62(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 393
+LDI r1, 149
+LDI r2, 62
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Creates a red circular shape at (119, 230) with radius 23 then Places a yellow 17x28 rectangle at position (380, 49).
-; PLAN: r0=119(x), r1=230(y), r2=23(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=380(x), r6=49(y), r7=17(width), r8=28(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 119
-LDI r1, 230
-LDI r2, 23
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 380
-LDI r6, 49
-LDI r7, 17
-LDI r8, 28
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a blue line from (430, 12) to (80, 249).
+; PLAN: r0=430(x1), r1=12(y1), r2=80(x2), r3=249(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 430
+LDI r1, 12
+LDI r2, 80
+LDI r3, 249
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

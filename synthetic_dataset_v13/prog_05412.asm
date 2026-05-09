@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 48 at center (336, 200).
-; PLAN: r0=336(x), r1=200(y), r2=48(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 336
-LDI r1, 200
-LDI r2, 48
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (206, 124) spanning 26 by 23 pixels.
+; PLAN: r0=206(x), r1=124(y), r2=26(width), r3=23(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 206
+LDI r1, 124
+LDI r2, 26
+LDI r3, 23
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

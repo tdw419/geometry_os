@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a orange disk with center (128, 71) and radius 59.
-; PLAN: r0=128(x), r1=71(y), r2=59(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 128
-LDI r1, 71
-LDI r2, 59
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue dot at position (380, 171).
+; PLAN: r0=380(x), r1=171(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 380
+LDI r1, 171
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

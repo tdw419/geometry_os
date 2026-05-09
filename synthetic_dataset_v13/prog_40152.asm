@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a purple circle of radius 18 at center (178, 85).
-; PLAN: r0=178(x), r1=85(y), r2=18(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 178
-LDI r1, 85
-LDI r2, 18
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan dot at position (170, 46).
+; PLAN: r0=170(x), r1=46(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 170
+LDI r1, 46
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Draws a green circle centered at (370, 167) with radius 55 then Sets a single white pixel at (371, 177).
-; PLAN: r0=370(x), r1=167(y), r2=55(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=371(x), r6=177(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 370
-LDI r1, 167
-LDI r2, 55
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 371
-LDI r6, 177
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
+; DESCRIPTION: Places a blue line segment connecting (500, 1) to (161, 247).
+; PLAN: r0=500(x1), r1=1(y1), r2=161(x2), r3=247(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 500
+LDI r1, 1
+LDI r2, 161
+LDI r3, 247
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

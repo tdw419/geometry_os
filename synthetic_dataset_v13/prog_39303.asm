@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan box of size 39x28 starting at (78, 76).
-; PLAN: r0=78(x), r1=76(y), r2=39(width), r3=28(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 78
-LDI r1, 76
-LDI r2, 39
-LDI r3, 28
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (271, 136) and radius 67.
+; PLAN: r0=271(x), r1=136(y), r2=67(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 271
+LDI r1, 136
+LDI r2, 67
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

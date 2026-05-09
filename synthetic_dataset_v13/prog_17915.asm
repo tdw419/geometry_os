@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (269, 84) and (499, 130).
-; PLAN: r0=269(x1), r1=84(y1), r2=499(x2), r3=130(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 269
-LDI r1, 84
-LDI r2, 499
-LDI r3, 130
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (335, 155) with radius 76.
+; PLAN: r0=335(x), r1=155(y), r2=76(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 335
+LDI r1, 155
+LDI r2, 76
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

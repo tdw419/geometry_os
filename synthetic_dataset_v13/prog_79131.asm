@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (400, 110) with radius 79.
-; PLAN: r0=400(x), r1=110(y), r2=79(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 400
-LDI r1, 110
-LDI r2, 79
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green line segment connecting (109, 140) to (216, 112).
+; PLAN: r0=109(x1), r1=140(y1), r2=216(x2), r3=112(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 109
+LDI r1, 140
+LDI r2, 216
+LDI r3, 112
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

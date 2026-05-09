@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 22 at center (310, 35).
-; PLAN: r0=310(x), r1=35(y), r2=22(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 310
-LDI r1, 35
-LDI r2, 22
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (208, 68) with width 57 and height 34.
+; PLAN: r0=208(x), r1=68(y), r2=57(width), r3=34(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 208
+LDI r1, 68
+LDI r2, 57
+LDI r3, 34
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

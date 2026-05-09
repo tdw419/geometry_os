@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (475, 196).
-; PLAN: r0=475(x), r1=196(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 475
-LDI r1, 196
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple line between points (399, 154) and (270, 242).
+; PLAN: r0=399(x1), r1=154(y1), r2=270(x2), r3=242(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 399
+LDI r1, 154
+LDI r2, 270
+LDI r3, 242
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

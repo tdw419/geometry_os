@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 10 at center (178, 242).
-; PLAN: r0=178(x), r1=242(y), r2=10(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 178
-LDI r1, 242
-LDI r2, 10
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (332, 125) and (301, 43).
+; PLAN: r0=332(x1), r1=125(y1), r2=301(x2), r3=43(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 332
+LDI r1, 125
+LDI r2, 301
+LDI r3, 43
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

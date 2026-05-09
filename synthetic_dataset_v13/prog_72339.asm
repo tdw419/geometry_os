@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (39, 245) to (265, 89).
-; PLAN: r0=39(x1), r1=245(y1), r2=265(x2), r3=89(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 39
-LDI r1, 245
-LDI r2, 265
-LDI r3, 89
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a cyan line from (83, 165) to (363, 182).
+; PLAN: r0=83(x1), r1=165(y1), r2=363(x2), r3=182(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 83
+LDI r1, 165
+LDI r2, 363
+LDI r3, 182
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

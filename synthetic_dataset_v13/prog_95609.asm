@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta line between points (474, 212) and (404, 66).
-; PLAN: r0=474(x1), r1=212(y1), r2=404(x2), r3=66(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 474
-LDI r1, 212
-LDI r2, 404
-LDI r3, 66
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (211, 26) with radius 21.
+; PLAN: r0=211(x), r1=26(y), r2=21(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 211
+LDI r1, 26
+LDI r2, 21
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

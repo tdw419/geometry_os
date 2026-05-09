@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 60x15 rectangle at position (320, 11).
-; PLAN: r0=320(x), r1=11(y), r2=60(width), r3=15(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 320
-LDI r1, 11
-LDI r2, 60
-LDI r3, 15
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (220, 115) and (310, 141).
+; PLAN: r0=220(x1), r1=115(y1), r2=310(x2), r3=141(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 115
+LDI r2, 310
+LDI r3, 141
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

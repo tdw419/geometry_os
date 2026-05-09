@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (140, 170) with radius 71.
-; PLAN: r0=140(x), r1=170(y), r2=71(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 140
-LDI r1, 170
-LDI r2, 71
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 32x39 rectangle at position (216, 46).
+; PLAN: r0=216(x), r1=46(y), r2=32(width), r3=39(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 216
+LDI r1, 46
+LDI r2, 32
+LDI r3, 39
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (137, 194) with radius 42.
-; PLAN: r0=137(x), r1=194(y), r2=42(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 137
-LDI r1, 194
-LDI r2, 42
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 19x92 rectangle at position (252, 26).
+; PLAN: r0=252(x), r1=26(y), r2=19(width), r3=92(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 252
+LDI r1, 26
+LDI r2, 19
+LDI r3, 92
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

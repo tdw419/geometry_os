@@ -1,12 +1,15 @@
-; DESCRIPTION: Composite: Draws a white circle centered at (349, 149) with radius 44 then Places a orange dot at position (187, 27).
-; PLAN: r0=349(x), r1=149(y), r2=44(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=187(x), r6=27(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 349
-LDI r1, 149
-LDI r2, 44
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 187
-LDI r6, 27
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Draws a white line from (373, 155) to (28, 70) then Places a cyan 87x116 rectangle at position (203, 94).
+; PLAN: r0=373(x1), r1=155(y1), r2=28(x2), r3=70(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=203(x), r6=94(y), r7=87(width), r8=116(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 373
+LDI r1, 155
+LDI r2, 28
+LDI r3, 70
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 203
+LDI r6, 94
+LDI r7, 87
+LDI r8, 116
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

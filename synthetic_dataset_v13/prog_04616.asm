@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a blue dot at position (247, 99).
-; PLAN: r0=247(x), r1=99(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 247
-LDI r1, 99
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black circle centered at (130, 83) with radius 76.
+; PLAN: r0=130(x), r1=83(y), r2=76(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 130
+LDI r1, 83
+LDI r2, 76
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

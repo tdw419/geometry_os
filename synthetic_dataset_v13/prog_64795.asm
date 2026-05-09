@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (391, 226) to (110, 122).
-; PLAN: r0=391(x1), r1=226(y1), r2=110(x2), r3=122(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 391
-LDI r1, 226
-LDI r2, 110
-LDI r3, 122
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (487, 135) with radius 18.
+; PLAN: r0=487(x), r1=135(y), r2=18(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 487
+LDI r1, 135
+LDI r2, 18
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

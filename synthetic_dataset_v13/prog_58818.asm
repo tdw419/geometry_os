@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a yellow line between points (310, 156) and (201, 103).
-; PLAN: r0=310(x1), r1=156(y1), r2=201(x2), r3=103(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 310
-LDI r1, 156
-LDI r2, 201
-LDI r3, 103
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

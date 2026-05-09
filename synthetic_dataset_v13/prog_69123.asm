@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (134, 43) and (426, 103).
-; PLAN: r0=134(x1), r1=43(y1), r2=426(x2), r3=103(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 134
-LDI r1, 43
-LDI r2, 426
-LDI r3, 103
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (341, 109) and radius 67.
+; PLAN: r0=341(x), r1=109(y), r2=67(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 341
+LDI r1, 109
+LDI r2, 67
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

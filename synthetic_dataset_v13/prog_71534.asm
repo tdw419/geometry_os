@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 47 at center (313, 74).
-; PLAN: r0=313(x), r1=74(y), r2=47(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 313
-LDI r1, 74
-LDI r2, 47
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange box of size 118x94 starting at (301, 27).
+; PLAN: r0=301(x), r1=27(y), r2=118(width), r3=94(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 301
+LDI r1, 27
+LDI r2, 118
+LDI r3, 94
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

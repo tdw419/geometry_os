@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (330, 196) with radius 57.
-; PLAN: r0=330(x), r1=196(y), r2=57(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 330
-LDI r1, 196
-LDI r2, 57
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 53x33 rectangle at position (370, 21).
+; PLAN: r0=370(x), r1=21(y), r2=53(width), r3=33(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 370
+LDI r1, 21
+LDI r2, 53
+LDI r3, 33
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

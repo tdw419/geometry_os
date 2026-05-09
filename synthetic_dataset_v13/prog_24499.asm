@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (441, 167) to (310, 246).
-; PLAN: r0=441(x1), r1=167(y1), r2=310(x2), r3=246(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 441
-LDI r1, 167
-LDI r2, 310
-LDI r3, 246
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a orange line between points (312, 63) and (257, 152).
+; PLAN: r0=312(x1), r1=63(y1), r2=257(x2), r3=152(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 312
+LDI r1, 63
+LDI r2, 257
+LDI r3, 152
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

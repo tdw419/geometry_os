@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (409, 59) to (231, 9).
-; PLAN: r0=409(x1), r1=59(y1), r2=231(x2), r3=9(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 409
-LDI r1, 59
-LDI r2, 231
-LDI r3, 9
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue box of size 49x112 starting at (361, 2).
+; PLAN: r0=361(x), r1=2(y), r2=49(width), r3=112(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 361
+LDI r1, 2
+LDI r2, 49
+LDI r3, 112
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

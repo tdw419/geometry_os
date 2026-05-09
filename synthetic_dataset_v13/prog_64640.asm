@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 93x67 rectangle at position (356, 151).
-; PLAN: r0=356(x), r1=151(y), r2=93(width), r3=67(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 151
-LDI r2, 93
-LDI r3, 67
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (60, 6) and (181, 250).
+; PLAN: r0=60(x1), r1=6(y1), r2=181(x2), r3=250(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 60
+LDI r1, 6
+LDI r2, 181
+LDI r3, 250
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

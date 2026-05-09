@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Renders a blue disk with center (246, 172) and radius 60 then Places a blue dot at position (185, 247).
-; PLAN: r0=246(x), r1=172(y), r2=60(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=185(x), r6=247(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 246
-LDI r1, 172
-LDI r2, 60
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 185
-LDI r6, 247
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Draws a purple line from (270, 103) to (291, 186).
+; PLAN: r0=270(x1), r1=103(y1), r2=291(x2), r3=186(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 270
+LDI r1, 103
+LDI r2, 291
+LDI r3, 186
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a orange line from (277, 105) to (271, 215).
-; PLAN: r0=277(x1), r1=105(y1), r2=271(x2), r3=215(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 277
-LDI r1, 105
-LDI r2, 271
-LDI r3, 215
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (353, 147).
+; PLAN: r0=353(x), r1=147(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 353
+LDI r1, 147
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

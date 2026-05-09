@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 98x61 rectangle at position (185, 3).
-; PLAN: r0=185(x), r1=3(y), r2=98(width), r3=61(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 185
-LDI r1, 3
-LDI r2, 98
-LDI r3, 61
-LDI r4, 0x00FF00
+; DESCRIPTION: Creates a white rectangular region at (230, 189) spanning 93 by 13 pixels.
+; PLAN: r0=230(x), r1=189(y), r2=93(width), r3=13(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 230
+LDI r1, 189
+LDI r2, 93
+LDI r3, 13
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

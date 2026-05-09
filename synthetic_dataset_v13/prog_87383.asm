@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (51, 13) to (311, 132).
-; PLAN: r0=51(x1), r1=13(y1), r2=311(x2), r3=132(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 51
-LDI r1, 13
-LDI r2, 311
-LDI r3, 132
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a black line from (323, 76) to (355, 125).
+; PLAN: r0=323(x1), r1=76(y1), r2=355(x2), r3=125(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 323
+LDI r1, 76
+LDI r2, 355
+LDI r3, 125
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

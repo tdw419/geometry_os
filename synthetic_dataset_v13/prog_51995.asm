@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a white rectangle at (54, 27) with width 23 and height 39.
-; PLAN: r0=54(x), r1=27(y), r2=23(width), r3=39(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 54
-LDI r1, 27
-LDI r2, 23
-LDI r3, 39
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

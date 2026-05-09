@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (84, 161) and (362, 89).
-; PLAN: r0=84(x1), r1=161(y1), r2=362(x2), r3=89(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 84
-LDI r1, 161
-LDI r2, 362
-LDI r3, 89
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 32 into r1 and decrements it in a loop until zero.
+; PLAN: r1=32(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 32
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

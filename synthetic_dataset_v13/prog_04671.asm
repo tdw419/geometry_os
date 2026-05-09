@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a cyan rectangular region at (258, 142) spanning 42 by 49 pixels.
-; PLAN: r0=258(x), r1=142(y), r2=42(width), r3=49(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 258
-LDI r1, 142
-LDI r2, 42
-LDI r3, 49
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (55, 154) with radius 36.
+; PLAN: r0=55(x), r1=154(y), r2=36(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 55
+LDI r1, 154
+LDI r2, 36
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

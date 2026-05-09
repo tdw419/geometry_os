@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a blue rectangle at (216, 14) with width 50 and height 39.
-; PLAN: r0=216(x), r1=14(y), r2=50(width), r3=39(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 216
-LDI r1, 14
-LDI r2, 50
-LDI r3, 39
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a cyan circle centered at (315, 164) with radius 47 then Places a white dot at position (437, 6).
+; PLAN: r0=315(x), r1=164(y), r2=47(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=437(x), r6=6(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 315
+LDI r1, 164
+LDI r2, 47
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 437
+LDI r6, 6
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

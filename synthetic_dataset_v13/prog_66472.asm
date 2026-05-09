@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (351, 83) and (499, 159).
-; PLAN: r0=351(x1), r1=83(y1), r2=499(x2), r3=159(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 351
-LDI r1, 83
-LDI r2, 499
-LDI r3, 159
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a green line from (160, 31) to (112, 12).
+; PLAN: r0=160(x1), r1=31(y1), r2=112(x2), r3=12(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 31
+LDI r2, 112
+LDI r3, 12
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

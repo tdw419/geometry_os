@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (20, 88) and (6, 47).
-; PLAN: r0=20(x1), r1=88(y1), r2=6(x2), r3=47(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 20
-LDI r1, 88
-LDI r2, 6
-LDI r3, 47
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a magenta line between points (171, 241) and (399, 178).
+; PLAN: r0=171(x1), r1=241(y1), r2=399(x2), r3=178(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 171
+LDI r1, 241
+LDI r2, 399
+LDI r3, 178
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

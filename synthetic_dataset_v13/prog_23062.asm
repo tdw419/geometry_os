@@ -1,8 +1,18 @@
-; DESCRIPTION: Creates a yellow circular shape at (419, 165) with radius 70.
-; PLAN: r0=419(x), r1=165(y), r2=70(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 419
-LDI r1, 165
-LDI r2, 70
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single purple pixel at (12, 126) then Draws a purple circle centered at (363, 179) with radius 69 then Renders a black line between points (412, 212) and (411, 17).
+; PLAN: r0=12(x), r1=126(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=363(x), r6=179(y), r7=69(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=412(x1), r11=212(y1), r12=411(x2), r13=17(y2), r14=0x000000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 12
+LDI r1, 126
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 363
+LDI r6, 179
+LDI r7, 69
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 412
+LDI r11, 212
+LDI r12, 411
+LDI r13, 17
+LDI r14, 0x000000
+LINE r10, r11, r12, r13, r14
 HALT

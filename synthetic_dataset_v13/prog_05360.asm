@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (7, 186) to (344, 154).
-; PLAN: r0=7(x1), r1=186(y1), r2=344(x2), r3=154(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 7
-LDI r1, 186
-LDI r2, 344
-LDI r3, 154
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a yellow line from (60, 180) to (321, 8).
+; PLAN: r0=60(x1), r1=180(y1), r2=321(x2), r3=8(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 60
+LDI r1, 180
+LDI r2, 321
+LDI r3, 8
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

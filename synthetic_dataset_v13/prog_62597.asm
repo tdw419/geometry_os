@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 61x26 rectangle at position (136, 132).
-; PLAN: r0=136(x), r1=132(y), r2=61(width), r3=26(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 136
-LDI r1, 132
-LDI r2, 61
-LDI r3, 26
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a purple rectangle at (79, 204) with width 35 and height 14.
+; PLAN: r0=79(x), r1=204(y), r2=35(width), r3=14(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 79
+LDI r1, 204
+LDI r2, 35
+LDI r3, 14
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

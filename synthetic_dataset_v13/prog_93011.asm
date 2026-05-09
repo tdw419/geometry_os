@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (54, 50) and (443, 181).
-; PLAN: r0=54(x1), r1=50(y1), r2=443(x2), r3=181(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 54
-LDI r1, 50
-LDI r2, 443
-LDI r3, 181
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 50 at center (109, 104).
+; PLAN: r0=109(x), r1=104(y), r2=50(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 109
+LDI r1, 104
+LDI r2, 50
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

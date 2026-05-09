@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (59, 115) and radius 53.
-; PLAN: r0=59(x), r1=115(y), r2=53(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 59
-LDI r1, 115
-LDI r2, 53
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (366, 107) to (235, 207).
+; PLAN: r0=366(x1), r1=107(y1), r2=235(x2), r3=207(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 366
+LDI r1, 107
+LDI r2, 235
+LDI r3, 207
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

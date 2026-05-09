@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 62x12 rectangle at position (85, 241).
-; PLAN: r0=85(x), r1=241(y), r2=62(width), r3=12(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 85
-LDI r1, 241
-LDI r2, 62
-LDI r3, 12
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (268, 104) and (231, 86).
+; PLAN: r0=268(x1), r1=104(y1), r2=231(x2), r3=86(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 268
+LDI r1, 104
+LDI r2, 231
+LDI r3, 86
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

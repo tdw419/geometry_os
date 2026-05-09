@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (408, 50) and radius 45.
-; PLAN: r0=408(x), r1=50(y), r2=45(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 408
-LDI r1, 50
-LDI r2, 45
-LDI r3, 0x000000
+; DESCRIPTION: Creates a magenta circular shape at (94, 216) with radius 20.
+; PLAN: r0=94(x), r1=216(y), r2=20(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 94
+LDI r1, 216
+LDI r2, 20
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

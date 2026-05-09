@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a magenta line between points (41, 179) and (476, 244).
-; PLAN: r0=41(x1), r1=179(y1), r2=476(x2), r3=244(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 41
-LDI r1, 179
-LDI r2, 476
-LDI r3, 244
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red circle of radius 28 at center (39, 215) then Places a cyan dot at position (147, 26).
+; PLAN: r0=39(x), r1=215(y), r2=28(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=147(x), r6=26(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 39
+LDI r1, 215
+LDI r2, 28
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 147
+LDI r6, 26
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

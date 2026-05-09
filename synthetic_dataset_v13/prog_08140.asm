@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (415, 95) with radius 62.
-; PLAN: r0=415(x), r1=95(y), r2=62(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 415
-LDI r1, 95
-LDI r2, 62
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 41x111 rectangle at position (6, 100).
+; PLAN: r0=6(x), r1=100(y), r2=41(width), r3=111(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 6
+LDI r1, 100
+LDI r2, 41
+LDI r3, 111
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

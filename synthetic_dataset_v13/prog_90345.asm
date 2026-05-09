@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 13x81 starting at (318, 118).
-; PLAN: r0=318(x), r1=118(y), r2=13(width), r3=81(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 318
-LDI r1, 118
-LDI r2, 13
-LDI r3, 81
-LDI r4, 0xAA00FF
+; DESCRIPTION: Creates a magenta rectangular region at (81, 136) spanning 39 by 116 pixels.
+; PLAN: r0=81(x), r1=136(y), r2=39(width), r3=116(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 81
+LDI r1, 136
+LDI r2, 39
+LDI r3, 116
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

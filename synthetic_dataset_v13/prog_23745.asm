@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (248, 29) spanning 37 by 40 pixels.
-; PLAN: r0=248(x), r1=29(y), r2=37(width), r3=40(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 248
-LDI r1, 29
-LDI r2, 37
-LDI r3, 40
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a purple 17x37 rectangle at position (352, 88).
+; PLAN: r0=352(x), r1=88(y), r2=17(width), r3=37(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 352
+LDI r1, 88
+LDI r2, 17
+LDI r3, 37
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

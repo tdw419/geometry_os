@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (442, 156) and radius 10.
-; PLAN: r0=442(x), r1=156(y), r2=10(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 442
-LDI r1, 156
-LDI r2, 10
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (90, 164) and (55, 175).
+; PLAN: r0=90(x1), r1=164(y1), r2=55(x2), r3=175(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 90
+LDI r1, 164
+LDI r2, 55
+LDI r3, 175
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

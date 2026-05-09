@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a purple circular shape at (372, 49) with radius 15.
-; PLAN: r0=372(x), r1=49(y), r2=15(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 372
-LDI r1, 49
-LDI r2, 15
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (312, 89).
+; PLAN: r0=312(x), r1=89(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 312
+LDI r1, 89
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

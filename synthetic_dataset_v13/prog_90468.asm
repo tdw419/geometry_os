@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red box of size 87x80 starting at (135, 65).
-; PLAN: r0=135(x), r1=65(y), r2=87(width), r3=80(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 135
+; DESCRIPTION: Creates a orange circular shape at (171, 65) with radius 46.
+; PLAN: r0=171(x), r1=65(y), r2=46(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 171
 LDI r1, 65
-LDI r2, 87
-LDI r3, 80
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LDI r2, 46
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

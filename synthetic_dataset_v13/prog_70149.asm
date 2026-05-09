@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (368, 161) then Places a red 106x31 rectangle at position (291, 128).
-; PLAN: r0=368(x), r1=161(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=291(x), r6=128(y), r7=106(width), r8=31(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 368
-LDI r1, 161
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 291
-LDI r6, 128
-LDI r7, 106
-LDI r8, 31
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a magenta line from (199, 189) to (120, 41).
+; PLAN: r0=199(x1), r1=189(y1), r2=120(x2), r3=41(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 199
+LDI r1, 189
+LDI r2, 120
+LDI r3, 41
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

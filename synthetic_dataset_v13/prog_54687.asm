@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (29, 15) and (32, 198).
-; PLAN: r0=29(x1), r1=15(y1), r2=32(x2), r3=198(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 29
-LDI r1, 15
-LDI r2, 32
-LDI r3, 198
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white circle of radius 54 at center (380, 129).
+; PLAN: r0=380(x), r1=129(y), r2=54(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 380
+LDI r1, 129
+LDI r2, 54
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

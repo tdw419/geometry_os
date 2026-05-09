@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a green box of size 80x14 starting at (174, 131).
-; PLAN: r0=174(x), r1=131(y), r2=80(width), r3=14(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 174
-LDI r1, 131
-LDI r2, 80
-LDI r3, 14
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (468, 87).
+; PLAN: r0=468(x), r1=87(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 468
+LDI r1, 87
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (384, 157) spanning 17 by 58 pixels.
-; PLAN: r0=384(x), r1=157(y), r2=17(width), r3=58(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 384
-LDI r1, 157
-LDI r2, 17
-LDI r3, 58
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a black 25x18 rectangle at position (124, 63).
+; PLAN: r0=124(x), r1=63(y), r2=25(width), r3=18(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 124
+LDI r1, 63
+LDI r2, 25
+LDI r3, 18
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

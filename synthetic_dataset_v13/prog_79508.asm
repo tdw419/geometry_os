@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (305, 142) and (95, 155).
-; PLAN: r0=305(x1), r1=142(y1), r2=95(x2), r3=155(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 305
-LDI r1, 142
-LDI r2, 95
-LDI r3, 155
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 37 at center (159, 66).
+; PLAN: r0=159(x), r1=66(y), r2=37(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 159
+LDI r1, 66
+LDI r2, 37
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

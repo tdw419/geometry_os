@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (443, 224) to (398, 160).
-; PLAN: r0=443(x1), r1=224(y1), r2=398(x2), r3=160(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 443
+; DESCRIPTION: Places a blue circle of radius 23 at center (459, 224).
+; PLAN: r0=459(x), r1=224(y), r2=23(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 459
 LDI r1, 224
-LDI r2, 398
-LDI r3, 160
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+LDI r2, 23
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

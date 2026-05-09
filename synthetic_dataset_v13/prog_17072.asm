@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 118x18 rectangle at position (315, 128).
-; PLAN: r0=315(x), r1=128(y), r2=118(width), r3=18(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 315
-LDI r1, 128
-LDI r2, 118
-LDI r3, 18
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (373, 118) with radius 28.
+; PLAN: r0=373(x), r1=118(y), r2=28(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 373
+LDI r1, 118
+LDI r2, 28
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

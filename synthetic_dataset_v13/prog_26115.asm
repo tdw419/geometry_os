@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (15, 192).
-; PLAN: r0=15(x), r1=192(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 15
-LDI r1, 192
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow line between points (116, 129) and (251, 218).
+; PLAN: r0=116(x1), r1=129(y1), r2=251(x2), r3=218(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 116
+LDI r1, 129
+LDI r2, 251
+LDI r3, 218
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

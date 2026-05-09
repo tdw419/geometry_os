@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 28 into r1 and decrements it in a loop until zero.
-; PLAN: r1=28(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 28
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a cyan disk with center (297, 90) and radius 54.
+; PLAN: r0=297(x), r1=90(y), r2=54(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 297
+LDI r1, 90
+LDI r2, 54
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a magenta disk with center (47, 237) and radius 18.
-; PLAN: r0=47(x), r1=237(y), r2=18(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 47
-LDI r1, 237
-LDI r2, 18
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

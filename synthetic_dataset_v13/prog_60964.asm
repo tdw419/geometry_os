@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a blue rectangular region at (337, 86) spanning 119 by 107 pixels.
-; PLAN: r0=337(x), r1=86(y), r2=119(width), r3=107(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 337
-LDI r1, 86
-LDI r2, 119
-LDI r3, 107
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (427, 71) and radius 39.
+; PLAN: r0=427(x), r1=71(y), r2=39(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 427
+LDI r1, 71
+LDI r2, 39
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

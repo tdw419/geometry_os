@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a orange rectangle at (12, 19) with width 63 and height 73.
-; PLAN: r0=12(x), r1=19(y), r2=63(width), r3=73(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 12
-LDI r1, 19
-LDI r2, 63
-LDI r3, 73
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a red line from (113, 184) to (130, 170) then Creates a purple circular shape at (228, 128) with radius 66.
+; PLAN: r0=113(x1), r1=184(y1), r2=130(x2), r3=170(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=228(x), r6=128(y), r7=66(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 113
+LDI r1, 184
+LDI r2, 130
+LDI r3, 170
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
+LDI r5, 228
+LDI r6, 128
+LDI r7, 66
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

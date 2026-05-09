@@ -1,8 +1,13 @@
-; DESCRIPTION: Places a green circle of radius 37 at center (178, 211).
-; PLAN: r0=178(x), r1=211(y), r2=37(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 178
-LDI r1, 211
-LDI r2, 37
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a cyan dot at position (170, 131) then Draws a yellow rectangle at (253, 208) with width 15 and height 46.
+; PLAN: r0=170(x), r1=131(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=253(x), r6=208(y), r7=15(width), r8=46(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 170
+LDI r1, 131
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 253
+LDI r6, 208
+LDI r7, 15
+LDI r8, 46
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
 HALT

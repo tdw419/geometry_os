@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (251, 46).
-; PLAN: r0=251(x), r1=46(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 251
-LDI r1, 46
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black line from (246, 88) to (220, 146).
+; PLAN: r0=246(x1), r1=88(y1), r2=220(x2), r3=146(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 246
+LDI r1, 88
+LDI r2, 220
+LDI r3, 146
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

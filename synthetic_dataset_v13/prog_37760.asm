@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (278, 190) with radius 12.
-; PLAN: r0=278(x), r1=190(y), r2=12(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 278
-LDI r1, 190
-LDI r2, 12
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 107x15 rectangle at position (30, 17).
+; PLAN: r0=30(x), r1=17(y), r2=107(width), r3=15(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 30
+LDI r1, 17
+LDI r2, 107
+LDI r3, 15
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

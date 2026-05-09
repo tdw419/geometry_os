@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 41x26 rectangle at position (388, 189).
-; PLAN: r0=388(x), r1=189(y), r2=41(width), r3=26(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 388
-LDI r1, 189
-LDI r2, 41
-LDI r3, 26
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (180, 143) with radius 37.
+; PLAN: r0=180(x), r1=143(y), r2=37(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 180
+LDI r1, 143
+LDI r2, 37
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

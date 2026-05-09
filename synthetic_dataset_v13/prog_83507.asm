@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (10, 76).
-; PLAN: r0=10(x), r1=76(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 10
-LDI r1, 76
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Places a green line segment connecting (390, 40) to (156, 63).
+; PLAN: r0=390(x1), r1=40(y1), r2=156(x2), r3=63(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 390
+LDI r1, 40
+LDI r2, 156
+LDI r3, 63
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

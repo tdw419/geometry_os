@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a red circle of radius 78 at center (344, 106).
-; PLAN: r0=344(x), r1=106(y), r2=78(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 344
-LDI r1, 106
-LDI r2, 78
-LDI r3, 0xFF0000
+; DESCRIPTION: Creates a cyan circular shape at (82, 188) with radius 68.
+; PLAN: r0=82(x), r1=188(y), r2=68(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 82
+LDI r1, 188
+LDI r2, 68
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

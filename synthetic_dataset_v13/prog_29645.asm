@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 87x29 rectangle at position (379, 69).
-; PLAN: r0=379(x), r1=69(y), r2=87(width), r3=29(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 379
-LDI r1, 69
-LDI r2, 87
-LDI r3, 29
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (407, 203) with radius 20.
+; PLAN: r0=407(x), r1=203(y), r2=20(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 407
+LDI r1, 203
+LDI r2, 20
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

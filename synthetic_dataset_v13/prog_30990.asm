@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 99x63 rectangle at position (388, 18).
-; PLAN: r0=388(x), r1=18(y), r2=99(width), r3=63(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 388
-LDI r1, 18
-LDI r2, 99
-LDI r3, 63
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (220, 115) with radius 28.
+; PLAN: r0=220(x), r1=115(y), r2=28(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 220
+LDI r1, 115
+LDI r2, 28
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

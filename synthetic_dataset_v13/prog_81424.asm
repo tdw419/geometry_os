@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Draws a purple rectangle at (270, 95) with width 95 and height 13 then Places a black dot at position (444, 252).
-; PLAN: r0=270(x), r1=95(y), r2=95(width), r3=13(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=444(x), r6=252(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 270
-LDI r1, 95
-LDI r2, 95
-LDI r3, 13
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a black rectangle at (248, 103) with width 86 and height 12.
+; PLAN: r0=248(x), r1=103(y), r2=86(width), r3=12(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 103
+LDI r2, 86
+LDI r3, 12
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
-LDI r5, 444
-LDI r6, 252
-LDI r7, 0x000000
-PSET r5, r6, r7
 HALT

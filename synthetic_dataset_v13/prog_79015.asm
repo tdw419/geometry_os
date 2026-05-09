@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a black circle of radius 19 at center (391, 108) then Places a orange dot at position (364, 33).
-; PLAN: r0=391(x), r1=108(y), r2=19(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=364(x), r6=33(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 391
-LDI r1, 108
-LDI r2, 19
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 364
-LDI r6, 33
-LDI r7, 0xFF8800
-PSET r5, r6, r7
+; DESCRIPTION: Renders a magenta line between points (437, 227) and (302, 217).
+; PLAN: r0=437(x1), r1=227(y1), r2=302(x2), r3=217(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 437
+LDI r1, 227
+LDI r2, 302
+LDI r3, 217
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

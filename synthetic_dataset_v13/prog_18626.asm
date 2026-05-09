@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple box of size 109x118 starting at (183, 10).
-; PLAN: r0=183(x), r1=10(y), r2=109(width), r3=118(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 183
-LDI r1, 10
-LDI r2, 109
-LDI r3, 118
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (210, 140) with radius 38.
+; PLAN: r0=210(x), r1=140(y), r2=38(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 210
+LDI r1, 140
+LDI r2, 38
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

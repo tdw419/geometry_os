@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (454, 140) to (53, 242).
-; PLAN: r0=454(x1), r1=140(y1), r2=53(x2), r3=242(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 454
-LDI r1, 140
-LDI r2, 53
-LDI r3, 242
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple rectangular region at (217, 121) spanning 114 by 78 pixels.
+; PLAN: r0=217(x), r1=121(y), r2=114(width), r3=78(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 217
+LDI r1, 121
+LDI r2, 114
+LDI r3, 78
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

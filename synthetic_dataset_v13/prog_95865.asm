@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (240, 159) and radius 46.
-; PLAN: r0=240(x), r1=159(y), r2=46(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 240
-LDI r1, 159
-LDI r2, 46
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan line segment connecting (331, 167) to (281, 121).
+; PLAN: r0=331(x1), r1=167(y1), r2=281(x2), r3=121(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 331
+LDI r1, 167
+LDI r2, 281
+LDI r3, 121
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

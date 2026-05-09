@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a red dot at position (233, 241).
-; PLAN: r0=233(x), r1=241(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 233
-LDI r1, 241
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a green rectangle at (279, 60) with width 115 and height 102.
+; PLAN: r0=279(x), r1=60(y), r2=115(width), r3=102(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 279
+LDI r1, 60
+LDI r2, 115
+LDI r3, 102
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

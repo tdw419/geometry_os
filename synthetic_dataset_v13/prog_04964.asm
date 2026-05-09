@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a black dot at position (309, 12).
-; PLAN: r0=309(x), r1=12(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 309
-LDI r1, 12
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Paints the whole screen orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

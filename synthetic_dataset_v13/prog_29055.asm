@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue box of size 119x59 starting at (186, 19).
-; PLAN: r0=186(x), r1=19(y), r2=119(width), r3=59(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 186
-LDI r1, 19
-LDI r2, 119
-LDI r3, 59
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple circle of radius 18 at center (193, 167).
+; PLAN: r0=193(x), r1=167(y), r2=18(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 193
+LDI r1, 167
+LDI r2, 18
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

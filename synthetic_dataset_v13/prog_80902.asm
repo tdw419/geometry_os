@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (39, 58) spanning 86 by 24 pixels.
-; PLAN: r0=39(x), r1=58(y), r2=86(width), r3=24(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 39
-LDI r1, 58
-LDI r2, 86
-LDI r3, 24
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a cyan 119x81 rectangle at position (379, 142).
+; PLAN: r0=379(x), r1=142(y), r2=119(width), r3=81(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 379
+LDI r1, 142
+LDI r2, 119
+LDI r3, 81
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

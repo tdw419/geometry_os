@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a purple dot at position (492, 185) then Creates a purple circular shape at (316, 180) with radius 55.
-; PLAN: r0=492(x), r1=185(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=316(x), r6=180(y), r7=55(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 492
-LDI r1, 185
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 316
-LDI r6, 180
-LDI r7, 55
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a orange 23x52 rectangle at position (112, 58).
+; PLAN: r0=112(x), r1=58(y), r2=23(width), r3=52(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 112
+LDI r1, 58
+LDI r2, 23
+LDI r3, 52
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

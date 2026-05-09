@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 42 at center (78, 127).
-; PLAN: r0=78(x), r1=127(y), r2=42(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 78
-LDI r1, 127
-LDI r2, 42
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (4, 64) to (408, 32).
+; PLAN: r0=4(x1), r1=64(y1), r2=408(x2), r3=32(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 4
+LDI r1, 64
+LDI r2, 408
+LDI r3, 32
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

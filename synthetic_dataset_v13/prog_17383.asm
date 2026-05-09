@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a white disk with center (114, 160) and radius 77.
-; PLAN: r0=114(x), r1=160(y), r2=77(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 114
-LDI r1, 160
-LDI r2, 77
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single red pixel at (88, 21).
+; PLAN: r0=88(x), r1=21(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 88
+LDI r1, 21
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

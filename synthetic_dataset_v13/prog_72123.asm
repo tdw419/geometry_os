@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (461, 61) then Renders a white box of size 76x44 starting at (338, 192).
-; PLAN: r0=461(x), r1=61(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=338(x), r6=192(y), r7=76(width), r8=44(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 461
-LDI r1, 61
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 338
-LDI r6, 192
-LDI r7, 76
-LDI r8, 44
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a orange line from (139, 64) to (279, 234) then Draws a cyan circle centered at (395, 80) with radius 77.
+; PLAN: r0=139(x1), r1=64(y1), r2=279(x2), r3=234(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=395(x), r6=80(y), r7=77(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 139
+LDI r1, 64
+LDI r2, 279
+LDI r3, 234
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 395
+LDI r6, 80
+LDI r7, 77
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

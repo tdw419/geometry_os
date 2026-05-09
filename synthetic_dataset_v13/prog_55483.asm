@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 57x77 rectangle at position (61, 79).
-; PLAN: r0=61(x), r1=79(y), r2=57(width), r3=77(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 61
-LDI r1, 79
-LDI r2, 57
-LDI r3, 77
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red line segment connecting (469, 188) to (276, 43).
+; PLAN: r0=469(x1), r1=188(y1), r2=276(x2), r3=43(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 469
+LDI r1, 188
+LDI r2, 276
+LDI r3, 43
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

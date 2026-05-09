@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a yellow 97x92 rectangle at position (105, 103).
-; PLAN: r0=105(x), r1=103(y), r2=97(width), r3=92(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 105
-LDI r1, 103
-LDI r2, 97
-LDI r3, 92
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (82, 249) then Places a purple 111x21 rectangle at position (325, 82).
+; PLAN: r0=82(x), r1=249(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=325(x), r6=82(y), r7=111(width), r8=21(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 82
+LDI r1, 249
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 325
+LDI r6, 82
+LDI r7, 111
+LDI r8, 21
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

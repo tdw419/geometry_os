@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (198, 163) spanning 14 by 91 pixels.
-; PLAN: r0=198(x), r1=163(y), r2=14(width), r3=91(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 198
-LDI r1, 163
-LDI r2, 14
-LDI r3, 91
-LDI r4, 0x000000
+; DESCRIPTION: Renders a magenta box of size 66x19 starting at (164, 130).
+; PLAN: r0=164(x), r1=130(y), r2=66(width), r3=19(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 130
+LDI r2, 66
+LDI r3, 19
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

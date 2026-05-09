@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a green rectangle at (365, 37) with width 106 and height 94.
-; PLAN: r0=365(x), r1=37(y), r2=106(width), r3=94(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 365
-LDI r1, 37
-LDI r2, 106
-LDI r3, 94
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (473, 169) then Draws a blue line from (134, 189) to (441, 43).
+; PLAN: r0=473(x), r1=169(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=134(x1), r6=189(y1), r7=441(x2), r8=43(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 473
+LDI r1, 169
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 134
+LDI r6, 189
+LDI r7, 441
+LDI r8, 43
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

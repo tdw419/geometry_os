@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (352, 95) spanning 23 by 44 pixels.
-; PLAN: r0=352(x), r1=95(y), r2=23(width), r3=44(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 352
-LDI r1, 95
-LDI r2, 23
-LDI r3, 44
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a yellow 118x64 rectangle at position (334, 75).
+; PLAN: r0=334(x), r1=75(y), r2=118(width), r3=64(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 334
+LDI r1, 75
+LDI r2, 118
+LDI r3, 64
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

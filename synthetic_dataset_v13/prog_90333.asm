@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 79 at center (290, 168).
-; PLAN: r0=290(x), r1=168(y), r2=79(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 290
-LDI r1, 168
-LDI r2, 79
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (409, 76) and (44, 254).
+; PLAN: r0=409(x1), r1=76(y1), r2=44(x2), r3=254(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 409
+LDI r1, 76
+LDI r2, 44
+LDI r3, 254
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

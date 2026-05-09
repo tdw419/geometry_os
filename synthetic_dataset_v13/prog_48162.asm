@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a magenta dot at position (433, 7).
-; PLAN: r0=433(x), r1=7(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 433
-LDI r1, 7
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a yellow circular shape at (446, 209) with radius 42.
+; PLAN: r0=446(x), r1=209(y), r2=42(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 446
+LDI r1, 209
+LDI r2, 42
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

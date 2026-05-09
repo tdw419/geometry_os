@@ -1,9 +1,18 @@
-; DESCRIPTION: Creates a orange rectangular region at (200, 196) spanning 118 by 21 pixels.
-; PLAN: r0=200(x), r1=196(y), r2=118(width), r3=21(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 200
-LDI r1, 196
-LDI r2, 118
-LDI r3, 21
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan circle of radius 17 at center (485, 171) then Sets a single cyan pixel at (401, 241) then Places a green line segment connecting (9, 30) to (285, 19).
+; PLAN: r0=485(x), r1=171(y), r2=17(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=401(x), r6=241(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=9(x1), r11=30(y1), r12=285(x2), r13=19(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 485
+LDI r1, 171
+LDI r2, 17
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 401
+LDI r6, 241
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
+LDI r10, 9
+LDI r11, 30
+LDI r12, 285
+LDI r13, 19
+LDI r14, 0x00FF00
+LINE r10, r11, r12, r13, r14
 HALT

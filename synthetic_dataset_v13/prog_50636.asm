@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (392, 125) with radius 56.
-; PLAN: r0=392(x), r1=125(y), r2=56(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 392
-LDI r1, 125
-LDI r2, 56
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (299, 53) and (509, 64).
+; PLAN: r0=299(x1), r1=53(y1), r2=509(x2), r3=64(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 299
+LDI r1, 53
+LDI r2, 509
+LDI r3, 64
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

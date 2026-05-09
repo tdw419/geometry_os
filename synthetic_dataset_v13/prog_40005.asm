@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a red disk with center (366, 43) and radius 30.
-; PLAN: r0=366(x), r1=43(y), r2=30(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 366
-LDI r1, 43
-LDI r2, 30
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (361, 64).
+; PLAN: r0=361(x), r1=64(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 361
+LDI r1, 64
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

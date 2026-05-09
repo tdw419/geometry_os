@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (501, 27) to (113, 44).
-; PLAN: r0=501(x1), r1=27(y1), r2=113(x2), r3=44(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 501
-LDI r1, 27
-LDI r2, 113
-LDI r3, 44
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue 108x27 rectangle at position (62, 214).
+; PLAN: r0=62(x), r1=214(y), r2=108(width), r3=27(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 62
+LDI r1, 214
+LDI r2, 108
+LDI r3, 27
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

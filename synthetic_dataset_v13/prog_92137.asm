@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 15x19 starting at (242, 116).
-; PLAN: r0=242(x), r1=116(y), r2=15(width), r3=19(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 242
-LDI r1, 116
-LDI r2, 15
-LDI r3, 19
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (69, 94) and radius 59.
+; PLAN: r0=69(x), r1=94(y), r2=59(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 69
+LDI r1, 94
+LDI r2, 59
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

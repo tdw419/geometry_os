@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 71x13 starting at (212, 200).
-; PLAN: r0=212(x), r1=200(y), r2=71(width), r3=13(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 212
-LDI r1, 200
-LDI r2, 71
-LDI r3, 13
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (130, 249) to (214, 175).
+; PLAN: r0=130(x1), r1=249(y1), r2=214(x2), r3=175(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 130
+LDI r1, 249
+LDI r2, 214
+LDI r3, 175
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

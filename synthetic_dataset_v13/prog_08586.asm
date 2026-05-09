@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Draws a cyan line from (55, 214) to (243, 141) then Renders a green disk with center (80, 190) and radius 42 then Places a magenta dot at position (32, 205).
-; PLAN: r0=55(x1), r1=214(y1), r2=243(x2), r3=141(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=80(x), r6=190(y), r7=42(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=32(x), r11=205(y), r12=0xFF00FF(color). Op: PSET r10, r11, r12.
-LDI r0, 55
-LDI r1, 214
-LDI r2, 243
-LDI r3, 141
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 80
-LDI r6, 190
-LDI r7, 42
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
-LDI r10, 32
-LDI r11, 205
-LDI r12, 0xFF00FF
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Places a black dot at position (15, 127) then Creates a yellow rectangular region at (31, 151) spanning 85 by 53 pixels then Places a purple line segment connecting (195, 72) to (413, 236).
+; PLAN: r0=15(x), r1=127(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=31(x), r6=151(y), r7=85(width), r8=53(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=195(x1), r11=72(y1), r12=413(x2), r13=236(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 15
+LDI r1, 127
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 31
+LDI r6, 151
+LDI r7, 85
+LDI r8, 53
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 195
+LDI r11, 72
+LDI r12, 413
+LDI r13, 236
+LDI r14, 0xAA00FF
+LINE r10, r11, r12, r13, r14
 HALT

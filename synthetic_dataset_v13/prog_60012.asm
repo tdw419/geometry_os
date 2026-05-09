@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Renders a red line between points (109, 216) and (55, 40) then Places a red circle of radius 37 at center (204, 177).
-; PLAN: r0=109(x1), r1=216(y1), r2=55(x2), r3=40(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=204(x), r6=177(y), r7=37(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 109
-LDI r1, 216
-LDI r2, 55
-LDI r3, 40
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
-LDI r5, 204
-LDI r6, 177
-LDI r7, 37
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Draws a white rectangle at (283, 118) with width 49 and height 51 then Places a yellow dot at position (421, 217) then Creates a cyan circular shape at (192, 118) with radius 76.
+; PLAN: r0=283(x), r1=118(y), r2=49(width), r3=51(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=421(x), r6=217(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=192(x), r11=118(y), r12=76(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 283
+LDI r1, 118
+LDI r2, 49
+LDI r3, 51
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 421
+LDI r6, 217
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
+LDI r10, 192
+LDI r11, 118
+LDI r12, 76
+LDI r13, 0x00FFFF
+CIRCLE r10, r11, r12, r13
 HALT

@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Renders a orange disk with center (489, 230) and radius 15.
+; PLAN: r0=489(x), r1=230(y), r2=15(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 489
+LDI r1, 230
+LDI r2, 15
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

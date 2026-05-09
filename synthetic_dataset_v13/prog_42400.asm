@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a magenta circle centered at (283, 99) with radius 44.
-; PLAN: r0=283(x), r1=99(y), r2=44(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 283
-LDI r1, 99
-LDI r2, 44
-LDI r3, 0xFF00FF
+; DESCRIPTION: Places a red circle of radius 74 at center (256, 86).
+; PLAN: r0=256(x), r1=86(y), r2=74(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 256
+LDI r1, 86
+LDI r2, 74
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

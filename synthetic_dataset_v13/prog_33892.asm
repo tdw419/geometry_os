@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 47 into r1 and decrements it in a loop until zero.
-; PLAN: r1=47(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 47
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a blue circle of radius 21 at center (173, 81).
+; PLAN: r0=173(x), r1=81(y), r2=21(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 173
+LDI r1, 81
+LDI r2, 21
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

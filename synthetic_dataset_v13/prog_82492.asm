@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (284, 112) and (269, 205).
-; PLAN: r0=284(x1), r1=112(y1), r2=269(x2), r3=205(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 112
-LDI r2, 269
-LDI r3, 205
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 19 at center (304, 30).
+; PLAN: r0=304(x), r1=30(y), r2=19(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 304
+LDI r1, 30
+LDI r2, 19
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

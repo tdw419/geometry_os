@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (351, 149) and (414, 144).
-; PLAN: r0=351(x1), r1=149(y1), r2=414(x2), r3=144(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 351
-LDI r1, 149
-LDI r2, 414
-LDI r3, 144
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 59x119 starting at (363, 100).
+; PLAN: r0=363(x), r1=100(y), r2=59(width), r3=119(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 363
+LDI r1, 100
+LDI r2, 59
+LDI r3, 119
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

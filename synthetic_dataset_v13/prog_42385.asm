@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 78 at center (352, 138).
-; PLAN: r0=352(x), r1=138(y), r2=78(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 352
-LDI r1, 138
-LDI r2, 78
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green box of size 116x64 starting at (180, 56).
+; PLAN: r0=180(x), r1=56(y), r2=116(width), r3=64(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 180
+LDI r1, 56
+LDI r2, 116
+LDI r3, 64
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

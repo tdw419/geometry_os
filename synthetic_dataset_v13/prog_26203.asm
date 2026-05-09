@@ -1,9 +1,14 @@
-; DESCRIPTION: Creates a yellow rectangular region at (30, 135) spanning 54 by 81 pixels.
-; PLAN: r0=30(x), r1=135(y), r2=54(width), r3=81(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 30
-LDI r1, 135
-LDI r2, 54
-LDI r3, 81
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a blue line from (23, 32) to (450, 20) then Draws a magenta circle centered at (444, 95) with radius 54.
+; PLAN: r0=23(x1), r1=32(y1), r2=450(x2), r3=20(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=444(x), r6=95(y), r7=54(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 23
+LDI r1, 32
+LDI r2, 450
+LDI r3, 20
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 444
+LDI r6, 95
+LDI r7, 54
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

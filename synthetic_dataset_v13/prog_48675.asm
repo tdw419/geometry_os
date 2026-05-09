@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue rectangle at (182, 235) with width 89 and height 14.
-; PLAN: r0=182(x), r1=235(y), r2=89(width), r3=14(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 182
-LDI r1, 235
-LDI r2, 89
-LDI r3, 14
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 19 at center (254, 197).
+; PLAN: r0=254(x), r1=197(y), r2=19(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 254
+LDI r1, 197
+LDI r2, 19
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

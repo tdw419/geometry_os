@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (43, 157) then Renders a red line between points (172, 108) and (76, 158).
-; PLAN: r0=43(x), r1=157(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=172(x1), r6=108(y1), r7=76(x2), r8=158(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 43
-LDI r1, 157
-LDI r2, 0x0000FF
+; DESCRIPTION: Composite: Places a orange dot at position (275, 242) then Places a purple circle of radius 45 at center (197, 54) then Places a purple line segment connecting (119, 39) to (155, 34).
+; PLAN: r0=275(x), r1=242(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=197(x), r6=54(y), r7=45(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=119(x1), r11=39(y1), r12=155(x2), r13=34(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 275
+LDI r1, 242
+LDI r2, 0xFF8800
 PSET r0, r1, r2
-LDI r5, 172
-LDI r6, 108
-LDI r7, 76
-LDI r8, 158
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+LDI r5, 197
+LDI r6, 54
+LDI r7, 45
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 119
+LDI r11, 39
+LDI r12, 155
+LDI r13, 34
+LDI r14, 0xAA00FF
+LINE r10, r11, r12, r13, r14
 HALT

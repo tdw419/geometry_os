@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 70x119 starting at (199, 136).
-; PLAN: r0=199(x), r1=136(y), r2=70(width), r3=119(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 199
-LDI r1, 136
-LDI r2, 70
-LDI r3, 119
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (401, 91) to (122, 110).
+; PLAN: r0=401(x1), r1=91(y1), r2=122(x2), r3=110(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 401
+LDI r1, 91
+LDI r2, 122
+LDI r3, 110
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

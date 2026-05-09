@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple rectangle at (133, 51) with width 43 and height 25.
-; PLAN: r0=133(x), r1=51(y), r2=43(width), r3=25(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 133
-LDI r1, 51
-LDI r2, 43
-LDI r3, 25
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 28 at center (411, 73).
+; PLAN: r0=411(x), r1=73(y), r2=28(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 411
+LDI r1, 73
+LDI r2, 28
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

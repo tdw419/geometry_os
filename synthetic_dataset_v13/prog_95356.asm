@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a magenta circle centered at (412, 185) with radius 22.
-; PLAN: r0=412(x), r1=185(y), r2=22(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 412
-LDI r1, 185
-LDI r2, 22
-LDI r3, 0xFF00FF
+; DESCRIPTION: Creates a orange circular shape at (202, 88) with radius 19.
+; PLAN: r0=202(x), r1=88(y), r2=19(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 202
+LDI r1, 88
+LDI r2, 19
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

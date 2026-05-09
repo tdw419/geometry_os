@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a black circle of radius 24 at center (298, 128).
-; PLAN: r0=298(x), r1=128(y), r2=24(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 298
-LDI r1, 128
-LDI r2, 24
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 12 into r1 and decrements it in a loop until zero.
+; PLAN: r1=12(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 12
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

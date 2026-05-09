@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow line from (116, 166) to (331, 216).
-; PLAN: r0=116(x1), r1=166(y1), r2=331(x2), r3=216(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 116
-LDI r1, 166
-LDI r2, 331
-LDI r3, 216
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange circle of radius 69 at center (201, 75).
+; PLAN: r0=201(x), r1=75(y), r2=69(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 201
+LDI r1, 75
+LDI r2, 69
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

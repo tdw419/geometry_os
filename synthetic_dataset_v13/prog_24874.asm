@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a blue line between points (393, 225) and (190, 94).
-; PLAN: r0=393(x1), r1=225(y1), r2=190(x2), r3=94(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 225
-LDI r2, 190
-LDI r3, 94
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a white box of size 109x80 starting at (354, 60) then Sets a single purple pixel at (201, 21).
+; PLAN: r0=354(x), r1=60(y), r2=109(width), r3=80(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=201(x), r6=21(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 354
+LDI r1, 60
+LDI r2, 109
+LDI r3, 80
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 201
+LDI r6, 21
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Renders a black disk with center (358, 70) and radius 65 then Renders a green line between points (81, 81) and (249, 122).
-; PLAN: r0=358(x), r1=70(y), r2=65(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=81(x1), r6=81(y1), r7=249(x2), r8=122(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 358
-LDI r1, 70
-LDI r2, 65
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 81
-LDI r6, 81
-LDI r7, 249
-LDI r8, 122
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a cyan dot at position (7, 230) then Creates a green circular shape at (290, 174) with radius 73.
+; PLAN: r0=7(x), r1=230(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=290(x), r6=174(y), r7=73(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 7
+LDI r1, 230
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 290
+LDI r6, 174
+LDI r7, 73
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

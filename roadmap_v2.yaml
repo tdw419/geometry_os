@@ -5129,7 +5129,7 @@ phases:
     validation: docs/PERFORMANCE_BENCHMARK.md updated
 - id: phase-291
   title: GeOS VM -- ops_host_fs.rs Unit Test Suite
-  status: todo
+  status: done
   goal: Add comprehensive unit tests for host filesystem operations (ops_host_fs.rs,
     1527 LOC, currently 1 test).
   description: 'ops_host_fs.rs handles real filesystem access from the VM (host file
@@ -5139,18 +5139,19 @@ phases:
     files, binary files).'
   deliverables:
   - name: Unit tests for host file read/write operations
-    status: planned
+    status: done
   - name: Unit tests for directory listing and traversal
-    status: planned
+    status: done
   - name: Unit tests for path resolution (absolute, relative, ..)
-    status: planned
+    status: done
   - name: Error propagation tests (ENOENT, EACCES, EISDIR)
-    status: planned
+    status: done
   - name: Edge case tests (empty files, large files, binary files)
-    status: planned
+    status: done
   acceptance_criteria:
   - description: ops_host_fs.rs has at least 20 unit tests
     validation: grep -c "fn test_" src/vm/ops_host_fs.rs >= 20
+    met: true
 - id: phase-292
   title: GeOS VM -- Scrollback Buffer Enhancement and Tests
   status: todo

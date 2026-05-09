@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a green box of size 93x116 starting at (93, 140).
-; PLAN: r0=93(x), r1=140(y), r2=93(width), r3=116(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 93
-LDI r1, 140
-LDI r2, 93
-LDI r3, 116
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

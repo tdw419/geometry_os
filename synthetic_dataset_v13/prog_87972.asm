@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (402, 187) with radius 31.
-; PLAN: r0=402(x), r1=187(y), r2=31(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 402
-LDI r1, 187
-LDI r2, 31
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (226, 119) spanning 33 by 52 pixels.
+; PLAN: r0=226(x), r1=119(y), r2=33(width), r3=52(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 119
+LDI r2, 33
+LDI r3, 52
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

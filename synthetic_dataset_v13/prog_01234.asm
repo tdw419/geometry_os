@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a blue line segment connecting (28, 35) to (403, 121) then Places a green dot at position (105, 169).
-; PLAN: r0=28(x1), r1=35(y1), r2=403(x2), r3=121(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=105(x), r6=169(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 28
-LDI r1, 35
-LDI r2, 403
-LDI r3, 121
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 105
-LDI r6, 169
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Draws a black rectangle at (111, 6) with width 74 and height 87.
+; PLAN: r0=111(x), r1=6(y), r2=74(width), r3=87(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 111
+LDI r1, 6
+LDI r2, 74
+LDI r3, 87
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

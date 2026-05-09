@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Draws a orange circle centered at (30, 186) with radius 30.
+; PLAN: r0=30(x), r1=186(y), r2=30(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 30
+LDI r1, 186
+LDI r2, 30
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

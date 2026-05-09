@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (478, 245).
-; PLAN: r0=478(x), r1=245(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 478
-LDI r1, 245
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange 43x67 rectangle at position (9, 51).
+; PLAN: r0=9(x), r1=51(y), r2=43(width), r3=67(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 9
+LDI r1, 51
+LDI r2, 43
+LDI r3, 67
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

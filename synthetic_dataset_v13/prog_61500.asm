@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (275, 55) spanning 51 by 60 pixels.
-; PLAN: r0=275(x), r1=55(y), r2=51(width), r3=60(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 275
-LDI r1, 55
-LDI r2, 51
-LDI r3, 60
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a white rectangle at (255, 24) with width 54 and height 113.
+; PLAN: r0=255(x), r1=24(y), r2=54(width), r3=113(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 255
+LDI r1, 24
+LDI r2, 54
+LDI r3, 113
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

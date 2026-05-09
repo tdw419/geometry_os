@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a yellow line between points (126, 17) and (375, 188).
-; PLAN: r0=126(x1), r1=17(y1), r2=375(x2), r3=188(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 17
-LDI r2, 375
-LDI r3, 188
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (196, 193) then Draws a white circle centered at (193, 121) with radius 72.
+; PLAN: r0=196(x), r1=193(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=193(x), r6=121(y), r7=72(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 196
+LDI r1, 193
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 193
+LDI r6, 121
+LDI r7, 72
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

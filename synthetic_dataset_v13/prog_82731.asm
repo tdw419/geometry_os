@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a red rectangle at (88, 106) with width 14 and height 115.
-; PLAN: r0=88(x), r1=106(y), r2=14(width), r3=115(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 106
-LDI r2, 14
-LDI r3, 115
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a white dot at position (121, 125) then Places a orange circle of radius 74 at center (218, 93).
+; PLAN: r0=121(x), r1=125(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=218(x), r6=93(y), r7=74(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 121
+LDI r1, 125
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 218
+LDI r6, 93
+LDI r7, 74
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

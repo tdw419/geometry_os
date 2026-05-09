@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (153, 209) spanning 10 by 32 pixels.
-; PLAN: r0=153(x), r1=209(y), r2=10(width), r3=32(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 153
-LDI r1, 209
-LDI r2, 10
-LDI r3, 32
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a yellow box of size 45x24 starting at (175, 119).
+; PLAN: r0=175(x), r1=119(y), r2=45(width), r3=24(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 175
+LDI r1, 119
+LDI r2, 45
+LDI r3, 24
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

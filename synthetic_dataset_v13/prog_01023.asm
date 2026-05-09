@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 61x119 starting at (223, 44).
-; PLAN: r0=223(x), r1=44(y), r2=61(width), r3=119(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 223
-LDI r1, 44
-LDI r2, 61
-LDI r3, 119
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (118, 84) and (465, 6).
+; PLAN: r0=118(x1), r1=84(y1), r2=465(x2), r3=6(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 118
+LDI r1, 84
+LDI r2, 465
+LDI r3, 6
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

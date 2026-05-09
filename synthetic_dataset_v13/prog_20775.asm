@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single orange pixel at (506, 94).
-; PLAN: r0=506(x), r1=94(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 506
-LDI r1, 94
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

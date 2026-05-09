@@ -1,9 +1,15 @@
-; DESCRIPTION: Draws a blue line from (132, 147) to (29, 152).
-; PLAN: r0=132(x1), r1=147(y1), r2=29(x2), r3=152(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 132
-LDI r1, 147
-LDI r2, 29
-LDI r3, 152
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a cyan rectangle at (59, 83) with width 34 and height 23 then Renders a red line between points (457, 177) and (399, 125).
+; PLAN: r0=59(x), r1=83(y), r2=34(width), r3=23(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=457(x1), r6=177(y1), r7=399(x2), r8=125(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 59
+LDI r1, 83
+LDI r2, 34
+LDI r3, 23
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 457
+LDI r6, 177
+LDI r7, 399
+LDI r8, 125
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

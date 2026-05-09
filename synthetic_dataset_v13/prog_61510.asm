@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a yellow dot at position (351, 31).
-; PLAN: r0=351(x), r1=31(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 351
-LDI r1, 31
-LDI r2, 0xFFFF00
+; DESCRIPTION: Places a purple dot at position (380, 9).
+; PLAN: r0=380(x), r1=9(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 380
+LDI r1, 9
+LDI r2, 0xAA00FF
 PSET r0, r1, r2
 HALT

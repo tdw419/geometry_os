@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a purple rectangular region at (338, 82) spanning 53 by 118 pixels.
-; PLAN: r0=338(x), r1=82(y), r2=53(width), r3=118(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 338
-LDI r1, 82
-LDI r2, 53
-LDI r3, 118
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (193, 112).
+; PLAN: r0=193(x), r1=112(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 193
+LDI r1, 112
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

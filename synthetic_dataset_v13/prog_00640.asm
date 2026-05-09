@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (200, 38) with radius 29.
-; PLAN: r0=200(x), r1=38(y), r2=29(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 200
-LDI r1, 38
-LDI r2, 29
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow line segment connecting (507, 179) to (128, 96).
+; PLAN: r0=507(x1), r1=179(y1), r2=128(x2), r3=96(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 507
+LDI r1, 179
+LDI r2, 128
+LDI r3, 96
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

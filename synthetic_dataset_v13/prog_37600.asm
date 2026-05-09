@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 77x108 starting at (73, 57).
-; PLAN: r0=73(x), r1=57(y), r2=77(width), r3=108(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 73
-LDI r1, 57
-LDI r2, 77
-LDI r3, 108
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 54 at center (148, 124).
+; PLAN: r0=148(x), r1=124(y), r2=54(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 148
+LDI r1, 124
+LDI r2, 54
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

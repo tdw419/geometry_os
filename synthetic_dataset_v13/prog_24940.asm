@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 72x103 starting at (20, 104).
-; PLAN: r0=20(x), r1=104(y), r2=72(width), r3=103(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 20
-LDI r1, 104
-LDI r2, 72
-LDI r3, 103
-LDI r4, 0x000000
+; DESCRIPTION: Renders a blue box of size 32x15 starting at (140, 89).
+; PLAN: r0=140(x), r1=89(y), r2=32(width), r3=15(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 140
+LDI r1, 89
+LDI r2, 32
+LDI r3, 15
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

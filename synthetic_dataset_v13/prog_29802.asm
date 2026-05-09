@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (180, 64) to (248, 128).
-; PLAN: r0=180(x1), r1=64(y1), r2=248(x2), r3=128(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 64
-LDI r2, 248
-LDI r3, 128
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (413, 141) with radius 68.
+; PLAN: r0=413(x), r1=141(y), r2=68(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 413
+LDI r1, 141
+LDI r2, 68
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

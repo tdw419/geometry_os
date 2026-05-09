@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (390, 169) and radius 54.
-; PLAN: r0=390(x), r1=169(y), r2=54(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 390
-LDI r1, 169
-LDI r2, 54
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow 71x46 rectangle at position (170, 197).
+; PLAN: r0=170(x), r1=197(y), r2=71(width), r3=46(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 197
+LDI r2, 71
+LDI r3, 46
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

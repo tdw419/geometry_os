@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan line between points (231, 99) and (486, 86).
-; PLAN: r0=231(x1), r1=99(y1), r2=486(x2), r3=86(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 231
-LDI r1, 99
-LDI r2, 486
-LDI r3, 86
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow dot at position (417, 62).
+; PLAN: r0=417(x), r1=62(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 417
+LDI r1, 62
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

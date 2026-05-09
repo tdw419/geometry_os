@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a purple circular shape at (61, 144) with radius 57.
-; PLAN: r0=61(x), r1=144(y), r2=57(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 61
-LDI r1, 144
-LDI r2, 57
-LDI r3, 0xAA00FF
+; DESCRIPTION: Draws a red circle centered at (369, 103) with radius 55.
+; PLAN: r0=369(x), r1=103(y), r2=55(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 369
+LDI r1, 103
+LDI r2, 55
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

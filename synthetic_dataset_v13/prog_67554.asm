@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta line between points (53, 23) and (115, 1).
-; PLAN: r0=53(x1), r1=23(y1), r2=115(x2), r3=1(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 53
-LDI r1, 23
-LDI r2, 115
-LDI r3, 1
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (208, 100) and radius 17.
+; PLAN: r0=208(x), r1=100(y), r2=17(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 208
+LDI r1, 100
+LDI r2, 17
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

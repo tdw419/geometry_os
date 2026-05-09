@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (273, 107) and (175, 67).
-; PLAN: r0=273(x1), r1=107(y1), r2=175(x2), r3=67(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 273
-LDI r1, 107
-LDI r2, 175
-LDI r3, 67
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white box of size 86x38 starting at (37, 209).
+; PLAN: r0=37(x), r1=209(y), r2=86(width), r3=38(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 37
+LDI r1, 209
+LDI r2, 86
+LDI r3, 38
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

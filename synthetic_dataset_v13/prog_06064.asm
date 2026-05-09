@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a cyan 91x98 rectangle at position (256, 127).
-; PLAN: r0=256(x), r1=127(y), r2=91(width), r3=98(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 127
-LDI r2, 91
-LDI r3, 98
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (393, 74).
+; PLAN: r0=393(x), r1=74(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 393
+LDI r1, 74
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

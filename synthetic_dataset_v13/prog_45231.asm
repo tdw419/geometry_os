@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 21 at center (469, 27).
-; PLAN: r0=469(x), r1=27(y), r2=21(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 469
-LDI r1, 27
-LDI r2, 21
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a blue rectangular region at (241, 20) spanning 95 by 72 pixels.
+; PLAN: r0=241(x), r1=20(y), r2=95(width), r3=72(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 241
+LDI r1, 20
+LDI r2, 95
+LDI r3, 72
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

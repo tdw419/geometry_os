@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (127, 178) to (511, 71).
-; PLAN: r0=127(x1), r1=178(y1), r2=511(x2), r3=71(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 127
-LDI r1, 178
-LDI r2, 511
-LDI r3, 71
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a black line from (262, 122) to (481, 241).
+; PLAN: r0=262(x1), r1=122(y1), r2=481(x2), r3=241(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 122
+LDI r2, 481
+LDI r3, 241
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

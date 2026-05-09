@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a white rectangular region at (366, 46) spanning 85 by 69 pixels.
-; PLAN: r0=366(x), r1=46(y), r2=85(width), r3=69(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 366
-LDI r1, 46
-LDI r2, 85
-LDI r3, 69
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (155, 88) with radius 66.
+; PLAN: r0=155(x), r1=88(y), r2=66(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 155
+LDI r1, 88
+LDI r2, 66
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

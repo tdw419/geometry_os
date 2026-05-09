@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (473, 173) to (317, 192).
-; PLAN: r0=473(x1), r1=173(y1), r2=317(x2), r3=192(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 473
-LDI r1, 173
-LDI r2, 317
-LDI r3, 192
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange rectangular region at (203, 144) spanning 104 by 41 pixels.
+; PLAN: r0=203(x), r1=144(y), r2=104(width), r3=41(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 203
+LDI r1, 144
+LDI r2, 104
+LDI r3, 41
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

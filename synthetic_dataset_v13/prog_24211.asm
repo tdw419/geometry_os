@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 17x64 rectangle at position (316, 189).
-; PLAN: r0=316(x), r1=189(y), r2=17(width), r3=64(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 316
-LDI r1, 189
-LDI r2, 17
-LDI r3, 64
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (23, 244) to (215, 146).
+; PLAN: r0=23(x1), r1=244(y1), r2=215(x2), r3=146(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 23
+LDI r1, 244
+LDI r2, 215
+LDI r3, 146
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (226, 177) with radius 79.
-; PLAN: r0=226(x), r1=177(y), r2=79(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 226
-LDI r1, 177
-LDI r2, 79
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Renders a orange disk with center (96, 138) and radius 33.
+; PLAN: r0=96(x), r1=138(y), r2=33(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 96
+LDI r1, 138
+LDI r2, 33
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

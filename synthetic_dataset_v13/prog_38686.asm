@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (226, 157) with radius 79.
-; PLAN: r0=226(x), r1=157(y), r2=79(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 226
-LDI r1, 157
-LDI r2, 79
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan line segment connecting (331, 221) to (350, 109).
+; PLAN: r0=331(x1), r1=221(y1), r2=350(x2), r3=109(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 331
+LDI r1, 221
+LDI r2, 350
+LDI r3, 109
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

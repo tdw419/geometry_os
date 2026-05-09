@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a green rectangular region at (140, 58) spanning 117 by 91 pixels.
-; PLAN: r0=140(x), r1=58(y), r2=117(width), r3=91(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 140
-LDI r1, 58
-LDI r2, 117
-LDI r3, 91
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (203, 162) and radius 71.
+; PLAN: r0=203(x), r1=162(y), r2=71(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 203
+LDI r1, 162
+LDI r2, 71
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a green 36x97 rectangle at position (36, 72).
-; PLAN: r0=36(x), r1=72(y), r2=36(width), r3=97(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 36
-LDI r1, 72
-LDI r2, 36
-LDI r3, 97
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (14, 145).
+; PLAN: r0=14(x), r1=145(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 14
+LDI r1, 145
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 74x11 rectangle at position (266, 200).
-; PLAN: r0=266(x), r1=200(y), r2=74(width), r3=11(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 266
-LDI r1, 200
-LDI r2, 74
-LDI r3, 11
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (155, 166) to (478, 144).
+; PLAN: r0=155(x1), r1=166(y1), r2=478(x2), r3=144(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 155
+LDI r1, 166
+LDI r2, 478
+LDI r3, 144
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

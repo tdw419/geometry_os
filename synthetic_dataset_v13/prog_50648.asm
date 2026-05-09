@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (358, 97) with radius 44.
-; PLAN: r0=358(x), r1=97(y), r2=44(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 358
-LDI r1, 97
-LDI r2, 44
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (93, 140) to (67, 131).
+; PLAN: r0=93(x1), r1=140(y1), r2=67(x2), r3=131(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 140
+LDI r2, 67
+LDI r3, 131
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

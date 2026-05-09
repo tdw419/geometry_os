@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a orange line segment connecting (237, 202) to (190, 87).
-; PLAN: r0=237(x1), r1=202(y1), r2=190(x2), r3=87(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 237
-LDI r1, 202
-LDI r2, 190
-LDI r3, 87
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black dot at position (422, 104) then Draws a magenta line from (361, 73) to (459, 111).
+; PLAN: r0=422(x), r1=104(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=361(x1), r6=73(y1), r7=459(x2), r8=111(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 422
+LDI r1, 104
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 361
+LDI r6, 73
+LDI r7, 459
+LDI r8, 111
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

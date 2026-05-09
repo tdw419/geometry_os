@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (221, 6) with width 59 and height 39.
-; PLAN: r0=221(x), r1=6(y), r2=59(width), r3=39(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 221
-LDI r1, 6
-LDI r2, 59
-LDI r3, 39
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (83, 15) to (487, 32).
+; PLAN: r0=83(x1), r1=15(y1), r2=487(x2), r3=32(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 83
+LDI r1, 15
+LDI r2, 487
+LDI r3, 32
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

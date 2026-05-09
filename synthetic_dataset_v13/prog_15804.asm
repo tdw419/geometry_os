@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (356, 138) and radius 16.
-; PLAN: r0=356(x), r1=138(y), r2=16(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 356
-LDI r1, 138
-LDI r2, 16
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 13x99 rectangle at position (346, 144).
+; PLAN: r0=346(x), r1=144(y), r2=13(width), r3=99(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 346
+LDI r1, 144
+LDI r2, 13
+LDI r3, 99
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

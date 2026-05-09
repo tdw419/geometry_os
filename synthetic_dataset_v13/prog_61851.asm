@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a blue box of size 47x27 starting at (193, 4).
-; PLAN: r0=193(x), r1=4(y), r2=47(width), r3=27(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 193
-LDI r1, 4
-LDI r2, 47
-LDI r3, 27
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (398, 253) then Draws a magenta circle centered at (347, 155) with radius 78.
+; PLAN: r0=398(x), r1=253(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=347(x), r6=155(y), r7=78(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 398
+LDI r1, 253
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 347
+LDI r6, 155
+LDI r7, 78
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

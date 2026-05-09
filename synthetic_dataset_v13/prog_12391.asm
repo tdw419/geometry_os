@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (406, 171).
-; PLAN: r0=406(x), r1=171(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 406
-LDI r1, 171
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a white line between points (63, 106) and (417, 47).
+; PLAN: r0=63(x1), r1=106(y1), r2=417(x2), r3=47(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 63
+LDI r1, 106
+LDI r2, 417
+LDI r3, 47
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

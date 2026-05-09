@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a purple line from (313, 223) to (506, 105).
-; PLAN: r0=313(x1), r1=223(y1), r2=506(x2), r3=105(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 313
-LDI r1, 223
-LDI r2, 506
-LDI r3, 105
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (348, 222).
+; PLAN: r0=348(x), r1=222(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 348
+LDI r1, 222
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

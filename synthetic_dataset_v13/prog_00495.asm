@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a yellow disk with center (127, 166) and radius 76.
-; PLAN: r0=127(x), r1=166(y), r2=76(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 127
-LDI r1, 166
-LDI r2, 76
-LDI r3, 0xFFFF00
+; DESCRIPTION: Draws a white circle centered at (309, 154) with radius 14.
+; PLAN: r0=309(x), r1=154(y), r2=14(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 309
+LDI r1, 154
+LDI r2, 14
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

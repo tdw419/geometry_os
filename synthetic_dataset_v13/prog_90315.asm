@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (426, 229) to (438, 110).
-; PLAN: r0=426(x1), r1=229(y1), r2=438(x2), r3=110(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 426
-LDI r1, 229
-LDI r2, 438
-LDI r3, 110
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a orange line segment connecting (47, 34) to (343, 68).
+; PLAN: r0=47(x1), r1=34(y1), r2=343(x2), r3=68(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 47
+LDI r1, 34
+LDI r2, 343
+LDI r3, 68
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

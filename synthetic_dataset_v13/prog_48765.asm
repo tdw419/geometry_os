@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange line from (229, 34) to (25, 12).
-; PLAN: r0=229(x1), r1=34(y1), r2=25(x2), r3=12(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 229
-LDI r1, 34
-LDI r2, 25
-LDI r3, 12
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (273, 191) with radius 19.
+; PLAN: r0=273(x), r1=191(y), r2=19(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 273
+LDI r1, 191
+LDI r2, 19
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Renders a magenta disk with center (187, 144) and radius 65 then Renders a purple line between points (226, 183) and (21, 29) then Places a red dot at position (295, 5).
-; PLAN: r0=187(x), r1=144(y), r2=65(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=226(x1), r6=183(y1), r7=21(x2), r8=29(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=295(x), r11=5(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
-LDI r0, 187
-LDI r1, 144
-LDI r2, 65
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 226
-LDI r6, 183
-LDI r7, 21
-LDI r8, 29
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
-LDI r10, 295
-LDI r11, 5
-LDI r12, 0xFF0000
-PSET r10, r11, r12
+; DESCRIPTION: Draws a green rectangle at (25, 205) with width 82 and height 28.
+; PLAN: r0=25(x), r1=205(y), r2=82(width), r3=28(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 25
+LDI r1, 205
+LDI r2, 82
+LDI r3, 28
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

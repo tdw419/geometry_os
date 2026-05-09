@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (406, 125) and radius 51.
-; PLAN: r0=406(x), r1=125(y), r2=51(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 406
-LDI r1, 125
-LDI r2, 51
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 25x85 rectangle at position (16, 46).
+; PLAN: r0=16(x), r1=46(y), r2=25(width), r3=85(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 16
+LDI r1, 46
+LDI r2, 25
+LDI r3, 85
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

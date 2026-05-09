@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 88x63 starting at (250, 135).
-; PLAN: r0=250(x), r1=135(y), r2=88(width), r3=63(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 250
-LDI r1, 135
-LDI r2, 88
-LDI r3, 63
+; DESCRIPTION: Renders a red line between points (427, 225) and (274, 37).
+; PLAN: r0=427(x1), r1=225(y1), r2=274(x2), r3=37(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 427
+LDI r1, 225
+LDI r2, 274
+LDI r3, 37
 LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

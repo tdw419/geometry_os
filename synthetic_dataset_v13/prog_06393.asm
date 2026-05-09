@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (435, 120) and (117, 141).
-; PLAN: r0=435(x1), r1=120(y1), r2=117(x2), r3=141(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 435
-LDI r1, 120
-LDI r2, 117
-LDI r3, 141
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a orange line from (477, 249) to (377, 228).
+; PLAN: r0=477(x1), r1=249(y1), r2=377(x2), r3=228(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 477
+LDI r1, 249
+LDI r2, 377
+LDI r3, 228
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

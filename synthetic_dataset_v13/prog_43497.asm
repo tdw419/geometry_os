@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (18, 100) and radius 14.
-; PLAN: r0=18(x), r1=100(y), r2=14(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 18
-LDI r1, 100
-LDI r2, 14
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a cyan rectangular region at (325, 17) spanning 18 by 50 pixels.
+; PLAN: r0=325(x), r1=17(y), r2=18(width), r3=50(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 325
+LDI r1, 17
+LDI r2, 18
+LDI r3, 50
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (94, 240).
-; PLAN: r0=94(x), r1=240(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 94
-LDI r1, 240
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Draws a red line from (97, 43) to (63, 45).
+; PLAN: r0=97(x1), r1=43(y1), r2=63(x2), r3=45(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 97
+LDI r1, 43
+LDI r2, 63
+LDI r3, 45
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

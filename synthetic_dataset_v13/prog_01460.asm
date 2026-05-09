@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a purple circle of radius 30 at center (458, 140).
-; PLAN: r0=458(x), r1=140(y), r2=30(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 458
-LDI r1, 140
-LDI r2, 30
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 84x41 starting at (62, 198).
+; PLAN: r0=62(x), r1=198(y), r2=84(width), r3=41(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 62
+LDI r1, 198
+LDI r2, 84
+LDI r3, 41
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

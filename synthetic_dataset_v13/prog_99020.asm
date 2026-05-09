@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 93x56 starting at (164, 186).
-; PLAN: r0=164(x), r1=186(y), r2=93(width), r3=56(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 186
-LDI r2, 93
-LDI r3, 56
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a orange rectangle at (391, 107) with width 36 and height 77.
+; PLAN: r0=391(x), r1=107(y), r2=36(width), r3=77(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 391
+LDI r1, 107
+LDI r2, 36
+LDI r3, 77
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

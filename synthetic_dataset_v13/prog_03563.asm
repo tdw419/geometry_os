@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 22x86 rectangle at position (200, 1).
-; PLAN: r0=200(x), r1=1(y), r2=22(width), r3=86(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 200
-LDI r1, 1
-LDI r2, 22
-LDI r3, 86
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (88, 139) and (105, 54).
+; PLAN: r0=88(x1), r1=139(y1), r2=105(x2), r3=54(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 88
+LDI r1, 139
+LDI r2, 105
+LDI r3, 54
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

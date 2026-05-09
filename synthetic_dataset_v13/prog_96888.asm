@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (86, 226) and (455, 243).
-; PLAN: r0=86(x1), r1=226(y1), r2=455(x2), r3=243(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 86
-LDI r1, 226
-LDI r2, 455
-LDI r3, 243
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (110, 133) spanning 89 by 120 pixels.
+; PLAN: r0=110(x), r1=133(y), r2=89(width), r3=120(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 110
+LDI r1, 133
+LDI r2, 89
+LDI r3, 120
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

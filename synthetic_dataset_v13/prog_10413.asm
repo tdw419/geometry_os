@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (178, 131) with radius 75.
-; PLAN: r0=178(x), r1=131(y), r2=75(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 178
-LDI r1, 131
-LDI r2, 75
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 97x68 starting at (44, 96).
+; PLAN: r0=44(x), r1=96(y), r2=97(width), r3=68(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 96
+LDI r2, 97
+LDI r3, 68
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

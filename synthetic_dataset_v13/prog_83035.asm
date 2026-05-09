@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Renders a green line between points (229, 107) and (163, 145) then Draws a black circle centered at (344, 194) with radius 10.
-; PLAN: r0=229(x1), r1=107(y1), r2=163(x2), r3=145(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=344(x), r6=194(y), r7=10(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 229
-LDI r1, 107
-LDI r2, 163
-LDI r3, 145
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 344
-LDI r6, 194
-LDI r7, 10
-LDI r8, 0x000000
+; DESCRIPTION: Composite: Sets a single white pixel at (174, 187) then Creates a green circular shape at (256, 101) with radius 79.
+; PLAN: r0=174(x), r1=187(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=256(x), r6=101(y), r7=79(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 174
+LDI r1, 187
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 256
+LDI r6, 101
+LDI r7, 79
+LDI r8, 0x00FF00
 CIRCLE r5, r6, r7, r8
 HALT

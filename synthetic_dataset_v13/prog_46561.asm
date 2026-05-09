@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 49 at center (179, 194).
-; PLAN: r0=179(x), r1=194(y), r2=49(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 179
-LDI r1, 194
-LDI r2, 49
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (17, 99) and (439, 134).
+; PLAN: r0=17(x1), r1=99(y1), r2=439(x2), r3=134(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 17
+LDI r1, 99
+LDI r2, 439
+LDI r3, 134
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

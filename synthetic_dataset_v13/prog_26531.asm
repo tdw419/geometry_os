@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (138, 173) with radius 50.
-; PLAN: r0=138(x), r1=173(y), r2=50(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 138
-LDI r1, 173
-LDI r2, 50
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 71x103 starting at (227, 18).
+; PLAN: r0=227(x), r1=18(y), r2=71(width), r3=103(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 227
+LDI r1, 18
+LDI r2, 71
+LDI r3, 103
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

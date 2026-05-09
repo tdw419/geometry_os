@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 68x70 starting at (75, 127).
-; PLAN: r0=75(x), r1=127(y), r2=68(width), r3=70(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 75
-LDI r1, 127
-LDI r2, 68
-LDI r3, 70
+; DESCRIPTION: Renders a green box of size 29x38 starting at (128, 140).
+; PLAN: r0=128(x), r1=140(y), r2=29(width), r3=38(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 128
+LDI r1, 140
+LDI r2, 29
+LDI r3, 38
 LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a white line segment connecting (126, 1) to (286, 71).
-; PLAN: r0=126(x1), r1=1(y1), r2=286(x2), r3=71(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 1
-LDI r2, 286
-LDI r3, 71
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a green circle centered at (117, 93) with radius 10 then Places a black dot at position (24, 126).
+; PLAN: r0=117(x), r1=93(y), r2=10(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=24(x), r6=126(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 117
+LDI r1, 93
+LDI r2, 10
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 24
+LDI r6, 126
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a blue 61x39 rectangle at position (432, 155).
-; PLAN: r0=432(x), r1=155(y), r2=61(width), r3=39(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 432
-LDI r1, 155
-LDI r2, 61
-LDI r3, 39
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a green circle centered at (238, 88) with radius 80 then Places a purple line segment connecting (347, 216) to (355, 250).
+; PLAN: r0=238(x), r1=88(y), r2=80(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=347(x1), r6=216(y1), r7=355(x2), r8=250(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 238
+LDI r1, 88
+LDI r2, 80
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 347
+LDI r6, 216
+LDI r7, 355
+LDI r8, 250
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

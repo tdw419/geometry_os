@@ -1,12 +1,12 @@
-; DESCRIPTION: Composite: Places a green circle of radius 25 at center (434, 136) then Sets a single yellow pixel at (359, 233).
-; PLAN: r0=434(x), r1=136(y), r2=25(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=359(x), r6=233(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 434
-LDI r1, 136
-LDI r2, 25
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 359
-LDI r6, 233
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single orange pixel at (260, 80) then Places a white circle of radius 30 at center (274, 164).
+; PLAN: r0=260(x), r1=80(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=274(x), r6=164(y), r7=30(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 260
+LDI r1, 80
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 274
+LDI r6, 164
+LDI r7, 30
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

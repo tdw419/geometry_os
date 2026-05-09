@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 46 at center (53, 81).
-; PLAN: r0=53(x), r1=81(y), r2=46(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 53
-LDI r1, 81
-LDI r2, 46
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (144, 103) and (249, 45).
+; PLAN: r0=144(x1), r1=103(y1), r2=249(x2), r3=45(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 144
+LDI r1, 103
+LDI r2, 249
+LDI r3, 45
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

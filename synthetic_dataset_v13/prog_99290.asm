@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single blue pixel at (177, 173).
-; PLAN: r0=177(x), r1=173(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 177
-LDI r1, 173
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange circle of radius 72 at center (155, 74).
+; PLAN: r0=155(x), r1=74(y), r2=72(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 155
+LDI r1, 74
+LDI r2, 72
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

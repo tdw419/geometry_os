@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (390, 219) and radius 24.
-; PLAN: r0=390(x), r1=219(y), r2=24(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 390
-LDI r1, 219
-LDI r2, 24
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 32x60 rectangle at position (327, 69).
+; PLAN: r0=327(x), r1=69(y), r2=32(width), r3=60(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 327
+LDI r1, 69
+LDI r2, 32
+LDI r3, 60
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

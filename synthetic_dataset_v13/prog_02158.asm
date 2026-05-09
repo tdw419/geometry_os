@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a red dot at position (269, 0).
-; PLAN: r0=269(x), r1=0(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 269
-LDI r1, 0
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green box of size 20x109 starting at (90, 39).
+; PLAN: r0=90(x), r1=39(y), r2=20(width), r3=109(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 90
+LDI r1, 39
+LDI r2, 20
+LDI r3, 109
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

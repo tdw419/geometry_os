@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a yellow rectangular region at (143, 3) spanning 91 by 107 pixels.
-; PLAN: r0=143(x), r1=3(y), r2=91(width), r3=107(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 3
-LDI r2, 91
-LDI r3, 107
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 38 into r1 and decrements it in a loop until zero.
+; PLAN: r1=38(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 38
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

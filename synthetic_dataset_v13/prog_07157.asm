@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a yellow rectangular region at (241, 109) spanning 46 by 51 pixels.
-; PLAN: r0=241(x), r1=109(y), r2=46(width), r3=51(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 241
-LDI r1, 109
-LDI r2, 46
-LDI r3, 51
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (372, 129) and (36, 65).
+; PLAN: r0=372(x1), r1=129(y1), r2=36(x2), r3=65(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 372
+LDI r1, 129
+LDI r2, 36
+LDI r3, 65
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

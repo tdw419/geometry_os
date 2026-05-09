@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (471, 45) then Renders a orange line between points (91, 23) and (34, 162) then Draws a cyan circle centered at (371, 67) with radius 24.
-; PLAN: r0=471(x), r1=45(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=91(x1), r6=23(y1), r7=34(x2), r8=162(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=371(x), r11=67(y), r12=24(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 471
-LDI r1, 45
-LDI r2, 0xFFFF00
+; DESCRIPTION: Composite: Sets a single purple pixel at (234, 149) then Places a cyan circle of radius 54 at center (388, 73) then Draws a red rectangle at (202, 60) with width 18 and height 78.
+; PLAN: r0=234(x), r1=149(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=388(x), r6=73(y), r7=54(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=202(x), r11=60(y), r12=18(width), r13=78(height), r14=0xFF0000(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 234
+LDI r1, 149
+LDI r2, 0xAA00FF
 PSET r0, r1, r2
-LDI r5, 91
-LDI r6, 23
-LDI r7, 34
-LDI r8, 162
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
-LDI r10, 371
-LDI r11, 67
-LDI r12, 24
-LDI r13, 0x00FFFF
-CIRCLE r10, r11, r12, r13
+LDI r5, 388
+LDI r6, 73
+LDI r7, 54
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
+LDI r10, 202
+LDI r11, 60
+LDI r12, 18
+LDI r13, 78
+LDI r14, 0xFF0000
+RECTF r10, r11, r12, r13, r14
 HALT

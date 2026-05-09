@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (171, 252) and (203, 5).
-; PLAN: r0=171(x1), r1=252(y1), r2=203(x2), r3=5(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 171
-LDI r1, 252
-LDI r2, 203
-LDI r3, 5
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (81, 103) with width 36 and height 111.
+; PLAN: r0=81(x), r1=103(y), r2=36(width), r3=111(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 81
+LDI r1, 103
+LDI r2, 36
+LDI r3, 111
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

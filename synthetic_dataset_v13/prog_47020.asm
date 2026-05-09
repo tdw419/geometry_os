@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (401, 143) and radius 73.
-; PLAN: r0=401(x), r1=143(y), r2=73(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 401
-LDI r1, 143
-LDI r2, 73
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (104, 206) spanning 40 by 47 pixels.
+; PLAN: r0=104(x), r1=206(y), r2=40(width), r3=47(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 104
+LDI r1, 206
+LDI r2, 40
+LDI r3, 47
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

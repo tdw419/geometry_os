@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 36 at center (49, 36).
-; PLAN: r0=49(x), r1=36(y), r2=36(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 49
-LDI r1, 36
-LDI r2, 36
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan box of size 81x56 starting at (174, 48).
+; PLAN: r0=174(x), r1=48(y), r2=81(width), r3=56(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 174
+LDI r1, 48
+LDI r2, 81
+LDI r3, 56
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

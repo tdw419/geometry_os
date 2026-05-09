@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a purple dot at position (324, 16).
-; PLAN: r0=324(x), r1=16(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 324
-LDI r1, 16
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow 87x110 rectangle at position (172, 6).
+; PLAN: r0=172(x), r1=6(y), r2=87(width), r3=110(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 172
+LDI r1, 6
+LDI r2, 87
+LDI r3, 110
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

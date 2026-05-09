@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (444, 88) with width 15 and height 96.
-; PLAN: r0=444(x), r1=88(y), r2=15(width), r3=96(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 444
-LDI r1, 88
-LDI r2, 15
-LDI r3, 96
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (116, 172) with radius 77.
+; PLAN: r0=116(x), r1=172(y), r2=77(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 116
+LDI r1, 172
+LDI r2, 77
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

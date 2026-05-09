@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (507, 37) to (196, 238).
-; PLAN: r0=507(x1), r1=37(y1), r2=196(x2), r3=238(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 507
-LDI r1, 37
-LDI r2, 196
-LDI r3, 238
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow box of size 82x60 starting at (410, 113).
+; PLAN: r0=410(x), r1=113(y), r2=82(width), r3=60(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 410
+LDI r1, 113
+LDI r2, 82
+LDI r3, 60
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

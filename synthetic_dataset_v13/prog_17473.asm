@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a black line segment connecting (180, 141) to (399, 102).
-; PLAN: r0=180(x1), r1=141(y1), r2=399(x2), r3=102(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 141
-LDI r2, 399
-LDI r3, 102
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (286, 29) then Renders a black line between points (478, 115) and (94, 217).
+; PLAN: r0=286(x), r1=29(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=478(x1), r6=115(y1), r7=94(x2), r8=217(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 286
+LDI r1, 29
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 478
+LDI r6, 115
+LDI r7, 94
+LDI r8, 217
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
 HALT

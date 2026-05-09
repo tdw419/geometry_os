@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (125, 89) with radius 79.
-; PLAN: r0=125(x), r1=89(y), r2=79(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 125
-LDI r1, 89
-LDI r2, 79
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a white rectangular region at (193, 43) spanning 111 by 68 pixels.
+; PLAN: r0=193(x), r1=43(y), r2=111(width), r3=68(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 193
+LDI r1, 43
+LDI r2, 111
+LDI r3, 68
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

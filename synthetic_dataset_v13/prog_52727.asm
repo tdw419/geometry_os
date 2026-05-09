@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 40x62 rectangle at position (93, 149).
-; PLAN: r0=93(x), r1=149(y), r2=40(width), r3=62(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 93
-LDI r1, 149
-LDI r2, 40
-LDI r3, 62
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 15 at center (236, 118).
+; PLAN: r0=236(x), r1=118(y), r2=15(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 236
+LDI r1, 118
+LDI r2, 15
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

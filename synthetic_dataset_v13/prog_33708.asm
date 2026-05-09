@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (371, 30) spanning 110 by 23 pixels.
-; PLAN: r0=371(x), r1=30(y), r2=110(width), r3=23(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 371
-LDI r1, 30
-LDI r2, 110
-LDI r3, 23
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (125, 65) and (281, 85).
+; PLAN: r0=125(x1), r1=65(y1), r2=281(x2), r3=85(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 125
+LDI r1, 65
+LDI r2, 281
+LDI r3, 85
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

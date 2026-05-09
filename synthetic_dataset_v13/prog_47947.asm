@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 71x80 rectangle at position (168, 55).
-; PLAN: r0=168(x), r1=55(y), r2=71(width), r3=80(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 168
-LDI r1, 55
-LDI r2, 71
-LDI r3, 80
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (125, 151) with radius 78.
+; PLAN: r0=125(x), r1=151(y), r2=78(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 125
+LDI r1, 151
+LDI r2, 78
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 90x47 rectangle at position (133, 109).
-; PLAN: r0=133(x), r1=109(y), r2=90(width), r3=47(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 133
-LDI r1, 109
-LDI r2, 90
-LDI r3, 47
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white line segment connecting (284, 185) to (411, 80).
+; PLAN: r0=284(x1), r1=185(y1), r2=411(x2), r3=80(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 284
+LDI r1, 185
+LDI r2, 411
+LDI r3, 80
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

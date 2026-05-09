@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Draws a cyan rectangle at (77, 81) with width 17 and height 101 then Renders a cyan disk with center (430, 174) and radius 77 then Renders a magenta line between points (206, 229) and (323, 102).
-; PLAN: r0=77(x), r1=81(y), r2=17(width), r3=101(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=430(x), r6=174(y), r7=77(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=206(x1), r11=229(y1), r12=323(x2), r13=102(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 77
-LDI r1, 81
-LDI r2, 17
-LDI r3, 101
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 430
-LDI r6, 174
-LDI r7, 77
-LDI r8, 0x00FFFF
-CIRCLE r5, r6, r7, r8
-LDI r10, 206
-LDI r11, 229
-LDI r12, 323
-LDI r13, 102
-LDI r14, 0xFF00FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single orange pixel at (46, 174) then Draws a black rectangle at (461, 147) with width 16 and height 28 then Draws a black circle centered at (262, 62) with radius 57.
+; PLAN: r0=46(x), r1=174(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=461(x), r6=147(y), r7=16(width), r8=28(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=262(x), r11=62(y), r12=57(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 46
+LDI r1, 174
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 461
+LDI r6, 147
+LDI r7, 16
+LDI r8, 28
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
+LDI r10, 262
+LDI r11, 62
+LDI r12, 57
+LDI r13, 0x000000
+CIRCLE r10, r11, r12, r13
 HALT

@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single purple pixel at (204, 45).
-; PLAN: r0=204(x), r1=45(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 204
-LDI r1, 45
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

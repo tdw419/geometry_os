@@ -1,8 +1,13 @@
-; DESCRIPTION: Draws a red circle centered at (217, 153) with radius 78.
-; PLAN: r0=217(x), r1=153(y), r2=78(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 217
-LDI r1, 153
-LDI r2, 78
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single yellow pixel at (357, 100) then Places a blue line segment connecting (368, 188) to (216, 14).
+; PLAN: r0=357(x), r1=100(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=368(x1), r6=188(y1), r7=216(x2), r8=14(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 357
+LDI r1, 100
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 368
+LDI r6, 188
+LDI r7, 216
+LDI r8, 14
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

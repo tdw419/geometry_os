@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a red rectangular region at (240, 169) spanning 67 by 77 pixels.
-; PLAN: r0=240(x), r1=169(y), r2=67(width), r3=77(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 240
-LDI r1, 169
-LDI r2, 67
-LDI r3, 77
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (359, 116) with radius 35.
+; PLAN: r0=359(x), r1=116(y), r2=35(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 359
+LDI r1, 116
+LDI r2, 35
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange line segment connecting (182, 153) to (484, 189).
-; PLAN: r0=182(x1), r1=153(y1), r2=484(x2), r3=189(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 182
-LDI r1, 153
-LDI r2, 484
-LDI r3, 189
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 43 into r1 and decrements it in a loop until zero.
+; PLAN: r1=43(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 43
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 89x12 rectangle at position (203, 208).
-; PLAN: r0=203(x), r1=208(y), r2=89(width), r3=12(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 203
-LDI r1, 208
-LDI r2, 89
-LDI r3, 12
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a blue rectangle at (350, 74) with width 56 and height 109.
+; PLAN: r0=350(x), r1=74(y), r2=56(width), r3=109(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 350
+LDI r1, 74
+LDI r2, 56
+LDI r3, 109
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

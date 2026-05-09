@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (237, 82) with width 18 and height 100.
-; PLAN: r0=237(x), r1=82(y), r2=18(width), r3=100(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 237
-LDI r1, 82
-LDI r2, 18
-LDI r3, 100
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black line from (481, 174) to (105, 42).
+; PLAN: r0=481(x1), r1=174(y1), r2=105(x2), r3=42(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 481
+LDI r1, 174
+LDI r2, 105
+LDI r3, 42
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

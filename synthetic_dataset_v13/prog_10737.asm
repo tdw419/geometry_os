@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a black dot at position (380, 8) then Draws a cyan line from (42, 125) to (346, 243).
-; PLAN: r0=380(x), r1=8(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=42(x1), r6=125(y1), r7=346(x2), r8=243(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 380
-LDI r1, 8
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 42
-LDI r6, 125
-LDI r7, 346
-LDI r8, 243
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a yellow circle of radius 46 at center (326, 135).
+; PLAN: r0=326(x), r1=135(y), r2=46(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 326
+LDI r1, 135
+LDI r2, 46
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

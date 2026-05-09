@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 32x24 rectangle at position (316, 122).
-; PLAN: r0=316(x), r1=122(y), r2=32(width), r3=24(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 316
-LDI r1, 122
-LDI r2, 32
-LDI r3, 24
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a orange box of size 15x38 starting at (492, 69).
+; PLAN: r0=492(x), r1=69(y), r2=15(width), r3=38(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 492
+LDI r1, 69
+LDI r2, 15
+LDI r3, 38
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

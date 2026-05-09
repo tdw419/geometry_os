@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (226, 95) to (142, 48).
-; PLAN: r0=226(x1), r1=95(y1), r2=142(x2), r3=48(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 226
-LDI r1, 95
-LDI r2, 142
-LDI r3, 48
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a black line segment connecting (109, 159) to (204, 141).
+; PLAN: r0=109(x1), r1=159(y1), r2=204(x2), r3=141(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 109
+LDI r1, 159
+LDI r2, 204
+LDI r3, 141
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

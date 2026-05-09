@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (60, 58) with radius 46.
-; PLAN: r0=60(x), r1=58(y), r2=46(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 60
-LDI r1, 58
-LDI r2, 46
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 56x18 rectangle at position (397, 72).
+; PLAN: r0=397(x), r1=72(y), r2=56(width), r3=18(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 397
+LDI r1, 72
+LDI r2, 56
+LDI r3, 18
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

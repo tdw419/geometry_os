@@ -1,20 +1,19 @@
-; DESCRIPTION: Composite: Renders a magenta disk with center (465, 91) and radius 44 then Draws a blue line from (483, 181) to (202, 25) then Renders a orange box of size 33x76 starting at (228, 18).
-; PLAN: r0=465(x), r1=91(y), r2=44(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=483(x1), r6=181(y1), r7=202(x2), r8=25(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=228(x), r11=18(y), r12=33(width), r13=76(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 465
-LDI r1, 91
-LDI r2, 44
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 483
-LDI r6, 181
-LDI r7, 202
-LDI r8, 25
-LDI r9, 0x0000FF
+; DESCRIPTION: Composite: Places a orange dot at position (176, 69) then Renders a purple line between points (206, 246) and (403, 121) then Creates a white rectangular region at (274, 93) spanning 64 by 106 pixels.
+; PLAN: r0=176(x), r1=69(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=206(x1), r6=246(y1), r7=403(x2), r8=121(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=274(x), r11=93(y), r12=64(width), r13=106(height), r14=0xFFFFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 176
+LDI r1, 69
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 206
+LDI r6, 246
+LDI r7, 403
+LDI r8, 121
+LDI r9, 0xAA00FF
 LINE r5, r6, r7, r8, r9
-LDI r10, 228
-LDI r11, 18
-LDI r12, 33
-LDI r13, 76
-LDI r14, 0xFF8800
+LDI r10, 274
+LDI r11, 93
+LDI r12, 64
+LDI r13, 106
+LDI r14, 0xFFFFFF
 RECTF r10, r11, r12, r13, r14
 HALT

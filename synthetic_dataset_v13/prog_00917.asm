@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (437, 65) to (446, 106).
-; PLAN: r0=437(x1), r1=65(y1), r2=446(x2), r3=106(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 437
-LDI r1, 65
-LDI r2, 446
-LDI r3, 106
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a blue line from (215, 241) to (280, 227).
+; PLAN: r0=215(x1), r1=241(y1), r2=280(x2), r3=227(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 215
+LDI r1, 241
+LDI r2, 280
+LDI r3, 227
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

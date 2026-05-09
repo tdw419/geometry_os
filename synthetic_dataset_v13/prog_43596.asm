@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a yellow box of size 73x75 starting at (237, 11).
-; PLAN: r0=237(x), r1=11(y), r2=73(width), r3=75(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 237
-LDI r1, 11
-LDI r2, 73
-LDI r3, 75
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (80, 168).
+; PLAN: r0=80(x), r1=168(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 80
+LDI r1, 168
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

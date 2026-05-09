@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Places a orange line segment connecting (226, 249) to (221, 109) then Sets a single red pixel at (238, 87) then Places a magenta 66x17 rectangle at position (315, 59).
-; PLAN: r0=226(x1), r1=249(y1), r2=221(x2), r3=109(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=238(x), r6=87(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=315(x), r11=59(y), r12=66(width), r13=17(height), r14=0xFF00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 226
-LDI r1, 249
-LDI r2, 221
-LDI r3, 109
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Places a white line segment connecting (75, 245) to (19, 142) then Renders a blue box of size 48x105 starting at (170, 104) then Sets a single cyan pixel at (249, 142).
+; PLAN: r0=75(x1), r1=245(y1), r2=19(x2), r3=142(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=170(x), r6=104(y), r7=48(width), r8=105(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=249(x), r11=142(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 75
+LDI r1, 245
+LDI r2, 19
+LDI r3, 142
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
-LDI r5, 238
-LDI r6, 87
-LDI r7, 0xFF0000
-PSET r5, r6, r7
-LDI r10, 315
-LDI r11, 59
-LDI r12, 66
-LDI r13, 17
-LDI r14, 0xFF00FF
-RECTF r10, r11, r12, r13, r14
+LDI r5, 170
+LDI r6, 104
+LDI r7, 48
+LDI r8, 105
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 249
+LDI r11, 142
+LDI r12, 0x00FFFF
+PSET r10, r11, r12
 HALT

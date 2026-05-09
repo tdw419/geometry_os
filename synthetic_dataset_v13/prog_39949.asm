@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (330, 133) with width 113 and height 84.
-; PLAN: r0=330(x), r1=133(y), r2=113(width), r3=84(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 330
-LDI r1, 133
-LDI r2, 113
-LDI r3, 84
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white line between points (155, 41) and (162, 65).
+; PLAN: r0=155(x1), r1=41(y1), r2=162(x2), r3=65(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 155
+LDI r1, 41
+LDI r2, 162
+LDI r3, 65
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 72x69 rectangle at position (251, 44).
-; PLAN: r0=251(x), r1=44(y), r2=72(width), r3=69(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 251
-LDI r1, 44
-LDI r2, 72
-LDI r3, 69
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (233, 174) with radius 15.
+; PLAN: r0=233(x), r1=174(y), r2=15(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 233
+LDI r1, 174
+LDI r2, 15
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

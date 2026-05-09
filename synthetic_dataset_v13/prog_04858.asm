@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a black 15x12 rectangle at position (179, 92).
-; PLAN: r0=179(x), r1=92(y), r2=15(width), r3=12(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 92
-LDI r2, 15
-LDI r3, 12
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a white line from (402, 138) to (325, 243) then Places a purple dot at position (95, 52).
+; PLAN: r0=402(x1), r1=138(y1), r2=325(x2), r3=243(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=95(x), r6=52(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 402
+LDI r1, 138
+LDI r2, 325
+LDI r3, 243
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 95
+LDI r6, 52
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (102, 150) and radius 69.
-; PLAN: r0=102(x), r1=150(y), r2=69(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 102
-LDI r1, 150
-LDI r2, 69
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a red rectangular region at (320, 210) spanning 16 by 11 pixels.
+; PLAN: r0=320(x), r1=210(y), r2=16(width), r3=11(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 320
+LDI r1, 210
+LDI r2, 16
+LDI r3, 11
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

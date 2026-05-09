@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a red circle centered at (402, 192) with radius 45.
-; PLAN: r0=402(x), r1=192(y), r2=45(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 402
-LDI r1, 192
-LDI r2, 45
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

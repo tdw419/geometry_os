@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a purple circular shape at (224, 233) with radius 14.
-; PLAN: r0=224(x), r1=233(y), r2=14(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 224
-LDI r1, 233
-LDI r2, 14
-LDI r3, 0xAA00FF
+; DESCRIPTION: Creates a yellow circular shape at (344, 159) with radius 65.
+; PLAN: r0=344(x), r1=159(y), r2=65(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 344
+LDI r1, 159
+LDI r2, 65
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

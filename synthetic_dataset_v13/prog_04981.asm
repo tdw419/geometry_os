@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red line segment connecting (486, 91) to (423, 241).
-; PLAN: r0=486(x1), r1=91(y1), r2=423(x2), r3=241(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 486
-LDI r1, 91
-LDI r2, 423
-LDI r3, 241
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white disk with center (469, 143) and radius 34.
+; PLAN: r0=469(x), r1=143(y), r2=34(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 469
+LDI r1, 143
+LDI r2, 34
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

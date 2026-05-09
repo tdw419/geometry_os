@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a yellow rectangular region at (45, 123) spanning 31 by 100 pixels.
-; PLAN: r0=45(x), r1=123(y), r2=31(width), r3=100(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 123
-LDI r2, 31
-LDI r3, 100
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a red 12x20 rectangle at position (429, 170).
+; PLAN: r0=429(x), r1=170(y), r2=12(width), r3=20(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 429
+LDI r1, 170
+LDI r2, 12
+LDI r3, 20
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

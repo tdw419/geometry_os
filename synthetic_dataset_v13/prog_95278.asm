@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green box of size 39x71 starting at (146, 103).
-; PLAN: r0=146(x), r1=103(y), r2=39(width), r3=71(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 146
-LDI r1, 103
-LDI r2, 39
-LDI r3, 71
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (331, 154) with radius 24.
+; PLAN: r0=331(x), r1=154(y), r2=24(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 331
+LDI r1, 154
+LDI r2, 24
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

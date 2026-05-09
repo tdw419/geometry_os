@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (311, 105) with width 105 and height 113.
-; PLAN: r0=311(x), r1=105(y), r2=105(width), r3=113(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 311
-LDI r1, 105
-LDI r2, 105
-LDI r3, 113
-LDI r4, 0xFF0000
+; DESCRIPTION: Creates a black rectangular region at (245, 25) spanning 50 by 92 pixels.
+; PLAN: r0=245(x), r1=25(y), r2=50(width), r3=92(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 245
+LDI r1, 25
+LDI r2, 50
+LDI r3, 92
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

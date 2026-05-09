@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 93x21 rectangle at position (112, 193).
-; PLAN: r0=112(x), r1=193(y), r2=93(width), r3=21(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 193
-LDI r2, 93
-LDI r3, 21
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a blue 13x18 rectangle at position (354, 183).
+; PLAN: r0=354(x), r1=183(y), r2=13(width), r3=18(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 354
+LDI r1, 183
+LDI r2, 13
+LDI r3, 18
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

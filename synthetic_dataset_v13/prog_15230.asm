@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (435, 73) to (6, 236).
-; PLAN: r0=435(x1), r1=73(y1), r2=6(x2), r3=236(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 435
-LDI r1, 73
-LDI r2, 6
-LDI r3, 236
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a red circular shape at (256, 180) with radius 60.
+; PLAN: r0=256(x), r1=180(y), r2=60(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 256
+LDI r1, 180
+LDI r2, 60
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta line segment connecting (255, 85) to (116, 239).
-; PLAN: r0=255(x1), r1=85(y1), r2=116(x2), r3=239(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 255
-LDI r1, 85
-LDI r2, 116
-LDI r3, 239
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (332, 93) with radius 15.
+; PLAN: r0=332(x), r1=93(y), r2=15(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 332
+LDI r1, 93
+LDI r2, 15
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

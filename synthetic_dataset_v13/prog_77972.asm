@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a white line from (88, 22) to (327, 44).
-; PLAN: r0=88(x1), r1=22(y1), r2=327(x2), r3=44(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 22
-LDI r2, 327
-LDI r3, 44
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow dot at position (326, 245).
+; PLAN: r0=326(x), r1=245(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 326
+LDI r1, 245
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

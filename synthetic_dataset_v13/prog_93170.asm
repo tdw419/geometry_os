@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a purple circular shape at (292, 194) with radius 53.
-; PLAN: r0=292(x), r1=194(y), r2=53(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 292
-LDI r1, 194
-LDI r2, 53
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 24 into r1 and decrements it in a loop until zero.
+; PLAN: r1=24(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 24
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (300, 186) to (148, 218).
-; PLAN: r0=300(x1), r1=186(y1), r2=148(x2), r3=218(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 186
-LDI r2, 148
-LDI r3, 218
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (128, 108) with radius 11.
+; PLAN: r0=128(x), r1=108(y), r2=11(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 128
+LDI r1, 108
+LDI r2, 11
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

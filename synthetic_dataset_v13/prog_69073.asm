@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan rectangle at (333, 214) with width 23 and height 23.
-; PLAN: r0=333(x), r1=214(y), r2=23(width), r3=23(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 333
-LDI r1, 214
-LDI r2, 23
-LDI r3, 23
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (151, 168) and radius 61.
+; PLAN: r0=151(x), r1=168(y), r2=61(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 151
+LDI r1, 168
+LDI r2, 61
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

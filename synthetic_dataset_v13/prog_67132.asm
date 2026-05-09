@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple rectangle at (323, 24) with width 39 and height 70.
-; PLAN: r0=323(x), r1=24(y), r2=39(width), r3=70(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 323
-LDI r1, 24
-LDI r2, 39
-LDI r3, 70
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (127, 151) with radius 42.
+; PLAN: r0=127(x), r1=151(y), r2=42(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 127
+LDI r1, 151
+LDI r2, 42
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

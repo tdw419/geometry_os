@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (254, 148) then Creates a black rectangular region at (178, 133) spanning 46 by 81 pixels then Places a white line segment connecting (36, 168) to (500, 236).
-; PLAN: r0=254(x), r1=148(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=178(x), r6=133(y), r7=46(width), r8=81(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=36(x1), r11=168(y1), r12=500(x2), r13=236(y2), r14=0xFFFFFF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 254
-LDI r1, 148
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 178
-LDI r6, 133
-LDI r7, 46
-LDI r8, 81
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
-LDI r10, 36
-LDI r11, 168
-LDI r12, 500
-LDI r13, 236
-LDI r14, 0xFFFFFF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a purple box of size 67x85 starting at (169, 116) then Sets a single red pixel at (284, 32) then Renders a white disk with center (346, 133) and radius 12.
+; PLAN: r0=169(x), r1=116(y), r2=67(width), r3=85(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=284(x), r6=32(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=346(x), r11=133(y), r12=12(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 169
+LDI r1, 116
+LDI r2, 67
+LDI r3, 85
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 284
+LDI r6, 32
+LDI r7, 0xFF0000
+PSET r5, r6, r7
+LDI r10, 346
+LDI r11, 133
+LDI r12, 12
+LDI r13, 0xFFFFFF
+CIRCLE r10, r11, r12, r13
 HALT

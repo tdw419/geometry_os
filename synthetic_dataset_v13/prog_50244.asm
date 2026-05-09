@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Renders a yellow line between points (296, 23) and (102, 133) then Sets a single magenta pixel at (347, 68).
-; PLAN: r0=296(x1), r1=23(y1), r2=102(x2), r3=133(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=347(x), r6=68(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 296
-LDI r1, 23
-LDI r2, 102
-LDI r3, 133
-LDI r4, 0xFFFF00
+; DESCRIPTION: Composite: Renders a blue line between points (165, 220) and (149, 201) then Sets a single black pixel at (324, 3).
+; PLAN: r0=165(x1), r1=220(y1), r2=149(x2), r3=201(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=324(x), r6=3(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 165
+LDI r1, 220
+LDI r2, 149
+LDI r3, 201
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
-LDI r5, 347
-LDI r6, 68
-LDI r7, 0xFF00FF
+LDI r5, 324
+LDI r6, 3
+LDI r7, 0x000000
 PSET r5, r6, r7
 HALT

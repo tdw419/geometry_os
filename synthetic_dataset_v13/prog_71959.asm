@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (11, 214) to (495, 41).
-; PLAN: r0=11(x1), r1=214(y1), r2=495(x2), r3=41(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 11
-LDI r1, 214
-LDI r2, 495
-LDI r3, 41
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (29, 40) with width 36 and height 92.
+; PLAN: r0=29(x), r1=40(y), r2=36(width), r3=92(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 29
+LDI r1, 40
+LDI r2, 36
+LDI r3, 92
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

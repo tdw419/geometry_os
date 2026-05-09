@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Creates a green circular shape at (408, 47) with radius 31.
+; PLAN: r0=408(x), r1=47(y), r2=31(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 408
+LDI r1, 47
+LDI r2, 31
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

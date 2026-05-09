@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (215, 54) spanning 76 by 77 pixels.
-; PLAN: r0=215(x), r1=54(y), r2=76(width), r3=77(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 215
-LDI r1, 54
-LDI r2, 76
-LDI r3, 77
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a cyan box of size 49x94 starting at (379, 152).
+; PLAN: r0=379(x), r1=152(y), r2=49(width), r3=94(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 379
+LDI r1, 152
+LDI r2, 49
+LDI r3, 94
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

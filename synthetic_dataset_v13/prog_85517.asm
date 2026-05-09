@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (443, 118) spanning 40 by 57 pixels.
-; PLAN: r0=443(x), r1=118(y), r2=40(width), r3=57(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 443
-LDI r1, 118
-LDI r2, 40
-LDI r3, 57
+; DESCRIPTION: Draws a white rectangle at (243, 87) with width 104 and height 45.
+; PLAN: r0=243(x), r1=87(y), r2=104(width), r3=45(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 243
+LDI r1, 87
+LDI r2, 104
+LDI r3, 45
 LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a black dot at position (366, 94).
-; PLAN: r0=366(x), r1=94(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 366
-LDI r1, 94
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a black circular shape at (104, 55) with radius 35.
+; PLAN: r0=104(x), r1=55(y), r2=35(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 104
+LDI r1, 55
+LDI r2, 35
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

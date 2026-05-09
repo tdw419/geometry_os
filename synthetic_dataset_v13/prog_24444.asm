@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (321, 172) then Draws a magenta circle centered at (424, 44) with radius 26.
-; PLAN: r0=321(x), r1=172(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=424(x), r6=44(y), r7=26(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 321
-LDI r1, 172
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 424
-LDI r6, 44
-LDI r7, 26
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a blue line between points (69, 184) and (48, 151).
+; PLAN: r0=69(x1), r1=184(y1), r2=48(x2), r3=151(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 69
+LDI r1, 184
+LDI r2, 48
+LDI r3, 151
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

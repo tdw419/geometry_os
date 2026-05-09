@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (47, 247).
-; PLAN: r0=47(x), r1=247(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 47
-LDI r1, 247
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a white rectangle at (304, 161) with width 53 and height 95.
+; PLAN: r0=304(x), r1=161(y), r2=53(width), r3=95(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 304
+LDI r1, 161
+LDI r2, 53
+LDI r3, 95
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

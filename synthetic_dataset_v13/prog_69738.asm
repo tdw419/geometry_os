@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (448, 64) and (384, 208).
-; PLAN: r0=448(x1), r1=64(y1), r2=384(x2), r3=208(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 448
-LDI r1, 64
-LDI r2, 384
-LDI r3, 208
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue rectangle at (177, 62) with width 47 and height 32.
+; PLAN: r0=177(x), r1=62(y), r2=47(width), r3=32(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 177
+LDI r1, 62
+LDI r2, 47
+LDI r3, 32
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

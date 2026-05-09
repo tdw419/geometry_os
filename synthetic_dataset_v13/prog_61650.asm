@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Places a yellow line segment connecting (338, 249) to (368, 128).
+; PLAN: r0=338(x1), r1=249(y1), r2=368(x2), r3=128(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 338
+LDI r1, 249
+LDI r2, 368
+LDI r3, 128
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

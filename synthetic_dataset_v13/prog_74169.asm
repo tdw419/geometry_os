@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan rectangle at (362, 127) with width 37 and height 50.
-; PLAN: r0=362(x), r1=127(y), r2=37(width), r3=50(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 127
+; DESCRIPTION: Renders a orange disk with center (184, 66) and radius 37.
+; PLAN: r0=184(x), r1=66(y), r2=37(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 184
+LDI r1, 66
 LDI r2, 37
-LDI r3, 50
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

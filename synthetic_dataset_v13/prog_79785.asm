@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a magenta rectangle at (330, 136) with width 120 and height 19.
-; PLAN: r0=330(x), r1=136(y), r2=120(width), r3=19(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 330
-LDI r1, 136
-LDI r2, 120
-LDI r3, 19
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue dot at position (28, 172).
+; PLAN: r0=28(x), r1=172(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 28
+LDI r1, 172
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

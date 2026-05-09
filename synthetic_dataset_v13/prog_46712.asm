@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a yellow rectangular region at (373, 49) spanning 106 by 43 pixels.
-; PLAN: r0=373(x), r1=49(y), r2=106(width), r3=43(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 373
-LDI r1, 49
-LDI r2, 106
-LDI r3, 43
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow dot at position (246, 15) then Places a cyan line segment connecting (251, 3) to (389, 111).
+; PLAN: r0=246(x), r1=15(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=251(x1), r6=3(y1), r7=389(x2), r8=111(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 246
+LDI r1, 15
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 251
+LDI r6, 3
+LDI r7, 389
+LDI r8, 111
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
 HALT

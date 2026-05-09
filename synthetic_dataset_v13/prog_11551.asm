@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (384, 123) spanning 89 by 50 pixels.
-; PLAN: r0=384(x), r1=123(y), r2=89(width), r3=50(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 384
-LDI r1, 123
-LDI r2, 89
-LDI r3, 50
-LDI r4, 0x0000FF
+; DESCRIPTION: Creates a cyan rectangular region at (97, 63) spanning 49 by 48 pixels.
+; PLAN: r0=97(x), r1=63(y), r2=49(width), r3=48(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 97
+LDI r1, 63
+LDI r2, 49
+LDI r3, 48
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

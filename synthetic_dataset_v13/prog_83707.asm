@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a orange rectangle at (193, 58) with width 24 and height 66.
-; PLAN: r0=193(x), r1=58(y), r2=24(width), r3=66(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 193
-LDI r1, 58
-LDI r2, 24
-LDI r3, 66
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a white circular shape at (333, 96) with radius 23 then Sets a single green pixel at (429, 113).
+; PLAN: r0=333(x), r1=96(y), r2=23(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=429(x), r6=113(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 333
+LDI r1, 96
+LDI r2, 23
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 429
+LDI r6, 113
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Places a white dot at position (89, 201).
+; PLAN: r0=89(x), r1=201(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 89
+LDI r1, 201
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

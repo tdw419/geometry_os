@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a magenta circle of radius 17 at center (216, 36).
-; PLAN: r0=216(x), r1=36(y), r2=17(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 216
-LDI r1, 36
-LDI r2, 17
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (250, 7).
+; PLAN: r0=250(x), r1=7(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 250
+LDI r1, 7
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a green rectangular region at (223, 24) spanning 108 by 88 pixels.
-; PLAN: r0=223(x), r1=24(y), r2=108(width), r3=88(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 223
-LDI r1, 24
-LDI r2, 108
-LDI r3, 88
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (443, 108).
+; PLAN: r0=443(x), r1=108(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 443
+LDI r1, 108
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

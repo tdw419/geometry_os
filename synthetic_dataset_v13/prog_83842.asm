@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (267, 69) with radius 25.
-; PLAN: r0=267(x), r1=69(y), r2=25(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 267
-LDI r1, 69
-LDI r2, 25
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (45, 84) and (213, 253).
+; PLAN: r0=45(x1), r1=84(y1), r2=213(x2), r3=253(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 45
+LDI r1, 84
+LDI r2, 213
+LDI r3, 253
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

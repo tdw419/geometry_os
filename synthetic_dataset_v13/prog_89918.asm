@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a magenta rectangle at (92, 175) with width 11 and height 35.
-; PLAN: r0=92(x), r1=175(y), r2=11(width), r3=35(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 175
-LDI r2, 11
-LDI r3, 35
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow dot at position (331, 154).
+; PLAN: r0=331(x), r1=154(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 331
+LDI r1, 154
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

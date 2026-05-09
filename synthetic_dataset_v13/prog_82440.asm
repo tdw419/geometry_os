@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (292, 167) with width 65 and height 49.
-; PLAN: r0=292(x), r1=167(y), r2=65(width), r3=49(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 292
-LDI r1, 167
-LDI r2, 65
-LDI r3, 49
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a green 12x99 rectangle at position (53, 91).
+; PLAN: r0=53(x), r1=91(y), r2=12(width), r3=99(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 53
+LDI r1, 91
+LDI r2, 12
+LDI r3, 99
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

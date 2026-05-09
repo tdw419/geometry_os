@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple line segment connecting (501, 32) to (283, 25).
-; PLAN: r0=501(x1), r1=32(y1), r2=283(x2), r3=25(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 501
-LDI r1, 32
-LDI r2, 283
-LDI r3, 25
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 18 into r1 and decrements it in a loop until zero.
+; PLAN: r1=18(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 18
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

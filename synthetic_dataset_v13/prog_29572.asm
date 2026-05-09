@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (28, 171) to (167, 61).
-; PLAN: r0=28(x1), r1=171(y1), r2=167(x2), r3=61(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 28
-LDI r1, 171
-LDI r2, 167
-LDI r3, 61
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 25x80 starting at (258, 127).
+; PLAN: r0=258(x), r1=127(y), r2=25(width), r3=80(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 258
+LDI r1, 127
+LDI r2, 25
+LDI r3, 80
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

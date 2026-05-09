@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan box of size 66x24 starting at (92, 195).
-; PLAN: r0=92(x), r1=195(y), r2=66(width), r3=24(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 195
-LDI r2, 66
-LDI r3, 24
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (88, 220).
+; PLAN: r0=88(x), r1=220(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 88
+LDI r1, 220
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

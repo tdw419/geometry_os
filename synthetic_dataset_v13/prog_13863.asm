@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a green disk with center (331, 48) and radius 27.
-; PLAN: r0=331(x), r1=48(y), r2=27(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 331
-LDI r1, 48
-LDI r2, 27
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (350, 50).
+; PLAN: r0=350(x), r1=50(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 350
+LDI r1, 50
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green line from (201, 36) to (56, 57).
-; PLAN: r0=201(x1), r1=36(y1), r2=56(x2), r3=57(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 201
-LDI r1, 36
-LDI r2, 56
-LDI r3, 57
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green dot at position (316, 73).
+; PLAN: r0=316(x), r1=73(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 316
+LDI r1, 73
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

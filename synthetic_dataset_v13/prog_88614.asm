@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a white circular shape at (99, 81) with radius 68.
-; PLAN: r0=99(x), r1=81(y), r2=68(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 99
-LDI r1, 81
-LDI r2, 68
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

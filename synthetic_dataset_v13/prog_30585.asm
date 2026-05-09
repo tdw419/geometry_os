@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 21x109 rectangle at position (217, 92).
-; PLAN: r0=217(x), r1=92(y), r2=21(width), r3=109(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 217
-LDI r1, 92
-LDI r2, 21
-LDI r3, 109
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (266, 87) to (147, 177).
+; PLAN: r0=266(x1), r1=87(y1), r2=147(x2), r3=177(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 266
+LDI r1, 87
+LDI r2, 147
+LDI r3, 177
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

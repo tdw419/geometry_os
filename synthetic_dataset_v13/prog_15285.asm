@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a blue 120x82 rectangle at position (384, 2).
-; PLAN: r0=384(x), r1=2(y), r2=120(width), r3=82(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 384
-LDI r1, 2
-LDI r2, 120
-LDI r3, 82
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (433, 111).
+; PLAN: r0=433(x), r1=111(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 433
+LDI r1, 111
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

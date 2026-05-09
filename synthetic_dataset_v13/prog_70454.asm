@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a yellow line from (166, 76) to (234, 142).
-; PLAN: r0=166(x1), r1=76(y1), r2=234(x2), r3=142(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 166
-LDI r1, 76
-LDI r2, 234
-LDI r3, 142
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (477, 241) then Draws a blue line from (218, 85) to (207, 242).
+; PLAN: r0=477(x), r1=241(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=218(x1), r6=85(y1), r7=207(x2), r8=242(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 477
+LDI r1, 241
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 218
+LDI r6, 85
+LDI r7, 207
+LDI r8, 242
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

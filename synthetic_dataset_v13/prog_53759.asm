@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (265, 93) spanning 74 by 116 pixels.
-; PLAN: r0=265(x), r1=93(y), r2=74(width), r3=116(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 265
-LDI r1, 93
-LDI r2, 74
-LDI r3, 116
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Creates a orange rectangular region at (67, 83) spanning 35 by 49 pixels.
+; PLAN: r0=67(x), r1=83(y), r2=35(width), r3=49(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 67
+LDI r1, 83
+LDI r2, 35
+LDI r3, 49
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

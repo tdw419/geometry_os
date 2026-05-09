@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (222, 5) then Creates a red circular shape at (393, 112) with radius 76.
-; PLAN: r0=222(x), r1=5(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=393(x), r6=112(y), r7=76(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 222
-LDI r1, 5
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 393
-LDI r6, 112
-LDI r7, 76
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a blue 97x78 rectangle at position (148, 144).
+; PLAN: r0=148(x), r1=144(y), r2=97(width), r3=78(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 148
+LDI r1, 144
+LDI r2, 97
+LDI r3, 78
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

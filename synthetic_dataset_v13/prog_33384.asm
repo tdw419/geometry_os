@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a white dot at position (86, 139) then Creates a orange circular shape at (477, 95) with radius 27.
-; PLAN: r0=86(x), r1=139(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=477(x), r6=95(y), r7=27(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 86
-LDI r1, 139
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 477
-LDI r6, 95
-LDI r7, 27
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a magenta line between points (363, 44) and (475, 216).
+; PLAN: r0=363(x1), r1=44(y1), r2=475(x2), r3=216(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 363
+LDI r1, 44
+LDI r2, 475
+LDI r3, 216
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

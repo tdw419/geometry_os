@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a red box of size 61x36 starting at (93, 129).
-; PLAN: r0=93(x), r1=129(y), r2=61(width), r3=36(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 93
-LDI r1, 129
-LDI r2, 61
-LDI r3, 36
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (270, 37) then Creates a magenta rectangular region at (312, 77) spanning 70 by 16 pixels.
+; PLAN: r0=270(x), r1=37(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=312(x), r6=77(y), r7=70(width), r8=16(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 270
+LDI r1, 37
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 312
+LDI r6, 77
+LDI r7, 70
+LDI r8, 16
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

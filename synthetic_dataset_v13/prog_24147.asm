@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (316, 145) with width 87 and height 95.
-; PLAN: r0=316(x), r1=145(y), r2=87(width), r3=95(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 316
-LDI r1, 145
-LDI r2, 87
-LDI r3, 95
+; DESCRIPTION: Draws a yellow line from (181, 126) to (63, 9).
+; PLAN: r0=181(x1), r1=126(y1), r2=63(x2), r3=9(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 181
+LDI r1, 126
+LDI r2, 63
+LDI r3, 9
 LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

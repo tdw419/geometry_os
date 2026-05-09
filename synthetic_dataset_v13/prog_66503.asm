@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a green circle of radius 22 at center (66, 41).
-; PLAN: r0=66(x), r1=41(y), r2=22(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 66
-LDI r1, 41
-LDI r2, 22
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

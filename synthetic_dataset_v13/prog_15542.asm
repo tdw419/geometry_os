@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (470, 50) and (243, 196).
-; PLAN: r0=470(x1), r1=50(y1), r2=243(x2), r3=196(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 470
-LDI r1, 50
-LDI r2, 243
-LDI r3, 196
+; DESCRIPTION: Draws a purple line from (291, 49) to (215, 228).
+; PLAN: r0=291(x1), r1=49(y1), r2=215(x2), r3=228(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 291
+LDI r1, 49
+LDI r2, 215
+LDI r3, 228
 LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

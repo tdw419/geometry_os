@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (330, 59) to (390, 161).
-; PLAN: r0=330(x1), r1=59(y1), r2=390(x2), r3=161(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 330
-LDI r1, 59
-LDI r2, 390
-LDI r3, 161
+; DESCRIPTION: Places a magenta 39x100 rectangle at position (191, 15).
+; PLAN: r0=191(x), r1=15(y), r2=39(width), r3=100(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 191
+LDI r1, 15
+LDI r2, 39
+LDI r3, 100
 LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

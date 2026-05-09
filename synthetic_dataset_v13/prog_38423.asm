@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (9, 159) to (277, 166).
-; PLAN: r0=9(x1), r1=159(y1), r2=277(x2), r3=166(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 9
-LDI r1, 159
-LDI r2, 277
-LDI r3, 166
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 75x92 starting at (210, 31).
+; PLAN: r0=210(x), r1=31(y), r2=75(width), r3=92(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 210
+LDI r1, 31
+LDI r2, 75
+LDI r3, 92
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

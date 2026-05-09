@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a cyan dot at position (155, 253).
-; PLAN: r0=155(x), r1=253(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 155
-LDI r1, 253
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a red rectangle at (7, 140) with width 109 and height 69.
+; PLAN: r0=7(x), r1=140(y), r2=109(width), r3=69(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 7
+LDI r1, 140
+LDI r2, 109
+LDI r3, 69
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

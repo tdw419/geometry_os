@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Creates a green rectangular region at (337, 72) spanning 61 by 100 pixels then Places a black dot at position (327, 207).
-; PLAN: r0=337(x), r1=72(y), r2=61(width), r3=100(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=327(x), r6=207(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 337
-LDI r1, 72
-LDI r2, 61
-LDI r3, 100
-LDI r4, 0x00FF00
+; DESCRIPTION: Composite: Draws a magenta rectangle at (203, 140) with width 89 and height 68 then Sets a single magenta pixel at (162, 182).
+; PLAN: r0=203(x), r1=140(y), r2=89(width), r3=68(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=162(x), r6=182(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 203
+LDI r1, 140
+LDI r2, 89
+LDI r3, 68
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 327
-LDI r6, 207
-LDI r7, 0x000000
+LDI r5, 162
+LDI r6, 182
+LDI r7, 0xFF00FF
 PSET r5, r6, r7
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 48x27 rectangle at position (111, 30).
-; PLAN: r0=111(x), r1=30(y), r2=48(width), r3=27(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 30
-LDI r2, 48
-LDI r3, 27
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a black rectangle at (357, 92) with width 61 and height 31.
+; PLAN: r0=357(x), r1=92(y), r2=61(width), r3=31(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 92
+LDI r2, 61
+LDI r3, 31
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

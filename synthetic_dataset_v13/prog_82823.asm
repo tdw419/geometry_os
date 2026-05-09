@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a magenta box of size 95x57 starting at (4, 101).
-; PLAN: r0=4(x), r1=101(y), r2=95(width), r3=57(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 4
-LDI r1, 101
-LDI r2, 95
-LDI r3, 57
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

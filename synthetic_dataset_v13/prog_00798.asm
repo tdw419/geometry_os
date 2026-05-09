@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a blue circular shape at (330, 58) with radius 33.
-; PLAN: r0=330(x), r1=58(y), r2=33(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 330
-LDI r1, 58
-LDI r2, 33
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a orange circle centered at (307, 187) with radius 56.
+; PLAN: r0=307(x), r1=187(y), r2=56(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 307
+LDI r1, 187
+LDI r2, 56
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (250, 131) with radius 63.
-; PLAN: r0=250(x), r1=131(y), r2=63(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 250
-LDI r1, 131
-LDI r2, 63
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (355, 236) to (271, 221).
+; PLAN: r0=355(x1), r1=236(y1), r2=271(x2), r3=221(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 355
+LDI r1, 236
+LDI r2, 271
+LDI r3, 221
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

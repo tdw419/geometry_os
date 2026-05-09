@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (65, 17) to (317, 132).
-; PLAN: r0=65(x1), r1=17(y1), r2=317(x2), r3=132(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 65
-LDI r1, 17
-LDI r2, 317
-LDI r3, 132
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a blue line between points (330, 149) and (337, 32).
+; PLAN: r0=330(x1), r1=149(y1), r2=337(x2), r3=32(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 330
+LDI r1, 149
+LDI r2, 337
+LDI r3, 32
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a red box of size 83x19 starting at (45, 126).
-; PLAN: r0=45(x), r1=126(y), r2=83(width), r3=19(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 126
-LDI r2, 83
-LDI r3, 19
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (33, 242) then Renders a blue line between points (444, 137) and (399, 158).
+; PLAN: r0=33(x), r1=242(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=444(x1), r6=137(y1), r7=399(x2), r8=158(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 33
+LDI r1, 242
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 444
+LDI r6, 137
+LDI r7, 399
+LDI r8, 158
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

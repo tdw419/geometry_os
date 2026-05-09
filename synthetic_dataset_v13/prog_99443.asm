@@ -1,18 +1,12 @@
-; DESCRIPTION: Composite: Places a yellow line segment connecting (507, 116) to (77, 128) then Creates a purple circular shape at (80, 184) with radius 42 then Sets a single orange pixel at (197, 251).
-; PLAN: r0=507(x1), r1=116(y1), r2=77(x2), r3=128(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=80(x), r6=184(y), r7=42(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=197(x), r11=251(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
-LDI r0, 507
-LDI r1, 116
-LDI r2, 77
-LDI r3, 128
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 80
-LDI r6, 184
-LDI r7, 42
-LDI r8, 0xAA00FF
+; DESCRIPTION: Composite: Sets a single purple pixel at (403, 155) then Draws a cyan circle centered at (388, 47) with radius 31.
+; PLAN: r0=403(x), r1=155(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=388(x), r6=47(y), r7=31(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 403
+LDI r1, 155
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 388
+LDI r6, 47
+LDI r7, 31
+LDI r8, 0x00FFFF
 CIRCLE r5, r6, r7, r8
-LDI r10, 197
-LDI r11, 251
-LDI r12, 0xFF8800
-PSET r10, r11, r12
 HALT

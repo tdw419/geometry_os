@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 32 at center (34, 74).
-; PLAN: r0=34(x), r1=74(y), r2=32(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 34
-LDI r1, 74
-LDI r2, 32
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red line segment connecting (302, 59) to (170, 91).
+; PLAN: r0=302(x1), r1=59(y1), r2=170(x2), r3=91(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 302
+LDI r1, 59
+LDI r2, 170
+LDI r3, 91
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

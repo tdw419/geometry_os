@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (52, 210) to (232, 230).
-; PLAN: r0=52(x1), r1=210(y1), r2=232(x2), r3=230(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 52
-LDI r1, 210
-LDI r2, 232
-LDI r3, 230
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow 26x113 rectangle at position (152, 96).
+; PLAN: r0=152(x), r1=96(y), r2=26(width), r3=113(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 152
+LDI r1, 96
+LDI r2, 26
+LDI r3, 113
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

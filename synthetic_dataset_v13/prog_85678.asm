@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a yellow rectangular region at (254, 81) spanning 37 by 59 pixels.
-; PLAN: r0=254(x), r1=81(y), r2=37(width), r3=59(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 254
-LDI r1, 81
-LDI r2, 37
-LDI r3, 59
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (468, 205).
+; PLAN: r0=468(x), r1=205(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 468
+LDI r1, 205
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

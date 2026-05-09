@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white 18x42 rectangle at position (96, 148).
-; PLAN: r0=96(x), r1=148(y), r2=18(width), r3=42(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 96
-LDI r1, 148
-LDI r2, 18
-LDI r3, 42
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single white pixel at (111, 202).
+; PLAN: r0=111(x), r1=202(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 111
+LDI r1, 202
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

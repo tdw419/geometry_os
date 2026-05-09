@@ -1,9 +1,5 @@
-; DESCRIPTION: Creates a black rectangular region at (304, 110) spanning 52 by 59 pixels.
-; PLAN: r0=304(x), r1=110(y), r2=52(width), r3=59(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 304
-LDI r1, 110
-LDI r2, 52
-LDI r3, 59
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

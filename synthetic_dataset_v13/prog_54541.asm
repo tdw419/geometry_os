@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Places a blue dot at position (130, 99).
+; PLAN: r0=130(x), r1=99(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 130
+LDI r1, 99
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

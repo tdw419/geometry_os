@@ -1,18 +1,12 @@
-; DESCRIPTION: Composite: Draws a green line from (151, 127) to (327, 64) then Places a cyan dot at position (278, 53) then Renders a purple disk with center (415, 195) and radius 23.
-; PLAN: r0=151(x1), r1=127(y1), r2=327(x2), r3=64(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=278(x), r6=53(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=415(x), r11=195(y), r12=23(radius), r13=0xAA00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 151
-LDI r1, 127
-LDI r2, 327
-LDI r3, 64
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 278
-LDI r6, 53
-LDI r7, 0x00FFFF
-PSET r5, r6, r7
-LDI r10, 415
-LDI r11, 195
-LDI r12, 23
-LDI r13, 0xAA00FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Places a white dot at position (182, 228) then Places a magenta circle of radius 37 at center (457, 68).
+; PLAN: r0=182(x), r1=228(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=457(x), r6=68(y), r7=37(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 182
+LDI r1, 228
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 457
+LDI r6, 68
+LDI r7, 37
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

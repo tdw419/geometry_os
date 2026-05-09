@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single cyan pixel at (463, 167).
-; PLAN: r0=463(x), r1=167(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 463
-LDI r1, 167
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black box of size 34x54 starting at (302, 93).
+; PLAN: r0=302(x), r1=93(y), r2=34(width), r3=54(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 302
+LDI r1, 93
+LDI r2, 34
+LDI r3, 54
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

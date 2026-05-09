@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (429, 185) with radius 36.
-; PLAN: r0=429(x), r1=185(y), r2=36(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 429
-LDI r1, 185
-LDI r2, 36
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a green rectangular region at (254, 39) spanning 117 by 24 pixels.
+; PLAN: r0=254(x), r1=39(y), r2=117(width), r3=24(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 254
+LDI r1, 39
+LDI r2, 117
+LDI r3, 24
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

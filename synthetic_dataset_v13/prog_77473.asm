@@ -1,14 +1,15 @@
-; DESCRIPTION: Composite: Places a cyan line segment connecting (79, 220) to (262, 190) then Draws a blue circle centered at (140, 127) with radius 64.
-; PLAN: r0=79(x1), r1=220(y1), r2=262(x2), r3=190(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=140(x), r6=127(y), r7=64(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 79
-LDI r1, 220
-LDI r2, 262
-LDI r3, 190
-LDI r4, 0x00FFFF
+; DESCRIPTION: Composite: Places a green line segment connecting (73, 137) to (422, 120) then Creates a black rectangular region at (207, 193) spanning 66 by 44 pixels.
+; PLAN: r0=73(x1), r1=137(y1), r2=422(x2), r3=120(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=207(x), r6=193(y), r7=66(width), r8=44(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 73
+LDI r1, 137
+LDI r2, 422
+LDI r3, 120
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
-LDI r5, 140
-LDI r6, 127
-LDI r7, 64
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+LDI r5, 207
+LDI r6, 193
+LDI r7, 66
+LDI r8, 44
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

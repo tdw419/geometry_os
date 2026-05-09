@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (342, 75) with radius 28.
-; PLAN: r0=342(x), r1=75(y), r2=28(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 342
-LDI r1, 75
-LDI r2, 28
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 109x55 rectangle at position (396, 133).
+; PLAN: r0=396(x), r1=133(y), r2=109(width), r3=55(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 396
+LDI r1, 133
+LDI r2, 109
+LDI r3, 55
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

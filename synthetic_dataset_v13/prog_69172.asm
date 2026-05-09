@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (475, 249) and (52, 57).
-; PLAN: r0=475(x1), r1=249(y1), r2=52(x2), r3=57(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 475
-LDI r1, 249
-LDI r2, 52
-LDI r3, 57
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan rectangle at (155, 135) with width 88 and height 90.
+; PLAN: r0=155(x), r1=135(y), r2=88(width), r3=90(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 155
+LDI r1, 135
+LDI r2, 88
+LDI r3, 90
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

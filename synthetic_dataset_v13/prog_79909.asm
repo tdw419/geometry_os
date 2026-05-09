@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (346, 92) with radius 53.
-; PLAN: r0=346(x), r1=92(y), r2=53(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 346
-LDI r1, 92
-LDI r2, 53
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green rectangle at (353, 168) with width 109 and height 34.
+; PLAN: r0=353(x), r1=168(y), r2=109(width), r3=34(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 168
+LDI r2, 109
+LDI r3, 34
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

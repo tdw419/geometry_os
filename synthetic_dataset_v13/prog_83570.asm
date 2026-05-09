@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 75x59 rectangle at position (288, 79).
-; PLAN: r0=288(x), r1=79(y), r2=75(width), r3=59(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 79
-LDI r2, 75
-LDI r3, 59
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (264, 189) with radius 54.
+; PLAN: r0=264(x), r1=189(y), r2=54(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 264
+LDI r1, 189
+LDI r2, 54
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

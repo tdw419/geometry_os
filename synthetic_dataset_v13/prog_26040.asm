@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 24x34 rectangle at position (144, 90).
-; PLAN: r0=144(x), r1=90(y), r2=24(width), r3=34(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 144
-LDI r1, 90
-LDI r2, 24
-LDI r3, 34
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red line from (463, 144) to (340, 147).
+; PLAN: r0=463(x1), r1=144(y1), r2=340(x2), r3=147(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 463
+LDI r1, 144
+LDI r2, 340
+LDI r3, 147
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

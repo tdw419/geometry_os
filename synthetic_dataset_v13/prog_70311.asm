@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (89, 198) to (8, 135).
-; PLAN: r0=89(x1), r1=198(y1), r2=8(x2), r3=135(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 89
-LDI r1, 198
-LDI r2, 8
-LDI r3, 135
+; DESCRIPTION: Renders a green box of size 110x104 starting at (401, 117).
+; PLAN: r0=401(x), r1=117(y), r2=110(width), r3=104(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 401
+LDI r1, 117
+LDI r2, 110
+LDI r3, 104
 LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

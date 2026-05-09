@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a black line segment connecting (366, 185) to (253, 235).
-; PLAN: r0=366(x1), r1=185(y1), r2=253(x2), r3=235(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 366
-LDI r1, 185
-LDI r2, 253
-LDI r3, 235
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (130, 130).
+; PLAN: r0=130(x), r1=130(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 130
+LDI r1, 130
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

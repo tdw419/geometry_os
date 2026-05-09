@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (440, 83) with radius 66.
-; PLAN: r0=440(x), r1=83(y), r2=66(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 440
-LDI r1, 83
-LDI r2, 66
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (403, 205) and (250, 180).
+; PLAN: r0=403(x1), r1=205(y1), r2=250(x2), r3=180(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 403
+LDI r1, 205
+LDI r2, 250
+LDI r3, 180
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

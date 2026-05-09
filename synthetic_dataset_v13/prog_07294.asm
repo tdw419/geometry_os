@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (403, 13) and (80, 74).
-; PLAN: r0=403(x1), r1=13(y1), r2=80(x2), r3=74(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 403
-LDI r1, 13
-LDI r2, 80
-LDI r3, 74
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a magenta line between points (471, 228) and (173, 90).
+; PLAN: r0=471(x1), r1=228(y1), r2=173(x2), r3=90(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 471
+LDI r1, 228
+LDI r2, 173
+LDI r3, 90
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

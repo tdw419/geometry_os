@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 87x40 starting at (129, 151).
-; PLAN: r0=129(x), r1=151(y), r2=87(width), r3=40(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 151
-LDI r2, 87
-LDI r3, 40
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (481, 194) and (250, 129).
+; PLAN: r0=481(x1), r1=194(y1), r2=250(x2), r3=129(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 481
+LDI r1, 194
+LDI r2, 250
+LDI r3, 129
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

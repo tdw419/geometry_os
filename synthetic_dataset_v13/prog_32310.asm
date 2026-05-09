@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (469, 42) with radius 31.
-; PLAN: r0=469(x), r1=42(y), r2=31(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 469
-LDI r1, 42
-LDI r2, 31
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a yellow line segment connecting (120, 117) to (91, 108).
+; PLAN: r0=120(x1), r1=117(y1), r2=91(x2), r3=108(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 120
+LDI r1, 117
+LDI r2, 91
+LDI r3, 108
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

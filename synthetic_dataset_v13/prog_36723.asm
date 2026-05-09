@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (41, 73) with radius 25.
-; PLAN: r0=41(x), r1=73(y), r2=25(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 41
-LDI r1, 73
-LDI r2, 25
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange box of size 59x114 starting at (365, 122).
+; PLAN: r0=365(x), r1=122(y), r2=59(width), r3=114(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 365
+LDI r1, 122
+LDI r2, 59
+LDI r3, 114
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a blue circle of radius 17 at center (310, 112).
-; PLAN: r0=310(x), r1=112(y), r2=17(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 310
-LDI r1, 112
-LDI r2, 17
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a white circle centered at (309, 187) with radius 55.
+; PLAN: r0=309(x), r1=187(y), r2=55(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 309
+LDI r1, 187
+LDI r2, 55
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

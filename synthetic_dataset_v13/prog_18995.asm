@@ -1,5 +1,5 @@
-; DESCRIPTION: Fills the entire screen with solid purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
 FILL r0
 HALT

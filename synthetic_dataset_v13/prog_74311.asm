@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (332, 97) with radius 61.
-; PLAN: r0=332(x), r1=97(y), r2=61(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 332
-LDI r1, 97
-LDI r2, 61
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green line segment connecting (409, 243) to (30, 83).
+; PLAN: r0=409(x1), r1=243(y1), r2=30(x2), r3=83(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 409
+LDI r1, 243
+LDI r2, 30
+LDI r3, 83
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

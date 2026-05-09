@@ -1,12 +1,13 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (311, 235) then Renders a yellow disk with center (60, 180) and radius 49.
-; PLAN: r0=311(x), r1=235(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=60(x), r6=180(y), r7=49(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 311
-LDI r1, 235
-LDI r2, 0x00FFFF
+; DESCRIPTION: Composite: Sets a single magenta pixel at (422, 50) then Places a red line segment connecting (31, 218) to (74, 106).
+; PLAN: r0=422(x), r1=50(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=31(x1), r6=218(y1), r7=74(x2), r8=106(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 422
+LDI r1, 50
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
-LDI r5, 60
-LDI r6, 180
-LDI r7, 49
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+LDI r5, 31
+LDI r6, 218
+LDI r7, 74
+LDI r8, 106
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

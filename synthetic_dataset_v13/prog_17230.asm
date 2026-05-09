@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (168, 100) with radius 75.
-; PLAN: r0=168(x), r1=100(y), r2=75(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 168
-LDI r1, 100
-LDI r2, 75
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (20, 135) and (346, 83).
+; PLAN: r0=20(x1), r1=135(y1), r2=346(x2), r3=83(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 20
+LDI r1, 135
+LDI r2, 346
+LDI r3, 83
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

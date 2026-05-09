@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a orange line segment connecting (370, 145) to (354, 242).
-; PLAN: r0=370(x1), r1=145(y1), r2=354(x2), r3=242(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 370
-LDI r1, 145
-LDI r2, 354
-LDI r3, 242
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a cyan rectangular region at (13, 70) spanning 55 by 62 pixels then Places a white circle of radius 43 at center (362, 117).
+; PLAN: r0=13(x), r1=70(y), r2=55(width), r3=62(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=362(x), r6=117(y), r7=43(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 13
+LDI r1, 70
+LDI r2, 55
+LDI r3, 62
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 362
+LDI r6, 117
+LDI r7, 43
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

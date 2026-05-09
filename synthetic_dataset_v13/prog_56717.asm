@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (309, 127) and (0, 113).
-; PLAN: r0=309(x1), r1=127(y1), r2=0(x2), r3=113(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 127
-LDI r2, 0
-LDI r3, 113
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (470, 88) with radius 12.
+; PLAN: r0=470(x), r1=88(y), r2=12(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 470
+LDI r1, 88
+LDI r2, 12
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

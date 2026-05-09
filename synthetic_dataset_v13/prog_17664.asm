@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (89, 204) and radius 46.
-; PLAN: r0=89(x), r1=204(y), r2=46(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 89
-LDI r1, 204
-LDI r2, 46
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 93x39 rectangle at position (411, 82).
+; PLAN: r0=411(x), r1=82(y), r2=93(width), r3=39(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 411
+LDI r1, 82
+LDI r2, 93
+LDI r3, 39
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

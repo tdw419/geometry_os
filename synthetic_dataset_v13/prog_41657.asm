@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Sets a single cyan pixel at (134, 112) then Renders a magenta line between points (420, 236) and (180, 65).
-; PLAN: r0=134(x), r1=112(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=420(x1), r6=236(y1), r7=180(x2), r8=65(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 134
-LDI r1, 112
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 420
-LDI r6, 236
-LDI r7, 180
-LDI r8, 65
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a white disk with center (66, 133) and radius 36.
+; PLAN: r0=66(x), r1=133(y), r2=36(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 66
+LDI r1, 133
+LDI r2, 36
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

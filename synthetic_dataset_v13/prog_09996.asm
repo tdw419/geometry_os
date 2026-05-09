@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a purple circle of radius 42 at center (432, 107).
-; PLAN: r0=432(x), r1=107(y), r2=42(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 432
-LDI r1, 107
-LDI r2, 42
-LDI r3, 0xAA00FF
+; DESCRIPTION: Draws a blue circle centered at (60, 176) with radius 49.
+; PLAN: r0=60(x), r1=176(y), r2=49(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 60
+LDI r1, 176
+LDI r2, 49
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

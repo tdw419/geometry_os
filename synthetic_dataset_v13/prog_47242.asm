@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (498, 131) to (24, 208).
-; PLAN: r0=498(x1), r1=131(y1), r2=24(x2), r3=208(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 498
+; DESCRIPTION: Places a orange circle of radius 74 at center (302, 131).
+; PLAN: r0=302(x), r1=131(y), r2=74(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 302
 LDI r1, 131
-LDI r2, 24
-LDI r3, 208
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+LDI r2, 74
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

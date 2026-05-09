@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (143, 140) and (258, 158).
-; PLAN: r0=143(x1), r1=140(y1), r2=258(x2), r3=158(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 140
-LDI r2, 258
-LDI r3, 158
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 22x109 rectangle at position (485, 91).
+; PLAN: r0=485(x), r1=91(y), r2=22(width), r3=109(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 485
+LDI r1, 91
+LDI r2, 22
+LDI r3, 109
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

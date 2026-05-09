@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a purple circle of radius 36 at center (86, 56) then Sets a single purple pixel at (432, 146).
-; PLAN: r0=86(x), r1=56(y), r2=36(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=432(x), r6=146(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 86
-LDI r1, 56
-LDI r2, 36
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 432
-LDI r6, 146
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Places a red 33x41 rectangle at position (236, 201).
+; PLAN: r0=236(x), r1=201(y), r2=33(width), r3=41(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 236
+LDI r1, 201
+LDI r2, 33
+LDI r3, 41
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

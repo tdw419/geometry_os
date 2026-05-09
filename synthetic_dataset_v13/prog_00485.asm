@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (314, 108) to (115, 210).
-; PLAN: r0=314(x1), r1=108(y1), r2=115(x2), r3=210(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 314
-LDI r1, 108
-LDI r2, 115
-LDI r3, 210
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange circle of radius 35 at center (388, 206).
+; PLAN: r0=388(x), r1=206(y), r2=35(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 388
+LDI r1, 206
+LDI r2, 35
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

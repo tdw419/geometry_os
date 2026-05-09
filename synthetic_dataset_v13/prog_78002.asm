@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 27x83 starting at (93, 101).
-; PLAN: r0=93(x), r1=101(y), r2=27(width), r3=83(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 93
-LDI r1, 101
-LDI r2, 27
-LDI r3, 83
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 29 at center (389, 137).
+; PLAN: r0=389(x), r1=137(y), r2=29(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 389
+LDI r1, 137
+LDI r2, 29
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

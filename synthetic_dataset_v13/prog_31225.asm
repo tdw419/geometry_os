@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (407, 113) with radius 77.
-; PLAN: r0=407(x), r1=113(y), r2=77(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 407
-LDI r1, 113
-LDI r2, 77
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (404, 161) to (109, 100).
+; PLAN: r0=404(x1), r1=161(y1), r2=109(x2), r3=100(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 404
+LDI r1, 161
+LDI r2, 109
+LDI r3, 100
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

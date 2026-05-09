@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 50x59 starting at (233, 25).
-; PLAN: r0=233(x), r1=25(y), r2=50(width), r3=59(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 233
-LDI r1, 25
-LDI r2, 50
-LDI r3, 59
-LDI r4, 0x0000FF
+; DESCRIPTION: Creates a white rectangular region at (406, 89) spanning 99 by 90 pixels.
+; PLAN: r0=406(x), r1=89(y), r2=99(width), r3=90(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 406
+LDI r1, 89
+LDI r2, 99
+LDI r3, 90
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 35 into r1 and decrements it in a loop until zero.
-; PLAN: r1=35(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 35
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a purple line between points (150, 228) and (470, 245).
+; PLAN: r0=150(x1), r1=228(y1), r2=470(x2), r3=245(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 228
+LDI r2, 470
+LDI r3, 245
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

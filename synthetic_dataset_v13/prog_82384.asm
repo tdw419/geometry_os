@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a yellow dot at position (185, 254).
-; PLAN: r0=185(x), r1=254(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 185
-LDI r1, 254
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

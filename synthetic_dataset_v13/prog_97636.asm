@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 76x60 rectangle at position (211, 195).
-; PLAN: r0=211(x), r1=195(y), r2=76(width), r3=60(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 211
-LDI r1, 195
-LDI r2, 76
+; DESCRIPTION: Renders a red box of size 75x60 starting at (362, 108).
+; PLAN: r0=362(x), r1=108(y), r2=75(width), r3=60(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 362
+LDI r1, 108
+LDI r2, 75
 LDI r3, 60
-LDI r4, 0xFFFFFF
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (370, 56) and (338, 127).
-; PLAN: r0=370(x1), r1=56(y1), r2=338(x2), r3=127(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 370
-LDI r1, 56
-LDI r2, 338
-LDI r3, 127
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (210, 196) and radius 56.
+; PLAN: r0=210(x), r1=196(y), r2=56(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 210
+LDI r1, 196
+LDI r2, 56
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 18x50 rectangle at position (390, 37).
-; PLAN: r0=390(x), r1=37(y), r2=18(width), r3=50(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 390
-LDI r1, 37
-LDI r2, 18
-LDI r3, 50
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (492, 124) and (308, 105).
+; PLAN: r0=492(x1), r1=124(y1), r2=308(x2), r3=105(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 492
+LDI r1, 124
+LDI r2, 308
+LDI r3, 105
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

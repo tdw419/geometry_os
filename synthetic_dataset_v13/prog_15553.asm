@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Places a black circle of radius 71 at center (185, 91) then Renders a blue line between points (142, 67) and (112, 114) then Sets a single cyan pixel at (34, 66).
-; PLAN: r0=185(x), r1=91(y), r2=71(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=142(x1), r6=67(y1), r7=112(x2), r8=114(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=34(x), r11=66(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
-LDI r0, 185
-LDI r1, 91
-LDI r2, 71
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 142
-LDI r6, 67
-LDI r7, 112
-LDI r8, 114
-LDI r9, 0x0000FF
-LINE r5, r6, r7, r8, r9
-LDI r10, 34
-LDI r11, 66
-LDI r12, 0x00FFFF
-PSET r10, r11, r12
+; DESCRIPTION: Draws a magenta line from (417, 231) to (14, 244).
+; PLAN: r0=417(x1), r1=231(y1), r2=14(x2), r3=244(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 231
+LDI r2, 14
+LDI r3, 244
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

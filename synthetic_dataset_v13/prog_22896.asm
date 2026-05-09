@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Sets a single orange pixel at (39, 251) then Renders a orange line between points (12, 165) and (354, 17).
-; PLAN: r0=39(x), r1=251(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=12(x1), r6=165(y1), r7=354(x2), r8=17(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 39
-LDI r1, 251
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 12
-LDI r6, 165
-LDI r7, 354
-LDI r8, 17
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a orange box of size 43x21 starting at (292, 109) then Creates a white circular shape at (390, 147) with radius 17 then Sets a single red pixel at (4, 63).
+; PLAN: r0=292(x), r1=109(y), r2=43(width), r3=21(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=390(x), r6=147(y), r7=17(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=4(x), r11=63(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
+LDI r0, 292
+LDI r1, 109
+LDI r2, 43
+LDI r3, 21
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 390
+LDI r6, 147
+LDI r7, 17
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
+LDI r10, 4
+LDI r11, 63
+LDI r12, 0xFF0000
+PSET r10, r11, r12
 HALT

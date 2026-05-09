@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Renders a green box of size 36x107 starting at (290, 17) then Places a yellow dot at position (220, 86).
-; PLAN: r0=290(x), r1=17(y), r2=36(width), r3=107(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=220(x), r6=86(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 290
-LDI r1, 17
-LDI r2, 36
-LDI r3, 107
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 220
-LDI r6, 86
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
+; DESCRIPTION: Renders a black line between points (302, 177) and (31, 49).
+; PLAN: r0=302(x1), r1=177(y1), r2=31(x2), r3=49(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 302
+LDI r1, 177
+LDI r2, 31
+LDI r3, 49
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

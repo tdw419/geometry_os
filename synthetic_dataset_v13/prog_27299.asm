@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a cyan rectangular region at (66, 163) spanning 91 by 42 pixels.
-; PLAN: r0=66(x), r1=163(y), r2=91(width), r3=42(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 66
-LDI r1, 163
-LDI r2, 91
-LDI r3, 42
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (370, 65) then Creates a orange rectangular region at (397, 64) spanning 103 by 57 pixels.
+; PLAN: r0=370(x), r1=65(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=397(x), r6=64(y), r7=103(width), r8=57(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 370
+LDI r1, 65
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 397
+LDI r6, 64
+LDI r7, 103
+LDI r8, 57
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

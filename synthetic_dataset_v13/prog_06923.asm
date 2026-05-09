@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Draws a orange circle centered at (247, 160) with radius 58 then Draws a white line from (146, 213) to (92, 78).
-; PLAN: r0=247(x), r1=160(y), r2=58(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=146(x1), r6=213(y1), r7=92(x2), r8=78(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 247
-LDI r1, 160
-LDI r2, 58
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 146
-LDI r6, 213
-LDI r7, 92
-LDI r8, 78
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a cyan 10x110 rectangle at position (198, 59) then Places a green circle of radius 19 at center (55, 96) then Places a purple dot at position (299, 57).
+; PLAN: r0=198(x), r1=59(y), r2=10(width), r3=110(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=55(x), r6=96(y), r7=19(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=299(x), r11=57(y), r12=0xAA00FF(color). Op: PSET r10, r11, r12.
+LDI r0, 198
+LDI r1, 59
+LDI r2, 10
+LDI r3, 110
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 55
+LDI r6, 96
+LDI r7, 19
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
+LDI r10, 299
+LDI r11, 57
+LDI r12, 0xAA00FF
+PSET r10, r11, r12
 HALT

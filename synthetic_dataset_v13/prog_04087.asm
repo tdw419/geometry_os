@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a blue line between points (337, 56) and (112, 245).
-; PLAN: r0=337(x1), r1=56(y1), r2=112(x2), r3=245(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 337
-LDI r1, 56
-LDI r2, 112
-LDI r3, 245
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

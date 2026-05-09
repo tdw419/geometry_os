@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (298, 17).
-; PLAN: r0=298(x), r1=17(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 298
-LDI r1, 17
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a blue 72x40 rectangle at position (166, 164).
+; PLAN: r0=166(x), r1=164(y), r2=72(width), r3=40(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 166
+LDI r1, 164
+LDI r2, 72
+LDI r3, 40
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

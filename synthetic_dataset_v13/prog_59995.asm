@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a green line from (419, 115) to (189, 90).
-; PLAN: r0=419(x1), r1=115(y1), r2=189(x2), r3=90(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 419
-LDI r1, 115
-LDI r2, 189
-LDI r3, 90
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (383, 222) then Draws a cyan rectangle at (123, 39) with width 94 and height 10.
+; PLAN: r0=383(x), r1=222(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=123(x), r6=39(y), r7=94(width), r8=10(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 383
+LDI r1, 222
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 123
+LDI r6, 39
+LDI r7, 94
+LDI r8, 10
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

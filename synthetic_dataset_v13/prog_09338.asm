@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (248, 181) with radius 54.
-; PLAN: r0=248(x), r1=181(y), r2=54(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 248
-LDI r1, 181
-LDI r2, 54
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (472, 87) to (277, 196).
+; PLAN: r0=472(x1), r1=87(y1), r2=277(x2), r3=196(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 472
+LDI r1, 87
+LDI r2, 277
+LDI r3, 196
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

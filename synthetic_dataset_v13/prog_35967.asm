@@ -1,19 +1,14 @@
-; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
-LDI r7, 0x0000FF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Draws a yellow circle centered at (434, 122) with radius 59 then Renders a green box of size 25x106 starting at (201, 37).
+; PLAN: r0=434(x), r1=122(y), r2=59(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=201(x), r6=37(y), r7=25(width), r8=106(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 434
+LDI r1, 122
+LDI r2, 59
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 201
+LDI r6, 37
+LDI r7, 25
+LDI r8, 106
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

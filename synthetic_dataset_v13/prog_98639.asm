@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black line segment connecting (165, 231) to (76, 83).
-; PLAN: r0=165(x1), r1=231(y1), r2=76(x2), r3=83(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 231
-LDI r2, 76
-LDI r3, 83
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (352, 172) with radius 45.
+; PLAN: r0=352(x), r1=172(y), r2=45(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 352
+LDI r1, 172
+LDI r2, 45
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

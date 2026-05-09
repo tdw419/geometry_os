@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Places a white line segment connecting (118, 11) to (26, 53) then Places a green dot at position (221, 129) then Places a cyan circle of radius 61 at center (174, 173).
-; PLAN: r0=118(x1), r1=11(y1), r2=26(x2), r3=53(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=221(x), r6=129(y), r7=0x00FF00(color). Op: PSET r5, r6, r7 Next: r10=174(x), r11=173(y), r12=61(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 118
-LDI r1, 11
-LDI r2, 26
-LDI r3, 53
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 221
-LDI r6, 129
-LDI r7, 0x00FF00
-PSET r5, r6, r7
-LDI r10, 174
-LDI r11, 173
-LDI r12, 61
-LDI r13, 0x00FFFF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Renders a red disk with center (304, 150) and radius 31 then Draws a yellow rectangle at (320, 159) with width 51 and height 62 then Renders a red line between points (469, 206) and (355, 41).
+; PLAN: r0=304(x), r1=150(y), r2=31(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=320(x), r6=159(y), r7=51(width), r8=62(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=469(x1), r11=206(y1), r12=355(x2), r13=41(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 304
+LDI r1, 150
+LDI r2, 31
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 320
+LDI r6, 159
+LDI r7, 51
+LDI r8, 62
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 469
+LDI r11, 206
+LDI r12, 355
+LDI r13, 41
+LDI r14, 0xFF0000
+LINE r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (152, 29) spanning 12 by 25 pixels.
-; PLAN: r0=152(x), r1=29(y), r2=12(width), r3=25(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 152
-LDI r1, 29
-LDI r2, 12
-LDI r3, 25
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a white rectangle at (219, 211) with width 11 and height 41.
+; PLAN: r0=219(x), r1=211(y), r2=11(width), r3=41(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 219
+LDI r1, 211
+LDI r2, 11
+LDI r3, 41
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

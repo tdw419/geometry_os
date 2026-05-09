@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a black dot at position (337, 223).
-; PLAN: r0=337(x), r1=223(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 337
-LDI r1, 223
-LDI r2, 0x000000
+; DESCRIPTION: Places a cyan dot at position (2, 63).
+; PLAN: r0=2(x), r1=63(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 2
+LDI r1, 63
+LDI r2, 0x00FFFF
 PSET r0, r1, r2
 HALT

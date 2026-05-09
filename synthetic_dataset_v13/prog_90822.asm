@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Places a white circle of radius 15 at center (274, 87) then Draws a orange rectangle at (334, 146) with width 16 and height 100.
-; PLAN: r0=274(x), r1=87(y), r2=15(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=334(x), r6=146(y), r7=16(width), r8=100(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 274
-LDI r1, 87
-LDI r2, 15
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Composite: Renders a cyan disk with center (157, 18) and radius 16 then Sets a single purple pixel at (140, 63) then Draws a yellow rectangle at (164, 19) with width 55 and height 45.
+; PLAN: r0=157(x), r1=18(y), r2=16(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=140(x), r6=63(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=164(x), r11=19(y), r12=55(width), r13=45(height), r14=0xFFFF00(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 157
+LDI r1, 18
+LDI r2, 16
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
-LDI r5, 334
-LDI r6, 146
-LDI r7, 16
-LDI r8, 100
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
+LDI r5, 140
+LDI r6, 63
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
+LDI r10, 164
+LDI r11, 19
+LDI r12, 55
+LDI r13, 45
+LDI r14, 0xFFFF00
+RECTF r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange box of size 16x71 starting at (279, 176).
-; PLAN: r0=279(x), r1=176(y), r2=16(width), r3=71(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 279
-LDI r1, 176
-LDI r2, 16
-LDI r3, 71
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (370, 120) with radius 32.
+; PLAN: r0=370(x), r1=120(y), r2=32(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 370
+LDI r1, 120
+LDI r2, 32
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

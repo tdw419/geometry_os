@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Creates a red circular shape at (287, 161) with radius 40 then Creates a blue rectangular region at (188, 161) spanning 70 by 76 pixels.
-; PLAN: r0=287(x), r1=161(y), r2=40(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=188(x), r6=161(y), r7=70(width), r8=76(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 287
-LDI r1, 161
-LDI r2, 40
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 188
-LDI r6, 161
-LDI r7, 70
-LDI r8, 76
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a orange line between points (100, 138) and (479, 135).
+; PLAN: r0=100(x1), r1=138(y1), r2=479(x2), r3=135(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 100
+LDI r1, 138
+LDI r2, 479
+LDI r3, 135
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

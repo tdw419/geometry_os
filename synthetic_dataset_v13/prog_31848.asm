@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a blue circular shape at (177, 164) with radius 79.
-; PLAN: r0=177(x), r1=164(y), r2=79(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 177
-LDI r1, 164
-LDI r2, 79
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue dot at position (68, 71).
+; PLAN: r0=68(x), r1=71(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 68
+LDI r1, 71
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 5 into r1 and decrements it in a loop until zero.
-; PLAN: r1=5(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 5
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a purple box of size 31x42 starting at (397, 196).
+; PLAN: r0=397(x), r1=196(y), r2=31(width), r3=42(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 397
+LDI r1, 196
+LDI r2, 31
+LDI r3, 42
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

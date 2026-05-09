@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Sets a single yellow pixel at (148, 237) then Places a white line segment connecting (246, 27) to (264, 147) then Draws a purple circle centered at (153, 108) with radius 53.
-; PLAN: r0=148(x), r1=237(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=246(x1), r6=27(y1), r7=264(x2), r8=147(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=153(x), r11=108(y), r12=53(radius), r13=0xAA00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 148
-LDI r1, 237
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 246
-LDI r6, 27
-LDI r7, 264
-LDI r8, 147
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
-LDI r10, 153
-LDI r11, 108
-LDI r12, 53
-LDI r13, 0xAA00FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Draws a red rectangle at (38, 186) with width 40 and height 17.
+; PLAN: r0=38(x), r1=186(y), r2=40(width), r3=17(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 38
+LDI r1, 186
+LDI r2, 40
+LDI r3, 17
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

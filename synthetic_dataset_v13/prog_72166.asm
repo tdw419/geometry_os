@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a black rectangle at (274, 86) with width 20 and height 44.
-; PLAN: r0=274(x), r1=86(y), r2=20(width), r3=44(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 274
-LDI r1, 86
-LDI r2, 20
-LDI r3, 44
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

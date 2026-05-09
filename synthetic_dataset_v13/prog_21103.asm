@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a green rectangle at (86, 72) with width 27 and height 106.
-; PLAN: r0=86(x), r1=72(y), r2=27(width), r3=106(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 86
-LDI r1, 72
-LDI r2, 27
-LDI r3, 106
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a yellow disk with center (436, 204) and radius 29 then Sets a single yellow pixel at (298, 16).
+; PLAN: r0=436(x), r1=204(y), r2=29(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=298(x), r6=16(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
+LDI r0, 436
+LDI r1, 204
+LDI r2, 29
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 298
+LDI r6, 16
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
 HALT

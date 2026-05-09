@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 56x39 rectangle at position (68, 18).
-; PLAN: r0=68(x), r1=18(y), r2=56(width), r3=39(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 68
-LDI r1, 18
-LDI r2, 56
-LDI r3, 39
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (415, 230) and (99, 97).
+; PLAN: r0=415(x1), r1=230(y1), r2=99(x2), r3=97(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 415
+LDI r1, 230
+LDI r2, 99
+LDI r3, 97
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

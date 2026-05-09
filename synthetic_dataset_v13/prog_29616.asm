@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single blue pixel at (206, 227).
-; PLAN: r0=206(x), r1=227(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 206
-LDI r1, 227
-LDI r2, 0x0000FF
+; DESCRIPTION: Places a white dot at position (102, 144).
+; PLAN: r0=102(x), r1=144(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 102
+LDI r1, 144
+LDI r2, 0xFFFFFF
 PSET r0, r1, r2
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 39 at center (123, 187).
-; PLAN: r0=123(x), r1=187(y), r2=39(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 123
-LDI r1, 187
-LDI r2, 39
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (108, 83) to (230, 63).
+; PLAN: r0=108(x1), r1=83(y1), r2=230(x2), r3=63(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 108
+LDI r1, 83
+LDI r2, 230
+LDI r3, 63
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

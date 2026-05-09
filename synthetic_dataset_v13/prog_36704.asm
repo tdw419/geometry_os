@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a red line segment connecting (152, 107) to (229, 204).
-; PLAN: r0=152(x1), r1=107(y1), r2=229(x2), r3=204(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 152
-LDI r1, 107
-LDI r2, 229
-LDI r3, 204
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a orange dot at position (240, 108) then Renders a magenta disk with center (165, 103) and radius 76.
+; PLAN: r0=240(x), r1=108(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=165(x), r6=103(y), r7=76(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 240
+LDI r1, 108
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 165
+LDI r6, 103
+LDI r7, 76
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

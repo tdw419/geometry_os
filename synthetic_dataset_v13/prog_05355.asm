@@ -1,5 +1,8 @@
-; DESCRIPTION: Paints the whole screen magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Draws a white circle centered at (289, 84) with radius 57.
+; PLAN: r0=289(x), r1=84(y), r2=57(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 289
+LDI r1, 84
+LDI r2, 57
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 92x57 rectangle at position (420, 96).
-; PLAN: r0=420(x), r1=96(y), r2=92(width), r3=57(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 420
-LDI r1, 96
-LDI r2, 92
-LDI r3, 57
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (48, 155) to (431, 22).
+; PLAN: r0=48(x1), r1=155(y1), r2=431(x2), r3=22(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 48
+LDI r1, 155
+LDI r2, 431
+LDI r3, 22
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

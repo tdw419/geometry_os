@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (51, 51) with width 18 and height 79.
-; PLAN: r0=51(x), r1=51(y), r2=18(width), r3=79(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 51
-LDI r1, 51
-LDI r2, 18
-LDI r3, 79
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (111, 6) and (24, 37).
+; PLAN: r0=111(x1), r1=6(y1), r2=24(x2), r3=37(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 111
+LDI r1, 6
+LDI r2, 24
+LDI r3, 37
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

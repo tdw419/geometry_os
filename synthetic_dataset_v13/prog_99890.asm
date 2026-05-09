@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (188, 223).
-; PLAN: r0=188(x), r1=223(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 188
-LDI r1, 223
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a orange line segment connecting (118, 36) to (434, 227).
+; PLAN: r0=118(x1), r1=36(y1), r2=434(x2), r3=227(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 118
+LDI r1, 36
+LDI r2, 434
+LDI r3, 227
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

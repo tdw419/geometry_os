@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a purple circle of radius 47 at center (353, 126).
-; PLAN: r0=353(x), r1=126(y), r2=47(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 353
-LDI r1, 126
-LDI r2, 47
-LDI r3, 0xAA00FF
+; DESCRIPTION: Draws a cyan circle centered at (100, 141) with radius 51.
+; PLAN: r0=100(x), r1=141(y), r2=51(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 100
+LDI r1, 141
+LDI r2, 51
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (371, 160) with radius 80.
-; PLAN: r0=371(x), r1=160(y), r2=80(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 371
-LDI r1, 160
-LDI r2, 80
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange rectangle at (313, 145) with width 89 and height 21.
+; PLAN: r0=313(x), r1=145(y), r2=89(width), r3=21(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 313
+LDI r1, 145
+LDI r2, 89
+LDI r3, 21
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

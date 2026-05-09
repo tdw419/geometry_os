@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Renders a magenta line between points (219, 234) and (461, 86) then Renders a red disk with center (429, 188) and radius 50 then Places a red dot at position (219, 138).
-; PLAN: r0=219(x1), r1=234(y1), r2=461(x2), r3=86(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=429(x), r6=188(y), r7=50(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=219(x), r11=138(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
-LDI r0, 219
-LDI r1, 234
-LDI r2, 461
-LDI r3, 86
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 429
-LDI r6, 188
-LDI r7, 50
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
-LDI r10, 219
-LDI r11, 138
-LDI r12, 0xFF0000
-PSET r10, r11, r12
+; DESCRIPTION: Draws a orange rectangle at (465, 113) with width 47 and height 109.
+; PLAN: r0=465(x), r1=113(y), r2=47(width), r3=109(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 465
+LDI r1, 113
+LDI r2, 47
+LDI r3, 109
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

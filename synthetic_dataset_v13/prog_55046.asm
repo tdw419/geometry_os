@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 110x31 rectangle at position (401, 131).
-; PLAN: r0=401(x), r1=131(y), r2=110(width), r3=31(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 401
-LDI r1, 131
-LDI r2, 110
-LDI r3, 31
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (232, 43) and (472, 104).
+; PLAN: r0=232(x1), r1=43(y1), r2=472(x2), r3=104(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 232
+LDI r1, 43
+LDI r2, 472
+LDI r3, 104
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

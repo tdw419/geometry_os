@@ -1,18 +1,12 @@
-; DESCRIPTION: Composite: Renders a orange disk with center (30, 28) and radius 11 then Draws a blue rectangle at (320, 131) with width 108 and height 89 then Places a red dot at position (68, 88).
-; PLAN: r0=30(x), r1=28(y), r2=11(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=320(x), r6=131(y), r7=108(width), r8=89(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=68(x), r11=88(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
-LDI r0, 30
-LDI r1, 28
-LDI r2, 11
-LDI r3, 0xFF8800
+; DESCRIPTION: Composite: Renders a cyan disk with center (359, 107) and radius 29 then Places a white dot at position (286, 205).
+; PLAN: r0=359(x), r1=107(y), r2=29(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=286(x), r6=205(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 359
+LDI r1, 107
+LDI r2, 29
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
-LDI r5, 320
-LDI r6, 131
-LDI r7, 108
-LDI r8, 89
-LDI r9, 0x0000FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 68
-LDI r11, 88
-LDI r12, 0xFF0000
-PSET r10, r11, r12
+LDI r5, 286
+LDI r6, 205
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

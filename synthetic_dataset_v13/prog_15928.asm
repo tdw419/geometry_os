@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (346, 161) and radius 76.
-; PLAN: r0=346(x), r1=161(y), r2=76(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 346
-LDI r1, 161
-LDI r2, 76
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue line segment connecting (75, 64) to (26, 205).
+; PLAN: r0=75(x1), r1=64(y1), r2=26(x2), r3=205(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 64
+LDI r2, 26
+LDI r3, 205
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

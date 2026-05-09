@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 105x67 rectangle at position (193, 79).
-; PLAN: r0=193(x), r1=79(y), r2=105(width), r3=67(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 193
-LDI r1, 79
-LDI r2, 105
-LDI r3, 67
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (383, 227) and (147, 81).
+; PLAN: r0=383(x1), r1=227(y1), r2=147(x2), r3=81(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 383
+LDI r1, 227
+LDI r2, 147
+LDI r3, 81
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

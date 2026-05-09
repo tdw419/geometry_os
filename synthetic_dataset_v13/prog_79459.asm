@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white line segment connecting (260, 68) to (300, 193).
-; PLAN: r0=260(x1), r1=68(y1), r2=300(x2), r3=193(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 260
-LDI r1, 68
-LDI r2, 300
-LDI r3, 193
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan dot at position (64, 125).
+; PLAN: r0=64(x), r1=125(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 64
+LDI r1, 125
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

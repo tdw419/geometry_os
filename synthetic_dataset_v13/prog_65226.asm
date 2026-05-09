@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Sets a single orange pixel at (274, 120) then Renders a black box of size 58x64 starting at (233, 168) then Renders a magenta disk with center (40, 41) and radius 22.
-; PLAN: r0=274(x), r1=120(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=233(x), r6=168(y), r7=58(width), r8=64(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=40(x), r11=41(y), r12=22(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 274
-LDI r1, 120
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 233
-LDI r6, 168
-LDI r7, 58
-LDI r8, 64
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
-LDI r10, 40
-LDI r11, 41
-LDI r12, 22
-LDI r13, 0xFF00FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Creates a black rectangular region at (309, 106) spanning 59 by 94 pixels then Renders a yellow disk with center (117, 179) and radius 52 then Sets a single red pixel at (14, 192).
+; PLAN: r0=309(x), r1=106(y), r2=59(width), r3=94(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=117(x), r6=179(y), r7=52(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=14(x), r11=192(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
+LDI r0, 309
+LDI r1, 106
+LDI r2, 59
+LDI r3, 94
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 117
+LDI r6, 179
+LDI r7, 52
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
+LDI r10, 14
+LDI r11, 192
+LDI r12, 0xFF0000
+PSET r10, r11, r12
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (326, 128) and radius 57.
-; PLAN: r0=326(x), r1=128(y), r2=57(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 326
-LDI r1, 128
-LDI r2, 57
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange box of size 65x33 starting at (27, 79).
+; PLAN: r0=27(x), r1=79(y), r2=65(width), r3=33(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 27
+LDI r1, 79
+LDI r2, 65
+LDI r3, 33
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a orange line between points (476, 2) and (141, 115).
-; PLAN: r0=476(x1), r1=2(y1), r2=141(x2), r3=115(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 476
-LDI r1, 2
-LDI r2, 141
-LDI r3, 115
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a black circular shape at (226, 196) with radius 11 then Places a white dot at position (179, 150).
+; PLAN: r0=226(x), r1=196(y), r2=11(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=179(x), r6=150(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 226
+LDI r1, 196
+LDI r2, 11
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 179
+LDI r6, 150
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a black rectangular region at (27, 113) spanning 30 by 58 pixels.
-; PLAN: r0=27(x), r1=113(y), r2=30(width), r3=58(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 27
-LDI r1, 113
-LDI r2, 30
-LDI r3, 58
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green dot at position (160, 21).
+; PLAN: r0=160(x), r1=21(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 160
+LDI r1, 21
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (123, 137) then Renders a magenta box of size 31x26 starting at (85, 29) then Creates a red circular shape at (272, 101) with radius 48.
-; PLAN: r0=123(x), r1=137(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=85(x), r6=29(y), r7=31(width), r8=26(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=272(x), r11=101(y), r12=48(radius), r13=0xFF0000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 123
-LDI r1, 137
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 85
-LDI r6, 29
-LDI r7, 31
-LDI r8, 26
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 272
-LDI r11, 101
-LDI r12, 48
-LDI r13, 0xFF0000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Renders a cyan box of size 57x113 starting at (269, 120) then Places a white line segment connecting (250, 69) to (83, 248) then Places a white dot at position (268, 2).
+; PLAN: r0=269(x), r1=120(y), r2=57(width), r3=113(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=250(x1), r6=69(y1), r7=83(x2), r8=248(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=268(x), r11=2(y), r12=0xFFFFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 269
+LDI r1, 120
+LDI r2, 57
+LDI r3, 113
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 250
+LDI r6, 69
+LDI r7, 83
+LDI r8, 248
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
+LDI r10, 268
+LDI r11, 2
+LDI r12, 0xFFFFFF
+PSET r10, r11, r12
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a yellow line from (331, 196) to (36, 231).
-; PLAN: r0=331(x1), r1=196(y1), r2=36(x2), r3=231(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 331
-LDI r1, 196
-LDI r2, 36
-LDI r3, 231
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (14, 71).
+; PLAN: r0=14(x), r1=71(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 14
+LDI r1, 71
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

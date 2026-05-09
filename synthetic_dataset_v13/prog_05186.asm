@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 17x23 rectangle at position (45, 197).
-; PLAN: r0=45(x), r1=197(y), r2=17(width), r3=23(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 197
-LDI r2, 17
-LDI r3, 23
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (277, 184) and (75, 70).
+; PLAN: r0=277(x1), r1=184(y1), r2=75(x2), r3=70(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 277
+LDI r1, 184
+LDI r2, 75
+LDI r3, 70
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

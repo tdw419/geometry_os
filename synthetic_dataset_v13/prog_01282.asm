@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 100x93 rectangle at position (8, 134).
-; PLAN: r0=8(x), r1=134(y), r2=100(width), r3=93(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 8
-LDI r1, 134
+; DESCRIPTION: Draws a yellow rectangle at (41, 109) with width 100 and height 50.
+; PLAN: r0=41(x), r1=109(y), r2=100(width), r3=50(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 41
+LDI r1, 109
 LDI r2, 100
-LDI r3, 93
-LDI r4, 0x00FFFF
+LDI r3, 50
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

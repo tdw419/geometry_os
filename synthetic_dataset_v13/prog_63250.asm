@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (153, 95) with radius 78.
-; PLAN: r0=153(x), r1=95(y), r2=78(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 153
-LDI r1, 95
-LDI r2, 78
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 73x84 rectangle at position (187, 67).
+; PLAN: r0=187(x), r1=67(y), r2=73(width), r3=84(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 187
+LDI r1, 67
+LDI r2, 73
+LDI r3, 84
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

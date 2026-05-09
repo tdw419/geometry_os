@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (298, 31) to (346, 160).
-; PLAN: r0=298(x1), r1=31(y1), r2=346(x2), r3=160(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 298
-LDI r1, 31
-LDI r2, 346
-LDI r3, 160
+; DESCRIPTION: Draws a purple rectangle at (189, 34) with width 20 and height 63.
+; PLAN: r0=189(x), r1=34(y), r2=20(width), r3=63(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 189
+LDI r1, 34
+LDI r2, 20
+LDI r3, 63
 LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

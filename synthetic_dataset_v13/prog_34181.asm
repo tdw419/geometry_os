@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 93x78 rectangle at position (13, 77).
-; PLAN: r0=13(x), r1=77(y), r2=93(width), r3=78(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 13
-LDI r1, 77
-LDI r2, 93
-LDI r3, 78
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (113, 110) to (253, 85).
+; PLAN: r0=113(x1), r1=110(y1), r2=253(x2), r3=85(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 113
+LDI r1, 110
+LDI r2, 253
+LDI r3, 85
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

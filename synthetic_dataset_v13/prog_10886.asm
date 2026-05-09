@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Sets a single orange pixel at (232, 80) then Draws a black circle centered at (314, 91) with radius 38 then Places a yellow line segment connecting (332, 21) to (69, 95).
-; PLAN: r0=232(x), r1=80(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=314(x), r6=91(y), r7=38(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=332(x1), r11=21(y1), r12=69(x2), r13=95(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 232
-LDI r1, 80
-LDI r2, 0xFF8800
+; DESCRIPTION: Composite: Places a yellow dot at position (317, 149) then Renders a red box of size 18x97 starting at (296, 28) then Creates a cyan circular shape at (367, 200) with radius 28.
+; PLAN: r0=317(x), r1=149(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=296(x), r6=28(y), r7=18(width), r8=97(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=367(x), r11=200(y), r12=28(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 317
+LDI r1, 149
+LDI r2, 0xFFFF00
 PSET r0, r1, r2
-LDI r5, 314
-LDI r6, 91
-LDI r7, 38
-LDI r8, 0x000000
-CIRCLE r5, r6, r7, r8
-LDI r10, 332
-LDI r11, 21
-LDI r12, 69
-LDI r13, 95
-LDI r14, 0xFFFF00
-LINE r10, r11, r12, r13, r14
+LDI r5, 296
+LDI r6, 28
+LDI r7, 18
+LDI r8, 97
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
+LDI r10, 367
+LDI r11, 200
+LDI r12, 28
+LDI r13, 0x00FFFF
+CIRCLE r10, r11, r12, r13
 HALT

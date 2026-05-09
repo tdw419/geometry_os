@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (288, 183) and (45, 95).
-; PLAN: r0=288(x1), r1=183(y1), r2=45(x2), r3=95(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 183
-LDI r2, 45
-LDI r3, 95
+; DESCRIPTION: Draws a blue rectangle at (361, 47) with width 96 and height 118.
+; PLAN: r0=361(x), r1=47(y), r2=96(width), r3=118(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 361
+LDI r1, 47
+LDI r2, 96
+LDI r3, 118
 LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

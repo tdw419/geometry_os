@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (441, 147) to (232, 228).
-; PLAN: r0=441(x1), r1=147(y1), r2=232(x2), r3=228(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 441
-LDI r1, 147
-LDI r2, 232
-LDI r3, 228
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (210, 36) with width 40 and height 46.
+; PLAN: r0=210(x), r1=36(y), r2=40(width), r3=46(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 210
+LDI r1, 36
+LDI r2, 40
+LDI r3, 46
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

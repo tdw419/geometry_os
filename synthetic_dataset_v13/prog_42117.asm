@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 18x88 rectangle at position (490, 133).
-; PLAN: r0=490(x), r1=133(y), r2=18(width), r3=88(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 490
-LDI r1, 133
-LDI r2, 18
-LDI r3, 88
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a orange 81x82 rectangle at position (369, 136).
+; PLAN: r0=369(x), r1=136(y), r2=81(width), r3=82(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 369
+LDI r1, 136
+LDI r2, 81
+LDI r3, 82
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

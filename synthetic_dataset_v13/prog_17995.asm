@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 48 at center (381, 116).
-; PLAN: r0=381(x), r1=116(y), r2=48(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 381
-LDI r1, 116
-LDI r2, 48
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (199, 42) and (46, 57).
+; PLAN: r0=199(x1), r1=42(y1), r2=46(x2), r3=57(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 199
+LDI r1, 42
+LDI r2, 46
+LDI r3, 57
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

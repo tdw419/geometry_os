@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a blue dot at position (159, 133).
-; PLAN: r0=159(x), r1=133(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 159
-LDI r1, 133
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a magenta disk with center (399, 181) and radius 63.
+; PLAN: r0=399(x), r1=181(y), r2=63(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 399
+LDI r1, 181
+LDI r2, 63
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

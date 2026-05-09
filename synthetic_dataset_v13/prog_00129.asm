@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (357, 229) and (406, 32).
-; PLAN: r0=357(x1), r1=229(y1), r2=406(x2), r3=32(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 357
-LDI r1, 229
-LDI r2, 406
-LDI r3, 32
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green box of size 67x62 starting at (67, 91).
+; PLAN: r0=67(x), r1=91(y), r2=67(width), r3=62(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 67
+LDI r1, 91
+LDI r2, 67
+LDI r3, 62
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

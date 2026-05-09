@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 103x39 rectangle at position (299, 169).
-; PLAN: r0=299(x), r1=169(y), r2=103(width), r3=39(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 299
-LDI r1, 169
-LDI r2, 103
-LDI r3, 39
-LDI r4, 0x000000
+; DESCRIPTION: Draws a green rectangle at (230, 44) with width 26 and height 107.
+; PLAN: r0=230(x), r1=44(y), r2=26(width), r3=107(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 230
+LDI r1, 44
+LDI r2, 26
+LDI r3, 107
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

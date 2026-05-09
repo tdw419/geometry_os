@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (365, 131) with width 99 and height 35.
-; PLAN: r0=365(x), r1=131(y), r2=99(width), r3=35(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 365
-LDI r1, 131
-LDI r2, 99
-LDI r3, 35
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (232, 27) and (269, 65).
+; PLAN: r0=232(x1), r1=27(y1), r2=269(x2), r3=65(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 232
+LDI r1, 27
+LDI r2, 269
+LDI r3, 65
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

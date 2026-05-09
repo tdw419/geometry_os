@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (244, 179) to (346, 107).
-; PLAN: r0=244(x1), r1=179(y1), r2=346(x2), r3=107(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 244
-LDI r1, 179
-LDI r2, 346
-LDI r3, 107
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 11 into r1 and decrements it in a loop until zero.
+; PLAN: r1=11(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 11
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

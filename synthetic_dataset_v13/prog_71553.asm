@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single white pixel at (87, 178).
-; PLAN: r0=87(x), r1=178(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 87
-LDI r1, 178
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan circle centered at (252, 164) with radius 59.
+; PLAN: r0=252(x), r1=164(y), r2=59(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 252
+LDI r1, 164
+LDI r2, 59
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

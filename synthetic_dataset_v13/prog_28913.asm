@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a blue circular shape at (65, 166) with radius 58.
-; PLAN: r0=65(x), r1=166(y), r2=58(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 65
-LDI r1, 166
-LDI r2, 58
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single black pixel at (134, 151).
+; PLAN: r0=134(x), r1=151(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 134
+LDI r1, 151
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

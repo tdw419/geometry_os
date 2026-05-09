@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a cyan dot at position (479, 82).
-; PLAN: r0=479(x), r1=82(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 479
-LDI r1, 82
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a white line from (311, 3) to (145, 26).
+; PLAN: r0=311(x1), r1=3(y1), r2=145(x2), r3=26(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 311
+LDI r1, 3
+LDI r2, 145
+LDI r3, 26
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

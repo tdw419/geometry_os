@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 20x46 rectangle at position (409, 101).
-; PLAN: r0=409(x), r1=101(y), r2=20(width), r3=46(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 409
-LDI r1, 101
-LDI r2, 20
-LDI r3, 46
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a yellow 24x24 rectangle at position (86, 126).
+; PLAN: r0=86(x), r1=126(y), r2=24(width), r3=24(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 86
+LDI r1, 126
+LDI r2, 24
+LDI r3, 24
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

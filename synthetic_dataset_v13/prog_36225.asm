@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a red line segment connecting (505, 75) to (456, 21).
-; PLAN: r0=505(x1), r1=75(y1), r2=456(x2), r3=21(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 505
-LDI r1, 75
-LDI r2, 456
-LDI r3, 21
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red dot at position (160, 149).
+; PLAN: r0=160(x), r1=149(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 160
+LDI r1, 149
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

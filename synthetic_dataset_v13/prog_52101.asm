@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (69, 254) then Renders a magenta disk with center (414, 121) and radius 70.
-; PLAN: r0=69(x), r1=254(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=414(x), r6=121(y), r7=70(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 69
-LDI r1, 254
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 414
-LDI r6, 121
-LDI r7, 70
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a white line segment connecting (18, 26) to (349, 106).
+; PLAN: r0=18(x1), r1=26(y1), r2=349(x2), r3=106(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 18
+LDI r1, 26
+LDI r2, 349
+LDI r3, 106
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

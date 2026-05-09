@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (493, 59) to (174, 213).
-; PLAN: r0=493(x1), r1=59(y1), r2=174(x2), r3=213(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 493
-LDI r1, 59
-LDI r2, 174
-LDI r3, 213
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple box of size 70x19 starting at (228, 7).
+; PLAN: r0=228(x), r1=7(y), r2=70(width), r3=19(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 228
+LDI r1, 7
+LDI r2, 70
+LDI r3, 19
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

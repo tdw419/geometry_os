@@ -1,12 +1,15 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (445, 119) then Creates a blue circular shape at (173, 76) with radius 71.
-; PLAN: r0=445(x), r1=119(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=173(x), r6=76(y), r7=71(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 445
-LDI r1, 119
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 173
-LDI r6, 76
-LDI r7, 71
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Draws a white rectangle at (185, 112) with width 61 and height 30 then Renders a green line between points (351, 156) and (321, 165).
+; PLAN: r0=185(x), r1=112(y), r2=61(width), r3=30(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=351(x1), r6=156(y1), r7=321(x2), r8=165(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 185
+LDI r1, 112
+LDI r2, 61
+LDI r3, 30
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 351
+LDI r6, 156
+LDI r7, 321
+LDI r8, 165
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

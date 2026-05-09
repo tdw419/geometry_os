@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 11x51 rectangle at position (20, 24).
-; PLAN: r0=20(x), r1=24(y), r2=11(width), r3=51(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 20
-LDI r1, 24
-LDI r2, 11
-LDI r3, 51
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black line segment connecting (239, 55) to (49, 227).
+; PLAN: r0=239(x1), r1=55(y1), r2=49(x2), r3=227(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 239
+LDI r1, 55
+LDI r2, 49
+LDI r3, 227
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

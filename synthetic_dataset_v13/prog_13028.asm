@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (408, 95) and (26, 242).
-; PLAN: r0=408(x1), r1=95(y1), r2=26(x2), r3=242(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 408
-LDI r1, 95
-LDI r2, 26
-LDI r3, 242
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 41 at center (342, 193).
+; PLAN: r0=342(x), r1=193(y), r2=41(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 342
+LDI r1, 193
+LDI r2, 41
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

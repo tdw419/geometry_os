@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (368, 8) to (346, 170).
-; PLAN: r0=368(x1), r1=8(y1), r2=346(x2), r3=170(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 368
-LDI r1, 8
-LDI r2, 346
-LDI r3, 170
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (372, 69) with radius 61.
+; PLAN: r0=372(x), r1=69(y), r2=61(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 372
+LDI r1, 69
+LDI r2, 61
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

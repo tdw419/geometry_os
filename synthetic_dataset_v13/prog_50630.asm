@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single green pixel at (276, 12).
-; PLAN: r0=276(x), r1=12(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 276
-LDI r1, 12
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

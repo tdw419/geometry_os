@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (487, 246) to (264, 125).
-; PLAN: r0=487(x1), r1=246(y1), r2=264(x2), r3=125(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 487
-LDI r1, 246
-LDI r2, 264
-LDI r3, 125
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a green line segment connecting (413, 176) to (188, 8).
+; PLAN: r0=413(x1), r1=176(y1), r2=188(x2), r3=8(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 413
+LDI r1, 176
+LDI r2, 188
+LDI r3, 8
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

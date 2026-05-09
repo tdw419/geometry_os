@@ -1,8 +1,12 @@
-; DESCRIPTION: Places a cyan circle of radius 11 at center (347, 60).
-; PLAN: r0=347(x), r1=60(y), r2=11(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 347
-LDI r1, 60
-LDI r2, 11
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a white dot at position (75, 125) then Renders a blue disk with center (194, 212) and radius 29.
+; PLAN: r0=75(x), r1=125(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=194(x), r6=212(y), r7=29(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 75
+LDI r1, 125
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 194
+LDI r6, 212
+LDI r7, 29
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

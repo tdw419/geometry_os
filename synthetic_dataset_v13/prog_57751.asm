@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (286, 209) with radius 20.
-; PLAN: r0=286(x), r1=209(y), r2=20(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 286
-LDI r1, 209
-LDI r2, 20
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green box of size 34x120 starting at (227, 99).
+; PLAN: r0=227(x), r1=99(y), r2=34(width), r3=120(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 227
+LDI r1, 99
+LDI r2, 34
+LDI r3, 120
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

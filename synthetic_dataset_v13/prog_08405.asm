@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (137, 125) with radius 68.
-; PLAN: r0=137(x), r1=125(y), r2=68(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 137
-LDI r1, 125
-LDI r2, 68
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Renders a cyan disk with center (179, 105) and radius 19.
+; PLAN: r0=179(x), r1=105(y), r2=19(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 179
+LDI r1, 105
+LDI r2, 19
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

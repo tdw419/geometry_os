@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 77x91 rectangle at position (219, 29).
-; PLAN: r0=219(x), r1=29(y), r2=77(width), r3=91(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 219
-LDI r1, 29
-LDI r2, 77
-LDI r3, 91
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a purple 42x30 rectangle at position (44, 65).
+; PLAN: r0=44(x), r1=65(y), r2=42(width), r3=30(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 65
+LDI r2, 42
+LDI r3, 30
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

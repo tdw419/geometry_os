@@ -1,8 +1,12 @@
-; DESCRIPTION: Loads 42 into r1 and decrements it in a loop until zero.
-; PLAN: r1=42(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 42
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Creates a red circular shape at (358, 185) with radius 59 then Sets a single cyan pixel at (260, 252).
+; PLAN: r0=358(x), r1=185(y), r2=59(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=260(x), r6=252(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 358
+LDI r1, 185
+LDI r2, 59
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 260
+LDI r6, 252
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

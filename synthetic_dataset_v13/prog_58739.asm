@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 102x17 rectangle at position (386, 233).
-; PLAN: r0=386(x), r1=233(y), r2=102(width), r3=17(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 386
-LDI r1, 233
-LDI r2, 102
-LDI r3, 17
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (406, 199) and (245, 182).
+; PLAN: r0=406(x1), r1=199(y1), r2=245(x2), r3=182(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 406
+LDI r1, 199
+LDI r2, 245
+LDI r3, 182
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Draws a black circle centered at (34, 62) with radius 27 then Renders a black box of size 42x99 starting at (132, 11) then Places a green dot at position (53, 56).
-; PLAN: r0=34(x), r1=62(y), r2=27(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=132(x), r6=11(y), r7=42(width), r8=99(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=53(x), r11=56(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
-LDI r0, 34
-LDI r1, 62
-LDI r2, 27
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 132
-LDI r6, 11
-LDI r7, 42
-LDI r8, 99
-LDI r9, 0x000000
+; DESCRIPTION: Composite: Places a yellow dot at position (437, 118) then Places a white 73x37 rectangle at position (133, 73) then Draws a red line from (162, 194) to (187, 212).
+; PLAN: r0=437(x), r1=118(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=133(x), r6=73(y), r7=73(width), r8=37(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=162(x1), r11=194(y1), r12=187(x2), r13=212(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 437
+LDI r1, 118
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 133
+LDI r6, 73
+LDI r7, 73
+LDI r8, 37
+LDI r9, 0xFFFFFF
 RECTF r5, r6, r7, r8, r9
-LDI r10, 53
-LDI r11, 56
-LDI r12, 0x00FF00
-PSET r10, r11, r12
+LDI r10, 162
+LDI r11, 194
+LDI r12, 187
+LDI r13, 212
+LDI r14, 0xFF0000
+LINE r10, r11, r12, r13, r14
 HALT

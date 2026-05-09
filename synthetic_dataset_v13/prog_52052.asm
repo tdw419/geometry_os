@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a orange line between points (216, 59) and (185, 197).
-; PLAN: r0=216(x1), r1=59(y1), r2=185(x2), r3=197(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 216
-LDI r1, 59
-LDI r2, 185
-LDI r3, 197
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (140, 213).
+; PLAN: r0=140(x), r1=213(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 140
+LDI r1, 213
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

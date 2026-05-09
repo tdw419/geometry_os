@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Places a orange line segment connecting (233, 41) to (26, 175) then Sets a single purple pixel at (113, 212) then Creates a blue rectangular region at (376, 157) spanning 25 by 58 pixels.
-; PLAN: r0=233(x1), r1=41(y1), r2=26(x2), r3=175(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=113(x), r6=212(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=376(x), r11=157(y), r12=25(width), r13=58(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 233
-LDI r1, 41
-LDI r2, 26
-LDI r3, 175
+; DESCRIPTION: Composite: Places a orange line segment connecting (490, 183) to (470, 228) then Places a red dot at position (93, 132) then Renders a red box of size 19x16 starting at (310, 210).
+; PLAN: r0=490(x1), r1=183(y1), r2=470(x2), r3=228(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=93(x), r6=132(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=310(x), r11=210(y), r12=19(width), r13=16(height), r14=0xFF0000(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 490
+LDI r1, 183
+LDI r2, 470
+LDI r3, 228
 LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
-LDI r5, 113
-LDI r6, 212
-LDI r7, 0xAA00FF
+LDI r5, 93
+LDI r6, 132
+LDI r7, 0xFF0000
 PSET r5, r6, r7
-LDI r10, 376
-LDI r11, 157
-LDI r12, 25
-LDI r13, 58
-LDI r14, 0x0000FF
+LDI r10, 310
+LDI r11, 210
+LDI r12, 19
+LDI r13, 16
+LDI r14, 0xFF0000
 RECTF r10, r11, r12, r13, r14
 HALT

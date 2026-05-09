@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 49x97 rectangle at position (418, 6).
-; PLAN: r0=418(x), r1=6(y), r2=49(width), r3=97(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 418
-LDI r1, 6
-LDI r2, 49
-LDI r3, 97
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a orange 27x77 rectangle at position (281, 79).
+; PLAN: r0=281(x), r1=79(y), r2=27(width), r3=77(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 281
+LDI r1, 79
+LDI r2, 27
+LDI r3, 77
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

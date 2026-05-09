@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single yellow pixel at (24, 149).
-; PLAN: r0=24(x), r1=149(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 24
-LDI r1, 149
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Creates a green rectangular region at (98, 96) spanning 98 by 75 pixels.
+; PLAN: r0=98(x), r1=96(y), r2=98(width), r3=75(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 98
+LDI r1, 96
+LDI r2, 98
+LDI r3, 75
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

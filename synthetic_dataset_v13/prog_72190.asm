@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 67 at center (183, 82).
-; PLAN: r0=183(x), r1=82(y), r2=67(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 183
-LDI r1, 82
-LDI r2, 67
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta rectangle at (206, 59) with width 50 and height 88.
+; PLAN: r0=206(x), r1=59(y), r2=50(width), r3=88(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 206
+LDI r1, 59
+LDI r2, 50
+LDI r3, 88
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

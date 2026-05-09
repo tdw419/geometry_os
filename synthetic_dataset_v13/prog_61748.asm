@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 20x116 rectangle at position (352, 63).
-; PLAN: r0=352(x), r1=63(y), r2=20(width), r3=116(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 352
-LDI r1, 63
-LDI r2, 20
-LDI r3, 116
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (412, 121) and (104, 253).
+; PLAN: r0=412(x1), r1=121(y1), r2=104(x2), r3=253(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 412
+LDI r1, 121
+LDI r2, 104
+LDI r3, 253
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (465, 174) and (404, 178).
-; PLAN: r0=465(x1), r1=174(y1), r2=404(x2), r3=178(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 465
-LDI r1, 174
-LDI r2, 404
-LDI r3, 178
-LDI r4, 0x000000
+; DESCRIPTION: Renders a white line between points (315, 88) and (271, 41).
+; PLAN: r0=315(x1), r1=88(y1), r2=271(x2), r3=41(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 315
+LDI r1, 88
+LDI r2, 271
+LDI r3, 41
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

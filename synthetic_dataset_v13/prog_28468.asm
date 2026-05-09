@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (363, 101) and (257, 79).
-; PLAN: r0=363(x1), r1=101(y1), r2=257(x2), r3=79(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 363
-LDI r1, 101
-LDI r2, 257
-LDI r3, 79
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (192, 93) and radius 52.
+; PLAN: r0=192(x), r1=93(y), r2=52(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 192
+LDI r1, 93
+LDI r2, 52
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

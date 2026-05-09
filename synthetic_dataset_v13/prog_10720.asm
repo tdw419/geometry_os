@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (54, 204) and radius 41.
-; PLAN: r0=54(x), r1=204(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 54
-LDI r1, 204
-LDI r2, 41
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (388, 42) with width 81 and height 28.
+; PLAN: r0=388(x), r1=42(y), r2=81(width), r3=28(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 42
+LDI r2, 81
+LDI r3, 28
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a green line segment connecting (479, 72) to (129, 190).
-; PLAN: r0=479(x1), r1=72(y1), r2=129(x2), r3=190(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 479
-LDI r1, 72
-LDI r2, 129
-LDI r3, 190
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (56, 119).
+; PLAN: r0=56(x), r1=119(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 56
+LDI r1, 119
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

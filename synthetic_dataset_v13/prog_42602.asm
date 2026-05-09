@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 62 at center (175, 130).
-; PLAN: r0=175(x), r1=130(y), r2=62(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 175
-LDI r1, 130
-LDI r2, 62
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (30, 40) and (237, 148).
+; PLAN: r0=30(x1), r1=40(y1), r2=237(x2), r3=148(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 30
+LDI r1, 40
+LDI r2, 237
+LDI r3, 148
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

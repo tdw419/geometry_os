@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (175, 116) with radius 59.
-; PLAN: r0=175(x), r1=116(y), r2=59(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 175
-LDI r1, 116
-LDI r2, 59
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (363, 117) to (475, 181).
+; PLAN: r0=363(x1), r1=117(y1), r2=475(x2), r3=181(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 363
+LDI r1, 117
+LDI r2, 475
+LDI r3, 181
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

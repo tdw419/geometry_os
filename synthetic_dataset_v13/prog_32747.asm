@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (146, 155) spanning 114 by 18 pixels.
-; PLAN: r0=146(x), r1=155(y), r2=114(width), r3=18(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 146
-LDI r1, 155
-LDI r2, 114
-LDI r3, 18
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black line between points (348, 90) and (355, 150).
+; PLAN: r0=348(x1), r1=90(y1), r2=355(x2), r3=150(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 348
+LDI r1, 90
+LDI r2, 355
+LDI r3, 150
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

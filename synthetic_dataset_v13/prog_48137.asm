@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 15 at center (80, 203).
-; PLAN: r0=80(x), r1=203(y), r2=15(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 80
-LDI r1, 203
-LDI r2, 15
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (159, 152) to (294, 212).
+; PLAN: r0=159(x1), r1=152(y1), r2=294(x2), r3=212(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 159
+LDI r1, 152
+LDI r2, 294
+LDI r3, 212
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

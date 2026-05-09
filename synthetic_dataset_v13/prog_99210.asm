@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a black 33x27 rectangle at position (274, 89) then Sets a single red pixel at (353, 222).
-; PLAN: r0=274(x), r1=89(y), r2=33(width), r3=27(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=353(x), r6=222(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 274
-LDI r1, 89
-LDI r2, 33
-LDI r3, 27
-LDI r4, 0x000000
+; DESCRIPTION: Places a blue 114x12 rectangle at position (28, 198).
+; PLAN: r0=28(x), r1=198(y), r2=114(width), r3=12(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 28
+LDI r1, 198
+LDI r2, 114
+LDI r3, 12
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
-LDI r5, 353
-LDI r6, 222
-LDI r7, 0xFF0000
-PSET r5, r6, r7
 HALT

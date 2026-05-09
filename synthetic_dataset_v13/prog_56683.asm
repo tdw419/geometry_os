@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (144, 141) spanning 114 by 100 pixels.
-; PLAN: r0=144(x), r1=141(y), r2=114(width), r3=100(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 144
-LDI r1, 141
-LDI r2, 114
-LDI r3, 100
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (204, 187) and (292, 143).
+; PLAN: r0=204(x1), r1=187(y1), r2=292(x2), r3=143(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 204
+LDI r1, 187
+LDI r2, 292
+LDI r3, 143
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

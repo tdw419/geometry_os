@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (190, 163) to (180, 199).
-; PLAN: r0=190(x1), r1=163(y1), r2=180(x2), r3=199(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 163
-LDI r2, 180
-LDI r3, 199
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 68x76 rectangle at position (269, 21).
+; PLAN: r0=269(x), r1=21(y), r2=68(width), r3=76(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 269
+LDI r1, 21
+LDI r2, 68
+LDI r3, 76
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

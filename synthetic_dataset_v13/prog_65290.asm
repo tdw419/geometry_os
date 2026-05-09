@@ -1,5 +1,5 @@
-; DESCRIPTION: Clears the screen to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
+; DESCRIPTION: Fills the entire screen with solid white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
 FILL r0
 HALT

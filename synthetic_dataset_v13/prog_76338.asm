@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (326, 110).
-; PLAN: r0=326(x), r1=110(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 326
-LDI r1, 110
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Places a blue line segment connecting (127, 84) to (359, 22).
+; PLAN: r0=127(x1), r1=84(y1), r2=359(x2), r3=22(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 84
+LDI r2, 359
+LDI r3, 22
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

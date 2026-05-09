@@ -1,13 +1,15 @@
-; DESCRIPTION: Composite: Places a black dot at position (428, 212) then Creates a cyan rectangular region at (153, 88) spanning 115 by 31 pixels.
-; PLAN: r0=428(x), r1=212(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=153(x), r6=88(y), r7=115(width), r8=31(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 428
-LDI r1, 212
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 153
-LDI r6, 88
-LDI r7, 115
-LDI r8, 31
+; DESCRIPTION: Composite: Renders a cyan box of size 40x74 starting at (249, 10) then Draws a cyan line from (442, 47) to (413, 122).
+; PLAN: r0=249(x), r1=10(y), r2=40(width), r3=74(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=442(x1), r6=47(y1), r7=413(x2), r8=122(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 249
+LDI r1, 10
+LDI r2, 40
+LDI r3, 74
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 442
+LDI r6, 47
+LDI r7, 413
+LDI r8, 122
 LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+LINE r5, r6, r7, r8, r9
 HALT

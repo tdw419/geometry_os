@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 21x41 starting at (59, 188).
-; PLAN: r0=59(x), r1=188(y), r2=21(width), r3=41(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 59
-LDI r1, 188
-LDI r2, 21
-LDI r3, 41
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (209, 75) to (368, 250).
+; PLAN: r0=209(x1), r1=75(y1), r2=368(x2), r3=250(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 209
+LDI r1, 75
+LDI r2, 368
+LDI r3, 250
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

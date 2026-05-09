@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a cyan circle centered at (478, 62) with radius 33.
-; PLAN: r0=478(x), r1=62(y), r2=33(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 478
-LDI r1, 62
-LDI r2, 33
-LDI r3, 0x00FFFF
+; DESCRIPTION: Places a white circle of radius 36 at center (329, 74).
+; PLAN: r0=329(x), r1=74(y), r2=36(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 329
+LDI r1, 74
+LDI r2, 36
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

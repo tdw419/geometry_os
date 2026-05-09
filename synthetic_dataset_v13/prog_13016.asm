@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a red circle of radius 60 at center (79, 126).
-; PLAN: r0=79(x), r1=126(y), r2=60(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 79
-LDI r1, 126
-LDI r2, 60
-LDI r3, 0xFF0000
+; DESCRIPTION: Renders a blue disk with center (110, 190) and radius 14.
+; PLAN: r0=110(x), r1=190(y), r2=14(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 110
+LDI r1, 190
+LDI r2, 14
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

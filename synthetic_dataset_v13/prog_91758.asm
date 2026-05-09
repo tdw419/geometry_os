@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a black line from (132, 48) to (205, 135).
-; PLAN: r0=132(x1), r1=48(y1), r2=205(x2), r3=135(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 132
-LDI r1, 48
-LDI r2, 205
-LDI r3, 135
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (250, 224).
+; PLAN: r0=250(x), r1=224(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 250
+LDI r1, 224
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

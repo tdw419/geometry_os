@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a orange line between points (435, 50) and (77, 128).
-; PLAN: r0=435(x1), r1=50(y1), r2=77(x2), r3=128(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 435
-LDI r1, 50
-LDI r2, 77
-LDI r3, 128
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a blue circle centered at (78, 88) with radius 36 then Draws a black line from (192, 218) to (459, 227).
+; PLAN: r0=78(x), r1=88(y), r2=36(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=192(x1), r6=218(y1), r7=459(x2), r8=227(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 78
+LDI r1, 88
+LDI r2, 36
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 192
+LDI r6, 218
+LDI r7, 459
+LDI r8, 227
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
 HALT

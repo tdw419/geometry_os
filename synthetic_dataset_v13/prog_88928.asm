@@ -1,8 +1,12 @@
-; DESCRIPTION: Places a black circle of radius 25 at center (320, 56).
-; PLAN: r0=320(x), r1=56(y), r2=25(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 320
-LDI r1, 56
-LDI r2, 25
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a purple dot at position (483, 95) then Creates a magenta circular shape at (81, 80) with radius 76.
+; PLAN: r0=483(x), r1=95(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=81(x), r6=80(y), r7=76(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 483
+LDI r1, 95
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 81
+LDI r6, 80
+LDI r7, 76
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

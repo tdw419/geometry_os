@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (419, 231) to (253, 113).
-; PLAN: r0=419(x1), r1=231(y1), r2=253(x2), r3=113(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 419
-LDI r1, 231
-LDI r2, 253
-LDI r3, 113
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a purple line between points (244, 210) and (241, 122).
+; PLAN: r0=244(x1), r1=210(y1), r2=241(x2), r3=122(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 244
+LDI r1, 210
+LDI r2, 241
+LDI r3, 122
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 17 at center (439, 152).
-; PLAN: r0=439(x), r1=152(y), r2=17(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 439
-LDI r1, 152
-LDI r2, 17
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (323, 148) to (173, 195).
+; PLAN: r0=323(x1), r1=148(y1), r2=173(x2), r3=195(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 323
+LDI r1, 148
+LDI r2, 173
+LDI r3, 195
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (338, 233).
-; PLAN: r0=338(x), r1=233(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 338
-LDI r1, 233
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Places a green 74x63 rectangle at position (388, 108).
+; PLAN: r0=388(x), r1=108(y), r2=74(width), r3=63(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 108
+LDI r2, 74
+LDI r3, 63
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

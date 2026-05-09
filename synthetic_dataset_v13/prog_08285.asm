@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a red 34x44 rectangle at position (344, 4).
-; PLAN: r0=344(x), r1=4(y), r2=34(width), r3=44(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 344
-LDI r1, 4
-LDI r2, 34
-LDI r3, 44
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (67, 245) then Renders a white line between points (428, 153) and (293, 174).
+; PLAN: r0=67(x), r1=245(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=428(x1), r6=153(y1), r7=293(x2), r8=174(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 67
+LDI r1, 245
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 428
+LDI r6, 153
+LDI r7, 293
+LDI r8, 174
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to cyan.
-; PLAN: r0=0x00FFFF(color). Op: FILL r0.
-LDI r0, 0x00FFFF
-FILL r0
+; DESCRIPTION: Places a green dot at position (407, 33).
+; PLAN: r0=407(x), r1=33(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 407
+LDI r1, 33
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

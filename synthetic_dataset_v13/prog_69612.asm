@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single yellow pixel at (112, 146) then Renders a orange line between points (16, 157) and (432, 238).
-; PLAN: r0=112(x), r1=146(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=16(x1), r6=157(y1), r7=432(x2), r8=238(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 112
-LDI r1, 146
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 16
-LDI r6, 157
-LDI r7, 432
-LDI r8, 238
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a green line from (36, 17) to (109, 231).
+; PLAN: r0=36(x1), r1=17(y1), r2=109(x2), r3=231(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 36
+LDI r1, 17
+LDI r2, 109
+LDI r3, 231
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

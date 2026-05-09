@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (61, 199).
-; PLAN: r0=61(x), r1=199(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 61
-LDI r1, 199
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a yellow rectangle at (220, 182) with width 45 and height 68.
+; PLAN: r0=220(x), r1=182(y), r2=45(width), r3=68(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 182
+LDI r2, 45
+LDI r3, 68
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

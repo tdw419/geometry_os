@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 54x39 rectangle at position (177, 87).
-; PLAN: r0=177(x), r1=87(y), r2=54(width), r3=39(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 87
-LDI r2, 54
-LDI r3, 39
-LDI r4, 0x00FFFF
+; DESCRIPTION: Creates a purple rectangular region at (101, 122) spanning 57 by 26 pixels.
+; PLAN: r0=101(x), r1=122(y), r2=57(width), r3=26(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 101
+LDI r1, 122
+LDI r2, 57
+LDI r3, 26
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

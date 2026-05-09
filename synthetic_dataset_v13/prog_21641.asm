@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a purple circular shape at (135, 183) with radius 10.
-; PLAN: r0=135(x), r1=183(y), r2=10(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 135
-LDI r1, 183
-LDI r2, 10
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

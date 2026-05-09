@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a red circle of radius 58 at center (413, 120) then Renders a yellow box of size 71x50 starting at (426, 131).
-; PLAN: r0=413(x), r1=120(y), r2=58(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=426(x), r6=131(y), r7=71(width), r8=50(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 413
+; DESCRIPTION: Draws a purple line from (216, 120) to (75, 77).
+; PLAN: r0=216(x1), r1=120(y1), r2=75(x2), r3=77(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 216
 LDI r1, 120
-LDI r2, 58
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 426
-LDI r6, 131
-LDI r7, 71
-LDI r8, 50
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+LDI r2, 75
+LDI r3, 77
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

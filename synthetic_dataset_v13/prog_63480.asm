@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Draws a purple line from (503, 157) to (228, 151).
+; PLAN: r0=503(x1), r1=157(y1), r2=228(x2), r3=151(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 503
+LDI r1, 157
+LDI r2, 228
+LDI r3, 151
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

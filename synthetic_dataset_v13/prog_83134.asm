@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a yellow line from (134, 58) to (224, 189).
-; PLAN: r0=134(x1), r1=58(y1), r2=224(x2), r3=189(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 134
-LDI r1, 58
-LDI r2, 224
-LDI r3, 189
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (382, 212).
+; PLAN: r0=382(x), r1=212(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 382
+LDI r1, 212
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

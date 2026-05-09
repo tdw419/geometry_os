@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (71, 116) with radius 39.
-; PLAN: r0=71(x), r1=116(y), r2=39(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 71
-LDI r1, 116
-LDI r2, 39
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange box of size 100x30 starting at (336, 181).
+; PLAN: r0=336(x), r1=181(y), r2=100(width), r3=30(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 336
+LDI r1, 181
+LDI r2, 100
+LDI r3, 30
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

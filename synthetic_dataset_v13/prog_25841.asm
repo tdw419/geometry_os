@@ -1,19 +1,13 @@
-; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
-LDI r7, 0x0000FF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Creates a magenta rectangular region at (108, 44) spanning 102 by 114 pixels then Sets a single cyan pixel at (267, 3).
+; PLAN: r0=108(x), r1=44(y), r2=102(width), r3=114(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=267(x), r6=3(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 108
+LDI r1, 44
+LDI r2, 102
+LDI r3, 114
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 267
+LDI r6, 3
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

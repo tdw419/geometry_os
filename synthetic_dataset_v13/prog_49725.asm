@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a magenta line between points (151, 215) and (318, 189).
-; PLAN: r0=151(x1), r1=215(y1), r2=318(x2), r3=189(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 151
-LDI r1, 215
-LDI r2, 318
-LDI r3, 189
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (141, 252) then Places a black 92x95 rectangle at position (75, 9).
+; PLAN: r0=141(x), r1=252(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=75(x), r6=9(y), r7=92(width), r8=95(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 141
+LDI r1, 252
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 75
+LDI r6, 9
+LDI r7, 92
+LDI r8, 95
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

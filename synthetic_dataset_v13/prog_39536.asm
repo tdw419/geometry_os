@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (179, 154) spanning 75 by 47 pixels.
-; PLAN: r0=179(x), r1=154(y), r2=75(width), r3=47(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 154
-LDI r2, 75
-LDI r3, 47
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (370, 87) and (470, 22).
+; PLAN: r0=370(x1), r1=87(y1), r2=470(x2), r3=22(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 370
+LDI r1, 87
+LDI r2, 470
+LDI r3, 22
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

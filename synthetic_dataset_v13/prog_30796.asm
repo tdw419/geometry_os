@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 99x120 rectangle at position (288, 25).
-; PLAN: r0=288(x), r1=25(y), r2=99(width), r3=120(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 288
+; DESCRIPTION: Loads 25 into r1 and decrements it in a loop until zero.
+; PLAN: r1=25(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
 LDI r1, 25
-LDI r2, 99
-LDI r3, 120
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

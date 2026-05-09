@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a magenta line segment connecting (48, 140) to (117, 79).
-; PLAN: r0=48(x1), r1=140(y1), r2=117(x2), r3=79(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 48
-LDI r1, 140
-LDI r2, 117
-LDI r3, 79
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (235, 100).
+; PLAN: r0=235(x), r1=100(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 235
+LDI r1, 100
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

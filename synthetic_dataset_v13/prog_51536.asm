@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (429, 38) to (184, 19).
-; PLAN: r0=429(x1), r1=38(y1), r2=184(x2), r3=19(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 429
-LDI r1, 38
-LDI r2, 184
-LDI r3, 19
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black box of size 36x79 starting at (305, 127).
+; PLAN: r0=305(x), r1=127(y), r2=36(width), r3=79(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 305
+LDI r1, 127
+LDI r2, 36
+LDI r3, 79
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

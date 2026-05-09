@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Draws a orange rectangle at (356, 142) with width 114 and height 108.
+; PLAN: r0=356(x), r1=142(y), r2=114(width), r3=108(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 356
+LDI r1, 142
+LDI r2, 114
+LDI r3, 108
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

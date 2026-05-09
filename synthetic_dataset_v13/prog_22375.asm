@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a purple circle centered at (212, 189) with radius 31.
-; PLAN: r0=212(x), r1=189(y), r2=31(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 212
-LDI r1, 189
-LDI r2, 31
-LDI r3, 0xAA00FF
+; DESCRIPTION: Renders a red disk with center (117, 113) and radius 76.
+; PLAN: r0=117(x), r1=113(y), r2=76(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 117
+LDI r1, 113
+LDI r2, 76
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

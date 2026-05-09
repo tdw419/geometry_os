@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Draws a green line from (284, 228) to (268, 182) then Places a purple dot at position (159, 153).
-; PLAN: r0=284(x1), r1=228(y1), r2=268(x2), r3=182(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=159(x), r6=153(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 284
-LDI r1, 228
-LDI r2, 268
-LDI r3, 182
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 159
-LDI r6, 153
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single black pixel at (249, 146) then Places a orange 64x119 rectangle at position (384, 8).
+; PLAN: r0=249(x), r1=146(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=384(x), r6=8(y), r7=64(width), r8=119(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 249
+LDI r1, 146
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 384
+LDI r6, 8
+LDI r7, 64
+LDI r8, 119
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

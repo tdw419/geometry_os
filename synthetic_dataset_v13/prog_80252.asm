@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (256, 141) to (355, 161).
-; PLAN: r0=256(x1), r1=141(y1), r2=355(x2), r3=161(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 256
-LDI r1, 141
-LDI r2, 355
-LDI r3, 161
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a red line from (254, 158) to (235, 213).
+; PLAN: r0=254(x1), r1=158(y1), r2=235(x2), r3=213(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 254
+LDI r1, 158
+LDI r2, 235
+LDI r3, 213
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

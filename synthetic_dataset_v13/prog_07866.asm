@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a blue circular shape at (61, 165) with radius 57.
-; PLAN: r0=61(x), r1=165(y), r2=57(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 61
-LDI r1, 165
-LDI r2, 57
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

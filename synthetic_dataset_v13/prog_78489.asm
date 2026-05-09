@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a blue rectangular region at (315, 118) spanning 71 by 110 pixels.
-; PLAN: r0=315(x), r1=118(y), r2=71(width), r3=110(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 315
-LDI r1, 118
-LDI r2, 71
-LDI r3, 110
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single orange pixel at (281, 166) then Draws a red circle centered at (442, 168) with radius 70.
+; PLAN: r0=281(x), r1=166(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=442(x), r6=168(y), r7=70(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 281
+LDI r1, 166
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 442
+LDI r6, 168
+LDI r7, 70
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

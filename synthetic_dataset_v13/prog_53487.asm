@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 99x40 rectangle at position (378, 67).
-; PLAN: r0=378(x), r1=67(y), r2=99(width), r3=40(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 378
-LDI r1, 67
-LDI r2, 99
-LDI r3, 40
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (160, 213) with radius 10.
+; PLAN: r0=160(x), r1=213(y), r2=10(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 160
+LDI r1, 213
+LDI r2, 10
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

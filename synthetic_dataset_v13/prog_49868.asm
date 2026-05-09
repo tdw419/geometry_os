@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a cyan line from (409, 71) to (437, 28).
-; PLAN: r0=409(x1), r1=71(y1), r2=437(x2), r3=28(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 409
-LDI r1, 71
-LDI r2, 437
-LDI r3, 28
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single orange pixel at (157, 208) then Renders a white disk with center (107, 167) and radius 59.
+; PLAN: r0=157(x), r1=208(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=107(x), r6=167(y), r7=59(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 157
+LDI r1, 208
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 107
+LDI r6, 167
+LDI r7, 59
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

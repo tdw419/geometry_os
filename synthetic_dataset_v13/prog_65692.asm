@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a green circle of radius 42 at center (380, 90).
-; PLAN: r0=380(x), r1=90(y), r2=42(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 380
-LDI r1, 90
-LDI r2, 42
-LDI r3, 0x00FF00
+; DESCRIPTION: Draws a blue circle centered at (413, 120) with radius 67.
+; PLAN: r0=413(x), r1=120(y), r2=67(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 413
+LDI r1, 120
+LDI r2, 67
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

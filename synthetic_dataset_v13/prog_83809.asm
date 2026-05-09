@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (366, 16) with width 13 and height 109.
-; PLAN: r0=366(x), r1=16(y), r2=13(width), r3=109(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 366
-LDI r1, 16
-LDI r2, 13
-LDI r3, 109
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white line between points (93, 56) and (136, 116).
+; PLAN: r0=93(x1), r1=56(y1), r2=136(x2), r3=116(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 56
+LDI r2, 136
+LDI r3, 116
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

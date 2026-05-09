@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (162, 32) to (246, 111).
-; PLAN: r0=162(x1), r1=32(y1), r2=246(x2), r3=111(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 162
-LDI r1, 32
-LDI r2, 246
-LDI r3, 111
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black box of size 109x97 starting at (378, 62).
+; PLAN: r0=378(x), r1=62(y), r2=109(width), r3=97(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 378
+LDI r1, 62
+LDI r2, 109
+LDI r3, 97
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 8 into r1 and decrements it in a loop until zero.
-; PLAN: r1=8(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 8
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a yellow box of size 61x43 starting at (114, 71).
+; PLAN: r0=114(x), r1=71(y), r2=61(width), r3=43(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 114
+LDI r1, 71
+LDI r2, 61
+LDI r3, 43
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

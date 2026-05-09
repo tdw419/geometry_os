@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (201, 63) to (128, 130).
-; PLAN: r0=201(x1), r1=63(y1), r2=128(x2), r3=130(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 201
-LDI r1, 63
-LDI r2, 128
-LDI r3, 130
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (328, 48) with width 97 and height 86.
+; PLAN: r0=328(x), r1=48(y), r2=97(width), r3=86(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 328
+LDI r1, 48
+LDI r2, 97
+LDI r3, 86
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

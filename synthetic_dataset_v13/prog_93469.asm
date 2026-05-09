@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (466, 66) with radius 13.
-; PLAN: r0=466(x), r1=66(y), r2=13(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 466
-LDI r1, 66
-LDI r2, 13
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (173, 120) with width 36 and height 65.
+; PLAN: r0=173(x), r1=120(y), r2=36(width), r3=65(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 173
+LDI r1, 120
+LDI r2, 36
+LDI r3, 65
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

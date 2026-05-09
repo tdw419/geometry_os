@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (190, 106) with width 91 and height 75.
-; PLAN: r0=190(x), r1=106(y), r2=91(width), r3=75(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 106
-LDI r2, 91
-LDI r3, 75
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a blue rectangle at (122, 62) with width 31 and height 100.
+; PLAN: r0=122(x), r1=62(y), r2=31(width), r3=100(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 122
+LDI r1, 62
+LDI r2, 31
+LDI r3, 100
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

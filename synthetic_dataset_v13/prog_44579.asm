@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (192, 253) and (34, 50).
-; PLAN: r0=192(x1), r1=253(y1), r2=34(x2), r3=50(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 192
-LDI r1, 253
-LDI r2, 34
-LDI r3, 50
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a cyan line between points (193, 16) and (126, 35).
+; PLAN: r0=193(x1), r1=16(y1), r2=126(x2), r3=35(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 193
+LDI r1, 16
+LDI r2, 126
+LDI r3, 35
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

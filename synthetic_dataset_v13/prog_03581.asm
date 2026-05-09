@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (5, 190) to (252, 47).
-; PLAN: r0=5(x1), r1=190(y1), r2=252(x2), r3=47(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 190
-LDI r2, 252
-LDI r3, 47
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a magenta line between points (137, 137) and (342, 197).
+; PLAN: r0=137(x1), r1=137(y1), r2=342(x2), r3=197(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 137
+LDI r1, 137
+LDI r2, 342
+LDI r3, 197
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (451, 51) to (312, 189).
-; PLAN: r0=451(x1), r1=51(y1), r2=312(x2), r3=189(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 451
-LDI r1, 51
-LDI r2, 312
-LDI r3, 189
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 74 at center (276, 107).
+; PLAN: r0=276(x), r1=107(y), r2=74(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 276
+LDI r1, 107
+LDI r2, 74
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

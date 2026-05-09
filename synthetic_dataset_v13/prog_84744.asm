@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 43x82 rectangle at position (262, 121).
-; PLAN: r0=262(x), r1=121(y), r2=43(width), r3=82(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 262
-LDI r1, 121
-LDI r2, 43
-LDI r3, 82
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (172, 92) with radius 64.
+; PLAN: r0=172(x), r1=92(y), r2=64(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 172
+LDI r1, 92
+LDI r2, 64
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

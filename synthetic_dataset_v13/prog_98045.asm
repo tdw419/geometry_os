@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a yellow dot at position (446, 189).
-; PLAN: r0=446(x), r1=189(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 446
-LDI r1, 189
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a white disk with center (477, 90) and radius 19.
+; PLAN: r0=477(x), r1=90(y), r2=19(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 477
+LDI r1, 90
+LDI r2, 19
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 70 at center (92, 125).
-; PLAN: r0=92(x), r1=125(y), r2=70(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 92
-LDI r1, 125
-LDI r2, 70
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (389, 130) to (305, 93).
+; PLAN: r0=389(x1), r1=130(y1), r2=305(x2), r3=93(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 389
+LDI r1, 130
+LDI r2, 305
+LDI r3, 93
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

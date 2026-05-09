@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 100x23 starting at (115, 186).
-; PLAN: r0=115(x), r1=186(y), r2=100(width), r3=23(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 115
-LDI r1, 186
-LDI r2, 100
-LDI r3, 23
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (70, 125) and (233, 89).
+; PLAN: r0=70(x1), r1=125(y1), r2=233(x2), r3=89(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 70
+LDI r1, 125
+LDI r2, 233
+LDI r3, 89
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

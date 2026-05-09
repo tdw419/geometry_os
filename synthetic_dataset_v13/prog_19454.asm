@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (165, 174) and (38, 239).
-; PLAN: r0=165(x1), r1=174(y1), r2=38(x2), r3=239(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 174
-LDI r2, 38
-LDI r3, 239
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a blue line segment connecting (118, 17) to (172, 25).
+; PLAN: r0=118(x1), r1=17(y1), r2=172(x2), r3=25(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 118
+LDI r1, 17
+LDI r2, 172
+LDI r3, 25
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

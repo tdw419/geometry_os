@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single purple pixel at (385, 45).
-; PLAN: r0=385(x), r1=45(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 385
-LDI r1, 45
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (231, 169) and (247, 25).
-; PLAN: r0=231(x1), r1=169(y1), r2=247(x2), r3=25(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 231
-LDI r1, 169
-LDI r2, 247
-LDI r3, 25
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red 58x113 rectangle at position (205, 22).
+; PLAN: r0=205(x), r1=22(y), r2=58(width), r3=113(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 205
+LDI r1, 22
+LDI r2, 58
+LDI r3, 113
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 49 into r1 and decrements it in a loop until zero.
-; PLAN: r1=49(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 49
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Creates a black rectangular region at (240, 19) spanning 14 by 59 pixels.
+; PLAN: r0=240(x), r1=19(y), r2=14(width), r3=59(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 240
+LDI r1, 19
+LDI r2, 14
+LDI r3, 59
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

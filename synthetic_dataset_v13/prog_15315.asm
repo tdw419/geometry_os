@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a yellow rectangular region at (58, 140) spanning 38 by 103 pixels.
-; PLAN: r0=58(x), r1=140(y), r2=38(width), r3=103(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 58
-LDI r1, 140
-LDI r2, 38
-LDI r3, 103
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a orange dot at position (375, 128) then Places a magenta circle of radius 72 at center (199, 158).
+; PLAN: r0=375(x), r1=128(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=199(x), r6=158(y), r7=72(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 375
+LDI r1, 128
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 199
+LDI r6, 158
+LDI r7, 72
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

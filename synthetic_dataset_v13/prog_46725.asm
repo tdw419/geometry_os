@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a white circle of radius 29 at center (135, 124).
-; PLAN: r0=135(x), r1=124(y), r2=29(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 135
-LDI r1, 124
-LDI r2, 29
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta dot at position (412, 11).
+; PLAN: r0=412(x), r1=11(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 412
+LDI r1, 11
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

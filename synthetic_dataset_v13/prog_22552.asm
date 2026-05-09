@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (412, 68) and radius 54.
-; PLAN: r0=412(x), r1=68(y), r2=54(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 412
-LDI r1, 68
-LDI r2, 54
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (127, 131) and (46, 145).
+; PLAN: r0=127(x1), r1=131(y1), r2=46(x2), r3=145(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 131
+LDI r2, 46
+LDI r3, 145
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

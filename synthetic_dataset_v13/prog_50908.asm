@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 75x40 rectangle at position (234, 162).
-; PLAN: r0=234(x), r1=162(y), r2=75(width), r3=40(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 234
-LDI r1, 162
-LDI r2, 75
-LDI r3, 40
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (349, 76) with radius 50.
+; PLAN: r0=349(x), r1=76(y), r2=50(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 349
+LDI r1, 76
+LDI r2, 50
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 75 at center (145, 123).
-; PLAN: r0=145(x), r1=123(y), r2=75(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 145
-LDI r1, 123
-LDI r2, 75
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 58x63 rectangle at position (357, 97).
+; PLAN: r0=357(x), r1=97(y), r2=58(width), r3=63(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 97
+LDI r2, 58
+LDI r3, 63
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

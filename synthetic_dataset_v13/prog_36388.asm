@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (288, 229) and (78, 212).
-; PLAN: r0=288(x1), r1=229(y1), r2=78(x2), r3=212(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 288
-LDI r1, 229
-LDI r2, 78
-LDI r3, 212
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (65, 69) with radius 53.
+; PLAN: r0=65(x), r1=69(y), r2=53(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 65
+LDI r1, 69
+LDI r2, 53
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

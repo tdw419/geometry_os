@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (79, 146).
-; PLAN: r0=79(x), r1=146(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 79
-LDI r1, 146
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a red rectangle at (291, 155) with width 112 and height 47.
+; PLAN: r0=291(x), r1=155(y), r2=112(width), r3=47(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 291
+LDI r1, 155
+LDI r2, 112
+LDI r3, 47
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

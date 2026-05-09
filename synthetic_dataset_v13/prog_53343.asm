@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (407, 108) with radius 51.
-; PLAN: r0=407(x), r1=108(y), r2=51(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 407
-LDI r1, 108
-LDI r2, 51
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple rectangle at (274, 70) with width 111 and height 105.
+; PLAN: r0=274(x), r1=70(y), r2=111(width), r3=105(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 274
+LDI r1, 70
+LDI r2, 111
+LDI r3, 105
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

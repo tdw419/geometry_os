@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (149, 59) with radius 21.
-; PLAN: r0=149(x), r1=59(y), r2=21(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 149
-LDI r1, 59
-LDI r2, 21
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 109x96 rectangle at position (295, 140).
+; PLAN: r0=295(x), r1=140(y), r2=109(width), r3=96(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 295
+LDI r1, 140
+LDI r2, 109
+LDI r3, 96
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

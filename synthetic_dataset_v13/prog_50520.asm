@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (204, 154) and radius 18.
-; PLAN: r0=204(x), r1=154(y), r2=18(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 204
-LDI r1, 154
-LDI r2, 18
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (45, 76) spanning 103 by 48 pixels.
+; PLAN: r0=45(x), r1=76(y), r2=103(width), r3=48(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 45
+LDI r1, 76
+LDI r2, 103
+LDI r3, 48
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

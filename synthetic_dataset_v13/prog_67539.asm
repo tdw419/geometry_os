@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (380, 125) then Draws a orange line from (266, 115) to (258, 95).
-; PLAN: r0=380(x), r1=125(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=266(x1), r6=115(y1), r7=258(x2), r8=95(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 380
-LDI r1, 125
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 266
-LDI r6, 115
-LDI r7, 258
-LDI r8, 95
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a white line segment connecting (382, 5) to (132, 86).
+; PLAN: r0=382(x1), r1=5(y1), r2=132(x2), r3=86(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 382
+LDI r1, 5
+LDI r2, 132
+LDI r3, 86
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

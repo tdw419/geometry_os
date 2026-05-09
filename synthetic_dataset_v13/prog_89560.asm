@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 78x66 rectangle at position (28, 115).
-; PLAN: r0=28(x), r1=115(y), r2=78(width), r3=66(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 28
-LDI r1, 115
-LDI r2, 78
-LDI r3, 66
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (204, 183) to (128, 201).
+; PLAN: r0=204(x1), r1=183(y1), r2=128(x2), r3=201(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 204
+LDI r1, 183
+LDI r2, 128
+LDI r3, 201
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

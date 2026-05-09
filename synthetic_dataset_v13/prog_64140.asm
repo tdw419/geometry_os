@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 57x46 rectangle at position (375, 190).
-; PLAN: r0=375(x), r1=190(y), r2=57(width), r3=46(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 375
-LDI r1, 190
-LDI r2, 57
-LDI r3, 46
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (358, 128) and (122, 124).
+; PLAN: r0=358(x1), r1=128(y1), r2=122(x2), r3=124(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 358
+LDI r1, 128
+LDI r2, 122
+LDI r3, 124
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

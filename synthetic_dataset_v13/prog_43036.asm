@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Renders a orange line between points (17, 43) and (118, 150).
+; PLAN: r0=17(x1), r1=43(y1), r2=118(x2), r3=150(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 17
+LDI r1, 43
+LDI r2, 118
+LDI r3, 150
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

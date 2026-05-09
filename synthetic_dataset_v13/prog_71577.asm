@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a orange circle of radius 36 at center (353, 44).
-; PLAN: r0=353(x), r1=44(y), r2=36(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 353
-LDI r1, 44
-LDI r2, 36
-LDI r3, 0xFF8800
+; DESCRIPTION: Creates a blue circular shape at (381, 28) with radius 20.
+; PLAN: r0=381(x), r1=28(y), r2=20(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 381
+LDI r1, 28
+LDI r2, 20
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a white rectangular region at (285, 109) spanning 23 by 13 pixels.
-; PLAN: r0=285(x), r1=109(y), r2=23(width), r3=13(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 285
-LDI r1, 109
-LDI r2, 23
-LDI r3, 13
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single white pixel at (505, 122).
+; PLAN: r0=505(x), r1=122(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 505
+LDI r1, 122
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

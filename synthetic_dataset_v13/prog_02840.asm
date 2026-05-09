@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (301, 195) to (360, 8).
-; PLAN: r0=301(x1), r1=195(y1), r2=360(x2), r3=8(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 301
-LDI r1, 195
-LDI r2, 360
-LDI r3, 8
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a white line segment connecting (143, 251) to (485, 116).
+; PLAN: r0=143(x1), r1=251(y1), r2=485(x2), r3=116(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 143
+LDI r1, 251
+LDI r2, 485
+LDI r3, 116
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

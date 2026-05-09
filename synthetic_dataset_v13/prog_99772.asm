@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a cyan 90x92 rectangle at position (213, 79).
-; PLAN: r0=213(x), r1=79(y), r2=90(width), r3=92(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 213
-LDI r1, 79
-LDI r2, 90
-LDI r3, 92
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue dot at position (59, 111).
+; PLAN: r0=59(x), r1=111(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 59
+LDI r1, 111
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

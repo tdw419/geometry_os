@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (78, 254).
-; PLAN: r0=78(x), r1=254(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 78
-LDI r1, 254
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a purple 70x42 rectangle at position (412, 132).
+; PLAN: r0=412(x), r1=132(y), r2=70(width), r3=42(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 412
+LDI r1, 132
+LDI r2, 70
+LDI r3, 42
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

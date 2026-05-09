@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a green circular shape at (152, 41) with radius 13.
-; PLAN: r0=152(x), r1=41(y), r2=13(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 152
-LDI r1, 41
-LDI r2, 13
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

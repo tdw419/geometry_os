@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (361, 173) with radius 67.
-; PLAN: r0=361(x), r1=173(y), r2=67(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 361
-LDI r1, 173
-LDI r2, 67
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a orange rectangular region at (27, 154) spanning 100 by 35 pixels.
+; PLAN: r0=27(x), r1=154(y), r2=100(width), r3=35(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 27
+LDI r1, 154
+LDI r2, 100
+LDI r3, 35
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

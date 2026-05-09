@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Draws a orange rectangle at (385, 5) with width 37 and height 91.
+; PLAN: r0=385(x), r1=5(y), r2=37(width), r3=91(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 385
+LDI r1, 5
+LDI r2, 37
+LDI r3, 91
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

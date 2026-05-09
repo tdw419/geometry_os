@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Places a blue dot at position (437, 176) then Renders a black line between points (74, 222) and (142, 26).
-; PLAN: r0=437(x), r1=176(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=74(x1), r6=222(y1), r7=142(x2), r8=26(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 437
-LDI r1, 176
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 74
-LDI r6, 222
-LDI r7, 142
-LDI r8, 26
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a blue line between points (107, 141) and (367, 157) then Sets a single blue pixel at (115, 185) then Draws a black rectangle at (19, 134) with width 36 and height 90.
+; PLAN: r0=107(x1), r1=141(y1), r2=367(x2), r3=157(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=115(x), r6=185(y), r7=0x0000FF(color). Op: PSET r5, r6, r7 Next: r10=19(x), r11=134(y), r12=36(width), r13=90(height), r14=0x000000(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 107
+LDI r1, 141
+LDI r2, 367
+LDI r3, 157
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 115
+LDI r6, 185
+LDI r7, 0x0000FF
+PSET r5, r6, r7
+LDI r10, 19
+LDI r11, 134
+LDI r12, 36
+LDI r13, 90
+LDI r14, 0x000000
+RECTF r10, r11, r12, r13, r14
 HALT

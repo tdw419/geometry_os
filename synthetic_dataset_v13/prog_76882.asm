@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a orange dot at position (353, 172).
-; PLAN: r0=353(x), r1=172(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 353
-LDI r1, 172
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Places a blue circle of radius 54 at center (172, 113).
+; PLAN: r0=172(x), r1=113(y), r2=54(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 172
+LDI r1, 113
+LDI r2, 54
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (345, 149) to (444, 76).
-; PLAN: r0=345(x1), r1=149(y1), r2=444(x2), r3=76(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 345
-LDI r1, 149
-LDI r2, 444
-LDI r3, 76
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a purple line between points (411, 100) and (98, 254).
+; PLAN: r0=411(x1), r1=100(y1), r2=98(x2), r3=254(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 411
+LDI r1, 100
+LDI r2, 98
+LDI r3, 254
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

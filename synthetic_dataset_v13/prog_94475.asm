@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 105x53 starting at (294, 24).
-; PLAN: r0=294(x), r1=24(y), r2=105(width), r3=53(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 294
-LDI r1, 24
-LDI r2, 105
-LDI r3, 53
+; DESCRIPTION: Renders a white line between points (369, 192) and (169, 160).
+; PLAN: r0=369(x1), r1=192(y1), r2=169(x2), r3=160(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 369
+LDI r1, 192
+LDI r2, 169
+LDI r3, 160
 LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

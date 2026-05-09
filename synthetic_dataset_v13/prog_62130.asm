@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (210, 108) with radius 71.
-; PLAN: r0=210(x), r1=108(y), r2=71(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 210
-LDI r1, 108
-LDI r2, 71
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (107, 224) to (375, 45).
+; PLAN: r0=107(x1), r1=224(y1), r2=375(x2), r3=45(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 107
+LDI r1, 224
+LDI r2, 375
+LDI r3, 45
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,20 +1,20 @@
-; DESCRIPTION: Composite: Places a orange line segment connecting (31, 219) to (379, 218) then Draws a yellow circle centered at (454, 133) with radius 33 then Creates a purple rectangular region at (14, 147) spanning 59 by 33 pixels.
-; PLAN: r0=31(x1), r1=219(y1), r2=379(x2), r3=218(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=454(x), r6=133(y), r7=33(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=14(x), r11=147(y), r12=59(width), r13=33(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 31
-LDI r1, 219
-LDI r2, 379
-LDI r3, 218
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
-LDI r5, 454
-LDI r6, 133
-LDI r7, 33
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
-LDI r10, 14
-LDI r11, 147
-LDI r12, 59
-LDI r13, 33
-LDI r14, 0xAA00FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Draws a white rectangle at (71, 88) with width 86 and height 104 then Renders a blue line between points (168, 123) and (274, 151) then Renders a orange disk with center (324, 72) and radius 54.
+; PLAN: r0=71(x), r1=88(y), r2=86(width), r3=104(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=168(x1), r6=123(y1), r7=274(x2), r8=151(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=324(x), r11=72(y), r12=54(radius), r13=0xFF8800(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 71
+LDI r1, 88
+LDI r2, 86
+LDI r3, 104
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 168
+LDI r6, 123
+LDI r7, 274
+LDI r8, 151
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
+LDI r10, 324
+LDI r11, 72
+LDI r12, 54
+LDI r13, 0xFF8800
+CIRCLE r10, r11, r12, r13
 HALT

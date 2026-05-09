@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (211, 50) to (365, 59).
-; PLAN: r0=211(x1), r1=50(y1), r2=365(x2), r3=59(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 211
-LDI r1, 50
-LDI r2, 365
-LDI r3, 59
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black box of size 72x104 starting at (71, 134).
+; PLAN: r0=71(x), r1=134(y), r2=72(width), r3=104(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 71
+LDI r1, 134
+LDI r2, 72
+LDI r3, 104
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

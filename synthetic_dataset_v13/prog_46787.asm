@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a white circle of radius 60 at center (270, 61).
-; PLAN: r0=270(x), r1=61(y), r2=60(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 270
-LDI r1, 61
-LDI r2, 60
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

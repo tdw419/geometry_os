@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (27, 112).
-; PLAN: r0=27(x), r1=112(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 27
-LDI r1, 112
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Places a red line segment connecting (386, 114) to (316, 175).
+; PLAN: r0=386(x1), r1=114(y1), r2=316(x2), r3=175(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 386
+LDI r1, 114
+LDI r2, 316
+LDI r3, 175
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

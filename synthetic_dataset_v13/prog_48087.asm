@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a green rectangular region at (384, 74) spanning 71 by 91 pixels.
-; PLAN: r0=384(x), r1=74(y), r2=71(width), r3=91(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 384
-LDI r1, 74
-LDI r2, 71
-LDI r3, 91
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (146, 97).
+; PLAN: r0=146(x), r1=97(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 146
+LDI r1, 97
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

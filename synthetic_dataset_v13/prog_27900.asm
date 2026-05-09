@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 67 at center (384, 180).
-; PLAN: r0=384(x), r1=180(y), r2=67(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 384
-LDI r1, 180
-LDI r2, 67
-LDI r3, 0xFF00FF
+; DESCRIPTION: Draws a cyan circle centered at (252, 120) with radius 45.
+; PLAN: r0=252(x), r1=120(y), r2=45(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 252
+LDI r1, 120
+LDI r2, 45
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

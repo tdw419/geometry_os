@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 57x58 starting at (384, 158).
-; PLAN: r0=384(x), r1=158(y), r2=57(width), r3=58(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 384
-LDI r1, 158
-LDI r2, 57
-LDI r3, 58
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (370, 245) to (1, 115).
+; PLAN: r0=370(x1), r1=245(y1), r2=1(x2), r3=115(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 370
+LDI r1, 245
+LDI r2, 1
+LDI r3, 115
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

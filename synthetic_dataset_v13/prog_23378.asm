@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow 68x108 rectangle at position (439, 110).
-; PLAN: r0=439(x), r1=110(y), r2=68(width), r3=108(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 439
-LDI r1, 110
-LDI r2, 68
-LDI r3, 108
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red dot at position (146, 200).
+; PLAN: r0=146(x), r1=200(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 146
+LDI r1, 200
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

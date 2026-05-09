@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (378, 74) to (435, 75).
-; PLAN: r0=378(x1), r1=74(y1), r2=435(x2), r3=75(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 378
-LDI r1, 74
-LDI r2, 435
-LDI r3, 75
-LDI r4, 0x000000
+; DESCRIPTION: Draws a cyan line from (54, 43) to (255, 56).
+; PLAN: r0=54(x1), r1=43(y1), r2=255(x2), r3=56(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 54
+LDI r1, 43
+LDI r2, 255
+LDI r3, 56
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

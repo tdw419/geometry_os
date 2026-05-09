@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (126, 102) to (170, 227).
-; PLAN: r0=126(x1), r1=102(y1), r2=170(x2), r3=227(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 102
-LDI r2, 170
-LDI r3, 227
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red box of size 21x18 starting at (159, 43).
+; PLAN: r0=159(x), r1=43(y), r2=21(width), r3=18(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 159
+LDI r1, 43
+LDI r2, 21
+LDI r3, 18
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

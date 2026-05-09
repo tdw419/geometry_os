@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (137, 124) with width 117 and height 114.
-; PLAN: r0=137(x), r1=124(y), r2=117(width), r3=114(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 137
-LDI r1, 124
-LDI r2, 117
-LDI r3, 114
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (331, 249) to (122, 184).
+; PLAN: r0=331(x1), r1=249(y1), r2=122(x2), r3=184(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 331
+LDI r1, 249
+LDI r2, 122
+LDI r3, 184
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a purple line from (356, 223) to (261, 171).
-; PLAN: r0=356(x1), r1=223(y1), r2=261(x2), r3=171(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 223
-LDI r2, 261
-LDI r3, 171
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (75, 62) then Draws a blue circle centered at (43, 102) with radius 16.
+; PLAN: r0=75(x), r1=62(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=43(x), r6=102(y), r7=16(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 75
+LDI r1, 62
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 43
+LDI r6, 102
+LDI r7, 16
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

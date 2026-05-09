@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a green circle centered at (371, 166) with radius 46.
-; PLAN: r0=371(x), r1=166(y), r2=46(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 371
-LDI r1, 166
-LDI r2, 46
-LDI r3, 0x00FF00
+; DESCRIPTION: Places a white circle of radius 58 at center (214, 174).
+; PLAN: r0=214(x), r1=174(y), r2=58(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 214
+LDI r1, 174
+LDI r2, 58
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

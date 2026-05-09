@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 72x79 rectangle at position (329, 164).
-; PLAN: r0=329(x), r1=164(y), r2=72(width), r3=79(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 329
-LDI r1, 164
-LDI r2, 72
-LDI r3, 79
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (69, 163) and radius 42.
+; PLAN: r0=69(x), r1=163(y), r2=42(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 69
+LDI r1, 163
+LDI r2, 42
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

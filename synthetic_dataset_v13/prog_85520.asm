@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single orange pixel at (285, 73).
-; PLAN: r0=285(x), r1=73(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 285
-LDI r1, 73
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black disk with center (438, 173) and radius 12.
+; PLAN: r0=438(x), r1=173(y), r2=12(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 438
+LDI r1, 173
+LDI r2, 12
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

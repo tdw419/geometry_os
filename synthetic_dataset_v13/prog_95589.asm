@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (129, 127) to (381, 91).
-; PLAN: r0=129(x1), r1=127(y1), r2=381(x2), r3=91(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 127
-LDI r2, 381
-LDI r3, 91
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a red line between points (9, 4) and (167, 208).
+; PLAN: r0=9(x1), r1=4(y1), r2=167(x2), r3=208(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 9
+LDI r1, 4
+LDI r2, 167
+LDI r3, 208
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (65, 137) to (263, 34).
-; PLAN: r0=65(x1), r1=137(y1), r2=263(x2), r3=34(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 65
-LDI r1, 137
-LDI r2, 263
-LDI r3, 34
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 14x12 rectangle at position (433, 243).
+; PLAN: r0=433(x), r1=243(y), r2=14(width), r3=12(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 433
+LDI r1, 243
+LDI r2, 14
+LDI r3, 12
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

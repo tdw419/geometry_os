@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (51, 46) with radius 30.
-; PLAN: r0=51(x), r1=46(y), r2=30(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 51
-LDI r1, 46
-LDI r2, 30
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow rectangle at (135, 42) with width 39 and height 65.
+; PLAN: r0=135(x), r1=42(y), r2=39(width), r3=65(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 135
+LDI r1, 42
+LDI r2, 39
+LDI r3, 65
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

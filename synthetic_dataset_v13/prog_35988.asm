@@ -1,15 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan line segment connecting (402, 9) to (114, 115) then Renders a yellow box of size 64x42 starting at (129, 119).
-; PLAN: r0=402(x1), r1=9(y1), r2=114(x2), r3=115(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=129(x), r6=119(y), r7=64(width), r8=42(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 402
-LDI r1, 9
-LDI r2, 114
-LDI r3, 115
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 129
-LDI r6, 119
-LDI r7, 64
-LDI r8, 42
-LDI r9, 0xFFFF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a yellow box of size 37x15 starting at (164, 203).
+; PLAN: r0=164(x), r1=203(y), r2=37(width), r3=15(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 203
+LDI r2, 37
+LDI r3, 15
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

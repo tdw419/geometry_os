@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a yellow dot at position (488, 161).
-; PLAN: r0=488(x), r1=161(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 488
-LDI r1, 161
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Creates a red circular shape at (94, 142) with radius 44.
+; PLAN: r0=94(x), r1=142(y), r2=44(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 94
+LDI r1, 142
+LDI r2, 44
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

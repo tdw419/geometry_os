@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (460, 112) to (186, 246).
-; PLAN: r0=460(x1), r1=112(y1), r2=186(x2), r3=246(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 460
-LDI r1, 112
-LDI r2, 186
-LDI r3, 246
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 57 at center (267, 69).
+; PLAN: r0=267(x), r1=69(y), r2=57(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 267
+LDI r1, 69
+LDI r2, 57
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 12 at center (457, 169).
-; PLAN: r0=457(x), r1=169(y), r2=12(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 457
-LDI r1, 169
-LDI r2, 12
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green line segment connecting (71, 183) to (411, 18).
+; PLAN: r0=71(x1), r1=183(y1), r2=411(x2), r3=18(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 71
+LDI r1, 183
+LDI r2, 411
+LDI r3, 18
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

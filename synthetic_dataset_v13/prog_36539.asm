@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (10, 203).
-; PLAN: r0=10(x), r1=203(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 10
-LDI r1, 203
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Creates a cyan rectangular region at (25, 15) spanning 72 by 120 pixels.
+; PLAN: r0=25(x), r1=15(y), r2=72(width), r3=120(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 25
+LDI r1, 15
+LDI r2, 72
+LDI r3, 120
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

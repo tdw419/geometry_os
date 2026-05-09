@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Places a green dot at position (209, 38) then Places a purple circle of radius 10 at center (141, 214) then Renders a black line between points (202, 140) and (61, 186).
-; PLAN: r0=209(x), r1=38(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=141(x), r6=214(y), r7=10(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=202(x1), r11=140(y1), r12=61(x2), r13=186(y2), r14=0x000000(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 209
-LDI r1, 38
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 141
-LDI r6, 214
-LDI r7, 10
-LDI r8, 0xAA00FF
+; DESCRIPTION: Composite: Places a green line segment connecting (162, 168) to (360, 247) then Renders a yellow disk with center (319, 107) and radius 11.
+; PLAN: r0=162(x1), r1=168(y1), r2=360(x2), r3=247(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=319(x), r6=107(y), r7=11(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 162
+LDI r1, 168
+LDI r2, 360
+LDI r3, 247
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 319
+LDI r6, 107
+LDI r7, 11
+LDI r8, 0xFFFF00
 CIRCLE r5, r6, r7, r8
-LDI r10, 202
-LDI r11, 140
-LDI r12, 61
-LDI r13, 186
-LDI r14, 0x000000
-LINE r10, r11, r12, r13, r14
 HALT

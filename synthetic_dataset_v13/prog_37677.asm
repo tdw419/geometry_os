@@ -1,19 +1,12 @@
-; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
-LDI r7, 0xFFFFFF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Places a white circle of radius 54 at center (177, 198) then Places a blue dot at position (191, 57).
+; PLAN: r0=177(x), r1=198(y), r2=54(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=191(x), r6=57(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 177
+LDI r1, 198
+LDI r2, 54
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 191
+LDI r6, 57
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

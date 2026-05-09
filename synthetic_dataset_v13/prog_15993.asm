@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (382, 94) to (326, 248).
-; PLAN: r0=382(x1), r1=94(y1), r2=326(x2), r3=248(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 382
-LDI r1, 94
-LDI r2, 326
-LDI r3, 248
-LDI r4, 0x000000
+; DESCRIPTION: Draws a red line from (170, 65) to (62, 197).
+; PLAN: r0=170(x1), r1=65(y1), r2=62(x2), r3=197(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 65
+LDI r2, 62
+LDI r3, 197
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

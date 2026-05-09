@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 43 at center (313, 157).
-; PLAN: r0=313(x), r1=157(y), r2=43(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 313
-LDI r1, 157
-LDI r2, 43
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (196, 165) and (133, 14).
+; PLAN: r0=196(x1), r1=165(y1), r2=133(x2), r3=14(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 196
+LDI r1, 165
+LDI r2, 133
+LDI r3, 14
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

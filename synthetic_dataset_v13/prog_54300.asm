@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a magenta dot at position (307, 71).
-; PLAN: r0=307(x), r1=71(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 307
-LDI r1, 71
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

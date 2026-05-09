@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (182, 155) with width 78 and height 44.
-; PLAN: r0=182(x), r1=155(y), r2=78(width), r3=44(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 182
-LDI r1, 155
-LDI r2, 78
-LDI r3, 44
-LDI r4, 0x000000
+; DESCRIPTION: Places a yellow 10x93 rectangle at position (117, 101).
+; PLAN: r0=117(x), r1=101(y), r2=10(width), r3=93(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 117
+LDI r1, 101
+LDI r2, 10
+LDI r3, 93
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

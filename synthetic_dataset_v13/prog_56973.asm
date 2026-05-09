@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue box of size 75x54 starting at (115, 57).
-; PLAN: r0=115(x), r1=57(y), r2=75(width), r3=54(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 115
-LDI r1, 57
-LDI r2, 75
-LDI r3, 54
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (71, 191) with radius 50.
+; PLAN: r0=71(x), r1=191(y), r2=50(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 71
+LDI r1, 191
+LDI r2, 50
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

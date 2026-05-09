@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a yellow dot at position (30, 37).
-; PLAN: r0=30(x), r1=37(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 30
-LDI r1, 37
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

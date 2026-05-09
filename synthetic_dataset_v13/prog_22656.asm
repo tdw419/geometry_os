@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (23, 109).
-; PLAN: r0=23(x), r1=109(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 23
-LDI r1, 109
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green box of size 14x93 starting at (311, 64).
+; PLAN: r0=311(x), r1=64(y), r2=14(width), r3=93(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 311
+LDI r1, 64
+LDI r2, 14
+LDI r3, 93
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

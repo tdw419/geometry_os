@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a red line segment connecting (332, 162) to (301, 15).
-; PLAN: r0=332(x1), r1=162(y1), r2=301(x2), r3=15(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 332
-LDI r1, 162
-LDI r2, 301
-LDI r3, 15
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single white pixel at (384, 120).
+; PLAN: r0=384(x), r1=120(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 384
+LDI r1, 120
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a purple circle of radius 72 at center (157, 146).
-; PLAN: r0=157(x), r1=146(y), r2=72(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 157
-LDI r1, 146
-LDI r2, 72
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

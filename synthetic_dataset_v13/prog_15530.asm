@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Places a blue dot at position (413, 233).
+; PLAN: r0=413(x), r1=233(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 413
+LDI r1, 233
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

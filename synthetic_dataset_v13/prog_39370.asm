@@ -1,12 +1,12 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (217, 202) then Creates a blue circular shape at (207, 115) with radius 70.
-; PLAN: r0=217(x), r1=202(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=207(x), r6=115(y), r7=70(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 217
-LDI r1, 202
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 207
-LDI r6, 115
-LDI r7, 70
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Draws a magenta circle centered at (301, 141) with radius 60 then Sets a single blue pixel at (120, 226).
+; PLAN: r0=301(x), r1=141(y), r2=60(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=120(x), r6=226(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 301
+LDI r1, 141
+LDI r2, 60
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 120
+LDI r6, 226
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

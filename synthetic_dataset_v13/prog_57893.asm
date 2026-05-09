@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a purple dot at position (457, 19).
-; PLAN: r0=457(x), r1=19(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 457
-LDI r1, 19
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a green circle centered at (328, 93) with radius 35.
+; PLAN: r0=328(x), r1=93(y), r2=35(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 328
+LDI r1, 93
+LDI r2, 35
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

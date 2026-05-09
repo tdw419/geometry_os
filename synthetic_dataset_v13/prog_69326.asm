@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 106x26 rectangle at position (395, 72).
-; PLAN: r0=395(x), r1=72(y), r2=106(width), r3=26(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 395
-LDI r1, 72
-LDI r2, 106
-LDI r3, 26
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (463, 62) with radius 36.
+; PLAN: r0=463(x), r1=62(y), r2=36(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 463
+LDI r1, 62
+LDI r2, 36
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a white circle centered at (144, 137) with radius 48.
-; PLAN: r0=144(x), r1=137(y), r2=48(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 144
-LDI r1, 137
-LDI r2, 48
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Creates a yellow circular shape at (289, 43) with radius 22.
+; PLAN: r0=289(x), r1=43(y), r2=22(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 289
+LDI r1, 43
+LDI r2, 22
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

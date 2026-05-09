@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (61, 57) and (130, 251).
-; PLAN: r0=61(x1), r1=57(y1), r2=130(x2), r3=251(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 61
-LDI r1, 57
-LDI r2, 130
-LDI r3, 251
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 51x71 rectangle at position (160, 40).
+; PLAN: r0=160(x), r1=40(y), r2=51(width), r3=71(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 40
+LDI r2, 51
+LDI r3, 71
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

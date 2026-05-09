@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (268, 62) and (121, 124).
-; PLAN: r0=268(x1), r1=62(y1), r2=121(x2), r3=124(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 268
-LDI r1, 62
-LDI r2, 121
-LDI r3, 124
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (59, 39) and radius 32.
+; PLAN: r0=59(x), r1=39(y), r2=32(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 59
+LDI r1, 39
+LDI r2, 32
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

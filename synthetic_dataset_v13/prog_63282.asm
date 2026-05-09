@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a cyan disk with center (128, 216) and radius 28.
-; PLAN: r0=128(x), r1=216(y), r2=28(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 128
-LDI r1, 216
-LDI r2, 28
-LDI r3, 0x00FFFF
+; DESCRIPTION: Creates a purple circular shape at (408, 85) with radius 68.
+; PLAN: r0=408(x), r1=85(y), r2=68(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 408
+LDI r1, 85
+LDI r2, 68
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

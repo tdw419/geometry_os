@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 107x59 rectangle at position (298, 65).
-; PLAN: r0=298(x), r1=65(y), r2=107(width), r3=59(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 298
-LDI r1, 65
-LDI r2, 107
-LDI r3, 59
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a white rectangle at (100, 124) with width 41 and height 67.
+; PLAN: r0=100(x), r1=124(y), r2=41(width), r3=67(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 100
+LDI r1, 124
+LDI r2, 41
+LDI r3, 67
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

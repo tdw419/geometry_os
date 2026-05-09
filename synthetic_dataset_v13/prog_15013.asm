@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a yellow rectangular region at (114, 222) spanning 23 by 19 pixels.
-; PLAN: r0=114(x), r1=222(y), r2=23(width), r3=19(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 114
-LDI r1, 222
+; DESCRIPTION: Renders a blue disk with center (469, 69) and radius 23.
+; PLAN: r0=469(x), r1=69(y), r2=23(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 469
+LDI r1, 69
 LDI r2, 23
-LDI r3, 19
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

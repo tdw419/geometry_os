@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a black circle centered at (95, 102) with radius 64.
-; PLAN: r0=95(x), r1=102(y), r2=64(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 95
-LDI r1, 102
-LDI r2, 64
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (279, 220).
+; PLAN: r0=279(x), r1=220(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 279
+LDI r1, 220
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a cyan dot at position (413, 225).
-; PLAN: r0=413(x), r1=225(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 413
-LDI r1, 225
-LDI r2, 0x00FFFF
+; DESCRIPTION: Places a orange dot at position (369, 164).
+; PLAN: r0=369(x), r1=164(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 369
+LDI r1, 164
+LDI r2, 0xFF8800
 PSET r0, r1, r2
 HALT

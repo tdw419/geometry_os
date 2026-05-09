@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white rectangle at (52, 45) with width 32 and height 45.
-; PLAN: r0=52(x), r1=45(y), r2=32(width), r3=45(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 52
-LDI r1, 45
-LDI r2, 32
-LDI r3, 45
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (214, 190) with radius 59.
+; PLAN: r0=214(x), r1=190(y), r2=59(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 214
+LDI r1, 190
+LDI r2, 59
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

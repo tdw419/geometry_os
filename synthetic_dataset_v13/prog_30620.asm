@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 32 into r1 and decrements it in a loop until zero.
-; PLAN: r1=32(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 32
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a red line segment connecting (453, 172) to (76, 218).
+; PLAN: r0=453(x1), r1=172(y1), r2=76(x2), r3=218(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 453
+LDI r1, 172
+LDI r2, 76
+LDI r3, 218
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

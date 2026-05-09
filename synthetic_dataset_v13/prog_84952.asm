@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a orange line from (246, 57) to (500, 227).
-; PLAN: r0=246(x1), r1=57(y1), r2=500(x2), r3=227(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 246
-LDI r1, 57
-LDI r2, 500
-LDI r3, 227
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a cyan rectangular region at (219, 65) spanning 59 by 87 pixels then Renders a white disk with center (86, 107) and radius 59.
+; PLAN: r0=219(x), r1=65(y), r2=59(width), r3=87(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=86(x), r6=107(y), r7=59(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 219
+LDI r1, 65
+LDI r2, 59
+LDI r3, 87
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 86
+LDI r6, 107
+LDI r7, 59
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

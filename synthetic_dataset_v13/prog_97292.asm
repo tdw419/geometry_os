@@ -1,14 +1,8 @@
-; DESCRIPTION: Composite: Renders a blue line between points (478, 73) and (358, 87) then Places a white circle of radius 52 at center (237, 103).
-; PLAN: r0=478(x1), r1=73(y1), r2=358(x2), r3=87(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=237(x), r6=103(y), r7=52(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 478
-LDI r1, 73
-LDI r2, 358
-LDI r3, 87
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 237
-LDI r6, 103
-LDI r7, 52
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a white circle of radius 40 at center (134, 212).
+; PLAN: r0=134(x), r1=212(y), r2=40(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 134
+LDI r1, 212
+LDI r2, 40
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

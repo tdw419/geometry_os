@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a white line segment connecting (86, 158) to (371, 60).
-; PLAN: r0=86(x1), r1=158(y1), r2=371(x2), r3=60(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 86
-LDI r1, 158
-LDI r2, 371
-LDI r3, 60
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a blue rectangular region at (336, 64) spanning 93 by 98 pixels then Places a red dot at position (335, 88).
+; PLAN: r0=336(x), r1=64(y), r2=93(width), r3=98(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=335(x), r6=88(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 336
+LDI r1, 64
+LDI r2, 93
+LDI r3, 98
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 335
+LDI r6, 88
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

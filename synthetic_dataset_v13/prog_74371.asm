@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white box of size 57x100 starting at (39, 123).
-; PLAN: r0=39(x), r1=123(y), r2=57(width), r3=100(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 39
-LDI r1, 123
-LDI r2, 57
-LDI r3, 100
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (116, 126).
+; PLAN: r0=116(x), r1=126(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 116
+LDI r1, 126
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

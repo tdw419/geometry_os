@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 64 at center (222, 83).
-; PLAN: r0=222(x), r1=83(y), r2=64(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 222
-LDI r1, 83
-LDI r2, 64
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a purple line between points (13, 232) and (274, 253).
+; PLAN: r0=13(x1), r1=232(y1), r2=274(x2), r3=253(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 13
+LDI r1, 232
+LDI r2, 274
+LDI r3, 253
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a green rectangle at (38, 173) with width 50 and height 78.
-; PLAN: r0=38(x), r1=173(y), r2=50(width), r3=78(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 38
-LDI r1, 173
-LDI r2, 50
-LDI r3, 78
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red circle of radius 34 at center (51, 112) then Sets a single purple pixel at (267, 136).
+; PLAN: r0=51(x), r1=112(y), r2=34(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=267(x), r6=136(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 51
+LDI r1, 112
+LDI r2, 34
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 267
+LDI r6, 136
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

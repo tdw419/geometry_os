@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single white pixel at (394, 0).
-; PLAN: r0=394(x), r1=0(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 394
-LDI r1, 0
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a red circle of radius 28 at center (188, 106).
+; PLAN: r0=188(x), r1=106(y), r2=28(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 188
+LDI r1, 106
+LDI r2, 28
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

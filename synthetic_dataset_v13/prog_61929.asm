@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Places a orange line segment connecting (319, 194) to (375, 194) then Sets a single red pixel at (96, 94).
-; PLAN: r0=319(x1), r1=194(y1), r2=375(x2), r3=194(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=96(x), r6=94(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 319
-LDI r1, 194
-LDI r2, 375
-LDI r3, 194
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
-LDI r5, 96
-LDI r6, 94
-LDI r7, 0xFF0000
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single purple pixel at (96, 80) then Renders a black box of size 29x98 starting at (30, 75).
+; PLAN: r0=96(x), r1=80(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=30(x), r6=75(y), r7=29(width), r8=98(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 96
+LDI r1, 80
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 30
+LDI r6, 75
+LDI r7, 29
+LDI r8, 98
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

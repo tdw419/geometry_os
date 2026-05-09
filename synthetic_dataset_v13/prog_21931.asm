@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a green dot at position (354, 253).
-; PLAN: r0=354(x), r1=253(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 354
-LDI r1, 253
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a red circle of radius 27 at center (138, 193).
+; PLAN: r0=138(x), r1=193(y), r2=27(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 138
+LDI r1, 193
+LDI r2, 27
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

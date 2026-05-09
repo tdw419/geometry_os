@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (45, 233) and (442, 126).
-; PLAN: r0=45(x1), r1=233(y1), r2=442(x2), r3=126(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 45
-LDI r1, 233
-LDI r2, 442
-LDI r3, 126
+; DESCRIPTION: Draws a white line from (287, 0) to (4, 90).
+; PLAN: r0=287(x1), r1=0(y1), r2=4(x2), r3=90(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 287
+LDI r1, 0
+LDI r2, 4
+LDI r3, 90
 LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

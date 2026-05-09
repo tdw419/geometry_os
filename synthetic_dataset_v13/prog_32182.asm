@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (349, 99).
-; PLAN: r0=349(x), r1=99(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 349
-LDI r1, 99
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow disk with center (376, 105) and radius 44.
+; PLAN: r0=376(x), r1=105(y), r2=44(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 376
+LDI r1, 105
+LDI r2, 44
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

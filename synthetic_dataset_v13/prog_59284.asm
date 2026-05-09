@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 54 at center (376, 145).
-; PLAN: r0=376(x), r1=145(y), r2=54(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 376
-LDI r1, 145
-LDI r2, 54
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow rectangle at (331, 57) with width 119 and height 112.
+; PLAN: r0=331(x), r1=57(y), r2=119(width), r3=112(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 331
+LDI r1, 57
+LDI r2, 119
+LDI r3, 112
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

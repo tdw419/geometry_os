@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (195, 97) to (219, 97).
-; PLAN: r0=195(x1), r1=97(y1), r2=219(x2), r3=97(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 195
-LDI r1, 97
-LDI r2, 219
-LDI r3, 97
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 19 at center (40, 192).
+; PLAN: r0=40(x), r1=192(y), r2=19(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 40
+LDI r1, 192
+LDI r2, 19
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

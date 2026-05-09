@@ -1,9 +1,5 @@
-; DESCRIPTION: Draws a black line from (273, 163) to (296, 132).
-; PLAN: r0=273(x1), r1=163(y1), r2=296(x2), r3=132(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 273
-LDI r1, 163
-LDI r2, 296
-LDI r3, 132
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

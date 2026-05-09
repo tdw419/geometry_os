@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a yellow line from (282, 247) to (16, 28).
-; PLAN: r0=282(x1), r1=247(y1), r2=16(x2), r3=28(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 282
-LDI r1, 247
-LDI r2, 16
-LDI r3, 28
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a white disk with center (339, 76) and radius 42 then Sets a single cyan pixel at (296, 114).
+; PLAN: r0=339(x), r1=76(y), r2=42(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=296(x), r6=114(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 339
+LDI r1, 76
+LDI r2, 42
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 296
+LDI r6, 114
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

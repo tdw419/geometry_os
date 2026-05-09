@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a red circle centered at (262, 107) with radius 58.
-; PLAN: r0=262(x), r1=107(y), r2=58(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 262
-LDI r1, 107
-LDI r2, 58
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue dot at position (206, 19).
+; PLAN: r0=206(x), r1=19(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 206
+LDI r1, 19
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (233, 17) to (105, 25).
-; PLAN: r0=233(x1), r1=17(y1), r2=105(x2), r3=25(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 233
-LDI r1, 17
-LDI r2, 105
-LDI r3, 25
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (346, 130) and radius 21.
+; PLAN: r0=346(x), r1=130(y), r2=21(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 346
+LDI r1, 130
+LDI r2, 21
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

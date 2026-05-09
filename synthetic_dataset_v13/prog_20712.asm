@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 53x27 starting at (196, 4).
-; PLAN: r0=196(x), r1=4(y), r2=53(width), r3=27(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 196
-LDI r1, 4
-LDI r2, 53
-LDI r3, 27
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (356, 218) to (481, 100).
+; PLAN: r0=356(x1), r1=218(y1), r2=481(x2), r3=100(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 356
+LDI r1, 218
+LDI r2, 481
+LDI r3, 100
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

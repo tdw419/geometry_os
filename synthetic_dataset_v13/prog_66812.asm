@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Renders a orange line between points (320, 218) and (339, 151) then Sets a single red pixel at (24, 222) then Creates a green rectangular region at (404, 51) spanning 60 by 77 pixels.
-; PLAN: r0=320(x1), r1=218(y1), r2=339(x2), r3=151(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=24(x), r6=222(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=404(x), r11=51(y), r12=60(width), r13=77(height), r14=0x00FF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 320
-LDI r1, 218
-LDI r2, 339
-LDI r3, 151
-LDI r4, 0xFF8800
+; DESCRIPTION: Composite: Renders a white line between points (321, 125) and (182, 74) then Sets a single yellow pixel at (377, 26) then Creates a white circular shape at (70, 63) with radius 55.
+; PLAN: r0=321(x1), r1=125(y1), r2=182(x2), r3=74(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=377(x), r6=26(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=70(x), r11=63(y), r12=55(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 321
+LDI r1, 125
+LDI r2, 182
+LDI r3, 74
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
-LDI r5, 24
-LDI r6, 222
-LDI r7, 0xFF0000
+LDI r5, 377
+LDI r6, 26
+LDI r7, 0xFFFF00
 PSET r5, r6, r7
-LDI r10, 404
-LDI r11, 51
-LDI r12, 60
-LDI r13, 77
-LDI r14, 0x00FF00
-RECTF r10, r11, r12, r13, r14
+LDI r10, 70
+LDI r11, 63
+LDI r12, 55
+LDI r13, 0xFFFFFF
+CIRCLE r10, r11, r12, r13
 HALT

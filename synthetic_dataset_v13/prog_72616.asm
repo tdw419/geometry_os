@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (481, 53) and (207, 237).
-; PLAN: r0=481(x1), r1=53(y1), r2=207(x2), r3=237(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 481
-LDI r1, 53
-LDI r2, 207
-LDI r3, 237
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 19 at center (471, 187).
+; PLAN: r0=471(x), r1=187(y), r2=19(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 471
+LDI r1, 187
+LDI r2, 19
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

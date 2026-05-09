@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 24 at center (243, 63).
-; PLAN: r0=243(x), r1=63(y), r2=24(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 243
-LDI r1, 63
-LDI r2, 24
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (18, 251) and (362, 246).
+; PLAN: r0=18(x1), r1=251(y1), r2=362(x2), r3=246(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 18
+LDI r1, 251
+LDI r2, 362
+LDI r3, 246
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

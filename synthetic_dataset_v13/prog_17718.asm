@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (184, 67) with width 74 and height 11.
-; PLAN: r0=184(x), r1=67(y), r2=74(width), r3=11(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 184
-LDI r1, 67
-LDI r2, 74
-LDI r3, 11
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a white rectangular region at (89, 18) spanning 80 by 27 pixels.
+; PLAN: r0=89(x), r1=18(y), r2=80(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 89
+LDI r1, 18
+LDI r2, 80
+LDI r3, 27
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

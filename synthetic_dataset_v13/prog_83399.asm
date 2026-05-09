@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single yellow pixel at (142, 212).
-; PLAN: r0=142(x), r1=212(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 142
-LDI r1, 212
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black disk with center (69, 110) and radius 50.
+; PLAN: r0=69(x), r1=110(y), r2=50(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 69
+LDI r1, 110
+LDI r2, 50
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

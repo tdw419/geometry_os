@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (372, 53) with radius 10.
-; PLAN: r0=372(x), r1=53(y), r2=10(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 372
-LDI r1, 53
-LDI r2, 10
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white rectangle at (315, 122) with width 78 and height 113.
+; PLAN: r0=315(x), r1=122(y), r2=78(width), r3=113(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 315
+LDI r1, 122
+LDI r2, 78
+LDI r3, 113
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

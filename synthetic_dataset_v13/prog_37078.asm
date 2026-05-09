@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a cyan disk with center (308, 60) and radius 27.
-; PLAN: r0=308(x), r1=60(y), r2=27(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 308
-LDI r1, 60
-LDI r2, 27
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

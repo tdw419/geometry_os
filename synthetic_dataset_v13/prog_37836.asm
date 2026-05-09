@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (199, 10) and (373, 129).
-; PLAN: r0=199(x1), r1=10(y1), r2=373(x2), r3=129(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 199
-LDI r1, 10
-LDI r2, 373
-LDI r3, 129
-LDI r4, 0xAA00FF
+; DESCRIPTION: Places a yellow line segment connecting (428, 218) to (508, 83).
+; PLAN: r0=428(x1), r1=218(y1), r2=508(x2), r3=83(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 428
+LDI r1, 218
+LDI r2, 508
+LDI r3, 83
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

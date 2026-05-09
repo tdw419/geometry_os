@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a blue circle centered at (327, 135) with radius 75.
-; PLAN: r0=327(x), r1=135(y), r2=75(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 327
-LDI r1, 135
-LDI r2, 75
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a white circle centered at (328, 153) with radius 74.
+; PLAN: r0=328(x), r1=153(y), r2=74(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 328
+LDI r1, 153
+LDI r2, 74
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

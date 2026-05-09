@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (404, 80) spanning 46 by 27 pixels.
-; PLAN: r0=404(x), r1=80(y), r2=46(width), r3=27(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 404
-LDI r1, 80
-LDI r2, 46
-LDI r3, 27
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a white box of size 30x41 starting at (459, 91).
+; PLAN: r0=459(x), r1=91(y), r2=30(width), r3=41(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 459
+LDI r1, 91
+LDI r2, 30
+LDI r3, 41
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

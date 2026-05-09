@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (402, 45) and radius 18.
-; PLAN: r0=402(x), r1=45(y), r2=18(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 402
-LDI r1, 45
-LDI r2, 18
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green line segment connecting (441, 175) to (65, 68).
+; PLAN: r0=441(x1), r1=175(y1), r2=65(x2), r3=68(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 441
+LDI r1, 175
+LDI r2, 65
+LDI r3, 68
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

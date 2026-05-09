@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 83x35 rectangle at position (329, 55).
-; PLAN: r0=329(x), r1=55(y), r2=83(width), r3=35(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 329
-LDI r1, 55
-LDI r2, 83
-LDI r3, 35
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange line from (438, 41) to (13, 44).
+; PLAN: r0=438(x1), r1=41(y1), r2=13(x2), r3=44(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 438
+LDI r1, 41
+LDI r2, 13
+LDI r3, 44
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

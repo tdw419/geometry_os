@@ -1,12 +1,18 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (169, 19) then Draws a cyan circle centered at (407, 168) with radius 21.
-; PLAN: r0=169(x), r1=19(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=407(x), r6=168(y), r7=21(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 169
-LDI r1, 19
-LDI r2, 0xFF0000
+; DESCRIPTION: Composite: Sets a single magenta pixel at (440, 50) then Renders a orange disk with center (423, 109) and radius 44 then Places a red line segment connecting (383, 139) to (490, 244).
+; PLAN: r0=440(x), r1=50(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=423(x), r6=109(y), r7=44(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=383(x1), r11=139(y1), r12=490(x2), r13=244(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 440
+LDI r1, 50
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
-LDI r5, 407
-LDI r6, 168
-LDI r7, 21
-LDI r8, 0x00FFFF
+LDI r5, 423
+LDI r6, 109
+LDI r7, 44
+LDI r8, 0xFF8800
 CIRCLE r5, r6, r7, r8
+LDI r10, 383
+LDI r11, 139
+LDI r12, 490
+LDI r13, 244
+LDI r14, 0xFF0000
+LINE r10, r11, r12, r13, r14
 HALT

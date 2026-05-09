@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (385, 144) with radius 62.
-; PLAN: r0=385(x), r1=144(y), r2=62(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 385
-LDI r1, 144
-LDI r2, 62
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black line segment connecting (33, 202) to (487, 36).
+; PLAN: r0=33(x1), r1=202(y1), r2=487(x2), r3=36(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 33
+LDI r1, 202
+LDI r2, 487
+LDI r3, 36
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

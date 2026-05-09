@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a white box of size 15x27 starting at (458, 70).
-; PLAN: r0=458(x), r1=70(y), r2=15(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 458
-LDI r1, 70
-LDI r2, 15
-LDI r3, 27
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (273, 19) then Places a purple 12x67 rectangle at position (210, 148).
+; PLAN: r0=273(x), r1=19(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=210(x), r6=148(y), r7=12(width), r8=67(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 273
+LDI r1, 19
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 210
+LDI r6, 148
+LDI r7, 12
+LDI r8, 67
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 19x16 rectangle at position (181, 114).
-; PLAN: r0=181(x), r1=114(y), r2=19(width), r3=16(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 181
-LDI r1, 114
-LDI r2, 19
-LDI r3, 16
-LDI r4, 0x000000
+; DESCRIPTION: Renders a cyan box of size 47x78 starting at (55, 106).
+; PLAN: r0=55(x), r1=106(y), r2=47(width), r3=78(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 55
+LDI r1, 106
+LDI r2, 47
+LDI r3, 78
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a white line segment connecting (83, 88) to (378, 29).
-; PLAN: r0=83(x1), r1=88(y1), r2=378(x2), r3=29(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 83
-LDI r1, 88
-LDI r2, 378
-LDI r3, 29
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (46, 82) then Places a cyan line segment connecting (219, 66) to (400, 55).
+; PLAN: r0=46(x), r1=82(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=219(x1), r6=66(y1), r7=400(x2), r8=55(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 46
+LDI r1, 82
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 219
+LDI r6, 66
+LDI r7, 400
+LDI r8, 55
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (41, 206) to (454, 215).
-; PLAN: r0=41(x1), r1=206(y1), r2=454(x2), r3=215(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 41
-LDI r1, 206
-LDI r2, 454
-LDI r3, 215
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 35 into r1 and decrements it in a loop until zero.
+; PLAN: r1=35(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 35
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

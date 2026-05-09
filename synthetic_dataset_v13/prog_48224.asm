@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (169, 193) to (503, 152).
-; PLAN: r0=169(x1), r1=193(y1), r2=503(x2), r3=152(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 169
-LDI r1, 193
-LDI r2, 503
-LDI r3, 152
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (469, 194) with radius 42.
+; PLAN: r0=469(x), r1=194(y), r2=42(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 469
+LDI r1, 194
+LDI r2, 42
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a magenta box of size 85x48 starting at (137, 185).
-; PLAN: r0=137(x), r1=185(y), r2=85(width), r3=48(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 137
-LDI r1, 185
-LDI r2, 85
-LDI r3, 48
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a purple circular shape at (466, 84) with radius 22 then Sets a single orange pixel at (466, 170).
+; PLAN: r0=466(x), r1=84(y), r2=22(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=466(x), r6=170(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 466
+LDI r1, 84
+LDI r2, 22
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 466
+LDI r6, 170
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple rectangle at (278, 144) with width 69 and height 90.
-; PLAN: r0=278(x), r1=144(y), r2=69(width), r3=90(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 278
-LDI r1, 144
-LDI r2, 69
-LDI r3, 90
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (304, 141) with radius 76.
+; PLAN: r0=304(x), r1=141(y), r2=76(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 304
+LDI r1, 141
+LDI r2, 76
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

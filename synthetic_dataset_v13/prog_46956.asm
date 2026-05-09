@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 41x83 rectangle at position (243, 59).
-; PLAN: r0=243(x), r1=59(y), r2=41(width), r3=83(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 243
-LDI r1, 59
-LDI r2, 41
-LDI r3, 83
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (241, 179) with radius 44.
+; PLAN: r0=241(x), r1=179(y), r2=44(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 241
+LDI r1, 179
+LDI r2, 44
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a blue line from (227, 73) to (111, 50).
-; PLAN: r0=227(x1), r1=73(y1), r2=111(x2), r3=50(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 227
-LDI r1, 73
-LDI r2, 111
-LDI r3, 50
+; DESCRIPTION: Composite: Creates a blue rectangular region at (272, 50) spanning 76 by 100 pixels then Sets a single red pixel at (404, 212).
+; PLAN: r0=272(x), r1=50(y), r2=76(width), r3=100(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=404(x), r6=212(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 272
+LDI r1, 50
+LDI r2, 76
+LDI r3, 100
 LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
+LDI r5, 404
+LDI r6, 212
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (157, 168) with radius 10.
-; PLAN: r0=157(x), r1=168(y), r2=10(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 157
-LDI r1, 168
-LDI r2, 10
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (484, 183) to (170, 9).
+; PLAN: r0=484(x1), r1=183(y1), r2=170(x2), r3=9(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 484
+LDI r1, 183
+LDI r2, 170
+LDI r3, 9
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

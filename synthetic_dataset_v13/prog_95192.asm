@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green line from (32, 128) to (225, 169).
-; PLAN: r0=32(x1), r1=128(y1), r2=225(x2), r3=169(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 32
-LDI r1, 128
-LDI r2, 225
-LDI r3, 169
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red dot at position (398, 216).
+; PLAN: r0=398(x), r1=216(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 398
+LDI r1, 216
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

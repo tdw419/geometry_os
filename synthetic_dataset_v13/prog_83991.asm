@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a cyan circle centered at (386, 192) with radius 35.
-; PLAN: r0=386(x), r1=192(y), r2=35(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 386
-LDI r1, 192
-LDI r2, 35
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

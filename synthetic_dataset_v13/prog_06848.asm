@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a orange dot at position (299, 145).
-; PLAN: r0=299(x), r1=145(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 299
-LDI r1, 145
-LDI r2, 0xFF8800
+; DESCRIPTION: Places a red dot at position (143, 193).
+; PLAN: r0=143(x), r1=193(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 143
+LDI r1, 193
+LDI r2, 0xFF0000
 PSET r0, r1, r2
 HALT

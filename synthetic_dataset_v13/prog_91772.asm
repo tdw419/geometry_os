@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (478, 156) with radius 27.
-; PLAN: r0=478(x), r1=156(y), r2=27(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 478
-LDI r1, 156
-LDI r2, 27
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue line segment connecting (402, 193) to (142, 0).
+; PLAN: r0=402(x1), r1=193(y1), r2=142(x2), r3=0(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 402
+LDI r1, 193
+LDI r2, 142
+LDI r3, 0
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

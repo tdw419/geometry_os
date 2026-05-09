@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a blue circle of radius 68 at center (197, 182).
-; PLAN: r0=197(x), r1=182(y), r2=68(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 197
-LDI r1, 182
-LDI r2, 68
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single black pixel at (285, 155).
+; PLAN: r0=285(x), r1=155(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 285
+LDI r1, 155
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

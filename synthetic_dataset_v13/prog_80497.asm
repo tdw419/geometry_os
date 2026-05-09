@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (149, 253) and (120, 138).
-; PLAN: r0=149(x1), r1=253(y1), r2=120(x2), r3=138(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 149
-LDI r1, 253
-LDI r2, 120
-LDI r3, 138
-LDI r4, 0xFF00FF
+; DESCRIPTION: Places a green line segment connecting (22, 229) to (58, 158).
+; PLAN: r0=22(x1), r1=229(y1), r2=58(x2), r3=158(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 22
+LDI r1, 229
+LDI r2, 58
+LDI r3, 158
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (265, 105) with radius 51.
-; PLAN: r0=265(x), r1=105(y), r2=51(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 265
-LDI r1, 105
-LDI r2, 51
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 95x29 rectangle at position (210, 190).
+; PLAN: r0=210(x), r1=190(y), r2=95(width), r3=29(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 210
+LDI r1, 190
+LDI r2, 95
+LDI r3, 29
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

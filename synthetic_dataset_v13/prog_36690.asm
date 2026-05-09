@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 97x22 starting at (403, 61).
-; PLAN: r0=403(x), r1=61(y), r2=97(width), r3=22(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 403
-LDI r1, 61
-LDI r2, 97
-LDI r3, 22
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (259, 192) to (342, 190).
+; PLAN: r0=259(x1), r1=192(y1), r2=342(x2), r3=190(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 259
+LDI r1, 192
+LDI r2, 342
+LDI r3, 190
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

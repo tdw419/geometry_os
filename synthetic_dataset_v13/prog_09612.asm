@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a red circle of radius 28 at center (356, 42).
-; PLAN: r0=356(x), r1=42(y), r2=28(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 356
-LDI r1, 42
-LDI r2, 28
-LDI r3, 0xFF0000
+; DESCRIPTION: Creates a orange circular shape at (347, 214) with radius 27.
+; PLAN: r0=347(x), r1=214(y), r2=27(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 347
+LDI r1, 214
+LDI r2, 27
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

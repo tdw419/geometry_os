@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (84, 140) with width 72 and height 112.
-; PLAN: r0=84(x), r1=140(y), r2=72(width), r3=112(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 84
-LDI r1, 140
-LDI r2, 72
-LDI r3, 112
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a green box of size 67x29 starting at (81, 179).
+; PLAN: r0=81(x), r1=179(y), r2=67(width), r3=29(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 81
+LDI r1, 179
+LDI r2, 67
+LDI r3, 29
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

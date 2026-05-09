@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (388, 68) and (287, 87).
-; PLAN: r0=388(x1), r1=68(y1), r2=287(x2), r3=87(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 388
-LDI r1, 68
-LDI r2, 287
-LDI r3, 87
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black rectangular region at (231, 79) spanning 70 by 30 pixels.
+; PLAN: r0=231(x), r1=79(y), r2=70(width), r3=30(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 231
+LDI r1, 79
+LDI r2, 70
+LDI r3, 30
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

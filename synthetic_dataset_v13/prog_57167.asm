@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a blue dot at position (408, 210).
-; PLAN: r0=408(x), r1=210(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 408
-LDI r1, 210
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Paints the whole screen red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

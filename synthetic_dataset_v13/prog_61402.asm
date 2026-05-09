@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (360, 171) to (216, 187).
-; PLAN: r0=360(x1), r1=171(y1), r2=216(x2), r3=187(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 360
-LDI r1, 171
-LDI r2, 216
-LDI r3, 187
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 80x67 starting at (58, 114).
+; PLAN: r0=58(x), r1=114(y), r2=80(width), r3=67(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 58
+LDI r1, 114
+LDI r2, 80
+LDI r3, 67
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

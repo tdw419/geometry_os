@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Renders a white line between points (304, 57) and (35, 4).
+; PLAN: r0=304(x1), r1=57(y1), r2=35(x2), r3=4(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 304
+LDI r1, 57
+LDI r2, 35
+LDI r3, 4
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

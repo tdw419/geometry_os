@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a orange rectangular region at (7, 57) spanning 116 by 98 pixels.
-; PLAN: r0=7(x), r1=57(y), r2=116(width), r3=98(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 7
-LDI r1, 57
-LDI r2, 116
-LDI r3, 98
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (215, 72).
+; PLAN: r0=215(x), r1=72(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 215
+LDI r1, 72
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (200, 50) with width 46 and height 92.
-; PLAN: r0=200(x), r1=50(y), r2=46(width), r3=92(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 200
-LDI r1, 50
-LDI r2, 46
-LDI r3, 92
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a magenta box of size 92x112 starting at (80, 46).
+; PLAN: r0=80(x), r1=46(y), r2=92(width), r3=112(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 80
+LDI r1, 46
+LDI r2, 92
+LDI r3, 112
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

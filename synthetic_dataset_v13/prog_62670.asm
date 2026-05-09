@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (386, 16) spanning 118 by 27 pixels.
-; PLAN: r0=386(x), r1=16(y), r2=118(width), r3=27(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 386
-LDI r1, 16
-LDI r2, 118
-LDI r3, 27
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (195, 178) and (459, 147).
+; PLAN: r0=195(x1), r1=178(y1), r2=459(x2), r3=147(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 195
+LDI r1, 178
+LDI r2, 459
+LDI r3, 147
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (315, 117) with radius 76.
-; PLAN: r0=315(x), r1=117(y), r2=76(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 315
-LDI r1, 117
-LDI r2, 76
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple rectangle at (15, 59) with width 114 and height 28.
+; PLAN: r0=15(x), r1=59(y), r2=114(width), r3=28(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 15
+LDI r1, 59
+LDI r2, 114
+LDI r3, 28
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

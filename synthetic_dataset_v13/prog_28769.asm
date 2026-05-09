@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (128, 189).
-; PLAN: r0=128(x), r1=189(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 128
-LDI r1, 189
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a red box of size 92x23 starting at (293, 170).
+; PLAN: r0=293(x), r1=170(y), r2=92(width), r3=23(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 293
+LDI r1, 170
+LDI r2, 92
+LDI r3, 23
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

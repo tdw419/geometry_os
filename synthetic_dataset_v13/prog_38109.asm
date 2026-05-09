@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (205, 95) spanning 112 by 17 pixels.
-; PLAN: r0=205(x), r1=95(y), r2=112(width), r3=17(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 205
-LDI r1, 95
-LDI r2, 112
-LDI r3, 17
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (447, 28) and (315, 140).
+; PLAN: r0=447(x1), r1=28(y1), r2=315(x2), r3=140(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 447
+LDI r1, 28
+LDI r2, 315
+LDI r3, 140
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

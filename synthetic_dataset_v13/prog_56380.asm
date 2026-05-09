@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a orange disk with center (300, 179) and radius 13.
-; PLAN: r0=300(x), r1=179(y), r2=13(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 300
-LDI r1, 179
-LDI r2, 13
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

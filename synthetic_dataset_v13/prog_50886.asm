@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 13x77 rectangle at position (159, 75).
-; PLAN: r0=159(x), r1=75(y), r2=13(width), r3=77(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 159
-LDI r1, 75
-LDI r2, 13
-LDI r3, 77
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (350, 88) to (320, 8).
+; PLAN: r0=350(x1), r1=88(y1), r2=320(x2), r3=8(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 350
+LDI r1, 88
+LDI r2, 320
+LDI r3, 8
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

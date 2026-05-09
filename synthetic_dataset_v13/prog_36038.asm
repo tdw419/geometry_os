@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (351, 119) with radius 42.
-; PLAN: r0=351(x), r1=119(y), r2=42(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 351
-LDI r1, 119
-LDI r2, 42
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (129, 156) and (216, 177).
+; PLAN: r0=129(x1), r1=156(y1), r2=216(x2), r3=177(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 129
+LDI r1, 156
+LDI r2, 216
+LDI r3, 177
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

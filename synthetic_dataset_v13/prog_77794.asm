@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (55, 201) with radius 15.
-; PLAN: r0=55(x), r1=201(y), r2=15(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 55
-LDI r1, 201
-LDI r2, 15
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta box of size 99x115 starting at (368, 68).
+; PLAN: r0=368(x), r1=68(y), r2=99(width), r3=115(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 368
+LDI r1, 68
+LDI r2, 99
+LDI r3, 115
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (212, 113) with radius 65.
-; PLAN: r0=212(x), r1=113(y), r2=65(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 212
-LDI r1, 113
-LDI r2, 65
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white rectangle at (312, 18) with width 20 and height 77.
+; PLAN: r0=312(x), r1=18(y), r2=20(width), r3=77(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 312
+LDI r1, 18
+LDI r2, 20
+LDI r3, 77
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a green line between points (79, 74) and (15, 98).
-; PLAN: r0=79(x1), r1=74(y1), r2=15(x2), r3=98(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 79
-LDI r1, 74
-LDI r2, 15
-LDI r3, 98
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single cyan pixel at (220, 216) then Places a red circle of radius 33 at center (473, 166).
+; PLAN: r0=220(x), r1=216(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=473(x), r6=166(y), r7=33(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 220
+LDI r1, 216
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 473
+LDI r6, 166
+LDI r7, 33
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

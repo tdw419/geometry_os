@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (41, 144) then Places a green line segment connecting (409, 95) to (195, 31) then Renders a white disk with center (79, 27) and radius 26.
-; PLAN: r0=41(x), r1=144(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=409(x1), r6=95(y1), r7=195(x2), r8=31(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=79(x), r11=27(y), r12=26(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 41
-LDI r1, 144
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 409
-LDI r6, 95
-LDI r7, 195
-LDI r8, 31
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 79
-LDI r11, 27
-LDI r12, 26
-LDI r13, 0xFFFFFF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Places a purple line segment connecting (247, 247) to (436, 239) then Creates a black circular shape at (38, 167) with radius 25 then Places a orange dot at position (154, 193).
+; PLAN: r0=247(x1), r1=247(y1), r2=436(x2), r3=239(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=38(x), r6=167(y), r7=25(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=154(x), r11=193(y), r12=0xFF8800(color). Op: PSET r10, r11, r12.
+LDI r0, 247
+LDI r1, 247
+LDI r2, 436
+LDI r3, 239
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 38
+LDI r6, 167
+LDI r7, 25
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
+LDI r10, 154
+LDI r11, 193
+LDI r12, 0xFF8800
+PSET r10, r11, r12
 HALT

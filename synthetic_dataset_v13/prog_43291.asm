@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 76 at center (391, 90).
-; PLAN: r0=391(x), r1=90(y), r2=76(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 391
-LDI r1, 90
-LDI r2, 76
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (134, 218) to (351, 174).
+; PLAN: r0=134(x1), r1=218(y1), r2=351(x2), r3=174(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 134
+LDI r1, 218
+LDI r2, 351
+LDI r3, 174
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

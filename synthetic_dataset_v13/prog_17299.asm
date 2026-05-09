@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (0, 151) to (90, 166).
-; PLAN: r0=0(x1), r1=151(y1), r2=90(x2), r3=166(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 0
-LDI r1, 151
-LDI r2, 90
-LDI r3, 166
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange rectangle at (244, 19) with width 83 and height 86.
+; PLAN: r0=244(x), r1=19(y), r2=83(width), r3=86(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 244
+LDI r1, 19
+LDI r2, 83
+LDI r3, 86
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

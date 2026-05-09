@@ -1,19 +1,18 @@
-; DESCRIPTION: Composite: Draws a purple line from (508, 251) to (208, 235) then Sets a single blue pixel at (186, 156) then Draws a blue rectangle at (284, 97) with width 120 and height 51.
-; PLAN: r0=508(x1), r1=251(y1), r2=208(x2), r3=235(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=186(x), r6=156(y), r7=0x0000FF(color). Op: PSET r5, r6, r7 Next: r10=284(x), r11=97(y), r12=120(width), r13=51(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 508
-LDI r1, 251
-LDI r2, 208
-LDI r3, 235
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 186
-LDI r6, 156
-LDI r7, 0x0000FF
-PSET r5, r6, r7
-LDI r10, 284
-LDI r11, 97
-LDI r12, 120
-LDI r13, 51
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single magenta pixel at (178, 185) then Creates a yellow circular shape at (250, 100) with radius 39 then Places a red line segment connecting (312, 254) to (456, 79).
+; PLAN: r0=178(x), r1=185(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=250(x), r6=100(y), r7=39(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=312(x1), r11=254(y1), r12=456(x2), r13=79(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 178
+LDI r1, 185
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 250
+LDI r6, 100
+LDI r7, 39
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
+LDI r10, 312
+LDI r11, 254
+LDI r12, 456
+LDI r13, 79
+LDI r14, 0xFF0000
+LINE r10, r11, r12, r13, r14
 HALT

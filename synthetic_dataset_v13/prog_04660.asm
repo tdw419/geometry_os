@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (147, 181) to (134, 76).
-; PLAN: r0=147(x1), r1=181(y1), r2=134(x2), r3=76(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 147
-LDI r1, 181
-LDI r2, 134
-LDI r3, 76
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 25 at center (458, 133).
+; PLAN: r0=458(x), r1=133(y), r2=25(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 458
+LDI r1, 133
+LDI r2, 25
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

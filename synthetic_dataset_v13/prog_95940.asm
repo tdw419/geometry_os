@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green line from (106, 196) to (427, 214).
-; PLAN: r0=106(x1), r1=196(y1), r2=427(x2), r3=214(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 106
-LDI r1, 196
-LDI r2, 427
-LDI r3, 214
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (229, 50).
+; PLAN: r0=229(x), r1=50(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 229
+LDI r1, 50
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

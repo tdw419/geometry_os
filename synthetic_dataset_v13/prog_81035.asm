@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a green disk with center (360, 125) and radius 18.
-; PLAN: r0=360(x), r1=125(y), r2=18(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 125
-LDI r2, 18
-LDI r3, 0x00FF00
+; DESCRIPTION: Renders a black disk with center (189, 194) and radius 58.
+; PLAN: r0=189(x), r1=194(y), r2=58(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 189
+LDI r1, 194
+LDI r2, 58
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,19 +1,12 @@
-; DESCRIPTION: Composite: Places a purple line segment connecting (430, 208) to (265, 210) then Places a red 110x64 rectangle at position (79, 30) then Sets a single white pixel at (3, 76).
-; PLAN: r0=430(x1), r1=208(y1), r2=265(x2), r3=210(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=79(x), r6=30(y), r7=110(width), r8=64(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=3(x), r11=76(y), r12=0xFFFFFF(color). Op: PSET r10, r11, r12.
-LDI r0, 430
-LDI r1, 208
-LDI r2, 265
-LDI r3, 210
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 79
-LDI r6, 30
-LDI r7, 110
-LDI r8, 64
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
-LDI r10, 3
-LDI r11, 76
-LDI r12, 0xFFFFFF
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Renders a white disk with center (119, 141) and radius 78 then Sets a single red pixel at (115, 222).
+; PLAN: r0=119(x), r1=141(y), r2=78(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=115(x), r6=222(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 119
+LDI r1, 141
+LDI r2, 78
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 115
+LDI r6, 222
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

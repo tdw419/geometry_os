@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (401, 152) with radius 66.
-; PLAN: r0=401(x), r1=152(y), r2=66(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 401
-LDI r1, 152
-LDI r2, 66
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red line between points (308, 231) and (394, 116).
+; PLAN: r0=308(x1), r1=231(y1), r2=394(x2), r3=116(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 308
+LDI r1, 231
+LDI r2, 394
+LDI r3, 116
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

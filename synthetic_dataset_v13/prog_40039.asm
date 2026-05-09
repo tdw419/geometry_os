@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (444, 184) to (222, 155).
-; PLAN: r0=444(x1), r1=184(y1), r2=222(x2), r3=155(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 444
-LDI r1, 184
-LDI r2, 222
-LDI r3, 155
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a black line between points (289, 69) and (253, 125).
+; PLAN: r0=289(x1), r1=69(y1), r2=253(x2), r3=125(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 289
+LDI r1, 69
+LDI r2, 253
+LDI r3, 125
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

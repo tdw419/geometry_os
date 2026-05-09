@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 52x80 starting at (150, 118).
-; PLAN: r0=150(x), r1=118(y), r2=52(width), r3=80(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 150
-LDI r1, 118
-LDI r2, 52
-LDI r3, 80
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (491, 195) and (316, 230).
+; PLAN: r0=491(x1), r1=195(y1), r2=316(x2), r3=230(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 491
+LDI r1, 195
+LDI r2, 316
+LDI r3, 230
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

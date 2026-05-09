@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (330, 171) to (17, 4).
-; PLAN: r0=330(x1), r1=171(y1), r2=17(x2), r3=4(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 330
-LDI r1, 171
-LDI r2, 17
-LDI r3, 4
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red 35x48 rectangle at position (316, 82).
+; PLAN: r0=316(x), r1=82(y), r2=35(width), r3=48(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 316
+LDI r1, 82
+LDI r2, 35
+LDI r3, 48
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

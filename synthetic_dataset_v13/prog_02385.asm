@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 14x99 rectangle at position (457, 111).
-; PLAN: r0=457(x), r1=111(y), r2=14(width), r3=99(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 457
-LDI r1, 111
-LDI r2, 14
-LDI r3, 99
+; DESCRIPTION: Renders a magenta line between points (412, 63) and (136, 184).
+; PLAN: r0=412(x1), r1=63(y1), r2=136(x2), r3=184(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 412
+LDI r1, 63
+LDI r2, 136
+LDI r3, 184
 LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single white pixel at (231, 141).
-; PLAN: r0=231(x), r1=141(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 231
-LDI r1, 141
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a green circular shape at (311, 91) with radius 64.
+; PLAN: r0=311(x), r1=91(y), r2=64(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 311
+LDI r1, 91
+LDI r2, 64
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

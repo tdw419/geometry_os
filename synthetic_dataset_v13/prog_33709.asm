@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white box of size 79x62 starting at (393, 70).
-; PLAN: r0=393(x), r1=70(y), r2=79(width), r3=62(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 70
-LDI r2, 79
-LDI r3, 62
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (510, 186).
+; PLAN: r0=510(x), r1=186(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 510
+LDI r1, 186
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

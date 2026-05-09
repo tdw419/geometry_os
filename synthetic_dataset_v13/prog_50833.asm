@@ -1,12 +1,12 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (360, 151) then Draws a white circle centered at (358, 114) with radius 19.
-; PLAN: r0=360(x), r1=151(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=358(x), r6=114(y), r7=19(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 360
-LDI r1, 151
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 358
-LDI r6, 114
-LDI r7, 19
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Renders a black disk with center (489, 227) and radius 18 then Places a white dot at position (150, 93).
+; PLAN: r0=489(x), r1=227(y), r2=18(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=150(x), r6=93(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 489
+LDI r1, 227
+LDI r2, 18
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 150
+LDI r6, 93
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

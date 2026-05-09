@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (478, 250) to (236, 172).
-; PLAN: r0=478(x1), r1=250(y1), r2=236(x2), r3=172(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 478
-LDI r1, 250
-LDI r2, 236
-LDI r3, 172
+; DESCRIPTION: Renders a black box of size 31x112 starting at (198, 4).
+; PLAN: r0=198(x), r1=4(y), r2=31(width), r3=112(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 198
+LDI r1, 4
+LDI r2, 31
+LDI r3, 112
 LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

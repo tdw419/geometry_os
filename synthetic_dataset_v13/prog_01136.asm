@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a red rectangle at (356, 34) with width 31 and height 112.
-; PLAN: r0=356(x), r1=34(y), r2=31(width), r3=112(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 356
-LDI r1, 34
-LDI r2, 31
-LDI r3, 112
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a magenta circle centered at (432, 114) with radius 19 then Draws a black line from (185, 135) to (71, 133).
+; PLAN: r0=432(x), r1=114(y), r2=19(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=185(x1), r6=135(y1), r7=71(x2), r8=133(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 432
+LDI r1, 114
+LDI r2, 19
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 185
+LDI r6, 135
+LDI r7, 71
+LDI r8, 133
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
 HALT

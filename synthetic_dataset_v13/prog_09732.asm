@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a blue 79x64 rectangle at position (336, 87).
-; PLAN: r0=336(x), r1=87(y), r2=79(width), r3=64(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 336
-LDI r1, 87
-LDI r2, 79
-LDI r3, 64
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (90, 250) then Draws a magenta line from (97, 134) to (140, 242).
+; PLAN: r0=90(x), r1=250(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=97(x1), r6=134(y1), r7=140(x2), r8=242(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 90
+LDI r1, 250
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 97
+LDI r6, 134
+LDI r7, 140
+LDI r8, 242
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

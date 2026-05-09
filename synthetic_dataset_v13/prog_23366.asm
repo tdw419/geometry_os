@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a white line between points (474, 19) and (357, 82).
-; PLAN: r0=474(x1), r1=19(y1), r2=357(x2), r3=82(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 474
-LDI r1, 19
-LDI r2, 357
-LDI r3, 82
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a red circle centered at (235, 198) with radius 22 then Draws a white rectangle at (75, 73) with width 21 and height 120.
+; PLAN: r0=235(x), r1=198(y), r2=22(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=75(x), r6=73(y), r7=21(width), r8=120(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 235
+LDI r1, 198
+LDI r2, 22
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 75
+LDI r6, 73
+LDI r7, 21
+LDI r8, 120
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

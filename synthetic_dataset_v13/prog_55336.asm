@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (301, 71) spanning 90 by 78 pixels.
-; PLAN: r0=301(x), r1=71(y), r2=90(width), r3=78(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 301
-LDI r1, 71
-LDI r2, 90
-LDI r3, 78
-LDI r4, 0x000000
+; DESCRIPTION: Draws a orange rectangle at (373, 151) with width 74 and height 81.
+; PLAN: r0=373(x), r1=151(y), r2=74(width), r3=81(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 373
+LDI r1, 151
+LDI r2, 74
+LDI r3, 81
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

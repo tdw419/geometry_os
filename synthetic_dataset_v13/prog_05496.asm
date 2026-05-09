@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Renders a white box of size 13x76 starting at (464, 131) then Places a purple circle of radius 39 at center (54, 146) then Draws a yellow line from (107, 195) to (19, 43).
-; PLAN: r0=464(x), r1=131(y), r2=13(width), r3=76(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=54(x), r6=146(y), r7=39(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=107(x1), r11=195(y1), r12=19(x2), r13=43(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 464
-LDI r1, 131
-LDI r2, 13
-LDI r3, 76
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 54
-LDI r6, 146
-LDI r7, 39
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
-LDI r10, 107
-LDI r11, 195
-LDI r12, 19
-LDI r13, 43
-LDI r14, 0xFFFF00
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a blue dot at position (20, 202) then Draws a orange line from (50, 10) to (372, 110) then Creates a magenta circular shape at (378, 141) with radius 57.
+; PLAN: r0=20(x), r1=202(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=50(x1), r6=10(y1), r7=372(x2), r8=110(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=378(x), r11=141(y), r12=57(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 20
+LDI r1, 202
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 50
+LDI r6, 10
+LDI r7, 372
+LDI r8, 110
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
+LDI r10, 378
+LDI r11, 141
+LDI r12, 57
+LDI r13, 0xFF00FF
+CIRCLE r10, r11, r12, r13
 HALT

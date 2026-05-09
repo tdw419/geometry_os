@@ -1,13 +1,12 @@
-; DESCRIPTION: Composite: Renders a black line between points (260, 177) and (244, 179) then Places a purple dot at position (198, 247).
-; PLAN: r0=260(x1), r1=177(y1), r2=244(x2), r3=179(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=198(x), r6=247(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 260
-LDI r1, 177
-LDI r2, 244
-LDI r3, 179
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
-LDI r5, 198
-LDI r6, 247
-LDI r7, 0xAA00FF
+; DESCRIPTION: Composite: Places a green circle of radius 40 at center (236, 78) then Places a black dot at position (48, 142).
+; PLAN: r0=236(x), r1=78(y), r2=40(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=48(x), r6=142(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 236
+LDI r1, 78
+LDI r2, 40
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 48
+LDI r6, 142
+LDI r7, 0x000000
 PSET r5, r6, r7
 HALT

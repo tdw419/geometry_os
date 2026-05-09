@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a magenta line between points (187, 243) and (479, 60).
-; PLAN: r0=187(x1), r1=243(y1), r2=479(x2), r3=60(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 187
-LDI r1, 243
-LDI r2, 479
-LDI r3, 60
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (313, 171) then Renders a blue box of size 76x119 starting at (317, 53).
+; PLAN: r0=313(x), r1=171(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=317(x), r6=53(y), r7=76(width), r8=119(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 313
+LDI r1, 171
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 317
+LDI r6, 53
+LDI r7, 76
+LDI r8, 119
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

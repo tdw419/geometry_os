@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 56 at center (159, 169).
-; PLAN: r0=159(x), r1=169(y), r2=56(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 159
-LDI r1, 169
-LDI r2, 56
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black rectangle at (435, 103) with width 66 and height 91.
+; PLAN: r0=435(x), r1=103(y), r2=66(width), r3=91(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 435
+LDI r1, 103
+LDI r2, 66
+LDI r3, 91
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

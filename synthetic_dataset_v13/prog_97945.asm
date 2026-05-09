@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a cyan line segment connecting (195, 228) to (445, 31).
-; PLAN: r0=195(x1), r1=228(y1), r2=445(x2), r3=31(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 195
-LDI r1, 228
-LDI r2, 445
-LDI r3, 31
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (291, 125).
+; PLAN: r0=291(x), r1=125(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 291
+LDI r1, 125
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

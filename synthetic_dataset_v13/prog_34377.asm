@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (439, 205) to (240, 151).
-; PLAN: r0=439(x1), r1=205(y1), r2=240(x2), r3=151(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 439
-LDI r1, 205
-LDI r2, 240
-LDI r3, 151
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta 44x59 rectangle at position (301, 40).
+; PLAN: r0=301(x), r1=40(y), r2=44(width), r3=59(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 301
+LDI r1, 40
+LDI r2, 44
+LDI r3, 59
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

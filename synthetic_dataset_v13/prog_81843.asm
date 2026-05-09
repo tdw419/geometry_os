@@ -1,5 +1,7 @@
-; DESCRIPTION: Fills the entire screen with solid red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Sets a single magenta pixel at (32, 45).
+; PLAN: r0=32(x), r1=45(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 32
+LDI r1, 45
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

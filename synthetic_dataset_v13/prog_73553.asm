@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a orange circle of radius 69 at center (83, 154).
-; PLAN: r0=83(x), r1=154(y), r2=69(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 83
-LDI r1, 154
-LDI r2, 69
-LDI r3, 0xFF8800
+; DESCRIPTION: Places a black circle of radius 36 at center (391, 45).
+; PLAN: r0=391(x), r1=45(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 391
+LDI r1, 45
+LDI r2, 36
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

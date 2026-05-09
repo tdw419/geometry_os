@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 65 at center (433, 70).
-; PLAN: r0=433(x), r1=70(y), r2=65(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+; DESCRIPTION: Draws a red rectangle at (433, 176) with width 73 and height 24.
+; PLAN: r0=433(x), r1=176(y), r2=73(width), r3=24(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
 LDI r0, 433
-LDI r1, 70
-LDI r2, 65
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+LDI r1, 176
+LDI r2, 73
+LDI r3, 24
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

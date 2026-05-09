@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (38, 9) then Places a magenta line segment connecting (257, 249) to (12, 170).
-; PLAN: r0=38(x), r1=9(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=257(x1), r6=249(y1), r7=12(x2), r8=170(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 38
-LDI r1, 9
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 257
-LDI r6, 249
-LDI r7, 12
-LDI r8, 170
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a orange line segment connecting (324, 218) to (32, 191).
+; PLAN: r0=324(x1), r1=218(y1), r2=32(x2), r3=191(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 324
+LDI r1, 218
+LDI r2, 32
+LDI r3, 191
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

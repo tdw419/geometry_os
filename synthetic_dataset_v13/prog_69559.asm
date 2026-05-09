@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a red box of size 107x25 starting at (209, 29).
-; PLAN: r0=209(x), r1=29(y), r2=107(width), r3=25(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 209
-LDI r1, 29
-LDI r2, 107
-LDI r3, 25
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

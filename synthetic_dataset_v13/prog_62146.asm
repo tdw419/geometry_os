@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red box of size 50x24 starting at (194, 59).
-; PLAN: r0=194(x), r1=59(y), r2=50(width), r3=24(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 194
-LDI r1, 59
-LDI r2, 50
-LDI r3, 24
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a blue circular shape at (156, 131) with radius 54.
+; PLAN: r0=156(x), r1=131(y), r2=54(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 156
+LDI r1, 131
+LDI r2, 54
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

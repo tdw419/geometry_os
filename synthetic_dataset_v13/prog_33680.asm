@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (338, 46) to (196, 31).
-; PLAN: r0=338(x1), r1=46(y1), r2=196(x2), r3=31(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 338
-LDI r1, 46
-LDI r2, 196
-LDI r3, 31
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan rectangle at (231, 95) with width 104 and height 74.
+; PLAN: r0=231(x), r1=95(y), r2=104(width), r3=74(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 231
+LDI r1, 95
+LDI r2, 104
+LDI r3, 74
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

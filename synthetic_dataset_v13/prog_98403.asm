@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (312, 220) with radius 20.
-; PLAN: r0=312(x), r1=220(y), r2=20(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 312
-LDI r1, 220
-LDI r2, 20
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (347, 43) spanning 32 by 83 pixels.
+; PLAN: r0=347(x), r1=43(y), r2=32(width), r3=83(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 347
+LDI r1, 43
+LDI r2, 32
+LDI r3, 83
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

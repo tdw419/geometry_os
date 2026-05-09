@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (340, 31) with radius 13.
-; PLAN: r0=340(x), r1=31(y), r2=13(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 340
-LDI r1, 31
-LDI r2, 13
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 21x107 rectangle at position (18, 3).
+; PLAN: r0=18(x), r1=3(y), r2=21(width), r3=107(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 18
+LDI r1, 3
+LDI r2, 21
+LDI r3, 107
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

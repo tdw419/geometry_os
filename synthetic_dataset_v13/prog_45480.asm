@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (281, 116) and radius 26.
-; PLAN: r0=281(x), r1=116(y), r2=26(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 281
-LDI r1, 116
-LDI r2, 26
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (102, 52) and (87, 39).
+; PLAN: r0=102(x1), r1=52(y1), r2=87(x2), r3=39(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 102
+LDI r1, 52
+LDI r2, 87
+LDI r3, 39
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

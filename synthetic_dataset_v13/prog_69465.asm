@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (41, 220).
-; PLAN: r0=41(x), r1=220(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 41
-LDI r1, 220
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow line between points (362, 110) and (340, 135).
+; PLAN: r0=362(x1), r1=110(y1), r2=340(x2), r3=135(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 362
+LDI r1, 110
+LDI r2, 340
+LDI r3, 135
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

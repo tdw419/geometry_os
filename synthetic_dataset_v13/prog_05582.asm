@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Sets a single black pixel at (277, 11).
+; PLAN: r0=277(x), r1=11(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 277
+LDI r1, 11
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 44x23 rectangle at position (115, 3).
-; PLAN: r0=115(x), r1=3(y), r2=44(width), r3=23(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 115
-LDI r1, 3
-LDI r2, 44
-LDI r3, 23
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue line segment connecting (409, 48) to (439, 11).
+; PLAN: r0=409(x1), r1=48(y1), r2=439(x2), r3=11(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 409
+LDI r1, 48
+LDI r2, 439
+LDI r3, 11
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (170, 223) to (144, 217).
-; PLAN: r0=170(x1), r1=223(y1), r2=144(x2), r3=217(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 170
-LDI r1, 223
-LDI r2, 144
-LDI r3, 217
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a cyan line segment connecting (133, 192) to (374, 190).
+; PLAN: r0=133(x1), r1=192(y1), r2=374(x2), r3=190(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 133
+LDI r1, 192
+LDI r2, 374
+LDI r3, 190
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

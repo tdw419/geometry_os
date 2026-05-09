@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Creates a green circular shape at (172, 189) with radius 47 then Places a white dot at position (161, 120) then Places a green 68x94 rectangle at position (121, 23).
-; PLAN: r0=172(x), r1=189(y), r2=47(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=161(x), r6=120(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=121(x), r11=23(y), r12=68(width), r13=94(height), r14=0x00FF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 172
-LDI r1, 189
-LDI r2, 47
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 161
-LDI r6, 120
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
-LDI r10, 121
-LDI r11, 23
-LDI r12, 68
-LDI r13, 94
-LDI r14, 0x00FF00
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a orange dot at position (96, 44) then Renders a black box of size 38x65 starting at (43, 86).
+; PLAN: r0=96(x), r1=44(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=43(x), r6=86(y), r7=38(width), r8=65(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 96
+LDI r1, 44
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 43
+LDI r6, 86
+LDI r7, 38
+LDI r8, 65
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

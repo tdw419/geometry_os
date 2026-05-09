@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a blue line from (284, 40) to (154, 211).
-; PLAN: r0=284(x1), r1=40(y1), r2=154(x2), r3=211(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 40
-LDI r2, 154
-LDI r3, 211
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a magenta rectangle at (108, 124) with width 70 and height 18 then Places a cyan circle of radius 73 at center (346, 88).
+; PLAN: r0=108(x), r1=124(y), r2=70(width), r3=18(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=346(x), r6=88(y), r7=73(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 108
+LDI r1, 124
+LDI r2, 70
+LDI r3, 18
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 346
+LDI r6, 88
+LDI r7, 73
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

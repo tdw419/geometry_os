@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white line segment connecting (400, 59) to (421, 145).
-; PLAN: r0=400(x1), r1=59(y1), r2=421(x2), r3=145(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 400
-LDI r1, 59
-LDI r2, 421
-LDI r3, 145
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (201, 40).
+; PLAN: r0=201(x), r1=40(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 201
+LDI r1, 40
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

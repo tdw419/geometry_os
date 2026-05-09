@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a green circular shape at (202, 141) with radius 76.
-; PLAN: r0=202(x), r1=141(y), r2=76(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 202
-LDI r1, 141
-LDI r2, 76
-LDI r3, 0x00FF00
+; DESCRIPTION: Places a black circle of radius 43 at center (108, 69).
+; PLAN: r0=108(x), r1=69(y), r2=43(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 108
+LDI r1, 69
+LDI r2, 43
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

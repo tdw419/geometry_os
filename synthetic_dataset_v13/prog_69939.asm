@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (28, 58) and (376, 101).
-; PLAN: r0=28(x1), r1=58(y1), r2=376(x2), r3=101(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 28
-LDI r1, 58
-LDI r2, 376
-LDI r3, 101
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 17 at center (32, 68).
+; PLAN: r0=32(x), r1=68(y), r2=17(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 32
+LDI r1, 68
+LDI r2, 17
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

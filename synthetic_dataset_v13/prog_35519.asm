@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Draws a magenta rectangle at (211, 98) with width 98 and height 67.
+; PLAN: r0=211(x), r1=98(y), r2=98(width), r3=67(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 211
+LDI r1, 98
+LDI r2, 98
+LDI r3, 67
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

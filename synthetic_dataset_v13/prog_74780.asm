@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a white line between points (55, 109) and (210, 120).
-; PLAN: r0=55(x1), r1=109(y1), r2=210(x2), r3=120(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 55
-LDI r1, 109
-LDI r2, 210
-LDI r3, 120
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a white dot at position (158, 30) then Creates a blue rectangular region at (171, 16) spanning 105 by 120 pixels.
+; PLAN: r0=158(x), r1=30(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=171(x), r6=16(y), r7=105(width), r8=120(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 158
+LDI r1, 30
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 171
+LDI r6, 16
+LDI r7, 105
+LDI r8, 120
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

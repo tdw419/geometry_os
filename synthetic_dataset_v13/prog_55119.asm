@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 61 at center (136, 98).
-; PLAN: r0=136(x), r1=98(y), r2=61(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 136
-LDI r1, 98
-LDI r2, 61
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta line segment connecting (458, 13) to (158, 209).
+; PLAN: r0=458(x1), r1=13(y1), r2=158(x2), r3=209(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 458
+LDI r1, 13
+LDI r2, 158
+LDI r3, 209
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

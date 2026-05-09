@@ -1,19 +1,14 @@
-; DESCRIPTION: Composite: Places a white 103x30 rectangle at position (307, 166) then Places a blue line segment connecting (307, 55) to (16, 119) then Sets a single green pixel at (184, 210).
-; PLAN: r0=307(x), r1=166(y), r2=103(width), r3=30(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=307(x1), r6=55(y1), r7=16(x2), r8=119(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=184(x), r11=210(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
-LDI r0, 307
-LDI r1, 166
-LDI r2, 103
-LDI r3, 30
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 307
-LDI r6, 55
-LDI r7, 16
-LDI r8, 119
-LDI r9, 0x0000FF
+; DESCRIPTION: Composite: Places a yellow circle of radius 67 at center (88, 85) then Renders a orange line between points (286, 239) and (398, 51).
+; PLAN: r0=88(x), r1=85(y), r2=67(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=286(x1), r6=239(y1), r7=398(x2), r8=51(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 88
+LDI r1, 85
+LDI r2, 67
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 286
+LDI r6, 239
+LDI r7, 398
+LDI r8, 51
+LDI r9, 0xFF8800
 LINE r5, r6, r7, r8, r9
-LDI r10, 184
-LDI r11, 210
-LDI r12, 0x00FF00
-PSET r10, r11, r12
 HALT

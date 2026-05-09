@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (142, 218) to (133, 233).
-; PLAN: r0=142(x1), r1=218(y1), r2=133(x2), r3=233(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 142
-LDI r1, 218
-LDI r2, 133
-LDI r3, 233
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue 90x54 rectangle at position (258, 166).
+; PLAN: r0=258(x), r1=166(y), r2=90(width), r3=54(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 258
+LDI r1, 166
+LDI r2, 90
+LDI r3, 54
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

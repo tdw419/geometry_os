@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (257, 25) with width 61 and height 17.
-; PLAN: r0=257(x), r1=25(y), r2=61(width), r3=17(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 257
-LDI r1, 25
-LDI r2, 61
-LDI r3, 17
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a purple rectangular region at (36, 11) spanning 90 by 63 pixels.
+; PLAN: r0=36(x), r1=11(y), r2=90(width), r3=63(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 36
+LDI r1, 11
+LDI r2, 90
+LDI r3, 63
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

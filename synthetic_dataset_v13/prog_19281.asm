@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 99x105 rectangle at position (305, 59).
-; PLAN: r0=305(x), r1=59(y), r2=99(width), r3=105(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 305
-LDI r1, 59
-LDI r2, 99
-LDI r3, 105
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a cyan rectangle at (123, 37) with width 46 and height 86.
+; PLAN: r0=123(x), r1=37(y), r2=46(width), r3=86(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 123
+LDI r1, 37
+LDI r2, 46
+LDI r3, 86
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

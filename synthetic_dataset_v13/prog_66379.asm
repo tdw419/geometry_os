@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a cyan circle centered at (127, 173) with radius 21.
-; PLAN: r0=127(x), r1=173(y), r2=21(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 127
-LDI r1, 173
-LDI r2, 21
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

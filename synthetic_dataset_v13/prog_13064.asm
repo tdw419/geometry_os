@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (396, 143) then Places a magenta 47x119 rectangle at position (150, 134).
-; PLAN: r0=396(x), r1=143(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=150(x), r6=134(y), r7=47(width), r8=119(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 396
-LDI r1, 143
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 150
-LDI r6, 134
-LDI r7, 47
-LDI r8, 119
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a white circle centered at (327, 117) with radius 78.
+; PLAN: r0=327(x), r1=117(y), r2=78(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 327
+LDI r1, 117
+LDI r2, 78
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,15 +1,15 @@
-; DESCRIPTION: Composite: Creates a black rectangular region at (222, 13) spanning 63 by 116 pixels then Draws a orange line from (241, 168) to (454, 155).
-; PLAN: r0=222(x), r1=13(y), r2=63(width), r3=116(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=241(x1), r6=168(y1), r7=454(x2), r8=155(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 222
-LDI r1, 13
-LDI r2, 63
-LDI r3, 116
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 241
-LDI r6, 168
-LDI r7, 454
-LDI r8, 155
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a green line between points (408, 138) and (412, 147) then Places a white 119x28 rectangle at position (115, 73).
+; PLAN: r0=408(x1), r1=138(y1), r2=412(x2), r3=147(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=115(x), r6=73(y), r7=119(width), r8=28(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 408
+LDI r1, 138
+LDI r2, 412
+LDI r3, 147
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 115
+LDI r6, 73
+LDI r7, 119
+LDI r8, 28
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

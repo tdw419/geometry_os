@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (183, 211) and (470, 145).
-; PLAN: r0=183(x1), r1=211(y1), r2=470(x2), r3=145(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 183
-LDI r1, 211
-LDI r2, 470
-LDI r3, 145
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red 92x39 rectangle at position (361, 46).
+; PLAN: r0=361(x), r1=46(y), r2=92(width), r3=39(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 361
+LDI r1, 46
+LDI r2, 92
+LDI r3, 39
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

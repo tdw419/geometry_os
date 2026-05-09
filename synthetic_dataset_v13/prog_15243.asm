@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a white line from (164, 70) to (370, 9).
-; PLAN: r0=164(x1), r1=70(y1), r2=370(x2), r3=9(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 70
-LDI r2, 370
-LDI r3, 9
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (219, 150).
+; PLAN: r0=219(x), r1=150(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 219
+LDI r1, 150
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

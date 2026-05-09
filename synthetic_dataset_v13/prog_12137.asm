@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow line segment connecting (297, 251) to (504, 24).
-; PLAN: r0=297(x1), r1=251(y1), r2=504(x2), r3=24(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 297
-LDI r1, 251
-LDI r2, 504
-LDI r3, 24
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (280, 106).
+; PLAN: r0=280(x), r1=106(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 280
+LDI r1, 106
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a blue line between points (181, 87) and (317, 156).
-; PLAN: r0=181(x1), r1=87(y1), r2=317(x2), r3=156(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 181
-LDI r1, 87
-LDI r2, 317
-LDI r3, 156
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta dot at position (262, 126).
+; PLAN: r0=262(x), r1=126(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 262
+LDI r1, 126
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

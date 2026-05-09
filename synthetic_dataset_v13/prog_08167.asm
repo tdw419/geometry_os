@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (184, 30) and (65, 109).
-; PLAN: r0=184(x1), r1=30(y1), r2=65(x2), r3=109(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 184
-LDI r1, 30
-LDI r2, 65
-LDI r3, 109
+; DESCRIPTION: Places a yellow 47x87 rectangle at position (75, 139).
+; PLAN: r0=75(x), r1=139(y), r2=47(width), r3=87(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 139
+LDI r2, 47
+LDI r3, 87
 LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

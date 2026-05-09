@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a cyan 42x66 rectangle at position (337, 104).
-; PLAN: r0=337(x), r1=104(y), r2=42(width), r3=66(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 337
-LDI r1, 104
-LDI r2, 42
-LDI r3, 66
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a white circle centered at (211, 200) with radius 48.
-; PLAN: r0=211(x), r1=200(y), r2=48(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 211
-LDI r1, 200
-LDI r2, 48
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 12 into r1 and decrements it in a loop until zero.
+; PLAN: r1=12(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 12
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

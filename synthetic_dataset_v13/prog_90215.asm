@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a cyan line segment connecting (89, 80) to (497, 88).
-; PLAN: r0=89(x1), r1=80(y1), r2=497(x2), r3=88(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 89
-LDI r1, 80
-LDI r2, 497
-LDI r3, 88
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single red pixel at (430, 201) then Draws a black circle centered at (247, 152) with radius 17.
+; PLAN: r0=430(x), r1=201(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=247(x), r6=152(y), r7=17(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 430
+LDI r1, 201
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 247
+LDI r6, 152
+LDI r7, 17
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

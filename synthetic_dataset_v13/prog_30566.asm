@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single yellow pixel at (222, 4) then Renders a yellow disk with center (348, 148) and radius 64.
-; PLAN: r0=222(x), r1=4(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=348(x), r6=148(y), r7=64(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 222
-LDI r1, 4
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 348
-LDI r6, 148
-LDI r7, 64
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a white line between points (146, 215) and (132, 60).
+; PLAN: r0=146(x1), r1=215(y1), r2=132(x2), r3=60(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 146
+LDI r1, 215
+LDI r2, 132
+LDI r3, 60
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

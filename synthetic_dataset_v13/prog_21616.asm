@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a yellow line between points (435, 71) and (377, 84).
-; PLAN: r0=435(x1), r1=71(y1), r2=377(x2), r3=84(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 435
-LDI r1, 71
-LDI r2, 377
-LDI r3, 84
-LDI r4, 0xFFFF00
+; DESCRIPTION: Composite: Places a purple line segment connecting (356, 68) to (303, 124) then Places a cyan dot at position (351, 46).
+; PLAN: r0=356(x1), r1=68(y1), r2=303(x2), r3=124(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=351(x), r6=46(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 356
+LDI r1, 68
+LDI r2, 303
+LDI r3, 124
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
+LDI r5, 351
+LDI r6, 46
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

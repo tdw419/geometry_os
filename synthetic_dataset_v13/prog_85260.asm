@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (284, 15) to (216, 78).
-; PLAN: r0=284(x1), r1=15(y1), r2=216(x2), r3=78(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 15
-LDI r2, 216
-LDI r3, 78
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 56 at center (185, 146).
+; PLAN: r0=185(x), r1=146(y), r2=56(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 185
+LDI r1, 146
+LDI r2, 56
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

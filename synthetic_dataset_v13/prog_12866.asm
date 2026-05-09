@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a black circle of radius 23 at center (293, 224).
-; PLAN: r0=293(x), r1=224(y), r2=23(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 293
-LDI r1, 224
-LDI r2, 23
-LDI r3, 0x000000
+; DESCRIPTION: Renders a magenta disk with center (441, 75) and radius 64.
+; PLAN: r0=441(x), r1=75(y), r2=64(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 441
+LDI r1, 75
+LDI r2, 64
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

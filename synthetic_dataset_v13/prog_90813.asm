@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (141, 175) to (408, 248).
-; PLAN: r0=141(x1), r1=175(y1), r2=408(x2), r3=248(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 141
-LDI r1, 175
-LDI r2, 408
-LDI r3, 248
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a yellow line between points (16, 74) and (278, 9).
+; PLAN: r0=16(x1), r1=74(y1), r2=278(x2), r3=9(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 16
+LDI r1, 74
+LDI r2, 278
+LDI r3, 9
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

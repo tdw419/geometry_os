@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 65x116 rectangle at position (435, 62).
-; PLAN: r0=435(x), r1=62(y), r2=65(width), r3=116(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 435
-LDI r1, 62
-LDI r2, 65
-LDI r3, 116
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (370, 85) with radius 13.
+; PLAN: r0=370(x), r1=85(y), r2=13(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 370
+LDI r1, 85
+LDI r2, 13
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

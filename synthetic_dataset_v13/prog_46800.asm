@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a magenta circular shape at (332, 224) with radius 24.
-; PLAN: r0=332(x), r1=224(y), r2=24(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 332
-LDI r1, 224
-LDI r2, 24
-LDI r3, 0xFF00FF
+; DESCRIPTION: Renders a green disk with center (273, 168) and radius 40.
+; PLAN: r0=273(x), r1=168(y), r2=40(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 273
+LDI r1, 168
+LDI r2, 40
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

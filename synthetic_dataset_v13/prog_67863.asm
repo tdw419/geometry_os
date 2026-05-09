@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (79, 141) with width 99 and height 51.
-; PLAN: r0=79(x), r1=141(y), r2=99(width), r3=51(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 79
-LDI r1, 141
-LDI r2, 99
-LDI r3, 51
+; DESCRIPTION: Renders a blue line between points (213, 235) and (129, 112).
+; PLAN: r0=213(x1), r1=235(y1), r2=129(x2), r3=112(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 213
+LDI r1, 235
+LDI r2, 129
+LDI r3, 112
 LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

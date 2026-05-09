@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (479, 184) to (304, 51).
-; PLAN: r0=479(x1), r1=184(y1), r2=304(x2), r3=51(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 479
-LDI r1, 184
-LDI r2, 304
-LDI r3, 51
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 57x63 rectangle at position (6, 13).
+; PLAN: r0=6(x), r1=13(y), r2=57(width), r3=63(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 6
+LDI r1, 13
+LDI r2, 57
+LDI r3, 63
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

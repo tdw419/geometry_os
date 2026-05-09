@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red box of size 26x20 starting at (209, 90).
-; PLAN: r0=209(x), r1=90(y), r2=26(width), r3=20(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 209
-LDI r1, 90
-LDI r2, 26
-LDI r3, 20
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 16 at center (480, 234).
+; PLAN: r0=480(x), r1=234(y), r2=16(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 480
+LDI r1, 234
+LDI r2, 16
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

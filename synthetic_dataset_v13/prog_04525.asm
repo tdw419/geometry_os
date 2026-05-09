@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (114, 247) and (58, 124).
-; PLAN: r0=114(x1), r1=247(y1), r2=58(x2), r3=124(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 114
-LDI r1, 247
-LDI r2, 58
-LDI r3, 124
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red 92x26 rectangle at position (99, 66).
+; PLAN: r0=99(x), r1=66(y), r2=92(width), r3=26(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 66
+LDI r2, 92
+LDI r3, 26
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

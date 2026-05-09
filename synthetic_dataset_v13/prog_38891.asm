@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a white dot at position (187, 185).
-; PLAN: r0=187(x), r1=185(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 187
-LDI r1, 185
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan box of size 78x99 starting at (324, 131).
+; PLAN: r0=324(x), r1=131(y), r2=78(width), r3=99(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 324
+LDI r1, 131
+LDI r2, 78
+LDI r3, 99
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

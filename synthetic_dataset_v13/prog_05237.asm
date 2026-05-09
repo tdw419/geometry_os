@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a yellow line between points (493, 193) and (381, 244).
-; PLAN: r0=493(x1), r1=193(y1), r2=381(x2), r3=244(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 493
-LDI r1, 193
-LDI r2, 381
-LDI r3, 244
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 36 at center (270, 181).
+; PLAN: r0=270(x), r1=181(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 270
+LDI r1, 181
+LDI r2, 36
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

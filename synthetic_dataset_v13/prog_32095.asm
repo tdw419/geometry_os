@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 18x66 starting at (349, 6).
-; PLAN: r0=349(x), r1=6(y), r2=18(width), r3=66(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 349
-LDI r1, 6
-LDI r2, 18
-LDI r3, 66
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a blue box of size 54x49 starting at (102, 0).
+; PLAN: r0=102(x), r1=0(y), r2=54(width), r3=49(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 102
+LDI r1, 0
+LDI r2, 54
+LDI r3, 49
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

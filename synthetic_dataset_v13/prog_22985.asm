@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (420, 109) with radius 77.
-; PLAN: r0=420(x), r1=109(y), r2=77(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 420
-LDI r1, 109
-LDI r2, 77
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple rectangle at (192, 5) with width 86 and height 19.
+; PLAN: r0=192(x), r1=5(y), r2=86(width), r3=19(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 192
+LDI r1, 5
+LDI r2, 86
+LDI r3, 19
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

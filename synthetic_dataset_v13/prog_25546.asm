@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 11 at center (302, 50).
-; PLAN: r0=302(x), r1=50(y), r2=11(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 302
-LDI r1, 50
-LDI r2, 11
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (394, 136) to (284, 145).
+; PLAN: r0=394(x1), r1=136(y1), r2=284(x2), r3=145(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 394
+LDI r1, 136
+LDI r2, 284
+LDI r3, 145
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

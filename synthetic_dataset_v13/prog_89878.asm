@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a magenta line from (308, 62) to (176, 100).
-; PLAN: r0=308(x1), r1=62(y1), r2=176(x2), r3=100(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 308
-LDI r1, 62
-LDI r2, 176
-LDI r3, 100
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (56, 224).
+; PLAN: r0=56(x), r1=224(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 56
+LDI r1, 224
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

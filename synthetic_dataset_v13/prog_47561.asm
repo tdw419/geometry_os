@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 88x29 starting at (69, 73).
-; PLAN: r0=69(x), r1=73(y), r2=88(width), r3=29(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 69
-LDI r1, 73
-LDI r2, 88
-LDI r3, 29
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a blue box of size 118x89 starting at (346, 150).
+; PLAN: r0=346(x), r1=150(y), r2=118(width), r3=89(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 346
+LDI r1, 150
+LDI r2, 118
+LDI r3, 89
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

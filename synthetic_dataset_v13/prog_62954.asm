@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Draws a purple line from (385, 26) to (154, 165) then Places a white dot at position (274, 0).
-; PLAN: r0=385(x1), r1=26(y1), r2=154(x2), r3=165(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=274(x), r6=0(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
-LDI r0, 385
-LDI r1, 26
-LDI r2, 154
-LDI r3, 165
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 274
-LDI r6, 0
+; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
 LDI r7, 0xFFFFFF
-PSET r5, r6, r7
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

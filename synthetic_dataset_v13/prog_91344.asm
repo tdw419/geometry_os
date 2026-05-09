@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Sets a single white pixel at (299, 174) then Renders a purple box of size 42x102 starting at (311, 76).
-; PLAN: r0=299(x), r1=174(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=311(x), r6=76(y), r7=42(width), r8=102(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 299
-LDI r1, 174
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 311
-LDI r6, 76
-LDI r7, 42
-LDI r8, 102
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a purple line segment connecting (12, 222) to (15, 77) then Renders a white disk with center (388, 107) and radius 47.
+; PLAN: r0=12(x1), r1=222(y1), r2=15(x2), r3=77(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=388(x), r6=107(y), r7=47(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 12
+LDI r1, 222
+LDI r2, 15
+LDI r3, 77
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+LDI r5, 388
+LDI r6, 107
+LDI r7, 47
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

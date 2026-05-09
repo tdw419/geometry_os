@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (393, 5) then Draws a white line from (382, 133) to (103, 212).
-; PLAN: r0=393(x), r1=5(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=382(x1), r6=133(y1), r7=103(x2), r8=212(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 393
-LDI r1, 5
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 382
-LDI r6, 133
-LDI r7, 103
-LDI r8, 212
-LDI r9, 0xFFFFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a yellow line segment connecting (40, 242) to (20, 252) then Sets a single red pixel at (188, 115).
+; PLAN: r0=40(x1), r1=242(y1), r2=20(x2), r3=252(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=188(x), r6=115(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 40
+LDI r1, 242
+LDI r2, 20
+LDI r3, 252
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 188
+LDI r6, 115
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

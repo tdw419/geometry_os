@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a purple line between points (456, 43) and (276, 141).
-; PLAN: r0=456(x1), r1=43(y1), r2=276(x2), r3=141(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 456
-LDI r1, 43
-LDI r2, 276
-LDI r3, 141
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (360, 195).
+; PLAN: r0=360(x), r1=195(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 360
+LDI r1, 195
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

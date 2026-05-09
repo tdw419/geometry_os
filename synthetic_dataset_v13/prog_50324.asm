@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (440, 120) and (77, 0).
-; PLAN: r0=440(x1), r1=120(y1), r2=77(x2), r3=0(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+; DESCRIPTION: Draws a black circle centered at (440, 132) with radius 45.
+; PLAN: r0=440(x), r1=132(y), r2=45(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
 LDI r0, 440
-LDI r1, 120
-LDI r2, 77
-LDI r3, 0
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+LDI r1, 132
+LDI r2, 45
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

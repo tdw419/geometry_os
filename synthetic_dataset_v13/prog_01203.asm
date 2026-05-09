@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Creates a red rectangular region at (33, 8) spanning 95 by 37 pixels.
+; PLAN: r0=33(x), r1=8(y), r2=95(width), r3=37(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 33
+LDI r1, 8
+LDI r2, 95
+LDI r3, 37
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

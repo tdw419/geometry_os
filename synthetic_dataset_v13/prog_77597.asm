@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 118x34 rectangle at position (117, 219).
-; PLAN: r0=117(x), r1=219(y), r2=118(width), r3=34(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 117
-LDI r1, 219
-LDI r2, 118
-LDI r3, 34
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (99, 208) with radius 47.
+; PLAN: r0=99(x), r1=208(y), r2=47(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 99
+LDI r1, 208
+LDI r2, 47
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

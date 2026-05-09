@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (11, 64) to (315, 237).
-; PLAN: r0=11(x1), r1=64(y1), r2=315(x2), r3=237(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 11
-LDI r1, 64
-LDI r2, 315
-LDI r3, 237
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow rectangular region at (16, 73) spanning 101 by 18 pixels.
+; PLAN: r0=16(x), r1=73(y), r2=101(width), r3=18(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 16
+LDI r1, 73
+LDI r2, 101
+LDI r3, 18
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

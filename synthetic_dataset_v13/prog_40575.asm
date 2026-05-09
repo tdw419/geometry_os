@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (157, 168) with width 86 and height 17.
-; PLAN: r0=157(x), r1=168(y), r2=86(width), r3=17(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 157
-LDI r1, 168
-LDI r2, 86
-LDI r3, 17
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white line segment connecting (164, 183) to (452, 70).
+; PLAN: r0=164(x1), r1=183(y1), r2=452(x2), r3=70(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 164
+LDI r1, 183
+LDI r2, 452
+LDI r3, 70
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

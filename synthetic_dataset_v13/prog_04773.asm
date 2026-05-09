@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Places a white 21x75 rectangle at position (190, 59).
+; PLAN: r0=190(x), r1=59(y), r2=21(width), r3=75(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 59
+LDI r2, 21
+LDI r3, 75
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

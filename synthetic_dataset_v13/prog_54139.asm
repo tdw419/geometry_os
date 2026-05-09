@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta circle of radius 44 at center (195, 168) then Draws a magenta rectangle at (372, 25) with width 67 and height 108.
-; PLAN: r0=195(x), r1=168(y), r2=44(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=372(x), r6=25(y), r7=67(width), r8=108(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 195
-LDI r1, 168
-LDI r2, 44
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 372
-LDI r6, 25
-LDI r7, 67
-LDI r8, 108
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a orange line between points (247, 172) and (245, 60).
+; PLAN: r0=247(x1), r1=172(y1), r2=245(x2), r3=60(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 172
+LDI r2, 245
+LDI r3, 60
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

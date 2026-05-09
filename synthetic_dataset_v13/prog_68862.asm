@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 67 at center (123, 146).
-; PLAN: r0=123(x), r1=146(y), r2=67(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 123
-LDI r1, 146
-LDI r2, 67
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (170, 87) to (428, 164).
+; PLAN: r0=170(x1), r1=87(y1), r2=428(x2), r3=164(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 87
+LDI r2, 428
+LDI r3, 164
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

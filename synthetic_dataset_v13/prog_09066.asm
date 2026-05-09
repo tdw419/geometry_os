@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (355, 144) to (154, 79).
-; PLAN: r0=355(x1), r1=144(y1), r2=154(x2), r3=79(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 355
-LDI r1, 144
-LDI r2, 154
-LDI r3, 79
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (104, 152) and radius 72.
+; PLAN: r0=104(x), r1=152(y), r2=72(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 104
+LDI r1, 152
+LDI r2, 72
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

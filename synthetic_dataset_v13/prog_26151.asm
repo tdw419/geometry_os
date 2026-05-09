@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 15x44 rectangle at position (302, 72).
-; PLAN: r0=302(x), r1=72(y), r2=15(width), r3=44(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 302
-LDI r1, 72
-LDI r2, 15
-LDI r3, 44
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (142, 133) and (442, 83).
+; PLAN: r0=142(x1), r1=133(y1), r2=442(x2), r3=83(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 142
+LDI r1, 133
+LDI r2, 442
+LDI r3, 83
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

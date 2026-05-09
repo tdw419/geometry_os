@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white box of size 54x64 starting at (303, 83).
-; PLAN: r0=303(x), r1=83(y), r2=54(width), r3=64(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 303
-LDI r1, 83
-LDI r2, 54
-LDI r3, 64
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (302, 251).
+; PLAN: r0=302(x), r1=251(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 302
+LDI r1, 251
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

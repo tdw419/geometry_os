@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single cyan pixel at (460, 243).
-; PLAN: r0=460(x), r1=243(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 460
-LDI r1, 243
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow box of size 56x52 starting at (214, 85).
+; PLAN: r0=214(x), r1=85(y), r2=56(width), r3=52(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 214
+LDI r1, 85
+LDI r2, 56
+LDI r3, 52
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

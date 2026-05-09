@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a yellow circle centered at (237, 136) with radius 70.
-; PLAN: r0=237(x), r1=136(y), r2=70(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 237
-LDI r1, 136
-LDI r2, 70
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Paints the whole screen blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

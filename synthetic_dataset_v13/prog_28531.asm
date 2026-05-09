@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (321, 107) to (234, 235).
-; PLAN: r0=321(x1), r1=107(y1), r2=234(x2), r3=235(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 321
-LDI r1, 107
-LDI r2, 234
-LDI r3, 235
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a purple line between points (344, 125) and (200, 198).
+; PLAN: r0=344(x1), r1=125(y1), r2=200(x2), r3=198(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 344
+LDI r1, 125
+LDI r2, 200
+LDI r3, 198
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 40x58 starting at (84, 144).
-; PLAN: r0=84(x), r1=144(y), r2=40(width), r3=58(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 84
-LDI r1, 144
-LDI r2, 40
-LDI r3, 58
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a cyan 38x74 rectangle at position (292, 143).
+; PLAN: r0=292(x), r1=143(y), r2=38(width), r3=74(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 292
+LDI r1, 143
+LDI r2, 38
+LDI r3, 74
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

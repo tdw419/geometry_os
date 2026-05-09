@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 51 at center (153, 93).
-; PLAN: r0=153(x), r1=93(y), r2=51(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 153
-LDI r1, 93
-LDI r2, 51
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green box of size 82x61 starting at (86, 64).
+; PLAN: r0=86(x), r1=64(y), r2=82(width), r3=61(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 86
+LDI r1, 64
+LDI r2, 82
+LDI r3, 61
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

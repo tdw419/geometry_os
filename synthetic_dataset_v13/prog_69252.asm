@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 56x70 rectangle at position (1, 74).
-; PLAN: r0=1(x), r1=74(y), r2=56(width), r3=70(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 1
-LDI r1, 74
-LDI r2, 56
-LDI r3, 70
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Creates a black rectangular region at (383, 135) spanning 45 by 20 pixels.
+; PLAN: r0=383(x), r1=135(y), r2=45(width), r3=20(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 383
+LDI r1, 135
+LDI r2, 45
+LDI r3, 20
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

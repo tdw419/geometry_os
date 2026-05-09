@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (375, 137) with radius 74.
-; PLAN: r0=375(x), r1=137(y), r2=74(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 375
-LDI r1, 137
-LDI r2, 74
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green rectangle at (179, 155) with width 106 and height 91.
+; PLAN: r0=179(x), r1=155(y), r2=106(width), r3=91(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 179
+LDI r1, 155
+LDI r2, 106
+LDI r3, 91
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

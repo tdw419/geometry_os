@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a green box of size 41x20 starting at (312, 218).
-; PLAN: r0=312(x), r1=218(y), r2=41(width), r3=20(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 312
-LDI r1, 218
-LDI r2, 41
-LDI r3, 20
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (80, 139).
+; PLAN: r0=80(x), r1=139(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 80
+LDI r1, 139
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

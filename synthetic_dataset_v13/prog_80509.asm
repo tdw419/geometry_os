@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (130, 156) with width 14 and height 12.
-; PLAN: r0=130(x), r1=156(y), r2=14(width), r3=12(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 130
-LDI r1, 156
-LDI r2, 14
-LDI r3, 12
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (215, 35) and (28, 135).
+; PLAN: r0=215(x1), r1=35(y1), r2=28(x2), r3=135(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 215
+LDI r1, 35
+LDI r2, 28
+LDI r3, 135
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

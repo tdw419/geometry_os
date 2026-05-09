@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 23x102 rectangle at position (111, 135).
-; PLAN: r0=111(x), r1=135(y), r2=23(width), r3=102(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 135
-LDI r2, 23
-LDI r3, 102
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (296, 186) with radius 62.
+; PLAN: r0=296(x), r1=186(y), r2=62(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 296
+LDI r1, 186
+LDI r2, 62
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

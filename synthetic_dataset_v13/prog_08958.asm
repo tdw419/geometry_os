@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 44x118 rectangle at position (206, 17).
-; PLAN: r0=206(x), r1=17(y), r2=44(width), r3=118(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 206
-LDI r1, 17
-LDI r2, 44
-LDI r3, 118
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (460, 145) to (461, 145).
+; PLAN: r0=460(x1), r1=145(y1), r2=461(x2), r3=145(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 460
+LDI r1, 145
+LDI r2, 461
+LDI r3, 145
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

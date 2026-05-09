@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (422, 48) with width 67 and height 95.
-; PLAN: r0=422(x), r1=48(y), r2=67(width), r3=95(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 422
-LDI r1, 48
-LDI r2, 67
-LDI r3, 95
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (387, 78) and (191, 231).
+; PLAN: r0=387(x1), r1=78(y1), r2=191(x2), r3=231(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 387
+LDI r1, 78
+LDI r2, 191
+LDI r3, 231
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

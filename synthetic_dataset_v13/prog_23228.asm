@@ -1,15 +1,12 @@
-; DESCRIPTION: Composite: Draws a white rectangle at (284, 85) with width 60 and height 106 then Renders a green line between points (172, 167) and (459, 103).
-; PLAN: r0=284(x), r1=85(y), r2=60(width), r3=106(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=172(x1), r6=167(y1), r7=459(x2), r8=103(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 284
-LDI r1, 85
-LDI r2, 60
-LDI r3, 106
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 172
-LDI r6, 167
-LDI r7, 459
-LDI r8, 103
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Sets a single purple pixel at (217, 103) then Draws a orange circle centered at (162, 145) with radius 41.
+; PLAN: r0=217(x), r1=103(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=162(x), r6=145(y), r7=41(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 217
+LDI r1, 103
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 162
+LDI r6, 145
+LDI r7, 41
+LDI r8, 0xFF8800
+CIRCLE r5, r6, r7, r8
 HALT

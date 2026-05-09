@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (128, 99) with radius 21.
-; PLAN: r0=128(x), r1=99(y), r2=21(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 128
-LDI r1, 99
-LDI r2, 21
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange line segment connecting (451, 54) to (99, 187).
+; PLAN: r0=451(x1), r1=54(y1), r2=99(x2), r3=187(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 451
+LDI r1, 54
+LDI r2, 99
+LDI r3, 187
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (491, 103) to (57, 205).
-; PLAN: r0=491(x1), r1=103(y1), r2=57(x2), r3=205(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 491
-LDI r1, 103
-LDI r2, 57
-LDI r3, 205
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a blue line from (369, 110) to (316, 21).
+; PLAN: r0=369(x1), r1=110(y1), r2=316(x2), r3=21(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 369
+LDI r1, 110
+LDI r2, 316
+LDI r3, 21
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (194, 191) to (201, 248).
-; PLAN: r0=194(x1), r1=191(y1), r2=201(x2), r3=248(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 194
-LDI r1, 191
-LDI r2, 201
-LDI r3, 248
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black rectangular region at (338, 84) spanning 66 by 49 pixels.
+; PLAN: r0=338(x), r1=84(y), r2=66(width), r3=49(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 338
+LDI r1, 84
+LDI r2, 66
+LDI r3, 49
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a blue rectangular region at (317, 14) spanning 79 by 66 pixels.
-; PLAN: r0=317(x), r1=14(y), r2=79(width), r3=66(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 317
-LDI r1, 14
-LDI r2, 79
-LDI r3, 66
-LDI r4, 0x0000FF
+; DESCRIPTION: Renders a purple box of size 70x98 starting at (376, 67).
+; PLAN: r0=376(x), r1=67(y), r2=70(width), r3=98(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 376
+LDI r1, 67
+LDI r2, 70
+LDI r3, 98
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

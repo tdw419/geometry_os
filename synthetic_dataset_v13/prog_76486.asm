@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Sets a single yellow pixel at (403, 44) then Draws a green rectangle at (0, 65) with width 82 and height 85 then Renders a orange disk with center (54, 150) and radius 45.
-; PLAN: r0=403(x), r1=44(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=0(x), r6=65(y), r7=82(width), r8=85(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=54(x), r11=150(y), r12=45(radius), r13=0xFF8800(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 403
-LDI r1, 44
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 0
-LDI r6, 65
-LDI r7, 82
-LDI r8, 85
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
-LDI r10, 54
-LDI r11, 150
-LDI r12, 45
-LDI r13, 0xFF8800
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Draws a magenta rectangle at (269, 152) with width 85 and height 103 then Creates a magenta circular shape at (421, 158) with radius 64 then Places a yellow line segment connecting (91, 220) to (322, 241).
+; PLAN: r0=269(x), r1=152(y), r2=85(width), r3=103(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=421(x), r6=158(y), r7=64(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=91(x1), r11=220(y1), r12=322(x2), r13=241(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 269
+LDI r1, 152
+LDI r2, 85
+LDI r3, 103
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 421
+LDI r6, 158
+LDI r7, 64
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 91
+LDI r11, 220
+LDI r12, 322
+LDI r13, 241
+LDI r14, 0xFFFF00
+LINE r10, r11, r12, r13, r14
 HALT

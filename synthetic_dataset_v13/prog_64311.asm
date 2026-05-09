@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single cyan pixel at (484, 138).
-; PLAN: r0=484(x), r1=138(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 484
-LDI r1, 138
-LDI r2, 0x00FFFF
+; DESCRIPTION: Places a yellow dot at position (404, 221).
+; PLAN: r0=404(x), r1=221(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 404
+LDI r1, 221
+LDI r2, 0xFFFF00
 PSET r0, r1, r2
 HALT

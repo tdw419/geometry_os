@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 12x48 starting at (223, 11).
-; PLAN: r0=223(x), r1=11(y), r2=12(width), r3=48(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 223
-LDI r1, 11
-LDI r2, 12
-LDI r3, 48
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan line segment connecting (482, 58) to (255, 223).
+; PLAN: r0=482(x1), r1=58(y1), r2=255(x2), r3=223(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 482
+LDI r1, 58
+LDI r2, 255
+LDI r3, 223
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

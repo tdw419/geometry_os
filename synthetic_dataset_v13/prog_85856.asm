@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (332, 210) with width 27 and height 13.
-; PLAN: r0=332(x), r1=210(y), r2=27(width), r3=13(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 332
-LDI r1, 210
-LDI r2, 27
-LDI r3, 13
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange line from (275, 92) to (507, 194).
+; PLAN: r0=275(x1), r1=92(y1), r2=507(x2), r3=194(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 275
+LDI r1, 92
+LDI r2, 507
+LDI r3, 194
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

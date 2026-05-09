@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (85, 57) to (262, 173).
-; PLAN: r0=85(x1), r1=57(y1), r2=262(x2), r3=173(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 85
-LDI r1, 57
-LDI r2, 262
-LDI r3, 173
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (272, 102) with radius 74.
+; PLAN: r0=272(x), r1=102(y), r2=74(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 272
+LDI r1, 102
+LDI r2, 74
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

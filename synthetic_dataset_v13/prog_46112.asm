@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (213, 4) then Places a yellow circle of radius 12 at center (309, 39).
-; PLAN: r0=213(x), r1=4(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=309(x), r6=39(y), r7=12(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 213
-LDI r1, 4
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 309
-LDI r6, 39
-LDI r7, 12
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a green circle of radius 44 at center (228, 211).
+; PLAN: r0=228(x), r1=211(y), r2=44(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 228
+LDI r1, 211
+LDI r2, 44
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

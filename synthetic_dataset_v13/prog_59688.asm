@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a yellow disk with center (321, 201) and radius 32.
-; PLAN: r0=321(x), r1=201(y), r2=32(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 321
-LDI r1, 201
-LDI r2, 32
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

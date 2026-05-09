@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a green line from (171, 151) to (129, 42).
-; PLAN: r0=171(x1), r1=151(y1), r2=129(x2), r3=42(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 171
-LDI r1, 151
-LDI r2, 129
-LDI r3, 42
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single orange pixel at (444, 50) then Places a purple line segment connecting (403, 137) to (317, 176).
+; PLAN: r0=444(x), r1=50(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=403(x1), r6=137(y1), r7=317(x2), r8=176(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 444
+LDI r1, 50
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 403
+LDI r6, 137
+LDI r7, 317
+LDI r8, 176
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

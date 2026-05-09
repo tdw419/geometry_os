@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 27x17 rectangle at position (385, 110).
-; PLAN: r0=385(x), r1=110(y), r2=27(width), r3=17(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 385
-LDI r1, 110
-LDI r2, 27
-LDI r3, 17
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a cyan box of size 45x31 starting at (417, 163).
+; PLAN: r0=417(x), r1=163(y), r2=45(width), r3=31(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 163
+LDI r2, 45
+LDI r3, 31
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

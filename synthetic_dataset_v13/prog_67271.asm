@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 30 at center (185, 135).
-; PLAN: r0=185(x), r1=135(y), r2=30(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 185
-LDI r1, 135
-LDI r2, 30
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white box of size 116x54 starting at (340, 7).
+; PLAN: r0=340(x), r1=7(y), r2=116(width), r3=54(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 340
+LDI r1, 7
+LDI r2, 116
+LDI r3, 54
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

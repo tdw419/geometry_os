@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a cyan disk with center (176, 89) and radius 70.
-; PLAN: r0=176(x), r1=89(y), r2=70(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 176
-LDI r1, 89
-LDI r2, 70
-LDI r3, 0x00FFFF
+; DESCRIPTION: Creates a blue circular shape at (349, 73) with radius 20.
+; PLAN: r0=349(x), r1=73(y), r2=20(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 349
+LDI r1, 73
+LDI r2, 20
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

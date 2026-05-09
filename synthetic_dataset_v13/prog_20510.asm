@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta rectangle at (152, 44) with width 92 and height 120.
-; PLAN: r0=152(x), r1=44(y), r2=92(width), r3=120(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 152
-LDI r1, 44
-LDI r2, 92
-LDI r3, 120
-LDI r4, 0xFF00FF
+; DESCRIPTION: Places a blue 119x70 rectangle at position (202, 73).
+; PLAN: r0=202(x), r1=73(y), r2=119(width), r3=70(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 202
+LDI r1, 73
+LDI r2, 119
+LDI r3, 70
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

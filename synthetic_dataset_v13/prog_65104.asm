@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 21x103 rectangle at position (473, 136).
-; PLAN: r0=473(x), r1=136(y), r2=21(width), r3=103(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 473
-LDI r1, 136
-LDI r2, 21
-LDI r3, 103
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 46 into r1 and decrements it in a loop until zero.
+; PLAN: r1=46(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 46
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

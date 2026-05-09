@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a magenta line between points (388, 69) and (238, 193).
-; PLAN: r0=388(x1), r1=69(y1), r2=238(x2), r3=193(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 388
-LDI r1, 69
-LDI r2, 238
-LDI r3, 193
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan circle of radius 51 at center (147, 154) then Places a purple line segment connecting (215, 67) to (263, 55).
+; PLAN: r0=147(x), r1=154(y), r2=51(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=215(x1), r6=67(y1), r7=263(x2), r8=55(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 147
+LDI r1, 154
+LDI r2, 51
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 215
+LDI r6, 67
+LDI r7, 263
+LDI r8, 55
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

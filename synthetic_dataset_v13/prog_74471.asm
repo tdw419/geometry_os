@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Places a blue line segment connecting (204, 206) to (422, 74) then Places a black dot at position (116, 132).
-; PLAN: r0=204(x1), r1=206(y1), r2=422(x2), r3=74(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=116(x), r6=132(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 204
-LDI r1, 206
-LDI r2, 422
-LDI r3, 74
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 116
-LDI r6, 132
-LDI r7, 0x000000
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single green pixel at (226, 132) then Renders a magenta line between points (486, 234) and (442, 90).
+; PLAN: r0=226(x), r1=132(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=486(x1), r6=234(y1), r7=442(x2), r8=90(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 226
+LDI r1, 132
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 486
+LDI r6, 234
+LDI r7, 442
+LDI r8, 90
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

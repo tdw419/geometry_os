@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Places a magenta circle of radius 48 at center (227, 108) then Places a purple dot at position (307, 248) then Draws a black line from (4, 25) to (395, 245).
-; PLAN: r0=227(x), r1=108(y), r2=48(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=307(x), r6=248(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=4(x1), r11=25(y1), r12=395(x2), r13=245(y2), r14=0x000000(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 227
-LDI r1, 108
-LDI r2, 48
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 307
-LDI r6, 248
+; DESCRIPTION: Composite: Places a blue 73x60 rectangle at position (173, 193) then Sets a single purple pixel at (126, 231) then Renders a white disk with center (353, 174) and radius 80.
+; PLAN: r0=173(x), r1=193(y), r2=73(width), r3=60(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=126(x), r6=231(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=353(x), r11=174(y), r12=80(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 173
+LDI r1, 193
+LDI r2, 73
+LDI r3, 60
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 126
+LDI r6, 231
 LDI r7, 0xAA00FF
 PSET r5, r6, r7
-LDI r10, 4
-LDI r11, 25
-LDI r12, 395
-LDI r13, 245
-LDI r14, 0x000000
-LINE r10, r11, r12, r13, r14
+LDI r10, 353
+LDI r11, 174
+LDI r12, 80
+LDI r13, 0xFFFFFF
+CIRCLE r10, r11, r12, r13
 HALT

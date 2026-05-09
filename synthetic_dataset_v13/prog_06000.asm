@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black line between points (309, 68) and (285, 243).
-; PLAN: r0=309(x1), r1=68(y1), r2=285(x2), r3=243(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 68
-LDI r2, 285
-LDI r3, 243
-LDI r4, 0x000000
+; DESCRIPTION: Places a orange line segment connecting (497, 55) to (287, 176).
+; PLAN: r0=497(x1), r1=55(y1), r2=287(x2), r3=176(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 497
+LDI r1, 55
+LDI r2, 287
+LDI r3, 176
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

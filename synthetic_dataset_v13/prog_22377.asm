@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (183, 92) spanning 51 by 77 pixels.
-; PLAN: r0=183(x), r1=92(y), r2=51(width), r3=77(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 183
-LDI r1, 92
-LDI r2, 51
-LDI r3, 77
+; DESCRIPTION: Draws a orange line from (212, 184) to (99, 65).
+; PLAN: r0=212(x1), r1=184(y1), r2=99(x2), r3=65(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 212
+LDI r1, 184
+LDI r2, 99
+LDI r3, 65
 LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

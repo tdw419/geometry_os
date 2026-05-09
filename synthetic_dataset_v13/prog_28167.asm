@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (19, 79) and (356, 3).
-; PLAN: r0=19(x1), r1=79(y1), r2=356(x2), r3=3(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 19
-LDI r1, 79
-LDI r2, 356
-LDI r3, 3
+; DESCRIPTION: Creates a red rectangular region at (281, 135) spanning 62 by 71 pixels.
+; PLAN: r0=281(x), r1=135(y), r2=62(width), r3=71(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 281
+LDI r1, 135
+LDI r2, 62
+LDI r3, 71
 LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

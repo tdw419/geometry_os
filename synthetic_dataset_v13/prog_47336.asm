@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white line segment connecting (371, 175) to (170, 179).
-; PLAN: r0=371(x1), r1=175(y1), r2=170(x2), r3=179(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 371
-LDI r1, 175
-LDI r2, 170
-LDI r3, 179
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (213, 139).
+; PLAN: r0=213(x), r1=139(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 213
+LDI r1, 139
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

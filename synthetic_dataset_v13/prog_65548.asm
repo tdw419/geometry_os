@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (97, 93) to (81, 245).
-; PLAN: r0=97(x1), r1=93(y1), r2=81(x2), r3=245(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 97
-LDI r1, 93
-LDI r2, 81
-LDI r3, 245
-LDI r4, 0x00FF00
+; DESCRIPTION: Renders a black line between points (312, 212) and (309, 194).
+; PLAN: r0=312(x1), r1=212(y1), r2=309(x2), r3=194(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 312
+LDI r1, 212
+LDI r2, 309
+LDI r3, 194
+LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
 HALT

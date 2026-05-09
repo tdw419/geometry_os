@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (387, 60) to (499, 190).
-; PLAN: r0=387(x1), r1=60(y1), r2=499(x2), r3=190(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 387
-LDI r1, 60
-LDI r2, 499
-LDI r3, 190
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (183, 57) with width 18 and height 28.
+; PLAN: r0=183(x), r1=57(y), r2=18(width), r3=28(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 183
+LDI r1, 57
+LDI r2, 18
+LDI r3, 28
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

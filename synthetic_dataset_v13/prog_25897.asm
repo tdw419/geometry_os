@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (295, 97).
-; PLAN: r0=295(x), r1=97(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 295
-LDI r1, 97
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a cyan line between points (246, 74) and (36, 75).
+; PLAN: r0=246(x1), r1=74(y1), r2=36(x2), r3=75(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 246
+LDI r1, 74
+LDI r2, 36
+LDI r3, 75
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

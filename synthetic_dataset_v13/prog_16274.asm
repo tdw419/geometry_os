@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red 51x56 rectangle at position (10, 96).
-; PLAN: r0=10(x), r1=96(y), r2=51(width), r3=56(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 10
-LDI r1, 96
-LDI r2, 51
-LDI r3, 56
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (483, 211) and (485, 207).
+; PLAN: r0=483(x1), r1=211(y1), r2=485(x2), r3=207(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 483
+LDI r1, 211
+LDI r2, 485
+LDI r3, 207
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

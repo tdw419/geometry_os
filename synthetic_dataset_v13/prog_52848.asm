@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a red circular shape at (20, 47) with radius 12.
-; PLAN: r0=20(x), r1=47(y), r2=12(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 20
-LDI r1, 47
-LDI r2, 12
-LDI r3, 0xFF0000
+; DESCRIPTION: Draws a blue circle centered at (324, 210) with radius 35.
+; PLAN: r0=324(x), r1=210(y), r2=35(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 324
+LDI r1, 210
+LDI r2, 35
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

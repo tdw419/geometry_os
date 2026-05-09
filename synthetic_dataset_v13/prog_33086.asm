@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 46x110 rectangle at position (190, 117).
-; PLAN: r0=190(x), r1=117(y), r2=46(width), r3=110(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 190
-LDI r1, 117
-LDI r2, 46
-LDI r3, 110
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (220, 248) and (179, 237).
+; PLAN: r0=220(x1), r1=248(y1), r2=179(x2), r3=237(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 248
+LDI r2, 179
+LDI r3, 237
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

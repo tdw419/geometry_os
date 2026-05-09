@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a magenta disk with center (383, 122) and radius 40.
-; PLAN: r0=383(x), r1=122(y), r2=40(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 383
-LDI r1, 122
-LDI r2, 40
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (406, 69) spanning 32 by 32 pixels.
+; PLAN: r0=406(x), r1=69(y), r2=32(width), r3=32(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 406
+LDI r1, 69
+LDI r2, 32
+LDI r3, 32
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

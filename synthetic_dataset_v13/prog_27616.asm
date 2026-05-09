@@ -1,8 +1,12 @@
-; DESCRIPTION: Renders a orange disk with center (297, 60) and radius 22.
-; PLAN: r0=297(x), r1=60(y), r2=22(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 297
-LDI r1, 60
-LDI r2, 22
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Places a white dot at position (7, 5) then Places a black circle of radius 72 at center (100, 123).
+; PLAN: r0=7(x), r1=5(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=100(x), r6=123(y), r7=72(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 7
+LDI r1, 5
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 100
+LDI r6, 123
+LDI r7, 72
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

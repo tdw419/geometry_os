@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a magenta circle centered at (153, 99) with radius 63.
-; PLAN: r0=153(x), r1=99(y), r2=63(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 153
-LDI r1, 99
-LDI r2, 63
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

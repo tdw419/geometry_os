@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (274, 46) to (139, 230).
-; PLAN: r0=274(x1), r1=46(y1), r2=139(x2), r3=230(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 274
-LDI r1, 46
-LDI r2, 139
-LDI r3, 230
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan rectangle at (232, 163) with width 46 and height 38.
+; PLAN: r0=232(x), r1=163(y), r2=46(width), r3=38(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 232
+LDI r1, 163
+LDI r2, 46
+LDI r3, 38
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

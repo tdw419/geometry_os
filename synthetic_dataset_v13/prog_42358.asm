@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Renders a blue box of size 95x67 starting at (138, 163) then Sets a single red pixel at (153, 246).
-; PLAN: r0=138(x), r1=163(y), r2=95(width), r3=67(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=153(x), r6=246(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
-LDI r0, 138
-LDI r1, 163
-LDI r2, 95
-LDI r3, 67
+; DESCRIPTION: Draws a blue line from (450, 41) to (337, 17).
+; PLAN: r0=450(x1), r1=41(y1), r2=337(x2), r3=17(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 450
+LDI r1, 41
+LDI r2, 337
+LDI r3, 17
 LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 153
-LDI r6, 246
-LDI r7, 0xFF0000
-PSET r5, r6, r7
+LINE r0, r1, r2, r3, r4
 HALT

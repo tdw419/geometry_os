@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a orange line segment connecting (368, 4) to (73, 34).
-; PLAN: r0=368(x1), r1=4(y1), r2=73(x2), r3=34(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 368
-LDI r1, 4
-LDI r2, 73
-LDI r3, 34
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (113, 114) then Draws a yellow rectangle at (374, 180) with width 96 and height 63.
+; PLAN: r0=113(x), r1=114(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=374(x), r6=180(y), r7=96(width), r8=63(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 113
+LDI r1, 114
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 374
+LDI r6, 180
+LDI r7, 96
+LDI r8, 63
+LDI r9, 0xFFFF00
+RECTF r5, r6, r7, r8, r9
 HALT

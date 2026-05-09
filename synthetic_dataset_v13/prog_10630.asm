@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (170, 193) with radius 59.
-; PLAN: r0=170(x), r1=193(y), r2=59(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 170
-LDI r1, 193
-LDI r2, 59
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green box of size 52x53 starting at (278, 25).
+; PLAN: r0=278(x), r1=25(y), r2=52(width), r3=53(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 278
+LDI r1, 25
+LDI r2, 52
+LDI r3, 53
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

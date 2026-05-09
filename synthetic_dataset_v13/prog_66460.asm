@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (428, 165) to (335, 48).
-; PLAN: r0=428(x1), r1=165(y1), r2=335(x2), r3=48(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 428
-LDI r1, 165
-LDI r2, 335
-LDI r3, 48
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (441, 90) with radius 54.
+; PLAN: r0=441(x), r1=90(y), r2=54(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 441
+LDI r1, 90
+LDI r2, 54
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 108x75 rectangle at position (329, 2).
-; PLAN: r0=329(x), r1=2(y), r2=108(width), r3=75(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 329
-LDI r1, 2
-LDI r2, 108
-LDI r3, 75
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white line segment connecting (136, 197) to (245, 84).
+; PLAN: r0=136(x1), r1=197(y1), r2=245(x2), r3=84(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 136
+LDI r1, 197
+LDI r2, 245
+LDI r3, 84
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

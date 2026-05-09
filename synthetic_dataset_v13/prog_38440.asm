@@ -1,8 +1,12 @@
-; DESCRIPTION: Places a green circle of radius 54 at center (234, 106).
-; PLAN: r0=234(x), r1=106(y), r2=54(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 234
-LDI r1, 106
-LDI r2, 54
-LDI r3, 0x00FF00
+; DESCRIPTION: Composite: Draws a red circle centered at (430, 200) with radius 12 then Places a red dot at position (290, 36).
+; PLAN: r0=430(x), r1=200(y), r2=12(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=290(x), r6=36(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 430
+LDI r1, 200
+LDI r2, 12
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
+LDI r5, 290
+LDI r6, 36
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

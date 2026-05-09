@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (365, 79) and radius 40.
-; PLAN: r0=365(x), r1=79(y), r2=40(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 365
-LDI r1, 79
-LDI r2, 40
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 77x29 starting at (5, 19).
+; PLAN: r0=5(x), r1=19(y), r2=77(width), r3=29(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 5
+LDI r1, 19
+LDI r2, 77
+LDI r3, 29
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

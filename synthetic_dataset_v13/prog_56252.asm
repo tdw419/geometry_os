@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (488, 110) to (413, 29).
-; PLAN: r0=488(x1), r1=110(y1), r2=413(x2), r3=29(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 488
-LDI r1, 110
-LDI r2, 413
-LDI r3, 29
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 97x120 rectangle at position (34, 108).
+; PLAN: r0=34(x), r1=108(y), r2=97(width), r3=120(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 34
+LDI r1, 108
+LDI r2, 97
+LDI r3, 120
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

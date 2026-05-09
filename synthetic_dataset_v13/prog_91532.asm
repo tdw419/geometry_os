@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Creates a cyan circular shape at (103, 94) with radius 80.
+; PLAN: r0=103(x), r1=94(y), r2=80(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 103
+LDI r1, 94
+LDI r2, 80
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

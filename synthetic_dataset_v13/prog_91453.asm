@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a red rectangular region at (179, 113) spanning 95 by 70 pixels.
-; PLAN: r0=179(x), r1=113(y), r2=95(width), r3=70(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 113
-LDI r2, 95
-LDI r3, 70
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (84, 129) with radius 80.
+; PLAN: r0=84(x), r1=129(y), r2=80(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 84
+LDI r1, 129
+LDI r2, 80
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

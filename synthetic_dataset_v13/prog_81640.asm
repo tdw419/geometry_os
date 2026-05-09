@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a white box of size 35x70 starting at (414, 107).
-; PLAN: r0=414(x), r1=107(y), r2=35(width), r3=70(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 414
-LDI r1, 107
-LDI r2, 35
-LDI r3, 70
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (56, 0).
+; PLAN: r0=56(x), r1=0(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 56
+LDI r1, 0
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

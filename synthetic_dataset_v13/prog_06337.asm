@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (79, 100) with radius 78.
-; PLAN: r0=79(x), r1=100(y), r2=78(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 79
-LDI r1, 100
-LDI r2, 78
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan 36x119 rectangle at position (412, 57).
+; PLAN: r0=412(x), r1=57(y), r2=36(width), r3=119(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 412
+LDI r1, 57
+LDI r2, 36
+LDI r3, 119
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

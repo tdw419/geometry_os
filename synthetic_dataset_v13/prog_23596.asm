@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a black rectangular region at (258, 114) spanning 97 by 88 pixels.
-; PLAN: r0=258(x), r1=114(y), r2=97(width), r3=88(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 258
-LDI r1, 114
-LDI r2, 97
-LDI r3, 88
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (392, 116) with radius 70.
+; PLAN: r0=392(x), r1=116(y), r2=70(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 392
+LDI r1, 116
+LDI r2, 70
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

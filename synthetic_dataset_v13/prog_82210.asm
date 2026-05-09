@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (249, 162) with radius 21.
-; PLAN: r0=249(x), r1=162(y), r2=21(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 249
-LDI r1, 162
-LDI r2, 21
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black box of size 63x105 starting at (276, 103).
+; PLAN: r0=276(x), r1=103(y), r2=63(width), r3=105(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 276
+LDI r1, 103
+LDI r2, 63
+LDI r3, 105
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

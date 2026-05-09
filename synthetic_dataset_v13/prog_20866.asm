@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (77, 188) spanning 16 by 47 pixels.
-; PLAN: r0=77(x), r1=188(y), r2=16(width), r3=47(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 188
-LDI r2, 16
-LDI r3, 47
+; DESCRIPTION: Draws a white line from (50, 136) to (272, 78).
+; PLAN: r0=50(x1), r1=136(y1), r2=272(x2), r3=78(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 50
+LDI r1, 136
+LDI r2, 272
+LDI r3, 78
 LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

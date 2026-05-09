@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange line segment connecting (177, 17) to (105, 112).
-; PLAN: r0=177(x1), r1=17(y1), r2=105(x2), r3=112(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 17
-LDI r2, 105
-LDI r3, 112
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 70 at center (316, 96).
+; PLAN: r0=316(x), r1=96(y), r2=70(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 316
+LDI r1, 96
+LDI r2, 70
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

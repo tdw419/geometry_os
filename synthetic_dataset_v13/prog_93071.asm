@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (120, 203) to (294, 228).
-; PLAN: r0=120(x1), r1=203(y1), r2=294(x2), r3=228(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 120
-LDI r1, 203
-LDI r2, 294
-LDI r3, 228
-LDI r4, 0x00FFFF
+; DESCRIPTION: Places a orange line segment connecting (35, 176) to (206, 225).
+; PLAN: r0=35(x1), r1=176(y1), r2=206(x2), r3=225(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 35
+LDI r1, 176
+LDI r2, 206
+LDI r3, 225
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Places a red dot at position (354, 164) then Draws a green circle centered at (158, 115) with radius 56 then Draws a blue line from (452, 255) to (111, 219).
-; PLAN: r0=354(x), r1=164(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=158(x), r6=115(y), r7=56(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=452(x1), r11=255(y1), r12=111(x2), r13=219(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 354
-LDI r1, 164
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 158
-LDI r6, 115
-LDI r7, 56
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
-LDI r10, 452
-LDI r11, 255
-LDI r12, 111
-LDI r13, 219
-LDI r14, 0x0000FF
+; DESCRIPTION: Composite: Creates a white circular shape at (446, 138) with radius 18 then Renders a white box of size 58x66 starting at (423, 35) then Draws a purple line from (59, 250) to (382, 17).
+; PLAN: r0=446(x), r1=138(y), r2=18(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=423(x), r6=35(y), r7=58(width), r8=66(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=59(x1), r11=250(y1), r12=382(x2), r13=17(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 446
+LDI r1, 138
+LDI r2, 18
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 423
+LDI r6, 35
+LDI r7, 58
+LDI r8, 66
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 59
+LDI r11, 250
+LDI r12, 382
+LDI r13, 17
+LDI r14, 0xAA00FF
 LINE r10, r11, r12, r13, r14
 HALT

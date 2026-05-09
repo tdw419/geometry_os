@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (398, 123) to (474, 174).
-; PLAN: r0=398(x1), r1=123(y1), r2=474(x2), r3=174(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 398
-LDI r1, 123
-LDI r2, 474
-LDI r3, 174
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a cyan line segment connecting (248, 84) to (494, 49).
+; PLAN: r0=248(x1), r1=84(y1), r2=494(x2), r3=49(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 84
+LDI r2, 494
+LDI r3, 49
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (245, 159) and (163, 7).
-; PLAN: r0=245(x1), r1=159(y1), r2=163(x2), r3=7(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 245
-LDI r1, 159
-LDI r2, 163
-LDI r3, 7
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green circular shape at (115, 226) with radius 15.
+; PLAN: r0=115(x), r1=226(y), r2=15(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 115
+LDI r1, 226
+LDI r2, 15
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

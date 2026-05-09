@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (315, 15) and (394, 114).
-; PLAN: r0=315(x1), r1=15(y1), r2=394(x2), r3=114(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 315
-LDI r1, 15
-LDI r2, 394
-LDI r3, 114
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 79x63 rectangle at position (317, 135).
+; PLAN: r0=317(x), r1=135(y), r2=79(width), r3=63(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 317
+LDI r1, 135
+LDI r2, 79
+LDI r3, 63
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

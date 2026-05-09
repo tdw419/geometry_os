@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a cyan circle of radius 24 at center (38, 157).
-; PLAN: r0=38(x), r1=157(y), r2=24(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 38
-LDI r1, 157
-LDI r2, 24
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

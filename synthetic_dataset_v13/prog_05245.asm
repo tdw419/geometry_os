@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (125, 82) to (92, 54).
-; PLAN: r0=125(x1), r1=82(y1), r2=92(x2), r3=54(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 125
-LDI r1, 82
-LDI r2, 92
-LDI r3, 54
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (109, 67) with radius 60.
+; PLAN: r0=109(x), r1=67(y), r2=60(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 109
+LDI r1, 67
+LDI r2, 60
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

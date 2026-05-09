@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a green line from (420, 24) to (10, 14).
-; PLAN: r0=420(x1), r1=24(y1), r2=10(x2), r3=14(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 420
-LDI r1, 24
-LDI r2, 10
-LDI r3, 14
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (216, 183) then Draws a yellow circle centered at (433, 100) with radius 77.
+; PLAN: r0=216(x), r1=183(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=433(x), r6=100(y), r7=77(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 216
+LDI r1, 183
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 433
+LDI r6, 100
+LDI r7, 77
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

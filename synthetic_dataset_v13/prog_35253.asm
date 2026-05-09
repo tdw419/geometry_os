@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (154, 244) to (87, 124).
-; PLAN: r0=154(x1), r1=244(y1), r2=87(x2), r3=124(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 154
-LDI r1, 244
-LDI r2, 87
-LDI r3, 124
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (280, 99) and radius 78.
+; PLAN: r0=280(x), r1=99(y), r2=78(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 280
+LDI r1, 99
+LDI r2, 78
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

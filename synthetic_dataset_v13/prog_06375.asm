@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (445, 102) to (168, 82).
-; PLAN: r0=445(x1), r1=102(y1), r2=168(x2), r3=82(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 445
-LDI r1, 102
-LDI r2, 168
-LDI r3, 82
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (433, 164) with radius 46.
+; PLAN: r0=433(x), r1=164(y), r2=46(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 433
+LDI r1, 164
+LDI r2, 46
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

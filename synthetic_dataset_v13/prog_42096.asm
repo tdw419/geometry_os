@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (151, 113) with radius 69.
-; PLAN: r0=151(x), r1=113(y), r2=69(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 151
-LDI r1, 113
-LDI r2, 69
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple rectangle at (6, 196) with width 17 and height 40.
+; PLAN: r0=6(x), r1=196(y), r2=17(width), r3=40(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 6
+LDI r1, 196
+LDI r2, 17
+LDI r3, 40
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

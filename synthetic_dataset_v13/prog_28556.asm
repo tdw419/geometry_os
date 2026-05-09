@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Renders a purple disk with center (133, 189) and radius 27 then Renders a black box of size 72x39 starting at (297, 43).
-; PLAN: r0=133(x), r1=189(y), r2=27(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=297(x), r6=43(y), r7=72(width), r8=39(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 133
-LDI r1, 189
-LDI r2, 27
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 297
-LDI r6, 43
-LDI r7, 72
-LDI r8, 39
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a yellow line between points (26, 222) and (431, 115) then Places a white circle of radius 28 at center (200, 114).
+; PLAN: r0=26(x1), r1=222(y1), r2=431(x2), r3=115(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=200(x), r6=114(y), r7=28(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 26
+LDI r1, 222
+LDI r2, 431
+LDI r3, 115
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 200
+LDI r6, 114
+LDI r7, 28
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

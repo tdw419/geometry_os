@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a blue line from (246, 141) to (492, 63).
-; PLAN: r0=246(x1), r1=141(y1), r2=492(x2), r3=63(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 246
-LDI r1, 141
-LDI r2, 492
-LDI r3, 63
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (134, 236) then Creates a white rectangular region at (341, 122) spanning 19 by 19 pixels.
+; PLAN: r0=134(x), r1=236(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=341(x), r6=122(y), r7=19(width), r8=19(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 134
+LDI r1, 236
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 341
+LDI r6, 122
+LDI r7, 19
+LDI r8, 19
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

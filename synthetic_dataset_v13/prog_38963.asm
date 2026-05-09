@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single blue pixel at (368, 38).
-; PLAN: r0=368(x), r1=38(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 368
-LDI r1, 38
-LDI r2, 0x0000FF
+; DESCRIPTION: Places a green dot at position (189, 221).
+; PLAN: r0=189(x), r1=221(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 189
+LDI r1, 221
+LDI r2, 0x00FF00
 PSET r0, r1, r2
 HALT

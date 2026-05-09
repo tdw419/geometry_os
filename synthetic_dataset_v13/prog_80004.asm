@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (302, 70) with radius 39.
-; PLAN: r0=302(x), r1=70(y), r2=39(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 302
-LDI r1, 70
-LDI r2, 39
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white line segment connecting (180, 21) to (246, 23).
+; PLAN: r0=180(x1), r1=21(y1), r2=246(x2), r3=23(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 180
+LDI r1, 21
+LDI r2, 246
+LDI r3, 23
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

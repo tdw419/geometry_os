@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (191, 227) to (26, 231).
-; PLAN: r0=191(x1), r1=227(y1), r2=26(x2), r3=231(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 191
-LDI r1, 227
-LDI r2, 26
-LDI r3, 231
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green 102x92 rectangle at position (332, 1).
+; PLAN: r0=332(x), r1=1(y), r2=102(width), r3=92(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 332
+LDI r1, 1
+LDI r2, 102
+LDI r3, 92
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (154, 10) to (313, 79).
-; PLAN: r0=154(x1), r1=10(y1), r2=313(x2), r3=79(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 154
-LDI r1, 10
-LDI r2, 313
-LDI r3, 79
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow box of size 32x84 starting at (274, 61).
+; PLAN: r0=274(x), r1=61(y), r2=32(width), r3=84(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 274
+LDI r1, 61
+LDI r2, 32
+LDI r3, 84
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

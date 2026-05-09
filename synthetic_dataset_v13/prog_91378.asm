@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a yellow rectangular region at (441, 3) spanning 15 by 41 pixels.
-; PLAN: r0=441(x), r1=3(y), r2=15(width), r3=41(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 441
-LDI r1, 3
-LDI r2, 15
-LDI r3, 41
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a black box of size 82x52 starting at (420, 163).
+; PLAN: r0=420(x), r1=163(y), r2=82(width), r3=52(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 420
+LDI r1, 163
+LDI r2, 82
+LDI r3, 52
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

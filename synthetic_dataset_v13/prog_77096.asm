@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (460, 55) with width 10 and height 88.
-; PLAN: r0=460(x), r1=55(y), r2=10(width), r3=88(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 460
-LDI r1, 55
-LDI r2, 10
-LDI r3, 88
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (467, 238) to (504, 93).
+; PLAN: r0=467(x1), r1=238(y1), r2=504(x2), r3=93(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 467
+LDI r1, 238
+LDI r2, 504
+LDI r3, 93
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

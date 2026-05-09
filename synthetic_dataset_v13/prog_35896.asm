@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (319, 59) with radius 36.
-; PLAN: r0=319(x), r1=59(y), r2=36(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 319
-LDI r1, 59
-LDI r2, 36
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan 57x61 rectangle at position (97, 149).
+; PLAN: r0=97(x), r1=149(y), r2=57(width), r3=61(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 97
+LDI r1, 149
+LDI r2, 57
+LDI r3, 61
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,14 +1,12 @@
-; DESCRIPTION: Composite: Places a white 102x29 rectangle at position (391, 103) then Renders a black disk with center (446, 105) and radius 15.
-; PLAN: r0=391(x), r1=103(y), r2=102(width), r3=29(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=446(x), r6=105(y), r7=15(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 391
-LDI r1, 103
-LDI r2, 102
-LDI r3, 29
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 446
-LDI r6, 105
-LDI r7, 15
-LDI r8, 0x000000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Places a yellow circle of radius 54 at center (85, 61) then Places a green dot at position (375, 214).
+; PLAN: r0=85(x), r1=61(y), r2=54(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=375(x), r6=214(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 85
+LDI r1, 61
+LDI r2, 54
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 375
+LDI r6, 214
+LDI r7, 0x00FF00
+PSET r5, r6, r7
 HALT

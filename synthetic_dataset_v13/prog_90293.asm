@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (331, 47) with radius 45.
-; PLAN: r0=331(x), r1=47(y), r2=45(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 331
-LDI r1, 47
+; DESCRIPTION: Places a white 45x27 rectangle at position (122, 153).
+; PLAN: r0=122(x), r1=153(y), r2=45(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 122
+LDI r1, 153
 LDI r2, 45
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+LDI r3, 27
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

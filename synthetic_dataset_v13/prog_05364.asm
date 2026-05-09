@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (216, 108) with radius 50.
-; PLAN: r0=216(x), r1=108(y), r2=50(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 216
-LDI r1, 108
-LDI r2, 50
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 61x23 rectangle at position (376, 171).
+; PLAN: r0=376(x), r1=171(y), r2=61(width), r3=23(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 376
+LDI r1, 171
+LDI r2, 61
+LDI r3, 23
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

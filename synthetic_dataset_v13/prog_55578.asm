@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (242, 108) to (203, 43).
-; PLAN: r0=242(x1), r1=108(y1), r2=203(x2), r3=43(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 242
-LDI r1, 108
-LDI r2, 203
-LDI r3, 43
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow box of size 103x71 starting at (172, 114).
+; PLAN: r0=172(x), r1=114(y), r2=103(width), r3=71(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 172
+LDI r1, 114
+LDI r2, 103
+LDI r3, 71
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

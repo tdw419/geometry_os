@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 103x64 rectangle at position (337, 105).
-; PLAN: r0=337(x), r1=105(y), r2=103(width), r3=64(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 337
-LDI r1, 105
-LDI r2, 103
-LDI r3, 64
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a orange rectangle at (236, 70) with width 80 and height 112.
+; PLAN: r0=236(x), r1=70(y), r2=80(width), r3=112(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 236
+LDI r1, 70
+LDI r2, 80
+LDI r3, 112
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

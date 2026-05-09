@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a orange line between points (40, 13) and (385, 210).
-; PLAN: r0=40(x1), r1=13(y1), r2=385(x2), r3=210(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 40
-LDI r1, 13
-LDI r2, 385
-LDI r3, 210
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 55 at center (291, 162).
+; PLAN: r0=291(x), r1=162(y), r2=55(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 291
+LDI r1, 162
+LDI r2, 55
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

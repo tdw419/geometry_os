@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a white line segment connecting (12, 146) to (328, 163).
-; PLAN: r0=12(x1), r1=146(y1), r2=328(x2), r3=163(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 12
-LDI r1, 146
-LDI r2, 328
-LDI r3, 163
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta circle of radius 59 at center (215, 86) then Renders a green line between points (316, 252) and (292, 212).
+; PLAN: r0=215(x), r1=86(y), r2=59(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=316(x1), r6=252(y1), r7=292(x2), r8=212(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 215
+LDI r1, 86
+LDI r2, 59
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 316
+LDI r6, 252
+LDI r7, 292
+LDI r8, 212
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

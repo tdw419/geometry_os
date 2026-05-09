@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (7, 110) spanning 75 by 34 pixels.
-; PLAN: r0=7(x), r1=110(y), r2=75(width), r3=34(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 7
-LDI r1, 110
-LDI r2, 75
-LDI r3, 34
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black line segment connecting (496, 218) to (393, 30).
+; PLAN: r0=496(x1), r1=218(y1), r2=393(x2), r3=30(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 496
+LDI r1, 218
+LDI r2, 393
+LDI r3, 30
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

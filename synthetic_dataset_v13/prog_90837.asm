@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a magenta box of size 59x57 starting at (247, 84).
-; PLAN: r0=247(x), r1=84(y), r2=59(width), r3=57(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 247
-LDI r1, 84
-LDI r2, 59
-LDI r3, 57
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 39 into r1 and decrements it in a loop until zero.
+; PLAN: r1=39(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 39
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

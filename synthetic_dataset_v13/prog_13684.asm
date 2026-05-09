@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 72 at center (210, 121).
-; PLAN: r0=210(x), r1=121(y), r2=72(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 210
-LDI r1, 121
-LDI r2, 72
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (281, 237) and (363, 121).
+; PLAN: r0=281(x1), r1=237(y1), r2=363(x2), r3=121(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 281
+LDI r1, 237
+LDI r2, 363
+LDI r3, 121
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

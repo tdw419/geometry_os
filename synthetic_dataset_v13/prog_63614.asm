@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (186, 69) with radius 63.
-; PLAN: r0=186(x), r1=69(y), r2=63(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 186
-LDI r1, 69
-LDI r2, 63
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (30, 36) to (506, 95).
+; PLAN: r0=30(x1), r1=36(y1), r2=506(x2), r3=95(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 30
+LDI r1, 36
+LDI r2, 506
+LDI r3, 95
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

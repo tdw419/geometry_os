@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (167, 131) with width 112 and height 10.
-; PLAN: r0=167(x), r1=131(y), r2=112(width), r3=10(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 167
-LDI r1, 131
-LDI r2, 112
-LDI r3, 10
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a magenta box of size 16x30 starting at (351, 181).
+; PLAN: r0=351(x), r1=181(y), r2=16(width), r3=30(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 351
+LDI r1, 181
+LDI r2, 16
+LDI r3, 30
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,18 +1,15 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (145, 22) then Draws a white line from (432, 169) to (219, 86) then Places a cyan circle of radius 42 at center (385, 152).
-; PLAN: r0=145(x), r1=22(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=432(x1), r6=169(y1), r7=219(x2), r8=86(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=385(x), r11=152(y), r12=42(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 145
-LDI r1, 22
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 432
-LDI r6, 169
-LDI r7, 219
-LDI r8, 86
-LDI r9, 0xFFFFFF
+; DESCRIPTION: Composite: Renders a red box of size 62x59 starting at (48, 59) then Renders a magenta line between points (213, 241) and (105, 155).
+; PLAN: r0=48(x), r1=59(y), r2=62(width), r3=59(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=213(x1), r6=241(y1), r7=105(x2), r8=155(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 48
+LDI r1, 59
+LDI r2, 62
+LDI r3, 59
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 213
+LDI r6, 241
+LDI r7, 105
+LDI r8, 155
+LDI r9, 0xFF00FF
 LINE r5, r6, r7, r8, r9
-LDI r10, 385
-LDI r11, 152
-LDI r12, 42
-LDI r13, 0x00FFFF
-CIRCLE r10, r11, r12, r13
 HALT

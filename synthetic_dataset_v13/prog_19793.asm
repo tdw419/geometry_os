@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 61x80 starting at (422, 23).
-; PLAN: r0=422(x), r1=23(y), r2=61(width), r3=80(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 422
-LDI r1, 23
-LDI r2, 61
-LDI r3, 80
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red line from (376, 176) to (164, 42).
+; PLAN: r0=376(x1), r1=176(y1), r2=164(x2), r3=42(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 376
+LDI r1, 176
+LDI r2, 164
+LDI r3, 42
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

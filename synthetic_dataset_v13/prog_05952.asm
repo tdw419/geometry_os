@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (259, 192) to (309, 1).
-; PLAN: r0=259(x1), r1=192(y1), r2=309(x2), r3=1(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 259
-LDI r1, 192
-LDI r2, 309
-LDI r3, 1
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a magenta line from (102, 107) to (136, 40).
+; PLAN: r0=102(x1), r1=107(y1), r2=136(x2), r3=40(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 102
+LDI r1, 107
+LDI r2, 136
+LDI r3, 40
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

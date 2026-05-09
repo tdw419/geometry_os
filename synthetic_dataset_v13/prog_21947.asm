@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 105x118 starting at (167, 55).
-; PLAN: r0=167(x), r1=55(y), r2=105(width), r3=118(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 167
-LDI r1, 55
-LDI r2, 105
-LDI r3, 118
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red line segment connecting (208, 87) to (506, 240).
+; PLAN: r0=208(x1), r1=87(y1), r2=506(x2), r3=240(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 208
+LDI r1, 87
+LDI r2, 506
+LDI r3, 240
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

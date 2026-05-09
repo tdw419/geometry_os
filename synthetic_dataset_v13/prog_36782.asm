@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple line from (353, 57) to (219, 247).
-; PLAN: r0=353(x1), r1=57(y1), r2=219(x2), r3=247(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 353
-LDI r1, 57
-LDI r2, 219
-LDI r3, 247
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 9 into r1 and decrements it in a loop until zero.
+; PLAN: r1=9(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 9
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

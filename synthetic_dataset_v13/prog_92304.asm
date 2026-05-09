@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (92, 42) and (32, 53).
-; PLAN: r0=92(x1), r1=42(y1), r2=32(x2), r3=53(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 42
-LDI r2, 32
-LDI r3, 53
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a orange line between points (91, 183) and (413, 93).
+; PLAN: r0=91(x1), r1=183(y1), r2=413(x2), r3=93(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 91
+LDI r1, 183
+LDI r2, 413
+LDI r3, 93
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

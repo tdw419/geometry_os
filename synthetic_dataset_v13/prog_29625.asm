@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (57, 158) and radius 42.
-; PLAN: r0=57(x), r1=158(y), r2=42(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 57
-LDI r1, 158
-LDI r2, 42
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black line segment connecting (29, 34) to (155, 58).
+; PLAN: r0=29(x1), r1=34(y1), r2=155(x2), r3=58(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 29
+LDI r1, 34
+LDI r2, 155
+LDI r3, 58
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (68, 94) and radius 54.
-; PLAN: r0=68(x), r1=94(y), r2=54(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 68
-LDI r1, 94
+; DESCRIPTION: Places a purple 54x56 rectangle at position (25, 66).
+; PLAN: r0=25(x), r1=66(y), r2=54(width), r3=56(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 25
+LDI r1, 66
 LDI r2, 54
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+LDI r3, 56
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 80 at center (92, 171).
-; PLAN: r0=92(x), r1=171(y), r2=80(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 92
-LDI r1, 171
-LDI r2, 80
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (170, 207) and (2, 233).
+; PLAN: r0=170(x1), r1=207(y1), r2=2(x2), r3=233(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 207
+LDI r2, 2
+LDI r3, 233
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

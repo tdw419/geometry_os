@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a white line segment connecting (22, 250) to (504, 17).
-; PLAN: r0=22(x1), r1=250(y1), r2=504(x2), r3=17(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 22
-LDI r1, 250
-LDI r2, 504
-LDI r3, 17
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Fills the entire screen with solid yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

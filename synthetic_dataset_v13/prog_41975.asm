@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a orange dot at position (269, 138) then Renders a cyan line between points (495, 230) and (329, 113).
-; PLAN: r0=269(x), r1=138(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=495(x1), r6=230(y1), r7=329(x2), r8=113(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 269
-LDI r1, 138
-LDI r2, 0xFF8800
-PSET r0, r1, r2
-LDI r5, 495
-LDI r6, 230
-LDI r7, 329
-LDI r8, 113
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a magenta line between points (181, 19) and (94, 21).
+; PLAN: r0=181(x1), r1=19(y1), r2=94(x2), r3=21(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 181
+LDI r1, 19
+LDI r2, 94
+LDI r3, 21
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a green rectangular region at (46, 15) spanning 98 by 18 pixels.
-; PLAN: r0=46(x), r1=15(y), r2=98(width), r3=18(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 46
-LDI r1, 15
-LDI r2, 98
-LDI r3, 18
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a white rectangle at (175, 39) with width 24 and height 93.
+; PLAN: r0=175(x), r1=39(y), r2=24(width), r3=93(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 175
+LDI r1, 39
+LDI r2, 24
+LDI r3, 93
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

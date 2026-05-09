@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a cyan dot at position (422, 37).
-; PLAN: r0=422(x), r1=37(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 422
-LDI r1, 37
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a green rectangular region at (283, 109) spanning 27 by 98 pixels.
+; PLAN: r0=283(x), r1=109(y), r2=27(width), r3=98(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 283
+LDI r1, 109
+LDI r2, 27
+LDI r3, 98
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (336, 5).
-; PLAN: r0=336(x), r1=5(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 336
-LDI r1, 5
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a green box of size 11x77 starting at (135, 80).
+; PLAN: r0=135(x), r1=80(y), r2=11(width), r3=77(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 135
+LDI r1, 80
+LDI r2, 11
+LDI r3, 77
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

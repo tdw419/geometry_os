@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a magenta circular shape at (171, 113) with radius 56.
-; PLAN: r0=171(x), r1=113(y), r2=56(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 171
-LDI r1, 113
-LDI r2, 56
-LDI r3, 0xFF00FF
+; DESCRIPTION: Draws a green circle centered at (246, 178) with radius 73.
+; PLAN: r0=246(x), r1=178(y), r2=73(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 246
+LDI r1, 178
+LDI r2, 73
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

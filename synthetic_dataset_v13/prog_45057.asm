@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (429, 97) and radius 68.
-; PLAN: r0=429(x), r1=97(y), r2=68(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 429
-LDI r1, 97
-LDI r2, 68
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (451, 105) and (110, 155).
+; PLAN: r0=451(x1), r1=105(y1), r2=110(x2), r3=155(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 451
+LDI r1, 105
+LDI r2, 110
+LDI r3, 155
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

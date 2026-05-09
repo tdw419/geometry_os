@@ -1,19 +1,14 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (494, 208) then Places a magenta line segment connecting (224, 218) to (209, 82) then Creates a yellow rectangular region at (289, 113) spanning 55 by 117 pixels.
-; PLAN: r0=494(x), r1=208(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=224(x1), r6=218(y1), r7=209(x2), r8=82(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=289(x), r11=113(y), r12=55(width), r13=117(height), r14=0xFFFF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 494
-LDI r1, 208
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 224
-LDI r6, 218
-LDI r7, 209
-LDI r8, 82
-LDI r9, 0xFF00FF
-LINE r5, r6, r7, r8, r9
-LDI r10, 289
-LDI r11, 113
-LDI r12, 55
-LDI r13, 117
-LDI r14, 0xFFFF00
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a orange box of size 48x76 starting at (296, 23) then Creates a red circular shape at (265, 179) with radius 67.
+; PLAN: r0=296(x), r1=23(y), r2=48(width), r3=76(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=265(x), r6=179(y), r7=67(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 296
+LDI r1, 23
+LDI r2, 48
+LDI r3, 76
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 265
+LDI r6, 179
+LDI r7, 67
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Draws a red circle centered at (193, 34) with radius 26 then Creates a cyan rectangular region at (345, 52) spanning 98 by 60 pixels then Sets a single red pixel at (75, 4).
-; PLAN: r0=193(x), r1=34(y), r2=26(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=345(x), r6=52(y), r7=98(width), r8=60(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=75(x), r11=4(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
-LDI r0, 193
-LDI r1, 34
-LDI r2, 26
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 345
-LDI r6, 52
-LDI r7, 98
-LDI r8, 60
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 75
-LDI r11, 4
-LDI r12, 0xFF0000
-PSET r10, r11, r12
+; DESCRIPTION: Composite: Creates a black rectangular region at (249, 13) spanning 103 by 106 pixels then Renders a blue disk with center (348, 178) and radius 55 then Renders a yellow line between points (137, 134) and (383, 101).
+; PLAN: r0=249(x), r1=13(y), r2=103(width), r3=106(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=348(x), r6=178(y), r7=55(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=137(x1), r11=134(y1), r12=383(x2), r13=101(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 249
+LDI r1, 13
+LDI r2, 103
+LDI r3, 106
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 348
+LDI r6, 178
+LDI r7, 55
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 137
+LDI r11, 134
+LDI r12, 383
+LDI r13, 101
+LDI r14, 0xFFFF00
+LINE r10, r11, r12, r13, r14
 HALT

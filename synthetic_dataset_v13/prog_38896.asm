@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (226, 28) with width 28 and height 61.
-; PLAN: r0=226(x), r1=28(y), r2=28(width), r3=61(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 226
-LDI r1, 28
-LDI r2, 28
-LDI r3, 61
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (265, 250) and (3, 187).
+; PLAN: r0=265(x1), r1=250(y1), r2=3(x2), r3=187(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 265
+LDI r1, 250
+LDI r2, 3
+LDI r3, 187
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

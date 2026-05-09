@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue line segment connecting (147, 8) to (160, 235).
-; PLAN: r0=147(x1), r1=8(y1), r2=160(x2), r3=235(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 147
-LDI r1, 8
-LDI r2, 160
-LDI r3, 235
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (415, 146) with radius 27.
+; PLAN: r0=415(x), r1=146(y), r2=27(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 415
+LDI r1, 146
+LDI r2, 27
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

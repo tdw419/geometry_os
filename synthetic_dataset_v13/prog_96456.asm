@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 73 at center (216, 95).
-; PLAN: r0=216(x), r1=95(y), r2=73(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 216
-LDI r1, 95
-LDI r2, 73
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (43, 77) and (53, 5).
+; PLAN: r0=43(x1), r1=77(y1), r2=53(x2), r3=5(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 43
+LDI r1, 77
+LDI r2, 53
+LDI r3, 5
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

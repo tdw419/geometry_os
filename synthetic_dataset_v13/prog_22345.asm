@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Draws a yellow circle centered at (435, 153) with radius 39 then Draws a red rectangle at (190, 199) with width 95 and height 21 then Sets a single blue pixel at (121, 158).
-; PLAN: r0=435(x), r1=153(y), r2=39(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=190(x), r6=199(y), r7=95(width), r8=21(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=121(x), r11=158(y), r12=0x0000FF(color). Op: PSET r10, r11, r12.
-LDI r0, 435
-LDI r1, 153
-LDI r2, 39
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 190
-LDI r6, 199
-LDI r7, 95
-LDI r8, 21
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
-LDI r10, 121
-LDI r11, 158
-LDI r12, 0x0000FF
-PSET r10, r11, r12
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

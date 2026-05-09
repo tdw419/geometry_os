@@ -1,19 +1,9 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (97, 236) then Renders a orange box of size 117x18 starting at (366, 44) then Places a magenta line segment connecting (229, 92) to (341, 205).
-; PLAN: r0=97(x), r1=236(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=366(x), r6=44(y), r7=117(width), r8=18(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=229(x1), r11=92(y1), r12=341(x2), r13=205(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 97
-LDI r1, 236
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 366
-LDI r6, 44
-LDI r7, 117
-LDI r8, 18
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
-LDI r10, 229
-LDI r11, 92
-LDI r12, 341
-LDI r13, 205
-LDI r14, 0xFF00FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Places a white 67x82 rectangle at position (150, 116).
+; PLAN: r0=150(x), r1=116(y), r2=67(width), r3=82(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 150
+LDI r1, 116
+LDI r2, 67
+LDI r3, 82
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

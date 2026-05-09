@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a orange rectangular region at (140, 180) spanning 45 by 73 pixels.
-; PLAN: r0=140(x), r1=180(y), r2=45(width), r3=73(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 140
-LDI r1, 180
-LDI r2, 45
-LDI r3, 73
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (51, 12) then Renders a white box of size 96x11 starting at (12, 26).
+; PLAN: r0=51(x), r1=12(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=12(x), r6=26(y), r7=96(width), r8=11(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 51
+LDI r1, 12
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 12
+LDI r6, 26
+LDI r7, 96
+LDI r8, 11
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

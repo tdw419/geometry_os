@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a orange dot at position (398, 204).
-; PLAN: r0=398(x), r1=204(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 398
-LDI r1, 204
-LDI r2, 0xFF8800
+; DESCRIPTION: Sets a single magenta pixel at (337, 128).
+; PLAN: r0=337(x), r1=128(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 337
+LDI r1, 128
+LDI r2, 0xFF00FF
 PSET r0, r1, r2
 HALT

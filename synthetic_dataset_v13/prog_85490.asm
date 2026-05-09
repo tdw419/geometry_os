@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 70x10 starting at (200, 15).
-; PLAN: r0=200(x), r1=15(y), r2=70(width), r3=10(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 200
-LDI r1, 15
-LDI r2, 70
-LDI r3, 10
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange line from (261, 193) to (487, 220).
+; PLAN: r0=261(x1), r1=193(y1), r2=487(x2), r3=220(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 261
+LDI r1, 193
+LDI r2, 487
+LDI r3, 220
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

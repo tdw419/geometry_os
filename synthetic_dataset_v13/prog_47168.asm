@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Sets a single cyan pixel at (444, 4).
+; PLAN: r0=444(x), r1=4(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 444
+LDI r1, 4
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

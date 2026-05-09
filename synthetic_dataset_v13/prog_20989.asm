@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a cyan rectangle at (149, 101) with width 26 and height 106.
-; PLAN: r0=149(x), r1=101(y), r2=26(width), r3=106(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 149
-LDI r1, 101
-LDI r2, 26
-LDI r3, 106
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single yellow pixel at (201, 34) then Places a yellow circle of radius 23 at center (135, 168).
+; PLAN: r0=201(x), r1=34(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=135(x), r6=168(y), r7=23(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 201
+LDI r1, 34
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 135
+LDI r6, 168
+LDI r7, 23
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

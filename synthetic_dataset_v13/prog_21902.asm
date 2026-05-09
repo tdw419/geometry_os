@@ -1,8 +1,5 @@
-; DESCRIPTION: Places a orange circle of radius 69 at center (99, 69).
-; PLAN: r0=99(x), r1=69(y), r2=69(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 99
-LDI r1, 69
-LDI r2, 69
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

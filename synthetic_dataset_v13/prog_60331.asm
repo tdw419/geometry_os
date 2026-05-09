@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (202, 244) to (81, 113).
-; PLAN: r0=202(x1), r1=244(y1), r2=81(x2), r3=113(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 202
-LDI r1, 244
-LDI r2, 81
-LDI r3, 113
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan 113x44 rectangle at position (276, 9).
+; PLAN: r0=276(x), r1=9(y), r2=113(width), r3=44(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 276
+LDI r1, 9
+LDI r2, 113
+LDI r3, 44
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

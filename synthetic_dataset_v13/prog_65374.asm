@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (5, 154) to (345, 54).
-; PLAN: r0=5(x1), r1=154(y1), r2=345(x2), r3=54(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 5
-LDI r1, 154
-LDI r2, 345
-LDI r3, 54
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 61 at center (69, 176).
+; PLAN: r0=69(x), r1=176(y), r2=61(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 69
+LDI r1, 176
+LDI r2, 61
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

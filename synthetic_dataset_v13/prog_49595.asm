@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a purple line between points (192, 29) and (157, 122).
-; PLAN: r0=192(x1), r1=29(y1), r2=157(x2), r3=122(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 192
-LDI r1, 29
-LDI r2, 157
-LDI r3, 122
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single blue pixel at (256, 24) then Places a cyan circle of radius 21 at center (265, 133).
+; PLAN: r0=256(x), r1=24(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=265(x), r6=133(y), r7=21(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 256
+LDI r1, 24
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 265
+LDI r6, 133
+LDI r7, 21
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

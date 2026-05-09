@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a green disk with center (349, 150) and radius 74.
-; PLAN: r0=349(x), r1=150(y), r2=74(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 349
-LDI r1, 150
-LDI r2, 74
-LDI r3, 0x00FF00
+; DESCRIPTION: Places a purple circle of radius 41 at center (265, 197).
+; PLAN: r0=265(x), r1=197(y), r2=41(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 265
+LDI r1, 197
+LDI r2, 41
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

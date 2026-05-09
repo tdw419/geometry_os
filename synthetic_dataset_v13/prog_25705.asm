@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Renders a cyan box of size 119x50 starting at (305, 28) then Sets a single purple pixel at (503, 218).
-; PLAN: r0=305(x), r1=28(y), r2=119(width), r3=50(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=503(x), r6=218(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 305
-LDI r1, 28
-LDI r2, 119
-LDI r3, 50
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 503
-LDI r6, 218
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Creates a red circular shape at (241, 164) with radius 31.
+; PLAN: r0=241(x), r1=164(y), r2=31(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 241
+LDI r1, 164
+LDI r2, 31
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

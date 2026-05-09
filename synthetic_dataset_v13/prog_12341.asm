@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 22 at center (42, 31).
-; PLAN: r0=42(x), r1=31(y), r2=22(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 42
-LDI r1, 31
-LDI r2, 22
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 66x40 rectangle at position (43, 50).
+; PLAN: r0=43(x), r1=50(y), r2=66(width), r3=40(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 43
+LDI r1, 50
+LDI r2, 66
+LDI r3, 40
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

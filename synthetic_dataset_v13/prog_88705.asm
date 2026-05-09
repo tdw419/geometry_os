@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single purple pixel at (151, 25).
-; PLAN: r0=151(x), r1=25(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 151
-LDI r1, 25
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a cyan circular shape at (366, 192) with radius 20.
+; PLAN: r0=366(x), r1=192(y), r2=20(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 366
+LDI r1, 192
+LDI r2, 20
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

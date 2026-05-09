@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a white rectangle at (88, 158) with width 20 and height 72.
-; PLAN: r0=88(x), r1=158(y), r2=20(width), r3=72(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 158
-LDI r2, 20
-LDI r3, 72
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a cyan disk with center (181, 184) and radius 55 then Places a blue dot at position (457, 141).
+; PLAN: r0=181(x), r1=184(y), r2=55(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=457(x), r6=141(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 181
+LDI r1, 184
+LDI r2, 55
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 457
+LDI r6, 141
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

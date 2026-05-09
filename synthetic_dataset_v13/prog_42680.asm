@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (434, 244).
-; PLAN: r0=434(x), r1=244(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 434
-LDI r1, 244
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a white box of size 78x114 starting at (197, 41).
+; PLAN: r0=197(x), r1=41(y), r2=78(width), r3=114(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 197
+LDI r1, 41
+LDI r2, 78
+LDI r3, 114
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

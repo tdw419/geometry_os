@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (357, 167).
-; PLAN: r0=357(x), r1=167(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 357
-LDI r1, 167
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Places a purple line segment connecting (112, 128) to (437, 79).
+; PLAN: r0=112(x1), r1=128(y1), r2=437(x2), r3=79(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 112
+LDI r1, 128
+LDI r2, 437
+LDI r3, 79
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

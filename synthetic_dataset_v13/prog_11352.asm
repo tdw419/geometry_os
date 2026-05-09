@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black line segment connecting (265, 173) to (60, 44).
-; PLAN: r0=265(x1), r1=173(y1), r2=60(x2), r3=44(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 265
-LDI r1, 173
-LDI r2, 60
-LDI r3, 44
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 27 into r1 and decrements it in a loop until zero.
+; PLAN: r1=27(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 27
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

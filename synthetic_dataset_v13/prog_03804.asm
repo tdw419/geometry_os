@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (283, 14) and (400, 118).
-; PLAN: r0=283(x1), r1=14(y1), r2=400(x2), r3=118(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 283
-LDI r1, 14
-LDI r2, 400
-LDI r3, 118
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (353, 125) with radius 71.
+; PLAN: r0=353(x), r1=125(y), r2=71(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 353
+LDI r1, 125
+LDI r2, 71
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

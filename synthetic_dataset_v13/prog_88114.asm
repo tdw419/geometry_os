@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (129, 63) to (288, 24).
-; PLAN: r0=129(x1), r1=63(y1), r2=288(x2), r3=24(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 63
-LDI r2, 288
-LDI r3, 24
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 29 into r1 and decrements it in a loop until zero.
+; PLAN: r1=29(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 29
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (486, 56) to (200, 7).
-; PLAN: r0=486(x1), r1=56(y1), r2=200(x2), r3=7(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 486
-LDI r1, 56
-LDI r2, 200
-LDI r3, 7
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange rectangular region at (432, 146) spanning 31 by 99 pixels.
+; PLAN: r0=432(x), r1=146(y), r2=31(width), r3=99(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 432
+LDI r1, 146
+LDI r2, 31
+LDI r3, 99
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

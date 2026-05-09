@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a green 23x52 rectangle at position (421, 20).
-; PLAN: r0=421(x), r1=20(y), r2=23(width), r3=52(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 421
-LDI r1, 20
-LDI r2, 23
-LDI r3, 52
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single blue pixel at (351, 114) then Creates a blue rectangular region at (319, 57) spanning 37 by 105 pixels.
+; PLAN: r0=351(x), r1=114(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=319(x), r6=57(y), r7=37(width), r8=105(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 351
+LDI r1, 114
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 319
+LDI r6, 57
+LDI r7, 37
+LDI r8, 105
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
 HALT

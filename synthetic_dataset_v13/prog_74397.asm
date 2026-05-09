@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a red circular shape at (311, 72) with radius 48.
-; PLAN: r0=311(x), r1=72(y), r2=48(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 311
-LDI r1, 72
-LDI r2, 48
-LDI r3, 0xFF0000
+; DESCRIPTION: Places a magenta circle of radius 32 at center (285, 124).
+; PLAN: r0=285(x), r1=124(y), r2=32(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 285
+LDI r1, 124
+LDI r2, 32
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

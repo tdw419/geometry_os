@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (235, 52) then Draws a cyan circle centered at (407, 162) with radius 25.
-; PLAN: r0=235(x), r1=52(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=407(x), r6=162(y), r7=25(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 235
-LDI r1, 52
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 407
-LDI r6, 162
-LDI r7, 25
-LDI r8, 0x00FFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a blue rectangular region at (300, 65) spanning 34 by 100 pixels.
+; PLAN: r0=300(x), r1=65(y), r2=34(width), r3=100(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 300
+LDI r1, 65
+LDI r2, 34
+LDI r3, 100
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

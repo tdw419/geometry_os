@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a magenta line segment connecting (6, 22) to (423, 42).
-; PLAN: r0=6(x1), r1=22(y1), r2=423(x2), r3=42(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 6
-LDI r1, 22
-LDI r2, 423
-LDI r3, 42
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (405, 57) then Draws a white circle centered at (247, 119) with radius 55.
+; PLAN: r0=405(x), r1=57(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=247(x), r6=119(y), r7=55(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 405
+LDI r1, 57
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 247
+LDI r6, 119
+LDI r7, 55
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

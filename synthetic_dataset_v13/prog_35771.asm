@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (85, 21).
-; PLAN: r0=85(x), r1=21(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 85
-LDI r1, 21
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Places a magenta line segment connecting (305, 189) to (442, 220).
+; PLAN: r0=305(x1), r1=189(y1), r2=442(x2), r3=220(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 305
+LDI r1, 189
+LDI r2, 442
+LDI r3, 220
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

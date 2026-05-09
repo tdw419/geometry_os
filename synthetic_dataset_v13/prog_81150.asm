@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (411, 122) with radius 15.
-; PLAN: r0=411(x), r1=122(y), r2=15(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 411
-LDI r1, 122
-LDI r2, 15
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (217, 29) with width 18 and height 81.
+; PLAN: r0=217(x), r1=29(y), r2=18(width), r3=81(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 217
+LDI r1, 29
+LDI r2, 18
+LDI r3, 81
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

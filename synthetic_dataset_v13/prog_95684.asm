@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a purple 97x63 rectangle at position (393, 46).
-; PLAN: r0=393(x), r1=46(y), r2=97(width), r3=63(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 393
-LDI r1, 46
-LDI r2, 97
-LDI r3, 63
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (448, 38).
+; PLAN: r0=448(x), r1=38(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 448
+LDI r1, 38
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

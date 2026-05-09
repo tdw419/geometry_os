@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (460, 118) with radius 23.
-; PLAN: r0=460(x), r1=118(y), r2=23(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 460
-LDI r1, 118
-LDI r2, 23
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue 113x17 rectangle at position (247, 229).
+; PLAN: r0=247(x), r1=229(y), r2=113(width), r3=17(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 229
+LDI r2, 113
+LDI r3, 17
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

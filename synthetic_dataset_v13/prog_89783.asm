@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow rectangle at (389, 145) with width 109 and height 90.
-; PLAN: r0=389(x), r1=145(y), r2=109(width), r3=90(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 389
-LDI r1, 145
-LDI r2, 109
-LDI r3, 90
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (456, 183) and radius 24.
+; PLAN: r0=456(x), r1=183(y), r2=24(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 456
+LDI r1, 183
+LDI r2, 24
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

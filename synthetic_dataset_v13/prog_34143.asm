@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (378, 214) to (119, 30).
-; PLAN: r0=378(x1), r1=214(y1), r2=119(x2), r3=30(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 378
-LDI r1, 214
-LDI r2, 119
-LDI r3, 30
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a green line from (54, 150) to (469, 229).
+; PLAN: r0=54(x1), r1=150(y1), r2=469(x2), r3=229(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 54
+LDI r1, 150
+LDI r2, 469
+LDI r3, 229
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

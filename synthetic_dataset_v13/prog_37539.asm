@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a red circular shape at (402, 164) with radius 53.
-; PLAN: r0=402(x), r1=164(y), r2=53(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 402
-LDI r1, 164
-LDI r2, 53
-LDI r3, 0xFF0000
+; DESCRIPTION: Renders a white disk with center (239, 158) and radius 29.
+; PLAN: r0=239(x), r1=158(y), r2=29(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 239
+LDI r1, 158
+LDI r2, 29
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

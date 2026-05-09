@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a red circle of radius 24 at center (69, 85).
-; PLAN: r0=69(x), r1=85(y), r2=24(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 69
-LDI r1, 85
-LDI r2, 24
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (154, 115).
+; PLAN: r0=154(x), r1=115(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 154
+LDI r1, 115
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single white pixel at (87, 58) then Creates a yellow circular shape at (167, 66) with radius 63.
-; PLAN: r0=87(x), r1=58(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=167(x), r6=66(y), r7=63(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 87
-LDI r1, 58
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 167
-LDI r6, 66
-LDI r7, 63
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a blue rectangle at (395, 107) with width 60 and height 68.
+; PLAN: r0=395(x), r1=107(y), r2=60(width), r3=68(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 395
+LDI r1, 107
+LDI r2, 60
+LDI r3, 68
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

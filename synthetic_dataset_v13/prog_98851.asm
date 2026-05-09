@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a orange dot at position (124, 79).
-; PLAN: r0=124(x), r1=79(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
-LDI r0, 124
-LDI r1, 79
-LDI r2, 0xFF8800
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow 12x12 rectangle at position (94, 92).
+; PLAN: r0=94(x), r1=92(y), r2=12(width), r3=12(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 94
+LDI r1, 92
+LDI r2, 12
+LDI r3, 12
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

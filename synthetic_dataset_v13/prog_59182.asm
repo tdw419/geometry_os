@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a green box of size 31x27 starting at (39, 39).
-; PLAN: r0=39(x), r1=39(y), r2=31(width), r3=27(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 39
-LDI r1, 39
-LDI r2, 31
-LDI r3, 27
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (49, 141).
+; PLAN: r0=49(x), r1=141(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 49
+LDI r1, 141
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

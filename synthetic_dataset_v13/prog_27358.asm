@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 11x120 rectangle at position (137, 136).
-; PLAN: r0=137(x), r1=136(y), r2=11(width), r3=120(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 137
-LDI r1, 136
-LDI r2, 11
-LDI r3, 120
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (491, 154) and (454, 196).
+; PLAN: r0=491(x1), r1=154(y1), r2=454(x2), r3=196(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 491
+LDI r1, 154
+LDI r2, 454
+LDI r3, 196
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

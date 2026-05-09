@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (51, 148) with radius 46.
-; PLAN: r0=51(x), r1=148(y), r2=46(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 51
-LDI r1, 148
-LDI r2, 46
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow line between points (392, 105) and (476, 11).
+; PLAN: r0=392(x1), r1=105(y1), r2=476(x2), r3=11(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 392
+LDI r1, 105
+LDI r2, 476
+LDI r3, 11
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

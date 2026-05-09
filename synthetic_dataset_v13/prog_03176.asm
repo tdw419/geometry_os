@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (500, 75) then Draws a magenta rectangle at (132, 138) with width 11 and height 37.
-; PLAN: r0=500(x), r1=75(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=132(x), r6=138(y), r7=11(width), r8=37(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 500
-LDI r1, 75
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 132
-LDI r6, 138
-LDI r7, 11
-LDI r8, 37
-LDI r9, 0xFF00FF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a cyan line from (49, 19) to (275, 35) then Renders a red disk with center (428, 66) and radius 57.
+; PLAN: r0=49(x1), r1=19(y1), r2=275(x2), r3=35(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=428(x), r6=66(y), r7=57(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 49
+LDI r1, 19
+LDI r2, 275
+LDI r3, 35
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 428
+LDI r6, 66
+LDI r7, 57
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

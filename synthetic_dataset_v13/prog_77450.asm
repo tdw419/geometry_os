@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (356, 195) with radius 51.
-; PLAN: r0=356(x), r1=195(y), r2=51(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 356
-LDI r1, 195
-LDI r2, 51
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red rectangle at (41, 105) with width 90 and height 53.
+; PLAN: r0=41(x), r1=105(y), r2=90(width), r3=53(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 41
+LDI r1, 105
+LDI r2, 90
+LDI r3, 53
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

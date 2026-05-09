@@ -1,9 +1,14 @@
-; DESCRIPTION: Draws a black rectangle at (169, 76) with width 31 and height 49.
-; PLAN: r0=169(x), r1=76(y), r2=31(width), r3=49(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 169
-LDI r1, 76
-LDI r2, 31
-LDI r3, 49
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a green circle centered at (238, 200) with radius 50 then Places a green line segment connecting (497, 126) to (352, 250).
+; PLAN: r0=238(x), r1=200(y), r2=50(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=497(x1), r6=126(y1), r7=352(x2), r8=250(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 238
+LDI r1, 200
+LDI r2, 50
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 497
+LDI r6, 126
+LDI r7, 352
+LDI r8, 250
+LDI r9, 0x00FF00
+LINE r5, r6, r7, r8, r9
 HALT

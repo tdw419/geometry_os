@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 72 at center (357, 81).
-; PLAN: r0=357(x), r1=81(y), r2=72(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 357
-LDI r1, 81
-LDI r2, 72
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (171, 160) spanning 91 by 51 pixels.
+; PLAN: r0=171(x), r1=160(y), r2=91(width), r3=51(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 171
+LDI r1, 160
+LDI r2, 91
+LDI r3, 51
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

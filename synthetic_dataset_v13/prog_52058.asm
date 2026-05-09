@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 116x78 starting at (30, 148).
-; PLAN: r0=30(x), r1=148(y), r2=116(width), r3=78(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 30
-LDI r1, 148
-LDI r2, 116
-LDI r3, 78
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a blue box of size 38x42 starting at (201, 196).
+; PLAN: r0=201(x), r1=196(y), r2=38(width), r3=42(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 201
+LDI r1, 196
+LDI r2, 38
+LDI r3, 42
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

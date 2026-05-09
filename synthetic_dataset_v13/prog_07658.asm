@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a white line from (165, 233) to (222, 249).
-; PLAN: r0=165(x1), r1=233(y1), r2=222(x2), r3=249(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 165
-LDI r1, 233
-LDI r2, 222
-LDI r3, 249
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (502, 154) then Places a yellow line segment connecting (419, 224) to (409, 201).
+; PLAN: r0=502(x), r1=154(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=419(x1), r6=224(y1), r7=409(x2), r8=201(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 502
+LDI r1, 154
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 419
+LDI r6, 224
+LDI r7, 409
+LDI r8, 201
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

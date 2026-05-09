@@ -1,18 +1,12 @@
-; DESCRIPTION: Composite: Renders a magenta box of size 100x33 starting at (337, 97) then Creates a yellow circular shape at (271, 193) with radius 53 then Places a cyan dot at position (337, 95).
-; PLAN: r0=337(x), r1=97(y), r2=100(width), r3=33(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=271(x), r6=193(y), r7=53(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=337(x), r11=95(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
-LDI r0, 337
-LDI r1, 97
-LDI r2, 100
-LDI r3, 33
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 271
-LDI r6, 193
-LDI r7, 53
-LDI r8, 0xFFFF00
+; DESCRIPTION: Composite: Places a orange dot at position (319, 37) then Renders a cyan disk with center (67, 147) and radius 21.
+; PLAN: r0=319(x), r1=37(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=67(x), r6=147(y), r7=21(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 319
+LDI r1, 37
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 67
+LDI r6, 147
+LDI r7, 21
+LDI r8, 0x00FFFF
 CIRCLE r5, r6, r7, r8
-LDI r10, 337
-LDI r11, 95
-LDI r12, 0x00FFFF
-PSET r10, r11, r12
 HALT

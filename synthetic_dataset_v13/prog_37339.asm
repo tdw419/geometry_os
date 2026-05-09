@@ -1,18 +1,20 @@
-; DESCRIPTION: Composite: Renders a yellow box of size 103x119 starting at (233, 129) then Places a green dot at position (257, 35) then Creates a white circular shape at (182, 67) with radius 59.
-; PLAN: r0=233(x), r1=129(y), r2=103(width), r3=119(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=257(x), r6=35(y), r7=0x00FF00(color). Op: PSET r5, r6, r7 Next: r10=182(x), r11=67(y), r12=59(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 233
-LDI r1, 129
-LDI r2, 103
-LDI r3, 119
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 257
-LDI r6, 35
-LDI r7, 0x00FF00
-PSET r5, r6, r7
-LDI r10, 182
-LDI r11, 67
-LDI r12, 59
-LDI r13, 0xFFFFFF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Draws a blue circle centered at (88, 87) with radius 31 then Draws a blue rectangle at (147, 2) with width 13 and height 39 then Renders a orange line between points (192, 61) and (94, 74).
+; PLAN: r0=88(x), r1=87(y), r2=31(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=147(x), r6=2(y), r7=13(width), r8=39(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=192(x1), r11=61(y1), r12=94(x2), r13=74(y2), r14=0xFF8800(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 88
+LDI r1, 87
+LDI r2, 31
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 147
+LDI r6, 2
+LDI r7, 13
+LDI r8, 39
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 192
+LDI r11, 61
+LDI r12, 94
+LDI r13, 74
+LDI r14, 0xFF8800
+LINE r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 20x99 starting at (47, 8).
-; PLAN: r0=47(x), r1=8(y), r2=20(width), r3=99(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 47
-LDI r1, 8
-LDI r2, 20
-LDI r3, 99
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a orange 65x38 rectangle at position (220, 69).
+; PLAN: r0=220(x), r1=69(y), r2=65(width), r3=38(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 69
+LDI r2, 65
+LDI r3, 38
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

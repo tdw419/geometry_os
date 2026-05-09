@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a red disk with center (300, 103) and radius 76.
-; PLAN: r0=300(x), r1=103(y), r2=76(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 300
-LDI r1, 103
-LDI r2, 76
-LDI r3, 0xFF0000
+; DESCRIPTION: Renders a white disk with center (470, 185) and radius 30.
+; PLAN: r0=470(x), r1=185(y), r2=30(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 470
+LDI r1, 185
+LDI r2, 30
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

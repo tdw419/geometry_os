@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (49, 165) and (298, 5).
-; PLAN: r0=49(x1), r1=165(y1), r2=298(x2), r3=5(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 165
-LDI r2, 298
-LDI r3, 5
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (13, 146) with width 15 and height 23.
+; PLAN: r0=13(x), r1=146(y), r2=15(width), r3=23(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 13
+LDI r1, 146
+LDI r2, 15
+LDI r3, 23
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

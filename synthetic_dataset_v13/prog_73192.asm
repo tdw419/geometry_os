@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 96x117 rectangle at position (247, 13).
-; PLAN: r0=247(x), r1=13(y), r2=96(width), r3=117(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 247
-LDI r1, 13
-LDI r2, 96
-LDI r3, 117
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (172, 48) with radius 48.
+; PLAN: r0=172(x), r1=48(y), r2=48(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 172
+LDI r1, 48
+LDI r2, 48
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

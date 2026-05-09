@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (12, 165) to (155, 153).
-; PLAN: r0=12(x1), r1=165(y1), r2=155(x2), r3=153(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 12
-LDI r1, 165
-LDI r2, 155
-LDI r3, 153
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta 32x40 rectangle at position (426, 206).
+; PLAN: r0=426(x), r1=206(y), r2=32(width), r3=40(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 426
+LDI r1, 206
+LDI r2, 32
+LDI r3, 40
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

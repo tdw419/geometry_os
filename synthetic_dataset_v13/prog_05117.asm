@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a blue line between points (337, 215) and (330, 100).
-; PLAN: r0=337(x1), r1=215(y1), r2=330(x2), r3=100(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 337
-LDI r1, 215
-LDI r2, 330
-LDI r3, 100
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (464, 1) then Places a green 87x11 rectangle at position (287, 43).
+; PLAN: r0=464(x), r1=1(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=287(x), r6=43(y), r7=87(width), r8=11(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 464
+LDI r1, 1
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 287
+LDI r6, 43
+LDI r7, 87
+LDI r8, 11
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

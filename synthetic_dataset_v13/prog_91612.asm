@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (30, 17) to (11, 254).
-; PLAN: r0=30(x1), r1=17(y1), r2=11(x2), r3=254(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 30
-LDI r1, 17
-LDI r2, 11
-LDI r3, 254
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (364, 200) with radius 20.
+; PLAN: r0=364(x), r1=200(y), r2=20(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 364
+LDI r1, 200
+LDI r2, 20
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

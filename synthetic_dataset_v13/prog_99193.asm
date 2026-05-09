@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white line segment connecting (369, 112) to (398, 186).
-; PLAN: r0=369(x1), r1=112(y1), r2=398(x2), r3=186(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 369
-LDI r1, 112
-LDI r2, 398
-LDI r3, 186
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow dot at position (27, 185).
+; PLAN: r0=27(x), r1=185(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 27
+LDI r1, 185
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

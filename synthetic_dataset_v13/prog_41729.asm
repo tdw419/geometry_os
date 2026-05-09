@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red rectangle at (314, 85) with width 80 and height 101.
-; PLAN: r0=314(x), r1=85(y), r2=80(width), r3=101(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 314
-LDI r1, 85
-LDI r2, 80
-LDI r3, 101
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 5 into r1 and decrements it in a loop until zero.
+; PLAN: r1=5(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 5
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

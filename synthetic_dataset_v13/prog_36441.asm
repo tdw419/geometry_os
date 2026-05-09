@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 92x18 rectangle at position (412, 200).
-; PLAN: r0=412(x), r1=200(y), r2=92(width), r3=18(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 412
-LDI r1, 200
-LDI r2, 92
-LDI r3, 18
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (408, 90) with radius 10.
+; PLAN: r0=408(x), r1=90(y), r2=10(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 408
+LDI r1, 90
+LDI r2, 10
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

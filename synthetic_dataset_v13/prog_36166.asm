@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (439, 251) to (8, 173).
-; PLAN: r0=439(x1), r1=251(y1), r2=8(x2), r3=173(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 439
-LDI r1, 251
-LDI r2, 8
-LDI r3, 173
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white 96x22 rectangle at position (292, 127).
+; PLAN: r0=292(x), r1=127(y), r2=96(width), r3=22(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 292
+LDI r1, 127
+LDI r2, 96
+LDI r3, 22
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

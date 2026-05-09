@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a yellow disk with center (393, 50) and radius 25.
-; PLAN: r0=393(x), r1=50(y), r2=25(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 393
-LDI r1, 50
-LDI r2, 25
-LDI r3, 0xFFFF00
+; DESCRIPTION: Draws a purple circle centered at (270, 120) with radius 69.
+; PLAN: r0=270(x), r1=120(y), r2=69(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 270
+LDI r1, 120
+LDI r2, 69
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

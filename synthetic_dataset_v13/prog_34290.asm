@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (171, 201) to (196, 26).
-; PLAN: r0=171(x1), r1=201(y1), r2=196(x2), r3=26(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 171
-LDI r1, 201
-LDI r2, 196
-LDI r3, 26
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple rectangle at (44, 35) with width 81 and height 103.
+; PLAN: r0=44(x), r1=35(y), r2=81(width), r3=103(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 35
+LDI r2, 81
+LDI r3, 103
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

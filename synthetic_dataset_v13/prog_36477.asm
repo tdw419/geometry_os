@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a cyan box of size 70x37 starting at (313, 200).
-; PLAN: r0=313(x), r1=200(y), r2=70(width), r3=37(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 313
-LDI r1, 200
-LDI r2, 70
-LDI r3, 37
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

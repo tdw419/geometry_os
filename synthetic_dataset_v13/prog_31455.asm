@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a yellow circular shape at (150, 81) with radius 68.
-; PLAN: r0=150(x), r1=81(y), r2=68(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 150
-LDI r1, 81
-LDI r2, 68
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (88, 222) to (125, 216).
+; PLAN: r0=88(x1), r1=222(y1), r2=125(x2), r3=216(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 88
+LDI r1, 222
+LDI r2, 125
+LDI r3, 216
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

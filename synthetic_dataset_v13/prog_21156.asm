@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (175, 20) with width 72 and height 77.
-; PLAN: r0=175(x), r1=20(y), r2=72(width), r3=77(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 175
-LDI r1, 20
-LDI r2, 72
-LDI r3, 77
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (500, 67) and (350, 81).
+; PLAN: r0=500(x1), r1=67(y1), r2=350(x2), r3=81(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 500
+LDI r1, 67
+LDI r2, 350
+LDI r3, 81
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

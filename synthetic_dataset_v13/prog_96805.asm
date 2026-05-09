@@ -1,12 +1,18 @@
-; DESCRIPTION: Composite: Draws a white circle centered at (166, 106) with radius 24 then Sets a single green pixel at (294, 253).
-; PLAN: r0=166(x), r1=106(y), r2=24(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=294(x), r6=253(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 166
-LDI r1, 106
-LDI r2, 24
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 294
-LDI r6, 253
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single yellow pixel at (494, 207) then Renders a white line between points (228, 27) and (13, 29) then Creates a white circular shape at (362, 155) with radius 36.
+; PLAN: r0=494(x), r1=207(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=228(x1), r6=27(y1), r7=13(x2), r8=29(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=362(x), r11=155(y), r12=36(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 494
+LDI r1, 207
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 228
+LDI r6, 27
+LDI r7, 13
+LDI r8, 29
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
+LDI r10, 362
+LDI r11, 155
+LDI r12, 36
+LDI r13, 0xFFFFFF
+CIRCLE r10, r11, r12, r13
 HALT

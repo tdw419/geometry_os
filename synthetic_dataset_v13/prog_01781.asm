@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a black circle of radius 25 at center (220, 194).
-; PLAN: r0=220(x), r1=194(y), r2=25(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 220
-LDI r1, 194
-LDI r2, 25
-LDI r3, 0x000000
+; DESCRIPTION: Creates a cyan circular shape at (313, 63) with radius 21.
+; PLAN: r0=313(x), r1=63(y), r2=21(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 313
+LDI r1, 63
+LDI r2, 21
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

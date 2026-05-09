@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 42 at center (439, 190).
-; PLAN: r0=439(x), r1=190(y), r2=42(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 439
-LDI r1, 190
-LDI r2, 42
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a white line segment connecting (242, 235) to (476, 246).
+; PLAN: r0=242(x1), r1=235(y1), r2=476(x2), r3=246(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 242
+LDI r1, 235
+LDI r2, 476
+LDI r3, 246
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple box of size 38x62 starting at (74, 91).
-; PLAN: r0=74(x), r1=91(y), r2=38(width), r3=62(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 74
-LDI r1, 91
-LDI r2, 38
-LDI r3, 62
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a green rectangle at (248, 10) with width 117 and height 80.
+; PLAN: r0=248(x), r1=10(y), r2=117(width), r3=80(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 248
+LDI r1, 10
+LDI r2, 117
+LDI r3, 80
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (403, 176) with radius 48.
-; PLAN: r0=403(x), r1=176(y), r2=48(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 403
-LDI r1, 176
-LDI r2, 48
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 19x112 rectangle at position (87, 5).
+; PLAN: r0=87(x), r1=5(y), r2=19(width), r3=112(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 87
+LDI r1, 5
+LDI r2, 19
+LDI r3, 112
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (37, 193) then Places a yellow line segment connecting (170, 21) to (2, 177).
-; PLAN: r0=37(x), r1=193(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=170(x1), r6=21(y1), r7=2(x2), r8=177(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 37
-LDI r1, 193
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 170
-LDI r6, 21
-LDI r7, 2
-LDI r8, 177
-LDI r9, 0xFFFF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a cyan line between points (111, 207) and (466, 175).
+; PLAN: r0=111(x1), r1=207(y1), r2=466(x2), r3=175(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 111
+LDI r1, 207
+LDI r2, 466
+LDI r3, 175
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

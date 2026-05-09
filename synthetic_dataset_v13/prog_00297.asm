@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Draws a purple rectangle at (300, 166) with width 116 and height 35.
+; PLAN: r0=300(x), r1=166(y), r2=116(width), r3=35(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 300
+LDI r1, 166
+LDI r2, 116
+LDI r3, 35
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (324, 235) with radius 19.
-; PLAN: r0=324(x), r1=235(y), r2=19(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 324
-LDI r1, 235
-LDI r2, 19
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange line segment connecting (357, 114) to (357, 216).
+; PLAN: r0=357(x1), r1=114(y1), r2=357(x2), r3=216(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 114
+LDI r2, 357
+LDI r3, 216
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

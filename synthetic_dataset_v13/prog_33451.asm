@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a magenta line from (503, 183) to (470, 12).
-; PLAN: r0=503(x1), r1=183(y1), r2=470(x2), r3=12(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 503
-LDI r1, 183
-LDI r2, 470
-LDI r3, 12
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow 97x65 rectangle at position (166, 116) then Places a red dot at position (314, 233).
+; PLAN: r0=166(x), r1=116(y), r2=97(width), r3=65(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=314(x), r6=233(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 166
+LDI r1, 116
+LDI r2, 97
+LDI r3, 65
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 314
+LDI r6, 233
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

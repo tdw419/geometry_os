@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a orange rectangular region at (301, 148) spanning 84 by 105 pixels.
-; PLAN: r0=301(x), r1=148(y), r2=84(width), r3=105(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 301
-LDI r1, 148
-LDI r2, 84
-LDI r3, 105
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a white line between points (389, 92) and (266, 18) then Sets a single magenta pixel at (60, 183).
+; PLAN: r0=389(x1), r1=92(y1), r2=266(x2), r3=18(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=60(x), r6=183(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 389
+LDI r1, 92
+LDI r2, 266
+LDI r3, 18
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 60
+LDI r6, 183
+LDI r7, 0xFF00FF
+PSET r5, r6, r7
 HALT

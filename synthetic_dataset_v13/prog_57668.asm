@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a cyan disk with center (176, 171) and radius 22.
-; PLAN: r0=176(x), r1=171(y), r2=22(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 176
-LDI r1, 171
-LDI r2, 22
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid black.
+; PLAN: r0=0x000000(color). Op: FILL r0.
+LDI r0, 0x000000
+FILL r0
 HALT

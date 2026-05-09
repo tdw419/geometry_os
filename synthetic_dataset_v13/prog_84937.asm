@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a green circular shape at (401, 155) with radius 30.
-; PLAN: r0=401(x), r1=155(y), r2=30(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 401
-LDI r1, 155
-LDI r2, 30
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

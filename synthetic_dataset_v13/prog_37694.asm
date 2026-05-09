@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 12 at center (336, 226).
-; PLAN: r0=336(x), r1=226(y), r2=12(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 336
-LDI r1, 226
-LDI r2, 12
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 29x13 starting at (4, 26).
+; PLAN: r0=4(x), r1=26(y), r2=29(width), r3=13(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 4
+LDI r1, 26
+LDI r2, 29
+LDI r3, 13
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

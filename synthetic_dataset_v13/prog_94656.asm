@@ -1,13 +1,18 @@
-; DESCRIPTION: Composite: Places a green line segment connecting (199, 65) to (125, 122) then Sets a single orange pixel at (78, 33).
-; PLAN: r0=199(x1), r1=65(y1), r2=125(x2), r3=122(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=78(x), r6=33(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
-LDI r0, 199
-LDI r1, 65
-LDI r2, 125
-LDI r3, 122
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
-LDI r5, 78
-LDI r6, 33
+; DESCRIPTION: Composite: Creates a black circular shape at (374, 201) with radius 29 then Places a orange dot at position (132, 183) then Renders a green line between points (92, 39) and (78, 134).
+; PLAN: r0=374(x), r1=201(y), r2=29(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=132(x), r6=183(y), r7=0xFF8800(color). Op: PSET r5, r6, r7 Next: r10=92(x1), r11=39(y1), r12=78(x2), r13=134(y2), r14=0x00FF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 374
+LDI r1, 201
+LDI r2, 29
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 132
+LDI r6, 183
 LDI r7, 0xFF8800
 PSET r5, r6, r7
+LDI r10, 92
+LDI r11, 39
+LDI r12, 78
+LDI r13, 134
+LDI r14, 0x00FF00
+LINE r10, r11, r12, r13, r14
 HALT

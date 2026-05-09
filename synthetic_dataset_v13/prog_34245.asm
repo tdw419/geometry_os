@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (312, 157) with radius 27.
-; PLAN: r0=312(x), r1=157(y), r2=27(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 312
-LDI r1, 157
-LDI r2, 27
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (391, 141) to (477, 153).
+; PLAN: r0=391(x1), r1=141(y1), r2=477(x2), r3=153(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 391
+LDI r1, 141
+LDI r2, 477
+LDI r3, 153
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

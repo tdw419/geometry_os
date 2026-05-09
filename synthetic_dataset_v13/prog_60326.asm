@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (288, 157) with radius 77.
-; PLAN: r0=288(x), r1=157(y), r2=77(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 288
-LDI r1, 157
-LDI r2, 77
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green rectangle at (188, 25) with width 79 and height 46.
+; PLAN: r0=188(x), r1=25(y), r2=79(width), r3=46(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 188
+LDI r1, 25
+LDI r2, 79
+LDI r3, 46
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

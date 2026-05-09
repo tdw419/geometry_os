@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a red dot at position (473, 71).
-; PLAN: r0=473(x), r1=71(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 473
-LDI r1, 71
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a yellow rectangular region at (108, 122) spanning 88 by 113 pixels.
+; PLAN: r0=108(x), r1=122(y), r2=88(width), r3=113(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 108
+LDI r1, 122
+LDI r2, 88
+LDI r3, 113
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

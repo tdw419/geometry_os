@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a purple circular shape at (98, 63) with radius 17.
-; PLAN: r0=98(x), r1=63(y), r2=17(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 98
-LDI r1, 63
-LDI r2, 17
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Clears the screen to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

@@ -1,8 +1,12 @@
-; DESCRIPTION: Renders a red disk with center (449, 47) and radius 18.
-; PLAN: r0=449(x), r1=47(y), r2=18(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 449
-LDI r1, 47
-LDI r2, 18
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single black pixel at (319, 209) then Draws a blue circle centered at (373, 172) with radius 19.
+; PLAN: r0=319(x), r1=209(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=373(x), r6=172(y), r7=19(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 319
+LDI r1, 209
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 373
+LDI r6, 172
+LDI r7, 19
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

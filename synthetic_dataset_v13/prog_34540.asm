@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan line from (212, 211) to (102, 129).
-; PLAN: r0=212(x1), r1=211(y1), r2=102(x2), r3=129(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 212
-LDI r1, 211
-LDI r2, 102
-LDI r3, 129
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple circle of radius 27 at center (175, 141).
+; PLAN: r0=175(x), r1=141(y), r2=27(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 175
+LDI r1, 141
+LDI r2, 27
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

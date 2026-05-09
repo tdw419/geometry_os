@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a blue line between points (9, 162) and (56, 122).
-; PLAN: r0=9(x1), r1=162(y1), r2=56(x2), r3=122(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 9
-LDI r1, 162
-LDI r2, 56
-LDI r3, 122
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

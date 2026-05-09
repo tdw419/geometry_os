@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (229, 69) with width 86 and height 48.
-; PLAN: r0=229(x), r1=69(y), r2=86(width), r3=48(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 229
-LDI r1, 69
-LDI r2, 86
-LDI r3, 48
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a magenta rectangle at (311, 15) with width 60 and height 96.
+; PLAN: r0=311(x), r1=15(y), r2=60(width), r3=96(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 311
+LDI r1, 15
+LDI r2, 60
+LDI r3, 96
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

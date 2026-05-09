@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a orange circular shape at (221, 38) with radius 35.
-; PLAN: r0=221(x), r1=38(y), r2=35(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 221
-LDI r1, 38
-LDI r2, 35
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple line from (369, 84) to (460, 205).
+; PLAN: r0=369(x1), r1=84(y1), r2=460(x2), r3=205(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 369
+LDI r1, 84
+LDI r2, 460
+LDI r3, 205
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

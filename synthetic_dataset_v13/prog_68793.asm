@@ -1,8 +1,14 @@
-; DESCRIPTION: Places a magenta circle of radius 54 at center (223, 72).
-; PLAN: r0=223(x), r1=72(y), r2=54(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 223
-LDI r1, 72
-LDI r2, 54
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Draws a red rectangle at (281, 173) with width 44 and height 82 then Places a yellow circle of radius 78 at center (100, 86).
+; PLAN: r0=281(x), r1=173(y), r2=44(width), r3=82(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=100(x), r6=86(y), r7=78(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 281
+LDI r1, 173
+LDI r2, 44
+LDI r3, 82
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 100
+LDI r6, 86
+LDI r7, 78
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

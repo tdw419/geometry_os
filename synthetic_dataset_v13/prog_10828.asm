@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a black dot at position (110, 164).
-; PLAN: r0=110(x), r1=164(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 110
-LDI r1, 164
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

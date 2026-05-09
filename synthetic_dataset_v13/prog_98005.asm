@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (313, 90) to (436, 156).
-; PLAN: r0=313(x1), r1=90(y1), r2=436(x2), r3=156(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 313
-LDI r1, 90
-LDI r2, 436
-LDI r3, 156
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red 75x56 rectangle at position (322, 192).
+; PLAN: r0=322(x), r1=192(y), r2=75(width), r3=56(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 322
+LDI r1, 192
+LDI r2, 75
+LDI r3, 56
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

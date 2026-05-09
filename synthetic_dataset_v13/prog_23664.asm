@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 23x86 rectangle at position (381, 74).
-; PLAN: r0=381(x), r1=74(y), r2=23(width), r3=86(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 381
-LDI r1, 74
-LDI r2, 23
-LDI r3, 86
-LDI r4, 0x000000
+; DESCRIPTION: Places a white 43x18 rectangle at position (358, 166).
+; PLAN: r0=358(x), r1=166(y), r2=43(width), r3=18(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 358
+LDI r1, 166
+LDI r2, 43
+LDI r3, 18
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

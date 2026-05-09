@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 68x34 rectangle at position (6, 158).
-; PLAN: r0=6(x), r1=158(y), r2=68(width), r3=34(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 6
-LDI r1, 158
-LDI r2, 68
-LDI r3, 34
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (136, 234) and (252, 50).
+; PLAN: r0=136(x1), r1=234(y1), r2=252(x2), r3=50(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 136
+LDI r1, 234
+LDI r2, 252
+LDI r3, 50
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

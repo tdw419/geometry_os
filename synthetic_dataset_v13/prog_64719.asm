@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single black pixel at (210, 152).
-; PLAN: r0=210(x), r1=152(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 210
-LDI r1, 152
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to green.
+; PLAN: r0=0x00FF00(color). Op: FILL r0.
+LDI r0, 0x00FF00
+FILL r0
 HALT

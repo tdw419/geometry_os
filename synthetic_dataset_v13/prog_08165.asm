@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 39x68 rectangle at position (77, 79).
-; PLAN: r0=77(x), r1=79(y), r2=39(width), r3=68(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 77
-LDI r1, 79
-LDI r2, 39
-LDI r3, 68
-LDI r4, 0xFF8800
+; DESCRIPTION: Places a magenta 34x111 rectangle at position (275, 63).
+; PLAN: r0=275(x), r1=63(y), r2=34(width), r3=111(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 275
+LDI r1, 63
+LDI r2, 34
+LDI r3, 111
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

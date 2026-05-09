@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 66x89 rectangle at position (367, 19).
-; PLAN: r0=367(x), r1=19(y), r2=66(width), r3=89(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 367
-LDI r1, 19
-LDI r2, 66
-LDI r3, 89
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (270, 63) to (102, 183).
+; PLAN: r0=270(x1), r1=63(y1), r2=102(x2), r3=183(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 270
+LDI r1, 63
+LDI r2, 102
+LDI r3, 183
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

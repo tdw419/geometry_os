@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a cyan rectangle at (153, 67) with width 89 and height 49.
-; PLAN: r0=153(x), r1=67(y), r2=89(width), r3=49(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 153
-LDI r1, 67
-LDI r2, 89
-LDI r3, 49
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple disk with center (275, 92) and radius 71.
+; PLAN: r0=275(x), r1=92(y), r2=71(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 275
+LDI r1, 92
+LDI r2, 71
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

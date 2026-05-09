@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a orange rectangular region at (81, 41) spanning 86 by 73 pixels.
-; PLAN: r0=81(x), r1=41(y), r2=86(width), r3=73(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 81
-LDI r1, 41
-LDI r2, 86
-LDI r3, 73
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (292, 20) then Places a cyan circle of radius 53 at center (355, 89).
+; PLAN: r0=292(x), r1=20(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=355(x), r6=89(y), r7=53(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 292
+LDI r1, 20
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 355
+LDI r6, 89
+LDI r7, 53
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

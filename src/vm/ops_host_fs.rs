@@ -1524,4 +1524,478 @@ mod tests {
             "closing never-opened handle should return error"
         );
     }
+
+    // ── Sequential reads (file cursor advances) ─────────────────────
+
+    #[test]
+    fn fsread_sequential_reads_advance_cursor() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_sequential");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("sequential.txt");
+        std::fs::write(&path, "ABCDEFGHIJ").unwrap();
+
+        // Open for read
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+
+        // First read: 3 bytes -> "ABC"
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 3;
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fsread();
+        assert_eq!(vm.regs[0], 3);
+        assert_eq!(vm.ram[0x6000], b'A' as u32);
+        assert_eq!(vm.ram[0x6001], b'B' as u32);
+        assert_eq!(vm.ram[0x6002], b'C' as u32);
+
+        // Second read: 3 bytes -> "DEF" (cursor advanced past ABC)
+        vm.regs[9] = 3;
+        let pc3 = vm.pc as usize;
+        vm.ram[pc3] = 7;
+        vm.ram[pc3 + 1] = 8;
+        vm.ram[pc3 + 2] = 9;
+        vm.op_fsread();
+        assert_eq!(vm.regs[0], 3);
+        assert_eq!(vm.ram[0x6000], b'D' as u32);
+        assert_eq!(vm.ram[0x6001], b'E' as u32);
+        assert_eq!(vm.ram[0x6002], b'F' as u32);
+
+        // Third read: 10 bytes but only 4 remain -> "GHIJ"
+        vm.regs[9] = 10;
+        let pc4 = vm.pc as usize;
+        vm.ram[pc4] = 7;
+        vm.ram[pc4 + 1] = 8;
+        vm.ram[pc4 + 2] = 9;
+        vm.op_fsread();
+        assert_eq!(vm.regs[0], 4);
+        assert_eq!(vm.ram[0x6000], b'G' as u32);
+
+        // Fourth read: nothing left -> 0 bytes
+        vm.regs[9] = 10;
+        let pc5 = vm.pc as usize;
+        vm.ram[pc5] = 7;
+        vm.ram[pc5 + 1] = 8;
+        vm.ram[pc5 + 2] = 9;
+        vm.op_fsread();
+        assert_eq!(vm.regs[0], 0, "should read 0 bytes at EOF");
+
+        // Cleanup
+        vm.host_file_handles[handle] = None;
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── Binary data roundtrip (all byte values 0x00-0xFF) ───────────
+
+    #[test]
+    fn fs_roundtrip_binary_data_all_byte_values() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_binary");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("binary.bin");
+
+        // Write all 256 byte values
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 1; // write
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let write_handle = vm.regs[0] as usize;
+
+        for i in 0u32..256 {
+            vm.ram[0x6000 + i as usize] = i;
+        }
+        vm.regs[7] = write_handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 256;
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fswrite();
+        assert_eq!(vm.regs[0], 256);
+
+        // Close
+        vm.regs[10] = write_handle as u32;
+        let pc3 = vm.pc as usize;
+        vm.ram[pc3] = 10;
+        vm.op_fsclose();
+
+        // Reopen and read back
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0; // read
+        let pc4 = vm.pc as usize;
+        vm.ram[pc4] = 5;
+        vm.ram[pc4 + 1] = 6;
+        vm.op_fsopen();
+        let read_handle = vm.regs[0] as usize;
+
+        vm.regs[7] = read_handle as u32;
+        vm.regs[8] = 0x7000;
+        vm.regs[9] = 256;
+        let pc5 = vm.pc as usize;
+        vm.ram[pc5] = 7;
+        vm.ram[pc5 + 1] = 8;
+        vm.ram[pc5 + 2] = 9;
+        vm.op_fsread();
+        assert_eq!(vm.regs[0], 256);
+
+        // Verify all 256 bytes match
+        for i in 0u32..256 {
+            assert_eq!(vm.ram[0x7000 + i as usize], i, "byte {} mismatch", i);
+        }
+
+        // Cleanup
+        vm.host_file_handles[read_handle] = None;
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── Read+Write mode (mode=3) roundtrip ─────────────────────────
+
+    #[test]
+    fn fsopen_readwrite_mode_roundtrip() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_rw_roundtrip");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("rw.txt");
+
+        // Open in read+write mode (creates file)
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 3; // read+write
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+        assert_ne!(handle as u32, 0xFFFFFFFF, "RW open should succeed");
+
+        // Write "HELLO"
+        for (i, &b) in b"HELLO".iter().enumerate() {
+            vm.ram[0x6000 + i] = b as u32;
+        }
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 5;
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fswrite();
+        assert_eq!(vm.regs[0], 5);
+
+        // Seek back to start by closing and reopening
+        vm.regs[10] = handle as u32;
+        let pc3 = vm.pc as usize;
+        vm.ram[pc3] = 10;
+        vm.op_fsclose();
+
+        // Reopen in read mode
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0;
+        let pc4 = vm.pc as usize;
+        vm.ram[pc4] = 5;
+        vm.ram[pc4 + 1] = 6;
+        vm.op_fsopen();
+        let read_handle = vm.regs[0] as usize;
+
+        vm.regs[7] = read_handle as u32;
+        vm.regs[8] = 0x7000;
+        vm.regs[9] = 5;
+        let pc5 = vm.pc as usize;
+        vm.ram[pc5] = 7;
+        vm.ram[pc5 + 1] = 8;
+        vm.ram[pc5 + 2] = 9;
+        vm.op_fsread();
+        assert_eq!(vm.regs[0], 5);
+        assert_eq!(vm.ram[0x7000], b'H' as u32);
+        assert_eq!(vm.ram[0x7004], b'O' as u32);
+
+        // Cleanup
+        vm.host_file_handles[read_handle] = None;
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── Relative path resolution (relative to HOME) ────────────────
+
+    #[test]
+    fn fsopen_relative_path_resolves_from_home() {
+        let mut vm = new_vm();
+        let home = std::env::var("HOME").unwrap();
+        let dir = std::path::PathBuf::from(&home)
+            .join(".cache")
+            .join("geos_test_relative");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("rel.txt");
+        std::fs::write(&path, "relative").unwrap();
+
+        // Use a relative path from HOME: .cache/geos_test_relative/rel.txt
+        let rel_path = ".cache/geos_test_relative/rel.txt";
+        write_string(&mut vm.ram, 0x5000, rel_path);
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0; // read
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+
+        assert_ne!(vm.regs[0], 0xFFFFFFFF, "relative path should resolve");
+        let handle = vm.regs[0] as usize;
+
+        // Read to verify
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 8;
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fsread();
+        assert_eq!(vm.regs[0], 8, "should read 8 bytes");
+
+        // Verify content
+        let mut buf = Vec::new();
+        for i in 0..8 {
+            buf.push((vm.ram[0x6000 + i] & 0xFF) as u8);
+        }
+        assert_eq!(String::from_utf8_lossy(&buf), "relative");
+
+        // Cleanup
+        vm.host_file_handles[handle] = None;
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── Tilde expansion in FSOPEN ──────────────────────────────────
+
+    #[test]
+    fn fsopen_tilde_path_works() {
+        let mut vm = new_vm();
+        let home = std::env::var("HOME").unwrap();
+        let dir = std::path::PathBuf::from(&home)
+            .join(".cache")
+            .join("geos_test_tilde");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("tilde.txt");
+        std::fs::write(&path, "tilde").unwrap();
+
+        // Use ~/ path
+        let tilde_path = format!("~/.cache/geos_test_tilde/tilde.txt");
+        write_string(&mut vm.ram, 0x5000, &tilde_path);
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+
+        assert_ne!(vm.regs[0], 0xFFFFFFFF, "tilde path should work");
+        let handle = vm.regs[0] as usize;
+        vm.host_file_handles[handle] = None;
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── FSOPEN with path exceeding MAX_PATH_LEN ────────────────────
+
+    #[test]
+    fn fsopen_path_too_long_returns_error() {
+        let mut vm = new_vm();
+        // Create a path longer than 512 chars
+        let long_path = "a".repeat(600);
+        write_string(&mut vm.ram, 0x5000, &long_path);
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+
+        assert_eq!(vm.regs[0], 0xFFFFFFFF, "path > 512 chars should fail");
+    }
+
+    // ── Multiple sequential writes to same file ────────────────────
+
+    #[test]
+    fn fswrite_multiple_sequential_writes() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_multiwrite");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("multi.txt");
+
+        // Open for write
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 1;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+
+        // First write: "AB"
+        vm.ram[0x6000] = b'A' as u32;
+        vm.ram[0x6001] = b'B' as u32;
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 2;
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fswrite();
+        assert_eq!(vm.regs[0], 2);
+
+        // Second write: "CD"
+        vm.ram[0x6000] = b'C' as u32;
+        vm.ram[0x6001] = b'D' as u32;
+        vm.regs[9] = 2;
+        let pc3 = vm.pc as usize;
+        vm.ram[pc3] = 7;
+        vm.ram[pc3 + 1] = 8;
+        vm.ram[pc3 + 2] = 9;
+        vm.op_fswrite();
+        assert_eq!(vm.regs[0], 2);
+
+        // Close and verify
+        vm.host_file_handles[handle] = None;
+        let contents = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(contents, "ABCD", "sequential writes should concatenate");
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── FSLS with subdirectories ───────────────────────────────────
+
+    #[test]
+    fn fsls_lists_subdirectories() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_fsls_subdir");
+        let subdir = dir.join("subdir");
+        std::fs::create_dir_all(&subdir).unwrap();
+        std::fs::write(dir.join("file.txt"), "").unwrap();
+
+        write_string(&mut vm.ram, 0x5000, dir.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0x6000;
+        vm.regs[7] = 1024;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.ram[pc + 2] = 7;
+        vm.op_fsls();
+
+        assert_ne!(vm.regs[0], 0xFFFFFFFF);
+        let bytes_written = vm.regs[0] as usize;
+        let mut buf = Vec::new();
+        for i in 0..bytes_written {
+            buf.push((vm.ram[0x6000 + i] & 0xFF) as u8);
+        }
+        let listing = String::from_utf8_lossy(&buf);
+        assert!(
+            listing.contains("file.txt"),
+            "listing should contain 'file.txt', got: {:?}",
+            listing
+        );
+        assert!(
+            listing.contains("subdir"),
+            "listing should contain 'subdir', got: {:?}",
+            listing
+        );
+
+        let _ = std::fs::remove_file(dir.join("file.txt"));
+        let _ = std::fs::remove_dir(&subdir);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    // ── Zero-length read/write ─────────────────────────────────────
+
+    #[test]
+    fn fsread_zero_length_returns_zero() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_zeroread");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("zero.txt");
+        std::fs::write(&path, "data").unwrap();
+
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 0;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 0; // zero-length read
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fsread();
+
+        assert_eq!(vm.regs[0], 0, "zero-length read should return 0");
+
+        vm.host_file_handles[handle] = None;
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    #[test]
+    fn fswrite_zero_length_succeeds() {
+        let mut vm = new_vm();
+        let dir = test_dir("geos_test_zerowrite");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("zero.txt");
+
+        write_string(&mut vm.ram, 0x5000, path.to_str().unwrap());
+        vm.regs[5] = 0x5000;
+        vm.regs[6] = 1;
+        let pc = vm.pc as usize;
+        vm.ram[pc] = 5;
+        vm.ram[pc + 1] = 6;
+        vm.op_fsopen();
+        let handle = vm.regs[0] as usize;
+
+        vm.regs[7] = handle as u32;
+        vm.regs[8] = 0x6000;
+        vm.regs[9] = 0; // zero-length write
+        let pc2 = vm.pc as usize;
+        vm.ram[pc2] = 7;
+        vm.ram[pc2 + 1] = 8;
+        vm.ram[pc2 + 2] = 9;
+        vm.op_fswrite();
+
+        assert_eq!(vm.regs[0], 0, "zero-length write should return 0");
+
+        // File should exist but be empty
+        vm.host_file_handles[handle] = None;
+        let contents = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            contents.is_empty(),
+            "file should be empty after zero-length write"
+        );
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
 }

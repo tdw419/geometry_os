@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (396, 237) and radius 11.
-; PLAN: r0=396(x), r1=237(y), r2=11(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 396
-LDI r1, 237
-LDI r2, 11
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 97x50 rectangle at position (149, 33).
+; PLAN: r0=149(x), r1=33(y), r2=97(width), r3=50(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 149
+LDI r1, 33
+LDI r2, 97
+LDI r3, 50
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

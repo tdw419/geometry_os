@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green line from (441, 72) to (9, 236).
-; PLAN: r0=441(x1), r1=72(y1), r2=9(x2), r3=236(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 441
-LDI r1, 72
-LDI r2, 9
-LDI r3, 236
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (130, 208).
+; PLAN: r0=130(x), r1=208(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 130
+LDI r1, 208
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

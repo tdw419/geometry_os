@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a red line between points (203, 9) and (489, 249).
-; PLAN: r0=203(x1), r1=9(y1), r2=489(x2), r3=249(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 203
-LDI r1, 9
-LDI r2, 489
-LDI r3, 249
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (431, 234) then Renders a cyan disk with center (285, 163) and radius 80.
+; PLAN: r0=431(x), r1=234(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=285(x), r6=163(y), r7=80(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 431
+LDI r1, 234
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 285
+LDI r6, 163
+LDI r7, 80
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

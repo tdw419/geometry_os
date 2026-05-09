@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 51x83 starting at (152, 70).
-; PLAN: r0=152(x), r1=70(y), r2=51(width), r3=83(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 152
-LDI r1, 70
-LDI r2, 51
-LDI r3, 83
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (157, 113) and (372, 139).
+; PLAN: r0=157(x1), r1=113(y1), r2=372(x2), r3=139(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 157
+LDI r1, 113
+LDI r2, 372
+LDI r3, 139
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Creates a red circular shape at (166, 155) with radius 64 then Sets a single cyan pixel at (105, 102) then Draws a red line from (119, 179) to (222, 60).
-; PLAN: r0=166(x), r1=155(y), r2=64(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=105(x), r6=102(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7 Next: r10=119(x1), r11=179(y1), r12=222(x2), r13=60(y2), r14=0xFF0000(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 166
-LDI r1, 155
-LDI r2, 64
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 105
-LDI r6, 102
-LDI r7, 0x00FFFF
+; DESCRIPTION: Composite: Renders a white box of size 47x20 starting at (16, 157) then Places a green dot at position (66, 245).
+; PLAN: r0=16(x), r1=157(y), r2=47(width), r3=20(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=66(x), r6=245(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
+LDI r0, 16
+LDI r1, 157
+LDI r2, 47
+LDI r3, 20
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 66
+LDI r6, 245
+LDI r7, 0x00FF00
 PSET r5, r6, r7
-LDI r10, 119
-LDI r11, 179
-LDI r12, 222
-LDI r13, 60
-LDI r14, 0xFF0000
-LINE r10, r11, r12, r13, r14
 HALT

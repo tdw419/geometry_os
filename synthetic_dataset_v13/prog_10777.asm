@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (405, 67) with radius 24.
-; PLAN: r0=405(x), r1=67(y), r2=24(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 405
-LDI r1, 67
-LDI r2, 24
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta line from (261, 5) to (305, 60).
+; PLAN: r0=261(x1), r1=5(y1), r2=305(x2), r3=60(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 261
+LDI r1, 5
+LDI r2, 305
+LDI r3, 60
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

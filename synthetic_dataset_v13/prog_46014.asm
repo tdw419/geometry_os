@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (146, 188) with radius 67.
-; PLAN: r0=146(x), r1=188(y), r2=67(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 146
-LDI r1, 188
-LDI r2, 67
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (4, 31) spanning 89 by 35 pixels.
+; PLAN: r0=4(x), r1=31(y), r2=89(width), r3=35(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 4
+LDI r1, 31
+LDI r2, 89
+LDI r3, 35
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

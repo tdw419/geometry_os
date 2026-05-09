@@ -1,9 +1,15 @@
-; DESCRIPTION: Renders a magenta line between points (504, 29) and (190, 90).
-; PLAN: r0=504(x1), r1=29(y1), r2=190(x2), r3=90(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 504
-LDI r1, 29
-LDI r2, 190
-LDI r3, 90
-LDI r4, 0xFF00FF
+; DESCRIPTION: Composite: Draws a green line from (210, 6) to (50, 77) then Draws a purple rectangle at (395, 42) with width 16 and height 59.
+; PLAN: r0=210(x1), r1=6(y1), r2=50(x2), r3=77(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=395(x), r6=42(y), r7=16(width), r8=59(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 210
+LDI r1, 6
+LDI r2, 50
+LDI r3, 77
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
+LDI r5, 395
+LDI r6, 42
+LDI r7, 16
+LDI r8, 59
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

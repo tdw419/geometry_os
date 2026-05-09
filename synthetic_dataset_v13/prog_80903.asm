@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple box of size 81x109 starting at (405, 80).
-; PLAN: r0=405(x), r1=80(y), r2=81(width), r3=109(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 405
-LDI r1, 80
-LDI r2, 81
-LDI r3, 109
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (259, 115) and radius 67.
+; PLAN: r0=259(x), r1=115(y), r2=67(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 259
+LDI r1, 115
+LDI r2, 67
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

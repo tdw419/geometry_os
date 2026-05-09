@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a white circular shape at (414, 189) with radius 61.
-; PLAN: r0=414(x), r1=189(y), r2=61(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 414
-LDI r1, 189
-LDI r2, 61
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black dot at position (345, 164).
+; PLAN: r0=345(x), r1=164(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 345
+LDI r1, 164
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

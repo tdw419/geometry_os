@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (14, 63) then Renders a red line between points (173, 190) and (414, 80).
-; PLAN: r0=14(x), r1=63(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=173(x1), r6=190(y1), r7=414(x2), r8=80(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 14
-LDI r1, 63
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 173
-LDI r6, 190
-LDI r7, 414
-LDI r8, 80
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a black line segment connecting (405, 244) to (103, 153).
+; PLAN: r0=405(x1), r1=244(y1), r2=103(x2), r3=153(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 405
+LDI r1, 244
+LDI r2, 103
+LDI r3, 153
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

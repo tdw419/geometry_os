@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (253, 252) and (42, 145).
-; PLAN: r0=253(x1), r1=252(y1), r2=42(x2), r3=145(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 253
-LDI r1, 252
-LDI r2, 42
-LDI r3, 145
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (65, 96) with radius 46.
+; PLAN: r0=65(x), r1=96(y), r2=46(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 65
+LDI r1, 96
+LDI r2, 46
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

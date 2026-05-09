@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 28x58 rectangle at position (222, 31).
-; PLAN: r0=222(x), r1=31(y), r2=28(width), r3=58(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 222
-LDI r1, 31
-LDI r2, 28
-LDI r3, 58
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 37 into r1 and decrements it in a loop until zero.
+; PLAN: r1=37(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 37
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

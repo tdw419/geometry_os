@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white rectangle at (423, 23) with width 58 and height 112.
-; PLAN: r0=423(x), r1=23(y), r2=58(width), r3=112(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 423
-LDI r1, 23
-LDI r2, 58
-LDI r3, 112
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (187, 179) and radius 41.
+; PLAN: r0=187(x), r1=179(y), r2=41(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 187
+LDI r1, 179
+LDI r2, 41
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

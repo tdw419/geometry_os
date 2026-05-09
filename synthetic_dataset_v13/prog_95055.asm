@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a purple 80x34 rectangle at position (357, 101) then Sets a single yellow pixel at (18, 104).
-; PLAN: r0=357(x), r1=101(y), r2=80(width), r3=34(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=18(x), r6=104(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 357
-LDI r1, 101
-LDI r2, 80
-LDI r3, 34
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a green box of size 21x102 starting at (67, 119).
+; PLAN: r0=67(x), r1=119(y), r2=21(width), r3=102(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 67
+LDI r1, 119
+LDI r2, 21
+LDI r3, 102
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
-LDI r5, 18
-LDI r6, 104
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
 HALT

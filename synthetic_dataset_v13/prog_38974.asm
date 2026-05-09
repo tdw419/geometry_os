@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 33x68 rectangle at position (317, 40).
-; PLAN: r0=317(x), r1=40(y), r2=33(width), r3=68(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 317
-LDI r1, 40
-LDI r2, 33
-LDI r3, 68
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 78 at center (200, 148).
+; PLAN: r0=200(x), r1=148(y), r2=78(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 200
+LDI r1, 148
+LDI r2, 78
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

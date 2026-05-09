@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan rectangle at (179, 88) with width 102 and height 72.
-; PLAN: r0=179(x), r1=88(y), r2=102(width), r3=72(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 179
-LDI r1, 88
-LDI r2, 102
-LDI r3, 72
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (356, 133) to (239, 35).
+; PLAN: r0=356(x1), r1=133(y1), r2=239(x2), r3=35(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 356
+LDI r1, 133
+LDI r2, 239
+LDI r3, 35
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

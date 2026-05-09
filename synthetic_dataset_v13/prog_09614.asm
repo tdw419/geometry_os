@@ -1,12 +1,14 @@
-; DESCRIPTION: Composite: Draws a purple circle centered at (153, 181) with radius 65 then Sets a single green pixel at (247, 132).
-; PLAN: r0=153(x), r1=181(y), r2=65(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=247(x), r6=132(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 153
-LDI r1, 181
-LDI r2, 65
-LDI r3, 0xAA00FF
+; DESCRIPTION: Composite: Creates a green circular shape at (431, 109) with radius 11 then Creates a white rectangular region at (77, 53) spanning 28 by 31 pixels.
+; PLAN: r0=431(x), r1=109(y), r2=11(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=77(x), r6=53(y), r7=28(width), r8=31(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 431
+LDI r1, 109
+LDI r2, 11
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
-LDI r5, 247
-LDI r6, 132
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+LDI r5, 77
+LDI r6, 53
+LDI r7, 28
+LDI r8, 31
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

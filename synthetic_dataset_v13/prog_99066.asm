@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 34x86 rectangle at position (362, 73).
-; PLAN: r0=362(x), r1=73(y), r2=34(width), r3=86(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 362
-LDI r1, 73
-LDI r2, 34
-LDI r3, 86
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (58, 193) and (479, 195).
+; PLAN: r0=58(x1), r1=193(y1), r2=479(x2), r3=195(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 58
+LDI r1, 193
+LDI r2, 479
+LDI r3, 195
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

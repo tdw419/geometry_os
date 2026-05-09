@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a purple dot at position (419, 44) then Places a white 85x84 rectangle at position (287, 52).
-; PLAN: r0=419(x), r1=44(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=287(x), r6=52(y), r7=85(width), r8=84(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 419
-LDI r1, 44
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 287
-LDI r6, 52
-LDI r7, 85
-LDI r8, 84
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a purple line between points (302, 132) and (265, 88).
+; PLAN: r0=302(x1), r1=132(y1), r2=265(x2), r3=88(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 302
+LDI r1, 132
+LDI r2, 265
+LDI r3, 88
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red rectangle at (59, 82) with width 76 and height 98.
-; PLAN: r0=59(x), r1=82(y), r2=76(width), r3=98(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 59
-LDI r1, 82
-LDI r2, 76
-LDI r3, 98
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black line from (208, 235) to (418, 193).
+; PLAN: r0=208(x1), r1=235(y1), r2=418(x2), r3=193(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 208
+LDI r1, 235
+LDI r2, 418
+LDI r3, 193
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

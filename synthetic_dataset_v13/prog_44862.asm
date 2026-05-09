@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white rectangle at (251, 215) with width 34 and height 13.
-; PLAN: r0=251(x), r1=215(y), r2=34(width), r3=13(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 251
-LDI r1, 215
-LDI r2, 34
-LDI r3, 13
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (112, 91) to (370, 58).
+; PLAN: r0=112(x1), r1=91(y1), r2=370(x2), r3=58(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 112
+LDI r1, 91
+LDI r2, 370
+LDI r3, 58
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

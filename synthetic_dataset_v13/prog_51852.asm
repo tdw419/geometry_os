@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Sets a single black pixel at (196, 30) then Draws a white rectangle at (162, 231) with width 65 and height 19.
-; PLAN: r0=196(x), r1=30(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=162(x), r6=231(y), r7=65(width), r8=19(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 196
-LDI r1, 30
-LDI r2, 0x000000
-PSET r0, r1, r2
-LDI r5, 162
-LDI r6, 231
-LDI r7, 65
-LDI r8, 19
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a red 92x51 rectangle at position (240, 71) then Sets a single red pixel at (410, 173).
+; PLAN: r0=240(x), r1=71(y), r2=92(width), r3=51(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=410(x), r6=173(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 240
+LDI r1, 71
+LDI r2, 92
+LDI r3, 51
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 410
+LDI r6, 173
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

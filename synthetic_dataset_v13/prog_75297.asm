@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 26x99 rectangle at position (122, 59).
-; PLAN: r0=122(x), r1=59(y), r2=26(width), r3=99(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 122
-LDI r1, 59
-LDI r2, 26
-LDI r3, 99
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (374, 86) and radius 76.
+; PLAN: r0=374(x), r1=86(y), r2=76(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 374
+LDI r1, 86
+LDI r2, 76
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (416, 136) with radius 47.
-; PLAN: r0=416(x), r1=136(y), r2=47(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 416
-LDI r1, 136
-LDI r2, 47
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 39x98 rectangle at position (450, 129).
+; PLAN: r0=450(x), r1=129(y), r2=39(width), r3=98(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 450
+LDI r1, 129
+LDI r2, 39
+LDI r3, 98
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

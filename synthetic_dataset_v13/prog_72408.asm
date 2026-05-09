@@ -1,19 +1,15 @@
-; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
-LDI r7, 0xFFFFFF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Creates a magenta rectangular region at (111, 38) spanning 85 by 92 pixels then Draws a magenta line from (297, 235) to (409, 33).
+; PLAN: r0=111(x), r1=38(y), r2=85(width), r3=92(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=297(x1), r6=235(y1), r7=409(x2), r8=33(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 111
+LDI r1, 38
+LDI r2, 85
+LDI r3, 92
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 297
+LDI r6, 235
+LDI r7, 409
+LDI r8, 33
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red line between points (305, 80) and (206, 111).
-; PLAN: r0=305(x1), r1=80(y1), r2=206(x2), r3=111(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 305
-LDI r1, 80
-LDI r2, 206
-LDI r3, 111
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (319, 184) with radius 58.
+; PLAN: r0=319(x), r1=184(y), r2=58(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 319
+LDI r1, 184
+LDI r2, 58
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (402, 167) and radius 70.
-; PLAN: r0=402(x), r1=167(y), r2=70(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 402
-LDI r1, 167
-LDI r2, 70
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta line between points (60, 204) and (213, 2).
+; PLAN: r0=60(x1), r1=204(y1), r2=213(x2), r3=2(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 60
+LDI r1, 204
+LDI r2, 213
+LDI r3, 2
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

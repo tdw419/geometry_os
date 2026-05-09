@@ -1,8 +1,12 @@
-; DESCRIPTION: Loads 39 into r1 and decrements it in a loop until zero.
-; PLAN: r1=39(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 39
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Draws a magenta circle centered at (292, 176) with radius 46 then Places a red dot at position (402, 238).
+; PLAN: r0=292(x), r1=176(y), r2=46(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=402(x), r6=238(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 292
+LDI r1, 176
+LDI r2, 46
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 402
+LDI r6, 238
+LDI r7, 0xFF0000
+PSET r5, r6, r7
 HALT

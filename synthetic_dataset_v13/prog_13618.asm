@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 82x29 rectangle at position (258, 143).
-; PLAN: r0=258(x), r1=143(y), r2=82(width), r3=29(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 258
-LDI r1, 143
-LDI r2, 82
-LDI r3, 29
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black circle centered at (166, 177) with radius 60.
+; PLAN: r0=166(x), r1=177(y), r2=60(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 166
+LDI r1, 177
+LDI r2, 60
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

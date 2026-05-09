@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Places a green dot at position (444, 233) then Draws a orange circle centered at (220, 74) with radius 44.
-; PLAN: r0=444(x), r1=233(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=220(x), r6=74(y), r7=44(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 444
-LDI r1, 233
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 220
-LDI r6, 74
-LDI r7, 44
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a red disk with center (303, 116) and radius 78.
+; PLAN: r0=303(x), r1=116(y), r2=78(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 303
+LDI r1, 116
+LDI r2, 78
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

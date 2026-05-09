@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a purple dot at position (459, 91).
-; PLAN: r0=459(x), r1=91(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 459
-LDI r1, 91
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan line from (269, 4) to (364, 247).
+; PLAN: r0=269(x1), r1=4(y1), r2=364(x2), r3=247(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 269
+LDI r1, 4
+LDI r2, 364
+LDI r3, 247
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (143, 129) to (284, 224).
-; PLAN: r0=143(x1), r1=129(y1), r2=284(x2), r3=224(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 143
+; DESCRIPTION: Creates a blue circular shape at (208, 129) with radius 50.
+; PLAN: r0=208(x), r1=129(y), r2=50(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 208
 LDI r1, 129
-LDI r2, 284
-LDI r3, 224
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+LDI r2, 50
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

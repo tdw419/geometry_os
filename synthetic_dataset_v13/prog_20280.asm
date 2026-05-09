@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a red circle of radius 28 at center (280, 146).
-; PLAN: r0=280(x), r1=146(y), r2=28(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 280
-LDI r1, 146
-LDI r2, 28
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (495, 122).
+; PLAN: r0=495(x), r1=122(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 495
+LDI r1, 122
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

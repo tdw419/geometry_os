@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (331, 71) with width 19 and height 106.
-; PLAN: r0=331(x), r1=71(y), r2=19(width), r3=106(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 331
-LDI r1, 71
-LDI r2, 19
-LDI r3, 106
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a cyan box of size 22x120 starting at (184, 30).
+; PLAN: r0=184(x), r1=30(y), r2=22(width), r3=120(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 184
+LDI r1, 30
+LDI r2, 22
+LDI r3, 120
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

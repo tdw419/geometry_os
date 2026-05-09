@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a red line between points (479, 106) and (70, 227).
-; PLAN: r0=479(x1), r1=106(y1), r2=70(x2), r3=227(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 479
-LDI r1, 106
-LDI r2, 70
-LDI r3, 227
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a black circular shape at (221, 77) with radius 74 then Places a blue line segment connecting (376, 126) to (456, 205).
+; PLAN: r0=221(x), r1=77(y), r2=74(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=376(x1), r6=126(y1), r7=456(x2), r8=205(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 221
+LDI r1, 77
+LDI r2, 74
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 376
+LDI r6, 126
+LDI r7, 456
+LDI r8, 205
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

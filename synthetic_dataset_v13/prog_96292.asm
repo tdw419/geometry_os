@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to orange.
-; PLAN: r0=0xFF8800(color). Op: FILL r0.
-LDI r0, 0xFF8800
-FILL r0
+; DESCRIPTION: Draws a white rectangle at (396, 118) with width 29 and height 68.
+; PLAN: r0=396(x), r1=118(y), r2=29(width), r3=68(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 396
+LDI r1, 118
+LDI r2, 29
+LDI r3, 68
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

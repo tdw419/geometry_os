@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a green disk with center (188, 189) and radius 48.
-; PLAN: r0=188(x), r1=189(y), r2=48(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 188
-LDI r1, 189
-LDI r2, 48
-LDI r3, 0x00FF00
+; DESCRIPTION: Draws a black circle centered at (435, 214) with radius 40.
+; PLAN: r0=435(x), r1=214(y), r2=40(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 435
+LDI r1, 214
+LDI r2, 40
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

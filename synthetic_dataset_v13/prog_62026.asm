@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Renders a black disk with center (315, 108) and radius 79 then Draws a white rectangle at (165, 122) with width 64 and height 89 then Draws a purple line from (400, 61) to (67, 72).
-; PLAN: r0=315(x), r1=108(y), r2=79(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=165(x), r6=122(y), r7=64(width), r8=89(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=400(x1), r11=61(y1), r12=67(x2), r13=72(y2), r14=0xAA00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 315
-LDI r1, 108
-LDI r2, 79
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 165
-LDI r6, 122
-LDI r7, 64
-LDI r8, 89
-LDI r9, 0xFFFFFF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 400
-LDI r11, 61
-LDI r12, 67
-LDI r13, 72
-LDI r14, 0xAA00FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a white line between points (158, 157) and (45, 6) then Draws a white circle centered at (224, 75) with radius 33 then Sets a single green pixel at (393, 27).
+; PLAN: r0=158(x1), r1=157(y1), r2=45(x2), r3=6(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=224(x), r6=75(y), r7=33(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=393(x), r11=27(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
+LDI r0, 158
+LDI r1, 157
+LDI r2, 45
+LDI r3, 6
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 224
+LDI r6, 75
+LDI r7, 33
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
+LDI r10, 393
+LDI r11, 27
+LDI r12, 0x00FF00
+PSET r10, r11, r12
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (386, 143) to (250, 195).
-; PLAN: r0=386(x1), r1=143(y1), r2=250(x2), r3=195(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 386
-LDI r1, 143
-LDI r2, 250
-LDI r3, 195
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a yellow line between points (139, 2) and (416, 66).
+; PLAN: r0=139(x1), r1=2(y1), r2=416(x2), r3=66(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 2
+LDI r2, 416
+LDI r3, 66
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

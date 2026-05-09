@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (272, 84) and radius 69.
-; PLAN: r0=272(x), r1=84(y), r2=69(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 272
-LDI r1, 84
-LDI r2, 69
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (273, 24) and (246, 211).
+; PLAN: r0=273(x1), r1=24(y1), r2=246(x2), r3=211(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 273
+LDI r1, 24
+LDI r2, 246
+LDI r3, 211
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

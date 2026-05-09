@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (458, 43) with radius 40.
-; PLAN: r0=458(x), r1=43(y), r2=40(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 458
-LDI r1, 43
-LDI r2, 40
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 24x102 rectangle at position (99, 149).
+; PLAN: r0=99(x), r1=149(y), r2=24(width), r3=102(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 149
+LDI r2, 24
+LDI r3, 102
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

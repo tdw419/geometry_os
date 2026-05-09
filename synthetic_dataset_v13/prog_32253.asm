@@ -1,8 +1,5 @@
-; DESCRIPTION: Creates a green circular shape at (439, 93) with radius 65.
-; PLAN: r0=439(x), r1=93(y), r2=65(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 439
-LDI r1, 93
-LDI r2, 65
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets the background to magenta.
+; PLAN: r0=0xFF00FF(color). Op: FILL r0.
+LDI r0, 0xFF00FF
+FILL r0
 HALT

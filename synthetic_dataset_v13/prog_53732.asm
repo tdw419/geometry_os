@@ -1,15 +1,9 @@
-; DESCRIPTION: Composite: Renders a magenta line between points (376, 141) and (106, 49) then Draws a cyan rectangle at (309, 136) with width 85 and height 53.
-; PLAN: r0=376(x1), r1=141(y1), r2=106(x2), r3=49(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=309(x), r6=136(y), r7=85(width), r8=53(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 376
-LDI r1, 141
-LDI r2, 106
-LDI r3, 49
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 309
-LDI r6, 136
-LDI r7, 85
-LDI r8, 53
-LDI r9, 0x00FFFF
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a orange box of size 21x100 starting at (402, 61).
+; PLAN: r0=402(x), r1=61(y), r2=21(width), r3=100(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 402
+LDI r1, 61
+LDI r2, 21
+LDI r3, 100
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

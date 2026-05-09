@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a black rectangle at (75, 95) with width 120 and height 81.
-; PLAN: r0=75(x), r1=95(y), r2=120(width), r3=81(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 75
-LDI r1, 95
-LDI r2, 120
-LDI r3, 81
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (236, 181).
+; PLAN: r0=236(x), r1=181(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 236
+LDI r1, 181
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

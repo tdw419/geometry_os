@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Places a orange 107x25 rectangle at position (86, 130).
+; PLAN: r0=86(x), r1=130(y), r2=107(width), r3=25(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 86
+LDI r1, 130
+LDI r2, 107
+LDI r3, 25
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

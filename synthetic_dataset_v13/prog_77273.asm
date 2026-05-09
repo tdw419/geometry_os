@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (444, 105) and radius 60.
-; PLAN: r0=444(x), r1=105(y), r2=60(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 444
-LDI r1, 105
-LDI r2, 60
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green line from (353, 115) to (454, 169).
+; PLAN: r0=353(x1), r1=115(y1), r2=454(x2), r3=169(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 353
+LDI r1, 115
+LDI r2, 454
+LDI r3, 169
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

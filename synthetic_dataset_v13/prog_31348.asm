@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (7, 224) and (346, 64).
-; PLAN: r0=7(x1), r1=224(y1), r2=346(x2), r3=64(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 7
-LDI r1, 224
-LDI r2, 346
-LDI r3, 64
+; DESCRIPTION: Creates a white rectangular region at (450, 154) spanning 38 by 65 pixels.
+; PLAN: r0=450(x), r1=154(y), r2=38(width), r3=65(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 450
+LDI r1, 154
+LDI r2, 38
+LDI r3, 65
 LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

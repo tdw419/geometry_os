@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (318, 67) with radius 48.
-; PLAN: r0=318(x), r1=67(y), r2=48(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 318
-LDI r1, 67
-LDI r2, 48
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta line segment connecting (436, 228) to (105, 223).
+; PLAN: r0=436(x1), r1=228(y1), r2=105(x2), r3=223(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 436
+LDI r1, 228
+LDI r2, 105
+LDI r3, 223
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

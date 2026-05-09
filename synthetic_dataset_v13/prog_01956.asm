@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 47x19 starting at (28, 223).
-; PLAN: r0=28(x), r1=223(y), r2=47(width), r3=19(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 28
-LDI r1, 223
-LDI r2, 47
-LDI r3, 19
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (115, 183) with radius 46.
+; PLAN: r0=115(x), r1=183(y), r2=46(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 115
+LDI r1, 183
+LDI r2, 46
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

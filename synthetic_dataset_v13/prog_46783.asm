@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a blue line between points (396, 246) and (215, 170).
-; PLAN: r0=396(x1), r1=246(y1), r2=215(x2), r3=170(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 396
-LDI r1, 246
-LDI r2, 215
-LDI r3, 170
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green dot at position (452, 19).
+; PLAN: r0=452(x), r1=19(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 452
+LDI r1, 19
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a blue 105x87 rectangle at position (406, 89).
-; PLAN: r0=406(x), r1=89(y), r2=105(width), r3=87(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 406
-LDI r1, 89
-LDI r2, 105
-LDI r3, 87
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (144, 226).
+; PLAN: r0=144(x), r1=226(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 144
+LDI r1, 226
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

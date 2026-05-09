@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 45x103 rectangle at position (291, 145).
-; PLAN: r0=291(x), r1=145(y), r2=45(width), r3=103(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 291
-LDI r1, 145
-LDI r2, 45
-LDI r3, 103
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a purple rectangle at (393, 42) with width 83 and height 119.
+; PLAN: r0=393(x), r1=42(y), r2=83(width), r3=119(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 393
+LDI r1, 42
+LDI r2, 83
+LDI r3, 119
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

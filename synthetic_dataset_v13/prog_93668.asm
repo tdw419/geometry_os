@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a yellow disk with center (210, 185) and radius 65.
-; PLAN: r0=210(x), r1=185(y), r2=65(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 210
-LDI r1, 185
-LDI r2, 65
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single blue pixel at (70, 93).
+; PLAN: r0=70(x), r1=93(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 70
+LDI r1, 93
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

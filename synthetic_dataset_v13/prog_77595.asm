@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red rectangle at (287, 231) with width 47 and height 23.
-; PLAN: r0=287(x), r1=231(y), r2=47(width), r3=23(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 287
-LDI r1, 231
-LDI r2, 47
-LDI r3, 23
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 68 at center (190, 81).
+; PLAN: r0=190(x), r1=81(y), r2=68(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 190
+LDI r1, 81
+LDI r2, 68
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

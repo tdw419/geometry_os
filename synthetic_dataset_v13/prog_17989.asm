@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a white circle centered at (130, 84) with radius 28.
-; PLAN: r0=130(x), r1=84(y), r2=28(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 130
-LDI r1, 84
-LDI r2, 28
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Draws a black circle centered at (166, 74) with radius 36.
+; PLAN: r0=166(x), r1=74(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 166
+LDI r1, 74
+LDI r2, 36
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

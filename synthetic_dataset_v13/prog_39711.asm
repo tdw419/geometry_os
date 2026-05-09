@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a blue rectangular region at (420, 159) spanning 37 by 38 pixels.
-; PLAN: r0=420(x), r1=159(y), r2=37(width), r3=38(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 420
-LDI r1, 159
-LDI r2, 37
-LDI r3, 38
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (467, 154) with radius 12.
+; PLAN: r0=467(x), r1=154(y), r2=12(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 467
+LDI r1, 154
+LDI r2, 12
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

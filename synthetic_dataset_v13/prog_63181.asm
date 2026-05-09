@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single purple pixel at (217, 141).
-; PLAN: r0=217(x), r1=141(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 217
-LDI r1, 141
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a black circular shape at (340, 201) with radius 43.
+; PLAN: r0=340(x), r1=201(y), r2=43(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 340
+LDI r1, 201
+LDI r2, 43
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

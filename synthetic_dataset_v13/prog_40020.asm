@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white line segment connecting (431, 7) to (357, 104).
-; PLAN: r0=431(x1), r1=7(y1), r2=357(x2), r3=104(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 431
-LDI r1, 7
-LDI r2, 357
-LDI r3, 104
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a cyan line between points (82, 89) and (223, 207).
+; PLAN: r0=82(x1), r1=89(y1), r2=223(x2), r3=207(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 82
+LDI r1, 89
+LDI r2, 223
+LDI r3, 207
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a green circular shape at (56, 189) with radius 48.
-; PLAN: r0=56(x), r1=189(y), r2=48(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 56
-LDI r1, 189
-LDI r2, 48
-LDI r3, 0x00FF00
+; DESCRIPTION: Draws a white circle centered at (321, 170) with radius 74.
+; PLAN: r0=321(x), r1=170(y), r2=74(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 321
+LDI r1, 170
+LDI r2, 74
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

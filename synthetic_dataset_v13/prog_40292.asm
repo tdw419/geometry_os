@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (97, 94) and (379, 10).
-; PLAN: r0=97(x1), r1=94(y1), r2=379(x2), r3=10(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 97
-LDI r1, 94
-LDI r2, 379
-LDI r3, 10
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Places a orange line segment connecting (328, 50) to (234, 108).
+; PLAN: r0=328(x1), r1=50(y1), r2=234(x2), r3=108(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 328
+LDI r1, 50
+LDI r2, 234
+LDI r3, 108
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

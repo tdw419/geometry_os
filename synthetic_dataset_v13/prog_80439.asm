@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (460, 63) with radius 21.
-; PLAN: r0=460(x), r1=63(y), r2=21(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 460
-LDI r1, 63
-LDI r2, 21
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a yellow line from (29, 56) to (70, 205).
+; PLAN: r0=29(x1), r1=56(y1), r2=70(x2), r3=205(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 29
+LDI r1, 56
+LDI r2, 70
+LDI r3, 205
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

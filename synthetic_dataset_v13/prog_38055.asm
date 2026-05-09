@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red line segment connecting (423, 82) to (186, 129).
-; PLAN: r0=423(x1), r1=82(y1), r2=186(x2), r3=129(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 423
-LDI r1, 82
-LDI r2, 186
-LDI r3, 129
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 10 into r1 and decrements it in a loop until zero.
+; PLAN: r1=10(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 10
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

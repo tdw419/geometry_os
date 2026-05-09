@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a green rectangular region at (29, 44) spanning 85 by 114 pixels.
-; PLAN: r0=29(x), r1=44(y), r2=85(width), r3=114(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 29
-LDI r1, 44
-LDI r2, 85
-LDI r3, 114
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (46, 174) with radius 21.
+; PLAN: r0=46(x), r1=174(y), r2=21(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 46
+LDI r1, 174
+LDI r2, 21
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

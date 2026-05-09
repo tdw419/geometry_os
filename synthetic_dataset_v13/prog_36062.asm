@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (56, 184) to (175, 6).
-; PLAN: r0=56(x1), r1=184(y1), r2=175(x2), r3=6(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 56
-LDI r1, 184
-LDI r2, 175
-LDI r3, 6
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta 54x66 rectangle at position (224, 31).
+; PLAN: r0=224(x), r1=31(y), r2=54(width), r3=66(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 224
+LDI r1, 31
+LDI r2, 54
+LDI r3, 66
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

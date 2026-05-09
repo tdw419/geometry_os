@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (316, 178) and (128, 223).
-; PLAN: r0=316(x1), r1=178(y1), r2=128(x2), r3=223(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 316
-LDI r1, 178
-LDI r2, 128
-LDI r3, 223
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white circle centered at (413, 46) with radius 24.
+; PLAN: r0=413(x), r1=46(y), r2=24(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 413
+LDI r1, 46
+LDI r2, 24
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

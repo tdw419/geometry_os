@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 31x119 rectangle at position (233, 111).
-; PLAN: r0=233(x), r1=111(y), r2=31(width), r3=119(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 233
-LDI r1, 111
-LDI r2, 31
-LDI r3, 119
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan line between points (217, 70) and (267, 15).
+; PLAN: r0=217(x1), r1=70(y1), r2=267(x2), r3=15(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 217
+LDI r1, 70
+LDI r2, 267
+LDI r3, 15
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

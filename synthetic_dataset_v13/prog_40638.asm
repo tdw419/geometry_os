@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 78x89 rectangle at position (410, 58).
-; PLAN: r0=410(x), r1=58(y), r2=78(width), r3=89(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 410
-LDI r1, 58
-LDI r2, 78
-LDI r3, 89
+; DESCRIPTION: Renders a white line between points (4, 174) and (484, 229).
+; PLAN: r0=4(x1), r1=174(y1), r2=484(x2), r3=229(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 4
+LDI r1, 174
+LDI r2, 484
+LDI r3, 229
 LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 80 at center (117, 164).
-; PLAN: r0=117(x), r1=164(y), r2=80(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 117
-LDI r1, 164
-LDI r2, 80
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black line segment connecting (121, 154) to (70, 104).
+; PLAN: r0=121(x1), r1=154(y1), r2=70(x2), r3=104(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 121
+LDI r1, 154
+LDI r2, 70
+LDI r3, 104
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

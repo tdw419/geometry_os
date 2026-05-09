@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 85x85 rectangle at position (111, 165).
-; PLAN: r0=111(x), r1=165(y), r2=85(width), r3=85(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 165
-LDI r2, 85
-LDI r3, 85
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (227, 187) and (394, 143).
+; PLAN: r0=227(x1), r1=187(y1), r2=394(x2), r3=143(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 227
+LDI r1, 187
+LDI r2, 394
+LDI r3, 143
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

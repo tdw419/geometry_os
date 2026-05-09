@@ -1,7 +1,7 @@
-; DESCRIPTION: Places a blue dot at position (250, 217).
-; PLAN: r0=250(x), r1=217(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 250
-LDI r1, 217
-LDI r2, 0x0000FF
+; DESCRIPTION: Places a yellow dot at position (355, 73).
+; PLAN: r0=355(x), r1=73(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 355
+LDI r1, 73
+LDI r2, 0xFFFF00
 PSET r0, r1, r2
 HALT

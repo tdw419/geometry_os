@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white 45x13 rectangle at position (115, 57).
-; PLAN: r0=115(x), r1=57(y), r2=45(width), r3=13(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 115
-LDI r1, 57
-LDI r2, 45
-LDI r3, 13
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (50, 148).
+; PLAN: r0=50(x), r1=148(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 50
+LDI r1, 148
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

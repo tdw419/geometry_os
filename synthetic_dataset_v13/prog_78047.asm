@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Renders a cyan box of size 63x36 starting at (12, 82) then Places a magenta circle of radius 17 at center (454, 168).
-; PLAN: r0=12(x), r1=82(y), r2=63(width), r3=36(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=454(x), r6=168(y), r7=17(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 12
-LDI r1, 82
-LDI r2, 63
-LDI r3, 36
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 454
-LDI r6, 168
-LDI r7, 17
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a red line segment connecting (432, 244) to (200, 5).
+; PLAN: r0=432(x1), r1=244(y1), r2=200(x2), r3=5(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 432
+LDI r1, 244
+LDI r2, 200
+LDI r3, 5
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,14 @@
-; DESCRIPTION: Renders a orange line between points (142, 178) and (131, 148).
-; PLAN: r0=142(x1), r1=178(y1), r2=131(x2), r3=148(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 142
-LDI r1, 178
-LDI r2, 131
-LDI r3, 148
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta circle of radius 72 at center (358, 100) then Creates a orange rectangular region at (427, 81) spanning 11 by 98 pixels.
+; PLAN: r0=358(x), r1=100(y), r2=72(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=427(x), r6=81(y), r7=11(width), r8=98(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 358
+LDI r1, 100
+LDI r2, 72
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 427
+LDI r6, 81
+LDI r7, 11
+LDI r8, 98
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

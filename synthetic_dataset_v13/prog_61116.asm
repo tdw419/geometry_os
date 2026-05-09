@@ -1,5 +1,8 @@
-; DESCRIPTION: Fills the entire screen with solid yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Places a white circle of radius 22 at center (273, 44).
+; PLAN: r0=273(x), r1=44(y), r2=22(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 273
+LDI r1, 44
+LDI r2, 22
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

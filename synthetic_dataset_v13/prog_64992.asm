@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (38, 129) with width 11 and height 28.
-; PLAN: r0=38(x), r1=129(y), r2=11(width), r3=28(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 38
-LDI r1, 129
-LDI r2, 11
-LDI r3, 28
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red line from (351, 78) to (54, 182).
+; PLAN: r0=351(x1), r1=78(y1), r2=54(x2), r3=182(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 351
+LDI r1, 78
+LDI r2, 54
+LDI r3, 182
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

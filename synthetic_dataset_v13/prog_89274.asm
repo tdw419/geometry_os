@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 34x120 rectangle at position (133, 50).
-; PLAN: r0=133(x), r1=50(y), r2=34(width), r3=120(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 133
-LDI r1, 50
-LDI r2, 34
-LDI r3, 120
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (321, 105) and radius 79.
+; PLAN: r0=321(x), r1=105(y), r2=79(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 321
+LDI r1, 105
+LDI r2, 79
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

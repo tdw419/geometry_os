@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a yellow rectangle at (129, 162) with width 35 and height 30.
-; PLAN: r0=129(x), r1=162(y), r2=35(width), r3=30(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 162
-LDI r2, 35
-LDI r3, 30
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (226, 233).
+; PLAN: r0=226(x), r1=233(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 226
+LDI r1, 233
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

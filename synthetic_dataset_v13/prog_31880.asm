@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a white disk with center (100, 200) and radius 50.
-; PLAN: r0=100(x), r1=200(y), r2=50(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 100
-LDI r1, 200
-LDI r2, 50
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Renders a blue disk with center (88, 101) and radius 27.
+; PLAN: r0=88(x), r1=101(y), r2=27(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 88
+LDI r1, 101
+LDI r2, 27
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

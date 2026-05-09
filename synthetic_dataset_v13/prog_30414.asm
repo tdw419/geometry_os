@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (20, 178) then Places a orange line segment connecting (80, 92) to (181, 153) then Draws a cyan circle centered at (265, 145) with radius 71.
-; PLAN: r0=20(x), r1=178(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=80(x1), r6=92(y1), r7=181(x2), r8=153(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=265(x), r11=145(y), r12=71(radius), r13=0x00FFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 20
-LDI r1, 178
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 80
-LDI r6, 92
-LDI r7, 181
-LDI r8, 153
-LDI r9, 0xFF8800
+; DESCRIPTION: Composite: Creates a red circular shape at (218, 160) with radius 75 then Places a black line segment connecting (76, 66) to (25, 42) then Places a black dot at position (51, 137).
+; PLAN: r0=218(x), r1=160(y), r2=75(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=76(x1), r6=66(y1), r7=25(x2), r8=42(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=51(x), r11=137(y), r12=0x000000(color). Op: PSET r10, r11, r12.
+LDI r0, 218
+LDI r1, 160
+LDI r2, 75
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 76
+LDI r6, 66
+LDI r7, 25
+LDI r8, 42
+LDI r9, 0x000000
 LINE r5, r6, r7, r8, r9
-LDI r10, 265
-LDI r11, 145
-LDI r12, 71
-LDI r13, 0x00FFFF
-CIRCLE r10, r11, r12, r13
+LDI r10, 51
+LDI r11, 137
+LDI r12, 0x000000
+PSET r10, r11, r12
 HALT

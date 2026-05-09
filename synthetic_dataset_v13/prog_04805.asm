@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (205, 206) and (235, 93).
-; PLAN: r0=205(x1), r1=206(y1), r2=235(x2), r3=93(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 205
-LDI r1, 206
-LDI r2, 235
-LDI r3, 93
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a orange line from (325, 81) to (362, 161).
+; PLAN: r0=325(x1), r1=81(y1), r2=362(x2), r3=161(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 325
+LDI r1, 81
+LDI r2, 362
+LDI r3, 161
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

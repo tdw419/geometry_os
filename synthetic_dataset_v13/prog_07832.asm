@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a red dot at position (511, 141).
-; PLAN: r0=511(x), r1=141(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 511
-LDI r1, 141
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple box of size 52x65 starting at (73, 122).
+; PLAN: r0=73(x), r1=122(y), r2=52(width), r3=65(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 73
+LDI r1, 122
+LDI r2, 52
+LDI r3, 65
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

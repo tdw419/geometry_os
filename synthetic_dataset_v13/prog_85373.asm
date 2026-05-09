@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (357, 41) to (383, 178).
-; PLAN: r0=357(x1), r1=41(y1), r2=383(x2), r3=178(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 357
-LDI r1, 41
-LDI r2, 383
-LDI r3, 178
-LDI r4, 0xFF0000
+; DESCRIPTION: Places a green line segment connecting (9, 134) to (331, 41).
+; PLAN: r0=9(x1), r1=134(y1), r2=331(x2), r3=41(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 9
+LDI r1, 134
+LDI r2, 331
+LDI r3, 41
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

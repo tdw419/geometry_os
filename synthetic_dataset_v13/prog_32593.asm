@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Sets a single magenta pixel at (142, 182) then Creates a red rectangular region at (157, 33) spanning 113 by 63 pixels.
-; PLAN: r0=142(x), r1=182(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=157(x), r6=33(y), r7=113(width), r8=63(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 142
-LDI r1, 182
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
-LDI r5, 157
-LDI r6, 33
-LDI r7, 113
-LDI r8, 63
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a cyan circle centered at (242, 184) with radius 54 then Places a purple line segment connecting (292, 56) to (114, 73).
+; PLAN: r0=242(x), r1=184(y), r2=54(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=292(x1), r6=56(y1), r7=114(x2), r8=73(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 242
+LDI r1, 184
+LDI r2, 54
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 292
+LDI r6, 56
+LDI r7, 114
+LDI r8, 73
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

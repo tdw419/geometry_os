@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green box of size 51x46 starting at (266, 53).
-; PLAN: r0=266(x), r1=53(y), r2=51(width), r3=46(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 266
-LDI r1, 53
-LDI r2, 51
-LDI r3, 46
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 46 at center (369, 162).
+; PLAN: r0=369(x), r1=162(y), r2=46(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 369
+LDI r1, 162
+LDI r2, 46
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

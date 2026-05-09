@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (492, 11) and (132, 250).
-; PLAN: r0=492(x1), r1=11(y1), r2=132(x2), r3=250(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 492
-LDI r1, 11
-LDI r2, 132
-LDI r3, 250
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange 70x31 rectangle at position (422, 194).
+; PLAN: r0=422(x), r1=194(y), r2=70(width), r3=31(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 422
+LDI r1, 194
+LDI r2, 70
+LDI r3, 31
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

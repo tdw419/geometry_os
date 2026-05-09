@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a purple dot at position (217, 3).
-; PLAN: r0=217(x), r1=3(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 217
-LDI r1, 3
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a magenta circular shape at (201, 55) with radius 55.
+; PLAN: r0=201(x), r1=55(y), r2=55(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 201
+LDI r1, 55
+LDI r2, 55
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

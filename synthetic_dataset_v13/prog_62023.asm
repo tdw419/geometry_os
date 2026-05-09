@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single blue pixel at (272, 83).
-; PLAN: r0=272(x), r1=83(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 272
-LDI r1, 83
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

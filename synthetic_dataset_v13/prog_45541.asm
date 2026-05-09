@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a magenta circle of radius 72 at center (196, 122).
-; PLAN: r0=196(x), r1=122(y), r2=72(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 196
-LDI r1, 122
-LDI r2, 72
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange dot at position (92, 87).
+; PLAN: r0=92(x), r1=87(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 92
+LDI r1, 87
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

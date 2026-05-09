@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 92x93 rectangle at position (240, 48).
-; PLAN: r0=240(x), r1=48(y), r2=92(width), r3=93(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 240
-LDI r1, 48
-LDI r2, 92
-LDI r3, 93
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red line from (325, 60) to (198, 45).
+; PLAN: r0=325(x1), r1=60(y1), r2=198(x2), r3=45(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 325
+LDI r1, 60
+LDI r2, 198
+LDI r3, 45
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

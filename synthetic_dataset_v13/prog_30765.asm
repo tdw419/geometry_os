@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (132, 53) to (181, 41).
-; PLAN: r0=132(x1), r1=53(y1), r2=181(x2), r3=41(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 132
-LDI r1, 53
-LDI r2, 181
-LDI r3, 41
+; DESCRIPTION: Renders a red box of size 100x53 starting at (299, 88).
+; PLAN: r0=299(x), r1=88(y), r2=100(width), r3=53(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 299
+LDI r1, 88
+LDI r2, 100
+LDI r3, 53
 LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

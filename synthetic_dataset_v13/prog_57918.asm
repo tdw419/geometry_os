@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a magenta circle centered at (301, 82) with radius 31.
-; PLAN: r0=301(x), r1=82(y), r2=31(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 301
-LDI r1, 82
-LDI r2, 31
-LDI r3, 0xFF00FF
+; DESCRIPTION: Creates a yellow circular shape at (165, 158) with radius 37.
+; PLAN: r0=165(x), r1=158(y), r2=37(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 165
+LDI r1, 158
+LDI r2, 37
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

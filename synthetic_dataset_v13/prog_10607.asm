@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a yellow dot at position (62, 82).
-; PLAN: r0=62(x), r1=82(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 62
-LDI r1, 82
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Clears the screen to purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

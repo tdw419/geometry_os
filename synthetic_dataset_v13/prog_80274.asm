@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white line between points (204, 136) and (236, 96).
-; PLAN: r0=204(x1), r1=136(y1), r2=236(x2), r3=96(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 204
-LDI r1, 136
-LDI r2, 236
-LDI r3, 96
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan rectangle at (89, 122) with width 59 and height 24.
+; PLAN: r0=89(x), r1=122(y), r2=59(width), r3=24(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 89
+LDI r1, 122
+LDI r2, 59
+LDI r3, 24
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

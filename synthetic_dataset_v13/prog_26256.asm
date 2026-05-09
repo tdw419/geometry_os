@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 95x11 rectangle at position (237, 58).
-; PLAN: r0=237(x), r1=58(y), r2=95(width), r3=11(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 237
-LDI r1, 58
-LDI r2, 95
-LDI r3, 11
+; DESCRIPTION: Draws a yellow line from (275, 65) to (200, 222).
+; PLAN: r0=275(x1), r1=65(y1), r2=200(x2), r3=222(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 275
+LDI r1, 65
+LDI r2, 200
+LDI r3, 222
 LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

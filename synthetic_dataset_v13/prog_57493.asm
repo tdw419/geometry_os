@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a red circle of radius 29 at center (115, 77).
-; PLAN: r0=115(x), r1=77(y), r2=29(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 115
-LDI r1, 77
-LDI r2, 29
-LDI r3, 0xFF0000
+; DESCRIPTION: Places a black circle of radius 12 at center (321, 31).
+; PLAN: r0=321(x), r1=31(y), r2=12(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 321
+LDI r1, 31
+LDI r2, 12
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

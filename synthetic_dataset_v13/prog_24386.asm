@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (289, 171) to (162, 2).
-; PLAN: r0=289(x1), r1=171(y1), r2=162(x2), r3=2(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 289
-LDI r1, 171
-LDI r2, 162
-LDI r3, 2
+; DESCRIPTION: Renders a cyan line between points (408, 177) and (341, 49).
+; PLAN: r0=408(x1), r1=177(y1), r2=341(x2), r3=49(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 408
+LDI r1, 177
+LDI r2, 341
+LDI r3, 49
 LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

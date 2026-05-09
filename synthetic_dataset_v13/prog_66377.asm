@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (492, 135) to (58, 103).
-; PLAN: r0=492(x1), r1=135(y1), r2=58(x2), r3=103(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 492
-LDI r1, 135
-LDI r2, 58
-LDI r3, 103
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 71 at center (337, 119).
+; PLAN: r0=337(x), r1=119(y), r2=71(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 337
+LDI r1, 119
+LDI r2, 71
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

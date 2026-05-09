@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a yellow circle centered at (107, 101) with radius 80.
-; PLAN: r0=107(x), r1=101(y), r2=80(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 107
-LDI r1, 101
-LDI r2, 80
-LDI r3, 0xFFFF00
+; DESCRIPTION: Renders a green disk with center (218, 180) and radius 38.
+; PLAN: r0=218(x), r1=180(y), r2=38(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 218
+LDI r1, 180
+LDI r2, 38
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

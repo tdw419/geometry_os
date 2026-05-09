@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a blue 66x49 rectangle at position (369, 153).
-; PLAN: r0=369(x), r1=153(y), r2=66(width), r3=49(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 369
-LDI r1, 153
-LDI r2, 66
-LDI r3, 49
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (354, 134) with radius 58.
+; PLAN: r0=354(x), r1=134(y), r2=58(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 354
+LDI r1, 134
+LDI r2, 58
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

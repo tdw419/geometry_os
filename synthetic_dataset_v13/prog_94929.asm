@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a cyan 82x31 rectangle at position (302, 180).
-; PLAN: r0=302(x), r1=180(y), r2=82(width), r3=31(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 302
-LDI r1, 180
-LDI r2, 82
-LDI r3, 31
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single white pixel at (34, 89).
+; PLAN: r0=34(x), r1=89(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 34
+LDI r1, 89
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

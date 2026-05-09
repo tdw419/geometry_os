@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (235, 115).
-; PLAN: r0=235(x), r1=115(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 235
-LDI r1, 115
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan rectangle at (368, 215) with width 88 and height 16.
+; PLAN: r0=368(x), r1=215(y), r2=88(width), r3=16(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 368
+LDI r1, 215
+LDI r2, 88
+LDI r3, 16
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Creates a orange rectangular region at (389, 228) spanning 26 by 24 pixels then Draws a magenta line from (491, 123) to (41, 168) then Draws a yellow circle centered at (275, 131) with radius 38.
-; PLAN: r0=389(x), r1=228(y), r2=26(width), r3=24(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=491(x1), r6=123(y1), r7=41(x2), r8=168(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=275(x), r11=131(y), r12=38(radius), r13=0xFFFF00(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 389
-LDI r1, 228
-LDI r2, 26
-LDI r3, 24
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
-LDI r5, 491
-LDI r6, 123
-LDI r7, 41
-LDI r8, 168
-LDI r9, 0xFF00FF
+; DESCRIPTION: Composite: Places a green dot at position (510, 138) then Renders a yellow line between points (284, 36) and (451, 150) then Creates a black circular shape at (186, 48) with radius 36.
+; PLAN: r0=510(x), r1=138(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=284(x1), r6=36(y1), r7=451(x2), r8=150(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=186(x), r11=48(y), r12=36(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 510
+LDI r1, 138
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 284
+LDI r6, 36
+LDI r7, 451
+LDI r8, 150
+LDI r9, 0xFFFF00
 LINE r5, r6, r7, r8, r9
-LDI r10, 275
-LDI r11, 131
-LDI r12, 38
-LDI r13, 0xFFFF00
+LDI r10, 186
+LDI r11, 48
+LDI r12, 36
+LDI r13, 0x000000
 CIRCLE r10, r11, r12, r13
 HALT

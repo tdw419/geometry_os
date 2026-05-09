@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a black 115x63 rectangle at position (95, 43).
-; PLAN: r0=95(x), r1=43(y), r2=115(width), r3=63(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 95
-LDI r1, 43
-LDI r2, 115
-LDI r3, 63
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red dot at position (195, 249).
+; PLAN: r0=195(x), r1=249(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 195
+LDI r1, 249
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

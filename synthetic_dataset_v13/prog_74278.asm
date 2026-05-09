@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (199, 60) with width 37 and height 38.
-; PLAN: r0=199(x), r1=60(y), r2=37(width), r3=38(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 199
-LDI r1, 60
-LDI r2, 37
-LDI r3, 38
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a magenta rectangle at (29, 3) with width 77 and height 13.
+; PLAN: r0=29(x), r1=3(y), r2=77(width), r3=13(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 29
+LDI r1, 3
+LDI r2, 77
+LDI r3, 13
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

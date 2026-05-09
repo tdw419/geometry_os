@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (120, 64) to (15, 137).
-; PLAN: r0=120(x1), r1=64(y1), r2=15(x2), r3=137(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 120
-LDI r1, 64
-LDI r2, 15
-LDI r3, 137
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan rectangular region at (257, 87) spanning 16 by 33 pixels.
+; PLAN: r0=257(x), r1=87(y), r2=16(width), r3=33(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 257
+LDI r1, 87
+LDI r2, 16
+LDI r3, 33
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

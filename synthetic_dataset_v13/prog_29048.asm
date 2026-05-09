@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 10 at center (31, 92).
-; PLAN: r0=31(x), r1=92(y), r2=10(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 31
-LDI r1, 92
-LDI r2, 10
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (81, 38) and (353, 254).
+; PLAN: r0=81(x1), r1=38(y1), r2=353(x2), r3=254(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 81
+LDI r1, 38
+LDI r2, 353
+LDI r3, 254
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

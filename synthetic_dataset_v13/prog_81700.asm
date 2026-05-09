@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (151, 161) with radius 30.
-; PLAN: r0=151(x), r1=161(y), r2=30(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 151
-LDI r1, 161
-LDI r2, 30
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (508, 97) and (145, 18).
+; PLAN: r0=508(x1), r1=97(y1), r2=145(x2), r3=18(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 508
+LDI r1, 97
+LDI r2, 145
+LDI r3, 18
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

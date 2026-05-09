@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a yellow circular shape at (70, 77) with radius 41.
-; PLAN: r0=70(x), r1=77(y), r2=41(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 70
-LDI r1, 77
-LDI r2, 41
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red dot at position (508, 154).
+; PLAN: r0=508(x), r1=154(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 508
+LDI r1, 154
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

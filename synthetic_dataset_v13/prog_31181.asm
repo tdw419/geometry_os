@@ -1,15 +1,12 @@
-; DESCRIPTION: Composite: Places a orange line segment connecting (423, 80) to (14, 71) then Renders a red box of size 73x50 starting at (13, 76).
-; PLAN: r0=423(x1), r1=80(y1), r2=14(x2), r3=71(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=13(x), r6=76(y), r7=73(width), r8=50(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 423
-LDI r1, 80
-LDI r2, 14
-LDI r3, 71
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
-LDI r5, 13
-LDI r6, 76
-LDI r7, 73
-LDI r8, 50
-LDI r9, 0xFF0000
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Sets a single blue pixel at (162, 87) then Creates a black circular shape at (279, 27) with radius 25.
+; PLAN: r0=162(x), r1=87(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=279(x), r6=27(y), r7=25(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 162
+LDI r1, 87
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 279
+LDI r6, 27
+LDI r7, 25
+LDI r8, 0x000000
+CIRCLE r5, r6, r7, r8
 HALT

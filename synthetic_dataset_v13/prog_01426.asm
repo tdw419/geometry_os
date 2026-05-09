@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (103, 0) with width 117 and height 86.
-; PLAN: r0=103(x), r1=0(y), r2=117(width), r3=86(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 103
-LDI r1, 0
-LDI r2, 117
-LDI r3, 86
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (330, 17) and (282, 194).
+; PLAN: r0=330(x1), r1=17(y1), r2=282(x2), r3=194(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 330
+LDI r1, 17
+LDI r2, 282
+LDI r3, 194
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

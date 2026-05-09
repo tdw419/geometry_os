@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a purple circular shape at (251, 159) with radius 70 then Sets a single purple pixel at (413, 154).
-; PLAN: r0=251(x), r1=159(y), r2=70(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=413(x), r6=154(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 251
-LDI r1, 159
-LDI r2, 70
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 413
-LDI r6, 154
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Creates a green rectangular region at (9, 232) spanning 59 by 12 pixels.
+; PLAN: r0=9(x), r1=232(y), r2=59(width), r3=12(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 9
+LDI r1, 232
+LDI r2, 59
+LDI r3, 12
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

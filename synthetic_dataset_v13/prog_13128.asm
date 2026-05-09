@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (102, 168) and radius 33.
-; PLAN: r0=102(x), r1=168(y), r2=33(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 102
-LDI r1, 168
-LDI r2, 33
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (430, 120) to (222, 13).
+; PLAN: r0=430(x1), r1=120(y1), r2=222(x2), r3=13(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 430
+LDI r1, 120
+LDI r2, 222
+LDI r3, 13
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

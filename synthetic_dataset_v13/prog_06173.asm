@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 31x74 starting at (143, 104).
-; PLAN: r0=143(x), r1=104(y), r2=31(width), r3=74(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 104
-LDI r2, 31
-LDI r3, 74
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue circle centered at (417, 134) with radius 69.
+; PLAN: r0=417(x), r1=134(y), r2=69(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 417
+LDI r1, 134
+LDI r2, 69
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

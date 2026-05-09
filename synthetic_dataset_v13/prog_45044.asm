@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a cyan rectangular region at (186, 103) spanning 80 by 72 pixels.
-; PLAN: r0=186(x), r1=103(y), r2=80(width), r3=72(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 186
-LDI r1, 103
-LDI r2, 80
-LDI r3, 72
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (6, 73).
+; PLAN: r0=6(x), r1=73(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 6
+LDI r1, 73
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

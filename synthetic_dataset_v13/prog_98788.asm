@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (3, 41) to (470, 193).
-; PLAN: r0=3(x1), r1=41(y1), r2=470(x2), r3=193(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 3
-LDI r1, 41
-LDI r2, 470
-LDI r3, 193
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue 68x56 rectangle at position (226, 19).
+; PLAN: r0=226(x), r1=19(y), r2=68(width), r3=56(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 19
+LDI r2, 68
+LDI r3, 56
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

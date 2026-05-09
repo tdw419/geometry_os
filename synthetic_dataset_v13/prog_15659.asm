@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (204, 51) and radius 36.
-; PLAN: r0=204(x), r1=51(y), r2=36(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 204
-LDI r1, 51
-LDI r2, 36
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta line segment connecting (274, 89) to (50, 230).
+; PLAN: r0=274(x1), r1=89(y1), r2=50(x2), r3=230(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 274
+LDI r1, 89
+LDI r2, 50
+LDI r3, 230
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

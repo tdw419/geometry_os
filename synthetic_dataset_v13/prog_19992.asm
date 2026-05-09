@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a blue circular shape at (97, 174) with radius 32.
-; PLAN: r0=97(x), r1=174(y), r2=32(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 97
-LDI r1, 174
-LDI r2, 32
-LDI r3, 0x0000FF
+; DESCRIPTION: Draws a black circle centered at (376, 39) with radius 37.
+; PLAN: r0=376(x), r1=39(y), r2=37(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 376
+LDI r1, 39
+LDI r2, 37
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

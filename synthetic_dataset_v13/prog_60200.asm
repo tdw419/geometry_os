@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 93x73 rectangle at position (43, 24).
-; PLAN: r0=43(x), r1=24(y), r2=93(width), r3=73(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 43
-LDI r1, 24
-LDI r2, 93
-LDI r3, 73
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a blue line from (508, 119) to (22, 110).
+; PLAN: r0=508(x1), r1=119(y1), r2=22(x2), r3=110(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 508
+LDI r1, 119
+LDI r2, 22
+LDI r3, 110
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

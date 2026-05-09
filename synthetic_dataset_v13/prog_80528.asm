@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (359, 180) and (355, 189).
-; PLAN: r0=359(x1), r1=180(y1), r2=355(x2), r3=189(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 180
-LDI r2, 355
-LDI r3, 189
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta circular shape at (84, 140) with radius 75.
+; PLAN: r0=84(x), r1=140(y), r2=75(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 84
+LDI r1, 140
+LDI r2, 75
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

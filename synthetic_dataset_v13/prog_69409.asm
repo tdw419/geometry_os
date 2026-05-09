@@ -1,8 +1,12 @@
-; DESCRIPTION: Places a magenta circle of radius 28 at center (138, 148).
-; PLAN: r0=138(x), r1=148(y), r2=28(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 138
-LDI r1, 148
-LDI r2, 28
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single white pixel at (205, 95) then Renders a magenta disk with center (399, 227) and radius 12.
+; PLAN: r0=205(x), r1=95(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=399(x), r6=227(y), r7=12(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 205
+LDI r1, 95
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 399
+LDI r6, 227
+LDI r7, 12
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

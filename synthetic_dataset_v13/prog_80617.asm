@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange line segment connecting (333, 43) to (428, 242).
-; PLAN: r0=333(x1), r1=43(y1), r2=428(x2), r3=242(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 333
-LDI r1, 43
-LDI r2, 428
-LDI r3, 242
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (201, 161) with width 38 and height 47.
+; PLAN: r0=201(x), r1=161(y), r2=38(width), r3=47(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 201
+LDI r1, 161
+LDI r2, 38
+LDI r3, 47
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

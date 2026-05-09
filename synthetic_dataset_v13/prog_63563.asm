@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black rectangle at (354, 139) with width 11 and height 51.
-; PLAN: r0=354(x), r1=139(y), r2=11(width), r3=51(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 354
-LDI r1, 139
-LDI r2, 11
+; DESCRIPTION: Creates a purple rectangular region at (349, 0) spanning 61 by 51 pixels.
+; PLAN: r0=349(x), r1=0(y), r2=61(width), r3=51(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 349
+LDI r1, 0
+LDI r2, 61
 LDI r3, 51
-LDI r4, 0x000000
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

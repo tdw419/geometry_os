@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (172, 13) spanning 113 by 120 pixels.
-; PLAN: r0=172(x), r1=13(y), r2=113(width), r3=120(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 172
-LDI r1, 13
-LDI r2, 113
-LDI r3, 120
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple line from (104, 169) to (279, 70).
+; PLAN: r0=104(x1), r1=169(y1), r2=279(x2), r3=70(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 104
+LDI r1, 169
+LDI r2, 279
+LDI r3, 70
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

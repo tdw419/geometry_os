@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (37, 91) and (353, 50).
-; PLAN: r0=37(x1), r1=91(y1), r2=353(x2), r3=50(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 37
-LDI r1, 91
-LDI r2, 353
-LDI r3, 50
-LDI r4, 0x00FFFF
+; DESCRIPTION: Places a magenta line segment connecting (271, 134) to (59, 206).
+; PLAN: r0=271(x1), r1=134(y1), r2=59(x2), r3=206(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 271
+LDI r1, 134
+LDI r2, 59
+LDI r3, 206
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

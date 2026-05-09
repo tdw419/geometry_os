@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a white line from (206, 128) to (182, 69).
-; PLAN: r0=206(x1), r1=128(y1), r2=182(x2), r3=69(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 206
-LDI r1, 128
-LDI r2, 182
-LDI r3, 69
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a cyan disk with center (216, 132) and radius 44.
+; PLAN: r0=216(x), r1=132(y), r2=44(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 216
+LDI r1, 132
+LDI r2, 44
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

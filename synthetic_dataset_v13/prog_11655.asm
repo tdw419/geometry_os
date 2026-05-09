@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a orange line from (299, 192) to (334, 186).
-; PLAN: r0=299(x1), r1=192(y1), r2=334(x2), r3=186(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 299
-LDI r1, 192
-LDI r2, 334
-LDI r3, 186
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (433, 27).
+; PLAN: r0=433(x), r1=27(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 433
+LDI r1, 27
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

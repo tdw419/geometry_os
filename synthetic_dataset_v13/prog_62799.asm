@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single purple pixel at (36, 66) then Places a black line segment connecting (93, 21) to (341, 28).
-; PLAN: r0=36(x), r1=66(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=93(x1), r6=21(y1), r7=341(x2), r8=28(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 36
-LDI r1, 66
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 93
-LDI r6, 21
-LDI r7, 341
-LDI r8, 28
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a purple rectangular region at (40, 82) spanning 117 by 15 pixels.
+; PLAN: r0=40(x), r1=82(y), r2=117(width), r3=15(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 40
+LDI r1, 82
+LDI r2, 117
+LDI r3, 15
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

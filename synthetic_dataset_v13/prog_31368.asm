@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 66x24 rectangle at position (143, 19).
-; PLAN: r0=143(x), r1=19(y), r2=66(width), r3=24(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 143
-LDI r1, 19
-LDI r2, 66
-LDI r3, 24
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white disk with center (142, 95) and radius 42.
+; PLAN: r0=142(x), r1=95(y), r2=42(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 142
+LDI r1, 95
+LDI r2, 42
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

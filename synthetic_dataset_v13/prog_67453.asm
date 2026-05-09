@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (431, 61) and (194, 234).
-; PLAN: r0=431(x1), r1=61(y1), r2=194(x2), r3=234(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 431
-LDI r1, 61
-LDI r2, 194
-LDI r3, 234
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a white line from (264, 70) to (434, 9).
+; PLAN: r0=264(x1), r1=70(y1), r2=434(x2), r3=9(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 264
+LDI r1, 70
+LDI r2, 434
+LDI r3, 9
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

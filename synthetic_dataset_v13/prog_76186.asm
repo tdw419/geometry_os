@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a blue circle centered at (72, 126) with radius 34.
-; PLAN: r0=72(x), r1=126(y), r2=34(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 72
-LDI r1, 126
-LDI r2, 34
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (465, 171) and (145, 68).
+; PLAN: r0=465(x1), r1=171(y1), r2=145(x2), r3=68(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 465
+LDI r1, 171
+LDI r2, 145
+LDI r3, 68
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

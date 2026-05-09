@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a white dot at position (372, 172).
-; PLAN: r0=372(x), r1=172(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 372
-LDI r1, 172
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a yellow circular shape at (458, 162) with radius 50.
+; PLAN: r0=458(x), r1=162(y), r2=50(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 458
+LDI r1, 162
+LDI r2, 50
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

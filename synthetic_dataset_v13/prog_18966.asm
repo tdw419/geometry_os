@@ -1,9 +1,12 @@
-; DESCRIPTION: Creates a blue rectangular region at (403, 6) spanning 35 by 14 pixels.
-; PLAN: r0=403(x), r1=6(y), r2=35(width), r3=14(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 403
-LDI r1, 6
-LDI r2, 35
-LDI r3, 14
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single purple pixel at (161, 52) then Draws a purple circle centered at (237, 204) with radius 29.
+; PLAN: r0=161(x), r1=52(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=237(x), r6=204(y), r7=29(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 161
+LDI r1, 52
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 237
+LDI r6, 204
+LDI r7, 29
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

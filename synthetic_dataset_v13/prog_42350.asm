@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (207, 138).
-; PLAN: r0=207(x), r1=138(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 207
-LDI r1, 138
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a purple rectangular region at (332, 38) spanning 58 by 57 pixels.
+; PLAN: r0=332(x), r1=38(y), r2=58(width), r3=57(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 332
+LDI r1, 38
+LDI r2, 58
+LDI r3, 57
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

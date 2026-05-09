@@ -1,7 +1,5 @@
-; DESCRIPTION: Sets a single red pixel at (164, 36).
-; PLAN: r0=164(x), r1=36(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 164
-LDI r1, 36
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

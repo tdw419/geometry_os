@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Draws a white line from (400, 113) to (15, 55).
+; PLAN: r0=400(x1), r1=113(y1), r2=15(x2), r3=55(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 400
+LDI r1, 113
+LDI r2, 15
+LDI r3, 55
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

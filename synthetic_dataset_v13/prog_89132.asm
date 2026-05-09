@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 22x78 starting at (449, 90).
-; PLAN: r0=449(x), r1=90(y), r2=22(width), r3=78(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 449
-LDI r1, 90
-LDI r2, 22
-LDI r3, 78
-LDI r4, 0xFF0000
+; DESCRIPTION: Creates a white rectangular region at (126, 202) spanning 110 by 48 pixels.
+; PLAN: r0=126(x), r1=202(y), r2=110(width), r3=48(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 126
+LDI r1, 202
+LDI r2, 110
+LDI r3, 48
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

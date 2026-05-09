@@ -1,9 +1,15 @@
-; DESCRIPTION: Renders a yellow line between points (110, 177) and (268, 69).
-; PLAN: r0=110(x1), r1=177(y1), r2=268(x2), r3=69(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 110
-LDI r1, 177
-LDI r2, 268
-LDI r3, 69
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red 39x13 rectangle at position (224, 215) then Renders a purple line between points (225, 73) and (10, 24).
+; PLAN: r0=224(x), r1=215(y), r2=39(width), r3=13(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=225(x1), r6=73(y1), r7=10(x2), r8=24(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 224
+LDI r1, 215
+LDI r2, 39
+LDI r3, 13
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 225
+LDI r6, 73
+LDI r7, 10
+LDI r8, 24
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
 HALT

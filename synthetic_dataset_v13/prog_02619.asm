@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Places a white line segment connecting (151, 242) to (327, 64).
+; PLAN: r0=151(x1), r1=242(y1), r2=327(x2), r3=64(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 242
+LDI r2, 327
+LDI r3, 64
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

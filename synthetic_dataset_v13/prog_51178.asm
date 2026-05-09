@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange box of size 48x120 starting at (92, 85).
-; PLAN: r0=92(x), r1=85(y), r2=48(width), r3=120(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 85
-LDI r2, 48
-LDI r3, 120
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a black rectangle at (291, 76) with width 104 and height 115.
+; PLAN: r0=291(x), r1=76(y), r2=104(width), r3=115(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 291
+LDI r1, 76
+LDI r2, 104
+LDI r3, 115
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

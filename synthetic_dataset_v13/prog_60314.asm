@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow 14x80 rectangle at position (443, 69).
-; PLAN: r0=443(x), r1=69(y), r2=14(width), r3=80(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 443
-LDI r1, 69
-LDI r2, 14
-LDI r3, 80
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (76, 128).
+; PLAN: r0=76(x), r1=128(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 76
+LDI r1, 128
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

@@ -1,20 +1,20 @@
-; DESCRIPTION: Composite: Draws a cyan line from (65, 173) to (41, 200) then Places a black circle of radius 10 at center (96, 86) then Renders a cyan box of size 50x92 starting at (190, 71).
-; PLAN: r0=65(x1), r1=173(y1), r2=41(x2), r3=200(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=96(x), r6=86(y), r7=10(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=190(x), r11=71(y), r12=50(width), r13=92(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 65
-LDI r1, 173
-LDI r2, 41
-LDI r3, 200
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 96
-LDI r6, 86
-LDI r7, 10
-LDI r8, 0x000000
-CIRCLE r5, r6, r7, r8
-LDI r10, 190
-LDI r11, 71
-LDI r12, 50
-LDI r13, 92
-LDI r14, 0x00FFFF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a white circle of radius 42 at center (356, 196) then Renders a black box of size 101x63 starting at (85, 56) then Renders a black line between points (208, 126) and (308, 193).
+; PLAN: r0=356(x), r1=196(y), r2=42(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=85(x), r6=56(y), r7=101(width), r8=63(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=208(x1), r11=126(y1), r12=308(x2), r13=193(y2), r14=0x000000(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 356
+LDI r1, 196
+LDI r2, 42
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 85
+LDI r6, 56
+LDI r7, 101
+LDI r8, 63
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
+LDI r10, 208
+LDI r11, 126
+LDI r12, 308
+LDI r13, 193
+LDI r14, 0x000000
+LINE r10, r11, r12, r13, r14
 HALT

@@ -1,19 +1,13 @@
-; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
-LDI r7, 0xFFFFFF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Places a orange line segment connecting (294, 90) to (217, 220) then Sets a single black pixel at (271, 216).
+; PLAN: r0=294(x1), r1=90(y1), r2=217(x2), r3=220(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=271(x), r6=216(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 294
+LDI r1, 90
+LDI r2, 217
+LDI r3, 220
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 271
+LDI r6, 216
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

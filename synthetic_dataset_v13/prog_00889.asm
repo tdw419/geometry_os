@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a cyan rectangular region at (339, 26) spanning 29 by 97 pixels.
-; PLAN: r0=339(x), r1=26(y), r2=29(width), r3=97(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 339
-LDI r1, 26
-LDI r2, 29
-LDI r3, 97
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (335, 35) then Creates a green rectangular region at (52, 100) spanning 82 by 90 pixels.
+; PLAN: r0=335(x), r1=35(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=52(x), r6=100(y), r7=82(width), r8=90(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 335
+LDI r1, 35
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 52
+LDI r6, 100
+LDI r7, 82
+LDI r8, 90
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

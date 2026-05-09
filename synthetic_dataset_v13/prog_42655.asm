@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green line segment connecting (428, 254) to (223, 225).
-; PLAN: r0=428(x1), r1=254(y1), r2=223(x2), r3=225(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 428
-LDI r1, 254
-LDI r2, 223
-LDI r3, 225
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (66, 50) and radius 36.
+; PLAN: r0=66(x), r1=50(y), r2=36(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 66
+LDI r1, 50
+LDI r2, 36
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

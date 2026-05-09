@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a red disk with center (103, 165) and radius 57.
-; PLAN: r0=103(x), r1=165(y), r2=57(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 103
-LDI r1, 165
-LDI r2, 57
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single green pixel at (436, 184).
+; PLAN: r0=436(x), r1=184(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 436
+LDI r1, 184
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

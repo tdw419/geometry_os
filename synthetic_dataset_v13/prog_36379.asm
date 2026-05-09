@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green line from (406, 99) to (327, 188).
-; PLAN: r0=406(x1), r1=99(y1), r2=327(x2), r3=188(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 406
-LDI r1, 99
-LDI r2, 327
-LDI r3, 188
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (323, 117).
+; PLAN: r0=323(x), r1=117(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 323
+LDI r1, 117
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

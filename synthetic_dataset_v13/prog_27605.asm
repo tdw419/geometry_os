@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red rectangle at (467, 201) with width 37 and height 20.
-; PLAN: r0=467(x), r1=201(y), r2=37(width), r3=20(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 467
-LDI r1, 201
-LDI r2, 37
-LDI r3, 20
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 18 into r1 and decrements it in a loop until zero.
+; PLAN: r1=18(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 18
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

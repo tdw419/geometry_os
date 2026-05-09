@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a magenta rectangle at (87, 97) with width 35 and height 103.
-; PLAN: r0=87(x), r1=97(y), r2=35(width), r3=103(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 87
-LDI r1, 97
-LDI r2, 35
-LDI r3, 103
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (30, 226).
+; PLAN: r0=30(x), r1=226(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 30
+LDI r1, 226
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a yellow line segment connecting (311, 56) to (200, 187).
-; PLAN: r0=311(x1), r1=56(y1), r2=200(x2), r3=187(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 311
-LDI r1, 56
-LDI r2, 200
-LDI r3, 187
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black dot at position (275, 206) then Places a magenta 32x89 rectangle at position (342, 97).
+; PLAN: r0=275(x), r1=206(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=342(x), r6=97(y), r7=32(width), r8=89(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 275
+LDI r1, 206
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 342
+LDI r6, 97
+LDI r7, 32
+LDI r8, 89
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

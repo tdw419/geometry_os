@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Places a white 114x70 rectangle at position (323, 85) then Places a red dot at position (430, 190) then Draws a blue circle centered at (203, 140) with radius 62.
-; PLAN: r0=323(x), r1=85(y), r2=114(width), r3=70(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=430(x), r6=190(y), r7=0xFF0000(color). Op: PSET r5, r6, r7 Next: r10=203(x), r11=140(y), r12=62(radius), r13=0x0000FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 323
-LDI r1, 85
-LDI r2, 114
-LDI r3, 70
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 430
-LDI r6, 190
-LDI r7, 0xFF0000
-PSET r5, r6, r7
-LDI r10, 203
-LDI r11, 140
-LDI r12, 62
-LDI r13, 0x0000FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Renders a blue disk with center (466, 200) and radius 24 then Draws a magenta rectangle at (262, 15) with width 49 and height 34.
+; PLAN: r0=466(x), r1=200(y), r2=24(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=262(x), r6=15(y), r7=49(width), r8=34(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 466
+LDI r1, 200
+LDI r2, 24
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 262
+LDI r6, 15
+LDI r7, 49
+LDI r8, 34
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,7 +1,7 @@
-; DESCRIPTION: Sets a single white pixel at (317, 73).
-; PLAN: r0=317(x), r1=73(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 317
-LDI r1, 73
-LDI r2, 0xFFFFFF
+; DESCRIPTION: Sets a single green pixel at (93, 74).
+; PLAN: r0=93(x), r1=74(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 93
+LDI r1, 74
+LDI r2, 0x00FF00
 PSET r0, r1, r2
 HALT

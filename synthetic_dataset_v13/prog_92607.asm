@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (112, 11) and (116, 221).
-; PLAN: r0=112(x1), r1=11(y1), r2=116(x2), r3=221(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 112
-LDI r1, 11
-LDI r2, 116
-LDI r3, 221
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 43 at center (129, 73).
+; PLAN: r0=129(x), r1=73(y), r2=43(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 129
+LDI r1, 73
+LDI r2, 43
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

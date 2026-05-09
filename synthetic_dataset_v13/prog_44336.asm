@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange rectangle at (252, 206) with width 96 and height 32.
-; PLAN: r0=252(x), r1=206(y), r2=96(width), r3=32(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 252
-LDI r1, 206
-LDI r2, 96
-LDI r3, 32
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 15 at center (30, 21).
+; PLAN: r0=30(x), r1=21(y), r2=15(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 30
+LDI r1, 21
+LDI r2, 15
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

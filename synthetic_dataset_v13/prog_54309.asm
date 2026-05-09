@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a cyan line between points (404, 48) and (135, 183).
-; PLAN: r0=404(x1), r1=48(y1), r2=135(x2), r3=183(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 404
-LDI r1, 48
-LDI r2, 135
-LDI r3, 183
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (369, 84) then Draws a orange rectangle at (347, 74) with width 17 and height 113.
+; PLAN: r0=369(x), r1=84(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=347(x), r6=74(y), r7=17(width), r8=113(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 369
+LDI r1, 84
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 347
+LDI r6, 74
+LDI r7, 17
+LDI r8, 113
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

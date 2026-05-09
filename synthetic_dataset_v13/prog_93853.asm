@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a red rectangular region at (172, 69) spanning 51 by 94 pixels.
-; PLAN: r0=172(x), r1=69(y), r2=51(width), r3=94(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 172
-LDI r1, 69
-LDI r2, 51
-LDI r3, 94
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 59 at center (323, 83).
+; PLAN: r0=323(x), r1=83(y), r2=59(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 323
+LDI r1, 83
+LDI r2, 59
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

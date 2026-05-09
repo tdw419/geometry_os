@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan 82x103 rectangle at position (291, 64) then Sets a single green pixel at (207, 204).
-; PLAN: r0=291(x), r1=64(y), r2=82(width), r3=103(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=207(x), r6=204(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 291
-LDI r1, 64
-LDI r2, 82
-LDI r3, 103
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 207
-LDI r6, 204
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Draws a purple line from (240, 184) to (511, 33).
+; PLAN: r0=240(x1), r1=184(y1), r2=511(x2), r3=33(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 240
+LDI r1, 184
+LDI r2, 511
+LDI r3, 33
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

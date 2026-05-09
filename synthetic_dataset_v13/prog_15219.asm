@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (248, 97) with width 37 and height 78.
-; PLAN: r0=248(x), r1=97(y), r2=37(width), r3=78(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 248
-LDI r1, 97
-LDI r2, 37
-LDI r3, 78
+; DESCRIPTION: Draws a purple rectangle at (126, 77) with width 78 and height 120.
+; PLAN: r0=126(x), r1=77(y), r2=78(width), r3=120(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 126
+LDI r1, 77
+LDI r2, 78
+LDI r3, 120
 LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

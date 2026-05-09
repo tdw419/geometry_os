@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (428, 172) to (6, 177).
-; PLAN: r0=428(x1), r1=172(y1), r2=6(x2), r3=177(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 428
-LDI r1, 172
-LDI r2, 6
-LDI r3, 177
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a yellow line segment connecting (417, 5) to (15, 53).
+; PLAN: r0=417(x1), r1=5(y1), r2=15(x2), r3=53(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 5
+LDI r2, 15
+LDI r3, 53
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

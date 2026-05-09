@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a magenta disk with center (256, 106) and radius 68.
-; PLAN: r0=256(x), r1=106(y), r2=68(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 256
-LDI r1, 106
-LDI r2, 68
-LDI r3, 0xFF00FF
+; DESCRIPTION: Draws a black circle centered at (221, 153) with radius 54.
+; PLAN: r0=221(x), r1=153(y), r2=54(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 221
+LDI r1, 153
+LDI r2, 54
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

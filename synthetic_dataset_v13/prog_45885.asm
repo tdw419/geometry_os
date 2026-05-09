@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (177, 74) with width 46 and height 56.
-; PLAN: r0=177(x), r1=74(y), r2=46(width), r3=56(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 177
-LDI r1, 74
-LDI r2, 46
-LDI r3, 56
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (501, 68) and (304, 152).
+; PLAN: r0=501(x1), r1=68(y1), r2=304(x2), r3=152(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 501
+LDI r1, 68
+LDI r2, 304
+LDI r3, 152
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

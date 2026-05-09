@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (249, 152) with radius 32.
-; PLAN: r0=249(x), r1=152(y), r2=32(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 249
-LDI r1, 152
-LDI r2, 32
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple line segment connecting (323, 110) to (280, 58).
+; PLAN: r0=323(x1), r1=110(y1), r2=280(x2), r3=58(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 323
+LDI r1, 110
+LDI r2, 280
+LDI r3, 58
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a cyan disk with center (192, 170) and radius 38.
-; PLAN: r0=192(x), r1=170(y), r2=38(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 192
-LDI r1, 170
-LDI r2, 38
-LDI r3, 0x00FFFF
+; DESCRIPTION: Draws a black circle centered at (453, 133) with radius 37.
+; PLAN: r0=453(x), r1=133(y), r2=37(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 453
+LDI r1, 133
+LDI r2, 37
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

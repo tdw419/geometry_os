@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (343, 7) with width 83 and height 101.
-; PLAN: r0=343(x), r1=7(y), r2=83(width), r3=101(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 343
-LDI r1, 7
-LDI r2, 83
-LDI r3, 101
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 13 into r1 and decrements it in a loop until zero.
+; PLAN: r1=13(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 13
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

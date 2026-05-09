@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a blue line segment connecting (449, 39) to (236, 128).
-; PLAN: r0=449(x1), r1=39(y1), r2=236(x2), r3=128(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 449
-LDI r1, 39
-LDI r2, 236
-LDI r3, 128
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green dot at position (146, 190) then Renders a white line between points (400, 4) and (424, 188).
+; PLAN: r0=146(x), r1=190(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=400(x1), r6=4(y1), r7=424(x2), r8=188(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 146
+LDI r1, 190
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 400
+LDI r6, 4
+LDI r7, 424
+LDI r8, 188
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

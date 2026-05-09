@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a white circle of radius 48 at center (444, 140).
-; PLAN: r0=444(x), r1=140(y), r2=48(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 444
-LDI r1, 140
-LDI r2, 48
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Renders a orange disk with center (316, 66) and radius 14.
+; PLAN: r0=316(x), r1=66(y), r2=14(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 316
+LDI r1, 66
+LDI r2, 14
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

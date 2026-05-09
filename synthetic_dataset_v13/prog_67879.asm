@@ -1,9 +1,14 @@
-; DESCRIPTION: Creates a yellow rectangular region at (34, 151) spanning 28 by 59 pixels.
-; PLAN: r0=34(x), r1=151(y), r2=28(width), r3=59(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 34
-LDI r1, 151
-LDI r2, 28
-LDI r3, 59
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta circle of radius 22 at center (366, 199) then Creates a magenta rectangular region at (384, 78) spanning 27 by 39 pixels.
+; PLAN: r0=366(x), r1=199(y), r2=22(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=384(x), r6=78(y), r7=27(width), r8=39(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 366
+LDI r1, 199
+LDI r2, 22
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 384
+LDI r6, 78
+LDI r7, 27
+LDI r8, 39
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

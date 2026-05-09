@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Draws a white rectangle at (52, 183) with width 47 and height 72 then Renders a white disk with center (376, 138) and radius 36 then Draws a orange line from (316, 208) to (242, 248).
-; PLAN: r0=52(x), r1=183(y), r2=47(width), r3=72(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=376(x), r6=138(y), r7=36(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=316(x1), r11=208(y1), r12=242(x2), r13=248(y2), r14=0xFF8800(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 52
-LDI r1, 183
-LDI r2, 47
-LDI r3, 72
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 376
-LDI r6, 138
-LDI r7, 36
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
-LDI r10, 316
-LDI r11, 208
-LDI r12, 242
-LDI r13, 248
-LDI r14, 0xFF8800
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Renders a white disk with center (389, 126) and radius 42 then Renders a green box of size 46x31 starting at (234, 121) then Sets a single black pixel at (133, 212).
+; PLAN: r0=389(x), r1=126(y), r2=42(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=234(x), r6=121(y), r7=46(width), r8=31(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=133(x), r11=212(y), r12=0x000000(color). Op: PSET r10, r11, r12.
+LDI r0, 389
+LDI r1, 126
+LDI r2, 42
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 234
+LDI r6, 121
+LDI r7, 46
+LDI r8, 31
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
+LDI r10, 133
+LDI r11, 212
+LDI r12, 0x000000
+PSET r10, r11, r12
 HALT

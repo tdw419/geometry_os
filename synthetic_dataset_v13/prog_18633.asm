@@ -1,13 +1,13 @@
-; DESCRIPTION: Composite: Draws a white line from (281, 250) to (297, 119) then Sets a single magenta pixel at (479, 70).
-; PLAN: r0=281(x1), r1=250(y1), r2=297(x2), r3=119(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=479(x), r6=70(y), r7=0xFF00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 281
-LDI r1, 250
-LDI r2, 297
-LDI r3, 119
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 479
-LDI r6, 70
-LDI r7, 0xFF00FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Sets a single yellow pixel at (87, 255) then Creates a black rectangular region at (127, 12) spanning 17 by 39 pixels.
+; PLAN: r0=87(x), r1=255(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=127(x), r6=12(y), r7=17(width), r8=39(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 87
+LDI r1, 255
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 127
+LDI r6, 12
+LDI r7, 17
+LDI r8, 39
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

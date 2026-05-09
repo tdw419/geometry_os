@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 33x64 rectangle at position (23, 78).
-; PLAN: r0=23(x), r1=78(y), r2=33(width), r3=64(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 23
-LDI r1, 78
-LDI r2, 33
-LDI r3, 64
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (449, 154) and (24, 30).
+; PLAN: r0=449(x1), r1=154(y1), r2=24(x2), r3=30(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 449
+LDI r1, 154
+LDI r2, 24
+LDI r3, 30
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

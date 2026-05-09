@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a magenta rectangular region at (20, 64) spanning 45 by 95 pixels.
-; PLAN: r0=20(x), r1=64(y), r2=45(width), r3=95(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 20
-LDI r1, 64
-LDI r2, 45
-LDI r3, 95
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a orange rectangle at (59, 85) with width 97 and height 106.
+; PLAN: r0=59(x), r1=85(y), r2=97(width), r3=106(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 59
+LDI r1, 85
+LDI r2, 97
+LDI r3, 106
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

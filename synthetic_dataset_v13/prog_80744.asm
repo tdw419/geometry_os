@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (446, 67) to (487, 182).
-; PLAN: r0=446(x1), r1=67(y1), r2=487(x2), r3=182(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 446
-LDI r1, 67
-LDI r2, 487
-LDI r3, 182
-LDI r4, 0x000000
+; DESCRIPTION: Renders a green line between points (439, 9) and (190, 152).
+; PLAN: r0=439(x1), r1=9(y1), r2=190(x2), r3=152(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 439
+LDI r1, 9
+LDI r2, 190
+LDI r3, 152
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

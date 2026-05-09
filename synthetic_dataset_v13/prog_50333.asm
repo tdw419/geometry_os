@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 104x42 starting at (266, 8).
-; PLAN: r0=266(x), r1=8(y), r2=104(width), r3=42(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 266
-LDI r1, 8
-LDI r2, 104
-LDI r3, 42
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (321, 222) to (175, 254).
+; PLAN: r0=321(x1), r1=222(y1), r2=175(x2), r3=254(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 321
+LDI r1, 222
+LDI r2, 175
+LDI r3, 254
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

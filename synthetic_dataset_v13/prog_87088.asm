@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (271, 139) with width 75 and height 49.
-; PLAN: r0=271(x), r1=139(y), r2=75(width), r3=49(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 271
-LDI r1, 139
-LDI r2, 75
-LDI r3, 49
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a cyan 48x21 rectangle at position (184, 219).
+; PLAN: r0=184(x), r1=219(y), r2=48(width), r3=21(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 184
+LDI r1, 219
+LDI r2, 48
+LDI r3, 21
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

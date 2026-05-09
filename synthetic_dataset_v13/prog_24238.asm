@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Draws a red circle centered at (395, 104) with radius 41 then Places a purple line segment connecting (31, 41) to (31, 136) then Draws a magenta rectangle at (170, 52) with width 64 and height 34.
-; PLAN: r0=395(x), r1=104(y), r2=41(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=31(x1), r6=41(y1), r7=31(x2), r8=136(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=170(x), r11=52(y), r12=64(width), r13=34(height), r14=0xFF00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 395
-LDI r1, 104
-LDI r2, 41
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 31
-LDI r6, 41
-LDI r7, 31
-LDI r8, 136
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
-LDI r10, 170
-LDI r11, 52
-LDI r12, 64
-LDI r13, 34
-LDI r14, 0xFF00FF
+; DESCRIPTION: Composite: Places a cyan dot at position (308, 57) then Creates a purple circular shape at (405, 72) with radius 44 then Creates a purple rectangular region at (410, 136) spanning 97 by 104 pixels.
+; PLAN: r0=308(x), r1=57(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=405(x), r6=72(y), r7=44(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=410(x), r11=136(y), r12=97(width), r13=104(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 308
+LDI r1, 57
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 405
+LDI r6, 72
+LDI r7, 44
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 410
+LDI r11, 136
+LDI r12, 97
+LDI r13, 104
+LDI r14, 0xAA00FF
 RECTF r10, r11, r12, r13, r14
 HALT

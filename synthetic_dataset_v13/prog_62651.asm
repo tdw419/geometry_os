@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 83x72 rectangle at position (329, 31).
-; PLAN: r0=329(x), r1=31(y), r2=83(width), r3=72(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 329
-LDI r1, 31
-LDI r2, 83
-LDI r3, 72
-LDI r4, 0xFF8800
+; DESCRIPTION: Creates a purple rectangular region at (360, 107) spanning 67 by 110 pixels.
+; PLAN: r0=360(x), r1=107(y), r2=67(width), r3=110(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 360
+LDI r1, 107
+LDI r2, 67
+LDI r3, 110
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

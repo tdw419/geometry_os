@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (196, 202) and radius 52.
-; PLAN: r0=196(x), r1=202(y), r2=52(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 196
-LDI r1, 202
-LDI r2, 52
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 100x46 rectangle at position (226, 97).
+; PLAN: r0=226(x), r1=97(y), r2=100(width), r3=46(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 97
+LDI r2, 100
+LDI r3, 46
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

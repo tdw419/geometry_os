@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black rectangle at (459, 20) with width 32 and height 96.
-; PLAN: r0=459(x), r1=20(y), r2=32(width), r3=96(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 459
-LDI r1, 20
-LDI r2, 32
-LDI r3, 96
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (214, 21) with radius 14.
+; PLAN: r0=214(x), r1=21(y), r2=14(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 214
+LDI r1, 21
+LDI r2, 14
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

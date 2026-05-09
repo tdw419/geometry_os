@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (27, 133) to (455, 137).
-; PLAN: r0=27(x1), r1=133(y1), r2=455(x2), r3=137(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 27
-LDI r1, 133
-LDI r2, 455
-LDI r3, 137
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 6 into r1 and decrements it in a loop until zero.
+; PLAN: r1=6(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 6
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

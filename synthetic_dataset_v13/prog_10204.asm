@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a white dot at position (129, 116).
-; PLAN: r0=129(x), r1=116(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 129
-LDI r1, 116
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

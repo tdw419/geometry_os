@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 12x22 rectangle at position (67, 67).
-; PLAN: r0=67(x), r1=67(y), r2=12(width), r3=22(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 67
-LDI r1, 67
-LDI r2, 12
-LDI r3, 22
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (115, 65) to (15, 11).
+; PLAN: r0=115(x1), r1=65(y1), r2=15(x2), r3=11(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 115
+LDI r1, 65
+LDI r2, 15
+LDI r3, 11
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

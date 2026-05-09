@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Places a black circle of radius 39 at center (236, 69) then Draws a black line from (215, 13) to (393, 20).
-; PLAN: r0=236(x), r1=69(y), r2=39(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=215(x1), r6=13(y1), r7=393(x2), r8=20(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 236
-LDI r1, 69
-LDI r2, 39
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 215
-LDI r6, 13
-LDI r7, 393
-LDI r8, 20
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Renders a purple box of size 108x82 starting at (40, 96) then Draws a magenta circle centered at (137, 119) with radius 73.
+; PLAN: r0=40(x), r1=96(y), r2=108(width), r3=82(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=137(x), r6=119(y), r7=73(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 40
+LDI r1, 96
+LDI r2, 108
+LDI r3, 82
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 137
+LDI r6, 119
+LDI r7, 73
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

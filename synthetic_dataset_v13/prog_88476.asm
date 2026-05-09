@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (300, 137) to (165, 199).
-; PLAN: r0=300(x1), r1=137(y1), r2=165(x2), r3=199(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 300
-LDI r1, 137
-LDI r2, 165
-LDI r3, 199
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 49 into r1 and decrements it in a loop until zero.
+; PLAN: r1=49(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 49
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

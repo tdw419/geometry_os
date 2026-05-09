@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple line segment connecting (108, 82) to (285, 23).
-; PLAN: r0=108(x1), r1=82(y1), r2=285(x2), r3=23(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 108
-LDI r1, 82
-LDI r2, 285
-LDI r3, 23
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (283, 153) with radius 61.
+; PLAN: r0=283(x), r1=153(y), r2=61(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 283
+LDI r1, 153
+LDI r2, 61
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

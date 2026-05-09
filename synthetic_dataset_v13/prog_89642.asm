@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a blue rectangle at (180, 92) with width 12 and height 59.
-; PLAN: r0=180(x), r1=92(y), r2=12(width), r3=59(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 92
-LDI r2, 12
-LDI r3, 59
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black dot at position (366, 219) then Places a red circle of radius 47 at center (254, 71).
+; PLAN: r0=366(x), r1=219(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=254(x), r6=71(y), r7=47(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 366
+LDI r1, 219
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 254
+LDI r6, 71
+LDI r7, 47
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

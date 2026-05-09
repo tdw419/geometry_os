@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a cyan line from (72, 149) to (452, 116).
-; PLAN: r0=72(x1), r1=149(y1), r2=452(x2), r3=116(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 72
-LDI r1, 149
-LDI r2, 452
-LDI r3, 116
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (484, 78) then Places a purple circle of radius 75 at center (419, 133).
+; PLAN: r0=484(x), r1=78(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=419(x), r6=133(y), r7=75(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 484
+LDI r1, 78
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 419
+LDI r6, 133
+LDI r7, 75
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (248, 80) spanning 83 by 20 pixels.
-; PLAN: r0=248(x), r1=80(y), r2=83(width), r3=20(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 248
-LDI r1, 80
-LDI r2, 83
-LDI r3, 20
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (58, 155) to (123, 225).
+; PLAN: r0=58(x1), r1=155(y1), r2=123(x2), r3=225(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 58
+LDI r1, 155
+LDI r2, 123
+LDI r3, 225
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

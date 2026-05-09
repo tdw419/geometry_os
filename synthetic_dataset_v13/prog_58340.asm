@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a magenta circle centered at (283, 179) with radius 68.
-; PLAN: r0=283(x), r1=179(y), r2=68(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 283
-LDI r1, 179
-LDI r2, 68
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (458, 22) and (22, 57).
+; PLAN: r0=458(x1), r1=22(y1), r2=22(x2), r3=57(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 458
+LDI r1, 22
+LDI r2, 22
+LDI r3, 57
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

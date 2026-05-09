@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a black circle of radius 12 at center (104, 76) then Creates a green rectangular region at (69, 84) spanning 56 by 111 pixels.
-; PLAN: r0=104(x), r1=76(y), r2=12(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=69(x), r6=84(y), r7=56(width), r8=111(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 104
-LDI r1, 76
-LDI r2, 12
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 69
-LDI r6, 84
-LDI r7, 56
-LDI r8, 111
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a white rectangular region at (199, 88) spanning 61 by 86 pixels.
+; PLAN: r0=199(x), r1=88(y), r2=61(width), r3=86(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 199
+LDI r1, 88
+LDI r2, 61
+LDI r3, 86
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

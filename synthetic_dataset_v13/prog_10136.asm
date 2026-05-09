@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a orange circle centered at (78, 163) with radius 56.
-; PLAN: r0=78(x), r1=163(y), r2=56(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 78
-LDI r1, 163
-LDI r2, 56
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (137, 56).
+; PLAN: r0=137(x), r1=56(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 137
+LDI r1, 56
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

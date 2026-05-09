@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single magenta pixel at (44, 127).
-; PLAN: r0=44(x), r1=127(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 44
-LDI r1, 127
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a cyan circular shape at (316, 150) with radius 77.
+; PLAN: r0=316(x), r1=150(y), r2=77(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 316
+LDI r1, 150
+LDI r2, 77
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black line segment connecting (347, 50) to (422, 110).
-; PLAN: r0=347(x1), r1=50(y1), r2=422(x2), r3=110(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 347
-LDI r1, 50
-LDI r2, 422
-LDI r3, 110
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (63, 66) with radius 60.
+; PLAN: r0=63(x), r1=66(y), r2=60(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 63
+LDI r1, 66
+LDI r2, 60
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

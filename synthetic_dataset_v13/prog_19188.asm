@@ -1,5 +1,9 @@
-; DESCRIPTION: Clears the screen to green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Renders a black box of size 17x41 starting at (421, 30).
+; PLAN: r0=421(x), r1=30(y), r2=17(width), r3=41(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 421
+LDI r1, 30
+LDI r2, 17
+LDI r3, 41
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

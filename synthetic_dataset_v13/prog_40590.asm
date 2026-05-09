@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a green circle centered at (147, 170) with radius 69.
-; PLAN: r0=147(x), r1=170(y), r2=69(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 147
-LDI r1, 170
-LDI r2, 69
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange 74x44 rectangle at position (166, 76).
+; PLAN: r0=166(x), r1=76(y), r2=74(width), r3=44(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 166
+LDI r1, 76
+LDI r2, 74
+LDI r3, 44
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

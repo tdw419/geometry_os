@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 111x62 rectangle at position (126, 182).
-; PLAN: r0=126(x), r1=182(y), r2=111(width), r3=62(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 182
-LDI r2, 111
-LDI r3, 62
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta line between points (366, 206) and (455, 18).
+; PLAN: r0=366(x1), r1=206(y1), r2=455(x2), r3=18(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 366
+LDI r1, 206
+LDI r2, 455
+LDI r3, 18
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

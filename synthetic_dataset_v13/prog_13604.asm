@@ -1,13 +1,14 @@
-; DESCRIPTION: Composite: Places a orange 69x91 rectangle at position (151, 43) then Places a green dot at position (179, 46).
-; PLAN: r0=151(x), r1=43(y), r2=69(width), r3=91(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=179(x), r6=46(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 151
-LDI r1, 43
-LDI r2, 69
-LDI r3, 91
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
-LDI r5, 179
-LDI r6, 46
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Places a white line segment connecting (109, 177) to (451, 245) then Creates a green circular shape at (344, 88) with radius 60.
+; PLAN: r0=109(x1), r1=177(y1), r2=451(x2), r3=245(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=344(x), r6=88(y), r7=60(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 109
+LDI r1, 177
+LDI r2, 451
+LDI r3, 245
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+LDI r5, 344
+LDI r6, 88
+LDI r7, 60
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

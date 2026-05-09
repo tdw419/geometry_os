@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (350, 66) spanning 47 by 47 pixels.
-; PLAN: r0=350(x), r1=66(y), r2=47(width), r3=47(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 350
-LDI r1, 66
-LDI r2, 47
-LDI r3, 47
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (500, 194) and (468, 159).
+; PLAN: r0=500(x1), r1=194(y1), r2=468(x2), r3=159(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 500
+LDI r1, 194
+LDI r2, 468
+LDI r3, 159
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

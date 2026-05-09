@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (504, 247).
-; PLAN: r0=504(x), r1=247(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 504
-LDI r1, 247
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black circle centered at (294, 164) with radius 58.
+; PLAN: r0=294(x), r1=164(y), r2=58(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 294
+LDI r1, 164
+LDI r2, 58
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

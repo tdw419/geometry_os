@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (175, 114) and (501, 251).
-; PLAN: r0=175(x1), r1=114(y1), r2=501(x2), r3=251(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 175
-LDI r1, 114
-LDI r2, 501
-LDI r3, 251
+; DESCRIPTION: Draws a yellow line from (109, 136) to (64, 103).
+; PLAN: r0=109(x1), r1=136(y1), r2=64(x2), r3=103(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 109
+LDI r1, 136
+LDI r2, 64
+LDI r3, 103
 LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

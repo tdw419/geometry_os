@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Creates a orange rectangular region at (220, 12) spanning 111 by 106 pixels then Places a blue dot at position (103, 202).
-; PLAN: r0=220(x), r1=12(y), r2=111(width), r3=106(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=103(x), r6=202(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 220
-LDI r1, 12
-LDI r2, 111
-LDI r3, 106
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
-LDI r5, 103
-LDI r6, 202
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Draws a magenta circle centered at (203, 165) with radius 72.
+; PLAN: r0=203(x), r1=165(y), r2=72(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 203
+LDI r1, 165
+LDI r2, 72
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

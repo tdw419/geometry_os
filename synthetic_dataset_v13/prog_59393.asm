@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a purple disk with center (98, 101) and radius 68.
-; PLAN: r0=98(x), r1=101(y), r2=68(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 98
-LDI r1, 101
-LDI r2, 68
-LDI r3, 0xAA00FF
+; DESCRIPTION: Places a white circle of radius 76 at center (212, 161).
+; PLAN: r0=212(x), r1=161(y), r2=76(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 212
+LDI r1, 161
+LDI r2, 76
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

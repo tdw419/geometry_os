@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (47, 126).
-; PLAN: r0=47(x), r1=126(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 47
-LDI r1, 126
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a cyan rectangular region at (357, 223) spanning 100 by 32 pixels.
+; PLAN: r0=357(x), r1=223(y), r2=100(width), r3=32(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 357
+LDI r1, 223
+LDI r2, 100
+LDI r3, 32
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

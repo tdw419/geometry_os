@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan box of size 77x58 starting at (413, 103).
-; PLAN: r0=413(x), r1=103(y), r2=77(width), r3=58(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 413
-LDI r1, 103
-LDI r2, 77
-LDI r3, 58
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single magenta pixel at (79, 166).
+; PLAN: r0=79(x), r1=166(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 79
+LDI r1, 166
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

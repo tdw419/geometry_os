@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (95, 242) to (166, 174).
-; PLAN: r0=95(x1), r1=242(y1), r2=166(x2), r3=174(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 95
-LDI r1, 242
-LDI r2, 166
-LDI r3, 174
-LDI r4, 0xFFFF00
+; DESCRIPTION: Places a blue line segment connecting (247, 191) to (229, 152).
+; PLAN: r0=247(x1), r1=191(y1), r2=229(x2), r3=152(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 247
+LDI r1, 191
+LDI r2, 229
+LDI r3, 152
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (267, 110) with radius 76.
-; PLAN: r0=267(x), r1=110(y), r2=76(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 267
-LDI r1, 110
-LDI r2, 76
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (295, 8) spanning 27 by 23 pixels.
+; PLAN: r0=295(x), r1=8(y), r2=27(width), r3=23(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 295
+LDI r1, 8
+LDI r2, 27
+LDI r3, 23
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

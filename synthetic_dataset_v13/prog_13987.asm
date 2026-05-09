@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 21 at center (147, 114).
-; PLAN: r0=147(x), r1=114(y), r2=21(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 147
-LDI r1, 114
-LDI r2, 21
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a purple rectangle at (214, 4) with width 102 and height 119.
+; PLAN: r0=214(x), r1=4(y), r2=102(width), r3=119(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 214
+LDI r1, 4
+LDI r2, 102
+LDI r3, 119
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a green line from (212, 178) to (451, 52).
-; PLAN: r0=212(x1), r1=178(y1), r2=451(x2), r3=52(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 212
-LDI r1, 178
-LDI r2, 451
-LDI r3, 52
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single white pixel at (166, 237) then Creates a green circular shape at (413, 79) with radius 78.
+; PLAN: r0=166(x), r1=237(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=413(x), r6=79(y), r7=78(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 166
+LDI r1, 237
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 413
+LDI r6, 79
+LDI r7, 78
+LDI r8, 0x00FF00
+CIRCLE r5, r6, r7, r8
 HALT

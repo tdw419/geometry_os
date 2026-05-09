@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Creates a red rectangular region at (72, 8) spanning 20 by 38 pixels then Creates a cyan circular shape at (119, 129) with radius 66.
-; PLAN: r0=72(x), r1=8(y), r2=20(width), r3=38(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=119(x), r6=129(y), r7=66(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 72
-LDI r1, 8
-LDI r2, 20
-LDI r3, 38
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 119
-LDI r6, 129
-LDI r7, 66
-LDI r8, 0x00FFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Creates a green circular shape at (61, 128) with radius 41 then Draws a cyan line from (294, 190) to (505, 55) then Places a cyan dot at position (281, 34).
+; PLAN: r0=61(x), r1=128(y), r2=41(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=294(x1), r6=190(y1), r7=505(x2), r8=55(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=281(x), r11=34(y), r12=0x00FFFF(color). Op: PSET r10, r11, r12.
+LDI r0, 61
+LDI r1, 128
+LDI r2, 41
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 294
+LDI r6, 190
+LDI r7, 505
+LDI r8, 55
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
+LDI r10, 281
+LDI r11, 34
+LDI r12, 0x00FFFF
+PSET r10, r11, r12
 HALT

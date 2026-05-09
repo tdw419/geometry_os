@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red line segment connecting (13, 139) to (383, 153).
-; PLAN: r0=13(x1), r1=139(y1), r2=383(x2), r3=153(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 13
-LDI r1, 139
-LDI r2, 383
-LDI r3, 153
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 72 at center (258, 153).
+; PLAN: r0=258(x), r1=153(y), r2=72(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 258
+LDI r1, 153
+LDI r2, 72
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

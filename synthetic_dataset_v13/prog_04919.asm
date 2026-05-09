@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a yellow rectangular region at (459, 150) spanning 16 by 101 pixels.
-; PLAN: r0=459(x), r1=150(y), r2=16(width), r3=101(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 459
-LDI r1, 150
-LDI r2, 16
-LDI r3, 101
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (442, 229) then Renders a purple box of size 73x27 starting at (246, 226).
+; PLAN: r0=442(x), r1=229(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=246(x), r6=226(y), r7=73(width), r8=27(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 442
+LDI r1, 229
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 246
+LDI r6, 226
+LDI r7, 73
+LDI r8, 27
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 66x78 rectangle at position (284, 83).
-; PLAN: r0=284(x), r1=83(y), r2=66(width), r3=78(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 284
-LDI r1, 83
-LDI r2, 66
-LDI r3, 78
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange line from (440, 190) to (328, 244).
+; PLAN: r0=440(x1), r1=190(y1), r2=328(x2), r3=244(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 440
+LDI r1, 190
+LDI r2, 328
+LDI r3, 244
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a white circle of radius 49 at center (71, 196).
-; PLAN: r0=71(x), r1=196(y), r2=49(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 71
-LDI r1, 196
-LDI r2, 49
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black dot at position (503, 3).
+; PLAN: r0=503(x), r1=3(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 503
+LDI r1, 3
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

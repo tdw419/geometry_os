@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a white rectangle at (270, 58) with width 74 and height 77.
-; PLAN: r0=270(x), r1=58(y), r2=74(width), r3=77(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 270
-LDI r1, 58
-LDI r2, 74
-LDI r3, 77
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (83, 146).
+; PLAN: r0=83(x), r1=146(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 83
+LDI r1, 146
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

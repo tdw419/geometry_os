@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (332, 108) and (80, 194).
-; PLAN: r0=332(x1), r1=108(y1), r2=80(x2), r3=194(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 332
-LDI r1, 108
-LDI r2, 80
-LDI r3, 194
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a white line between points (8, 131) and (320, 200).
+; PLAN: r0=8(x1), r1=131(y1), r2=320(x2), r3=200(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 8
+LDI r1, 131
+LDI r2, 320
+LDI r3, 200
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

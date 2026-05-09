@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (430, 4) to (202, 40).
-; PLAN: r0=430(x1), r1=4(y1), r2=202(x2), r3=40(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 4
-LDI r2, 202
-LDI r3, 40
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 43x115 rectangle at position (74, 110).
+; PLAN: r0=74(x), r1=110(y), r2=43(width), r3=115(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 74
+LDI r1, 110
+LDI r2, 43
+LDI r3, 115
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

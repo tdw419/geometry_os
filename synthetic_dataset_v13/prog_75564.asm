@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Places a green dot at position (119, 218) then Creates a magenta circular shape at (200, 131) with radius 68 then Draws a yellow line from (319, 70) to (325, 107).
-; PLAN: r0=119(x), r1=218(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=200(x), r6=131(y), r7=68(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=319(x1), r11=70(y1), r12=325(x2), r13=107(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 119
-LDI r1, 218
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 200
-LDI r6, 131
-LDI r7, 68
-LDI r8, 0xFF00FF
-CIRCLE r5, r6, r7, r8
-LDI r10, 319
-LDI r11, 70
-LDI r12, 325
-LDI r13, 107
-LDI r14, 0xFFFF00
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Creates a green circular shape at (430, 77) with radius 62 then Places a black line segment connecting (368, 193) to (229, 24).
+; PLAN: r0=430(x), r1=77(y), r2=62(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=368(x1), r6=193(y1), r7=229(x2), r8=24(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 430
+LDI r1, 77
+LDI r2, 62
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 368
+LDI r6, 193
+LDI r7, 229
+LDI r8, 24
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
 HALT

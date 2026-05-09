@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (12, 195) then Creates a purple circular shape at (335, 36) with radius 31.
-; PLAN: r0=12(x), r1=195(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=335(x), r6=36(y), r7=31(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 12
-LDI r1, 195
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 335
-LDI r6, 36
-LDI r7, 31
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a purple line between points (166, 107) and (331, 154).
+; PLAN: r0=166(x1), r1=107(y1), r2=331(x2), r3=154(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 166
+LDI r1, 107
+LDI r2, 331
+LDI r3, 154
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 74x35 rectangle at position (199, 23).
-; PLAN: r0=199(x), r1=23(y), r2=74(width), r3=35(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 199
-LDI r1, 23
-LDI r2, 74
-LDI r3, 35
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange circle of radius 52 at center (370, 86).
+; PLAN: r0=370(x), r1=86(y), r2=52(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 370
+LDI r1, 86
+LDI r2, 52
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

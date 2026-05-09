@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a cyan dot at position (350, 62).
-; PLAN: r0=350(x), r1=62(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 350
-LDI r1, 62
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a magenta circle of radius 35 at center (427, 106).
+; PLAN: r0=427(x), r1=106(y), r2=35(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 427
+LDI r1, 106
+LDI r2, 35
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

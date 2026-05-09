@@ -1,19 +1,18 @@
-; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
-LDI r7, 0xFF0000
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Places a red circle of radius 59 at center (115, 62) then Sets a single yellow pixel at (504, 42) then Draws a cyan line from (67, 92) to (168, 93).
+; PLAN: r0=115(x), r1=62(y), r2=59(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=504(x), r6=42(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7 Next: r10=67(x1), r11=92(y1), r12=168(x2), r13=93(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 115
+LDI r1, 62
+LDI r2, 59
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 504
+LDI r6, 42
+LDI r7, 0xFFFF00
+PSET r5, r6, r7
+LDI r10, 67
+LDI r11, 92
+LDI r12, 168
+LDI r13, 93
+LDI r14, 0x00FFFF
+LINE r10, r11, r12, r13, r14
 HALT

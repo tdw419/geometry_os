@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single red pixel at (19, 222).
-; PLAN: r0=19(x), r1=222(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 19
-LDI r1, 222
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Creates a red circular shape at (444, 173) with radius 31.
+; PLAN: r0=444(x), r1=173(y), r2=31(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 444
+LDI r1, 173
+LDI r2, 31
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

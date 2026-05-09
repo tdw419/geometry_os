@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a cyan line from (459, 226) to (474, 89).
-; PLAN: r0=459(x1), r1=226(y1), r2=474(x2), r3=89(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 459
-LDI r1, 226
-LDI r2, 474
-LDI r3, 89
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (288, 106) then Places a magenta 98x25 rectangle at position (327, 159).
+; PLAN: r0=288(x), r1=106(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=327(x), r6=159(y), r7=98(width), r8=25(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 288
+LDI r1, 106
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 327
+LDI r6, 159
+LDI r7, 98
+LDI r8, 25
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
 HALT

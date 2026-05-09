@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a red rectangular region at (49, 46) spanning 27 by 34 pixels.
-; PLAN: r0=49(x), r1=46(y), r2=27(width), r3=34(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 49
-LDI r1, 46
-LDI r2, 27
-LDI r3, 34
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a green box of size 18x55 starting at (63, 21).
+; PLAN: r0=63(x), r1=21(y), r2=18(width), r3=55(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 63
+LDI r1, 21
+LDI r2, 18
+LDI r3, 55
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

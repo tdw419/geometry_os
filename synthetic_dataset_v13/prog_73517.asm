@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 68x66 rectangle at position (314, 134).
-; PLAN: r0=314(x), r1=134(y), r2=68(width), r3=66(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 314
-LDI r1, 134
-LDI r2, 68
-LDI r3, 66
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (119, 68) to (123, 79).
+; PLAN: r0=119(x1), r1=68(y1), r2=123(x2), r3=79(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 119
+LDI r1, 68
+LDI r2, 123
+LDI r3, 79
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

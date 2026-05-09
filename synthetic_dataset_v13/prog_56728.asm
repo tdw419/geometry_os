@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 102x29 starting at (60, 202).
-; PLAN: r0=60(x), r1=202(y), r2=102(width), r3=29(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 60
-LDI r1, 202
-LDI r2, 102
-LDI r3, 29
-LDI r4, 0xFF0000
+; DESCRIPTION: Creates a yellow rectangular region at (121, 90) spanning 10 by 91 pixels.
+; PLAN: r0=121(x), r1=90(y), r2=10(width), r3=91(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 121
+LDI r1, 90
+LDI r2, 10
+LDI r3, 91
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

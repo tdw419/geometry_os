@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (123, 66) to (405, 14).
-; PLAN: r0=123(x1), r1=66(y1), r2=405(x2), r3=14(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 123
-LDI r1, 66
-LDI r2, 405
-LDI r3, 14
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 80 at center (357, 151).
+; PLAN: r0=357(x), r1=151(y), r2=80(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 357
+LDI r1, 151
+LDI r2, 80
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

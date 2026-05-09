@@ -1,9 +1,5 @@
-; DESCRIPTION: Renders a red box of size 60x72 starting at (105, 50).
-; PLAN: r0=105(x), r1=50(y), r2=60(width), r3=72(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 105
-LDI r1, 50
-LDI r2, 60
-LDI r3, 72
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen cyan.
+; PLAN: r0=0x00FFFF(color). Op: FILL r0.
+LDI r0, 0x00FFFF
+FILL r0
 HALT

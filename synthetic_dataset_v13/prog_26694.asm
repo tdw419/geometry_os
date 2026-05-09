@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a orange line between points (15, 148) and (435, 123).
-; PLAN: r0=15(x1), r1=148(y1), r2=435(x2), r3=123(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 15
-LDI r1, 148
-LDI r2, 435
-LDI r3, 123
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (3, 243) then Places a blue line segment connecting (305, 37) to (251, 242).
+; PLAN: r0=3(x), r1=243(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=305(x1), r6=37(y1), r7=251(x2), r8=242(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 3
+LDI r1, 243
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 305
+LDI r6, 37
+LDI r7, 251
+LDI r8, 242
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

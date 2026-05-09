@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a black line between points (499, 95) and (324, 103).
-; PLAN: r0=499(x1), r1=95(y1), r2=324(x2), r3=103(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 499
-LDI r1, 95
-LDI r2, 324
-LDI r3, 103
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (140, 182).
+; PLAN: r0=140(x), r1=182(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 140
+LDI r1, 182
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

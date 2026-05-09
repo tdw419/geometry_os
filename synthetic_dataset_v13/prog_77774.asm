@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a black box of size 45x100 starting at (338, 131).
-; PLAN: r0=338(x), r1=131(y), r2=45(width), r3=100(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 338
-LDI r1, 131
-LDI r2, 45
-LDI r3, 100
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a cyan dot at position (11, 120) then Draws a magenta circle centered at (347, 85) with radius 75.
+; PLAN: r0=11(x), r1=120(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=347(x), r6=85(y), r7=75(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 11
+LDI r1, 120
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 347
+LDI r6, 85
+LDI r7, 75
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

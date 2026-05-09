@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a yellow line between points (157, 118) and (450, 116).
-; PLAN: r0=157(x1), r1=118(y1), r2=450(x2), r3=116(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 157
-LDI r1, 118
-LDI r2, 450
-LDI r3, 116
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single magenta pixel at (492, 94) then Draws a green rectangle at (236, 123) with width 57 and height 32.
+; PLAN: r0=492(x), r1=94(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=236(x), r6=123(y), r7=57(width), r8=32(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 492
+LDI r1, 94
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 236
+LDI r6, 123
+LDI r7, 57
+LDI r8, 32
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

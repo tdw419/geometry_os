@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (450, 162) with width 42 and height 36.
-; PLAN: r0=450(x), r1=162(y), r2=42(width), r3=36(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 450
-LDI r1, 162
-LDI r2, 42
-LDI r3, 36
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue line segment connecting (112, 197) to (167, 142).
+; PLAN: r0=112(x1), r1=197(y1), r2=167(x2), r3=142(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 112
+LDI r1, 197
+LDI r2, 167
+LDI r3, 142
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

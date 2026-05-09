@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (282, 174) to (494, 152).
-; PLAN: r0=282(x1), r1=174(y1), r2=494(x2), r3=152(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 282
-LDI r1, 174
-LDI r2, 494
-LDI r3, 152
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (430, 62) and radius 47.
+; PLAN: r0=430(x), r1=62(y), r2=47(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 430
+LDI r1, 62
+LDI r2, 47
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

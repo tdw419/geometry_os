@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Draws a purple line from (20, 81) to (49, 222) then Places a black circle of radius 44 at center (148, 152).
-; PLAN: r0=20(x1), r1=81(y1), r2=49(x2), r3=222(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=148(x), r6=152(y), r7=44(radius), r8=0x000000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 20
-LDI r1, 81
-LDI r2, 49
-LDI r3, 222
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 148
-LDI r6, 152
-LDI r7, 44
-LDI r8, 0x000000
+; DESCRIPTION: Composite: Places a red dot at position (275, 129) then Creates a blue circular shape at (76, 178) with radius 60 then Draws a purple rectangle at (269, 6) with width 85 and height 48.
+; PLAN: r0=275(x), r1=129(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=76(x), r6=178(y), r7=60(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=269(x), r11=6(y), r12=85(width), r13=48(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 275
+LDI r1, 129
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 76
+LDI r6, 178
+LDI r7, 60
+LDI r8, 0x0000FF
 CIRCLE r5, r6, r7, r8
+LDI r10, 269
+LDI r11, 6
+LDI r12, 85
+LDI r13, 48
+LDI r14, 0xAA00FF
+RECTF r10, r11, r12, r13, r14
 HALT

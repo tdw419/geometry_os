@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (330, 146) to (450, 58).
-; PLAN: r0=330(x1), r1=146(y1), r2=450(x2), r3=58(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 330
-LDI r1, 146
-LDI r2, 450
-LDI r3, 58
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue box of size 69x43 starting at (178, 104).
+; PLAN: r0=178(x), r1=104(y), r2=69(width), r3=43(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 178
+LDI r1, 104
+LDI r2, 69
+LDI r3, 43
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

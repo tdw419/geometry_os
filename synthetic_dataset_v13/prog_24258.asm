@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (490, 54) and radius 11.
-; PLAN: r0=490(x), r1=54(y), r2=11(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 490
-LDI r1, 54
-LDI r2, 11
-LDI r3, 0x000000
+; DESCRIPTION: Creates a red circular shape at (399, 76) with radius 72.
+; PLAN: r0=399(x), r1=76(y), r2=72(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 399
+LDI r1, 76
+LDI r2, 72
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

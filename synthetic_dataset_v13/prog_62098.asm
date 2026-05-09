@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (126, 97) to (160, 62).
-; PLAN: r0=126(x1), r1=97(y1), r2=160(x2), r3=62(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 97
-LDI r2, 160
-LDI r3, 62
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 15x19 rectangle at position (328, 37).
+; PLAN: r0=328(x), r1=37(y), r2=15(width), r3=19(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 328
+LDI r1, 37
+LDI r2, 15
+LDI r3, 19
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

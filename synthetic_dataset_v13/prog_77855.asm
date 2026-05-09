@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (370, 226) and radius 26.
-; PLAN: r0=370(x), r1=226(y), r2=26(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 370
-LDI r1, 226
-LDI r2, 26
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a blue rectangular region at (18, 135) spanning 107 by 108 pixels.
+; PLAN: r0=18(x), r1=135(y), r2=107(width), r3=108(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 18
+LDI r1, 135
+LDI r2, 107
+LDI r3, 108
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

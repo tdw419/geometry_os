@@ -1,19 +1,14 @@
-; DESCRIPTION: Fills the screen with a vertical white gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFFFFFF(color). CMP stores result in r0.
-LDI r7, 0xFFFFFF
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Places a orange 13x14 rectangle at position (363, 184) then Creates a yellow circular shape at (86, 156) with radius 73.
+; PLAN: r0=363(x), r1=184(y), r2=13(width), r3=14(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=86(x), r6=156(y), r7=73(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 363
+LDI r1, 184
+LDI r2, 13
+LDI r3, 14
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 86
+LDI r6, 156
+LDI r7, 73
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

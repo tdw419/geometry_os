@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a purple circle centered at (124, 97) with radius 52.
-; PLAN: r0=124(x), r1=97(y), r2=52(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 124
-LDI r1, 97
-LDI r2, 52
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single white pixel at (354, 104).
+; PLAN: r0=354(x), r1=104(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 354
+LDI r1, 104
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

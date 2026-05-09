@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (217, 87) with radius 72.
-; PLAN: r0=217(x), r1=87(y), r2=72(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 217
-LDI r1, 87
-LDI r2, 72
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a orange rectangular region at (99, 161) spanning 106 by 67 pixels.
+; PLAN: r0=99(x), r1=161(y), r2=106(width), r3=67(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 99
+LDI r1, 161
+LDI r2, 106
+LDI r3, 67
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

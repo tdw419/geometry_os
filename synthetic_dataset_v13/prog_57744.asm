@@ -1,8 +1,5 @@
-; DESCRIPTION: Renders a blue disk with center (292, 130) and radius 74.
-; PLAN: r0=292(x), r1=130(y), r2=74(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 292
-LDI r1, 130
-LDI r2, 74
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

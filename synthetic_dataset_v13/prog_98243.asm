@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a white rectangle at (119, 179) with width 119 and height 45.
-; PLAN: r0=119(x), r1=179(y), r2=119(width), r3=45(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 119
-LDI r1, 179
-LDI r2, 119
-LDI r3, 45
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single red pixel at (8, 126) then Draws a cyan line from (415, 10) to (390, 92).
+; PLAN: r0=8(x), r1=126(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=415(x1), r6=10(y1), r7=390(x2), r8=92(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 8
+LDI r1, 126
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 415
+LDI r6, 10
+LDI r7, 390
+LDI r8, 92
+LDI r9, 0x00FFFF
+LINE r5, r6, r7, r8, r9
 HALT

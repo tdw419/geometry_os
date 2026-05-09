@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (412, 33) and radius 23.
-; PLAN: r0=412(x), r1=33(y), r2=23(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 412
-LDI r1, 33
-LDI r2, 23
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a magenta box of size 54x86 starting at (417, 52).
+; PLAN: r0=417(x), r1=52(y), r2=54(width), r3=86(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 52
+LDI r2, 54
+LDI r3, 86
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

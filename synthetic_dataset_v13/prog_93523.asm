@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a magenta line segment connecting (195, 29) to (348, 148).
-; PLAN: r0=195(x1), r1=29(y1), r2=348(x2), r3=148(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 195
-LDI r1, 29
-LDI r2, 348
-LDI r3, 148
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Clears the screen to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

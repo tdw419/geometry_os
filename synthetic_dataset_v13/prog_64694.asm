@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a cyan box of size 31x76 starting at (236, 131).
-; PLAN: r0=236(x), r1=131(y), r2=31(width), r3=76(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 236
-LDI r1, 131
-LDI r2, 31
-LDI r3, 76
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white dot at position (220, 112).
+; PLAN: r0=220(x), r1=112(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 220
+LDI r1, 112
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

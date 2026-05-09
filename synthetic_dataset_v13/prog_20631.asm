@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white line segment connecting (125, 112) to (47, 157).
-; PLAN: r0=125(x1), r1=112(y1), r2=47(x2), r3=157(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 125
-LDI r1, 112
-LDI r2, 47
-LDI r3, 157
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (501, 194).
+; PLAN: r0=501(x), r1=194(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 501
+LDI r1, 194
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

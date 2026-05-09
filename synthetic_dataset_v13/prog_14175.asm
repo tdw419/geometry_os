@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (3, 53) to (202, 195).
-; PLAN: r0=3(x1), r1=53(y1), r2=202(x2), r3=195(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 3
-LDI r1, 53
-LDI r2, 202
-LDI r3, 195
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta box of size 111x28 starting at (262, 138).
+; PLAN: r0=262(x), r1=138(y), r2=111(width), r3=28(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 138
+LDI r2, 111
+LDI r3, 28
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

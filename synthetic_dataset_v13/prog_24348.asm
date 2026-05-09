@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a orange rectangular region at (267, 75) spanning 77 by 120 pixels.
-; PLAN: r0=267(x), r1=75(y), r2=77(width), r3=120(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 267
-LDI r1, 75
-LDI r2, 77
-LDI r3, 120
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (402, 188) and radius 56.
+; PLAN: r0=402(x), r1=188(y), r2=56(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 402
+LDI r1, 188
+LDI r2, 56
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

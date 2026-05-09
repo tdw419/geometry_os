@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 45 at center (385, 167).
-; PLAN: r0=385(x), r1=167(y), r2=45(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 385
-LDI r1, 167
-LDI r2, 45
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a red box of size 35x30 starting at (117, 103).
+; PLAN: r0=117(x), r1=103(y), r2=35(width), r3=30(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 117
+LDI r1, 103
+LDI r2, 35
+LDI r3, 30
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

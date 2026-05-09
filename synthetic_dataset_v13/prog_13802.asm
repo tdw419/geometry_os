@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (90, 20) and (16, 212).
-; PLAN: r0=90(x1), r1=20(y1), r2=16(x2), r3=212(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 90
-LDI r1, 20
-LDI r2, 16
-LDI r3, 212
-LDI r4, 0x00FF00
+; DESCRIPTION: Places a cyan line segment connecting (170, 59) to (123, 124).
+; PLAN: r0=170(x1), r1=59(y1), r2=123(x2), r3=124(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 170
+LDI r1, 59
+LDI r2, 123
+LDI r3, 124
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

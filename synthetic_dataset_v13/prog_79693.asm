@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (218, 196) to (29, 25).
-; PLAN: r0=218(x1), r1=196(y1), r2=29(x2), r3=25(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 218
-LDI r1, 196
-LDI r2, 29
-LDI r3, 25
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange rectangular region at (60, 31) spanning 112 by 62 pixels.
+; PLAN: r0=60(x), r1=31(y), r2=112(width), r3=62(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 60
+LDI r1, 31
+LDI r2, 112
+LDI r3, 62
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

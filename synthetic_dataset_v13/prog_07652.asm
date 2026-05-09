@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a black circle centered at (226, 35) with radius 27.
-; PLAN: r0=226(x), r1=35(y), r2=27(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 226
-LDI r1, 35
-LDI r2, 27
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 51x63 rectangle at position (193, 51).
+; PLAN: r0=193(x), r1=51(y), r2=51(width), r3=63(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 193
+LDI r1, 51
+LDI r2, 51
+LDI r3, 63
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

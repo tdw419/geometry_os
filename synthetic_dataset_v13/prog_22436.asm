@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a cyan circle of radius 11 at center (486, 171).
-; PLAN: r0=486(x), r1=171(y), r2=11(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 486
-LDI r1, 171
-LDI r2, 11
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (209, 96) and (233, 54).
+; PLAN: r0=209(x1), r1=96(y1), r2=233(x2), r3=54(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 209
+LDI r1, 96
+LDI r2, 233
+LDI r3, 54
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

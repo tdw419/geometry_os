@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Renders a green disk with center (128, 175) and radius 26 then Places a blue dot at position (206, 160).
-; PLAN: r0=128(x), r1=175(y), r2=26(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=206(x), r6=160(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 128
-LDI r1, 175
-LDI r2, 26
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 206
-LDI r6, 160
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Renders a magenta line between points (212, 40) and (429, 151).
+; PLAN: r0=212(x1), r1=40(y1), r2=429(x2), r3=151(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 212
+LDI r1, 40
+LDI r2, 429
+LDI r3, 151
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

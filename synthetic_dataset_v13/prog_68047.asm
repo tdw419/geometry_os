@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single cyan pixel at (482, 69).
-; PLAN: r0=482(x), r1=69(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 482
-LDI r1, 69
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a yellow circle of radius 22 at center (44, 80).
+; PLAN: r0=44(x), r1=80(y), r2=22(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 44
+LDI r1, 80
+LDI r2, 22
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

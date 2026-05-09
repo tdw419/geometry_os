@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue 117x13 rectangle at position (262, 171).
-; PLAN: r0=262(x), r1=171(y), r2=117(width), r3=13(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 262
-LDI r1, 171
-LDI r2, 117
-LDI r3, 13
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (36, 252) and (284, 126).
+; PLAN: r0=36(x1), r1=252(y1), r2=284(x2), r3=126(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 36
+LDI r1, 252
+LDI r2, 284
+LDI r3, 126
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

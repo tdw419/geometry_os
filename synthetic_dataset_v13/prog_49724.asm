@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a purple box of size 111x46 starting at (75, 197).
-; PLAN: r0=75(x), r1=197(y), r2=111(width), r3=46(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 75
-LDI r1, 197
-LDI r2, 111
-LDI r3, 46
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a magenta dot at position (104, 161) then Draws a blue line from (96, 171) to (29, 241).
+; PLAN: r0=104(x), r1=161(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=96(x1), r6=171(y1), r7=29(x2), r8=241(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 104
+LDI r1, 161
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 96
+LDI r6, 171
+LDI r7, 29
+LDI r8, 241
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

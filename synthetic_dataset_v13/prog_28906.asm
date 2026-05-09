@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a orange circle centered at (74, 120) with radius 50.
-; PLAN: r0=74(x), r1=120(y), r2=50(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 74
-LDI r1, 120
-LDI r2, 50
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a red line from (403, 24) to (221, 204).
+; PLAN: r0=403(x1), r1=24(y1), r2=221(x2), r3=204(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 403
+LDI r1, 24
+LDI r2, 221
+LDI r3, 204
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

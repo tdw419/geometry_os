@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan box of size 82x61 starting at (40, 147).
-; PLAN: r0=40(x), r1=147(y), r2=82(width), r3=61(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 40
-LDI r1, 147
-LDI r2, 82
-LDI r3, 61
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (236, 141) with radius 64.
+; PLAN: r0=236(x), r1=141(y), r2=64(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 236
+LDI r1, 141
+LDI r2, 64
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

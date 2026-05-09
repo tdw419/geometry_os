@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a yellow circle of radius 60 at center (325, 114).
-; PLAN: r0=325(x), r1=114(y), r2=60(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 325
-LDI r1, 114
-LDI r2, 60
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (269, 80) and (210, 20).
+; PLAN: r0=269(x1), r1=80(y1), r2=210(x2), r3=20(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 269
+LDI r1, 80
+LDI r2, 210
+LDI r3, 20
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

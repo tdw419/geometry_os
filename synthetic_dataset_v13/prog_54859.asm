@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Sets a single white pixel at (392, 109) then Places a purple circle of radius 65 at center (310, 67).
-; PLAN: r0=392(x), r1=109(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=310(x), r6=67(y), r7=65(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 392
-LDI r1, 109
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 310
-LDI r6, 67
-LDI r7, 65
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Creates a white circular shape at (174, 154) with radius 69.
+; PLAN: r0=174(x), r1=154(y), r2=69(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 174
+LDI r1, 154
+LDI r2, 69
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

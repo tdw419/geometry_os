@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a yellow line from (224, 206) to (506, 50).
-; PLAN: r0=224(x1), r1=206(y1), r2=506(x2), r3=50(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 224
-LDI r1, 206
-LDI r2, 506
-LDI r3, 50
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a white dot at position (44, 177) then Places a red circle of radius 21 at center (372, 231).
+; PLAN: r0=44(x), r1=177(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=372(x), r6=231(y), r7=21(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 44
+LDI r1, 177
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 372
+LDI r6, 231
+LDI r7, 21
+LDI r8, 0xFF0000
+CIRCLE r5, r6, r7, r8
 HALT

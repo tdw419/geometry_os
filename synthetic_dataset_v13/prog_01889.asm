@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Sets a single green pixel at (444, 241) then Draws a red circle centered at (181, 89) with radius 73.
-; PLAN: r0=444(x), r1=241(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=181(x), r6=89(y), r7=73(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 444
-LDI r1, 241
-LDI r2, 0x00FF00
-PSET r0, r1, r2
-LDI r5, 181
-LDI r6, 89
-LDI r7, 73
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Loads 27 into r1 and decrements it in a loop until zero.
+; PLAN: r1=27(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 27
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

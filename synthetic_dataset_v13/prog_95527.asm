@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (359, 39) to (370, 151).
-; PLAN: r0=359(x1), r1=39(y1), r2=370(x2), r3=151(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 359
-LDI r1, 39
-LDI r2, 370
-LDI r3, 151
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange box of size 53x104 starting at (452, 46).
+; PLAN: r0=452(x), r1=46(y), r2=53(width), r3=104(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 452
+LDI r1, 46
+LDI r2, 53
+LDI r3, 104
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

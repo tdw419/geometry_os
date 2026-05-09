@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow rectangle at (205, 228) with width 108 and height 21.
-; PLAN: r0=205(x), r1=228(y), r2=108(width), r3=21(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 205
-LDI r1, 228
-LDI r2, 108
-LDI r3, 21
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (292, 218) and radius 36.
+; PLAN: r0=292(x), r1=218(y), r2=36(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 292
+LDI r1, 218
+LDI r2, 36
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

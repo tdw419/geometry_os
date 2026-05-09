@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (184, 21) with width 53 and height 33.
-; PLAN: r0=184(x), r1=21(y), r2=53(width), r3=33(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 184
-LDI r1, 21
-LDI r2, 53
-LDI r3, 33
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 67 at center (404, 134).
+; PLAN: r0=404(x), r1=134(y), r2=67(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 404
+LDI r1, 134
+LDI r2, 67
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

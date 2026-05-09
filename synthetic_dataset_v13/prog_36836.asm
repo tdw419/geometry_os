@@ -1,5 +1,9 @@
-; DESCRIPTION: Sets the background to green.
-; PLAN: r0=0x00FF00(color). Op: FILL r0.
-LDI r0, 0x00FF00
-FILL r0
+; DESCRIPTION: Draws a purple line from (396, 194) to (440, 118).
+; PLAN: r0=396(x1), r1=194(y1), r2=440(x2), r3=118(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 396
+LDI r1, 194
+LDI r2, 440
+LDI r3, 118
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

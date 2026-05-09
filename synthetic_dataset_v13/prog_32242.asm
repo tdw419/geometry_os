@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a black circle centered at (162, 127) with radius 19.
-; PLAN: r0=162(x), r1=127(y), r2=19(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 162
-LDI r1, 127
-LDI r2, 19
-LDI r3, 0x000000
+; DESCRIPTION: Creates a purple circular shape at (423, 49) with radius 40.
+; PLAN: r0=423(x), r1=49(y), r2=40(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 423
+LDI r1, 49
+LDI r2, 40
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

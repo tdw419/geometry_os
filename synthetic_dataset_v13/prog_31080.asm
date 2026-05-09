@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a green 89x17 rectangle at position (101, 80).
-; PLAN: r0=101(x), r1=80(y), r2=89(width), r3=17(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 101
-LDI r1, 80
-LDI r2, 89
-LDI r3, 17
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (385, 103).
+; PLAN: r0=385(x), r1=103(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 385
+LDI r1, 103
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

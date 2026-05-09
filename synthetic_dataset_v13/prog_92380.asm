@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Creates a blue circular shape at (118, 193) with radius 51 then Renders a green line between points (488, 146) and (320, 142).
-; PLAN: r0=118(x), r1=193(y), r2=51(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=488(x1), r6=146(y1), r7=320(x2), r8=142(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 118
-LDI r1, 193
-LDI r2, 51
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 488
-LDI r6, 146
-LDI r7, 320
-LDI r8, 142
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a yellow box of size 79x91 starting at (30, 141).
+; PLAN: r0=30(x), r1=141(y), r2=79(width), r3=91(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 30
+LDI r1, 141
+LDI r2, 79
+LDI r3, 91
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

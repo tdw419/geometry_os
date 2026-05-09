@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a purple dot at position (346, 44) then Places a purple line segment connecting (453, 239) to (34, 229).
-; PLAN: r0=346(x), r1=44(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=453(x1), r6=239(y1), r7=34(x2), r8=229(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 346
-LDI r1, 44
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 453
-LDI r6, 239
-LDI r7, 34
-LDI r8, 229
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Draws a purple circle centered at (433, 61) with radius 19.
+; PLAN: r0=433(x), r1=61(y), r2=19(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 433
+LDI r1, 61
+LDI r2, 19
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

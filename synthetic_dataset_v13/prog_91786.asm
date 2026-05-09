@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (193, 19) to (240, 137).
-; PLAN: r0=193(x1), r1=19(y1), r2=240(x2), r3=137(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 193
-LDI r1, 19
-LDI r2, 240
-LDI r3, 137
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black rectangle at (317, 124) with width 115 and height 107.
+; PLAN: r0=317(x), r1=124(y), r2=115(width), r3=107(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 317
+LDI r1, 124
+LDI r2, 115
+LDI r3, 107
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

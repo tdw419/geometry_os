@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 37x10 rectangle at position (163, 133).
-; PLAN: r0=163(x), r1=133(y), r2=37(width), r3=10(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 163
-LDI r1, 133
-LDI r2, 37
-LDI r3, 10
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (454, 198) and (129, 22).
+; PLAN: r0=454(x1), r1=198(y1), r2=129(x2), r3=22(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 454
+LDI r1, 198
+LDI r2, 129
+LDI r3, 22
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

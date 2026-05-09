@@ -1,7 +1,8 @@
-; DESCRIPTION: Sets a single green pixel at (223, 48).
-; PLAN: r0=223(x), r1=48(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 223
-LDI r1, 48
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a white circle centered at (207, 136) with radius 30.
+; PLAN: r0=207(x), r1=136(y), r2=30(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 207
+LDI r1, 136
+LDI r2, 30
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a yellow 57x31 rectangle at position (27, 164).
-; PLAN: r0=27(x), r1=164(y), r2=57(width), r3=31(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 27
-LDI r1, 164
-LDI r2, 57
-LDI r3, 31
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (491, 17).
+; PLAN: r0=491(x), r1=17(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 491
+LDI r1, 17
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

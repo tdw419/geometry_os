@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 55x43 rectangle at position (323, 196).
-; PLAN: r0=323(x), r1=196(y), r2=55(width), r3=43(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 323
-LDI r1, 196
-LDI r2, 55
-LDI r3, 43
-LDI r4, 0xFF8800
+; DESCRIPTION: Draws a blue rectangle at (44, 115) with width 50 and height 91.
+; PLAN: r0=44(x), r1=115(y), r2=50(width), r3=91(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 44
+LDI r1, 115
+LDI r2, 50
+LDI r3, 91
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

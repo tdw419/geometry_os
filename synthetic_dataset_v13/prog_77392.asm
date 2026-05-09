@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (459, 94) to (377, 46).
-; PLAN: r0=459(x1), r1=94(y1), r2=377(x2), r3=46(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 459
-LDI r1, 94
-LDI r2, 377
-LDI r3, 46
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a yellow line from (497, 163) to (388, 12).
+; PLAN: r0=497(x1), r1=163(y1), r2=388(x2), r3=12(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 497
+LDI r1, 163
+LDI r2, 388
+LDI r3, 12
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

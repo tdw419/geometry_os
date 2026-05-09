@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 105x20 rectangle at position (387, 120).
-; PLAN: r0=387(x), r1=120(y), r2=105(width), r3=20(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 387
-LDI r1, 120
-LDI r2, 105
-LDI r3, 20
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a yellow circular shape at (93, 167) with radius 19.
+; PLAN: r0=93(x), r1=167(y), r2=19(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 93
+LDI r1, 167
+LDI r2, 19
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

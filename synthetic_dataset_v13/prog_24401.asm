@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (93, 83) and (63, 86).
-; PLAN: r0=93(x1), r1=83(y1), r2=63(x2), r3=86(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 93
-LDI r1, 83
-LDI r2, 63
-LDI r3, 86
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (208, 170) with radius 23.
+; PLAN: r0=208(x), r1=170(y), r2=23(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 208
+LDI r1, 170
+LDI r2, 23
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

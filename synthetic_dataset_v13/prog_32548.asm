@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white 25x48 rectangle at position (385, 98).
-; PLAN: r0=385(x), r1=98(y), r2=25(width), r3=48(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 385
-LDI r1, 98
-LDI r2, 25
-LDI r3, 48
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (117, 222).
+; PLAN: r0=117(x), r1=222(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 117
+LDI r1, 222
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

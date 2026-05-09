@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a cyan line from (396, 28) to (503, 231).
-; PLAN: r0=396(x1), r1=28(y1), r2=503(x2), r3=231(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 396
-LDI r1, 28
-LDI r2, 503
-LDI r3, 231
-LDI r4, 0x00FFFF
+; DESCRIPTION: Places a blue line segment connecting (442, 83) to (306, 109).
+; PLAN: r0=442(x1), r1=83(y1), r2=306(x2), r3=109(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 442
+LDI r1, 83
+LDI r2, 306
+LDI r3, 109
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

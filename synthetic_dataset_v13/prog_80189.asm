@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (168, 161).
-; PLAN: r0=168(x), r1=161(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 168
-LDI r1, 161
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple line between points (425, 205) and (196, 94).
+; PLAN: r0=425(x1), r1=205(y1), r2=196(x2), r3=94(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 205
+LDI r2, 196
+LDI r3, 94
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

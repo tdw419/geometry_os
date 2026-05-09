@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green rectangle at (96, 41) with width 50 and height 85.
-; PLAN: r0=96(x), r1=41(y), r2=50(width), r3=85(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 96
-LDI r1, 41
-LDI r2, 50
-LDI r3, 85
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange disk with center (79, 91) and radius 46.
+; PLAN: r0=79(x), r1=91(y), r2=46(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 79
+LDI r1, 91
+LDI r2, 46
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

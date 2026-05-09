@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single red pixel at (4, 4).
-; PLAN: r0=4(x), r1=4(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 4
-LDI r1, 4
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a green line from (34, 78) to (472, 25).
+; PLAN: r0=34(x1), r1=78(y1), r2=472(x2), r3=25(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 34
+LDI r1, 78
+LDI r2, 472
+LDI r3, 25
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

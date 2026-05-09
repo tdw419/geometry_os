@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 15x20 rectangle at position (483, 228).
-; PLAN: r0=483(x), r1=228(y), r2=15(width), r3=20(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 483
-LDI r1, 228
-LDI r2, 15
-LDI r3, 20
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (202, 150) to (447, 146).
+; PLAN: r0=202(x1), r1=150(y1), r2=447(x2), r3=146(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 202
+LDI r1, 150
+LDI r2, 447
+LDI r3, 146
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

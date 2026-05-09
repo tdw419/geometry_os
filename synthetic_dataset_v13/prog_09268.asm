@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 58x69 starting at (438, 122).
-; PLAN: r0=438(x), r1=122(y), r2=58(width), r3=69(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 438
-LDI r1, 122
-LDI r2, 58
-LDI r3, 69
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (299, 94) to (509, 133).
+; PLAN: r0=299(x1), r1=94(y1), r2=509(x2), r3=133(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 299
+LDI r1, 94
+LDI r2, 509
+LDI r3, 133
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

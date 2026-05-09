@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow line segment connecting (501, 212) to (246, 91).
-; PLAN: r0=501(x1), r1=212(y1), r2=246(x2), r3=91(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 501
-LDI r1, 212
-LDI r2, 246
-LDI r3, 91
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange circle centered at (365, 122) with radius 57.
+; PLAN: r0=365(x), r1=122(y), r2=57(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 365
+LDI r1, 122
+LDI r2, 57
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

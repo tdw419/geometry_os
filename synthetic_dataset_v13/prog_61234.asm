@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (173, 1) then Places a purple line segment connecting (204, 156) to (341, 123).
-; PLAN: r0=173(x), r1=1(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=204(x1), r6=156(y1), r7=341(x2), r8=123(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 173
-LDI r1, 1
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 204
-LDI r6, 156
-LDI r7, 341
-LDI r8, 123
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a cyan box of size 62x24 starting at (293, 146).
+; PLAN: r0=293(x), r1=146(y), r2=62(width), r3=24(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 293
+LDI r1, 146
+LDI r2, 62
+LDI r3, 24
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

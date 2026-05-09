@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a yellow line between points (340, 106) and (493, 65).
-; PLAN: r0=340(x1), r1=106(y1), r2=493(x2), r3=65(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 340
-LDI r1, 106
-LDI r2, 493
-LDI r3, 65
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single red pixel at (483, 9).
+; PLAN: r0=483(x), r1=9(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 483
+LDI r1, 9
+LDI r2, 0xFF0000
+PSET r0, r1, r2
 HALT

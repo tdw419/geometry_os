@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a black line segment connecting (349, 56) to (195, 173).
-; PLAN: r0=349(x1), r1=56(y1), r2=195(x2), r3=173(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 349
-LDI r1, 56
-LDI r2, 195
-LDI r3, 173
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to white.
+; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
+LDI r0, 0xFFFFFF
+FILL r0
 HALT

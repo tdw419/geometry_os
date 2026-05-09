@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white line segment connecting (136, 11) to (117, 236).
-; PLAN: r0=136(x1), r1=11(y1), r2=117(x2), r3=236(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 136
-LDI r1, 11
-LDI r2, 117
-LDI r3, 236
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (428, 181) with radius 70.
+; PLAN: r0=428(x), r1=181(y), r2=70(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 428
+LDI r1, 181
+LDI r2, 70
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

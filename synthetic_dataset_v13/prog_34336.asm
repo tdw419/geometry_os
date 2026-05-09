@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 14x87 starting at (480, 21).
-; PLAN: r0=480(x), r1=21(y), r2=14(width), r3=87(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 480
-LDI r1, 21
-LDI r2, 14
-LDI r3, 87
-LDI r4, 0xFFFF00
+; DESCRIPTION: Draws a white rectangle at (160, 97) with width 26 and height 27.
+; PLAN: r0=160(x), r1=97(y), r2=26(width), r3=27(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 160
+LDI r1, 97
+LDI r2, 26
+LDI r3, 27
+LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a red disk with center (180, 98) and radius 58.
-; PLAN: r0=180(x), r1=98(y), r2=58(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 180
-LDI r1, 98
-LDI r2, 58
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 46x13 starting at (315, 189).
+; PLAN: r0=315(x), r1=189(y), r2=46(width), r3=13(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 315
+LDI r1, 189
+LDI r2, 46
+LDI r3, 13
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

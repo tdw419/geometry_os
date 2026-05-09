@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 82x61 rectangle at position (107, 46).
-; PLAN: r0=107(x), r1=46(y), r2=82(width), r3=61(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 107
-LDI r1, 46
-LDI r2, 82
-LDI r3, 61
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white line segment connecting (418, 116) to (348, 236).
+; PLAN: r0=418(x1), r1=116(y1), r2=348(x2), r3=236(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 418
+LDI r1, 116
+LDI r2, 348
+LDI r3, 236
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (302, 25) spanning 71 by 39 pixels.
-; PLAN: r0=302(x), r1=25(y), r2=71(width), r3=39(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 302
-LDI r1, 25
-LDI r2, 71
-LDI r3, 39
-LDI r4, 0x000000
+; DESCRIPTION: Creates a cyan rectangular region at (154, 161) spanning 40 by 50 pixels.
+; PLAN: r0=154(x), r1=161(y), r2=40(width), r3=50(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 154
+LDI r1, 161
+LDI r2, 40
+LDI r3, 50
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

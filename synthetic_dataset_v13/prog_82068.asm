@@ -1,5 +1,9 @@
-; DESCRIPTION: Fills the entire screen with solid red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Draws a blue rectangle at (453, 64) with width 32 and height 56.
+; PLAN: r0=453(x), r1=64(y), r2=32(width), r3=56(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 453
+LDI r1, 64
+LDI r2, 32
+LDI r3, 56
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Places a blue dot at position (211, 17) then Renders a white disk with center (110, 55) and radius 15 then Creates a orange rectangular region at (376, 81) spanning 93 by 76 pixels.
-; PLAN: r0=211(x), r1=17(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=110(x), r6=55(y), r7=15(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=376(x), r11=81(y), r12=93(width), r13=76(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 211
-LDI r1, 17
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 110
-LDI r6, 55
-LDI r7, 15
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
-LDI r10, 376
-LDI r11, 81
-LDI r12, 93
-LDI r13, 76
-LDI r14, 0xFF8800
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Draws a blue rectangle at (195, 103) with width 80 and height 97.
+; PLAN: r0=195(x), r1=103(y), r2=80(width), r3=97(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 195
+LDI r1, 103
+LDI r2, 80
+LDI r3, 97
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

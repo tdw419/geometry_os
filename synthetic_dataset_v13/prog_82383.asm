@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Draws a black rectangle at (176, 32) with width 116 and height 53 then Creates a green circular shape at (468, 138) with radius 25.
-; PLAN: r0=176(x), r1=32(y), r2=116(width), r3=53(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=468(x), r6=138(y), r7=25(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 176
-LDI r1, 32
-LDI r2, 116
-LDI r3, 53
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 468
-LDI r6, 138
-LDI r7, 25
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Sets a single red pixel at (347, 142) then Draws a purple rectangle at (186, 36) with width 68 and height 106 then Places a yellow line segment connecting (330, 42) to (129, 20).
+; PLAN: r0=347(x), r1=142(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=186(x), r6=36(y), r7=68(width), r8=106(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=330(x1), r11=42(y1), r12=129(x2), r13=20(y2), r14=0xFFFF00(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 347
+LDI r1, 142
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 186
+LDI r6, 36
+LDI r7, 68
+LDI r8, 106
+LDI r9, 0xAA00FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 330
+LDI r11, 42
+LDI r12, 129
+LDI r13, 20
+LDI r14, 0xFFFF00
+LINE r10, r11, r12, r13, r14
 HALT

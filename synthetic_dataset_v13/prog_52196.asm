@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a black box of size 41x118 starting at (459, 68).
-; PLAN: r0=459(x), r1=68(y), r2=41(width), r3=118(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 459
-LDI r1, 68
-LDI r2, 41
-LDI r3, 118
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a orange line from (42, 203) to (186, 176).
+; PLAN: r0=42(x1), r1=203(y1), r2=186(x2), r3=176(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 42
+LDI r1, 203
+LDI r2, 186
+LDI r3, 176
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

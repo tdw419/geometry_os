@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (348, 104) and (279, 174).
-; PLAN: r0=348(x1), r1=104(y1), r2=279(x2), r3=174(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 348
-LDI r1, 104
-LDI r2, 279
-LDI r3, 174
-LDI r4, 0xFF0000
+; DESCRIPTION: Draws a magenta line from (50, 145) to (347, 76).
+; PLAN: r0=50(x1), r1=145(y1), r2=347(x2), r3=76(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 50
+LDI r1, 145
+LDI r2, 347
+LDI r3, 76
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

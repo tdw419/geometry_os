@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (26, 108) and (276, 131).
-; PLAN: r0=26(x1), r1=108(y1), r2=276(x2), r3=131(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 26
-LDI r1, 108
-LDI r2, 276
-LDI r3, 131
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 51 at center (385, 70).
+; PLAN: r0=385(x), r1=70(y), r2=51(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 385
+LDI r1, 70
+LDI r2, 51
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

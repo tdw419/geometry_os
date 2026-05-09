@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a cyan dot at position (37, 9).
-; PLAN: r0=37(x), r1=9(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 37
-LDI r1, 9
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a blue circular shape at (272, 107) with radius 35.
+; PLAN: r0=272(x), r1=107(y), r2=35(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 272
+LDI r1, 107
+LDI r2, 35
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

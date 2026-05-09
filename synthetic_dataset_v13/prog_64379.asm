@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange line from (265, 50) to (27, 25).
-; PLAN: r0=265(x1), r1=50(y1), r2=27(x2), r3=25(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 265
-LDI r1, 50
-LDI r2, 27
-LDI r3, 25
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a red line between points (98, 103) and (229, 188).
+; PLAN: r0=98(x1), r1=103(y1), r2=229(x2), r3=188(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 98
+LDI r1, 103
+LDI r2, 229
+LDI r3, 188
+LDI r4, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT

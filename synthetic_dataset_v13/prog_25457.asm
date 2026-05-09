@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a black line between points (159, 34) and (365, 77).
-; PLAN: r0=159(x1), r1=34(y1), r2=365(x2), r3=77(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 159
-LDI r1, 34
-LDI r2, 365
-LDI r3, 77
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a black dot at position (496, 25) then Renders a blue disk with center (281, 183) and radius 52.
+; PLAN: r0=496(x), r1=25(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=281(x), r6=183(y), r7=52(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 496
+LDI r1, 25
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 281
+LDI r6, 183
+LDI r7, 52
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

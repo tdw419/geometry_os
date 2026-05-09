@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a white disk with center (303, 56) and radius 24.
-; PLAN: r0=303(x), r1=56(y), r2=24(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 303
-LDI r1, 56
-LDI r2, 24
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Places a magenta circle of radius 63 at center (199, 71).
+; PLAN: r0=199(x), r1=71(y), r2=63(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 199
+LDI r1, 71
+LDI r2, 63
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

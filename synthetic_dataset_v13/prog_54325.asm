@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a cyan line between points (36, 195) and (451, 199).
-; PLAN: r0=36(x1), r1=195(y1), r2=451(x2), r3=199(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 36
-LDI r1, 195
-LDI r2, 451
-LDI r3, 199
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (386, 106) and radius 36.
+; PLAN: r0=386(x), r1=106(y), r2=36(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 386
+LDI r1, 106
+LDI r2, 36
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

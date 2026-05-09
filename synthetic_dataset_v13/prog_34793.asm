@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Sets a single purple pixel at (284, 247).
+; PLAN: r0=284(x), r1=247(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 284
+LDI r1, 247
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

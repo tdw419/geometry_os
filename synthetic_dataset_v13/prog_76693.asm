@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 46 into r1 and decrements it in a loop until zero.
-; PLAN: r1=46(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 46
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a purple 10x19 rectangle at position (84, 224).
+; PLAN: r0=84(x), r1=224(y), r2=10(width), r3=19(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 84
+LDI r1, 224
+LDI r2, 10
+LDI r3, 19
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

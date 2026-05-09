@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 99x110 rectangle at position (211, 101).
-; PLAN: r0=211(x), r1=101(y), r2=99(width), r3=110(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 211
-LDI r1, 101
-LDI r2, 99
-LDI r3, 110
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 4 into r1 and decrements it in a loop until zero.
+; PLAN: r1=4(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 4
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

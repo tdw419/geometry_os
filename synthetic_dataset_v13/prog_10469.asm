@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 17x62 starting at (439, 125).
-; PLAN: r0=439(x), r1=125(y), r2=17(width), r3=62(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 439
-LDI r1, 125
-LDI r2, 17
-LDI r3, 62
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange line segment connecting (186, 203) to (33, 41).
+; PLAN: r0=186(x1), r1=203(y1), r2=33(x2), r3=41(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 186
+LDI r1, 203
+LDI r2, 33
+LDI r3, 41
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Draws a white circle centered at (403, 86) with radius 12 then Sets a single yellow pixel at (104, 64).
-; PLAN: r0=403(x), r1=86(y), r2=12(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=104(x), r6=64(y), r7=0xFFFF00(color). Op: PSET r5, r6, r7.
-LDI r0, 403
-LDI r1, 86
-LDI r2, 12
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 104
-LDI r6, 64
-LDI r7, 0xFFFF00
-PSET r5, r6, r7
+; DESCRIPTION: Draws a red rectangle at (85, 164) with width 102 and height 58.
+; PLAN: r0=85(x), r1=164(y), r2=102(width), r3=58(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 85
+LDI r1, 164
+LDI r2, 102
+LDI r3, 58
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

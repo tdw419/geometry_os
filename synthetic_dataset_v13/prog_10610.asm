@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 14 at center (70, 99).
-; PLAN: r0=70(x), r1=99(y), r2=14(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 70
-LDI r1, 99
-LDI r2, 14
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (411, 120) to (462, 72).
+; PLAN: r0=411(x1), r1=120(y1), r2=462(x2), r3=72(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 411
+LDI r1, 120
+LDI r2, 462
+LDI r3, 72
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

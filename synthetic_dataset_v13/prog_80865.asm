@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a cyan circle of radius 16 at center (144, 185).
-; PLAN: r0=144(x), r1=185(y), r2=16(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 144
-LDI r1, 185
-LDI r2, 16
-LDI r3, 0x00FFFF
+; DESCRIPTION: Renders a white disk with center (120, 166) and radius 23.
+; PLAN: r0=120(x), r1=166(y), r2=23(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 120
+LDI r1, 166
+LDI r2, 23
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

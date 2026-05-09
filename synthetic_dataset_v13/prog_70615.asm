@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a red 76x115 rectangle at position (58, 124).
-; PLAN: r0=58(x), r1=124(y), r2=76(width), r3=115(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 58
-LDI r1, 124
-LDI r2, 76
-LDI r3, 115
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (320, 75) and radius 67.
+; PLAN: r0=320(x), r1=75(y), r2=67(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 320
+LDI r1, 75
+LDI r2, 67
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a purple line segment connecting (370, 63) to (215, 172).
-; PLAN: r0=370(x1), r1=63(y1), r2=215(x2), r3=172(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 370
-LDI r1, 63
-LDI r2, 215
-LDI r3, 172
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (199, 87) then Renders a red box of size 94x14 starting at (217, 47).
+; PLAN: r0=199(x), r1=87(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=217(x), r6=47(y), r7=94(width), r8=14(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 199
+LDI r1, 87
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 217
+LDI r6, 47
+LDI r7, 94
+LDI r8, 14
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

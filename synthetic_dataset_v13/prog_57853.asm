@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (194, 115) to (174, 12).
-; PLAN: r0=194(x1), r1=115(y1), r2=174(x2), r3=12(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 194
-LDI r1, 115
-LDI r2, 174
-LDI r3, 12
+; DESCRIPTION: Draws a green line from (393, 37) to (98, 199).
+; PLAN: r0=393(x1), r1=37(y1), r2=98(x2), r3=199(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 393
+LDI r1, 37
+LDI r2, 98
+LDI r3, 199
 LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

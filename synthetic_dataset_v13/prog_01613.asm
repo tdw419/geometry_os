@@ -1,12 +1,14 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (279, 59) then Draws a yellow circle centered at (105, 46) with radius 28.
-; PLAN: r0=279(x), r1=59(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=105(x), r6=46(y), r7=28(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 279
-LDI r1, 59
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 105
-LDI r6, 46
-LDI r7, 28
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Places a purple circle of radius 27 at center (330, 150) then Creates a red rectangular region at (119, 82) spanning 46 by 107 pixels.
+; PLAN: r0=330(x), r1=150(y), r2=27(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=119(x), r6=82(y), r7=46(width), r8=107(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 330
+LDI r1, 150
+LDI r2, 27
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 119
+LDI r6, 82
+LDI r7, 46
+LDI r8, 107
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

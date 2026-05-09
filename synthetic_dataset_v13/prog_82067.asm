@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a white line segment connecting (29, 18) to (446, 185).
-; PLAN: r0=29(x1), r1=18(y1), r2=446(x2), r3=185(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 29
-LDI r1, 18
-LDI r2, 446
-LDI r3, 185
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single green pixel at (93, 224).
+; PLAN: r0=93(x), r1=224(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 93
+LDI r1, 224
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

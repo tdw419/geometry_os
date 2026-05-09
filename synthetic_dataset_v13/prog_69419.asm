@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a cyan disk with center (304, 146) and radius 77.
-; PLAN: r0=304(x), r1=146(y), r2=77(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 304
-LDI r1, 146
-LDI r2, 77
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan dot at position (268, 72).
+; PLAN: r0=268(x), r1=72(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 268
+LDI r1, 72
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

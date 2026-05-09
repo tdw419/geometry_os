@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 92x82 rectangle at position (361, 92).
-; PLAN: r0=361(x), r1=92(y), r2=92(width), r3=82(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 361
-LDI r1, 92
-LDI r2, 92
-LDI r3, 82
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 75 at center (126, 104).
+; PLAN: r0=126(x), r1=104(y), r2=75(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 126
+LDI r1, 104
+LDI r2, 75
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a purple line between points (454, 11) and (134, 175).
-; PLAN: r0=454(x1), r1=11(y1), r2=134(x2), r3=175(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 454
-LDI r1, 11
-LDI r2, 134
-LDI r3, 175
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 80 at center (313, 105).
+; PLAN: r0=313(x), r1=105(y), r2=80(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 313
+LDI r1, 105
+LDI r2, 80
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

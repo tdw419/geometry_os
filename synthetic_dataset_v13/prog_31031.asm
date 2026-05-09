@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a white 114x40 rectangle at position (343, 120).
-; PLAN: r0=343(x), r1=120(y), r2=114(width), r3=40(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 343
-LDI r1, 120
-LDI r2, 114
-LDI r3, 40
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets the background to yellow.
+; PLAN: r0=0xFFFF00(color). Op: FILL r0.
+LDI r0, 0xFFFF00
+FILL r0
 HALT

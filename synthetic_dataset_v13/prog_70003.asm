@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow line between points (306, 159) and (192, 28).
-; PLAN: r0=306(x1), r1=159(y1), r2=192(x2), r3=28(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 306
-LDI r1, 159
-LDI r2, 192
-LDI r3, 28
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (75, 16) spanning 27 by 106 pixels.
+; PLAN: r0=75(x), r1=16(y), r2=27(width), r3=106(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 75
+LDI r1, 16
+LDI r2, 27
+LDI r3, 106
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

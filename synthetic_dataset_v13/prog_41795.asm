@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (347, 191) to (440, 113).
-; PLAN: r0=347(x1), r1=191(y1), r2=440(x2), r3=113(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 347
-LDI r1, 191
-LDI r2, 440
-LDI r3, 113
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red disk with center (298, 65) and radius 64.
+; PLAN: r0=298(x), r1=65(y), r2=64(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 298
+LDI r1, 65
+LDI r2, 64
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

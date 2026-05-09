@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a white rectangular region at (429, 13) spanning 81 by 64 pixels.
-; PLAN: r0=429(x), r1=13(y), r2=81(width), r3=64(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 429
-LDI r1, 13
-LDI r2, 81
-LDI r3, 64
+; DESCRIPTION: Places a white line segment connecting (24, 225) to (192, 101).
+; PLAN: r0=24(x1), r1=225(y1), r2=192(x2), r3=101(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 24
+LDI r1, 225
+LDI r2, 192
+LDI r3, 101
 LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

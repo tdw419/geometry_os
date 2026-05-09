@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 78 at center (146, 119).
-; PLAN: r0=146(x), r1=119(y), r2=78(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 146
-LDI r1, 119
-LDI r2, 78
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue line segment connecting (495, 243) to (183, 13).
+; PLAN: r0=495(x1), r1=243(y1), r2=183(x2), r3=13(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 495
+LDI r1, 243
+LDI r2, 183
+LDI r3, 13
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

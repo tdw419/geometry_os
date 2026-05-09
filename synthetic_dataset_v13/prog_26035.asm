@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 110x112 rectangle at position (205, 43).
-; PLAN: r0=205(x), r1=43(y), r2=110(width), r3=112(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 205
-LDI r1, 43
-LDI r2, 110
-LDI r3, 112
-LDI r4, 0x00FF00
+; DESCRIPTION: Draws a orange rectangle at (381, 74) with width 13 and height 115.
+; PLAN: r0=381(x), r1=74(y), r2=13(width), r3=115(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 381
+LDI r1, 74
+LDI r2, 13
+LDI r3, 115
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

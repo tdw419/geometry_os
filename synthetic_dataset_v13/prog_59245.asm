@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a cyan line segment connecting (217, 90) to (434, 33).
-; PLAN: r0=217(x1), r1=90(y1), r2=434(x2), r3=33(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 217
-LDI r1, 90
-LDI r2, 434
-LDI r3, 33
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single blue pixel at (309, 201).
+; PLAN: r0=309(x), r1=201(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 309
+LDI r1, 201
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

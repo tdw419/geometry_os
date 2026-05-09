@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red box of size 115x37 starting at (87, 189).
-; PLAN: r0=87(x), r1=189(y), r2=115(width), r3=37(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 87
-LDI r1, 189
-LDI r2, 115
-LDI r3, 37
-LDI r4, 0xFF0000
+; DESCRIPTION: Creates a blue rectangular region at (397, 220) spanning 60 by 36 pixels.
+; PLAN: r0=397(x), r1=220(y), r2=60(width), r3=36(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 397
+LDI r1, 220
+LDI r2, 60
+LDI r3, 36
+LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

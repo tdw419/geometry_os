@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 41x105 rectangle at position (180, 27).
-; PLAN: r0=180(x), r1=27(y), r2=41(width), r3=105(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 180
-LDI r1, 27
-LDI r2, 41
-LDI r3, 105
-LDI r4, 0x00FFFF
+; DESCRIPTION: Draws a orange rectangle at (83, 65) with width 37 and height 67.
+; PLAN: r0=83(x), r1=65(y), r2=37(width), r3=67(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 83
+LDI r1, 65
+LDI r2, 37
+LDI r3, 67
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

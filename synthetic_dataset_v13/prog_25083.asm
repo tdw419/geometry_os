@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (283, 141) and radius 19.
-; PLAN: r0=283(x), r1=141(y), r2=19(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 283
-LDI r1, 141
-LDI r2, 19
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a magenta rectangle at (373, 133) with width 17 and height 98.
+; PLAN: r0=373(x), r1=133(y), r2=17(width), r3=98(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 373
+LDI r1, 133
+LDI r2, 17
+LDI r3, 98
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

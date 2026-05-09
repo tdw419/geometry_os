@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a black line from (164, 74) to (143, 5).
-; PLAN: r0=164(x1), r1=74(y1), r2=143(x2), r3=5(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 164
-LDI r1, 74
-LDI r2, 143
-LDI r3, 5
-LDI r4, 0x000000
+; DESCRIPTION: Places a magenta line segment connecting (145, 210) to (95, 96).
+; PLAN: r0=145(x1), r1=210(y1), r2=95(x2), r3=96(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 145
+LDI r1, 210
+LDI r2, 95
+LDI r3, 96
+LDI r4, 0xFF00FF
 LINE r0, r1, r2, r3, r4
 HALT

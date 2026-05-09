@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Places a magenta circle of radius 80 at center (109, 140) then Places a blue line segment connecting (148, 66) to (202, 149).
-; PLAN: r0=109(x), r1=140(y), r2=80(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=148(x1), r6=66(y1), r7=202(x2), r8=149(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 109
-LDI r1, 140
-LDI r2, 80
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 148
-LDI r6, 66
-LDI r7, 202
-LDI r8, 149
-LDI r9, 0x0000FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a yellow 48x73 rectangle at position (56, 65).
+; PLAN: r0=56(x), r1=65(y), r2=48(width), r3=73(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 56
+LDI r1, 65
+LDI r2, 48
+LDI r3, 73
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

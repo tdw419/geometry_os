@@ -1,18 +1,9 @@
-; DESCRIPTION: Composite: Renders a red disk with center (147, 111) and radius 64 then Renders a purple box of size 12x71 starting at (374, 96) then Places a red dot at position (383, 197).
-; PLAN: r0=147(x), r1=111(y), r2=64(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=374(x), r6=96(y), r7=12(width), r8=71(height), r9=0xAA00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=383(x), r11=197(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
-LDI r0, 147
-LDI r1, 111
-LDI r2, 64
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 374
-LDI r6, 96
-LDI r7, 12
-LDI r8, 71
-LDI r9, 0xAA00FF
-RECTF r5, r6, r7, r8, r9
-LDI r10, 383
-LDI r11, 197
-LDI r12, 0xFF0000
-PSET r10, r11, r12
+; DESCRIPTION: Renders a cyan box of size 20x44 starting at (300, 118).
+; PLAN: r0=300(x), r1=118(y), r2=20(width), r3=44(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 300
+LDI r1, 118
+LDI r2, 20
+LDI r3, 44
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

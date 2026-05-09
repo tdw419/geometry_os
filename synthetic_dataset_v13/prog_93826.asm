@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Places a white circle of radius 38 at center (340, 58) then Places a red line segment connecting (28, 60) to (254, 82).
-; PLAN: r0=340(x), r1=58(y), r2=38(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=28(x1), r6=60(y1), r7=254(x2), r8=82(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 340
-LDI r1, 58
-LDI r2, 38
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
-LDI r5, 28
-LDI r6, 60
-LDI r7, 254
-LDI r8, 82
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Draws a black line from (356, 174) to (106, 127) then Places a orange dot at position (487, 162) then Creates a purple rectangular region at (94, 78) spanning 65 by 102 pixels.
+; PLAN: r0=356(x1), r1=174(y1), r2=106(x2), r3=127(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=487(x), r6=162(y), r7=0xFF8800(color). Op: PSET r5, r6, r7 Next: r10=94(x), r11=78(y), r12=65(width), r13=102(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 356
+LDI r1, 174
+LDI r2, 106
+LDI r3, 127
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+LDI r5, 487
+LDI r6, 162
+LDI r7, 0xFF8800
+PSET r5, r6, r7
+LDI r10, 94
+LDI r11, 78
+LDI r12, 65
+LDI r13, 102
+LDI r14, 0xAA00FF
+RECTF r10, r11, r12, r13, r14
 HALT

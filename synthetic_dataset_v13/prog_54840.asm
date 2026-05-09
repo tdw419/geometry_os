@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (190, 80) and radius 65.
-; PLAN: r0=190(x), r1=80(y), r2=65(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 190
-LDI r1, 80
-LDI r2, 65
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 107x63 rectangle at position (279, 100).
+; PLAN: r0=279(x), r1=100(y), r2=107(width), r3=63(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 279
+LDI r1, 100
+LDI r2, 107
+LDI r3, 63
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

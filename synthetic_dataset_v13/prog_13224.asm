@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a yellow rectangular region at (276, 24) spanning 103 by 85 pixels.
-; PLAN: r0=276(x), r1=24(y), r2=103(width), r3=85(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 276
-LDI r1, 24
-LDI r2, 103
-LDI r3, 85
+; DESCRIPTION: Draws a yellow line from (469, 28) to (480, 105).
+; PLAN: r0=469(x1), r1=28(y1), r2=480(x2), r3=105(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 469
+LDI r1, 28
+LDI r2, 480
+LDI r3, 105
 LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

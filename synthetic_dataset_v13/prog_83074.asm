@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a blue line segment connecting (450, 92) to (287, 31).
-; PLAN: r0=450(x1), r1=92(y1), r2=287(x2), r3=31(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 450
-LDI r1, 92
-LDI r2, 287
-LDI r3, 31
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 82x40 rectangle at position (282, 144).
+; PLAN: r0=282(x), r1=144(y), r2=82(width), r3=40(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 282
+LDI r1, 144
+LDI r2, 82
+LDI r3, 40
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

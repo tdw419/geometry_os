@@ -1,5 +1,8 @@
-; DESCRIPTION: Sets the background to red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Draws a green circle centered at (309, 141) with radius 70.
+; PLAN: r0=309(x), r1=141(y), r2=70(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 309
+LDI r1, 141
+LDI r2, 70
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (308, 250) and (290, 161).
-; PLAN: r0=308(x1), r1=250(y1), r2=290(x2), r3=161(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 308
-LDI r1, 250
-LDI r2, 290
-LDI r3, 161
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow circle centered at (144, 179) with radius 25.
+; PLAN: r0=144(x), r1=179(y), r2=25(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 144
+LDI r1, 179
+LDI r2, 25
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Draws a magenta rectangle at (250, 8) with width 20 and height 18 then Renders a blue line between points (30, 32) and (130, 205).
-; PLAN: r0=250(x), r1=8(y), r2=20(width), r3=18(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=30(x1), r6=32(y1), r7=130(x2), r8=205(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 250
-LDI r1, 8
-LDI r2, 20
-LDI r3, 18
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 30
-LDI r6, 32
-LDI r7, 130
-LDI r8, 205
-LDI r9, 0x0000FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Creates a white circular shape at (200, 179) with radius 71 then Sets a single blue pixel at (183, 146) then Draws a blue line from (454, 116) to (456, 172).
+; PLAN: r0=200(x), r1=179(y), r2=71(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=183(x), r6=146(y), r7=0x0000FF(color). Op: PSET r5, r6, r7 Next: r10=454(x1), r11=116(y1), r12=456(x2), r13=172(y2), r14=0x0000FF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 200
+LDI r1, 179
+LDI r2, 71
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
+LDI r5, 183
+LDI r6, 146
+LDI r7, 0x0000FF
+PSET r5, r6, r7
+LDI r10, 454
+LDI r11, 116
+LDI r12, 456
+LDI r13, 172
+LDI r14, 0x0000FF
+LINE r10, r11, r12, r13, r14
 HALT

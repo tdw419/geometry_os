@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (192, 69).
-; PLAN: r0=192(x), r1=69(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 192
-LDI r1, 69
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a yellow rectangle at (261, 42) with width 29 and height 26.
+; PLAN: r0=261(x), r1=42(y), r2=29(width), r3=26(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 261
+LDI r1, 42
+LDI r2, 29
+LDI r3, 26
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

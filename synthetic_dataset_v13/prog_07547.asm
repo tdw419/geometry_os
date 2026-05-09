@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a blue 24x50 rectangle at position (259, 75).
-; PLAN: r0=259(x), r1=75(y), r2=24(width), r3=50(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 259
-LDI r1, 75
-LDI r2, 24
-LDI r3, 50
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black dot at position (149, 41).
+; PLAN: r0=149(x), r1=41(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 149
+LDI r1, 41
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

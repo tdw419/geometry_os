@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a black circular shape at (271, 135) with radius 48.
-; PLAN: r0=271(x), r1=135(y), r2=48(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 271
-LDI r1, 135
-LDI r2, 48
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue line between points (359, 159) and (279, 20).
+; PLAN: r0=359(x1), r1=159(y1), r2=279(x2), r3=20(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 359
+LDI r1, 159
+LDI r2, 279
+LDI r3, 20
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

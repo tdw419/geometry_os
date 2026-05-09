@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Places a purple dot at position (133, 93) then Renders a yellow disk with center (93, 150) and radius 80.
-; PLAN: r0=133(x), r1=93(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=93(x), r6=150(y), r7=80(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 133
-LDI r1, 93
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
-LDI r5, 93
-LDI r6, 150
-LDI r7, 80
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Loads 49 into r1 and decrements it in a loop until zero.
+; PLAN: r1=49(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 49
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

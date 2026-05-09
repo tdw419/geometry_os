@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a magenta 49x56 rectangle at position (118, 54).
-; PLAN: r0=118(x), r1=54(y), r2=49(width), r3=56(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 118
-LDI r1, 54
-LDI r2, 49
-LDI r3, 56
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red dot at position (181, 21) then Renders a yellow line between points (36, 6) and (270, 99).
+; PLAN: r0=181(x), r1=21(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=36(x1), r6=6(y1), r7=270(x2), r8=99(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 181
+LDI r1, 21
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 36
+LDI r6, 6
+LDI r7, 270
+LDI r8, 99
+LDI r9, 0xFFFF00
+LINE r5, r6, r7, r8, r9
 HALT

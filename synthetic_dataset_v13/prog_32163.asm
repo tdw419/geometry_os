@@ -1,20 +1,18 @@
-; DESCRIPTION: Composite: Draws a orange rectangle at (362, 113) with width 108 and height 91 then Draws a green line from (381, 221) to (258, 244) then Creates a red circular shape at (355, 136) with radius 24.
-; PLAN: r0=362(x), r1=113(y), r2=108(width), r3=91(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=381(x1), r6=221(y1), r7=258(x2), r8=244(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=355(x), r11=136(y), r12=24(radius), r13=0xFF0000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 362
-LDI r1, 113
-LDI r2, 108
-LDI r3, 91
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
-LDI r5, 381
-LDI r6, 221
-LDI r7, 258
-LDI r8, 244
-LDI r9, 0x00FF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 355
-LDI r11, 136
-LDI r12, 24
-LDI r13, 0xFF0000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Places a green dot at position (34, 108) then Places a blue circle of radius 49 at center (88, 170) then Creates a cyan rectangular region at (297, 147) spanning 101 by 50 pixels.
+; PLAN: r0=34(x), r1=108(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=88(x), r6=170(y), r7=49(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=297(x), r11=147(y), r12=101(width), r13=50(height), r14=0x00FFFF(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 34
+LDI r1, 108
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 88
+LDI r6, 170
+LDI r7, 49
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 297
+LDI r11, 147
+LDI r12, 101
+LDI r13, 50
+LDI r14, 0x00FFFF
+RECTF r10, r11, r12, r13, r14
 HALT

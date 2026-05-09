@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 53x84 rectangle at position (98, 5).
-; PLAN: r0=98(x), r1=5(y), r2=53(width), r3=84(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 98
-LDI r1, 5
-LDI r2, 53
-LDI r3, 84
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a yellow rectangle at (235, 122) with width 97 and height 78.
+; PLAN: r0=235(x), r1=122(y), r2=97(width), r3=78(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 235
+LDI r1, 122
+LDI r2, 97
+LDI r3, 78
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

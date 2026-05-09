@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a cyan dot at position (418, 143).
-; PLAN: r0=418(x), r1=143(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 418
-LDI r1, 143
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Loads 43 into r1 and decrements it in a loop until zero.
+; PLAN: r1=43(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 43
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

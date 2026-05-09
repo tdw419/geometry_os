@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black line segment connecting (333, 42) to (393, 244).
-; PLAN: r0=333(x1), r1=42(y1), r2=393(x2), r3=244(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 333
-LDI r1, 42
-LDI r2, 393
-LDI r3, 244
-LDI r4, 0x000000
+; DESCRIPTION: Renders a white line between points (286, 197) and (105, 64).
+; PLAN: r0=286(x1), r1=197(y1), r2=105(x2), r3=64(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 286
+LDI r1, 197
+LDI r2, 105
+LDI r3, 64
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

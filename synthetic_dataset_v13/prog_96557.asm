@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a white box of size 90x94 starting at (251, 35).
-; PLAN: r0=251(x), r1=35(y), r2=90(width), r3=94(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 251
-LDI r1, 35
-LDI r2, 90
-LDI r3, 94
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a orange line between points (229, 181) and (116, 124).
+; PLAN: r0=229(x1), r1=181(y1), r2=116(x2), r3=124(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 229
+LDI r1, 181
+LDI r2, 116
+LDI r3, 124
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

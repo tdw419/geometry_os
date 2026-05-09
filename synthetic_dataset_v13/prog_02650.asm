@@ -1,18 +1,14 @@
-; DESCRIPTION: Composite: Draws a black circle centered at (192, 146) with radius 27 then Places a orange dot at position (436, 176) then Places a purple 86x111 rectangle at position (275, 84).
-; PLAN: r0=192(x), r1=146(y), r2=27(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=436(x), r6=176(y), r7=0xFF8800(color). Op: PSET r5, r6, r7 Next: r10=275(x), r11=84(y), r12=86(width), r13=111(height), r14=0xAA00FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 192
-LDI r1, 146
-LDI r2, 27
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 436
-LDI r6, 176
-LDI r7, 0xFF8800
-PSET r5, r6, r7
-LDI r10, 275
-LDI r11, 84
-LDI r12, 86
-LDI r13, 111
-LDI r14, 0xAA00FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a cyan 57x93 rectangle at position (150, 89) then Creates a cyan circular shape at (419, 168) with radius 31.
+; PLAN: r0=150(x), r1=89(y), r2=57(width), r3=93(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=419(x), r6=168(y), r7=31(radius), r8=0x00FFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 150
+LDI r1, 89
+LDI r2, 57
+LDI r3, 93
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 419
+LDI r6, 168
+LDI r7, 31
+LDI r8, 0x00FFFF
+CIRCLE r5, r6, r7, r8
 HALT

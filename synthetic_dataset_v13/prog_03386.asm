@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a blue line between points (175, 62) and (50, 120).
-; PLAN: r0=175(x1), r1=62(y1), r2=50(x2), r3=120(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 175
-LDI r1, 62
-LDI r2, 50
-LDI r3, 120
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a purple dot at position (372, 200) then Renders a orange line between points (71, 203) and (12, 184).
+; PLAN: r0=372(x), r1=200(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2 Next: r5=71(x1), r6=203(y1), r7=12(x2), r8=184(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 372
+LDI r1, 200
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+LDI r5, 71
+LDI r6, 203
+LDI r7, 12
+LDI r8, 184
+LDI r9, 0xFF8800
+LINE r5, r6, r7, r8, r9
 HALT

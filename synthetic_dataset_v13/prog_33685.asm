@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange 111x30 rectangle at position (50, 209).
-; PLAN: r0=50(x), r1=209(y), r2=111(width), r3=30(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 50
-LDI r1, 209
-LDI r2, 111
-LDI r3, 30
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (339, 152) with radius 79.
+; PLAN: r0=339(x), r1=152(y), r2=79(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 339
+LDI r1, 152
+LDI r2, 79
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

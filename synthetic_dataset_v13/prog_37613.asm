@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a cyan rectangle at (375, 126) with width 50 and height 86.
-; PLAN: r0=375(x), r1=126(y), r2=50(width), r3=86(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 375
-LDI r1, 126
-LDI r2, 50
-LDI r3, 86
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single black pixel at (185, 75) then Creates a blue circular shape at (140, 106) with radius 47.
+; PLAN: r0=185(x), r1=75(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=140(x), r6=106(y), r7=47(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 185
+LDI r1, 75
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 140
+LDI r6, 106
+LDI r7, 47
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

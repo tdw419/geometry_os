@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (485, 124) with radius 21.
-; PLAN: r0=485(x), r1=124(y), r2=21(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+; DESCRIPTION: Renders a cyan line between points (485, 251) and (418, 225).
+; PLAN: r0=485(x1), r1=251(y1), r2=418(x2), r3=225(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
 LDI r0, 485
-LDI r1, 124
-LDI r2, 21
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+LDI r1, 251
+LDI r2, 418
+LDI r3, 225
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (235, 161) with radius 33.
-; PLAN: r0=235(x), r1=161(y), r2=33(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 235
-LDI r1, 161
-LDI r2, 33
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Creates a red circular shape at (170, 104) with radius 22.
+; PLAN: r0=170(x), r1=104(y), r2=22(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 170
+LDI r1, 104
+LDI r2, 22
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 112x113 rectangle at position (194, 133).
-; PLAN: r0=194(x), r1=133(y), r2=112(width), r3=113(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 194
-LDI r1, 133
-LDI r2, 112
-LDI r3, 113
+; DESCRIPTION: Renders a yellow line between points (325, 116) and (219, 178).
+; PLAN: r0=325(x1), r1=116(y1), r2=219(x2), r3=178(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 325
+LDI r1, 116
+LDI r2, 219
+LDI r3, 178
 LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

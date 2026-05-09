@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (221, 252) to (391, 3).
-; PLAN: r0=221(x1), r1=252(y1), r2=391(x2), r3=3(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 221
-LDI r1, 252
-LDI r2, 391
-LDI r3, 3
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a cyan line from (220, 206) to (301, 101).
+; PLAN: r0=220(x1), r1=206(y1), r2=301(x2), r3=101(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 220
+LDI r1, 206
+LDI r2, 301
+LDI r3, 101
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

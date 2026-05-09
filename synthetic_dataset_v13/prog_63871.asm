@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a magenta dot at position (343, 19).
-; PLAN: r0=343(x), r1=19(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 343
-LDI r1, 19
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple box of size 42x50 starting at (309, 21).
+; PLAN: r0=309(x), r1=21(y), r2=42(width), r3=50(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 309
+LDI r1, 21
+LDI r2, 42
+LDI r3, 50
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

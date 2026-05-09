@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 41x14 rectangle at position (416, 233).
-; PLAN: r0=416(x), r1=233(y), r2=41(width), r3=14(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 416
-LDI r1, 233
-LDI r2, 41
-LDI r3, 14
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (248, 154) with radius 26.
+; PLAN: r0=248(x), r1=154(y), r2=26(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 248
+LDI r1, 154
+LDI r2, 26
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

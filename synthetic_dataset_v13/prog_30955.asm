@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan 72x26 rectangle at position (40, 50).
-; PLAN: r0=40(x), r1=50(y), r2=72(width), r3=26(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 40
-LDI r1, 50
-LDI r2, 72
-LDI r3, 26
-LDI r4, 0x00FFFF
+; DESCRIPTION: Places a black 105x109 rectangle at position (81, 120).
+; PLAN: r0=81(x), r1=120(y), r2=105(width), r3=109(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 81
+LDI r1, 120
+LDI r2, 105
+LDI r3, 109
+LDI r4, 0x000000
 RECTF r0, r1, r2, r3, r4
 HALT

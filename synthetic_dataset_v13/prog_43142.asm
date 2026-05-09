@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta line between points (70, 253) and (481, 210).
-; PLAN: r0=70(x1), r1=253(y1), r2=481(x2), r3=210(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 70
-LDI r1, 253
-LDI r2, 481
-LDI r3, 210
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a white line from (90, 90) to (116, 17).
+; PLAN: r0=90(x1), r1=90(y1), r2=116(x2), r3=17(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 90
+LDI r1, 90
+LDI r2, 116
+LDI r3, 17
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

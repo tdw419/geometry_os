@@ -1,8 +1,13 @@
-; DESCRIPTION: Places a yellow circle of radius 58 at center (111, 150).
-; PLAN: r0=111(x), r1=150(y), r2=58(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 111
-LDI r1, 150
-LDI r2, 58
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single black pixel at (439, 254) then Renders a green box of size 44x100 starting at (360, 101).
+; PLAN: r0=439(x), r1=254(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=360(x), r6=101(y), r7=44(width), r8=100(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 439
+LDI r1, 254
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 360
+LDI r6, 101
+LDI r7, 44
+LDI r8, 100
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

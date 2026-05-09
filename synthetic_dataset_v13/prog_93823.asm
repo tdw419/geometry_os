@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen magenta.
-; PLAN: r0=0xFF00FF(color). Op: FILL r0.
-LDI r0, 0xFF00FF
-FILL r0
+; DESCRIPTION: Sets a single black pixel at (390, 158).
+; PLAN: r0=390(x), r1=158(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 390
+LDI r1, 158
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

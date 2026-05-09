@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (338, 60) and radius 50.
-; PLAN: r0=338(x), r1=60(y), r2=50(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 338
-LDI r1, 60
-LDI r2, 50
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan box of size 30x88 starting at (237, 149).
+; PLAN: r0=237(x), r1=149(y), r2=30(width), r3=88(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 237
+LDI r1, 149
+LDI r2, 30
+LDI r3, 88
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

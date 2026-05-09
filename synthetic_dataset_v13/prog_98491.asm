@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (397, 28) to (3, 9).
-; PLAN: r0=397(x1), r1=28(y1), r2=3(x2), r3=9(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 397
-LDI r1, 28
-LDI r2, 3
-LDI r3, 9
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple 12x59 rectangle at position (499, 16).
+; PLAN: r0=499(x), r1=16(y), r2=12(width), r3=59(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 499
+LDI r1, 16
+LDI r2, 12
+LDI r3, 59
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

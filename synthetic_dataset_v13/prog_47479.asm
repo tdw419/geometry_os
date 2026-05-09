@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a purple disk with center (171, 120) and radius 77.
-; PLAN: r0=171(x), r1=120(y), r2=77(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 171
-LDI r1, 120
-LDI r2, 77
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (282, 93) to (438, 20).
+; PLAN: r0=282(x1), r1=93(y1), r2=438(x2), r3=20(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 282
+LDI r1, 93
+LDI r2, 438
+LDI r3, 20
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

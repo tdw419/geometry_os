@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 24 at center (290, 199).
-; PLAN: r0=290(x), r1=199(y), r2=24(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 290
-LDI r1, 199
-LDI r2, 24
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 34x23 rectangle at position (262, 169).
+; PLAN: r0=262(x), r1=169(y), r2=34(width), r3=23(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 169
+LDI r2, 34
+LDI r3, 23
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

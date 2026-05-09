@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a cyan dot at position (107, 145).
-; PLAN: r0=107(x), r1=145(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 107
-LDI r1, 145
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a green circular shape at (303, 141) with radius 49.
+; PLAN: r0=303(x), r1=141(y), r2=49(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 303
+LDI r1, 141
+LDI r2, 49
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

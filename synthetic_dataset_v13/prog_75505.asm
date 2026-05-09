@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan 26x45 rectangle at position (129, 91).
-; PLAN: r0=129(x), r1=91(y), r2=26(width), r3=45(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 129
-LDI r1, 91
-LDI r2, 26
-LDI r3, 45
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan circle of radius 80 at center (211, 114).
+; PLAN: r0=211(x), r1=114(y), r2=80(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 211
+LDI r1, 114
+LDI r2, 80
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

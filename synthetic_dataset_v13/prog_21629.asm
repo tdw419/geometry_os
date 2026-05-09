@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (461, 156).
-; PLAN: r0=461(x), r1=156(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 461
-LDI r1, 156
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a purple box of size 14x102 starting at (51, 9).
+; PLAN: r0=51(x), r1=9(y), r2=14(width), r3=102(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 51
+LDI r1, 9
+LDI r2, 14
+LDI r3, 102
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

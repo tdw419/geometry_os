@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a orange line segment connecting (263, 147) to (454, 17).
-; PLAN: r0=263(x1), r1=147(y1), r2=454(x2), r3=17(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 263
-LDI r1, 147
-LDI r2, 454
-LDI r3, 17
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (256, 91) with radius 78.
+; PLAN: r0=256(x), r1=91(y), r2=78(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 256
+LDI r1, 91
+LDI r2, 78
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

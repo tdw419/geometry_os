@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a black rectangular region at (410, 184) spanning 22 by 35 pixels.
-; PLAN: r0=410(x), r1=184(y), r2=22(width), r3=35(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 410
-LDI r1, 184
-LDI r2, 22
-LDI r3, 35
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a orange dot at position (85, 38) then Places a cyan 48x118 rectangle at position (405, 17).
+; PLAN: r0=85(x), r1=38(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=405(x), r6=17(y), r7=48(width), r8=118(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 85
+LDI r1, 38
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 405
+LDI r6, 17
+LDI r7, 48
+LDI r8, 118
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

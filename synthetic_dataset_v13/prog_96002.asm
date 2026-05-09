@@ -1,8 +1,12 @@
-; DESCRIPTION: Creates a magenta circular shape at (313, 184) with radius 55.
-; PLAN: r0=313(x), r1=184(y), r2=55(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 313
-LDI r1, 184
-LDI r2, 55
-LDI r3, 0xFF00FF
+; DESCRIPTION: Composite: Draws a blue circle centered at (104, 20) with radius 10 then Sets a single orange pixel at (270, 67).
+; PLAN: r0=104(x), r1=20(y), r2=10(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=270(x), r6=67(y), r7=0xFF8800(color). Op: PSET r5, r6, r7.
+LDI r0, 104
+LDI r1, 20
+LDI r2, 10
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
+LDI r5, 270
+LDI r6, 67
+LDI r7, 0xFF8800
+PSET r5, r6, r7
 HALT

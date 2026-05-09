@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (329, 41) with radius 27.
-; PLAN: r0=329(x), r1=41(y), r2=27(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 329
-LDI r1, 41
-LDI r2, 27
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a black line between points (55, 114) and (24, 248).
+; PLAN: r0=55(x1), r1=114(y1), r2=24(x2), r3=248(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 55
+LDI r1, 114
+LDI r2, 24
+LDI r3, 248
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

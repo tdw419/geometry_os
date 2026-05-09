@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a red line between points (44, 28) and (498, 141).
-; PLAN: r0=44(x1), r1=28(y1), r2=498(x2), r3=141(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 44
-LDI r1, 28
-LDI r2, 498
-LDI r3, 141
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan dot at position (485, 187).
+; PLAN: r0=485(x), r1=187(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 485
+LDI r1, 187
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

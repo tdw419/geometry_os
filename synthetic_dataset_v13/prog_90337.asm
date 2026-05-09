@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a blue dot at position (235, 8) then Draws a purple line from (45, 59) to (83, 86).
-; PLAN: r0=235(x), r1=8(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=45(x1), r6=59(y1), r7=83(x2), r8=86(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 235
-LDI r1, 8
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 45
-LDI r6, 59
-LDI r7, 83
-LDI r8, 86
-LDI r9, 0xAA00FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a blue 79x12 rectangle at position (0, 212).
+; PLAN: r0=0(x), r1=212(y), r2=79(width), r3=12(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 0
+LDI r1, 212
+LDI r2, 79
+LDI r3, 12
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

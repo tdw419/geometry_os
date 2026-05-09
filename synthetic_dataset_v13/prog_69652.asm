@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a magenta circular shape at (469, 61) with radius 43.
-; PLAN: r0=469(x), r1=61(y), r2=43(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 469
-LDI r1, 61
-LDI r2, 43
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a black rectangular region at (51, 149) spanning 114 by 46 pixels.
+; PLAN: r0=51(x), r1=149(y), r2=114(width), r3=46(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 51
+LDI r1, 149
+LDI r2, 114
+LDI r3, 46
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

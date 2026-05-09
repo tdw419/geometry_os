@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a white circle of radius 12 at center (253, 31).
-; PLAN: r0=253(x), r1=31(y), r2=12(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 253
-LDI r1, 31
-LDI r2, 12
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Renders a black disk with center (419, 179) and radius 65.
+; PLAN: r0=419(x), r1=179(y), r2=65(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 419
+LDI r1, 179
+LDI r2, 65
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

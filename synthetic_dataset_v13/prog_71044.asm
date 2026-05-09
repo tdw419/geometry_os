@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (121, 42) spanning 92 by 19 pixels.
-; PLAN: r0=121(x), r1=42(y), r2=92(width), r3=19(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 121
-LDI r1, 42
-LDI r2, 92
-LDI r3, 19
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a white line segment connecting (416, 168) to (511, 83).
+; PLAN: r0=416(x1), r1=168(y1), r2=511(x2), r3=83(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 416
+LDI r1, 168
+LDI r2, 511
+LDI r3, 83
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

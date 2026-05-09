@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a magenta line from (330, 190) to (252, 136).
-; PLAN: r0=330(x1), r1=190(y1), r2=252(x2), r3=136(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 330
-LDI r1, 190
-LDI r2, 252
-LDI r3, 136
-LDI r4, 0xFF00FF
+; DESCRIPTION: Renders a orange line between points (226, 34) and (346, 190).
+; PLAN: r0=226(x1), r1=34(y1), r2=346(x2), r3=190(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 226
+LDI r1, 34
+LDI r2, 346
+LDI r3, 190
+LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

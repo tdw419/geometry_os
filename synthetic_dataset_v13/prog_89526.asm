@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Renders a green box of size 117x106 starting at (118, 71) then Places a blue dot at position (35, 53).
-; PLAN: r0=118(x), r1=71(y), r2=117(width), r3=106(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=35(x), r6=53(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
-LDI r0, 118
-LDI r1, 71
-LDI r2, 117
-LDI r3, 106
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 35
-LDI r6, 53
-LDI r7, 0x0000FF
-PSET r5, r6, r7
+; DESCRIPTION: Renders a orange line between points (298, 43) and (102, 148).
+; PLAN: r0=298(x1), r1=43(y1), r2=102(x2), r3=148(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 298
+LDI r1, 43
+LDI r2, 102
+LDI r3, 148
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 58 at center (158, 180).
-; PLAN: r0=158(x), r1=180(y), r2=58(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 158
-LDI r1, 180
-LDI r2, 58
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white rectangle at (187, 1) with width 52 and height 90.
+; PLAN: r0=187(x), r1=1(y), r2=52(width), r3=90(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 187
+LDI r1, 1
+LDI r2, 52
+LDI r3, 90
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

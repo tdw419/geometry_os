@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (224, 149) with radius 31.
-; PLAN: r0=224(x), r1=149(y), r2=31(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 224
-LDI r1, 149
-LDI r2, 31
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (190, 175) to (43, 185).
+; PLAN: r0=190(x1), r1=175(y1), r2=43(x2), r3=185(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 175
+LDI r2, 43
+LDI r3, 185
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

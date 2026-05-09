@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (187, 174) with radius 73.
-; PLAN: r0=187(x), r1=174(y), r2=73(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 187
-LDI r1, 174
-LDI r2, 73
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white box of size 76x92 starting at (154, 106).
+; PLAN: r0=154(x), r1=106(y), r2=76(width), r3=92(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 154
+LDI r1, 106
+LDI r2, 76
+LDI r3, 92
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

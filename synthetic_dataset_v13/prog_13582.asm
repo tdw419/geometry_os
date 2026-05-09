@@ -1,5 +1,7 @@
-; DESCRIPTION: Sets the background to purple.
-; PLAN: r0=0xAA00FF(color). Op: FILL r0.
-LDI r0, 0xAA00FF
-FILL r0
+; DESCRIPTION: Places a cyan dot at position (215, 93).
+; PLAN: r0=215(x), r1=93(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 215
+LDI r1, 93
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

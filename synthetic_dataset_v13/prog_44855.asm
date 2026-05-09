@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a cyan rectangular region at (430, 68) spanning 63 by 105 pixels.
-; PLAN: r0=430(x), r1=68(y), r2=63(width), r3=105(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 430
-LDI r1, 68
-LDI r2, 63
-LDI r3, 105
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (382, 75) with radius 65.
+; PLAN: r0=382(x), r1=75(y), r2=65(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 382
+LDI r1, 75
+LDI r2, 65
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

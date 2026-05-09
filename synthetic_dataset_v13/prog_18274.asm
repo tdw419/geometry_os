@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (42, 77) to (13, 201).
-; PLAN: r0=42(x1), r1=77(y1), r2=13(x2), r3=201(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 42
-LDI r1, 77
-LDI r2, 13
-LDI r3, 201
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 26 at center (116, 90).
+; PLAN: r0=116(x), r1=90(y), r2=26(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 116
+LDI r1, 90
+LDI r2, 26
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

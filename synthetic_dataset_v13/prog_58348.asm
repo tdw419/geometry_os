@@ -1,18 +1,12 @@
-; DESCRIPTION: Composite: Places a black circle of radius 36 at center (424, 86) then Sets a single purple pixel at (164, 236) then Draws a magenta line from (45, 165) to (142, 114).
-; PLAN: r0=424(x), r1=86(y), r2=36(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=164(x), r6=236(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7 Next: r10=45(x1), r11=165(y1), r12=142(x2), r13=114(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 424
-LDI r1, 86
-LDI r2, 36
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
-LDI r5, 164
-LDI r6, 236
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
-LDI r10, 45
-LDI r11, 165
-LDI r12, 142
-LDI r13, 114
-LDI r14, 0xFF00FF
-LINE r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Sets a single yellow pixel at (62, 231) then Renders a white disk with center (105, 227) and radius 13.
+; PLAN: r0=62(x), r1=231(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=105(x), r6=227(y), r7=13(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 62
+LDI r1, 231
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 105
+LDI r6, 227
+LDI r7, 13
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

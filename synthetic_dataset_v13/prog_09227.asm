@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a purple rectangular region at (152, 10) spanning 12 by 56 pixels.
-; PLAN: r0=152(x), r1=10(y), r2=12(width), r3=56(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 152
-LDI r1, 10
-LDI r2, 12
-LDI r3, 56
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a magenta rectangle at (63, 200) with width 92 and height 44.
+; PLAN: r0=63(x), r1=200(y), r2=92(width), r3=44(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 63
+LDI r1, 200
+LDI r2, 92
+LDI r3, 44
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

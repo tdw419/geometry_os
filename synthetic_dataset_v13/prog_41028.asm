@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 24x33 rectangle at position (7, 138).
-; PLAN: r0=7(x), r1=138(y), r2=24(width), r3=33(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 7
-LDI r1, 138
-LDI r2, 24
-LDI r3, 33
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (141, 164) with radius 75.
+; PLAN: r0=141(x), r1=164(y), r2=75(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 141
+LDI r1, 164
+LDI r2, 75
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

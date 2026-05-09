@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta 14x103 rectangle at position (266, 10).
-; PLAN: r0=266(x), r1=10(y), r2=14(width), r3=103(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 266
-LDI r1, 10
-LDI r2, 14
-LDI r3, 103
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan line from (206, 33) to (282, 193).
+; PLAN: r0=206(x1), r1=33(y1), r2=282(x2), r3=193(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 206
+LDI r1, 33
+LDI r2, 282
+LDI r3, 193
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

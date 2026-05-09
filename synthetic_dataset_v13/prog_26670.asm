@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a yellow rectangular region at (443, 115) spanning 33 by 102 pixels.
-; PLAN: r0=443(x), r1=115(y), r2=33(width), r3=102(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 443
-LDI r1, 115
-LDI r2, 33
-LDI r3, 102
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (100, 148) then Draws a red rectangle at (329, 90) with width 28 and height 13.
+; PLAN: r0=100(x), r1=148(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=329(x), r6=90(y), r7=28(width), r8=13(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 100
+LDI r1, 148
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 329
+LDI r6, 90
+LDI r7, 28
+LDI r8, 13
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
 HALT

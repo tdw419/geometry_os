@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a cyan line segment connecting (227, 74) to (258, 244).
-; PLAN: r0=227(x1), r1=74(y1), r2=258(x2), r3=244(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 227
-LDI r1, 74
-LDI r2, 258
-LDI r3, 244
+; DESCRIPTION: Creates a cyan rectangular region at (342, 42) spanning 70 by 20 pixels.
+; PLAN: r0=342(x), r1=42(y), r2=70(width), r3=20(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 342
+LDI r1, 42
+LDI r2, 70
+LDI r3, 20
 LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

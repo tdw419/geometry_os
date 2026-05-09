@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black line from (435, 205) to (199, 58).
-; PLAN: r0=435(x1), r1=205(y1), r2=199(x2), r3=58(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 435
-LDI r1, 205
-LDI r2, 199
-LDI r3, 58
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (411, 49) and radius 42.
+; PLAN: r0=411(x), r1=49(y), r2=42(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 411
+LDI r1, 49
+LDI r2, 42
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (397, 211) to (459, 106).
-; PLAN: r0=397(x1), r1=211(y1), r2=459(x2), r3=106(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 397
-LDI r1, 211
-LDI r2, 459
-LDI r3, 106
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a magenta rectangular region at (137, 89) spanning 79 by 97 pixels.
+; PLAN: r0=137(x), r1=89(y), r2=79(width), r3=97(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 137
+LDI r1, 89
+LDI r2, 79
+LDI r3, 97
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 44x26 starting at (188, 23).
-; PLAN: r0=188(x), r1=23(y), r2=44(width), r3=26(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 188
-LDI r1, 23
-LDI r2, 44
-LDI r3, 26
+; DESCRIPTION: Places a cyan line segment connecting (0, 236) to (459, 78).
+; PLAN: r0=0(x1), r1=236(y1), r2=459(x2), r3=78(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 0
+LDI r1, 236
+LDI r2, 459
+LDI r3, 78
 LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a blue dot at position (3, 0).
-; PLAN: r0=3(x), r1=0(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 3
-LDI r1, 0
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to red.
+; PLAN: r0=0xFF0000(color). Op: FILL r0.
+LDI r0, 0xFF0000
+FILL r0
 HALT

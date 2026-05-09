@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a purple rectangle at (265, 66) with width 52 and height 38.
-; PLAN: r0=265(x), r1=66(y), r2=52(width), r3=38(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 265
-LDI r1, 66
-LDI r2, 52
-LDI r3, 38
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta circle of radius 56 at center (309, 190).
+; PLAN: r0=309(x), r1=190(y), r2=56(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 309
+LDI r1, 190
+LDI r2, 56
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

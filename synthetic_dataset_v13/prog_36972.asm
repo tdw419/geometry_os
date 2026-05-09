@@ -1,8 +1,7 @@
-; DESCRIPTION: Loads 9 into r1 and decrements it in a loop until zero.
-; PLAN: r1=9(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 9
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Sets a single green pixel at (316, 217).
+; PLAN: r0=316(x), r1=217(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 316
+LDI r1, 217
+LDI r2, 0x00FF00
+PSET r0, r1, r2
 HALT

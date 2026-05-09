@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a white dot at position (392, 88) then Creates a yellow circular shape at (182, 124) with radius 51.
-; PLAN: r0=392(x), r1=88(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=182(x), r6=124(y), r7=51(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 392
-LDI r1, 88
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
-LDI r5, 182
-LDI r6, 124
-LDI r7, 51
-LDI r8, 0xFFFF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Draws a white rectangle at (447, 21) with width 56 and height 41.
+; PLAN: r0=447(x), r1=21(y), r2=56(width), r3=41(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 447
+LDI r1, 21
+LDI r2, 56
+LDI r3, 41
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

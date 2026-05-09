@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Creates a red circular shape at (163, 62) with radius 51 then Places a green dot at position (355, 71).
-; PLAN: r0=163(x), r1=62(y), r2=51(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=355(x), r6=71(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 163
-LDI r1, 62
-LDI r2, 51
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 355
-LDI r6, 71
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Renders a blue line between points (262, 93) and (273, 225).
+; PLAN: r0=262(x1), r1=93(y1), r2=273(x2), r3=225(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 93
+LDI r2, 273
+LDI r3, 225
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

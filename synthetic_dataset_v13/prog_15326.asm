@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green rectangle at (136, 140) with width 19 and height 73.
-; PLAN: r0=136(x), r1=140(y), r2=19(width), r3=73(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 136
-LDI r1, 140
-LDI r2, 19
-LDI r3, 73
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a magenta disk with center (314, 63) and radius 61.
+; PLAN: r0=314(x), r1=63(y), r2=61(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 314
+LDI r1, 63
+LDI r2, 61
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

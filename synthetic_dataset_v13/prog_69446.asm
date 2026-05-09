@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a black circle of radius 12 at center (437, 83).
-; PLAN: r0=437(x), r1=83(y), r2=12(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 437
-LDI r1, 83
-LDI r2, 12
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a white rectangular region at (184, 72) spanning 78 by 25 pixels.
+; PLAN: r0=184(x), r1=72(y), r2=78(width), r3=25(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 184
+LDI r1, 72
+LDI r2, 78
+LDI r3, 25
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

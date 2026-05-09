@@ -1,15 +1,13 @@
-; DESCRIPTION: Composite: Places a cyan line segment connecting (219, 94) to (193, 41) then Draws a green rectangle at (326, 103) with width 45 and height 74.
-; PLAN: r0=219(x1), r1=94(y1), r2=193(x2), r3=41(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=326(x), r6=103(y), r7=45(width), r8=74(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 219
-LDI r1, 94
-LDI r2, 193
-LDI r3, 41
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
-LDI r5, 326
-LDI r6, 103
-LDI r7, 45
-LDI r8, 74
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Sets a single cyan pixel at (301, 210) then Places a blue line segment connecting (354, 20) to (101, 130).
+; PLAN: r0=301(x), r1=210(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=354(x1), r6=20(y1), r7=101(x2), r8=130(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 301
+LDI r1, 210
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+LDI r5, 354
+LDI r6, 20
+LDI r7, 101
+LDI r8, 130
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

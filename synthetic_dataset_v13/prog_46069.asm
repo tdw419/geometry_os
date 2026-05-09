@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green line between points (244, 5) and (133, 2).
-; PLAN: r0=244(x1), r1=5(y1), r2=133(x2), r3=2(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 244
-LDI r1, 5
-LDI r2, 133
-LDI r3, 2
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple circle of radius 52 at center (395, 152).
+; PLAN: r0=395(x), r1=152(y), r2=52(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 395
+LDI r1, 152
+LDI r2, 52
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

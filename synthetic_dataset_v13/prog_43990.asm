@@ -1,19 +1,13 @@
-; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+; DESCRIPTION: Composite: Creates a orange rectangular region at (339, 37) spanning 105 by 21 pixels then Places a red dot at position (16, 14).
+; PLAN: r0=339(x), r1=37(y), r2=105(width), r3=21(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=16(x), r6=14(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.
+LDI r0, 339
+LDI r1, 37
+LDI r2, 105
+LDI r3, 21
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+LDI r5, 16
+LDI r6, 14
 LDI r7, 0xFF0000
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+PSET r5, r6, r7
 HALT

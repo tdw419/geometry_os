@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue rectangle at (161, 105) with width 83 and height 107.
-; PLAN: r0=161(x), r1=105(y), r2=83(width), r3=107(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 161
-LDI r1, 105
-LDI r2, 83
-LDI r3, 107
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 48 into r1 and decrements it in a loop until zero.
+; PLAN: r1=48(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 48
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

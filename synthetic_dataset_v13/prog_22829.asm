@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a magenta box of size 117x95 starting at (17, 126).
-; PLAN: r0=17(x), r1=126(y), r2=117(width), r3=95(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 17
-LDI r1, 126
-LDI r2, 117
-LDI r3, 95
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan dot at position (490, 13).
+; PLAN: r0=490(x), r1=13(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 490
+LDI r1, 13
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

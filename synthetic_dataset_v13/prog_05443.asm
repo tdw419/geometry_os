@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a green circle of radius 63 at center (271, 129).
-; PLAN: r0=271(x), r1=129(y), r2=63(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 271
-LDI r1, 129
-LDI r2, 63
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a magenta rectangular region at (199, 18) spanning 65 by 119 pixels.
+; PLAN: r0=199(x), r1=18(y), r2=65(width), r3=119(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 199
+LDI r1, 18
+LDI r2, 65
+LDI r3, 119
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

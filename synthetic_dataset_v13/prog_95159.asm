@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 96x66 rectangle at position (92, 21).
-; PLAN: r0=92(x), r1=21(y), r2=96(width), r3=66(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 92
-LDI r1, 21
-LDI r2, 96
-LDI r3, 66
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Draws a yellow rectangle at (295, 176) with width 34 and height 48.
+; PLAN: r0=295(x), r1=176(y), r2=34(width), r3=48(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 295
+LDI r1, 176
+LDI r2, 34
+LDI r3, 48
+LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT

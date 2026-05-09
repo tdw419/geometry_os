@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a red line segment connecting (0, 14) to (119, 202).
-; PLAN: r0=0(x1), r1=14(y1), r2=119(x2), r3=202(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 0
-LDI r1, 14
-LDI r2, 119
-LDI r3, 202
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (37, 4) with width 102 and height 120.
+; PLAN: r0=37(x), r1=4(y), r2=102(width), r3=120(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 37
+LDI r1, 4
+LDI r2, 102
+LDI r3, 120
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

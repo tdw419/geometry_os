@@ -1,18 +1,15 @@
-; DESCRIPTION: Composite: Places a green circle of radius 34 at center (340, 82) then Sets a single white pixel at (193, 253) then Places a yellow 40x72 rectangle at position (220, 129).
-; PLAN: r0=340(x), r1=82(y), r2=34(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=193(x), r6=253(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=220(x), r11=129(y), r12=40(width), r13=72(height), r14=0xFFFF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 340
-LDI r1, 82
-LDI r2, 34
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
-LDI r5, 193
-LDI r6, 253
-LDI r7, 0xFFFFFF
-PSET r5, r6, r7
-LDI r10, 220
-LDI r11, 129
-LDI r12, 40
-LDI r13, 72
-LDI r14, 0xFFFF00
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Places a black 117x28 rectangle at position (176, 94) then Places a white line segment connecting (453, 177) to (338, 203).
+; PLAN: r0=176(x), r1=94(y), r2=117(width), r3=28(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=453(x1), r6=177(y1), r7=338(x2), r8=203(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 176
+LDI r1, 94
+LDI r2, 117
+LDI r3, 28
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+LDI r5, 453
+LDI r6, 177
+LDI r7, 338
+LDI r8, 203
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
 HALT

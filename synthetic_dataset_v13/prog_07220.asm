@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (385, 206) then Renders a green disk with center (204, 112) and radius 30.
-; PLAN: r0=385(x), r1=206(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=204(x), r6=112(y), r7=30(radius), r8=0x00FF00(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 385
-LDI r1, 206
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 204
-LDI r6, 112
-LDI r7, 30
-LDI r8, 0x00FF00
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a magenta box of size 49x112 starting at (156, 113).
+; PLAN: r0=156(x), r1=113(y), r2=49(width), r3=112(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 156
+LDI r1, 113
+LDI r2, 49
+LDI r3, 112
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

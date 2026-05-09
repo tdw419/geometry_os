@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (423, 100) with radius 40.
-; PLAN: r0=423(x), r1=100(y), r2=40(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 423
-LDI r1, 100
-LDI r2, 40
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a green 13x109 rectangle at position (163, 121).
+; PLAN: r0=163(x), r1=121(y), r2=13(width), r3=109(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 163
+LDI r1, 121
+LDI r2, 13
+LDI r3, 109
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

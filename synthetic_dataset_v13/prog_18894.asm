@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (372, 184) with radius 15.
-; PLAN: r0=372(x), r1=184(y), r2=15(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 372
-LDI r1, 184
-LDI r2, 15
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (139, 35) and (170, 239).
+; PLAN: r0=139(x1), r1=35(y1), r2=170(x2), r3=239(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 35
+LDI r2, 170
+LDI r3, 239
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

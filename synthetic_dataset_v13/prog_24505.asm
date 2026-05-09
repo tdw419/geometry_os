@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Places a yellow dot at position (421, 39) then Creates a orange circular shape at (34, 70) with radius 28.
-; PLAN: r0=421(x), r1=39(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=34(x), r6=70(y), r7=28(radius), r8=0xFF8800(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 421
-LDI r1, 39
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
-LDI r5, 34
-LDI r6, 70
-LDI r7, 28
-LDI r8, 0xFF8800
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a blue line between points (339, 4) and (150, 55).
+; PLAN: r0=339(x1), r1=4(y1), r2=150(x2), r3=55(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 339
+LDI r1, 4
+LDI r2, 150
+LDI r3, 55
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

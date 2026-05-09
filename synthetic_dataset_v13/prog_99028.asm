@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green box of size 22x22 starting at (303, 43).
-; PLAN: r0=303(x), r1=43(y), r2=22(width), r3=22(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 303
-LDI r1, 43
-LDI r2, 22
-LDI r3, 22
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red line segment connecting (223, 180) to (61, 91).
+; PLAN: r0=223(x1), r1=180(y1), r2=61(x2), r3=91(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 223
+LDI r1, 180
+LDI r2, 61
+LDI r3, 91
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

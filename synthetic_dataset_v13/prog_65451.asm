@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (286, 129) and (387, 237).
-; PLAN: r0=286(x1), r1=129(y1), r2=387(x2), r3=237(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 286
-LDI r1, 129
-LDI r2, 387
-LDI r3, 237
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (319, 141) with radius 14.
+; PLAN: r0=319(x), r1=141(y), r2=14(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 319
+LDI r1, 141
+LDI r2, 14
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

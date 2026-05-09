@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 10x99 rectangle at position (59, 24).
-; PLAN: r0=59(x), r1=24(y), r2=10(width), r3=99(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 59
-LDI r1, 24
-LDI r2, 10
-LDI r3, 99
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red circle of radius 80 at center (180, 154).
+; PLAN: r0=180(x), r1=154(y), r2=80(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 180
+LDI r1, 154
+LDI r2, 80
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

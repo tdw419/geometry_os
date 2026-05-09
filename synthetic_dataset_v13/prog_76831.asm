@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue line between points (198, 252) and (306, 133).
-; PLAN: r0=198(x1), r1=252(y1), r2=306(x2), r3=133(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 198
-LDI r1, 252
-LDI r2, 306
-LDI r3, 133
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 29 into r1 and decrements it in a loop until zero.
+; PLAN: r1=29(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 29
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

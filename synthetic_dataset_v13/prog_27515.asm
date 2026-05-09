@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a yellow dot at position (227, 211).
-; PLAN: r0=227(x), r1=211(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
-LDI r0, 227
-LDI r1, 211
-LDI r2, 0xFFFF00
-PSET r0, r1, r2
+; DESCRIPTION: Renders a black box of size 41x96 starting at (279, 5).
+; PLAN: r0=279(x), r1=5(y), r2=41(width), r3=96(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 279
+LDI r1, 5
+LDI r2, 41
+LDI r3, 96
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

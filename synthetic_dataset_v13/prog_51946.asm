@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single white pixel at (495, 234).
-; PLAN: r0=495(x), r1=234(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 495
-LDI r1, 234
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a white 14x78 rectangle at position (355, 34).
+; PLAN: r0=355(x), r1=34(y), r2=14(width), r3=78(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 355
+LDI r1, 34
+LDI r2, 14
+LDI r3, 78
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

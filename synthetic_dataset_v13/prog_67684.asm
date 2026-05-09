@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 57x76 rectangle at position (321, 75).
-; PLAN: r0=321(x), r1=75(y), r2=57(width), r3=76(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 321
-LDI r1, 75
-LDI r2, 57
-LDI r3, 76
-LDI r4, 0xFFFF00
+; DESCRIPTION: Creates a cyan rectangular region at (123, 135) spanning 90 by 91 pixels.
+; PLAN: r0=123(x), r1=135(y), r2=90(width), r3=91(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 123
+LDI r1, 135
+LDI r2, 90
+LDI r3, 91
+LDI r4, 0x00FFFF
 RECTF r0, r1, r2, r3, r4
 HALT

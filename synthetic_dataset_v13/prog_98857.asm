@@ -1,12 +1,14 @@
-; DESCRIPTION: Composite: Draws a orange circle centered at (85, 136) with radius 78 then Places a purple dot at position (173, 120).
-; PLAN: r0=85(x), r1=136(y), r2=78(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=173(x), r6=120(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
-LDI r0, 85
-LDI r1, 136
-LDI r2, 78
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 173
-LDI r6, 120
-LDI r7, 0xAA00FF
-PSET r5, r6, r7
+; DESCRIPTION: Composite: Renders a magenta box of size 28x101 starting at (3, 99) then Creates a purple circular shape at (154, 78) with radius 18.
+; PLAN: r0=3(x), r1=99(y), r2=28(width), r3=101(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=154(x), r6=78(y), r7=18(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 3
+LDI r1, 99
+LDI r2, 28
+LDI r3, 101
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 154
+LDI r6, 78
+LDI r7, 18
+LDI r8, 0xAA00FF
+CIRCLE r5, r6, r7, r8
 HALT

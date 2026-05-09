@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 14x68 rectangle at position (19, 127).
-; PLAN: r0=19(x), r1=127(y), r2=14(width), r3=68(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 19
-LDI r1, 127
-LDI r2, 14
-LDI r3, 68
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a magenta box of size 17x117 starting at (135, 60).
+; PLAN: r0=135(x), r1=60(y), r2=17(width), r3=117(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 135
+LDI r1, 60
+LDI r2, 17
+LDI r3, 117
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

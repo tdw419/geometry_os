@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (111, 99) to (8, 251).
-; PLAN: r0=111(x1), r1=99(y1), r2=8(x2), r3=251(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 111
-LDI r1, 99
-LDI r2, 8
-LDI r3, 251
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta rectangle at (85, 77) with width 43 and height 32.
+; PLAN: r0=85(x), r1=77(y), r2=43(width), r3=32(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 85
+LDI r1, 77
+LDI r2, 43
+LDI r3, 32
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

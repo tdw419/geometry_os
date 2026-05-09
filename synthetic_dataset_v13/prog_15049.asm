@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (476, 21) then Renders a yellow line between points (30, 81) and (402, 181).
-; PLAN: r0=476(x), r1=21(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=30(x1), r6=81(y1), r7=402(x2), r8=181(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 476
-LDI r1, 21
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 30
-LDI r6, 81
-LDI r7, 402
-LDI r8, 181
-LDI r9, 0xFFFF00
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a purple circle of radius 34 at center (186, 125).
+; PLAN: r0=186(x), r1=125(y), r2=34(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 186
+LDI r1, 125
+LDI r2, 34
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

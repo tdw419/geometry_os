@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Sets a single orange pixel at (337, 15).
+; PLAN: r0=337(x), r1=15(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 337
+LDI r1, 15
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

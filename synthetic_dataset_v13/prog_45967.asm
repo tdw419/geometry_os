@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 81x102 rectangle at position (126, 17).
-; PLAN: r0=126(x), r1=17(y), r2=81(width), r3=102(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 17
-LDI r2, 81
-LDI r3, 102
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta circle centered at (123, 201) with radius 15.
+; PLAN: r0=123(x), r1=201(y), r2=15(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 123
+LDI r1, 201
+LDI r2, 15
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

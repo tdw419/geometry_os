@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a orange circle centered at (270, 86) with radius 55.
-; PLAN: r0=270(x), r1=86(y), r2=55(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 270
-LDI r1, 86
-LDI r2, 55
-LDI r3, 0xFF8800
+; DESCRIPTION: Places a green circle of radius 54 at center (226, 90).
+; PLAN: r0=226(x), r1=90(y), r2=54(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 226
+LDI r1, 90
+LDI r2, 54
+LDI r3, 0x00FF00
 CIRCLE r0, r1, r2, r3
 HALT

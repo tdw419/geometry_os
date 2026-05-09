@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (250, 150) with radius 80.
-; PLAN: r0=250(x), r1=150(y), r2=80(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 250
-LDI r1, 150
-LDI r2, 80
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange line from (113, 105) to (428, 63).
+; PLAN: r0=113(x1), r1=105(y1), r2=428(x2), r3=63(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 113
+LDI r1, 105
+LDI r2, 428
+LDI r3, 63
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green 58x44 rectangle at position (167, 176).
-; PLAN: r0=167(x), r1=176(y), r2=58(width), r3=44(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 167
-LDI r1, 176
-LDI r2, 58
-LDI r3, 44
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (139, 22) and (240, 83).
+; PLAN: r0=139(x1), r1=22(y1), r2=240(x2), r3=83(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 22
+LDI r2, 240
+LDI r3, 83
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

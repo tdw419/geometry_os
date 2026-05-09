@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen blue.
-; PLAN: r0=0x0000FF(color). Op: FILL r0.
-LDI r0, 0x0000FF
-FILL r0
+; DESCRIPTION: Places a cyan line segment connecting (188, 41) to (468, 213).
+; PLAN: r0=188(x1), r1=41(y1), r2=468(x2), r3=213(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 188
+LDI r1, 41
+LDI r2, 468
+LDI r3, 213
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

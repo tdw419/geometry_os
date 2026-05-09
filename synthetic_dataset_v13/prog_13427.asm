@@ -1,19 +1,19 @@
-; DESCRIPTION: Composite: Sets a single blue pixel at (109, 199) then Places a orange 64x77 rectangle at position (183, 134) then Renders a magenta line between points (304, 100) and (389, 78).
-; PLAN: r0=109(x), r1=199(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=183(x), r6=134(y), r7=64(width), r8=77(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=304(x1), r11=100(y1), r12=389(x2), r13=78(y2), r14=0xFF00FF(color). Op: LINE r10, r11, r12, r13, r14.
-LDI r0, 109
-LDI r1, 199
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 183
-LDI r6, 134
-LDI r7, 64
-LDI r8, 77
-LDI r9, 0xFF8800
+; DESCRIPTION: Composite: Places a yellow line segment connecting (297, 1) to (476, 161) then Creates a blue rectangular region at (235, 172) spanning 42 by 72 pixels then Places a purple dot at position (273, 20).
+; PLAN: r0=297(x1), r1=1(y1), r2=476(x2), r3=161(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=235(x), r6=172(y), r7=42(width), r8=72(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=273(x), r11=20(y), r12=0xAA00FF(color). Op: PSET r10, r11, r12.
+LDI r0, 297
+LDI r1, 1
+LDI r2, 476
+LDI r3, 161
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 235
+LDI r6, 172
+LDI r7, 42
+LDI r8, 72
+LDI r9, 0x0000FF
 RECTF r5, r6, r7, r8, r9
-LDI r10, 304
-LDI r11, 100
-LDI r12, 389
-LDI r13, 78
-LDI r14, 0xFF00FF
-LINE r10, r11, r12, r13, r14
+LDI r10, 273
+LDI r11, 20
+LDI r12, 0xAA00FF
+PSET r10, r11, r12
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a white circle centered at (261, 122) with radius 55.
-; PLAN: r0=261(x), r1=122(y), r2=55(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 261
-LDI r1, 122
-LDI r2, 55
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Loads 43 into r1 and decrements it in a loop until zero.
+; PLAN: r1=43(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 43
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

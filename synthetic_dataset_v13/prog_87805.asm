@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (361, 8) to (442, 233).
-; PLAN: r0=361(x1), r1=8(y1), r2=442(x2), r3=233(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 361
-LDI r1, 8
-LDI r2, 442
-LDI r3, 233
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a cyan line from (506, 40) to (350, 89).
+; PLAN: r0=506(x1), r1=40(y1), r2=350(x2), r3=89(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 506
+LDI r1, 40
+LDI r2, 350
+LDI r3, 89
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

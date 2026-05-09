@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (26, 86) and radius 26.
-; PLAN: r0=26(x), r1=86(y), r2=26(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 26
-LDI r1, 86
-LDI r2, 26
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a yellow box of size 29x113 starting at (66, 116).
+; PLAN: r0=66(x), r1=116(y), r2=29(width), r3=113(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 66
+LDI r1, 116
+LDI r2, 29
+LDI r3, 113
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

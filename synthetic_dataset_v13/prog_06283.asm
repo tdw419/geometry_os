@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 23 into r1 and decrements it in a loop until zero.
-; PLAN: r1=23(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 23
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a green 108x80 rectangle at position (245, 83).
+; PLAN: r0=245(x), r1=83(y), r2=108(width), r3=80(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 245
+LDI r1, 83
+LDI r2, 108
+LDI r3, 80
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

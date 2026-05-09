@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a white 49x75 rectangle at position (265, 4).
-; PLAN: r0=265(x), r1=4(y), r2=49(width), r3=75(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 265
-LDI r1, 4
-LDI r2, 49
-LDI r3, 75
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (222, 138) with radius 69.
+; PLAN: r0=222(x), r1=138(y), r2=69(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 222
+LDI r1, 138
+LDI r2, 69
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

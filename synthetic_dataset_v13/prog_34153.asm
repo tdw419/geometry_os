@@ -1,5 +1,7 @@
-; DESCRIPTION: Paints the whole screen white.
-; PLAN: r0=0xFFFFFF(color). Op: FILL r0.
-LDI r0, 0xFFFFFF
-FILL r0
+; DESCRIPTION: Sets a single purple pixel at (439, 185).
+; PLAN: r0=439(x), r1=185(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 439
+LDI r1, 185
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

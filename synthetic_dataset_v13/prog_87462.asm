@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (414, 249) to (448, 52).
-; PLAN: r0=414(x1), r1=249(y1), r2=448(x2), r3=52(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 414
-LDI r1, 249
-LDI r2, 448
-LDI r3, 52
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple rectangular region at (11, 136) spanning 27 by 35 pixels.
+; PLAN: r0=11(x), r1=136(y), r2=27(width), r3=35(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 11
+LDI r1, 136
+LDI r2, 27
+LDI r3, 35
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

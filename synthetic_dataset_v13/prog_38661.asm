@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a green circular shape at (156, 92) with radius 55.
-; PLAN: r0=156(x), r1=92(y), r2=55(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 156
-LDI r1, 92
-LDI r2, 55
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single yellow pixel at (376, 188).
+; PLAN: r0=376(x), r1=188(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2.
+LDI r0, 376
+LDI r1, 188
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
 HALT

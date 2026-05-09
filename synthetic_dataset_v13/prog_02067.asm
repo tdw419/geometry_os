@@ -1,5 +1,9 @@
-; DESCRIPTION: Paints the whole screen red.
-; PLAN: r0=0xFF0000(color). Op: FILL r0.
-LDI r0, 0xFF0000
-FILL r0
+; DESCRIPTION: Places a cyan 115x111 rectangle at position (259, 132).
+; PLAN: r0=259(x), r1=132(y), r2=115(width), r3=111(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 259
+LDI r1, 132
+LDI r2, 115
+LDI r3, 111
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

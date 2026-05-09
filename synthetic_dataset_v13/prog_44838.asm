@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a green dot at position (456, 101).
-; PLAN: r0=456(x), r1=101(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 456
-LDI r1, 101
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a black 73x31 rectangle at position (370, 138).
+; PLAN: r0=370(x), r1=138(y), r2=73(width), r3=31(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 370
+LDI r1, 138
+LDI r2, 73
+LDI r3, 31
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

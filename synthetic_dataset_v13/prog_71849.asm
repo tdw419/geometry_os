@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a black disk with center (100, 207) and radius 26.
-; PLAN: r0=100(x), r1=207(y), r2=26(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 100
-LDI r1, 207
-LDI r2, 26
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a white line from (268, 2) to (172, 183).
+; PLAN: r0=268(x1), r1=2(y1), r2=172(x2), r3=183(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 268
+LDI r1, 2
+LDI r2, 172
+LDI r3, 183
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

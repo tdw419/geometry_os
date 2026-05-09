@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white line between points (157, 159) and (282, 184).
-; PLAN: r0=157(x1), r1=159(y1), r2=282(x2), r3=184(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 157
-LDI r1, 159
-LDI r2, 282
-LDI r3, 184
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a purple circular shape at (121, 215) with radius 23.
+; PLAN: r0=121(x), r1=215(y), r2=23(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 121
+LDI r1, 215
+LDI r2, 23
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

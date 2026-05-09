@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a green circular shape at (72, 123) with radius 23.
-; PLAN: r0=72(x), r1=123(y), r2=23(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 72
-LDI r1, 123
-LDI r2, 23
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a white rectangular region at (257, 49) spanning 61 by 98 pixels.
+; PLAN: r0=257(x), r1=49(y), r2=61(width), r3=98(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 257
+LDI r1, 49
+LDI r2, 61
+LDI r3, 98
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

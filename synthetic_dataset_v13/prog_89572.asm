@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a purple rectangle at (99, 42) with width 56 and height 39.
-; PLAN: r0=99(x), r1=42(y), r2=56(width), r3=39(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 99
-LDI r1, 42
-LDI r2, 56
-LDI r3, 39
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a green circle of radius 20 at center (402, 122) then Places a cyan dot at position (140, 58).
+; PLAN: r0=402(x), r1=122(y), r2=20(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=140(x), r6=58(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 402
+LDI r1, 122
+LDI r2, 20
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 140
+LDI r6, 58
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

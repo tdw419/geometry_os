@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a green disk with center (331, 71) and radius 69.
-; PLAN: r0=331(x), r1=71(y), r2=69(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 331
-LDI r1, 71
-LDI r2, 69
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black dot at position (148, 172).
+; PLAN: r0=148(x), r1=172(y), r2=0x000000(color). Op: PSET r0, r1, r2.
+LDI r0, 148
+LDI r1, 172
+LDI r2, 0x000000
+PSET r0, r1, r2
 HALT

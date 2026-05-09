@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (219, 140) with radius 15.
-; PLAN: r0=219(x), r1=140(y), r2=15(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 219
-LDI r1, 140
-LDI r2, 15
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a blue box of size 28x17 starting at (388, 112).
+; PLAN: r0=388(x), r1=112(y), r2=28(width), r3=17(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 388
+LDI r1, 112
+LDI r2, 28
+LDI r3, 17
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

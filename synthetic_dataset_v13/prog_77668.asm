@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a green rectangle at (234, 154) with width 81 and height 25.
-; PLAN: r0=234(x), r1=154(y), r2=81(width), r3=25(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 234
-LDI r1, 154
-LDI r2, 81
-LDI r3, 25
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (506, 115).
+; PLAN: r0=506(x), r1=115(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 506
+LDI r1, 115
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

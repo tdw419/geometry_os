@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a purple line between points (198, 181) and (327, 47).
-; PLAN: r0=198(x1), r1=181(y1), r2=327(x2), r3=47(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 198
-LDI r1, 181
-LDI r2, 327
-LDI r3, 47
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (350, 67).
+; PLAN: r0=350(x), r1=67(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 350
+LDI r1, 67
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a magenta circle of radius 80 at center (230, 150).
-; PLAN: r0=230(x), r1=150(y), r2=80(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 230
-LDI r1, 150
-LDI r2, 80
-LDI r3, 0xFF00FF
+; DESCRIPTION: Creates a cyan circular shape at (106, 227) with radius 23.
+; PLAN: r0=106(x), r1=227(y), r2=23(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 106
+LDI r1, 227
+LDI r2, 23
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

@@ -1,18 +1,13 @@
-; DESCRIPTION: Composite: Draws a cyan rectangle at (392, 4) with width 110 and height 53 then Sets a single green pixel at (463, 10) then Places a black circle of radius 32 at center (119, 164).
-; PLAN: r0=392(x), r1=4(y), r2=110(width), r3=53(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=463(x), r6=10(y), r7=0x00FF00(color). Op: PSET r5, r6, r7 Next: r10=119(x), r11=164(y), r12=32(radius), r13=0x000000(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 392
-LDI r1, 4
-LDI r2, 110
-LDI r3, 53
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 463
-LDI r6, 10
-LDI r7, 0x00FF00
-PSET r5, r6, r7
-LDI r10, 119
-LDI r11, 164
-LDI r12, 32
-LDI r13, 0x000000
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Sets a single yellow pixel at (369, 162) then Renders a orange box of size 77x87 starting at (421, 26).
+; PLAN: r0=369(x), r1=162(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=421(x), r6=26(y), r7=77(width), r8=87(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 369
+LDI r1, 162
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 421
+LDI r6, 26
+LDI r7, 77
+LDI r8, 87
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
 HALT

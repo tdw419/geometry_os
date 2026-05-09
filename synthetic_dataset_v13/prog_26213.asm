@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (400, 3) to (495, 148).
-; PLAN: r0=400(x1), r1=3(y1), r2=495(x2), r3=148(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 400
-LDI r1, 3
-LDI r2, 495
-LDI r3, 148
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (243, 138) with radius 74.
+; PLAN: r0=243(x), r1=138(y), r2=74(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 243
+LDI r1, 138
+LDI r2, 74
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

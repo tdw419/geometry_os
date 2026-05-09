@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a blue box of size 117x102 starting at (216, 147).
-; PLAN: r0=216(x), r1=147(y), r2=117(width), r3=102(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 216
-LDI r1, 147
-LDI r2, 117
-LDI r3, 102
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 12 into r1 and decrements it in a loop until zero.
+; PLAN: r1=12(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 12
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

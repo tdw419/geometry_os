@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (473, 54) with radius 10.
-; PLAN: r0=473(x), r1=54(y), r2=10(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 473
-LDI r1, 54
-LDI r2, 10
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a orange line between points (493, 17) and (351, 131).
+; PLAN: r0=493(x1), r1=17(y1), r2=351(x2), r3=131(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 493
+LDI r1, 17
+LDI r2, 351
+LDI r3, 131
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

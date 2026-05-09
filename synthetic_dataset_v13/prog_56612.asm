@@ -1,9 +1,12 @@
-; DESCRIPTION: Draws a orange line from (217, 250) to (202, 151).
-; PLAN: r0=217(x1), r1=250(y1), r2=202(x2), r3=151(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 217
-LDI r1, 250
-LDI r2, 202
-LDI r3, 151
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (473, 140) then Creates a white circular shape at (162, 164) with radius 33.
+; PLAN: r0=473(x), r1=140(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=162(x), r6=164(y), r7=33(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 473
+LDI r1, 140
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 162
+LDI r6, 164
+LDI r7, 33
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

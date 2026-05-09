@@ -1,14 +1,19 @@
-; DESCRIPTION: Composite: Places a magenta circle of radius 51 at center (120, 164) then Renders a black line between points (94, 60) and (385, 105).
-; PLAN: r0=120(x), r1=164(y), r2=51(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=94(x1), r6=60(y1), r7=385(x2), r8=105(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 120
-LDI r1, 164
-LDI r2, 51
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
-LDI r5, 94
-LDI r6, 60
-LDI r7, 385
-LDI r8, 105
-LDI r9, 0x000000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Fills the screen with a vertical blue gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0x0000FF(color). CMP stores result in r0.
+LDI r7, 0x0000FF
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

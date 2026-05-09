@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a white circle centered at (418, 200) with radius 54.
-; PLAN: r0=418(x), r1=200(y), r2=54(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 418
-LDI r1, 200
-LDI r2, 54
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green rectangle at (272, 53) with width 59 and height 51.
+; PLAN: r0=272(x), r1=53(y), r2=59(width), r3=51(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 272
+LDI r1, 53
+LDI r2, 59
+LDI r3, 51
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

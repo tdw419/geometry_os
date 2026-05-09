@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (181, 106) to (163, 199).
-; PLAN: r0=181(x1), r1=106(y1), r2=163(x2), r3=199(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 181
-LDI r1, 106
-LDI r2, 163
-LDI r3, 199
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange circle of radius 30 at center (48, 89).
+; PLAN: r0=48(x), r1=89(y), r2=30(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 48
+LDI r1, 89
+LDI r2, 30
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

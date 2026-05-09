@@ -1,9 +1,13 @@
-; DESCRIPTION: Creates a black rectangular region at (8, 133) spanning 76 by 105 pixels.
-; PLAN: r0=8(x), r1=133(y), r2=76(width), r3=105(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 8
-LDI r1, 133
-LDI r2, 76
-LDI r3, 105
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Renders a green line between points (215, 99) and (89, 127) then Sets a single cyan pixel at (286, 252).
+; PLAN: r0=215(x1), r1=99(y1), r2=89(x2), r3=127(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=286(x), r6=252(y), r7=0x00FFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 215
+LDI r1, 99
+LDI r2, 89
+LDI r3, 127
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 286
+LDI r6, 252
+LDI r7, 0x00FFFF
+PSET r5, r6, r7
 HALT

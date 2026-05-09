@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 68x46 starting at (373, 9).
-; PLAN: r0=373(x), r1=9(y), r2=68(width), r3=46(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 373
-LDI r1, 9
-LDI r2, 68
-LDI r3, 46
+; DESCRIPTION: Draws a blue rectangle at (23, 5) with width 27 and height 104.
+; PLAN: r0=23(x), r1=5(y), r2=27(width), r3=104(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 23
+LDI r1, 5
+LDI r2, 27
+LDI r3, 104
 LDI r4, 0x0000FF
 RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a black rectangle at (109, 28) with width 55 and height 94.
-; PLAN: r0=109(x), r1=28(y), r2=55(width), r3=94(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 109
-LDI r1, 28
-LDI r2, 55
-LDI r3, 94
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a orange circular shape at (89, 149) with radius 36.
+; PLAN: r0=89(x), r1=149(y), r2=36(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 89
+LDI r1, 149
+LDI r2, 36
+LDI r3, 0xFF8800
+CIRCLE r0, r1, r2, r3
 HALT

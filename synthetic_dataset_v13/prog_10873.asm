@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a yellow circle centered at (266, 175) with radius 56.
-; PLAN: r0=266(x), r1=175(y), r2=56(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 266
-LDI r1, 175
-LDI r2, 56
-LDI r3, 0xFFFF00
+; DESCRIPTION: Creates a cyan circular shape at (438, 186) with radius 59.
+; PLAN: r0=438(x), r1=186(y), r2=59(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 438
+LDI r1, 186
+LDI r2, 59
+LDI r3, 0x00FFFF
 CIRCLE r0, r1, r2, r3
 HALT

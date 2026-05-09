@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a cyan disk with center (312, 129) and radius 71.
-; PLAN: r0=312(x), r1=129(y), r2=71(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 312
-LDI r1, 129
-LDI r2, 71
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (270, 27) to (92, 142).
+; PLAN: r0=270(x1), r1=27(y1), r2=92(x2), r3=142(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 270
+LDI r1, 27
+LDI r2, 92
+LDI r3, 142
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

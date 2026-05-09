@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (87, 134) and radius 56.
-; PLAN: r0=87(x), r1=134(y), r2=56(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 87
-LDI r1, 134
-LDI r2, 56
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan line between points (212, 107) and (334, 85).
+; PLAN: r0=212(x1), r1=107(y1), r2=334(x2), r3=85(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 212
+LDI r1, 107
+LDI r2, 334
+LDI r3, 85
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

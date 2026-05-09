@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow rectangle at (155, 33) with width 62 and height 99.
-; PLAN: r0=155(x), r1=33(y), r2=62(width), r3=99(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 155
-LDI r1, 33
-LDI r2, 62
-LDI r3, 99
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (420, 73) and (117, 205).
+; PLAN: r0=420(x1), r1=73(y1), r2=117(x2), r3=205(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 420
+LDI r1, 73
+LDI r2, 117
+LDI r3, 205
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

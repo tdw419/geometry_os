@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 34 at center (433, 90).
-; PLAN: r0=433(x), r1=90(y), r2=34(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 433
-LDI r1, 90
-LDI r2, 34
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Creates a purple rectangular region at (107, 105) spanning 11 by 93 pixels.
+; PLAN: r0=107(x), r1=105(y), r2=11(width), r3=93(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 107
+LDI r1, 105
+LDI r2, 11
+LDI r3, 93
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

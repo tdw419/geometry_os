@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a cyan circular shape at (479, 84) with radius 19.
-; PLAN: r0=479(x), r1=84(y), r2=19(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 479
-LDI r1, 84
-LDI r2, 19
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue rectangle at (137, 140) with width 54 and height 32.
+; PLAN: r0=137(x), r1=140(y), r2=54(width), r3=32(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 137
+LDI r1, 140
+LDI r2, 54
+LDI r3, 32
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

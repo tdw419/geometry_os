@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a blue circular shape at (69, 108) with radius 46.
-; PLAN: r0=69(x), r1=108(y), r2=46(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 69
-LDI r1, 108
-LDI r2, 46
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a orange line segment connecting (6, 213) to (336, 152).
+; PLAN: r0=6(x1), r1=213(y1), r2=336(x2), r3=152(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 6
+LDI r1, 213
+LDI r2, 336
+LDI r3, 152
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
 HALT

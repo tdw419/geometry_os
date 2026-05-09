@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a blue line from (418, 229) to (205, 83).
-; PLAN: r0=418(x1), r1=229(y1), r2=205(x2), r3=83(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 418
-LDI r1, 229
-LDI r2, 205
-LDI r3, 83
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (474, 52).
+; PLAN: r0=474(x), r1=52(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 474
+LDI r1, 52
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

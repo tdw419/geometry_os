@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 19x85 rectangle at position (41, 138).
-; PLAN: r0=41(x), r1=138(y), r2=19(width), r3=85(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 41
-LDI r1, 138
-LDI r2, 19
-LDI r3, 85
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a magenta line from (392, 105) to (121, 55).
+; PLAN: r0=392(x1), r1=105(y1), r2=121(x2), r3=55(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 392
+LDI r1, 105
+LDI r2, 121
+LDI r3, 55
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

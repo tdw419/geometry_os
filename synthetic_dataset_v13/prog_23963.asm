@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (294, 79) with radius 77.
-; PLAN: r0=294(x), r1=79(y), r2=77(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 294
-LDI r1, 79
-LDI r2, 77
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a red 51x37 rectangle at position (296, 3).
+; PLAN: r0=296(x), r1=3(y), r2=51(width), r3=37(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 296
+LDI r1, 3
+LDI r2, 51
+LDI r3, 37
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

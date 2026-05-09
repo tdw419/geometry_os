@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a orange rectangle at (203, 73) with width 66 and height 114.
-; PLAN: r0=203(x), r1=73(y), r2=66(width), r3=114(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 203
-LDI r1, 73
-LDI r2, 66
-LDI r3, 114
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow line between points (459, 36) and (230, 201).
+; PLAN: r0=459(x1), r1=36(y1), r2=230(x2), r3=201(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 459
+LDI r1, 36
+LDI r2, 230
+LDI r3, 201
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

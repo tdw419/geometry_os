@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 44 into r1 and decrements it in a loop until zero.
-; PLAN: r1=44(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 44
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Draws a black line from (102, 32) to (494, 233).
+; PLAN: r0=102(x1), r1=32(y1), r2=494(x2), r3=233(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 102
+LDI r1, 32
+LDI r2, 494
+LDI r3, 233
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

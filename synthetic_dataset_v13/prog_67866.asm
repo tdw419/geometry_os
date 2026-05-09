@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 42x65 rectangle at position (320, 157).
-; PLAN: r0=320(x), r1=157(y), r2=42(width), r3=65(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 320
-LDI r1, 157
-LDI r2, 42
-LDI r3, 65
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (135, 137) with radius 63.
+; PLAN: r0=135(x), r1=137(y), r2=63(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 135
+LDI r1, 137
+LDI r2, 63
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

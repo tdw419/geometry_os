@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a orange 52x55 rectangle at position (326, 44).
-; PLAN: r0=326(x), r1=44(y), r2=52(width), r3=55(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 326
-LDI r1, 44
-LDI r2, 52
-LDI r3, 55
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a red line between points (482, 140) and (192, 241).
+; PLAN: r0=482(x1), r1=140(y1), r2=192(x2), r3=241(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 482
+LDI r1, 140
+LDI r2, 192
+LDI r3, 241
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

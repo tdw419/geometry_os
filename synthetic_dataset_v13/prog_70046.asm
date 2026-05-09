@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (95, 32) and (99, 108).
-; PLAN: r0=95(x1), r1=32(y1), r2=99(x2), r3=108(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 95
-LDI r1, 32
-LDI r2, 99
-LDI r3, 108
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a blue line between points (374, 113) and (82, 14).
+; PLAN: r0=374(x1), r1=113(y1), r2=82(x2), r3=14(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 374
+LDI r1, 113
+LDI r2, 82
+LDI r3, 14
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

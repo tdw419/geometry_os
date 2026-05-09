@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (160, 225) and (117, 80).
-; PLAN: r0=160(x1), r1=225(y1), r2=117(x2), r3=80(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 160
-LDI r1, 225
-LDI r2, 117
-LDI r3, 80
-LDI r4, 0x00FFFF
+; DESCRIPTION: Renders a green line between points (253, 104) and (237, 160).
+; PLAN: r0=253(x1), r1=104(y1), r2=237(x2), r3=160(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 253
+LDI r1, 104
+LDI r2, 237
+LDI r3, 160
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

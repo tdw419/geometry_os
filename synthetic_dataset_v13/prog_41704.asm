@@ -1,9 +1,13 @@
-; DESCRIPTION: Renders a blue line between points (377, 228) and (378, 205).
-; PLAN: r0=377(x1), r1=228(y1), r2=378(x2), r3=205(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 377
-LDI r1, 228
-LDI r2, 378
-LDI r3, 205
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single orange pixel at (65, 193) then Draws a red line from (291, 180) to (127, 63).
+; PLAN: r0=65(x), r1=193(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=291(x1), r6=180(y1), r7=127(x2), r8=63(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 65
+LDI r1, 193
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 291
+LDI r6, 180
+LDI r7, 127
+LDI r8, 63
+LDI r9, 0xFF0000
+LINE r5, r6, r7, r8, r9
 HALT

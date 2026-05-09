@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a red circle centered at (417, 111) with radius 74.
-; PLAN: r0=417(x), r1=111(y), r2=74(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 417
-LDI r1, 111
-LDI r2, 74
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta line segment connecting (74, 99) to (311, 233).
+; PLAN: r0=74(x1), r1=99(y1), r2=311(x2), r3=233(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 74
+LDI r1, 99
+LDI r2, 311
+LDI r3, 233
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

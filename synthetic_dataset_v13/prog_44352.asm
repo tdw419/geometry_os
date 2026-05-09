@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (443, 232) to (446, 101).
-; PLAN: r0=443(x1), r1=232(y1), r2=446(x2), r3=101(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 443
-LDI r1, 232
-LDI r2, 446
-LDI r3, 101
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green circle centered at (390, 154) with radius 21.
+; PLAN: r0=390(x), r1=154(y), r2=21(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 390
+LDI r1, 154
+LDI r2, 21
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,5 @@
-; DESCRIPTION: Places a orange line segment connecting (6, 33) to (129, 73).
-; PLAN: r0=6(x1), r1=33(y1), r2=129(x2), r3=73(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 6
-LDI r1, 33
-LDI r2, 129
-LDI r3, 73
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Paints the whole screen purple.
+; PLAN: r0=0xAA00FF(color). Op: FILL r0.
+LDI r0, 0xAA00FF
+FILL r0
 HALT

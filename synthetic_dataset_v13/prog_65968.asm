@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta line from (108, 66) to (105, 229).
-; PLAN: r0=108(x1), r1=66(y1), r2=105(x2), r3=229(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 108
-LDI r1, 66
-LDI r2, 105
-LDI r3, 229
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (88, 63) with radius 59.
+; PLAN: r0=88(x), r1=63(y), r2=59(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 88
+LDI r1, 63
+LDI r2, 59
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

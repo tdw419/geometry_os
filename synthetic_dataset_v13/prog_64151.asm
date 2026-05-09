@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a orange rectangle at (210, 201) with width 19 and height 51.
-; PLAN: r0=210(x), r1=201(y), r2=19(width), r3=51(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 210
-LDI r1, 201
-LDI r2, 19
-LDI r3, 51
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red circle centered at (195, 175) with radius 33.
+; PLAN: r0=195(x), r1=175(y), r2=33(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 195
+LDI r1, 175
+LDI r2, 33
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
 HALT

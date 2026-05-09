@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (103, 200) with width 117 and height 13.
-; PLAN: r0=103(x), r1=200(y), r2=117(width), r3=13(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 103
-LDI r1, 200
-LDI r2, 117
-LDI r3, 13
-LDI r4, 0x0000FF
+; DESCRIPTION: Places a purple 107x57 rectangle at position (22, 20).
+; PLAN: r0=22(x), r1=20(y), r2=107(width), r3=57(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 22
+LDI r1, 20
+LDI r2, 107
+LDI r3, 57
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

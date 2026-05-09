@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (62, 26) then Renders a red line between points (378, 22) and (57, 184).
-; PLAN: r0=62(x), r1=26(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=378(x1), r6=22(y1), r7=57(x2), r8=184(y2), r9=0xFF0000(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 62
-LDI r1, 26
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 378
-LDI r6, 22
-LDI r7, 57
-LDI r8, 184
-LDI r9, 0xFF0000
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a blue circle of radius 34 at center (333, 174).
+; PLAN: r0=333(x), r1=174(y), r2=34(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 333
+LDI r1, 174
+LDI r2, 34
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

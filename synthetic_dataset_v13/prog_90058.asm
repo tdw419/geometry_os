@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (120, 129) spanning 17 by 26 pixels.
-; PLAN: r0=120(x), r1=129(y), r2=17(width), r3=26(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 120
-LDI r1, 129
-LDI r2, 17
-LDI r3, 26
-LDI r4, 0x000000
+; DESCRIPTION: Renders a orange box of size 10x93 starting at (262, 77).
+; PLAN: r0=262(x), r1=77(y), r2=10(width), r3=93(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 77
+LDI r2, 10
+LDI r3, 93
+LDI r4, 0xFF8800
 RECTF r0, r1, r2, r3, r4
 HALT

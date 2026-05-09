@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 111x13 rectangle at position (338, 132).
-; PLAN: r0=338(x), r1=132(y), r2=111(width), r3=13(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 338
-LDI r1, 132
-LDI r2, 111
-LDI r3, 13
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (159, 117) to (225, 182).
+; PLAN: r0=159(x1), r1=117(y1), r2=225(x2), r3=182(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 159
+LDI r1, 117
+LDI r2, 225
+LDI r3, 182
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

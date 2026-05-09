@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (287, 93) and radius 73.
-; PLAN: r0=287(x), r1=93(y), r2=73(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 287
-LDI r1, 93
-LDI r2, 73
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue line from (37, 147) to (449, 250).
+; PLAN: r0=37(x1), r1=147(y1), r2=449(x2), r3=250(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 37
+LDI r1, 147
+LDI r2, 449
+LDI r3, 250
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

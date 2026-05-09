@@ -1,8 +1,7 @@
-; DESCRIPTION: Draws a cyan circle centered at (276, 96) with radius 35.
-; PLAN: r0=276(x), r1=96(y), r2=35(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 276
-LDI r1, 96
-LDI r2, 35
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (131, 196).
+; PLAN: r0=131(x), r1=196(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 131
+LDI r1, 196
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

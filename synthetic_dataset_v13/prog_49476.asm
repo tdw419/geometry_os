@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (506, 142).
-; PLAN: r0=506(x), r1=142(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 506
-LDI r1, 142
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a white line between points (345, 72) and (382, 117).
+; PLAN: r0=345(x1), r1=72(y1), r2=382(x2), r3=117(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 345
+LDI r1, 72
+LDI r2, 382
+LDI r3, 117
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,7 @@
-; DESCRIPTION: Draws a cyan rectangle at (309, 9) with width 116 and height 42.
-; PLAN: r0=309(x), r1=9(y), r2=116(width), r3=42(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 309
-LDI r1, 9
-LDI r2, 116
-LDI r3, 42
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a purple dot at position (12, 234).
+; PLAN: r0=12(x), r1=234(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 12
+LDI r1, 234
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

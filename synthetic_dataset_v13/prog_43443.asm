@@ -1,9 +1,18 @@
-; DESCRIPTION: Places a black line segment connecting (404, 220) to (459, 183).
-; PLAN: r0=404(x1), r1=220(y1), r2=459(x2), r3=183(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 404
-LDI r1, 220
-LDI r2, 459
-LDI r3, 183
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (35, 16) then Draws a blue circle centered at (293, 110) with radius 76 then Renders a green box of size 32x64 starting at (253, 125).
+; PLAN: r0=35(x), r1=16(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=293(x), r6=110(y), r7=76(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=253(x), r11=125(y), r12=32(width), r13=64(height), r14=0x00FF00(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 35
+LDI r1, 16
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 293
+LDI r6, 110
+LDI r7, 76
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
+LDI r10, 253
+LDI r11, 125
+LDI r12, 32
+LDI r13, 64
+LDI r14, 0x00FF00
+RECTF r10, r11, r12, r13, r14
 HALT

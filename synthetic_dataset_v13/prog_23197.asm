@@ -1,8 +1,13 @@
-; DESCRIPTION: Loads 28 into r1 and decrements it in a loop until zero.
-; PLAN: r1=28(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 28
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Composite: Places a green dot at position (276, 109) then Creates a green rectangular region at (128, 99) spanning 64 by 28 pixels.
+; PLAN: r0=276(x), r1=109(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=128(x), r6=99(y), r7=64(width), r8=28(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 276
+LDI r1, 109
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 128
+LDI r6, 99
+LDI r7, 64
+LDI r8, 28
+LDI r9, 0x00FF00
+RECTF r5, r6, r7, r8, r9
 HALT

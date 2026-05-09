@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a red circle of radius 41 at center (113, 153).
-; PLAN: r0=113(x), r1=153(y), r2=41(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 113
-LDI r1, 153
-LDI r2, 41
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan line from (0, 251) to (317, 141).
+; PLAN: r0=0(x1), r1=251(y1), r2=317(x2), r3=141(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 0
+LDI r1, 251
+LDI r2, 317
+LDI r3, 141
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

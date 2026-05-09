@@ -1,18 +1,18 @@
-; DESCRIPTION: Composite: Places a red dot at position (353, 188) then Draws a black rectangle at (111, 29) with width 55 and height 31 then Draws a magenta circle centered at (99, 169) with radius 53.
-; PLAN: r0=353(x), r1=188(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=111(x), r6=29(y), r7=55(width), r8=31(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=99(x), r11=169(y), r12=53(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 353
-LDI r1, 188
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 111
-LDI r6, 29
-LDI r7, 55
-LDI r8, 31
-LDI r9, 0x000000
-RECTF r5, r6, r7, r8, r9
-LDI r10, 99
-LDI r11, 169
-LDI r12, 53
-LDI r13, 0xFF00FF
-CIRCLE r10, r11, r12, r13
+; DESCRIPTION: Composite: Creates a green circular shape at (244, 128) with radius 50 then Draws a magenta line from (378, 7) to (403, 110) then Places a yellow dot at position (188, 58).
+; PLAN: r0=244(x), r1=128(y), r2=50(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=378(x1), r6=7(y1), r7=403(x2), r8=110(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=188(x), r11=58(y), r12=0xFFFF00(color). Op: PSET r10, r11, r12.
+LDI r0, 244
+LDI r1, 128
+LDI r2, 50
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 378
+LDI r6, 7
+LDI r7, 403
+LDI r8, 110
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
+LDI r10, 188
+LDI r11, 58
+LDI r12, 0xFFFF00
+PSET r10, r11, r12
 HALT

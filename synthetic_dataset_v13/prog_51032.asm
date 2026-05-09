@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a yellow line from (209, 1) to (292, 165).
-; PLAN: r0=209(x1), r1=1(y1), r2=292(x2), r3=165(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 209
-LDI r1, 1
-LDI r2, 292
-LDI r3, 165
-LDI r4, 0xFFFF00
+; DESCRIPTION: Renders a green line between points (120, 240) and (252, 163).
+; PLAN: r0=120(x1), r1=240(y1), r2=252(x2), r3=163(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 120
+LDI r1, 240
+LDI r2, 252
+LDI r3, 163
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

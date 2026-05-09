@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a black circle of radius 16 at center (298, 69).
-; PLAN: r0=298(x), r1=69(y), r2=16(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 298
-LDI r1, 69
-LDI r2, 16
-LDI r3, 0x000000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single magenta pixel at (172, 29).
+; PLAN: r0=172(x), r1=29(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 172
+LDI r1, 29
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
 HALT

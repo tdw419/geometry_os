@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a blue circle of radius 60 at center (184, 100).
-; PLAN: r0=184(x), r1=100(y), r2=60(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 184
-LDI r1, 100
-LDI r2, 60
-LDI r3, 0x0000FF
+; DESCRIPTION: Creates a magenta circular shape at (28, 148) with radius 25.
+; PLAN: r0=28(x), r1=148(y), r2=25(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 28
+LDI r1, 148
+LDI r2, 25
+LDI r3, 0xFF00FF
 CIRCLE r0, r1, r2, r3
 HALT

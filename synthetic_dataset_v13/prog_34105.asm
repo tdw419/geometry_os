@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow 13x78 rectangle at position (66, 131).
-; PLAN: r0=66(x), r1=131(y), r2=13(width), r3=78(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 66
-LDI r1, 131
-LDI r2, 13
-LDI r3, 78
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black line segment connecting (312, 198) to (252, 104).
+; PLAN: r0=312(x1), r1=198(y1), r2=252(x2), r3=104(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 312
+LDI r1, 198
+LDI r2, 252
+LDI r3, 104
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

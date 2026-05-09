@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 35 at center (295, 114).
-; PLAN: r0=295(x), r1=114(y), r2=35(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 295
-LDI r1, 114
-LDI r2, 35
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (173, 155) with width 89 and height 50.
+; PLAN: r0=173(x), r1=155(y), r2=89(width), r3=50(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 173
+LDI r1, 155
+LDI r2, 89
+LDI r3, 50
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

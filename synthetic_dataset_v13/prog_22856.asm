@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a orange 82x103 rectangle at position (157, 41).
-; PLAN: r0=157(x), r1=41(y), r2=82(width), r3=103(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 157
-LDI r1, 41
-LDI r2, 82
-LDI r3, 103
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (13, 69).
+; PLAN: r0=13(x), r1=69(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 13
+LDI r1, 69
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
 HALT

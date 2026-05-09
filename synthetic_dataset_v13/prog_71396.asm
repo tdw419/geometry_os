@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (474, 32).
-; PLAN: r0=474(x), r1=32(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 474
-LDI r1, 32
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Draws a purple line from (287, 40) to (17, 146).
+; PLAN: r0=287(x1), r1=40(y1), r2=17(x2), r3=146(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 287
+LDI r1, 40
+LDI r2, 17
+LDI r3, 146
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

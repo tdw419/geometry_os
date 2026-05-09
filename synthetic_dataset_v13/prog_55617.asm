@@ -1,9 +1,7 @@
-; DESCRIPTION: Renders a yellow line between points (429, 37) and (494, 176).
-; PLAN: r0=429(x1), r1=37(y1), r2=494(x2), r3=176(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 429
-LDI r1, 37
-LDI r2, 494
-LDI r3, 176
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a orange dot at position (452, 85).
+; PLAN: r0=452(x), r1=85(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 452
+LDI r1, 85
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

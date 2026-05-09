@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a white circular shape at (471, 191) with radius 38.
-; PLAN: r0=471(x), r1=191(y), r2=38(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 471
-LDI r1, 191
-LDI r2, 38
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Creates a orange circular shape at (324, 48) with radius 47.
+; PLAN: r0=324(x), r1=48(y), r2=47(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 324
+LDI r1, 48
+LDI r2, 47
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

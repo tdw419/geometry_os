@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (353, 155) spanning 23 by 47 pixels.
-; PLAN: r0=353(x), r1=155(y), r2=23(width), r3=47(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 353
-LDI r1, 155
-LDI r2, 23
-LDI r3, 47
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white line from (277, 172) to (86, 239).
+; PLAN: r0=277(x1), r1=172(y1), r2=86(x2), r3=239(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 277
+LDI r1, 172
+LDI r2, 86
+LDI r3, 239
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

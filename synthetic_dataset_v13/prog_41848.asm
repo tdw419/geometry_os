@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (334, 151) to (441, 139).
-; PLAN: r0=334(x1), r1=151(y1), r2=441(x2), r3=139(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 334
-LDI r1, 151
-LDI r2, 441
-LDI r3, 139
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black 85x32 rectangle at position (47, 121).
+; PLAN: r0=47(x), r1=121(y), r2=85(width), r3=32(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 47
+LDI r1, 121
+LDI r2, 85
+LDI r3, 32
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

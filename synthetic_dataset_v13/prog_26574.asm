@@ -1,19 +1,14 @@
-; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
-; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
-LDI r7, 0xFF0000
-LDI r1, 0
-y_loop:
-LDI r2, 0
-x_loop:
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1, r5
-LDI r6, 256
-CMP r1, r6
-BLT r0, y_loop
+; DESCRIPTION: Composite: Creates a green rectangular region at (109, 19) spanning 31 by 100 pixels then Draws a magenta circle centered at (376, 166) with radius 59.
+; PLAN: r0=109(x), r1=19(y), r2=31(width), r3=100(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=376(x), r6=166(y), r7=59(radius), r8=0xFF00FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 109
+LDI r1, 19
+LDI r2, 31
+LDI r3, 100
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
+LDI r5, 376
+LDI r6, 166
+LDI r7, 59
+LDI r8, 0xFF00FF
+CIRCLE r5, r6, r7, r8
 HALT

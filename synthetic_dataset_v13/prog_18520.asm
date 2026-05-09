@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a white 87x99 rectangle at position (342, 128).
-; PLAN: r0=342(x), r1=128(y), r2=87(width), r3=99(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 342
-LDI r1, 128
-LDI r2, 87
-LDI r3, 99
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a red line segment connecting (458, 83) to (41, 199).
+; PLAN: r0=458(x1), r1=83(y1), r2=41(x2), r3=199(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 458
+LDI r1, 83
+LDI r2, 41
+LDI r3, 199
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

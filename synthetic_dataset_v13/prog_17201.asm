@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (76, 50) and (468, 228).
-; PLAN: r0=76(x1), r1=50(y1), r2=468(x2), r3=228(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 76
-LDI r1, 50
-LDI r2, 468
-LDI r3, 228
+; DESCRIPTION: Places a orange line segment connecting (178, 62) to (255, 223).
+; PLAN: r0=178(x1), r1=62(y1), r2=255(x2), r3=223(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 178
+LDI r1, 62
+LDI r2, 255
+LDI r3, 223
 LDI r4, 0xFF8800
 LINE r0, r1, r2, r3, r4
 HALT

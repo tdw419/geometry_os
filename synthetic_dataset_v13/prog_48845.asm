@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan line between points (2, 211) and (30, 248).
-; PLAN: r0=2(x1), r1=211(y1), r2=30(x2), r3=248(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 2
-LDI r1, 211
-LDI r2, 30
-LDI r3, 248
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (84, 78) with width 29 and height 99.
+; PLAN: r0=84(x), r1=78(y), r2=29(width), r3=99(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 84
+LDI r1, 78
+LDI r2, 29
+LDI r3, 99
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

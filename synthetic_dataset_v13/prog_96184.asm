@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple line segment connecting (438, 1) to (431, 195).
-; PLAN: r0=438(x1), r1=1(y1), r2=431(x2), r3=195(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 438
-LDI r1, 1
-LDI r2, 431
-LDI r3, 195
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black rectangular region at (73, 73) spanning 46 by 23 pixels.
+; PLAN: r0=73(x), r1=73(y), r2=46(width), r3=23(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 73
+LDI r1, 73
+LDI r2, 46
+LDI r3, 23
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

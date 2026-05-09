@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue rectangle at (386, 42) with width 119 and height 67.
-; PLAN: r0=386(x), r1=42(y), r2=119(width), r3=67(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 386
-LDI r1, 42
-LDI r2, 119
-LDI r3, 67
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black line segment connecting (246, 172) to (423, 147).
+; PLAN: r0=246(x1), r1=172(y1), r2=423(x2), r3=147(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 246
+LDI r1, 172
+LDI r2, 423
+LDI r3, 147
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

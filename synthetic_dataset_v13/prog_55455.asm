@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a red line from (76, 6) to (386, 135).
-; PLAN: r0=76(x1), r1=6(y1), r2=386(x2), r3=135(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 76
-LDI r1, 6
-LDI r2, 386
-LDI r3, 135
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green disk with center (346, 134) and radius 69.
+; PLAN: r0=346(x), r1=134(y), r2=69(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 346
+LDI r1, 134
+LDI r2, 69
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

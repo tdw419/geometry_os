@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a orange disk with center (65, 46) and radius 43.
-; PLAN: r0=65(x), r1=46(y), r2=43(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 65
-LDI r1, 46
-LDI r2, 43
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a white line between points (93, 149) and (263, 85).
+; PLAN: r0=93(x1), r1=149(y1), r2=263(x2), r3=85(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 149
+LDI r2, 263
+LDI r3, 85
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
 HALT

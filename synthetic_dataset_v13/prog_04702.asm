@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Draws a red rectangle at (214, 60) with width 100 and height 93 then Renders a yellow line between points (89, 146) and (142, 95).
-; PLAN: r0=214(x), r1=60(y), r2=100(width), r3=93(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=89(x1), r6=146(y1), r7=142(x2), r8=95(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 214
-LDI r1, 60
-LDI r2, 100
-LDI r3, 93
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
-LDI r5, 89
-LDI r6, 146
-LDI r7, 142
-LDI r8, 95
+; DESCRIPTION: Composite: Places a blue dot at position (482, 245) then Places a yellow 109x75 rectangle at position (141, 102) then Creates a red circular shape at (238, 98) with radius 59.
+; PLAN: r0=482(x), r1=245(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=141(x), r6=102(y), r7=109(width), r8=75(height), r9=0xFFFF00(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=238(x), r11=98(y), r12=59(radius), r13=0xFF0000(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 482
+LDI r1, 245
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 141
+LDI r6, 102
+LDI r7, 109
+LDI r8, 75
 LDI r9, 0xFFFF00
-LINE r5, r6, r7, r8, r9
+RECTF r5, r6, r7, r8, r9
+LDI r10, 238
+LDI r11, 98
+LDI r12, 59
+LDI r13, 0xFF0000
+CIRCLE r10, r11, r12, r13
 HALT

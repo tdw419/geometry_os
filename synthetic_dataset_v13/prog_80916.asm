@@ -1,9 +1,7 @@
-; DESCRIPTION: Creates a white rectangular region at (26, 170) spanning 75 by 33 pixels.
-; PLAN: r0=26(x), r1=170(y), r2=75(width), r3=33(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 26
-LDI r1, 170
-LDI r2, 75
-LDI r3, 33
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan dot at position (409, 16).
+; PLAN: r0=409(x), r1=16(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 409
+LDI r1, 16
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

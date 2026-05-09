@@ -1,9 +1,19 @@
-; DESCRIPTION: Places a magenta line segment connecting (311, 180) to (309, 222).
-; PLAN: r0=311(x1), r1=180(y1), r2=309(x2), r3=222(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 311
-LDI r1, 180
-LDI r2, 309
-LDI r3, 222
-LDI r4, 0xFF00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a blue dot at position (268, 7) then Draws a white line from (283, 251) to (44, 88) then Draws a orange rectangle at (145, 140) with width 68 and height 30.
+; PLAN: r0=268(x), r1=7(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=283(x1), r6=251(y1), r7=44(x2), r8=88(y2), r9=0xFFFFFF(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=145(x), r11=140(y), r12=68(width), r13=30(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 268
+LDI r1, 7
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 283
+LDI r6, 251
+LDI r7, 44
+LDI r8, 88
+LDI r9, 0xFFFFFF
+LINE r5, r6, r7, r8, r9
+LDI r10, 145
+LDI r11, 140
+LDI r12, 68
+LDI r13, 30
+LDI r14, 0xFF8800
+RECTF r10, r11, r12, r13, r14
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a red circular shape at (330, 146) with radius 63.
-; PLAN: r0=330(x), r1=146(y), r2=63(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 330
-LDI r1, 146
-LDI r2, 63
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a black 12x10 rectangle at position (351, 19).
+; PLAN: r0=351(x), r1=19(y), r2=12(width), r3=10(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 351
+LDI r1, 19
+LDI r2, 12
+LDI r3, 10
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

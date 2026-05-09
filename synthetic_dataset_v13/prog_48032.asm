@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a green line between points (39, 218) and (220, 1).
-; PLAN: r0=39(x1), r1=218(y1), r2=220(x2), r3=1(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 39
-LDI r1, 218
-LDI r2, 220
-LDI r3, 1
+; DESCRIPTION: Places a green 24x33 rectangle at position (93, 210).
+; PLAN: r0=93(x), r1=210(y), r2=24(width), r3=33(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 210
+LDI r2, 24
+LDI r3, 33
 LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 79x40 starting at (416, 105).
-; PLAN: r0=416(x), r1=105(y), r2=79(width), r3=40(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 416
-LDI r1, 105
-LDI r2, 79
+; DESCRIPTION: Places a red 104x40 rectangle at position (94, 40).
+; PLAN: r0=94(x), r1=40(y), r2=104(width), r3=40(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 94
+LDI r1, 40
+LDI r2, 104
 LDI r3, 40
-LDI r4, 0x0000FF
+LDI r4, 0xFF0000
 RECTF r0, r1, r2, r3, r4
 HALT

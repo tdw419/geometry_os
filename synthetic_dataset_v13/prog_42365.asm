@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (68, 103) with width 44 and height 110.
-; PLAN: r0=68(x), r1=103(y), r2=44(width), r3=110(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 68
-LDI r1, 103
-LDI r2, 44
-LDI r3, 110
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a green line between points (417, 135) and (280, 64).
+; PLAN: r0=417(x1), r1=135(y1), r2=280(x2), r3=64(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 417
+LDI r1, 135
+LDI r2, 280
+LDI r3, 64
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,13 @@
-; DESCRIPTION: Renders a red disk with center (277, 163) and radius 72.
-; PLAN: r0=277(x), r1=163(y), r2=72(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 277
-LDI r1, 163
-LDI r2, 72
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Composite: Sets a single white pixel at (101, 219) then Places a blue line segment connecting (385, 254) to (274, 71).
+; PLAN: r0=101(x), r1=219(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2 Next: r5=385(x1), r6=254(y1), r7=274(x2), r8=71(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 101
+LDI r1, 219
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
+LDI r5, 385
+LDI r6, 254
+LDI r7, 274
+LDI r8, 71
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

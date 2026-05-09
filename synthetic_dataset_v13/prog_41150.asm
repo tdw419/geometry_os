@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a yellow 89x27 rectangle at position (276, 94).
-; PLAN: r0=276(x), r1=94(y), r2=89(width), r3=27(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 276
-LDI r1, 94
-LDI r2, 89
-LDI r3, 27
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a blue circle of radius 76 at center (305, 106).
+; PLAN: r0=305(x), r1=106(y), r2=76(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 305
+LDI r1, 106
+LDI r2, 76
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

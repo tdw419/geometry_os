@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a magenta box of size 112x44 starting at (119, 85).
-; PLAN: r0=119(x), r1=85(y), r2=112(width), r3=44(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 119
-LDI r1, 85
-LDI r2, 112
-LDI r3, 44
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a black circular shape at (76, 156) with radius 35 then Places a blue dot at position (249, 105).
+; PLAN: r0=76(x), r1=156(y), r2=35(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=249(x), r6=105(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 76
+LDI r1, 156
+LDI r2, 35
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
+LDI r5, 249
+LDI r6, 105
+LDI r7, 0x0000FF
+PSET r5, r6, r7
 HALT

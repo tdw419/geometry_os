@@ -1,18 +1,19 @@
-; DESCRIPTION: Composite: Draws a yellow rectangle at (71, 1) with width 101 and height 48 then Places a black dot at position (202, 208) then Draws a white circle centered at (331, 196) with radius 52.
-; PLAN: r0=71(x), r1=1(y), r2=101(width), r3=48(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=202(x), r6=208(y), r7=0x000000(color). Op: PSET r5, r6, r7 Next: r10=331(x), r11=196(y), r12=52(radius), r13=0xFFFFFF(color). Op: CIRCLE r10, r11, r12, r13.
-LDI r0, 71
-LDI r1, 1
-LDI r2, 101
-LDI r3, 48
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 202
-LDI r6, 208
-LDI r7, 0x000000
+; DESCRIPTION: Composite: Draws a green line from (315, 21) to (275, 122) then Sets a single white pixel at (121, 244) then Renders a orange box of size 84x29 starting at (176, 95).
+; PLAN: r0=315(x1), r1=21(y1), r2=275(x2), r3=122(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=121(x), r6=244(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7 Next: r10=176(x), r11=95(y), r12=84(width), r13=29(height), r14=0xFF8800(color). Op: RECTF r10, r11, r12, r13, r14.
+LDI r0, 315
+LDI r1, 21
+LDI r2, 275
+LDI r3, 122
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
+LDI r5, 121
+LDI r6, 244
+LDI r7, 0xFFFFFF
 PSET r5, r6, r7
-LDI r10, 331
-LDI r11, 196
-LDI r12, 52
-LDI r13, 0xFFFFFF
-CIRCLE r10, r11, r12, r13
+LDI r10, 176
+LDI r11, 95
+LDI r12, 84
+LDI r13, 29
+LDI r14, 0xFF8800
+RECTF r10, r11, r12, r13, r14
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green rectangle at (206, 113) with width 19 and height 118.
-; PLAN: r0=206(x), r1=113(y), r2=19(width), r3=118(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 206
-LDI r1, 113
-LDI r2, 19
-LDI r3, 118
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 13 at center (481, 201).
+; PLAN: r0=481(x), r1=201(y), r2=13(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 481
+LDI r1, 201
+LDI r2, 13
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

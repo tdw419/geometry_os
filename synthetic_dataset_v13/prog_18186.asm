@@ -1,9 +1,14 @@
-; DESCRIPTION: Places a black line segment connecting (418, 85) to (472, 192).
-; PLAN: r0=418(x1), r1=85(y1), r2=472(x2), r3=192(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 418
-LDI r1, 85
-LDI r2, 472
-LDI r3, 192
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Draws a purple circle centered at (61, 59) with radius 58 then Places a blue line segment connecting (405, 238) to (253, 171).
+; PLAN: r0=61(x), r1=59(y), r2=58(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=405(x1), r6=238(y1), r7=253(x2), r8=171(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 61
+LDI r1, 59
+LDI r2, 58
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 405
+LDI r6, 238
+LDI r7, 253
+LDI r8, 171
+LDI r9, 0x0000FF
+LINE r5, r6, r7, r8, r9
 HALT

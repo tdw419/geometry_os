@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a blue line from (311, 66) to (167, 203).
-; PLAN: r0=311(x1), r1=66(y1), r2=167(x2), r3=203(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 311
-LDI r1, 66
-LDI r2, 167
-LDI r3, 203
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a black rectangle at (365, 22) with width 53 and height 72.
+; PLAN: r0=365(x), r1=22(y), r2=53(width), r3=72(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 365
+LDI r1, 22
+LDI r2, 53
+LDI r3, 72
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

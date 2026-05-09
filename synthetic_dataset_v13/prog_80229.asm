@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue box of size 89x19 starting at (311, 214).
-; PLAN: r0=311(x), r1=214(y), r2=89(width), r3=19(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 311
-LDI r1, 214
-LDI r2, 89
-LDI r3, 19
-LDI r4, 0x0000FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green line segment connecting (272, 184) to (447, 180).
+; PLAN: r0=272(x1), r1=184(y1), r2=447(x2), r3=180(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 272
+LDI r1, 184
+LDI r2, 447
+LDI r3, 180
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

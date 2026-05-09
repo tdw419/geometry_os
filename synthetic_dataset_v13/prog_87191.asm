@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a purple circular shape at (101, 135) with radius 71.
-; PLAN: r0=101(x), r1=135(y), r2=71(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 101
-LDI r1, 135
-LDI r2, 71
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (327, 191) and (376, 201).
+; PLAN: r0=327(x1), r1=191(y1), r2=376(x2), r3=201(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 327
+LDI r1, 191
+LDI r2, 376
+LDI r3, 201
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

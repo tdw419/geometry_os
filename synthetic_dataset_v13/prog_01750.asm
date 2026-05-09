@@ -1,13 +1,8 @@
-; DESCRIPTION: Composite: Draws a purple line from (505, 118) to (225, 194) then Sets a single black pixel at (420, 76).
-; PLAN: r0=505(x1), r1=118(y1), r2=225(x2), r3=194(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=420(x), r6=76(y), r7=0x000000(color). Op: PSET r5, r6, r7.
-LDI r0, 505
-LDI r1, 118
-LDI r2, 225
-LDI r3, 194
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 420
-LDI r6, 76
-LDI r7, 0x000000
-PSET r5, r6, r7
+; DESCRIPTION: Places a cyan circle of radius 55 at center (457, 196).
+; PLAN: r0=457(x), r1=196(y), r2=55(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 457
+LDI r1, 196
+LDI r2, 55
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

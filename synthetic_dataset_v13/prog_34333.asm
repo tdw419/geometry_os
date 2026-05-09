@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a white disk with center (285, 71) and radius 69.
-; PLAN: r0=285(x), r1=71(y), r2=69(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 285
-LDI r1, 71
-LDI r2, 69
-LDI r3, 0xFFFFFF
+; DESCRIPTION: Places a yellow circle of radius 51 at center (289, 157).
+; PLAN: r0=289(x), r1=157(y), r2=51(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 289
+LDI r1, 157
+LDI r2, 51
+LDI r3, 0xFFFF00
 CIRCLE r0, r1, r2, r3
 HALT

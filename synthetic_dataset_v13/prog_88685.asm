@@ -1,8 +1,12 @@
-; DESCRIPTION: Creates a green circular shape at (267, 155) with radius 75.
-; PLAN: r0=267(x), r1=155(y), r2=75(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 267
-LDI r1, 155
-LDI r2, 75
-LDI r3, 0x00FF00
+; DESCRIPTION: Composite: Places a orange circle of radius 74 at center (318, 102) then Places a purple dot at position (271, 14).
+; PLAN: r0=318(x), r1=102(y), r2=74(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=271(x), r6=14(y), r7=0xAA00FF(color). Op: PSET r5, r6, r7.
+LDI r0, 318
+LDI r1, 102
+LDI r2, 74
+LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
+LDI r5, 271
+LDI r6, 14
+LDI r7, 0xAA00FF
+PSET r5, r6, r7
 HALT

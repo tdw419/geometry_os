@@ -1,14 +1,14 @@
-; DESCRIPTION: Composite: Creates a orange circular shape at (216, 188) with radius 20 then Places a cyan line segment connecting (8, 113) to (467, 221).
-; PLAN: r0=216(x), r1=188(y), r2=20(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=8(x1), r6=113(y1), r7=467(x2), r8=221(y2), r9=0x00FFFF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 216
-LDI r1, 188
-LDI r2, 20
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
-LDI r5, 8
-LDI r6, 113
-LDI r7, 467
-LDI r8, 221
-LDI r9, 0x00FFFF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Places a orange line segment connecting (304, 228) to (89, 109) then Creates a yellow circular shape at (141, 194) with radius 38.
+; PLAN: r0=304(x1), r1=228(y1), r2=89(x2), r3=109(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=141(x), r6=194(y), r7=38(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 304
+LDI r1, 228
+LDI r2, 89
+LDI r3, 109
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 141
+LDI r6, 194
+LDI r7, 38
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
 HALT

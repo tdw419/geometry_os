@@ -1,13 +1,19 @@
-; DESCRIPTION: Composite: Renders a orange line between points (333, 122) and (65, 223) then Places a green dot at position (113, 228).
-; PLAN: r0=333(x1), r1=122(y1), r2=65(x2), r3=223(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=113(x), r6=228(y), r7=0x00FF00(color). Op: PSET r5, r6, r7.
-LDI r0, 333
-LDI r1, 122
-LDI r2, 65
-LDI r3, 223
-LDI r4, 0xFF8800
-LINE r0, r1, r2, r3, r4
-LDI r5, 113
-LDI r6, 228
-LDI r7, 0x00FF00
-PSET r5, r6, r7
+; DESCRIPTION: Fills the screen with a vertical red gradient from dark to bright.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=256(height), r7=0xFF0000(color). CMP stores result in r0.
+LDI r7, 0xFF0000
+LDI r1, 0
+y_loop:
+LDI r2, 0
+x_loop:
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1, r5
+LDI r6, 256
+CMP r1, r6
+BLT r0, y_loop
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a yellow rectangle at (89, 3) with width 92 and height 103.
-; PLAN: r0=89(x), r1=3(y), r2=92(width), r3=103(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 89
-LDI r1, 3
-LDI r2, 92
-LDI r3, 103
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a purple circle centered at (210, 74) with radius 57.
+; PLAN: r0=210(x), r1=74(y), r2=57(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 210
+LDI r1, 74
+LDI r2, 57
+LDI r3, 0xAA00FF
+CIRCLE r0, r1, r2, r3
 HALT

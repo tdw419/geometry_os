@@ -1,12 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (65, 137) then Draws a purple circle centered at (268, 192) with radius 16.
-; PLAN: r0=65(x), r1=137(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=268(x), r6=192(y), r7=16(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 65
-LDI r1, 137
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 268
-LDI r6, 192
-LDI r7, 16
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Renders a green box of size 33x53 starting at (273, 143).
+; PLAN: r0=273(x), r1=143(y), r2=33(width), r3=53(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 273
+LDI r1, 143
+LDI r2, 33
+LDI r3, 53
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

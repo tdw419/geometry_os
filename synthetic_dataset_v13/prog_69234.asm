@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a red 97x72 rectangle at position (275, 67).
-; PLAN: r0=275(x), r1=67(y), r2=97(width), r3=72(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 275
-LDI r1, 67
-LDI r2, 97
-LDI r3, 72
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a cyan dot at position (0, 251).
+; PLAN: r0=0(x), r1=251(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 0
+LDI r1, 251
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

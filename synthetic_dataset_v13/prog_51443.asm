@@ -1,8 +1,8 @@
-; DESCRIPTION: Loads 16 into r1 and decrements it in a loop until zero.
-; PLAN: r1=16(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 16
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Places a blue circle of radius 63 at center (124, 86).
+; PLAN: r0=124(x), r1=86(y), r2=63(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 124
+LDI r1, 86
+LDI r2, 63
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

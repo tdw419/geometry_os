@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green rectangle at (248, 94) with width 85 and height 101.
-; PLAN: r0=248(x), r1=94(y), r2=85(width), r3=101(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 248
-LDI r1, 94
-LDI r2, 85
-LDI r3, 101
-LDI r4, 0x00FF00
+; DESCRIPTION: Creates a purple rectangular region at (70, 182) spanning 91 by 16 pixels.
+; PLAN: r0=70(x), r1=182(y), r2=91(width), r3=16(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 70
+LDI r1, 182
+LDI r2, 91
+LDI r3, 16
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

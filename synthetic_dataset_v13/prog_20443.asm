@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a white line from (89, 37) to (10, 107).
-; PLAN: r0=89(x1), r1=37(y1), r2=10(x2), r3=107(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 89
-LDI r1, 37
-LDI r2, 10
-LDI r3, 107
-LDI r4, 0xFFFFFF
+; DESCRIPTION: Renders a green line between points (414, 121) and (165, 136).
+; PLAN: r0=414(x1), r1=121(y1), r2=165(x2), r3=136(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 414
+LDI r1, 121
+LDI r2, 165
+LDI r3, 136
+LDI r4, 0x00FF00
 LINE r0, r1, r2, r3, r4
 HALT

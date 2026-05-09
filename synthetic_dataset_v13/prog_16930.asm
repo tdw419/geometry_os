@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a orange circle centered at (360, 98) with radius 65.
-; PLAN: r0=360(x), r1=98(y), r2=65(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 98
-LDI r2, 65
+; DESCRIPTION: Creates a orange circular shape at (302, 125) with radius 49.
+; PLAN: r0=302(x), r1=125(y), r2=49(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 302
+LDI r1, 125
+LDI r2, 49
 LDI r3, 0xFF8800
 CIRCLE r0, r1, r2, r3
 HALT

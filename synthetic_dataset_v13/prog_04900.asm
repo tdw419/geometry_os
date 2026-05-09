@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 58x29 rectangle at position (353, 164).
-; PLAN: r0=353(x), r1=164(y), r2=58(width), r3=29(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 353
-LDI r1, 164
-LDI r2, 58
-LDI r3, 29
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a green box of size 63x48 starting at (249, 69).
+; PLAN: r0=249(x), r1=69(y), r2=63(width), r3=48(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 249
+LDI r1, 69
+LDI r2, 63
+LDI r3, 48
+LDI r4, 0x00FF00
 RECTF r0, r1, r2, r3, r4
 HALT

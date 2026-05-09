@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a white disk with center (151, 180) and radius 52.
-; PLAN: r0=151(x), r1=180(y), r2=52(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 151
-LDI r1, 180
-LDI r2, 52
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 62x25 rectangle at position (425, 61).
+; PLAN: r0=425(x), r1=61(y), r2=62(width), r3=25(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 425
+LDI r1, 61
+LDI r2, 62
+LDI r3, 25
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

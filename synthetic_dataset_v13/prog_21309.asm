@@ -1,9 +1,7 @@
-; DESCRIPTION: Places a red line segment connecting (126, 214) to (343, 243).
-; PLAN: r0=126(x1), r1=214(y1), r2=343(x2), r3=243(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 126
-LDI r1, 214
-LDI r2, 343
-LDI r3, 243
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single cyan pixel at (270, 122).
+; PLAN: r0=270(x), r1=122(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 270
+LDI r1, 122
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

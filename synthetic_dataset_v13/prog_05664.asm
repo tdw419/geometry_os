@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a blue circle of radius 11 at center (360, 240).
-; PLAN: r0=360(x), r1=240(y), r2=11(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 360
-LDI r1, 240
-LDI r2, 11
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a green rectangle at (275, 45) with width 72 and height 57.
+; PLAN: r0=275(x), r1=45(y), r2=72(width), r3=57(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 275
+LDI r1, 45
+LDI r2, 72
+LDI r3, 57
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

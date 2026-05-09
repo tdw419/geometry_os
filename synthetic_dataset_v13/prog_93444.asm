@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a blue disk with center (349, 205) and radius 31.
-; PLAN: r0=349(x), r1=205(y), r2=31(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 349
-LDI r1, 205
-LDI r2, 31
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a orange rectangle at (267, 152) with width 50 and height 66.
+; PLAN: r0=267(x), r1=152(y), r2=50(width), r3=66(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 267
+LDI r1, 152
+LDI r2, 50
+LDI r3, 66
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
 HALT

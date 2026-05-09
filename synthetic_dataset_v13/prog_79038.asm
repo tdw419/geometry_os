@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a cyan circular shape at (378, 78) with radius 70.
-; PLAN: r0=378(x), r1=78(y), r2=70(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 378
-LDI r1, 78
-LDI r2, 70
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single white pixel at (312, 45).
+; PLAN: r0=312(x), r1=45(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 312
+LDI r1, 45
+LDI r2, 0xFFFFFF
+PSET r0, r1, r2
 HALT

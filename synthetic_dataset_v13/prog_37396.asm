@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a magenta line segment connecting (71, 173) to (477, 70).
-; PLAN: r0=71(x1), r1=173(y1), r2=477(x2), r3=70(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 71
-LDI r1, 173
-LDI r2, 477
-LDI r3, 70
-LDI r4, 0xFF00FF
+; DESCRIPTION: Draws a purple line from (399, 163) to (302, 86).
+; PLAN: r0=399(x1), r1=163(y1), r2=302(x2), r3=86(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 399
+LDI r1, 163
+LDI r2, 302
+LDI r3, 86
+LDI r4, 0xAA00FF
 LINE r0, r1, r2, r3, r4
 HALT

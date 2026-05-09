@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a white box of size 74x66 starting at (225, 70).
-; PLAN: r0=225(x), r1=70(y), r2=74(width), r3=66(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 225
-LDI r1, 70
-LDI r2, 74
-LDI r3, 66
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white circular shape at (490, 138) with radius 17.
+; PLAN: r0=490(x), r1=138(y), r2=17(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 490
+LDI r1, 138
+LDI r2, 17
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

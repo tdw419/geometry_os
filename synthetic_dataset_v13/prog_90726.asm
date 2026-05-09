@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a blue line segment connecting (374, 67) to (45, 1).
-; PLAN: r0=374(x1), r1=67(y1), r2=45(x2), r3=1(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 374
-LDI r1, 67
-LDI r2, 45
-LDI r3, 1
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a red circle of radius 70 at center (160, 138) then Sets a single white pixel at (101, 242).
+; PLAN: r0=160(x), r1=138(y), r2=70(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=101(x), r6=242(y), r7=0xFFFFFF(color). Op: PSET r5, r6, r7.
+LDI r0, 160
+LDI r1, 138
+LDI r2, 70
+LDI r3, 0xFF0000
+CIRCLE r0, r1, r2, r3
+LDI r5, 101
+LDI r6, 242
+LDI r7, 0xFFFFFF
+PSET r5, r6, r7
 HALT

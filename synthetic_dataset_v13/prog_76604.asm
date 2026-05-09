@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a green line from (348, 211) to (68, 117).
-; PLAN: r0=348(x1), r1=211(y1), r2=68(x2), r3=117(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 348
-LDI r1, 211
-LDI r2, 68
-LDI r3, 117
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a white rectangular region at (250, 24) spanning 109 by 112 pixels.
+; PLAN: r0=250(x), r1=24(y), r2=109(width), r3=112(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 250
+LDI r1, 24
+LDI r2, 109
+LDI r3, 112
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

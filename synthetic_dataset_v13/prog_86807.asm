@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Places a cyan dot at position (42, 23) then Draws a orange line from (139, 177) to (237, 130).
-; PLAN: r0=42(x), r1=23(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2 Next: r5=139(x1), r6=177(y1), r7=237(x2), r8=130(y2), r9=0xFF8800(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 42
-LDI r1, 23
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
-LDI r5, 139
-LDI r6, 177
-LDI r7, 237
-LDI r8, 130
-LDI r9, 0xFF8800
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Places a blue line segment connecting (202, 47) to (505, 4).
+; PLAN: r0=202(x1), r1=47(y1), r2=505(x2), r3=4(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 202
+LDI r1, 47
+LDI r2, 505
+LDI r3, 4
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

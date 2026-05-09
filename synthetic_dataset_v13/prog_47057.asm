@@ -1,8 +1,7 @@
-; DESCRIPTION: Creates a orange circular shape at (227, 141) with radius 49.
-; PLAN: r0=227(x), r1=141(y), r2=49(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 227
-LDI r1, 141
-LDI r2, 49
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single orange pixel at (38, 159).
+; PLAN: r0=38(x), r1=159(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 38
+LDI r1, 159
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

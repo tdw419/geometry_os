@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a yellow disk with center (105, 122) and radius 58.
-; PLAN: r0=105(x), r1=122(y), r2=58(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 105
-LDI r1, 122
-LDI r2, 58
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a cyan box of size 50x22 starting at (146, 62).
+; PLAN: r0=146(x), r1=62(y), r2=50(width), r3=22(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 146
+LDI r1, 62
+LDI r2, 50
+LDI r3, 22
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

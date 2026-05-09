@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a magenta rectangle at (403, 33) with width 11 and height 113.
-; PLAN: r0=403(x), r1=33(y), r2=11(width), r3=113(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 403
-LDI r1, 33
-LDI r2, 11
-LDI r3, 113
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a cyan circle centered at (390, 184) with radius 29.
+; PLAN: r0=390(x), r1=184(y), r2=29(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 390
+LDI r1, 184
+LDI r2, 29
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

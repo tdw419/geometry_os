@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a yellow line segment connecting (409, 174) to (398, 3).
-; PLAN: r0=409(x1), r1=174(y1), r2=398(x2), r3=3(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 409
-LDI r1, 174
-LDI r2, 398
-LDI r3, 3
-LDI r4, 0xFFFF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black box of size 105x95 starting at (259, 107).
+; PLAN: r0=259(x), r1=107(y), r2=105(width), r3=95(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 259
+LDI r1, 107
+LDI r2, 105
+LDI r3, 95
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a red dot at position (216, 44).
-; PLAN: r0=216(x), r1=44(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 216
-LDI r1, 44
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a yellow rectangle at (178, 31) with width 82 and height 69.
+; PLAN: r0=178(x), r1=31(y), r2=82(width), r3=69(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 178
+LDI r1, 31
+LDI r2, 82
+LDI r3, 69
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

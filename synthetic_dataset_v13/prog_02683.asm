@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a blue line between points (9, 54) and (216, 64).
-; PLAN: r0=9(x1), r1=54(y1), r2=216(x2), r3=64(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 9
-LDI r1, 54
-LDI r2, 216
-LDI r3, 64
-LDI r4, 0x0000FF
+; DESCRIPTION: Draws a cyan line from (463, 40) to (215, 202).
+; PLAN: r0=463(x1), r1=40(y1), r2=215(x2), r3=202(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 463
+LDI r1, 40
+LDI r2, 215
+LDI r3, 202
+LDI r4, 0x00FFFF
 LINE r0, r1, r2, r3, r4
 HALT

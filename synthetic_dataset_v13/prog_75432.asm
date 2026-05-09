@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (215, 175).
-; PLAN: r0=215(x), r1=175(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 215
-LDI r1, 175
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a red rectangle at (86, 0) with width 100 and height 27.
+; PLAN: r0=86(x), r1=0(y), r2=100(width), r3=27(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 86
+LDI r1, 0
+LDI r2, 100
+LDI r3, 27
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

@@ -1,14 +1,13 @@
-; DESCRIPTION: Composite: Draws a magenta rectangle at (124, 12) with width 54 and height 88 then Draws a red circle centered at (348, 110) with radius 73.
-; PLAN: r0=124(x), r1=12(y), r2=54(width), r3=88(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=348(x), r6=110(y), r7=73(radius), r8=0xFF0000(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 124
-LDI r1, 12
-LDI r2, 54
-LDI r3, 88
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
-LDI r5, 348
-LDI r6, 110
-LDI r7, 73
-LDI r8, 0xFF0000
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Sets a single black pixel at (264, 230) then Places a magenta line segment connecting (59, 253) to (275, 7).
+; PLAN: r0=264(x), r1=230(y), r2=0x000000(color). Op: PSET r0, r1, r2 Next: r5=59(x1), r6=253(y1), r7=275(x2), r8=7(y2), r9=0xFF00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 264
+LDI r1, 230
+LDI r2, 0x000000
+PSET r0, r1, r2
+LDI r5, 59
+LDI r6, 253
+LDI r7, 275
+LDI r8, 7
+LDI r9, 0xFF00FF
+LINE r5, r6, r7, r8, r9
 HALT

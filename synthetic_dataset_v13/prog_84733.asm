@@ -1,8 +1,5 @@
-; DESCRIPTION: Draws a blue circle centered at (352, 108) with radius 71.
-; PLAN: r0=352(x), r1=108(y), r2=71(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 352
-LDI r1, 108
-LDI r2, 71
-LDI r3, 0x0000FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Fills the entire screen with solid blue.
+; PLAN: r0=0x0000FF(color). Op: FILL r0.
+LDI r0, 0x0000FF
+FILL r0
 HALT

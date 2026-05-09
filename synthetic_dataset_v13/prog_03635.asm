@@ -1,8 +1,7 @@
-; DESCRIPTION: Renders a yellow disk with center (299, 84) and radius 54.
-; PLAN: r0=299(x), r1=84(y), r2=54(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 299
-LDI r1, 84
-LDI r2, 54
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a blue dot at position (213, 206).
+; PLAN: r0=213(x), r1=206(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
+LDI r0, 213
+LDI r1, 206
+LDI r2, 0x0000FF
+PSET r0, r1, r2
 HALT

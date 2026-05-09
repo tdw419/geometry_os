@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a purple 119x89 rectangle at position (94, 90).
-; PLAN: r0=94(x), r1=90(y), r2=119(width), r3=89(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 94
-LDI r1, 90
-LDI r2, 119
-LDI r3, 89
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 19 at center (195, 159).
+; PLAN: r0=195(x), r1=159(y), r2=19(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 195
+LDI r1, 159
+LDI r2, 19
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

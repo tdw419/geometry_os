@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single purple pixel at (180, 238).
-; PLAN: r0=180(x), r1=238(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 180
-LDI r1, 238
-LDI r2, 0xAA00FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a yellow rectangle at (26, 125) with width 112 and height 35.
+; PLAN: r0=26(x), r1=125(y), r2=112(width), r3=35(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 26
+LDI r1, 125
+LDI r2, 112
+LDI r3, 35
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT

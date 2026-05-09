@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a cyan box of size 41x78 starting at (303, 63).
-; PLAN: r0=303(x), r1=63(y), r2=41(width), r3=78(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 303
-LDI r1, 63
-LDI r2, 41
-LDI r3, 78
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a yellow line from (141, 205) to (146, 152).
+; PLAN: r0=141(x1), r1=205(y1), r2=146(x2), r3=152(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 141
+LDI r1, 205
+LDI r2, 146
+LDI r3, 152
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

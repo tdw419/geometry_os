@@ -1,12 +1,13 @@
-; DESCRIPTION: Composite: Sets a single yellow pixel at (268, 190) then Creates a blue circular shape at (241, 71) with radius 57.
-; PLAN: r0=268(x), r1=190(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=241(x), r6=71(y), r7=57(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 268
-LDI r1, 190
-LDI r2, 0xFFFF00
+; DESCRIPTION: Composite: Sets a single orange pixel at (477, 39) then Draws a black rectangle at (305, 3) with width 94 and height 16.
+; PLAN: r0=477(x), r1=39(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=305(x), r6=3(y), r7=94(width), r8=16(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 477
+LDI r1, 39
+LDI r2, 0xFF8800
 PSET r0, r1, r2
-LDI r5, 241
-LDI r6, 71
-LDI r7, 57
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+LDI r5, 305
+LDI r6, 3
+LDI r7, 94
+LDI r8, 16
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
 HALT

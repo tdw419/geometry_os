@@ -1,19 +1,14 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (147, 131) then Draws a yellow line from (159, 109) to (111, 217) then Draws a blue rectangle at (177, 134) with width 88 and height 102.
-; PLAN: r0=147(x), r1=131(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=159(x1), r6=109(y1), r7=111(x2), r8=217(y2), r9=0xFFFF00(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=177(x), r11=134(y), r12=88(width), r13=102(height), r14=0x0000FF(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 147
-LDI r1, 131
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 159
-LDI r6, 109
-LDI r7, 111
-LDI r8, 217
-LDI r9, 0xFFFF00
-LINE r5, r6, r7, r8, r9
-LDI r10, 177
-LDI r11, 134
-LDI r12, 88
-LDI r13, 102
-LDI r14, 0x0000FF
-RECTF r10, r11, r12, r13, r14
+; DESCRIPTION: Composite: Creates a white rectangular region at (454, 20) spanning 30 by 47 pixels then Renders a white disk with center (298, 77) and radius 59.
+; PLAN: r0=454(x), r1=20(y), r2=30(width), r3=47(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=298(x), r6=77(y), r7=59(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 454
+LDI r1, 20
+LDI r2, 30
+LDI r3, 47
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+LDI r5, 298
+LDI r6, 77
+LDI r7, 59
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

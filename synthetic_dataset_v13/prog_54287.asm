@@ -1,20 +1,20 @@
-; DESCRIPTION: Composite: Places a magenta line segment connecting (91, 225) to (476, 252) then Draws a purple circle centered at (164, 160) with radius 37 then Renders a green box of size 10x17 starting at (6, 9).
-; PLAN: r0=91(x1), r1=225(y1), r2=476(x2), r3=252(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=164(x), r6=160(y), r7=37(radius), r8=0xAA00FF(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=6(x), r11=9(y), r12=10(width), r13=17(height), r14=0x00FF00(color). Op: RECTF r10, r11, r12, r13, r14.
-LDI r0, 91
-LDI r1, 225
-LDI r2, 476
-LDI r3, 252
-LDI r4, 0xFF00FF
+; DESCRIPTION: Composite: Places a blue line segment connecting (76, 213) to (210, 178) then Creates a red rectangular region at (313, 26) spanning 102 by 112 pixels then Creates a green circular shape at (424, 158) with radius 16.
+; PLAN: r0=76(x1), r1=213(y1), r2=210(x2), r3=178(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=313(x), r6=26(y), r7=102(width), r8=112(height), r9=0xFF0000(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=424(x), r11=158(y), r12=16(radius), r13=0x00FF00(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 76
+LDI r1, 213
+LDI r2, 210
+LDI r3, 178
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
-LDI r5, 164
-LDI r6, 160
-LDI r7, 37
-LDI r8, 0xAA00FF
-CIRCLE r5, r6, r7, r8
-LDI r10, 6
-LDI r11, 9
-LDI r12, 10
-LDI r13, 17
-LDI r14, 0x00FF00
-RECTF r10, r11, r12, r13, r14
+LDI r5, 313
+LDI r6, 26
+LDI r7, 102
+LDI r8, 112
+LDI r9, 0xFF0000
+RECTF r5, r6, r7, r8, r9
+LDI r10, 424
+LDI r11, 158
+LDI r12, 16
+LDI r13, 0x00FF00
+CIRCLE r10, r11, r12, r13
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a red line from (407, 70) to (240, 99).
-; PLAN: r0=407(x1), r1=70(y1), r2=240(x2), r3=99(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 407
-LDI r1, 70
-LDI r2, 240
-LDI r3, 99
-LDI r4, 0xFF0000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a green rectangular region at (298, 122) spanning 104 by 53 pixels.
+; PLAN: r0=298(x), r1=122(y), r2=104(width), r3=53(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 298
+LDI r1, 122
+LDI r2, 104
+LDI r3, 53
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

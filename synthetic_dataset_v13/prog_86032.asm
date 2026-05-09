@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a blue dot at position (471, 68).
-; PLAN: r0=471(x), r1=68(y), r2=0x0000FF(color). Op: PSET r0, r1, r2.
-LDI r0, 471
-LDI r1, 68
-LDI r2, 0x0000FF
-PSET r0, r1, r2
+; DESCRIPTION: Draws a black line from (355, 248) to (235, 106).
+; PLAN: r0=355(x1), r1=248(y1), r2=235(x2), r3=106(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 355
+LDI r1, 248
+LDI r2, 235
+LDI r3, 106
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

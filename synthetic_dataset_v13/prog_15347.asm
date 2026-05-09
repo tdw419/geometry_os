@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a blue line from (263, 114) to (424, 204).
-; PLAN: r0=263(x1), r1=114(y1), r2=424(x2), r3=204(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 263
-LDI r1, 114
-LDI r2, 424
-LDI r3, 204
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a black circular shape at (149, 44) with radius 40.
+; PLAN: r0=149(x), r1=44(y), r2=40(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 149
+LDI r1, 44
+LDI r2, 40
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

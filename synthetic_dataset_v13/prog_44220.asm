@@ -1,9 +1,13 @@
-; DESCRIPTION: Draws a yellow rectangle at (235, 163) with width 53 and height 11.
-; PLAN: r0=235(x), r1=163(y), r2=53(width), r3=11(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 235
-LDI r1, 163
-LDI r2, 53
-LDI r3, 11
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single orange pixel at (490, 116) then Creates a white rectangular region at (166, 43) spanning 69 by 104 pixels.
+; PLAN: r0=490(x), r1=116(y), r2=0xFF8800(color). Op: PSET r0, r1, r2 Next: r5=166(x), r6=43(y), r7=69(width), r8=104(height), r9=0xFFFFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 490
+LDI r1, 116
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+LDI r5, 166
+LDI r6, 43
+LDI r7, 69
+LDI r8, 104
+LDI r9, 0xFFFFFF
+RECTF r5, r6, r7, r8, r9
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (451, 202) and radius 39.
-; PLAN: r0=451(x), r1=202(y), r2=39(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 451
-LDI r1, 202
-LDI r2, 39
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (17, 104) to (204, 95).
+; PLAN: r0=17(x1), r1=104(y1), r2=204(x2), r3=95(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 17
+LDI r1, 104
+LDI r2, 204
+LDI r3, 95
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

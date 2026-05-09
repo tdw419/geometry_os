@@ -1,15 +1,18 @@
-; DESCRIPTION: Composite: Renders a blue line between points (169, 120) and (452, 99) then Places a orange 60x117 rectangle at position (390, 11).
-; PLAN: r0=169(x1), r1=120(y1), r2=452(x2), r3=99(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=390(x), r6=11(y), r7=60(width), r8=117(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 169
-LDI r1, 120
-LDI r2, 452
-LDI r3, 99
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
-LDI r5, 390
-LDI r6, 11
-LDI r7, 60
-LDI r8, 117
-LDI r9, 0xFF8800
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Composite: Sets a single yellow pixel at (284, 233) then Places a yellow circle of radius 71 at center (416, 72) then Draws a cyan line from (307, 73) to (458, 37).
+; PLAN: r0=284(x), r1=233(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=416(x), r6=72(y), r7=71(radius), r8=0xFFFF00(color). Op: CIRCLE r5, r6, r7, r8 Next: r10=307(x1), r11=73(y1), r12=458(x2), r13=37(y2), r14=0x00FFFF(color). Op: LINE r10, r11, r12, r13, r14.
+LDI r0, 284
+LDI r1, 233
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 416
+LDI r6, 72
+LDI r7, 71
+LDI r8, 0xFFFF00
+CIRCLE r5, r6, r7, r8
+LDI r10, 307
+LDI r11, 73
+LDI r12, 458
+LDI r13, 37
+LDI r14, 0x00FFFF
+LINE r10, r11, r12, r13, r14
 HALT

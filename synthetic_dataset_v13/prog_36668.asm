@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single green pixel at (437, 73).
-; PLAN: r0=437(x), r1=73(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
-LDI r0, 437
-LDI r1, 73
-LDI r2, 0x00FF00
-PSET r0, r1, r2
+; DESCRIPTION: Places a green line segment connecting (86, 115) to (100, 38).
+; PLAN: r0=86(x1), r1=115(y1), r2=100(x2), r3=38(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 86
+LDI r1, 115
+LDI r2, 100
+LDI r3, 38
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

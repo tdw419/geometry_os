@@ -1,8 +1,9 @@
-; DESCRIPTION: Creates a white circular shape at (86, 186) with radius 45.
-; PLAN: r0=86(x), r1=186(y), r2=45(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 86
-LDI r1, 186
-LDI r2, 45
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a cyan line segment connecting (64, 158) to (81, 144).
+; PLAN: r0=64(x1), r1=158(y1), r2=81(x2), r3=144(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 64
+LDI r1, 158
+LDI r2, 81
+LDI r3, 144
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

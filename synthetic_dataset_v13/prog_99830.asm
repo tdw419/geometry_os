@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a magenta box of size 32x32 starting at (159, 168).
-; PLAN: r0=159(x), r1=168(y), r2=32(width), r3=32(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 159
-LDI r1, 168
-LDI r2, 32
-LDI r3, 32
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (233, 253) and (211, 247).
+; PLAN: r0=233(x1), r1=253(y1), r2=211(x2), r3=247(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 233
+LDI r1, 253
+LDI r2, 211
+LDI r3, 247
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

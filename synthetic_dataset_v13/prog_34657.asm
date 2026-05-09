@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (71, 112) to (235, 65).
-; PLAN: r0=71(x1), r1=112(y1), r2=235(x2), r3=65(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 71
-LDI r1, 112
-LDI r2, 235
-LDI r3, 65
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a white rectangle at (269, 93) with width 77 and height 62.
+; PLAN: r0=269(x), r1=93(y), r2=77(width), r3=62(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 269
+LDI r1, 93
+LDI r2, 77
+LDI r3, 62
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT

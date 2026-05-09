@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a purple 114x86 rectangle at position (354, 79).
-; PLAN: r0=354(x), r1=79(y), r2=114(width), r3=86(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 354
-LDI r1, 79
-LDI r2, 114
-LDI r3, 86
-LDI r4, 0xAA00FF
+; DESCRIPTION: Renders a magenta box of size 20x114 starting at (110, 37).
+; PLAN: r0=110(x), r1=37(y), r2=20(width), r3=114(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 110
+LDI r1, 37
+LDI r2, 20
+LDI r3, 114
+LDI r4, 0xFF00FF
 RECTF r0, r1, r2, r3, r4
 HALT

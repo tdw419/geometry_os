@@ -1,9 +1,8 @@
-; DESCRIPTION: Creates a red rectangular region at (245, 133) spanning 104 by 84 pixels.
-; PLAN: r0=245(x), r1=133(y), r2=104(width), r3=84(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 245
-LDI r1, 133
-LDI r2, 104
-LDI r3, 84
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a black disk with center (237, 88) and radius 79.
+; PLAN: r0=237(x), r1=88(y), r2=79(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 237
+LDI r1, 88
+LDI r2, 79
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

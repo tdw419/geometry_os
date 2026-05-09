@@ -1,7 +1,8 @@
-; DESCRIPTION: Places a white dot at position (381, 199).
-; PLAN: r0=381(x), r1=199(y), r2=0xFFFFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 381
-LDI r1, 199
-LDI r2, 0xFFFFFF
-PSET r0, r1, r2
+; DESCRIPTION: Creates a blue circular shape at (385, 189) with radius 50.
+; PLAN: r0=385(x), r1=189(y), r2=50(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 385
+LDI r1, 189
+LDI r2, 50
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

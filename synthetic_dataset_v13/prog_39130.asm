@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a black rectangular region at (115, 120) spanning 87 by 42 pixels.
-; PLAN: r0=115(x), r1=120(y), r2=87(width), r3=42(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 115
-LDI r1, 120
-LDI r2, 87
-LDI r3, 42
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red line from (130, 62) to (181, 204).
+; PLAN: r0=130(x1), r1=62(y1), r2=181(x2), r3=204(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 130
+LDI r1, 62
+LDI r2, 181
+LDI r3, 204
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

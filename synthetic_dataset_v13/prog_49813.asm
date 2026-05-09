@@ -1,9 +1,13 @@
-; DESCRIPTION: Places a cyan line segment connecting (166, 88) to (81, 125).
-; PLAN: r0=166(x1), r1=88(y1), r2=81(x2), r3=125(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 166
-LDI r1, 88
-LDI r2, 81
-LDI r3, 125
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (314, 102) then Creates a cyan rectangular region at (68, 79) spanning 97 by 48 pixels.
+; PLAN: r0=314(x), r1=102(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=68(x), r6=79(y), r7=97(width), r8=48(height), r9=0x00FFFF(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 314
+LDI r1, 102
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 68
+LDI r6, 79
+LDI r7, 97
+LDI r8, 48
+LDI r9, 0x00FFFF
+RECTF r5, r6, r7, r8, r9
 HALT

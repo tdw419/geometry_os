@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a blue line segment connecting (234, 220) to (462, 90).
-; PLAN: r0=234(x1), r1=220(y1), r2=462(x2), r3=90(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 234
-LDI r1, 220
-LDI r2, 462
-LDI r3, 90
-LDI r4, 0x0000FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Places a yellow dot at position (191, 228) then Renders a blue disk with center (44, 132) and radius 30.
+; PLAN: r0=191(x), r1=228(y), r2=0xFFFF00(color). Op: PSET r0, r1, r2 Next: r5=44(x), r6=132(y), r7=30(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 191
+LDI r1, 228
+LDI r2, 0xFFFF00
+PSET r0, r1, r2
+LDI r5, 44
+LDI r6, 132
+LDI r7, 30
+LDI r8, 0x0000FF
+CIRCLE r5, r6, r7, r8
 HALT

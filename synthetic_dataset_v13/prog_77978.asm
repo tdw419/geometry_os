@@ -1,9 +1,8 @@
-; DESCRIPTION: Draws a green line from (490, 0) to (284, 29).
-; PLAN: r0=490(x1), r1=0(y1), r2=284(x2), r3=29(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 490
-LDI r1, 0
-LDI r2, 284
-LDI r3, 29
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Places a yellow circle of radius 72 at center (198, 141).
+; PLAN: r0=198(x), r1=141(y), r2=72(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 198
+LDI r1, 141
+LDI r2, 72
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

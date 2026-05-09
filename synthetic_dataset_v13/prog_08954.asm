@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a black line between points (504, 125) and (215, 252).
-; PLAN: r0=504(x1), r1=125(y1), r2=215(x2), r3=252(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 504
-LDI r1, 125
-LDI r2, 215
-LDI r3, 252
-LDI r4, 0x000000
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 8 into r1 and decrements it in a loop until zero.
+; PLAN: r1=8(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 8
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

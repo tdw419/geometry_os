@@ -1,9 +1,18 @@
-; DESCRIPTION: Renders a cyan line between points (488, 230) and (392, 208).
-; PLAN: r0=488(x1), r1=230(y1), r2=392(x2), r3=208(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 488
-LDI r1, 230
-LDI r2, 392
-LDI r3, 208
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single green pixel at (166, 232) then Draws a magenta rectangle at (219, 188) with width 108 and height 25 then Draws a magenta circle centered at (261, 122) with radius 51.
+; PLAN: r0=166(x), r1=232(y), r2=0x00FF00(color). Op: PSET r0, r1, r2 Next: r5=219(x), r6=188(y), r7=108(width), r8=25(height), r9=0xFF00FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=261(x), r11=122(y), r12=51(radius), r13=0xFF00FF(color). Op: CIRCLE r10, r11, r12, r13.
+LDI r0, 166
+LDI r1, 232
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+LDI r5, 219
+LDI r6, 188
+LDI r7, 108
+LDI r8, 25
+LDI r9, 0xFF00FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 261
+LDI r11, 122
+LDI r12, 51
+LDI r13, 0xFF00FF
+CIRCLE r10, r11, r12, r13
 HALT

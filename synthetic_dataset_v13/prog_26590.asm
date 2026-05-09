@@ -1,5 +1,7 @@
-; DESCRIPTION: Clears the screen to yellow.
-; PLAN: r0=0xFFFF00(color). Op: FILL r0.
-LDI r0, 0xFFFF00
-FILL r0
+; DESCRIPTION: Places a orange dot at position (111, 123).
+; PLAN: r0=111(x), r1=123(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 111
+LDI r1, 123
+LDI r2, 0xFF8800
+PSET r0, r1, r2
 HALT

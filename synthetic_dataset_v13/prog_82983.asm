@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a red line between points (353, 155) and (356, 255).
-; PLAN: r0=353(x1), r1=155(y1), r2=356(x2), r3=255(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 353
-LDI r1, 155
-LDI r2, 356
-LDI r3, 255
-LDI r4, 0xFF0000
+; DESCRIPTION: Renders a blue line between points (410, 210) and (206, 208).
+; PLAN: r0=410(x1), r1=210(y1), r2=206(x2), r3=208(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 410
+LDI r1, 210
+LDI r2, 206
+LDI r3, 208
+LDI r4, 0x0000FF
 LINE r0, r1, r2, r3, r4
 HALT

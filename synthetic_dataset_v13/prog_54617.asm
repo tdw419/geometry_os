@@ -1,8 +1,8 @@
-; DESCRIPTION: Draws a green circle centered at (378, 59) with radius 44.
-; PLAN: r0=378(x), r1=59(y), r2=44(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 378
-LDI r1, 59
-LDI r2, 44
-LDI r3, 0x00FF00
+; DESCRIPTION: Renders a white disk with center (426, 177) and radius 33.
+; PLAN: r0=426(x), r1=177(y), r2=33(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 426
+LDI r1, 177
+LDI r2, 33
+LDI r3, 0xFFFFFF
 CIRCLE r0, r1, r2, r3
 HALT

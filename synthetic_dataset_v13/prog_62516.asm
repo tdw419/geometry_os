@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple line from (507, 244) to (9, 16).
-; PLAN: r0=507(x1), r1=244(y1), r2=9(x2), r3=16(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 507
-LDI r1, 244
-LDI r2, 9
-LDI r3, 16
-LDI r4, 0xAA00FF
+; DESCRIPTION: Draws a white line from (443, 7) to (491, 224).
+; PLAN: r0=443(x1), r1=7(y1), r2=491(x2), r3=224(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 443
+LDI r1, 7
+LDI r2, 491
+LDI r3, 224
+LDI r4, 0xFFFFFF
 LINE r0, r1, r2, r3, r4
 HALT

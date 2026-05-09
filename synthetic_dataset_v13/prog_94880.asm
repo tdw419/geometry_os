@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a black 105x114 rectangle at position (189, 59).
-; PLAN: r0=189(x), r1=59(y), r2=105(width), r3=114(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 189
-LDI r1, 59
-LDI r2, 105
-LDI r3, 114
-LDI r4, 0x000000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a black circle of radius 17 at center (230, 192).
+; PLAN: r0=230(x), r1=192(y), r2=17(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 230
+LDI r1, 192
+LDI r2, 17
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT

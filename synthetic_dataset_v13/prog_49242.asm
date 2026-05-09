@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 40x114 rectangle at position (70, 27).
-; PLAN: r0=70(x), r1=27(y), r2=40(width), r3=114(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 70
-LDI r1, 27
-LDI r2, 40
-LDI r3, 114
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Creates a cyan circular shape at (328, 125) with radius 26.
+; PLAN: r0=328(x), r1=125(y), r2=26(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 328
+LDI r1, 125
+LDI r2, 26
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
 HALT

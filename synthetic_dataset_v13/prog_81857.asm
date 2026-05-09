@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a magenta circle of radius 18 at center (297, 135).
-; PLAN: r0=297(x), r1=135(y), r2=18(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 297
-LDI r1, 135
-LDI r2, 18
-LDI r3, 0xFF00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (242, 7) and (418, 136).
+; PLAN: r0=242(x1), r1=7(y1), r2=418(x2), r3=136(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 242
+LDI r1, 7
+LDI r2, 418
+LDI r3, 136
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a cyan line segment connecting (390, 22) to (439, 93).
-; PLAN: r0=390(x1), r1=22(y1), r2=439(x2), r3=93(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 390
-LDI r1, 22
-LDI r2, 439
-LDI r3, 93
-LDI r4, 0x00FFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue disk with center (238, 38) and radius 34.
+; PLAN: r0=238(x), r1=38(y), r2=34(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 238
+LDI r1, 38
+LDI r2, 34
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
 HALT

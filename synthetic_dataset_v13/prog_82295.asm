@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a purple line between points (88, 225) and (31, 102).
-; PLAN: r0=88(x1), r1=225(y1), r2=31(x2), r3=102(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 88
-LDI r1, 225
-LDI r2, 31
-LDI r3, 102
-LDI r4, 0xAA00FF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green rectangle at (121, 136) with width 110 and height 85.
+; PLAN: r0=121(x), r1=136(y), r2=110(width), r3=85(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 121
+LDI r1, 136
+LDI r2, 110
+LDI r3, 85
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
 HALT

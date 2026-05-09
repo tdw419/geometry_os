@@ -1,14 +1,9 @@
-; DESCRIPTION: Composite: Draws a red circle centered at (322, 85) with radius 70 then Places a blue line segment connecting (38, 240) to (275, 228).
-; PLAN: r0=322(x), r1=85(y), r2=70(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=38(x1), r6=240(y1), r7=275(x2), r8=228(y2), r9=0x0000FF(color). Op: LINE r5, r6, r7, r8, r9.
-LDI r0, 322
-LDI r1, 85
-LDI r2, 70
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
-LDI r5, 38
-LDI r6, 240
-LDI r7, 275
-LDI r8, 228
-LDI r9, 0x0000FF
-LINE r5, r6, r7, r8, r9
+; DESCRIPTION: Renders a red line between points (499, 195) and (299, 106).
+; PLAN: r0=499(x1), r1=195(y1), r2=299(x2), r3=106(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 499
+LDI r1, 195
+LDI r2, 299
+LDI r3, 106
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
 HALT

@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a purple circle centered at (94, 125) with radius 14.
-; PLAN: r0=94(x), r1=125(y), r2=14(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 94
-LDI r1, 125
-LDI r2, 14
-LDI r3, 0xAA00FF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a magenta 111x104 rectangle at position (252, 94).
+; PLAN: r0=252(x), r1=94(y), r2=111(width), r3=104(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 252
+LDI r1, 94
+LDI r2, 111
+LDI r3, 104
+LDI r4, 0xFF00FF
+RECTF r0, r1, r2, r3, r4
 HALT

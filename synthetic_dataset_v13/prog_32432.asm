@@ -1,8 +1,9 @@
-; DESCRIPTION: Renders a green disk with center (358, 77) and radius 64.
-; PLAN: r0=358(x), r1=77(y), r2=64(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 358
-LDI r1, 77
-LDI r2, 64
-LDI r3, 0x00FF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a cyan rectangle at (292, 186) with width 13 and height 70.
+; PLAN: r0=292(x), r1=186(y), r2=13(width), r3=70(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 292
+LDI r1, 186
+LDI r2, 13
+LDI r3, 70
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

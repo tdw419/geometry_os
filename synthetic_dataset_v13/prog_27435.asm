@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a black 79x54 rectangle at position (319, 185).
-; PLAN: r0=319(x), r1=185(y), r2=79(width), r3=54(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 319
-LDI r1, 185
-LDI r2, 79
-LDI r3, 54
-LDI r4, 0x000000
+; DESCRIPTION: Draws a purple rectangle at (262, 56) with width 48 and height 44.
+; PLAN: r0=262(x), r1=56(y), r2=48(width), r3=44(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 56
+LDI r2, 48
+LDI r3, 44
+LDI r4, 0xAA00FF
 RECTF r0, r1, r2, r3, r4
 HALT

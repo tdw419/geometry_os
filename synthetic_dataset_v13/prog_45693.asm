@@ -1,8 +1,8 @@
-; DESCRIPTION: Places a green circle of radius 75 at center (314, 134).
-; PLAN: r0=314(x), r1=134(y), r2=75(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 314
-LDI r1, 134
-LDI r2, 75
-LDI r3, 0x00FF00
+; DESCRIPTION: Creates a black circular shape at (146, 186) with radius 21.
+; PLAN: r0=146(x), r1=186(y), r2=21(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 146
+LDI r1, 186
+LDI r2, 21
+LDI r3, 0x000000
 CIRCLE r0, r1, r2, r3
 HALT

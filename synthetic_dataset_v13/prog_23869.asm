@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single black pixel at (217, 151).
-; PLAN: r0=217(x), r1=151(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 217
-LDI r1, 151
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Renders a blue box of size 115x76 starting at (347, 152).
+; PLAN: r0=347(x), r1=152(y), r2=115(width), r3=76(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 347
+LDI r1, 152
+LDI r2, 115
+LDI r3, 76
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

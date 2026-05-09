@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a red box of size 19x94 starting at (64, 13).
-; PLAN: r0=64(x), r1=13(y), r2=19(width), r3=94(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 64
-LDI r1, 13
-LDI r2, 19
-LDI r3, 94
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a white disk with center (210, 137) and radius 13.
+; PLAN: r0=210(x), r1=137(y), r2=13(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 210
+LDI r1, 137
+LDI r2, 13
+LDI r3, 0xFFFFFF
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,12 @@
-; DESCRIPTION: Places a white line segment connecting (392, 66) to (154, 28).
-; PLAN: r0=392(x1), r1=66(y1), r2=154(x2), r3=28(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 392
-LDI r1, 66
-LDI r2, 154
-LDI r3, 28
-LDI r4, 0xFFFFFF
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Sets a single blue pixel at (246, 157) then Renders a white disk with center (214, 67) and radius 37.
+; PLAN: r0=246(x), r1=157(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=214(x), r6=67(y), r7=37(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
+LDI r0, 246
+LDI r1, 157
+LDI r2, 0x0000FF
+PSET r0, r1, r2
+LDI r5, 214
+LDI r6, 67
+LDI r7, 37
+LDI r8, 0xFFFFFF
+CIRCLE r5, r6, r7, r8
 HALT

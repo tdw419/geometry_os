@@ -1,8 +1,9 @@
-; DESCRIPTION: Loads 23 into r1 and decrements it in a loop until zero.
-; PLAN: r1=23(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
-LDI r1, 23
-loop:
-LDI r2, 1
-SUB r1, r2
-JNZ r1, loop
+; DESCRIPTION: Renders a cyan line between points (101, 224) and (252, 227).
+; PLAN: r0=101(x1), r1=224(y1), r2=252(x2), r3=227(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 101
+LDI r1, 224
+LDI r2, 252
+LDI r3, 227
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

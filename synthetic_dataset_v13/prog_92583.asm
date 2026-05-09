@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single cyan pixel at (74, 98).
-; PLAN: r0=74(x), r1=98(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
-LDI r0, 74
-LDI r1, 98
-LDI r2, 0x00FFFF
-PSET r0, r1, r2
+; DESCRIPTION: Places a red 108x66 rectangle at position (354, 189).
+; PLAN: r0=354(x), r1=189(y), r2=108(width), r3=66(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 354
+LDI r1, 189
+LDI r2, 108
+LDI r3, 66
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

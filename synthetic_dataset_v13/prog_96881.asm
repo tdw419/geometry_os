@@ -1,9 +1,12 @@
-; DESCRIPTION: Renders a red box of size 71x47 starting at (139, 195).
-; PLAN: r0=139(x), r1=195(y), r2=71(width), r3=47(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 139
-LDI r1, 195
-LDI r2, 71
-LDI r3, 47
-LDI r4, 0xFF0000
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Composite: Creates a blue circular shape at (319, 156) with radius 78 then Places a black dot at position (232, 104).
+; PLAN: r0=319(x), r1=156(y), r2=78(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=232(x), r6=104(y), r7=0x000000(color). Op: PSET r5, r6, r7.
+LDI r0, 319
+LDI r1, 156
+LDI r2, 78
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 232
+LDI r6, 104
+LDI r7, 0x000000
+PSET r5, r6, r7
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a cyan rectangular region at (38, 152) spanning 71 by 12 pixels.
-; PLAN: r0=38(x), r1=152(y), r2=71(width), r3=12(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 38
-LDI r1, 152
-LDI r2, 71
-LDI r3, 12
-LDI r4, 0x00FFFF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a purple line between points (151, 24) and (310, 75).
+; PLAN: r0=151(x1), r1=24(y1), r2=310(x2), r3=75(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 151
+LDI r1, 24
+LDI r2, 310
+LDI r3, 75
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
 HALT

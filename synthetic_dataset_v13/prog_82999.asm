@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a yellow box of size 110x120 starting at (118, 73).
-; PLAN: r0=118(x), r1=73(y), r2=110(width), r3=120(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 118
-LDI r1, 73
-LDI r2, 110
-LDI r3, 120
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a blue line between points (454, 255) and (159, 232).
+; PLAN: r0=454(x1), r1=255(y1), r2=159(x2), r3=232(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 454
+LDI r1, 255
+LDI r2, 159
+LDI r3, 232
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
 HALT

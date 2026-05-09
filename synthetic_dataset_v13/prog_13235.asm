@@ -1,7 +1,9 @@
-; DESCRIPTION: Sets a single magenta pixel at (437, 2).
-; PLAN: r0=437(x), r1=2(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
-LDI r0, 437
-LDI r1, 2
-LDI r2, 0xFF00FF
-PSET r0, r1, r2
+; DESCRIPTION: Renders a yellow line between points (362, 230) and (443, 234).
+; PLAN: r0=362(x1), r1=230(y1), r2=443(x2), r3=234(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 362
+LDI r1, 230
+LDI r2, 443
+LDI r3, 234
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
 HALT

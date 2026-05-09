@@ -1,7 +1,9 @@
-; DESCRIPTION: Places a black dot at position (416, 250).
-; PLAN: r0=416(x), r1=250(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 416
-LDI r1, 250
-LDI r2, 0x000000
-PSET r0, r1, r2
+; DESCRIPTION: Draws a cyan line from (380, 248) to (263, 95).
+; PLAN: r0=380(x1), r1=248(y1), r2=263(x2), r3=95(y2), r4=0x00FFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 380
+LDI r1, 248
+LDI r2, 263
+LDI r3, 95
+LDI r4, 0x00FFFF
+LINE r0, r1, r2, r3, r4
 HALT

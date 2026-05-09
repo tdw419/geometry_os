@@ -1,9 +1,9 @@
-; DESCRIPTION: Places a green line segment connecting (188, 157) to (485, 51).
-; PLAN: r0=188(x1), r1=157(y1), r2=485(x2), r3=51(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 188
-LDI r1, 157
-LDI r2, 485
-LDI r3, 51
-LDI r4, 0x00FF00
-LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a red rectangle at (362, 133) with width 28 and height 98.
+; PLAN: r0=362(x), r1=133(y), r2=28(width), r3=98(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 362
+LDI r1, 133
+LDI r2, 28
+LDI r3, 98
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
 HALT

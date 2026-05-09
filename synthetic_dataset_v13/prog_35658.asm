@@ -1,14 +1,18 @@
-; DESCRIPTION: Composite: Renders a yellow box of size 64x33 starting at (193, 176) then Renders a white disk with center (468, 119) and radius 22.
-; PLAN: r0=193(x), r1=176(y), r2=64(width), r3=33(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=468(x), r6=119(y), r7=22(radius), r8=0xFFFFFF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 193
-LDI r1, 176
-LDI r2, 64
-LDI r3, 33
-LDI r4, 0xFFFF00
-RECTF r0, r1, r2, r3, r4
-LDI r5, 468
-LDI r6, 119
-LDI r7, 22
-LDI r8, 0xFFFFFF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Composite: Renders a blue disk with center (405, 149) and radius 71 then Places a blue 105x37 rectangle at position (364, 151) then Sets a single red pixel at (390, 56).
+; PLAN: r0=405(x), r1=149(y), r2=71(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=364(x), r6=151(y), r7=105(width), r8=37(height), r9=0x0000FF(color). Op: RECTF r5, r6, r7, r8, r9 Next: r10=390(x), r11=56(y), r12=0xFF0000(color). Op: PSET r10, r11, r12.
+LDI r0, 405
+LDI r1, 149
+LDI r2, 71
+LDI r3, 0x0000FF
+CIRCLE r0, r1, r2, r3
+LDI r5, 364
+LDI r6, 151
+LDI r7, 105
+LDI r8, 37
+LDI r9, 0x0000FF
+RECTF r5, r6, r7, r8, r9
+LDI r10, 390
+LDI r11, 56
+LDI r12, 0xFF0000
+PSET r10, r11, r12
 HALT

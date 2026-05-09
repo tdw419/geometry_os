@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a orange circle of radius 73 at center (262, 171).
-; PLAN: r0=262(x), r1=171(y), r2=73(radius), r3=0xFF8800(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 262
-LDI r1, 171
-LDI r2, 73
-LDI r3, 0xFF8800
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a blue rectangle at (161, 177) with width 34 and height 33.
+; PLAN: r0=161(x), r1=177(y), r2=34(width), r3=33(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 161
+LDI r1, 177
+LDI r2, 34
+LDI r3, 33
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
 HALT

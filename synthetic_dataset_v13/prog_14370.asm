@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a green 63x23 rectangle at position (398, 161).
-; PLAN: r0=398(x), r1=161(y), r2=63(width), r3=23(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 398
-LDI r1, 161
-LDI r2, 63
-LDI r3, 23
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Renders a yellow disk with center (436, 33) and radius 32.
+; PLAN: r0=436(x), r1=33(y), r2=32(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 436
+LDI r1, 33
+LDI r2, 32
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
 HALT

@@ -1,9 +1,9 @@
-; DESCRIPTION: Creates a orange rectangular region at (121, 78) spanning 105 by 40 pixels.
-; PLAN: r0=121(x), r1=78(y), r2=105(width), r3=40(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 121
-LDI r1, 78
-LDI r2, 105
-LDI r3, 40
-LDI r4, 0xFF8800
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Draws a green line from (334, 31) to (287, 54).
+; PLAN: r0=334(x1), r1=31(y1), r2=287(x2), r3=54(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 334
+LDI r1, 31
+LDI r2, 287
+LDI r3, 54
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT

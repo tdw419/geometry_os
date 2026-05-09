@@ -1,12 +1,8 @@
-; DESCRIPTION: Composite: Places a blue dot at position (168, 125) then Places a blue circle of radius 67 at center (183, 92).
-; PLAN: r0=168(x), r1=125(y), r2=0x0000FF(color). Op: PSET r0, r1, r2 Next: r5=183(x), r6=92(y), r7=67(radius), r8=0x0000FF(color). Op: CIRCLE r5, r6, r7, r8.
-LDI r0, 168
-LDI r1, 125
-LDI r2, 0x0000FF
-PSET r0, r1, r2
-LDI r5, 183
-LDI r6, 92
-LDI r7, 67
-LDI r8, 0x0000FF
-CIRCLE r5, r6, r7, r8
+; DESCRIPTION: Places a magenta circle of radius 54 at center (76, 185).
+; PLAN: r0=76(x), r1=185(y), r2=54(radius), r3=0xFF00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 76
+LDI r1, 185
+LDI r2, 54
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT

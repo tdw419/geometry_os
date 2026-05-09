@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a black disk with center (185, 122) and radius 65.
-; PLAN: r0=185(x), r1=122(y), r2=65(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 185
-LDI r1, 122
-LDI r2, 65
-LDI r3, 0x000000
+; DESCRIPTION: Draws a blue circle centered at (61, 171) with radius 33.
+; PLAN: r0=61(x), r1=171(y), r2=33(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 61
+LDI r1, 171
+LDI r2, 33
+LDI r3, 0x0000FF
 CIRCLE r0, r1, r2, r3
 HALT

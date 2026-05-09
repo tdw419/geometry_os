@@ -1,13 +1,9 @@
-; DESCRIPTION: Composite: Sets a single red pixel at (274, 80) then Places a green 77x73 rectangle at position (368, 147).
-; PLAN: r0=274(x), r1=80(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=368(x), r6=147(y), r7=77(width), r8=73(height), r9=0x00FF00(color). Op: RECTF r5, r6, r7, r8, r9.
-LDI r0, 274
-LDI r1, 80
-LDI r2, 0xFF0000
-PSET r0, r1, r2
-LDI r5, 368
-LDI r6, 147
-LDI r7, 77
-LDI r8, 73
-LDI r9, 0x00FF00
-RECTF r5, r6, r7, r8, r9
+; DESCRIPTION: Creates a cyan rectangular region at (342, 190) spanning 65 by 27 pixels.
+; PLAN: r0=342(x), r1=190(y), r2=65(width), r3=27(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 342
+LDI r1, 190
+LDI r2, 65
+LDI r3, 27
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
 HALT

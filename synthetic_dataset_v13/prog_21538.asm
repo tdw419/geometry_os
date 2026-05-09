@@ -1,8 +1,8 @@
-; DESCRIPTION: Creates a yellow circular shape at (125, 154) with radius 54.
-; PLAN: r0=125(x), r1=154(y), r2=54(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 125
-LDI r1, 154
-LDI r2, 54
-LDI r3, 0xFFFF00
+; DESCRIPTION: Places a purple circle of radius 35 at center (339, 182).
+; PLAN: r0=339(x), r1=182(y), r2=35(radius), r3=0xAA00FF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 339
+LDI r1, 182
+LDI r2, 35
+LDI r3, 0xAA00FF
 CIRCLE r0, r1, r2, r3
 HALT

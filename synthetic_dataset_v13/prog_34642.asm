@@ -1,7 +1,5 @@
-; DESCRIPTION: Places a red dot at position (21, 6).
-; PLAN: r0=21(x), r1=6(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
-LDI r0, 21
-LDI r1, 6
-LDI r2, 0xFF0000
-PSET r0, r1, r2
+; DESCRIPTION: Sets the background to orange.
+; PLAN: r0=0xFF8800(color). Op: FILL r0.
+LDI r0, 0xFF8800
+FILL r0
 HALT

@@ -1,9 +1,8 @@
-; DESCRIPTION: Renders a green box of size 24x28 starting at (428, 44).
-; PLAN: r0=428(x), r1=44(y), r2=24(width), r3=28(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 428
-LDI r1, 44
-LDI r2, 24
-LDI r3, 28
-LDI r4, 0x00FF00
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Loads 17 into r1 and decrements it in a loop until zero.
+; PLAN: r1=17(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.
+LDI r1, 17
+loop:
+LDI r2, 1
+SUB r1, r2
+JNZ r1, loop
 HALT

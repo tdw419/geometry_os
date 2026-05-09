@@ -1,9 +1,9 @@
-; DESCRIPTION: Renders a orange line between points (413, 94) and (505, 34).
-; PLAN: r0=413(x1), r1=94(y1), r2=505(x2), r3=34(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
-LDI r0, 413
-LDI r1, 94
-LDI r2, 505
-LDI r3, 34
-LDI r4, 0xFF8800
+; DESCRIPTION: Renders a yellow line between points (359, 136) and (465, 162).
+; PLAN: r0=359(x1), r1=136(y1), r2=465(x2), r3=162(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 359
+LDI r1, 136
+LDI r2, 465
+LDI r3, 162
+LDI r4, 0xFFFF00
 LINE r0, r1, r2, r3, r4
 HALT

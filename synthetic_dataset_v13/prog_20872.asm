@@ -1,8 +1,7 @@
-; DESCRIPTION: Places a red circle of radius 45 at center (410, 53).
-; PLAN: r0=410(x), r1=53(y), r2=45(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 410
-LDI r1, 53
-LDI r2, 45
-LDI r3, 0xFF0000
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Sets a single cyan pixel at (404, 4).
+; PLAN: r0=404(x), r1=4(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 404
+LDI r1, 4
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
 HALT

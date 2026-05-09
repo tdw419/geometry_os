@@ -1,9 +1,9 @@
-; DESCRIPTION: Draws a purple rectangle at (224, 31) with width 10 and height 62.
-; PLAN: r0=224(x), r1=31(y), r2=10(width), r3=62(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 224
-LDI r1, 31
-LDI r2, 10
-LDI r3, 62
-LDI r4, 0xAA00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a magenta line segment connecting (6, 123) to (234, 34).
+; PLAN: r0=6(x1), r1=123(y1), r2=234(x2), r3=34(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 6
+LDI r1, 123
+LDI r2, 234
+LDI r3, 34
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
 HALT

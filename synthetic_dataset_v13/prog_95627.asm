@@ -1,8 +1,8 @@
-; DESCRIPTION: Renders a yellow disk with center (343, 134) and radius 10.
-; PLAN: r0=343(x), r1=134(y), r2=10(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 343
-LDI r1, 134
-LDI r2, 10
-LDI r3, 0xFFFF00
+; DESCRIPTION: Renders a red disk with center (329, 166) and radius 62.
+; PLAN: r0=329(x), r1=166(y), r2=62(radius), r3=0xFF0000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 329
+LDI r1, 166
+LDI r2, 62
+LDI r3, 0xFF0000
 CIRCLE r0, r1, r2, r3
 HALT

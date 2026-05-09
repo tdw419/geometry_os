@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a yellow circle centered at (108, 112) with radius 10.
-; PLAN: r0=108(x), r1=112(y), r2=10(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 108
-LDI r1, 112
-LDI r2, 10
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple 48x44 rectangle at position (88, 99).
+; PLAN: r0=88(x), r1=99(y), r2=48(width), r3=44(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 88
+LDI r1, 99
+LDI r2, 48
+LDI r3, 44
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
 HALT

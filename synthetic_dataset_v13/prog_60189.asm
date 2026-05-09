@@ -1,8 +1,9 @@
-; DESCRIPTION: Places a white circle of radius 28 at center (176, 54).
-; PLAN: r0=176(x), r1=54(y), r2=28(radius), r3=0xFFFFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 176
-LDI r1, 54
-LDI r2, 28
-LDI r3, 0xFFFFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Draws a black line from (447, 13) to (217, 25).
+; PLAN: r0=447(x1), r1=13(y1), r2=217(x2), r3=25(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 447
+LDI r1, 13
+LDI r2, 217
+LDI r3, 25
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
 HALT

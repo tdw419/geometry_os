@@ -1,9 +1,8 @@
-; DESCRIPTION: Places a magenta 30x50 rectangle at position (227, 157).
-; PLAN: r0=227(x), r1=157(y), r2=30(width), r3=50(height), r4=0xFF00FF(color). Op: RECTF r0, r1, r2, r3, r4.
-LDI r0, 227
-LDI r1, 157
-LDI r2, 30
-LDI r3, 50
-LDI r4, 0xFF00FF
-RECTF r0, r1, r2, r3, r4
+; DESCRIPTION: Places a green circle of radius 66 at center (154, 185).
+; PLAN: r0=154(x), r1=185(y), r2=66(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 154
+LDI r1, 185
+LDI r2, 66
+LDI r3, 0x00FF00
+CIRCLE r0, r1, r2, r3
 HALT

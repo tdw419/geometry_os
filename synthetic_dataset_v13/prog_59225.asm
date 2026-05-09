@@ -1,8 +1,9 @@
-; DESCRIPTION: Draws a cyan circle centered at (120, 62) with radius 37.
-; PLAN: r0=120(x), r1=62(y), r2=37(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
-LDI r0, 120
-LDI r1, 62
-LDI r2, 37
-LDI r3, 0x00FFFF
-CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Renders a green line between points (26, 225) and (38, 254).
+; PLAN: r0=26(x1), r1=225(y1), r2=38(x2), r3=254(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 26
+LDI r1, 225
+LDI r2, 38
+LDI r3, 254
+LDI r4, 0x00FF00
+LINE r0, r1, r2, r3, r4
 HALT
