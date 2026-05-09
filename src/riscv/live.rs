@@ -423,14 +423,32 @@ fn vm_thread_main(
                 }
             }
 
-            // Linux needs a higher CLINT tick ratio than bare-metal programs.
-            // Using 1x multiplier to avoid timer interrupt storm while allowing
-            // the kernel to progress through its jiffy-based scheduling.
-            let step_result = if is_linux {
+            // Linux timer fix: don't tick CLINT every instruction.
+            // The kernel expects timebase=10MHz (from DTB). At ~52 MIPS,
+            // ticking every instruction makes mtime run at 52MHz -- 5x too fast.
+            // This causes a timer interrupt storm: the kernel spends all its
+            // time in ret_from_exception / handle_riscv_irq and never reaches
+            // printk.
+            //
+            // Fix: only tick CLINT every 5 instructions. This gives ~10.4MHz
+            // effective timebase, close enough for kernel scheduling.
+            // Timer throttle: only tick CLINT every 5th instruction.
+            // Without this, mtime runs at instruction speed (~52MHz) but
+            // the kernel expects 10MHz timebase -> timer interrupt storm.
+            let prev_mtime = vm.bus.clint.mtime;
+            let step_result = if is_linux && (count % 5 == 0) {
                 vm.step_with_clint_ticks(1)
+            } else if is_linux {
+                vm.step_no_clint()
             } else {
                 vm.step()
             };
+            // Verify CLINT throttle is working (first 5 checks)
+            if is_linux && count < 25 {
+                let new_mtime = vm.bus.clint.mtime;
+                let ticked = new_mtime != prev_mtime;
+                eprintln!("[clint-check] count={} mtime {}->{} ticked={}", count, prev_mtime, new_mtime, ticked);
+            }
             count += 1;
             *instruction_count.borrow_mut() = count;
 

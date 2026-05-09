@@ -5086,7 +5086,7 @@ phases:
   _claimed_at: 1778294079
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
-  status: planned
+  status: in_progress
   goal: Add mutex and semaphore opcodes for safe inter-process resource sharing.
   description: The VM has PIPE and MSGSND/MSGRCV for data IPC, but no synchronization
     primitives. Multiple processes accessing shared resources (files, memory regions,
@@ -5114,6 +5114,8 @@ phases:
     validation: Race condition test passes 1000 iterations
   - description: Semaphore correctly blocks and wakes processes
     validation: Producer-consumer test with 4 processes completes
+  _claimed_by: worker-0
+  _claimed_at: 1778297828
 - id: phase-290
   title: GeOS VM -- Performance Benchmark Suite and Optimization
   status: planned

@@ -8,8 +8,8 @@ from pathlib import Path
 # Add current dir to path
 sys.path.insert(0, os.path.dirname(__file__))
 from bilingual_tokenizer import BilingualTokenizer
-from train_opcode_llm import OpcodeGPT, generate_asm
-from constrained_decoder import generate_constrained
+from train_opcode_llm import OpcodeGPT
+from isa_constrained_decoder import generate_isa_constrained
 
 PROMPTS = [
     ("; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.", ["CIRCLE"]),
@@ -32,7 +32,7 @@ def run_vm(asm_path, ppm_path):
     return stdout.decode(), stderr.decode()
 
 def main():
-    checkpoint_path = "pixelflow/bilingual_llm_v9_ckpt.pt"
+    checkpoint_path = "pixelflow/bilingual_llm_v10_ckpt.pt"
     tokenizer_path = "pixelflow/bilingual_tokenizer_v4"
 
     output_dir = Path("pixelflow/smoke_results")
@@ -42,26 +42,31 @@ def main():
     print(f"[*] Device: {device}")
 
     tokenizer = BilingualTokenizer.load(tokenizer_path)
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    m_args = checkpoint["args"]
+    if not os.path.exists(checkpoint_path):
+        print(f"[!] Checkpoint {checkpoint_path} not found.")
+        return
+
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     
+    # Model V10 config
     model = OpcodeGPT(
-        vocab_size=m_args["vocab_size"],
-        n_embd=m_args["embd"],
-        n_head=m_args["heads"],
-        n_layer=m_args["layers"],
-        block_size=m_args["context_len"]
+        vocab_size=3456,
+        n_embd=384,
+        n_head=8,
+        n_layer=6,
+        block_size=1024
     ).to(device)
     
     model.load_state_dict(checkpoint["model"])
     model.eval()
     print(f"[*] Model loaded: {model.param_count():,} parameters")
+    print(f"[*] Epoch: {checkpoint['epoch']}, Loss: {checkpoint['loss']:.4f}")
 
     report = []
 
     for i, (prompt, keywords) in enumerate(PROMPTS):
         print(f"\n[Prompt {i+1}] {prompt}")
-        generated = generate_constrained(model, tokenizer, prompt, device, max_tokens=256, temperature=0.7)
+        generated = generate_isa_constrained(model, tokenizer, prompt, device, max_tokens=150)
         
         asm_file = output_dir / f"test_{i+1}.asm"
         ppm_file = output_dir / f"test_{i+1}.ppm"
@@ -69,7 +74,7 @@ def main():
         with open(asm_file, "w") as f:
             f.write(generated)
         
-        # Run in VM
+        # 1. Syntax & VM Run
         stdout, stderr = run_vm(asm_file, ppm_file)
         
         syntax_ok = "requires" not in stdout and "Unknown opcode" not in stdout and "Error" not in stdout and "undefined" not in stdout
@@ -89,33 +94,26 @@ def main():
                     non_black = sum(1 for j in range(0, len(data), 3) if data[j:j+3] != b'\x00\x00\x00')
                     non_black_ratio = non_black / total_pixels
                     vm_success = non_black > 0
-            except Exception as e:
-                pass
+            except: pass
 
-        # Final status
         status = "PASSED" if (syntax_ok and vm_success) else "FAILED"
-        
         reasons = []
         if not syntax_ok: reasons.append("SYNTAX ERROR")
         if not vm_success: reasons.append("NO VISUAL OUTPUT")
-        
-        if reasons:
-            status += " (" + ", ".join(reasons) + ")"
+        if reasons: status += " (" + ", ".join(reasons) + ")"
             
-        print(f"  Result: {status} [Visual Output: {non_black_ratio:.2%}]")
+        print(f"  Result: {status} [Visual: {non_black_ratio:.2%}]")
         
         report.append({
             "prompt": prompt,
             "asm": generated,
-            "success": status.startswith("PASSED"),
             "status": status,
-            "ppm": str(ppm_file)
+            "success": "PASSED" in status,
         })
 
     # Save summary
     with open(output_dir / "report.md", "w") as f:
-        f.write("# PixelGPT V8 Smoke Test Report\n\n")
-        f.write(f"Checkpoint: {checkpoint_path}\n")
+        f.write("# PixelGPT V10 (Constrained) Smoke Test Report\n\n")
         f.write(f"Epoch: {checkpoint['epoch']}, Loss: {checkpoint['loss']:.4f}\n\n")
         for i, item in enumerate(report):
             status = "✅" if item["success"] else "❌"

@@ -59,3 +59,11 @@ harness = false
 [[bench]]
 name = "assembler_bench"
 harness = false
+
+[[bench]]
+name = "vm_bench_extended"
+harness = false
+
+[[bench]]
+name = "riscv_bench"
+harness = false
