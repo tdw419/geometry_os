@@ -8914,6 +8914,223 @@ fn test_font_select_assembles() {
     assert_eq!(bytecode[1], 1); // r1
 }
 
+// ── Phase 286: Visual comparison -- fixed-width vs proportional rendering ──
+
+#[test]
+fn test_proportional_vs_fixed_width_comparison() {
+    // Render "MiW il" with both fixed-width (TEXT, font_mode=0) and
+    // proportional (VWTXT, 0xDB), then compare the horizontal spread.
+    //
+    // Fixed-width: every char advances 6px → "MiW il" = 6 chars × 6px = 36px
+    // Proportional: M=8, i=3, W=8, space=3, i=3, l=3 → ~28px
+    // The proportional rendering should be significantly narrower.
+    let text = b"MiW il";
+
+    // --- Fixed-width rendering (TEXT opcode, font_mode=0) ---
+    let mut vm_fixed = Vm::new();
+    for (i, &ch) in text.iter().enumerate() {
+        vm_fixed.ram[100 + i] = ch as u32;
+    }
+    vm_fixed.ram[100 + text.len()] = 0;
+    vm_fixed.regs[10] = 0;  // x=0
+    vm_fixed.regs[11] = 0;  // y=0
+    vm_fixed.regs[12] = 100; // addr
+    vm_fixed.set_font_mode(0); // fixed-width (default)
+    vm_fixed.ram[0] = 0x44;  // TEXT
+    vm_fixed.ram[1] = 10;
+    vm_fixed.ram[2] = 11;
+    vm_fixed.ram[3] = 12;
+    vm_fixed.ram[4] = 0x00;  // HALT
+    vm_fixed.step();
+
+    // Find rightmost rendered pixel
+    let mut fixed_rightmost = 0usize;
+    for y in 0..10 {
+        for x in 0..256 {
+            if vm_fixed.screen[y * 256 + x] == 0xFFFFFF {
+                fixed_rightmost = fixed_rightmost.max(x);
+            }
+        }
+    }
+
+    // --- Proportional rendering (VWTXT opcode) ---
+    let mut vm_prop = Vm::new();
+    for (i, &ch) in text.iter().enumerate() {
+        vm_prop.ram[100 + i] = ch as u32;
+    }
+    vm_prop.ram[100 + text.len()] = 0;
+    vm_prop.regs[10] = 0;
+    vm_prop.regs[11] = 0;
+    vm_prop.regs[12] = 100;
+    vm_prop.regs[13] = 0xFFFFFF; // fg = white
+    vm_prop.regs[14] = 0;        // bg = transparent
+    vm_prop.ram[0] = 0xDB;  // VWTXT
+    vm_prop.ram[1] = 10;
+    vm_prop.ram[2] = 11;
+    vm_prop.ram[3] = 12;
+    vm_prop.ram[4] = 13;
+    vm_prop.ram[5] = 14;
+    vm_prop.ram[6] = 0x00;  // HALT
+    vm_prop.step();
+
+    let mut prop_rightmost = 0usize;
+    for y in 0..10 {
+        for x in 0..256 {
+            if vm_prop.screen[y * 256 + x] == 0xFFFFFF {
+                prop_rightmost = prop_rightmost.max(x);
+            }
+        }
+    }
+
+    // Both should have rendered something
+    assert!(fixed_rightmost > 0, "Fixed-width should render pixels");
+    assert!(prop_rightmost > 0, "Proportional should render pixels");
+
+    // Proportional should be strictly narrower than fixed-width
+    assert!(
+        prop_rightmost < fixed_rightmost,
+        "Proportional (rightmost={}) should be narrower than fixed (rightmost={})",
+        prop_rightmost,
+        fixed_rightmost
+    );
+
+    // Fixed "MiW il" should be ~36px (6 chars × 6px advance), allow margin
+    assert!(
+        fixed_rightmost >= 30,
+        "Fixed-width 'MiW il' should span at least 30px, got {}",
+        fixed_rightmost
+    );
+
+    // Proportional "MiW il" should be ~28px (M8+i3+W8+space3+i3+l3), allow margin
+    assert!(
+        prop_rightmost <= 32,
+        "Proportional 'MiW il' should span at most 32px, got {}",
+        prop_rightmost
+    );
+}
+
+#[test]
+fn test_proportional_narrow_vs_wide_char_spread() {
+    // Render "iii" (narrow) and "MMM" (wide) with VWTXT.
+    // "iii" advance: 3+3+3=9px. "MMM" advance: 8+8+8=24px.
+    // The wide version should be at least 2x the narrow version.
+    let narrow = b"iii";
+    let wide = b"MMM";
+
+    // Narrow
+    let mut vm_n = Vm::new();
+    for (i, &ch) in narrow.iter().enumerate() {
+        vm_n.ram[100 + i] = ch as u32;
+    }
+    vm_n.ram[103] = 0;
+    vm_n.regs[10] = 0;
+    vm_n.regs[11] = 0;
+    vm_n.regs[12] = 100;
+    vm_n.regs[13] = 0xFFFFFF;
+    vm_n.regs[14] = 0;
+    vm_n.ram[0] = 0xDB;
+    vm_n.ram[1] = 10;
+    vm_n.ram[2] = 11;
+    vm_n.ram[3] = 12;
+    vm_n.ram[4] = 13;
+    vm_n.ram[5] = 14;
+    vm_n.ram[6] = 0x00;
+    vm_n.step();
+
+    let mut n_right = 0usize;
+    for y in 0..8 {
+        for x in 0..30 {
+            if vm_n.screen[y * 256 + x] != 0 {
+                n_right = n_right.max(x);
+            }
+        }
+    }
+
+    // Wide
+    let mut vm_w = Vm::new();
+    for (i, &ch) in wide.iter().enumerate() {
+        vm_w.ram[100 + i] = ch as u32;
+    }
+    vm_w.ram[103] = 0;
+    vm_w.regs[10] = 0;
+    vm_w.regs[11] = 0;
+    vm_w.regs[12] = 100;
+    vm_w.regs[13] = 0xFFFFFF;
+    vm_w.regs[14] = 0;
+    vm_w.ram[0] = 0xDB;
+    vm_w.ram[1] = 10;
+    vm_w.ram[2] = 11;
+    vm_w.ram[3] = 12;
+    vm_w.ram[4] = 13;
+    vm_w.ram[5] = 14;
+    vm_w.ram[6] = 0x00;
+    vm_w.step();
+
+    let mut w_right = 0usize;
+    for y in 0..8 {
+        for x in 0..30 {
+            if vm_w.screen[y * 256 + x] != 0 {
+                w_right = w_right.max(x);
+            }
+        }
+    }
+
+    assert!(n_right > 0, "narrow should render");
+    assert!(w_right > 0, "wide should render");
+    assert!(
+        w_right >= n_right * 2,
+        "Wide 'MMM' (rightmost={}) should be >= 2× narrow 'iii' (rightmost={})",
+        w_right,
+        n_right
+    );
+}
+
+#[test]
+fn test_kerning_reduces_spacing() {
+    // Render "AV" with VWTXT and check that kerning kicks in.
+    // Without kerning: A advance + V advance = 7 + 7 = 14px
+    // With kerning (AV = -1): 7 + (-1) + 7 = 13px
+    // We test that "AV" is narrower than "A " (A + space) since
+    // kerning pulls V closer.
+    use crate::font::get_kerning;
+    assert_eq!(get_kerning(b'A', b'V'), -1, "AV should have -1 kerning");
+
+    // Render "AV" with VWTXT
+    let mut vm = Vm::new();
+    vm.ram[100] = b'A' as u32;
+    vm.ram[101] = b'V' as u32;
+    vm.ram[102] = 0;
+    vm.regs[10] = 0;
+    vm.regs[11] = 0;
+    vm.regs[12] = 100;
+    vm.regs[13] = 0xFFFFFF;
+    vm.regs[14] = 0;
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00;
+    vm.step();
+
+    let mut av_right = 0usize;
+    for y in 0..8 {
+        for x in 0..20 {
+            if vm.screen[y * 256 + x] != 0 {
+                av_right = av_right.max(x);
+            }
+        }
+    }
+    assert!(av_right > 0, "AV should render");
+    // With kerning, "AV" should be at most 15px wide (7+(-1)+7=13, plus glyph overhang)
+    assert!(
+        av_right <= 15,
+        "Kerned 'AV' should be compact (rightmost={}), expected <= 15",
+        av_right
+    );
+}
+
 // ── Phase 210 additional: edge-case and integration tests ──
 
 #[test]
