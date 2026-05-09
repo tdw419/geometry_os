@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a orange line between points (97, 192) and (439, 61).
+; PLAN: r0=97(x1), r1=192(y1), r2=439(x2), r3=61(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 97
+LDI r1, 192
+LDI r2, 439
+LDI r3, 61
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

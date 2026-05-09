@@ -2366,8 +2366,9 @@ mod tests {
         vm.ram[1] = 1;
         vm.pc = 0;
         vm.step();
-        // Should block: process state = Blocked, PC rewound
-        assert_eq!(vm.processes[0].state, ProcessState::Blocked);
+        // Should block: wants_block flag set, PC rewound
+        // (scheduler converts wants_block to ProcessState::Blocked)
+        assert!(vm.wants_block);
         assert_eq!(vm.mutexes[0].wait_queue.len(), 1);
         assert_eq!(vm.mutexes[0].wait_queue[0], 1);
         // PC should have been rewound (0 + 2 - 2 = 0)
@@ -2405,7 +2406,7 @@ mod tests {
         vm.step();
         assert_eq!(vm.regs[0], 0);
         assert_eq!(vm.mutexes[0].owner_pid, 1); // ownership transferred to child
-        assert_eq!(vm.processes[0].state, ProcessState::Ready); // child unblocked
+        assert!(vm.pending_wakes.contains(&1)); // child queued for wake-up
         assert!(vm.mutexes[0].wait_queue.is_empty());
     }
 
@@ -2540,7 +2541,8 @@ mod tests {
         vm.ram[1] = 1;
         vm.pc = 0;
         vm.step();
-        assert_eq!(vm.processes[0].state, ProcessState::Blocked);
+        // wants_block flag set (scheduler converts to ProcessState::Blocked)
+        assert!(vm.wants_block);
         assert_eq!(vm.semaphores[0].wait_queue.len(), 1);
         assert_eq!(vm.pc, 0); // rewound
     }
@@ -2580,7 +2582,7 @@ mod tests {
         vm.pc = 0;
         vm.step();
         assert_eq!(vm.regs[0], 0);
-        assert_eq!(vm.processes[0].state, ProcessState::Ready);
+        assert!(vm.pending_wakes.contains(&1)); // child queued for wake-up
         assert!(vm.semaphores[0].wait_queue.is_empty());
         // Count stays 0 because the post goes directly to the waiter
         assert_eq!(vm.semaphores[0].count, 0);

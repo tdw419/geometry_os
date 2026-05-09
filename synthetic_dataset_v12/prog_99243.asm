@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a blue line segment connecting (131, 62) to (485, 189).
+; PLAN: r0=131(x1), r1=62(y1), r2=485(x2), r3=189(y2), r4=0x0000FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 131
+LDI r1, 62
+LDI r2, 485
+LDI r3, 189
+LDI r4, 0x0000FF
+LINE r0, r1, r2, r3, r4
+HALT

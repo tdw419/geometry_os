@@ -1,0 +1,9 @@
+; DESCRIPTION: Creates a orange rectangular region at (393, 159) spanning 25 by 88 pixels.
+; PLAN: r0=393(x), r1=159(y), r2=25(width), r3=88(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 393
+LDI r1, 159
+LDI r2, 25
+LDI r3, 88
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+HALT

@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a white rectangle at (60, 183) with width 83 and height 71.
+; PLAN: r0=60(x), r1=183(y), r2=83(width), r3=71(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 60
+LDI r1, 183
+LDI r2, 83
+LDI r3, 71
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+HALT

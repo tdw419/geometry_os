@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a orange 24x69 rectangle at position (40, 15).
+; PLAN: r0=40(x), r1=15(y), r2=24(width), r3=69(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 40
+LDI r1, 15
+LDI r2, 24
+LDI r3, 69
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+HALT

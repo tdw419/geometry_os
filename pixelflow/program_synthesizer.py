@@ -14,6 +14,7 @@ before emitting code, creating a "scratchpad" in the context window.
 
 import random
 import os
+import re
 from pathlib import Path
 
 # GeOS screen dimensions (512x256 framebuffer)

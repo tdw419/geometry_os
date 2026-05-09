@@ -1,0 +1,9 @@
+; DESCRIPTION: Creates a white rectangular region at (128, 161) spanning 86 by 19 pixels.
+; PLAN: r0=128(x), r1=161(y), r2=86(width), r3=19(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 128
+LDI r1, 161
+LDI r2, 86
+LDI r3, 19
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+HALT

@@ -1,0 +1,7 @@
+; DESCRIPTION: Places a cyan dot at position (315, 63).
+; PLAN: r0=315(x), r1=63(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 315
+LDI r1, 63
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+HALT

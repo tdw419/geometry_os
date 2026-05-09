@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a black line from (103, 87) to (23, 164).
+; PLAN: r0=103(x1), r1=87(y1), r2=23(x2), r3=164(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 103
+LDI r1, 87
+LDI r2, 23
+LDI r3, 164
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+HALT

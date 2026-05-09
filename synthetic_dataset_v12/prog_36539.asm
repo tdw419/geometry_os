@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a purple line segment connecting (466, 49) to (25, 175).
+; PLAN: r0=466(x1), r1=49(y1), r2=25(x2), r3=175(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 466
+LDI r1, 49
+LDI r2, 25
+LDI r3, 175
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+HALT

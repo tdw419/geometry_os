@@ -1,0 +1,18 @@
+; DESCRIPTION: Composite: Places a yellow circle of radius 34 at center (393, 70) then Places a black line segment connecting (441, 109) to (504, 43) then Places a green dot at position (457, 97).
+; PLAN: r0=393(x), r1=70(y), r2=34(radius), r3=0xFFFF00(color). Op: CIRCLE r0, r1, r2, r3 Next: r5=441(x1), r6=109(y1), r7=504(x2), r8=43(y2), r9=0x000000(color). Op: LINE r5, r6, r7, r8, r9 Next: r10=457(x), r11=97(y), r12=0x00FF00(color). Op: PSET r10, r11, r12.
+LDI r0, 393
+LDI r1, 70
+LDI r2, 34
+LDI r3, 0xFFFF00
+CIRCLE r0, r1, r2, r3
+LDI r5, 441
+LDI r6, 109
+LDI r7, 504
+LDI r8, 43
+LDI r9, 0x000000
+LINE r5, r6, r7, r8, r9
+LDI r10, 457
+LDI r11, 97
+LDI r12, 0x00FF00
+PSET r10, r11, r12
+HALT

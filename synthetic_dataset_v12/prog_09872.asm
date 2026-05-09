@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a orange line segment connecting (197, 154) to (149, 192).
+; PLAN: r0=197(x1), r1=154(y1), r2=149(x2), r3=192(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 197
+LDI r1, 154
+LDI r2, 149
+LDI r3, 192
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

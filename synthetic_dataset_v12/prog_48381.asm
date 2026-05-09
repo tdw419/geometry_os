@@ -1,0 +1,9 @@
+; DESCRIPTION: Creates a cyan rectangular region at (35, 3) spanning 32 by 114 pixels.
+; PLAN: r0=35(x), r1=3(y), r2=32(width), r3=114(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 35
+LDI r1, 3
+LDI r2, 32
+LDI r3, 114
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+HALT

@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a green rectangle at (231, 135) with width 53 and height 80.
+; PLAN: r0=231(x), r1=135(y), r2=53(width), r3=80(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 231
+LDI r1, 135
+LDI r2, 53
+LDI r3, 80
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
+HALT

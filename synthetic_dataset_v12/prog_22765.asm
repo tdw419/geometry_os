@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a yellow line segment connecting (255, 22) to (79, 148).
+; PLAN: r0=255(x1), r1=22(y1), r2=79(x2), r3=148(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 255
+LDI r1, 22
+LDI r2, 79
+LDI r3, 148
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
+HALT

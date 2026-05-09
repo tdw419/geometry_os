@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a orange line from (6, 45) to (369, 51).
+; PLAN: r0=6(x1), r1=45(y1), r2=369(x2), r3=51(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 6
+LDI r1, 45
+LDI r2, 369
+LDI r3, 51
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

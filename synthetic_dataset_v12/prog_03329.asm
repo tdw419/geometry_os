@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a orange line segment connecting (31, 165) to (75, 86).
+; PLAN: r0=31(x1), r1=165(y1), r2=75(x2), r3=86(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 31
+LDI r1, 165
+LDI r2, 75
+LDI r3, 86
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

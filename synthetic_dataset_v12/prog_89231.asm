@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a black box of size 100x120 starting at (190, 135).
+; PLAN: r0=190(x), r1=135(y), r2=100(width), r3=120(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 190
+LDI r1, 135
+LDI r2, 100
+LDI r3, 120
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+HALT

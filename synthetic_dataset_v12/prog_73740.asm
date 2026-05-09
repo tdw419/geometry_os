@@ -1,0 +1,9 @@
+; DESCRIPTION: Creates a purple rectangular region at (118, 143) spanning 106 by 96 pixels.
+; PLAN: r0=118(x), r1=143(y), r2=106(width), r3=96(height), r4=0xAA00FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 118
+LDI r1, 143
+LDI r2, 106
+LDI r3, 96
+LDI r4, 0xAA00FF
+RECTF r0, r1, r2, r3, r4
+HALT

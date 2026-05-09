@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a orange line from (49, 80) to (14, 103).
+; PLAN: r0=49(x1), r1=80(y1), r2=14(x2), r3=103(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 49
+LDI r1, 80
+LDI r2, 14
+LDI r3, 103
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

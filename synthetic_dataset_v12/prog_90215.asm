@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a white rectangle at (185, 11) with width 97 and height 25.
+; PLAN: r0=185(x), r1=11(y), r2=97(width), r3=25(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 185
+LDI r1, 11
+LDI r2, 97
+LDI r3, 25
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+HALT

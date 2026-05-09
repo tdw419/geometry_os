@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a orange line from (260, 117) to (168, 142).
+; PLAN: r0=260(x1), r1=117(y1), r2=168(x2), r3=142(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 260
+LDI r1, 117
+LDI r2, 168
+LDI r3, 142
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

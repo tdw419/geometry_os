@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a white line from (127, 235) to (320, 126).
+; PLAN: r0=127(x1), r1=235(y1), r2=320(x2), r3=126(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 127
+LDI r1, 235
+LDI r2, 320
+LDI r3, 126
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+HALT
