@@ -4985,7 +4985,7 @@ phases:
   _completed_at: 1778297900
 - id: phase-285
   title: GeOS VM -- Error Code Propagation in Syscalls
-  status: in_progress
+  status: planned
   goal: Replace silent failures in VFS/syscall opcodes with meaningful error codes
     returned in r0.
   description: Currently, OPEN/READ/WRITE/CLOSE failures silently return 0 or garbage.
@@ -5013,11 +5013,9 @@ phases:
     validation: cargo test --lib syscall_error_codes
   - description: Shell displays error messages for failed operations
     validation: Integration test verifies error message in terminal output
-  _claimed_by: worker-0
-  _claimed_at: 1778288974
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
-  status: in_progress
+  status: planned
   goal: Extend the 8x8 fixed-width font system to support proportional (variable-width)
     character rendering.
   description: The current font system uses uniform 8x8 pixel glyphs. Adding variable-width
@@ -5042,11 +5040,9 @@ phases:
     validation: Pixel collision test between adjacent characters
   - description: Fixed-width mode produces identical output to current TEXT opcode
     validation: Checksum comparison with existing text programs
-  _claimed_by: worker-0
-  _claimed_at: 1778290388
 - id: phase-287
   title: RISC-V Guest -- VirtIO GPU (Simple Display)
-  status: in_progress
+  status: planned
   goal: Implement minimal VirtIO GPU device so RISC-V guests can write pixels to a
     framebuffer via standard VirtIO-GPU protocol.
   description: Currently the RISC-V guest's graphical output goes through a custom
@@ -5071,11 +5067,9 @@ phases:
     validation: Boot log shows virtio_gpu probe success
   - description: Guest can write pixels that appear on GeOS canvas
     validation: fbtest program produces visible output
-  _claimed_by: worker-0
-  _claimed_at: 1778291958
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
-  status: in_progress
+  status: planned
   goal: Implement a complete Tetris game as a showcase of the VM's game development
     capabilities.
   description: 'Tetris is the canonical puzzle game. This implementation exercises:
@@ -5103,8 +5097,6 @@ phases:
     validation: cargo test --lib test_tetris
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
-  _claimed_by: worker-0
-  _claimed_at: 1778294079
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: in_progress
@@ -5139,7 +5131,7 @@ phases:
   _claimed_at: 1778297828
 - id: phase-290
   title: GeOS VM -- Performance Benchmark Suite and Optimization
-  status: in_progress
+  status: planned
   goal: Create a standardized benchmark suite measuring VM instruction throughput,
     memory access patterns, and graphics rendering performance.
   description: 'With 150+ opcodes and 2928 tests, the VM needs quantitative performance
@@ -5167,8 +5159,6 @@ phases:
     validation: Three runs within 5% variance
   - description: Performance doc includes per-benchmark numbers and methodology
     validation: docs/PERFORMANCE_BENCHMARK.md updated
-  _claimed_by: worker-0
-  _claimed_at: 1778299158
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
