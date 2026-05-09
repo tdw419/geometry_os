@@ -543,16 +543,46 @@ fn vm_thread_main(
 
             // Linux-mode trap forwarding
             if is_linux && vm.cpu.pc == fw_addr_u32 {
-                let cause = vm.cpu.csr.mcause;
-                if cause != 0xB {
-                    // Not ECALL_M
-                    // Forward M-mode trap to S-mode
+                let mcause = vm.cpu.csr.mcause;
+                let cause_code = mcause & !(1u32 << 31);
+                let mpp = (vm.cpu.csr.mstatus & 0x1800) >> 11;
+
+                if cause_code != 0xB && mpp != 3 {
+                    // Trap from S-mode or U-mode.
+                    // Check for demand-paged identity mapping at low addresses.
+                    let fault_addr = vm.cpu.csr.mtval;
+                    let is_page_fault = cause_code == 12 || cause_code == 13 || cause_code == 15;
+                    
+                    if is_page_fault && fault_addr < 0xC000_0000 {
+                        let satp = vm.cpu.csr.satp;
+                        let pg_dir_ppn = (satp & 0x3FFFFF) as u64;
+                        if pg_dir_ppn > 0 {
+                            let pg_dir_phys = pg_dir_ppn * 4096;
+                            let vpn1 = ((fault_addr >> 22) & 0x3FF) as u64;
+                            let l1_addr = pg_dir_phys + vpn1 * 4;
+                            let existing = vm.bus.read_word(l1_addr).unwrap_or(0);
+                            if (existing & 1) == 0 {
+                                // Inject identity megapage: VA -> PA (same)
+                                let pte: u32 = 0x0000_00CF | ((vpn1 as u32) << 20);
+                                vm.bus.write_word(l1_addr, pte).ok();
+                                vm.cpu.tlb.flush_all();
+                                // Retry the faulting instruction: jump to mepc and return to S-mode
+                                vm.cpu.pc = vm.cpu.csr.mepc;
+                                // Restore privilege (S-mode)
+                                vm.cpu.privilege = cpu::Privilege::Supervisor;
+                                // We handled it! skip normal trap forwarding
+                                continue;
+                            }
+                        }
+                    }
+
+                    // Normal trap forwarding to S-mode
                     vm.cpu.csr.stval = vm.cpu.csr.mtval;
                     vm.cpu.csr.sepc = vm.cpu.csr.mepc;
-                    vm.cpu.csr.scause = cause;
+                    vm.cpu.csr.scause = cause_code;
                     let stvec = vm.cpu.csr.stvec;
-                    vm.cpu.pc = if (stvec & 1) == 1 && (cause & (1 << 31)) != 0 {
-                        (stvec & !3) + (cause & 0x7FFFFFFF) * 4
+                    vm.cpu.pc = if (stvec & 1) == 1 && (cause_code & (1 << 31)) != 0 {
+                        (stvec & !3) + (cause_code & 0x7FFFFFFF) * 4
                     } else {
                         stvec & !3
                     };
