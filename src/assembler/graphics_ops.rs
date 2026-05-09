@@ -506,3 +506,489 @@ pub(super) fn try_parse(
         _ => Ok(None),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn constants() -> HashMap<String, u32> {
+        HashMap::new()
+    }
+
+    fn assemble_graphics(opcode: &str, args: &str) -> Result<Vec<u32>, String> {
+        let tokens: Vec<&str> = args.split(',').map(|s| s.trim()).collect();
+        let mut tokens = vec![opcode];
+        tokens.extend(args.split(',').map(|s| s.trim()));
+        let mut bytecode = Vec::new();
+        let constants = constants();
+        try_parse(opcode, &tokens, &mut bytecode, &constants)?;
+        Ok(bytecode)
+    }
+
+    fn parse_one(opcode: &str, args: &str) -> Vec<u32> {
+        let full = format!("{opcode} {args}");
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        try_parse(opcode, &tokens, &mut bytecode, &constants()).unwrap();
+        bytecode
+    }
+
+    fn parse_one_err(opcode: &str, args: &str) -> String {
+        let full = format!("{opcode} {args}");
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        try_parse(opcode, &tokens, &mut bytecode, &constants())
+            .unwrap_err()
+    }
+
+    // ── PSET (0x40) ──────────────────────────────────────────
+    #[test]
+    fn test_pset_basic() {
+        let bc = parse_one("PSET", "r1, r2, r3");
+        assert_eq!(bc, vec![0x40, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_pset_r0_registers() {
+        let bc = parse_one("PSET", "r0, r0, r0");
+        assert_eq!(bc, vec![0x40, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_pset_high_registers() {
+        let bc = parse_one("PSET", "r31, r30, r29");
+        assert_eq!(bc, vec![0x40, 31, 30, 29]);
+    }
+
+    #[test]
+    fn test_pset_too_few_args() {
+        let err = parse_one_err("PSET", "r1, r2");
+        assert!(err.contains("3 arguments"), "got: {err}");
+    }
+
+    // ── PSETI (0x41) ─────────────────────────────────────────
+    #[test]
+    fn test_pseti_basic() {
+        let bc = parse_one("PSETI", "10, 20, 0xFF0000");
+        assert_eq!(bc, vec![0x41, 10, 20, 0xFF0000]);
+    }
+
+    #[test]
+    fn test_pseti_zero_coords() {
+        let bc = parse_one("PSETI", "0, 0, 0");
+        assert_eq!(bc, vec![0x41, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_pseti_max_values() {
+        let bc = parse_one("PSETI", "255, 255, 0xFFFFFFFF");
+        assert_eq!(bc, vec![0x41, 255, 255, 0xFFFFFFFF]);
+    }
+
+    #[test]
+    fn test_pseti_too_few_args() {
+        let err = parse_one_err("PSETI", "10, 20");
+        assert!(err.contains("3 arguments"), "got: {err}");
+    }
+
+    // ── FILL (0x42) ──────────────────────────────────────────
+    #[test]
+    fn test_fill_basic() {
+        let bc = parse_one("FILL", "r5");
+        assert_eq!(bc, vec![0x42, 5]);
+    }
+
+    #[test]
+    fn test_fill_no_args() {
+        let err = parse_one_err("FILL", "");
+        assert!(err.contains("1 argument"), "got: {err}");
+    }
+
+    // ── RECTF (0x43) ─────────────────────────────────────────
+    #[test]
+    fn test_rectf_basic() {
+        let bc = parse_one("RECTF", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0x43, 1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_rectf_too_few_args() {
+        let err = parse_one_err("RECTF", "r1, r2, r3");
+        assert!(err.contains("5 arguments"), "got: {err}");
+    }
+
+    // ── FLOOD (0xCE) ─────────────────────────────────────────
+    #[test]
+    fn test_flood_basic() {
+        let bc = parse_one("FLOOD", "r10, r11, r12, r13");
+        assert_eq!(bc, vec![0xCE, 10, 11, 12, 13]);
+    }
+
+    #[test]
+    fn test_flood_too_few_args() {
+        let err = parse_one_err("FLOOD", "r10, r11");
+        assert!(err.contains("4 arguments"), "got: {err}");
+    }
+
+    // ── TEXT (0x44) ──────────────────────────────────────────
+    #[test]
+    fn test_text_basic() {
+        let bc = parse_one("TEXT", "r10, r11, r12");
+        assert_eq!(bc, vec![0x44, 10, 11, 12]);
+    }
+
+    #[test]
+    fn test_text_arg_order() {
+        // TEXT x_reg, y_reg, addr_reg
+        let bc = parse_one("TEXT", "r1, r2, r3");
+        assert_eq!(bc[1], 1); // x
+        assert_eq!(bc[2], 2); // y
+        assert_eq!(bc[3], 3); // addr
+    }
+
+    #[test]
+    fn test_text_too_few_args() {
+        let err = parse_one_err("TEXT", "r10, r11");
+        assert!(err.contains("3 arguments"), "got: {err}");
+    }
+
+    // ── DRAWTEXT (0x8C) ──────────────────────────────────────
+    #[test]
+    fn test_drawtext_basic() {
+        let bc = parse_one("DRAWTEXT", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0x8C, 1, 2, 3, 4, 5]);
+    }
+
+    // ── SMALLTEXT (0xD0) ─────────────────────────────────────
+    #[test]
+    fn test_smalltext_basic() {
+        let bc = parse_one("SMALLTEXT", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0xD0, 1, 2, 3, 4, 5]);
+    }
+
+    // ── MEDTEXT (0xD1) ───────────────────────────────────────
+    #[test]
+    fn test_medtext_basic() {
+        let bc = parse_one("MEDTEXT", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0xD1, 1, 2, 3, 4, 5]);
+    }
+
+    // ── VWTXT (0xDB) ────────────────────────────────────────
+    #[test]
+    fn test_vwtxt_basic() {
+        let bc = parse_one("VWTXT", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0xDB, 1, 2, 3, 4, 5]);
+    }
+
+    // ── FONT_SELECT (0xDC) ───────────────────────────────────
+    #[test]
+    fn test_font_select_basic() {
+        let bc = parse_one("FONT_SELECT", "r1");
+        assert_eq!(bc, vec![0xDC, 1]);
+    }
+
+    // ── LINE (0x45) ──────────────────────────────────────────
+    #[test]
+    fn test_line_basic() {
+        let bc = parse_one("LINE", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0x45, 1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_line_too_few_args() {
+        let err = parse_one_err("LINE", "r1, r2, r3");
+        assert!(err.contains("5 arguments"), "got: {err}");
+    }
+
+    // ── CIRCLE (0x46) ────────────────────────────────────────
+    #[test]
+    fn test_circle_basic() {
+        let bc = parse_one("CIRCLE", "r10, r11, r12, r13");
+        assert_eq!(bc, vec![0x46, 10, 11, 12, 13]);
+    }
+
+    #[test]
+    fn test_circle_too_few_args() {
+        let err = parse_one_err("CIRCLE", "r10, r11");
+        assert!(err.contains("4 arguments"), "got: {err}");
+    }
+
+    // ── SCROLL (0x47) ────────────────────────────────────────
+    #[test]
+    fn test_scroll_basic() {
+        let bc = parse_one("SCROLL", "r5");
+        assert_eq!(bc, vec![0x47, 5]);
+    }
+
+    #[test]
+    fn test_scroll_no_args() {
+        let err = parse_one_err("SCROLL", "");
+        assert!(err.contains("1 argument"), "got: {err}");
+    }
+
+    // ── SPRITE (0x4A) ────────────────────────────────────────
+    #[test]
+    fn test_sprite_basic() {
+        let bc = parse_one("SPRITE", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0x4A, 1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_sprite_too_few_args() {
+        let err = parse_one_err("SPRITE", "r1, r2");
+        assert!(err.contains("5 arguments"), "got: {err}");
+    }
+
+    // ── TILEMAP (0x4C) ───────────────────────────────────────
+    #[test]
+    fn test_tilemap_basic() {
+        let bc = parse_one("TILEMAP", "r1, r2, r3, r4, r5, r6, r7, r8");
+        assert_eq!(bc, vec![0x4C, 1, 2, 3, 4, 5, 6, 7, 8]);
+    }
+
+    #[test]
+    fn test_tilemap_too_few_args() {
+        let err = parse_one_err("TILEMAP", "r1, r2, r3");
+        assert!(err.contains("8 arguments"), "got: {err}");
+    }
+
+    // ── PEEK (0x4F) vs SCREENP (0x6D) ──────────────────────
+    #[test]
+    fn test_peek_arg_order() {
+        // PEEK xr, yr, rd
+        let bc = parse_one("PEEK", "r1, r2, r3");
+        assert_eq!(bc, vec![0x4F, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_screenp_arg_order() {
+        // SCREENP dest_reg, x_reg, y_reg
+        let bc = parse_one("SCREENP", "r1, r2, r3");
+        assert_eq!(bc, vec![0x6D, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_peek_and_screenp_different_opcodes() {
+        let peek = parse_one("PEEK", "r1, r2, r3");
+        let screenp = parse_one("SCREENP", "r1, r2, r3");
+        assert_ne!(peek[0], screenp[0], "PEEK and SCREENP must have different opcodes");
+        assert_eq!(peek[0], 0x4F);
+        assert_eq!(screenp[0], 0x6D);
+    }
+
+    // ── HITSET (0x37) ────────────────────────────────────────
+    #[test]
+    fn test_hitset_basic() {
+        let bc = parse_one("HITSET", "r1, r2, r3, r4, 5");
+        assert_eq!(bc, vec![0x37, 1, 2, 3, 4, 5]);
+    }
+
+    // ── HITQ (0x38) ──────────────────────────────────────────
+    #[test]
+    fn test_hitq_basic() {
+        let bc = parse_one("HITQ", "r1");
+        assert_eq!(bc, vec![0x38, 1]);
+    }
+
+    // ── Mouse opcodes ────────────────────────────────────────
+    #[test]
+    fn test_mouseq_basic() {
+        let bc = parse_one("MOUSEQ", "r1");
+        assert_eq!(bc, vec![0x85, 1]);
+    }
+
+    #[test]
+    fn test_imouse_basic() {
+        let bc = parse_one("IMOUSE", "r1");
+        assert_eq!(bc, vec![0xC7, 1]);
+    }
+
+    #[test]
+    fn test_mousex_basic() {
+        let bc = parse_one("MOUSEX", "r1");
+        assert_eq!(bc, vec![0xC8, 1]);
+    }
+
+    #[test]
+    fn test_mousey_basic() {
+        let bc = parse_one("MOUSEY", "r1");
+        assert_eq!(bc, vec![0xC9, 1]);
+    }
+
+    #[test]
+    fn test_mouseb_basic() {
+        let bc = parse_one("MOUSEB", "r1");
+        assert_eq!(bc, vec![0xCA, 1]);
+    }
+
+    #[test]
+    fn test_mouseclick_basic() {
+        let bc = parse_one("MOUSECLICK", "r1");
+        assert_eq!(bc, vec![0xCB, 1]);
+    }
+
+    // ── RECT (0x88) ──────────────────────────────────────────
+    #[test]
+    fn test_rect_basic() {
+        let bc = parse_one("RECT", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0x88, 1, 2, 3, 4, 5]);
+    }
+
+    // ── SPRBLT (0x97) ────────────────────────────────────────
+    #[test]
+    fn test_sprblt_basic() {
+        let bc = parse_one("SPRBLT", "r1, r2, r3, r4");
+        assert_eq!(bc, vec![0x97, 1, 2, 3, 4]);
+    }
+
+    // ── SPRLOAD (0xE5) ───────────────────────────────────────
+    #[test]
+    fn test_sprload_basic() {
+        let bc = parse_one("SPRLOAD", "3, r1, r2, r3, r4");
+        assert_eq!(bc, vec![0xE5, 3, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_sprload_invalid_sheet_id() {
+        let err = parse_one_err("SPRLOAD", "abc, r1, r2, r3, r4");
+        assert!(err.contains("invalid sheet_id"), "got: {err}");
+    }
+
+    // ── SPRFRAME (0xE6) ─────────────────────────────────────
+    #[test]
+    fn test_sprframe_basic() {
+        let bc = parse_one("SPRFRAME", "5, r10");
+        assert_eq!(bc, vec![0xE6, 5, 10]);
+    }
+
+    // ── SPRANIM (0xE7) ──────────────────────────────────────
+    #[test]
+    fn test_spranim_basic() {
+        let bc = parse_one("SPRANIM", "7, r10, r11");
+        assert_eq!(bc, vec![0xE7, 7, 10, 11]);
+    }
+
+    // ── SPRITEANIM (0xEC) ───────────────────────────────────
+    #[test]
+    fn test_spriteanim_basic() {
+        let bc = parse_one("SPRITEANIM", "0, r10, r11");
+        assert_eq!(bc, vec![0xEC, 0, 10, 11]);
+    }
+
+    // ── BLEND (0xF2) ────────────────────────────────────────
+    #[test]
+    fn test_blend_basic() {
+        let bc = parse_one("BLEND", "r1, r2, r3, r4");
+        assert_eq!(bc, vec![0xF2, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_blend_too_few_args() {
+        let err = parse_one_err("BLEND", "r1, r2");
+        assert!(err.contains("4 arguments"), "got: {err}");
+    }
+
+    // ── BLENDR (0xF3) ───────────────────────────────────────
+    #[test]
+    fn test_blendr_basic() {
+        let bc = parse_one("BLENDR", "r1, r2, r3");
+        assert_eq!(bc, vec![0xF3, 1, 2, 3]);
+    }
+
+    // ── ROTATE (0xF4) ───────────────────────────────────────
+    #[test]
+    fn test_rotate_basic() {
+        let bc = parse_one("ROTATE", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0xF4, 1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_rotate_too_few_args() {
+        let err = parse_one_err("ROTATE", "r1, r2");
+        assert!(err.contains("5 arguments"), "got: {err}");
+    }
+
+    // ── SCALE (0xF5) ────────────────────────────────────────
+    #[test]
+    fn test_scale_basic() {
+        let bc = parse_one("SCALE", "r1, r2, r3, r4, r5, r6, r7, r8");
+        assert_eq!(bc, vec![0xF5, 1, 2, 3, 4, 5, 6, 7, 8]);
+    }
+
+    #[test]
+    fn test_scale_too_few_args() {
+        let err = parse_one_err("SCALE", "r1, r2, r3");
+        assert!(err.contains("8 arguments"), "got: {err}");
+    }
+
+    // ── Full assemble round-trip tests ───────────────────────
+    #[test]
+    fn test_assemble_pset_through_full_pipeline() {
+        use crate::assembler::assemble;
+        let src = "PSET r1, r2, r3\nHALT";
+        let result = assemble(src, 0).expect("assembly should succeed");
+        assert_eq!(result.pixels[0], 0x40); // PSET
+        assert_eq!(result.pixels[1], 1);    // r1
+        assert_eq!(result.pixels[2], 2);    // r2
+        assert_eq!(result.pixels[3], 3);    // r3
+        assert_eq!(result.pixels[4], 0x00); // HALT
+    }
+
+    #[test]
+    fn test_assemble_graphics_sequence() {
+        use crate::assembler::assemble;
+        let src = "FILL r0\nRECTF r1, r2, r3, r4, r5\nLINE r6, r7, r8, r9, r10\nCIRCLE r11, r12, r13, r14\nHALT";
+        let result = assemble(src, 0).expect("assembly should succeed");
+        let mut pos = 0;
+        // FILL: 2 words
+        assert_eq!(result.pixels[pos], 0x42); pos += 2;
+        // RECTF: 6 words
+        assert_eq!(result.pixels[pos], 0x43); pos += 6;
+        // LINE: 6 words
+        assert_eq!(result.pixels[pos], 0x45); pos += 6;
+        // CIRCLE: 5 words
+        assert_eq!(result.pixels[pos], 0x46); pos += 5;
+        // HALT: 1 word
+        assert_eq!(result.pixels[pos], 0x00);
+    }
+
+    #[test]
+    fn test_assemble_blend_rotate_scale() {
+        use crate::assembler::assemble;
+        let src = "BLEND r1, r2, r3, r4\nROTATE r5, r6, r7, r8, r9\nSCALE r10, r11, r12, r13, r14, r15, r16, r17\nHALT";
+        let result = assemble(src, 0).expect("assembly should succeed");
+        let mut pos = 0;
+        assert_eq!(result.pixels[pos], 0xF2); pos += 5; // BLEND
+        assert_eq!(result.pixels[pos], 0xF4); pos += 6; // ROTATE
+        assert_eq!(result.pixels[pos], 0xF5); pos += 9; // SCALE
+        assert_eq!(result.pixels[pos], 0x00);            // HALT
+    }
+
+    // ── Unknown opcode returns Ok(None) ──────────────────────
+    #[test]
+    fn test_unknown_opcode_returns_none() {
+        let tokens = vec!["NOTGRAPHICS"];
+        let mut bytecode = Vec::new();
+        let result = try_parse("NOTGRAPHICS", &tokens, &mut bytecode, &constants()).unwrap();
+        assert!(result.is_none());
+        assert!(bytecode.is_empty());
+    }
+
+    // ── Constants in immediates ──────────────────────────────
+    #[test]
+    fn test_pseti_with_constants() {
+        let mut consts = HashMap::new();
+        consts.insert("RED".to_string(), 0xFF0000);
+        let tokens = vec!["PSETI", "10", "20", "RED"];
+        let mut bytecode = Vec::new();
+        try_parse("PSETI", &tokens, &mut bytecode, &consts).unwrap();
+        assert_eq!(bytecode, vec![0x41, 10, 20, 0xFF0000]);
+    }
+}

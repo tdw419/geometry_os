@@ -5426,7 +5426,7 @@ phases:
 
 - id: phase-303
   title: GeOS VM -- Assembler Graphics Ops Unit Tests
-  status: todo
+  status: done
   goal: Add unit tests for the assembler graphics operations module (graphics_ops.rs, 508 LOC, 0 tests).
   description: 'The assembler graphics_ops.rs handles encoding for PSET, PSETI, FILL, RECTF, TEXT, LINE, CIRCLE, SCROLL, SPRITE, TILEMAP, FLOOD, BLEND, BLENDR, ROTATE, SCALE, SCREENP, CLIPSET, CLIPCLR, SMALLTEXT and related opcodes. Despite being critical for program correctness, it has zero tests in its own file. Add tests for: correct bytecode encoding for each graphics opcode, argument count validation, edge cases (zero-size rects, out-of-range colors), and round-trip assemble-disassemble for graphics instructions.'
   deliverables:
@@ -5680,9 +5680,9 @@ meta:
   sbi_extension_id: '0x47454F00'
   dtb_isa: rv32imac
   phases_total: 141
-  phases_done: 128
-  phases_remaining: 13
+  phases_done: 129
+  phases_remaining: 12
   opcodes: 214
   programs: 219
   loc: 132466
-  tests: 3897
+  tests: 3959
