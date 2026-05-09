@@ -478,6 +478,8 @@ impl Vm {
             sleep_frames: 0,
             new_priority: 0,
             pipes: Vec::new(),
+            mutexes: Vec::new(),
+            semaphores: Vec::new(),
             canvas_buffer: vec![0; CANVAS_RAM_SIZE],
             pipe_created: false,
             msg_sender: 0,

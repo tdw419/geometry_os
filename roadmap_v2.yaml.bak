@@ -5054,7 +5054,7 @@ phases:
   _claimed_at: 1778291958
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
-  status: planned
+  status: in_progress
   goal: Implement a complete Tetris game as a showcase of the VM's game development
     capabilities.
   description: 'Tetris is the canonical puzzle game. This implementation exercises:
@@ -5082,6 +5082,8 @@ phases:
     validation: cargo test --lib test_tetris
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
+  _claimed_by: worker-0
+  _claimed_at: 1778294079
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: planned

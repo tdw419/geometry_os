@@ -6,3 +6,4 @@
 {"prompt": "Draw a blue circle at the center of the screen (128, 128) with radius 30", "file": "005_blue_circle.asm", "success": true, "non_black_ratio": 0.002563, "timestamp": "2026-05-08T18:08:00"}
 {"prompt": "Draw a red cross/plus sign centered on the screen using RECTF", "file": "008_red_cross.asm", "success": true, "non_black_ratio": 0.082031, "timestamp": "2026-05-09T00:43:55"}
 {"prompt": "Fill the screen with a checkerboard pattern of 16x16 pixel squares (red and black)", "file": "009_red_black_checkerboard.asm", "success": true, "non_black_ratio": 0.5000, "timestamp": "2026-05-08T20:07:00"}
+{"prompt": "Draw a 4x4 grid of green circles evenly spaced across the screen", "file": "011_green_circle_grid4x4.asm", "success": true, "non_black_ratio": 0.027344, "timestamp": "2026-05-08T22:34:00"}

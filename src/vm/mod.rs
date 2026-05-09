@@ -78,6 +78,12 @@ pub struct Vm {
     pub new_priority: u8,
     /// System-wide pipe table (Phase 27: IPC)
     pub pipes: Vec<Pipe>,
+    /// Mutex table for inter-process mutual exclusion (Phase 289).
+    /// Up to MAX_MUTEXES active mutexes, indexed by RAM address.
+    pub mutexes: Vec<GeosMutex>,
+    /// Semaphore table for inter-process synchronization (Phase 289).
+    /// Up to MAX_SEMAPHORES active semaphores, indexed by RAM address.
+    pub semaphores: Vec<GeosSemaphore>,
     /// Mirror of the canvas grid (Phase 45: Pixel Driving Pixels)
     pub canvas_buffer: Vec<u32>,
     /// Per-step IPC flag: set by PIPE opcode to signal pipe creation
@@ -384,6 +390,8 @@ impl Vm {
             sleep_frames: 0,
             new_priority: 0,
             pipes: Vec::new(),
+            mutexes: Vec::new(),
+            semaphores: Vec::new(),
             canvas_buffer: vec![0; CANVAS_RAM_SIZE],
             pipe_created: false,
             msg_sender: 0,
@@ -635,6 +643,8 @@ impl Vm {
         self.segfault_pid = 0;
         self.segfault = false;
         self.pipes.clear();
+        self.mutexes.clear();
+        self.semaphores.clear();
         self.pipe_created = false;
         self.msg_sender = 0;
         self.msg_data = [0; MSG_WORDS];

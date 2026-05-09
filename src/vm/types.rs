@@ -527,6 +527,37 @@ impl Vma {
 /// - Memory: page table root (page directory), kernel stack
 /// - Scheduling: state, priority, time slice
 /// - IPC: message queue, signal handlers
+/// Maximum number of mutexes in the system.
+pub const MAX_MUTEXES: usize = 16;
+/// Maximum number of semaphores in the system.
+pub const MAX_SEMAPHORES: usize = 16;
+
+/// A mutex for inter-process mutual exclusion.
+/// Stored at a RAM address chosen by the programmer (via MTEXINIT).
+/// Processes use MTEXLOCK to acquire (blocks if held) and MTEXUNLOCK to release.
+#[derive(Debug, Clone)]
+pub struct GeosMutex {
+    /// RAM address where this mutex lives (used as an ID).
+    pub addr: u32,
+    /// PID of the process currently holding the lock (0 = unlocked).
+    pub owner_pid: u32,
+    /// Queue of PIDs waiting to acquire this mutex.
+    pub wait_queue: Vec<u32>,
+}
+
+/// A counting semaphore for inter-process synchronization.
+/// Initialized with a count via SEMINIT. SEMWAIT decrements (blocks if zero),
+/// SEMPOST increments (wakes one waiter).
+#[derive(Debug, Clone)]
+pub struct GeosSemaphore {
+    /// RAM address where this semaphore lives (used as an ID).
+    pub addr: u32,
+    /// Current count. Processes block on SEMWAIT when count is 0.
+    pub count: u32,
+    /// Queue of PIDs waiting for this semaphore.
+    pub wait_queue: Vec<u32>,
+}
+
 /// A capability granting access to a VFS path pattern.
 /// Used by Phase 102 (Permissions and Capability System).
 ///
