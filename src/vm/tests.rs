@@ -30120,21 +30120,21 @@ fn test_alarm_set_fills_all_slots() {
 fn test_alarm_clr_deactivates_alarm() {
     let mut vm = Vm::new();
     // Set up an alarm
-    vm.ram[0] = 0x01; // LDI r10, 5000
+    vm.ram[0] = 0x10; // LDI r10, 5000
     vm.ram[1] = 10;
     vm.ram[2] = 5000;
-    vm.ram[3] = 0x01; // LDI r11, 0x200
+    vm.ram[3] = 0x10; // LDI r11, 0x200
     vm.ram[4] = 11;
     vm.ram[5] = 0x200;
-    vm.ram[6] = 0x01; // LDI r12, 99
+    vm.ram[6] = 0x10; // LDI r12, 99
     vm.ram[7] = 12;
     vm.ram[8] = 99;
     vm.ram[9] = 0xEA; // ALARM_SET r10, r11, r12
     vm.ram[10] = 10;
     vm.ram[11] = 11;
     vm.ram[12] = 12;
-    // Store slot to r13
-    vm.ram[13] = 0x10; // MOV r13, r0
+    // Store slot to r13 -- use MOV (0x51) not LDI
+    vm.ram[13] = 0x51; // MOV r13, r0
     vm.ram[14] = 13;
     vm.ram[15] = 0;
     // ALARM_CLR r13
@@ -32927,18 +32927,32 @@ fn test_flood_demo_assembles() {
         }
     }
     vm.pc = 0;
-    // Run until HALT or frame (no input in CLI mode, so it halts after draw_scene)
+    // Run until HALT or frame limit (flood_demo is interactive, loops via FRAME+JMP)
     let mut steps = 0;
     while vm.step() && steps < 100_000 {
         steps += 1;
     }
-    assert!(vm.halted, "flood_demo should halt after drawing scene");
-    // Screen should have white border pixels (from RECTF draws)
+    // flood_demo never halts (interactive IKEY loop), but should have drawn the scene
+    // Verify scene was drawn (white borders from RECTF) even if program didn't halt
     let mut white_pixels = 0u32;
     for &pixel in vm.screen.iter() {
         if pixel == 0xFFFFFF {
             white_pixels += 1;
         }
+    }
+    // The main loop clears screen with FILL(black) then draws borders with RECTF(white).
+    // After 100k steps the screen should show the last drawn frame.
+    // If white_pixels == 0, RECTF is not executing (possible VM/icache issue).
+    if white_pixels == 0 {
+        // Debug: check if the program even assembled correctly
+        panic!(
+            "flood_demo drew 0 white pixels after {} steps. \
+             Assembled {} words. First opcode: 0x{:X}. \
+             Check if RECTF (0x43) executes correctly.",
+            steps,
+            asm.pixels.len(),
+            asm.pixels.first().unwrap_or(&0)
+        );
     }
     assert!(
         white_pixels > 500,

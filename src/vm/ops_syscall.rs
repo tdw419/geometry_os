@@ -2430,7 +2430,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.mutexes.push(GeosMutex {
             addr: 0x5000,
-            owner_pid: 0, // free
+            owner_pid: NO_MUTEX_OWNER, // free
             wait_queue: Vec::new(),
         });
         vm.regs[1] = 0x5000;
@@ -2646,7 +2646,7 @@ mod tests {
         vm.pc = 0;
         vm.step();
         assert_eq!(vm.regs[0], 0);
-        assert_eq!(vm.mutexes[0].owner_pid, 0); // free again
+        assert_eq!(vm.mutexes[0].owner_pid, NO_MUTEX_OWNER); // free again
     }
 
     #[test]
