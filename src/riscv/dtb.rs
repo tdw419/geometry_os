@@ -174,11 +174,7 @@ impl DtbBuilder {
 
         // Memory reservation map: (address, size) pairs as u64 BE, terminated by (0, 0).
         // Each entry is 16 bytes. Terminator is 16 bytes.
-        let mem_rsvmap_size = if self.mem_rsvmap.is_empty() {
-            0u32
-        } else {
-            (self.mem_rsvmap.len() as u32 + 1) * 16 // +1 for terminator
-        };
+        let mem_rsvmap_size = (self.mem_rsvmap.len() as u32 + 1) * 16; // +1 for terminator
 
         // Header: 10 u32s = 40 bytes.
         let header_size: u32 = 40;
@@ -206,11 +202,9 @@ impl DtbBuilder {
             Self::push_u64(&mut blob, addr);
             Self::push_u64(&mut blob, size);
         }
-        if !self.mem_rsvmap.is_empty() {
-            // Terminator entry.
-            Self::push_u64(&mut blob, 0);
-            Self::push_u64(&mut blob, 0);
-        }
+        // Terminator entry (always required).
+        Self::push_u64(&mut blob, 0);
+        Self::push_u64(&mut blob, 0);
 
         // Structure block (already has FDT_END appended by caller).
         blob.extend_from_slice(&self.struct_block);
@@ -366,6 +360,16 @@ pub fn generate_dtb(config: &DtbConfig) -> Vec<u8> {
     b.prop_u32("reg-shift", 0); // Register stride: 1 byte apart (matches our UART emulation)
     b.prop_u32("reg-io-width", 1); // Use 8-bit (byte) I/O
     b.prop_u32("clock-frequency", 0); // Let driver use default
+    b.end_node();
+
+    // Chosen node (Phase 257: ensure console works)
+    b.begin_node("chosen");
+    b.prop_string("bootargs", &config.bootargs);
+    b.prop_string("stdout-path", "/soc/uart@10000000");
+    if let (Some(s), Some(e)) = (config.initrd_start, config.initrd_end) {
+        b.prop_u64("linux,initrd-start", s);
+        b.prop_u64("linux,initrd-end", e);
+    }
     b.end_node();
 
     // CLINT node.

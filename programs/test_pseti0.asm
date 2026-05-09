@@ -1,0 +1,2 @@
+PSETI 0, 0, 0xFF0000
+HALT

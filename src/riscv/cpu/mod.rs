@@ -278,10 +278,7 @@ impl RiscvCpu {
             if self.trap_debug_count <= 50 {
                 eprintln!(
                     "[trap] #{} deliver cause=0x{:08X} tval=0x{:08X} pc=0x{:08X}",
-                    self.trap_debug_count,
-                    cause,
-                    tval,
-                    self.pc
+                    self.trap_debug_count, cause, tval, self.pc
                 );
             }
         }

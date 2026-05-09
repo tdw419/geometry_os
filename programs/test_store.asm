@@ -1,0 +1,5 @@
+LDI r30, 0xFF00
+LDI r1, 0x3000
+LDI r2, 70
+STORE r1, r2
+HALT

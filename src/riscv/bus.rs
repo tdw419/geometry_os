@@ -141,6 +141,8 @@ impl Bus {
                 return Ok(protected_val);
             }
         }
+
+        // 1. MMIO Devices
         if Self::in_clint(addr) {
             self.clint.read(addr).ok_or(MemoryError { addr, size: 4 })
         } else if super::uart::Uart::contains(addr) {
@@ -170,15 +172,18 @@ impl Bus {
             self.framebuf
                 .read(addr)
                 .ok_or(MemoryError { addr, size: 4 })
+        } else if addr >= self.mem.ram_base && addr < self.mem.ram_base + self.mem.size() as u64 {
+            // 2. RAM Access
+            self.mem.read_word(addr)
         } else if addr < self.mem.ram_base {
             // Return 0 for reads from unmapped addresses below RAM
             Ok(0)
         } else {
-            self.mem.read_word(addr)
+            // Unmapped address above everything
+            Err(MemoryError { addr, size: 4 })
         }
     }
 
-    /// Write a 32-bit word. Routes to device MMIO or RAM.
     pub fn write_word(&mut self, addr: u64, val: u32) -> Result<(), MemoryError> {
         // Write-protected address check: silently drop writes to protected addresses.
         for &(pa, _protected_val) in &self.protected_addrs {
@@ -202,10 +207,13 @@ impl Bus {
             let encoded_addr = ((self.current_pc as u64) << 32) | addr;
             self.memblock_write_log.push((encoded_addr, val));
         }
+
+        // 1. MMIO Devices
         if Self::in_clint(addr) {
             if self.clint.write(addr, val) {
                 Ok(())
             } else {
+                eprintln!("[bus-debug] CLINT write fail: addr=0x{:08X}", addr);
                 Err(MemoryError { addr, size: 4 })
             }
         } else if super::uart::Uart::contains(addr) {
@@ -215,6 +223,7 @@ impl Bus {
             if self.plic.write(addr, val) {
                 Ok(())
             } else {
+                eprintln!("[bus-debug] PLIC write fail: addr=0x{:08X}", addr);
                 Err(MemoryError { addr, size: 4 })
             }
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
@@ -240,14 +249,27 @@ impl Bus {
         } else if super::framebuf::Framebuffer::contains(addr) {
             self.framebuf.write(addr, val);
             Ok(())
+        } else if addr >= self.mem.ram_base && addr < self.mem.ram_base + self.mem.size() as u64 {
+            // 2. RAM Access
+            // Real-time PTE write interception: if this address is in a known
+            // page table page, fix virtual PPNs before storing.
+            let fixed_val = self.intercept_pte_write(addr, val);
+            let res = self.mem.write_word(addr, fixed_val);
+            if res.is_err() {
+                eprintln!(
+                    "[bus-debug] MEM write fail: addr=0x{:08X} ram_base=0x{:08X} size=0x{:X}",
+                    addr,
+                    self.mem.ram_base,
+                    self.mem.size()
+                );
+            }
+            res
         } else if addr < self.mem.ram_base {
             // Silently accept writes to unmapped addresses below RAM
             Ok(())
         } else {
-            // Real-time PTE write interception: if this address is in a known
-            // page table page, fix virtual PPNs before storing.
-            let fixed_val = self.intercept_pte_write(addr, val);
-            self.mem.write_word(addr, fixed_val)
+            // Unmapped address above everything
+            Err(MemoryError { addr, size: 4 })
         }
     }
 
@@ -411,6 +433,13 @@ impl Bus {
                 return Ok(((protected_val >> (byte_off * 8)) & 0xFF) as u8);
             }
         }
+
+        // 1. RAM Access (Highest priority for low addresses when ram_base=0)
+        if addr >= self.mem.ram_base && addr < self.mem.ram_base + self.mem.size() as u64 {
+            return self.mem.read_byte(addr);
+        }
+
+        // 2. MMIO Devices
         if Self::in_clint(addr) {
             let word = self
                 .clint
@@ -485,6 +514,13 @@ impl Bus {
                 self.write_watch_val = val as u32; // approximate for byte writes
             }
         }
+
+        // 1. RAM Access (Highest priority for low addresses when ram_base=0)
+        if addr >= self.mem.ram_base && addr < self.mem.ram_base + self.mem.size() as u64 {
+            return self.mem.write_byte(addr, val);
+        }
+
+        // 2. MMIO Devices
         if Self::in_clint(addr) {
             let word_addr = addr & !3;
             let byte_off = (addr & 3) as usize;
@@ -547,6 +583,13 @@ impl Bus {
                 return Ok(((protected_val >> (half_off * 16)) & 0xFFFF) as u16);
             }
         }
+
+        // 1. RAM Access (Highest priority for low addresses when ram_base=0)
+        if addr >= self.mem.ram_base && addr < self.mem.ram_base + self.mem.size() as u64 {
+            return self.mem.read_half(addr);
+        }
+
+        // 2. MMIO Devices
         if Self::in_clint(addr) {
             let word = self
                 .clint
@@ -616,6 +659,13 @@ impl Bus {
                 return Ok(());
             }
         }
+
+        // 1. RAM Access (Highest priority for low addresses when ram_base=0)
+        if addr >= self.mem.ram_base && addr < self.mem.ram_base + self.mem.size() as u64 {
+            return self.mem.write_half(addr, val);
+        }
+
+        // 2. MMIO Devices
         if Self::in_clint(addr) {
             let word_addr = addr & !3;
             let half_off = ((addr >> 1) & 1) as usize;
@@ -777,7 +827,8 @@ impl Bus {
         const PTE_V: u32 = 1;
         const PPN_MASK: u32 = 0xFFFF_FC00;
         const LEAF_FLAGS: u32 = 2 | 4 | 8; // R | W | X
-        const PAGE_OFFSET_PPN: u32 = 0xC000_0000 >> 12; // 0xC0000
+        const KERNEL_VA_PPN: u32 = 0xC0000;
+        const VA_PA_OFFSET_PPN: u32 = 0x40000; // 0xC0000 (VA) - 0x80000 (PA) = 0x40000
 
         if (val & PTE_V) == 0 {
             return val;
@@ -787,11 +838,11 @@ impl Bus {
 
         // Discover new L2 table pages from non-leaf PTEs.
         // A non-leaf PTE (R=W=X=0, V=1) points to a lower-level page table.
-        if (val & LEAF_FLAGS) == 0 && ppn < PAGE_OFFSET_PPN && ppn > 0 {
+        if (val & LEAF_FLAGS) == 0 && ppn > 0 {
             // Only register if the PPN is in a reasonable physical range.
-            // Skip PPN=0 (kernel code at PA 0, see fixup_kernel_page_table).
+            // With RAM at 0x80000000, physical PPNs are >= 0x80000.
             let l2_page_addr = (ppn as u64) << 12;
-            if (0x1000..0x1000_0000).contains(&l2_page_addr)
+            if (0x8000_0000..0x9000_0000).contains(&l2_page_addr)
                 && self.known_pt_pages.insert(l2_page_addr)
             {
                 eprintln!(
@@ -801,9 +852,9 @@ impl Bus {
             }
         }
 
-        // Fix virtual PPNs: subtract PAGE_OFFSET/4096 if PPN is in kernel VA range
-        if ppn >= PAGE_OFFSET_PPN {
-            let fixed_ppn = ppn - PAGE_OFFSET_PPN;
+        // Fix virtual PPNs: subtract VA_PA_OFFSET_PPN if PPN is in kernel VA range
+        if ppn >= KERNEL_VA_PPN {
+            let fixed_ppn = ppn - VA_PA_OFFSET_PPN;
             let fixed_val = (val & !PPN_MASK) | (fixed_ppn << 10);
             eprintln!(
                 "[pte_intercept] Fixed PTE at PA 0x{:08X}: PPN 0x{:05X} -> 0x{:05X} (val 0x{:08X} -> 0x{:08X})",
@@ -813,7 +864,7 @@ impl Bus {
             // If this is a non-leaf PTE, also register the (now fixed) L2 page
             if (val & LEAF_FLAGS) == 0 {
                 let l2_page_addr = (fixed_ppn as u64) << 12;
-                if (0x1000..0x1000_0000).contains(&l2_page_addr)
+                if (0x8000_0000..0x9000_0000).contains(&l2_page_addr)
                     && self.known_pt_pages.insert(l2_page_addr)
                 {
                     eprintln!(
@@ -840,14 +891,14 @@ impl Bus {
     ///
     /// Called automatically from write_csr(SATP) when auto_pte_fixup is true.
     pub fn fixup_kernel_page_table(&mut self, pg_dir_phys: u64) {
-        const PAGE_OFFSET_PPN: u32 = 0xC000_0000 >> 12; // 0xC0000
+        const KERNEL_VA_PPN: u32 = 0xC0000;
+        const VA_PA_OFFSET_PPN: u32 = 0x40000;
         const PPN_MASK: u32 = 0xFFFF_FC00;
         const LEAF_FLAGS: u32 = 2 | 4 | 8; // R | W | X
 
         let mut l2_tables_to_fix: Vec<u64> = Vec::new();
 
         // Register the L1 page directory itself as a known page table page.
-        // All PTE writes to this page will be intercepted for virtual PPN fixup.
         self.known_pt_pages.insert(pg_dir_phys);
 
         // Scan all 1024 L1 entries
@@ -865,31 +916,29 @@ impl Bus {
             let l1_ppn = (l1_pte & PPN_MASK) >> 10;
 
             // Compute the fixed PPN for this L1 entry
-            let final_ppn = if l1_ppn >= PAGE_OFFSET_PPN {
-                l1_ppn - PAGE_OFFSET_PPN
+            let final_ppn = if l1_ppn >= KERNEL_VA_PPN {
+                l1_ppn - VA_PA_OFFSET_PPN
             } else {
                 l1_ppn
             };
 
-            if l1_ppn >= PAGE_OFFSET_PPN {
+            if l1_ppn >= KERNEL_VA_PPN {
                 let fixed_pte = (l1_pte & !PPN_MASK) | (final_ppn << 10);
                 eprintln!(
                     "[pte_fixup] Fixed L1[{}] at PA 0x{:08X}: 0x{:08X} -> 0x{:08X}",
                     i, l1_addr, l1_pte, fixed_pte
                 );
-                // Use mem.write_word directly to avoid going through intercept_pte_write
                 self.mem.write_word(l1_addr, fixed_pte).ok();
             }
 
             // If non-leaf L1 entry, queue the L2 table for fixup and register it
             if (l1_pte & LEAF_FLAGS) == 0 {
                 let l2_base = (final_ppn as u64) << 12;
-                if l2_base > 0 && l2_base < 0x1000_0000 {
+                if (0x8000_0000..0x9000_0000).contains(&l2_base) {
                     eprintln!(
                         "[pte_fixup] Discovered L2 table at PA 0x{:08X} from L1[{}]",
                         l2_base, i
                     );
-                    // Register this L2 table page for future write interception
                     self.known_pt_pages.insert(l2_base);
                     l2_tables_to_fix.push(l2_base);
                 }
@@ -912,10 +961,9 @@ impl Bus {
 
                 let l2_ppn = (l2_pte & PPN_MASK) >> 10;
 
-                if l2_ppn >= PAGE_OFFSET_PPN {
-                    let fixed_ppn = l2_ppn - PAGE_OFFSET_PPN;
+                if l2_ppn >= KERNEL_VA_PPN {
+                    let fixed_ppn = l2_ppn - VA_PA_OFFSET_PPN;
                     let fixed_pte = (l2_pte & !PPN_MASK) | (fixed_ppn << 10);
-                    // Use mem.write_word directly to avoid intercept recursion
                     self.mem.write_word(l2_addr, fixed_pte).ok();
                     fixed_count += 1;
                 }
@@ -1151,11 +1199,12 @@ mod tests {
     fn pte_intercept_fixes_virtual_ppn() {
         // Simulate Linux demand paging: kernel writes PTE with virtual PPN
         // to a known page table page, and the intercept translates it.
-        let mut bus = Bus::new(0, 1024 * 1024); // 1MB RAM, base 0
+        // Use RAM base 0x80000000 to match real kernel boot layout.
+        let mut bus = Bus::new(0x8000_0000, 64 * 1024 * 1024); // 64MB RAM at 0x80000000
         bus.auto_pte_fixup = true;
 
-        // Register a page table page at PA 0x1000
-        let pt_page = 0x1000u64;
+        // Register a page table page at PA 0x80001000
+        let pt_page = 0x8000_1000u64;
         bus.known_pt_pages.insert(pt_page);
 
         // Write a leaf PTE with virtual PPN (0xC0000 = 0xC0000000 >> 12)
@@ -1165,9 +1214,9 @@ mod tests {
         bus.write_word(pt_page, virtual_pte)
             .expect("operation should succeed");
 
-        // The intercept should have fixed it: PPN 0xC0000 -> 0x00000
+        // The intercept should have fixed it: PPN 0xC0000 -> 0x80000 (subtract VA_PA_OFFSET 0x40000)
         let stored = bus.read_word(pt_page).expect("operation should succeed");
-        let expected: u32 = (0x00000 << 10) | 0x07; // 0x00000007
+        let expected: u32 = (0x80000 << 10) | 0x07; // 0x20000007
         assert_eq!(
             stored, expected,
             "Virtual PTE 0x{:08X} should be fixed to 0x{:08X}, got 0x{:08X}",
@@ -1193,31 +1242,36 @@ mod tests {
 
     #[test]
     fn pte_intercept_discovers_new_l2_tables() {
-        // Writing a non-leaf PTE should register the pointed-to L2 page
-        let mut bus = Bus::new(0, 1024 * 1024);
+        // Writing a non-leaf PTE should register the pointed-to L2 page.
+        // Use RAM base 0x80000000 to match real kernel boot layout.
+        let mut bus = Bus::new(0x8000_0000, 64 * 1024 * 1024);
         bus.auto_pte_fixup = true;
 
-        let l1_page = 0x1000u64;
+        let l1_page = 0x8000_1000u64;
         bus.known_pt_pages.insert(l1_page);
 
-        // Write a non-leaf PTE pointing to L2 at PA 0x2000
-        // Non-leaf: V=1, R=0, W=0, X=0 = 0x01, PPN = 0x2 (PA 0x2000)
-        let non_leaf_pte: u32 = (2u32 << 10) | 0x01; // 0x00000801
+        // Write a non-leaf PTE pointing to L2 at PA 0x80002000.
+        // PPN for PA 0x80002000 = 0x80002.
+        // Non-leaf: V=1, R=0, W=0, X=0 = 0x01, PPN = 0x80002
+        let non_leaf_pte: u32 = (0x80002u32 << 10) | 0x01;
         bus.write_word(l1_page, non_leaf_pte)
             .expect("operation should succeed");
 
         // The L2 page should now be registered
         assert!(
-            bus.known_pt_pages.contains(&0x2000),
-            "L2 page at 0x2000 should be auto-discovered"
+            bus.known_pt_pages.contains(&0x8000_2000),
+            "L2 page at 0x80002000 should be auto-discovered"
         );
 
         // And subsequent writes to the L2 page should be intercepted
-        let virtual_l2_pte: u32 = (0xC0001 << 10) | 0x07; // PPN 0xC0001 -> 0x00001
-        bus.write_word(0x2000, virtual_l2_pte)
+        // Virtual PPN 0xC0001 -> fixed to 0x80001 (subtract VA_PA_OFFSET 0x40000)
+        let virtual_l2_pte: u32 = (0xC0001 << 10) | 0x07;
+        bus.write_word(0x8000_2000, virtual_l2_pte)
             .expect("operation should succeed");
-        let stored = bus.read_word(0x2000).expect("operation should succeed");
-        let expected: u32 = (0x00001 << 10) | 0x07;
+        let stored = bus
+            .read_word(0x8000_2000)
+            .expect("operation should succeed");
+        let expected: u32 = (0x80001 << 10) | 0x07;
         assert_eq!(
             stored, expected,
             "Virtual L2 PTE should be fixed to 0x{:08X}, got 0x{:08X}",

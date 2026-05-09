@@ -49,6 +49,11 @@ impl GuestMemory {
         if start + access_size <= self.ram.len() {
             Ok(start)
         } else {
+            // Debug: log why the check failed
+            if addr >= self.ram_base && addr < self.ram_base + 0x1000_0000 {
+                eprintln!("[mem-debug] offset fail: addr=0x{:08X} ram_base=0x{:08X} start=0x{:X} size=0x{:X} len=0x{:X}",
+                    addr, self.ram_base, start, access_size, self.ram.len());
+            }
             Err(MemoryError {
                 addr,
                 size: access_size,

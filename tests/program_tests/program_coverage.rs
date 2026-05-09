@@ -824,3 +824,67 @@ fn test_lsystem_bootstrap() {
         "expanded string at 0x2000 should not be empty"
     );
 }
+
+#[test]
+fn test_lsystem_tree_fractal() {
+    let vm = compile_run_steps("programs/lsystem_tree.asm", 5_000_000);
+
+    // Should halt after rendering
+    assert!(vm.halted, "lsystem_tree.asm should halt after rendering");
+
+    // Should have drawn significant screen content (fractal tree)
+    let non_black: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        non_black > 500,
+        "tree should draw at least 500 pixels, got {}",
+        non_black
+    );
+
+    // Should use multiple colors from the depth gradient
+    let colors: std::collections::HashSet<u32> =
+        vm.screen.iter().copied().filter(|&p| p != 0).collect();
+    assert!(
+        colors.len() >= 3,
+        "tree should use at least 3 depth-gradient colors, got {}",
+        colors.len()
+    );
+
+    // Should have vertical extent (tree has trunk + branches)
+    let min_y = vm
+        .screen
+        .iter()
+        .enumerate()
+        .filter(|(_, &p)| p != 0)
+        .map(|(i, _)| (i / 256) as i32)
+        .min()
+        .unwrap_or(0);
+    let max_y = vm
+        .screen
+        .iter()
+        .enumerate()
+        .filter(|(_, &p)| p != 0)
+        .map(|(i, _)| (i / 256) as i32)
+        .max()
+        .unwrap_or(0);
+    let height = max_y - min_y;
+    assert!(
+        height > 50,
+        "tree should span at least 50 pixels vertically, got {}",
+        height
+    );
+
+    // Verify color gradient table exists in RAM
+    assert_eq!(
+        vm.ram[0x7100], 0x8B4513,
+        "gradient[0] should be brown trunk"
+    );
+    assert_eq!(vm.ram[0x7101], 0x556B2F, "gradient[1] should be dark olive");
+    assert_eq!(
+        vm.ram[0x7102], 0x6B8E23,
+        "gradient[2] should be olive green"
+    );
+    assert_eq!(
+        vm.ram[0x7103], 0x228B22,
+        "gradient[3] should be bright green"
+    );
+}

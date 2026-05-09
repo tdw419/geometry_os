@@ -135,9 +135,9 @@ impl CsrBank {
                 true
             }
             MTVEC => {
-                // Only modes 0 (direct) and 1 (vectored) are valid.
-                // Mask: base is bits [31:2], mode is bits [1:0].
-                self.mtvec = val & !1; // Force direct mode for now
+                // Bits [31:2] are base address (4-byte aligned).
+                // Bits [1:0] are mode: 0=direct, 1=vectored.
+                self.mtvec = val & !0x2; // Mask bit 1, allow bit 0
                 true
             }
             MEPC => {
@@ -163,7 +163,7 @@ impl CsrBank {
                 true
             }
             STVEC => {
-                self.stvec = val & !1;
+                self.stvec = val & !0x2; // Mask bit 1, allow bit 0
                 true
             }
             SEPC => {

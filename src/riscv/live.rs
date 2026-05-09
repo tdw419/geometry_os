@@ -639,13 +639,11 @@ fn vm_thread_main(
                                 let root_ppn = satp & 0x003FFFFF;
                                 let l1_pa = (root_ppn as u64) << 12;
                                 let l1_entry_addr = l1_pa + (vpn1 as u64) * 4;
-                                let l1_pte =
-                                    vm.bus.read_word(l1_entry_addr).unwrap_or(0xFFFFFFFF);
+                                let l1_pte = vm.bus.read_word(l1_entry_addr).unwrap_or(0xFFFFFFFF);
                                 let diag = format!(
                                     "[pt-walk] stval=0x{:08X} vpn1={} vpn0={} satp=0x{:08X}\n\
                                      [pt-walk] L1[{}] @ PA 0x{:08X} = 0x{:08X}\n",
-                                    stval, vpn1, vpn0, satp,
-                                    vpn1, l1_entry_addr, l1_pte
+                                    stval, vpn1, vpn0, satp, vpn1, l1_entry_addr, l1_pte
                                 );
                                 let _ = f.write_all(diag.as_bytes());
                                 // If L1 is non-leaf, follow to L2
@@ -658,13 +656,11 @@ fn vm_thread_main(
                                     };
                                     let l2_base = (fixed_l1_ppn as u64) << 12;
                                     let l2_addr = l2_base + (vpn0 as u64) * 4;
-                                    let l2_pte =
-                                        vm.bus.read_word(l2_addr).unwrap_or(0xFFFFFFFF);
+                                    let l2_pte = vm.bus.read_word(l2_addr).unwrap_or(0xFFFFFFFF);
                                     let l2_diag = format!(
                                         "[pt-walk] L1 PPN=0x{:05X} -> L2 base PA 0x{:08X}\n\
                                          [pt-walk] L2[{}] @ PA 0x{:08X} = 0x{:08X}\n",
-                                        l1_ppn, l2_base,
-                                        vpn0, l2_addr, l2_pte
+                                        l1_ppn, l2_base, vpn0, l2_addr, l2_pte
                                     );
                                     let _ = f.write_all(l2_diag.as_bytes());
                                 }
