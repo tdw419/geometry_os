@@ -4930,28 +4930,28 @@ phases:
   deliverables:
   - name: Fixed-point multiplication and addition routines (16.16 format)
     status: done
-    description: 'Uses 4.12 fixed-point (scale=4096). MUL+shift for multiply,
-      direct ADD for addition. All fixed-point ops in render subroutine.'
+    description: Uses 4.12 fixed-point (scale=4096). MUL+shift for multiply, direct
+      ADD for addition. All fixed-point ops in render subroutine.
   - name: Mandelbrot escape-time loop with configurable max iterations
     status: done
-    description: '24 max iterations stored at RAM 0x5103. Escape when z_re^2+z_im^2
-      > 4.0 (0x04000000 in fixed-point).'
+    description: 24 max iterations stored at RAM 0x5103. Escape when z_re^2+z_im^2
+      > 4.0 (0x04000000 in fixed-point).
   - name: Color mapping from iteration count via sine lookup table
     status: done
-    description: '16-entry color palette at RAM 0x5000 (blue->cyan->green->yellow->red
-      gradient). Iteration count AND 15 selects palette entry.'
+    description: 16-entry color palette at RAM 0x5000 (blue->cyan->green->yellow->red
+      gradient). Iteration count AND 15 selects palette entry.
   - name: Zoom in/out and pan via keyboard input (IKEY)
     status: done
-    description: '+/- zoom (SAR/SHL scale by 2), WASD pan (scale/8 per step),
-      R reset to default view, Q quit.'
+    description: +/- zoom (SAR/SHL scale by 2), WASD pan (scale/8 per step), R reset
+      to default view, Q quit.
   - name: Coordinate display showing current view bounds
     status: done
-    description: 'HUD with DRAWTEXT at screen top showing RE/IM center coords
-      and Z zoom level. Fixed-point to decimal conversion in ASM.'
+    description: HUD with DRAWTEXT at screen top showing RE/IM center coords and Z
+      zoom level. Fixed-point to decimal conversion in ASM.
   - name: Integration test verifying first frame renders non-uniform pixels
     status: done
-    description: '4 tests: assembles, renders (>10 colors, black interior, known
-      outside point), HUD text in RAM, zoom updates HUD display.'
+    description: '4 tests: assembles, renders (>10 colors, black interior, known outside
+      point), HUD text in RAM, zoom updates HUD display.'
   acceptance_criteria:
   - description: mandelbrot.asm renders a recognizable fractal shape
     validation: Pixel diversity test shows >100 unique colors in first frame
@@ -4964,7 +4964,7 @@ phases:
   _completed_at: 1778297900
 - id: phase-285
   title: GeOS VM -- Error Code Propagation in Syscalls
-  status: planned
+  status: in_progress
   goal: Replace silent failures in VFS/syscall opcodes with meaningful error codes
     returned in r0.
   description: Currently, OPEN/READ/WRITE/CLOSE failures silently return 0 or garbage.
@@ -4992,6 +4992,8 @@ phases:
     validation: cargo test --lib syscall_error_codes
   - description: Shell displays error messages for failed operations
     validation: Integration test verifies error message in terminal output
+  _claimed_by: worker-0
+  _claimed_at: 1778284666
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
   status: planned

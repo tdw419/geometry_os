@@ -42,3 +42,8 @@
 **Decided instead:** Skipped — these are cosmetic warnings (23 in lib, 11 in bin). Not worth roadmap phases.
 **Reason:** The project has 266 phases and 185K LOC. Dead code accumulation is normal. `cargo fix` can clean up unused imports in one pass if desired.
 **Outcome:** No action taken. Build is clean (0 errors).
+
+## [2026-05-09 00:25 UTC] Almost asked: Why are 3 tests failing with overflow/errno mismatch?
+**Decided instead:** Investigated the root cause — phase-285 changed VFS fopen/fwrite to return GEOS error codes (negative u32) instead of 0xFFFFFFFF, but 4 opcodes (SCRSHOT, SAVEPNG, SCREENA, pixelpack) still checked `fd != 0xFFFFFFFF`. Updated all to use `is_geos_errno()`. Also fixed test expectations (EINVAL for empty filename, not ENOENT).
+**Reason:** Clear code-level bug with straightforward fix. Test failures showed exact error codes.
+**Outcome:** All 2793 tests pass. Committed as 331c837d8.
