@@ -316,7 +316,6 @@ impl Sbi {
                 // a0 = character to print
                 let ch = a0 as u8;
                 if ch != 0 {
-                    uart.write_byte(0, ch);
                     self.console_output.push(ch);
                 }
                 Some((SBI_SUCCESS as u32, 0))

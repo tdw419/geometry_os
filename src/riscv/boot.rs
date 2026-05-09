@@ -516,127 +516,100 @@ impl RiscvVm {
         // struct memblock layout:
         //   bottom_up (4) + current_limit (4) + memory (20) + reserved (20) [+ physmem (20)]
         // So reserved.cnt is at offset 4 + 4 + 20 = 28, reserved.regions at 28 + 12 = 40.
-        // Verified: memblock at VA 0xC0803448, memory.regions=0xC080348C (offset 20),
-        // reserved.regions=0xC0803A8C (offset 40).
-        let memblock_pa: u64 = 0x00803448;
-        let res_cnt_addr = memblock_pa + 28; // reserved.cnt
+        // Verified: memblock at VA 0xC100369C, memory.regions=0xC10036E0 (offset 20),
+        // reserved.regions=0xC1003CE0 (offset 44).
+        let memblock_pa: u64 = 0x0100369C;
+        let res_cnt_addr = memblock_pa + 32; // reserved.cnt (4+4+24 = 32 on rv32?)
+        // Let's re-verify offsets from the hexdump:
+        // memblock:
+        //   00: bottom_up (0)
+        //   04: current_limit (0xFFFFFFFF)
+        //   08: memory.cnt (0)
+        //   12: memory.max (0x80000000)
+        //   16: memory.total_size (0)
+        //   20: memory.regions (0xC10036E0)
+        //   ...
+        // Struct memblock_type is 24 bytes?
+        //   cnt (4), max (4), total_size (4), regions (4), name (4) -> 20 bytes.
+        // Wait, why did reserved.regions end up at 44?
+        // bottom_up (4) + current_limit (4) + memory (20) = 28.
+        // reserved starts at 28.
+        // reserved.cnt (28), reserved.max (32), reserved.total_size (36), reserved.regions (40).
+        // My hexdump showed:
+        // c10036bc 80000000 00000000 e03c00c1 3c895bc1
+        // Offset 32: 0x80000000 (reserved.max)
+        // Offset 36: 0 (reserved.total_size)
+        // Offset 40: 0xC1003CE0 (reserved.regions)
+        // Offset 44: 0xC15B893C (name?)
+        
+        let res_cnt_addr = memblock_pa + 28;
+        let res_regions_ptr_addr = memblock_pa + 40;
         let res_cnt = vm.bus.read_word(res_cnt_addr).unwrap_or(0);
-        // Read reserved.regions pointer to find the regions array
-        let res_regions_ptr = vm.bus.read_word(memblock_pa + 40).unwrap_or(0);
-        if res_regions_ptr >= 0xC0000000 {
-            // Convert VA to PA
-            let res_regions_pa = (res_regions_ptr - 0xC0000000) as u64;
-            // Each memblock_region is 8 bytes: base (u32) + size (u32)
+        let res_regions_ptr = vm.bus.read_word(res_regions_ptr_addr).unwrap_or(0);
+
+        if res_regions_ptr == 0xC1003CE0 {
+            let res_regions_pa = 0x01003CE0;
             let res_region_offset = (res_cnt as u64) * 8;
-            // Reserve PA 0 to kernel_phys_end (kernel image region)
-            vm.bus
-                .write_word(res_regions_pa + res_region_offset, 0)
-                .ok(); // base = 0
-            vm.bus
-                .write_word(
-                    res_regions_pa + res_region_offset + 4,
-                    kernel_phys_end as u32,
-                )
-                .ok(); // size
-            vm.bus.write_word(res_cnt_addr, res_cnt + 1).ok(); // cnt++
-            eprintln!("[boot] Pre-populated memblock reserved: PA 0 - PA 0x{:08X} (slot {}, regions at PA 0x{:08X})", 
-                kernel_phys_end, res_cnt, res_regions_pa);
+            vm.bus.write_word(res_regions_pa + res_region_offset, 0).ok();
+            vm.bus.write_word(res_regions_pa + res_region_offset + 4, kernel_phys_end as u32).ok();
+            vm.bus.write_word(res_cnt_addr, res_cnt + 1).ok();
+            eprintln!("[boot] Pre-populated memblock reserved: PA 0 - PA 0x{:08X}", kernel_phys_end);
         } else {
-            eprintln!("[boot] WARNING: reserved.regions pointer not set (0x{:08X}), skipping memblock pre-populate", res_regions_ptr);
+            eprintln!("[boot] WARNING: reserved.regions pointer mismatch: 0x{:08X} (expected 0xC1003CE0)", res_regions_ptr);
         }
 
-        // Pre-populate memblock.memory with the full RAM range.
-        //
-        // The kernel's early_init_dt_scan_memory() parses the DTB memory node
-        // and calls memblock_add(). But this happens AFTER setup_vm() creates
-        // page tables. If DTB parsing fails (page table doesn't map DTB VA yet,
-        // or the DTB format has an issue), memblock_add() is never called and
-        // memory.cnt stays 0. This causes:
-        //   1. memblock_alloc() returns 0 for all subsequent allocations
-        //   2. max_mapnr stays 0 (no pages available)
-        //   3. init_unavailable_range() skips all pages (s1 >= s6 check)
-        //   4. No "Linux version..." message because the console isn't set up
-        //
-        // Pre-populate ensures the kernel has memory to work with even if
-        // DTB parsing is delayed or fails. The DTB parsing will call
-        // memblock_add() again, but memblock handles duplicates gracefully
-        // (they get merged or the second call is a no-op for the same range).
         {
-            let mem_cnt_addr = memblock_pa + 8; // memory.cnt
+            let mem_cnt_addr = memblock_pa + 8;
+            let mem_regions_ptr_addr = memblock_pa + 20;
             let mem_cnt = vm.bus.read_word(mem_cnt_addr).unwrap_or(0);
-            if mem_cnt == 0 {
-                let mem_regions_ptr = vm.bus.read_word(memblock_pa + 20).unwrap_or(0);
-                if mem_regions_ptr >= 0xC0000000 {
-                    let mem_regions_pa = (mem_regions_ptr - 0xC0000000) as u64;
-                    let ram_size_u32 = actual_ram_size as u32;
-                    // Add memory region: base=0, size=actual_ram_size
-                    vm.bus.write_word(mem_regions_pa, 0).ok(); // base = PA 0
-                    vm.bus.write_word(mem_regions_pa + 4, ram_size_u32).ok(); // size
-                    vm.bus.write_word(mem_cnt_addr, 1).ok(); // memory.cnt = 1
-                    eprintln!(
-                        "[boot] Pre-populated memblock memory: PA 0 - PA 0x{:08X} ({}MB)",
-                        ram_size_u32,
-                        ram_size_u32 / (1024 * 1024)
-                    );
-                } else {
-                    eprintln!(
-                        "[boot] WARNING: memory.regions pointer not set (0x{:08X}), skipping memory pre-populate",
-                        mem_regions_ptr
-                    );
-                }
+            let mem_regions_ptr = vm.bus.read_word(mem_regions_ptr_addr).unwrap_or(0);
+            if mem_cnt == 0 && mem_regions_ptr == 0xC10036E0 {
+                let mem_regions_pa = 0x010036E0;
+                vm.bus.write_word(mem_regions_pa, 0).ok();
+                vm.bus.write_word(mem_regions_pa + 4, actual_ram_size as u32).ok();
+                vm.bus.write_word(mem_cnt_addr, 1).ok();
+                vm.bus.write_word(memblock_pa + 16, actual_ram_size as u32).ok();
+                eprintln!("[boot] Pre-populated memblock memory: PA 0 - PA 0x{:08X}", actual_ram_size);
             }
         }
 
-        // Pre-set riscv_timebase to 10MHz (10000000).
-        // The kernel reads this from the DTB's timebase-frequency property.
-        // If DTB parsing fails (e.g., page table not yet set up for DTB VA),
-        // riscv_timebase stays 0 and calibrate_delay() produces lpj_fine=0,
-        // causing udelay() to loop forever. Pre-setting it ensures udelay
-        // works even if DTB parsing is delayed.
-        // IMPORTANT: riscv_timebase is at VA 0xC0C7A058, PA = 0x00C7A058.
-        let riscv_timebase_pa: u64 = 0x00C7A058;
+        // riscv_timebase at VA 0xC163ACCC (PA 0x0163ACCC)
+        let riscv_timebase_pa: u64 = 0x0163ACCC;
         vm.bus.write_word(riscv_timebase_pa, 10_000_000).ok();
 
-        // Value: 400000 (same as lpj_fine, approximately correct for 1.68 MIPS)
+        // lpj_fine at VA 0xC1CCA060 (PA 0x01CCA060)
         let lpj_fine_pa: u64 = 0x01CCA060;
         vm.bus.write_word(lpj_fine_pa, 400_000).ok();
 
-        // Pre-set initial_boot_params to point to the DTB.
-        // initial_boot_params (VA 0xC16404E8, PA 0x016404E8): pointer to DTB
-        // initial_boot_params_pa (VA 0xC1640518, PA 0x01640518): PA of DTB
+        // initial_boot_params at VA 0xC16404E8 (PA 0x016404E8)
         let ibp_pa: u64 = 0x016404E8;
         let ibp_pa_pa: u64 = 0x01640518;
         let dtb_phys_addr: u32 = dtb_addr as u32;
-        vm.bus.write_word(ibp_pa, dtb_phys_addr).ok(); // initial_boot_params = DTB PA
-        vm.bus.write_word(ibp_pa_pa, dtb_phys_addr).ok(); // initial_boot_params_pa = DTB PA
+        vm.bus.write_word(ibp_pa, dtb_phys_addr).ok();
+        vm.bus.write_word(ibp_pa_pa, dtb_phys_addr).ok();
         eprintln!(
             "[boot] Pre-set initial_boot_params=0x{:08X} (DTB at PA 0x{:08X})",
             dtb_phys_addr, dtb_phys_addr
         );
-        // Protect IBP immediately from kernel BSS clearing.
+        // Protect pointers from BSS clearing
         vm.bus.protected_addrs.push((ibp_pa, dtb_phys_addr));
         vm.bus.protected_addrs.push((ibp_pa_pa, dtb_phys_addr));
-        // Also protect _dtb_early_va and _dtb_early_pa from BSS clearing.
-        vm.bus
-            .protected_addrs
-            .push((dtb_early_va_pa, dtb_addr as u32));
-        vm.bus
-            .protected_addrs
-            .push((dtb_early_pa_pa, dtb_addr as u32));
-
-        // Pre-set loops_per_jiffy to skip calibrate_delay().
-        // Value: 400000 (approximately correct for 1:1000 throttle)
+        vm.bus.protected_addrs.push((dtb_early_va_pa, dtb_addr as u32));
+        vm.bus.protected_addrs.push((dtb_early_pa_pa, dtb_addr as u32));
+        vm.bus.protected_addrs.push((lpj_fine_pa, 400_000));
+        // Protect loops_per_jiffy (VA 0xC1CC7A78, PA 0x01CC7A78)
         let lpj_pa: u64 = 0x01CC7A78;
         vm.bus.write_word(lpj_pa, 400_000).ok();
+        vm.bus.protected_addrs.push((lpj_pa, 400_000));
         eprintln!("[boot] Pre-set loops_per_jiffy=400000 to skip calibrate_delay()");
 
-        // Pre-set sbi_debug_console_available = true.
-        // BSS symbol: sbi_debug_console_available at VA 0xC1CCA0A8, PA 0x01CCA0A8.
+        // sbi_debug_console_available at VA 0xC1CCA0A8 (PA 0x01CCA0A8)
         let sbi_dbcn_pa: u64 = 0x01CCA0A8;
-        vm.bus.write_word(sbi_dbcn_pa, 1).ok(); // bool true
+        vm.bus.write_word(sbi_dbcn_pa, 1).ok();
+        vm.bus.protected_addrs.push((sbi_dbcn_pa, 1));
         eprintln!("[boot] Pre-set sbi_debug_console_available=true for earlycon DBCN");
 
-        // Patch calibrate_delay to return immediately.
+        // Patch calibrate_delay at VA 0xC000E39E (PA 0x0000E39E)
         let calibrate_delay_pa: u64 = 0x0000E39E;
         let first_insn = vm.bus.read_half(calibrate_delay_pa).unwrap_or(0);
         if first_insn == 0x7159 {

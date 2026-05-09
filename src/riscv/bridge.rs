@@ -41,15 +41,35 @@ impl UartBridge {
 
     /// Drain all pending UART TX output and render it on the canvas.
     ///
+    /// Also drains SBI console output (from SBI console putchar ECALLs)
+    /// into the same canvas pipeline, since bare-metal guests use SBI
+    /// rather than direct UART MMIO writes for character output.
+    ///
     /// Call this after running the VM for some number of steps.
     /// Returns the number of bytes drained.
     pub fn drain_uart_to_canvas(&mut self, bus: &mut Bus, canvas_buffer: &mut [u32]) -> usize {
-        let bytes = bus.uart.drain_tx();
-        if bytes.is_empty() {
+        // Collect SBI console output first (bare-metal putchar path)
+        let sbi_bytes: Vec<u8> = bus.sbi.console_output.drain(..).collect();
+
+        // Then drain UART TX buffer (direct MMIO write path)
+        let uart_bytes = bus.uart.drain_tx();
+
+        // Merge: SBI bytes first, then UART bytes
+        let all_bytes: Vec<u8> = if sbi_bytes.is_empty() {
+            uart_bytes
+        } else if uart_bytes.is_empty() {
+            sbi_bytes
+        } else {
+            let mut merged = sbi_bytes;
+            merged.extend_from_slice(&uart_bytes);
+            merged
+        };
+
+        if all_bytes.is_empty() {
             return 0;
         }
-        self.ansi.process_bytes(&bytes, canvas_buffer);
-        bytes.len()
+        self.ansi.process_bytes(&all_bytes, canvas_buffer);
+        all_bytes.len()
     }
 
     /// Forward a keyboard byte to the guest UART.
