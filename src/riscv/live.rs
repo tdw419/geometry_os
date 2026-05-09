@@ -292,10 +292,7 @@ fn vm_thread_main(
         } => {
             let ram_size_mb = (ram_size / (1024 * 1024)) as u32;
             match RiscvVm::boot_linux_setup(kernel, initrd.as_deref(), ram_size_mb, bootargs) {
-                Ok((mut vm, fw, entry, dtb)) => {
-                    vm.cpu.pc = entry;
-                    (vm, true, fw, dtb)
-                }
+                Ok((vm, fw, entry, dtb)) => (vm, true, fw, dtb),
                 Err(e) => {
                     let _ = status_tx.send(VmStatus::Halted {
                         pc: 0,

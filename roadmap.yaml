@@ -11,11 +11,11 @@ conventions:
 - ASMSELF and RUNNEXT take no operands (1-byte instructions)
 - Error reporting via RAM[0xFFD] (existing ASM result port)
 description: Pixel-art virtual machine with built-in assembler, debugger, and live
-  GUI. Write assembly in the built-in text editor, press F5, watch it run.  177 opcodes,
-  2453 tests, 179 programs, 185990 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
+  GUI. Write assembly in the built-in text editor, press F5, watch it run.  208 opcodes,
+  3540 tests, 220 programs, 163K LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
   Infinite map desktop.
 global_risks:
-- 'Opcode space: 154 of ~256 slots used, plenty of room'
+- 'Opcode space: 208 of ~256 slots used, 48 remaining'
 - Scope creep -- adding features is easy, keeping the OS coherent is hard
 - Kernel boundary breaks existing programs -- need a compatibility mode
 - Memory protection removes shared RAM -- IPC now in place (Phase 27), window_manager
@@ -34,20 +34,20 @@ global_risks:
 meta:
   gui: minifb
   hypervisor: true
-  integration_tests: 497
+  integration_tests: 1584
   language: Rust
   lib_tests: 1956
-  loc: 185990
-  opcodes: 177
-  programs: 179
+  loc: 163653
+  opcodes: 208
+  programs: 220
   ram: 65536 words
   registers: 32
-  total_tests: 2453
+  total_tests: 3540
   riscv_examples: 13
   riscv_guest: true
   screen: 256x256 pixels
-  source_files: 102
-  tests: 466
+  source_files: 112
+  tests: 42
   vfs_surface: 0x7000_0000 (256x256)
 project_url: https://github.com/tdw419/geometry-os
 title: Geometry OS Roadmap
