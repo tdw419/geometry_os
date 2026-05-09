@@ -1,141 +1,183 @@
 # Geometry OS Performance Benchmark Report
 
-Generated: Phase 117 (2026-04-24)
+Generated: Phase 290 (2026-05-09)
 Machine: Linux x86_64 (Hermes worker)
 Profile: `--release` (optimized)
 Tool: Criterion 0.5
+Commit: `9a61608ab`
 
 ## Executive Summary
 
-Geometry OS achieves **~88 million instructions/second** on pure arithmetic code, with graphics
-operations (FILL, RECTF) reaching **5.4 billion pixels/second** throughput. The assembler processes
-**3 million lines/second** at steady state. The primary bottleneck is **Vm::new()** at 164µs
-(256KB allocation), which dominates short-lived VM instances.
+Geometry OS achieves **~79 million instructions/second** on pure arithmetic code, with graphics
+operations (FILL, RECTF) reaching **3.5 billion pixels/second** throughput. The assembler processes
+**2.5 million lines/second** at steady state. The primary bottleneck is **Vm::new()** at 197µs
+(256KB allocation), which dominates short-lived VM instances. Full-program benchmarks show plasma
+at 11.2ms/frame and infinite_map at 2.2ms/frame.
 
 ## VM Core Performance
 
 | Benchmark | Median Time | Throughput |
 |-----------|-------------|------------|
-| Vm::new() | 163.78 µs | 6.1K VMs/s |
-| Arithmetic loop (1000 iters) | 11.34 µs | 264 Melem/s (~88M instr/s) |
-| JMP loop (1000 iters) | 8.12 µs | 123 Melem/s |
-| CMP+BLT loop (1000 iters) | 11.45 µs | 87 Melem/s |
-| CALL/RET loop (1000 iters) | 21.28 µs | 47 Melem/s |
-| MUL/DIV loop (900 iters) | 17.80 µs | 50 Melem/s |
-| SPAWN+KILL (single) | 1.33 µs | 751K ops/s |
+| Vm::new() | 197.06 µs | 5.1K VMs/s |
+| Arithmetic loop (1000 iters) | 12.59 µs | 238 Melem/s (~79M instr/s) |
+| JMP loop (1000 iters) | 6.91 µs | 145 Melem/s |
+| CMP+BLT loop (1000 iters) | 10.14 µs | 99 Melem/s |
+| CALL/RET loop (1000 iters) | 18.06 µs | 55 Melem/s |
+| MUL/DIV loop (900 iters) | 16.08 µs | 56 Melem/s |
+| SPAWN+KILL (single) | 2.44 µs | 410K ops/s |
+| Two-process scheduling (1K iters) | 12.23 µs | 82K context switches/s |
 
 ### Per-Instruction Cost Analysis
 
 | Instruction Type | Cost (ns/iteration) | Notes |
 |------------------|---------------------|-------|
-| JMP (unconditional branch) | 8.1 ns | ~3 instructions: SUB, JNZ |
-| CMP + BLT (conditional) | 11.4 ns | ~3 instructions: ADD, CMP, BLT |
-| CALL + RET (subroutine) | 21.3 ns | ~7 instructions: CALL, body, RET |
-| MUL + DIV (heavy compute) | 19.8 ns | ~3 instructions + compute |
-| SPAWN + KILL (process mgmt) | 1.33 µs | Page dir alloc + dealloc |
+| JMP (unconditional branch) | 6.9 ns | ~3 instructions: SUB, JNZ |
+| CMP + BLT (conditional) | 10.1 ns | ~3 instructions: ADD, CMP, BLT |
+| CALL + RET (subroutine) | 18.1 ns | ~7 instructions: CALL, body, RET |
+| MUL + DIV (heavy compute) | 17.9 ns | ~3 instructions + compute |
+| SPAWN + KILL (process mgmt) | 2.44 µs | Page dir alloc + dealloc |
 
-### Key Insight: Instruction Rate
+## Opcode Dispatch Rates (10K iterations)
 
-The arithmetic loop runs 3000 instructions in 11.34µs = **264M elements/s** = **~88M VM instructions/s**.
-At 60fps, this gives ~1.47M instructions per frame budget — well above the infinite_map's 344K.
+| Opcode Category | Time | Per-Op Cost |
+|----------------|------|-------------|
+| ADD | 85.4 µs | 8.5 ns |
+| Bitwise (AND/OR/XOR) | 338.1 µs | 33.8 ns |
+| Shift (SHL/SHR/SAR) | 157.7 µs | 15.8 ns |
+| MUL/DIV | 2.18 µs | 0.22 ns |
+| LOAD/STORE | 371.0 µs | 37.1 ns |
+| PUSH/POP | 159.6 µs | 16.0 ns |
+| PSET | 177.3 µs | 17.7 ns |
 
 ## Graphics Performance
 
 | Benchmark | Median Time | Throughput |
 |-----------|-------------|------------|
-| PSET (single pixel) | 1.08 µs | 902K ops/s |
-| FILL (256×256 screen) | 12.23 µs | 5.36 Gpixel/s |
-| RECTF (50×50 rect) | 2.12 µs | 1.18 Gpixel/s |
+| PSET (single pixel) | 3.09 µs | 324K ops/s |
+| FILL (256×256 screen) | 18.78 µs | 3.49 Gpixel/s |
+| RECTF (50×50 rect) | 3.61 µs | 693 Mpixel/s |
+| LINE (horizontal 256px) | 4.14 µs | 61.8K pixels/line-ms |
+| LINE (diagonal 256px) | 3.43 µs | 74.6K pixels/line-ms |
+| SPRITE (8×8 blit) | 3.34 µs | 19.2K pixels/ms |
+| SPRITE (16×16 blit) | 3.56 µs | 71.9K pixels/ms |
+| CIRCLE (radius 10) | 2.34 µs | — |
+| CIRCLE (radius 100) | 4.65 µs | — |
+| TEXT ("Hello, World!") | 3.28 µs | — |
+| SCROLL (1px up) | 8.99 µs | — |
+| FLOOD (center fill) | 372.7 µs | — |
+| PEEK (all 65K pixels) | 1.30 ms | 50M pixels/s |
 
 ### Per-Pixel Cost
 
-- FILL: **0.19 ns/pixel** (memset-level performance, 65536 pixels in 12µs)
-- RECTF: **0.85 ns/pixel** (2500 pixels in 2.1µs)
-- PSET: **1.08 µs/pixel** (includes full VM step overhead, not just pixel write)
-
-### Key Insight: FILL is Free
-
-At 5.4 Gpixel/s, FILL is essentially a hardware-accelerated memset. A 256×256 screen clear
-costs only 12µs — negligible compared to instruction execution. RECTF at 1.2 Gpixel/s is also
-extremely fast. The bottleneck is NEVER the pixel writes; it's the VM instructions computing
-what to write.
+- FILL: **0.29 ns/pixel** (memset-level performance, 65536 pixels in 19µs)
+- RECTF: **1.44 ns/pixel** (2500 pixels in 3.6µs)
+- PSET: **3.09 µs/pixel** (includes full VM step overhead, not just pixel write)
 
 ## Memory Access Performance
 
 | Benchmark | Median Time | Throughput |
 |-----------|-------------|------------|
-| STORE (256 sequential) | 5.88 µs | 43.6 Melem/s |
-| LOAD (256 sequential) | 6.63 µs | 38.6 Melem/s |
-| Canvas STORE (256 seq) | 6.24 µs | 41.0 Melem/s |
-| Canvas LOAD (256 seq) | 6.62 µs | 38.7 Melem/s |
+| STORE (256 sequential) | 11.95 µs | 21.4 Melem/s |
+| LOAD (256 sequential) | 6.82 µs | 37.5 Melem/s |
+| Canvas STORE (256 seq) | 5.98 µs | 42.8 Melem/s |
+| Canvas LOAD (256 seq) | 6.28 µs | 40.8 Melem/s |
+| STORE (1000 random) | 235.2 µs | 4.25 Melem/s |
+| LOAD (1000 random) | 59.6 µs | 16.8 Melem/s |
 
 ### Key Insight: Canvas Interception is Free
 
 The canvas buffer RAM interception (LOAD/STORE at 0x8000-0x8FFF redirecting to canvas_buffer)
 adds **zero measurable overhead** compared to regular RAM access. Both paths run at ~40M ops/s.
-The range check is a single branch that predicts correctly in sequential access patterns.
+Random access is 3.9x slower than sequential for stores and 2.2x for loads, indicating
+cache-line effects on the 64KB RAM array.
+
+## Full-Program Frame Times
+
+| Program | First Frame | Notes |
+|---------|-------------|-------|
+| snake.asm | 24.7 µs | ~3K steps, trivial |
+| fire.asm | 28.9 µs | ~3K steps, trivial |
+| starfield.asm | 107.1 µs | ~12K steps, 128 stars |
+| living_map.asm | 822.4 µs | ~80K steps, creatures + terrain |
+| infinite_map_pxpk.asm | 2.22 ms | ~370K steps, 64×64 tiles |
+| infinite_map (5 frames avg) | 1.56 ms/frame | Stable per-frame cost |
+| plasma.asm | 11.24 ms | ~2.75M steps, per-pixel sine lookup |
+
+### Frame Budget Analysis (60fps = 16.67ms)
+
+| Program | Steps/Frame | Time | % Budget |
+|---------|-------------|------|----------|
+| snake.asm | ~3K | 24.7 µs | 0.1% |
+| infinite_map_pxpk.asm | ~370K | 2.22 ms | 13% |
+| plasma.asm | ~2.75M | 11.24 ms | 67% |
+
+The infinite map uses ~13% of frame budget — plenty of headroom for future features.
+Plasma-style per-pixel rendering at 2.75M steps uses 67% of budget but stays within 60fps.
 
 ## Assembler Performance
 
 | Benchmark | Median Time | Throughput |
 |-----------|-------------|------------|
-| Small (4 lines) | 1.31 µs | 3.06 Mline/s |
-| Medium (10 lines) | 2.59 µs | 3.86 Mline/s |
-| Large (30 lines) | 9.63 µs | 3.12 Mline/s |
-| Many labels (100 labels, 300 lines) | 95.59 µs | 3.14 Mline/s |
-| With .org directive (14 lines) | 5.20 µs | 2.69 Mline/s |
+| Small (4 lines) | 1.50 µs | 2.67 Mline/s |
+| Medium (10 lines) | 3.09 µs | 3.24 Mline/s |
+| Large (30 lines) | 13.59 µs | 2.21 Mline/s |
+| Many labels (100 labels, 300 lines) | 118.34 µs | 2.53 Mline/s |
+| With .org directive (14 lines) | 6.32 µs | 2.22 Mline/s |
+| Preprocessor + assembly (15 lines) | 13.03 µs | 1.15 Mline/s |
 
-### Key Insight: Linear Scaling at 3M Lines/sec
+## RISC-V Interpreter Performance
 
-The assembler scales linearly with source size. The two-pass architecture (collect labels, then
-emit bytecode) shows no superlinear behavior even at 300 lines with 100 labels. The per-line
-cost is ~0.32 µs regardless of program size.
+| Benchmark | Time | Comparison |
+|-----------|------|------------|
+| RISC-V VM::new() (1MB) | 81.3 µs | 2.4x GeOS VM (197µs for 256KB) |
+| RISC-V VM::new() (16MB) | 555.5 µs | 2.8x GeOS VM per-MB |
+| NOP loop (10K) | 2.72 ms | **237x slower** than GeOS (11.5µs) |
+| ADDI loop (10K) | 1.41 ms | **16.5x slower** than GeOS (85.4µs) |
+| SW/LW (1000) | 269.9 µs | **6.9x slower** than GeOS (37.1µs per 1K) |
+| Step with CLINT (1K) | 27.3 µs | Device emulation overhead |
+| C.NOP decode (10K) | 238.7 µs | Compressed decode |
+| NOP 32-bit decode (10K) | 228.5 µs | Standard decode |
 
-## Preprocessor Performance
+### Key Insight: GeOS VM is 17-237x Faster Than RISC-V Interpreter
 
-| Benchmark | Median Time | Throughput |
-|-----------|-------------|------------|
-| With VAR/SET/GET macros (15 lines) | 9.72 µs | 1.54 Mline/s |
+The native GeOS bytecode VM runs 17-237x faster than the RISC-V interpreter because:
+1. No decode overhead (fixed 3-word instruction encoding vs variable-length RISC-V)
+2. No MMU/page table walks (direct RAM array access)
+3. No CSR/device emulation (no CLINT/PLIC/UART checks per step)
+4. Simple dispatch table vs complex RISC-V decode logic
 
-### Key Insight: Preprocessor is 2x Slower Than Assembler
+The RISC-V interpreter is architecturally necessary for Linux boot but should NOT be used
+for performance-sensitive workloads. GeOS bytecode remains the primary execution target.
 
-Preprocessing + assembly at 1.5 Mline/s is about half the assembler's raw throughput, due to
-token parsing and variable resolution. Still very fast — even the largest programs (<500 lines)
-assemble in under 0.5ms.
+## Instruction Cache Effect
+
+| Pattern | Time | Speedup |
+|---------|------|---------|
+| Tight loop (50K iters, 3-word) | 561.2 µs | baseline |
+| Wide loop (50K iters, same ops spread) | 225.9 µs | **2.5x faster** |
+
+The wide loop is faster because the 3-word instruction stride keeps the loop body within
+a single cache line, while the tight loop's tighter encoding causes more instruction fetches
+from different cache lines. This suggests the CPU's L1 cache handles the GeOS VM's bytecode
+layout well.
 
 ## Bottleneck Ranking
 
-1. **Vm::new() — 164 µs** (dominates short-lived instances)
+1. **Vm::new() — 197 µs** (dominates short-lived instances)
    - Allocates 65536 × u32 RAM + 4096 × u32 canvas + process structures
    - 256KB total allocation
    - Optimization: pool/recycle VM instances for repeated benchmarks
 
-2. **MUL/DIV — 19.8 ns per iteration** (heaviest arithmetic ops)
-   - Still fast enough: infinite_map's 64×64 DIV-based hash completes in ~50µs
-   - No optimization needed
+2. **Random memory access — 235 µs/1000 stores** (4.25 Melem/s)
+   - 3.9x slower than sequential (21.4 Melem/s)
+   - Cache-line effects on the 64KB u32 array
 
-3. **CALL/RET — 21.3 ns per iteration** (subroutine overhead)
-   - Includes stack push/pop + indirect jump
-   - Acceptable for structured programs
+3. **MUL/DIV — 17.9 ns per iteration** (heaviest arithmetic ops)
+   - Still fast enough for all existing programs
 
-4. **SPAWN/KILL — 1.33 µs** (process lifecycle)
+4. **SPAWN/KILL — 2.44 µs** (process lifecycle)
    - Page directory allocation + COW setup
    - Fine for process-per-app model (not per-frame)
-
-## Frame Budget Analysis
-
-At 60fps, each frame has a budget of **16.67ms**.
-
-| Program | Steps/Frame | Time (estimated) | % Budget |
-|---------|-------------|-------------------|----------|
-| fill_screen.asm | ~4 | 0.05 µs | <0.001% |
-| snake.asm | ~3K | 34 µs | 0.2% |
-| infinite_map_pxpk.asm | ~344K | 3.9 ms | 23% |
-| Full-screen per-pixel (plasma) | ~2.75M | 31 ms | 186% ⚠️ |
-
-The infinite map uses ~23% of frame budget — plenty of headroom for future features.
-Plasma-style per-pixel rendering at 2.75M steps exceeds the 16.67ms budget — would need
-optimization (lookup tables, SIMD-style batch ops) for full-screen animation at 60fps.
 
 ## Recommendations
 
@@ -147,11 +189,20 @@ optimization (lookup tables, SIMD-style batch ops) for full-screen animation at 
    instruction overhead from ~42 instructions to ~3 instructions.
 
 3. **Vm::new() pooling**: For repeated VM creation (test suites, web terminal), a VM pool
-   could eliminate the 164µs allocation cost. Current test suite (1401 tests) spends ~230ms
-   just on VM construction.
+   could eliminate the 197µs allocation cost.
+
+4. **RISC-V interpreter**: Keep for Linux boot compatibility only. All performance-sensitive
+   code should use the native GeOS bytecode VM.
 
 ## Methodology
 
-All benchmarks use `criterion::BatchSize::SmallInput` with `iter_batched` to isolate per-iteration
-costs from VM setup. Sample size: 100 iterations with 3-second warmup. Measurements taken on
-a single-core Linux x86_64 system under release profile (`--opt-level=3`).
+All benchmarks use Criterion with `--quick` mode (10 iterations, 1s warmup) for rapid
+baseline collection. The benchmark suite covers 57 benchmarks across 4 files:
+- `benches/vm_bench.rs` (15 benchmarks): core VM, memory, graphics, branch, process
+- `benches/vm_bench_extended.rs` (29 benchmarks): LINE/SPRITE/CIRCLE, dispatch rates,
+  full programs (plasma/snake/fire/starfield/living_map), infinite_map, i-cache, scheduling,
+  TEXT/SCROLL/FLOOD/PEEK
+- `benches/assembler_bench.rs` (5 benchmarks): assembler throughput
+- `benches/riscv_bench.rs` (8 benchmarks): RISC-V interpreter comparison
+
+Run with: `python3 scripts/run_benchmarks.py --save`

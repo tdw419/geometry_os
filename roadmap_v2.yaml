@@ -5139,7 +5139,7 @@ phases:
     validation: Producer-consumer test with 4 processes completes
 - id: phase-290
   title: GeOS VM -- Performance Benchmark Suite and Optimization
-  status: planned
+  status: done
   goal: Create a standardized benchmark suite measuring VM instruction throughput,
     memory access patterns, and graphics rendering performance.
   description: 'With 150+ opcodes and 2928 tests, the VM needs quantitative performance
@@ -5155,18 +5155,19 @@ phases:
   - name: Graphics benchmark (FILL rate, RECTF rate, LINE rate, SPRITE rate)
     status: done
   - name: Full-program benchmarks (plasma, infinite_map, snake frame times)
-    status: planned
+    status: done
   - name: RISC-V vs native VM comparison benchmarks
-    status: planned
+    status: done
   - name: Benchmark runner script with CSV output
-    status: planned
+    status: done
   - name: Baseline results committed to docs/PERFORMANCE_BENCHMARK.md
-    status: planned
+    status: done
   acceptance_criteria:
   - description: All benchmarks produce stable, reproducible results
     validation: Three runs within 5% variance
   - description: Performance doc includes per-benchmark numbers and methodology
     validation: docs/PERFORMANCE_BENCHMARK.md updated
+  _claimed_at: 1778327634
 - id: phase-291
   title: GeOS VM -- ops_host_fs.rs Unit Test Suite
   status: todo

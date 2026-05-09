@@ -29,23 +29,103 @@ from datetime import datetime
 from pathlib import Path
 
 
+def to_ns(val, unit):
+    """Convert a value with unit string to nanoseconds."""
+    if unit in ('ns',):
+        return val
+    elif unit in ('µs', 'us', 'μs'):
+        return val * 1e3
+    elif unit in ('ms',):
+        return val * 1e6
+    elif unit in ('s',):
+        return val * 1e9
+    return val
+
+
 def parse_criterion_output(text: str) -> list[dict]:
-    """Parse Criterion's --message-format=plain output into structured records."""
+    """Parse Criterion's plain output into structured records.
+    
+    Criterion outputs benchmark names and times on separate lines:
+        vm_arithmetic/1000_iters
+                        time:   [10.636 µs 10.728 µs 10.817 µs]
+    """
     results = []
 
-    # Split into benchmark groups
-    current_group = None
-    for line in text.splitlines():
-        line = line.strip()
+    # Join lines and look for pattern: name line followed by time line
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
 
-        # Group header: "vm_arithmetic/1000_iters"
-        match = re.match(r'^([\w/]+)/([\w_]+)\s+time:\s+', line)
-        if match:
-            group_name = match.group(1)
-            bench_name = match.group(2)
+        # Look for a benchmark name line
+        # Case 1: Name alone on line, time on next line: "vm_arithmetic/1000_iters"
+        # Case 2: Name + time on same line: "vm_new                  time:   [10 µs 11 µs 12 µs]"
+        raw_line = lines[i] if i < len(lines) else ""
+        
+        # Check for case 2 first: name and time on same line
+        same_line_time = re.search(
+            r'^([\w][\w/.:_-]*?)\s+time:\s+\[([\d.]+)\s+(µs|us|μs|ms|ns|s)\s+([\d.]+)\s+(µs|us|μs|ms|ns|s)\s+([\d.]+)\s+(µs|us|μs|ms|ns|s)\]',
+            line,
+        )
+        if same_line_time:
+            full_name = same_line_time.group(1)
+            low, low_unit = float(same_line_time.group(2)), same_line_time.group(3)
+            est, est_unit = float(same_line_time.group(4)), same_line_time.group(5)
+            high, high_unit = float(same_line_time.group(6)), same_line_time.group(7)
+            
+            if '/' in full_name:
+                parts = full_name.split('/', 1)
+                group_name, bench_name = parts[0], parts[1]
+            else:
+                group_name, bench_name = "root", full_name
+            
+            results.append({
+                'group': group_name,
+                'benchmark': bench_name,
+                'time_ns': to_ns(est, est_unit),
+                'time_low_ns': to_ns(low, low_unit),
+                'time_high_ns': to_ns(high, high_unit),
+                'time_str': f"{est} {est_unit}",
+            })
+            i += 1
+            continue
+        
+        # Case 1: name only on this line
+        is_name_line = (
+            line
+            and not line.startswith("change")
+            and not line.startswith("thrpt")
+            and not line.startswith("Found")
+            and not line.startswith("Performance")
+            and not line.startswith("Benchmarking")
+            and not line.startswith("Running")
+            and not line.startswith("Gnuplot")
+            and not line.startswith("error")
+            and not line.startswith("warning")
+            and "time:" not in line
+            and re.match(r'^[\w][\w/.:_-]*$', line)
+        )
 
-            # Extract time value (e.g., "1.234 ms" or "456 µs" or "1.23 s")
-            time_match = re.search(r'time:\s+\[([\d.]+)\s+(\w+)\s+([\d.]+)\s+(\w+)\s+([\d.]+)\s+(\w+)\]', line)
+        if is_name_line:
+            full_name = line.strip()
+            # Check if time is on the SAME line (e.g., "vm_new                  time:   [10 µs 11 µs 12 µs]")
+            time_match = re.search(
+                r'time:\s+\[([\d.]+)\s+(µs|us|μs|ms|ns|s)\s+([\d.]+)\s+(µs|us|μs|ms|ns|s)\s+([\d.]+)\s+(µs|us|μs|ms|ns|s)\]',
+                line,
+            )
+            time_line_j = i
+            if not time_match:
+                # Look ahead for the time line (next few lines)
+                for j in range(i + 1, min(i + 5, len(lines))):
+                    tline = lines[j].strip()
+                    time_match = re.search(
+                        r'time:\s+\[([\d.]+)\s+(µs|us|μs|ms|ns|s)\s+([\d.]+)\s+(µs|us|μs|ms|ns|s)\s+([\d.]+)\s+(µs|us|μs|ms|ns|s)\]',
+                        tline,
+                    )
+                    if time_match:
+                        time_line_j = j
+                        break
+
             if time_match:
                 low = float(time_match.group(1))
                 low_unit = time_match.group(2)
@@ -54,17 +134,12 @@ def parse_criterion_output(text: str) -> list[dict]:
                 high = float(time_match.group(5))
                 high_unit = time_match.group(6)
 
-                # Convert to nanoseconds
-                def to_ns(val, unit):
-                    if unit in ('ns', ):
-                        return val
-                    elif unit in ('µs', 'us'):
-                        return val * 1e3
-                    elif unit in ('ms', ):
-                        return val * 1e6
-                    elif unit in ('s', ):
-                        return val * 1e9
-                    return val
+                # Split group/benchmark from full name
+                if '/' in full_name:
+                    parts = full_name.split('/', 1)
+                    group_name, bench_name = parts[0], parts[1]
+                else:
+                    group_name, bench_name = "root", full_name
 
                 results.append({
                     'group': group_name,
@@ -74,15 +149,19 @@ def parse_criterion_output(text: str) -> list[dict]:
                     'time_high_ns': to_ns(high, high_unit),
                     'time_str': f"{est} {est_unit}",
                 })
+                i = time_line_j + 1  # skip past the time line
+                continue
+
+        i += 1
 
     return results
 
 
-def run_benchmark_suite(suite_name: str, project_dir: str, quick: bool = False) -> list[dict]:
+def run_benchmark_suite(suite_name: str, project_dir: str, quick: bool = True) -> list[dict]:
     """Run a single Criterion benchmark suite and return parsed results."""
     print(f"  Running {suite_name}...", file=sys.stderr)
 
-    cmd = ["cargo", "bench", "--bench", suite_name, "--", "--message-format=plain"]
+    cmd = ["cargo", "bench", "--bench", suite_name, "--"]
     if quick:
         cmd.append("--quick")
 
