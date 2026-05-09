@@ -5106,7 +5106,7 @@ phases:
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
   _claimed_by: worker-0
-  _claimed_at: 1778314086
+  _claimed_at: 1778325021
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: in_progress
@@ -5138,7 +5138,7 @@ phases:
   - description: Semaphore correctly blocks and wakes processes
     validation: Producer-consumer test with 4 processes completes
   _claimed_by: worker-0
-  _claimed_at: 1778318052
+  _claimed_at: 1778325021
 - id: phase-290
   title: GeOS VM -- Performance Benchmark Suite and Optimization
   status: in_progress
@@ -5170,7 +5170,7 @@ phases:
   - description: Performance doc includes per-benchmark numbers and methodology
     validation: docs/PERFORMANCE_BENCHMARK.md updated
   _claimed_by: worker-0
-  _claimed_at: 1778318861
+  _claimed_at: 1778325021
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
