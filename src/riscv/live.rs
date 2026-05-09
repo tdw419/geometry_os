@@ -558,7 +558,7 @@ fn vm_thread_main(
                     // Check for demand-paged identity mapping at low addresses.
                     let fault_addr = vm.cpu.csr.mtval;
                     let is_page_fault = cause_code == 12 || cause_code == 13 || cause_code == 15;
-                    
+
                     if is_page_fault && fault_addr < 0xC000_0000 {
                         let satp = vm.cpu.csr.satp;
                         let pg_dir_ppn = (satp & 0x3FFFFF) as u64;

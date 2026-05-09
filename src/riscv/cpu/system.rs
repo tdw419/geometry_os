@@ -154,7 +154,8 @@ impl RiscvCpu {
                         self.x[11] = ret_a1;
 
                         // Handle DBCN pending write: read from guest memory
-                        if let Some((mut phys_addr, num_bytes)) = bus.sbi.dbcn_pending_write.take() {
+                        if let Some((mut phys_addr, num_bytes)) = bus.sbi.dbcn_pending_write.take()
+                        {
                             // If address is in kernel virtual range, translate to physical
                             if phys_addr >= 0xC000_0000 {
                                 phys_addr -= 0xC000_0000;

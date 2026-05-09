@@ -931,7 +931,7 @@ impl Bus {
         // Phase 257: Force-map kernel and low identity range if missing.
         // This prevents kernel panics when swapper_pg_dir doesn't map itself or DTB.
         let mega_pte_flags: u32 = 0xCF; // V+R+W+X+A+D
-        // 1. Kernel range: VA 0xC0000000..0xC2800000 (10 megapages = 40MB)
+                                        // 1. Kernel range: VA 0xC0000000..0xC2800000 (10 megapages = 40MB)
         for i in 0..10 {
             let idx = 768 + i;
             let addr = pg_dir_phys + (idx as u64) * 4;

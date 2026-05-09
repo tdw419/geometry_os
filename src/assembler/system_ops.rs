@@ -1540,3 +1540,907 @@ pub(super) fn try_parse(
         _ => Ok(None),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn constants() -> HashMap<String, u32> {
+        HashMap::new()
+    }
+
+    fn parse_one(opcode: &str, args: &str) -> Vec<u32> {
+        let full = format!("{opcode} {args}");
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        try_parse(opcode, &tokens, &mut bytecode, &constants()).unwrap();
+        bytecode
+    }
+
+    fn parse_one_err(opcode: &str, args: &str) -> String {
+        let full = format!("{opcode} {args}");
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        try_parse(opcode, &tokens, &mut bytecode, &constants()).unwrap_err()
+    }
+
+    // ── ASM (0x4B) ──────────────────────────────────────────
+    #[test]
+    fn test_asm_basic() {
+        let bc = parse_one("ASM", "r1, r2");
+        assert_eq!(bc, vec![0x4B, 1, 2]);
+    }
+
+    #[test]
+    fn test_asm_too_few() {
+        let err = parse_one_err("ASM", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── SPAWN (0x4D) ────────────────────────────────────────
+    #[test]
+    fn test_spawn_basic() {
+        let bc = parse_one("SPAWN", "r5");
+        assert_eq!(bc, vec![0x4D, 5]);
+    }
+
+    #[test]
+    fn test_spawn_too_few() {
+        let err = parse_one_err("SPAWN", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── KILL (0x4E) ─────────────────────────────────────────
+    #[test]
+    fn test_kill_basic() {
+        let bc = parse_one("KILL", "r10");
+        assert_eq!(bc, vec![0x4E, 10]);
+    }
+
+    #[test]
+    fn test_kill_too_few() {
+        let err = parse_one_err("KILL", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── SYSCALL (0x52) ──────────────────────────────────────
+    #[test]
+    fn test_syscall_basic() {
+        let bc = parse_one("SYSCALL", "42");
+        assert_eq!(bc, vec![0x52, 42]);
+    }
+
+    #[test]
+    fn test_syscall_hex() {
+        let bc = parse_one("SYSCALL", "0xFF");
+        assert_eq!(bc, vec![0x52, 0xFF]);
+    }
+
+    #[test]
+    fn test_syscall_too_few() {
+        let err = parse_one_err("SYSCALL", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── RETK (0x53) ─────────────────────────────────────────
+    #[test]
+    fn test_retk_no_args() {
+        let bc = parse_one("RETK", "");
+        assert_eq!(bc, vec![0x53]);
+    }
+
+    // ── OPEN (0x54) ─────────────────────────────────────────
+    #[test]
+    fn test_open_basic() {
+        let bc = parse_one("OPEN", "r1, r2");
+        assert_eq!(bc, vec![0x54, 1, 2]);
+    }
+
+    #[test]
+    fn test_open_too_few() {
+        let err = parse_one_err("OPEN", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── READ (0x55) ─────────────────────────────────────────
+    #[test]
+    fn test_read_basic() {
+        let bc = parse_one("READ", "r1, r2, r3");
+        assert_eq!(bc, vec![0x55, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_read_too_few() {
+        let err = parse_one_err("READ", "r1, r2");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── WRITE (0x56) ────────────────────────────────────────
+    #[test]
+    fn test_write_basic() {
+        let bc = parse_one("WRITE", "r4, r5, r6");
+        assert_eq!(bc, vec![0x56, 4, 5, 6]);
+    }
+
+    #[test]
+    fn test_write_too_few() {
+        let err = parse_one_err("WRITE", "r4, r5");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── CLOSE (0x57) ────────────────────────────────────────
+    #[test]
+    fn test_close_basic() {
+        let bc = parse_one("CLOSE", "r3");
+        assert_eq!(bc, vec![0x57, 3]);
+    }
+
+    #[test]
+    fn test_close_too_few() {
+        let err = parse_one_err("CLOSE", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── SEEK (0x58) ─────────────────────────────────────────
+    #[test]
+    fn test_seek_basic() {
+        let bc = parse_one("SEEK", "r1, r2, r3");
+        assert_eq!(bc, vec![0x58, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_seek_too_few() {
+        let err = parse_one_err("SEEK", "r1, r2");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── LS (0x59) ───────────────────────────────────────────
+    #[test]
+    fn test_ls_basic() {
+        let bc = parse_one("LS", "r5");
+        assert_eq!(bc, vec![0x59, 5]);
+    }
+
+    #[test]
+    fn test_ls_too_few() {
+        let err = parse_one_err("LS", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── YIELD (0x5A) ────────────────────────────────────────
+    #[test]
+    fn test_yield_no_args() {
+        let bc = parse_one("YIELD", "");
+        assert_eq!(bc, vec![0x5A]);
+    }
+
+    // ── SLEEP (0x5B) ────────────────────────────────────────
+    #[test]
+    fn test_sleep_basic() {
+        let bc = parse_one("SLEEP", "r10");
+        assert_eq!(bc, vec![0x5B, 10]);
+    }
+
+    #[test]
+    fn test_sleep_too_few() {
+        let err = parse_one_err("SLEEP", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── SETPRIORITY (0x5C) ──────────────────────────────────
+    #[test]
+    fn test_setpriority_basic() {
+        let bc = parse_one("SETPRIORITY", "r7");
+        assert_eq!(bc, vec![0x5C, 7]);
+    }
+
+    #[test]
+    fn test_setpriority_too_few() {
+        let err = parse_one_err("SETPRIORITY", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── PIPE (0x5D) ─────────────────────────────────────────
+    #[test]
+    fn test_pipe_basic() {
+        let bc = parse_one("PIPE", "r3, r4");
+        assert_eq!(bc, vec![0x5D, 3, 4]);
+    }
+
+    #[test]
+    fn test_pipe_too_few() {
+        let err = parse_one_err("PIPE", "r3");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── MSGSND (0x5E) ───────────────────────────────────────
+    #[test]
+    fn test_msgsnd_basic() {
+        let bc = parse_one("MSGSND", "r8");
+        assert_eq!(bc, vec![0x5E, 8]);
+    }
+
+    #[test]
+    fn test_msgsnd_too_few() {
+        let err = parse_one_err("MSGSND", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── MSGRCV (0x5F) ───────────────────────────────────────
+    #[test]
+    fn test_msgrcv_no_args() {
+        let bc = parse_one("MSGRCV", "");
+        assert_eq!(bc, vec![0x5F]);
+    }
+
+    // ── GETPID (0x65) ───────────────────────────────────────
+    #[test]
+    fn test_getpid_no_args() {
+        let bc = parse_one("GETPID", "");
+        assert_eq!(bc, vec![0x65]);
+    }
+
+    // ── EXEC (0x66) ─────────────────────────────────────────
+    #[test]
+    fn test_exec_basic() {
+        let bc = parse_one("EXEC", "r1");
+        assert_eq!(bc, vec![0x66, 1]);
+    }
+
+    #[test]
+    fn test_exec_too_few() {
+        let err = parse_one_err("EXEC", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── WAITPID (0x69) ──────────────────────────────────────
+    #[test]
+    fn test_waitpid_basic() {
+        let bc = parse_one("WAITPID", "r5");
+        assert_eq!(bc, vec![0x69, 5]);
+    }
+
+    #[test]
+    fn test_waitpid_too_few() {
+        let err = parse_one_err("WAITPID", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── EXECP (0x6A) ────────────────────────────────────────
+    #[test]
+    fn test_execp_basic() {
+        let bc = parse_one("EXECP", "r1, r2, r3");
+        assert_eq!(bc, vec![0x6A, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_execp_too_few() {
+        let err = parse_one_err("EXECP", "r1, r2");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── CHDIR (0x6B) ────────────────────────────────────────
+    #[test]
+    fn test_chdir_basic() {
+        let bc = parse_one("CHDIR", "r5");
+        assert_eq!(bc, vec![0x6B, 5]);
+    }
+
+    #[test]
+    fn test_chdir_too_few() {
+        let err = parse_one_err("CHDIR", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── GETCWD (0x6C) ───────────────────────────────────────
+    #[test]
+    fn test_getcwd_basic() {
+        let bc = parse_one("GETCWD", "r5");
+        assert_eq!(bc, vec![0x6C, 5]);
+    }
+
+    #[test]
+    fn test_getcwd_too_few() {
+        let err = parse_one_err("GETCWD", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── SHUTDOWN (0x6E) ─────────────────────────────────────
+    #[test]
+    fn test_shutdown_no_args() {
+        let bc = parse_one("SHUTDOWN", "");
+        assert_eq!(bc, vec![0x6E]);
+    }
+
+    // ── EXIT (0x6F) ─────────────────────────────────────────
+    #[test]
+    fn test_exit_basic() {
+        let bc = parse_one("EXIT", "r0");
+        assert_eq!(bc, vec![0x6F, 0]);
+    }
+
+    #[test]
+    fn test_exit_too_few() {
+        let err = parse_one_err("EXIT", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── SIGNAL (0x70) ───────────────────────────────────────
+    #[test]
+    fn test_signal_basic() {
+        let bc = parse_one("SIGNAL", "r3, r4");
+        assert_eq!(bc, vec![0x70, 3, 4]);
+    }
+
+    #[test]
+    fn test_signal_too_few() {
+        let err = parse_one_err("SIGNAL", "r3");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── SIGSET (0x71) ───────────────────────────────────────
+    #[test]
+    fn test_sigset_basic() {
+        let bc = parse_one("SIGSET", "r2, r5");
+        assert_eq!(bc, vec![0x71, 2, 5]);
+    }
+
+    #[test]
+    fn test_sigset_too_few() {
+        let err = parse_one_err("SIGSET", "r2");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── HYPERVISOR (0x72) ───────────────────────────────────
+    #[test]
+    fn test_hypervisor_one_arg() {
+        let bc = parse_one("HYPERVISOR", "r1");
+        // Optional second arg defaults to r0
+        assert_eq!(bc, vec![0x72, 1, 0]);
+    }
+
+    #[test]
+    fn test_hypervisor_two_args() {
+        let bc = parse_one("HYPERVISOR", "r1, r2");
+        assert_eq!(bc, vec![0x72, 1, 2]);
+    }
+
+    #[test]
+    fn test_hypervisor_too_few() {
+        let err = parse_one_err("HYPERVISOR", "");
+        assert!(err.contains("1-2 arguments"));
+    }
+
+    // ── ASMSELF (0x73) ──────────────────────────────────────
+    #[test]
+    fn test_asmself_no_args() {
+        let bc = parse_one("ASMSELF", "");
+        assert_eq!(bc, vec![0x73]);
+    }
+
+    // ── RUNNEXT (0x74) ──────────────────────────────────────
+    #[test]
+    fn test_runnext_no_args() {
+        let bc = parse_one("RUNNEXT", "");
+        assert_eq!(bc, vec![0x74]);
+    }
+
+    // ── IOCTL (0x62) ────────────────────────────────────────
+    #[test]
+    fn test_ioctl_basic() {
+        let bc = parse_one("IOCTL", "r1, r2, r3");
+        assert_eq!(bc, vec![0x62, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_ioctl_too_few() {
+        let err = parse_one_err("IOCTL", "r1, r2");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── PROFILE (0xC6) ──────────────────────────────────────
+    #[test]
+    fn test_profile_basic() {
+        let bc = parse_one("PROFILE", "r1, r2");
+        assert_eq!(bc, vec![0xC6, 1, 2]);
+    }
+
+    #[test]
+    fn test_profile_too_few() {
+        let err = parse_one_err("PROFILE", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── ABS (0x87) ──────────────────────────────────────────
+    #[test]
+    fn test_abs_basic() {
+        let bc = parse_one("ABS", "r5");
+        assert_eq!(bc, vec![0x87, 5]);
+    }
+
+    #[test]
+    fn test_abs_too_few() {
+        let err = parse_one_err("ABS", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── MIN (0x89) ──────────────────────────────────────────
+    #[test]
+    fn test_min_basic() {
+        let bc = parse_one("MIN", "r1, r2");
+        assert_eq!(bc, vec![0x89, 1, 2]);
+    }
+
+    #[test]
+    fn test_min_too_few() {
+        let err = parse_one_err("MIN", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── MAX (0x8A) ──────────────────────────────────────────
+    #[test]
+    fn test_max_basic() {
+        let bc = parse_one("MAX", "r3, r4");
+        assert_eq!(bc, vec![0x8A, 3, 4]);
+    }
+
+    #[test]
+    fn test_max_too_few() {
+        let err = parse_one_err("MAX", "r3");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── CLAMP (0x8B) ───────────────────────────────────────
+    #[test]
+    fn test_clamp_basic() {
+        let bc = parse_one("CLAMP", "r1, r2, r3");
+        assert_eq!(bc, vec![0x8B, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_clamp_too_few() {
+        let err = parse_one_err("CLAMP", "r1, r2");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── BITSET (0x8D) ──────────────────────────────────────
+    #[test]
+    fn test_bitset_basic() {
+        let bc = parse_one("BITSET", "r1, r5");
+        assert_eq!(bc, vec![0x8D, 1, 5]);
+    }
+
+    #[test]
+    fn test_bitset_too_few() {
+        let err = parse_one_err("BITSET", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── BITCLR (0x8E) ──────────────────────────────────────
+    #[test]
+    fn test_bitclr_basic() {
+        let bc = parse_one("BITCLR", "r2, r7");
+        assert_eq!(bc, vec![0x8E, 2, 7]);
+    }
+
+    #[test]
+    fn test_bitclr_too_few() {
+        let err = parse_one_err("BITCLR", "r2");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── BITTEST (0x8F) ─────────────────────────────────────
+    #[test]
+    fn test_bittest_basic() {
+        let bc = parse_one("BITTEST", "r3, r0");
+        assert_eq!(bc, vec![0x8F, 3, 0]);
+    }
+
+    #[test]
+    fn test_bittest_too_few() {
+        let err = parse_one_err("BITTEST", "r3");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── NOT (0x90) ──────────────────────────────────────────
+    #[test]
+    fn test_not_basic() {
+        let bc = parse_one("NOT", "r10");
+        assert_eq!(bc, vec![0x90, 10]);
+    }
+
+    #[test]
+    fn test_not_too_few() {
+        let err = parse_one_err("NOT", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── INV (0x91) ──────────────────────────────────────────
+    #[test]
+    fn test_inv_no_args() {
+        let bc = parse_one("INV", "");
+        assert_eq!(bc, vec![0x91]);
+    }
+
+    // ── MATVEC (0x92) ───────────────────────────────────────
+    #[test]
+    fn test_matvec_basic() {
+        let bc = parse_one("MATVEC", "r1, r2, r3, r4, r5");
+        assert_eq!(bc, vec![0x92, 1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_matvec_too_few() {
+        let err = parse_one_err("MATVEC", "r1, r2, r3, r4");
+        assert!(err.contains("5 arguments"));
+    }
+
+    // ── RELU (0x93) ─────────────────────────────────────────
+    #[test]
+    fn test_relu_basic() {
+        let bc = parse_one("RELU", "r8");
+        assert_eq!(bc, vec![0x93, 8]);
+    }
+
+    #[test]
+    fn test_relu_too_few() {
+        let err = parse_one_err("RELU", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── MATMUL (0xDE) ──────────────────────────────────────
+    #[test]
+    fn test_matmul_basic() {
+        let bc = parse_one("MATMUL", "r1, r2, r3, r4, r5, r6");
+        assert_eq!(bc, vec![0xDE, 1, 2, 3, 4, 5, 6]);
+    }
+
+    #[test]
+    fn test_matmul_too_few() {
+        let err = parse_one_err("MATMUL", "r1, r2, r3, r4, r5");
+        assert!(err.contains("6 arguments"));
+    }
+
+    // ── BFE (0xC2) ──────────────────────────────────────────
+    #[test]
+    fn test_bfe_basic() {
+        let bc = parse_one("BFE", "r1, r2, r3, r4");
+        assert_eq!(bc, vec![0xC2, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_bfe_too_few() {
+        let err = parse_one_err("BFE", "r1, r2, r3");
+        assert!(err.contains("4 arguments"));
+    }
+
+    // ── BFI (0xC3) ──────────────────────────────────────────
+    #[test]
+    fn test_bfi_basic() {
+        let bc = parse_one("BFI", "r5, r6, r7, r8");
+        assert_eq!(bc, vec![0xC3, 5, 6, 7, 8]);
+    }
+
+    #[test]
+    fn test_bfi_too_few() {
+        let err = parse_one_err("BFI", "r5, r6, r7");
+        assert!(err.contains("4 arguments"));
+    }
+
+    // ── CLIPSET (0xC4) ──────────────────────────────────────
+    #[test]
+    fn test_clipset_basic() {
+        let bc = parse_one("CLIPSET", "r1, r2, r3, r4");
+        assert_eq!(bc, vec![0xC4, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_clipset_too_few() {
+        let err = parse_one_err("CLIPSET", "r1, r2, r3");
+        assert!(err.contains("4 arguments"));
+    }
+
+    // ── CLIPCLR (0xC5) ──────────────────────────────────────
+    #[test]
+    fn test_clipclr_no_args() {
+        let bc = parse_one("CLIPCLR", "");
+        assert_eq!(bc, vec![0xC5]);
+    }
+
+    // ── CMOV (0xE0) ─────────────────────────────────────────
+    #[test]
+    fn test_cmov_basic() {
+        let bc = parse_one("CMOV", "r1, r2, r3");
+        assert_eq!(bc, vec![0xE0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_cmov_too_few() {
+        let err = parse_one_err("CMOV", "r1, r2");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── CSEL (0xEF) ─────────────────────────────────────────
+    #[test]
+    fn test_csel_basic() {
+        let bc = parse_one("CSEL", "r1, r2, r3, r4");
+        assert_eq!(bc, vec![0xEF, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_csel_too_few() {
+        let err = parse_one_err("CSEL", "r1, r2, r3");
+        assert!(err.contains("4 arguments"));
+    }
+
+    // ── BNOT (0xCF) ─────────────────────────────────────────
+    #[test]
+    fn test_bnot_basic() {
+        let bc = parse_one("BNOT", "r15");
+        assert_eq!(bc, vec![0xCF, 15]);
+    }
+
+    #[test]
+    fn test_bnot_too_few() {
+        let err = parse_one_err("BNOT", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── BSET (0xE1) ─────────────────────────────────────────
+    #[test]
+    fn test_bset_basic() {
+        let bc = parse_one("BSET", "r1, r5");
+        assert_eq!(bc, vec![0xE1, 1, 5]);
+    }
+
+    #[test]
+    fn test_bset_too_few() {
+        let err = parse_one_err("BSET", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── BCLR (0xF0) ─────────────────────────────────────────
+    #[test]
+    fn test_bclr_basic() {
+        let bc = parse_one("BCLR", "r3, r7");
+        assert_eq!(bc, vec![0xF0, 3, 7]);
+    }
+
+    #[test]
+    fn test_bclr_too_few() {
+        let err = parse_one_err("BCLR", "r3");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── BTST (0xF1) ─────────────────────────────────────────
+    #[test]
+    fn test_btst_basic() {
+        let bc = parse_one("BTST", "r4, r0");
+        assert_eq!(bc, vec![0xF1, 4, 0]);
+    }
+
+    #[test]
+    fn test_btst_too_few() {
+        let err = parse_one_err("BTST", "r4");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── AI_INJECT (0xA6) ────────────────────────────────────
+    #[test]
+    fn test_ai_inject_basic() {
+        let bc = parse_one("AI_INJECT", "r10");
+        assert_eq!(bc, vec![0xA6, 10]);
+    }
+
+    #[test]
+    fn test_ai_inject_too_few() {
+        let err = parse_one_err("AI_INJECT", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── AI_AGENT (0xB0) ─────────────────────────────────────
+    #[test]
+    fn test_ai_agent_basic() {
+        let bc = parse_one("AI_AGENT", "r5");
+        assert_eq!(bc, vec![0xB0, 5]);
+    }
+
+    #[test]
+    fn test_ai_agent_too_few() {
+        let err = parse_one_err("AI_AGENT", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── SCREENA (0xB0 sentinel) ─────────────────────────────
+    #[test]
+    fn test_screena_basic() {
+        let bc = parse_one("SCREENA", "r3");
+        assert_eq!(bc, vec![0xB0, 0xFF, 3]);
+    }
+
+    #[test]
+    fn test_screena_too_few() {
+        let err = parse_one_err("SCREENA", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── AUDIO_PLAY (0xD4) ───────────────────────────────────
+    #[test]
+    fn test_audio_play_basic() {
+        let bc = parse_one("AUDIO_PLAY", "r1, r2, r3");
+        assert_eq!(bc, vec![0xD4, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_audio_play_too_few() {
+        let err = parse_one_err("AUDIO_PLAY", "r1, r2");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── AUDIO_STOP (0xD5) ───────────────────────────────────
+    #[test]
+    fn test_audio_stop_no_args() {
+        let bc = parse_one("AUDIO_STOP", "");
+        assert_eq!(bc, vec![0xD5]);
+    }
+
+    // ── AUDIO_STATUS (0xD6) ─────────────────────────────────
+    #[test]
+    fn test_audio_status_basic() {
+        let bc = parse_one("AUDIO_STATUS", "r7");
+        assert_eq!(bc, vec![0xD6, 7]);
+    }
+
+    #[test]
+    fn test_audio_status_too_few() {
+        let err = parse_one_err("AUDIO_STATUS", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── WRITESTR (0x67) ─────────────────────────────────────
+    #[test]
+    fn test_writestr_basic() {
+        let bc = parse_one("WRITESTR", "r1, r2");
+        assert_eq!(bc, vec![0x67, 1, 2]);
+    }
+
+    #[test]
+    fn test_writestr_too_few() {
+        let err = parse_one_err("WRITESTR", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── READLN (0x68) ───────────────────────────────────────
+    #[test]
+    fn test_readln_basic() {
+        let bc = parse_one("READLN", "r1, r2, r3");
+        assert_eq!(bc, vec![0x68, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_readln_too_few() {
+        let err = parse_one_err("READLN", "r1, r2");
+        assert!(err.contains("3 arguments"));
+    }
+
+    // ── MTEXINIT (0x05) ─────────────────────────────────────
+    #[test]
+    fn test_mtexist_basic() {
+        let bc = parse_one("MTEXINIT", "r10");
+        assert_eq!(bc, vec![0x05, 10]);
+    }
+
+    #[test]
+    fn test_mtexist_too_few() {
+        let err = parse_one_err("MTEXINIT", "");
+        assert!(err.contains("1 argument"));
+    }
+
+    // ── SEMINIT (0x08) ──────────────────────────────────────
+    #[test]
+    fn test_seminit_basic() {
+        let bc = parse_one("SEMINIT", "r1, r2");
+        assert_eq!(bc, vec![0x08, 1, 2]);
+    }
+
+    #[test]
+    fn test_seminit_too_few() {
+        let err = parse_one_err("SEMINIT", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── HASHINIT (0xE2) ─────────────────────────────────────
+    #[test]
+    fn test_hashinit_basic() {
+        let bc = parse_one("HASHINIT", "0, r5");
+        assert_eq!(bc, vec![0xE2, 0, 5]);
+    }
+
+    #[test]
+    fn test_hashinit_too_few() {
+        let err = parse_one_err("HASHINIT", "0");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── HASHSET (0xE3) ──────────────────────────────────────
+    #[test]
+    fn test_hashset_basic() {
+        let bc = parse_one("HASHSET", "1, r3, r4");
+        assert_eq!(bc, vec![0xE3, 1, 3, 4]);
+    }
+
+    // ── HASHGET (0xE4) ──────────────────────────────────────
+    #[test]
+    fn test_hashget_basic() {
+        let bc = parse_one("HASHGET", "2, r5, r6");
+        assert_eq!(bc, vec![0xE4, 2, 5, 6]);
+    }
+
+    // ── STRLEN (0xF7) ───────────────────────────────────────
+    #[test]
+    fn test_strlen_basic() {
+        let bc = parse_one("STRLEN", "r1, r2");
+        assert_eq!(bc, vec![0xF7, 1, 2]);
+    }
+
+    #[test]
+    fn test_strlen_too_few() {
+        let err = parse_one_err("STRLEN", "r1");
+        assert!(err.contains("2 arguments"));
+    }
+
+    // ── STRCMP (0xF8) ───────────────────────────────────────
+    #[test]
+    fn test_strcmp_basic() {
+        let bc = parse_one("STRCMP", "r3, r4");
+        assert_eq!(bc, vec![0xF8, 3, 4]);
+    }
+
+    // ── STRCPY (0xF9) ───────────────────────────────────────
+    #[test]
+    fn test_strcpy_basic() {
+        let bc = parse_one("STRCPY", "r5, r6");
+        assert_eq!(bc, vec![0xF9, 5, 6]);
+    }
+
+    // ── STRCAT (0xFA) ───────────────────────────────────────
+    #[test]
+    fn test_strcat_basic() {
+        let bc = parse_one("STRCAT", "r7, r8");
+        assert_eq!(bc, vec![0xFA, 7, 8]);
+    }
+
+    // ── High register boundary (r31) ────────────────────────
+    #[test]
+    fn test_spawn_r31() {
+        let bc = parse_one("SPAWN", "r31");
+        assert_eq!(bc, vec![0x4D, 31]);
+    }
+
+    #[test]
+    fn test_read_high_regs() {
+        let bc = parse_one("READ", "r30, r29, r28");
+        assert_eq!(bc, vec![0x55, 30, 29, 28]);
+    }
+
+    // ── Unknown opcode returns None ─────────────────────────
+    #[test]
+    fn test_unknown_opcode_returns_none() {
+        let full = "ZZZTOP r1";
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        let result = try_parse("ZZZTOP", &tokens, &mut bytecode, &constants()).unwrap();
+        assert!(result.is_none());
+        assert!(bytecode.is_empty());
+    }
+}

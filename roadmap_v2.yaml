@@ -5445,20 +5445,20 @@ phases:
     validation: grep -c "#[test]" src/assembler/graphics_ops.rs >= 25
 - id: phase-304
   title: GeOS VM -- Assembler System Ops Unit Tests
-  status: todo
+  status: done
   goal: Add unit tests for the assembler system operations module (system_ops.rs, 1542 LOC, 0 tests).
   description: 'The assembler system_ops.rs handles encoding for SPAWN, KILL, MSGSND, MSGRCV, PIPE, GETPID, OPEN, READ, WRITE, CLOSE, SEEK, LS, IOCTL, SYSCALL, RETK, CHDIR, GETCWD, EXECP, WAITPID, SLEEP, YIELD, SETPRIORITY, ASM, ASMSELF, RUNNEXT, FORMULA, FORMULACLEAR, FORMULAREM, PROFILE, and other system-level opcodes. At 1542 LOC it is the largest assembler module with zero tests. Add tests for: correct bytecode encoding, argument validation, edge cases, and system opcode round-trips.'
   deliverables:
   - name: Unit tests for SPAWN/KILL/MSG/PIPE/GETPID encoding
-    status: todo
+    status: done
   - name: Unit tests for OPEN/READ/WRITE/CLOSE/SEEK/LS encoding
-    status: todo
+    status: done
   - name: Unit tests for IOCTL/SYSCALL/RETK encoding
-    status: todo
+    status: done
   - name: Unit tests for ASM/ASMSELF/RUNNEXT/FORMULA encoding
-    status: todo
+    status: done
   - name: Unit tests for SLEEP/YIELD/SETPRIORITY/CHDIR/GETCWD encoding
-    status: todo
+    status: done
   acceptance_criteria:
   - description: system_ops.rs has at least 30 unit tests
     validation: grep -c "#[test]" src/assembler/system_ops.rs >= 30

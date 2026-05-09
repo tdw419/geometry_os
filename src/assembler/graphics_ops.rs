@@ -544,8 +544,7 @@ mod tests {
             .filter(|s| !s.is_empty())
             .collect();
         let mut bytecode = Vec::new();
-        try_parse(opcode, &tokens, &mut bytecode, &constants())
-            .unwrap_err()
+        try_parse(opcode, &tokens, &mut bytecode, &constants()).unwrap_err()
     }
 
     // ── PSET (0x40) ──────────────────────────────────────────
@@ -778,7 +777,10 @@ mod tests {
     fn test_peek_and_screenp_different_opcodes() {
         let peek = parse_one("PEEK", "r1, r2, r3");
         let screenp = parse_one("SCREENP", "r1, r2, r3");
-        assert_ne!(peek[0], screenp[0], "PEEK and SCREENP must have different opcodes");
+        assert_ne!(
+            peek[0], screenp[0],
+            "PEEK and SCREENP must have different opcodes"
+        );
         assert_eq!(peek[0], 0x4F);
         assert_eq!(screenp[0], 0x6D);
     }
@@ -935,9 +937,9 @@ mod tests {
         let src = "PSET r1, r2, r3\nHALT";
         let result = assemble(src, 0).expect("assembly should succeed");
         assert_eq!(result.pixels[0], 0x40); // PSET
-        assert_eq!(result.pixels[1], 1);    // r1
-        assert_eq!(result.pixels[2], 2);    // r2
-        assert_eq!(result.pixels[3], 3);    // r3
+        assert_eq!(result.pixels[1], 1); // r1
+        assert_eq!(result.pixels[2], 2); // r2
+        assert_eq!(result.pixels[3], 3); // r3
         assert_eq!(result.pixels[4], 0x00); // HALT
     }
 
@@ -948,13 +950,17 @@ mod tests {
         let result = assemble(src, 0).expect("assembly should succeed");
         let mut pos = 0;
         // FILL: 2 words
-        assert_eq!(result.pixels[pos], 0x42); pos += 2;
+        assert_eq!(result.pixels[pos], 0x42);
+        pos += 2;
         // RECTF: 6 words
-        assert_eq!(result.pixels[pos], 0x43); pos += 6;
+        assert_eq!(result.pixels[pos], 0x43);
+        pos += 6;
         // LINE: 6 words
-        assert_eq!(result.pixels[pos], 0x45); pos += 6;
+        assert_eq!(result.pixels[pos], 0x45);
+        pos += 6;
         // CIRCLE: 5 words
-        assert_eq!(result.pixels[pos], 0x46); pos += 5;
+        assert_eq!(result.pixels[pos], 0x46);
+        pos += 5;
         // HALT: 1 word
         assert_eq!(result.pixels[pos], 0x00);
     }
@@ -965,10 +971,13 @@ mod tests {
         let src = "BLEND r1, r2, r3, r4\nROTATE r5, r6, r7, r8, r9\nSCALE r10, r11, r12, r13, r14, r15, r16, r17\nHALT";
         let result = assemble(src, 0).expect("assembly should succeed");
         let mut pos = 0;
-        assert_eq!(result.pixels[pos], 0xF2); pos += 5; // BLEND
-        assert_eq!(result.pixels[pos], 0xF4); pos += 6; // ROTATE
-        assert_eq!(result.pixels[pos], 0xF5); pos += 9; // SCALE
-        assert_eq!(result.pixels[pos], 0x00);            // HALT
+        assert_eq!(result.pixels[pos], 0xF2);
+        pos += 5; // BLEND
+        assert_eq!(result.pixels[pos], 0xF4);
+        pos += 6; // ROTATE
+        assert_eq!(result.pixels[pos], 0xF5);
+        pos += 9; // SCALE
+        assert_eq!(result.pixels[pos], 0x00); // HALT
     }
 
     // ── Unknown opcode returns Ok(None) ──────────────────────

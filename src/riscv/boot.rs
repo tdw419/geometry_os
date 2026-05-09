@@ -520,28 +520,28 @@ impl RiscvVm {
         // reserved.regions=0xC1003CE0 (offset 44).
         let memblock_pa: u64 = 0x0100369C;
         let res_cnt_addr = memblock_pa + 32; // reserved.cnt (4+4+24 = 32 on rv32?)
-        // Let's re-verify offsets from the hexdump:
-        // memblock:
-        //   00: bottom_up (0)
-        //   04: current_limit (0xFFFFFFFF)
-        //   08: memory.cnt (0)
-        //   12: memory.max (0x80000000)
-        //   16: memory.total_size (0)
-        //   20: memory.regions (0xC10036E0)
-        //   ...
-        // Struct memblock_type is 24 bytes?
-        //   cnt (4), max (4), total_size (4), regions (4), name (4) -> 20 bytes.
-        // Wait, why did reserved.regions end up at 44?
-        // bottom_up (4) + current_limit (4) + memory (20) = 28.
-        // reserved starts at 28.
-        // reserved.cnt (28), reserved.max (32), reserved.total_size (36), reserved.regions (40).
-        // My hexdump showed:
-        // c10036bc 80000000 00000000 e03c00c1 3c895bc1
-        // Offset 32: 0x80000000 (reserved.max)
-        // Offset 36: 0 (reserved.total_size)
-        // Offset 40: 0xC1003CE0 (reserved.regions)
-        // Offset 44: 0xC15B893C (name?)
-        
+                                             // Let's re-verify offsets from the hexdump:
+                                             // memblock:
+                                             //   00: bottom_up (0)
+                                             //   04: current_limit (0xFFFFFFFF)
+                                             //   08: memory.cnt (0)
+                                             //   12: memory.max (0x80000000)
+                                             //   16: memory.total_size (0)
+                                             //   20: memory.regions (0xC10036E0)
+                                             //   ...
+                                             // Struct memblock_type is 24 bytes?
+                                             //   cnt (4), max (4), total_size (4), regions (4), name (4) -> 20 bytes.
+                                             // Wait, why did reserved.regions end up at 44?
+                                             // bottom_up (4) + current_limit (4) + memory (20) = 28.
+                                             // reserved starts at 28.
+                                             // reserved.cnt (28), reserved.max (32), reserved.total_size (36), reserved.regions (40).
+                                             // My hexdump showed:
+                                             // c10036bc 80000000 00000000 e03c00c1 3c895bc1
+                                             // Offset 32: 0x80000000 (reserved.max)
+                                             // Offset 36: 0 (reserved.total_size)
+                                             // Offset 40: 0xC1003CE0 (reserved.regions)
+                                             // Offset 44: 0xC15B893C (name?)
+
         let res_cnt_addr = memblock_pa + 28;
         let res_regions_ptr_addr = memblock_pa + 40;
         let res_cnt = vm.bus.read_word(res_cnt_addr).unwrap_or(0);
@@ -550,12 +550,25 @@ impl RiscvVm {
         if res_regions_ptr == 0xC1003CE0 {
             let res_regions_pa = 0x01003CE0;
             let res_region_offset = (res_cnt as u64) * 8;
-            vm.bus.write_word(res_regions_pa + res_region_offset, 0).ok();
-            vm.bus.write_word(res_regions_pa + res_region_offset + 4, kernel_phys_end as u32).ok();
+            vm.bus
+                .write_word(res_regions_pa + res_region_offset, 0)
+                .ok();
+            vm.bus
+                .write_word(
+                    res_regions_pa + res_region_offset + 4,
+                    kernel_phys_end as u32,
+                )
+                .ok();
             vm.bus.write_word(res_cnt_addr, res_cnt + 1).ok();
-            eprintln!("[boot] Pre-populated memblock reserved: PA 0 - PA 0x{:08X}", kernel_phys_end);
+            eprintln!(
+                "[boot] Pre-populated memblock reserved: PA 0 - PA 0x{:08X}",
+                kernel_phys_end
+            );
         } else {
-            eprintln!("[boot] WARNING: reserved.regions pointer mismatch: 0x{:08X} (expected 0xC1003CE0)", res_regions_ptr);
+            eprintln!(
+                "[boot] WARNING: reserved.regions pointer mismatch: 0x{:08X} (expected 0xC1003CE0)",
+                res_regions_ptr
+            );
         }
 
         {
@@ -566,10 +579,17 @@ impl RiscvVm {
             if mem_cnt == 0 && mem_regions_ptr == 0xC10036E0 {
                 let mem_regions_pa = 0x010036E0;
                 vm.bus.write_word(mem_regions_pa, 0).ok();
-                vm.bus.write_word(mem_regions_pa + 4, actual_ram_size as u32).ok();
+                vm.bus
+                    .write_word(mem_regions_pa + 4, actual_ram_size as u32)
+                    .ok();
                 vm.bus.write_word(mem_cnt_addr, 1).ok();
-                vm.bus.write_word(memblock_pa + 16, actual_ram_size as u32).ok();
-                eprintln!("[boot] Pre-populated memblock memory: PA 0 - PA 0x{:08X}", actual_ram_size);
+                vm.bus
+                    .write_word(memblock_pa + 16, actual_ram_size as u32)
+                    .ok();
+                eprintln!(
+                    "[boot] Pre-populated memblock memory: PA 0 - PA 0x{:08X}",
+                    actual_ram_size
+                );
             }
         }
 
@@ -594,8 +614,12 @@ impl RiscvVm {
         // Protect pointers from BSS clearing
         vm.bus.protected_addrs.push((ibp_pa, dtb_phys_addr));
         vm.bus.protected_addrs.push((ibp_pa_pa, dtb_phys_addr));
-        vm.bus.protected_addrs.push((dtb_early_va_pa, dtb_addr as u32));
-        vm.bus.protected_addrs.push((dtb_early_pa_pa, dtb_addr as u32));
+        vm.bus
+            .protected_addrs
+            .push((dtb_early_va_pa, dtb_addr as u32));
+        vm.bus
+            .protected_addrs
+            .push((dtb_early_pa_pa, dtb_addr as u32));
         vm.bus.protected_addrs.push((lpj_fine_pa, 400_000));
         // Protect loops_per_jiffy (VA 0xC1CC7A78, PA 0x01CC7A78)
         let lpj_pa: u64 = 0x01CC7A78;
