@@ -1,1388 +1,519 @@
-; tetris.asm - Tetris for Geometry OS
-; Controls: A/D=move left/right, W=rotate, S=soft drop, Space=hard drop
-;
-; Memory Map:
-;   0x2000..0x20C7  grid[200] (10x20, 0=empty, color=occupied)
-;   0x20C8  cur_type (0-6)
-;   0x20C9  cur_rot (0-3)
-;   0x20CA  piece_x (0-9)
-;   0x20CB  piece_y (0-19)
-;   0x20CC  next_type (0-6)
-;   0x20CD  score
-;   0x20CE  total_lines
-;   0x20CF  level
-;   0x20D0  game_over
-;   0x20D1  drop_ctr
-;   0x2100..0x216F  piece_data (type*16 + rot*4 + cell)
-;   0x2170..0x2174  score_table (0,100,300,500,800)
-;   0x2180..0x2186  piece_colors
-;   0x2190..0x21AF  text_buf (32 bytes)
-;
-; Screen: 256x256, play area 80x160 at (88,48), cell=8px
-; Preview at (200,52)
+; ═══════════════════════════════════════════════════════════
+; TETRIS for Geometry OS
+; Controls: A=left, D=right, W=rotate, S=soft drop, Space=hard drop
+; ═══════════════════════════════════════════════════════════
+
+; Memory: Board 0x4000 (200 cells), State 0x40D0, Rotations 0x4100
+; Colors 0x42C0, Score table 0x42D0, Text 0x4320
+; Screen: 256x256, board 100x200 at (78,28), cell=10px
 
 restart:
-  LDI r30, 0x8000
+  ; -- Constants --
+  LDI r30, 0xFF00
+  LDI r1, 1
+  LDI r2, 10
+  LDI r3, 20
+  LDI r4, 0
 
-  LDI r4, 0x2100
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2101
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2102
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2103
-  LDI r5, 0x0301
-  STORE r4, r5
-  LDI r4, 0x2104
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x2105
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2106
-  LDI r5, 0x0202
-  STORE r4, r5
-  LDI r4, 0x2107
-  LDI r5, 0x0203
-  STORE r4, r5
-  LDI r4, 0x2108
-  LDI r5, 0x0002
-  STORE r4, r5
-  LDI r4, 0x2109
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x210A
-  LDI r5, 0x0202
-  STORE r4, r5
-  LDI r4, 0x210B
-  LDI r5, 0x0302
-  STORE r4, r5
-  LDI r4, 0x210C
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x210D
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x210E
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x210F
-  LDI r5, 0x0103
-  STORE r4, r5
-  LDI r4, 0x2110
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2111
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x2112
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2113
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2114
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2115
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x2116
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2117
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2118
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2119
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x211A
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x211B
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x211C
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x211D
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x211E
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x211F
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2120
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2121
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2122
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2123
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2124
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2125
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2126
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2127
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x2128
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2129
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x212A
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x212B
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x212C
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x212D
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x212E
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x212F
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x2130
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2131
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x2132
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2133
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2134
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2135
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2136
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2137
-  LDI r5, 0x0202
-  STORE r4, r5
-  LDI r4, 0x2138
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2139
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x213A
-  LDI r5, 0x0002
-  STORE r4, r5
-  LDI r4, 0x213B
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x213C
-  LDI r5, 0x0000
-  STORE r4, r5
-  LDI r4, 0x213D
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x213E
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x213F
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x2140
-  LDI r5, 0x0000
-  STORE r4, r5
-  LDI r4, 0x2141
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2142
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2143
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2144
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x2145
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2146
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2147
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x2148
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2149
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x214A
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x214B
-  LDI r5, 0x0202
-  STORE r4, r5
-  LDI r4, 0x214C
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x214D
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x214E
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x214F
-  LDI r5, 0x0002
-  STORE r4, r5
-  LDI r4, 0x2150
-  LDI r5, 0x0000
-  STORE r4, r5
-  LDI r4, 0x2151
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2152
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2153
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2154
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2155
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x2156
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2157
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x2158
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2159
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x215A
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x215B
-  LDI r5, 0x0202
-  STORE r4, r5
-  LDI r4, 0x215C
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x215D
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x215E
-  LDI r5, 0x0002
-  STORE r4, r5
-  LDI r4, 0x215F
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x2160
-  LDI r5, 0x0200
-  STORE r4, r5
-  LDI r4, 0x2161
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2162
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2163
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x2164
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x2165
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x2166
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x2167
-  LDI r5, 0x0202
-  STORE r4, r5
-  LDI r4, 0x2168
-  LDI r5, 0x0001
-  STORE r4, r5
-  LDI r4, 0x2169
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x216A
-  LDI r5, 0x0201
-  STORE r4, r5
-  LDI r4, 0x216B
-  LDI r5, 0x0002
-  STORE r4, r5
-  LDI r4, 0x216C
-  LDI r5, 0x0000
-  STORE r4, r5
-  LDI r4, 0x216D
-  LDI r5, 0x0100
-  STORE r4, r5
-  LDI r4, 0x216E
-  LDI r5, 0x0101
-  STORE r4, r5
-  LDI r4, 0x216F
-  LDI r5, 0x0102
-  STORE r4, r5
-  LDI r4, 0x2180
-  LDI r5, 0x00FFFF
-  STORE r4, r5
-  LDI r4, 0x2181
-  LDI r5, 0xFFFF00
-  STORE r4, r5
-  LDI r4, 0x2182
-  LDI r5, 0xAA00FF
-  STORE r4, r5
-  LDI r4, 0x2183
-  LDI r5, 0x00FF00
-  STORE r4, r5
-  LDI r4, 0x2184
-  LDI r5, 0xFF0000
-  STORE r4, r5
-  LDI r4, 0x2185
-  LDI r5, 0x4444FF
-  STORE r4, r5
-  LDI r4, 0x2186
-  LDI r5, 0xFF8800
-  STORE r4, r5
-  LDI r4, 0x2170
-  LDI r5, 0
-  STORE r4, r5
-  LDI r4, 0x2171
-  LDI r5, 100
-  STORE r4, r5
-  LDI r4, 0x2172
-  LDI r5, 300
-  STORE r4, r5
-  LDI r4, 0x2173
-  LDI r5, 500
-  STORE r4, r5
-  LDI r4, 0x2174
-  LDI r5, 800
-  STORE r4, r5
-  CALL init_game
+  ; -- Clear board 200 cells at 0x4000 --
+  LDI r10, 0x4000
+  LDI r11, 200
+clr_b:
+  STORE r10, r4
+  ADD r10, r1
+  SUB r11, r1
+  JNZ r11, clr_b
 
-; ── Main Game Loop ──────────────────────────────────────────
+  ; -- store_4 helper: r20=addr, r21-r24=vals --
+store_4:
+  STORE r20, r21
+  ADD r20, r1
+  STORE r20, r22
+  ADD r20, r1
+  STORE r20, r23
+  ADD r20, r1
+  STORE r20, r24
+  RET
+
+  ; -- Rotation data at 0x4100 (7 pieces x 4 rots x 4 rows) --
+  ; I-piece (type 0)
+  LDI r20, 0x4100; LDI r21, 0; LDI r22, 0; LDI r23, 15; LDI r24, 0; CALL store_4
+  LDI r20, 0x4104; LDI r21, 4; LDI r22, 4; LDI r23, 4; LDI r24, 4; CALL store_4
+  LDI r20, 0x4108; LDI r21, 0; LDI r22, 0; LDI r23, 15; LDI r24, 0; CALL store_4
+  LDI r20, 0x410C; LDI r21, 4; LDI r22, 4; LDI r23, 4; LDI r24, 4; CALL store_4
+  ; O-piece (type 1)
+  LDI r20, 0x4110; LDI r21, 12; LDI r22, 12; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x4114; LDI r21, 12; LDI r22, 12; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x4118; LDI r21, 12; LDI r22, 12; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x411C; LDI r21, 12; LDI r22, 12; LDI r23, 0; LDI r24, 0; CALL store_4
+  ; T-piece (type 2)
+  LDI r20, 0x4120; LDI r21, 4; LDI r22, 14; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x4124; LDI r21, 4; LDI r22, 12; LDI r23, 4; LDI r24, 0; CALL store_4
+  LDI r20, 0x4128; LDI r21, 0; LDI r22, 14; LDI r23, 4; LDI r24, 0; CALL store_4
+  LDI r20, 0x412C; LDI r21, 4; LDI r22, 6; LDI r23, 4; LDI r24, 0; CALL store_4
+  ; S-piece (type 3)
+  LDI r20, 0x4130; LDI r21, 6; LDI r22, 12; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x4134; LDI r21, 4; LDI r22, 6; LDI r23, 2; LDI r24, 0; CALL store_4
+  LDI r20, 0x4138; LDI r21, 0; LDI r22, 6; LDI r23, 4; LDI r24, 0; CALL store_4
+  LDI r20, 0x413C; LDI r21, 8; LDI r22, 12; LDI r23, 4; LDI r24, 0; CALL store_4
+  ; Z-piece (type 4)
+  LDI r20, 0x4140; LDI r21, 12; LDI r22, 6; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x4144; LDI r21, 2; LDI r22, 6; LDI r23, 4; LDI r24, 0; CALL store_4
+  LDI r20, 0x4148; LDI r21, 4; LDI r22, 12; LDI r23, 2; LDI r24, 0; CALL store_4
+  LDI r20, 0x414C; LDI r21, 4; LDI r22, 6; LDI r23, 8; LDI r24, 0; CALL store_4
+  ; L-piece (type 5)
+  LDI r20, 0x4150; LDI r21, 8; LDI r22, 14; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x4154; LDI r21, 6; LDI r22, 4; LDI r23, 4; LDI r24, 0; CALL store_4
+  LDI r20, 0x4158; LDI r21, 14; LDI r22, 2; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x415C; LDI r21, 4; LDI r22, 4; LDI r23, 12; LDI r24, 0; CALL store_4
+  ; J-piece (type 6)
+  LDI r20, 0x4160; LDI r21, 2; LDI r22, 14; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x4164; LDI r21, 4; LDI r22, 4; LDI r23, 6; LDI r24, 0; CALL store_4
+  LDI r20, 0x4168; LDI r21, 14; LDI r22, 8; LDI r23, 0; LDI r24, 0; CALL store_4
+  LDI r20, 0x416C; LDI r21, 12; LDI r22, 4; LDI r23, 4; LDI r24, 0; CALL store_4
+
+  ; -- Piece colors at 0x42C0 --
+  LDI r11, 0x42C0; LDI r12, 0x00CCCC; STORE r11, r12
+  LDI r11, 0x42C1; LDI r12, 0xCCCC00; STORE r11, r12
+  LDI r11, 0x42C2; LDI r12, 0xAA00CC; STORE r11, r12
+  LDI r11, 0x42C3; LDI r12, 0x00CC44; STORE r11, r12
+  LDI r11, 0x42C4; LDI r12, 0xCC2200; STORE r11, r12
+  LDI r11, 0x42C5; LDI r12, 0xFF8800; STORE r11, r12
+  LDI r11, 0x42C6; LDI r12, 0x2244CC; STORE r11, r12
+
+  ; -- Score table at 0x42D0: 0,100,300,500,800 --
+  LDI r11, 0x42D0; LDI r12, 0; STORE r11, r12
+  LDI r11, 0x42D1; LDI r12, 100; STORE r11, r12
+  LDI r11, 0x42D2; LDI r12, 300; STORE r11, r12
+  LDI r11, 0x42D3; LDI r12, 500; STORE r11, r12
+  LDI r11, 0x42D4; LDI r12, 800; STORE r11, r12
+
+  ; -- Game state at 0x40D0 --
+  LDI r11, 0x40D0; LDI r12, 0; STORE r11, r12    ; current_piece
+  LDI r11, 0x40D1; LDI r12, 3; STORE r11, r12    ; piece_x
+  LDI r11, 0x40D2; LDI r12, 0; STORE r11, r12    ; piece_y
+  LDI r11, 0x40D3; LDI r12, 0; STORE r11, r12    ; piece_rot
+  LDI r11, 0x40D4; LDI r12, 0; STORE r11, r12    ; score
+  LDI r11, 0x40D5; LDI r12, 0; STORE r11, r12    ; lines_cleared
+  LDI r11, 0x40D6; LDI r12, 0; STORE r11, r12    ; game_over
+  LDI r11, 0x40D7; RAND r12; LDI r13, 7; MOD r12, r13; STORE r11, r12  ; next_piece
+  LDI r11, 0x40D8; LDI r12, 0; STORE r11, r12    ; soft_drop
+  LDI r11, 0x40D9; LDI r12, 0; STORE r11, r12    ; drop_timer
+  LDI r11, 0x40DA; LDI r12, 1; STORE r11, r12    ; level
+
+  ; -- Text strings --
+  LDI r19, 0x4320; STRO r19, "NEXT"
+  LDI r19, 0x4325; STRO r19, "SCORE"
+  LDI r19, 0x432B; STRO r19, "LINES"
+  LDI r19, 0x4331; STRO r19, "LEVEL"
+  LDI r19, 0x4337; STRO r19, "GAME OVER"
+
+  ; -- Spawn first piece --
+  CALL spawn_piece
+
+  ; -- Draw initial frame --
+  LDI r11, 0; FILL r11
+  CALL draw_border
+  CALL draw_board_cells
+  CALL draw_cur_piece
+  CALL draw_preview
+  CALL draw_hud
+  FRAME
+
+; ═════════════ GAME LOOP ═════════════
 game_loop:
-  ; Check game over
-  LDI r4, 0x20D0
-  LOAD r1, r4
-  JNZ r1, do_game_over
-
-  ; Read input
-  IKEY r7
-
-  ; A/a = move left (65/97)
-  LDI r6, 65
-  CMP r7, r6
-  JZ r0, try_left
-  LDI r6, 97
-  CMP r7, r6
-  JZ r0, try_left
-
-  ; D/d = move right (68/100)
-  LDI r6, 68
-  CMP r7, r6
-  JZ r0, try_right
-  LDI r6, 100
-  CMP r7, r6
-  JZ r0, try_right
-
-  ; W/w = rotate (87/119)
-  LDI r6, 87
-  CMP r7, r6
-  JZ r0, try_rotate
-  LDI r6, 119
-  CMP r7, r6
-  JZ r0, try_rotate
-
-  ; S/s = soft drop (83/115)
-  LDI r6, 83
-  CMP r7, r6
-  JZ r0, try_soft_drop
-  LDI r6, 115
-  CMP r7, r6
-  JZ r0, try_soft_drop
-
-  ; Space = hard drop (32)
-  LDI r6, 32
-  CMP r7, r6
-  JZ r0, do_hard_drop
-
-  JMP after_input
-
-try_left:
-  LDI r4, 0x20CA
-  LOAD r10, r4       ; piece_x
-  LDI r9, 0
-  CMP r10, r9
-  JZ r0, after_input  ; can't move left if x=0
-  LDI r9, 1
-  SUB r10, r9
-  ; Check collision at (x-1, y, type, rot)
-  LDI r4, 0x20CB
-  LOAD r11, r4       ; piece_y
-  LDI r4, 0x20C8
-  LOAD r12, r4       ; type
-  LDI r4, 0x20C9
-  LOAD r13, r4       ; rot
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JNZ r1, after_input ; collision - skip
-  LDI r4, 0x20CA
-  STORE r4, r10     ; commit
-  JMP after_input
-
-try_right:
-  LDI r4, 0x20CA
-  LOAD r10, r4       ; piece_x
-  LDI r9, 6
-  CMP r10, r9
-  BGE r0, after_input ; can't move right if x>=6
-  LDI r9, 1
-  ADD r10, r9
-  LDI r4, 0x20CB
-  LOAD r11, r4
-  LDI r4, 0x20C8
-  LOAD r12, r4
-  LDI r4, 0x20C9
-  LOAD r13, r4
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JNZ r1, after_input
-  LDI r4, 0x20CA
-  STORE r4, r10
-  JMP after_input
-
-try_rotate:
-  ; Try rotation with wall kicks (0, +1, -1)
-  LDI r4, 0x20C9
-  LOAD r13, r4       ; current rotation
-  LDI r9, 3
-  CMP r13, r9
-  BLT r0, rot_inc   ; if rot < 3, increment
-  LDI r13, 0         ; wrap to 0
-  JMP rot_try
-rot_inc:
-  LDI r9, 1
-  ADD r13, r9
-rot_try:
-  LDI r4, 0x20CA
-  LOAD r10, r4       ; piece_x
-  LDI r4, 0x20CB
-  LOAD r11, r4       ; piece_y
-  LDI r4, 0x20C8
-  LOAD r12, r4       ; type
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JZ r0, rot_commit  ; no collision - commit
-  ; Try wall kick +1
-  LDI r9, 1
-  ADD r10, r9
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JZ r0, rot_kick1   ; no collision with +1
-  ; Try wall kick -1 (net -1 from original)
-  LDI r9, 2
-  SUB r10, r9        ; piece_x - 1
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JZ r0, rot_kick_m1
-  ; Try wall kick +2
-  LDI r9, 3
-  ADD r10, r9        ; piece_x + 2
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JNZ r1, after_input ; all kicks failed
-  ; Kick +2 succeeded
-  LDI r4, 0x20CA
-  STORE r4, r10
-  JMP rot_commit
-rot_kick1:
-  ; piece_x is already +1
-  LDI r4, 0x20CA
-  STORE r4, r10
-  JMP rot_commit
-rot_kick_m1:
-  ; piece_x is already -1
-  LDI r4, 0x20CA
-  STORE r4, r10
-rot_commit:
-  LDI r4, 0x20C9
-  STORE r4, r13     ; commit new rotation
-  JMP after_input
-
-try_soft_drop:
-  ; Try to move piece down by 1
-  LDI r4, 0x20CB
-  LOAD r11, r4       ; piece_y
-  LDI r9, 1
-  ADD r11, r9        ; y + 1
-  LDI r4, 0x20CA
-  LOAD r10, r4       ; piece_x
-  LDI r4, 0x20C8
-  LOAD r12, r4       ; type
-  LDI r4, 0x20C9
-  LOAD r13, r4       ; rot
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JNZ r1, after_input ; can't drop
-  LDI r4, 0x20CB
-  LDI r5, 0
-  ADD r5, r11
-  STORE r4, r5       ; commit y+1
-  LDI r4, 0x20D1
-  LDI r5, 0
-  STORE r4, r5       ; reset drop counter
-  JMP after_input
-
-do_hard_drop:
-  ; Drop piece to lowest valid position
-hd_loop:
-  LDI r4, 0x20CB
-  LOAD r11, r4       ; piece_y
-  LDI r9, 1
-  ADD r11, r9
-  LDI r4, 0x20CA
-  LOAD r10, r4
-  LDI r4, 0x20C8
-  LOAD r12, r4
-  LDI r4, 0x20C9
-  LOAD r13, r4
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JNZ r1, hd_lock   ; collision - lock here
-  LDI r4, 0x20CB
-  STORE r4, r11     ; commit y+1
-  JMP hd_loop
-hd_lock:
-  CALL lock_piece
-  CALL check_lines
-  CALL spawn_piece
-  JMP draw_and_frame
-
-after_input:
-  ; Auto-drop based on timer
-  LDI r4, 0x20D1
-  LOAD r9, r4        ; drop counter
-  LDI r10, 1
-  ADD r9, r10        ; counter++
-  LDI r4, 0x20D1
-  STORE r4, r9
-
-  ; Compute threshold: max(3, 30 - level*3)
-  LDI r4, 0x20CF
-  LOAD r10, r4       ; level
-  LDI r11, 3
-  MUL r10, r11      ; level * 3
-  LDI r11, 30
-  SUB r11, r10      ; 30 - level*3
-  LDI r10, 3
-  CMP r11, r10
-  BGE r0, drop_check ; if threshold >= 3, use it
-  MOV r11, r10      ; else clamp to 3
-
-drop_check:
-  CMP r9, r11       ; counter >= threshold?
-  BLT r0, draw_and_frame ; not yet
-  ; Reset counter
-  LDI r4, 0x20D1
-  LDI r5, 0
-  STORE r4, r5
-  ; Try to drop piece
-  LDI r4, 0x20CB
-  LOAD r11, r4       ; piece_y
-  LDI r10, 1
-  ADD r11, r10      ; y+1
-  LDI r4, 0x20CA
-  LOAD r10, r4       ; piece_x
-  LDI r4, 0x20C8
-  LOAD r12, r4       ; type
-  LDI r4, 0x20C9
-  LOAD r13, r4       ; rot
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JNZ r1, auto_lock  ; can't drop - lock
-  LDI r4, 0x20CB
-  STORE r4, r11     ; commit y+1
-  JMP draw_and_frame
-
-auto_lock:
-  CALL lock_piece
-  CALL check_lines
-  CALL spawn_piece
-  JMP draw_and_frame
-
-draw_and_frame:
-  CALL draw_frame
+  LDI r11, 0x40D6; LOAD r11, r11; JNZ r11, go_screen
+  LDI r11, 0; FILL r11
+  CALL draw_border
+  CALL draw_board_cells
+  IKEY r10
+  ; A=65: move left
+  LDI r11, 65; CMP r10, r11; JNZ r0, n_left; CALL try_left
+n_left:
+  ; D=68: move right
+  LDI r11, 68; CMP r10, r11; JNZ r0, n_right; CALL try_right
+n_right:
+  ; W=87: rotate
+  LDI r11, 87; CMP r10, r11; JNZ r0, n_rot; CALL try_rot
+n_rot:
+  ; S=83: soft drop
+  LDI r11, 83; CMP r10, r11; JNZ r0, n_sdrop; CALL try_sdrop
+n_sdrop:
+  ; Space=32: hard drop
+  LDI r11, 32; CMP r10, r11; JNZ r0, n_hdrop; CALL hard_drop
+n_hdrop:
+  CALL do_gravity
+  CALL draw_cur_piece
+  CALL draw_preview
+  CALL draw_hud
   FRAME
   JMP game_loop
 
-do_game_over:
-  ; Draw game over screen
-  LDI r1, 0x400008
-  FILL r1
+; ═════════════ GAME OVER SCREEN ═════════════
+go_screen:
+  LDI r11, 0; FILL r11
+  LDI r16, 88; LDI r17, 100; LDI r18, 0x4337; TEXT r16, r17, r18
+  LDI r16, 100; LDI r17, 125; LDI r18, 0x4325; TEXT r16, r17, r18
+  LDI r16, 0x40D4; LOAD r20, r16; LDI r21, 0x4341; CALL int_to_str
+  LDI r16, 100; LDI r17, 137; LDI r18, 0x4341; TEXT r16, r17, r18
   FRAME
-  IKEY r7
-  JZ r7, do_game_over
+  IKEY r10; JZ r10, go_screen
   JMP restart
 
-; ─────────────────────────────────────────────────────────────
-; SUBROUTINE: init_game
-; ─────────────────────────────────────────────────────────────
-init_game:
-  PUSH r31
-  ; Clear grid (200 cells)
-  LDI r4, 0x2000
-  LDI r5, 0
-  LDI r6, 200
-ig_clear:
-  STORE r4, r5
-  LDI r9, 1
-  ADD r4, r9
-  SUB r6, r9
-  JZ r6, ig_clear_done
-  JMP ig_clear
-ig_clear_done:
-  ; Init state
-  LDI r4, 0x20CD
-  LDI r5, 0
-  STORE r4, r5       ; score = 0
-  LDI r4, 0x20CE
-  STORE r4, r5       ; total_lines = 0
-  LDI r4, 0x20CF
-  LDI r5, 1
-  STORE r4, r5       ; level = 1
-  LDI r4, 0x20D0
-  LDI r5, 0
-  STORE r4, r5       ; game_over = 0
-  LDI r4, 0x20D1
-  STORE r4, r5       ; drop_ctr = 0
-  ; Generate two random pieces
-  RAND r1
-  LDI r9, 7
-  AND r1, r9
-  LDI r4, 0x20CC
-  STORE r4, r1       ; next_type = random
-  PUSH r31
-  CALL spawn_piece
-  POP r31
-  POP r31
-  RET
+; ═════════════ SUBROUTINES ═════════════
 
-; ─────────────────────────────────────────────────────────────
-; SUBROUTINE: spawn_piece
-;   Sets current = next, generates new next
-;   If collision at spawn: game_over = 1
-; ─────────────────────────────────────────────────────────────
-spawn_piece:
-  PUSH r31
-  ; current = next
-  LDI r4, 0x20CC
-  LOAD r1, r4
-  LDI r4, 0x20C8
-  STORE r4, r1       ; cur_type = next_type
-  LDI r4, 0x20C9
-  LDI r5, 0
-  STORE r4, r5       ; cur_rot = 0
-  LDI r4, 0x20CA
-  LDI r5, 3
-  STORE r4, r5       ; piece_x = 3 (centered)
-  LDI r4, 0x20CB
-  LDI r5, 0
-  STORE r4, r5       ; piece_y = 0
-  ; Generate new next
-  RAND r1
-  LDI r9, 7
-  AND r1, r9
-  LDI r4, 0x20CC
-  STORE r4, r1
-  ; Check collision at spawn
-  LDI r4, 0x20CA
-  LOAD r10, r4
-  LDI r4, 0x20CB
-  LOAD r11, r4
-  LDI r4, 0x20C8
-  LOAD r12, r4
-  LDI r4, 0x20C9
-  LOAD r13, r4
-  PUSH r31
-  CALL check_collision
-  POP r31
-  LDI r9, 0
-  CMP r1, r9
-  JZ r1, sp_done     ; no collision - OK
-  ; Collision at spawn = game over
-  LDI r4, 0x20D0
-  LDI r5, 1
-  STORE r4, r5
-  ; Play death sound
-  LDI r5, 110
-  LDI r6, 300
-  BEEP r5, r6
-sp_done:
-  POP r31
-  RET
-
-; ─────────────────────────────────────────────────────────────
-; SUBROUTINE: check_collision
-;   r10=piece_x, r11=piece_y, r12=type, r13=rotation
-;   Returns r1=0 (ok) or r1=1 (collision)
-; ─────────────────────────────────────────────────────────────
+; --- check_collision ---
+; Input: r20=piece_x, r21=piece_y, r22=piece_rot, r23=piece_type
+; Output: r25 (0=ok, 1=collision)
 check_collision:
-  LDI r14, 0        ; cell_index
-  LDI r1, 0         ; result = ok
-cc_loop:
-  LDI r9, 4
-  CMP r14, r9
-  BGE r0, cc_done
-  ; data addr = 0x2100 + type*16 + rot*4 + cell
-  LDI r15, 0x2100
-  MOV r16, r12
-  LDI r9, 16
-  MUL r16, r9
-  ADD r15, r16
-  MOV r16, r13
-  LDI r9, 4
-  MUL r16, r9
-  ADD r15, r16
-  ADD r15, r14
-  LOAD r16, r15     ; (cell_x << 8) | cell_y
-  ; Decode
-  LDI r9, 8
-  MOV r17, r16
-  SHR r17, r9       ; cell_x
-  LDI r9, 0xFF
-  AND r16, r9       ; cell_y
-  ; Actual position
-  ADD r17, r10      ; actual_x
-  ADD r16, r11      ; actual_y
-  ; x >= 10?
-  LDI r9, 10
-  CMP r17, r9
-  BGE r0, cc_fail
-  ; y >= 20?
-  LDI r9, 20
-  CMP r16, r9
-  BGE r0, cc_fail
-  ; Grid check (only if y < 20, verified above)
-  LDI r9, 10
-  MOV r18, r16
-  MUL r18, r9       ; y*10
-  ADD r18, r17      ; +x
-  LDI r9, 0x2000
-  ADD r18, r9
-  LOAD r18, r18
-  LDI r9, 0
-  CMP r18, r9
-  JNZ r0, cc_fail
-  LDI r9, 1
-  ADD r14, r9
-  JMP cc_loop
-cc_fail:
-  LDI r1, 1
-cc_done:
+  LDI r25, 0
+  LDI r24, 0
+cc_row:
+  MOV r16, r23; LDI r17, 16; MUL r16, r17
+  MOV r17, r22; LDI r18, 4; MUL r17, r18
+  ADD r16, r17; ADD r16, r24; LDI r17, 0x4100; ADD r16, r17
+  LOAD r16, r16
+  LDI r17, 0
+cc_col:
+  MOV r18, r17; LDI r19, 8; SHR r19, r18
+  MOV r18, r16; AND r18, r19; JZ r18, cc_nxt
+  ; bounds check x
+  MOV r18, r20; ADD r18, r17
+  CMP r18, r2; BGE r0, cc_hit
+  ; bounds check y
+  MOV r18, r21; ADD r18, r24
+  CMP r18, r3; BGE r0, cc_hit
+  ; board cell check
+  LDI r18, 0x4000
+  MOV r19, r21; ADD r19, r24; LDI r26, 10; MUL r19, r26; ADD r18, r19
+  MOV r19, r20; ADD r19, r17; ADD r18, r19
+  LOAD r18, r18; JNZ r18, cc_hit
+cc_nxt:
+  ADD r17, r1; LDI r19, 4; CMP r17, r19; BLT r0, cc_col
+  ADD r24, r1; LDI r19, 4; CMP r24, r19; BLT r0, cc_row
   RET
+cc_hit:
+  LDI r25, 1; RET
 
-; ─────────────────────────────────────────────────────────────
-; SUBROUTINE: lock_piece
-;   Writes current piece cells to grid with piece color
-; ─────────────────────────────────────────────────────────────
+; --- lock_piece ---
 lock_piece:
   PUSH r31
-  ; Get color for current type
-  LDI r4, 0x20C8
-  LOAD r20, r4       ; type
-  LDI r4, 0x2180
-  ADD r4, r20
-  LOAD r20, r4       ; color
-  LDI r14, 0        ; cell_index
-lp_loop:
-  LDI r9, 4
-  CMP r14, r9
-  BGE r0, lp_done
-  ; data addr
-  LDI r15, 0x2100
-  LDI r4, 0x20C8
-  LOAD r16, r4
-  LDI r9, 16
-  MUL r16, r9
-  ADD r15, r16
-  LDI r4, 0x20C9
-  LOAD r16, r4
-  LDI r9, 4
-  MUL r16, r9
-  ADD r15, r16
-  ADD r15, r14
-  LOAD r16, r15     ; (cell_x << 8) | cell_y
-  ; Decode
-  LDI r9, 8
-  MOV r17, r16
-  SHR r17, r9       ; cell_x
-  LDI r9, 0xFF
-  AND r16, r9       ; cell_y
-  ; Actual position
-  LDI r4, 0x20CA
-  LOAD r18, r4
-  ADD r17, r18      ; actual_x
-  LDI r4, 0x20CB
-  LOAD r18, r4
-  ADD r16, r18      ; actual_y
-  ; Only write if y < 20
-  LDI r9, 20
-  CMP r16, r9
-  BGE r0, lp_next
-  ; grid addr = 0x2000 + y*10 + x
-  LDI r9, 10
-  MOV r18, r16
-  MUL r18, r9
-  ADD r18, r17
-  LDI r9, 0x2000
-  ADD r18, r9
-  STORE r18, r20    ; write color
-lp_next:
-  LDI r9, 1
-  ADD r14, r9
-  JMP lp_loop
-lp_done:
-  POP r31
-  RET
+  LDI r20, 0x40D1; LOAD r20, r20
+  LDI r21, 0x40D2; LOAD r21, r21
+  LDI r22, 0x40D3; LOAD r22, r22
+  LDI r23, 0x40D0; LOAD r23, r23
+  LDI r16, 0x42C0; ADD r16, r23; LOAD r16, r16
+  LDI r24, 0
+lp_row:
+  MOV r17, r23; LDI r18, 16; MUL r17, r18
+  MOV r18, r22; LDI r19, 4; MUL r18, r19
+  ADD r17, r18; ADD r17, r24; LDI r18, 0x4100; ADD r17, r18
+  LOAD r17, r17
+  LDI r18, 0
+lp_col:
+  MOV r19, r18; LDI r26, 8; SHR r26, r19
+  MOV r19, r17; AND r19, r26; JZ r19, lp_nxt
+  LDI r19, 0x4000
+  MOV r26, r21; ADD r26, r24; LDI r27, 10; MUL r26, r27; ADD r19, r26
+  MOV r26, r20; ADD r26, r18; ADD r19, r26
+  STORE r19, r16
+lp_nxt:
+  ADD r18, r1; LDI r19, 4; CMP r18, r19; BLT r0, lp_col
+  ADD r24, r1; LDI r19, 4; CMP r24, r19; BLT r0, lp_row
+  POP r31; RET
 
-; ─────────────────────────────────────────────────────────────
-; SUBROUTINE: check_lines
-;   Scans for full rows, clears them, shifts down, updates score
-; ─────────────────────────────────────────────────────────────
-check_lines:
+; --- clear_lines ---
+; Returns r25 = number of lines cleared
+clear_lines:
   PUSH r31
-  LDI r10, 0        ; cleared count
-  LDI r11, 19       ; y (bottom to top)
-cl_y_loop:
-  LDI r9, 0
-  CMP r11, r9
-  BLT r0, cl_update_score
-  ; Check if row y is full (all 10 cells non-zero)
-  LDI r12, 0        ; x
-  LDI r13, 1        ; assume full
-cl_x_loop:
-  LDI r9, 10
-  CMP r12, r9
-  BGE r0, cl_row_checked
-  ; Load cell
-  LDI r4, 0x2000
-  MOV r14, r11
-  LDI r9, 10
-  MUL r14, r9
-  ADD r14, r12
-  ADD r4, r14
-  LOAD r14, r4
-  LDI r9, 0
-  CMP r14, r9
-  JZ r0, cl_not_full
-  LDI r9, 1
-  ADD r12, r9
-  JMP cl_x_loop
-cl_not_full:
-  LDI r13, 0
-cl_row_checked:
-  ; If full (r13=1), clear and shift
-  LDI r9, 1
-  CMP r13, r9
-  JNZ r1, cl_next_y
-  LDI r9, 1
-  ADD r10, r9       ; cleared++
-  ; Shift rows 0..y-1 down to 1..y, clear row 0
-  ; src = y-1 down to 0
-  MOV r12, r11
-  LDI r9, 1
-  SUB r12, r9       ; src = y-1
-cl_shift_loop:
-  LDI r9, 0
-  CMP r12, r9
-  BLT r0, cl_clear_top
-  ; Copy 10 cells from row r12 to row r12+1
-  LDI r14, 0        ; x
-cl_copy_x:
-  LDI r9, 10
-  CMP r14, r9
-  BGE r0, cl_next_src
-  ; src addr
-  LDI r4, 0x2000
-  MOV r15, r12
-  LDI r9, 10
-  MUL r15, r9
-  ADD r15, r14
-  ADD r4, r15
-  LOAD r16, r4
-  ; dst addr (row r12+1)
-  LDI r4, 0x2000
-  MOV r15, r12
-  LDI r9, 10
-  MUL r15, r9
-  LDI r9, 10
-  ADD r15, r9       ; +10
-  ADD r15, r14
-  ADD r4, r15
-  STORE r4, r16
-  LDI r9, 1
-  ADD r14, r9
-  JMP cl_copy_x
-cl_next_src:
-  LDI r9, 1
-  SUB r12, r9
-  JMP cl_shift_loop
-cl_clear_top:
-  ; Clear row 0
-  LDI r14, 0
-cl_clr_loop:
-  LDI r9, 10
-  CMP r14, r9
-  BGE r0, cl_recheck
-  LDI r4, 0x2000
-  ADD r4, r14
-  LDI r5, 0
-  STORE r4, r5
-  LDI r9, 1
-  ADD r14, r9
-  JMP cl_clr_loop
-cl_recheck:
-  ; Don't decrement y - same row might be full again
-  JMP cl_y_loop
-cl_next_y:
-  LDI r9, 1
-  SUB r11, r9       ; y--
-  JMP cl_y_loop
+  LDI r25, 0
+  LDI r16, 19
+cl_row:
+  LDI r17, 1; LDI r18, 0
+cl_chk:
+  LDI r19, 0x4000
+  MOV r26, r16; LDI r27, 10; MUL r26, r27; ADD r19, r26; ADD r19, r18
+  LOAD r19, r19; JZ r19, cl_nf
+  ADD r18, r1; CMP r18, r2; BLT r0, cl_chk
+  ; row is full - shift above down
+  ADD r25, r1
+  MOV r26, r16
+cl_sh:
+  JZ r26, cl_shd
+  LDI r18, 0
+cl_cp:
+  LDI r19, 0x4000
+  MOV r27, r26; SUB r27, r1; LDI r28, 10; MUL r27, r28; ADD r19, r27; ADD r19, r18
+  LOAD r19, r19
+  LDI r20, 0x4000
+  MOV r27, r16; LDI r28, 10; MUL r27, r28; ADD r20, r27; ADD r20, r18
+  STORE r20, r19
+  ADD r18, r1; CMP r18, r2; BLT r0, cl_cp
+  SUB r26, r1; JMP cl_sh
+cl_shd:
+  ; clear top row
+  LDI r18, 0
+cl_top:
+  LDI r19, 0x4000; ADD r19, r18; STORE r19, r4
+  ADD r18, r1; CMP r18, r2; BLT r0, cl_top
+  JMP cl_row
+cl_nf:
+  SUB r16, r1
+  LDI r19, 20; CMP r16, r19; BGE r0, cl_done
+  JMP cl_row
+cl_done:
+  POP r31; RET
 
-cl_update_score:
-  ; Add score: score += score_table[cleared] * level
-  LDI r9, 0
-  CMP r10, r9
-  JZ r0, cl_update_level ; no lines cleared
-  ; Lookup base score
-  LDI r4, 0x2170
-  ADD r4, r10
-  LOAD r14, r4       ; base_score
-  ; Multiply by level
-  LDI r4, 0x20CF
-  LOAD r15, r4       ; level
-  MUL r14, r15      ; base * level
-  ; Add to score
-  LDI r4, 0x20CD
-  LOAD r1, r4
-  ADD r1, r14
-  LDI r4, 0x20CD
-  STORE r4, r1
-  ; Play line clear sound
-  LDI r5, 440
-  LDI r6, 150
-  BEEP r5, r6
-
-cl_update_level:
-  ; Update total_lines
-  LDI r4, 0x20CE
-  LOAD r1, r4
-  ADD r1, r10
-  LDI r4, 0x20CE
-  STORE r4, r1
-  ; level = (total_lines / 10) + 1
-  MOV r1, r10
-  ; Wait, r10 is cleared count, not total. Use total_lines.
-  LDI r4, 0x20CE
-  LOAD r1, r4
-  LDI r9, 10
-  MOV r14, r1
-  DIV r14, r9       ; total_lines / 10
-  LDI r9, 1
-  ADD r14, r9       ; +1 = new_level
-  LDI r4, 0x20CF
-  STORE r4, r14
-  POP r31
-  RET
-
-; ─────────────────────────────────────────────────────────────
-; SUBROUTINE: draw_frame
-; ─────────────────────────────────────────────────────────────
-draw_frame:
+; --- update_score ---
+; Input: r25 = lines cleared (0-4)
+update_score:
   PUSH r31
-  ; Clear screen
-  LDI r1, 0x000810
-  FILL r1
-  ; Grid border
-  LDI r20, 86
-  LDI r21, 46
-  LDI r22, 84
-  LDI r23, 164
-  LDI r24, 0x334455
-  RECTF r20, r21, r22, r23, r24
-  ; Draw grid cells
-  LDI r14, 0        ; y
-df_gy_loop:
-  LDI r9, 20
-  CMP r14, r9
-  BGE r0, df_draw_piece
-  LDI r15, 0        ; x
-df_gx_loop:
-  LDI r9, 10
-  CMP r15, r9
-  BGE r0, df_gy_next
-  ; Load grid cell
-  LDI r4, 0x2000
-  MOV r16, r14
-  LDI r9, 10
-  MUL r16, r9
-  ADD r16, r15
-  ADD r4, r16
-  LOAD r17, r4
-  ; If non-zero, draw cell
-  LDI r9, 0
-  CMP r17, r9
-  JZ r0, df_gx_next
-  ; Pixel position: 88 + x*8, 48 + y*8
-  LDI r20, 88
-  MOV r21, r15
-  LDI r9, 8
-  MUL r21, r9
-  ADD r20, r21      ; px_x
-  LDI r21, 48
-  MOV r22, r14
-  MUL r22, r9
-  ADD r21, r22      ; px_y
-  LDI r22, 7
-  LDI r23, 7
-  RECTF r20, r21, r22, r23, r17
-df_gx_next:
-  LDI r9, 1
-  ADD r15, r9
-  JMP df_gx_loop
-df_gy_next:
-  LDI r9, 1
-  ADD r14, r9
-  JMP df_gy_loop
+  MOV r16, r25; JZ r16, us_d
+  ; add to total lines
+  LDI r17, 0x40D5; LOAD r18, r17; ADD r18, r16; STORE r17, r18
+  ; score += score_table[lines] * level
+  LDI r17, 0x42D0; ADD r17, r16; LOAD r17, r17
+  LDI r18, 0x40DA; LOAD r18, r18; MUL r17, r18
+  LDI r18, 0x40D4; LOAD r19, r18; ADD r19, r17; STORE r18, r19
+  ; level = total_lines/10 + 1
+  LDI r17, 0x40D5; LOAD r18, r17; LDI r19, 10; DIV r18, r19
+  ADD r18, r1; LDI r17, 0x40DA; STORE r17, r18
+us_d:
+  POP r31; RET
 
-df_draw_piece:
-  ; Draw current falling piece
-  LDI r4, 0x20C8
-  LOAD r12, r4       ; type
-  LDI r4, 0x2180
-  ADD r4, r12
-  LOAD r20, r4       ; color
-  LDI r14, 0        ; cell_index
-df_p_loop:
-  LDI r9, 4
-  CMP r14, r9
-  BGE r0, df_preview
-  ; data addr
-  LDI r15, 0x2100
-  MOV r16, r12
-  LDI r9, 16
-  MUL r16, r9
-  ADD r15, r16
-  LDI r4, 0x20C9
-  LOAD r16, r4
-  LDI r9, 4
-  MUL r16, r9
-  ADD r15, r16
-  ADD r15, r14
-  LOAD r16, r15
-  ; Decode
-  LDI r9, 8
-  MOV r17, r16
-  SHR r17, r9       ; cell_x
-  LDI r9, 0xFF
-  AND r16, r9       ; cell_y
-  ; Actual position
-  LDI r4, 0x20CA
-  LOAD r18, r4
-  ADD r17, r18
-  LDI r4, 0x20CB
-  LOAD r18, r4
-  ADD r16, r18
-  ; Skip if y >= 20
-  LDI r9, 20
-  CMP r16, r9
-  BGE r0, df_p_next
-  ; Draw cell
-  LDI r21, 88
-  MOV r22, r17
-  LDI r9, 8
-  MUL r22, r9
-  ADD r21, r22
-  LDI r22, 48
-  MOV r23, r16
-  MUL r23, r9
-  ADD r22, r23
-  LDI r23, 7
-  LDI r24, 7
-  RECTF r21, r22, r23, r24, r20
-df_p_next:
-  LDI r9, 1
-  ADD r14, r9
-  JMP df_p_loop
-
-df_preview:
-  ; Draw next piece preview
-  LDI r20, 198
-  LDI r21, 52
-  LDI r22, 48
-  LDI r23, 48
-  LDI r24, 0x334455
-  RECTF r20, r21, r22, r23, r24
-  ; Get next piece color
-  LDI r4, 0x20CC
-  LOAD r12, r4       ; next_type
-  LDI r4, 0x2180
-  ADD r4, r12
-  LOAD r20, r4       ; color
-  ; Draw 4 cells of next piece (rotation 0)
-  LDI r14, 0
-df_np_loop:
-  LDI r9, 4
-  CMP r14, r9
-  BGE r0, df_hud
-  ; data addr: 0x2100 + type*16 + 0 + cell (rotation 0)
-  LDI r15, 0x2100
-  MOV r16, r12
-  LDI r9, 16
-  MUL r16, r9
-  ADD r15, r16
-  ADD r15, r14
-  LOAD r16, r15
-  LDI r9, 8
-  MOV r17, r16
-  SHR r17, r9
-  LDI r9, 0xFF
-  AND r16, r9
-  ; Draw at preview position (210 + cell_x*8, 58 + cell_y*8)
-  LDI r21, 210
-  MOV r22, r17
-  LDI r9, 8
-  MUL r22, r9
-  ADD r21, r22
-  LDI r22, 58
-  MOV r23, r16
-  MUL r23, r9
-  ADD r22, r23
-  LDI r23, 7
-  LDI r24, 7
-  RECTF r21, r22, r23, r24, r20
-  LDI r9, 1
-  ADD r14, r9
-  JMP df_np_loop
-
-df_hud:
-  ; Draw HUD labels using TEXT opcode
-  ; Write "SCR" at 0x2190
-  LDI r4, 0x2190
-  LDI r5, 83
-  STORE r4, r5
-  LDI r4, 0x2191
-  LDI r5, 67
-  STORE r4, r5
-  LDI r4, 0x2192
-  LDI r5, 82
-  STORE r4, r5
-  LDI r4, 0x2193
-  LDI r5, 0
-  STORE r4, r5
-  ; Write score number after label
-  LDI r4, 0x20CD
-  LOAD r10, r4
-  LDI r11, 0x21A0
+; --- spawn_piece ---
+spawn_piece:
   PUSH r31
-  CALL num_to_ascii
-  POP r31
-  ; TEXT "SCR" at (88, 20)
-  LDI r20, 88
-  LDI r21, 20
-  LDI r22, 0x2190
-  TEXT r20, r21, r22
-  ; TEXT score at (120, 20)
-  LDI r20, 120
-  LDI r21, 20
-  LDI r22, 0x21A0
-  TEXT r20, r21, r22
+  ; current_piece = next_piece
+  LDI r16, 0x40D7; LOAD r17, r16; LDI r16, 0x40D0; STORE r16, r17
+  ; next_piece = random
+  LDI r16, 0x40D7; RAND r17; LDI r18, 7; MOD r17, r18; STORE r16, r17
+  ; reset position
+  LDI r16, 0x40D1; LDI r17, 3; STORE r16, r17
+  LDI r16, 0x40D2; LDI r17, 0; STORE r16, r17
+  LDI r16, 0x40D3; LDI r17, 0; STORE r16, r17
+  ; check game over (collision at spawn = game over)
+  LDI r20, 3; LDI r21, 0; LDI r22, 0
+  LDI r23, 0x40D0; LOAD r23, r23
+  CALL check_collision
+  JNZ r25, sp_go
+  POP r31; RET
+sp_go:
+  LDI r16, 0x40D6; LDI r17, 1; STORE r16, r17
+  POP r31; RET
 
-  ; "LVL" label
-  LDI r4, 0x2190
-  LDI r5, 76
-  STORE r4, r5
-  LDI r4, 0x2191
-  LDI r5, 86
-  STORE r4, r5
-  LDI r4, 0x2192
-  LDI r5, 76
-  STORE r4, r5
-  LDI r4, 0x2193
-  LDI r5, 0
-  STORE r4, r5
-  ; Level number
-  LDI r4, 0x20CF
-  LOAD r10, r4
-  LDI r11, 0x21A0
+; --- try_left ---
+try_left:
   PUSH r31
-  CALL num_to_ascii
-  POP r31
-  LDI r20, 88
-  LDI r21, 30
-  LDI r22, 0x2190
-  TEXT r20, r21, r22
-  LDI r20, 120
-  LDI r21, 30
-  LDI r22, 0x21A0
-  TEXT r20, r21, r22
+  LDI r20, 0x40D1; LOAD r20, r20; JZ r20, tl_d
+  SUB r20, r1
+  LDI r21, 0x40D2; LOAD r21, r21
+  LDI r22, 0x40D3; LOAD r22, r22
+  LDI r23, 0x40D0; LOAD r23, r23
+  CALL check_collision
+  JNZ r25, tl_d
+  LDI r16, 0x40D1; STORE r16, r20
+tl_d:
+  POP r31; RET
 
-  ; "LNS" label
-  LDI r4, 0x2190
-  LDI r5, 76
-  STORE r4, r5
-  LDI r4, 0x2191
-  LDI r5, 78
-  STORE r4, r5
-  LDI r4, 0x2192
-  LDI r5, 83
-  STORE r4, r5
-  LDI r4, 0x2193
-  LDI r5, 0
-  STORE r4, r5
-  ; Lines number
-  LDI r4, 0x20CE
-  LOAD r10, r4
-  LDI r11, 0x21A0
+; --- try_right ---
+try_right:
   PUSH r31
-  CALL num_to_ascii
-  POP r31
-  LDI r20, 88
-  LDI r21, 40
-  LDI r22, 0x2190
-  TEXT r20, r21, r22
-  LDI r20, 120
-  LDI r21, 40
-  LDI r22, 0x21A0
-  TEXT r20, r21, r22
+  LDI r20, 0x40D1; LOAD r20, r20; ADD r20, r1
+  LDI r21, 0x40D2; LOAD r21, r21
+  LDI r22, 0x40D3; LOAD r22, r22
+  LDI r23, 0x40D0; LOAD r23, r23
+  CALL check_collision
+  JNZ r25, tr_d
+  LDI r16, 0x40D1; STORE r16, r20
+tr_d:
+  POP r31; RET
 
-  POP r31
-  RET
-
-; ─────────────────────────────────────────────────────────────
-; SUBROUTINE: num_to_ascii
-;   r10 = number, r11 = buffer address
-;   Writes null-terminated ASCII decimal string
-; ─────────────────────────────────────────────────────────────
-num_to_ascii:
+; --- try_rot ---
+try_rot:
   PUSH r31
-  PUSH r10
-  PUSH r11
-  ; Special case: 0
-  LDI r9, 0
-  CMP r10, r9
-  JNZ r0, nta_not_zero
-  LDI r9, 48
-  STORE r11, r9
-  LDI r9, 1
-  ADD r11, r9
-  LDI r9, 0
-  STORE r11, r9
-  POP r11
-  POP r10
-  POP r31
-  RET
-nta_not_zero:
-  LDI r12, 0        ; digit count
-  LDI r5, 10        ; divisor
-nta_extract:
-  LDI r9, 0
-  CMP r10, r9
-  JZ r0, nta_unwind
-  MOV r2, r10
-  DIV r2, r5        ; quotient
-  MOV r3, r2
-  MUL r3, r5        ; quotient * 10
-  MOV r4, r10
-  SUB r4, r3        ; remainder = digit
-  LDI r9, 48
-  ADD r4, r9        ; ASCII
-  PUSH r4
-  MOV r10, r2
-  LDI r9, 1
-  ADD r12, r9
-  JMP nta_extract
-nta_unwind:
-  LDI r9, 0
-  CMP r12, r9
-  JZ r0, nta_term
-  POP r4
-  STORE r11, r4
-  LDI r9, 1
-  ADD r11, r9
-  LDI r9, 1
-  SUB r12, r9
-  JMP nta_unwind
-nta_term:
-  LDI r9, 0
-  STORE r11, r9
-  POP r11
-  POP r10
-  POP r31
-  RET
+  LDI r20, 0x40D1; LOAD r20, r20
+  LDI r21, 0x40D2; LOAD r21, r21
+  LDI r22, 0x40D3; LOAD r22, r22; ADD r22, r1
+  LDI r19, 4; CMP r22, r19; BLT r0, tr_ck; LDI r22, 0
+tr_ck:
+  LDI r23, 0x40D0; LOAD r23, r23
+  CALL check_collision
+  JNZ r25, tr_d2
+  LDI r16, 0x40D3; STORE r16, r22
+tr_d2:
+  POP r31; RET
+
+; --- try_sdrop ---
+try_sdrop:
+  PUSH r31
+  LDI r20, 0x40D1; LOAD r20, r20
+  LDI r21, 0x40D2; LOAD r21, r21; ADD r21, r1
+  LDI r22, 0x40D3; LOAD r22, r22
+  LDI r23, 0x40D0; LOAD r23, r23
+  CALL check_collision
+  JNZ r25, ts_d
+  LDI r16, 0x40D2; LOAD r17, r16; ADD r17, r1; STORE r16, r17
+  LDI r16, 0x40D4; LOAD r17, r16; ADD r17, r1; STORE r16, r17
+ts_d:
+  POP r31; RET
+
+; --- hard_drop ---
+hard_drop:
+  PUSH r31
+hd_lp:
+  LDI r20, 0x40D1; LOAD r20, r20
+  LDI r21, 0x40D2; LOAD r21, r21; ADD r21, r1
+  LDI r22, 0x40D3; LOAD r22, r22
+  LDI r23, 0x40D0; LOAD r23, r23
+  CALL check_collision
+  JNZ r25, hd_lk
+  LDI r16, 0x40D2; LOAD r17, r16; ADD r17, r1; STORE r16, r17
+  JMP hd_lp
+hd_lk:
+  CALL lock_piece
+  CALL clear_lines
+  CALL update_score
+  CALL spawn_piece
+  POP r31; RET
+
+; --- do_gravity ---
+do_gravity:
+  PUSH r31
+  ; increment timer
+  LDI r16, 0x40D9; LOAD r17, r16; ADD r17, r1; STORE r16, r17
+  ; compute speed = max(5, 50 - level*5)
+  LDI r16, 0x40DA; LOAD r17, r16
+  LDI r18, 5; MUL r17, r18
+  LDI r18, 50; SUB r18, r17
+  LDI r19, 5; CMP r18, r19; BGE r0, dg_ck; LDI r18, 5
+dg_ck:
+  ; compare timer
+  LDI r16, 0x40D9; LOAD r17, r16
+  CMP r17, r18; BLT r0, dg_d
+  ; reset timer
+  LDI r16, 0x40D9; LDI r17, 0; STORE r16, r17
+  ; try drop
+  LDI r20, 0x40D1; LOAD r20, r20
+  LDI r21, 0x40D2; LOAD r21, r21; ADD r21, r1
+  LDI r22, 0x40D3; LOAD r22, r22
+  LDI r23, 0x40D0; LOAD r23, r23
+  CALL check_collision
+  JNZ r25, dg_lk
+  LDI r16, 0x40D2; LOAD r17, r16; ADD r17, r1; STORE r16, r17
+  JMP dg_d
+dg_lk:
+  CALL lock_piece
+  CALL clear_lines
+  CALL update_score
+  CALL spawn_piece
+dg_d:
+  POP r31; RET
+
+; --- draw_border ---
+draw_border:
+  PUSH r31
+  LDI r16, 0x444444
+  LDI r17, 77; LDI r18, 27; LDI r19, 179; LINE r17, r18, r19, r18, r16
+  LDI r18, 229; LINE r17, r18, r19, r18, r16
+  LDI r17, 77; LDI r18, 27; LDI r19, 229; LINE r17, r18, r17, r19, r16
+  LDI r17, 179; LINE r17, r18, r17, r19, r16
+  POP r31; RET
+
+; --- draw_board_cells ---
+draw_board_cells:
+  PUSH r31
+  LDI r16, 0
+dbc_r:
+  LDI r17, 0
+dbc_c:
+  LDI r18, 0x4000
+  MOV r19, r16; LDI r20, 10; MUL r19, r20; ADD r18, r19; ADD r18, r17
+  LOAD r18, r18; JZ r18, dbc_n
+  MOV r19, r17; LDI r20, 10; MUL r19, r20; LDI r20, 78; ADD r19, r20
+  MOV r20, r16; LDI r21, 10; MUL r20, r21; LDI r21, 28; ADD r20, r21
+  LDI r21, 9; LDI r22, 9; RECTF r19, r20, r21, r22, r18
+dbc_n:
+  ADD r17, r1; CMP r17, r2; BLT r0, dbc_c
+  ADD r16, r1; CMP r16, r3; BLT r0, dbc_r
+  POP r31; RET
+
+; --- draw_cur_piece ---
+draw_cur_piece:
+  PUSH r31
+  LDI r20, 0x40D1; LOAD r20, r20
+  LDI r21, 0x40D2; LOAD r21, r21
+  LDI r22, 0x40D3; LOAD r22, r22
+  LDI r23, 0x40D0; LOAD r23, r23
+  LDI r16, 0x42C0; ADD r16, r23; LOAD r16, r16
+  LDI r24, 0
+dp_r:
+  MOV r17, r23; LDI r18, 16; MUL r17, r18
+  MOV r18, r22; LDI r19, 4; MUL r18, r19
+  ADD r17, r18; ADD r17, r24; LDI r18, 0x4100; ADD r17, r18
+  LOAD r17, r17
+  LDI r18, 0
+dp_c:
+  MOV r19, r18; LDI r26, 8; SHR r26, r19
+  MOV r19, r17; AND r19, r26; JZ r19, dp_n
+  MOV r19, r20; ADD r19, r18; LDI r26, 10; MUL r19, r26; LDI r26, 78; ADD r19, r26
+  MOV r26, r21; ADD r26, r24; LDI r27, 10; MUL r26, r27; LDI r27, 28; ADD r26, r27
+  LDI r27, 9; LDI r28, 9; RECTF r19, r26, r27, r28, r16
+dp_n:
+  ADD r18, r1; LDI r19, 4; CMP r18, r19; BLT r0, dp_c
+  ADD r24, r1; LDI r19, 4; CMP r24, r19; BLT r0, dp_r
+  POP r31; RET
+
+; --- draw_preview ---
+draw_preview:
+  PUSH r31
+  LDI r16, 0x40D7; LOAD r16, r16
+  LDI r17, 0x42C0; ADD r17, r16; LOAD r17, r17
+  LDI r18, 0
+dpr_r:
+  MOV r19, r16; LDI r20, 16; MUL r19, r20
+  ADD r19, r18; LDI r20, 0x4100; ADD r19, r20
+  LOAD r19, r19
+  LDI r20, 0
+dpr_c:
+  MOV r21, r20; LDI r22, 8; SHR r22, r21
+  MOV r21, r19; AND r21, r22; JZ r21, dpr_n
+  MOV r21, r20; LDI r22, 8; MUL r21, r22; LDI r22, 195; ADD r21, r22
+  MOV r22, r18; LDI r23, 8; MUL r22, r23; LDI r23, 50; ADD r22, r23
+  LDI r23, 7; LDI r24, 7; RECTF r21, r22, r23, r24, r17
+dpr_n:
+  ADD r20, r1; LDI r21, 4; CMP r20, r21; BLT r0, dpr_c
+  ADD r18, r1; LDI r21, 4; CMP r18, r21; BLT r0, dpr_r
+  POP r31; RET
+
+; --- draw_hud ---
+draw_hud:
+  PUSH r31
+  LDI r16, 195; LDI r17, 38; LDI r18, 0x4320; TEXT r16, r17, r18
+  LDI r16, 190; LDI r17, 100; LDI r18, 0x4325; TEXT r16, r17, r18
+  LDI r16, 0x40D4; LOAD r20, r16; LDI r21, 0x4341; CALL int_to_str
+  LDI r16, 190; LDI r17, 112; LDI r18, 0x4341; TEXT r16, r17, r18
+  LDI r16, 190; LDI r17, 132; LDI r18, 0x432B; TEXT r16, r17, r18
+  LDI r16, 0x40D5; LOAD r20, r16; LDI r21, 0x4341; CALL int_to_str
+  LDI r16, 190; LDI r17, 144; LDI r18, 0x4341; TEXT r16, r17, r18
+  LDI r16, 190; LDI r17, 164; LDI r18, 0x4331; TEXT r16, r17, r18
+  LDI r16, 0x40DA; LOAD r20, r16; LDI r21, 0x4341; CALL int_to_str
+  LDI r16, 190; LDI r17, 176; LDI r18, 0x4341; TEXT r16, r17, r18
+  POP r31; RET
+
+; --- int_to_str ---
+; Input: r20=number, r21=buffer address
+; Writes decimal string + null terminator
+int_to_str:
+  JNZ r20, its_div
+  LDI r17, 48; STORE r21, r17; ADD r21, r1; STORE r21, r4; RET
+its_div:
+  LDI r22, 0; LDI r23, 10
+its_lp:
+  MOV r24, r20; DIV r24, r23
+  MOV r25, r20; MOD r25, r23; LDI r26, 48; ADD r25, r26
+  PUSH r25; ADD r22, r1; MOV r20, r24; JNZ r20, its_lp
+its_pop:
+  POP r25; STORE r21, r25; ADD r21, r1
+  SUB r22, r1; JNZ r22, its_pop
+  STORE r21, r4; RET

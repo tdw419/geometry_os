@@ -4986,7 +4986,7 @@ phases:
   _completed_at: 1778297900
 - id: phase-285
   title: GeOS VM -- Error Code Propagation in Syscalls
-  status: planned
+  status: done
   goal: Replace silent failures in VFS/syscall opcodes with meaningful error codes
     returned in r0.
   description: Currently, OPEN/READ/WRITE/CLOSE failures silently return 0 or garbage.
@@ -4996,24 +4996,27 @@ phases:
     and file_browser.
   deliverables:
   - name: Define error code constants (ENOSPC=1, ENOENT=2, EPERM=3, EIO=4, EISDIR=5)
-    status: planned
+    status: done
   - name: OPEN returns -ENOENT when file not found, -EPERM when capability denied
-    status: planned
+    status: done
   - name: READ returns -EIO on read past EOF or device error
-    status: planned
+    status: done
   - name: WRITE returns -ENOSPC when VFS storage full
-    status: planned
+    status: done
   - name: IOCTL returns -EINVAL for invalid commands
-    status: planned
+    status: done
   - name: Unit tests for each error path
-    status: planned
+    status: done
   - name: Update shell.asm to check error codes and display messages
-    status: planned
+    status: done
   acceptance_criteria:
   - description: All syscall failures return negative error codes in r0
     validation: cargo test --lib syscall_error_codes
   - description: Shell displays error messages for failed operations
     validation: Integration test verifies error message in terminal output
+  _claimed_by: worker-0
+  _claimed_at: 1778311608
+  _completed_at: 1778311800
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
   status: done
@@ -5045,7 +5048,7 @@ phases:
   _claimed_at: 1778310445
 - id: phase-287
   title: RISC-V Guest -- VirtIO GPU (Simple Display)
-  status: planned
+  status: in_progress
   goal: Implement minimal VirtIO GPU device so RISC-V guests can write pixels to a
     framebuffer via standard VirtIO-GPU protocol.
   description: Currently the RISC-V guest's graphical output goes through a custom
@@ -5070,6 +5073,8 @@ phases:
     validation: Boot log shows virtio_gpu probe success
   - description: Guest can write pixels that appear on GeOS canvas
     validation: fbtest program produces visible output
+  _claimed_by: worker-0
+  _claimed_at: 1778312995
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
   status: planned
