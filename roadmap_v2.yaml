@@ -4890,7 +4890,7 @@ phases:
     validation: cargo test --lib test_byte_ops_assemble
 - id: phase-283
   title: RISC-V Guest -- VirtIO Network Driver
-  status: in_progress
+  status: planned
   goal: Implement VirtIO network device emulation so RISC-V guests can send and receive
     network packets.
   description: 'The RISC-V interpreter already has VirtIO block device support (virtio_blk.rs).
@@ -4915,8 +4915,6 @@ phases:
     validation: Guest kernel detects virtio_net in boot log
   - description: Packet round-trip between guest and host
     validation: UDP echo test passes
-  _claimed_by: worker-0
-  _claimed_at: 1778280304
 - id: phase-284
   title: GeOS Program -- Mandelbrot Fractal Renderer
   status: done
@@ -4964,7 +4962,7 @@ phases:
   _completed_at: 1778297900
 - id: phase-285
   title: GeOS VM -- Error Code Propagation in Syscalls
-  status: in_progress
+  status: planned
   goal: Replace silent failures in VFS/syscall opcodes with meaningful error codes
     returned in r0.
   description: Currently, OPEN/READ/WRITE/CLOSE failures silently return 0 or garbage.
@@ -4992,8 +4990,6 @@ phases:
     validation: cargo test --lib syscall_error_codes
   - description: Shell displays error messages for failed operations
     validation: Integration test verifies error message in terminal output
-  _claimed_by: worker-0
-  _claimed_at: 1778284666
 - id: phase-286
   title: GeOS VM -- Bitmap Font Upgrade (Variable-Width Glyphs)
   status: planned
