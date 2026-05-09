@@ -5671,7 +5671,7 @@ phases:
     validation: Screen has LINE opcode segments forming a branching pattern
 - id: phase-313
   title: GeOS VM -- Assembler Includes and Formula Ops Tests
-  status: todo
+  status: done
   goal: Add unit tests for assembler includes.rs (144 LOC) and formula_ops.rs (106
     LOC), both with 0 tests.
   description: 'The includes module handles .include directive processing, file path
@@ -5680,9 +5680,9 @@ phases:
     resolution, recursive include detection, formula encoding, and edge cases.'
   deliverables:
   - name: Unit tests for .include directive processing
-    status: todo
+    status: done
   - name: Unit tests for FORMULA/FORMULACLEAR/FORMULAREM encoding
-    status: todo
+    status: done
   acceptance_criteria:
   - description: includes.rs has at least 8 unit tests
     validation: grep -c "#[test]" src/assembler/includes.rs >= 8

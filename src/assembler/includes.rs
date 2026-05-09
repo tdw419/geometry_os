@@ -142,3 +142,188 @@ pub(super) fn resolve_includes(
     }
     Ok(output)
 }
+
+// ── Phase 313: Include Directive Unit Tests ──────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_p313_passthrough_no_includes() {
+        let source = "LDI r1, 42\nADD r1, r2\nHALT";
+        let result = resolve_includes(source, None, 0).unwrap();
+        assert_eq!(result, "LDI r1, 42\nADD r1, r2\nHALT\n");
+    }
+
+    #[test]
+    fn test_p313_include_missing_file() {
+        let source = ".include \"nonexistent_file.asm\"";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("not found"));
+        assert_eq!(err.line, 1);
+    }
+
+    #[test]
+    fn test_p313_include_empty_filename() {
+        let source = ".include \"\"";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("requires a filename"));
+    }
+
+    #[test]
+    fn test_p313_include_missing_filename() {
+        let source = ".include";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_p313_lib_missing_name() {
+        let source = ".lib";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("requires a library name"));
+    }
+
+    #[test]
+    fn test_p313_lib_missing_library() {
+        let source = ".lib nonexistent";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("lib not found"));
+    }
+
+    #[test]
+    fn test_p313_lib_quoted_name() {
+        let source = ".lib \"nonexistent\"";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_err());
+        // Should look for lib/nonexistent.asm
+        assert!(result.unwrap_err().message.contains("lib/nonexistent.asm"));
+    }
+
+    #[test]
+    fn test_p313_actual_include() {
+        // Use programs/hello.asm which exists
+        let source = ".include \"programs/hello.asm\"";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("begin included: programs/hello.asm"));
+        assert!(output.contains("end included: programs/hello.asm"));
+        // Verify actual content from hello.asm was inlined
+        assert!(output.contains("LDI") || output.contains("word_0"));
+    }
+
+    #[test]
+    fn test_p313_actual_lib_include() {
+        // Use lib/stdlib.asm which exists
+        let source = ".lib stdlib";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("begin lib: lib/stdlib.asm"));
+        assert!(output.contains("end lib: lib/stdlib.asm"));
+    }
+
+    #[test]
+    fn test_p313_mixed_source_and_include() {
+        let source = "LDI r1, 10\n.include \"programs/hello.asm\"\nADD r1, r2\nHALT";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // First line should be the LDI
+        assert!(output.starts_with("LDI r1, 10\n"));
+        // Should contain include markers
+        assert!(output.contains("begin included: programs/hello.asm"));
+        // Should contain the trailing ADD and HALT
+        assert!(output.contains("ADD r1, r2"));
+        assert!(output.contains("HALT"));
+    }
+
+    #[test]
+    fn test_p313_include_preserves_other_directives() {
+        let source = ".db 1, 2, 3\nLDI r1, 42\nHALT";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains(".db 1, 2, 3"));
+    }
+
+    #[test]
+    fn test_p313_include_with_lib_dir() {
+        // Use the project's programs dir as lib_dir
+        let source = ".include \"hello.asm\"";
+        let result = resolve_includes(source, Some("programs"), 0);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("begin included: hello.asm"));
+    }
+
+    #[test]
+    fn test_p313_lib_with_lib_dir_fallback() {
+        // .lib should try lib_dir first, then relative
+        let source = ".lib math";
+        let result = resolve_includes(source, Some("programs"), 0);
+        // Should find lib/math.asm via relative path
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_p313_case_insensitive_include() {
+        let source = ".INCLUDE \"programs/hello.asm\"";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_p313_case_insensitive_lib() {
+        let source = ".LIB stdlib";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_p313_single_quote_filename() {
+        let source = ".include 'programs/hello.asm'";
+        let result = resolve_includes(source, None, 0);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("begin included: programs/hello.asm"));
+    }
+
+    #[test]
+    fn test_p313_nesting_depth_limit() {
+        // The MAX_INCLUDE_DEPTH is 8
+        let result = resolve_includes("dummy", None, 9);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("depth exceeded"));
+        assert_eq!(err.line, 0);
+    }
+
+    #[test]
+    fn test_p313_depth_zero_ok() {
+        let result = resolve_includes("LDI r1, 1\nHALT", None, 0);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_p313_depth_at_limit() {
+        let result = resolve_includes("LDI r1, 1\nHALT", None, 8);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_p313_depth_exceeded() {
+        let result = resolve_includes("LDI r1, 1", None, 9);
+        assert!(result.is_err());
+    }
+}
