@@ -21,6 +21,8 @@ enum AnsiState {
     CsiPrivate,
     /// Received ESC ], collecting OSC string (terminated by BEL or ST).
     Osc,
+    /// Inside bracketed paste (\e[200~ ... \e[201~). Bytes are treated as literal text.
+    Paste,
 }
 
 /// ANSI escape sequence handler with canvas buffer writing.
@@ -37,6 +39,8 @@ pub struct AnsiHandler {
     scroll_bottom: usize,
     /// Set of columns that are tab stops.
     tab_stops: HashSet<usize>,
+    /// Whether bracketed paste mode is enabled (\e[?2004h).
+    bracketed_paste: bool,
 }
 
 impl Default for AnsiHandler {
@@ -59,12 +63,18 @@ impl AnsiHandler {
             scroll_top: 0,
             scroll_bottom: CANVAS_MAX_ROWS - 1,
             tab_stops,
+            bracketed_paste: false,
         }
     }
 
     /// Get the current cursor position.
     pub fn cursor(&self) -> Cursor {
         self.cursor
+    }
+
+    /// Check if bracketed paste mode is enabled.
+    pub fn is_bracketed_paste(&self) -> bool {
+        self.bracketed_paste
     }
 
     /// Set cursor position directly.
@@ -167,6 +177,7 @@ impl AnsiHandler {
                     self.scroll_bottom = CANVAS_MAX_ROWS - 1;
                     // Reset tab stops to default every-8-columns
                     self.tab_stops = (0..CANVAS_COLS).step_by(8).collect();
+                    self.bracketed_paste = false;
                     self.state = AnsiState::Normal;
                 }
                 b'E' => {
@@ -206,16 +217,69 @@ impl AnsiHandler {
                 self.state = AnsiState::Normal;
             }
             AnsiState::Osc => {
-                // Consume OSC string until BEL (0x07) or ST (ESC \)
+                // Consume OSC string until BEL (0x07) or ST (ESC \\)
                 if b == 0x07 {
                     // BEL terminates OSC
                     self.state = AnsiState::Normal;
                 } else if b == 0x1B {
                     // ESC inside OSC: transition to Escape state.
-                    // Next byte will be '\' (ST terminator) or a new ESC sequence.
+                    // Next byte will be '\\' (ST terminator) or a new ESC sequence.
                     self.state = AnsiState::Escape;
                 }
                 // All other bytes inside OSC are consumed silently
+            }
+            AnsiState::Paste => {
+                // Inside bracketed paste: treat bytes as literal text.
+                // Paste ends with \e[201~ sequence (detected via Escape -> Csi -> ~).
+                // Control chars (LF, CR, BS, TAB) are handled normally.
+                // ESC transitions to Escape state to detect \e[201~.
+                match b {
+                    0x1B => {
+                        self.state = AnsiState::Escape;
+                    }
+                    0x0A => {
+                        self.cursor.newline();
+                        self.auto_scroll(canvas_buffer);
+                    }
+                    0x0D => {
+                        self.cursor.carriage_return();
+                    }
+                    0x08 => {
+                        if self.cursor.col > 0 {
+                            self.cursor.col -= 1;
+                        }
+                    }
+                    0x09 => {
+                        let next = self
+                            .tab_stops
+                            .iter()
+                            .filter(|&&c| c > self.cursor.col)
+                            .min()
+                            .copied()
+                            .unwrap_or(CANVAS_COLS - 1);
+                        self.cursor.col = next.min(CANVAS_COLS - 1);
+                    }
+                    0x07 => {
+                        // Bell -- ignore
+                    }
+                    _ => {
+                        if (0x20..0x7F).contains(&b) {
+                            if self.cursor.row < CANVAS_MAX_ROWS {
+                                let idx = self.cursor.row * CANVAS_COLS + self.cursor.col;
+                                if idx < canvas_buffer.len() {
+                                    canvas_buffer[idx] = b as u32;
+                                }
+                                self.cursor.col += 1;
+                                if self.cursor.col >= CANVAS_COLS {
+                                    self.cursor.col = 0;
+                                    self.cursor.newline();
+                                    self.auto_scroll(canvas_buffer);
+                                }
+                            }
+                        }
+                        // Non-printable, non-control bytes are silently ignored
+                    }
+                }
             }
         }
     }
@@ -509,6 +573,15 @@ impl AnsiHandler {
                     _ => {}
                 }
             }
+            b'~' => {
+                // Bracketed paste boundary: \e[200~ = start, \e[201~ = end
+                if self.csi_params == "200" {
+                    self.state = AnsiState::Paste;
+                } else if self.csi_params == "201" {
+                    // End bracketed paste
+                    self.state = AnsiState::Normal;
+                }
+            }
             _ => {
                 // Unknown CSI -- ignore
             }
@@ -518,8 +591,22 @@ impl AnsiHandler {
     /// Handle a private CSI sequence (ESC [ ? ...).
     fn handle_csi_private(&mut self, final_byte: u8, _canvas_buffer: &mut [u32]) {
         match final_byte {
-            b'h' | b'l' | b'J' => {
-                // DEC private mode set/reset, erase scrollback -- ignore
+            b'h' => {
+                // DEC private mode set
+                if self.csi_params == "2004" {
+                    self.bracketed_paste = true;
+                }
+                // Other ?h modes (25=cursor visible, 7=auto-wrap, etc.) ignored
+            }
+            b'l' => {
+                // DEC private mode reset
+                if self.csi_params == "2004" {
+                    self.bracketed_paste = false;
+                }
+                // Other ?l modes ignored
+            }
+            b'J' => {
+                // Erase scrollback -- ignore
             }
             _ => {
                 // Unknown private CSI -- ignore
@@ -1951,5 +2038,186 @@ mod tests {
         handler.process_bytes(b"\x1B[1;1H", &mut buf);
         assert_eq!(handler.cursor().row, 0);
         assert_eq!(handler.cursor().col, 0);
+    }
+
+    // === Bracketed Paste Mode Tests ===
+
+    #[test]
+    fn test_bracketed_paste_enable() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // \e[?2004h enables bracketed paste mode
+        handler.process_bytes(b"\x1B[?2004h", &mut buf);
+        assert!(handler.bracketed_paste);
+    }
+
+    #[test]
+    fn test_bracketed_paste_disable() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Enable then disable
+        handler.process_bytes(b"\x1B[?2004h", &mut buf);
+        handler.process_bytes(b"\x1B[?2004l", &mut buf);
+        assert!(!handler.bracketed_paste);
+    }
+
+    #[test]
+    fn test_bracketed_paste_reset_clears_mode() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Enable bracketed paste
+        handler.process_bytes(b"\x1B[?2004h", &mut buf);
+        assert!(handler.bracketed_paste);
+
+        // RIS (ESC c) should reset it
+        handler.process_bytes(b"\x1Bc", &mut buf);
+        assert!(!handler.bracketed_paste);
+    }
+
+    #[test]
+    fn test_paste_simple_text() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Paste "Hello" between \e[200~ and \e[201~
+        handler.process_bytes(b"\x1B[200~Hello\x1B[201~", &mut buf);
+
+        assert_eq!(buf[0], b'H' as u32);
+        assert_eq!(buf[1], b'e' as u32);
+        assert_eq!(buf[2], b'l' as u32);
+        assert_eq!(buf[3], b'l' as u32);
+        assert_eq!(buf[4], b'o' as u32);
+        assert_eq!(handler.cursor().row, 0);
+        assert_eq!(handler.cursor().col, 5);
+    }
+
+    #[test]
+    fn test_paste_with_newlines() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Paste text with newlines
+        handler.process_bytes(b"\x1B[200~AB\nCD\x1B[201~", &mut buf);
+
+        assert_eq!(buf[0], b'A' as u32);
+        assert_eq!(buf[1], b'B' as u32);
+        // After \n, cursor should be on row 1
+        assert_eq!(buf[32], b'C' as u32); // row 1 starts at index 32
+        assert_eq!(buf[33], b'D' as u32);
+        assert_eq!(handler.cursor().row, 1);
+        assert_eq!(handler.cursor().col, 2);
+    }
+
+    #[test]
+    fn test_paste_with_carriage_return() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // CR inside paste should move cursor to column 0
+        handler.process_bytes(b"\x1B[200~AB\rXY\x1B[201~", &mut buf);
+
+        // CR moves to col 0, X overwrites A, Y overwrites B
+        assert_eq!(buf[0], b'X' as u32);
+        assert_eq!(buf[1], b'Y' as u32);
+        assert_eq!(handler.cursor().col, 2);
+    }
+
+    #[test]
+    fn test_paste_does_not_interpret_other_escapes() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Paste text that contains escape-like sequences that should be treated as literals
+        // Note: ESC in paste mode triggers exit scanning, so we test with other control chars
+        handler.process_bytes(b"\x1B[200~\x07BELL\x09TAB\x1B[201~", &mut buf);
+
+        // Bell (0x07) is ignored, then BELL typed at cols 0-3, TAB advances to col 8, then TAB
+        assert_eq!(buf[0], b'B' as u32); // col 0
+        assert_eq!(buf[1], b'E' as u32); // col 1
+        assert_eq!(buf[2], b'L' as u32); // col 2
+        assert_eq!(buf[3], b'L' as u32); // col 3
+        assert_eq!(buf[8], b'T' as u32); // col 8 (after TAB)
+        assert_eq!(buf[9], b'A' as u32);
+        assert_eq!(buf[10], b'B' as u32);
+    }
+
+    #[test]
+    fn test_paste_with_backspace() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Backspace inside paste should move cursor back
+        handler.process_bytes(b"\x1B[200~AB\x08C\x1B[201~", &mut buf);
+
+        assert_eq!(buf[0], b'A' as u32);
+        assert_eq!(buf[1], b'C' as u32); // BS moved back, C overwrote B
+        assert_eq!(handler.cursor().col, 2);
+    }
+
+    #[test]
+    fn test_paste_state_exits_on_201() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // After paste end, normal processing should resume
+        handler.process_bytes(b"\x1B[200~data\x1B[201~\x1B[2J", &mut buf);
+
+        // Should be back in Normal state after \e[201~
+        // \e[2J clears screen and resets cursor to (0,0)
+        assert_eq!(handler.cursor().col, 0);
+        assert_eq!(handler.cursor().row, 0);
+        // Canvas should be cleared
+        for i in 0..4 {
+            assert_eq!(buf[i], 0);
+        }
+    }
+
+    #[test]
+    fn test_paste_multiline_with_cr_lf() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Windows-style line endings in paste
+        handler.process_bytes(b"\x1B[200~line1\r\nline2\x1B[201~", &mut buf);
+
+        // line1 at row 0
+        assert_eq!(buf[0], b'l' as u32);
+        assert_eq!(buf[1], b'i' as u32);
+        // line2 at row 1
+        assert_eq!(buf[32], b'l' as u32); // row 1, col 0
+        assert_eq!(buf[33], b'i' as u32);
+        assert_eq!(handler.cursor().row, 1);
+        assert_eq!(handler.cursor().col, 5);
+    }
+
+    #[test]
+    fn test_paste_empty() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Empty paste should leave canvas unchanged
+        handler.process_bytes(b"\x1B[200~\x1B[201~", &mut buf);
+
+        assert_eq!(handler.cursor().row, 0);
+        assert_eq!(handler.cursor().col, 0);
+        for i in 0..64 {
+            assert_eq!(buf[i], 0);
+        }
+    }
+
+    #[test]
+    fn test_other_private_modes_ignored() {
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // ?25h (cursor visible) and ?7h (auto-wrap) should not affect bracketed_paste
+        handler.process_bytes(b"\x1B[?25h", &mut buf);
+        assert!(!handler.bracketed_paste);
+
+        handler.process_bytes(b"\x1B[?7h", &mut buf);
+        assert!(!handler.bracketed_paste);
     }
 }
