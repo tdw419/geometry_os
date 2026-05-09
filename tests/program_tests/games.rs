@@ -252,6 +252,90 @@ fn test_tetris_initializes() {
     assert_eq!(vm.ram[0x4104], 4, "I-piece rot1 row0 should be 0b0100");
 }
 
+#[test]
+fn test_tetris_pieces_fall() {
+    // Verify gravity causes pieces to drop over multiple frames
+    let source = std::fs::read_to_string("programs/tetris.asm")
+        .unwrap_or_else(|e| panic!("failed to read: {}", e));
+    let asm = assemble(&source, 0).unwrap_or_else(|e| panic!("assembly failed: {:?}", e));
+    let mut vm = Vm::new();
+
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+
+    // Run past initialization to first FRAME
+    let mut frames_seen = 0u32;
+    for _ in 0..2_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames_seen += 1;
+            if frames_seen == 1 {
+                // After init frame, piece_y should be 0
+                assert_eq!(
+                    vm.ram[0x40D2], 0,
+                    "piece_y should be 0 after init"
+                );
+                break;
+            }
+        }
+    }
+    assert!(frames_seen >= 1, "should produce at least 1 frame for init");
+
+    // Now run enough frames for gravity to fire multiple times.
+    // At level 1, gravity speed = max(5, 50-5) = 45 frames per drop.
+    // Run 200 game frames -- enough for 4+ gravity drops.
+    let gravity_speed = 45u32;
+    let target_frames = 200u32;
+    let mut piece_ever_moved = false;
+    let mut prev_y = vm.ram[0x40D2];
+
+    for _ in 0..20_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames_seen += 1;
+            if frames_seen >= target_frames + 1 {
+                break;
+            }
+            // After enough frames, piece_y should have increased (piece falling)
+            let cur_y = vm.ram[0x40D2];
+            if cur_y != prev_y {
+                piece_ever_moved = true;
+            }
+            prev_y = cur_y;
+        }
+    }
+
+    assert!(frames_seen >= target_frames, "should run at least {} frames, got {}", target_frames, frames_seen);
+    assert!(piece_ever_moved, "piece should have fallen (piece_y changed) after {} frames", target_frames);
+
+    // After many gravity drops, the piece should have locked and a new piece spawned.
+    // This means board cells should have non-zero values (locked piece colors).
+    let mut board_has_cells = false;
+    for i in 0..200 {
+        if vm.ram[0x4000 + i] != 0 {
+            board_has_cells = true;
+            break;
+        }
+    }
+    assert!(board_has_cells, "board should have locked piece cells after many gravity drops");
+
+    // Score should still be valid (piece locking may have triggered line clears)
+    // The game should still be running (not game over) unless pieces stacked to top
+    // Either way, it should not have halted
+    assert!(!vm.halted, "game loop should not halt");
+}
+
 // ── MAZE ───────────────────────────────────────────────────────
 
 #[test]

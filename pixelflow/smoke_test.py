@@ -237,6 +237,24 @@ def main():
 
     print(f"    Report saved to {output_dir / 'report.md'}")
 
+    # Meta-loop JSON output
+    import json
+    meta_report = {
+        "checkpoint": str(checkpoint_path),
+        "epoch": checkpoint.get("epoch", "N/A"),
+        "loss": checkpoint.get("loss", 0),
+        "metrics": {
+            "syntax": syntax_count,
+            "visual": visual_count,
+            "semantic": plan_count,
+            "total": 10
+        },
+        "results": report
+    }
+    with open(output_dir / "metrics.json", "w") as f:
+        json.dump(meta_report, f, indent=4)
+    print(f"    Metrics saved to {output_dir / 'metrics.json'}")
+
 
 if __name__ == "__main__":
     main()
