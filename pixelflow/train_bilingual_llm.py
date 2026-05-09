@@ -100,6 +100,24 @@ def train(args):
             n_batches += 1
             if (i + 1) % 100 == 0:
                 print(f"  Batch {i+1}/{len(loader)}  loss={loss.item():.4f}")
+            
+            # V12: Periodic save to avoid loss on crash
+            if (i + 1) % 500 == 0:
+                ckpt = {
+                    "model": model.state_dict(),
+                    "args": {
+                        "embd": args.embd, 
+                        "heads": args.heads, 
+                        "layers": args.layers, 
+                        "context_len": args.context_len,
+                        "vocab_size": vocab_size
+                    },
+                    "epoch": epoch + 1,
+                    "batch": i + 1,
+                    "loss": loss.item(),
+                }
+                torch.save(ckpt, args.checkpoint)
+                print(f"  Saved intermediate checkpoint (batch {i+1})")
 
         avg_loss = total_loss / n_batches
         elapsed = time.time() - t0
