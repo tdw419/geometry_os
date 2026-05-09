@@ -426,3 +426,376 @@ pub(super) fn try_parse(
         _ => Ok(None),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn constants() -> HashMap<String, u32> {
+        HashMap::new()
+    }
+
+    fn parse_one(opcode: &str, args: &str) -> Vec<u32> {
+        let full = format!("{opcode} {args}");
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        let mut label_refs: Vec<(usize, String, usize)> = Vec::new();
+        try_parse(
+            opcode,
+            &tokens,
+            &mut bytecode,
+            &mut label_refs,
+            0,
+            &constants(),
+        )
+        .unwrap();
+        bytecode
+    }
+
+    fn parse_one_err(opcode: &str, args: &str) -> String {
+        let full = format!("{opcode} {args}");
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        let mut label_refs: Vec<(usize, String, usize)> = Vec::new();
+        try_parse(
+            opcode,
+            &tokens,
+            &mut bytecode,
+            &mut label_refs,
+            0,
+            &constants(),
+        )
+        .unwrap_err()
+    }
+
+    // ── No-arg opcodes ──────────────────────────────────────
+    #[test]
+    fn test_halt() {
+        assert_eq!(parse_one("HALT", ""), vec![0x00]);
+    }
+
+    #[test]
+    fn test_nop() {
+        assert_eq!(parse_one("NOP", ""), vec![0x01]);
+    }
+
+    #[test]
+    fn test_breakpoint() {
+        assert_eq!(parse_one("BREAKPOINT", ""), vec![0xCD]);
+    }
+
+    #[test]
+    fn test_frame() {
+        assert_eq!(parse_one("FRAME", ""), vec![0x02]);
+    }
+
+    #[test]
+    fn test_ret() {
+        assert_eq!(parse_one("RET", ""), vec![0x34]);
+    }
+
+    // ── Single-register opcodes ─────────────────────────────
+    #[test]
+    fn test_neg() {
+        assert_eq!(parse_one("NEG", "r5"), vec![0x2A, 5]);
+    }
+
+    #[test]
+    fn test_neg_too_few() {
+        assert!(parse_one_err("NEG", "").contains("1 argument"));
+    }
+
+    #[test]
+    fn test_push() {
+        assert_eq!(parse_one("PUSH", "r10"), vec![0x60, 10]);
+    }
+
+    #[test]
+    fn test_pop() {
+        assert_eq!(parse_one("POP", "r20"), vec![0x61, 20]);
+    }
+
+    #[test]
+    fn test_ikey() {
+        assert_eq!(parse_one("IKEY", "r1"), vec![0x48, 1]);
+    }
+
+    #[test]
+    fn test_rand() {
+        assert_eq!(parse_one("RAND", "r3"), vec![0x49, 3]);
+    }
+
+    #[test]
+    fn test_disconnect() {
+        assert_eq!(parse_one("DISCONNECT", "r7"), vec![0x82, 7]);
+    }
+
+    #[test]
+    fn test_trace_read() {
+        assert_eq!(parse_one("TRACE_READ", "r0"), vec![0x83, 0]);
+    }
+
+    #[test]
+    fn test_pixel_history() {
+        assert_eq!(parse_one("PIXEL_HISTORY", "r2"), vec![0x84, 2]);
+    }
+
+    // ── Two-register opcodes ────────────────────────────────
+    #[test]
+    fn test_beep() {
+        assert_eq!(parse_one("BEEP", "r1, r2"), vec![0x03, 1, 2]);
+    }
+
+    #[test]
+    fn test_memcpy() {
+        assert_eq!(parse_one("MEMCPY", "r1, r2, r3"), vec![0x04, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_memset() {
+        assert_eq!(parse_one("MEMSET", "r4, r5, r6"), vec![0xF6, 4, 5, 6]);
+    }
+
+    #[test]
+    fn test_ldi_decimal() {
+        assert_eq!(parse_one("LDI", "r1, 42"), vec![0x10, 1, 42]);
+    }
+
+    #[test]
+    fn test_ldi_hex() {
+        assert_eq!(parse_one("LDI", "r2, 0xFF"), vec![0x10, 2, 255]);
+    }
+
+    #[test]
+    fn test_ldi_zero() {
+        assert_eq!(parse_one("LDI", "r0, 0"), vec![0x10, 0, 0]);
+    }
+
+    #[test]
+    fn test_load() {
+        assert_eq!(parse_one("LOAD", "r1, r2"), vec![0x11, 1, 2]);
+    }
+
+    #[test]
+    fn test_store() {
+        assert_eq!(parse_one("STORE", "r3, r4"), vec![0x12, 3, 4]);
+    }
+
+    #[test]
+    fn test_mov() {
+        assert_eq!(parse_one("MOV", "r10, r20"), vec![0x51, 10, 20]);
+    }
+
+    #[test]
+    fn test_cmp() {
+        assert_eq!(parse_one("CMP", "r5, r6"), vec![0x50, 5, 6]);
+    }
+
+    #[test]
+    fn test_loadb() {
+        assert_eq!(parse_one("LOADB", "r1, r2"), vec![0xFB, 1, 2]);
+    }
+
+    #[test]
+    fn test_storeb() {
+        assert_eq!(parse_one("STOREB", "r3, r4"), vec![0xFC, 3, 4]);
+    }
+
+    #[test]
+    fn test_loadh() {
+        assert_eq!(parse_one("LOADH", "r5, r6"), vec![0xFD, 5, 6]);
+    }
+
+    #[test]
+    fn test_storeh() {
+        assert_eq!(parse_one("STOREH", "r7, r8"), vec![0xFE, 7, 8]);
+    }
+
+    // ── Arithmetic opcodes ──────────────────────────────────
+    #[test]
+    fn test_add() {
+        assert_eq!(parse_one("ADD", "r1, r2"), vec![0x20, 1, 2]);
+    }
+
+    #[test]
+    fn test_sub() {
+        assert_eq!(parse_one("SUB", "r3, r4"), vec![0x21, 3, 4]);
+    }
+
+    #[test]
+    fn test_mul() {
+        assert_eq!(parse_one("MUL", "r5, r6"), vec![0x22, 5, 6]);
+    }
+
+    #[test]
+    fn test_div() {
+        assert_eq!(parse_one("DIV", "r7, r8"), vec![0x23, 7, 8]);
+    }
+
+    #[test]
+    fn test_and() {
+        assert_eq!(parse_one("AND", "r1, r2"), vec![0x24, 1, 2]);
+    }
+
+    #[test]
+    fn test_or() {
+        assert_eq!(parse_one("OR", "r3, r4"), vec![0x25, 3, 4]);
+    }
+
+    #[test]
+    fn test_xor() {
+        assert_eq!(parse_one("XOR", "r5, r6"), vec![0x26, 5, 6]);
+    }
+
+    #[test]
+    fn test_shl() {
+        assert_eq!(parse_one("SHL", "r7, r8"), vec![0x27, 7, 8]);
+    }
+
+    #[test]
+    fn test_shr() {
+        assert_eq!(parse_one("SHR", "r9, r10"), vec![0x28, 9, 10]);
+    }
+
+    #[test]
+    fn test_mod() {
+        assert_eq!(parse_one("MOD", "r1, r2"), vec![0x29, 1, 2]);
+    }
+
+    #[test]
+    fn test_sar() {
+        assert_eq!(parse_one("SAR", "r3, r4"), vec![0x2B, 3, 4]);
+    }
+
+    #[test]
+    fn test_arith_too_few() {
+        assert!(parse_one_err("ADD", "r1").contains("2 arguments"));
+    }
+
+    // ── Jump opcodes (with numeric addresses) ────────────────
+    #[test]
+    fn test_jmp_numeric() {
+        assert_eq!(parse_one("JMP", "100"), vec![0x30, 100]);
+    }
+
+    #[test]
+    fn test_jz_numeric() {
+        assert_eq!(parse_one("JZ", "r5, 200"), vec![0x31, 5, 200]);
+    }
+
+    #[test]
+    fn test_jnz_numeric() {
+        assert_eq!(parse_one("JNZ", "r10, 300"), vec![0x32, 10, 300]);
+    }
+
+    #[test]
+    fn test_blt_numeric() {
+        assert_eq!(parse_one("BLT", "r0, 50"), vec![0x35, 0, 50]);
+    }
+
+    #[test]
+    fn test_bge_numeric() {
+        assert_eq!(parse_one("BGE", "r0, 100"), vec![0x36, 0, 100]);
+    }
+
+    #[test]
+    fn test_call_numeric() {
+        assert_eq!(parse_one("CALL", "500"), vec![0x33, 500]);
+    }
+
+    #[test]
+    fn test_jmp_too_few() {
+        assert!(parse_one_err("JMP", "").contains("1 argument"));
+    }
+
+    #[test]
+    fn test_jz_too_few() {
+        assert!(parse_one_err("JZ", "r1").contains("2 arguments"));
+    }
+
+    // ── Three-register opcodes ──────────────────────────────
+    #[test]
+    fn test_note() {
+        assert_eq!(parse_one("NOTE", "r1, r2, r3"), vec![0x7E, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_connect() {
+        assert_eq!(parse_one("CONNECT", "r4, r5, r6"), vec![0x7F, 4, 5, 6]);
+    }
+
+    #[test]
+    fn test_socksend() {
+        assert_eq!(
+            parse_one("SOCKSEND", "r1, r2, r3, r4"),
+            vec![0x80, 1, 2, 3, 4]
+        );
+    }
+
+    #[test]
+    fn test_sockrecv() {
+        assert_eq!(
+            parse_one("SOCKRECV", "r5, r6, r7, r8"),
+            vec![0x81, 5, 6, 7, 8]
+        );
+    }
+
+    #[test]
+    fn test_net_send() {
+        assert_eq!(parse_one("NET_SEND", "r1, r2, r3"), vec![0x99, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_net_recv() {
+        assert_eq!(parse_one("NET_RECV", "r1, r2"), vec![0x9A, 1, 2]);
+    }
+
+    // ── Five-register opcode ────────────────────────────────
+    #[test]
+    fn test_httpget() {
+        assert_eq!(
+            parse_one("HTTPGET", "r1, r2, r3, r4, r5"),
+            vec![0xCC, 1, 2, 3, 4, 5]
+        );
+    }
+
+    #[test]
+    fn test_httpget_too_few() {
+        assert!(parse_one_err("HTTPGET", "r1, r2, r3, r4").contains("5 arguments"));
+    }
+
+    // ── High register boundary ──────────────────────────────
+    #[test]
+    fn test_ldi_r31() {
+        assert_eq!(parse_one("LDI", "r31, 0xFFFF"), vec![0x10, 31, 0xFFFF]);
+    }
+
+    #[test]
+    fn test_add_r31() {
+        assert_eq!(parse_one("ADD", "r31, r30"), vec![0x20, 31, 30]);
+    }
+
+    // ── Unknown opcode ──────────────────────────────────────
+    #[test]
+    fn test_unknown_returns_none() {
+        let mut bytecode = Vec::new();
+        let mut label_refs: Vec<(usize, String, usize)> = Vec::new();
+        let result = try_parse(
+            "ZZZTOP",
+            &["ZZZTOP"],
+            &mut bytecode,
+            &mut label_refs,
+            0,
+            &constants(),
+        )
+        .unwrap();
+        assert!(result.is_none());
+    }
+}

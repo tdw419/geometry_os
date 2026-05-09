@@ -5464,18 +5464,18 @@ phases:
     validation: grep -c "#[test]" src/assembler/system_ops.rs >= 30
 - id: phase-305
   title: GeOS VM -- Assembler Core and Immediate Ops Unit Tests
-  status: todo
+  status: done
   goal: Add unit tests for assembler core_ops.rs (428 LOC) and immediate_ops.rs (127 LOC), both with 0 tests.
   description: 'The core assembler module handles LDI, LOAD, STORE, ADD, SUB, MUL, DIV, AND, OR, XOR, SHL, SHR, MOD, NEG, SAR, CMP, MOV, JMP, JZ, JNZ, CALL, RET, BLT, BGE, PUSH, POP, HALT, NOP, FRAME, BEEP, IKEY, RAND, PEEK, ASM, and CMOV/CSEL. The immediate ops module handles BFE, BFI, and other immediate-form instructions. Both have zero dedicated tests despite being the foundation of all assembly. Add comprehensive tests for encoding correctness, edge cases, and register validation.'
   deliverables:
   - name: Unit tests for arithmetic opcodes (ADD through SAR)
-    status: todo
+    status: done
   - name: Unit tests for control flow (JMP, JZ, JNZ, CALL, RET, BLT, BGE)
-    status: todo
+    status: done
   - name: Unit tests for memory ops (LDI, LOAD, STORE, PUSH, POP)
-    status: todo
+    status: done
   - name: Unit tests for immediate ops (BFE, BFI, CMOV, CSEL, CMPI)
-    status: todo
+    status: done
   acceptance_criteria:
   - description: core_ops.rs has at least 20 unit tests
     validation: grep -c "#[test]" src/assembler/core_ops.rs >= 20

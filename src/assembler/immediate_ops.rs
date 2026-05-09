@@ -125,3 +125,182 @@ pub(super) fn try_parse(
         _ => Ok(None),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn constants() -> HashMap<String, u32> {
+        HashMap::new()
+    }
+
+    fn parse_one(opcode: &str, args: &str) -> Vec<u32> {
+        let full = format!("{opcode} {args}");
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        try_parse(opcode, &tokens, &mut bytecode, &constants()).unwrap();
+        bytecode
+    }
+
+    fn parse_one_err(opcode: &str, args: &str) -> String {
+        let full = format!("{opcode} {args}");
+        let tokens: Vec<&str> = full
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let mut bytecode = Vec::new();
+        try_parse(opcode, &tokens, &mut bytecode, &constants()).unwrap_err()
+    }
+
+    // ── CMPI (0x15) ────────────────────────────────────────
+    #[test]
+    fn test_cmpi_decimal() {
+        assert_eq!(parse_one("CMPI", "r5, 42"), vec![0x15, 5, 42]);
+    }
+
+    #[test]
+    fn test_cmpi_hex() {
+        assert_eq!(parse_one("CMPI", "r10, 0xFF"), vec![0x15, 10, 255]);
+    }
+
+    #[test]
+    fn test_cmpi_zero() {
+        assert_eq!(parse_one("CMPI", "r0, 0"), vec![0x15, 0, 0]);
+    }
+
+    #[test]
+    fn test_cmpi_too_few() {
+        assert!(parse_one_err("CMPI", "r5").contains("2 arguments"));
+    }
+
+    // ── LOADS (0x16) ───────────────────────────────────────
+    #[test]
+    fn test_loads_basic() {
+        assert_eq!(parse_one("LOADS", "r1, 8"), vec![0x16, 1, 8]);
+    }
+
+    #[test]
+    fn test_loads_negative() {
+        // parse_imm doesn't handle negative numbers - verify it rejects gracefully
+        assert!(parse_one_err("LOADS", "r2, -4").contains("invalid number"));
+    }
+
+    #[test]
+    fn test_loads_too_few() {
+        assert!(parse_one_err("LOADS", "r1").contains("2 arguments"));
+    }
+
+    // ── STORES (0x17) ──────────────────────────────────────
+    #[test]
+    fn test_stores_basic() {
+        assert_eq!(parse_one("STORES", "8, r1"), vec![0x17, 8, 1]);
+    }
+
+    #[test]
+    fn test_stores_too_few() {
+        assert!(parse_one_err("STORES", "8").contains("2 arguments"));
+    }
+
+    // ── Immediate arithmetic ────────────────────────────────
+    #[test]
+    fn test_shli() {
+        assert_eq!(parse_one("SHLI", "r1, 4"), vec![0x18, 1, 4]);
+    }
+
+    #[test]
+    fn test_shri() {
+        assert_eq!(parse_one("SHRI", "r2, 8"), vec![0x19, 2, 8]);
+    }
+
+    #[test]
+    fn test_sari() {
+        assert_eq!(parse_one("SARI", "r3, 16"), vec![0x1A, 3, 16]);
+    }
+
+    #[test]
+    fn test_addi() {
+        assert_eq!(parse_one("ADDI", "r4, 10"), vec![0x1B, 4, 10]);
+    }
+
+    #[test]
+    fn test_subi() {
+        assert_eq!(parse_one("SUBI", "r5, 20"), vec![0x1C, 5, 20]);
+    }
+
+    #[test]
+    fn test_andi() {
+        assert_eq!(parse_one("ANDI", "r6, 0xFF"), vec![0x1D, 6, 0xFF]);
+    }
+
+    #[test]
+    fn test_ori() {
+        assert_eq!(parse_one("ORI", "r7, 0x10"), vec![0x1E, 7, 0x10]);
+    }
+
+    #[test]
+    fn test_xori() {
+        assert_eq!(parse_one("XORI", "r8, 0xAA"), vec![0x1F, 8, 0xAA]);
+    }
+
+    #[test]
+    fn test_imm_arith_too_few() {
+        assert!(parse_one_err("ADDI", "r1").contains("2 arguments"));
+    }
+
+    // ── TEXTI (0x13) ───────────────────────────────────────
+    #[test]
+    fn test_texti_basic() {
+        let bc = parse_one("TEXTI", "10, 20, \"Hi\"");
+        assert_eq!(bc[0], 0x13);
+        assert_eq!(bc[1], 10); // x
+        assert_eq!(bc[2], 20); // y
+        assert_eq!(bc[3], 2); // char count
+        assert_eq!(bc[4], 72); // 'H'
+        assert_eq!(bc[5], 105); // 'i'
+    }
+
+    #[test]
+    fn test_texti_empty() {
+        let bc = parse_one("TEXTI", "0, 0, \"\"");
+        assert_eq!(bc, vec![0x13, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_texti_too_few() {
+        assert!(parse_one_err("TEXTI", "10, 20").contains("3 args"));
+    }
+
+    // ── STRO (0x14) ───────────────────────────────────────
+    #[test]
+    fn test_stro_basic() {
+        let bc = parse_one("STRO", "r1, \"AB\"");
+        assert_eq!(bc[0], 0x14);
+        assert_eq!(bc[1], 1); // reg
+        assert_eq!(bc[2], 2); // char count
+        assert_eq!(bc[3], 65); // 'A'
+        assert_eq!(bc[4], 66); // 'B'
+    }
+
+    #[test]
+    fn test_stro_too_few() {
+        assert!(parse_one_err("STRO", "r1").contains("2 args"));
+    }
+
+    // ── High register boundary ─────────────────────────────
+    #[test]
+    fn test_cmpi_r31() {
+        assert_eq!(parse_one("CMPI", "r31, 0xFFFF"), vec![0x15, 31, 0xFFFF]);
+    }
+
+    // ── Unknown opcode ─────────────────────────────────────
+    #[test]
+    fn test_unknown_returns_none() {
+        let mut bytecode = Vec::new();
+        let result = try_parse("ZZZTOP", &["ZZZTOP"], &mut bytecode, &constants()).unwrap();
+        assert!(result.is_none());
+    }
+}
