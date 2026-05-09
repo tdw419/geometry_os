@@ -111,6 +111,19 @@ impl Compiler {
     pub fn compile(&mut self, source: &str) -> Result<String, CompileError> {
         let tokens = lexer::tokenize(source);
         self.compile_tokens(&tokens)?;
+        // Post-compilation validation: unclosed control structures
+        if self.if_depth > 0 {
+            return Err(CompileError {
+                message: "IF without matching THEN".into(),
+                line: 0,
+            });
+        }
+        if self.do_depth > 0 {
+            return Err(CompileError {
+                message: "DO without matching LOOP".into(),
+                line: 0,
+            });
+        }
         self.emit("HALT");
         Ok(self.output.join("\n"))
     }
@@ -728,6 +741,12 @@ impl Compiler {
                 return Ok(true);
             }
             "ELSE" => {
+                if self.if_depth == 0 {
+                    return Err(CompileError {
+                        message: "ELSE without matching IF".into(),
+                        line,
+                    });
+                }
                 // We need to find the matching IF label.
                 // Use the last generated label (which was the IF label)
                 let lbl = format!("if_{}", self.label_counter - 1);
@@ -736,6 +755,12 @@ impl Compiler {
                 return Ok(true);
             }
             "THEN" => {
+                if self.if_depth == 0 {
+                    return Err(CompileError {
+                        message: "THEN without matching IF".into(),
+                        line,
+                    });
+                }
                 let lbl = format!("if_{}", self.label_counter - 1);
                 self.emit(&format!("{}_then:", lbl));
                 self.if_depth -= 1;
@@ -1025,4 +1050,606 @@ fn is_number(s: &str) -> bool {
         return s[1..].parse::<u32>().is_ok();
     }
     s.parse::<u32>().is_ok() || s.parse::<i32>().is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Helper: compile Forth source and return the output assembly lines.
+    fn compile_lines(source: &str) -> Result<Vec<String>, CompileError> {
+        let mut compiler = Compiler::new();
+        let asm = compiler.compile(source)?;
+        Ok(asm.lines().map(|l| l.to_string()).collect())
+    }
+
+    // ── Basic compilation ──────────────────────────────────────────────
+
+    #[test]
+    fn test_empty_source() {
+        let lines = compile_lines("").unwrap();
+        // Empty source should still emit HALT
+        assert!(lines.last().unwrap().contains("HALT"));
+    }
+
+    #[test]
+    fn test_number_literal_decimal() {
+        let lines = compile_lines("42").unwrap();
+        // Should contain LDI r2, 42 and PUSH r2
+        let joined = lines.join("\n");
+        assert!(joined.contains("LDI r2, 42"));
+        assert!(joined.contains("PUSH r2"));
+    }
+
+    #[test]
+    fn test_number_literal_negative() {
+        let lines = compile_lines("-7").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LDI r2, -7"));
+        assert!(joined.contains("PUSH r2"));
+    }
+
+    #[test]
+    fn test_number_literal_hex() {
+        let lines = compile_lines("0xFF $ABCD").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LDI r2, 0x000000FF"));
+        assert!(joined.contains("LDI r2, 0x0000ABCD"));
+    }
+
+    #[test]
+    fn test_constants_true_false() {
+        let lines = compile_lines("TRUE FALSE").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LDI r2, -1           ; TRUE"));
+        assert!(joined.contains("LDI r2, 0            ; FALSE"));
+    }
+
+    #[test]
+    fn test_always_ends_with_halt() {
+        let lines = compile_lines("42 DUP + .").unwrap();
+        assert!(lines.last().unwrap().trim() == "HALT");
+    }
+
+    // ── Stack operations ───────────────────────────────────────────────
+
+    #[test]
+    fn test_dup_emits_peek_and_push() {
+        let lines = compile_lines("DUP").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LOAD r2, [r30]"));
+        assert!(joined.contains("PUSH r2"));
+    }
+
+    #[test]
+    fn test_drop_emits_sp_increment() {
+        let lines = compile_lines("DROP").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("ADD r30, r0"));
+    }
+
+    #[test]
+    fn test_swap_emits_exchange() {
+        let lines = compile_lines("SWAP").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LOAD r4, [r30]"));
+        assert!(joined.contains("LOAD r5, [r30]"));
+        assert!(joined.contains("STORE [r30], r4"));
+        assert!(joined.contains("STORE [r30], r5"));
+    }
+
+    #[test]
+    fn test_over_emits_nos_copy() {
+        let lines = compile_lines("OVER").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("PUSH r4"));
+    }
+
+    #[test]
+    fn test_rot_emits_third_rotation() {
+        let lines = compile_lines("ROT").unwrap();
+        let joined = lines.join("\n");
+        // ROT accesses 3 stack slots (TOS, NOS, THIRD)
+        assert!(joined.contains("LOAD r5, [r30]"));
+        assert!(joined.contains("LOAD r6, [r30]"));
+    }
+
+    #[test]
+    fn test_2dup_emits_two_copies() {
+        let lines = compile_lines("2DUP").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("PUSH r4"));
+        assert!(joined.contains("PUSH r3"));
+    }
+
+    #[test]
+    fn test_2drop_emits_double_pop() {
+        let lines = compile_lines("2DROP").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LDI r0, 2"));
+        assert!(joined.contains("ADD r30, r0"));
+    }
+
+    // ── Arithmetic ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_addition() {
+        let lines = compile_lines("+").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("ADD r4, r3"));
+    }
+
+    #[test]
+    fn test_subtraction() {
+        let lines = compile_lines("-").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("SUB r4, r3"));
+    }
+
+    #[test]
+    fn test_multiplication() {
+        let lines = compile_lines("*").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("MUL r4, r3"));
+    }
+
+    #[test]
+    fn test_division() {
+        let lines = compile_lines("/").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("DIV r4, r3"));
+    }
+
+    #[test]
+    fn test_modulo() {
+        let lines = compile_lines("MOD").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("MOD r4, r3"));
+    }
+
+    #[test]
+    fn test_increment_decrement() {
+        let lines = compile_lines("1+ 1- 2+ 2-").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("ADD r3, r2")); // 1+
+        assert!(joined.contains("SUB r3, r2")); // 1-
+        assert!(joined.contains("LDI r2, 2")); // 2+
+        assert!(joined.contains("LDI r2, 2")); // 2-
+    }
+
+    #[test]
+    fn test_shift_double() {
+        let lines = compile_lines("2* 2/").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("SHL r3, r2"));
+        assert!(joined.contains("SHR r3, r2"));
+    }
+
+    #[test]
+    fn test_negate() {
+        let lines = compile_lines("NEGATE").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("SUB r2, r3"));
+    }
+
+    #[test]
+    fn test_abs() {
+        let lines = compile_lines("ABS").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("BGE r0,"));
+        assert!(joined.contains("NEG r2"));
+    }
+
+    // ── Bitwise ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_bitwise_ops() {
+        let lines = compile_lines("AND OR XOR INVERT").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("AND r4, r3"));
+        assert!(joined.contains("OR r4, r3"));
+        assert!(joined.contains("XOR r4, r3"));
+        assert!(joined.contains("XOR r3, r2"));
+    }
+
+    #[test]
+    fn test_shift_ops() {
+        let lines = compile_lines("LSHIFT RSHIFT").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("SHL r3, r4"));
+        assert!(joined.contains("SHR r3, r4"));
+    }
+
+    // ── Comparison ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_equality() {
+        let lines = compile_lines("=").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("CMP r4, r3"));
+        assert!(joined.contains("JZ r0,"));
+        assert!(joined.contains("LDI r2, 1")); // true branch
+        assert!(joined.contains("LDI r2, 0")); // false branch
+    }
+
+    #[test]
+    fn test_inequality() {
+        let lines = compile_lines("<>").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("JZ r0,"));
+        // <> returns true (1) when NOT equal, false (0) when equal
+        assert!(joined.contains("LDI r2, 1")); // true branch
+        assert!(joined.contains("LDI r2, 0")); // false branch
+    }
+
+    #[test]
+    fn test_less_than() {
+        let lines = compile_lines("<").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("CMP r4, r3"));
+        // < uses MOV r2, r0 to copy CMP result (BLT is implicit in CMP)
+        assert!(joined.contains("MOV r2, r0"));
+    }
+
+    #[test]
+    fn test_greater_than() {
+        let lines = compile_lines(">").unwrap();
+        let joined = lines.join("\n");
+        // > compares NOS > TOS: CMP r3, r4
+        assert!(joined.contains("CMP r3, r4"));
+        assert!(joined.contains("MOV r2, r0"));
+    }
+
+    // ── Output words ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_dot_pops_and_stores() {
+        let lines = compile_lines(".").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LOAD r2, [r30]"));
+        assert!(joined.contains("ADD r30, r3"));
+        assert!(joined.contains("STORE r5, r2"));
+    }
+
+    #[test]
+    fn test_emit_pops_and_stores() {
+        let lines = compile_lines("EMIT").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LOAD r2, [r30]"));
+        assert!(joined.contains("STORE r5, r2"));
+    }
+
+    #[test]
+    fn test_cr_emits_newline() {
+        let lines = compile_lines("CR").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LDI r2, 10"));
+        assert!(joined.contains("STORE r5, r2"));
+    }
+
+    #[test]
+    fn test_space_emits_32() {
+        let lines = compile_lines("SPACE").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LDI r2, 32"));
+    }
+
+    // ── Word definitions ───────────────────────────────────────────────
+
+    #[test]
+    fn test_word_definition_and_call() {
+        let lines = compile_lines(": SQUARE DUP * ; 10 SQUARE").unwrap();
+        let joined = lines.join("\n");
+        // Word definition should have a label and RET
+        assert!(joined.contains("word_0:"));
+        assert!(joined.contains("RET"));
+        // Calling the word should emit CALL
+        assert!(joined.contains("CALL word_0"));
+    }
+
+    #[test]
+    fn test_word_calling_another_word() {
+        let lines = compile_lines(": SQUARE DUP * ; : CUBE DUP SQUARE * ; 5 CUBE").unwrap();
+        let joined = lines.join("\n");
+        // CUBE should CALL SQUARE
+        assert!(joined.contains("CALL word_1")); // CUBE calls SQUARE
+    }
+
+    #[test]
+    fn test_word_definition_has_colon_semicolon_markers() {
+        let lines = compile_lines(": FOO 42 . ;").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains(": FOO"));
+        assert!(joined.contains("RET"));
+    }
+
+    #[test]
+    fn test_nested_colon_definition_fails() {
+        let result = compile_lines(": A : B 42 ; ;");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("nested"));
+    }
+
+    #[test]
+    fn test_semicolon_outside_definition_fails() {
+        let result = compile_lines(";");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("outside"));
+    }
+
+    // ── Control structures: IF/ELSE/THEN ───────────────────────────────
+
+    #[test]
+    fn test_if_then() {
+        let lines = compile_lines(": TEST 10 20 > IF 42 THEN ;").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("CMPI r2, 0"));
+        assert!(joined.contains("JZ r0,"));
+    }
+
+    #[test]
+    fn test_if_else_then() {
+        let lines = compile_lines(": TEST 10 20 > IF 42 ELSE 99 THEN ;").unwrap();
+        let joined = lines.join("\n");
+        // IF/ELSE/THEN should have conditional branch and JMP for ELSE
+        assert!(joined.contains("JZ r0,"));
+        assert!(joined.contains("JMP"));
+    }
+
+    #[test]
+    fn test_if_without_then_fails() {
+        let result = compile_lines(": TEST IF 42 ;");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_else_without_if_fails() {
+        let result = compile_lines(": TEST ELSE 42 THEN ;");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_then_without_if_fails() {
+        let result = compile_lines(": TEST THEN ;");
+        assert!(result.is_err());
+    }
+
+    // ── Control structures: DO/LOOP ────────────────────────────────────
+
+    #[test]
+    fn test_do_loop() {
+        let lines = compile_lines(": TEST 10 0 DO I . LOOP ;").unwrap();
+        let joined = lines.join("\n");
+        // DO/LOOP should have a loop label and branch
+        assert!(joined.contains("DO_LOOP") || joined.contains("loop"));
+        assert!(joined.contains("CMP r14, r15"));  // loop termination uses CMP, not CMPI
+    }
+
+    #[test]
+    fn test_do_without_loop_fails() {
+        let result = compile_lines(": TEST 10 0 DO I . ;");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_loop_without_do_fails() {
+        let result = compile_lines(": TEST LOOP ;");
+        assert!(result.is_err());
+    }
+
+    // ── Control structures: BEGIN/UNTIL ────────────────────────────────
+
+    #[test]
+    fn test_begin_until() {
+        let lines = compile_lines(": TEST BEGIN DUP 1- DUP 0= UNTIL ;").unwrap();
+        let joined = lines.join("\n");
+        // BEGIN/UNTIL should have a backward JMP
+        assert!(joined.contains("JMP"));
+        assert!(joined.contains("CMPI r2, 0"));
+    }
+
+    #[test]
+    fn test_begin_while_repeat() {
+        let lines = compile_lines(": TEST BEGIN DUP 1- DUP 0= WHILE DROP . REPEAT ;").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("JZ r0,"));
+        assert!(joined.contains("JMP"));
+    }
+
+    #[test]
+    fn test_until_without_begin_fails() {
+        let result = compile_lines(": TEST UNTIL ;");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_repeat_without_begin_fails() {
+        let result = compile_lines(": TEST REPEAT ;");
+        assert!(result.is_err());
+    }
+
+    // ── Variables ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_variable_declaration() {
+        let lines = compile_lines("VARIABLE COUNTER").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("VARIABLE COUNTER"));
+        assert!(joined.contains("0x")); // address in hex
+    }
+
+    #[test]
+    fn test_variable_access_pushes_address() {
+        let lines = compile_lines("VARIABLE X X").unwrap();
+        let joined = lines.join("\n");
+        // After VARIABLE X, using X should push its address
+        assert!(joined.contains("LDI r2, 0x"));
+        assert!(joined.contains("PUSH r2"));
+    }
+
+    #[test]
+    fn test_variable_without_name_fails() {
+        let result = compile_lines("VARIABLE");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("expects a name"));
+    }
+
+    #[test]
+    fn test_multiple_variables_sequential_addresses() {
+        let lines = compile_lines("VARIABLE A VARIABLE B").unwrap();
+        let joined = lines.join("\n");
+        // Both variables should be declared with different addresses
+        let var_count = joined.matches("VARIABLE").count();
+        assert_eq!(var_count, 2);
+    }
+
+    // ── Memory access ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_at_fetches_from_address() {
+        let lines = compile_lines("@").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LOAD r2, [r2]"));
+        assert!(joined.contains("PUSH r2"));
+    }
+
+    #[test]
+    fn test_bang_stores_to_address() {
+        let lines = compile_lines("!").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("STORE [r3], r4"));
+    }
+
+    #[test]
+    fn test_plus_store() {
+        let lines = compile_lines("+!").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("ADD r5, r4"));
+        assert!(joined.contains("STORE [r3], r5"));
+    }
+
+    // ── Dot-quote strings ──────────────────────────────────────────────
+
+    #[test]
+    fn test_dot_quote_string() {
+        let lines = compile_lines(".\" hello\"").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("LDI r2, 104")); // 'h'
+        assert!(joined.contains("LDI r2, 101")); // 'e'
+        assert!(joined.contains("LDI r2, 108")); // 'l'
+        assert!(joined.contains("LDI r2, 111")); // 'o'
+    }
+
+    // ── Error handling ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_unknown_word_fails() {
+        let result = compile_lines("FOOBAR");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("unknown word"));
+        assert!(err.message.contains("FOOBAR"));
+    }
+
+    #[test]
+    fn test_colon_without_name_fails() {
+        let result = compile_lines(":");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("expects a word name"));
+    }
+
+    #[test]
+    fn test_compile_error_includes_line_number() {
+        let result = compile_lines("42\nFOOBAR\n99");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        // FOOBAR is on line 2
+        assert_eq!(err.line, 2);
+    }
+
+    #[test]
+    fn test_multiple_errors_first_wins() {
+        let result = compile_lines("BOGUS1 BOGUS2");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        // Should report the first unknown word
+        assert!(err.message.contains("BOGUS1"));
+    }
+
+    // ── Complex programs ───────────────────────────────────────────────
+
+    #[test]
+    fn test_factorial_word() {
+        // Recursive words require forward references which this compiler
+        // does not support. Test that attempting to call an undefined word
+        // during compilation produces a clear error.
+        let result = compile_lines(
+            r#": FACT DUP 1 > IF DUP 1- FACT * ELSE DROP 1 THEN ;"#
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.message.contains("unknown word: FACT"));
+    }
+
+    #[test]
+    fn test_loops_and_conditionals_combined() {
+        let lines = compile_lines(
+            ": COUNTDOWN 10 0 DO I 5 = IF 99 . THEN LOOP ;"
+        ).unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("IF") || joined.contains("JZ"));
+        assert!(joined.contains("LOOP") || joined.contains("loop"));
+    }
+
+    #[test]
+    fn test_inline_comment_ignored() {
+        let lines1 = compile_lines("42 .").unwrap();
+        let lines2 = compile_lines("42 ( ignored ) .").unwrap();
+        // Both should produce equivalent output (minus comment lines)
+        let non_comment1: Vec<_> = lines1.iter().filter(|l| !l.contains(';')).collect();
+        let non_comment2: Vec<_> = lines2.iter().filter(|l| !l.contains(';')).collect();
+        assert_eq!(non_comment1, non_comment2);
+    }
+
+    #[test]
+    fn test_backslash_comment_ignored() {
+        let lines1 = compile_lines("42 .").unwrap();
+        let lines2 = compile_lines("\\ comment\n42 .").unwrap();
+        let non_comment1: Vec<_> = lines1.iter().filter(|l| !l.contains(';')).collect();
+        let non_comment2: Vec<_> = lines2.iter().filter(|l| !l.contains(';')).collect();
+        assert_eq!(non_comment1, non_comment2);
+    }
+
+    // ── Label uniqueness ───────────────────────────────────────────────
+
+    #[test]
+    fn test_unique_labels_for_multiple_ifs() {
+        let lines = compile_lines(
+            ": TEST 10 > IF 42 THEN 20 > IF 99 THEN ;"
+        ).unwrap();
+        let joined = lines.join("\n");
+        // Should have 2 different IF label prefixes (not the same label twice)
+        // IF/THEN generates _else: and _then: labels
+        let if_labels: Vec<_> = joined
+            .lines()
+            .filter(|l| l.contains("_else:") || l.contains("_then:"))
+            .collect();
+        assert!(if_labels.len() >= 2);
+        // Verify labels are unique (different counter values)
+        let first = if_labels[0];
+        let second = if_labels[1];
+        assert_ne!(first, second);
+    }
+    #[test]
+    fn test_unique_labels_for_multiple_words() {
+        let lines = compile_lines(": A 1 ; : B 2 ; : C 3 ;").unwrap();
+        let joined = lines.join("\n");
+        assert!(joined.contains("word_0"));
+        assert!(joined.contains("word_1"));
+        assert!(joined.contains("word_2"));
+    }
 }
