@@ -928,6 +928,27 @@ impl Bus {
             }
         }
 
+        // Phase 257: Force-map kernel and low identity range if missing.
+        // This prevents kernel panics when swapper_pg_dir doesn't map itself or DTB.
+        let mega_pte_flags: u32 = 0xCF; // V+R+W+X+A+D
+        // 1. Kernel range: VA 0xC0000000..0xC2800000 (10 megapages = 40MB)
+        for i in 0..10 {
+            let idx = 768 + i;
+            let addr = pg_dir_phys + (idx as u64) * 4;
+            if self.read_word(addr).unwrap_or(0) == 0 {
+                let pte = (i << 20) | mega_pte_flags;
+                self.mem.write_word(addr, pte).ok();
+            }
+        }
+        // 2. Low identity range: VA 0..0x10000000 (64 megapages = 256MB)
+        for i in 0..64 {
+            let addr = pg_dir_phys + (i as u64) * 4;
+            if self.read_word(addr).unwrap_or(0) == 0 {
+                let pte = (i << 20) | mega_pte_flags;
+                self.mem.write_word(addr, pte).ok();
+            }
+        }
+
         eprintln!(
             "[pte_fixup] Registered {} page table pages (L1 at PA 0x{:08X})",
             self.known_pt_pages.len(),

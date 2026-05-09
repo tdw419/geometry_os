@@ -504,7 +504,7 @@ fn vm_thread_main(
                     }
                     vm.bus.sbi.console_output.clear();
                 }
-                if !vm.bus.uart.tx_buf.is_empty() {
+                if !is_linux && !vm.bus.uart.tx_buf.is_empty() {
                     let s = String::from_utf8_lossy(&vm.bus.uart.tx_buf);
                     eprint!("{}", s);
                     if let Some(ref mut f) = log_file {

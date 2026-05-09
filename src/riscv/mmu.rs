@@ -317,7 +317,8 @@ pub fn translate(
                 return TranslateResult::Ok(va as u64);
             }
             // Kernel linear mapping demand paging (see Fallback 2 in L1 V=0 check).
-            if vpn1 >= 768 && effective_priv != Privilege::Machine {
+            // Gated by low_addr_identity_map so tests can disable all fallbacks.
+            if vpn1 >= 768 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
                 let page_offset: u64 = 0xC000_0000;
                 let pa = (va as u64).wrapping_sub(page_offset);
                 let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
@@ -348,7 +349,8 @@ pub fn translate(
         // When the kernel's page tables don't cover a VA yet (early boot, vmalloc),
         // compute PA = VA - PAGE_OFFSET and map it if within RAM.
         // This prevents the trap handler from faulting on its own stack.
-        if vpn1 >= 768 && effective_priv != Privilege::Machine {
+        // Gated by low_addr_identity_map so tests can disable all fallbacks.
+        if vpn1 >= 768 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
             let page_offset: u64 = 0xC000_0000;
             let pa = (va as u64).wrapping_sub(page_offset);
             let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
@@ -477,7 +479,8 @@ pub fn translate(
                 return TranslateResult::Ok(va as u64);
             }
             // Kernel linear mapping demand paging.
-            if vpn1 >= 768 && effective_priv != Privilege::Machine {
+            // Gated by low_addr_identity_map so tests can disable all fallbacks.
+            if vpn1 >= 768 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
                 let page_offset: u64 = 0xC000_0000;
                 let pa = (va as u64).wrapping_sub(page_offset);
                 let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
@@ -505,7 +508,8 @@ pub fn translate(
             return TranslateResult::Ok(va as u64);
         }
         // Kernel linear mapping demand paging.
-        if vpn1 >= 768 && effective_priv != Privilege::Machine {
+        // Gated by low_addr_identity_map so tests can disable all fallbacks.
+        if vpn1 >= 768 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
             let page_offset: u64 = 0xC000_0000;
             let pa = (va as u64).wrapping_sub(page_offset);
             let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
@@ -1174,8 +1178,8 @@ mod tests {
             &mut bus,
             &mut tlb,
         );
-        // With low_addr_identity_map=false and no fallback, this should fault
-        // But the bus uses Bus::new(0x0, ...) which sets low_addr_identity_map=true
+        // With low_addr_identity_map=false (Bus default), both fallback paths are
+        // disabled, so the invalid L1 PTE correctly faults even for high VAs.
         // and 0x1000 < 0x0400_0000, so it'll identity-map. Use Machine mode to avoid fallback.
         let result = translate(
             0x1000,
