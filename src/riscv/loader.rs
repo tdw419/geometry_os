@@ -245,7 +245,11 @@ pub struct LoadInfo {
 }
 
 /// Load an ELF image (32-bit or 64-bit) into guest RAM via the bus with a physical offset.
-pub fn load_elf_with_offset(bus: &mut Bus, image: &[u8], offset: u64) -> Result<LoadInfo, LoadError> {
+pub fn load_elf_with_offset(
+    bus: &mut Bus,
+    image: &[u8],
+    offset: u64,
+) -> Result<LoadInfo, LoadError> {
     let class = validate_elf_header(image)?;
     let hdr = parse_elf_header(image, class);
 
@@ -273,9 +277,14 @@ pub fn load_elf_with_offset(bus: &mut Bus, image: &[u8], offset: u64) -> Result<
         };
 
         // Load file data into guest RAM at physical address + offset.
+        let target_pa = offset + phdr.p_paddr as u64;
+        eprintln!("[loader] Segment {}: paddr=0x{:08X}, vaddr=0x{:08X}, offset=0x{:08X}, target_pa=0x{:08X}, filesz=0x{:X}", 
+            i, phdr.p_paddr, phdr.p_vaddr, phdr.p_offset, target_pa, phdr.p_filesz);
+
         for (j, &byte) in data.iter().enumerate() {
-            let addr = offset + phdr.p_paddr as u64 + j as u64;
+            let addr = target_pa + j as u64;
             if bus.write_byte(addr, byte).is_err() {
+                eprintln!("[loader] write_byte failed at PA 0x{:08X}", addr);
                 return Err(LoadError::SegmentOverflow);
             }
         }

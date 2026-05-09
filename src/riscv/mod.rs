@@ -150,7 +150,9 @@ impl RiscvVm {
     /// Captures CLINT mtime as boot_mtime for GEO_UPTIME syscall.
     pub fn new_with_base(ram_base: u64, ram_size: usize) -> Self {
         let mut bus = bus::Bus::new(ram_base, ram_size);
-        let cpu = cpu::RiscvCpu::new();
+        let mut cpu = cpu::RiscvCpu::new();
+        // Set MTVEC to point to the start of RAM (safe landing zone)
+        cpu.csr.mtvec = ram_base as u32;
         let primary = GuestContext::new(0);
         // Phase 257: Record boot time for uptime syscall
         bus.sbi.boot_mtime = bus.clint.mtime;
