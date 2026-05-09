@@ -87,6 +87,13 @@ pub const OPCODES: &[&str] = &[
     "PIPE",
     "MSGSND",
     "MSGRCV",
+    // Phase 289: IPC synchronization primitives
+    "MTEXINIT",
+    "MTEXLOCK",
+    "MTEXUNLOCK",
+    "SEMINIT",
+    "SEMWAIT",
+    "SEMPOST",
     "IOCTL",
     "GETENV",
     "SETENV",

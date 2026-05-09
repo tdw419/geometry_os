@@ -2260,4 +2260,415 @@ mod tests {
         // Should write fewer than 3 words
         assert!(vm.regs[0] <= 2);
     }
+
+    // ============================================================
+    // Phase 289: Mutex/Semaphore IPC Primitives
+    // ============================================================
+
+    #[test]
+    fn test_mutex_init_creates_mutex() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x5000; // mutex address in RAM
+        vm.ram[0] = 0x05; // MTEXINIT
+        vm.ram[1] = 1;    // addr_reg = r1
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // success
+        assert_eq!(vm.mutexes.len(), 1);
+        assert_eq!(vm.mutexes[0].addr, 0x5000);
+        assert_eq!(vm.mutexes[0].owner_pid, NO_MUTEX_OWNER); // free
+    }
+
+    #[test]
+    fn test_mutex_init_duplicate_returns_ebusy() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x5000;
+        vm.ram[0] = 0x05;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        // Second init at same address
+        vm.ram[0] = 0x05;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBUSY));
+        assert_eq!(vm.mutexes.len(), 1); // no duplicate
+    }
+
+    #[test]
+    fn test_mutex_init_max_returns_enomem() {
+        let mut vm = Vm::new();
+        // Fill up to MAX_MUTEXES
+        for i in 0..MAX_MUTEXES {
+            vm.mutexes.push(GeosMutex {
+                addr: 0x5000 + i as u32,
+                owner_pid: NO_MUTEX_OWNER,
+                wait_queue: Vec::new(),
+            });
+        }
+        vm.regs[1] = 0x9999;
+        vm.ram[0] = 0x05;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOMEM));
+    }
+
+    #[test]
+    fn test_mutex_lock_acquire_free() {
+        let mut vm = Vm::new();
+        vm.mutexes.push(GeosMutex {
+            addr: 0x5000,
+            owner_pid: NO_MUTEX_OWNER,
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x5000;
+        vm.ram[0] = 0x06; // MTEXLOCK
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0); // success
+        assert_eq!(vm.mutexes[0].owner_pid, 0); // main process
+    }
+
+    #[test]
+    fn test_mutex_lock_self_returns_ebusy() {
+        let mut vm = Vm::new();
+        vm.mutexes.push(GeosMutex {
+            addr: 0x5000,
+            owner_pid: 0, // main process already owns it (pid=0)
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x5000;
+        vm.ram[0] = 0x06;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBUSY));
+    }
+
+    #[test]
+    fn test_mutex_lock_blocks_when_held_by_other() {
+        let mut vm = Vm::new();
+        // Create a child process (pid=1)
+        let mut child = Process::new(1, 0x200, 0);
+        vm.processes.push(child);
+        vm.current_pid = 1;
+
+        vm.mutexes.push(GeosMutex {
+            addr: 0x5000,
+            owner_pid: 0, // held by main process (pid=0)
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x5000;
+        vm.ram[0] = 0x06; // MTEXLOCK child tries to lock
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        // Should block: process state = Blocked, PC rewound
+        assert_eq!(vm.processes[0].state, ProcessState::Blocked);
+        assert_eq!(vm.mutexes[0].wait_queue.len(), 1);
+        assert_eq!(vm.mutexes[0].wait_queue[0], 1);
+        // PC should have been rewound (0 + 2 - 2 = 0)
+        assert_eq!(vm.pc, 0);
+    }
+
+    #[test]
+    fn test_mutex_lock_nonexistent_returns_enoent() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x9999; // no mutex at this address
+        vm.ram[0] = 0x06;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT));
+    }
+
+    #[test]
+    fn test_mutex_unlock_releases_and_wakes_waiter() {
+        let mut vm = Vm::new();
+        let mut child = Process::new(1, 0x200, 0);
+        child.state = ProcessState::Blocked;
+        vm.processes.push(child);
+        vm.current_pid = 0; // main process
+
+        vm.mutexes.push(GeosMutex {
+            addr: 0x5000,
+            owner_pid: 0, // main process (pid=0) owns it
+            wait_queue: vec![1], // child is waiting
+        });
+        vm.regs[1] = 0x5000;
+        vm.ram[0] = 0x07; // MTEXUNLOCK
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.mutexes[0].owner_pid, 1); // ownership transferred to child
+        assert_eq!(vm.processes[0].state, ProcessState::Ready); // child unblocked
+        assert!(vm.mutexes[0].wait_queue.is_empty());
+    }
+
+    #[test]
+    fn test_mutex_unlock_not_owner_returns_eperm() {
+        let mut vm = Vm::new();
+        vm.mutexes.push(GeosMutex {
+            addr: 0x5000,
+            owner_pid: 99, // some other process
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x5000;
+        vm.ram[0] = 0x07;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EPERM));
+    }
+
+    #[test]
+    fn test_mutex_unlock_not_locked_returns_einval() {
+        let mut vm = Vm::new();
+        vm.mutexes.push(GeosMutex {
+            addr: 0x5000,
+            owner_pid: 0, // free
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x5000;
+        vm.ram[0] = 0x07;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
+    }
+
+    #[test]
+    fn test_mutex_unlock_nonexistent_returns_enoent() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x9999;
+        vm.ram[0] = 0x07;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT));
+    }
+
+    #[test]
+    fn test_sem_init_creates_semaphore() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x6000; // addr
+        vm.regs[2] = 3;      // initial count
+        vm.ram[0] = 0x08; // SEMINIT
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.semaphores.len(), 1);
+        assert_eq!(vm.semaphores[0].addr, 0x6000);
+        assert_eq!(vm.semaphores[0].count, 3);
+    }
+
+    #[test]
+    fn test_sem_init_duplicate_returns_ebusy() {
+        let mut vm = Vm::new();
+        vm.semaphores.push(GeosSemaphore {
+            addr: 0x6000,
+            count: 1,
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x6000;
+        vm.regs[2] = 5;
+        vm.ram[0] = 0x08;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EBUSY));
+    }
+
+    #[test]
+    fn test_sem_init_max_returns_enomem() {
+        let mut vm = Vm::new();
+        for i in 0..MAX_SEMAPHORES {
+            vm.semaphores.push(GeosSemaphore {
+                addr: 0x6000 + i as u32,
+                count: 1,
+                wait_queue: Vec::new(),
+            });
+        }
+        vm.regs[1] = 0x9999;
+        vm.regs[2] = 1;
+        vm.ram[0] = 0x08;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOMEM));
+    }
+
+    #[test]
+    fn test_sem_wait_decrements_count() {
+        let mut vm = Vm::new();
+        vm.semaphores.push(GeosSemaphore {
+            addr: 0x6000,
+            count: 2,
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x6000;
+        vm.ram[0] = 0x09; // SEMWAIT
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.semaphores[0].count, 1);
+    }
+
+    #[test]
+    fn test_sem_wait_blocks_when_zero() {
+        let mut vm = Vm::new();
+        let mut child = Process::new(1, 0x200, 0);
+        vm.processes.push(child);
+        vm.current_pid = 1;
+
+        vm.semaphores.push(GeosSemaphore {
+            addr: 0x6000,
+            count: 0,
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x6000;
+        vm.ram[0] = 0x09;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.processes[0].state, ProcessState::Blocked);
+        assert_eq!(vm.semaphores[0].wait_queue.len(), 1);
+        assert_eq!(vm.pc, 0); // rewound
+    }
+
+    #[test]
+    fn test_sem_post_increments_count() {
+        let mut vm = Vm::new();
+        vm.semaphores.push(GeosSemaphore {
+            addr: 0x6000,
+            count: 1,
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x6000;
+        vm.ram[0] = 0x0A; // SEMPOST
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.semaphores[0].count, 2);
+    }
+
+    #[test]
+    fn test_sem_post_wakes_waiter() {
+        let mut vm = Vm::new();
+        let mut child = Process::new(1, 0x200, 0);
+        child.state = ProcessState::Blocked;
+        vm.processes.push(child);
+
+        vm.semaphores.push(GeosSemaphore {
+            addr: 0x6000,
+            count: 0,
+            wait_queue: vec![1],
+        });
+        vm.regs[1] = 0x6000;
+        vm.ram[0] = 0x0A;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.processes[0].state, ProcessState::Ready);
+        assert!(vm.semaphores[0].wait_queue.is_empty());
+        // Count stays 0 because the post goes directly to the waiter
+        assert_eq!(vm.semaphores[0].count, 0);
+    }
+
+    #[test]
+    fn test_sem_wait_nonexistent_returns_enoent() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x9999;
+        vm.ram[0] = 0x09;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT));
+    }
+
+    #[test]
+    fn test_sem_post_nonexistent_returns_enoent() {
+        let mut vm = Vm::new();
+        vm.regs[1] = 0x9999;
+        vm.ram[0] = 0x0A;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT));
+    }
+
+    #[test]
+    fn test_sem_post_saturation() {
+        let mut vm = Vm::new();
+        vm.semaphores.push(GeosSemaphore {
+            addr: 0x6000,
+            count: u32::MAX,
+            wait_queue: Vec::new(),
+        });
+        vm.regs[1] = 0x6000;
+        vm.ram[0] = 0x0A;
+        vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        // saturating_add: u32::MAX stays u32::MAX
+        assert_eq!(vm.semaphores[0].count, u32::MAX);
+    }
+
+    #[test]
+    fn test_mutex_lock_unlock_cycle() {
+        let mut vm = Vm::new();
+        // Init
+        vm.regs[1] = 0x5000;
+        vm.ram[0] = 0x05; vm.ram[1] = 1;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        // Lock
+        vm.ram[0] = 0x06;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.mutexes[0].owner_pid, 0);
+        // Unlock
+        vm.ram[0] = 0x07;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.mutexes[0].owner_pid, 0); // free again
+    }
+
+    #[test]
+    fn test_sem_producer_consumer_pattern() {
+        let mut vm = Vm::new();
+        // Init semaphore with count=0
+        vm.regs[1] = 0x6000;
+        vm.regs[2] = 0;
+        vm.ram[0] = 0x08; vm.ram[1] = 1; vm.ram[2] = 2;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        // Post (count 0 -> 1)
+        vm.ram[0] = 0x0A;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.semaphores[0].count, 1);
+        // Wait (count 1 -> 0, success)
+        vm.ram[0] = 0x09;
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.regs[0], 0);
+        assert_eq!(vm.semaphores[0].count, 0);
+    }
 }

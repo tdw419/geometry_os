@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a purple line between points (209, 164) and (106, 119).
+; PLAN: r0=209(x1), r1=164(y1), r2=106(x2), r3=119(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 209
+LDI r1, 164
+LDI r2, 106
+LDI r3, 119
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+HALT

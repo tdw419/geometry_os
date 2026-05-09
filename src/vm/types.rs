@@ -201,6 +201,7 @@ pub const GEOS_EBADF: u32 = 8; // Bad file descriptor
 pub const GEOS_EACCES: u32 = 9; // Permission denied (wrong mode)
 pub const GEOS_ENFILE: u32 = 10; // File table overflow (too many open files)
 pub const GEOS_ESRCH: u32 = 11; // No such process (for MSGSND)
+pub const GEOS_EBUSY: u32 = 12; // Resource busy (mutex already locked by caller)
 
 /// Encode a GEOS error code as a negative u32 for return in r0.
 /// Example: geos_errno(GEOS_ENOENT) returns 0xFFFFFFFE (-2 in two's complement).
@@ -531,6 +532,9 @@ impl Vma {
 pub const MAX_MUTEXES: usize = 16;
 /// Maximum number of semaphores in the system.
 pub const MAX_SEMAPHORES: usize = 16;
+/// Sentinel value indicating a mutex has no owner (is unlocked).
+/// PID 0 is a valid process (main/primary), so we cannot use 0.
+pub const NO_MUTEX_OWNER: u32 = u32::MAX;
 
 /// A mutex for inter-process mutual exclusion.
 /// Stored at a RAM address chosen by the programmer (via MTEXINIT).

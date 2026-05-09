@@ -5118,7 +5118,7 @@ phases:
   _claimed_at: 1778297828
 - id: phase-290
   title: GeOS VM -- Performance Benchmark Suite and Optimization
-  status: planned
+  status: in_progress
   goal: Create a standardized benchmark suite measuring VM instruction throughput,
     memory access patterns, and graphics rendering performance.
   description: 'With 150+ opcodes and 2928 tests, the VM needs quantitative performance
@@ -5146,6 +5146,8 @@ phases:
     validation: Three runs within 5% variance
   - description: Performance doc includes per-benchmark numbers and methodology
     validation: docs/PERFORMANCE_BENCHMARK.md updated
+  _claimed_by: worker-0
+  _claimed_at: 1778299158
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'

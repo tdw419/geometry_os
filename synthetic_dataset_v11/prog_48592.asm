@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a purple line segment connecting (195, 112) to (102, 12).
+; PLAN: r0=195(x1), r1=112(y1), r2=102(x2), r3=12(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 195
+LDI r1, 112
+LDI r2, 102
+LDI r3, 12
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+HALT

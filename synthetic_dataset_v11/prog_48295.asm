@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a orange line from (139, 173) to (19, 91).
+; PLAN: r0=139(x1), r1=173(y1), r2=19(x2), r3=91(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 139
+LDI r1, 173
+LDI r2, 19
+LDI r3, 91
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

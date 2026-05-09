@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a white box of size 40x92 starting at (167, 36).
+; PLAN: r0=167(x), r1=36(y), r2=40(width), r3=92(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 167
+LDI r1, 36
+LDI r2, 40
+LDI r3, 92
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
+HALT

@@ -208,12 +208,17 @@ def train(args):
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
     # Load tokenizer
-    tok_path = Path(args.dataset).with_suffix('.tokenizer.json')
-    tokenizer = OpcodeTokenizer.load(str(tok_path))
+    if args.vocab_size > 0:
+        vocab_size = args.vocab_size
+        print(f"Using explicit vocab_size={vocab_size} (no tokenizer loaded)")
+    else:
+        tok_path = Path(args.dataset).with_suffix('.tokenizer.json')
+        tokenizer = OpcodeTokenizer.load(str(tok_path))
+        vocab_size = tokenizer.vocab_size
 
     # Build model
     model = OpcodeGPT(
-        vocab_size=tokenizer.vocab_size,
+        vocab_size=vocab_size,
         n_embd=args.embd,
         n_head=args.heads,
         n_layer=args.layers,
@@ -221,7 +226,7 @@ def train(args):
         dropout=args.dropout,
     ).to(device)
 
-    print(f"Vocab: {tokenizer.vocab_size} tokens")
+    print(f"Vocab: {vocab_size} tokens")
     print(f"Model: {model.param_count():,} params")
     print(f"  {args.layers}L, {args.heads}H, {args.embd}D, ctx={args.context_len}")
 
@@ -287,6 +292,7 @@ if __name__ == "__main__":
     parser.add_argument("--heads", type=int, default=4)
     parser.add_argument("--embd", type=int, default=128)
     parser.add_argument("--context-len", type=int, default=512)
+    parser.add_argument("--vocab-size", type=int, default=0, help="Override vocab size (skip tokenizer)")
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=3e-4)

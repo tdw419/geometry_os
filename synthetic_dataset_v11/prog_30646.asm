@@ -1,0 +1,17 @@
+; DESCRIPTION: Composite: . Then Renders a white line between points (195, 53) and (222, 45). Then Sets a single purple pixel at (240, 10).
+; PLAN: r0=195(x1), r1=53(y1), r2=222(x2), r3=45(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4 Next: r0=240(x), r1=10(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+; DESCRIPTION: Renders a white line between points (195, 53) and (222, 45).
+; PLAN: r0=195(x1), r1=53(y1), r2=222(x2), r3=45(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 195
+LDI r1, 53
+LDI r2, 222
+LDI r3, 45
+LDI r4, 0xFFFFFF
+LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single purple pixel at (240, 10).
+; PLAN: r0=240(x), r1=10(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 240
+LDI r1, 10
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+HALT

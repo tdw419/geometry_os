@@ -1,0 +1,16 @@
+; DESCRIPTION: Composite: . Then Draws a cyan circle centered at (104, 166) with radius 52. Then Places a purple dot at position (115, 208).
+; PLAN: r0=104(x), r1=166(y), r2=52(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3 Next: r0=115(x), r1=208(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+; DESCRIPTION: Draws a cyan circle centered at (104, 166) with radius 52.
+; PLAN: r0=104(x), r1=166(y), r2=52(radius), r3=0x00FFFF(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 104
+LDI r1, 166
+LDI r2, 52
+LDI r3, 0x00FFFF
+CIRCLE r0, r1, r2, r3
+; DESCRIPTION: Places a purple dot at position (115, 208).
+; PLAN: r0=115(x), r1=208(y), r2=0xAA00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 115
+LDI r1, 208
+LDI r2, 0xAA00FF
+PSET r0, r1, r2
+HALT

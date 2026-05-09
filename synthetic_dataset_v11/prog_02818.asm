@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a green box of size 75x85 starting at (96, 33).
+; PLAN: r0=96(x), r1=33(y), r2=75(width), r3=85(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 96
+LDI r1, 33
+LDI r2, 75
+LDI r3, 85
+LDI r4, 0x00FF00
+RECTF r0, r1, r2, r3, r4
+HALT

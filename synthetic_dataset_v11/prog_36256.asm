@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a purple line segment connecting (234, 222) to (73, 182).
+; PLAN: r0=234(x1), r1=222(y1), r2=73(x2), r3=182(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 234
+LDI r1, 222
+LDI r2, 73
+LDI r3, 182
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+HALT

@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a orange line from (26, 12) to (122, 208).
+; PLAN: r0=26(x1), r1=12(y1), r2=122(x2), r3=208(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 26
+LDI r1, 12
+LDI r2, 122
+LDI r3, 208
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT

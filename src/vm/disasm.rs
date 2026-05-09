@@ -460,6 +460,34 @@ impl Vm {
                 (format!("MSGSND {}", reg(r)), 2)
             }
             0x5F => ("MSGRCV".into(), 1),
+
+            // Phase 289: IPC synchronization primitives
+            0x05 => {
+                let r = ram(a + 1);
+                (format!("MTEXINIT {}", reg(r)), 2)
+            }
+            0x06 => {
+                let r = ram(a + 1);
+                (format!("MTEXLOCK {}", reg(r)), 2)
+            }
+            0x07 => {
+                let r = ram(a + 1);
+                (format!("MTEXUNLOCK {}", reg(r)), 2)
+            }
+            0x08 => {
+                let r1 = ram(a + 1);
+                let r2 = ram(a + 2);
+                (format!("SEMINIT {}, {}", reg(r1), reg(r2)), 3)
+            }
+            0x09 => {
+                let r = ram(a + 1);
+                (format!("SEMWAIT {}", reg(r)), 2)
+            }
+            0x0A => {
+                let r = ram(a + 1);
+                (format!("SEMPOST {}", reg(r)), 2)
+            }
+
             0x62 => {
                 let fd = ram(a + 1);
                 let cmd = ram(a + 2);

@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a purple line from (27, 73) to (213, 138).
+; PLAN: r0=27(x1), r1=73(y1), r2=213(x2), r3=138(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 27
+LDI r1, 73
+LDI r2, 213
+LDI r3, 138
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+HALT

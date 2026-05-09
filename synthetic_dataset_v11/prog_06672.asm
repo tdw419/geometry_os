@@ -1,0 +1,7 @@
+; DESCRIPTION: Places a green dot at position (221, 210).
+; PLAN: r0=221(x), r1=210(y), r2=0x00FF00(color). Op: PSET r0, r1, r2.
+LDI r0, 221
+LDI r1, 210
+LDI r2, 0x00FF00
+PSET r0, r1, r2
+HALT

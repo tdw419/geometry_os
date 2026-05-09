@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a cyan box of size 84x17 starting at (73, 37).
+; PLAN: r0=73(x), r1=37(y), r2=84(width), r3=17(height), r4=0x00FFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 73
+LDI r1, 37
+LDI r2, 84
+LDI r3, 17
+LDI r4, 0x00FFFF
+RECTF r0, r1, r2, r3, r4
+HALT

@@ -443,39 +443,61 @@ fn vm_thread_main(
             } else {
                 vm.step()
             };
-            // Verify CLINT throttle is working (first 5 checks)
+            // Verify CLINT throttle is working (first 25 instructions)
             if is_linux && count < 25 {
+                use std::io::Write;
                 let new_mtime = vm.bus.clint.mtime;
                 let ticked = new_mtime != prev_mtime;
-                eprintln!("[clint-check] count={} mtime {}->{} ticked={}", count, prev_mtime, new_mtime, ticked);
+                let msg = format!("[clint-check] count={} mtime {}->{} ticked={}\n", count, prev_mtime, new_mtime, ticked);
+                eprintln!("{}", msg);
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/geos_guest.log") {
+                    let _ = f.write_all(msg.as_bytes());
+                    let _ = f.flush();
+                }
             }
             count += 1;
             *instruction_count.borrow_mut() = count;
 
             if count % 2_000_000 == 0 {
-                eprintln!(
-                    "[riscv-vm] Executed {}M instructions, mtime={}, PC=0x{:08X}, priv={:?}",
-                    count / 1_000_000,
-                    vm.bus.clint.mtime,
-                    vm.cpu.pc,
-                    vm.cpu.privilege
-                );
+                use std::io::Write;
+                let msg = format!("[riscv-vm] Executed {}M instructions, mtime={}, PC=0x{:08X}, priv={:?}\n",
+                    count / 1_000_000, vm.bus.clint.mtime, vm.cpu.pc, vm.cpu.privilege);
+                eprint!("{}", msg);
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/geos_guest.log") {
+                    let _ = f.write_all(msg.as_bytes());
+                    let _ = f.flush();
+                }
             }
 
             // Print any new console output from the guest (SBI or UART)
             if !vm.bus.sbi.console_output.is_empty() || !vm.bus.uart.tx_buf.is_empty() {
                 use std::io::Write;
+                let mut log_file = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/geos_guest.log")
+                    .ok();
+
                 if !vm.bus.sbi.console_output.is_empty() {
                     let s = String::from_utf8_lossy(&vm.bus.sbi.console_output);
-                    print!("{}", s);
+                    eprint!("{}", s);
+                    if let Some(ref mut f) = log_file {
+                        let _ = f.write_all(s.as_bytes());
+                    }
                     vm.bus.sbi.console_output.clear();
                 }
                 if !vm.bus.uart.tx_buf.is_empty() {
                     let s = String::from_utf8_lossy(&vm.bus.uart.tx_buf);
-                    print!("{}", s);
+                    eprint!("{}", s);
+                    if let Some(ref mut f) = log_file {
+                        let _ = f.write_all(s.as_bytes());
+                    }
                     vm.bus.uart.tx_buf.clear();
                 }
-                let _ = std::io::stdout().flush();
+                let _ = std::io::stderr().flush();
+                if let Some(ref mut f) = log_file {
+                    let _ = f.flush();
+                }
             }
 
             // Linux-mode: log PC transitions for diagnostics (first 300)

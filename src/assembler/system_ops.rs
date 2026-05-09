@@ -171,6 +171,62 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // Phase 289: IPC synchronization primitives
+        "MTEXINIT" => {
+            if tokens.len() < 2 {
+                return Err("MTEXINIT requires 1 argument: MTEXINIT addr_reg".to_string());
+            }
+            bytecode.push(0x05);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "MTEXLOCK" => {
+            if tokens.len() < 2 {
+                return Err("MTEXLOCK requires 1 argument: MTEXLOCK addr_reg".to_string());
+            }
+            bytecode.push(0x06);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "MTEXUNLOCK" => {
+            if tokens.len() < 2 {
+                return Err("MTEXUNLOCK requires 1 argument: MTEXUNLOCK addr_reg".to_string());
+            }
+            bytecode.push(0x07);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "SEMINIT" => {
+            if tokens.len() < 3 {
+                return Err("SEMINIT requires 2 arguments: SEMINIT addr_reg, count_reg".to_string());
+            }
+            bytecode.push(0x08);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        "SEMWAIT" => {
+            if tokens.len() < 2 {
+                return Err("SEMWAIT requires 1 argument: SEMWAIT addr_reg".to_string());
+            }
+            bytecode.push(0x09);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "SEMPOST" => {
+            if tokens.len() < 2 {
+                return Err("SEMPOST requires 1 argument: SEMPOST addr_reg".to_string());
+            }
+            bytecode.push(0x0A);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
         "IOCTL" => {
             if tokens.len() < 4 {
                 return Err(

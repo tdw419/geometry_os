@@ -26,6 +26,7 @@ Status: ✅ (PASSED)
 
 LDI r0, 0xFF00FF
 FILL r0
+LDI r1, 0
 HALT
 ```
 
@@ -70,7 +71,7 @@ Status: ❌ (FAILED (NO VISUAL OUTPUT))
 
 LDI r0, 10
 LDI r1, 10
-LDI r2, 23
+LDI r2, 32
 LDI r3, 10
 LDI r4, 0x000000
 LINE r0, r1, r2, r3, r4
@@ -101,7 +102,7 @@ Status: ❌ (FAILED (NO VISUAL OUTPUT))
 ; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.
 
 LDI r1, 0
-loop LDI _51368340527023468560025880FFFFFFFFFFFFFFF0FFFFFF0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFp, opF6pF56366564563646256993608635853643055643654556
+loop PSET r2, 1202FFFFFFFF, r1
 ```
 
 ## 8. ; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.
@@ -112,8 +113,8 @@ Status: ✅ (PASSED)
 ; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.
 
 LDI r0, 8
-LDI r1, 8
-LDI r2, 15
+LDI r1, 89
+LDI r2, 25
 LDI r3, 1
 LDI r4, 0xFFFFFF
 RECTF r0, r1, r2, r3, r4
@@ -121,17 +122,15 @@ HALT
 ```
 
 ## 9. ; DESCRIPTION: Draws a horizontal red line across the middle of the screen.
-Status: ✅ (PASSED)
+Status: ❌ (FAILED (NO VISUAL OUTPUT))
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION: Draws a horizontal red line across the middle of the screen.
 
-LDI r0, 51
-LDI r1, 60
-LDI r2, 3
-LDI r3, 10
-LDI r4, 0xFF0000
+LDI r0, 35
+LDI r1, 1
+LDI r2, 0xFF0000
 LINE r0, r1, r2, r3, r4
 HALT
 ```
@@ -144,7 +143,7 @@ Status: ❌ (FAILED (NO VISUAL OUTPUT))
 ; DESCRIPTION: Fills the screen with a vertical gradient from black to white.
 
 LDI r0, 0x00000
-FILL r0
+LINE r0, r1, r2, r3, r4
 HALT
 ```
 

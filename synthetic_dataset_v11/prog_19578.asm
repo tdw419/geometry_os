@@ -1,0 +1,9 @@
+; DESCRIPTION: Places a blue 61x119 rectangle at position (93, 29).
+; PLAN: r0=93(x), r1=29(y), r2=61(width), r3=119(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 29
+LDI r2, 61
+LDI r3, 119
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
+HALT

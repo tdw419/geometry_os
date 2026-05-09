@@ -1,0 +1,7 @@
+; DESCRIPTION: Sets a single red pixel at (155, 193).
+; PLAN: r0=155(x), r1=193(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 155
+LDI r1, 193
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+HALT

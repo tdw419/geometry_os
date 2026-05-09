@@ -255,7 +255,9 @@ impl RiscvVm {
     /// so the kernel's timebase matches reality instead of running 5x fast.
     pub fn step_no_clint(&mut self) -> StepResult {
         // Skip CLINT tick -- mtime stays frozen this instruction.
-        // Still sync MIP so pending interrupts get delivered.
+        // Skip timer MIP sync to avoid level-triggered timer storms:
+        // once mtime >= mtimecmp, the timer would fire on every instruction
+        // even though we're not advancing mtime. Only sync MSIP/MEIP.
 
         // 1b. Check alarms
         let current_mtime = self.bus.clint.mtime;
@@ -267,8 +269,8 @@ impl RiscvVm {
             }
         }
 
-        // 2. Sync CLINT hardware state into MIP
-        self.bus.sync_mip(&mut self.cpu.csr.mip);
+        // 2. Sync MIP (skip timer to avoid level-triggered storm)
+        self.bus.sync_mip_skip_timer(&mut self.cpu.csr.mip);
 
         // 3. Handle pending spawn request
         if let Some((entry, _)) = self.bus.sbi.spawn_requested.take() {

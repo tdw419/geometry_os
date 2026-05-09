@@ -620,11 +620,31 @@ impl Bus {
     /// timer tests (test_clint_timer_interrupt_via_vm_step, etc.) that expect
     /// MTIP to be set when mtime >= mtimecmp.
     pub fn sync_mip(&self, mip: &mut u32) {
-        let timer_pending = self.clint.timer_pending();
-        if timer_pending {
-            *mip |= (1 << 7) | (1 << 5); // Set both MTIP and STIP
+        self.sync_mip_inner(mip, true);
+    }
+
+    /// Like sync_mip but skips CLINT timer state (MTIP/STIP).
+    /// Used by step_no_clint to avoid level-triggered timer storms:
+    /// when CLINT isn't ticking, we shouldn't keep asserting timer pending.
+    pub fn sync_mip_skip_timer(&self, mip: &mut u32) {
+        self.sync_mip_inner(mip, false);
+    }
+
+    fn sync_mip_inner(&self, mip: &mut u32, include_timer: bool) {
+        if include_timer {
+            let timer_pending = self.clint.timer_pending();
+            if timer_pending {
+                *mip |= (1 << 7) | (1 << 5); // Set both MTIP and STIP
+            } else {
+                *mip &= !((1 << 7) | (1 << 5)); // Clear both MTIP and STIP
+            }
         } else {
-            *mip &= !((1 << 7) | (1 << 5)); // Clear both MTIP and STIP
+            // When skipping timer sync, always clear MTIP/STIP.
+            // This prevents level-triggered timer storms: if the timer
+            // fired on a previous step_with_clint_ticks, STIP/MTIP would
+            // stay set. Without clearing them here, every subsequent
+            // step_no_clint would still see the timer as pending.
+            *mip &= !((1 << 7) | (1 << 5));
         }
 
         // MSIP (bit 3): machine software interrupt pending

@@ -1,0 +1,17 @@
+; DESCRIPTION: Composite: . Then Places a orange line segment connecting (34, 45) to (190, 209). Then Sets a single orange pixel at (59, 117).
+; PLAN: r0=34(x1), r1=45(y1), r2=190(x2), r3=209(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r0=59(x), r1=117(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+; DESCRIPTION: Places a orange line segment connecting (34, 45) to (190, 209).
+; PLAN: r0=34(x1), r1=45(y1), r2=190(x2), r3=209(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 34
+LDI r1, 45
+LDI r2, 190
+LDI r3, 209
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+; DESCRIPTION: Sets a single orange pixel at (59, 117).
+; PLAN: r0=59(x), r1=117(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 59
+LDI r1, 117
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+HALT

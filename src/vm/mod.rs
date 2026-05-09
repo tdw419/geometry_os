@@ -952,6 +952,209 @@ impl Vm {
                 }
             }
 
+            // === IPC Synchronization Primitives (Phase 289) ===
+            //
+            // Mutex unlocked sentinel: u32::MAX (NO_MUTEX_OWNER).
+            // PID 0 is a valid process (the main/primary process), so we
+            // cannot use 0 to mean "unlocked". u32::MAX is never a valid PID.
+
+            // MTEXINIT addr_reg  -- initialize a mutex at a RAM address
+            // r0 = 0 on success, error code on failure
+            // Encoding: 2 words [0x05, addr_reg]
+            0x05 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar];
+                    // Check if mutex already exists at this address
+                    if self.mutexes.iter().any(|m| m.addr == addr) {
+                        self.regs[0] = geos_errno(GEOS_EBUSY);
+                    } else if self.mutexes.len() >= MAX_MUTEXES {
+                        self.regs[0] = geos_errno(GEOS_ENOMEM);
+                    } else {
+                        self.mutexes.push(GeosMutex {
+                            addr,
+                            owner_pid: NO_MUTEX_OWNER,
+                            wait_queue: Vec::new(),
+                        });
+                        self.regs[0] = 0;
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            }
+
+            // MTEXLOCK addr_reg  -- acquire mutex (blocks if held by another process)
+            // r0 = 0 on success, error code on failure
+            // If mutex is free: acquire it, set owner to current PID
+            // If mutex held by current PID: return EBUSY (no recursive locking)
+            // If mutex held by another PID: block current process, rewind PC for retry
+            // Encoding: 2 words [0x06, addr_reg]
+            0x06 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar];
+                    if let Some(mtx) = self.mutexes.iter_mut().find(|m| m.addr == addr) {
+                        let pid = self.current_pid;
+                        if mtx.owner_pid == NO_MUTEX_OWNER {
+                            // Free: acquire immediately
+                            mtx.owner_pid = pid;
+                            self.regs[0] = 0;
+                        } else if mtx.owner_pid == pid {
+                            // Already held by us: no recursive locking
+                            self.regs[0] = geos_errno(GEOS_EBUSY);
+                        } else {
+                            // Held by another process: block and retry
+                            if !mtx.wait_queue.contains(&pid) {
+                                mtx.wait_queue.push(pid);
+                            }
+                            if pid > 0 {
+                                if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == pid) {
+                                    proc.state = ProcessState::Blocked;
+                                }
+                            }
+                            self.pc -= 2; // rewind to retry MTEXLOCK
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_ENOENT); // no mutex at this addr
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            }
+
+            // MTEXUNLOCK addr_reg  -- release mutex, wake one waiter
+            // r0 = 0 on success, error code on failure
+            // Only the owner can unlock. Wakes the first process in the wait queue.
+            // Encoding: 2 words [0x07, addr_reg]
+            0x07 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar];
+                    if let Some(mtx) = self.mutexes.iter_mut().find(|m| m.addr == addr) {
+                        let pid = self.current_pid;
+                        if mtx.owner_pid == pid {
+                            // Release
+                            mtx.owner_pid = NO_MUTEX_OWNER;
+                            // Wake first waiter if any
+                            if let Some(waker_pid) = mtx.wait_queue.first().copied() {
+                                mtx.wait_queue.remove(0);
+                                mtx.owner_pid = waker_pid;
+                                // Unblock the waker process
+                                if waker_pid > 0 {
+                                    if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == waker_pid) {
+                                        if proc.state == ProcessState::Blocked {
+                                            proc.state = ProcessState::Ready;
+                                        }
+                                    }
+                                }
+                            }
+                            self.regs[0] = 0;
+                        } else if mtx.owner_pid == NO_MUTEX_OWNER {
+                            self.regs[0] = geos_errno(GEOS_EINVAL); // not locked
+                        } else {
+                            self.regs[0] = geos_errno(GEOS_EPERM); // not owner
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_ENOENT);
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            }
+
+            // SEMINIT addr_reg, count_reg  -- initialize a counting semaphore
+            // r0 = 0 on success, error code on failure
+            // Encoding: 3 words [0x08, addr_reg, count_reg]
+            0x08 => {
+                let ar = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if ar < NUM_REGS && cr < NUM_REGS {
+                    let addr = self.regs[ar];
+                    let count = self.regs[cr];
+                    if self.semaphores.iter().any(|s| s.addr == addr) {
+                        self.regs[0] = geos_errno(GEOS_EBUSY);
+                    } else if self.semaphores.len() >= MAX_SEMAPHORES {
+                        self.regs[0] = geos_errno(GEOS_ENOMEM);
+                    } else {
+                        self.semaphores.push(GeosSemaphore {
+                            addr,
+                            count,
+                            wait_queue: Vec::new(),
+                        });
+                        self.regs[0] = 0;
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            }
+
+            // SEMWAIT addr_reg  -- decrement semaphore (block if count would go below 0)
+            // r0 = 0 on success, error code on failure
+            // Encoding: 2 words [0x09, addr_reg]
+            0x09 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar];
+                    if let Some(sem) = self.semaphores.iter_mut().find(|s| s.addr == addr) {
+                        let pid = self.current_pid;
+                        if sem.count > 0 {
+                            sem.count -= 1;
+                            self.regs[0] = 0;
+                        } else {
+                            // Would block: add to wait queue and block process
+                            if !sem.wait_queue.contains(&pid) {
+                                sem.wait_queue.push(pid);
+                            }
+                            if pid > 0 {
+                                if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == pid) {
+                                    proc.state = ProcessState::Blocked;
+                                }
+                            }
+                            self.pc -= 2; // rewind to retry SEMWAIT
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_ENOENT);
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            }
+
+            // SEMPOST addr_reg  -- increment semaphore, wake one waiter
+            // r0 = 0 on success, error code on failure
+            // Encoding: 2 words [0x0A, addr_reg]
+            0x0A => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar];
+                    if let Some(sem) = self.semaphores.iter_mut().find(|s| s.addr == addr) {
+                        // If waiters exist, give the semaphore directly to the first waiter
+                        if let Some(waker_pid) = sem.wait_queue.first().copied() {
+                            sem.wait_queue.remove(0);
+                            // Unblock the waker (it will retry SEMWAIT and find count=0,
+                            // but we transfer ownership: the waker gets the slot without
+                            // actually decrementing -- so we DON'T increment count here,
+                            // effectively the post goes directly to the waiter)
+                            if waker_pid > 0 {
+                                if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == waker_pid) {
+                                    if proc.state == ProcessState::Blocked {
+                                        proc.state = ProcessState::Ready;
+                                    }
+                                }
+                            }
+                        } else {
+                            // No waiters: increment count
+                            sem.count = sem.count.saturating_add(1);
+                        }
+                        self.regs[0] = 0;
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_ENOENT);
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            }
+
             // MEMSET dst_reg, val_reg, count_reg -- fill memory region with value
             // Fills count words starting at dst with val. Bounds-checks against RAM.
             // Intercepts canvas buffer (0x8000-0x8FFF) and screen buffer (0x10000+) ranges.

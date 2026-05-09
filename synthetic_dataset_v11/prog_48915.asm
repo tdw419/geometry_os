@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a orange line from (120, 24) to (8, 118).
+; PLAN: r0=120(x1), r1=24(y1), r2=8(x2), r3=118(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 120
+LDI r1, 24
+LDI r2, 8
+LDI r3, 118
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+HALT
