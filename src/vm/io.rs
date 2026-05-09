@@ -2,6 +2,366 @@ use super::trace::*;
 use super::types::*;
 use super::Vm;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_path(name: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(name)
+    }
+
+    fn cleanup(path: &std::path::Path) {
+        let _ = std::fs::remove_file(path);
+    }
+
+    // --- save_to_file / load_from_file round-trip tests ---
+
+    #[test]
+    fn test_save_load_roundtrip_empty_vm() {
+        let path = temp_path("geos_test_empty.bin");
+        let vm = Vm::new();
+
+        vm.save_to_file(&path).expect("save should succeed");
+        let loaded = Vm::load_from_file(&path).expect("load should succeed");
+
+        assert_eq!(loaded.pc, vm.pc);
+        assert_eq!(loaded.regs, vm.regs);
+        assert_eq!(loaded.ram.len(), vm.ram.len());
+        assert_eq!(loaded.screen.len(), vm.screen.len());
+        assert_eq!(loaded.halted, vm.halted);
+        assert_eq!(loaded.rand_state, vm.rand_state);
+        assert_eq!(loaded.frame_count, vm.frame_count);
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_save_load_roundtrip_with_data() {
+        let path = temp_path("geos_test_data.bin");
+        let mut vm = Vm::new();
+        vm.pc = 0x1000;
+        vm.halted = true;
+        vm.regs[1] = 0xDEADBEEF;
+        vm.regs[30] = 0xFF00; // SP
+        vm.regs[31] = 0x2000; // LR
+        vm.ram[0x1000] = 0x10; // LDI opcode
+        vm.ram[0x1001] = 5;
+        vm.ram[0x1002] = 42;
+        vm.screen[0] = 0xFF0000;
+        vm.screen[255] = 0x00FF00;
+        vm.screen[256 * 255] = 0x0000FF;
+        vm.rand_state = 0x12345678;
+        vm.frame_count = 9999;
+
+        vm.save_to_file(&path).expect("save should succeed");
+        let loaded = Vm::load_from_file(&path).expect("load should succeed");
+
+        assert_eq!(loaded.pc, 0x1000);
+        assert!(loaded.halted);
+        assert_eq!(loaded.regs[1], 0xDEADBEEF);
+        assert_eq!(loaded.regs[30], 0xFF00);
+        assert_eq!(loaded.regs[31], 0x2000);
+        assert_eq!(loaded.ram[0x1000], 0x10);
+        assert_eq!(loaded.ram[0x1001], 5);
+        assert_eq!(loaded.ram[0x1002], 42);
+        assert_eq!(loaded.screen[0], 0xFF0000);
+        assert_eq!(loaded.screen[255], 0x00FF00);
+        assert_eq!(loaded.screen[256 * 255], 0x0000FF);
+        assert_eq!(loaded.rand_state, 0x12345678);
+        assert_eq!(loaded.frame_count, 9999);
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_save_load_preserves_all_ram() {
+        let path = temp_path("geos_test_ram.bin");
+        let mut vm = Vm::new();
+        // Write to scattered RAM locations
+        vm.ram[0] = 1;
+        vm.ram[100] = 2;
+        vm.ram[1000] = 3;
+        vm.ram[0x8000] = 4;
+        vm.ram[0xFFFF] = 5;
+
+        vm.save_to_file(&path).expect("save should succeed");
+        let loaded = Vm::load_from_file(&path).expect("load should succeed");
+
+        assert_eq!(loaded.ram[0], 1);
+        assert_eq!(loaded.ram[100], 2);
+        assert_eq!(loaded.ram[1000], 3);
+        assert_eq!(loaded.ram[0x8000], 4);
+        assert_eq!(loaded.ram[0xFFFF], 5);
+        // Verify untouched cells are still 0
+        assert_eq!(loaded.ram[50], 0);
+        assert_eq!(loaded.ram[0x7FFF], 0);
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_save_load_preserves_all_screen() {
+        let path = temp_path("geos_test_screen.bin");
+        let mut vm = Vm::new();
+        // Write to screen corners
+        vm.screen[0] = 0xFF0000; // top-left
+        vm.screen[255] = 0x00FF00; // top-right
+        vm.screen[256 * 255] = 0x0000FF; // bottom-left
+        vm.screen[256 * 256 - 1] = 0xFFFFFF; // bottom-right
+        vm.screen[128 * 256 + 128] = 0x808080; // center
+
+        vm.save_to_file(&path).expect("save should succeed");
+        let loaded = Vm::load_from_file(&path).expect("load should succeed");
+
+        assert_eq!(loaded.screen[0], 0xFF0000);
+        assert_eq!(loaded.screen[255], 0x00FF00);
+        assert_eq!(loaded.screen[256 * 255], 0x0000FF);
+        assert_eq!(loaded.screen[256 * 256 - 1], 0xFFFFFF);
+        assert_eq!(loaded.screen[128 * 256 + 128], 0x808080);
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_save_load_preserves_all_registers() {
+        let path = temp_path("geos_test_regs.bin");
+        let mut vm = Vm::new();
+        for i in 0..NUM_REGS {
+            vm.regs[i] = (i as u32).wrapping_mul(0x11111111);
+        }
+
+        vm.save_to_file(&path).expect("save should succeed");
+        let loaded = Vm::load_from_file(&path).expect("load should succeed");
+
+        for i in 0..NUM_REGS {
+            assert_eq!(
+                loaded.regs[i],
+                (i as u32).wrapping_mul(0x11111111),
+                "register {} mismatch after round-trip",
+                i
+            );
+        }
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_load_invalid_magic() {
+        let path = temp_path("geos_test_bad_magic.bin");
+        // Need full-size file to pass size check, but with wrong magic
+        let min_size = 4 + 4 + 1 + 4 + NUM_REGS * 4 + RAM_SIZE * 4 + SCREEN_SIZE * 4 + 4 + 4;
+        let mut data = vec![0u8; min_size];
+        data[0..4].copy_from_slice(b"BAD!");
+        data[4..8].copy_from_slice(&SAVE_VERSION.to_le_bytes());
+        std::fs::write(&path, &data).expect("write should succeed");
+
+        let result = Vm::load_from_file(&path);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("invalid magic"),
+            "error should mention invalid magic: {}",
+            err
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_load_too_small() {
+        let path = temp_path("geos_test_too_small.bin");
+        // Valid magic but way too short
+        let data = b"GEOS\x02\x00\x00\x00"; // magic + version, nothing else
+        std::fs::write(&path, data).expect("write should succeed");
+
+        let result = Vm::load_from_file(&path);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("too small"),
+            "error should mention too small: {}",
+            err
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_load_unsupported_version() {
+        let path = temp_path("geos_test_bad_version.bin");
+        // Write valid magic with a future version number
+        let min_size = 4 + 4 + 1 + 4 + NUM_REGS * 4 + RAM_SIZE * 4 + SCREEN_SIZE * 4;
+        let mut data = vec![0u8; min_size];
+        data[0..4].copy_from_slice(SAVE_MAGIC);
+        // Write version 999 (way beyond SAVE_VERSION)
+        data[4..8].copy_from_slice(&999u32.to_le_bytes());
+        std::fs::write(&path, &data).expect("write should succeed");
+
+        let result = Vm::load_from_file(&path);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("unsupported save version"),
+            "error should mention unsupported version: {}",
+            err
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_load_empty_file() {
+        let path = temp_path("geos_test_empty.bin");
+        std::fs::write(&path, &[]).expect("write should succeed");
+
+        let result = Vm::load_from_file(&path);
+        assert!(result.is_err());
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_load_missing_file() {
+        let path = temp_path("geos_test_nonexistent.bin");
+        cleanup(&path); // ensure it doesn't exist
+
+        let result = Vm::load_from_file(&path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_load_truncated_at_ram() {
+        let path = temp_path("geos_test_trunc_ram.bin");
+        // Write header + halted + pc + some regs, but not enough RAM
+        let header_size = 4 + 4 + 1 + 4; // magic + version + halted + pc
+        let mut data = vec![0u8; header_size + NUM_REGS * 4 + 100]; // only 100 words of RAM
+        data[0..4].copy_from_slice(SAVE_MAGIC);
+        data[4..8].copy_from_slice(&SAVE_VERSION.to_le_bytes());
+        std::fs::write(&path, &data).expect("write should succeed");
+
+        let result = Vm::load_from_file(&path);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("too small"),
+            "error should mention too small: {}",
+            err
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_save_creates_file() {
+        let path = temp_path("geos_test_create.bin");
+        cleanup(&path);
+
+        let vm = Vm::new();
+        vm.save_to_file(&path).expect("save should succeed");
+
+        assert!(path.exists(), "save should create the file");
+        let metadata = std::fs::metadata(&path).expect("should read metadata");
+        assert!(metadata.len() > 0, "file should not be empty");
+
+        // Expected size: magic(4) + version(4) + halted(1) + pc(4) + regs(128) + ram(65536*4) + screen(65536*4) + rand(4) + frame(4)
+        let expected = 4 + 4 + 1 + 4 + NUM_REGS * 4 + RAM_SIZE * 4 + SCREEN_SIZE * 4 + 4 + 4;
+        assert_eq!(
+            metadata.len() as usize,
+            expected,
+            "file size should match expected"
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn test_save_overwrites_existing() {
+        let path = temp_path("geos_test_overwrite.bin");
+        let mut vm = Vm::new();
+        vm.pc = 111;
+        vm.save_to_file(&path).expect("first save should succeed");
+
+        vm.pc = 222;
+        vm.save_to_file(&path)
+            .expect("overwrite save should succeed");
+
+        let loaded = Vm::load_from_file(&path).expect("load should succeed");
+        assert_eq!(loaded.pc, 222, "should get the second save, not the first");
+
+        cleanup(&path);
+    }
+
+    // --- read_string_static tests ---
+
+    #[test]
+    fn test_read_string_static_basic() {
+        let mut ram = vec![0u32; 100];
+        // Write "Hello" + null
+        for (i, ch) in b"Hello\0".iter().enumerate() {
+            ram[i] = *ch as u32;
+        }
+
+        let result = Vm::read_string_static(&ram, 0);
+        assert_eq!(result, Some("Hello".to_string()));
+    }
+
+    #[test]
+    fn test_read_string_static_empty() {
+        let ram = vec![0u32; 100]; // all zeros
+        let result = Vm::read_string_static(&ram, 0);
+        assert_eq!(
+            result,
+            Some("".to_string()),
+            "null-terminated empty returns Some(\"\")"
+        );
+    }
+
+    #[test]
+    fn test_read_string_static_mid_buffer() {
+        let mut ram = vec![0u32; 100];
+        for (i, ch) in b"World\0".iter().enumerate() {
+            ram[50 + i] = *ch as u32;
+        }
+
+        let result = Vm::read_string_static(&ram, 50);
+        assert_eq!(result, Some("World".to_string()));
+    }
+
+    #[test]
+    fn test_read_string_static_single_char() {
+        let mut ram = vec![0u32; 100];
+        ram[0] = 'A' as u32;
+        ram[1] = 0;
+
+        let result = Vm::read_string_static(&ram, 0);
+        assert_eq!(result, Some("A".to_string()));
+    }
+
+    #[test]
+    fn test_read_string_static_max_length() {
+        let mut vm = Vm::new();
+        // Write a string at address 100, 200 chars long
+        for i in 0..200 {
+            vm.ram[100 + i] = (b'A' as u32 + ((i % 26) as u32));
+        }
+        vm.ram[300] = 0; // null terminator
+
+        let result = vm.read_ram_string(100, 50);
+        assert_eq!(result.unwrap().len(), 50, "should cap at max_len");
+    }
+
+    #[test]
+    fn test_read_ram_string_null_at_end() {
+        let mut vm = Vm::new();
+        // Write a string without explicit null but at end of useful RAM
+        vm.ram[100] = 'X' as u32;
+        vm.ram[101] = 'Y' as u32;
+
+        let result = vm.read_ram_string(100, 10);
+        assert_eq!(result, Some("XY".to_string()));
+    }
+}
+
 impl Vm {
     /// Read a null-terminated string from RAM (one char per u32 word).
     pub(super) fn read_string_static(ram: &[u32], addr: usize) -> Option<String> {

@@ -685,7 +685,9 @@ impl RiscvVm {
         let down_read_ebreak_pa: u64 = 0x0006C748;
         if vm.bus.read_half(down_read_ebreak_pa).unwrap_or(0) == 0x9002 {
             vm.bus.write_half(down_read_ebreak_pa, 0x0001).ok(); // C.NOP
-            eprintln!("[boot] Patched ebreak at PA 0x0006C748 to NOP (unblocking down_read_trylock)");
+            eprintln!(
+                "[boot] Patched ebreak at PA 0x0006C748 to NOP (unblocking down_read_trylock)"
+            );
         }
 
         let entry_vaddr: u32 = load_info.entry;

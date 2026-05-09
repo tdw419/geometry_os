@@ -133,7 +133,8 @@ impl RiscvCpu {
                     );
 
                     // Debug: log ECALLs
-                    if a7 != 0x54494D45 { // skip TIMER to avoid spam
+                    if a7 != 0x54494D45 {
+                        // skip TIMER to avoid spam
                         eprintln!(
                             "[sbi-debug] ECALL #{} at PC=0x{:08X} eid=0x{:08X} fid=0x{:X} a0=0x{:X} -> {}",
                             self.ecall_count,
@@ -297,7 +298,10 @@ impl RiscvCpu {
                     let cause = csr::CAUSE_BREAKPOINT;
                     let trap_priv = self.csr.trap_target_priv(cause, self.privilege);
                     let vector = self.csr.trap_vector(trap_priv);
-                    eprintln!("[trap-debug] EBREAK at PC=0x{:08X} -> trap to 0x{:08X} (priv={:?})", self.pc, vector, trap_priv);
+                    eprintln!(
+                        "[trap-debug] EBREAK at PC=0x{:08X} -> trap to 0x{:08X} (priv={:?})",
+                        self.pc, vector, trap_priv
+                    );
                     self.csr
                         .trap_enter(trap_priv, self.privilege, self.pc, cause);
                     self.privilege = trap_priv;
