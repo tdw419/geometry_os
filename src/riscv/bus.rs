@@ -12,6 +12,7 @@ use super::socket::GuestSockets;
 use super::uart::Uart;
 use super::vfs_surface::VfsSurface;
 use super::virtio_blk::VirtioBlk;
+use super::virtio_gpu::VirtioGpu;
 use super::virtio_net::VirtioNet;
 use std::collections::HashSet;
 
@@ -33,6 +34,8 @@ pub struct Bus {
     pub virtio_blk: VirtioBlk,
     /// Virtio network device.
     pub virtio_net: VirtioNet,
+    /// Virtio GPU device (framebuffer display).
+    pub virtio_gpu: VirtioGpu,
     /// VFS Pixel Surface MMIO device.
     pub vfs_surface: VfsSurface,
     /// MMIO Framebuffer (256x256 RGBA at 0x6000_0000).
@@ -106,6 +109,7 @@ impl Bus {
             plic: Plic::new(),
             virtio_blk: VirtioBlk::new(),
             virtio_net: VirtioNet::new(),
+            virtio_gpu: VirtioGpu::new(),
             vfs_surface,
             framebuf: Framebuffer::new(),
             sbi: Sbi::new(),
@@ -152,6 +156,11 @@ impl Bus {
         } else if super::virtio_net::VirtioNet::contains(addr) {
             self.virtio_net
                 .read(addr)
+                .ok_or(MemoryError { addr, size: 4 })
+        } else if super::virtio_gpu::VirtioGpu::contains(addr) {
+            let offset = (addr - super::virtio_gpu::VIRTIO_GPU_BASE) as usize;
+            self.virtio_gpu
+                .read(offset)
                 .ok_or(MemoryError { addr, size: 4 })
         } else if super::vfs_surface::VfsSurface::contains(addr) {
             self.vfs_surface
@@ -217,6 +226,12 @@ impl Bus {
         } else if super::virtio_net::VirtioNet::contains(addr) {
             if let Some(queue_idx) = self.virtio_net.write(addr, val) {
                 self.process_virtio_net_queue(queue_idx);
+            }
+            Ok(())
+        } else if super::virtio_gpu::VirtioGpu::contains(addr) {
+            let offset = (addr - super::virtio_gpu::VIRTIO_GPU_BASE) as usize;
+            if let Some(queue_idx) = self.virtio_gpu.write(offset, val) {
+                self.process_virtio_gpu_queue(queue_idx);
             }
             Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
@@ -340,6 +355,52 @@ impl Bus {
         }
     }
 
+    /// Process pending requests on the virtio-gpu virtqueue.
+    ///
+    /// Called when the guest writes to QUEUE_NOTIFY. Queue 0 is the control
+    /// queue (display info, resource management, scanout, transfer-to-host).
+    fn process_virtio_gpu_queue(&mut self, queue_idx: u32) {
+        let bus = self as *mut Bus;
+        // SAFETY: Same pattern as process_virtio_blk_queue --
+        // virtio_gpu only accesses its own state, closures only access mem.
+        unsafe {
+            let virtio_gpu = &mut (*bus).virtio_gpu;
+
+            let mut read_word = |addr: u64| -> u32 { (*bus).mem.read_word(addr).unwrap_or(0) };
+            let mut write_word = |addr: u64, val: u32| {
+                let _ = (*bus).mem.write_word(addr, val);
+            };
+            let mut read_bytes = |addr: u64, len: usize| -> Vec<u8> {
+                let mut data = vec![0u8; len];
+                for i in 0..len {
+                    match (*bus).mem.read_byte(addr + i as u64) {
+                        Ok(b) => data[i] = b,
+                        Err(_) => break,
+                    }
+                }
+                data
+            };
+            let mut write_bytes = |addr: u64, data: &[u8]| {
+                for (i, &b) in data.iter().enumerate() {
+                    let _ = (*bus).mem.write_byte(addr + i as u64, b);
+                }
+            };
+
+            let processed = virtio_gpu.process_queue(
+                queue_idx,
+                &mut read_word,
+                &mut write_word,
+                &mut read_bytes,
+                &mut write_bytes,
+            );
+
+            if processed > 0 {
+                // Signal PLIC interrupt for virtio-gpu device
+                (*bus).plic.signal(super::plic::IRQ_VIRTIO_GPU);
+            }
+        }
+    }
+
     /// Read a byte. Routes to device MMIO or RAM.
     /// Takes &mut self because device reads can have side effects.
     pub fn read_byte(&mut self, addr: u64) -> Result<u8, MemoryError> {
@@ -377,6 +438,14 @@ impl Bus {
             let word = self
                 .virtio_net
                 .read(addr & !3)
+                .ok_or(MemoryError { addr, size: 1 })?;
+            let byte_off = (addr & 3) as usize;
+            Ok((word >> (byte_off * 8)) as u8)
+        } else if super::virtio_gpu::VirtioGpu::contains(addr) {
+            let offset = ((addr - super::virtio_gpu::VIRTIO_GPU_BASE) & !3) as usize;
+            let word = self
+                .virtio_gpu
+                .read(offset)
                 .ok_or(MemoryError { addr, size: 1 })?;
             let byte_off = (addr & 3) as usize;
             Ok((word >> (byte_off * 8)) as u8)
@@ -445,6 +514,9 @@ impl Bus {
         } else if super::virtio_net::VirtioNet::contains(addr) {
             // Virtio doesn't have byte-level writes; ignore
             Ok(())
+        } else if super::virtio_gpu::VirtioGpu::contains(addr) {
+            // VirtIO GPU doesn't have byte-level writes; ignore
+            Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
             let word_addr = addr & !3;
             let byte_off = (addr & 3) as usize;
@@ -504,6 +576,14 @@ impl Bus {
             let word = self
                 .virtio_net
                 .read(addr & !3)
+                .ok_or(MemoryError { addr, size: 2 })?;
+            let half_off = ((addr >> 1) & 1) as usize;
+            Ok((word >> (half_off * 16)) as u16)
+        } else if super::virtio_gpu::VirtioGpu::contains(addr) {
+            let offset = ((addr - super::virtio_gpu::VIRTIO_GPU_BASE) & !3) as usize;
+            let word = self
+                .virtio_gpu
+                .read(offset)
                 .ok_or(MemoryError { addr, size: 2 })?;
             let half_off = ((addr >> 1) & 1) as usize;
             Ok((word >> (half_off * 16)) as u16)
@@ -569,6 +649,9 @@ impl Bus {
             Ok(())
         } else if super::virtio_net::VirtioNet::contains(addr) {
             // Virtio doesn't have half-word writes; ignore
+            Ok(())
+        } else if super::virtio_gpu::VirtioGpu::contains(addr) {
+            // VirtIO GPU doesn't have half-word writes; ignore
             Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
             let word_addr = addr & !3;

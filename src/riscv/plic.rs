@@ -35,6 +35,7 @@ const CTX0_CLAIM: u64 = 0x0C20_0004;
 pub const IRQ_UART: u32 = 10; // UART interrupt (matches QEMU virt)
 pub const IRQ_VIRTIO: u32 = 1; // Virtio block device interrupt
 pub const IRQ_VIRTIO_NET: u32 = 2; // Virtio network device interrupt
+pub const IRQ_VIRTIO_GPU: u32 = 3; // Virtio GPU device interrupt
 
 /// PLIC state for a single hart.
 #[derive(Clone, Debug)]
