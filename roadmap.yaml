@@ -11798,15 +11798,15 @@ phases:
   description: Previously the hypervisor_boot socket command only set a flag on the VM struct that was never read. This phase wires the command to actually spawn a QEMU process via QemuBridge, enabling programmatic control of guest OS instances from external agents. Also added debug logging for socket binding.
   deliverables:
   - name: Wired socket commands
-    status: complete
+    status: done
     tasks:
     - id: p304d1.t1
       title: Implement QemuBridge::spawn in socket handler
-      status: complete
+      status: done
       description: Modified src/main.rs to call QemuBridge::spawn and set qemu_active when hypervisor_boot is received.
     - id: p304d1.t2
       title: Implement QEMU termination in hypervisor_kill
-      status: complete
+      status: done
       description: Ensured the QEMU process is killed and the bridge is cleared when hypervisor_kill is received.
   test_target: 1
   scope_lines_total: 50
