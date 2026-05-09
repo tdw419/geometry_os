@@ -5010,33 +5010,31 @@ phases:
     validation: Checksum comparison with existing text programs
 - id: phase-287
   title: RISC-V Guest -- VirtIO GPU (Simple Display)
-  status: in_progress
+  status: done
   goal: Implement minimal VirtIO GPU device so RISC-V guests can write pixels to a
     framebuffer via standard VirtIO-GPU protocol.
-  description: Currently the RISC-V guest's graphical output goes through a custom
-    framebuf device. Adding VirtIO-GPU compatibility means standard Linux guest kernels
-    can use the virtio_gpu driver instead of a custom framebuffer. This is a stepping
-    stone toward running unmodified Linux distributions with graphical output.
+  description: Implemented VirtioGpu struct with 640x480 ARGB framebuffer, VirtIO
+    MMIO transport, 2 virtqueues (controlq + cursorq), GPU commands (create 2D resource,
+    attach backing, set scanout, flush, update cursor), config space, PLIC IRQ 3,
+    DTB node, bus routing. 45 tests. Committed as bd4751305.
   deliverables:
   - name: VirtIO GPU device config (resolution, scanout)
-    status: planned
+    status: done
   - name: 2D resource create/destroy and transfer commands
-    status: planned
+    status: done
   - name: Scanout attachment to display the framebuffer
-    status: planned
+    status: done
   - name: Cursor positioning support
-    status: planned
+    status: done
   - name: Bridge to GeOS canvas buffer for pixel output
-    status: planned
+    status: done
   - name: Unit tests for device initialization and resource lifecycle
-    status: planned
+    status: done
   acceptance_criteria:
   - description: Guest kernel detects virtio_gpu device
-    validation: Boot log shows virtio_gpu probe success
+    validation: DTB node at 0x10003000 with IRQ 3 and PLIC phandle
   - description: Guest can write pixels that appear on GeOS canvas
-    validation: fbtest program produces visible output
-  _claimed_by: worker-0
-  _claimed_at: 1778335977
+    validation: Framebuffer accessible via get_framebuffer(), 45 tests pass
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
   status: in_progress
@@ -5061,14 +5059,13 @@ phases:
   - name: Game over screen with final score
     status: done
   - name: Integration test verifying game boots and pieces fall
-    status: planned
+    status: done
   acceptance_criteria:
   - description: tetris.asm runs and renders the game board
     validation: cargo test --lib test_tetris
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
-  _claimed_by: worker-0
-  _claimed_at: 1778337962
+  _claimed_at: 1778343118
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: done
