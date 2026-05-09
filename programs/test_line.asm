@@ -1,9 +1,0 @@
-LDI r1, 0
-FILL r1
-LDI r1, 100
-LDI r2, 100
-LDI r3, 150
-LDI r4, 150
-LDI r5, 0xFF0000
-LINE r1, r2, r3, r4, r5
-HALT

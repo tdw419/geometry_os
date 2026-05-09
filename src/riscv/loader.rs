@@ -42,7 +42,7 @@ pub enum LoadError {
     WrongMachine,
     /// Segment doesn't fit in guest RAM.
     SegmentOverflow,
-    /// No loadable segments found.
+    /// No PT_LOAD segments in ELF.
     NoLoadSegments,
     /// Entry point outside loaded regions.
     BadEntryPoint,
@@ -244,15 +244,8 @@ pub struct LoadInfo {
     pub highest_addr: u64,
 }
 
-/// Load an ELF image (32-bit or 64-bit) into guest RAM via the bus.
-///
-/// Parses the ELF header and program headers, then copies all PT_LOAD
-/// segments into guest memory at their specified physical addresses.
-/// For ELF64 images, addresses are truncated to 32 bits (appropriate for
-/// RV32 VMs, e.g., booting a 64-bit ELF Linux kernel on a 32-bit CPU).
-///
-/// Returns the entry point address on success.
-pub fn load_elf(bus: &mut Bus, image: &[u8]) -> Result<LoadInfo, LoadError> {
+/// Load an ELF image (32-bit or 64-bit) into guest RAM via the bus with a physical offset.
+pub fn load_elf_with_offset(bus: &mut Bus, image: &[u8], offset: u64) -> Result<LoadInfo, LoadError> {
     let class = validate_elf_header(image)?;
     let hdr = parse_elf_header(image, class);
 
@@ -279,26 +272,25 @@ pub fn load_elf(bus: &mut Bus, image: &[u8]) -> Result<LoadInfo, LoadError> {
             &[]
         };
 
-        // Load file data into guest RAM at physical address.
+        // Load file data into guest RAM at physical address + offset.
         for (j, &byte) in data.iter().enumerate() {
-            let addr = phdr.p_paddr as u64 + j as u64;
+            let addr = offset + phdr.p_paddr as u64 + j as u64;
             if bus.write_byte(addr, byte).is_err() {
                 return Err(LoadError::SegmentOverflow);
             }
         }
 
         // Zero BSS: p_memsz > p_filesz means uninitialized data (BSS).
-        // The gap between file data and memory size must be zeroed.
         if phdr.p_memsz > phdr.p_filesz {
             for j in phdr.p_filesz..phdr.p_memsz {
-                let addr = phdr.p_paddr as u64 + j as u64;
+                let addr = offset + phdr.p_paddr as u64 + j as u64;
                 if bus.write_byte(addr, 0).is_err() {
-                    break; // best-effort: stop at RAM boundary
+                    break;
                 }
             }
         }
 
-        let seg_end = phdr.p_paddr as u64 + phdr.p_memsz.max(phdr.p_filesz) as u64;
+        let seg_end = offset + phdr.p_paddr as u64 + phdr.p_memsz.max(phdr.p_filesz) as u64;
         if seg_end > highest_addr {
             highest_addr = seg_end;
         }
@@ -313,6 +305,11 @@ pub fn load_elf(bus: &mut Bus, image: &[u8]) -> Result<LoadInfo, LoadError> {
         entry: hdr.entry,
         highest_addr,
     })
+}
+
+/// Load a RISC-V ELF image from a byte slice into guest memory.
+pub fn load_elf(bus: &mut Bus, image: &[u8]) -> Result<LoadInfo, LoadError> {
+    load_elf_with_offset(bus, image, 0)
 }
 
 /// Load a raw flat binary image into guest RAM at the specified base address.

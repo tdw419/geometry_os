@@ -1,7 +1,0 @@
-LDI r1, 0
-FILL r1
-LDI r1, 128
-LDI r2, 128
-LDI r3, 0xFF0000
-PSET r1, r2, r3
-HALT
