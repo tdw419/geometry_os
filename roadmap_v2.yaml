@@ -5037,7 +5037,7 @@ phases:
     validation: Framebuffer accessible via get_framebuffer(), 45 tests pass
 - id: phase-288
   title: GeOS Program -- Tetris with Score and Levels
-  status: in_progress
+  status: done
   goal: Implement a complete Tetris game as a showcase of the VM's game development
     capabilities.
   description: 'Tetris is the canonical puzzle game. This implementation exercises:
@@ -5062,10 +5062,11 @@ phases:
     status: done
   acceptance_criteria:
   - description: tetris.asm runs and renders the game board
-    validation: cargo test --lib test_tetris
+    validation: cargo test --test program_tests test_tetris
+    met: true
   - description: Score increases when lines are cleared
     validation: RAM score address increases after simulated line clears
-  _claimed_at: 1778343118
+    met: true
 - id: phase-289
   title: GeOS VM -- Mutex and Semaphore IPC Primitives
   status: done
