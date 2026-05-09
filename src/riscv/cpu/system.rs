@@ -293,8 +293,24 @@ impl RiscvCpu {
                 StepResult::Ok
             }
             Operation::Ebreak => {
-                self.pc = next_pc;
-                StepResult::Ebreak
+                // RISC-V spec: EBREAK raises a breakpoint exception (cause 3).
+                // In S-mode (Linux guests), deliver as a trap so the kernel's
+                // WARN_ON/BUG handler can decide what to do.
+                // In M-mode (bare-metal test programs), halt immediately --
+                // those programs use EBREAK to signal "I'm done".
+                if self.privilege == Privilege::Supervisor {
+                    let cause = csr::CAUSE_BREAKPOINT;
+                    let trap_priv = self.csr.trap_target_priv(cause, self.privilege);
+                    let vector = self.csr.trap_vector(trap_priv);
+                    self.csr
+                        .trap_enter(trap_priv, self.privilege, self.pc, cause);
+                    self.privilege = trap_priv;
+                    self.pc = vector;
+                    StepResult::Ok
+                } else {
+                    self.pc = next_pc;
+                    StepResult::Ebreak
+                }
             }
             Operation::Fence => {
                 self.pc = next_pc;
