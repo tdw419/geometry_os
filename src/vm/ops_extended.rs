@@ -150,17 +150,17 @@ impl Vm {
                             }
                             self.regs[0] = len as u32;
                         } else {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_ENOENT); // key not found
                         }
                     } else {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // invalid address
                     }
                 }
             }
 
             // SETENV key_addr_reg, val_addr_reg  -- set environment variable
             // Reads null-terminated key and value from RAM.
-            // r0 = 0 on success, 0xFFFFFFFF on error.
+            // r0 = 0 on success, GEOS error code on error.
             // Max key/value length: 64 chars. Max 32 env vars.
             0x64 => {
                 let kr = self.fetch() as usize;
@@ -176,10 +176,10 @@ impl Vm {
                                 self.env_vars.insert(k, v);
                                 self.regs[0] = 0;
                             } else {
-                                self.regs[0] = 0xFFFFFFFF; // too many env vars
+                                self.regs[0] = geos_errno(GEOS_ENOSPC); // too many env vars
                             }
                         }
-                        _ => self.regs[0] = 0xFFFFFFFF,
+                        _ => self.regs[0] = geos_errno(GEOS_EINVAL), // invalid key/value
                     }
                 }
             }
@@ -215,8 +215,8 @@ impl Vm {
                                     match std::fs::read_to_string(&vfs_path) {
                                         Ok(s) => s,
                                         Err(_) => {
-                                            self.regs[0] = 0xFFFFFFFF;
-                                            self.ram[0xFFA] = 0xFFFFFFFF;
+                                            self.regs[0] = geos_errno(GEOS_ENOENT);
+                                            self.ram[0xFFA] = geos_errno(GEOS_ENOENT);
                                             return true;
                                         }
                                     }
@@ -227,8 +227,8 @@ impl Vm {
                                     let active_count =
                                         self.processes.iter().filter(|p| !p.is_halted()).count();
                                     if active_count >= MAX_PROCESSES {
-                                        self.regs[0] = 0xFFFFFFFF;
-                                        self.ram[0xFFA] = 0xFFFFFFFF;
+                                        self.regs[0] = geos_errno(GEOS_ENFILE);
+                                        self.ram[0xFFA] = geos_errno(GEOS_ENFILE);
                                     } else {
                                         let page_dir = self.create_process_page_dir();
                                         match page_dir {
@@ -274,21 +274,21 @@ impl Vm {
                                                 self.ram[0xFFA] = pid;
                                             }
                                             None => {
-                                                self.regs[0] = 0xFFFFFFFF;
-                                                self.ram[0xFFA] = 0xFFFFFFFF;
+                                                self.regs[0] = geos_errno(GEOS_ENOMEM);
+                                                self.ram[0xFFA] = geos_errno(GEOS_ENOMEM);
                                             }
                                         }
                                     }
                                 }
                                 Err(_) => {
-                                    self.regs[0] = 0xFFFFFFFF;
-                                    self.ram[0xFFA] = 0xFFFFFFFF;
+                                    self.regs[0] = geos_errno(GEOS_EIO);
+                                    self.ram[0xFFA] = geos_errno(GEOS_EIO);
                                 }
                             }
                         }
                         None => {
-                            self.regs[0] = 0xFFFFFFFF;
-                            self.ram[0xFFA] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
+                            self.ram[0xFFA] = geos_errno(GEOS_EINVAL);
                         }
                     }
                 }
@@ -326,7 +326,7 @@ impl Vm {
                         self.regs[0] = 0; // empty string, 0 bytes written
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -380,7 +380,7 @@ impl Vm {
                         self.key_port = 0;
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -455,7 +455,7 @@ impl Vm {
                             let source = match std::fs::read_to_string(&prog_path) {
                                 Ok(s) => s,
                                 Err(_) => {
-                                    self.regs[0] = 0xFFFFFFFF;
+                                    self.regs[0] = geos_errno(GEOS_ENOENT);
                                     return true;
                                 }
                             };
@@ -464,7 +464,7 @@ impl Vm {
                                     let active_count =
                                         self.processes.iter().filter(|p| !p.is_halted()).count();
                                     if active_count >= MAX_PROCESSES {
-                                        self.regs[0] = 0xFFFFFFFF;
+                                        self.regs[0] = geos_errno(GEOS_ENFILE);
                                     } else {
                                         let page_dir = self.create_process_page_dir();
                                         match page_dir {
@@ -527,24 +527,24 @@ impl Vm {
                                                 self.ram[0xFFA] = pid;
                                             }
                                             None => {
-                                                self.regs[0] = 0xFFFFFFFF;
-                                                self.ram[0xFFA] = 0xFFFFFFFF;
+                                                self.regs[0] = geos_errno(GEOS_ENOMEM);
+                                                self.ram[0xFFA] = geos_errno(GEOS_ENOMEM);
                                             }
                                         }
                                     }
                                 }
                                 Err(_) => {
-                                    self.regs[0] = 0xFFFFFFFF;
-                                    self.ram[0xFFA] = 0xFFFFFFFF;
+                                    self.regs[0] = geos_errno(GEOS_EIO);
+                                    self.ram[0xFFA] = geos_errno(GEOS_EIO);
                                 }
                             }
                         }
                         None => {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
                         }
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -562,11 +562,11 @@ impl Vm {
                             self.regs[0] = 0;
                         }
                         _ => {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
                         }
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -623,7 +623,7 @@ impl Vm {
             // The host (main.rs) can check vm.shutdown_requested to react.
             0x6E => {
                 if self.mode != CpuMode::Kernel {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EPERM);
                 } else {
                     // Collect page dirs to free and PIDs to close
                     let page_dirs: Vec<Vec<u32>> = self
@@ -718,7 +718,7 @@ impl Vm {
                             }
                         }
                     }
-                    self.regs[0] = if delivered { 0 } else { 0xFFFFFFFF };
+                    self.regs[0] = if delivered { 0 } else { geos_errno(GEOS_ESRCH) };
                 }
             }
 
@@ -741,10 +741,10 @@ impl Vm {
                             }
                             self.regs[0] = 0;
                         } else {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EPERM);
                         }
                     } else {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
                     }
                 }
             }
@@ -797,7 +797,7 @@ impl Vm {
                             self.regs[0] = 0; // success
                         }
                         None => {
-                            self.regs[0] = 0xFFFFFFFF; // error
+                            self.regs[0] = geos_errno(GEOS_EINVAL); // error
                         }
                     }
                 }
@@ -858,7 +858,7 @@ impl Vm {
                     Err(_e) => {
                         // Write error status
                         if ASM_STATUS_PORT < self.ram.len() {
-                            self.ram[ASM_STATUS_PORT] = 0xFFFFFFFF;
+                            self.ram[ASM_STATUS_PORT] = geos_errno(GEOS_EIO);
                         }
                     }
                 }
@@ -1028,7 +1028,7 @@ impl Vm {
                         self.regs[0] = count as u32;
                     }
                     _ => {
-                        self.regs[0] = 0xFFFFFFFF; // invalid mode
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // invalid mode
                     }
                 }
             }
@@ -1053,7 +1053,7 @@ impl Vm {
                         self.regs[0] = self.frame_checkpoints.len() as u32;
                     }
                     None => {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
                     }
                 }
             }
@@ -1081,7 +1081,7 @@ impl Vm {
                             self.snapshots.push(snap);
                             self.regs[0] = slot as u32; // return slot index
                         } else {
-                            self.regs[0] = 0xFFFFFFFF; // too many snapshots
+                            self.regs[0] = geos_errno(GEOS_ENOSPC); // too many snapshots
                         }
                     }
                     1 => {
@@ -1092,7 +1092,7 @@ impl Vm {
                             self.restore(&snap);
                             self.regs[0] = 0; // success
                         } else {
-                            self.regs[0] = 0xFFFFFFFF; // invalid slot
+                            self.regs[0] = geos_errno(GEOS_EINVAL); // invalid slot
                         }
                     }
                     2 => {
@@ -1105,7 +1105,7 @@ impl Vm {
                         self.regs[0] = 0;
                     }
                     _ => {
-                        self.regs[0] = 0xFFFFFFFF; // invalid mode
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // invalid mode
                     }
                 }
             }
@@ -1146,7 +1146,7 @@ impl Vm {
                         let max_count = self.regs[3] as usize;
                         let buf_addr = self.regs[4] as usize;
                         if max_count == 0 || buf_addr + max_count * 6 > self.ram.len() {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
                         } else {
                             let entries = self.pixel_write_log.recent_at(x, y, max_count);
                             for (i, entry) in entries.iter().enumerate() {
@@ -1166,7 +1166,7 @@ impl Vm {
                         let index = self.regs[1] as usize;
                         let buf_addr = self.regs[2] as usize;
                         if buf_addr + 6 > self.ram.len() {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
                         } else if let Some(entry) = self.pixel_write_log.get_at(index) {
                             self.ram[buf_addr] = entry.x as u32;
                             self.ram[buf_addr + 1] = entry.y as u32;
@@ -1176,7 +1176,7 @@ impl Vm {
                             self.ram[buf_addr + 5] = entry.color;
                             self.regs[0] = 0;
                         } else {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
                         }
                     }
                     _ => {
@@ -1378,7 +1378,7 @@ mod tests {
         vm.regs[0] = 0x200;
         vm.regs[1] = 0x300;
         let vm = step_one_from(&vm, &[0x63, 0, 1], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT));
     }
 
     #[test]
@@ -1389,7 +1389,7 @@ mod tests {
         vm.regs[0] = 0x200;
         vm.regs[1] = 0x300;
         let vm = step_one_from(&vm, &[0x63, 0, 1], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── SETENV (0x64) ─────────────────────────────────────────────
@@ -1432,7 +1432,7 @@ mod tests {
         vm.regs[0] = 0x200;
         vm.regs[1] = 0x300;
         let vm = step_one_from(&vm, &[0x64, 0, 1], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // too many
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOSPC)); // too many
     }
 
     // ── GETPID (0x65) ─────────────────────────────────────────────
@@ -1482,7 +1482,7 @@ mod tests {
         vm.pc = 0;
         vm.halted = false;
         vm.step();
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EPERM));
         assert!(!vm.halted);
     }
 
@@ -1545,7 +1545,7 @@ mod tests {
         vm.ram[0x200] = 0; // null at path addr
         vm.regs[0] = 0x200;
         let vm = step_one_from(&vm, &[0x6B, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── GETCWD (0x6C) ────────────────────────────────────────────
@@ -1600,7 +1600,7 @@ mod tests {
     #[test]
     fn test_signal_nonexistent_pid() {
         let vm = step_one(&[0x70, 0, 1], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // not delivered
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ESRCH)); // not delivered
     }
 
     #[test]
@@ -1642,7 +1642,7 @@ mod tests {
         vm.regs[0] = 0;
         vm.regs[1] = 0x500;
         let vm = step_one_from(&vm, &[0x71, 0, 1], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EPERM));
     }
 
     #[test]
@@ -1769,7 +1769,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.regs[0] = 99;
         let vm = step_one_from(&vm, &[0x7B, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── FORK (0x7D) ──────────────────────────────────────────────
@@ -1808,7 +1808,7 @@ mod tests {
         vm.regs[1] = 99; // invalid slot
         vm.regs[0] = 1; // mode = restore
         let vm = step_one_from(&vm, &[0x7D, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     #[test]
@@ -1820,7 +1820,7 @@ mod tests {
         }
         vm.regs[0] = 0; // mode = save
         let vm = step_one_from(&vm, &[0x7D, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // too many
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOSPC)); // too many
     }
 
     #[test]
@@ -1828,7 +1828,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.regs[0] = 99;
         let vm = step_one_from(&vm, &[0x7D, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
     }
 
     // ── FMKDIR (0x78) ────────────────────────────────────────────
@@ -1956,7 +1956,7 @@ mod tests {
         vm.regs[1] = 0; // index
         vm.regs[2] = 0x300; // buf addr
         let vm = step_one_from(&vm, &[0x84, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // no entry at index 0
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL)); // no entry at index 0
     }
 
     // ── WAITPID (0x69) ───────────────────────────────────────────
@@ -2001,7 +2001,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.regs[0] = 0; // frame_idx = 0
         let vm = step_one_from(&vm, &[0x7C, 0], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // no checkpoints
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL)); // no checkpoints
     }
 
     // ── Edge cases ───────────────────────────────────────────────
@@ -2098,7 +2098,7 @@ mod tests {
         vm.regs[1] = 0xFFFFFFFF; // stdin = none
         vm.regs[2] = 0xFFFFFFFF; // stdout = none
         let vm = step_one_from(&vm, &[0x6A, 0, 1, 2], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // file not found
+        assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT)); // file not found
     }
 
     #[test]
@@ -2109,7 +2109,7 @@ mod tests {
         vm.regs[1] = 0xFFFFFFFF;
         vm.regs[2] = 0xFFFFFFFF;
         let vm = step_one_from(&vm, &[0x6A, 0, 1, 2], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // null path
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL)); // null path
     }
 
     #[test]
@@ -2132,7 +2132,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.mode = CpuMode::User;
         let vm = step_one_from(&vm, &[0x6E], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // user mode denied
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EPERM)); // user mode denied
         assert!(!vm.halted); // should NOT halt
     }
 
@@ -2174,7 +2174,7 @@ mod tests {
         vm.regs[1] = 1;
         vm.regs[2] = 0x500;
         let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // main process can't set handlers
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EPERM)); // main process can't set handlers
     }
 
     #[test]
@@ -2185,7 +2185,7 @@ mod tests {
         vm.regs[1] = 99; // invalid signal number
         vm.regs[2] = 0x500;
         let vm = step_one_from(&vm, &[0x71, 1, 2], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFF); // invalid signal
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL)); // invalid signal
     }
 
     #[test]

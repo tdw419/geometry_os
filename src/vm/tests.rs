@@ -1918,7 +1918,7 @@ fn test_asmself_handles_invalid_assembly_gracefully() {
     vm.step();
 
     // Status port should be error sentinel
-    assert_eq!(vm.ram[0xFFD], 0xFFFFFFFF, "ASMSELF should report error");
+    assert_eq!(vm.ram[0xFFD], geos_errno(GEOS_EIO), "ASMSELF should report error");
 
     // VM should NOT be halted -- continues executing
     assert!(!vm.halted, "VM should survive ASMSELF error");
@@ -3527,7 +3527,7 @@ fn test_pixel_history_buf_overflow_check() {
     vm.pc = 0;
     vm.step();
 
-    assert_eq!(vm.regs[0], 0xFFFFFFFF); // error
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL)); // error
 }
 
 // ── MOUSEQ ───────────────────────────────────────────────────────

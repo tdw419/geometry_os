@@ -4890,7 +4890,7 @@ phases:
     validation: cargo test --lib test_byte_ops_assemble
 - id: phase-283
   title: RISC-V Guest -- VirtIO Network Driver
-  status: planned
+  status: in_progress
   goal: Implement VirtIO network device emulation so RISC-V guests can send and receive
     network packets.
   description: 'The RISC-V interpreter already has VirtIO block device support (virtio_blk.rs).
@@ -4915,6 +4915,8 @@ phases:
     validation: Guest kernel detects virtio_net in boot log
   - description: Packet round-trip between guest and host
     validation: UDP echo test passes
+  _claimed_by: worker-0
+  _claimed_at: 1778287631
 - id: phase-284
   title: GeOS Program -- Mandelbrot Fractal Renderer
   status: done
