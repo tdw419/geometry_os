@@ -314,8 +314,8 @@ impl RiscvVm {
         // _dtb_early_pa: physical address of DTB.
         // We use PA for _dtb_early_va because the boot page table identity-maps
         // low addresses, so VA = PA works for the DTB range.
-        let dtb_early_va_pa: u64 = 0x01482008;
-        let dtb_early_pa_pa: u64 = 0x0148200C;
+        let dtb_early_va_pa: u64 = 0x01001008;
+        let dtb_early_pa_pa: u64 = 0x0100100C;
         vm.bus.write_word(dtb_early_va_pa, dtb_addr as u32).ok();
         vm.bus.write_word(dtb_early_pa_pa, dtb_addr as u32).ok();
         eprintln!(
@@ -325,7 +325,7 @@ impl RiscvVm {
 
         // Also set initial_boot_params for compatibility (some kernel paths
         // read it directly).
-        let ibp_phys: u64 = 0x01482380;
+        let ibp_phys: u64 = 0x016404E8;
         vm.bus.write_word(ibp_phys, dtb_addr as u32).ok();
 
         // 8. Set CPU state for boot.
@@ -597,28 +597,15 @@ impl RiscvVm {
         let riscv_timebase_pa: u64 = 0x00C7A058;
         vm.bus.write_word(riscv_timebase_pa, 10_000_000).ok();
 
-        // Pre-set lpj_fine to a reasonable default.
-        // lpj_fine = loops_per_jiffy for fine-grained delays.
-        // With timebase=10MHz and HZ=100 (CONFIG_HZ), one jiffy = 10ms = 100000 ticks.
-        // A rough estimate: 100000 ticks * ~4 instructions/tick = 400000 loops/jiffy.
-        // This is an approximation — calibrate_delay() will refine it later.
-        // If DTB parsing succeeds, calibrate_delay() overwrites this with the correct value.
-        let lpj_fine_pa: u64 = 0x01482060;
+        // Value: 400000 (same as lpj_fine, approximately correct for 1.68 MIPS)
+        let lpj_fine_pa: u64 = 0x01CCA060;
         vm.bus.write_word(lpj_fine_pa, 400_000).ok();
 
         // Pre-set initial_boot_params to point to the DTB.
-        // The kernel's setup_arch() reads _dtb_early_pa and stores it to
-        // initial_boot_params. If this happens before the DTB watchdog
-        // restores the pointers (or if the write fails due to a page fault),
-        // initial_boot_params stays 0 and the kernel can't parse the DTB.
-        // Without DTB parsing: no earlycon, no cmdline parsing, no device
-        // discovery. Pre-setting it ensures the kernel can find the DTB
-        // even if the normal init path has issues.
-        //
-        // initial_boot_params (VA 0xC0C7A380, PA 0x00C7A380): pointer to DTB
-        // initial_boot_params_pa (VA 0xC0C7A3B0, PA 0x00C7A3B0): PA of DTB
-        let ibp_pa: u64 = 0x00C7A380;
-        let ibp_pa_pa: u64 = 0x00C7A3B0;
+        // initial_boot_params (VA 0xC16404E8, PA 0x016404E8): pointer to DTB
+        // initial_boot_params_pa (VA 0xC1640518, PA 0x01640518): PA of DTB
+        let ibp_pa: u64 = 0x016404E8;
+        let ibp_pa_pa: u64 = 0x01640518;
         let dtb_phys_addr: u32 = dtb_addr as u32;
         vm.bus.write_word(ibp_pa, dtb_phys_addr).ok(); // initial_boot_params = DTB PA
         vm.bus.write_word(ibp_pa_pa, dtb_phys_addr).ok(); // initial_boot_params_pa = DTB PA
@@ -638,101 +625,56 @@ impl RiscvVm {
             .push((dtb_early_pa_pa, dtb_addr as u32));
 
         // Pre-set loops_per_jiffy to skip calibrate_delay().
-        // calibrate_delay() calls udelay() in a loop to measure CPU speed.
-        // In our emulator, this takes billions of instructions. Pre-setting
-        // loops_per_jiffy (VA 0xC1480A18, PA 0x01480A18) to a reasonable
-        // value makes calibrate_delay() skip calibration when it finds a
-        // non-zero value.
-        // Value: 400000 (same as lpj_fine, approximately correct for 1.68 MIPS)
-        let lpj_pa: u64 = 0x01482060;
+        // Value: 400000 (approximately correct for 1:1000 throttle)
+        let lpj_pa: u64 = 0x01CC7A78;
         vm.bus.write_word(lpj_pa, 400_000).ok();
         eprintln!("[boot] Pre-set loops_per_jiffy=400000 to skip calibrate_delay()");
 
-        // Pre-set sbi_debug_console_available = true so that earlycon=sbi
-        // uses the DBCN console write path. The kernel's early_sbi_setup()
-        // checks this flag during early param parsing, BEFORE sbi_init() runs.
-        // Without this pre-set, earlycon=sbi returns -ENODEV because the flag
-        // is still false at earlycon setup time.
-        // BSS symbol: sbi_debug_console_available at VA 0xC14820A0, PA 0x014820A0.
-        let sbi_dbcn_pa: u64 = 0x014820A0;
+        // Pre-set sbi_debug_console_available = true.
+        // BSS symbol: sbi_debug_console_available at VA 0xC1CCA0A8, PA 0x01CCA0A8.
+        let sbi_dbcn_pa: u64 = 0x01CCA0A8;
         vm.bus.write_word(sbi_dbcn_pa, 1).ok(); // bool true
         eprintln!("[boot] Pre-set sbi_debug_console_available=true for earlycon DBCN");
 
-        // Patch early_sbi_setup() to force enable DBCN.
-        //   PA 0x00414CAC: cb89  -- C.BEQZ a5, c0414cbe
-        let early_sbi_setup_patch_pa: u64 = 0x00414CAC;
-        if let Ok(0xCB89) = vm.bus.read_half(early_sbi_setup_patch_pa) {
-            vm.bus.write_half(early_sbi_setup_patch_pa, 0x0001).ok();
-            eprintln!("[boot] Patched early_sbi_setup to force enable DBCN");
-        }
-
-        // Patch sbi_debug_console_write() to skip the flag check.
-        //   PA 0x0000E7AC: cff9  -- C.BEQZ a5, c000e88a
-        let sbi_write_patch_pa: u64 = 0x0000E7AC;
-        if let Ok(0xCFF9) = vm.bus.read_half(sbi_write_patch_pa) {
-            vm.bus.write_half(sbi_write_patch_pa, 0x0001).ok();
-            eprintln!("[boot] Patched sbi_debug_console_write to force enable output");
-        }
-
         // Patch calibrate_delay to return immediately.
-        // calibrate_delay() at VA 0xC00080DA (PA 0x00080DA) runs an
-        // exponentially-growing loop calling udelay() to measure CPU speed.
-        // In our emulator, this takes billions of instructions. We pre-set
-        // loops_per_jiffy above, so calibration is unnecessary.
-        // Replace first instruction (addi sp,-80 -> 0x715D) with ret (0x8082).
-        // This also preserves the pre-set lpj_fine value.
-        let calibrate_delay_pa: u64 = 0x00080DA;
+        let calibrate_delay_pa: u64 = 0x0000E39E;
         let first_insn = vm.bus.read_half(calibrate_delay_pa).unwrap_or(0);
-        if first_insn == 0x715D {
+        if first_insn == 0x7159 {
             vm.bus.write_half(calibrate_delay_pa, 0x8082).ok(); // C.JR ra (ret)
             eprintln!("[boot] Patched calibrate_delay to return immediately");
         } else {
             eprintln!(
-                "[boot] WARNING: calibrate_delay first insn = 0x{:04X} (expected 0x715D)",
+                "[boot] WARNING: calibrate_delay first insn = 0x{:04X} (expected 0x7159)",
                 first_insn
             );
         }
 
         // Patch udelay to return immediately.
-        // udelay() at VA 0xC021B34E (PA 0x0021B34E) is called many times
-        // during early boot (exception handling, timer init, etc.) with
-        // large delay values. Even with 100x timer speedup, these calls
-        // take millions of instructions. We patch it to NOP so the kernel
-        // can progress past early boot and reach earlycon/UART output.
-        // Replace first instruction (addi sp,-16 -> 0x1141) with ret (0x8082).
-        // IMPORTANT: udelay must NOT corrupt registers. C.JR ra only reads ra.
-        let udelay_pa: u64 = 0x0021B34E;
-        let udelay_first = vm.bus.read_half(udelay_pa).unwrap_or(0);
-        if udelay_first == 0x1141 {
+        let udelay_pa: u64 = 0x0092FD16;
+        let udelay_insn = vm.bus.read_half(udelay_pa).unwrap_or(0);
+        if udelay_insn == 0x1141 {
             vm.bus.write_half(udelay_pa, 0x8082).ok(); // C.JR ra (ret)
             eprintln!("[boot] Patched udelay to return immediately");
         } else {
             eprintln!(
                 "[boot] WARNING: udelay first insn = 0x{:04X} (expected 0x1141)",
-                udelay_first
+                udelay_insn
             );
         }
 
-        // Patch ndelay to return immediately (same approach).
-        // ndelay() at VA 0xC021B308 (PA 0x0021B308).
-        let ndelay_pa: u64 = 0x0021B308;
-        let ndelay_first = vm.bus.read_half(ndelay_pa).unwrap_or(0);
-        if ndelay_first == 0x1141 {
+        // Patch ndelay to return immediately.
+        let ndelay_pa: u64 = 0x0092FCD0;
+        let ndelay_insn = vm.bus.read_half(ndelay_pa).unwrap_or(0);
+        if ndelay_insn == 0x1141 {
             vm.bus.write_half(ndelay_pa, 0x8082).ok(); // C.JR ra (ret)
             eprintln!("[boot] Patched ndelay to return immediately");
         } else {
             eprintln!(
                 "[boot] WARNING: ndelay first insn = 0x{:04X} (expected 0x1141)",
-                ndelay_first
+                ndelay_insn
             );
         }
-        // The boot page table maps VA 0xC0000000 -> PA 0x0, so the kernel
-        // executes from the correct virtual address. This is critical because
-        // the kernel uses PC-relative addressing (auipc, jal, etc.) that
-        // only produces correct results at the linked virtual address.
-        // Entering at PA 0 (identity-mapped) causes all auipc calculations
-        // to be off by 0xC0000000, leading to wrong GP/SP/TP and eventual
-        // boot failure when the kernel returns to a corrupted low address.
+
         let entry_vaddr: u32 = load_info.entry;
         vm.cpu.csr.mepc = entry_vaddr;
         vm.cpu.csr.mstatus = 1u32 << csr::MSTATUS_MPP_LSB;

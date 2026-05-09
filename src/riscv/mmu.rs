@@ -316,6 +316,18 @@ pub fn translate(
                 tlb.insert(combined_vpn, asid, va >> 12, flags);
                 return TranslateResult::Ok(va as u64);
             }
+            // Kernel linear mapping demand paging (see Fallback 2 in L1 V=0 check).
+            if vpn1 >= 768 && effective_priv != Privilege::Machine {
+                let page_offset: u64 = 0xC000_0000;
+                let pa = (va as u64).wrapping_sub(page_offset);
+                let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
+                if pa >= bus.mem.ram_base && pa < ram_end {
+                    let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
+                    let eff_ppn = (pa >> 12) as u32;
+                    tlb.insert(combined_vpn, asid, eff_ppn, flags);
+                    return TranslateResult::Ok(pa);
+                }
+            }
             return fault_for(access_type);
         }
     };
@@ -326,11 +338,31 @@ pub fn translate(
             access: access_type,
             ptes: vec![l1_pte],
         });
-        // Fallback: identity-map low addresses for S/U-mode when enabled.
+        // Fallback 1: identity-map low addresses for S/U-mode when enabled.
         if va < 0x0400_0000 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
             let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
             tlb.insert(combined_vpn, asid, va >> 12, flags);
             return TranslateResult::Ok(va as u64);
+        }
+        // Fallback 2: kernel linear mapping demand paging.
+        // When the kernel's page tables don't cover a VA yet (early boot, vmalloc),
+        // compute PA = VA - PAGE_OFFSET and map it if within RAM.
+        // This prevents the trap handler from faulting on its own stack.
+        if vpn1 >= 768 && effective_priv != Privilege::Machine {
+            let page_offset: u64 = 0xC000_0000;
+            let pa = (va as u64).wrapping_sub(page_offset);
+            let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
+            if pa >= bus.mem.ram_base && pa < ram_end {
+                let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
+                let eff_ppn = (pa >> 12) as u32;
+                tlb.insert(combined_vpn, asid, eff_ppn, flags);
+                bus.mmu_log.push(MmuEvent::PageTableWalk {
+                    va,
+                    pa,
+                    ptes: vec![0], // demand-paged, no real PTE
+                });
+                return TranslateResult::Ok(pa);
+            }
         }
         return fault_for(access_type);
     }
@@ -356,9 +388,21 @@ pub fn translate(
             return fault;
         }
 
-        // A/D bit updates DISABLED for testing.
-        // The PTE flags are used as-read (no write-back).
-        let flags = l1_pte & 0xFF;
+        // Auto-set A (Accessed) and D (Dirty) bits if they are not set.
+        // This prevents infinite trap loops in the kernel exception handler
+        // when the hardware doesn't auto-update these bits.
+        let mut new_flags = flags | PTE_A;
+        if access_type == AccessType::Store {
+            new_flags |= PTE_D;
+        }
+
+        if new_flags != flags {
+            let fixed_l1_pte = (l1_pte & !0xFF) | new_flags;
+            // Use mem.write_word directly to bypass interception
+            bus.mem.write_word(l1_addr, fixed_l1_pte).ok();
+        }
+
+        let flags = new_flags;
 
         // For TLB: store the effective PPN for this specific VPN (includes VPN0).
         // Each TLB entry covers one 4KB page, so megapage hits insert per-VPN0.
@@ -432,6 +476,18 @@ pub fn translate(
                 tlb.insert(combined_vpn, asid, va >> 12, flags);
                 return TranslateResult::Ok(va as u64);
             }
+            // Kernel linear mapping demand paging.
+            if vpn1 >= 768 && effective_priv != Privilege::Machine {
+                let page_offset: u64 = 0xC000_0000;
+                let pa = (va as u64).wrapping_sub(page_offset);
+                let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
+                if pa >= bus.mem.ram_base && pa < ram_end {
+                    let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
+                    let eff_ppn = (pa >> 12) as u32;
+                    tlb.insert(combined_vpn, asid, eff_ppn, flags);
+                    return TranslateResult::Ok(pa);
+                }
+            }
             return fault_for(access_type);
         }
     };
@@ -447,6 +503,18 @@ pub fn translate(
             let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
             tlb.insert(combined_vpn, asid, va >> 12, flags);
             return TranslateResult::Ok(va as u64);
+        }
+        // Kernel linear mapping demand paging.
+        if vpn1 >= 768 && effective_priv != Privilege::Machine {
+            let page_offset: u64 = 0xC000_0000;
+            let pa = (va as u64).wrapping_sub(page_offset);
+            let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
+            if pa >= bus.mem.ram_base && pa < ram_end {
+                let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
+                let eff_ppn = (pa >> 12) as u32;
+                tlb.insert(combined_vpn, asid, eff_ppn, flags);
+                return TranslateResult::Ok(pa);
+            }
         }
         return fault_for(access_type);
     }
@@ -473,8 +541,19 @@ pub fn translate(
         return fault;
     }
 
-    // A/D bit updates DISABLED for testing (L2 leaf).
-    let flags = l2_pte & 0xFF;
+    // Auto-set A (Accessed) and D (Dirty) bits if they are not set (L2 leaf).
+    let mut new_flags = flags | PTE_A;
+    if access_type == AccessType::Store {
+        new_flags |= PTE_D;
+    }
+
+    if new_flags != flags {
+        let fixed_l2_pte = (l2_pte & !0xFF) | new_flags;
+        // Use mem.write_word directly to bypass interception
+        bus.mem.write_word(l2_addr, fixed_l2_pte).ok();
+    }
+
+    let flags = new_flags;
     let ppn = fixup_ppn(pte_ppn(l2_pte));
 
     tlb.insert(combined_vpn, asid, ppn, flags);

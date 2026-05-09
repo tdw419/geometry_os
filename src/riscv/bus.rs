@@ -873,20 +873,22 @@ impl Bus {
 
             if l1_ppn >= PAGE_OFFSET_PPN {
                 let fixed_pte = (l1_pte & !PPN_MASK) | (final_ppn << 10);
+                eprintln!(
+                    "[pte_fixup] Fixed L1[{}] at PA 0x{:08X}: 0x{:08X} -> 0x{:08X}",
+                    i, l1_addr, l1_pte, fixed_pte
+                );
                 // Use mem.write_word directly to avoid going through intercept_pte_write
-                // (we're doing the fixup manually here, no need for double-fixing).
                 self.mem.write_word(l1_addr, fixed_pte).ok();
             }
 
             // If non-leaf L1 entry, queue the L2 table for fixup and register it
             if (l1_pte & LEAF_FLAGS) == 0 {
                 let l2_base = (final_ppn as u64) << 12;
-                // Skip PA 0 -- the kernel allocates L2 tables there when
-                // memblock returns 0 despite DTB reservations. Registering
-                // PA 0 as a known PT page causes ALL writes to the first 4KB
-                // of RAM (kernel entry point!) to go through intercept_pte_write,
-                // corrupting kernel code.
                 if l2_base > 0 && l2_base < 0x1000_0000 {
+                    eprintln!(
+                        "[pte_fixup] Discovered L2 table at PA 0x{:08X} from L1[{}]",
+                        l2_base, i
+                    );
                     // Register this L2 table page for future write interception
                     self.known_pt_pages.insert(l2_base);
                     l2_tables_to_fix.push(l2_base);
@@ -896,6 +898,7 @@ impl Bus {
 
         // Fix L2 tables
         for l2_base in &l2_tables_to_fix {
+            let mut fixed_count = 0;
             for j in 0..1024u32 {
                 let l2_addr = *l2_base + (j as u64) * 4;
                 let l2_pte = match self.read_word(l2_addr) {
@@ -914,7 +917,14 @@ impl Bus {
                     let fixed_pte = (l2_pte & !PPN_MASK) | (fixed_ppn << 10);
                     // Use mem.write_word directly to avoid intercept recursion
                     self.mem.write_word(l2_addr, fixed_pte).ok();
+                    fixed_count += 1;
                 }
+            }
+            if fixed_count > 0 {
+                eprintln!(
+                    "[pte_fixup] Fixed {} entries in L2 table at PA 0x{:08X}",
+                    fixed_count, l2_base
+                );
             }
         }
 
