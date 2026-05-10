@@ -189,6 +189,10 @@ impl VfsSurface {
 
     /// Read a 32-bit word from the surface (MMIO).
     pub fn read(&self, addr: u64) -> Option<u32> {
+        if addr == VFS_CONTROL_ADDR {
+            // Control register read: return 0 (no status bits defined yet)
+            return Some(0);
+        }
         let offset = addr.checked_sub(VFS_SURFACE_BASE)? as usize;
         if offset >= VFS_SURFACE_SIZE {
             return None;

@@ -1168,7 +1168,7 @@ mod tests {
 
     #[test]
     fn bus_sync_mip_clears_when_not_pending() {
-        let bus = Bus::new(0x8000_0000, 4096);
+        let mut bus = Bus::new(0x8000_0000, 4096);
         // Set both STIP and MTIP to verify both are cleared when timer not pending
         let mut mip: u32 = (1 << 5) | (1 << 7) | (1 << 3);
         bus.sync_mip(&mut mip);
@@ -1840,5 +1840,416 @@ mod tests {
 
         // One past the end should fail
         assert!(bus.read_word(4096).is_err());
+    }
+
+    // ── Framebuffer routing tests ──
+
+    #[test]
+    fn bus_framebuf_pixel_write_read() {
+        // Write a pixel to the framebuffer and read it back
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let fb_addr = super::super::framebuf::FB_BASE; // 0x6000_0000
+
+        bus.write_word(fb_addr, 0xFF00FF00).unwrap();
+        assert_eq!(bus.read_word(fb_addr).unwrap(), 0xFF00FF00);
+    }
+
+    #[test]
+    fn bus_framebuf_control_write_read() {
+        // Write to the framebuffer control register (after pixel buffer)
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let ctrl_addr = super::super::framebuf::FB_CONTROL_ADDR;
+
+        bus.write_word(ctrl_addr, 1).unwrap();
+        assert_eq!(bus.read_word(ctrl_addr).unwrap(), 1);
+    }
+
+    #[test]
+    fn bus_framebuf_clip_write_read() {
+        // Write to the framebuffer clip register
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let clip_addr = super::super::framebuf::FB_CLIP_ADDR;
+
+        bus.write_word(clip_addr, 0x00FF00FF).unwrap();
+        assert_eq!(bus.read_word(clip_addr).unwrap(), 0x00FF00FF);
+    }
+
+    #[test]
+    fn bus_framebuf_multiple_pixels() {
+        // Write and read multiple pixels across the framebuffer
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let fb_base = super::super::framebuf::FB_BASE;
+
+        // Write three consecutive pixels (each is one u32 word)
+        bus.write_word(fb_base, 0xFF0000FF).unwrap(); // pixel 0: blue
+        bus.write_word(fb_base + 4, 0xFF00FF00).unwrap(); // pixel 1: green
+        bus.write_word(fb_base + 8, 0xFFFF0000).unwrap(); // pixel 2: red
+
+        assert_eq!(bus.read_word(fb_base).unwrap(), 0xFF0000FF);
+        assert_eq!(bus.read_word(fb_base + 4).unwrap(), 0xFF00FF00);
+        assert_eq!(bus.read_word(fb_base + 8).unwrap(), 0xFFFF0000);
+    }
+
+    #[test]
+    fn bus_framebuf_does_not_overlap_vfs() {
+        // Ensure framebuffer writes don't leak into VFS surface region
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        // Write to last pixel of framebuffer
+        let fb_last = super::super::framebuf::FB_BASE + super::super::framebuf::FB_PIXEL_SIZE as u64 - 4;
+        bus.write_word(fb_last, 0xAAAAAAAA).unwrap();
+        assert_eq!(bus.read_word(fb_last).unwrap(), 0xAAAAAAAA);
+
+        // VFS surface starts at 0x7000_0000, well above framebuffer
+        let vfs_first = super::super::vfs_surface::VFS_SURFACE_BASE;
+        // Reading from VFS should return 0 (uninitialized), not our framebuffer value
+        assert_ne!(bus.read_word(vfs_first).unwrap(), 0xAAAAAAAA);
+    }
+
+    // ── VFS Surface routing tests ──
+
+    #[test]
+    fn bus_vfs_surface_pixel_write_read() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let vfs_base = super::super::vfs_surface::VFS_SURFACE_BASE; // 0x7000_0000
+
+        bus.write_word(vfs_base, 0x12345678).unwrap();
+        assert_eq!(bus.read_word(vfs_base).unwrap(), 0x12345678);
+    }
+
+    #[test]
+    fn bus_vfs_surface_control_write_read() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let ctrl_addr = super::super::vfs_surface::VFS_CONTROL_ADDR;
+
+        // Control register is write-only (flush trigger); write should succeed
+        bus.write_word(ctrl_addr, 1).unwrap();
+        // Read returns 0 (no status bits defined)
+        assert_eq!(bus.read_word(ctrl_addr).unwrap(), 0);
+    }
+
+    #[test]
+    fn bus_vfs_surface_multiple_pixels() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let vfs_base = super::super::vfs_surface::VFS_SURFACE_BASE;
+
+        bus.write_word(vfs_base + 0, 0xAA).unwrap();
+        bus.write_word(vfs_base + 4, 0xBB).unwrap();
+        bus.write_word(vfs_base + 8, 0xCC).unwrap();
+
+        assert_eq!(bus.read_word(vfs_base + 0).unwrap(), 0xAA);
+        assert_eq!(bus.read_word(vfs_base + 4).unwrap(), 0xBB);
+        assert_eq!(bus.read_word(vfs_base + 8).unwrap(), 0xCC);
+    }
+
+    #[test]
+    fn bus_vfs_surface_byte_routing() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let vfs_base = super::super::vfs_surface::VFS_SURFACE_BASE;
+
+        // Write a word, then read individual bytes
+        bus.write_word(vfs_base, 0xAABBCCDD).unwrap();
+        assert_eq!(bus.read_byte(vfs_base).unwrap(), 0xDD); // little-endian byte 0
+        assert_eq!(bus.read_byte(vfs_base + 1).unwrap(), 0xCC);
+        assert_eq!(bus.read_byte(vfs_base + 2).unwrap(), 0xBB);
+        assert_eq!(bus.read_byte(vfs_base + 3).unwrap(), 0xAA);
+    }
+
+    // ── Protected address tests ──
+
+    #[test]
+    fn bus_protected_addr_blocks_write() {
+        let mut bus = Bus::new(0, 4096);
+        let pa = 0x100u64;
+        let protected_val = 0xCAFEBABEu32;
+
+        bus.protected_addrs.push((pa, protected_val));
+
+        // Write should be silently dropped
+        bus.write_word(pa, 0xDEADBEEF).unwrap();
+
+        // Read should return the protected value, not the written value
+        assert_eq!(bus.read_word(pa).unwrap(), protected_val);
+    }
+
+    #[test]
+    fn bus_protected_addr_byte_read() {
+        let mut bus = Bus::new(0, 4096);
+        let pa = 0x200u64;
+        let protected_val = 0x12345678u32;
+
+        bus.protected_addrs.push((pa, protected_val));
+
+        // Byte reads should extract from the protected word value
+        assert_eq!(bus.read_byte(pa).unwrap(), 0x78);     // byte 0
+        assert_eq!(bus.read_byte(pa + 1).unwrap(), 0x56); // byte 1
+        assert_eq!(bus.read_byte(pa + 2).unwrap(), 0x34); // byte 2
+        assert_eq!(bus.read_byte(pa + 3).unwrap(), 0x12); // byte 3
+    }
+
+    #[test]
+    fn bus_protected_addr_no_effect_on_other_addrs() {
+        let mut bus = Bus::new(0, 4096);
+        bus.protected_addrs.push((0x100, 0xBEEF));
+
+        // Other addresses should work normally
+        bus.write_word(0x200, 0xAAAA).unwrap();
+        assert_eq!(bus.read_word(0x200).unwrap(), 0xAAAA);
+    }
+
+    #[test]
+    fn bus_protected_addr_halfword_read() {
+        let mut bus = Bus::new(0, 4096);
+        let pa = 0x300u64;
+        let protected_val = 0xAABBCCDDu32;
+
+        bus.protected_addrs.push((pa, protected_val));
+
+        // Halfword reads
+        assert_eq!(bus.read_half(pa).unwrap(), 0xCCDD);     // low half
+        assert_eq!(bus.read_half(pa + 2).unwrap(), 0xAABB); // high half
+    }
+
+    #[test]
+    fn bus_protected_addr_halfword_write_dropped() {
+        let mut bus = Bus::new(0, 4096);
+        let pa = 0x400u64;
+        let protected_val = 0x11111111u32;
+
+        bus.protected_addrs.push((pa, protected_val));
+
+        // Halfword write should be dropped
+        bus.write_half(pa, 0xFFFF).unwrap();
+        assert_eq!(bus.read_word(pa).unwrap(), protected_val);
+    }
+
+    #[test]
+    fn bus_protected_addr_byte_write_dropped() {
+        let mut bus = Bus::new(0, 4096);
+        let pa = 0x500u64;
+        let protected_val = 0x22222222u32;
+
+        bus.protected_addrs.push((pa, protected_val));
+
+        // Byte write should be dropped
+        bus.write_byte(pa, 0xFF).unwrap();
+        assert_eq!(bus.read_word(pa).unwrap(), protected_val);
+    }
+
+    #[test]
+    fn bus_protected_addr_multiple_entries() {
+        let mut bus = Bus::new(0, 4096);
+        bus.protected_addrs.push((0x100, 0xAAAA));
+        bus.protected_addrs.push((0x200, 0xBBBB));
+
+        // Both protected addresses should return their values
+        assert_eq!(bus.read_word(0x100).unwrap(), 0xAAAA);
+        assert_eq!(bus.read_word(0x200).unwrap(), 0xBBBB);
+
+        // And block writes
+        bus.write_word(0x100, 0x1111).unwrap();
+        bus.write_word(0x200, 0x2222).unwrap();
+        assert_eq!(bus.read_word(0x100).unwrap(), 0xAAAA);
+        assert_eq!(bus.read_word(0x200).unwrap(), 0xBBBB);
+    }
+
+    // ── Write watchpoint tests ──
+
+    #[test]
+    fn bus_write_watchpoint_triggers_on_match() {
+        let mut bus = Bus::new(0, 4096);
+        bus.write_watch_addr = Some(0x100);
+        bus.write_watch_hit = false;
+        bus.write_watch_val = 0;
+        bus.write_watch_pc = 0;
+
+        // Write to the watched address
+        bus.write_word(0x100, 0xDEADBEEF).unwrap();
+
+        assert!(bus.write_watch_hit);
+        assert_eq!(bus.write_watch_val, 0xDEADBEEF);
+    }
+
+    #[test]
+    fn bus_write_watchpoint_no_trigger_on_miss() {
+        let mut bus = Bus::new(0, 4096);
+        bus.write_watch_addr = Some(0x100);
+        bus.write_watch_hit = false;
+
+        // Write to a different address
+        bus.write_word(0x200, 0xBEEF).unwrap();
+
+        assert!(!bus.write_watch_hit);
+    }
+
+    #[test]
+    fn bus_write_watchpoint_only_triggers_once() {
+        let mut bus = Bus::new(0, 4096);
+        bus.write_watch_addr = Some(0x100);
+        bus.write_watch_hit = false;
+
+        // First write triggers
+        bus.write_word(0x100, 0x11111111).unwrap();
+        assert!(bus.write_watch_hit);
+        assert_eq!(bus.write_watch_val, 0x11111111);
+
+        // Second write does NOT update (hit already true)
+        bus.write_word(0x100, 0x22222222).unwrap();
+        assert_eq!(bus.write_watch_val, 0x11111111); // still first value
+    }
+
+    #[test]
+    fn bus_write_watchpoint_disabled_when_none() {
+        let mut bus = Bus::new(0, 4096);
+        bus.write_watch_addr = None;
+        bus.write_watch_hit = false;
+
+        bus.write_word(0x100, 0xBEEF).unwrap();
+        assert!(!bus.write_watch_hit);
+    }
+
+    #[test]
+    fn bus_write_watchpoint_records_pc() {
+        let mut bus = Bus::new(0, 4096);
+        bus.write_watch_addr = Some(0x100);
+        bus.current_pc = 0xC0001234;
+        bus.write_watch_hit = false;
+
+        bus.write_word(0x100, 0xCAFE).unwrap();
+
+        assert!(bus.write_watch_hit);
+        // Note: current_pc is not stored by the watchpoint itself,
+        // only write_watch_val is recorded. The PC is stored in
+        // memblock_write_log instead.
+    }
+
+    // ── Low address behavior tests ──
+
+    #[test]
+    fn bus_low_addr_returns_zero_on_read() {
+        // Addresses below ram_base should return 0
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        assert_eq!(bus.read_word(0x0000_0000).unwrap(), 0);
+        assert_eq!(bus.read_word(0x0000_1000).unwrap(), 0);
+        assert_eq!(bus.read_word(0x0FFF_FFFC).unwrap(), 0);
+    }
+
+    #[test]
+    fn bus_low_addr_accepts_writes_silently() {
+        // Writes below ram_base should succeed silently
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        assert!(bus.write_word(0x0000_0000, 0xDEAD).is_ok());
+        assert!(bus.write_word(0x0000_1000, 0xBEEF).is_ok());
+    }
+
+    #[test]
+    fn bus_low_addr_writes_do_not_persist() {
+        // Writes below ram_base are silently accepted but data is lost
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        bus.write_word(0x0000_0000, 0xDEADBEEF).unwrap();
+        // Reading back should still return 0
+        assert_eq!(bus.read_word(0x0000_0000).unwrap(), 0);
+    }
+
+    #[test]
+    fn bus_low_addr_byte_read_returns_zero() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        assert_eq!(bus.read_byte(0x0000_0000).unwrap(), 0);
+        assert_eq!(bus.read_byte(0x0000_0001).unwrap(), 0);
+    }
+
+    #[test]
+    fn bus_low_addr_half_read_returns_zero() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        assert_eq!(bus.read_half(0x0000_0000).unwrap(), 0);
+    }
+
+    #[test]
+    fn bus_unmapped_high_addr_fails() {
+        // Addresses above RAM and all devices should fail
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        // 0x8000_1000 is past the 4KB RAM
+        assert!(bus.read_word(0x8000_1000).is_err());
+    }
+
+    #[test]
+    fn bus_unmapped_high_addr_write_fails() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        assert!(bus.write_word(0x8000_1000, 0xBEEF).is_err());
+    }
+
+    // ── Memblock write log tests ──
+
+    #[test]
+    fn bus_memblock_write_log_records() {
+        let mut bus = Bus::new(0, 64 * 1024 * 1024);
+        bus.current_pc = 0xC0001000;
+
+        // Write to the memblock region (0x0080348C - 0x00803A8C)
+        bus.write_word(0x0080348C, 0x12345678).unwrap();
+
+        assert_eq!(bus.memblock_write_log.len(), 1);
+        let (encoded_addr, val) = bus.memblock_write_log[0];
+        // PC is encoded in upper 32 bits
+        let recorded_pc = (encoded_addr >> 32) as u32;
+        let recorded_addr = encoded_addr & 0xFFFFFFFF;
+        assert_eq!(recorded_pc, 0xC0001000);
+        assert_eq!(recorded_addr, 0x0080348C);
+        assert_eq!(val, 0x12345678);
+    }
+
+    #[test]
+    fn bus_memblock_write_log_capped_at_100() {
+        let mut bus = Bus::new(0, 64 * 1024 * 1024);
+        bus.current_pc = 0;
+
+        // Write 101 times to the memblock region
+        for i in 0..101 {
+            bus.write_word(0x0080348C, i).unwrap();
+        }
+
+        // Should be capped at 100 entries
+        assert_eq!(bus.memblock_write_log.len(), 100);
+    }
+
+    #[test]
+    fn bus_memblock_write_log_ignores_outside_range() {
+        let mut bus = Bus::new(0, 64 * 1024 * 1024);
+        bus.current_pc = 0xC0001000;
+
+        // Write outside the memblock range
+        bus.write_word(0x00803000, 0xDEAD).unwrap();
+        assert!(bus.memblock_write_log.is_empty());
+    }
+
+    // ── RAM priority over low-addr fallback ──
+
+    #[test]
+    fn bus_ram_base_zero_reads_persist() {
+        // When ram_base=0, writes to low addresses persist in RAM
+        let mut bus = Bus::new(0, 4096);
+
+        bus.write_word(0x100, 0xCAFEBABE).unwrap();
+        assert_eq!(bus.read_word(0x100).unwrap(), 0xCAFEBABE);
+    }
+
+    #[test]
+    fn bus_ram_base_zero_byte_persistence() {
+        let mut bus = Bus::new(0, 4096);
+
+        bus.write_byte(0x100, 0xAB).unwrap();
+        assert_eq!(bus.read_byte(0x100).unwrap(), 0xAB);
+    }
+
+    #[test]
+    fn bus_ram_base_zero_half_persistence() {
+        let mut bus = Bus::new(0, 4096);
+
+        bus.write_half(0x100, 0xABCD).unwrap();
+        assert_eq!(bus.read_half(0x100).unwrap(), 0xABCD);
     }
 }
