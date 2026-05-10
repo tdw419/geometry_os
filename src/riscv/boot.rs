@@ -155,7 +155,9 @@ impl RiscvVm {
             }
             eprintln!(
                 "[boot] Loaded initrd: {} bytes at PA 0x{:08X} - 0x{:08X}",
-                initrd_data.len(), initrd_start, initrd_end
+                initrd_data.len(),
+                initrd_start,
+                initrd_end
             );
             // Update DTB with initrd addresses.
             dtb_config.initrd_start = Some(initrd_start);
@@ -265,8 +267,12 @@ impl RiscvVm {
             if let Some((ird_start, ird_end)) = initrd_phys {
                 let new_cnt = vm.bus.read_word(res_cnt_addr).unwrap_or(0);
                 let new_offset = (new_cnt as u64) * 8;
-                vm.bus.write_word(res_regions_pa + new_offset, ird_start as u32).ok();
-                vm.bus.write_word(res_regions_pa + new_offset + 4, ird_end as u32).ok();
+                vm.bus
+                    .write_word(res_regions_pa + new_offset, ird_start as u32)
+                    .ok();
+                vm.bus
+                    .write_word(res_regions_pa + new_offset + 4, ird_end as u32)
+                    .ok();
                 vm.bus.write_word(res_cnt_addr, new_cnt + 1).ok();
                 eprintln!(
                     "[boot] Pre-populated memblock reserved initrd: PA 0x{:08X} - PA 0x{:08X}",

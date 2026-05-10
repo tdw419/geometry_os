@@ -130,7 +130,11 @@ mod phase87_multi_hypervisor {
             0,
             "should have 0 VMs (missing arch=)"
         );
-        assert_eq!(vm.regs[12], geos_errno(GEOS_EINVAL), "should return missing-arch error");
+        assert_eq!(
+            vm.regs[12],
+            geos_errno(GEOS_EINVAL),
+            "should return missing-arch error"
+        );
     }
 
     #[test]

@@ -32,3 +32,5 @@ annotated_dataset/synthetic_*
 *.npz
 training_log*.txt
 synthetic_dataset_v9/
+mixed_dataset_v14/
+pixelflow/self_distilled_v13/

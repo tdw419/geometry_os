@@ -1547,12 +1547,7 @@ fn test_gpu_compute_sbi_invalid_params_returns_error() {
 
 /// Helper: encode LW rd, offset(rs1)
 fn enc_lw(rd: u32, rs1: u32, offset: u32) -> u32 {
-    ((offset >> 5) << 25)
-        | ((offset & 0x1F) << 20)
-        | (rs1 << 15)
-        | (0b010 << 12)
-        | (rd << 7)
-        | 0x03
+    ((offset >> 5) << 25) | ((offset & 0x1F) << 20) | (rs1 << 15) | (0b010 << 12) | (rd << 7) | 0x03
 }
 
 /// Helper: encode ECALL
