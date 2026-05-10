@@ -1522,8 +1522,7 @@ mod tests {
         let mut bus = Bus::new(0x8000_0000, 4096);
 
         // TX: write character 'A' (0x41) to THR, verify it lands in tx_buf
-        bus.write_word(0x1000_0000, 0x41)
-            .expect("UART THR write");
+        bus.write_word(0x1000_0000, 0x41).expect("UART THR write");
         let tx = bus.uart.drain_tx();
         assert_eq!(tx, vec![0x41], "TX should contain 'A'");
 
@@ -1630,5 +1629,216 @@ mod tests {
         let mut bus = Bus::new(0x8000_0000, 4096);
         let dev_id = bus.read_word(0x1000_1000 + 8).expect("virtio-blk dev_id");
         assert_eq!(dev_id, 2); // VirtIO block device
+    }
+
+    // ============================================================
+    // Phase 348: VirtIO-GPU bus routing tests
+    // ============================================================
+
+    #[test]
+    fn bus_virtio_gpu_read_magic_and_device_id() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let gpu_base = super::super::virtio_gpu::VIRTIO_GPU_BASE;
+
+        // Magic register at offset 0x00
+        let magic = bus.read_word(gpu_base).expect("virtio-gpu magic");
+        assert_eq!(magic, 0x7472_6976); // "vtrd"
+
+        // Device ID at offset 0x08 = 16 (GPU)
+        let dev_id = bus.read_word(gpu_base + 8).expect("virtio-gpu dev_id");
+        assert_eq!(dev_id, 16);
+    }
+
+    #[test]
+    fn bus_virtio_gpu_read_write_status() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let gpu_base = super::super::virtio_gpu::VIRTIO_GPU_BASE;
+
+        // STATUS at offset 0x70 (VirtIO MMIO spec) — write 0 (reset), then read back
+        bus.write_word(gpu_base + 0x70, 0)
+            .expect("virtio-gpu status write");
+        let status = bus
+            .read_word(gpu_base + 0x70)
+            .expect("virtio-gpu status read");
+        assert_eq!(status, 0, "status should be 0 after reset");
+
+        // Write ACKNOWLEDGE (1)
+        bus.write_word(gpu_base + 0x70, 1)
+            .expect("virtio-gpu status write");
+        let status = bus
+            .read_word(gpu_base + 0x70)
+            .expect("virtio-gpu status read");
+        assert_eq!(status, 1);
+    }
+
+    #[test]
+    fn bus_virtio_gpu_queue_num_max() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let gpu_base = super::super::virtio_gpu::VIRTIO_GPU_BASE;
+
+        // QUEUE_NUM_MAX at offset 0x34 (VirtIO MMIO spec)
+        let max = bus
+            .read_word(gpu_base + 0x34)
+            .expect("virtio-gpu queue_num_max");
+        assert_eq!(max, 64);
+    }
+
+    #[test]
+    fn bus_virtio_gpu_address_range() {
+        // Verify VirtIO-GPU address containment
+        assert!(super::super::virtio_gpu::VirtioGpu::contains(0x1000_3000));
+        assert!(super::super::virtio_gpu::VirtioGpu::contains(0x1000_3FFF));
+        assert!(!super::super::virtio_gpu::VirtioGpu::contains(0x1000_2FFF)); // below
+        assert!(!super::super::virtio_gpu::VirtioGpu::contains(0x1000_4000)); // above
+    }
+
+    #[test]
+    fn bus_virtio_gpu_does_not_overlap_virtio_blk() {
+        // VirtIO-blk at 0x1000_1000, virtio-gpu at 0x1000_3000
+        assert!(super::super::virtio_gpu::VirtioGpu::contains(0x1000_3000));
+        assert!(!super::super::virtio_gpu::VirtioGpu::contains(0x1000_1000)); // blk addr
+        assert!(!super::super::virtio_blk::VirtioBlk::contains(0x1000_3000)); // gpu addr
+    }
+
+    #[test]
+    fn bus_virtio_gpu_read_write_half_byte_routing() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let gpu_base = super::super::virtio_gpu::VIRTIO_GPU_BASE;
+
+        // Write a full word to STATUS (offset 0x70), read back as half-word
+        bus.write_word(gpu_base + 0x70, 0x1234_5678)
+            .expect("write status word");
+        // LE: word 0x12345678 stored as bytes [0x78, 0x56, 0x34, 0x12]
+        let lo_half = bus.read_half(gpu_base + 0x70).expect("read lo half");
+        let hi_half = bus.read_half(gpu_base + 0x72).expect("read hi half");
+        assert_eq!(lo_half, 0x5678);
+        assert_eq!(hi_half, 0x1234);
+
+        // Byte reads
+        let b0 = bus.read_byte(gpu_base + 0x70).expect("read byte 0");
+        let b1 = bus.read_byte(gpu_base + 0x71).expect("read byte 1");
+        assert_eq!(b0, 0x78);
+        assert_eq!(b1, 0x56);
+    }
+
+    #[test]
+    fn bus_virtio_gpu_interrupt_status() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let gpu_base = super::super::virtio_gpu::VIRTIO_GPU_BASE;
+
+        // INTERRUPT_STATUS at offset 0x60 (VirtIO MMIO spec) — initially 0
+        let int_status = bus
+            .read_word(gpu_base + 0x60)
+            .expect("virtio-gpu interrupt_status");
+        assert_eq!(int_status, 0);
+    }
+    // ============================================================
+    // Phase 348: Additional bus routing edge cases
+    // ============================================================
+
+    #[test]
+    fn bus_clint_read_write_byte() {
+        // Byte-level routing to CLINT MTIMECMP
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let mtimecmp_lo = clint::MTIMECMP_BASE;
+
+        // Write byte 0xFF to MTIMECMP_LO
+        bus.write_byte(mtimecmp_lo, 0xFF).expect("CLINT byte write");
+        let val = bus.read_byte(mtimecmp_lo).expect("CLINT byte read");
+        assert_eq!(val, 0xFF);
+
+        // Verify word read is consistent (LE: byte 0 in LSB)
+        let word = bus.read_word(mtimecmp_lo).expect("CLINT word read");
+        assert_eq!(word & 0xFF, 0xFF);
+    }
+
+    #[test]
+    fn bus_clint_read_write_half() {
+        // Half-word routing to CLINT MSIP
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        bus.write_half(clint::MSIP_BASE, 1)
+            .expect("CLINT half write");
+        let val = bus.read_half(clint::MSIP_BASE).expect("CLINT half read");
+        assert_eq!(val, 1);
+        assert!(bus.clint.software_pending());
+    }
+
+    #[test]
+    fn bus_uart_read_write_byte() {
+        // Byte-level UART routing
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        // Write byte to THR (offset 0)
+        bus.write_byte(0x1000_0000, 0x42).expect("UART byte write");
+        let tx = bus.uart.drain_tx();
+        assert_eq!(tx, vec![0x42], "TX should contain 'B'");
+
+        // Read byte from LSR (offset 5)
+        let lsr = bus.read_byte(0x1000_0005).expect("UART byte read LSR");
+        assert!(lsr & 0x20 != 0, "THRE bit should be set");
+    }
+
+    #[test]
+    fn bus_plic_read_write_byte() {
+        // Byte-level PLIC routing to priority register
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let priority_addr = 0x0C00_0004; // Source 1 priority
+
+        bus.write_byte(priority_addr, 5).expect("PLIC byte write");
+        let val = bus.read_byte(priority_addr).expect("PLIC byte read");
+        assert_eq!(val, 5);
+    }
+
+    #[test]
+    fn bus_multiple_device_isolation() {
+        // Verify that writing to one device doesn't affect another
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        // Write to UART
+        bus.write_word(0x1000_0000, 0x41).expect("UART write");
+        // Write to VirtIO-blk status (offset 0x28 per VirtIO MMIO spec)
+        bus.write_word(0x1000_1000 + 0x28, 15)
+            .expect("blk status write");
+        // Write to PLIC priority
+        bus.write_word(0x0C00_0004, 3).expect("PLIC priority write");
+
+        // Read back each — they should be independent
+        let blk_status = bus.read_word(0x1000_1000 + 0x28).expect("blk status read");
+        assert_eq!(blk_status, 15);
+
+        let plic_priority = bus.read_word(0x0C00_0004).expect("PLIC priority read");
+        assert_eq!(plic_priority, 3);
+
+        // UART TX should still have the byte
+        let tx = bus.uart.drain_tx();
+        assert_eq!(tx, vec![0x41]);
+    }
+
+    #[test]
+    fn bus_ram_alignment_word_read() {
+        // Verify word reads are properly aligned
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        // Write two adjacent words
+        bus.write_word(0x8000_0000, 0xAAAA_BBBB).unwrap();
+        bus.write_word(0x8000_0004, 0xCCCC_DDDD).unwrap();
+
+        // Verify they don't overlap
+        assert_eq!(bus.read_word(0x8000_0000).unwrap(), 0xAAAA_BBBB);
+        assert_eq!(bus.read_word(0x8000_0004).unwrap(), 0xCCCC_DDDD);
+    }
+
+    #[test]
+    fn bus_ram_boundary_last_word() {
+        // Write to the very last word of RAM
+        let mut bus = Bus::new(0, 4096); // RAM at 0x0, 4KB
+
+        let last_addr = 4092; // 4096 - 4
+        bus.write_word(last_addr as u64, 0xDEAD).unwrap();
+        assert_eq!(bus.read_word(last_addr as u64).unwrap(), 0xDEAD);
+
+        // One past the end should fail
+        assert!(bus.read_word(4096).is_err());
     }
 }

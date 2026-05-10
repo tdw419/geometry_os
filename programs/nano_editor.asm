@@ -775,6 +775,7 @@ hp_repl_to_confirm:
     STORE r10, r11
     JMP hi_done
 
+hp_do_goto:
     ; Execute goto
     CALL do_goto
     JMP hp_cancel

@@ -1345,4 +1345,136 @@ mod tests {
         assert!((pte_none & (PTE_R | PTE_W | PTE_X)) == 0);
         assert_eq!(pte_ppn(pte_none), 0xABC);
     }
+
+    // ============================================================
+    // Phase 348: MMU edge case tests
+    // ============================================================
+
+    /// TLB flush_all clears all entries.
+    #[test]
+    fn tlb_flush_all_clears() {
+        let mut tlb = Tlb::new();
+        tlb.insert(1, 0, 0x100, PTE_V | PTE_R | PTE_W | PTE_X);
+        tlb.insert(2, 0, 0x200, PTE_V | PTE_R | PTE_X);
+        assert_eq!(tlb.valid_count(), 2);
+        tlb.flush_all();
+        assert_eq!(tlb.valid_count(), 0);
+    }
+
+    /// TLB flush_asid only flushes entries matching the ASID.
+    #[test]
+    fn tlb_flush_asid_selective() {
+        let mut tlb = Tlb::new();
+        tlb.insert(1, 0, 0x100, PTE_V | PTE_R);
+        tlb.insert(1, 1, 0x200, PTE_V | PTE_R);
+        tlb.insert(2, 0, 0x300, PTE_V | PTE_R);
+        assert_eq!(tlb.valid_count(), 3);
+        tlb.flush_asid(0);
+        assert_eq!(tlb.valid_count(), 1); // Only (1,1) with asid=1 remains
+        let entry = tlb.lookup(1, 1);
+        assert!(entry.is_some());
+        assert_eq!(entry.unwrap().0, 0x200); // ppn
+    }
+
+    /// VPN extraction helper consistency: verify VPN0 and VPN1 cover the full VA space.
+    #[test]
+    fn vpn_extraction_full_coverage() {
+        // VPN0 bits [21:12] should extract bits 12-20 of the VA
+        // VPN1 bits [31:22] should extract bits 22-31 of the VA
+        for &va in &[0x00000FFF, 0x003FFFFF, 0x00400000, 0xFFFFF000] {
+            let vpn0 = (va >> 12) & 0x3FF;
+            let vpn1 = (va >> 22) & 0x3FF;
+            assert_eq!(va_vpn0(va), vpn0, "VPN0 mismatch for VA 0x{:08X}", va);
+            assert_eq!(va_vpn1(va), vpn1, "VPN1 mismatch for VA 0x{:08X}", va);
+        }
+    }
+
+    /// PTE PPN extraction: verify all 20 PPN bits are correctly extracted.
+    #[test]
+    fn pte_ppn_full_range() {
+        // PPN = bits [31:10] of PTE
+        let max_ppn = 0xFFFFF; // 20-bit max
+        let pte = (max_ppn << 10) | PTE_V | PTE_R;
+        assert_eq!(pte_ppn(pte), max_ppn);
+
+        // Zero PPN
+        let pte_zero = PTE_V | PTE_R;
+        assert_eq!(pte_ppn(pte_zero), 0);
+    }
+
+    /// M-mode bypass: all accesses should be allowed regardless of PTE flags.
+    #[test]
+    fn machine_mode_bypass_all_checks() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let mut tlb = Tlb::new();
+        let satp = 0; // No translation active
+
+        // Even with no page tables, M-mode access to any address should work
+        // (when satp=0, translate() falls through to passthrough)
+        let result = translate(
+            0xDEAD_BEEF,
+            AccessType::Load,
+            Privilege::Machine,
+            false,
+            false,
+            satp,
+            &mut bus,
+            &mut tlb,
+        );
+        // With satp=0, it should be Ok (passthrough)
+        assert!(matches!(result, TranslateResult::Ok { .. }));
+    }
+
+    /// Distinguish StoreFault, FetchFault, and LoadFault on a read-only leaf PTE.
+    #[test]
+    fn page_fault_type_distinction() {
+        let mut tlb = Tlb::new();
+        let mut bus = Bus::new(0x0, 0x2_0000);
+
+        // L1: megapage, read-only (R set, W clear, X clear)
+        let pte = (0x5u32 << 20) | PTE_V | PTE_R;
+        bus.write_word(0x0, pte).unwrap();
+        let satp = make_satap(1, 0, 0);
+
+        // Store to read-only page → StoreFault
+        let r = translate(
+            0x1000,
+            AccessType::Store,
+            Privilege::Supervisor,
+            false,
+            false,
+            satp,
+            &mut bus,
+            &mut tlb,
+        );
+        assert!(matches!(r, TranslateResult::StoreFault));
+
+        // Execute from read-only page → FetchFault (no X flag)
+        tlb.flush_all();
+        let r = translate(
+            0x1000,
+            AccessType::Fetch,
+            Privilege::Supervisor,
+            false,
+            false,
+            satp,
+            &mut bus,
+            &mut tlb,
+        );
+        assert!(matches!(r, TranslateResult::FetchFault));
+
+        // Load from read-only page → Ok (R flag is set)
+        tlb.flush_all();
+        let r = translate(
+            0x1000,
+            AccessType::Load,
+            Privilege::Supervisor,
+            false,
+            false,
+            satp,
+            &mut bus,
+            &mut tlb,
+        );
+        assert!(matches!(r, TranslateResult::Ok(_)));
+    }
 }
