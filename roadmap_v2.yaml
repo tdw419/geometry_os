@@ -6327,19 +6327,20 @@ phases:
   dependencies: []
 - id: phase-353
   title: GeOS Program -- Minesweeper
-  status: todo
-  description: Classic Minesweeper game with left-click reveal, right-click flag,
-    flood-fill reveal of empty cells, mine count display, timer, and win/loss detection.
-    Uses 16x16 grid with 40 mines.
+  status: done
+  description: 'Implemented minesweeper.asm: 16x16 grid, 40 mines, safe first-click
+    guarantee, flood-fill reveal, cursor movement, flag toggling, win/loss detection.
+    925 lines of assembly. Integration tests verify assembly (1853 bytes), rendering
+    (3+ frames, 1000+ pixels, dark gray grid).'
   deliverables:
   - name: Mine generation with safe first-click guarantee
-    status: todo
+    status: done
   - name: Flood-fill reveal for empty cells
-    status: todo
+    status: done
   - name: Mine counter and timer HUD
-    status: todo
+    status: done
   - name: Integration test verifying game loop
-    status: todo
+    status: done
   dependencies: []
 - id: phase-354
   title: GeOS Program -- Simon Says

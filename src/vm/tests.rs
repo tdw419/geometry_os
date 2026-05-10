@@ -7652,11 +7652,17 @@ fn test_color_picker_boots_and_renders() {
 fn test_minesweeper_assembles() {
     let source = include_str!("../../programs/minesweeper.asm");
     let asm = crate::assembler::assemble(source, 0).expect("minesweeper.asm should assemble");
-    // Should contain RAND opcode (0x49) and HITSET (0x37)
+    // Should contain RAND opcode (0x49) and FRAME opcode (0x02)
     let has_rand = asm.pixels.iter().any(|&w| w == 0x49);
-    let has_hitset = asm.pixels.iter().any(|&w| w == 0x37);
-    assert!(has_rand, "minesweeper.asm should use RAND opcode");
-    assert!(has_hitset, "minesweeper.asm should use HITSET opcode");
+    let has_frame = asm.pixels.iter().any(|&w| w == 0x02);
+    assert!(
+        has_rand,
+        "minesweeper.asm should use RAND opcode for mine placement"
+    );
+    assert!(
+        has_frame,
+        "minesweeper.asm should use FRAME opcode for rendering loop"
+    );
 }
 
 #[test]
@@ -7701,14 +7707,18 @@ fn test_minesweeper_boots_and_renders() {
         "should have rendered at least one frame (pc={})",
         vm.pc
     );
-    // Title bar at (0,0) should be dark purple
-    assert_eq!(vm.screen[0], 0x333355, "title bar should be dark purple");
-    // Grid cell at (36,30) should be gray (hidden)
-    assert_eq!(
-        vm.screen[30 * 256 + 36],
-        0x555577,
-        "grid cell should be gray"
-    );
+    // Title bar at (0,0) should be dark gray
+    assert_eq!(vm.screen[0], 0x404040, "title bar should be dark gray");
+    // Grid area should have non-black pixels (cells rendered)
+    let mut grid_pixels = 0usize;
+    for y in 0..256u32 {
+        for x in 36..256u32 {
+            if vm.screen[(y * 256 + x) as usize] != 0 {
+                grid_pixels += 1;
+            }
+        }
+    }
+    assert!(grid_pixels > 500, "grid should have rendered cells");
 }
 
 #[test]
@@ -7752,16 +7762,16 @@ fn test_minesweeper_reveals_safe_cell() {
     // Find a cell that is revealed (not a mine) - check REVEAL grid
     // The clicked cell should be revealed unless it was a mine
     // Check reveal grid at index 0 (row 0, col 0)
-    let reveal_addr = 0x4400; // REVEAL base
-    let clicked_revealed = vm.ram[reveal_addr] == 1;
+    let reveal_addr = 0x2000; // GRID base (bit 4 = is_revealed)
+    let clicked_revealed = vm.ram[reveal_addr] & 16 != 0;
     // If the clicked cell was a mine, game over - that's fine too
-    // But most of the time it should be safe (10 mines out of 64 cells)
+    // But most of the time it should be safe (40 mines out of 256 cells)
     // Just verify the game is still running or properly ended
-    let state = vm.ram[0x4C00]; // STATE
-    assert!(state == 0 || state == 2, "game should be playing or lost");
+    let state = vm.ram[0x2102]; // STATE (game_over)
+    assert!(state == 0 || state == 1, "game should be playing or lost");
     if state == 0 {
         assert!(
-            clicked_revealed || vm.ram[reveal_addr] == 0,
+            clicked_revealed || vm.ram[reveal_addr] & 16 == 0,
             "if still playing, cell should be revealed or unchanged"
         );
     }
@@ -7790,22 +7800,25 @@ fn test_minesweeper_flag_toggle() {
         }
     }
 
-    // Flag mode should start at 0
-    assert_eq!(vm.ram[0x4C04], 0, "flag mode should start at 0");
+    // flags_placed should start at 0
+    assert_eq!(vm.ram[0x2106], 0, "flags_placed should start at 0");
 
-    // Press 'F' to toggle flag mode
+    // Press 'F' to flag the current cell (cursor at 0,0)
     vm.push_key(70); // 'F' = 70
-    for _ in 0..500_000 {
+    for _ in 0..2_000_000 {
         if !vm.step() {
             break;
         }
-        if vm.frame_count >= 2 {
+        if vm.frame_count >= 5 {
             break;
         }
     }
 
-    // Flag mode should now be 1
-    assert_eq!(vm.ram[0x4C04], 1, "flag mode should be 1 after pressing F");
+    // flags_placed should now be 1 (cell 0,0 flagged)
+    assert_eq!(
+        vm.ram[0x2106], 1,
+        "flags_placed should be 1 after pressing F"
+    );
 }
 
 #[test]

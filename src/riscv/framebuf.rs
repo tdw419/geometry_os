@@ -433,7 +433,7 @@ mod tests {
     fn fb_read_misaligned_returns_nearest_pixel() {
         let mut fb = Framebuffer::new();
         fb.pixels[65535] = 0xAAAA; // last pixel
-        // Misaligned read at last pixel end + 2: offset = pixel_size - 2
+                                   // Misaligned read at last pixel end + 2: offset = pixel_size - 2
         let addr = FB_BASE + FB_PIXEL_SIZE as u64 - 2;
         // offset / 4 = 65535 (truncates down to valid pixel index)
         assert_eq!(fb.read(addr), Some(0xAAAA));
@@ -680,4 +680,3 @@ mod tests {
         assert_eq!(syscall_name(0), "io_setup");
     }
 }
-
