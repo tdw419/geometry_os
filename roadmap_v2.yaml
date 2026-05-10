@@ -6107,19 +6107,19 @@ phases:
   dependencies: []
 - id: phase-339
   title: GeOS Program -- Waveform Oscilloscope
-  status: todo
+  status: done
   description: Real-time waveform display using the audio system. Visualizes sine,
     square, sawtooth, and noise waveforms with adjustable frequency/amplitude. Uses
     BEEP opcode for sound generation.
   deliverables:
   - name: Sine/square/sawtooth waveform rendering
-    status: todo
+    status: done
   - name: Frequency and amplitude controls (IKEY)
-    status: todo
+    status: done
   - name: Noise generator mode
-    status: todo
+    status: done
   - name: Integration test with BEEP opcode verification
-    status: todo
+    status: done
   dependencies: []
 - id: phase-340
   title: GeOS Program -- Conway's Game of Life with Editor
