@@ -57,3 +57,4 @@
 {"prompt": "Draw a clock face with hour marks and hands pointing to 3 o'clock", "file": "074_diamond_pattern.asm", "success": true, "non_black_ratio": 0.0378, "timestamp": "2026-05-10T04:34:00", "note": "Suggestion already existed as 072, generated concentric diamond pattern instead"}
 {"prompt": "Draw a sierpinski triangle pattern using PSET", "file": "075_sierpinski_triangle.asm", "success": true, "non_black_ratio": 0.1001, "timestamp": "2026-05-10T04:57:00"}
 {"prompt": "Draw a sunset gradient with horizontal color bands transitioning from deep blue at top through purple and red-orange to dark at bottom", "file": "076_sunset_gradient.asm", "success": true, "non_black_ratio": 1.0, "timestamp": "2026-05-10T05:04:00"}
+{"prompt": "Draw a plaid tartan pattern using PSET", "file": "077_plaid_tartan.asm", "success": true, "non_black_ratio": 1.0, "timestamp": "2026-05-10T05:25:00"}
