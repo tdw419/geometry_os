@@ -214,8 +214,14 @@ def validate_program(asm_text):
 # ─── Self-Distillation ───────────────────────────────────────────────────────
 
 def self_distill(checkpoint_path, tokenizer_path, output_dir, num_samples=10000,
-                 temperature=0.7, top_k=40, max_tokens=200):
-    """Generate programs from a checkpoint and save valid ones."""
+                 temperature=0.7, top_k=40, max_tokens=200,
+                 hard_bias_categories=None, hard_bias_weight=3.0):
+    """Generate programs from a checkpoint and save valid ones.
+
+    Args:
+        hard_bias_categories: list of categories to oversample (e.g. ["gradient", "loop"])
+        hard_bias_weight: multiplier for oversampled categories
+    """
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[*] Device: {device}")
@@ -251,12 +257,20 @@ def self_distill(checkpoint_path, tokenizer_path, output_dir, num_samples=10000,
     rejected = {"syntax": 0, "semantic": 0, "trivial": 0, "empty": 0}
 
     print(f"\n[*] Generating {num_samples} programs...")
+    if hard_bias_categories:
+        print(f"[*] Hard example mining: {hard_bias_categories} (weight={hard_bias_weight}x)")
     print(f"[*] Valid programs will be saved to {out_path}/")
     t0 = time.time()
 
+    # Build weighted prompt pool with hard bias
+    prompt_pool = []
+    for template, cat in PROMPT_TEMPLATES:
+        weight = hard_bias_weight if hard_bias_categories and cat in hard_bias_categories else 1.0
+        prompt_pool.extend([(template, cat)] * int(weight * 10))
+
     for i in range(num_samples):
-        # Pick a random prompt template
-        template, default_cat = random.choice(PROMPT_TEMPLATES)
+        # Pick from weighted pool
+        template, default_cat = random.choice(prompt_pool)
         prompt = fill_prompt(template)
 
         # Generate
@@ -336,6 +350,10 @@ if __name__ == "__main__":
                         help="Top-k sampling")
     parser.add_argument("--max-tokens", type=int, default=200,
                         help="Max tokens per generation")
+    parser.add_argument("--hard-bias", nargs="+", default=None,
+                        help="Categories to oversample (e.g. gradient loop multi)")
+    parser.add_argument("--hard-bias-weight", type=float, default=3.0,
+                        help="Weight multiplier for hard categories")
     args = parser.parse_args()
 
     self_distill(
@@ -344,4 +362,6 @@ if __name__ == "__main__":
         temperature=args.temperature,
         top_k=args.top_k,
         max_tokens=args.max_tokens,
+        hard_bias_categories=args.hard_bias,
+        hard_bias_weight=args.hard_bias_weight,
     )

@@ -23,6 +23,7 @@ pub mod render;
 pub mod riscv;
 pub mod save;
 pub mod scrollback;
+pub mod tile_store;
 pub mod vfs;
 pub mod viewport;
 #[allow(dead_code)]

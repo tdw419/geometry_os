@@ -327,6 +327,12 @@ pub struct Vm {
     /// Pending wall-clock alarms. Checked each FRAME opcode.
     /// When real time >= alarm.target_ms, writes value to RAM[addr].
     pub alarms: Vec<types::WallAlarm>,
+
+    // ── Phase N: Infinite Tile Map ────────────────────────────
+    /// Chunk-based infinite pixel map extending beyond the 256x256 screen.
+    /// Programs can write to world-space coordinates via MAP_SET/MAP_GET opcodes.
+    /// Rendered as a background layer in fullscreen map mode.
+    pub tile_store: crate::tile_store::TileStore,
 }
 
 impl std::fmt::Debug for Vm {
@@ -487,6 +493,8 @@ impl Vm {
                     active: false,
                 })
                 .collect(),
+            // Infinite tile map
+            tile_store: crate::tile_store::TileStore::new(),
         }
     }
 

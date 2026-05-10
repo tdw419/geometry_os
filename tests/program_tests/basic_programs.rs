@@ -1531,3 +1531,51 @@ fn test_asteroids_produces_frame() {
         nonzero
     );
 }
+
+#[test]
+fn test_simon_says_assembles() {
+    let source =
+        std::fs::read_to_string("programs/simon_says.asm").expect("simon_says.asm not found");
+    let asm = assemble(&source, 0).expect("simon_says.asm should assemble");
+    assert!(
+        asm.pixels.len() > 100,
+        "simon_says should be more than 100 words"
+    );
+}
+
+#[test]
+fn test_simon_says_renders_frame() {
+    let vm = compile_run_interactive("programs/simon_says.asm", 100_000);
+    // Game should produce at least one frame (showing phase draws dim quadrants)
+    // Verify quadrant colors are present on screen
+    // Top-left quadrant center (64, 64) should have dim green 0x003300
+    assert!(
+        vm.screen[64 * 256 + 64] == 0x003300,
+        "top-left quadrant should show dim green (got {:06X})",
+        vm.screen[64 * 256 + 64]
+    );
+    // Top-right quadrant center (192, 64) should have dim red 0x330000
+    assert!(
+        vm.screen[64 * 256 + 192] == 0x330000,
+        "top-right quadrant should show dim red (got {:06X})",
+        vm.screen[64 * 256 + 192]
+    );
+    // Bottom-left quadrant center (64, 192) should have dim blue 0x000033
+    assert!(
+        vm.screen[192 * 256 + 64] == 0x000033,
+        "bottom-left quadrant should show dim blue (got {:06X})",
+        vm.screen[192 * 256 + 64]
+    );
+    // Bottom-right quadrant center (192, 192) should have dim yellow 0x333300
+    assert!(
+        vm.screen[192 * 256 + 192] == 0x333300,
+        "bottom-right quadrant should show dim yellow (got {:06X})",
+        vm.screen[192 * 256 + 192]
+    );
+    // Sequence should have been initialized (length >= 1 at 0x2000)
+    assert!(
+        vm.ram[0x2000] >= 1,
+        "sequence length should be >= 1 (got {})",
+        vm.ram[0x2000]
+    );
+}

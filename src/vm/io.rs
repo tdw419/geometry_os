@@ -937,6 +937,8 @@ impl Vm {
                     active: false,
                 })
                 .collect(),
+            // Infinite tile map (chunks loaded from separate files on disk)
+            tile_store: crate::tile_store::TileStore::new(),
         })
     }
 }

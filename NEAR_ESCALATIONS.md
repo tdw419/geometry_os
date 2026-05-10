@@ -1,3 +1,19 @@
+## [2026-05-10T10:29Z] Watchdog: DEGRADED -- Human Gate spam recurrence + 3 multiproc test failures
+**Decided instead:** Cleaned up Human Gate, investigated test failures, logged findings.
+**Reason:** DEGRADED health with 14 pending Human Gate questions (all identical scrollback duplicates) and 3 test halts.
+**Outcome:** Human Gate cleaned (0 pending null-answers, 35 files remain all answered). Test failures identified for drafter.
+
+### Root Causes:
+
+1. **Human Gate spam (20 new unanswered duplicates):** 20 files with `answer: null` for the same scrollback question. Original decision already exists at 661d5080 (500 lines simple). Cleaned up: answered 1, deleted 19. This is the 5th cleanup for this recurring pattern.
+
+2. **3 failing multiproc tests (test_kill_context_skips_in_round_robin, test_spawn_via_sbi_ecall, test_two_contexts_yield_round_robin):** All use stale SBI constants. Tests set `x[17] = 0x47454F00` ("GEO\0") but the actual `SBI_EXT_GEOMETRY` constant is `0x47454F4D` ("GEOM"). Function IDs also wrong: tests use fid=1 for YIELD (actual: 16) and fid=3 for SPAWN (actual: 14). This causes `handle_ecall()` to return `None` → falls through to trap handler. The drafter needs to update `tests/multiproc_tests.rs` with the correct constants from `src/riscv/sbi.rs`.
+
+### Actions Taken:
+- Answered 1 scrollback question, deleted 19 duplicate Human Gate entries
+- Identified exact root cause of 3 test failures (stale SBI extension/fn constants)
+- Did NOT fix tests directly (drafter's responsibility, requires updating setup_yield_regs and setup_spawn_regs helpers)
+
 ## 2026-05-08T05:27Z Watchdog: DEGRADED -- 40 duplicate Human Gate questions, stale phase-254
 **Decided instead:** Dismissed all 40 pending duplicate Human Gate questions (36 scrollback limit duplicates + 4 malformed template questions). Did NOT touch phase-254 roadmap status since drafter is actively committing and may finish it naturally.
 **Reason:** Health DEGRADED due to (1) 80% test gate pass rate from 1 transient halt in 4h window (tests now 2440/2440 pass), (2) stale in_progress phase-254, (3) 40 pending Human Gate questions accumulating from repeated drafter runs hitting the same scrollback question. All cron jobs active and healthy. Drafter last commit 1m ago, reviewer 14m ago. Phase-254 has dungeon_bsp.asm at 1458 lines with bug fixes committed but roadmap not updated -- drafter appears to have moved on to other phases (257, 252) and may return. The 40 duplicate questions were spam from the drafter re-enqueuing the same scrollback question every run cycle. Previous watchdog runs already answered this question with "500 lines" but the drafter kept asking.

@@ -858,12 +858,44 @@ pub fn render(
 /// with a 128px sidebar on the right for debug info.
 pub fn render_fullscreen_map(
     buffer: &mut [u32],
-    vm: &vm::Vm,
+    vm: &mut vm::Vm,
     icon_cache: Option<&BuildingIconCache>,
 ) {
     // Clear to black
     for pixel in buffer.iter_mut() {
         *pixel = 0x050508;
+    }
+
+    // ── Infinite Tile Map: render chunks around camera ───────
+    // The tile store extends beyond the 256x256 VM framebuffer.
+    // Camera is in tile coords (8px per tile) from RAM[0x7800-0x7801].
+    // We render at the current zoom scale into the 768x768 map area.
+    {
+        let cam_x_tiles = vm.ram.get(0x7800).copied().unwrap_or(0) as i32;
+        let cam_y_tiles = vm.ram.get(0x7801).copied().unwrap_or(0) as i32;
+
+        // Use zoom level to determine map scale
+        let zoom = vm.ram.get(0x7812).copied().unwrap_or(2).min(4);
+        let map_scale: u32 = match zoom {
+            0 => 2,
+            1 => 3,
+            2 => 6,
+            3 => 12,
+            4 => 24,
+            _ => 3,
+        };
+
+        vm.tile_store.render_visible(
+            buffer,
+            WIDTH,
+            cam_x_tiles,
+            cam_y_tiles,
+            map_scale,
+            0,   // map_offset_x (centered in 768x768)
+            0,   // map_offset_y
+            768, // visible_w
+            768, // visible_h
+        );
     }
 
     // Zoom level determines how much of the 256x256 VM screen we show:

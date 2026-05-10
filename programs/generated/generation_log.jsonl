@@ -58,3 +58,4 @@
 {"prompt": "Draw a sierpinski triangle pattern using PSET", "file": "075_sierpinski_triangle.asm", "success": true, "non_black_ratio": 0.1001, "timestamp": "2026-05-10T04:57:00"}
 {"prompt": "Draw a sunset gradient with horizontal color bands transitioning from deep blue at top through purple and red-orange to dark at bottom", "file": "076_sunset_gradient.asm", "success": true, "non_black_ratio": 1.0, "timestamp": "2026-05-10T05:04:00"}
 {"prompt": "Draw a plaid tartan pattern using PSET", "file": "077_plaid_tartan.asm", "success": true, "non_black_ratio": 1.0, "timestamp": "2026-05-10T05:25:00"}
+{"prompt": "Draw a maze-like pattern using nested loops", "file": "078_grid_maze.asm", "success": true, "non_black_ratio": 0.1038, "timestamp": "2026-05-10T10:38:28"}

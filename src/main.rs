@@ -393,6 +393,17 @@ fn main() {
 
     // ── State ────────────────────────────────────────────────────
     let mut vm = vm::Vm::new();
+
+    // Initialize infinite tile map with disk persistence
+    {
+        let map_dir = std::env::var("HOME")
+            .map(|h| std::path::PathBuf::from(h).join(".geometry_os/map"))
+            .unwrap_or_else(|_| std::path::PathBuf::from("/tmp/geos_map"));
+        vm.tile_store = geometry_os::tile_store::TileStore::with_persistence(
+            map_dir.to_str().unwrap_or("/tmp/geos_map"),
+        );
+    }
+
     let mut is_running = false;
 
     // ── RISC-V live VM state (Phase B) ───────────────────────────
@@ -656,6 +667,13 @@ fn main() {
             vm = saved_vm;
             canvas_buffer = saved_canvas;
             canvas_assembled = saved_assembled;
+            // Re-initialize tile store with persistence (load_state gives us a fresh one)
+            let map_dir = std::env::var("HOME")
+                .map(|h| std::path::PathBuf::from(h).join(".geometry_os/map"))
+                .unwrap_or_else(|_| std::path::PathBuf::from("/tmp/geos_map"));
+            vm.tile_store = geometry_os::tile_store::TileStore::with_persistence(
+                map_dir.to_str().unwrap_or("/tmp/geos_map"),
+            );
             status_msg = String::from("[state restored from geometry_os.sav]");
             _state_restored = true;
         }
@@ -1578,6 +1596,7 @@ fn main() {
                 }
                 Key::F7 => {
                     // Save state to file
+                    vm.tile_store.flush(); // persist infinite map chunks
                     match save_state(SAVE_FILE, &vm, &canvas_buffer, canvas_assembled) {
                         Ok(()) => {
                             let file_size =
@@ -1912,6 +1931,7 @@ fn main() {
                         }
                         match parts[0] {
                             "save" => {
+                                vm.tile_store.flush(); // persist infinite map chunks
                                 match save_state(SAVE_FILE, &vm, &canvas_buffer, canvas_assembled) {
                                     Ok(()) => status_msg = "[saved]".into(),
                                     Err(e) => status_msg = format!("[save error: {}]", e),
@@ -4741,7 +4761,7 @@ fn main() {
         // ── Render ───────────────────────────────────────────────
         if fullscreen_map && is_running {
             // Fullscreen map: VM screen scaled 3x to fill window
-            render_fullscreen_map(&mut buffer, &vm, Some(&icon_cache));
+            render_fullscreen_map(&mut buffer, &mut vm, Some(&icon_cache));
         } else if in_scrollback {
             // Scrollback mode: render scrollback buffer as canvas
             // Build a temporary canvas buffer from scrollback lines

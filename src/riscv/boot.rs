@@ -129,6 +129,52 @@ impl RiscvVm {
         // 3. Load kernel at physical addresses (p_paddr from ELF segments).
         // The bus routes writes to RAM at 0x80000000+ automatically.
         let load_info = loader::load_elf_with_offset(&mut vm.bus, kernel_image, mem_base)?;
+
+        // DIAGNOSTIC: verify bus write/read roundtrip at setup_vm patch address.
+        // This was failing: read_half returned 0x0147 instead of expected 0xC4DC.
+        {
+            let diag_pa: u64 = 0x80404AB2;
+            let ram_base = vm.bus.mem.ram_base;
+            let ram_size = vm.bus.mem.size();
+            eprintln!(
+                "[boot-diag] RAM: base=0x{:08X} size=0x{:X} ({}MB)",
+                ram_base,
+                ram_size,
+                ram_size / (1024 * 1024)
+            );
+            // Read raw bytes via bus.read_byte
+            let b0 = vm.bus.read_byte(diag_pa).unwrap_or(0xFF);
+            let b1 = vm.bus.read_byte(diag_pa + 1).unwrap_or(0xFF);
+            let b2 = vm.bus.read_byte(diag_pa + 2).unwrap_or(0xFF);
+            let b3 = vm.bus.read_byte(diag_pa + 3).unwrap_or(0xFF);
+            let half = vm.bus.read_half(diag_pa).unwrap_or(0xFFFF);
+            let word = vm.bus.read_word(diag_pa).unwrap_or(0xFFFFFFFF);
+            eprintln!(
+                "[boot-diag] PA 0x{:08X}: bytes=[{:02X} {:02X} {:02X} {:02X}] half=0x{:04X} word=0x{:08X}",
+                diag_pa, b0, b1, b2, b3, half, word
+            );
+            // Also check what's in the raw ELF at file offset 0x404AB2
+            let expected_file_off = 0x404AB2;
+            if kernel_image.len() > expected_file_off + 4 {
+                let eb0 = kernel_image[expected_file_off];
+                let eb1 = kernel_image[expected_file_off + 1];
+                let eb2 = kernel_image[expected_file_off + 2];
+                let eb3 = kernel_image[expected_file_off + 3];
+                eprintln!(
+                    "[boot-diag] ELF file off 0x{:X}: bytes=[{:02X} {:02X} {:02X} {:02X}] half=0x{:04X}",
+                    expected_file_off, eb0, eb1, eb2, eb3,
+                    eb0 as u16 | ((eb1 as u16) << 8)
+                );
+            }
+            // Verify: does 0x80404AB2 even fall within RAM?
+            let offset_from_base = diag_pa.wrapping_sub(ram_base) as usize;
+            let in_ram = offset_from_base + 2 <= ram_size;
+            eprintln!(
+                "[boot-diag] offset from base = 0x{:X}, in_ram={}, ram_array_len=0x{:X}",
+                offset_from_base, in_ram, ram_size
+            );
+        }
+
         // Highest address used by the kernel in physical memory.
         let ram_size = actual_ram_size as u64;
         let kernel_phys_end = ((load_info.highest_addr + 0xFFF) & !0xFFF) as u64;
@@ -260,7 +306,7 @@ impl RiscvVm {
             vm.bus.write_word(res_cnt_addr, res_cnt + 1).ok();
             eprintln!(
                 "[boot] Pre-populated memblock reserved: PA 0x80000000 - PA 0x{:08X}",
-                0x80000000 + kernel_phys_end as u32
+                kernel_phys_end as u32
             );
 
             // Also reserve initrd region if present.
@@ -297,7 +343,7 @@ impl RiscvVm {
                     .ok();
                 eprintln!(
                     "[boot] Pre-populated memblock memory: PA 0x80000000 - PA 0x{:08X}",
-                    0x80000000 + actual_ram_size as u32
+                    (0x80000000u64 + actual_ram_size as u64) as u32
                 );
             }
         }
@@ -345,6 +391,7 @@ impl RiscvVm {
             Self::boot_linux_setup(kernel_image, initramfs, ram_size_mb, bootargs)?;
 
         let mut count: u64 = 0;
+        let mut fault_count: u64 = 0;
         while count < max_instructions {
             if vm.bus.sbi.shutdown_requested {
                 break;
@@ -358,7 +405,15 @@ impl RiscvVm {
 
             match step_result {
                 StepResult::Ok => {}
-                StepResult::FetchFault | StepResult::LoadFault | StepResult::StoreFault => {}
+                StepResult::FetchFault | StepResult::LoadFault | StepResult::StoreFault => {
+                    if fault_count < 10 {
+                        eprintln!(
+                            "[boot] FAULT at count={}: {:?} PC=0x{:08X} priv={:?}",
+                            count, step_result, vm.cpu.pc, vm.cpu.privilege
+                        );
+                    }
+                    fault_count += 1;
+                }
                 StepResult::Ebreak => break,
                 StepResult::Ecall => {} // ECALL is normal during boot
                 StepResult::Shutdown | StepResult::Yielded => break,
@@ -366,12 +421,13 @@ impl RiscvVm {
 
             if count.is_multiple_of(10_000_000) && count > 0 {
                 eprintln!(
-                    "[boot] PROGRESS {}M: PC=0x{:08X} priv={:?} mtime={} sbi_out={}",
+                    "[boot] PROGRESS {}M: PC=0x{:08X} priv={:?} mtime={} sbi_out={} faults={}",
                     count / 1_000_000,
                     vm.cpu.pc,
                     vm.cpu.privilege,
                     vm.bus.clint.mtime,
                     vm.bus.sbi.console_output.len(),
+                    fault_count,
                 );
             }
             count += 1;

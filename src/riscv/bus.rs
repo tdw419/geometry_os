@@ -1896,7 +1896,8 @@ mod tests {
         let mut bus = Bus::new(0x8000_0000, 4096);
 
         // Write to last pixel of framebuffer
-        let fb_last = super::super::framebuf::FB_BASE + super::super::framebuf::FB_PIXEL_SIZE as u64 - 4;
+        let fb_last =
+            super::super::framebuf::FB_BASE + super::super::framebuf::FB_PIXEL_SIZE as u64 - 4;
         bus.write_word(fb_last, 0xAAAAAAAA).unwrap();
         assert_eq!(bus.read_word(fb_last).unwrap(), 0xAAAAAAAA);
 
@@ -1981,7 +1982,7 @@ mod tests {
         bus.protected_addrs.push((pa, protected_val));
 
         // Byte reads should extract from the protected word value
-        assert_eq!(bus.read_byte(pa).unwrap(), 0x78);     // byte 0
+        assert_eq!(bus.read_byte(pa).unwrap(), 0x78); // byte 0
         assert_eq!(bus.read_byte(pa + 1).unwrap(), 0x56); // byte 1
         assert_eq!(bus.read_byte(pa + 2).unwrap(), 0x34); // byte 2
         assert_eq!(bus.read_byte(pa + 3).unwrap(), 0x12); // byte 3
@@ -2006,7 +2007,7 @@ mod tests {
         bus.protected_addrs.push((pa, protected_val));
 
         // Halfword reads
-        assert_eq!(bus.read_half(pa).unwrap(), 0xCCDD);     // low half
+        assert_eq!(bus.read_half(pa).unwrap(), 0xCCDD); // low half
         assert_eq!(bus.read_half(pa + 2).unwrap(), 0xAABB); // high half
     }
 

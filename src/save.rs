@@ -287,6 +287,8 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
                 active: false,
             })
             .collect(),
+        // Infinite tile map (chunks loaded from separate files on disk)
+        tile_store: crate::tile_store::TileStore::new(),
     };
 
     // Parse canvas trailer
