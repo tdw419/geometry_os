@@ -332,3 +332,52 @@ fn test_gol_editor_runs_and_renders() {
         non_black
     );
 }
+
+#[test]
+fn test_platformer_assembles() {
+    let source = std::fs::read_to_string("programs/platformer.asm").unwrap();
+    let result = geometry_os::assembler::assemble(&source, 0);
+    match result {
+        Ok(asm) => assert!(asm.pixels.len() > 500, "should be substantial"),
+        Err(e) => panic!("Assembly failed: {:?}", e),
+    }
+}
+
+#[test]
+fn test_platformer_runs_and_renders() {
+    let source = std::fs::read_to_string("programs/platformer.asm").unwrap();
+    let asm = geometry_os::assembler::assemble(&source, 0).unwrap();
+    let mut vm = geometry_os::vm::Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    let mut frames_seen = 0;
+    for _ in 0..10_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames_seen += 1;
+            if frames_seen >= 3 {
+                break;
+            }
+        }
+    }
+    assert!(
+        frames_seen >= 3,
+        "should produce at least 3 frames (got {})",
+        frames_seen
+    );
+    // Platformer should draw ground tiles, player, enemies
+    let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        non_black > 100,
+        "should have drawn level geometry (got {} pixels)",
+        non_black
+    );
+}

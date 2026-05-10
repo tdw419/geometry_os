@@ -6123,40 +6123,40 @@ phases:
   dependencies: []
 - id: phase-340
   title: GeOS Program -- Conway's Game of Life with Editor
-  status: todo
+  status: done
   description: Enhanced Game of Life with a built-in pattern editor. Click to toggle
     cells, draw common patterns (glider, blinker, pulsar). Run/pause/step simulation
     controls.
   deliverables:
   - name: Grid-based Life simulation with wrap-around
-    status: todo
+    status: done
   - name: Click-to-toggle cell editor mode
-    status: todo
+    status: done
   - name: Run/pause/step controls
-    status: todo
+    status: done
   - name: Pattern library (glider gun, R-pentomino, acorn)
-    status: todo
+    status: done
   - name: Integration test verifying cell evolution
-    status: todo
+    status: done
   dependencies: []
 - id: phase-341
   title: GeOS Program -- Side-Scrolling Platformer
-  status: todo
+  status: done
   description: A proper side-scrolling platformer with procedural level generation,
     gravity physics, enemy AI, collectibles, and parallax scrolling backgrounds.
   deliverables:
   - name: Procedural level generation with platforms and gaps
-    status: todo
+    status: done
   - name: Gravity physics with variable jump height
-    status: todo
+    status: done
   - name: Patrol enemy AI with line-of-sight detection
-    status: todo
+    status: done
   - name: Parallax scrolling background layers
-    status: todo
+    status: done
   - name: Score and lives HUD
-    status: todo
+    status: done
   - name: Integration test verifying game loop execution
-    status: todo
+    status: done
   dependencies: []
 - id: phase-342
   title: RISC-V Trace and Memory Module Unit Tests
@@ -6216,6 +6216,243 @@ phases:
   - name: Step execution with device side-effects
     status: done
   dependencies: []
+- id: phase-346
+  title: RISC-V CPU Unit Tests -- ALU, Load/Store, Execute
+  status: todo
+  description: 'Unit tests for the RISC-V CPU core modules: cpu/alu.rs (221 LOC),
+    cpu/loadstore.rs (183 LOC), cpu/execute.rs (147 LOC), and cpu/atomic.rs (249 LOC).
+    Test arithmetic operations, memory access patterns, instruction dispatch, and
+    atomic operations.'
+  deliverables:
+  - name: ALU arithmetic and logic operation tests
+    status: todo
+  - name: Load/store alignment and width tests
+    status: todo
+  - name: Instruction dispatch and execution flow tests
+    status: todo
+  - name: Atomic operation tests (LR/SC, AMO)
+    status: todo
+  dependencies: []
+- id: phase-347
+  title: RISC-V Decode Unit Tests -- RV32I and Compressed
+  status: todo
+  description: 'Unit tests for the RISC-V decoder: decode/rv32i.rs (212 LOC), decode/compressed.rs
+    (394 LOC), decode/operation.rs (390 LOC). Test instruction encoding/decoding for
+    all RV32I opcodes, C-extension dispatch, and immediate sign-extension.'
+  deliverables:
+  - name: RV32I instruction decode tests (R/I/S/B/U/J types)
+    status: todo
+  - name: Compressed instruction dispatch tests (C.ADDI, C.LW, C.J, etc.)
+    status: todo
+  - name: Immediate sign-extension edge case tests
+    status: todo
+  - name: Invalid instruction handling tests
+    status: todo
+  dependencies: []
+- id: phase-348
+  title: RISC-V Bus and MMU Unit Tests
+  status: todo
+  description: Unit tests for bus.rs (1496 LOC) and mmu.rs (1348 LOC). Test memory-mapped
+    I/O routing, device handler dispatch, page table walks, TLB behavior, and address
+    translation edge cases.
+  deliverables:
+  - name: Bus read/write routing to CLINT/PLIC/UART/VirtIO
+    status: todo
+  - name: MMU page table walk and translation tests
+    status: todo
+  - name: TLB lookup, insertion, and flush tests
+    status: todo
+  - name: Fault generation for unmapped/protected addresses
+    status: todo
+  dependencies: []
+- id: phase-349
+  title: RISC-V VirtIO Device Unit Tests
+  status: todo
+  description: 'Unit tests for VirtIO device implementations: virtio_blk.rs (1264
+    LOC), virtio_gpu.rs (1808 LOC), virtio_net.rs (913 LOC). Test device initialization,
+    virtqueue handling, feature negotiation, and data transfer.'
+  deliverables:
+  - name: VirtIO block device read/write tests
+    status: todo
+  - name: VirtIO GPU framebuffer and display tests
+    status: todo
+  - name: VirtIO network packet TX/RX tests
+    status: todo
+  - name: Virtqueue descriptor chain processing tests
+    status: todo
+  dependencies: []
+- id: phase-350
+  title: RISC-V Peripheral Unit Tests -- UART, CLINT, PLIC, SBI
+  status: todo
+  description: 'Unit tests for RISC-V peripherals: uart.rs (416 LOC), clint.rs (218
+    LOC), plic.rs (318 LOC), sbi.rs (316 LOC). Test register-level device behavior,
+    interrupt delivery, timer management, and SBI console/shutdown calls.'
+  deliverables:
+  - name: UART register read/write and interrupt tests
+    status: todo
+  - name: CLINT timer compare and IPI tests
+    status: todo
+  - name: PLIC interrupt priority and enable tests
+    status: todo
+  - name: SBI extension dispatch tests (console, shutdown, timer)
+    status: todo
+  dependencies: []
+- id: phase-351
+  title: RISC-V CSR and Memory Management Tests
+  status: todo
+  description: Unit tests for CSR subsystem (csr/bank.rs 1271 LOC, csr/mod.rs 22 LOC,
+    csr/constants.rs 96 LOC) and memory.rs (229 LOC). Test CSR read/write, privilege
+    escalation, mstatus bits, and physical memory allocation.
+  deliverables:
+  - name: CSR read/write for standard CSRs (mstatus, mepc, scause, etc.)
+    status: todo
+  - name: Privilege mode transitions and mstatus field tests
+    status: todo
+  - name: Physical memory alloc/free/refcount tests
+    status: todo
+  dependencies: []
+- id: phase-352
+  title: RISC-V Trace, Loader, and DTB Tests
+  status: todo
+  description: Unit tests for trace.rs (1245 LOC), loader.rs (841 LOC), and dtb.rs
+    (516 LOC). Test instruction trace formatting, ELF loading, and device tree blob
+    parsing.
+  deliverables:
+  - name: Instruction trace recording and formatting tests
+    status: todo
+  - name: ELF segment loading and entry point extraction tests
+    status: todo
+  - name: DTB node traversal and property read tests
+    status: todo
+  dependencies: []
+- id: phase-353
+  title: GeOS Program -- Minesweeper
+  status: todo
+  description: Classic Minesweeper game with left-click reveal, right-click flag,
+    flood-fill reveal of empty cells, mine count display, timer, and win/loss detection.
+    Uses 16x16 grid with 40 mines.
+  deliverables:
+  - name: Mine generation with safe first-click guarantee
+    status: todo
+  - name: Flood-fill reveal for empty cells
+    status: todo
+  - name: Mine counter and timer HUD
+    status: todo
+  - name: Integration test verifying game loop
+    status: todo
+  dependencies: []
+- id: phase-354
+  title: GeOS Program -- Simon Says
+  status: todo
+  description: Memory pattern game (Simon) with 4 colored quadrants. Computer plays
+    a sequence, player repeats it. Sequence grows each round. Score tracking and speed
+    increase.
+  deliverables:
+  - name: 4-quadrant color display with flash animation
+    status: todo
+  - name: Sequence playback with visual feedback
+    status: todo
+  - name: Input capture and sequence comparison
+    status: todo
+  - name: Integration test verifying game progression
+    status: todo
+  dependencies: []
+- id: phase-355
+  title: GeOS Program -- Space Invaders
+  status: todo
+  description: Classic Space Invaders with 5 rows of 11 aliens, player cannon, shields,
+    alien movement patterns (step + drop), bullet management, score display, and wave
+    progression.
+  deliverables:
+  - name: Alien grid with step-and-drop movement pattern
+    status: todo
+  - name: Player cannon with movement and shooting
+    status: todo
+  - name: Collision detection (bullets vs aliens, aliens vs player)
+    status: todo
+  - name: Score, lives, and wave HUD
+    status: todo
+  - name: Integration test verifying game loop
+    status: todo
+  dependencies: []
+- id: phase-356
+  title: GeOS VM -- PTY Opcode Tests
+  status: todo
+  description: Unit tests for ops_pty.rs (2023 LOC) -- the largest untested VM module.
+    Test pseudo-terminal creation, read/write, window size queries, and process group
+    management.
+  deliverables:
+  - name: PTY creation and fd allocation tests
+    status: todo
+  - name: PTY read/write data flow tests
+    status: todo
+  - name: PTY window size (TIOCGWINSZ) tests
+    status: todo
+  dependencies: []
+- id: phase-357
+  title: GeOS VM -- Host Filesystem Opcode Tests
+  status: todo
+  description: Expand tests for ops_host_fs.rs (2033 LOC, only 1 test). Test host
+    directory listing, file stat, recursive directory walk, and error handling for
+    missing/protected paths.
+  deliverables:
+  - name: Host directory listing and file stat tests
+    status: todo
+  - name: Recursive directory traversal tests
+    status: todo
+  - name: Error handling for invalid/missing paths
+    status: todo
+  dependencies: []
+- id: phase-358
+  title: GeOS Program -- Fractal Zoom
+  status: todo
+  description: Interactive Mandelbrot/Julia set renderer with zoom-in on click. Uses
+    iterative escape-time algorithm with color mapping. WASD to pan, mouse/scroll
+    to zoom, number keys to switch between Mandelbrot and Julia sets.
+  deliverables:
+  - name: Mandelbrot set renderer with configurable iterations
+    status: todo
+  - name: Zoom and pan with coordinate transformation
+    status: todo
+  - name: Julia set mode with parameter cycling
+    status: todo
+  - name: Integration test verifying rendering output
+    status: todo
+  dependencies: []
+- id: phase-359
+  title: GeOS Program -- Sokoban
+  status: todo
+  description: Classic box-pushing puzzle game. Multiple levels, undo support, move
+    counter. Player pushes boxes onto target positions. Arrow keys to move, U to undo,
+    R to restart level.
+  deliverables:
+  - name: Box pushing with wall collision and box-on-box prevention
+    status: todo
+  - name: Win detection (all targets covered)
+    status: todo
+  - name: Multiple level definitions in RAM
+    status: todo
+  - name: Undo stack and move counter
+    status: todo
+  - name: Integration test verifying puzzle completion
+    status: todo
+  dependencies: []
+- id: phase-360
+  title: RISC-V CPU System and Mod Integration Tests
+  status: todo
+  description: Unit tests for cpu/system.rs (478 LOC) and mod.rs (462 LOC). Test CPU
+    system-level operations (interrupt delivery, context save/restore) and top-level
+    RISC-V VM module functions.
+  deliverables:
+  - name: CPU interrupt delivery and vectoring tests
+    status: todo
+  - name: Context save/restore on trap entry/exit
+    status: todo
+  - name: Top-level VM construction and reset tests
+    status: todo
+  dependencies:
+  - phase-346
+  - phase-348
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
@@ -6243,3 +6480,5 @@ meta:
   programs: 219
   loc: 132466
   tests: 3959
+  total_phases: 186
+  last_updated: '2026-05-10'
