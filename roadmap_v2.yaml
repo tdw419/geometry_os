@@ -5947,17 +5947,17 @@ phases:
   dependencies: []
 - id: phase-329
   title: GeOS VM -- RISC-V CSR Module Unit Tests
-  status: todo
+  status: done
   description: 'Add unit tests for the RISC-V CSR module. Zero-test: csr/mod.rs, csr/constants.rs.'
   deliverables:
   - name: CSR read/write tests for mstatus, mepc, mtvec, satp
-    status: todo
+    status: done
   - name: Privilege mode transition tests (M-mode to S-mode via MRET)
-    status: todo
+    status: done
   - name: Interrupt enable/disable tests (mie, mideleg, sie)
-    status: todo
+    status: done
   - name: CSR bank context save/restore tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-330
   title: GeOS Program -- Particle System Demo

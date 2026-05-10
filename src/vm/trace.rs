@@ -825,7 +825,7 @@ mod tests {
             buf.push_ref(&regs, 0x1000 + i, 0x10 + i as u32);
         }
         assert_eq!(buf.len(), capacity); // capped at capacity
-        // Newest entry (index 7) should be at get_recent(0)
+                                         // Newest entry (index 7) should be at get_recent(0)
         let newest = buf.get_recent(0).unwrap();
         assert_eq!(newest.step_number, 7);
         assert_eq!(newest.opcode, 0x17);
@@ -1281,15 +1281,43 @@ mod tests {
 
     #[test]
     fn pixel_write_entry_equality() {
-        let e1 = PixelWriteEntry { x: 10, y: 20, step_lo: 100, step_hi: 0, opcode: 0x40, color: 0xFF0000 };
-        let e2 = PixelWriteEntry { x: 10, y: 20, step_lo: 100, step_hi: 0, opcode: 0x40, color: 0xFF0000 };
+        let e1 = PixelWriteEntry {
+            x: 10,
+            y: 20,
+            step_lo: 100,
+            step_hi: 0,
+            opcode: 0x40,
+            color: 0xFF0000,
+        };
+        let e2 = PixelWriteEntry {
+            x: 10,
+            y: 20,
+            step_lo: 100,
+            step_hi: 0,
+            opcode: 0x40,
+            color: 0xFF0000,
+        };
         assert_eq!(e1, e2);
     }
 
     #[test]
     fn pixel_write_entry_inequality() {
-        let e1 = PixelWriteEntry { x: 10, y: 20, step_lo: 100, step_hi: 0, opcode: 0x40, color: 0xFF0000 };
-        let e2 = PixelWriteEntry { x: 10, y: 20, step_lo: 100, step_hi: 0, opcode: 0x40, color: 0x00FF00 };
+        let e1 = PixelWriteEntry {
+            x: 10,
+            y: 20,
+            step_lo: 100,
+            step_hi: 0,
+            opcode: 0x40,
+            color: 0xFF0000,
+        };
+        let e2 = PixelWriteEntry {
+            x: 10,
+            y: 20,
+            step_lo: 100,
+            step_hi: 0,
+            opcode: 0x40,
+            color: 0x00FF00,
+        };
         assert_ne!(e1, e2);
     }
 

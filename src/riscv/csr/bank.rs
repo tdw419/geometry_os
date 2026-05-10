@@ -833,4 +833,439 @@ mod tests {
             .expect("operation should succeed");
         assert_eq!(cause, MCAUSE_INTERRUPT_BIT | INT_MTI);
     }
+
+    // ---- Deliverable 1: Additional CSR read/write edge case tests ----
+
+    #[test]
+    fn misa_read_only_write_ignored() {
+        let mut csr = CsrBank::new();
+        let before = csr.read(MISA);
+        assert!(csr.write(MISA, 0xDEADBEEF)); // returns true (WARL)
+        assert_eq!(csr.read(MISA), before); // unchanged
+        assert_eq!(before, MISA_RV32I);
+    }
+
+    #[test]
+    fn mscratch_read_write() {
+        let mut csr = CsrBank::new();
+        assert!(csr.write(MSCRATCH, 0x12345678));
+        assert_eq!(csr.read(MSCRATCH), 0x12345678);
+    }
+
+    #[test]
+    fn stval_read_write() {
+        let mut csr = CsrBank::new();
+        assert!(csr.write(STVAL, 0xDEAD0000));
+        assert_eq!(csr.read(STVAL), 0xDEAD0000);
+    }
+
+    #[test]
+    fn sscratch_read_write() {
+        let mut csr = CsrBank::new();
+        assert!(csr.write(SSCRATCH, 0xCAFEBABE));
+        assert_eq!(csr.read(SSCRATCH), 0xCAFEBABE);
+    }
+
+    #[test]
+    fn mtvec_alignment_masks_bit1() {
+        let mut csr = CsrBank::new();
+        // bit 1 should be masked out; bit 0 (mode) preserved
+        assert!(csr.write(MTVEC, 0x80000303)); // bit 1 set
+        assert_eq!(csr.read(MTVEC), 0x80000301); // bit 1 cleared
+    }
+
+    #[test]
+    fn stvec_alignment_masks_bit1() {
+        let mut csr = CsrBank::new();
+        assert!(csr.write(STVEC, 0x40000302)); // bit 1 set
+        assert_eq!(csr.read(STVEC), 0x40000300); // bit 1 cleared
+    }
+
+    #[test]
+    fn mepc_clears_low_bit() {
+        let mut csr = CsrBank::new();
+        assert!(csr.write(MEPC, 0x80001001)); // odd address
+        assert_eq!(csr.read(MEPC), 0x80001000); // cleared
+    }
+
+    #[test]
+    fn sepc_clears_low_bit() {
+        let mut csr = CsrBank::new();
+        assert!(csr.write(SEPC, 0xC0001001));
+        assert_eq!(csr.read(SEPC), 0xC0001000);
+    }
+
+    #[test]
+    fn mcause_with_interrupt_bit() {
+        let mut csr = CsrBank::new();
+        // Write with interrupt bit set
+        assert!(csr.write(MCAUSE, MCAUSE_INTERRUPT_BIT | INT_STI));
+        assert!(csr.mcause_is_interrupt());
+        assert_eq!(csr.mcause_exception_code(), INT_STI);
+    }
+
+    #[test]
+    fn mcause_without_interrupt_bit() {
+        let mut csr = CsrBank::new();
+        csr.write(MCAUSE, CAUSE_ILLEGAL_INSTRUCTION);
+        assert!(!csr.mcause_is_interrupt());
+        assert_eq!(csr.mcause_exception_code(), CAUSE_ILLEGAL_INSTRUCTION);
+    }
+
+    #[test]
+    fn satp_sv32_mode_parsing() {
+        let mut csr = CsrBank::new();
+        // SV32: bit 31 = 1, ASID = 0x42, PPN = 0x100
+        let satp_val = (1u32 << 31) | (0x42u32 << 22) | 0x100u32;
+        assert!(csr.write(SATP, satp_val));
+        assert_eq!(csr.read(SATP), satp_val);
+    }
+
+    // ---- Deliverable 2: Additional privilege mode transition tests ----
+
+    #[test]
+    fn trap_enter_m_mode_from_s_mode() {
+        let mut csr = CsrBank::new();
+        csr.mstatus = 1 << MSTATUS_MIE; // MIE=1
+        csr.trap_enter(
+            Privilege::Machine,
+            Privilege::Supervisor,
+            0xC0001000,
+            CAUSE_ECALL_S,
+        );
+        assert_eq!(csr.mepc, 0xC0001000);
+        assert_eq!(csr.mcause, CAUSE_ECALL_S);
+        // MPP should be S (1)
+        assert_eq!(
+            (csr.mstatus & MSTATUS_MPP_MASK) >> MSTATUS_MPP_LSB,
+            Privilege::Supervisor as u32
+        );
+        // MPIE should have old MIE (1)
+        assert_eq!((csr.mstatus >> MSTATUS_MPIE) & 1, 1);
+        // MIE cleared
+        assert_eq!((csr.mstatus >> MSTATUS_MIE) & 1, 0);
+    }
+
+    #[test]
+    fn trap_enter_s_mode_from_s_mode() {
+        let mut csr = CsrBank::new();
+        csr.mstatus = 1 << MSTATUS_SIE; // SIE=1
+        csr.trap_enter(
+            Privilege::Supervisor,
+            Privilege::Supervisor,
+            0xC0010000,
+            CAUSE_STORE_PAGE_FAULT,
+        );
+        assert_eq!(csr.sepc, 0xC0010000);
+        assert_eq!(csr.scause, CAUSE_STORE_PAGE_FAULT);
+        // SPP should be 1 (S-mode, since we came from S)
+        assert_eq!((csr.mstatus >> MSTATUS_SPP) & 1, 1);
+        // SPIE should have old SIE (1)
+        assert_eq!((csr.mstatus >> MSTATUS_SPIE) & 1, 1);
+        // SIE cleared
+        assert_eq!((csr.mstatus >> MSTATUS_SIE) & 1, 0);
+    }
+
+    #[test]
+    fn trap_enter_user_mode_is_noop() {
+        let mut csr = CsrBank::new();
+        csr.mstatus = 0xFF;
+        let mstatus_before = csr.mstatus;
+        csr.trap_enter(Privilege::User, Privilege::User, 0x1000, CAUSE_ECALL_U);
+        // U-mode trap enter is a no-op
+        assert_eq!(csr.mstatus, mstatus_before);
+        assert_eq!(csr.mepc, 0); // unchanged
+    }
+
+    #[test]
+    fn trap_return_m_mode_to_user() {
+        let mut csr = CsrBank::new();
+        // Set up: MPP=User, MPIE=1, MIE=0
+        csr.mstatus = 1 << MSTATUS_MPIE;
+        let restored = csr.trap_return(Privilege::Machine);
+        assert_eq!(restored, Privilege::User);
+        // MIE restored from MPIE (1)
+        assert_eq!((csr.mstatus >> MSTATUS_MIE) & 1, 1);
+        // MPIE set to 1 after MRET
+        assert_eq!((csr.mstatus >> MSTATUS_MPIE) & 1, 1);
+        // MPP cleared to 0 (U)
+        assert_eq!((csr.mstatus & MSTATUS_MPP_MASK) >> MSTATUS_MPP_LSB, 0);
+    }
+
+    #[test]
+    fn trap_return_s_mode_to_user() {
+        let mut csr = CsrBank::new();
+        // SPP=0 (User), SPIE=1
+        csr.mstatus = 1 << MSTATUS_SPIE;
+        let restored = csr.trap_return(Privilege::Supervisor);
+        assert_eq!(restored, Privilege::User);
+        // SIE restored from SPIE (1)
+        assert_eq!((csr.mstatus >> MSTATUS_SIE) & 1, 1);
+        // SPP cleared to 0
+        assert_eq!((csr.mstatus >> MSTATUS_SPP) & 1, 0);
+    }
+
+    #[test]
+    fn trap_return_user_mode_is_noop() {
+        let mut csr = CsrBank::new();
+        let restored = csr.trap_return(Privilege::User);
+        assert_eq!(restored, Privilege::User);
+    }
+
+    // ---- Deliverable 3: Additional interrupt enable/disable tests ----
+
+    #[test]
+    fn pending_interrupt_mti_delegated_to_s() {
+        let mut csr = CsrBank::new();
+        csr.mideleg = 1 << INT_MTI; // Delegate MTI to S-mode
+        csr.mip = 1 << INT_MTI;
+        csr.mie = 1 << INT_MTI;
+        csr.mstatus = 1 << MSTATUS_SIE; // SIE enabled
+                                        // Should fire in S-mode context (non-M)
+        let cause = csr
+            .pending_interrupt(Privilege::User)
+            .expect("operation should succeed");
+        assert_eq!(cause, MCAUSE_INTERRUPT_BIT | INT_MTI);
+    }
+
+    #[test]
+    fn pending_interrupt_mti_not_delegated_requires_mie() {
+        let mut csr = CsrBank::new();
+        // MTI not delegated, SIE enabled but MIE not enabled
+        csr.mip = 1 << INT_MTI;
+        csr.mie = 1 << INT_MTI;
+        csr.mstatus = 1 << MSTATUS_SIE; // Only SIE, no MIE
+                                        // From U-mode, not delegated, needs MIE which is off
+        assert!(csr.pending_interrupt(Privilege::User).is_none());
+    }
+
+    #[test]
+    fn pending_interrupt_sti_not_in_m_mode() {
+        let mut csr = CsrBank::new();
+        csr.mip = 1 << INT_STI;
+        csr.mie = 1 << INT_STI;
+        csr.mstatus = 1 << MSTATUS_SIE;
+        // STI should NOT fire in M-mode
+        assert!(csr.pending_interrupt(Privilege::Machine).is_none());
+    }
+
+    #[test]
+    fn pending_interrupt_msi_fires() {
+        let mut csr = CsrBank::new();
+        csr.mip = 1 << INT_MSI;
+        csr.mie = 1 << INT_MSI;
+        csr.mstatus = 1 << MSTATUS_MIE;
+        let cause = csr
+            .pending_interrupt(Privilege::Machine)
+            .expect("operation should succeed");
+        assert_eq!(cause, MCAUSE_INTERRUPT_BIT | INT_MSI);
+    }
+
+    #[test]
+    fn pending_interrupt_ssi_not_in_m_mode() {
+        // SSI requires non-M-mode
+        let mut csr = CsrBank::new();
+        csr.mip = 1 << INT_SSI;
+        csr.mie = 1 << INT_SSI;
+        csr.mstatus = 1 << MSTATUS_SIE;
+        assert!(csr.pending_interrupt(Privilege::Machine).is_none());
+    }
+
+    #[test]
+    fn medeleg_bit_11_and_15_delegation_in_implementation() {
+        // Per RISC-V spec, ECALL-M (11) cannot be delegated. However, our
+        // simplified implementation allows all bits to be delegated.
+        // This test documents the actual behavior for future hardening.
+        let mut csr = CsrBank::new();
+        csr.medeleg = (1 << CAUSE_ECALL_M) | (1 << CAUSE_STORE_PAGE_FAULT);
+        // Implementation allows delegation of these bits
+        assert_eq!(
+            csr.trap_target_priv(CAUSE_ECALL_M, Privilege::Supervisor),
+            Privilege::Supervisor // delegated (simplified impl)
+        );
+        assert_eq!(
+            csr.trap_target_priv(CAUSE_STORE_PAGE_FAULT, Privilege::Supervisor),
+            Privilege::Supervisor // delegated (simplified impl)
+        );
+    }
+
+    #[test]
+    fn mideleg_full_delegation_all_interrupts_to_s() {
+        let mut csr = CsrBank::new();
+        csr.mideleg = 0xFFFF; // Delegate all
+        csr.mip = 1 << INT_STI;
+        csr.mie = 1 << INT_STI;
+        csr.mstatus = 1 << MSTATUS_SIE;
+        // From U-mode, delegated
+        assert_eq!(
+            csr.trap_target_priv(MCAUSE_INTERRUPT_BIT | INT_STI, Privilege::User),
+            Privilege::Supervisor
+        );
+        // From M-mode, still M
+        assert_eq!(
+            csr.trap_target_priv(MCAUSE_INTERRUPT_BIT | INT_STI, Privilege::Machine),
+            Privilege::Machine
+        );
+    }
+
+    // ---- Deliverable 4: CSR bank context save/restore round-trip tests ----
+
+    #[test]
+    fn context_save_restore_roundtrip_m_mode() {
+        let mut csr = CsrBank::new();
+        // Set up initial state
+        csr.mstatus = 1 << MSTATUS_MIE;
+        csr.mepc = 0x80001000;
+        csr.mcause = 0;
+        csr.sscratch = 0xDEAD;
+        csr.satp = 0x80000100;
+
+        // Trap into M-mode from S-mode
+        csr.trap_enter(
+            Privilege::Machine,
+            Privilege::Supervisor,
+            0xC0010000,
+            CAUSE_ECALL_S,
+        );
+
+        // Verify saved state
+        assert_eq!(csr.mepc, 0xC0010000);
+        assert_eq!(csr.mcause, CAUSE_ECALL_S);
+        let saved_mpp = (csr.mstatus & MSTATUS_MPP_MASK) >> MSTATUS_MPP_LSB;
+        assert_eq!(saved_mpp, Privilege::Supervisor as u32);
+
+        // MRET back to S-mode
+        let restored = csr.trap_return(Privilege::Machine);
+        assert_eq!(restored, Privilege::Supervisor);
+        // MIE restored from MPIE
+        assert_eq!((csr.mstatus >> MSTATUS_MIE) & 1, 1);
+        // MPP cleared
+        assert_eq!((csr.mstatus & MSTATUS_MPP_MASK) >> MSTATUS_MPP_LSB, 0);
+        // Other CSRs unaffected by trap return
+        assert_eq!(csr.sscratch, 0xDEAD);
+        assert_eq!(csr.satp, 0x80000100);
+    }
+
+    #[test]
+    fn context_save_restore_roundtrip_s_mode() {
+        let mut csr = CsrBank::new();
+        // Set up initial state
+        csr.mstatus = 1 << MSTATUS_SIE;
+        csr.sepc = 0xC0005000;
+        csr.mscratch = 0xBEEF;
+
+        // Trap into S-mode from U-mode
+        csr.trap_enter(
+            Privilege::Supervisor,
+            Privilege::User,
+            0x10000,
+            CAUSE_FETCH_PAGE_FAULT,
+        );
+
+        // Verify saved state
+        assert_eq!(csr.sepc, 0x10000);
+        assert_eq!(csr.scause, CAUSE_FETCH_PAGE_FAULT);
+        assert_eq!((csr.mstatus >> MSTATUS_SPP) & 1, 0); // SPP=U
+        assert_eq!((csr.mstatus >> MSTATUS_SPIE) & 1, 1); // SPIE=old SIE
+
+        // SRET back to U-mode
+        let restored = csr.trap_return(Privilege::Supervisor);
+        assert_eq!(restored, Privilege::User);
+        assert_eq!((csr.mstatus >> MSTATUS_SIE) & 1, 1); // SIE restored
+        assert_eq!((csr.mstatus >> MSTATUS_SPP) & 1, 0); // SPP cleared
+                                                         // mscratch unaffected
+        assert_eq!(csr.mscratch, 0xBEEF);
+    }
+
+    #[test]
+    fn context_save_restore_nested_traps() {
+        // Simulate: S-mode running -> page fault -> S-mode trap -> resolve -> SRET
+        // Then: M-mode running -> illegal instruction -> M-mode trap -> resolve -> MRET
+        let mut csr = CsrBank::new();
+
+        // First: S-mode trap from U-mode
+        csr.mstatus = 1 << MSTATUS_SIE;
+        csr.trap_enter(
+            Privilege::Supervisor,
+            Privilege::User,
+            0x2000,
+            CAUSE_LOAD_PAGE_FAULT,
+        );
+        assert_eq!(csr.sepc, 0x2000);
+        assert_eq!(csr.scause, CAUSE_LOAD_PAGE_FAULT);
+
+        // SRET back to U
+        let r1 = csr.trap_return(Privilege::Supervisor);
+        assert_eq!(r1, Privilege::User);
+
+        // Now: M-mode trap from S-mode (nested in real hardware)
+        csr.mstatus = 1 << MSTATUS_MIE | 1 << MSTATUS_SIE;
+        csr.trap_enter(
+            Privilege::Machine,
+            Privilege::Supervisor,
+            0xC0010000,
+            CAUSE_ILLEGAL_INSTRUCTION,
+        );
+        assert_eq!(csr.mepc, 0xC0010000);
+        assert_eq!(csr.mcause, CAUSE_ILLEGAL_INSTRUCTION);
+        // SIE should be preserved (M-mode trap doesn't touch SIE)
+        assert_eq!((csr.mstatus >> MSTATUS_SIE) & 1, 1);
+
+        // MRET back to S
+        let r2 = csr.trap_return(Privilege::Machine);
+        assert_eq!(r2, Privilege::Supervisor);
+        // MIE restored
+        assert_eq!((csr.mstatus >> MSTATUS_MIE) & 1, 1);
+    }
+
+    #[test]
+    fn context_save_restore_preserves_satp_through_trap() {
+        let mut csr = CsrBank::new();
+        csr.satp = 0x80000400; // SV32 enabled
+        csr.mstatus = 1 << MSTATUS_MIE;
+
+        // Trap into M-mode
+        csr.trap_enter(
+            Privilege::Machine,
+            Privilege::Supervisor,
+            0xC0002000,
+            CAUSE_STORE_ACCESS,
+        );
+        // SATP should be unaffected by M-mode trap
+        assert_eq!(csr.satp, 0x80000400);
+
+        // MRET
+        csr.trap_return(Privilege::Machine);
+        // SATP still unchanged
+        assert_eq!(csr.satp, 0x80000400);
+    }
+
+    #[test]
+    fn context_save_restore_preserves_delegation_through_trap() {
+        let mut csr = CsrBank::new();
+        csr.medeleg = 1 << CAUSE_ECALL_U;
+        csr.mideleg = 1 << INT_STI;
+
+        csr.trap_enter(Privilege::Machine, Privilege::User, 0x1000, CAUSE_ECALL_U);
+        csr.trap_return(Privilege::Machine);
+
+        // Delegation registers preserved through trap round-trip
+        assert_eq!(csr.medeleg, 1 << CAUSE_ECALL_U);
+        assert_eq!(csr.mideleg, 1 << INT_STI);
+    }
+
+    #[test]
+    fn context_save_restore_interrupt_regs_unchanged_by_trap() {
+        let mut csr = CsrBank::new();
+        csr.mie = 0xFF;
+        csr.mip = 1 << INT_MTI;
+        csr.mstatus = 1 << MSTATUS_MIE;
+
+        csr.trap_enter(Privilege::Machine, Privilege::User, 0x5000, CAUSE_ECALL_U);
+        csr.trap_return(Privilege::Machine);
+
+        // MIE and MIP not modified by trap entry/return
+        assert_eq!(csr.mie, 0xFF);
+        assert_eq!(csr.mip, 1 << INT_MTI);
+    }
 }
