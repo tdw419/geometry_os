@@ -6091,19 +6091,19 @@ phases:
   dependencies: []
 - id: phase-338
   title: GeOS Program -- Fractal Zoom
-  status: todo
+  status: done
   description: An interactive Mandelbrot/Julia set zoom explorer. Click to zoom into
     regions, toggle between Mandelbrot and Julia sets. Uses iterative escape-time
     algorithm with smooth coloring.
   deliverables:
   - name: Mandelbrot set renderer with smooth coloring
-    status: todo
+    status: done
   - name: Click-to-zoom interaction with coordinate tracking
-    status: todo
+    status: done
   - name: Julia set toggle mode
-    status: todo
+    status: done
   - name: Integration test verifying fractal output
-    status: todo
+    status: done
   dependencies: []
 - id: phase-339
   title: GeOS Program -- Waveform Oscilloscope

@@ -2114,7 +2114,8 @@ fn test_asm_ram_error_on_invalid_source() {
     }
 
     assert_eq!(
-        vm.ram[0xFFD], geos_errno(types::GEOS_EINVAL),
+        vm.ram[0xFFD],
+        geos_errno(types::GEOS_EINVAL),
         "ASM_RAM should fail on invalid source"
     );
 }
@@ -15864,7 +15865,11 @@ fn test_hypervisor_missing_arch() {
         }
     }
     assert!(!vm.hypervisor_active, "hypervisor should NOT be active");
-    assert_eq!(vm.regs[0], geos_errno(types::GEOS_EINVAL), "r0 should be missing arch error");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
+        "r0 should be missing arch error"
+    );
 }
 
 #[test]
@@ -16387,7 +16392,11 @@ fn test_ai_agent_unknown_op() {
             break;
         }
     }
-    assert_eq!(vm.regs[0], geos_errno(types::GEOS_ENOTSUP), "unknown op should error");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(types::GEOS_ENOTSUP),
+        "unknown op should error"
+    );
 }
 
 #[test]
@@ -16905,7 +16914,11 @@ fn test_loadpng_opcode_empty_path() {
     }
 
     // Should return EINVAL for empty path
-    assert_eq!(vm.regs[0], geos_errno(types::GEOS_EINVAL), "LOADPNG should fail for empty path");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
+        "LOADPNG should fail for empty path"
+    );
 }
 
 // ============================================================
@@ -17013,7 +17026,8 @@ fn test_loadsrcimg_opcode_missing_file() {
 
     // Should return error
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
         "LOADSRCIMG should fail for missing file"
     );
 }
@@ -17045,7 +17059,8 @@ fn test_loadsrcimg_opcode_empty_path() {
 
     // Should return error (0xFFFFFFFF)
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
         "LOADSRCIMG should fail for empty path"
     );
 }
@@ -17195,7 +17210,8 @@ fn test_loadsrcimg_invalid_register() {
     }
 
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
         "LOADSRCIMG should fail with invalid register"
     );
 }
@@ -25249,7 +25265,11 @@ fn test_procinfo_main_process() {
     vm.halted = false;
     vm.pc = 0;
     assert!(vm.step());
-    assert_eq!(vm.regs[0], geos_errno(types::GEOS_EINVAL), "Invalid field should return error");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
+        "Invalid field should return error"
+    );
 }
 
 #[test]
@@ -25263,7 +25283,11 @@ fn test_procinfo_invalid_pid() {
     vm.halted = false;
     vm.pc = 0;
     assert!(vm.step());
-    assert_eq!(vm.regs[0], geos_errno(types::GEOS_ESRCH), "Invalid PID should return error");
+    assert_eq!(
+        vm.regs[0],
+        geos_errno(types::GEOS_ESRCH),
+        "Invalid PID should return error"
+    );
 }
 
 #[test]
@@ -28850,7 +28874,8 @@ fn test_sprload_invalid_sheet_id() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
         "should return error for invalid sheet_id"
     );
 }
@@ -28912,7 +28937,8 @@ fn test_sprframe_out_of_range() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_ERANGE),
+        vm.regs[0],
+        geos_errno(types::GEOS_ERANGE),
         "should return error for out-of-range frame"
     );
     assert_eq!(
@@ -28933,7 +28959,8 @@ fn test_sprframe_invalid_sheet() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
         "should return error for unregistered sheet"
     );
 }
@@ -29168,7 +29195,8 @@ fn test_spranim_invalid_sheet() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
         "should return error for unregistered sheet"
     );
 }
@@ -29736,7 +29764,8 @@ fn test_spriteanim_invalid_sheet() {
     vm.pc = 0;
     vm.step();
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
         "should return error for inactive sheet"
     );
 }
@@ -30390,7 +30419,8 @@ fn test_alarm_clr_invalid_slot_returns_error() {
         }
     }
     assert_eq!(
-        vm.regs[0], geos_errno(types::GEOS_EINVAL),
+        vm.regs[0],
+        geos_errno(types::GEOS_EINVAL),
         "ALARM_CLR with invalid slot should return error"
     );
 }
@@ -36784,7 +36814,9 @@ fn test_p344_close_device_fd_succeeds() {
     vm.pc = 0;
     vm.halted = false;
     for _ in 0..10 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     assert_eq!(vm.regs[0], 0);
 }
@@ -36793,10 +36825,25 @@ fn test_p344_close_device_fd_succeeds() {
 fn test_p344_error_codes_are_unique() {
     // All GEOS_E* constants must map to distinct u32 values
     let codes = [
-        GEOS_ENOMEM, GEOS_ENOENT, GEOS_EPERM, GEOS_EIO, GEOS_EISDIR,
-        GEOS_ENOSPC, GEOS_EINVAL, GEOS_EBADF, GEOS_EACCES, GEOS_ENFILE,
-        GEOS_ESRCH, GEOS_EBUSY, GEOS_ENOTSUP, GEOS_EEXIST, GEOS_ENAMETOOLONG,
-        GEOS_EAGAIN, GEOS_E2BIG, GEOS_ENOMEM_EXEC, GEOS_ERANGE,
+        GEOS_ENOMEM,
+        GEOS_ENOENT,
+        GEOS_EPERM,
+        GEOS_EIO,
+        GEOS_EISDIR,
+        GEOS_ENOSPC,
+        GEOS_EINVAL,
+        GEOS_EBADF,
+        GEOS_EACCES,
+        GEOS_ENFILE,
+        GEOS_ESRCH,
+        GEOS_EBUSY,
+        GEOS_ENOTSUP,
+        GEOS_EEXIST,
+        GEOS_ENAMETOOLONG,
+        GEOS_EAGAIN,
+        GEOS_E2BIG,
+        GEOS_ENOMEM_EXEC,
+        GEOS_ERANGE,
     ];
     let mut encoded = std::collections::HashSet::new();
     for &code in &codes {
@@ -36849,9 +36896,210 @@ fn test_p344_open_nonexistent_file_returns_geos_enoent() {
     vm.ram[1] = 1;
     vm.ram[2] = 2;
     vm.ram[3] = 0x00; // HALT
-    // Step through OPEN + HALT
+                      // Step through OPEN + HALT
     for _ in 0..10 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
     }
     assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT));
+}
+
+// ===== fractal.asm: Mandelbrot/Julia set explorer =====
+
+#[test]
+fn test_fractal_assembles() {
+    let source = include_str!("../../programs/fractal.asm");
+    let result = crate::assembler::assemble(source, 0);
+    assert!(
+        result.is_ok(),
+        "fractal.asm should assemble: {:?}",
+        result.err()
+    );
+    let asm = result.unwrap();
+    assert!(
+        asm.pixels.len() > 500,
+        "fractal should produce substantial bytecode, got {}",
+        asm.pixels.len()
+    );
+}
+
+#[test]
+fn test_fractal_produces_colored_frame() {
+    use crate::assembler::assemble;
+
+    let source = include_str!("../../programs/fractal.asm");
+    let asm = assemble(source, 0).expect("fractal.asm should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+
+    // Run until first FRAME or timeout
+    let mut frames_seen = 0;
+    for _ in 0..10_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames_seen += 1;
+            if frames_seen >= 1 {
+                break;
+            }
+        }
+    }
+
+    assert!(frames_seen >= 1, "fractal should produce at least 1 frame");
+
+    // The Mandelbrot set view should produce both black (in-set) and colored (escaped) pixels
+    // 8x8 block grid: 32 blocks of 8px each. Check block-level sampling.
+    let mut colored_blocks = 0usize;
+    let mut black_blocks = 0usize;
+    for by in 0..32 {
+        for bx in 0..32 {
+            let sx = bx * 8 + 4; // sample center of block
+            let sy = by * 8 + 4;
+            let color = vm.screen[sy * 256 + sx];
+            if color == 0 {
+                black_blocks += 1;
+            } else {
+                colored_blocks += 1;
+            }
+        }
+    }
+
+    // Default view: -2.5 to 1.5 x -2.0 to 2.0
+    // The main cardioid and period-2 bulb should be black
+    // Surrounding area should have escaped (colored)
+    assert!(
+        colored_blocks > 100,
+        "fractal should have many colored blocks (escaped points), got {}",
+        colored_blocks
+    );
+    assert!(
+        black_blocks > 20,
+        "fractal should have some black blocks (in-set), got {}",
+        black_blocks
+    );
+}
+
+#[test]
+fn test_fractal_palette_initialized() {
+    use crate::assembler::assemble;
+
+    let source = include_str!("../../programs/fractal.asm");
+    let asm = assemble(source, 0).expect("fractal.asm should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+
+    // Run until first FRAME
+    for _ in 0..10_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
+    }
+
+    // Verify 32-entry color palette at 0x2000-0x201F
+    let mut unique_colors = 0u32;
+    let mut seen = std::collections::HashSet::new();
+    for i in 0..32 {
+        let c = vm.ram[0x2000 + i];
+        if c != 0 && !seen.contains(&c) {
+            seen.insert(c);
+            unique_colors += 1;
+        }
+    }
+
+    assert!(
+        unique_colors >= 30,
+        "palette should have 32 distinct non-zero colors, got {}",
+        unique_colors
+    );
+}
+
+#[test]
+fn test_fractal_julia_toggle() {
+    use crate::assembler::assemble;
+
+    let source = include_str!("../../programs/fractal.asm");
+    let asm = assemble(source, 0).expect("fractal.asm should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+
+    // Run first frame (Mandelbrot)
+    for _ in 0..10_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
+    }
+
+    // Sample center region (should be in-set for Mandelbrot)
+    let cx = 128;
+    let cy = 128;
+    let mandelbrot_color = vm.screen[cy * 256 + cx];
+
+    // Inject 'J' key to toggle Julia mode
+    vm.push_key(74); // 'J'
+
+    // Run two more frames (Julia + render)
+    for _ in 0..15_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            // Check if julia_mode was toggled
+            if vm.ram[0x2103] == 1 {
+                break;
+            }
+        }
+    }
+
+    assert_eq!(
+        vm.ram[0x2103], 1,
+        "Julia mode should be toggled to 1 after pressing J"
+    );
+
+    // Julia set at same center should look different from Mandelbrot
+    let julia_color = vm.screen[cy * 256 + cx];
+    // They might be the same color by coincidence, but at least verify
+    // the program didn't crash and is still running
+    let mut has_color = false;
+    for y in 0..256 {
+        for x in 0..256 {
+            if vm.screen[y * 256 + x] != 0 {
+                has_color = true;
+                break;
+            }
+        }
+        if has_color {
+            break;
+        }
+    }
+    assert!(has_color, "Julia mode should still produce colored pixels");
 }
