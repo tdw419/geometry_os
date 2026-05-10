@@ -1,0 +1,9 @@
+{
+  "synthetic_count": 67905,
+  "distilled_count": 9888,
+  "total": 77793,
+  "distilled_ratio": 0.12710655200339363,
+  "source_synth": "synthetic_dataset_v13",
+  "source_distill": "pixelflow/self_distilled_v14",
+  "seed": 42
+}

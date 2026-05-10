@@ -1,0 +1,9 @@
+; DESCRIPTION: Creates a orange filled rectangle of size 67x117 starting at (393, 94).
+; PLAN: r0=393(x), r1=94(y), r2=67(width), r3=117(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 393
+LDI r1, 94
+LDI r2, 67
+LDI r3, 117
+LDI r4, 0xFF8800
+RECTF r0, r1, r2, r3, r4
+HALT

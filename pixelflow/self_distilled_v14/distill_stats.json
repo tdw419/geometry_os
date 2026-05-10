@@ -1,0 +1,37 @@
+{
+  "total": 10000,
+  "valid": 9888,
+  "categories": {
+    "pset": 1134,
+    "rectf": 3157,
+    "line": 1412,
+    "fill": 1758,
+    "loop": 481,
+    "circle": 1910,
+    "gradient": 36
+  },
+  "rejected": {
+    "syntax": 0,
+    "semantic": 0,
+    "trivial": 0,
+    "empty": 0,
+    "No HALT instruction": 83,
+    "Unknown opcode: 59.": 3,
+    "Unknown opcode: ACES": 3,
+    "Unknown opcode: 6": 3,
+    "Unknown opcode: 3": 5,
+    "Unknown opcode: 3=0X00(COLOR).": 1,
+    "Unknown opcode: 49": 2,
+    "Unknown opcode: 4": 2,
+    "Unknown opcode: 375(COLOR).": 1,
+    "Unknown opcode: 3=": 2,
+    "Unknown opcode: 38": 3,
+    "Unknown opcode: 50": 1,
+    "Unknown opcode: BLUE": 1,
+    "Unknown opcode: WHITE": 1,
+    "Unknown opcode: 48.": 1
+  },
+  "accept_rate": 98.88,
+  "source_checkpoint": "bilingual_llm_v14_ckpt.pt",
+  "epoch": 10
+}

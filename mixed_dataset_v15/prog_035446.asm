@@ -1,0 +1,7 @@
+; DESCRIPTION: Sets a single cyan pixel at (379, 0).
+; PLAN: r0=379(x), r1=0(y), r2=0x00FFFF(color). Op: PSET r0, r1, r2.
+LDI r0, 379
+LDI r1, 0
+LDI r2, 0x00FFFF
+PSET r0, r1, r2
+HALT

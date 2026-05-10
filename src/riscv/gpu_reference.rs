@@ -417,4 +417,434 @@ mod tests {
         assert_eq!(state[33], vm.status);
         assert_eq!(state[34], vm.instruction_count);
     }
+
+    // ============================================================
+    // OP-IMM: SLLI, SLTI, SLTIU, XORI, SRLI, SRAI, ORI, ANDI
+    // ============================================================
+
+    #[test]
+    fn test_reference_slli() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00800093; // ADDI x1, x0, 8
+        ram[1] = 0x00409113; // SLLI x2, x1, 4 -> x2 = 8 << 4 = 128
+        ram[2] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[2], 128);
+    }
+
+    #[test]
+    fn test_reference_xori() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x0FF04093; // XORI x1, x0, 0xFF -> x1 = 0xFF
+        ram[1] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 0xFF);
+    }
+
+    #[test]
+    fn test_reference_ori() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x0F006093; // ORI x1, x0, 0xF0 -> x1 = 0xF0
+        ram[1] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 0xF0);
+    }
+
+    #[test]
+    fn test_reference_andi() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x0FF00093; // ADDI x1, x0, 0xFF -> x1 = 0xFF
+        ram[1] = 0x00F0F113; // ANDI x2, x1, 0x0F -> x2 = 0x0F
+        ram[2] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[2], 0x0F);
+    }
+
+    #[test]
+    fn test_reference_srli() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x01000093; // ADDI x1, x0, 16
+        ram[1] = 0x0020D113; // SRLI x2, x1, 2 -> x2 = 4
+        ram[2] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 16);
+        assert_eq!(vm.regs[2], 4);
+    }
+
+    #[test]
+    fn test_reference_srai() {
+        // SRAI preserves sign: -8 >> 1 = -4
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0xFF800093; // ADDI x1, x0, -8
+        ram[1] = 0x4010D113; // SRAI x2, x1, 1 (funct7=0x20, shamt=1)
+        ram[2] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[2], 0xFFFF_FFFC); // -8 >> 1 = -4
+    }
+
+    #[test]
+    fn test_reference_slti() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00502093; // SLTI x1, x0, 5 -> x1 = 1 (0 < 5 signed)
+        ram[1] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 1);
+    }
+
+    #[test]
+    fn test_reference_sltiu() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00003093; // SLTIU x1, x0, 0 -> x1 = 0 (0 < 0 unsigned is false)
+        ram[1] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 0);
+    }
+
+    // ============================================================
+    // LUI and AUIPC
+    // ============================================================
+
+    #[test]
+    fn test_reference_lui() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x123450B7; // LUI x1, 0x12345 -> x1 = 0x12345000
+        ram[1] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 0x12345000);
+    }
+
+    #[test]
+    fn test_reference_auipc() {
+        // AUIPC x1, 0 -> x1 = PC = 0
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00000097; // AUIPC x1, 0
+        ram[1] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 0); // PC was 0 at execution
+    }
+
+    #[test]
+    fn test_reference_auipc_nonzero() {
+        // AUIPC x1, 1 -> x1 = PC + 0x1000 = 0x1000
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00001097; // AUIPC x1, 1
+        ram[1] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 0x1000);
+    }
+
+    // ============================================================
+    // JAL and JALR
+    // ============================================================
+
+    #[test]
+    fn test_reference_jal() {
+        // JAL x1, +8 (skip next instruction, return addr = PC+4 = 4)
+        // ADDI x2, x0, 99 (should be skipped)
+        // ADDI x3, x0, 42 (should execute)
+        // ECALL
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x008000EF; // JAL x1, +8
+        ram[1] = 0x06300113; // ADDI x2, x0, 99 (skipped)
+        ram[2] = 0x02A00193; // ADDI x3, x0, 42
+        ram[3] = 0x00000073; // ECALL
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 4); // return address
+        assert_eq!(vm.regs[2], 0); // skipped
+        assert_eq!(vm.regs[3], 42); // executed
+    }
+
+    #[test]
+    fn test_reference_jalr() {
+        // LUI x1, 1 -> x1 = 0x1000
+        // ADDI x1, x1, -256 -> x1 = 0xF00 (byte addr = word 960, within RAM_WORDS=992)
+        // JALR x2, x1, 0 -> jump to 0xF00, x2 = return addr = 12
+        // ADDI x3, x0, 99 (skipped)
+        // At word 960 (addr 0xF00): ADDI x3, x0, 77
+        // ECALL
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x000010B7; // LUI x1, 1 -> x1 = 0x1000
+        ram[1] = 0xF0008093; // ADDI x1, x1, -256 -> x1 = 0xF00
+        ram[2] = 0x00008167; // JALR x2, x1, 0 -> jump to 0xF00
+        ram[3] = 0x06300193; // ADDI x3, x0, 99 (skipped)
+        ram[960] = 0x04D00193; // ADDI x3, x0, 77
+        ram[961] = 0x00000073; // ECALL
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(1000);
+        assert_eq!(vm.regs[2], 12); // return address (pc after JALR = 3*4 = 12)
+        assert_eq!(vm.regs[3], 77); // from 0xF00
+    }
+
+    // ============================================================
+    // BRANCH: BEQ, BNE, BLT, BGE
+    // ============================================================
+
+    #[test]
+    fn test_reference_beq_taken() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00500093; // ADDI x1, x0, 5
+        ram[1] = 0x00500113; // ADDI x2, x0, 5
+        ram[2] = 0x00208463; // BEQ x1, x2, +8 (taken: skip to ram[4])
+        ram[3] = 0x06300193; // ADDI x3, x0, 99 (skipped)
+        ram[4] = 0x02A00213; // ADDI x4, x0, 42
+        ram[5] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[3], 0); // skipped
+        assert_eq!(vm.regs[4], 42);
+    }
+
+    #[test]
+    fn test_reference_beq_not_taken() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00500093; // ADDI x1, x0, 5
+        ram[1] = 0x00300113; // ADDI x2, x0, 3
+        ram[2] = 0x00208463; // BEQ x1, x2, +8 (not taken)
+        ram[3] = 0x02A00193; // ADDI x3, x0, 42 (executed)
+        ram[4] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[3], 42);
+    }
+
+    #[test]
+    fn test_reference_bne_taken() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00500093; // ADDI x1, x0, 5
+        ram[1] = 0x00300113; // ADDI x2, x0, 3
+        ram[2] = 0x00209463; // BNE x1, x2, +8 (taken)
+        ram[3] = 0x06300193; // ADDI x3, x0, 99 (skipped)
+        ram[4] = 0x02A00213; // ADDI x4, x0, 42
+        ram[5] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[3], 0);
+        assert_eq!(vm.regs[4], 42);
+    }
+
+    #[test]
+    fn test_reference_blt_taken() {
+        // BLT: signed comparison: -1 < 0 is true
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0xFFF00093; // ADDI x1, x0, -1
+        ram[1] = 0x0000C463; // BLT x1, x0, +8 (taken: -1 < 0 signed)
+        ram[2] = 0x06300193; // ADDI x3, x0, 99 (skipped)
+        ram[3] = 0x02A00213; // ADDI x4, x0, 42
+        ram[4] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[3], 0);
+        assert_eq!(vm.regs[4], 42);
+    }
+
+    #[test]
+    fn test_reference_bge_taken() {
+        // BGE: 5 >= 3 is true
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00500093; // ADDI x1, x0, 5
+        ram[1] = 0x00300113; // ADDI x2, x0, 3
+        ram[2] = 0x0020D463; // BGE x1, x2, +8 (taken: 5 >= 3 signed)
+        ram[3] = 0x06300193; // ADDI x3, x0, 99 (skipped)
+        ram[4] = 0x02A00213; // ADDI x4, x0, 42
+        ram[5] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[3], 0);
+        assert_eq!(vm.regs[4], 42);
+    }
+
+    // ============================================================
+    // LOAD (LW) and STORE (SW)
+    // ============================================================
+
+    #[test]
+    fn test_reference_lw_sw() {
+        // ADDI x1, x0, 42
+        // SW x1, 124(x0) -> store 42 at byte addr 124 (word 31, past code)
+        // LW x2, 124(x0) -> load from word 31
+        // ECALL
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x02A00093; // ADDI x1, x0, 42
+        ram[1] = 0x06102E23; // SW x1, 124(x0)
+        ram[2] = 0x07C02103; // LW x2, 124(x0)
+        ram[3] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[1], 42);
+        assert_eq!(vm.regs[2], 42);
+    }
+
+    // ============================================================
+    // OP: ADD, SUB, MUL, AND, OR, XOR, SLL, SRL
+    // ============================================================
+
+    #[test]
+    fn test_reference_add() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00500093; // ADDI x1, x0, 5
+        ram[1] = 0x00300113; // ADDI x2, x0, 3
+        ram[2] = 0x002081B3; // ADD x3, x1, x2
+        ram[3] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[3], 8);
+    }
+
+    #[test]
+    fn test_reference_sub() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00500093; // ADDI x1, x0, 5
+        ram[1] = 0x00300113; // ADDI x2, x0, 3
+        ram[2] = 0x402081B3; // SUB x3, x1, x2
+        ram[3] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[3], 2);
+    }
+
+    #[test]
+    fn test_reference_mul() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00700093; // ADDI x1, x0, 7
+        ram[1] = 0x00600113; // ADDI x2, x0, 6
+        ram[2] = 0x022081B3; // MUL x3, x1, x2 (funct7=1)
+        ram[3] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[3], 42);
+    }
+
+    #[test]
+    fn test_reference_and_or_xor() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x0FF00093; // ADDI x1, x0, 0xFF
+        ram[1] = 0x00F00113; // ADDI x2, x0, 0x0F
+        ram[2] = 0x0020F333; // AND x6, x1, x2 -> 0xFF & 0x0F = 0x0F
+        ram[3] = 0x0020E2B3; // OR  x5, x1, x2 -> 0xFF | 0x0F = 0xFF
+        ram[4] = 0x002043B3; // XOR x7, x0, x2 -> 0 ^ 0x0F = 0x0F
+        ram[5] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[6], 0x0F);
+        assert_eq!(vm.regs[5], 0xFF);
+        assert_eq!(vm.regs[7], 0x0F);
+    }
+
+    #[test]
+    fn test_reference_sll_srl() {
+        // x1 = 8, shift left by 0 (x0) -> 8, shift left by 8 (x1) -> 2048
+        // shift right by 0 -> 8, shift right by 8 -> 0
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00800093; // ADDI x1, x0, 8
+        ram[1] = 0x00009133; // SLL x2, x1, x0 -> 8
+        ram[2] = 0x001091B3; // SLL x3, x1, x1 -> 8 << 8 = 2048
+        ram[3] = 0x0000D233; // SRL x4, x1, x0 -> 8
+        ram[4] = 0x0010D2B3; // SRL x5, x1, x1 -> 8 >> 8 = 0
+        ram[5] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[2], 8);
+        assert_eq!(vm.regs[3], 2048);
+        assert_eq!(vm.regs[4], 8);
+        assert_eq!(vm.regs[5], 0);
+    }
+
+    // ============================================================
+    // x0 hardwired to zero
+    // ============================================================
+
+    #[test]
+    fn test_reference_x0_always_zero() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x02A00013; // ADDI x0, x0, 42 -> x0 should still be 0
+        ram[1] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.regs[0], 0);
+    }
+
+    // ============================================================
+    // SYSTEM: EBREAK (halt with error)
+    // ============================================================
+
+    #[test]
+    fn test_reference_ebreak() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00100073; // EBREAK
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_ne!(vm.status & STATUS_HALTED, 0);
+        assert_ne!(vm.status & STATUS_ERROR, 0);
+    }
+
+    // ============================================================
+    // Unknown instruction
+    // ============================================================
+
+    #[test]
+    fn test_reference_unknown_instruction() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x0F0F0F0F; // garbage opcode (opcode=0x0F, not valid)
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_ne!(vm.status & STATUS_ERROR, 0);
+    }
+
+    // ============================================================
+    // Instruction count and max_steps
+    // ============================================================
+
+    #[test]
+    fn test_reference_max_steps_limits() {
+        // Infinite loop: JAL x0, 0 (jump to self)
+        let mut vm = ReferenceVm::new(vec![0x0000006F; RAM_WORDS]); // JAL x0, 0
+        vm.run(10);
+        assert_eq!(vm.instruction_count, 10);
+        // run() always clears STATUS_RUNNING, so check HALTED is not set
+        assert_eq!(vm.status & STATUS_HALTED, 0);
+    }
+
+    // ============================================================
+    // Run clears STATUS_RUNNING
+    // ============================================================
+
+    #[test]
+    fn test_reference_run_clears_running() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x00000073; // ECALL
+        let mut vm = ReferenceVm::new(ram);
+        assert_ne!(vm.status & STATUS_RUNNING, 0);
+        vm.run(100);
+        assert_eq!(vm.status & STATUS_RUNNING, 0);
+    }
+
+    // ============================================================
+    // UART MMIO: write to 0x10000000 intercepts to uart_output
+    // ============================================================
+
+    #[test]
+    fn test_reference_uart_mmio_write() {
+        let mut ram = vec![0u32; RAM_WORDS];
+        ram[0] = 0x100000B7; // LUI x1, 0x10000 -> x1 = 0x10000000
+        ram[1] = 0x04100113; // ADDI x2, x0, 0x41 ('A')
+        ram[2] = 0x0020A023; // SW x2, 0(x1) -> write 'A' to UART
+        ram[3] = 0x04200113; // ADDI x2, x0, 0x42 ('B')
+        ram[4] = 0x0020A023; // SW x2, 0(x1) -> write 'B' to UART
+        ram[5] = 0x00000073;
+        let mut vm = ReferenceVm::new(ram);
+        vm.run(100);
+        assert_eq!(vm.uart_output, vec![b'A', b'B']);
+    }
 }

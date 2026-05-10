@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a purple line segment connecting (93, 172) to (226, 194).
+; PLAN: r0=93(x1), r1=172(y1), r2=226(x2), r3=194(y2), r4=0xAA00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 93
+LDI r1, 172
+LDI r2, 226
+LDI r3, 194
+LDI r4, 0xAA00FF
+LINE r0, r1, r2, r3, r4
+HALT

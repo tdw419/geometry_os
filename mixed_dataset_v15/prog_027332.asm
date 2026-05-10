@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a yellow line from (442, 70) to (443, 48).
+; PLAN: r0=442(x1), r1=70(y1), r2=443(x2), r3=48(y2), r4=0xFFFF00(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 442
+LDI r1, 70
+LDI r2, 443
+LDI r3, 48
+LDI r4, 0xFFFF00
+LINE r0, r1, r2, r3, r4
+HALT

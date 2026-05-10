@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a blue box of size 56x106 starting at (312, 136).
+; PLAN: r0=312(x), r1=136(y), r2=56(width), r3=106(height), r4=0x0000FF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 312
+LDI r1, 136
+LDI r2, 56
+LDI r3, 106
+LDI r4, 0x0000FF
+RECTF r0, r1, r2, r3, r4
+HALT

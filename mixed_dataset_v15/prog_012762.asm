@@ -1,0 +1,7 @@
+; DESCRIPTION: Sets a single orange pixel at (361, 28).
+; PLAN: r0=361(x), r1=28(y), r2=0xFF8800(color). Op: PSET r0, r1, r2.
+LDI r0, 361
+LDI r1, 28
+LDI r2, 0xFF8800
+PSET r0, r1, r2
+HALT
