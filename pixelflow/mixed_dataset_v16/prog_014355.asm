@@ -1,0 +1,7 @@
+; DESCRIPTION: Places a red dot at position (276, 22).
+; PLAN: r0=276(x), r1=22(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.
+LDI r0, 276
+LDI r1, 22
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+HALT

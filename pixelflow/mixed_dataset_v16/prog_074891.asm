@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a black line from (262, 122) to (481, 241).
+; PLAN: r0=262(x1), r1=122(y1), r2=481(x2), r3=241(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 262
+LDI r1, 122
+LDI r2, 481
+LDI r3, 241
+LDI r4, 0x000000
+LINE r0, r1, r2, r3, r4
+HALT

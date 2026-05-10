@@ -171,6 +171,7 @@ def train_v16():
         f"--dataset {V16_DATASET} "
         f"--tokenizer {TOKENIZER} "
         f"--checkpoint {V16_CKPT} "
+        f"--from-checkpoint {V15_CKPT} "
         f"--epochs 8 "
         f"--batch-size 16 "
         f"--lr 5e-5 "

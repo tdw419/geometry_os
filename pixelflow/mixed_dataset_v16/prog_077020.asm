@@ -1,0 +1,13 @@
+; DESCRIPTION: Composite: Draws a orange line from (459, 43) to (201, 145) then Places a blue dot at position (454, 191).
+; PLAN: r0=459(x1), r1=43(y1), r2=201(x2), r3=145(y2), r4=0xFF8800(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=454(x), r6=191(y), r7=0x0000FF(color). Op: PSET r5, r6, r7.
+LDI r0, 459
+LDI r1, 43
+LDI r2, 201
+LDI r3, 145
+LDI r4, 0xFF8800
+LINE r0, r1, r2, r3, r4
+LDI r5, 454
+LDI r6, 191
+LDI r7, 0x0000FF
+PSET r5, r6, r7
+HALT

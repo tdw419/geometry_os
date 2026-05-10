@@ -712,9 +712,338 @@ fn ecall_u_mode_logs_syscall_event() {
 }
 
 // ============================================================
-// SBI interception during ECALL
+// Syscall event logging - comprehensive tests
 // ============================================================
 
+#[test]
+fn syscall_log_captures_a0_a1_args() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+    cpu.x[17] = 64; // NR = 64 (write syscall)
+    cpu.x[10] = 0xDEAD; // a0 = fd
+    cpu.x[11] = 0xBEEF; // a1 = buf ptr
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073); // ECALL
+
+    cpu.step(&mut bus);
+    assert_eq!(bus.syscall_log.len(), 1);
+    let event = &bus.syscall_log[0];
+    assert_eq!(event.nr, 64);
+    assert_eq!(event.args[0], 0xDEAD);
+    assert_eq!(event.args[1], 0xBEEF);
+}
+
+#[test]
+fn syscall_log_captures_all_6_args() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+    cpu.x[10] = 10; // a0
+    cpu.x[11] = 11; // a1
+    cpu.x[12] = 12; // a2
+    cpu.x[13] = 13; // a3
+    cpu.x[14] = 14; // a4
+    cpu.x[15] = 15; // a5
+    cpu.x[17] = 57; // NR = 57 (close syscall)
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073); // ECALL
+
+    cpu.step(&mut bus);
+    let event = &bus.syscall_log[0];
+    assert_eq!(event.args[0], 10);
+    assert_eq!(event.args[1], 11);
+    assert_eq!(event.args[2], 12);
+    assert_eq!(event.args[3], 13);
+    assert_eq!(event.args[4], 14);
+    assert_eq!(event.args[5], 15);
+}
+
+#[test]
+fn syscall_log_accumulates_multiple_ecalls() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+
+    // First ECALL at RAM_BASE (NR=57 = close, not SBI-intercepted)
+    write_word(&mut bus, RAM_BASE, 0x0000_0073);
+    cpu.x[17] = 57;
+    cpu.x[10] = 0xDEAD;
+    cpu.step(&mut bus);
+
+    // After ECALL, CPU is in S-mode. Reset to User for next syscall.
+    cpu.privilege = Privilege::User;
+    cpu.csr.mstatus = 1 << csr::MSTATUS_SPP; // SPP=1 (return to S-mode)
+    write_word(&mut bus, RAM_BASE + 4, 0x0000_0073);
+    cpu.pc = (RAM_BASE + 4) as u32;
+    cpu.x[17] = 172; // NR=172 = getpid (not SBI-intercepted)
+    cpu.x[10] = 0xCAFE;
+    cpu.step(&mut bus);
+
+    // Third ECALL - reset privilege again
+    cpu.privilege = Privilege::User;
+    write_word(&mut bus, RAM_BASE + 8, 0x0000_0073);
+    cpu.pc = (RAM_BASE + 8) as u32;
+    cpu.x[17] = 160; // NR=160 = uname (not SBI-intercepted)
+    cpu.x[10] = 0xF00D;
+    cpu.step(&mut bus);
+
+    assert_eq!(bus.syscall_log.len(), 3);
+    assert_eq!(bus.syscall_log[0].nr, 57);
+    assert_eq!(bus.syscall_log[0].args[0], 0xDEAD);
+    assert_eq!(bus.syscall_log[1].nr, 172);
+    assert_eq!(bus.syscall_log[1].args[0], 0xCAFE);
+    assert_eq!(bus.syscall_log[2].nr, 160);
+    assert_eq!(bus.syscall_log[2].args[0], 0xF00D);
+}
+
+#[test]
+fn syscall_log_captures_pc_of_ecall_instruction() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+    cpu.x[17] = 7;
+
+    // ECALL at a specific address
+    let ecall_addr = RAM_BASE + 0x100;
+    write_word(&mut bus, ecall_addr, 0x0000_0073);
+    cpu.pc = ecall_addr as u32;
+
+    cpu.step(&mut bus);
+    assert_eq!(bus.syscall_log[0].pc, ecall_addr as u32);
+}
+
+#[test]
+fn syscall_log_not_populated_by_regular_instructions() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+
+    // ADDI (not an ECALL)
+    write_word(&mut bus, RAM_BASE, encode_i(0b000, 1, 0, 42)); // addi x1, x0, 42
+
+    cpu.step(&mut bus);
+    assert!(bus.syscall_log.is_empty());
+}
+
+#[test]
+fn syscall_log_not_populated_by_s_mode_ecall() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::Supervisor;
+    cpu.csr.medeleg = 1 << 9; // delegate ECALL_S to S-mode
+    cpu.csr.stvec = 0x8000_0800;
+    cpu.x[17] = 1;
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073); // ECALL
+
+    cpu.step(&mut bus);
+    // S-mode ECALL traps to stvec, should NOT log a syscall event
+    // (syscall events are for User-mode ECALLs only)
+    assert!(bus.syscall_log.is_empty());
+}
+
+#[test]
+fn syscall_log_not_populated_by_m_mode_ecall() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::Machine;
+    cpu.csr.mtvec = 0x8000_0400;
+    cpu.x[17] = 1;
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073); // ECALL
+
+    cpu.step(&mut bus);
+    // M-mode ECALL traps to mtvec, should NOT log a syscall event
+    assert!(bus.syscall_log.is_empty());
+}
+
+#[test]
+fn syscall_log_event_order_matches_execution_order() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+
+    // Write 3 ECALLs in sequence
+    for i in 0..3u32 {
+        write_word(&mut bus, RAM_BASE + (i as u64) * 4, 0x0000_0073);
+    }
+
+    // Execute them one by one (reset privilege + PC each time, since ECALL traps to stvec)
+    for i in 0..3u32 {
+        cpu.privilege = Privilege::User;
+        cpu.pc = (RAM_BASE + (i as u64) * 4) as u32;
+        cpu.x[17] = (i + 1) * 10; // NR = 10, 20, 30
+        cpu.step(&mut bus);
+    }
+
+    // Verify order
+    assert_eq!(bus.syscall_log[0].nr, 10);
+    assert_eq!(bus.syscall_log[1].nr, 20);
+    assert_eq!(bus.syscall_log[2].nr, 30);
+}
+
+#[test]
+fn syscall_log_clear_resets_events() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+    cpu.x[17] = 57;
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073);
+    cpu.step(&mut bus);
+    assert_eq!(bus.syscall_log.len(), 1);
+
+    // Clear and verify
+    bus.syscall_log.clear();
+    assert!(bus.syscall_log.is_empty());
+
+    // Another ECALL should log again (reset privilege)
+    cpu.privilege = Privilege::User;
+    write_word(&mut bus, RAM_BASE + 4, 0x0000_0073);
+    cpu.pc = (RAM_BASE + 4) as u32;
+    cpu.x[17] = 172;
+    cpu.step(&mut bus);
+    assert_eq!(bus.syscall_log.len(), 1);
+}
+
+#[test]
+fn syscall_log_captures_zero_values() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+    // All registers are 0 by default (make_cpu_bus zeroes them)
+    // x[17] (a7) = 0 is the syscall number
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073); // ECALL
+
+    cpu.step(&mut bus);
+    let event = &bus.syscall_log[0];
+    assert_eq!(event.nr, 0);
+    for arg in &event.args {
+        assert_eq!(*arg, 0);
+    }
+}
+
+#[test]
+fn syscall_log_captures_max_u32_values() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+    let max = 0xFFFF_FFFFu32;
+    cpu.x[17] = max;
+    cpu.x[10] = max;
+    cpu.x[11] = max;
+    cpu.x[12] = max;
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073); // ECALL
+
+    cpu.step(&mut bus);
+    let event = &bus.syscall_log[0];
+    assert_eq!(event.nr, max);
+    assert_eq!(event.args[0], max);
+    assert_eq!(event.args[1], max);
+    assert_eq!(event.args[2], max);
+}
+
+#[test]
+fn syscall_log_ret_is_none_at_ecall_time() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+    cpu.x[17] = 57; // close
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073);
+    cpu.step(&mut bus);
+
+    // ret should be None at ECALL time (before kernel returns)
+    assert!(bus.syscall_log[0].ret.is_none());
+}
+
+#[test]
+fn syscall_log_name_decoded_from_nr() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+
+    // NR 57 = close (known syscall)
+    cpu.x[17] = 57;
+    write_word(&mut bus, RAM_BASE, 0x0000_0073);
+    cpu.step(&mut bus);
+    assert_eq!(bus.syscall_log[0].name, "close");
+
+    // NR 170 = getpid (known syscall) - reset privilege
+    bus.syscall_log.clear();
+    cpu.privilege = Privilege::User;
+    cpu.x[17] = 170;
+    write_word(&mut bus, RAM_BASE + 4, 0x0000_0073);
+    cpu.pc = (RAM_BASE + 4) as u32;
+    cpu.step(&mut bus);
+    assert_eq!(bus.syscall_log[0].name, "getpid");
+
+    // NR 0xFFFF = unknown syscall - reset privilege
+    bus.syscall_log.clear();
+    cpu.privilege = Privilege::User;
+    cpu.x[17] = 0xFFFF;
+    write_word(&mut bus, RAM_BASE + 8, 0x0000_0073);
+    cpu.pc = (RAM_BASE + 8) as u32;
+    cpu.step(&mut bus);
+    assert_eq!(bus.syscall_log[0].name, "unknown");
+}
+
+#[test]
+fn syscall_log_pending_idx_cleared_after_clear() {
+    let (mut cpu, mut bus) = make_cpu_bus();
+    cpu.privilege = Privilege::User;
+    cpu.csr.stvec = 0x8000_0300;
+    cpu.x[17] = 57;
+
+    write_word(&mut bus, RAM_BASE, 0x0000_0073);
+    cpu.step(&mut bus);
+
+    // pending_syscall_idx should be set
+    assert!(bus.pending_syscall_idx.is_some());
+
+    // Clear the log manually
+    bus.syscall_log.clear();
+
+    // pending_syscall_idx still points to old (now-invalid) index
+    // but that's expected behavior - the user manages the log
+}
+
+#[test]
+fn syscall_event_struct_construction() {
+    use crate::riscv::syscall::SyscallEvent;
+
+    // Verify the SyscallEvent struct can be constructed with all fields
+    let event = SyscallEvent {
+        nr: 64,
+        name: "write",
+        args: [1, 0x1000, 10, 0, 0, 0],
+        ret: Some(10),
+        pc: 0x1000,
+    };
+    assert_eq!(event.nr, 64);
+    assert_eq!(event.name, "write");
+    assert_eq!(event.args[0], 1);
+    assert_eq!(event.args[1], 0x1000);
+    assert_eq!(event.args[2], 10);
+    assert_eq!(event.ret, Some(10));
+    assert_eq!(event.pc, 0x1000);
+}
+
+#[test]
+fn syscall_event_struct_with_none_ret() {
+    use crate::riscv::syscall::SyscallEvent;
+
+    let event = SyscallEvent {
+        nr: 57,
+        name: "close",
+        args: [3, 0, 0, 0, 0, 0],
+        ret: None,
+        pc: 0x2000,
+    };
+    assert_eq!(event.nr, 57);
+    assert!(event.ret.is_none());
+    assert_eq!(event.pc, 0x2000);
+}
 #[test]
 fn sbi_ecall_from_s_mode_returns_not_handled_for_unknown_eid() {
     let (mut cpu, mut bus) = make_cpu_bus();

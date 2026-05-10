@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a black rectangle at (201, 96) with width 88 and height 110.
+; PLAN: r0=201(x), r1=96(y), r2=88(width), r3=110(height), r4=0x000000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 201
+LDI r1, 96
+LDI r2, 88
+LDI r3, 110
+LDI r4, 0x000000
+RECTF r0, r1, r2, r3, r4
+HALT

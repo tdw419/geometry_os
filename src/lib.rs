@@ -26,6 +26,7 @@ pub mod scrollback;
 pub mod tile_store;
 pub mod vfs;
 pub mod viewport;
+pub mod world_gen;
 #[allow(dead_code)]
 pub mod vision;
 pub mod vm;

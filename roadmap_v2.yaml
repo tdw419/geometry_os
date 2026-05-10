@@ -6458,16 +6458,16 @@ phases:
   - phase-348
 - id: phase-361
   title: ops_host_fs.rs Test Coverage
-  status: todo
+  status: done
   deliverables:
   - name: Unit tests for host filesystem operations (HOST_READ, HOST_WRITE, HOST_LIST)
-    status: todo
+    status: done
     dependencies: []
   - name: Edge case tests for path handling and permission errors
-    status: todo
+    status: done
     dependencies: []
   - name: Integration test with real temp file operations
-    status: todo
+    status: done
     dependencies: []
 - id: phase-362
   title: RISC-V Syscall Tests

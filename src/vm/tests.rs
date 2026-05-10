@@ -4311,12 +4311,12 @@ fn test_disasm_trace_read_pixel_history() {
 
 #[test]
 fn test_disasm_unknown_opcode() {
-    let (m, l) = disasm(&[0xD2]);
-    assert_eq!(m, "??? (0xD2)");
+    let (m, l) = disasm(&[0x0B]);
+    assert_eq!(m, "??? (0x0B)");
     assert_eq!(l, 1);
 
-    let (m, l) = disasm(&[0xFF]);
-    assert_eq!(m, "??? (0xFF)");
+    let (m, l) = disasm(&[0x0C]);
+    assert_eq!(m, "??? (0x0C)");
     assert_eq!(l, 1);
 }
 

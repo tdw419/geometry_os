@@ -65,6 +65,8 @@ pub struct TileStore {
     persist_dir: Option<String>,
     /// Total pixels written (stats).
     pub write_count: u64,
+    /// Current frame counter for animated terrain (water shimmer, etc.).
+    pub frame: u32,
 }
 
 impl TileStore {
@@ -74,6 +76,7 @@ impl TileStore {
             max_chunks: 256, // 256 chunks = 256 * 64 * 64 * 4 bytes = ~4 MB
             persist_dir: None,
             write_count: 0,
+            frame: 0,
         }
     }
 
@@ -137,6 +140,27 @@ impl TileStore {
         } else {
             0
         }
+    }
+
+    /// Ensure a chunk exists in memory, generating it with world_gen if needed.
+    /// This is the primary entry point for the infinite procedural terrain.
+    pub fn ensure_chunk(&mut self, cx: i32, cy: i32) {
+        let key = (cx, cy);
+        if self.chunks.contains_key(&key) {
+            return;
+        }
+        // Try disk first
+        if let Some(ref dir) = self.persist_dir {
+            if let Some(chunk) = Self::load_chunk_from_disk(dir, key) {
+                self.evict_if_needed();
+                self.chunks.insert(key, chunk);
+                return;
+            }
+        }
+        // Generate procedurally
+        self.evict_if_needed();
+        let chunk = crate::world_gen::generate_chunk(cx, cy, self.frame);
+        self.chunks.insert(key, chunk);
     }
 
     /// Write a pixel to world coordinates.
@@ -354,20 +378,9 @@ impl TileStore {
 
         for cy in chunk_top..=chunk_bottom {
             for cx in chunk_left..=chunk_right {
-                let key = (cx, cy);
-                // Try to get chunk (don't create on render)
-                let chunk = if let Some(c) = self.chunks.get(&key) {
-                    c
-                } else if let Some(ref dir) = self.persist_dir {
-                    if let Some(c) = Self::load_chunk_from_disk(dir, key) {
-                        self.chunks.insert(key, c);
-                        self.chunks.get(&key).unwrap()
-                    } else {
-                        continue;
-                    }
-                } else {
-                    continue;
-                };
+                // Ensure chunk exists (generate procedurally if missing)
+                self.ensure_chunk(cx, cy);
+                let chunk = self.chunks.get(&(cx, cy)).unwrap();
 
                 // Render this chunk's pixels
                 let chunk_world_x = cx * CHUNK_SIZE as i32;

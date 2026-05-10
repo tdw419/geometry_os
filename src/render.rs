@@ -871,6 +871,9 @@ pub fn render_fullscreen_map(
     // Camera is in tile coords (8px per tile) from RAM[0x7800-0x7801].
     // We render at the current zoom scale into the 768x768 map area.
     {
+        // Sync frame counter for animated terrain (water shimmer)
+        vm.tile_store.frame = vm.ram.get(0x7802).copied().unwrap_or(0);
+
         let cam_x_tiles = vm.ram.get(0x7800).copied().unwrap_or(0) as i32;
         let cam_y_tiles = vm.ram.get(0x7801).copied().unwrap_or(0) as i32;
 

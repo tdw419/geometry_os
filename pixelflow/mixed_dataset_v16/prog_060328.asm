@@ -1,0 +1,9 @@
+; DESCRIPTION: Draws a yellow rectangle at (106, 188) with width 83 and height 60.
+; PLAN: r0=106(x), r1=188(y), r2=83(width), r3=60(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 106
+LDI r1, 188
+LDI r2, 83
+LDI r3, 60
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
+HALT

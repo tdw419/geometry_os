@@ -1,0 +1,13 @@
+; DESCRIPTION: Composite: Places a red dot at position (358, 63) then Draws a black rectangle at (250, 142) with width 31 and height 14.
+; PLAN: r0=358(x), r1=63(y), r2=0xFF0000(color). Op: PSET r0, r1, r2 Next: r5=250(x), r6=142(y), r7=31(width), r8=14(height), r9=0x000000(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 358
+LDI r1, 63
+LDI r2, 0xFF0000
+PSET r0, r1, r2
+LDI r5, 250
+LDI r6, 142
+LDI r7, 31
+LDI r8, 14
+LDI r9, 0x000000
+RECTF r5, r6, r7, r8, r9
+HALT

@@ -1,7 +1,8 @@
 import torch
 import torch.nn.functional as F
+import re
 from opcode_tokenizer import OPCODES, REGISTERS, COMMA, NEWLINE, EOS, BOS, NUM, LABEL, STR, COMMENT
-from bilingual_tokenizer import ID_TO_CHAR
+from bilingual_tokenizer import ID_TO_CHAR, CHAR_TO_ID
 
 # Define operand counts for common GeOS opcodes
 # (Opcode) -> (Number of Operands)
@@ -37,6 +38,7 @@ ISA_SIGNATURES = {
 
 # Define operand types for opcodes
 # R: register, I: immediate (literal), L: label (char sequence), *: any
+# R_<meaning>: semantic register tag for StructuralConstraintEngine
 ISA_GRAMMAR = {
     "LDI": ["R", "I"],
     "LD": ["R", "R"],
@@ -48,11 +50,11 @@ ISA_GRAMMAR = {
     "AND": ["R", "R"],
     "OR": ["R", "R"],
     "XOR": ["R", "R"],
-    "RECTF": ["R", "R", "R", "R", "R"],
-    "CIRCLE": ["R", "R", "R", "R"],
-    "LINE": ["R", "R", "R", "R", "R"],
-    "PSET": ["R", "R", "R"],
-    "FILL": ["R"],
+    "RECTF": ["R_X", "R_Y", "R_WIDTH", "R_HEIGHT", "R_COLOR"],
+    "CIRCLE": ["R_X", "R_Y", "R_RADIUS", "R_COLOR"],
+    "LINE": ["R_X1", "R_Y1", "R_X2", "R_Y2", "R_COLOR"],
+    "PSET": ["R_X", "R_Y", "R_COLOR"],
+    "FILL": ["R_COLOR"],
     "JMP": ["L"],
     "JZ": ["R", "L"],
     "JNZ": ["R", "L"],
@@ -221,7 +223,7 @@ class ISAConstraintEngine:
                         elif char in "0123456789ABCDEFabcdef":
                             # Don't allow leading zeros unless followed by x
                             if self.literal_text == "0":
-                                if char != "x": mask[cid] = 1.0
+                                mask[cid] = 0.0 # Force 'x' or delimiter
                             else:
                                 mask[cid] = 1.0
                     else:
@@ -244,7 +246,7 @@ class ISAConstraintEngine:
         if self.operands_seen < len(self.expected_types):
             target_type = self.expected_types[self.operands_seen]
             mask = torch.zeros_like(logits)
-            if target_type == "R":
+            if target_type.startswith("R"): # Matches R and R_<meaning>
                 for rid in self.registers_id: mask[rid] = 1.0
             elif target_type in ["I", "L"]:
                 for cid in self.char_range:
@@ -263,10 +265,145 @@ class ISAConstraintEngine:
         logits[mask == 0] = float('-inf')
         return logits
 
+class StructuralConstraintEngine(ISAConstraintEngine):
+    """
+    Advanced constraint engine that enforces consistency between the self-generated
+    '; PLAN:' comment and the subsequent assembly instructions.
+    """
+    def __init__(self, tokenizer):
+        super().__init__(tokenizer)
+        self.plan_val_map = {}  # reg_id -> target_value_str
+        self.plan_meaning_map = {} # meaning_str -> reg_id
+        self.plan_opcode = None   # forced opcode from PLAN's Op: field
+        self.last_reg_id = None
+        self.is_plan_comment = False
+        self.plan_buffer = ""
+        self.offset = tokenizer.offset
+
+    def update_state(self, last_token_id):
+        # 1. Track PLAN in comments
+        if last_token_id == NEWLINE:
+            self.is_plan_comment = False
+            self.plan_buffer = ""
+        
+        if last_token_id == COMMENT or last_token_id >= self.offset:
+            if not self.in_comment:
+                # Potential start of a new comment line
+                self.is_plan_comment = True
+                self.plan_buffer = ""
+            
+            if self.is_plan_comment and last_token_id >= self.offset:
+                # Decode the BPE token to see if it contains PLAN info
+                text = self.tokenizer.text_tok.decode([last_token_id - self.offset])
+                self.plan_buffer += text
+                if "; PLAN:" in self.plan_buffer:
+                    self._parse_plan(self.plan_buffer)
+
+        # 2. Track last register for LDI context
+        if last_token_id in self.registers_id:
+            self.last_reg_id = last_token_id
+        
+        super().update_state(last_token_id)
+
+    def _parse_plan(self, text):
+        """Extract r0=128(x) style assignments and Op: from the PLAN comment."""
+        # Regex: r(digit)=(anything up to '(') then (meaning up to ')')
+        matches = re.finditer(r'(r\d+)=(\S+?)\((\w+?)\)', text)
+        for m in matches:
+            reg_name, val, meaning = m.groups()
+            reg_id = self.tokenizer.asm_tok.token2id.get(reg_name)
+            if reg_id:
+                # Normalize value: hex 0x... or decimal
+                norm_val = val.lower().replace('#', '0x')
+                self.plan_val_map[reg_id] = norm_val
+                self.plan_meaning_map[meaning.lower()] = reg_id
+        
+        # Extract Op: field if present (e.g. "Op: RECTF r0, r1, r2, r3, r4")
+        op_match = re.search(r'Op:\s*(\w+)', text)
+        if op_match:
+            self.plan_opcode = op_match.group(1).upper()
+        else:
+            self.plan_opcode = None
+
+    def apply_constraints(self, logits):
+        """Mask logits based on both ISA grammar AND structural PLAN consistency."""
+        # Apply base ISA constraints first
+        logits = super().apply_constraints(logits)
+        
+        # Phase -1: Opcode Enforcement (force the opcode the PLAN declared)
+        if self.current_opcode is None and not self.in_comment and self.plan_opcode:
+            if self.plan_opcode in self.opcodes_id:
+                target_op_id = self.opcodes_id[self.plan_opcode]
+                # Only force if the target opcode is still valid (not already -inf)
+                if logits[target_op_id] > float('-inf'):
+                    mask = torch.zeros_like(logits)
+                    mask[target_op_id] = 1.0
+                    # Also allow starting a new comment line (DESCRIPTION, PLAN, etc.)
+                    mask[COMMENT] = 1.0
+                    mask[NEWLINE] = 1.0
+                    mask[EOS] = 1.0
+                    mask[self.bpe_start:] = 1.0
+                    logits[mask == 0] = float('-inf')
+
+        # Phase 0: LDI Register Enforcement
+        if self.current_opcode == "LDI" and self.operands_seen == 0:
+            if self.plan_val_map:
+                mask = torch.zeros_like(logits)
+                for rid in self.plan_val_map.keys():
+                    mask[rid] = 1.0
+                combined_mask = (mask == 1.0) & (logits > float('-inf'))
+                if combined_mask.any():
+                    logits[combined_mask == 0] = float('-inf')
+
+        # Phase 1: Immediate Value Enforcement (LDI)
+        if self.current_opcode == "LDI" and self.operands_seen == 1 and not self.expecting_comma:
+            if self.last_reg_id in self.plan_val_map:
+                target_val = self.plan_val_map[self.last_reg_id]
+                current_lit = self.literal_text.lower().replace('#', '0x')
+                
+                if len(current_lit) < len(target_val):
+                    next_char = target_val[len(current_lit)]
+                    char_ids = [CHAR_TO_ID.get(next_char.lower()), CHAR_TO_ID.get(next_char.upper())]
+                    char_ids = [cid for cid in char_ids if cid is not None]
+                    
+                    if char_ids:
+                        mask = torch.zeros_like(logits)
+                        for cid in char_ids: mask[cid] = 1.0
+                        
+                        # Aggressive enforcement
+                        logits[mask == 0] = float('-inf')
+                        if torch.isinf(logits).all():
+                            for cid in char_ids: logits[cid] = 0.0
+                else:
+                    # Target reached. Force delimiter.
+                    mask = torch.zeros_like(logits)
+                    mask[COMMA] = 1.0; mask[NEWLINE] = 1.0; mask[EOS] = 1.0; mask[COMMENT] = 1.0
+                    logits[mask == 0] = float('-inf')
+                    if torch.isinf(logits).all():
+                        logits[NEWLINE] = 0.0
+
+        # Phase 2: Drawing Register Enforcement (Semantic roles)
+        if self.operands_seen < len(self.expected_types) and not self.expecting_comma:
+            target_type = self.expected_types[self.operands_seen]
+            if target_type.startswith("R_"):
+                meaning = target_type[2:].lower()
+                if meaning in self.plan_meaning_map:
+                    target_reg_id = self.plan_meaning_map[meaning]
+                    # Force the register that the PLAN assigned to this role
+                    mask = torch.zeros_like(logits)
+                    mask[target_reg_id] = 1.0
+                    logits[mask == 0] = float('-inf')
+                    if torch.isinf(logits).all():
+                        for rid in self.registers_id: logits[rid] = 0.0
+        
+        return logits
+
 def generate_isa_constrained(model, tokenizer, prompt, device, max_tokens=256, temperature=0.7, top_k=40):
     ids = tokenizer.encode(prompt, add_bos=True, add_eos=False)
     idx = torch.tensor([ids], dtype=torch.long, device=device)
-    engine = ISAConstraintEngine(tokenizer)
+    
+    # Use the upgraded StructuralConstraintEngine
+    engine = StructuralConstraintEngine(tokenizer)
     
     # Init engine state from prompt
     for tid in ids:
@@ -277,7 +414,7 @@ def generate_isa_constrained(model, tokenizer, prompt, device, max_tokens=256, t
         logits, _ = model(idx_cond)
         logits = logits[:, -1, :] / temperature
         
-        # Apply constraints
+        # Apply structural constraints
         logits = engine.apply_constraints(logits[0]).unsqueeze(0)
         
         if top_k is not None:
@@ -285,7 +422,13 @@ def generate_isa_constrained(model, tokenizer, prompt, device, max_tokens=256, t
             logits[logits < v[:, [-1]]] = float('-inf')
             
         probs = F.softmax(logits, dim=-1)
-        idx_next = torch.multinomial(probs, num_samples=1)
+        
+        # Handle all-inf case (dead end in constraints)
+        if torch.isinf(logits).all():
+             # Fallback: force NEWLINE or EOS to escape
+             idx_next = torch.tensor([[EOS]], device=device)
+        else:
+            idx_next = torch.multinomial(probs, num_samples=1)
         
         engine.update_state(idx_next.item())
         idx = torch.cat([idx, idx_next], dim=1)

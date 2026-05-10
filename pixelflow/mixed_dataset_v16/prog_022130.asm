@@ -1,0 +1,13 @@
+; DESCRIPTION: Composite: Places a magenta dot at position (177, 220) then Draws a purple line from (422, 124) to (431, 170).
+; PLAN: r0=177(x), r1=220(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=422(x1), r6=124(y1), r7=431(x2), r8=170(y2), r9=0xAA00FF(color). Op: LINE r5, r6, r7, r8, r9.
+LDI r0, 177
+LDI r1, 220
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 422
+LDI r6, 124
+LDI r7, 431
+LDI r8, 170
+LDI r9, 0xAA00FF
+LINE r5, r6, r7, r8, r9
+HALT

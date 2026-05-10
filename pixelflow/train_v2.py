@@ -46,21 +46,11 @@ class BilingualDataset(Dataset):
         return x, y
 
 
-def evaluate_checkpoint(checkpoint_path, device, tokenizer):
-    """Run smoke test and return (syntax, visual, semantic) scores."""
+def evaluate_checkpoint(model, tokenizer, device):
+    """Run smoke test on the given model and return (syntax, visual, semantic) scores."""
     sys.path.insert(0, os.path.dirname(__file__))
     from isa_constrained_decoder import generate_isa_constrained
 
-    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    model = OpcodeGPT(
-        vocab_size=ckpt['args']['vocab_size'],
-        n_embd=ckpt['args']['embd'],
-        n_head=ckpt['args']['heads'],
-        n_layer=ckpt['args']['layers'],
-        block_size=ckpt['args']['context_len'],
-        dropout=0.0,
-    ).to(device)
-    model.load_state_dict(ckpt["model"])
     model.eval()
 
     PROMPTS = [
@@ -170,11 +160,14 @@ def train(args):
     print(f"Schedule: {args.lr} peak LR, {warmup_steps} warmup steps, cosine decay over {total_steps}")
 
     start_epoch = 0
-    if args.resume and os.path.exists(args.checkpoint):
-        checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
+    # Load initial weights from a pretrained checkpoint (for fine-tuning)
+    init_ckpt = args.from_checkpoint or (args.checkpoint if args.resume else None)
+    if init_ckpt and os.path.exists(init_ckpt):
+        checkpoint = torch.load(init_ckpt, map_location=device, weights_only=False)
         model.load_state_dict(checkpoint["model"])
-        start_epoch = checkpoint.get("epoch", 0)
-        print(f"Resumed from epoch {start_epoch}")
+        if args.resume:
+            start_epoch = checkpoint.get("epoch", 0)
+        print(f"Loaded weights from {init_ckpt} (epoch {checkpoint.get('epoch', '?')}, loss {checkpoint.get('loss', 0):.4f})")
 
     best_score = -1
     best_epoch = -1
@@ -215,10 +208,12 @@ def train(args):
         elapsed = time.time() - t0
         print(f"Epoch {epoch+1}/{args.epochs}  loss={avg_loss:.4f}  lr={lr:.2e}  time={elapsed:.1f}s")
 
-        # Evaluate at end of each epoch
-        scores = evaluate_checkpoint(args.checkpoint, device, tokenizer)
+        # Evaluate at end of each epoch (use model in memory, no disk reload)
+        model.eval()
+        scores = evaluate_checkpoint(model, tokenizer, device)
         total_score = sum(scores)
         print(f"  Eval: Syntax={scores[0]}/10  Visual={scores[1]}/10  Semantic={scores[2]}/10  Total={total_score}/30")
+        model.train()  # back to training mode
 
         # Checkpoint averaging: accumulate EMA of weights
         if checkpoint_ema is None:
@@ -281,6 +276,8 @@ if __name__ == "__main__":
     parser.add_argument("--warmup-ratio", type=float, default=0.1)  # 10% warmup
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--from-checkpoint", default=None,
+                        help="Load initial weights from this checkpoint (for fine-tuning from a previous version)")
     args = parser.parse_args()
 
     train(args)

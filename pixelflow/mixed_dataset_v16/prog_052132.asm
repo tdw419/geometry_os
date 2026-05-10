@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a red line between points (493, 26) and (25, 118).
+; PLAN: r0=493(x1), r1=26(y1), r2=25(x2), r3=118(y2), r4=0xFF0000(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 493
+LDI r1, 26
+LDI r2, 25
+LDI r3, 118
+LDI r4, 0xFF0000
+LINE r0, r1, r2, r3, r4
+HALT

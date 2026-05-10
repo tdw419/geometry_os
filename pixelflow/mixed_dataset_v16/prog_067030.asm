@@ -1,0 +1,13 @@
+; DESCRIPTION: Composite: Sets a single magenta pixel at (370, 65) then Creates a orange rectangular region at (397, 64) spanning 103 by 57 pixels.
+; PLAN: r0=370(x), r1=65(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2 Next: r5=397(x), r6=64(y), r7=103(width), r8=57(height), r9=0xFF8800(color). Op: RECTF r5, r6, r7, r8, r9.
+LDI r0, 370
+LDI r1, 65
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+LDI r5, 397
+LDI r6, 64
+LDI r7, 103
+LDI r8, 57
+LDI r9, 0xFF8800
+RECTF r5, r6, r7, r8, r9
+HALT

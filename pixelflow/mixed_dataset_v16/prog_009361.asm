@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a magenta line between points (98, 172) and (498, 222).
+; PLAN: r0=98(x1), r1=172(y1), r2=498(x2), r3=222(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.
+LDI r0, 98
+LDI r1, 172
+LDI r2, 498
+LDI r3, 222
+LDI r4, 0xFF00FF
+LINE r0, r1, r2, r3, r4
+HALT

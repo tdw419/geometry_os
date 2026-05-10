@@ -1,0 +1,9 @@
+{
+  "synthetic_count": 70000,
+  "distilled_count": 8132,
+  "total": 78132,
+  "distilled_ratio": 0.10408027440741309,
+  "source_synth": "/home/jericho/projects/zion/projects/geometry_os/geometry_os/synthetic_dataset_v13",
+  "source_distill": "/home/jericho/projects/zion/projects/geometry_os/geometry_os/pixelflow/self_distilled_v15",
+  "seed": 42
+}

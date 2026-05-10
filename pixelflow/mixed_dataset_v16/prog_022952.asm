@@ -1,0 +1,9 @@
+; DESCRIPTION: Creates a red rectangular region at (387, 8) spanning 92 by 18 pixels.
+; PLAN: r0=387(x), r1=8(y), r2=92(width), r3=18(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 387
+LDI r1, 8
+LDI r2, 92
+LDI r3, 18
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+HALT

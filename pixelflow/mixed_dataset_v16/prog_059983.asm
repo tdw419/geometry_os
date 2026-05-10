@@ -1,0 +1,7 @@
+; DESCRIPTION: Places a magenta dot at position (7, 84).
+; PLAN: r0=7(x), r1=84(y), r2=0xFF00FF(color). Op: PSET r0, r1, r2.
+LDI r0, 7
+LDI r1, 84
+LDI r2, 0xFF00FF
+PSET r0, r1, r2
+HALT
