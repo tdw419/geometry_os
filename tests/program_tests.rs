@@ -231,7 +231,6 @@ pub mod shell_vfs;
 #[path = "program_tests/vm_state.rs"]
 pub mod vm_state;
 
-
 #[test]
 fn test_waveform_assembles_and_renders() {
     let source = std::fs::read_to_string("programs/waveform.asm").unwrap();
@@ -240,7 +239,9 @@ fn test_waveform_assembles_and_renders() {
 
     let mut vm = geometry_os::vm::Vm::new();
     for (i, &pixel) in asm.pixels.iter().enumerate() {
-        if i < vm.ram.len() { vm.ram[i] = pixel; }
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
     }
     vm.pc = 0;
     vm.halted = false;
@@ -248,26 +249,86 @@ fn test_waveform_assembles_and_renders() {
     // Run until first FRAME (one complete render cycle)
     let mut frames_seen = 0;
     for _ in 0..10_000_000 {
-        if !vm.step() { break; }
+        if !vm.step() {
+            break;
+        }
         if vm.frame_ready {
             vm.frame_ready = false;
             frames_seen += 1;
-            if frames_seen >= 1 { break; }
+            if frames_seen >= 1 {
+                break;
+            }
         }
     }
     assert!(frames_seen >= 1, "should produce at least 1 frame");
 
     // Count non-black pixels (waveform + grid should be visible)
     let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
-    assert!(non_black > 100, "should have drawn waveform+grid (got {} pixels)", non_black);
+    assert!(
+        non_black > 100,
+        "should have drawn waveform+grid (got {} pixels)",
+        non_black
+    );
 
     // Check that center line (y=128) has grid pixels
-    let center_pixels: Vec<_> = vm.screen[128*256..129*256].iter()
-        .filter(|&&p| p != 0).collect();
-    assert!(center_pixels.len() > 50, "center grid line should have pixels");
+    let center_pixels: Vec<_> = vm.screen[128 * 256..129 * 256]
+        .iter()
+        .filter(|&&p| p != 0)
+        .collect();
+    assert!(
+        center_pixels.len() > 50,
+        "center grid line should have pixels"
+    );
 
     // Check HUD bar at top (y=0..11) is non-black
-    let hud_pixels = vm.screen[0..12*256].iter()
-        .filter(|&&p| p != 0).count();
+    let hud_pixels = vm.screen[0..12 * 256].iter().filter(|&&p| p != 0).count();
     assert!(hud_pixels > 200, "HUD should fill top bar");
+}
+
+#[test]
+fn test_gol_editor_assembles() {
+    let source = std::fs::read_to_string("programs/game_of_life_editor.asm").unwrap();
+    let result = geometry_os::assembler::assemble(&source, 0);
+    match result {
+        Ok(asm) => assert!(asm.pixels.len() > 500, "should be substantial"),
+        Err(e) => panic!("Assembly failed: {:?}", e),
+    }
+}
+
+#[test]
+fn test_gol_editor_runs_and_renders() {
+    let source = std::fs::read_to_string("programs/game_of_life_editor.asm").unwrap();
+    let asm = geometry_os::assembler::assemble(&source, 0).unwrap();
+    let mut vm = geometry_os::vm::Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    let mut frames_seen = 0;
+    for _ in 0..10_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames_seen += 1;
+            if frames_seen >= 2 {
+                break;
+            }
+        }
+    }
+    assert!(
+        frames_seen >= 2,
+        "should produce at least 2 frames (got {})",
+        frames_seen
+    );
+    let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        non_black > 50,
+        "should have drawn cells (got {} pixels)",
+        non_black
+    );
 }
