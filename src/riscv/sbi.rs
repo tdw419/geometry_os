@@ -314,3 +314,512 @@ impl Sbi {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::riscv::uart::Uart;
+    use crate::riscv::clint::Clint;
+
+    /// Helper: create Sbi + Uart + Clint for handle_ecall tests.
+    fn new_test_sbi() -> (Sbi, Uart, Clint) {
+        (Sbi::new(), Uart::new(), Clint::new())
+    }
+
+    // ============================================================
+    // SBI struct initialization
+    // ============================================================
+
+    #[test]
+    fn sbi_new_defaults() {
+        let sbi = Sbi::new();
+        assert!(sbi.ecall_log.is_empty());
+        assert!(sbi.console_output.is_empty());
+        assert!(!sbi.shutdown_requested);
+        assert!(sbi.timer_alarm.is_none());
+        assert!(sbi.dbcn_pending_write.is_none());
+        assert!(sbi.net_rx_queue.is_empty());
+        assert_eq!(sbi.mac_addr, [0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x01]);
+        assert!(!sbi.yield_requested);
+        assert!(sbi.yield_to_context.is_none());
+        assert!(sbi.spawn_requested.is_none());
+        assert!(sbi.gpu_compute_requested.is_none());
+        assert!(sbi.net_pending.is_none());
+        assert!(sbi.shm_regions.is_empty());
+        assert_eq!(sbi.boot_mtime, 0);
+    }
+
+    // ============================================================
+    // Console putchar/getchar (legacy v0.1)
+    // ============================================================
+
+    #[test]
+    fn sbi_console_putchar_appends_to_output() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_CONSOLE_PUTCHAR, 0, 0x41, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        assert_eq!(sbi.console_output, vec![0x41]); // 'A'
+        assert_eq!(sbi.ecall_log.len(), 1);
+    }
+
+    #[test]
+    fn sbi_console_putchar_null_is_ignored() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        sbi.handle_ecall(SBI_CONSOLE_PUTCHAR, 0, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert!(sbi.console_output.is_empty());
+    }
+
+    #[test]
+    fn sbi_console_putchar_multiple_chars() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        for &ch in &[b'H', b'e', b'l', b'l', b'o'] {
+            sbi.handle_ecall(SBI_CONSOLE_PUTCHAR, 0, ch as u32, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        }
+        assert_eq!(sbi.console_output, b"Hello");
+        assert_eq!(sbi.ecall_log.len(), 5);
+    }
+
+    #[test]
+    fn sbi_console_getchar_returns_byte_from_uart() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        uart.rx_buf.push(0x42); // 'B'
+        let r = sbi.handle_ecall(SBI_CONSOLE_GETCHAR, 0, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((0x42, 0)));
+        assert!(uart.rx_buf.is_empty()); // consumed
+    }
+
+    #[test]
+    fn sbi_console_getchar_empty_returns_negative_one() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_CONSOLE_GETCHAR, 0, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((0xFFFFFFFF, 0)));
+    }
+
+    // ============================================================
+    // Base extension (0x10)
+    // ============================================================
+
+    #[test]
+    fn sbi_base_get_spec_version() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_BASE, SBI_BASE_GET_SPEC_VERSION, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, (2 << 24) | 0))); // v2.0
+    }
+
+    #[test]
+    fn sbi_base_get_impl_id() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_BASE, SBI_BASE_GET_IMPL_ID, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0x47454F53))); // "GEOS"
+    }
+
+    #[test]
+    fn sbi_base_get_impl_version() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_BASE, SBI_BASE_GET_IMPL_VERSION, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 1)));
+    }
+
+    #[test]
+    fn sbi_base_probe_known_extension() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        // Probe TIME extension
+        let r = sbi.handle_ecall(SBI_EXT_BASE, SBI_BASE_PROBE_EXTENSION, SBI_EXT_TIME, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 1))); // available
+    }
+
+    #[test]
+    fn sbi_base_probe_unknown_extension() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        // Probe some random extension
+        let r = sbi.handle_ecall(SBI_EXT_BASE, SBI_BASE_PROBE_EXTENSION, 0xDEAD, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0))); // not available
+    }
+
+    #[test]
+    fn sbi_base_probe_all_known_extensions() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let known = [
+            SBI_EXT_BASE, SBI_EXT_TIME, SBI_EXT_IPI, SBI_EXT_RFENCE,
+            SBI_EXT_HSM, SBI_EXT_SRST, SBI_EXT_DBCN, SBI_EXT_STA,
+            SBI_EXT_SUSP, SBI_EXT_GEOMETRY, SBI_EXT_NET,
+        ];
+        for &ext in &known {
+            let r = sbi.handle_ecall(SBI_EXT_BASE, SBI_BASE_PROBE_EXTENSION, ext, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+            assert_eq!(r, Some((SBI_SUCCESS as u32, 1)), "extension 0x{:08X} should be available", ext);
+        }
+    }
+
+    #[test]
+    fn sbi_base_unknown_function_returns_zero() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_BASE, 99, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+    }
+
+    // ============================================================
+    // Timer extension (SET_TIMER)
+    // ============================================================
+
+    #[test]
+    fn sbi_set_timer() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_TIME, 0, 0x1000, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        assert_eq!(sbi.timer_alarm, Some(0x1000));
+    }
+
+    #[test]
+    fn sbi_set_timer_high_bits() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        // a0 = low 32 bits, a1 = high 32 bits
+        let r = sbi.handle_ecall(SBI_EXT_TIME, 0, 0x80000000, 1, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        assert_eq!(sbi.timer_alarm, Some(0x1_8000_0000));
+    }
+
+    // ============================================================
+    // Timer alarm checking
+    // ============================================================
+
+    #[test]
+    fn sbi_check_alarms_no_alarm_set() {
+        let mut sbi = Sbi::new();
+        let fired = sbi.check_alarms(1000);
+        assert!(fired.is_empty());
+    }
+
+    #[test]
+    fn sbi_check_alarms_not_yet_fired() {
+        let mut sbi = Sbi::new();
+        sbi.timer_alarm = Some(5000);
+        let fired = sbi.check_alarms(1000);
+        assert!(fired.is_empty());
+        assert_eq!(sbi.timer_alarm, Some(5000)); // still set
+    }
+
+    #[test]
+    fn sbi_check_alarms_fired_at_threshold() {
+        let mut sbi = Sbi::new();
+        sbi.timer_alarm = Some(5000);
+        let fired = sbi.check_alarms(5000);
+        assert_eq!(fired.len(), 1);
+        assert!(sbi.timer_alarm.is_none()); // cleared after fire
+    }
+
+    #[test]
+    fn sbi_check_alarms_fired_past_threshold() {
+        let mut sbi = Sbi::new();
+        sbi.timer_alarm = Some(5000);
+        let fired = sbi.check_alarms(9999);
+        assert_eq!(fired.len(), 1);
+        assert!(sbi.timer_alarm.is_none());
+    }
+
+    #[test]
+    fn sbi_check_alarms_only_fires_once() {
+        let mut sbi = Sbi::new();
+        sbi.timer_alarm = Some(100);
+        sbi.check_alarms(200); // fires
+        let fired2 = sbi.check_alarms(300); // no alarm set
+        assert!(fired2.is_empty());
+    }
+
+    // ============================================================
+    // SRST (system reset) extension
+    // ============================================================
+
+    #[test]
+    fn sbi_srst_system_reset() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        assert!(!sbi.shutdown_requested);
+        let r = sbi.handle_ecall(SBI_EXT_SRST, SBI_SRST_SYSTEM_RESET, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        assert!(sbi.shutdown_requested);
+    }
+
+    #[test]
+    fn sbi_srst_unknown_function() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_SRST, 99, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_ERR_NOT_SUPPORTED as u32, 0)));
+        assert!(!sbi.shutdown_requested);
+    }
+
+    // ============================================================
+    // Legacy v0.1 shutdown (a7=8)
+    // ============================================================
+
+    #[test]
+    fn sbi_legacy_shutdown() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(8, 0, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        assert!(sbi.shutdown_requested);
+    }
+
+    // ============================================================
+    // DBCN (debug console) extension
+    // ============================================================
+
+    #[test]
+    fn sbi_dbcn_write_byte_not_implemented() {
+        // DBCN_CONSOLE_WRITE_BYTE (function 2) is logged by the eprintln
+        // guard at the top of handle_ecall but NOT handled in the match arm.
+        // Only SBI_DBCN_CONSOLE_WRITE (function 0) is implemented.
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_DBCN, SBI_DBCN_CONSOLE_WRITE_BYTE, 0x48, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_ERR_NOT_SUPPORTED as u32, 0)));
+        assert!(sbi.console_output.is_empty());
+    }
+
+    #[test]
+    fn sbi_dbcn_write_byte_null_ignored() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        sbi.handle_ecall(SBI_EXT_DBCN, SBI_DBCN_CONSOLE_WRITE_BYTE, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert!(sbi.console_output.is_empty());
+    }
+
+    #[test]
+    fn sbi_dbcn_write_pending() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_DBCN, SBI_DBCN_CONSOLE_WRITE, 16, 0x2000, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 16)));
+        assert_eq!(sbi.dbcn_pending_write, Some((0x2000u64, 16)));
+    }
+
+    #[test]
+    fn sbi_dbcn_write_high_address() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        // a1=low bits, a2=high bits -> phys_addr = 0x1_0000_0000
+        let r = sbi.handle_ecall(SBI_EXT_DBCN, SBI_DBCN_CONSOLE_WRITE, 64, 0, 1, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 64)));
+        assert_eq!(sbi.dbcn_pending_write, Some((0x1_0000_0000u64, 64)));
+    }
+
+    #[test]
+    fn sbi_dbcn_unknown_function() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_DBCN, 99, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_ERR_NOT_SUPPORTED as u32, 0)));
+    }
+
+    // ============================================================
+    // GEOMETRY extension
+    // ============================================================
+
+    #[test]
+    fn sbi_geom_get_screen_size() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_GET_SCREEN_SIZE, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((256, 256)));
+    }
+
+    #[test]
+    fn sbi_geom_vfs_read() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_VFS_READ, 0x8000, 0x9000, 128, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        let pending = sbi.geo_vfs_read_pending.unwrap();
+        assert_eq!(pending.buf_addr, 0x8000);
+        assert_eq!(pending.path_addr, 0x9000);
+        assert_eq!(pending.len, 128);
+    }
+
+    #[test]
+    fn sbi_geom_kill() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_KILL, 42, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+    }
+
+    #[test]
+    fn sbi_geom_yield() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_YIELD, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        assert!(sbi.yield_requested);
+        assert!(sbi.yield_to_context.is_none());
+    }
+
+    #[test]
+    fn sbi_geom_yield_to() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_YIELD_TO, 5, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        assert!(sbi.yield_requested);
+        assert_eq!(sbi.yield_to_context, Some(5));
+    }
+
+    #[test]
+    fn sbi_geom_spawn() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_SPAWN, 0x4000, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        assert_eq!(sbi.spawn_requested, Some((0x4000, 0)));
+    }
+
+    #[test]
+    fn sbi_geom_gpu_compute_valid() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_GPU_COMPUTE, 0x1000, 100, 500, 4, 0x5000, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        let req = sbi.gpu_compute_requested.unwrap();
+        assert_eq!(req.0, 0x1000); // code_addr
+        assert_eq!(req.1, 100);   // num_words
+        assert_eq!(req.2, 500);   // max_steps
+        assert_eq!(req.3, 4);     // num_tiles
+        assert_eq!(req.4, 0x5000); // result_addr
+    }
+
+    #[test]
+    fn sbi_geom_gpu_compute_zero_words_rejected() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_GPU_COMPUTE, 0x1000, 0, 500, 4, 0x5000, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_ERR_INVALID_PARAM as u32, 0)));
+        assert!(sbi.gpu_compute_requested.is_none());
+    }
+
+    #[test]
+    fn sbi_geom_gpu_compute_zero_tiles_rejected() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_GPU_COMPUTE, 0x1000, 100, 500, 0, 0x5000, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_ERR_INVALID_PARAM as u32, 0)));
+        assert!(sbi.gpu_compute_requested.is_none());
+    }
+
+    #[test]
+    fn sbi_geom_gpu_compute_high_result_addr() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        // a4=low bits, a5=high bits -> result_addr = 0x1_0000_0000
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, SBI_GEOM_GPU_COMPUTE, 0x1000, 100, 500, 4, 0, 1, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+        let req = sbi.gpu_compute_requested.unwrap();
+        assert_eq!(req.4, 0x1_0000_0000);
+    }
+
+    #[test]
+    fn sbi_geom_unknown_function() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(SBI_EXT_GEOMETRY, 99, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(r, Some((SBI_ERR_NOT_SUPPORTED as u32, 0)));
+    }
+
+    // ============================================================
+    // Unknown extension returns None (trap delivery)
+    // ============================================================
+
+    #[test]
+    fn sbi_unknown_extension_returns_none() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(0xDEAD, 0, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert!(r.is_none());
+        // Still logged
+        assert_eq!(sbi.ecall_log.len(), 1);
+    }
+
+    #[test]
+    fn sbi_unknown_extension_a7_zero_returns_none() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        let r = sbi.handle_ecall(0, 0, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert!(r.is_none());
+    }
+
+    // ============================================================
+    // ECALL logging
+    // ============================================================
+
+    #[test]
+    fn sbi_ecall_log_records_all_calls() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        sbi.handle_ecall(SBI_CONSOLE_PUTCHAR, 0, 0x41, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        sbi.handle_ecall(SBI_EXT_BASE, SBI_BASE_GET_SPEC_VERSION, 0, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        sbi.handle_ecall(SBI_EXT_TIME, 0, 1000, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+
+        assert_eq!(sbi.ecall_log.len(), 3);
+        assert_eq!(sbi.ecall_log[0], (SBI_CONSOLE_PUTCHAR, 0, 0x41));
+        assert_eq!(sbi.ecall_log[1], (SBI_EXT_BASE, SBI_BASE_GET_SPEC_VERSION, 0));
+        assert_eq!(sbi.ecall_log[2], (SBI_EXT_TIME, 0, 1000));
+    }
+
+    #[test]
+    fn sbi_ecall_log_records_unknown_extensions() {
+        let (mut sbi, mut uart, mut clint) = new_test_sbi();
+        sbi.handle_ecall(0xBEEF, 1, 2, 0, 0, 0, 0, 0, &mut uart, &mut clint);
+        assert_eq!(sbi.ecall_log[0], (0xBEEF, 1, 2));
+    }
+
+    // ============================================================
+    // Error code constants
+    // ============================================================
+
+    #[test]
+    fn sbi_error_codes() {
+        assert_eq!(SBI_SUCCESS, 0);
+        assert_eq!(SBI_ERR_NOT_SUPPORTED, -1);
+        assert_eq!(SBI_ERR_INVALID_PARAM, -3);
+        assert_eq!(SBI_ERR_DENIED, -4);
+        assert_eq!(SBI_ERR_INVALID_ADDRESS, -5);
+    }
+
+    #[test]
+    fn sbi_extension_id_constants() {
+        assert_eq!(SBI_EXT_BASE, 0x10);
+        assert_eq!(SBI_EXT_TIME, 0x54494D45); // "TIME"
+        assert_eq!(SBI_EXT_IPI, 0x735049);    // "IPI"
+        assert_eq!(SBI_EXT_RFENCE, 0x52464E43); // "RFNC"
+        assert_eq!(SBI_EXT_HSM, 0x48534D);     // "HSM"
+        assert_eq!(SBI_EXT_SRST, 0x53525354);   // "SRST"
+        assert_eq!(SBI_EXT_DBCN, 0x4442434E);   // "DBCN"
+        assert_eq!(SBI_EXT_GEOMETRY, 0x47454F4D); // "GEOM"
+        assert_eq!(SBI_EXT_NET, 0x4E455400);     // "NET\0"
+    }
+
+    // ============================================================
+    // NetOpKind enum
+    // ============================================================
+
+    #[test]
+    fn net_op_kind_values() {
+        assert_eq!(NetOpKind::Send, NetOpKind::Send);
+        assert_eq!(NetOpKind::Recv, NetOpKind::Recv);
+        assert_ne!(NetOpKind::Send, NetOpKind::Recv);
+    }
+
+    // ============================================================
+    // GeoVfsReadReq struct
+    // ============================================================
+
+    #[test]
+    fn geo_vfs_read_req_fields() {
+        let req = GeoVfsReadReq {
+            buf_addr: 0x1000,
+            path_addr: 0x2000,
+            len: 256,
+            name_addr: 0x3000,
+            name_len: 32,
+            buf_len: 512,
+        };
+        assert_eq!(req.buf_addr, 0x1000);
+        assert_eq!(req.path_addr, 0x2000);
+        assert_eq!(req.len, 256);
+        assert_eq!(req.name_addr, 0x3000);
+        assert_eq!(req.name_len, 32);
+        assert_eq!(req.buf_len, 512);
+    }
+
+    // ============================================================
+    // ShmRegion struct
+    // ============================================================
+
+    #[test]
+    fn shm_region_fields() {
+        let region = ShmRegion {
+            id: 42,
+            data: vec![0xAA, 0xBB, 0xCC],
+        };
+        assert_eq!(region.id, 42);
+        assert_eq!(region.data.len(), 3);
+        assert_eq!(region.data[0], 0xAA);
+    }
+}
