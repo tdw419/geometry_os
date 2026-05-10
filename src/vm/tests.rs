@@ -24694,7 +24694,7 @@ fn test_fsopen_sandbox_rejects_system_paths() {
     }
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFE,
+        vm.regs[0], 0xFFFFFFFD,
         "FSOPEN should reject /etc/passwd with EACCES, got 0x{:X}",
         vm.regs[0]
     );
@@ -24907,7 +24907,7 @@ fn test_fsls_sandbox_rejects_system_dirs() {
     }
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFE,
+        vm.regs[0], 0xFFFFFFFD,
         "FSLS should reject /etc with EACCES, got 0x{:X}",
         vm.regs[0]
     );
@@ -24930,7 +24930,7 @@ fn test_fsclose_bad_handle() {
     }
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], 0xFFFFFFF8,
         "FSCLOSE should fail on invalid handle"
     );
 }
@@ -24955,7 +24955,7 @@ fn test_fsread_bad_handle() {
     }
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], 0xFFFFFFF8,
         "FSREAD should fail on unopened handle"
     );
 }
@@ -25062,8 +25062,8 @@ fn test_fsopen_too_many_files() {
         }
     }
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFD,
-        "FSOPEN should return EMFILE when all slots used, got 0x{:X}",
+        vm.regs[0], 0xFFFFFFF6,
+        "FSOPEN should return ENFILE when all slots used, got 0x{:X}",
         vm.regs[0]
     );
 
@@ -36580,8 +36580,16 @@ fn test_terrain_flyover_assembly() {
     let asm = crate::assembler::assemble(source, 0).expect("terrain_flyover.asm should assemble");
     assert!(!asm.pixels.is_empty(), "should produce bytecode");
     let non_zero = asm.pixels.iter().filter(|&&w| w != 0).count();
-    eprintln!("Assembled {} words, {} non-zero", asm.pixels.len(), non_zero);
-    assert!(non_zero > 100, "Expected non-zero bytecode, got {}", non_zero);
+    eprintln!(
+        "Assembled {} words, {} non-zero",
+        asm.pixels.len(),
+        non_zero
+    );
+    assert!(
+        non_zero > 100,
+        "Expected non-zero bytecode, got {}",
+        non_zero
+    );
 }
 
 #[test]
@@ -36590,7 +36598,10 @@ fn test_terrain_flyover_renders_frame() {
 
     let source = include_str!("../../programs/terrain_flyover.asm");
     let asm = assemble(source, 0).expect("terrain_flyover.asm should assemble");
-    eprintln!("Assembled {} words from terrain_flyover.asm", asm.pixels.len());
+    eprintln!(
+        "Assembled {} words from terrain_flyover.asm",
+        asm.pixels.len()
+    );
 
     let mut vm = Vm::new();
     for (i, &word) in asm.pixels.iter().enumerate() {
@@ -36615,13 +36626,21 @@ fn test_terrain_flyover_renders_frame() {
         }
     }
 
-    assert!(vm.frame_ready, "should reach FRAME within 5M steps (took {})", steps);
+    assert!(
+        vm.frame_ready,
+        "should reach FRAME within 5M steps (took {})",
+        steps
+    );
     eprintln!("First frame rendered in {} steps", steps);
 
     // Screen should not be all black
     let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
     eprintln!("Non-black pixels: {}/{}", non_black, 256 * 256);
-    assert!(non_black > 1000, "screen should have rendered terrain (got {} non-black)", non_black);
+    assert!(
+        non_black > 1000,
+        "screen should have rendered terrain (got {} non-black)",
+        non_black
+    );
 
     // Verify heightmap was generated at 0x4000
     let hm_base = 0x4000usize;
@@ -36642,11 +36661,22 @@ fn test_terrain_flyover_renders_frame() {
         }
     }
     eprintln!("Heightmap range: {} - {}", hm_min, hm_max);
-    assert!(hm_min >= 12, "heightmap min should be >= 12, got {}", hm_min);
-    assert!(hm_max <= 75, "heightmap max should be <= 75, got {}", hm_max);
+    assert!(
+        hm_min >= 12,
+        "heightmap min should be >= 12, got {}",
+        hm_min
+    );
+    assert!(
+        hm_max <= 75,
+        "heightmap max should be <= 75, got {}",
+        hm_max
+    );
 
     // Verify camera state
-    assert_eq!(vm.ram[0x6000], 3, "camera_z should advance by speed(3) after first frame");
+    assert_eq!(
+        vm.ram[0x6000], 3,
+        "camera_z should advance by speed(3) after first frame"
+    );
     assert_eq!(vm.ram[0x6001], 80, "camera_alt should be 80");
     assert_eq!(vm.ram[0x6002], 3, "camera_speed should be 3");
 
@@ -36655,18 +36685,31 @@ fn test_terrain_flyover_renders_frame() {
     // Water: 0x2266DD/0x113366/0x0A1A33, Grass: 0x00CC44/0x006622/0x002211
     // Mountain: 0xAA8855/0x554422/0x221100, Sky: 0x0A0A2A
     let terrain_colors = [
-        0x2266DDu32, 0x113366u32, 0x0A1A33u32,  // water
-        0x00CC44u32, 0x006622u32, 0x002211u32,  // grass
-        0xAA8855u32, 0x554422u32, 0x221100u32,  // mountain
+        0x2266DDu32,
+        0x113366u32,
+        0x0A1A33u32, // water
+        0x00CC44u32,
+        0x006622u32,
+        0x002211u32, // grass
+        0xAA8855u32,
+        0x554422u32,
+        0x221100u32, // mountain
     ];
-    let color_counts: Vec<(u32, usize)> = terrain_colors.iter()
+    let color_counts: Vec<(u32, usize)> = terrain_colors
+        .iter()
         .map(|&c| (c, vm.screen.iter().filter(|&&p| p == c).count()))
         .collect();
     for &(c, n) in &color_counts {
-        if n > 0 { eprintln!("  biome 0x{:06X}: {} pixels", c, n); }
+        if n > 0 {
+            eprintln!("  biome 0x{:06X}: {} pixels", c, n);
+        }
     }
     let total_terrain: usize = color_counts.iter().map(|&(_, n)| n).sum();
-    assert!(total_terrain > 100, "should have >100 terrain pixels, got {}", total_terrain);
+    assert!(
+        total_terrain > 100,
+        "should have >100 terrain pixels, got {}",
+        total_terrain
+    );
 
     // Second frame: camera should advance
     vm.frame_ready = false;
@@ -36682,6 +36725,12 @@ fn test_terrain_flyover_renders_frame() {
         }
     }
     assert!(vm.frame_ready, "second frame should render");
-    eprintln!("Second frame in {} steps, camera_z now {}", steps2, vm.ram[0x6000]);
-    assert_eq!(vm.ram[0x6000], 6, "camera_z should advance by speed (3) per frame");
+    eprintln!(
+        "Second frame in {} steps, camera_z now {}",
+        steps2, vm.ram[0x6000]
+    );
+    assert_eq!(
+        vm.ram[0x6000], 6,
+        "camera_z should advance by speed (3) per frame"
+    );
 }

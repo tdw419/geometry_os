@@ -418,7 +418,16 @@ mod tests {
         let mut buf = TraceBuffer::new(TRACE_CAPACITY);
         // Push 10 entries
         for i in 0..10 {
-            buf.push(make_entry(0x1000 + i * 4, 0, Operation::Addi { rd: 1, rs1: 0, imm: i as i32 }, i as u64));
+            buf.push(make_entry(
+                0x1000 + i * 4,
+                0,
+                Operation::Addi {
+                    rd: 1,
+                    rs1: 0,
+                    imm: i as i32,
+                },
+                i as u64,
+            ));
         }
         assert_eq!(buf.len(), 10);
         assert_eq!(buf.total_written(), 10);
@@ -440,8 +449,17 @@ mod tests {
     #[test]
     fn entry_captures_register_changes() {
         let entry = make_entry_with_regs(
-            0x1000, 0, Operation::Addi { rd: 5, rs1: 0, imm: 100 },
-            5, 0, 100, 0
+            0x1000,
+            0,
+            Operation::Addi {
+                rd: 5,
+                rs1: 0,
+                imm: 100,
+            },
+            5,
+            0,
+            100,
+            0,
         );
         assert_eq!(entry.regs_before[5], 0);
         assert_eq!(entry.regs_after[5], 100);
@@ -470,67 +488,326 @@ mod tests {
 
     #[test]
     fn op_name_basic_r_type() {
-        assert_eq!(op_name(&Operation::Add { rd: 0, rs1: 0, rs2: 0 }), "ADD");
-        assert_eq!(op_name(&Operation::Sub { rd: 0, rs1: 0, rs2: 0 }), "SUB");
-        assert_eq!(op_name(&Operation::Xor { rd: 0, rs1: 0, rs2: 0 }), "XOR");
-        assert_eq!(op_name(&Operation::Or { rd: 0, rs1: 0, rs2: 0 }), "OR");
-        assert_eq!(op_name(&Operation::And { rd: 0, rs1: 0, rs2: 0 }), "AND");
+        assert_eq!(
+            op_name(&Operation::Add {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "ADD"
+        );
+        assert_eq!(
+            op_name(&Operation::Sub {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "SUB"
+        );
+        assert_eq!(
+            op_name(&Operation::Xor {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "XOR"
+        );
+        assert_eq!(
+            op_name(&Operation::Or {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "OR"
+        );
+        assert_eq!(
+            op_name(&Operation::And {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "AND"
+        );
     }
 
     #[test]
     fn op_name_shifts() {
-        assert_eq!(op_name(&Operation::Sll { rd: 0, rs1: 0, rs2: 0 }), "SLL");
-        assert_eq!(op_name(&Operation::Srl { rd: 0, rs1: 0, rs2: 0 }), "SRL");
-        assert_eq!(op_name(&Operation::Sra { rd: 0, rs1: 0, rs2: 0 }), "SRA");
+        assert_eq!(
+            op_name(&Operation::Sll {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "SLL"
+        );
+        assert_eq!(
+            op_name(&Operation::Srl {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "SRL"
+        );
+        assert_eq!(
+            op_name(&Operation::Sra {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "SRA"
+        );
     }
 
     #[test]
     fn op_name_multiply() {
-        assert_eq!(op_name(&Operation::Mul { rd: 0, rs1: 0, rs2: 0 }), "MUL");
-        assert_eq!(op_name(&Operation::Mulh { rd: 0, rs1: 0, rs2: 0 }), "MULH");
-        assert_eq!(op_name(&Operation::Mulhu { rd: 0, rs1: 0, rs2: 0 }), "MULHU");
-        assert_eq!(op_name(&Operation::Div { rd: 0, rs1: 0, rs2: 0 }), "DIV");
-        assert_eq!(op_name(&Operation::Divu { rd: 0, rs1: 0, rs2: 0 }), "DIVU");
-        assert_eq!(op_name(&Operation::Rem { rd: 0, rs1: 0, rs2: 0 }), "REM");
-        assert_eq!(op_name(&Operation::Remu { rd: 0, rs1: 0, rs2: 0 }), "REMU");
+        assert_eq!(
+            op_name(&Operation::Mul {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "MUL"
+        );
+        assert_eq!(
+            op_name(&Operation::Mulh {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "MULH"
+        );
+        assert_eq!(
+            op_name(&Operation::Mulhu {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "MULHU"
+        );
+        assert_eq!(
+            op_name(&Operation::Div {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "DIV"
+        );
+        assert_eq!(
+            op_name(&Operation::Divu {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "DIVU"
+        );
+        assert_eq!(
+            op_name(&Operation::Rem {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "REM"
+        );
+        assert_eq!(
+            op_name(&Operation::Remu {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "REMU"
+        );
     }
 
     #[test]
     fn op_name_immediate() {
-        assert_eq!(op_name(&Operation::Addi { rd: 0, rs1: 0, imm: 0 }), "ADDI");
-        assert_eq!(op_name(&Operation::Slti { rd: 0, rs1: 0, imm: 0 }), "SLTI");
-        assert_eq!(op_name(&Operation::Xori { rd: 0, rs1: 0, imm: 0 }), "XORI");
-        assert_eq!(op_name(&Operation::Ori { rd: 0, rs1: 0, imm: 0 }), "ORI");
-        assert_eq!(op_name(&Operation::Andi { rd: 0, rs1: 0, imm: 0 }), "ANDI");
+        assert_eq!(
+            op_name(&Operation::Addi {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "ADDI"
+        );
+        assert_eq!(
+            op_name(&Operation::Slti {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "SLTI"
+        );
+        assert_eq!(
+            op_name(&Operation::Xori {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "XORI"
+        );
+        assert_eq!(
+            op_name(&Operation::Ori {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "ORI"
+        );
+        assert_eq!(
+            op_name(&Operation::Andi {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "ANDI"
+        );
     }
 
     #[test]
     fn op_name_shift_immediate() {
-        assert_eq!(op_name(&Operation::Slli { rd: 0, rs1: 0, shamt: 0 }), "SLLI");
-        assert_eq!(op_name(&Operation::Srli { rd: 0, rs1: 0, shamt: 0 }), "SRLI");
-        assert_eq!(op_name(&Operation::Srai { rd: 0, rs1: 0, shamt: 0 }), "SRAI");
+        assert_eq!(
+            op_name(&Operation::Slli {
+                rd: 0,
+                rs1: 0,
+                shamt: 0
+            }),
+            "SLLI"
+        );
+        assert_eq!(
+            op_name(&Operation::Srli {
+                rd: 0,
+                rs1: 0,
+                shamt: 0
+            }),
+            "SRLI"
+        );
+        assert_eq!(
+            op_name(&Operation::Srai {
+                rd: 0,
+                rs1: 0,
+                shamt: 0
+            }),
+            "SRAI"
+        );
     }
 
     #[test]
     fn op_name_load_store() {
-        assert_eq!(op_name(&Operation::Lb { rd: 0, rs1: 0, imm: 0 }), "LB");
-        assert_eq!(op_name(&Operation::Lh { rd: 0, rs1: 0, imm: 0 }), "LH");
-        assert_eq!(op_name(&Operation::Lw { rd: 0, rs1: 0, imm: 0 }), "LW");
-        assert_eq!(op_name(&Operation::Lbu { rd: 0, rs1: 0, imm: 0 }), "LBU");
-        assert_eq!(op_name(&Operation::Lhu { rd: 0, rs1: 0, imm: 0 }), "LHU");
-        assert_eq!(op_name(&Operation::Sb { rs1: 0, rs2: 0, imm: 0 }), "SB");
-        assert_eq!(op_name(&Operation::Sh { rs1: 0, rs2: 0, imm: 0 }), "SH");
-        assert_eq!(op_name(&Operation::Sw { rs1: 0, rs2: 0, imm: 0 }), "SW");
+        assert_eq!(
+            op_name(&Operation::Lb {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "LB"
+        );
+        assert_eq!(
+            op_name(&Operation::Lh {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "LH"
+        );
+        assert_eq!(
+            op_name(&Operation::Lw {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "LW"
+        );
+        assert_eq!(
+            op_name(&Operation::Lbu {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "LBU"
+        );
+        assert_eq!(
+            op_name(&Operation::Lhu {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "LHU"
+        );
+        assert_eq!(
+            op_name(&Operation::Sb {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "SB"
+        );
+        assert_eq!(
+            op_name(&Operation::Sh {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "SH"
+        );
+        assert_eq!(
+            op_name(&Operation::Sw {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "SW"
+        );
     }
 
     #[test]
     fn op_name_branch() {
-        assert_eq!(op_name(&Operation::Beq { rs1: 0, rs2: 0, imm: 0 }), "BEQ");
-        assert_eq!(op_name(&Operation::Bne { rs1: 0, rs2: 0, imm: 0 }), "BNE");
-        assert_eq!(op_name(&Operation::Blt { rs1: 0, rs2: 0, imm: 0 }), "BLT");
-        assert_eq!(op_name(&Operation::Bge { rs1: 0, rs2: 0, imm: 0 }), "BGE");
-        assert_eq!(op_name(&Operation::Bltu { rs1: 0, rs2: 0, imm: 0 }), "BLTU");
-        assert_eq!(op_name(&Operation::Bgeu { rs1: 0, rs2: 0, imm: 0 }), "BGEU");
+        assert_eq!(
+            op_name(&Operation::Beq {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "BEQ"
+        );
+        assert_eq!(
+            op_name(&Operation::Bne {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "BNE"
+        );
+        assert_eq!(
+            op_name(&Operation::Blt {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "BLT"
+        );
+        assert_eq!(
+            op_name(&Operation::Bge {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "BGE"
+        );
+        assert_eq!(
+            op_name(&Operation::Bltu {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "BLTU"
+        );
+        assert_eq!(
+            op_name(&Operation::Bgeu {
+                rs1: 0,
+                rs2: 0,
+                imm: 0
+            }),
+            "BGEU"
+        );
     }
 
     #[test]
@@ -542,7 +819,14 @@ mod tests {
     #[test]
     fn op_name_jump() {
         assert_eq!(op_name(&Operation::Jal { rd: 0, imm: 0 }), "JAL");
-        assert_eq!(op_name(&Operation::Jalr { rd: 0, rs1: 0, imm: 0 }), "JALR");
+        assert_eq!(
+            op_name(&Operation::Jalr {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "JALR"
+        );
     }
 
     #[test]
@@ -553,36 +837,200 @@ mod tests {
         assert_eq!(op_name(&Operation::Nop), "NOP");
         assert_eq!(op_name(&Operation::Mret), "MRET");
         assert_eq!(op_name(&Operation::Sret), "SRET");
-        assert_eq!(op_name(&Operation::SfenceVma { rs1: 0, rs2: 0 }), "SFENCE.VMA");
-        assert_eq!(op_name(&Operation::Csrrw { rd: 0, csr: 0, rs1: 0 }), "CSRRW");
-        assert_eq!(op_name(&Operation::Csrrs { rd: 0, csr: 0, rs1: 0 }), "CSRRS");
-        assert_eq!(op_name(&Operation::Csrrc { rd: 0, csr: 0, rs1: 0 }), "CSRRC");
-        assert_eq!(op_name(&Operation::Csrrwi { rd: 0, uimm: 0, csr: 0 }), "CSRRWI");
-        assert_eq!(op_name(&Operation::Csrrsi { rd: 0, uimm: 0, csr: 0 }), "CSRRSI");
-        assert_eq!(op_name(&Operation::Csrrci { rd: 0, uimm: 0, csr: 0 }), "CSRRCI");
+        assert_eq!(
+            op_name(&Operation::SfenceVma { rs1: 0, rs2: 0 }),
+            "SFENCE.VMA"
+        );
+        assert_eq!(
+            op_name(&Operation::Csrrw {
+                rd: 0,
+                csr: 0,
+                rs1: 0
+            }),
+            "CSRRW"
+        );
+        assert_eq!(
+            op_name(&Operation::Csrrs {
+                rd: 0,
+                csr: 0,
+                rs1: 0
+            }),
+            "CSRRS"
+        );
+        assert_eq!(
+            op_name(&Operation::Csrrc {
+                rd: 0,
+                csr: 0,
+                rs1: 0
+            }),
+            "CSRRC"
+        );
+        assert_eq!(
+            op_name(&Operation::Csrrwi {
+                rd: 0,
+                uimm: 0,
+                csr: 0
+            }),
+            "CSRRWI"
+        );
+        assert_eq!(
+            op_name(&Operation::Csrrsi {
+                rd: 0,
+                uimm: 0,
+                csr: 0
+            }),
+            "CSRRSI"
+        );
+        assert_eq!(
+            op_name(&Operation::Csrrci {
+                rd: 0,
+                uimm: 0,
+                csr: 0
+            }),
+            "CSRRCI"
+        );
         assert_eq!(op_name(&Operation::Invalid(0)), "INVALID");
     }
 
     #[test]
     fn op_name_amo() {
-        assert_eq!(op_name(&Operation::LrW { rd: 0, rs1: 0, aq: false, rl: false }), "LR.W");
-        assert_eq!(op_name(&Operation::ScW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "SC.W");
-        assert_eq!(op_name(&Operation::AmoswapW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOSWAP.W");
-        assert_eq!(op_name(&Operation::AmoaddW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOADD.W");
-        assert_eq!(op_name(&Operation::AmoxorW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOXOR.W");
-        assert_eq!(op_name(&Operation::AmoandW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOAND.W");
-        assert_eq!(op_name(&Operation::AmoorW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOOR.W");
-        assert_eq!(op_name(&Operation::AmominW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOMIN.W");
-        assert_eq!(op_name(&Operation::AmomaxW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOMAX.W");
-        assert_eq!(op_name(&Operation::AmominuW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOMINU.W");
-        assert_eq!(op_name(&Operation::AmomaxuW { rd: 0, rs1: 0, rs2: 0, aq: false, rl: false }), "AMOMAXU.W");
+        assert_eq!(
+            op_name(&Operation::LrW {
+                rd: 0,
+                rs1: 0,
+                aq: false,
+                rl: false
+            }),
+            "LR.W"
+        );
+        assert_eq!(
+            op_name(&Operation::ScW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "SC.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmoswapW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOSWAP.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmoaddW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOADD.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmoxorW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOXOR.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmoandW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOAND.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmoorW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOOR.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmominW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOMIN.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmomaxW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOMAX.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmominuW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOMINU.W"
+        );
+        assert_eq!(
+            op_name(&Operation::AmomaxuW {
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                aq: false,
+                rl: false
+            }),
+            "AMOMAXU.W"
+        );
     }
 
     #[test]
     fn op_name_compare() {
-        assert_eq!(op_name(&Operation::Slt { rd: 0, rs1: 0, rs2: 0 }), "SLT");
-        assert_eq!(op_name(&Operation::Sltu { rd: 0, rs1: 0, rs2: 0 }), "SLTU");
-        assert_eq!(op_name(&Operation::Sltiu { rd: 0, rs1: 0, imm: 0 }), "SLTIU");
+        assert_eq!(
+            op_name(&Operation::Slt {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "SLT"
+        );
+        assert_eq!(
+            op_name(&Operation::Sltu {
+                rd: 0,
+                rs1: 0,
+                rs2: 0
+            }),
+            "SLTU"
+        );
+        assert_eq!(
+            op_name(&Operation::Sltiu {
+                rd: 0,
+                rs1: 0,
+                imm: 0
+            }),
+            "SLTIU"
+        );
     }
 
     // ---- format_entry ----
@@ -605,8 +1053,17 @@ mod tests {
     #[test]
     fn format_entry_with_register_changes() {
         let entry = make_entry_with_regs(
-            0x1000, 0x00500093, Operation::Addi { rd: 1, rs1: 0, imm: 5 },
-            1, 0, 5, 10
+            0x1000,
+            0x00500093,
+            Operation::Addi {
+                rd: 1,
+                rs1: 0,
+                imm: 5,
+            },
+            1,
+            0,
+            5,
+            10,
         );
         let s = format_entry(&entry);
         assert!(s.contains("ADDI"));
@@ -615,7 +1072,16 @@ mod tests {
 
     #[test]
     fn format_entry_multiple_register_changes() {
-        let mut entry = make_entry(0x2000, 0, Operation::Add { rd: 3, rs1: 1, rs2: 2 }, 100);
+        let mut entry = make_entry(
+            0x2000,
+            0,
+            Operation::Add {
+                rd: 3,
+                rs1: 1,
+                rs2: 2,
+            },
+            100,
+        );
         entry.regs_before[1] = 10;
         entry.regs_after[1] = 20;
         entry.regs_before[2] = 5;
@@ -631,7 +1097,16 @@ mod tests {
 
     #[test]
     fn format_entry_with_fault_result() {
-        let mut entry = make_entry(0xBAD_ADDD, 0, Operation::Lw { rd: 1, rs1: 2, imm: 100 }, 50);
+        let mut entry = make_entry(
+            0xBAD_ADDD,
+            0,
+            Operation::Lw {
+                rd: 1,
+                rs1: 2,
+                imm: 100,
+            },
+            50,
+        );
         entry.result = StepResult::LoadFault;
         let s = format_entry(&entry);
         assert!(s.contains("LOAD_FAULT"));

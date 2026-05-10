@@ -75,7 +75,7 @@ impl Vm {
         let mode_reg = self.fetch() as usize;
 
         if path_reg >= NUM_REGS || mode_reg >= NUM_REGS {
-            self.regs[0] = 0xFFFFFFFF;
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
@@ -86,13 +86,13 @@ impl Vm {
         let path_str = match Self::read_string_static(&self.ram, path_addr) {
             Some(s) => s,
             None => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_EINVAL);
                 return;
             }
         };
 
         if path_str.is_empty() || path_str.len() > MAX_PATH_LEN {
-            self.regs[0] = 0xFFFFFFFF;
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
@@ -100,7 +100,7 @@ impl Vm {
         let safe_path = match Self::sandbox_check(&path_str) {
             Some(p) => p,
             None => {
-                self.regs[0] = 0xFFFFFFFE; // EACCES
+                self.regs[0] = geos_errno(GEOS_EPERM);
                 return;
             }
         };
@@ -110,7 +110,7 @@ impl Vm {
         let slot = match slot {
             Some(s) => s,
             None => {
-                self.regs[0] = 0xFFFFFFFD; // EMFILE (too many open files)
+                self.regs[0] = geos_errno(GEOS_ENFILE);
                 return;
             }
         };
@@ -135,7 +135,7 @@ impl Vm {
                 })
             }
             _ => {
-                self.regs[0] = 0xFFFFFFFF; // EINVAL
+                self.regs[0] = geos_errno(GEOS_EINVAL);
                 return;
             }
         };
@@ -146,7 +146,7 @@ impl Vm {
                 self.regs[0] = slot as u32;
             }
             Err(_) => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_EIO);
             }
         }
     }
@@ -158,20 +158,20 @@ impl Vm {
     pub(crate) fn op_fsclose(&mut self) {
         let handle_reg = self.fetch() as usize;
         if handle_reg >= NUM_REGS {
-            self.regs[0] = 0xFFFFFFFF;
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
         let handle = self.regs[handle_reg] as usize;
         if handle >= self.host_file_handles.len() {
-            self.regs[0] = 0xFFFFFFFF;
+            self.regs[0] = geos_errno(GEOS_EBADF);
             return;
         }
 
         if self.host_file_handles[handle].take().is_some() {
             self.regs[0] = 0; // success
         } else {
-            self.regs[0] = 0xFFFFFFFF; // EBADF
+            self.regs[0] = geos_errno(GEOS_EBADF);
         }
     }
 
@@ -186,7 +186,7 @@ impl Vm {
         let len_reg = self.fetch() as usize;
 
         if handle_reg >= NUM_REGS || buf_reg >= NUM_REGS || len_reg >= NUM_REGS {
-            self.regs[0] = 0xFFFFFFFF;
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
@@ -194,15 +194,19 @@ impl Vm {
         let buf_addr = self.regs[buf_reg] as usize;
         let max_len = self.regs[len_reg] as usize;
 
-        if handle >= self.host_file_handles.len() || max_len > MAX_IO_CHUNK {
-            self.regs[0] = 0xFFFFFFFF;
+        if handle >= self.host_file_handles.len() {
+            self.regs[0] = geos_errno(GEOS_EBADF);
+            return;
+        }
+        if max_len > MAX_IO_CHUNK {
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
         let file_ref = match self.host_file_handles.get_mut(handle) {
             Some(Some((f, _mode))) => f,
             _ => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_EBADF);
                 return;
             }
         };
@@ -219,7 +223,7 @@ impl Vm {
                 self.regs[0] = n as u32;
             }
             Err(_) => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_EIO);
             }
         }
     }
@@ -235,7 +239,7 @@ impl Vm {
         let len_reg = self.fetch() as usize;
 
         if handle_reg >= NUM_REGS || buf_reg >= NUM_REGS || len_reg >= NUM_REGS {
-            self.regs[0] = 0xFFFFFFFF;
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
@@ -243,15 +247,19 @@ impl Vm {
         let buf_addr = self.regs[buf_reg] as usize;
         let len = self.regs[len_reg] as usize;
 
-        if handle >= self.host_file_handles.len() || len > MAX_IO_CHUNK {
-            self.regs[0] = 0xFFFFFFFF;
+        if handle >= self.host_file_handles.len() {
+            self.regs[0] = geos_errno(GEOS_EBADF);
+            return;
+        }
+        if len > MAX_IO_CHUNK {
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
         let file_ref = match self.host_file_handles.get_mut(handle) {
             Some(Some((f, _mode))) => f,
             _ => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_EBADF);
                 return;
             }
         };
@@ -270,13 +278,13 @@ impl Vm {
         match file_ref.write_all(&tmp_buf) {
             Ok(()) => {
                 if let Err(_) = file_ref.flush() {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EIO);
                     return;
                 }
                 self.regs[0] = tmp_buf.len() as u32;
             }
             Err(_) => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_EIO);
             }
         }
     }
@@ -292,7 +300,7 @@ impl Vm {
         let max_len_reg = self.fetch() as usize;
 
         if path_reg >= NUM_REGS || buf_reg >= NUM_REGS || max_len_reg >= NUM_REGS {
-            self.regs[0] = 0xFFFFFFFF;
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
@@ -301,7 +309,7 @@ impl Vm {
         let max_len = self.regs[max_len_reg] as usize;
 
         if max_len > MAX_DIR_BUF {
-            self.regs[0] = 0xFFFFFFFF;
+            self.regs[0] = geos_errno(GEOS_EINVAL);
             return;
         }
 
@@ -309,7 +317,7 @@ impl Vm {
         let path_str = match Self::read_string_static(&self.ram, path_addr) {
             Some(s) => s,
             None => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_EINVAL);
                 return;
             }
         };
@@ -318,7 +326,7 @@ impl Vm {
         let safe_path = match Self::sandbox_check(&path_str) {
             Some(p) => p,
             None => {
-                self.regs[0] = 0xFFFFFFFE; // EACCES
+                self.regs[0] = geos_errno(GEOS_EPERM);
                 return;
             }
         };
@@ -327,7 +335,7 @@ impl Vm {
         let entries = match std::fs::read_dir(&safe_path) {
             Ok(rd) => rd,
             Err(_) => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_EIO);
                 return;
             }
         };
@@ -441,7 +449,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_ne!(vm.regs[0], 0xFFFFFFFF, "FSOPEN create should succeed");
+        assert!(!is_geos_errno(vm.regs[0]), "FSOPEN create should succeed");
         let handle = vm.regs[0] as usize;
         assert!(
             handle < crate::vm::types::MAX_HOST_FILES,
@@ -475,7 +483,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_ne!(vm.regs[0], 0xFFFFFFFF, "FSOPEN read should succeed");
+        assert!(!is_geos_errno(vm.regs[0]), "FSOPEN read should succeed");
         let handle = vm.regs[0] as usize;
 
         // Clean up
@@ -501,7 +509,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_ne!(vm.regs[0], 0xFFFFFFFF, "FSOPEN append should succeed");
+        assert!(!is_geos_errno(vm.regs[0]), "FSOPEN append should succeed");
 
         // Clean up
         let handle = vm.regs[0] as usize;
@@ -526,7 +534,10 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_ne!(vm.regs[0], 0xFFFFFFFF, "FSOPEN read+write should succeed");
+        assert!(
+            !is_geos_errno(vm.regs[0]),
+            "FSOPEN read+write should succeed"
+        );
 
         // Clean up
         let handle = vm.regs[0] as usize;
@@ -551,7 +562,10 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF, "invalid mode should return error");
+        assert!(
+            is_geos_errno(vm.regs[0]),
+            "invalid mode should return error"
+        );
 
         let _ = std::fs::remove_dir(&dir);
     }
@@ -568,8 +582,9 @@ mod tests {
         vm.op_fsopen();
 
         assert_eq!(
-            vm.regs[0], 0xFFFFFFFE,
-            "sandbox escape should return EACCES"
+            vm.regs[0],
+            geos_errno(GEOS_EPERM),
+            "sandbox escape should return EPERM"
         );
     }
 
@@ -585,7 +600,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF, "empty path should return error");
+        assert!(is_geos_errno(vm.regs[0]), "empty path should return error");
     }
 
     #[test]
@@ -601,8 +616,8 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_eq!(
-            vm.regs[0], 0xFFFFFFFF,
+        assert!(
+            is_geos_errno(vm.regs[0]),
             "reading nonexistent file should fail"
         );
     }
@@ -651,7 +666,10 @@ mod tests {
         vm.ram[pc] = 5;
         vm.op_fsclose();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF, "invalid handle should return error");
+        assert!(
+            is_geos_errno(vm.regs[0]),
+            "invalid handle should return error"
+        );
     }
 
     #[test]
@@ -663,7 +681,10 @@ mod tests {
         vm.ram[pc] = 5;
         vm.op_fsclose();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF, "double-close should return EBADF");
+        assert!(
+            is_geos_errno(vm.regs[0]),
+            "double-close should return EBADF"
+        );
     }
 
     // ── FSREAD tests ───────────────────────────────────────────────
@@ -686,7 +707,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
         let handle = vm.regs[0] as usize;
-        assert_ne!(handle as u32, 0xFFFFFFFF);
+        assert!(!is_geos_errno(handle as u32));
 
         // Read 6 bytes into buf at 0x6000
         vm.regs[7] = handle as u32;
@@ -762,7 +783,7 @@ mod tests {
         vm.ram[pc + 2] = 9;
         vm.op_fsread();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert!(is_geos_errno(vm.regs[0]));
     }
 
     #[test]
@@ -778,7 +799,10 @@ mod tests {
         vm.ram[pc + 2] = 9;
         vm.op_fsread();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF, "should reject len > MAX_IO_CHUNK");
+        assert!(
+            is_geos_errno(vm.regs[0]),
+            "should reject len > MAX_IO_CHUNK"
+        );
     }
 
     // ── FSWRITE tests ──────────────────────────────────────────────
@@ -800,7 +824,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
         let handle = vm.regs[0] as usize;
-        assert_ne!(handle as u32, 0xFFFFFFFF);
+        assert!(!is_geos_errno(handle as u32));
 
         // Write "hello" into RAM at 0x6000
         let msg = b"hello";
@@ -887,7 +911,7 @@ mod tests {
         vm.ram[pc + 2] = 9;
         vm.op_fswrite();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert!(is_geos_errno(vm.regs[0]));
     }
 
     #[test]
@@ -902,7 +926,7 @@ mod tests {
         vm.ram[pc + 2] = 9;
         vm.op_fswrite();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert!(is_geos_errno(vm.regs[0]));
     }
 
     // ── FSLS tests ─────────────────────────────────────────────────
@@ -927,7 +951,7 @@ mod tests {
         vm.ram[pc + 2] = 7;
         vm.op_fsls();
 
-        assert_ne!(vm.regs[0], 0xFFFFFFFF, "FSLS should succeed");
+        assert!(!is_geos_errno(vm.regs[0]), "FSLS should succeed");
         let bytes_written = vm.regs[0] as usize;
         assert!(bytes_written > 0, "should write some bytes");
 
@@ -970,8 +994,8 @@ mod tests {
         vm.ram[pc + 2] = 7;
         vm.op_fsls();
 
-        assert_eq!(
-            vm.regs[0], 0xFFFFFFFF,
+        assert!(
+            is_geos_errno(vm.regs[0]),
             "nonexistent dir should return error"
         );
     }
@@ -990,8 +1014,9 @@ mod tests {
         vm.op_fsls();
 
         assert_eq!(
-            vm.regs[0], 0xFFFFFFFE,
-            "sandbox escape should return EACCES"
+            vm.regs[0],
+            geos_errno(GEOS_EPERM),
+            "sandbox escape should return EPERM"
         );
     }
 
@@ -1009,8 +1034,8 @@ mod tests {
         vm.ram[pc + 2] = 7;
         vm.op_fsls();
 
-        assert_eq!(
-            vm.regs[0], 0xFFFFFFFF,
+        assert!(
+            is_geos_errno(vm.regs[0]),
             "max_len > MAX_DIR_BUF should return error"
         );
     }
@@ -1064,7 +1089,7 @@ mod tests {
         vm.ram[pc4 + 1] = 6;
         vm.op_fsopen();
         let read_handle = vm.regs[0] as usize;
-        assert_ne!(read_handle as u32, 0xFFFFFFFF);
+        assert!(!is_geos_errno(read_handle as u32));
 
         // Read back
         vm.regs[7] = read_handle as u32;
@@ -1110,7 +1135,7 @@ mod tests {
             vm.ram[pc] = 5;
             vm.ram[pc + 1] = 6;
             vm.op_fsopen();
-            assert_ne!(vm.regs[0], 0xFFFFFFFF, "file {} should open", i);
+            assert!(!is_geos_errno(vm.regs[0]), "file {} should open", i);
             handles.push(vm.regs[0] as usize);
         }
 
@@ -1138,8 +1163,8 @@ mod tests {
         vm.ram[pc + 1] = 0;
         vm.op_fsopen();
 
-        assert_eq!(
-            vm.regs[0], 0xFFFFFFFF,
+        assert!(
+            is_geos_errno(vm.regs[0]),
             "out-of-range register should return error"
         );
     }
@@ -1151,7 +1176,7 @@ mod tests {
         vm.ram[pc] = 32; // invalid reg
         vm.op_fsclose();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert!(is_geos_errno(vm.regs[0]));
     }
 
     #[test]
@@ -1163,7 +1188,7 @@ mod tests {
         vm.ram[pc + 2] = 0;
         vm.op_fsread();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert!(is_geos_errno(vm.regs[0]));
     }
 
     #[test]
@@ -1175,7 +1200,7 @@ mod tests {
         vm.ram[pc + 2] = 0;
         vm.op_fswrite();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert!(is_geos_errno(vm.regs[0]));
     }
 
     #[test]
@@ -1187,7 +1212,7 @@ mod tests {
         vm.ram[pc + 2] = 0;
         vm.op_fsls();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF);
+        assert!(is_geos_errno(vm.regs[0]));
     }
 
     // ── EMFILE: all slots occupied ──────────────────────────────────
@@ -1210,8 +1235,8 @@ mod tests {
             vm.ram[pc] = 5;
             vm.ram[pc + 1] = 6;
             vm.op_fsopen();
-            assert_ne!(
-                vm.regs[0], 0xFFFFFFFF,
+            assert!(
+                !is_geos_errno(vm.regs[0]),
                 "slot {} should open successfully",
                 i
             );
@@ -1230,7 +1255,7 @@ mod tests {
 
         assert_eq!(
             vm.regs[0],
-            0xFFFFFFFD, // EMFILE
+            geos_errno(GEOS_ENFILE), // EMFILE
             "opening file when all {} slots are full should return EMFILE",
             MAX_HOST_FILES
         );
@@ -1287,7 +1312,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
         let handle = vm.regs[0] as usize;
-        assert_ne!(handle as u32, 0xFFFFFFFF, "write open should succeed");
+        assert!(!is_geos_errno(handle as u32), "write open should succeed");
 
         // Close without writing anything
         vm.host_file_handles[handle] = None;
@@ -1300,7 +1325,7 @@ mod tests {
         vm.ram[pc2 + 1] = 6;
         vm.op_fsopen();
         let read_handle = vm.regs[0] as usize;
-        assert_ne!(read_handle as u32, 0xFFFFFFFF);
+        assert!(!is_geos_errno(read_handle as u32));
 
         // Read up to 100 bytes — should get 0
         vm.regs[7] = read_handle as u32;
@@ -1386,8 +1411,8 @@ mod tests {
         vm.ram[pc + 2] = 9;
         vm.op_fsread();
 
-        assert_eq!(
-            vm.regs[0], 0xFFFFFFFF,
+        assert!(
+            is_geos_errno(vm.regs[0]),
             "reading from never-opened handle should return error"
         );
     }
@@ -1409,8 +1434,8 @@ mod tests {
         vm.ram[pc + 2] = 9;
         vm.op_fswrite();
 
-        assert_eq!(
-            vm.regs[0], 0xFFFFFFFF,
+        assert!(
+            is_geos_errno(vm.regs[0]),
             "writing to never-opened handle should return error"
         );
     }
@@ -1526,8 +1551,8 @@ mod tests {
         vm.ram[pc] = 5;
         vm.op_fsclose();
 
-        assert_eq!(
-            vm.regs[0], 0xFFFFFFFF,
+        assert!(
+            is_geos_errno(vm.regs[0]),
             "closing never-opened handle should return error"
         );
     }
@@ -1689,7 +1714,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
         let handle = vm.regs[0] as usize;
-        assert_ne!(handle as u32, 0xFFFFFFFF, "RW open should succeed");
+        assert!(!is_geos_errno(handle as u32), "RW open should succeed");
 
         // Write "HELLO"
         for (i, &b) in b"HELLO".iter().enumerate() {
@@ -1761,7 +1786,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_ne!(vm.regs[0], 0xFFFFFFFF, "relative path should resolve");
+        assert!(!is_geos_errno(vm.regs[0]), "relative path should resolve");
         let handle = vm.regs[0] as usize;
 
         // Read to verify
@@ -1811,7 +1836,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_ne!(vm.regs[0], 0xFFFFFFFF, "tilde path should work");
+        assert!(!is_geos_errno(vm.regs[0]), "tilde path should work");
         let handle = vm.regs[0] as usize;
         vm.host_file_handles[handle] = None;
 
@@ -1834,7 +1859,7 @@ mod tests {
         vm.ram[pc + 1] = 6;
         vm.op_fsopen();
 
-        assert_eq!(vm.regs[0], 0xFFFFFFFF, "path > 512 chars should fail");
+        assert!(is_geos_errno(vm.regs[0]), "path > 512 chars should fail");
     }
 
     // ── Multiple sequential writes to same file ────────────────────
@@ -1909,7 +1934,7 @@ mod tests {
         vm.ram[pc + 2] = 7;
         vm.op_fsls();
 
-        assert_ne!(vm.regs[0], 0xFFFFFFFF);
+        assert!(!is_geos_errno(vm.regs[0]));
         let bytes_written = vm.regs[0] as usize;
         let mut buf = Vec::new();
         for i in 0..bytes_written {
