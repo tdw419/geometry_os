@@ -9,6 +9,8 @@ mod alu;
 #[cfg(test)]
 mod alu_tests;
 mod atomic;
+#[cfg(test)]
+mod atomic_tests;
 mod execute;
 mod loadstore;
 mod system;
