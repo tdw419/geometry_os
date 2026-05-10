@@ -752,3 +752,563 @@ pub struct VmSnapshot {
     /// Step number when this snapshot was taken (from trace buffer).
     pub step_number: u64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── TraceBuffer: construction and basic operations ──────────
+
+    #[test]
+    fn trace_buffer_new_empty() {
+        let buf = TraceBuffer::new(100);
+        assert!(buf.is_empty());
+        assert_eq!(buf.len(), 0);
+        assert_eq!(buf.step_counter(), 0);
+    }
+
+    #[test]
+    fn trace_buffer_new_minimum_capacity() {
+        let mut buf = TraceBuffer::new(0);
+        assert_eq!(buf.len(), 0);
+        // capacity 0 is clamped to 1
+        let regs = [0u32; 32];
+        buf.push_ref(&regs, 0, 0x10);
+        assert_eq!(buf.len(), 1);
+    }
+
+    #[test]
+    fn trace_buffer_push_and_len() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        buf.push_ref(&regs, 0x1000, 0x10); // LDI
+        buf.push_ref(&regs, 0x1002, 0x20); // ADD
+        assert_eq!(buf.len(), 2);
+        assert!(!buf.is_empty());
+        assert_eq!(buf.step_counter(), 2);
+    }
+
+    #[test]
+    fn trace_buffer_push_copies_first_16_regs() {
+        let mut buf = TraceBuffer::new(100);
+        let mut regs = [0u32; 32];
+        for i in 0..32 {
+            regs[i] = (i + 1) as u32 * 100;
+        }
+        buf.push_ref(&regs, 0x2000, 0x44); // TEXT
+        let entry = buf.get_recent(0).unwrap();
+        // Only first 16 registers are recorded
+        for i in 0..16 {
+            assert_eq!(entry.regs[i], regs[i], "reg r{} mismatch", i);
+        }
+    }
+
+    #[test]
+    fn trace_buffer_push_increments_step_counter() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..5 {
+            buf.push_ref(&regs, 0x1000 + (i as u32 * 3), 0x10);
+            assert_eq!(buf.step_counter(), (i + 1) as u64);
+        }
+    }
+
+    // ── TraceBuffer: ring buffer wrap-around ──────────────────
+
+    #[test]
+    fn trace_buffer_wrap_around() {
+        let capacity = 5;
+        let mut buf = TraceBuffer::new(capacity);
+        let regs = [0u32; 32];
+        // Push 8 entries into a 5-entry buffer
+        for i in 0..8 {
+            buf.push_ref(&regs, 0x1000 + i, 0x10 + i as u32);
+        }
+        assert_eq!(buf.len(), capacity); // capped at capacity
+        // Newest entry (index 7) should be at get_recent(0)
+        let newest = buf.get_recent(0).unwrap();
+        assert_eq!(newest.step_number, 7);
+        assert_eq!(newest.opcode, 0x17);
+        // Oldest surviving entry (index 3) should be at get_recent(4)
+        let oldest = buf.get_recent(capacity - 1).unwrap();
+        assert_eq!(oldest.step_number, 3);
+        assert_eq!(oldest.opcode, 0x13);
+        // Entries 0-2 should be evicted
+        assert_eq!(buf.get_at(0).unwrap().step_number, 3);
+    }
+
+    #[test]
+    fn trace_buffer_get_recent_out_of_bounds() {
+        let buf = TraceBuffer::new(100);
+        assert!(buf.get_recent(0).is_none());
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        buf.push_ref(&regs, 0, 0);
+        assert!(buf.get_recent(1).is_none());
+    }
+
+    #[test]
+    fn trace_buffer_get_at_sequential() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..5u32 {
+            buf.push_ref(&regs, 0x1000 + i * 3, 0x10 + i);
+        }
+        // get_at(0) = oldest, get_at(4) = newest
+        assert_eq!(buf.get_at(0).unwrap().step_number, 0);
+        assert_eq!(buf.get_at(4).unwrap().step_number, 4);
+        assert_eq!(buf.get_at(5).is_none(), true);
+    }
+
+    // ── TraceBuffer: iterators ─────────────────────────────────
+
+    #[test]
+    fn trace_buffer_iter_oldest_to_newest() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..5u32 {
+            buf.push_ref(&regs, 0x1000 + i * 3, 0x10 + i);
+        }
+        let steps: Vec<u64> = buf.iter().map(|e| e.step_number).collect();
+        assert_eq!(steps, vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn trace_buffer_iter_rev_newest_to_oldest() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..5u32 {
+            buf.push_ref(&regs, 0x1000 + i * 3, 0x10 + i);
+        }
+        let steps: Vec<u64> = buf.iter_rev().map(|e| e.step_number).collect();
+        assert_eq!(steps, vec![4, 3, 2, 1, 0]);
+    }
+
+    #[test]
+    fn trace_buffer_iter_after_wrap() {
+        let mut buf = TraceBuffer::new(3);
+        let regs = [0u32; 32];
+        for i in 0..6u32 {
+            buf.push_ref(&regs, 0x1000 + i, 0x10 + i);
+        }
+        let steps: Vec<u64> = buf.iter().map(|e| e.step_number).collect();
+        assert_eq!(steps, vec![3, 4, 5]);
+    }
+
+    #[test]
+    fn trace_buffer_iter_rev_after_wrap() {
+        let mut buf = TraceBuffer::new(3);
+        let regs = [0u32; 32];
+        for i in 0..6u32 {
+            buf.push_ref(&regs, 0x1000 + i, 0x10 + i);
+        }
+        let steps: Vec<u64> = buf.iter_rev().map(|e| e.step_number).collect();
+        assert_eq!(steps, vec![5, 4, 3]);
+    }
+
+    // ── TraceBuffer: search operations ─────────────────────────
+
+    #[test]
+    fn trace_buffer_count_opcode() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        // Push: LDI, LDI, ADD, LDI, ADD, HALT
+        let opcodes = [0x10, 0x10, 0x20, 0x10, 0x20, 0x00];
+        for (i, &op) in opcodes.iter().enumerate() {
+            buf.push_ref(&regs, 0x1000 + i as u32, op);
+        }
+        assert_eq!(buf.count_opcode(0x10), 3); // LDI
+        assert_eq!(buf.count_opcode(0x20), 2); // ADD
+        assert_eq!(buf.count_opcode(0x00), 1); // HALT
+        assert_eq!(buf.count_opcode(0xFF), 0); // nonexistent
+    }
+
+    #[test]
+    fn trace_buffer_find_opcode_indices() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        let opcodes = [0x10, 0x20, 0x10, 0x30, 0x10, 0x20];
+        for (i, &op) in opcodes.iter().enumerate() {
+            buf.push_ref(&regs, 0x1000 + i as u32, op);
+        }
+        let indices = buf.find_opcode_indices(0x10, 10);
+        assert_eq!(indices, vec![0, 2, 4]);
+
+        let indices_limited = buf.find_opcode_indices(0x10, 2);
+        assert_eq!(indices_limited, vec![0, 2]);
+    }
+
+    #[test]
+    fn trace_buffer_replay_from_current() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..5u32 {
+            buf.push_ref(&regs, 0x1000 + i, 0x10 + i);
+        }
+        // step_counter is 5, replay_from(10, 3) should return newest 3
+        let entries = buf.replay_from(10, 3);
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0].step_number, 4); // newest first
+        assert_eq!(entries[1].step_number, 3);
+        assert_eq!(entries[2].step_number, 2);
+    }
+
+    #[test]
+    fn trace_buffer_replay_from_past() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..10u32 {
+            buf.push_ref(&regs, 0x1000 + i, 0x10 + i);
+        }
+        // Replay from step 5, limit 3
+        let entries = buf.replay_from(5, 3);
+        assert_eq!(entries.len(), 3);
+        // replay_from always returns in get_recent order (newest-first).
+        // Starting from step 5, the 3 most recent entries at or before step 5
+        // are: step5, step4, step3 (going backward in time).
+        assert_eq!(entries[0].step_number, 5);
+        assert_eq!(entries[1].step_number, 4);
+        assert_eq!(entries[2].step_number, 3);
+    }
+
+    #[test]
+    fn trace_buffer_replay_from_empty() {
+        let buf = TraceBuffer::new(100);
+        let entries = buf.replay_from(0, 10);
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn trace_buffer_range_around() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..10u32 {
+            buf.push_ref(&regs, 0x1000 + i, 0x10 + i);
+        }
+        // range_around(5, 2) -> steps 3,4,5,6,7
+        let entries = buf.range_around(5, 2);
+        let steps: Vec<u64> = entries.iter().map(|e| e.step_number).collect();
+        assert_eq!(steps, vec![3, 4, 5, 6, 7]);
+    }
+
+    #[test]
+    fn trace_buffer_range_around_clamps_low() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..5u32 {
+            buf.push_ref(&regs, 0x1000 + i, 0x10 + i);
+        }
+        // range_around(0, 2) -> steps 0,1,2 (no negative steps)
+        let entries = buf.range_around(0, 2);
+        let steps: Vec<u64> = entries.iter().map(|e| e.step_number).collect();
+        assert_eq!(steps, vec![0, 1, 2]);
+    }
+
+    // ── TraceBuffer: clear ─────────────────────────────────────
+
+    #[test]
+    fn trace_buffer_clear() {
+        let mut buf = TraceBuffer::new(100);
+        let regs = [0u32; 32];
+        for i in 0..10u32 {
+            buf.push_ref(&regs, 0x1000 + i, 0x10 + i);
+        }
+        assert_eq!(buf.len(), 10);
+        assert_eq!(buf.step_counter(), 10);
+        buf.clear();
+        assert!(buf.is_empty());
+        assert_eq!(buf.step_counter(), 0);
+        // Can push again after clear
+        buf.push_ref(&regs, 0x2000, 0x20);
+        assert_eq!(buf.len(), 1);
+        assert_eq!(buf.step_counter(), 1);
+    }
+
+    // ── TraceEntry equality ────────────────────────────────────
+
+    #[test]
+    fn trace_entry_equality() {
+        let regs = [0u32; 32];
+        let mut buf = TraceBuffer::new(100);
+        buf.push_ref(&regs, 0x1000, 0x10);
+        let entry1 = buf.get_recent(0).unwrap().clone();
+        let entry2 = buf.get_recent(0).unwrap().clone();
+        assert_eq!(entry1, entry2);
+    }
+
+    #[test]
+    fn trace_entry_inequality_different_opcode() {
+        let regs = [0u32; 32];
+        let mut buf = TraceBuffer::new(100);
+        buf.push_ref(&regs, 0x1000, 0x10);
+        buf.push_ref(&regs, 0x1003, 0x20);
+        let e1 = buf.get_recent(1).unwrap();
+        let e2 = buf.get_recent(0).unwrap();
+        assert_ne!(e1, e2);
+    }
+
+    // ── RenderLog: construction and operations ─────────────────
+
+    #[test]
+    fn render_log_new_empty() {
+        let log = RenderLog::new(100);
+        assert!(log.is_empty());
+        assert_eq!(log.len(), 0);
+    }
+
+    #[test]
+    fn render_log_push_and_iter() {
+        let mut log = RenderLog::new(100);
+        log.push(0, 0x43, "CIRCLE", &[10, 20, 5, 0xFF0000]);
+        log.push(0, 0x40, "PSET", &[50, 60, 0x00FF00]);
+        assert_eq!(log.len(), 2);
+        let entries: Vec<_> = log.iter().collect();
+        assert_eq!(entries[0].name, "CIRCLE");
+        assert_eq!(entries[1].name, "PSET");
+    }
+
+    #[test]
+    fn render_log_push_truncates_args() {
+        let mut log = RenderLog::new(100);
+        // Push 8 args, should only store 6
+        log.push(0, 0x4C, "TILEMAP", &[1, 2, 3, 4, 5, 6, 7, 8]);
+        let entry = log.iter().next().unwrap();
+        assert_eq!(entry.argc, 6);
+        assert_eq!(entry.args[5], 6);
+        // 7th and 8th args should not be stored
+    }
+
+    #[test]
+    fn render_log_wrap_around() {
+        let mut log = RenderLog::new(3);
+        log.push(0, 0x40, "PSET", &[1]);
+        log.push(0, 0x41, "PSETI", &[2]);
+        log.push(0, 0x42, "FILL", &[3]);
+        log.push(1, 0x43, "CIRCLE", &[4]); // overwrites oldest
+        assert_eq!(log.len(), 3);
+        let entries: Vec<_> = log.iter().collect();
+        assert_eq!(entries[0].name, "PSETI"); // oldest surviving
+        assert_eq!(entries[2].name, "CIRCLE"); // newest
+    }
+
+    #[test]
+    fn render_log_clear() {
+        let mut log = RenderLog::new(100);
+        log.push(0, 0x40, "PSET", &[1, 2, 3]);
+        assert_eq!(log.len(), 1);
+        log.clear();
+        assert!(log.is_empty());
+        assert_eq!(log.len(), 0);
+    }
+
+    // ── FrameCheckBuffer: construction and operations ───────────
+
+    #[test]
+    fn frame_check_new_empty() {
+        let buf = FrameCheckBuffer::new(10);
+        assert!(buf.is_empty());
+        assert_eq!(buf.len(), 0);
+    }
+
+    #[test]
+    fn frame_check_push_and_get_recent() {
+        let mut buf = FrameCheckBuffer::new(10);
+        let screen1 = vec![1u32; 256 * 256];
+        let screen2 = vec![2u32; 256 * 256];
+        buf.push(100, 0, &screen1);
+        buf.push(200, 1, &screen2);
+        assert_eq!(buf.len(), 2);
+        // get_recent(0) = newest
+        let newest = buf.get_recent(0).unwrap();
+        assert_eq!(newest.step_number, 200);
+        assert_eq!(newest.frame_count, 1);
+        assert_eq!(newest.screen[0], 2);
+        // get_recent(1) = oldest
+        let oldest = buf.get_recent(1).unwrap();
+        assert_eq!(oldest.step_number, 100);
+        assert_eq!(oldest.frame_count, 0);
+    }
+
+    #[test]
+    fn frame_check_wrap_around() {
+        let mut buf = FrameCheckBuffer::new(2);
+        let screen = vec![42u32; 256];
+        buf.push(100, 0, &screen);
+        buf.push(200, 1, &screen);
+        buf.push(300, 2, &screen); // overwrites frame 0
+        assert_eq!(buf.len(), 2);
+        let newest = buf.get_recent(0).unwrap();
+        assert_eq!(newest.step_number, 300);
+        let oldest = buf.get_recent(1).unwrap();
+        assert_eq!(oldest.step_number, 200);
+    }
+
+    #[test]
+    fn frame_check_iter_oldest_to_newest() {
+        let mut buf = FrameCheckBuffer::new(10);
+        let screen = vec![0u32; 256];
+        for i in 0..3u64 {
+            buf.push(i * 100, i as u32, &screen);
+        }
+        let steps: Vec<u64> = buf.iter().map(|c| c.step_number).collect();
+        assert_eq!(steps, vec![0, 100, 200]);
+    }
+
+    #[test]
+    fn frame_check_replay_frame() {
+        let mut buf = FrameCheckBuffer::new(10);
+        let screen = vec![99u32; 256 * 256];
+        buf.push(500, 5, &screen);
+        let replayed = buf.replay_frame(0).unwrap();
+        assert_eq!(replayed.len(), 256 * 256);
+        assert_eq!(replayed[0], 99);
+        assert!(buf.replay_frame(1).is_none());
+    }
+
+    #[test]
+    fn frame_check_clear() {
+        let mut buf = FrameCheckBuffer::new(10);
+        let screen = vec![0u32; 256];
+        buf.push(100, 0, &screen);
+        buf.clear();
+        assert!(buf.is_empty());
+        assert!(buf.get_recent(0).is_none());
+    }
+
+    // ── PixelWriteLog: construction and operations ─────────────
+
+    #[test]
+    fn pixel_write_log_new_empty() {
+        let log = PixelWriteLog::new(100);
+        assert!(log.is_empty());
+        assert!(!log.is_full());
+        assert_eq!(log.len(), 0);
+        assert_eq!(log.capacity(), 100);
+    }
+
+    #[test]
+    fn pixel_write_log_push_and_get_at() {
+        let mut log = PixelWriteLog::new(100);
+        log.push(10, 20, 1000, 0x40, 0xFF0000);
+        log.push(30, 40, 1001, 0x41, 0x00FF00);
+        assert_eq!(log.len(), 2);
+        let e0 = log.get_at(0).unwrap();
+        assert_eq!(e0.x, 10);
+        assert_eq!(e0.y, 20);
+        assert_eq!(e0.step(), 1000);
+        assert_eq!(e0.opcode, 0x40);
+        assert_eq!(e0.color, 0xFF0000);
+    }
+
+    #[test]
+    fn pixel_write_log_step_u64() {
+        let mut log = PixelWriteLog::new(100);
+        let big_step: u64 = 0x1_0000_0005; // exceeds u32
+        log.push(0, 0, big_step, 0x40, 0);
+        let entry = log.get_at(0).unwrap();
+        assert_eq!(entry.step(), big_step);
+        assert_eq!(entry.step_lo, 5);
+        assert_eq!(entry.step_hi, 1);
+    }
+
+    #[test]
+    fn pixel_write_log_count_at() {
+        let mut log = PixelWriteLog::new(100);
+        log.push(10, 20, 1, 0x40, 0xFF0000);
+        log.push(10, 20, 2, 0x41, 0x00FF00);
+        log.push(30, 40, 3, 0x40, 0x0000FF);
+        assert_eq!(log.count_at(10, 20), 2);
+        assert_eq!(log.count_at(30, 40), 1);
+        assert_eq!(log.count_at(50, 60), 0);
+    }
+
+    #[test]
+    fn pixel_write_log_recent_at() {
+        let mut log = PixelWriteLog::new(100);
+        log.push(10, 20, 1, 0x40, 0xFF0000);
+        log.push(10, 20, 2, 0x41, 0x00FF00);
+        log.push(10, 20, 3, 0x40, 0x0000FF);
+        log.push(30, 40, 4, 0x40, 0xFFFFFF);
+        let recent = log.recent_at(10, 20, 2);
+        assert_eq!(recent.len(), 2);
+        // newest first
+        assert_eq!(recent[0].step(), 3);
+        assert_eq!(recent[1].step(), 2);
+    }
+
+    #[test]
+    fn pixel_write_log_wrap_and_is_full() {
+        let mut log = PixelWriteLog::new(3);
+        log.push(0, 0, 1, 0x40, 1);
+        log.push(1, 1, 2, 0x40, 2);
+        log.push(2, 2, 3, 0x40, 3);
+        assert!(log.is_full());
+        log.push(3, 3, 4, 0x40, 4); // evicts step 1
+        assert_eq!(log.len(), 3);
+        let oldest = log.get_at(0).unwrap();
+        assert_eq!(oldest.step(), 2); // step 1 was evicted
+    }
+
+    #[test]
+    fn pixel_write_log_iter_oldest_to_newest() {
+        let mut log = PixelWriteLog::new(100);
+        for i in 0..5u64 {
+            log.push(i as u16, (i as u16) * 10, i * 100, 0x40, i as u32);
+        }
+        let steps: Vec<u64> = log.iter().map(|e| e.step()).collect();
+        assert_eq!(steps, vec![0, 100, 200, 300, 400]);
+    }
+
+    #[test]
+    fn pixel_write_log_iter_rev_newest_to_oldest() {
+        let mut log = PixelWriteLog::new(100);
+        for i in 0..5u64 {
+            log.push(i as u16, 0, i * 100, 0x40, 0);
+        }
+        let steps: Vec<u64> = log.iter_rev().map(|e| e.step()).collect();
+        assert_eq!(steps, vec![400, 300, 200, 100, 0]);
+    }
+
+    #[test]
+    fn pixel_write_log_clear() {
+        let mut log = PixelWriteLog::new(100);
+        log.push(0, 0, 1, 0x40, 0);
+        log.push(1, 1, 2, 0x40, 0);
+        log.clear();
+        assert!(log.is_empty());
+        assert_eq!(log.len(), 0);
+    }
+
+    #[test]
+    fn pixel_write_entry_equality() {
+        let e1 = PixelWriteEntry { x: 10, y: 20, step_lo: 100, step_hi: 0, opcode: 0x40, color: 0xFF0000 };
+        let e2 = PixelWriteEntry { x: 10, y: 20, step_lo: 100, step_hi: 0, opcode: 0x40, color: 0xFF0000 };
+        assert_eq!(e1, e2);
+    }
+
+    #[test]
+    fn pixel_write_entry_inequality() {
+        let e1 = PixelWriteEntry { x: 10, y: 20, step_lo: 100, step_hi: 0, opcode: 0x40, color: 0xFF0000 };
+        let e2 = PixelWriteEntry { x: 10, y: 20, step_lo: 100, step_hi: 0, opcode: 0x40, color: 0x00FF00 };
+        assert_ne!(e1, e2);
+    }
+
+    // ── Constants ──────────────────────────────────────────────
+
+    #[test]
+    fn trace_constants_are_reasonable() {
+        assert!(DEFAULT_TRACE_CAPACITY >= 1000);
+        assert!(DEFAULT_RENDER_LOG_CAPACITY >= 100);
+        assert!(DEFAULT_FRAME_CHECK_CAPACITY >= 10);
+        assert!(MAX_SNAPSHOTS >= 4);
+        assert!(DEFAULT_PIXEL_WRITE_CAPACITY >= 10000);
+    }
+}
+
+// Helper: push method that takes &[u32; 32] directly (avoids constructing full Vm)
+impl TraceBuffer {
+    #[cfg(test)]
+    fn push_ref(&mut self, regs: &[u32; 32], pc: u32, opcode: u32) {
+        self.push(pc, regs, opcode);
+    }
+}

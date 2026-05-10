@@ -5916,15 +5916,15 @@ phases:
   dependencies: []
 - id: phase-327
   title: GeOS VM -- Trace Module Unit Tests
-  status: todo
+  status: done
   description: 'Add unit tests for the VM trace module. Zero-test: trace.rs (754 lines).'
   deliverables:
   - name: Instruction trace formatting tests (arithmetic, branch, memory, graphics)
-    status: todo
+    status: done
   - name: Register state serialization tests (hex formatting, flag display)
-    status: todo
+    status: done
   - name: Trace enable/disable toggling tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-328
   title: GeOS Program -- Tower Defense Game
