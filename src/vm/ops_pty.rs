@@ -23,17 +23,22 @@ use std::io::{Read, Write};
 use std::sync::mpsc::{channel, Receiver};
 use std::thread;
 
+use super::types::{geos_errno, GEOS_EBADF, GEOS_EIO, GEOS_ENFILE};
+
 /// Maximum simultaneous PTY slots.
 pub const MAX_PTY_SLOTS: usize = 4;
 
-/// Result codes (mirrors net.rs convention; written to r0).
+/// Result codes aligned with the GEOS error code system (Phase 344).
+/// These are now aliases for geos_errno() values, ensuring all subsystems
+/// use the same error encoding: negative u32 with high bit set.
+/// Assembly programs can detect errors uniformly via SAR r0, 31; JNZ r0, error.
 pub const PTY_OK: u32 = 0;
-pub const PTY_ERR_INVALID_HANDLE: u32 = 1;
-pub const PTY_ERR_OPEN_FAILED: u32 = 2;
-pub const PTY_ERR_WRITE_FAILED: u32 = 3;
-pub const PTY_ERR_NO_SLOTS: u32 = 5;
-pub const PTY_ERR_CLOSED: u32 = 7;
-pub const PTY_ERR_RESIZE_FAILED: u32 = 8;
+pub const PTY_ERR_INVALID_HANDLE: u32 = geos_errno(GEOS_EBADF); // bad file descriptor
+pub const PTY_ERR_OPEN_FAILED: u32 = geos_errno(GEOS_EIO); // I/O error
+pub const PTY_ERR_WRITE_FAILED: u32 = geos_errno(GEOS_EIO); // I/O error
+pub const PTY_ERR_NO_SLOTS: u32 = geos_errno(GEOS_ENFILE); // file table overflow
+pub const PTY_ERR_CLOSED: u32 = geos_errno(GEOS_EIO); // I/O error (EOF)
+pub const PTY_ERR_RESIZE_FAILED: u32 = geos_errno(GEOS_EIO); // I/O error
 
 // ── Terminal query interceptor ─────────────────────────────────────
 //
@@ -532,7 +537,7 @@ impl super::Vm {
     /// PTYREAD handle_reg, buf_reg, max_len_reg  (0xAB)
     /// Drains up to max_len bytes pending from the pty into RAM.
     /// r0 = bytes drained (0 = none available right now).
-    /// Sets r0 = 0xFFFFFFFF if the slot is closed (child exited / EOF).
+    /// Sets r0 = GEOS_EIO (via geos_errno) if the slot is closed (child exited / EOF).
     pub fn op_ptyread(&mut self) {
         let h_reg = self.fetch() as usize;
         let b_reg = self.fetch() as usize;
@@ -569,8 +574,8 @@ impl super::Vm {
         }
 
         if written == 0 && slot.is_closed() {
-            eprintln!("[PTYREAD] slot closed, returning 0xFFFFFFFF");
-            self.regs[0] = u32::MAX;
+            eprintln!("[PTYREAD] slot closed, returning GEOS_EIO");
+            self.regs[0] = geos_errno(GEOS_EIO);
             return;
         }
         if written > 0 {
@@ -799,7 +804,7 @@ mod tests {
 
         let bytes_read = vm.regs[0];
         assert!(
-            bytes_read > 0 && bytes_read != u32::MAX,
+            bytes_read > 0 && bytes_read != geos_errno(GEOS_EIO),
             "PTYREAD should return bytes, got r0={}",
             bytes_read
         );
@@ -1059,7 +1064,7 @@ mod tests {
 
         let bytes_read = vm.regs[0];
         assert!(
-            bytes_read > 0 && bytes_read != u32::MAX,
+            bytes_read > 0 && bytes_read != geos_errno(GEOS_EIO),
             "PTYREAD should return bytes after resize, got r0={}",
             bytes_read
         );

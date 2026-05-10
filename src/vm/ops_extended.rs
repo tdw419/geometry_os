@@ -126,7 +126,7 @@ impl Vm {
 
             // GETENV key_addr_reg, val_addr_reg  -- read environment variable
             // Reads null-terminated key from RAM[key_addr], writes value to RAM[val_addr].
-            // r0 = value string length, or 0xFFFFFFFF if not found.
+            // r0 = value string length, or geos_errno(GEOS_ENOENT) if not found.
             // Max key/value length: 64 chars.
             0x63 => {
                 let kr = self.fetch() as usize;
@@ -194,8 +194,8 @@ impl Vm {
             // EXEC path_addr_reg  -- assemble and spawn a program from the programs/ directory
             // Reads null-terminated filename from RAM[path_addr]. Appends ".asm" if needed.
             // Assembles the source, creates a new process, copies bytecode in.
-            // r0 = PID on success, 0xFFFFFFFF on error.
-            // RAM[0xFFA] = PID on success, 0xFFFFFFFF on error.
+            // r0 = PID on success, geos_errno(GEOS_E*) on error.
+            // RAM[0xFFA] = PID on success, geos_errno(GEOS_E*) on error.
             0x66 => {
                 let pr = self.fetch() as usize;
                 if pr < NUM_REGS {
@@ -297,7 +297,7 @@ impl Vm {
 
             // WRITESTR fd_reg, str_addr_reg  -- write null-terminated string to file descriptor
             // Scans RAM from str_addr until null byte, writes all bytes to fd.
-            // r0 = bytes written, or 0xFFFFFFFF on error.
+            // r0 = bytes written, or geos_errno(GEOS_E*) on error.
             0x67 => {
                 let fr = self.fetch() as usize;
                 let sr = self.fetch() as usize;
@@ -551,7 +551,7 @@ impl Vm {
 
             // CHDIR path_reg -- change current working directory.
             // Reads null-terminated path from RAM. Stores in env_vars["CWD"].
-            // r0 = 0 on success, 0xFFFFFFFF on error.
+            // r0 = 0 on success, geos_errno(GEOS_E*) on error.
             0x6B => {
                 let pr = self.fetch() as usize;
                 if pr < NUM_REGS {
@@ -619,7 +619,7 @@ impl Vm {
             }
 
             // SHUTDOWN -- gracefully stop all processes and halt the system
-            // Only works in Kernel mode. In User mode, sets r0 = 0xFFFFFFFF.
+            // Only works in Kernel mode. In User mode, sets r0 = geos_errno(GEOS_EPERM).
             // Kills all child processes, closes all file descriptors, then halts.
             // The host (main.rs) can check vm.shutdown_requested to react.
             0x6E => {
@@ -725,7 +725,7 @@ impl Vm {
 
             // SIGSET sig_reg, handler_reg -- register signal handler for current process.
             // sig_reg: signal number (0-3). handler_reg: address, 0=default, 0xFFFFFFFF=ignore.
-            // r0 = 0 on success, 0xFFFFFFFF on error.
+            // r0 = 0 on success, geos_errno(GEOS_E*) on error.
             0x71 => {
                 let sr = self.fetch() as usize;
                 let hr = self.fetch() as usize;
@@ -807,7 +807,7 @@ impl Vm {
             // ASMSELF (0x73) -- Self-assembly opcode
             // Reads the canvas buffer as text, runs it through the preprocessor
             // and assembler, writes bytecode to 0x1000.
-            // Status: RAM[0xFFD] = bytecode word count (success) or 0xFFFFFFFF (error).
+            // Status: RAM[0xFFD] = bytecode word count (success) or geos_errno(GEOS_EINVAL) (error).
             0x73 => {
                 // Canvas grid dimensions (must match main.rs constants)
                 const CANVAS_COLS: usize = 32;
@@ -1038,7 +1038,7 @@ impl Vm {
             // Encoding: 0x7C, frame_idx_reg
             // frame_idx: 0 = most recent checkpoint, 1 = second most recent, etc.
             // On success: r0 = frame_count (number of available checkpoints), frame_ready = true
-            // On failure: r0 = 0xFFFFFFFF
+            // On failure: r0 = geos_errno(GEOS_EIO)
             0x7C => {
                 let idx_reg = self.fetch() as usize;
                 let frame_idx = if idx_reg < NUM_REGS {
@@ -1065,7 +1065,7 @@ impl Vm {
             //                 1 = restore from snapshot slot (r1 = slot index)
             //                 2 = list saved snapshots (r0 = count)
             //                 3 = clear all snapshots
-            // r0 = slot index on save, 0 on restore/clear, count on list, 0xFFFFFFFF on error
+            // r0 = slot index on save, 0 on restore/clear, count on list, geos_errno(GEOS_E*) on error
             0x7D => {
                 let mode_reg = self.fetch() as usize;
                 let mode = if mode_reg < NUM_REGS {
@@ -1119,7 +1119,7 @@ impl Vm {
             //                     (r1=x, r2=y, r3=max_count, r4=buf_addr, r0 = entries written)
             //                     Each entry: 6 words (x, y, step_lo, step_hi, opcode, color)
             //                 3 = get entry at absolute index into RAM
-            //                     (r1=index, r2=buf_addr, r0 = 0 on success, 0xFFFFFFFF on error)
+            //                     (r1=index, r2=buf_addr, r0 = 0 on success, geos_errno(GEOS_E*) on error)
             //                     Entry format: 6 words (x, y, step_lo, step_hi, opcode, color)
             // r0 = result (count, entries written, or error)
             0x84 => {
@@ -1384,7 +1384,7 @@ mod tests {
 
     #[test]
     fn test_getenv_empty_key() {
-        // Key at address is null -> returns 0xFFFFFFFF
+        // Key at address is null -> returns geos_errno(GEOS_EINVAL)
         let mut vm = Vm::new();
         vm.ram[0x200] = 0; // null at key addr
         vm.regs[0] = 0x200;
