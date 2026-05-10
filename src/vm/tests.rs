@@ -36573,3 +36573,115 @@ fn test_p309_cow_isolation_between_processes() {
     // Process 1 sees its modified copy
     assert_eq!(vm.ram[new_base], 99);
 }
+
+#[test]
+fn test_terrain_flyover_assembly() {
+    let source = include_str!("../../programs/terrain_flyover.asm");
+    let asm = crate::assembler::assemble(source, 0).expect("terrain_flyover.asm should assemble");
+    assert!(!asm.pixels.is_empty(), "should produce bytecode");
+    let non_zero = asm.pixels.iter().filter(|&&w| w != 0).count();
+    eprintln!("Assembled {} words, {} non-zero", asm.pixels.len(), non_zero);
+    assert!(non_zero > 100, "Expected non-zero bytecode, got {}", non_zero);
+}
+
+#[test]
+fn test_terrain_flyover_renders_frame() {
+    use crate::assembler::assemble;
+
+    let source = include_str!("../../programs/terrain_flyover.asm");
+    let asm = assemble(source, 0).expect("terrain_flyover.asm should assemble");
+    eprintln!("Assembled {} words from terrain_flyover.asm", asm.pixels.len());
+
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+
+    // Run until first FRAME
+    // Heightmap: 64*64 * ~15 instr = ~60K steps
+    // Rendering: 256 cols * ~63 z-steps * ~20 instr = ~322K steps
+    vm.frame_ready = false;
+    let mut steps = 0u32;
+    for _ in 0..5_000_000 {
+        if vm.frame_ready {
+            break;
+        }
+        let keep_going = vm.step();
+        steps += 1;
+        if !keep_going {
+            break;
+        }
+    }
+
+    assert!(vm.frame_ready, "should reach FRAME within 5M steps (took {})", steps);
+    eprintln!("First frame rendered in {} steps", steps);
+
+    // Screen should not be all black
+    let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
+    eprintln!("Non-black pixels: {}/{}", non_black, 256 * 256);
+    assert!(non_black > 1000, "screen should have rendered terrain (got {} non-black)", non_black);
+
+    // Verify heightmap was generated at 0x4000
+    let hm_base = 0x4000usize;
+    let hm_sum: u32 = (0..64)
+        .map(|z| (0..64).map(|x| vm.ram[hm_base + z * 64 + x]).sum::<u32>())
+        .sum();
+    eprintln!("Heightmap sum: {}", hm_sum);
+    assert!(hm_sum > 0, "heightmap should have been populated");
+
+    // Heightmap values in range [12, 75]
+    let mut hm_min = u32::MAX;
+    let mut hm_max = 0u32;
+    for z in 0..64 {
+        for x in 0..64 {
+            let v = vm.ram[hm_base + z * 64 + x];
+            hm_min = hm_min.min(v);
+            hm_max = hm_max.max(v);
+        }
+    }
+    eprintln!("Heightmap range: {} - {}", hm_min, hm_max);
+    assert!(hm_min >= 12, "heightmap min should be >= 12, got {}", hm_min);
+    assert!(hm_max <= 75, "heightmap max should be <= 75, got {}", hm_max);
+
+    // Verify camera state
+    assert_eq!(vm.ram[0x6000], 3, "camera_z should advance by speed(3) after first frame");
+    assert_eq!(vm.ram[0x6001], 80, "camera_alt should be 80");
+    assert_eq!(vm.ram[0x6002], 3, "camera_speed should be 3");
+
+    // Verify terrain biome colors appear (at least one)
+    // Check terrain colors (biome + distance fog)
+    // Water: 0x2266DD/0x113366/0x0A1A33, Grass: 0x00CC44/0x006622/0x002211
+    // Mountain: 0xAA8855/0x554422/0x221100, Sky: 0x0A0A2A
+    let terrain_colors = [
+        0x2266DDu32, 0x113366u32, 0x0A1A33u32,  // water
+        0x00CC44u32, 0x006622u32, 0x002211u32,  // grass
+        0xAA8855u32, 0x554422u32, 0x221100u32,  // mountain
+    ];
+    let color_counts: Vec<(u32, usize)> = terrain_colors.iter()
+        .map(|&c| (c, vm.screen.iter().filter(|&&p| p == c).count()))
+        .collect();
+    for &(c, n) in &color_counts {
+        if n > 0 { eprintln!("  biome 0x{:06X}: {} pixels", c, n); }
+    }
+    let total_terrain: usize = color_counts.iter().map(|&(_, n)| n).sum();
+    assert!(total_terrain > 100, "should have >100 terrain pixels, got {}", total_terrain);
+
+    // Second frame: camera should advance
+    vm.frame_ready = false;
+    let mut steps2 = 0u32;
+    for _ in 0..5_000_000 {
+        if vm.frame_ready {
+            break;
+        }
+        let keep_going = vm.step();
+        steps2 += 1;
+        if !keep_going {
+            break;
+        }
+    }
+    assert!(vm.frame_ready, "second frame should render");
+    eprintln!("Second frame in {} steps, camera_z now {}", steps2, vm.ram[0x6000]);
+    assert_eq!(vm.ram[0x6000], 6, "camera_z should advance by speed (3) per frame");
+}
