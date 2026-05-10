@@ -108,7 +108,7 @@ impl RiscvVm {
     /// Returns (vm, fw_addr, entry, dtb_addr) so callers can run their own loop.
     pub fn boot_linux_setup(
         kernel_image: &[u8],
-        _initramfs: Option<&[u8]>,
+        initramfs: Option<&[u8]>,
         ram_size_mb: u32,
         bootargs: &str,
     ) -> Result<(Self, u64, u32, u64), loader::LoadError> {
@@ -128,7 +128,7 @@ impl RiscvVm {
 
         // 3. Load kernel at physical addresses (p_paddr from ELF segments).
         // The bus routes writes to RAM at 0x80000000+ automatically.
-        let load_info = loader::load_elf(&mut vm.bus, kernel_image)?;
+        let load_info = loader::load_elf_with_offset(&mut vm.bus, kernel_image, mem_base)?;
         // Highest address used by the kernel in physical memory.
         let ram_size = actual_ram_size as u64;
         let kernel_phys_end = ((load_info.highest_addr + 0xFFF) & !0xFFF) as u64;
@@ -144,6 +144,30 @@ impl RiscvVm {
         for (i, &byte) in dtb_blob.iter().enumerate() {
             vm.bus.write_byte(dtb_addr + i as u64, byte).ok();
         }
+
+        // 4b. Load initrd into RAM if provided.
+        let initrd_phys = if let Some(initrd_data) = initramfs {
+            // Place initrd right after the kernel, page-aligned.
+            let initrd_start = ((kernel_phys_end + 0xFFF) & !0xFFF) as u64;
+            let initrd_end = initrd_start + initrd_data.len() as u64;
+            for (i, &byte) in initrd_data.iter().enumerate() {
+                vm.bus.write_byte(initrd_start + i as u64, byte).ok();
+            }
+            eprintln!(
+                "[boot] Loaded initrd: {} bytes at PA 0x{:08X} - 0x{:08X}",
+                initrd_data.len(), initrd_start, initrd_end
+            );
+            // Update DTB with initrd addresses.
+            dtb_config.initrd_start = Some(initrd_start);
+            dtb_config.initrd_end = Some(initrd_end);
+            let dtb_blob2 = dtb::generate_dtb(&dtb_config);
+            for (i, &byte) in dtb_blob2.iter().enumerate() {
+                vm.bus.write_byte(dtb_addr + i as u64, byte).ok();
+            }
+            Some((initrd_start, initrd_end))
+        } else {
+            None
+        };
 
         // 5. Hardcoded kernel patches and pointers (Phase 124).
         // VA 0xC0801008 -> PA 0x80801008.
@@ -236,6 +260,19 @@ impl RiscvVm {
                 "[boot] Pre-populated memblock reserved: PA 0x80000000 - PA 0x{:08X}",
                 0x80000000 + kernel_phys_end as u32
             );
+
+            // Also reserve initrd region if present.
+            if let Some((ird_start, ird_end)) = initrd_phys {
+                let new_cnt = vm.bus.read_word(res_cnt_addr).unwrap_or(0);
+                let new_offset = (new_cnt as u64) * 8;
+                vm.bus.write_word(res_regions_pa + new_offset, ird_start as u32).ok();
+                vm.bus.write_word(res_regions_pa + new_offset + 4, ird_end as u32).ok();
+                vm.bus.write_word(res_cnt_addr, new_cnt + 1).ok();
+                eprintln!(
+                    "[boot] Pre-populated memblock reserved initrd: PA 0x{:08X} - PA 0x{:08X}",
+                    ird_start as u32, ird_end as u32
+                );
+            }
         }
 
         // memblock memory

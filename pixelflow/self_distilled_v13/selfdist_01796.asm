@@ -1,0 +1,9 @@
+; DESCRIPTION: Renders a red rectangular region spanning 104 by 97 at (361, 28).
+; PLAN: r0=361(x), r1=28(y), r2=104(width), r3=97(height), r4=0xFF0000(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 361
+LDI r1, 28
+LDI r2, 104
+LDI r3, 97
+LDI r4, 0xFF0000
+RECTF r0, r1, r2, r3, r4
+HALT

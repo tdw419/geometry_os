@@ -417,7 +417,7 @@ impl Vm {
                             self.ram[0xFFD] = result.pixels.len() as u32;
                         }
                         Err(_) => {
-                            self.ram[0xFFD] = 0xFFFFFFFF;
+                            self.ram[0xFFD] = geos_errno(GEOS_EINVAL);
                         }
                     }
                 }
@@ -511,7 +511,7 @@ impl Vm {
                 if ar < NUM_REGS {
                     let active_count = self.processes.iter().filter(|p| !p.is_halted()).count();
                     if active_count >= MAX_PROCESSES {
-                        self.ram[0xFFA] = 0xFFFFFFFF;
+                        self.ram[0xFFA] = geos_errno(GEOS_ENOMEM);
                     } else {
                         let start_addr = self.regs[ar];
                         let start_page = (start_addr as usize) / PAGE_SIZE;

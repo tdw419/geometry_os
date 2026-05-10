@@ -5,7 +5,7 @@ Epoch: 20, Loss: 0.0248
 
 ## Summary
 - Syntax: 9/10
-- Visual: 10/10
+- Visual: 9/10
 - PLAN Consistency: 10/10
 
 ## 1. ; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.
@@ -90,11 +90,11 @@ PLAN: ✅ Verified 5/5 register assignments
 ### Generated Assembly:
 ```
 ; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.
-; PLAN: r0=100(x), r1=100(y), r2=40(width), r3=100(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+; PLAN: r0=100(x), r1=100(y), r2=40(width), r3=10(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
 LDI r0, 100
 LDI r1, 100
 LDI r2, 40
-LDI r3, 100
+LDI r3, 10
 LDI r4, 0xFFFF00
 RECTF r0, r1, r2, r3, r4
 HALT
@@ -102,18 +102,17 @@ HALT
 
 ## 7. ; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.
 Status: ✅ (PASSED)
-PLAN: ✅ Verified 5/5 register assignments
+PLAN: ✅ Verified 3/3 register assignments
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.
-; PLAN: r0=10(x), r1=10(y), r2=10(width), r3=0(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+; PLAN: r0=10(x), r1=10(y), r2=1(step). Loop: SUB r1, r2 then JNZ r1, r3.
 LDI r0, 10
 LDI r1, 10
-LDI r2, 10
-LDI r3, 0
-LDI r4, 0xFFFFFF
-RECTF r0, r1, r2, r3, r4
+LDI r2, 1
+LDI r3, 0xFF00FF
+CIRCLE r0, r1, r2, r3
 HALT
 ```
 
@@ -148,26 +147,17 @@ HALT
 
 ## 10. ; DESCRIPTION: Fills the screen with a vertical gradient from black to white.
 Status: ❌ (FAILED)
-PLAN: ✅ Verified 3/4 register assignments
+PLAN: ✅ Verified 2/4 register assignments
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION: Fills the screen with a vertical gradient from black to white.
-; PLAN: r0=CMP flag (4(x), r1=0(y), r2=0(x), r3=1(y2), r4=0xFFFFFF(color). CMP stores result in r0.
+; PLAN: r0=CMP flag (readonly), r1=0(y), r2=0(x), r3=512(width), r4=0xFFFFFF(color). CMP stores result in r0.
 LDI r7, 0xFFFFFF
 LDI r1, 0
-y_loop
 LDI r2, 0
-y_loop SUB
-LDI r2, 0
-x_loop
-PSET r2, r1, r7
-LDI r5, 1
-ADD r2, r5
-LDI r6, 512
-CMP r2, r6
-BLT r0, x_loop
-LDI r5, 1
-ADD r1,
+LDI r5, 0
+JNZ r1, loop
+LDI r5, 0
 ```
 

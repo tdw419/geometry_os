@@ -2114,7 +2114,7 @@ fn test_asm_ram_error_on_invalid_source() {
     }
 
     assert_eq!(
-        vm.ram[0xFFD], 0xFFFFFFFF,
+        vm.ram[0xFFD], geos_errno(types::GEOS_EINVAL),
         "ASM_RAM should fail on invalid source"
     );
 }
@@ -16332,7 +16332,7 @@ fn test_ai_agent_perception_op4_no_vlm() {
     // which may return None -> 0xFFFFFFFF, or a real response
     let result = vm.regs[0];
     assert!(
-        result == 0xFFFFFFFF || result < 1000,
+        result == geos_errno(types::GEOS_EIO) || result < 1000,
         "should return count or error: 0x{:08X}",
         result
     );
@@ -16387,7 +16387,7 @@ fn test_ai_agent_unknown_op() {
             break;
         }
     }
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "unknown op should error");
+    assert_eq!(vm.regs[0], geos_errno(types::GEOS_ENOTSUP), "unknown op should error");
 }
 
 #[test]
@@ -16866,9 +16866,10 @@ fn test_loadpng_opcode_missing_file() {
         }
     }
 
-    // Should return error (0xFFFFFFFF)
+    // Should return I/O error for missing file
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0],
+        geos_errno(types::GEOS_EIO),
         "LOADPNG should fail for missing file"
     );
 }
@@ -16903,8 +16904,8 @@ fn test_loadpng_opcode_empty_path() {
         }
     }
 
-    // Should return error (0xFFFFFFFF)
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "LOADPNG should fail for empty path");
+    // Should return EINVAL for empty path
+    assert_eq!(vm.regs[0], geos_errno(types::GEOS_EINVAL), "LOADPNG should fail for empty path");
 }
 
 // ============================================================
@@ -17010,9 +17011,9 @@ fn test_loadsrcimg_opcode_missing_file() {
         }
     }
 
-    // Should return error (0xFFFFFFFF)
+    // Should return error
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_EINVAL),
         "LOADSRCIMG should fail for missing file"
     );
 }
@@ -17044,7 +17045,7 @@ fn test_loadsrcimg_opcode_empty_path() {
 
     // Should return error (0xFFFFFFFF)
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_EINVAL),
         "LOADSRCIMG should fail for empty path"
     );
 }
@@ -17194,7 +17195,7 @@ fn test_loadsrcimg_invalid_register() {
     }
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_EINVAL),
         "LOADSRCIMG should fail with invalid register"
     );
 }
@@ -25248,7 +25249,7 @@ fn test_procinfo_main_process() {
     vm.halted = false;
     vm.pc = 0;
     assert!(vm.step());
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "Invalid field should return error");
+    assert_eq!(vm.regs[0], geos_errno(types::GEOS_EINVAL), "Invalid field should return error");
 }
 
 #[test]
@@ -25262,7 +25263,7 @@ fn test_procinfo_invalid_pid() {
     vm.halted = false;
     vm.pc = 0;
     assert!(vm.step());
-    assert_eq!(vm.regs[0], 0xFFFFFFFF, "Invalid PID should return error");
+    assert_eq!(vm.regs[0], geos_errno(types::GEOS_ESRCH), "Invalid PID should return error");
 }
 
 #[test]
@@ -26396,7 +26397,7 @@ fn test_screena_invalid_mode() {
     vm.pc = 0;
     vm.halted = false;
     vm.step();
-    assert_eq!(vm.regs[0], 0xFFFFFFFF);
+    assert_eq!(vm.regs[0], geos_errno(types::GEOS_ENOTSUP));
 }
 
 #[test]
@@ -28849,7 +28850,7 @@ fn test_sprload_invalid_sheet_id() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_EINVAL),
         "should return error for invalid sheet_id"
     );
 }
@@ -28911,7 +28912,7 @@ fn test_sprframe_out_of_range() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_ERANGE),
         "should return error for out-of-range frame"
     );
     assert_eq!(
@@ -28932,7 +28933,7 @@ fn test_sprframe_invalid_sheet() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_EINVAL),
         "should return error for unregistered sheet"
     );
 }
@@ -29167,7 +29168,7 @@ fn test_spranim_invalid_sheet() {
     vm.step();
 
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_EINVAL),
         "should return error for unregistered sheet"
     );
 }
@@ -29735,7 +29736,7 @@ fn test_spriteanim_invalid_sheet() {
     vm.pc = 0;
     vm.step();
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_EINVAL),
         "should return error for inactive sheet"
     );
 }
@@ -30389,7 +30390,7 @@ fn test_alarm_clr_invalid_slot_returns_error() {
         }
     }
     assert_eq!(
-        vm.regs[0], 0xFFFFFFFF,
+        vm.regs[0], geos_errno(types::GEOS_EINVAL),
         "ALARM_CLR with invalid slot should return error"
     );
 }

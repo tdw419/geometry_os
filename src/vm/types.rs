@@ -202,6 +202,13 @@ pub const GEOS_EACCES: u32 = 9; // Permission denied (wrong mode)
 pub const GEOS_ENFILE: u32 = 10; // File table overflow (too many open files)
 pub const GEOS_ESRCH: u32 = 11; // No such process (for MSGSND)
 pub const GEOS_EBUSY: u32 = 12; // Resource busy (mutex already locked by caller)
+pub const GEOS_ENOTSUP: u32 = 13; // Operation not supported
+pub const GEOS_EEXIST: u32 = 14; // File already exists
+pub const GEOS_ENAMETOOLONG: u32 = 15; // File name too long
+pub const GEOS_EAGAIN: u32 = 16; // Resource temporarily unavailable (try again)
+pub const GEOS_E2BIG: u32 = 17; // Argument list too long
+pub const GEOS_ENOMEM_EXEC: u32 = 18; // Insufficient memory for execution
+pub const GEOS_ERANGE: u32 = 19; // Result out of range / index out of bounds
 
 /// Encode a GEOS error code as a negative u32 for return in r0.
 /// Example: geos_errno(GEOS_ENOENT) returns 0xFFFFFFFE (-2 in two's complement).

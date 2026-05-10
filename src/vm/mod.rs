@@ -1591,10 +1591,10 @@ impl Vm {
                                 self.ram[dest + 19] = entry.opcode;
                                 self.regs[0] = 0; // success
                             } else {
-                                self.regs[0] = 0xFFFFFFFF; // dest out of range
+                                self.regs[0] = geos_errno(GEOS_ERANGE); // dest out of range
                             }
                         } else {
-                            self.regs[0] = 0xFFFFFFFF; // index out of range
+                            self.regs[0] = geos_errno(GEOS_ERANGE); // index out of range
                         }
                     }
                     2 => {
@@ -1614,11 +1614,11 @@ impl Vm {
                             }
                             self.regs[0] = count as u32;
                         } else {
-                            self.regs[0] = 0xFFFFFFFF; // dest out of range
+                            self.regs[0] = geos_errno(GEOS_ERANGE); // dest out of range
                         }
                     }
                     _ => {
-                        self.regs[0] = 0xFFFFFFFF; // invalid mode
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // invalid mode
                     }
                 }
             }
@@ -2427,7 +2427,7 @@ impl Vm {
                         .load_sprite(&mut self.ram, fn_addr, dst_addr, max_pixels);
                     self.regs[0] = count;
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EBADF);
                 }
             }
 
@@ -2599,7 +2599,7 @@ impl Vm {
                     sheet.active = true;
                     self.regs[0] = 0; // success
                 } else {
-                    self.regs[0] = 0xFFFFFFFF; // error
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // error
                 }
             }
 
@@ -2620,10 +2620,10 @@ impl Vm {
                         self.sprite_sheets[sheet_id].current_frame = frame;
                         self.regs[0] = 0; // success
                     } else {
-                        self.regs[0] = 0xFFFFFFFF; // frame out of range
+                        self.regs[0] = geos_errno(GEOS_ERANGE); // frame out of range
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF; // invalid sheet or reg
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // invalid sheet or reg
                 }
             }
 
@@ -2667,7 +2667,7 @@ impl Vm {
                     }
                     self.regs[0] = 0; // success
                 } else {
-                    self.regs[0] = 0xFFFFFFFF; // error
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // error
                 }
             }
 
@@ -2747,7 +2747,7 @@ impl Vm {
                         }
                     }
                     if !found {
-                        self.regs[0] = 0xFFFFFFFF; // no free slots
+                        self.regs[0] = geos_errno(GEOS_ENOMEM); // no free slots
                     }
                 }
             }
@@ -2764,7 +2764,7 @@ impl Vm {
                         self.alarms[slot].active = false;
                         self.regs[0] = 0;
                     } else {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // error
                     }
                 }
             }
@@ -2819,7 +2819,7 @@ impl Vm {
                         (current_frame as u32 + 1) % total_frames;
                     self.regs[0] = 0; // success
                 } else {
-                    self.regs[0] = 0xFFFFFFFF; // error
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // error
                 }
             }
 
@@ -3426,7 +3426,7 @@ impl Vm {
                 let dr = self.fetch() as usize;
 
                 if ar >= NUM_REGS || lr >= NUM_REGS || dr >= NUM_REGS {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EBADF);
                 } else {
                     let buf_addr = self.regs[ar] as usize;
                     let len = self.regs[lr] as usize;
@@ -3771,9 +3771,9 @@ impl Vm {
                 };
                 const MAX_BG_VMS: usize = 4;
                 if config_reg >= NUM_REGS {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 } else if self.background_vms.len() >= MAX_BG_VMS {
-                    self.regs[0] = 0xFFFFFFFE; // max VMs reached
+                    self.regs[0] = geos_errno(GEOS_EPERM); // max VMs reached
                 } else {
                     let addr = self.regs[config_reg] as usize;
                     let config = Self::read_string_static(&self.ram, addr);
@@ -3814,7 +3814,7 @@ impl Vm {
                             }
                         }
                         None => {
-                            self.regs[0] = 0xFFFFFFFF; // empty/null config
+                            self.regs[0] = geos_errno(GEOS_EINVAL); // empty/null config
                         }
                     }
                 }
@@ -3832,10 +3832,10 @@ impl Vm {
                     if self.background_vms.len() < before {
                         self.regs[0] = 0; // success
                     } else {
-                        self.regs[0] = 0xFFFFFFFF; // not found
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // not found
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_ESRCH);
                 }
             }
 
@@ -3885,15 +3885,15 @@ impl Vm {
                                 bg.state = BgVmState::Paused;
                                 self.regs[0] = 0;
                             } else {
-                                self.regs[0] = 0xFFFFFFFE; // wrong state
+                                self.regs[0] = geos_errno(GEOS_EPERM); // wrong state
                             }
                         }
                         None => {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_ESRCH);
                         }
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -3910,15 +3910,15 @@ impl Vm {
                                 bg.state = BgVmState::Running;
                                 self.regs[0] = 0;
                             } else {
-                                self.regs[0] = 0xFFFFFFFE; // already running
+                                self.regs[0] = geos_errno(GEOS_EPERM); // already running
                             }
                         }
                         None => {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_ESRCH);
                         }
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -3935,18 +3935,18 @@ impl Vm {
                     match self.background_vms.iter_mut().find(|v| v.id == vm_id) {
                         Some(bg) => {
                             if budget == 0 {
-                                self.regs[0] = 0xFFFFFFFE;
+                                self.regs[0] = geos_errno(GEOS_EPERM);
                             } else {
                                 bg.instructions_per_frame = budget;
                                 self.regs[0] = 0;
                             }
                         }
                         None => {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_ESRCH);
                         }
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -4068,7 +4068,7 @@ impl Vm {
                 if addr_reg < NUM_REGS && caps_reg < NUM_REGS {
                     let active_count = self.processes.iter().filter(|p| !p.is_halted()).count();
                     if active_count >= MAX_PROCESSES {
-                        self.ram[0xFFA] = 0xFFFFFFFF;
+                        self.ram[0xFFA] = geos_errno(GEOS_EPERM);
                     } else {
                         let start_addr = self.regs[addr_reg];
                         let caps_addr = self.regs[caps_reg] as usize;
@@ -4194,7 +4194,7 @@ impl Vm {
                         self.ram[0xFFA] = pid;
                     }
                 } else {
-                    self.ram[0xFFA] = 0xFFFFFFFF;
+                    self.ram[0xFFA] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -4213,13 +4213,13 @@ impl Vm {
                 if op_reg == 0xFF {
                     let mode_reg = self.fetch() as usize;
                     if mode_reg >= NUM_REGS {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
                     } else {
                         let mode = self.regs[mode_reg];
                         self.exec_screena(mode);
                     }
                 } else if op_reg >= NUM_REGS {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_ENOTSUP); // unknown op
                 } else {
                     let op = self.regs[op_reg];
                     match op {
@@ -4296,7 +4296,7 @@ impl Vm {
                                     self.regs[0] = written; // total bytes written
                                 }
                             } else {
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
                             }
                         }
                         1 => {
@@ -4327,7 +4327,7 @@ impl Vm {
                                 }
                                 self.regs[0] = changed;
                             } else {
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
                             }
                         }
                         3 => {
@@ -4382,10 +4382,10 @@ impl Vm {
                                     }
                                     self.regs[0] = write_len as u32;
                                 } else {
-                                    self.regs[0] = 0xFFFFFFFF;
+                                    self.regs[0] = geos_errno(GEOS_EIO);
                                 }
                             } else {
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = geos_errno(GEOS_EIO);
                             }
                         }
                         4 => {
@@ -4424,10 +4424,10 @@ impl Vm {
                                         .unwrap_or(0);
                                     self.regs[0] = count;
                                 } else {
-                                    self.regs[0] = 0xFFFFFFFF;
+                                    self.regs[0] = geos_errno(GEOS_EIO);
                                 }
                             } else {
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
                             }
                         }
                         5 => {
@@ -4436,11 +4436,11 @@ impl Vm {
                                 let mode = self.regs[op_reg + 1];
                                 self.exec_screena(mode);
                             } else {
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
                             }
                         }
                         _ => {
-                            self.regs[0] = 0xFFFFFFFF; // unknown op
+                            self.regs[0] = geos_errno(GEOS_ENOTSUP); // unknown op
                         }
                     }
                 }
@@ -4455,7 +4455,7 @@ impl Vm {
                 let path_reg = self.fetch() as usize;
                 let dest_reg = self.fetch() as usize;
                 if path_reg >= NUM_REGS || dest_reg >= NUM_REGS {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_ENOTSUP); // unknown op
                 } else {
                     let path_addr = self.regs[path_reg] as usize;
                     let dest_addr = self.regs[dest_reg] as usize;
@@ -4475,7 +4475,7 @@ impl Vm {
                     }
 
                     if path_str.is_empty() {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
                     } else {
                         // Try to decode as pixelpack PNG
                         match crate::pixel::decode_pixelpack_file(&path_str) {
@@ -4490,7 +4490,7 @@ impl Vm {
                                 let _ = words; // words written (for debugging)
                             }
                             Err(_) => {
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = geos_errno(GEOS_EIO);
                             }
                         }
                     }
@@ -4506,7 +4506,7 @@ impl Vm {
             0xB2 => {
                 let path_reg = self.fetch() as usize;
                 if path_reg >= NUM_REGS {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 } else {
                     let path_addr = self.regs[path_reg] as usize;
 
@@ -4525,7 +4525,7 @@ impl Vm {
                     }
 
                     if path_str.is_empty() {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
                     } else {
                         // Decode as source text
                         match crate::pixel::decode_pixelpack_source_file(&path_str) {
@@ -4546,12 +4546,12 @@ impl Vm {
                                         self.regs[0] = word_count as u32;
                                     }
                                     Err(_) => {
-                                        self.regs[0] = 0xFFFFFFFF;
+                                        self.regs[0] = geos_errno(GEOS_EINVAL);
                                     }
                                 }
                             }
                             Err(_) => {
-                                self.regs[0] = 0xFFFFFFFF;
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
                             }
                         }
                     }
@@ -4611,13 +4611,13 @@ impl Vm {
                             self.regs[0] = word_count as u32;
                         }
                         Err(_) => {
-                            self.ram[0xFFD] = 0xFFFFFFFF;
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.ram[0xFFD] = geos_errno(GEOS_EINVAL);
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
                         }
                     }
                 } else {
-                    self.ram[0xFFD] = 0xFFFFFFFF;
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.ram[0xFFD] = geos_errno(GEOS_EINVAL);
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -4640,11 +4640,11 @@ impl Vm {
                     0
                 };
                 if window_id == 0 {
-                    self.regs[0] = 0xFFFFFFFE; // no window
+                    self.regs[0] = geos_errno(GEOS_EPERM); // no window
                 } else if self.live_hypervisor.is_some() {
                     self.regs[0] = 0xFFFFFFFD; // already active
                 } else if config_reg >= NUM_REGS {
-                    self.regs[0] = 0xFFFFFFFF; // bad register
+                    self.regs[0] = geos_errno(GEOS_EBADF); // bad register
                 } else {
                     let addr = self.regs[config_reg] as usize;
                     let config = Self::read_string_static(&self.ram, addr);
@@ -4657,7 +4657,7 @@ impl Vm {
                                 .split_whitespace()
                                 .any(|t| t.to_lowercase().starts_with("kernel=") && t.len() > 7);
                             if !has_arch {
-                                self.regs[0] = 0xFFFFFFFF; // missing arch=
+                                self.regs[0] = geos_errno(GEOS_EINVAL); // missing arch=
                             } else if !has_kernel {
                                 self.regs[0] = 0xFFFFFFFC; // missing kernel=
                             } else {
@@ -4687,7 +4687,7 @@ impl Vm {
                             }
                         }
                         None => {
-                            self.regs[0] = 0xFFFFFFFF; // empty/null config
+                            self.regs[0] = geos_errno(GEOS_EINVAL); // empty/null config
                         }
                     }
                 }
@@ -4798,7 +4798,7 @@ impl Vm {
                     }
                     self.regs[0] = live.total_instructions as u32;
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_ESRCH);
                 }
             }
 
@@ -4810,7 +4810,7 @@ impl Vm {
                     self.live_hypervisor = None;
                     self.regs[0] = 0;
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_ESRCH);
                 }
             }
 
@@ -4837,15 +4837,15 @@ impl Vm {
                             &name,
                             crate::vm::types::Capability::PERM_WRITE,
                         ) {
-                            self.regs[0] = 0xFFFFFFFE; // EPERM
+                            self.regs[0] = geos_errno(GEOS_EPERM); // EPERM
                         } else {
                             self.regs[0] = self.vfs.funlink(&self.ram, name_addr, pid);
                         }
                     } else {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EPERM);
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EPERM);
                 }
             }
 
@@ -4874,15 +4874,15 @@ impl Vm {
                             &dst_name,
                             crate::vm::types::Capability::PERM_WRITE,
                         ) {
-                            self.regs[0] = 0xFFFFFFFE; // EPERM
+                            self.regs[0] = geos_errno(GEOS_EPERM); // EPERM
                         } else {
                             self.regs[0] = self.vfs.fcopy(&self.ram, src_addr, dst_addr, pid);
                         }
                     } else {
-                        self.regs[0] = 0xFFFFFFFF;
+                        self.regs[0] = geos_errno(GEOS_EPERM);
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EPERM);
                 }
             }
 
@@ -4940,7 +4940,7 @@ impl Vm {
                             2 => 1, // default priority
                             3 => 0, // no parent
                             4 => 0, // main uses identity mapping, no private pages
-                            _ => 0xFFFFFFFF,
+                            _ => geos_errno(GEOS_EINVAL),
                         };
                     } else {
                         let idx = (pid - 1) as usize;
@@ -4969,14 +4969,14 @@ impl Vm {
                                         None => 0,
                                     }
                                 }
-                                _ => 0xFFFFFFFF,
+                                _ => geos_errno(GEOS_EINVAL),
                             };
                         } else {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_ESRCH);
                         }
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -5009,7 +5009,7 @@ impl Vm {
                     self.current_capabilities = caps;
                     self.regs[0] = 0; // success
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EIO);
                 }
             }
 
@@ -5022,7 +5022,7 @@ impl Vm {
                     let name_addr = self.regs[nr];
                     self.regs[0] = self.vfs.fstat(&self.ram, name_addr);
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_ENOENT);
                 }
             }
 
@@ -5288,11 +5288,11 @@ impl Vm {
                             }
                         }
                         Err(_) => {
-                            self.regs[0] = 0xFFFFFFFF;
+                            self.regs[0] = geos_errno(GEOS_EIO);
                         }
                     }
                 } else {
-                    self.regs[0] = 0xFFFFFFFF;
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
                 }
             }
 
@@ -6487,7 +6487,7 @@ impl Vm {
                     .saturating_add(coherence.saturating_mul(4));
             }
             _ => {
-                self.regs[0] = 0xFFFFFFFF;
+                self.regs[0] = geos_errno(GEOS_ENOTSUP);
             }
         }
     }

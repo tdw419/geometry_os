@@ -106,7 +106,7 @@ mod phase87_multi_hypervisor {
         );
         assert_eq!(vm.background_vms.len(), 4, "should have exactly 4 VMs");
         assert_eq!(
-            vm.regs[15], 0xFFFFFFFE,
+            vm.regs[15], 0xFFFFFFFD,
             "5th spawn should return max-reached error"
         );
     }
@@ -159,7 +159,7 @@ mod phase87_multi_hypervisor {
             HALT
         "#,
         );
-        assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return not-found error");
+        assert_eq!(vm.regs[0], 0xFFFFFFF9, "should return not-found error");
     }
 
     #[test]
@@ -209,7 +209,7 @@ mod phase87_multi_hypervisor {
         "#,
         );
         assert_eq!(
-            vm.regs[0], 0xFFFFFFFE,
+            vm.regs[0], 0xFFFFFFFD,
             "should return already-running error"
         );
     }
@@ -228,7 +228,7 @@ mod phase87_multi_hypervisor {
             HALT
         "#,
         );
-        assert_eq!(vm.regs[0], 0xFFFFFFFE, "should return wrong-state error");
+        assert_eq!(vm.regs[0], 0xFFFFFFFD, "should return wrong-state error");
     }
 
     #[test]
@@ -264,7 +264,7 @@ mod phase87_multi_hypervisor {
             HALT
         "#,
         );
-        assert_eq!(vm.regs[0], 0xFFFFFFFE, "zero budget should fail");
+        assert_eq!(vm.regs[0], 0xFFFFFFFD, "zero budget should fail");
     }
 
     #[test]

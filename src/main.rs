@@ -3463,7 +3463,7 @@ fn main() {
                                 let mut kernel_path = String::new();
                                 let mut initrd_path = None;
                                 let mut ram_mb = 128u32;
-                                let mut bootargs = "console=ttyS0 nosmp".to_string();
+                                let mut bootargs = "earlycon=sbi rdinit=/init nosmp loglevel=8".to_string();
 
                                 for part in &parts[1..] {
                                     if part.starts_with("kernel=") {
