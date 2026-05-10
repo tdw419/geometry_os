@@ -6,6 +6,8 @@
 // See docs/RISCV_HYPERVISOR.md §CPU State.
 
 mod alu;
+#[cfg(test)]
+mod alu_tests;
 mod atomic;
 mod execute;
 mod loadstore;

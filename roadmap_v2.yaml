@@ -6218,14 +6218,14 @@ phases:
   dependencies: []
 - id: phase-346
   title: RISC-V CPU Unit Tests -- ALU, Load/Store, Execute
-  status: todo
+  status: in_progress
   description: 'Unit tests for the RISC-V CPU core modules: cpu/alu.rs (221 LOC),
     cpu/loadstore.rs (183 LOC), cpu/execute.rs (147 LOC), and cpu/atomic.rs (249 LOC).
     Test arithmetic operations, memory access patterns, instruction dispatch, and
     atomic operations.'
   deliverables:
   - name: ALU arithmetic and logic operation tests
-    status: todo
+    status: done
   - name: Load/store alignment and width tests
     status: todo
   - name: Instruction dispatch and execution flow tests
