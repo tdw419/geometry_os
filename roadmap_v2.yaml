@@ -5835,20 +5835,20 @@ phases:
   dependencies: []
 - id: phase-322
   title: GeOS Program -- 3D Terrain Flyover
-  status: todo
+  status: done
   description: A 3D terrain flyover using heightmap-based rendering with perspective
     projection.
   deliverables:
   - name: Procedural heightmap generation in RAM
-    status: todo
+    status: done
   - name: Per-column perspective height projection
-    status: todo
+    status: done
   - name: Distance-based fog and color fade
-    status: todo
+    status: done
   - name: Forward flight with altitude/speed controls
-    status: todo
+    status: done
   - name: Integration test verifying heightmap-dependent screen output
-    status: todo
+    status: done
   dependencies: []
 - id: phase-323
   title: GeOS VM -- Memory and Formula Module Unit Tests
@@ -5977,6 +5977,246 @@ phases:
     status: done
   - name: Integration test verifying particle count exceeds threshold per frame
     status: done
+  dependencies: []
+- id: phase-331
+  title: RISC-V MMU Module Unit Tests
+  status: todo
+  description: Unit tests for src/riscv/mmu.rs (1348 LOC, 0 tests). Test SV32 page
+    table walks, TLB lookup/flush, permission checks, COW flag handling, and address
+    translation edge cases.
+  deliverables:
+  - name: SV32 page table walk tests (L1/L2 leaf/non-leaf)
+    status: todo
+  - name: TLB lookup, insert, and flush tests
+    status: todo
+  - name: Permission check tests (R/W/X/U/S/M)
+    status: todo
+  - name: COW flag handling tests
+    status: todo
+  - name: Edge case tests (unaligned, out-of-range, huge pages)
+    status: todo
+  dependencies: []
+- id: phase-332
+  title: RISC-V Bus Module Unit Tests
+  status: todo
+  description: Unit tests for src/riscv/bus.rs (1496 LOC, 0 tests). Test device routing
+    (CLINT, PLIC, UART, VirtIO), RAM read/write, fw_rom buffer, and address space
+    layout.
+  deliverables:
+  - name: RAM read/write word/half/byte tests
+    status: todo
+  - name: Device routing tests (CLINT/PLIC/UART/VirtIO dispatch)
+    status: todo
+  - name: Firmware ROM buffer read/write tests
+    status: todo
+  - name: Unmapped address handling tests
+    status: todo
+  - name: SATP fixup integration tests
+    status: todo
+  dependencies: []
+- id: phase-333
+  title: RISC-V VirtIO GPU Module Unit Tests
+  status: todo
+  description: Unit tests for src/riscv/virtio_gpu.rs (1808 LOC, 0 tests). Test VirtIO
+    GPU initialization, framebuffer setup, scanout, and 2D acceleration commands.
+  deliverables:
+  - name: VirtIO GPU device initialization tests
+    status: todo
+  - name: Framebuffer allocation and size query tests
+    status: todo
+  - name: 2D blit command handling tests
+    status: todo
+  - name: Scanout (display update) tests
+    status: todo
+  - name: Virtqueue descriptor chain processing tests
+    status: todo
+  dependencies: []
+- id: phase-334
+  title: RISC-V VirtIO Block Device Unit Tests
+  status: todo
+  description: Unit tests for src/riscv/virtio_blk.rs (1264 LOC, 0 tests). Test block
+    device read/write, sector addressing, and VirtIO block request processing.
+  deliverables:
+  - name: Block read/write sector tests
+    status: todo
+  - name: VirtIO block request parsing tests
+    status: todo
+  - name: Capacity and geometry query tests
+    status: todo
+  - name: Error handling tests (invalid sector, I/O failure)
+    status: todo
+  dependencies: []
+- id: phase-335
+  title: RISC-V VirtIO Network Module Unit Tests
+  status: todo
+  description: Unit tests for src/riscv/virtio_net.rs (913 LOC, 0 tests). Test network
+    packet receive/transmit, MAC address handling, and VirtIO net request processing.
+  deliverables:
+  - name: Packet receive/transmit tests
+    status: todo
+  - name: MAC address configuration tests
+    status: todo
+  - name: VirtIO net header parsing tests
+    status: todo
+  - name: Buffer management tests
+    status: todo
+  dependencies: []
+- id: phase-336
+  title: RISC-V Peripheral Module Unit Tests (UART/CLINT/PLIC/SBI)
+  status: todo
+  description: 'Unit tests for RISC-V peripheral modules: uart.rs (416 LOC), clint.rs
+    (218 LOC), plic.rs (318 LOC), sbi.rs (316 LOC). Test UART register I/O, timer
+    interrupts, interrupt priority, and SBI console/ecall handling.'
+  deliverables:
+  - name: UART register read/write tests (THR/RBR/IER/FCR/LCR/LSR)
+    status: todo
+  - name: CLINT timer compare and IPI tests
+    status: todo
+  - name: PLIC interrupt claim/complete and priority tests
+    status: todo
+  - name: SBI console putchar/getchar and extension probe tests
+    status: todo
+  dependencies: []
+- id: phase-337
+  title: RISC-V Boot/Loader/DTB Module Unit Tests
+  status: todo
+  description: Unit tests for boot.rs (346 LOC), loader.rs (841 LOC), dtb.rs (516
+    LOC). Test ELF loading, DTB parsing, boot argument setup, and trampoline injection.
+  deliverables:
+  - name: ELF header parsing and segment loading tests
+    status: todo
+  - name: DTB node traversal and property read tests
+    status: todo
+  - name: Boot argument string formatting tests
+    status: todo
+  - name: Trampoline page table injection tests
+    status: todo
+  dependencies: []
+- id: phase-338
+  title: GeOS Program -- Fractal Zoom
+  status: todo
+  description: An interactive Mandelbrot/Julia set zoom explorer. Click to zoom into
+    regions, toggle between Mandelbrot and Julia sets. Uses iterative escape-time
+    algorithm with smooth coloring.
+  deliverables:
+  - name: Mandelbrot set renderer with smooth coloring
+    status: todo
+  - name: Click-to-zoom interaction with coordinate tracking
+    status: todo
+  - name: Julia set toggle mode
+    status: todo
+  - name: Integration test verifying fractal output
+    status: todo
+  dependencies: []
+- id: phase-339
+  title: GeOS Program -- Waveform Oscilloscope
+  status: todo
+  description: Real-time waveform display using the audio system. Visualizes sine,
+    square, sawtooth, and noise waveforms with adjustable frequency/amplitude. Uses
+    BEEP opcode for sound generation.
+  deliverables:
+  - name: Sine/square/sawtooth waveform rendering
+    status: todo
+  - name: Frequency and amplitude controls (IKEY)
+    status: todo
+  - name: Noise generator mode
+    status: todo
+  - name: Integration test with BEEP opcode verification
+    status: todo
+  dependencies: []
+- id: phase-340
+  title: GeOS Program -- Conway's Game of Life with Editor
+  status: todo
+  description: Enhanced Game of Life with a built-in pattern editor. Click to toggle
+    cells, draw common patterns (glider, blinker, pulsar). Run/pause/step simulation
+    controls.
+  deliverables:
+  - name: Grid-based Life simulation with wrap-around
+    status: todo
+  - name: Click-to-toggle cell editor mode
+    status: todo
+  - name: Run/pause/step controls
+    status: todo
+  - name: Pattern library (glider gun, R-pentomino, acorn)
+    status: todo
+  - name: Integration test verifying cell evolution
+    status: todo
+  dependencies: []
+- id: phase-341
+  title: GeOS Program -- Side-Scrolling Platformer
+  status: todo
+  description: A proper side-scrolling platformer with procedural level generation,
+    gravity physics, enemy AI, collectibles, and parallax scrolling backgrounds.
+  deliverables:
+  - name: Procedural level generation with platforms and gaps
+    status: todo
+  - name: Gravity physics with variable jump height
+    status: todo
+  - name: Patrol enemy AI with line-of-sight detection
+    status: todo
+  - name: Parallax scrolling background layers
+    status: todo
+  - name: Score and lives HUD
+    status: todo
+  - name: Integration test verifying game loop execution
+    status: todo
+  dependencies: []
+- id: phase-342
+  title: RISC-V Trace and Memory Module Unit Tests
+  status: todo
+  description: Unit tests for trace.rs (276 LOC) and memory.rs (229 LOC). Test instruction
+    trace logging, memory allocation/deallocation, and page reference counting.
+  deliverables:
+  - name: Instruction trace recording and formatting tests
+    status: todo
+  - name: Physical memory allocator tests (alloc/free/refcount)
+    status: todo
+  - name: Page reference count tracking tests
+    status: todo
+  dependencies: []
+- id: phase-343
+  title: RISC-V Bridge Module Unit Tests
+  status: todo
+  description: Unit tests for bridge.rs (396 LOC). Test the HypervisorBridge trait
+    implementation, shared canvas I/O, and QEMU/interpreter backend switching.
+  deliverables:
+  - name: Bridge trait method dispatch tests
+    status: todo
+  - name: Canvas I/O forwarding tests
+    status: todo
+  - name: Backend switching and fallback tests
+    status: todo
+  dependencies: []
+- id: phase-344
+  title: GeOS VM -- Error Code System Hardening
+  status: todo
+  description: Audit and extend the GEOS error code system across all syscalls. Ensure
+    every VFS, device, and IPC operation returns meaningful error codes instead of
+    raw 0xFFFFFFFF. Add error code documentation.
+  deliverables:
+  - name: Error code coverage audit for all syscall handlers
+    status: todo
+  - name: GEOS_EINVAL/ENOENT/EACCES/EIO usage in VFS operations
+    status: todo
+  - name: Device driver error propagation (IOCTL, READ, WRITE)
+    status: todo
+  - name: Error code constants documentation in references/
+    status: todo
+  - name: Integration test verifying error code propagation
+    status: todo
+  dependencies: []
+- id: phase-345
+  title: RISC-V Module Integration Tests (mod.rs)
+  status: todo
+  description: Unit tests for src/riscv/mod.rs (462 LOC, 0 tests). Test the RiscvVm
+    construction, reset, and high-level integration between CPU, MMU, bus, and devices.
+  deliverables:
+  - name: VM construction and reset tests
+    status: todo
+  - name: CPU-MMU-Bus integration tests
+    status: todo
+  - name: Step execution with device side-effects
+    status: todo
   dependencies: []
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
