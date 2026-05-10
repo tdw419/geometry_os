@@ -1340,9 +1340,9 @@ fn test_yield_round_robin() {
     let pa = vm.bus.mem.ram_base;
     vm.bus.write_word(pa, 0x00000073).unwrap();
 
-    // Set up registers for GEO_YIELD: a7=SBI_EXT_GEOMETRY, a6=GEO_FN_YIELD(1)
-    vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 1; // GEO_FN_YIELD
+    // Set up registers for GEO_YIELD: a7=SBI_EXT_GEOMETRY, a6=SBI_GEOM_YIELD(16)
+    vm.cpu.x[17] = 0x47454F4D; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 16; // SBI_GEOM_YIELD
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
     // Create a second context
@@ -1365,8 +1365,8 @@ fn test_yield_returns_to_original_context() {
     vm.bus.write_word(pa, 0x00000073).unwrap();
 
     // Set up GEO_YIELD registers for context 0
-    vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 1; // GEO_FN_YIELD
+    vm.cpu.x[17] = 0x47454F4D; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 16; // SBI_GEOM_YIELD
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
     // Create context 1
@@ -1380,8 +1380,8 @@ fn test_yield_returns_to_original_context() {
     assert_eq!(vm.current_context, 1);
 
     // Set up GEO_YIELD for context 1
-    vm.cpu.x[17] = 0x47454F00;
-    vm.cpu.x[16] = 1;
+    vm.cpu.x[17] = 0x47454F4D;
+    vm.cpu.x[16] = 16;
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
     // Second yield: 1 -> 0 (round-robin)
@@ -1443,9 +1443,9 @@ fn test_yield_to_specific_context() {
     vm.contexts.push(GuestContext::new(1));
     vm.contexts.push(GuestContext::new(2));
 
-    // Set up GEO_YIELD_TO to context 2: a6=2 (GEO_FN_YIELD_TO), a0=2
-    vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 2; // GEO_FN_YIELD_TO
+    // Set up GEO_YIELD_TO to context 2: a6=17 (SBI_GEOM_YIELD_TO), a0=2
+    vm.cpu.x[17] = 0x47454F4D; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 17; // SBI_GEOM_YIELD_TO
     vm.cpu.x[10] = 2; // target context id
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
@@ -1465,17 +1465,17 @@ fn test_gpu_compute_sbi_sets_pending_and_bridge_unavailable() {
     vm.bus.write_word(pa, 0x00000073).unwrap();
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
-    // Set up GEO_FN_GPU_COMPUTE SBI call:
-    // a7 = SBI_EXT_GEOMETRY (0x47454F00)
-    // a6 = 5 (GEO_FN_GPU_COMPUTE)
+    // Set up SBI_GEOM_GPU_COMPUTE SBI call:
+    // a7 = SBI_EXT_GEOMETRY (0x47454F4D)
+    // a6 = 18 (SBI_GEOM_GPU_COMPUTE)
     // a0 = code_addr = pa + 256 (arbitrary, no code there yet)
     // a1 = num_words = 3
     // a2 = max_steps = 100
     // a3 = num_tiles = 1
     // a4 = result_addr low = pa + 512
     // a5 = result_addr high = 0
-    vm.cpu.x[17] = 0x47454F00; // a7 = SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 5; // a6 = GEO_FN_GPU_COMPUTE
+    vm.cpu.x[17] = 0x47454F4D; // a7 = SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 18; // a6 = SBI_GEOM_GPU_COMPUTE
     vm.cpu.x[10] = (pa + 256) as u32; // a0 = code_addr
     vm.cpu.x[11] = 3; // a1 = num_words
     vm.cpu.x[12] = 100; // a2 = max_steps
@@ -1511,7 +1511,7 @@ fn test_gpu_compute_sbi_sets_pending_and_bridge_unavailable() {
 
 #[test]
 fn test_gpu_compute_sbi_invalid_params_returns_error() {
-    use crate::riscv::gpu_bridge::GPU_ERR_INVALID_PARAMS;
+    use crate::riscv::sbi::SBI_ERR_INVALID_PARAM;
 
     let mut vm = super::RiscvVm::new(4096);
     let pa = vm.bus.mem.ram_base;
@@ -1519,9 +1519,9 @@ fn test_gpu_compute_sbi_invalid_params_returns_error() {
     vm.bus.write_word(pa, 0x00000073).unwrap();
     vm.cpu.privilege = super::cpu::Privilege::Machine;
 
-    // Test: num_words = 0 -> INVALID_PARAMS
-    vm.cpu.x[17] = 0x47454F00; // a7 = SBI_EXT_GEOMETRY
-    vm.cpu.x[16] = 5; // a6 = GEO_FN_GPU_COMPUTE
+    // Test: num_words = 0 -> SBI validates and returns INVALID_PARAM
+    vm.cpu.x[17] = 0x47454F4D; // a7 = SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 18; // a6 = SBI_GEOM_GPU_COMPUTE
     vm.cpu.x[10] = pa as u32; // a0 = code_addr
     vm.cpu.x[11] = 0; // a1 = num_words = 0 (INVALID)
     vm.cpu.x[12] = 100; // a2 = max_steps
@@ -1530,11 +1530,11 @@ fn test_gpu_compute_sbi_invalid_params_returns_error() {
     vm.cpu.x[15] = 0; // a5
 
     vm.step();
-    assert_eq!(vm.cpu.x[10], GPU_ERR_INVALID_PARAMS);
+    assert_eq!(vm.cpu.x[10], SBI_ERR_INVALID_PARAM as u32);
 
-    // Test: num_tiles = 0 -> INVALID_PARAMS
+    // Test: num_tiles = 0 -> INVALID_PARAM
     vm.cpu.x[11] = 4; // a1 = num_words = 4 (valid)
     vm.cpu.x[13] = 0; // a3 = num_tiles = 0 (INVALID)
     vm.step();
-    assert_eq!(vm.cpu.x[10], GPU_ERR_INVALID_PARAMS);
+    assert_eq!(vm.cpu.x[10], SBI_ERR_INVALID_PARAM as u32);
 }

@@ -11251,7 +11251,7 @@ phases:
     description: In src/vm/ops_host_fs.rs, after opening mode 3 file, call set_len(0)
       to clear it, matching mode 1 behavior. Also remove redundant .write(true) from
       mode 2.
-    status: todo
+    status: done
     tasks:
     - id: p263.d1.t1
       title: Add file clearing to mode 3 open in ops_host_fs.rs
@@ -11322,7 +11322,7 @@ phases:
       is_running=false, NOT vm.halted=true. The vm.halted flag should only be set
       by the actual HALT opcode execution, not by the pause command. This allows halt/run
       toggling without triggering should_quit.
-    status: todo
+    status: done
     tasks:
     - id: p265.d1.t1
       title: Remove vm.halted = true from socket halt command
@@ -11336,7 +11336,7 @@ phases:
     description: In src/main.rs around line 2656, after successfully loading and assembling
       a program via loadasm, set terminal_direct_mode = false. The loaded program
       is not the terminal, so the auto-quit-on-halt behavior should not apply.
-    status: todo
+    status: done
     tasks:
     - id: p265.d2.t1
       title: Add terminal_direct_mode = false after loadasm success
@@ -11703,14 +11703,13 @@ phases:
   status: planned
   goal: GeOS launches successfully on Xvfb headless displays without crashing
   description: 'GeOS crashes immediately on Xvfb with: "Failed to create window. Ensure
-    a display is available.: Failed to setup X IM via XOpenIM." This is because
-    minifb 0.27 calls XOpenIM() and treats a NULL return as fatal. Xvfb does not
-    support X Input Method by default. This prevents automated testing (terminal QA
-    tester, dogfood QA) from running on headless Xvfb displays. Workaround confirmed:
-    XMODIFIERS=@im=none allows GeOS to start. The fix should either: (a) patch minifb
-    locally to make XIM optional (graceful fallback when XOpenIM returns NULL), or
-    (b) set XMODIFIERS=@im=none in GeOS launch scripts. Found during dogfood QA
-    exploratory testing 2026-05-07.'
+    a display is available.: Failed to setup X IM via XOpenIM." This is because minifb
+    0.27 calls XOpenIM() and treats a NULL return as fatal. Xvfb does not support
+    X Input Method by default. This prevents automated testing (terminal QA tester,
+    dogfood QA) from running on headless Xvfb displays. Workaround confirmed: XMODIFIERS=@im=none
+    allows GeOS to start. The fix should either: (a) patch minifb locally to make
+    XIM optional (graceful fallback when XOpenIM returns NULL), or (b) set XMODIFIERS=@im=none
+    in GeOS launch scripts. Found during dogfood QA exploratory testing 2026-05-07.'
   deliverables:
   - name: Patch minifb to make XIM optional on Xvfb
     description: In the minifb x11.rs backend, when XOpenIM returns NULL, skip XIM/XIC
@@ -11738,11 +11737,11 @@ phases:
   description: 'Running cargo clippy --lib produces 148 warnings. Most are auto-fixable
     with cargo clippy --fix (100 suggestions offered). Categories include: same-type
     casts (u32->u32, u8->u8, usize->usize) across framebuf.rs, socket.rs, vfs_surface.rs,
-    vfs.rs, vm/mod.rs; manual_range_contains in vm/mod.rs; len_zero comparisons;
-    manual_pattern_char_comparison; redundant_pattern_matching; unnecessary_mut;
-    useless_format; operations_with_no_effect (3 instances in vfs_surface.rs and vm/mod.rs
-    where | 0u32 is redundant); and various style suggestions. No errors, all warnings.
-    Found during dogfood QA clippy audit 2026-05-07.'
+    vfs.rs, vm/mod.rs; manual_range_contains in vm/mod.rs; len_zero comparisons; manual_pattern_char_comparison;
+    redundant_pattern_matching; unnecessary_mut; useless_format; operations_with_no_effect
+    (3 instances in vfs_surface.rs and vm/mod.rs where | 0u32 is redundant); and various
+    style suggestions. No errors, all warnings. Found during dogfood QA clippy audit
+    2026-05-07.'
   deliverables:
   - name: Run cargo clippy --fix and review changes
     description: Run cargo clippy --fix --lib to auto-apply 100 of the 148 suggestions.
@@ -11753,17 +11752,17 @@ phases:
     - id: p274.d1.t1
       title: Run cargo clippy --fix and review auto-applied changes
       status: todo
-      description: Run cargo clippy --fix --lib --allow-dirty. Review the git diff to
-        ensure no semantic changes were introduced. Run cargo test --lib to verify
+      description: Run cargo clippy --fix --lib --allow-dirty. Review the git diff
+        to ensure no semantic changes were introduced. Run cargo test --lib to verify
         no regressions. Commit if all tests pass.
       scope_lines: 200
     - id: p274.d1.t2
       title: Manually fix remaining clippy warnings
       status: todo
-      description: "After clippy --fix, address remaining warnings that need manual
+      description: 'After clippy --fix, address remaining warnings that need manual
         intervention (dead_code, unused functions, structs, constants), Default derive
         suggestions, complex type definitions needing type aliases, and deprecated
-        struct usage. Add #[allow(dead_code)] where appropriate for WIP code."
+        struct usage. Add #[allow(dead_code)] where appropriate for WIP code.'
       scope_lines: 100
     scope_lines: 300
   scope_lines_total: 300
@@ -11771,22 +11770,36 @@ phases:
 - id: phase-275
   title: Add Xvfb lifecycle management to dogfood QA preflight
   status: planned
-  goal: GeOS GUI launches reliably during automated QA by ensuring Xvfb is running before attempting to start GeOS
-  description: 'GeOS repeatedly crashes with "XOpenDisplay failed" because no X server is available on this headless system. The restart log shows 9 consecutive crash loops all failing with the same error. While Phase 273 covers the XOpenIM crash (when Xvfb IS running), this is a different issue: Xvfb itself is not being started or has exited. The dogfood QA preflight script should manage the Xvfb lifecycle: start Xvfb if not running, set DISPLAY, verify it works, then launch GeOS. This enables automated visual QA (screenshots, window interaction) to actually function.'
+  goal: GeOS GUI launches reliably during automated QA by ensuring Xvfb is running
+    before attempting to start GeOS
+  description: 'GeOS repeatedly crashes with "XOpenDisplay failed" because no X server
+    is available on this headless system. The restart log shows 9 consecutive crash
+    loops all failing with the same error. While Phase 273 covers the XOpenIM crash
+    (when Xvfb IS running), this is a different issue: Xvfb itself is not being started
+    or has exited. The dogfood QA preflight script should manage the Xvfb lifecycle:
+    start Xvfb if not running, set DISPLAY, verify it works, then launch GeOS. This
+    enables automated visual QA (screenshots, window interaction) to actually function.'
   deliverables:
   - name: Add Xvfb start/verify to dogfood QA preflight
-    description: 'In the preflight script that launches GeOS for QA, add Xvfb lifecycle management: (1) Check if Xvfb is running (pgrep Xvfb or check DISPLAY socket), (2) If not, start Xvfb with Xvfb :99 -screen 0 1024x768x24 and export DISPLAY=:99, (3) Verify Xvfb is accepting connections (xdpyinfo or similar), (4) Only then launch GeOS. Also add cleanup on exit.'
+    description: 'In the preflight script that launches GeOS for QA, add Xvfb lifecycle
+      management: (1) Check if Xvfb is running (pgrep Xvfb or check DISPLAY socket),
+      (2) If not, start Xvfb with Xvfb :99 -screen 0 1024x768x24 and export DISPLAY=:99,
+      (3) Verify Xvfb is accepting connections (xdpyinfo or similar), (4) Only then
+      launch GeOS. Also add cleanup on exit.'
     status: todo
     tasks:
     - id: p275.d1.t1
       title: Add Xvfb start function to preflight
       status: todo
-      description: Create a function that checks for running Xvfb, starts one if needed on :99, sets DISPLAY=:99, and verifies connectivity. Call this before any GeOS launch attempt.
+      description: Create a function that checks for running Xvfb, starts one if needed
+        on :99, sets DISPLAY=:99, and verifies connectivity. Call this before any
+        GeOS launch attempt.
       scope_lines: 30
     - id: p275.d1.t2
       title: Set XMODIFIERS=@im=none to avoid Phase-273 XIM crash
       status: todo
-      description: When starting Xvfb, also export XMODIFIERS=@im=none as a workaround for the Phase-273 XOpenIM issue until that minifb patch is applied.
+      description: When starting Xvfb, also export XMODIFIERS=@im=none as a workaround
+        for the Phase-273 XOpenIM issue until that minifb patch is applied.
       scope_lines: 5
     scope_lines: 35
     scope_lines_total: 35
@@ -11794,8 +11807,12 @@ phases:
 - id: phase-304
   title: Hypervisor Integration -- Socket Command Wiring
   status: complete
-  goal: Wire the hypervisor_boot and hypervisor_kill socket commands to the QemuBridge implementation
-  description: Previously the hypervisor_boot socket command only set a flag on the VM struct that was never read. This phase wires the command to actually spawn a QEMU process via QemuBridge, enabling programmatic control of guest OS instances from external agents. Also added debug logging for socket binding.
+  goal: Wire the hypervisor_boot and hypervisor_kill socket commands to the QemuBridge
+    implementation
+  description: Previously the hypervisor_boot socket command only set a flag on the
+    VM struct that was never read. This phase wires the command to actually spawn
+    a QEMU process via QemuBridge, enabling programmatic control of guest OS instances
+    from external agents. Also added debug logging for socket binding.
   deliverables:
   - name: Wired socket commands
     status: done
@@ -11803,10 +11820,12 @@ phases:
     - id: p304d1.t1
       title: Implement QemuBridge::spawn in socket handler
       status: done
-      description: Modified src/main.rs to call QemuBridge::spawn and set qemu_active when hypervisor_boot is received.
+      description: Modified src/main.rs to call QemuBridge::spawn and set qemu_active
+        when hypervisor_boot is received.
     - id: p304d1.t2
       title: Implement QEMU termination in hypervisor_kill
       status: done
-      description: Ensured the QEMU process is killed and the bridge is cleared when hypervisor_kill is received.
+      description: Ensured the QEMU process is killed and the bridge is cleared when
+        hypervisor_kill is received.
   test_target: 1
   scope_lines_total: 50
