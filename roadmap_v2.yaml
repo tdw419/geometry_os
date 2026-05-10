@@ -6251,19 +6251,19 @@ phases:
   dependencies: []
 - id: phase-348
   title: RISC-V Bus and MMU Unit Tests
-  status: todo
+  status: done
   description: Unit tests for bus.rs (1496 LOC) and mmu.rs (1348 LOC). Test memory-mapped
     I/O routing, device handler dispatch, page table walks, TLB behavior, and address
     translation edge cases.
   deliverables:
   - name: Bus read/write routing to CLINT/PLIC/UART/VirtIO
-    status: todo
+    status: done
   - name: MMU page table walk and translation tests
-    status: todo
+    status: done
   - name: TLB lookup, insertion, and flush tests
-    status: todo
+    status: done
   - name: Fault generation for unmapped/protected addresses
-    status: todo
+    status: done
   dependencies: []
 - id: phase-349
   title: RISC-V VirtIO Device Unit Tests
