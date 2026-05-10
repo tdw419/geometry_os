@@ -5756,18 +5756,18 @@ phases:
   dependencies: []
 - id: phase-317
   title: GeOS VM -- RISC-V CPU Core Unit Tests
-  status: todo
+  status: done
   description: 'Add unit tests for the RISC-V CPU execution pipeline. Zero-test modules:
     cpu/system.rs, cpu/execute.rs, cpu/alu.rs, cpu/loadstore.rs, cpu/atomic.rs.'
   deliverables:
   - name: ALU arithmetic tests (ADD, SUB, AND, OR, XOR, SLT, SLTU)
-    status: todo
+    status: done
   - name: Load/store alignment tests (misaligned word/half/byte)
-    status: todo
+    status: done
   - name: CPU execute pipeline tests (decoding, PC advancement, exceptions)
-    status: todo
+    status: done
   - name: Atomic AMO tests (LR/SC, AMOSWAP, AMOADD)
-    status: todo
+    status: done
   dependencies: []
 - id: phase-318
   title: GeOS Program -- Mandelbrot Fractal Renderer
