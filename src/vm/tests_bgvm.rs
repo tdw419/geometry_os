@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod phase87_multi_hypervisor {
     use crate::assembler::assemble;
+    use crate::vm::types::geos_errno;
+    use crate::vm::types::GEOS_EINVAL;
     use crate::vm::{HypervisorMode, Vm};
 
     /// Helper: assemble source, load into VM, run until halt.
@@ -128,7 +130,7 @@ mod phase87_multi_hypervisor {
             0,
             "should have 0 VMs (missing arch=)"
         );
-        assert_eq!(vm.regs[12], 0xFFFFFFFD, "should return missing-arch error");
+        assert_eq!(vm.regs[12], geos_errno(GEOS_EINVAL), "should return missing-arch error");
     }
 
     #[test]
