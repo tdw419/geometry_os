@@ -6456,6 +6456,344 @@ phases:
   dependencies:
   - phase-346
   - phase-348
+- id: phase-361
+  title: ops_host_fs.rs Test Coverage
+  status: todo
+  deliverables:
+  - name: Unit tests for host filesystem operations (HOST_READ, HOST_WRITE, HOST_LIST)
+    status: todo
+    dependencies: []
+  - name: Edge case tests for path handling and permission errors
+    status: todo
+    dependencies: []
+  - name: Integration test with real temp file operations
+    status: todo
+    dependencies: []
+- id: phase-362
+  title: RISC-V Syscall Tests
+  status: todo
+  deliverables:
+  - name: Tests for RISC-V syscall dispatch and argument passing
+    status: todo
+    dependencies: []
+  - name: Tests for syscall return value handling and error propagation
+    status: todo
+    dependencies: []
+  - name: Tests for syscall number validation
+    status: todo
+    dependencies: []
+- id: phase-363
+  title: RISC-V GPU Bridge Tests
+  status: todo
+  deliverables:
+  - name: Tests for GPU register read/write via bridge interface
+    status: todo
+    dependencies: []
+  - name: Tests for framebuffer memory mapping
+    status: todo
+    dependencies: []
+  - name: Tests for GPU command queue submission
+    status: todo
+    dependencies: []
+- id: phase-364
+  title: RISC-V Socket Tests
+  status: todo
+  deliverables:
+  - name: Tests for socket creation and binding
+    status: todo
+    dependencies: []
+  - name: Tests for send/receive data path
+    status: todo
+    dependencies: []
+  - name: Connection lifecycle tests
+    status: todo
+    dependencies: []
+- id: phase-365
+  title: Episode Log Tests
+  status: todo
+  deliverables:
+  - name: Tests for episode recording with VM state capture
+    status: todo
+    dependencies: []
+  - name: Tests for JSONL serialization format
+    status: todo
+    dependencies: []
+  - name: Tests for context formatting from episode history
+    status: todo
+    dependencies: []
+- id: phase-366
+  title: Save/Load State Tests
+  status: todo
+  deliverables:
+  - name: Tests for VM state serialization to disk
+    status: todo
+    dependencies: []
+  - name: Tests for state deserialization with version compatibility
+    status: todo
+    dependencies: []
+  - name: Edge case tests for large canvas buffers
+    status: todo
+    dependencies: []
+- id: phase-367
+  title: STRLEN Opcode
+  status: todo
+  deliverables:
+  - name: 'STRLEN opcode: count bytes until null terminator in RAM'
+    status: todo
+    dependencies: []
+  - name: Assembler support for STRLEN
+    status: todo
+    dependencies: []
+  - name: Integration test with string operations
+    status: todo
+    dependencies: []
+- id: phase-368
+  title: MEMCPY Opcode
+  status: todo
+  deliverables:
+  - name: 'MEMCPY opcode: bulk memory copy between RAM regions'
+    status: todo
+    dependencies: []
+  - name: Assembler support for MEMCPY
+    status: todo
+    dependencies: []
+  - name: Integration test copying data between regions
+    status: todo
+    dependencies: []
+- id: phase-369
+  title: MEMSET Opcode
+  status: todo
+  deliverables:
+  - name: 'MEMSET opcode: fill memory region with a value'
+    status: todo
+    dependencies: []
+  - name: Assembler support for MEMSET
+    status: todo
+    dependencies: []
+  - name: Integration test with canvas buffer initialization
+    status: todo
+    dependencies: []
+- id: phase-370
+  title: BSWAP Opcode
+  status: todo
+  deliverables:
+  - name: 'BSWAP opcode: byte-swap a 32-bit register value'
+    status: todo
+    dependencies: []
+  - name: Assembler support for BSWAP
+    status: todo
+    dependencies: []
+  - name: Test for endianness conversion use case
+    status: todo
+    dependencies: []
+- id: phase-371
+  title: CLZ/CTZ Opcodes
+  status: todo
+  deliverables:
+  - name: 'CLZ opcode: count leading zeros'
+    status: todo
+    dependencies: []
+  - name: 'CTZ opcode: count trailing zeros'
+    status: todo
+    dependencies: []
+  - name: Assembler support and tests for both
+    status: todo
+    dependencies: []
+- id: phase-372
+  title: GeOS Program -- Pong
+  status: todo
+  deliverables:
+  - name: Classic Pong with AI opponent
+    status: todo
+    dependencies: []
+  - name: Score tracking and ball speed increase
+    status: todo
+    dependencies: []
+  - name: Sound effects on paddle hit and score
+    status: todo
+    dependencies: []
+- id: phase-373
+  title: GeOS Program -- Flappy Bird
+  status: todo
+  deliverables:
+  - name: Side-scrolling bird with gravity and flap
+    status: todo
+    dependencies: []
+  - name: Pipe obstacle generation and scrolling
+    status: todo
+    dependencies: []
+  - name: Score counter and collision detection
+    status: todo
+    dependencies: []
+- id: phase-374
+  title: GeOS Program -- 2048
+  status: todo
+  deliverables:
+  - name: 4x4 grid with tile merging mechanics
+    status: todo
+    dependencies: []
+  - name: Arrow key input for tile sliding
+    status: todo
+    dependencies: []
+  - name: Score display and game over detection
+    status: todo
+    dependencies: []
+- id: phase-375
+  title: GeOS Program -- Conway Advanced
+  status: todo
+  deliverables:
+  - name: Game of Life with pattern library (gliders, oscillators)
+    status: todo
+    dependencies: []
+  - name: Pattern placement mode with mouse/click
+    status: todo
+    dependencies: []
+  - name: Speed control and generation counter
+    status: todo
+    dependencies: []
+- id: phase-376
+  title: GeOS Program -- Waveform Visualizer
+  status: todo
+  deliverables:
+  - name: Real-time waveform display using audio buffer
+    status: todo
+    dependencies: []
+  - name: Multiple visualization modes (oscilloscope, spectrum)
+    status: todo
+    dependencies: []
+  - name: Frame-synchronized rendering
+    status: todo
+    dependencies: []
+- id: phase-377
+  title: RISC-V VirtIO Network Driver
+  status: todo
+  deliverables:
+  - name: VirtIO network device MMIO registers
+    status: todo
+    dependencies: []
+  - name: TX/RX ring buffer management
+    status: todo
+    dependencies: []
+  - name: Basic packet send/receive support
+    status: todo
+    dependencies: []
+- id: phase-378
+  title: RISC-V VirtIO GPU Driver
+  status: todo
+  deliverables:
+  - name: VirtIO GPU device initialization
+    status: todo
+    dependencies: []
+  - name: Framebuffer resolution negotiation
+    status: todo
+    dependencies: []
+  - name: Scanout support for display output
+    status: todo
+    dependencies: []
+- id: phase-379
+  title: RISC-V SD Card Driver
+  status: todo
+  deliverables:
+  - name: SPI-based SD card protocol
+    status: todo
+    dependencies: []
+  - name: Block read/write operations
+    status: todo
+    dependencies: []
+  - name: Filesystem mount support
+    status: todo
+    dependencies: []
+- id: phase-380
+  title: VM Opcode Validation Hardening
+  status: todo
+  deliverables:
+  - name: Validate all register arguments are in 0-31 range
+    status: todo
+    dependencies: []
+  - name: Reject reserved opcodes with clear error codes
+    status: todo
+    dependencies: []
+  - name: Add geos_errno codes for all validation failures
+    status: todo
+    dependencies: []
+- id: phase-381
+  title: Assembler Error Recovery
+  status: todo
+  deliverables:
+  - name: Continue parsing after first error to report multiple issues
+    status: todo
+    dependencies: []
+  - name: Column numbers in error messages
+    status: todo
+    dependencies: []
+  - name: Warning system for deprecated opcodes
+    status: todo
+    dependencies: []
+- id: phase-382
+  title: Instruction Cache Performance
+  status: todo
+  deliverables:
+  - name: Benchmark icache hit/miss rates for common patterns
+    status: todo
+    dependencies: []
+  - name: Tune cache parameters for game loop patterns
+    status: todo
+    dependencies: []
+  - name: Add cache statistics to PROFILE opcode output
+    status: todo
+    dependencies: []
+- id: phase-383
+  title: GeOS Program -- Raytracer
+  status: todo
+  deliverables:
+  - name: Simple raytracer with sphere primitives
+    status: todo
+    dependencies: []
+  - name: Recursive reflection (1 bounce)
+    status: todo
+    dependencies: []
+  - name: Phong shading with shadow rays
+    status: todo
+    dependencies: []
+- id: phase-384
+  title: GeOS Program -- Rhythm Game
+  status: todo
+  deliverables:
+  - name: Falling note lanes with timing windows
+    status: todo
+    dependencies: []
+  - name: Score based on timing accuracy
+    status: todo
+    dependencies: []
+  - name: BEEP-based audio feedback
+    status: todo
+    dependencies: []
+- id: phase-385
+  title: GeOS Program -- Chess
+  status: todo
+  deliverables:
+  - name: Board rendering with piece glyphs
+    status: todo
+    dependencies: []
+  - name: Legal move validation for all piece types
+    status: todo
+    dependencies: []
+  - name: Two-player hot-seat mode
+    status: todo
+    dependencies: []
+- id: phase-386
+  title: Forth Interpreter Enhancement
+  status: todo
+  deliverables:
+  - name: Add string handling words (s", type, compare)
+    status: todo
+    dependencies: []
+  - name: Add array/memory words (cells, allot, fill)
+    status: todo
+    dependencies: []
+  - name: Integration test with a Forth program using new words
+    status: todo
+    dependencies: []
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
@@ -6483,5 +6821,5 @@ meta:
   programs: 219
   loc: 132466
   tests: 3959
-  total_phases: 186
+  total_phases: 212
   last_updated: '2026-05-10'
