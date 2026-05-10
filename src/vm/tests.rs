@@ -15864,7 +15864,7 @@ fn test_hypervisor_missing_arch() {
         }
     }
     assert!(!vm.hypervisor_active, "hypervisor should NOT be active");
-    assert_eq!(vm.regs[0], 0xFFFFFFFD, "r0 should be missing arch error");
+    assert_eq!(vm.regs[0], geos_errno(types::GEOS_EINVAL), "r0 should be missing arch error");
 }
 
 #[test]
@@ -36734,4 +36734,124 @@ fn test_terrain_flyover_renders_frame() {
         vm.ram[0x6000], 6,
         "camera_z should advance by speed (3) per frame"
     );
+}
+
+// ── Phase 344: Error Code Propagation Integration Tests ─────────────────
+
+#[test]
+fn test_p344_ioctl_unknown_cmd_returns_geos_einval() {
+    // IOCTL with unknown command on /dev/screen -> r0 = GEOS_EINVAL
+    let vm = run_program(
+        &[0x62, 0xE000, 99, 0, 0x00], // IOCTL 0xE000 (/dev/screen), cmd=99, arg=0; HALT
+        5,
+    );
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
+}
+
+#[test]
+fn test_p344_ioctl_bad_register_returns_geos_einval() {
+    // IOCTL with register index >= NUM_REGS -> r0 = GEOS_EINVAL
+    let vm = run_program(&[0x62, 32, 0, 0, 0x00], 5);
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL));
+}
+
+#[test]
+fn test_p344_msgsnd_nonexistent_process_returns_geos_esrch() {
+    // MSGSND to PID 99 (does not exist) -> r0 = GEOS_ESRCH
+    let mut vm = Vm::new();
+    vm.regs[5] = 99; // target PID = 99 (nonexistent)
+    let vm = run_program(&[0x5E, 5, 0x00], 2); // MSGSND r5; HALT
+    assert_eq!(vm.regs[0], geos_errno(GEOS_ESRCH));
+}
+
+#[test]
+fn test_p344_close_bad_fd_returns_geos_ebadf() {
+    // CLOSE fd=200 (not open) -> r0 = GEOS_EBADF
+    let mut vm = Vm::new();
+    vm.regs[1] = 200; // fd = 200 (never opened)
+    let vm = run_program(&[0x57, 1, 0x00], 3); // CLOSE r1; HALT
+    assert_eq!(vm.regs[0], geos_errno(GEOS_EBADF));
+}
+
+#[test]
+fn test_p344_close_device_fd_succeeds() {
+    // CLOSE on /dev/screen (0xE000) always succeeds -> r0 = 0
+    let mut vm = Vm::new();
+    vm.regs[1] = 0xE000; // fd = /dev/screen
+    vm.ram[0] = 0x57; // CLOSE
+    vm.ram[1] = 1; // fd_reg = r1
+    vm.ram[2] = 0x00; // HALT
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..10 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.regs[0], 0);
+}
+
+#[test]
+fn test_p344_error_codes_are_unique() {
+    // All GEOS_E* constants must map to distinct u32 values
+    let codes = [
+        GEOS_ENOMEM, GEOS_ENOENT, GEOS_EPERM, GEOS_EIO, GEOS_EISDIR,
+        GEOS_ENOSPC, GEOS_EINVAL, GEOS_EBADF, GEOS_EACCES, GEOS_ENFILE,
+        GEOS_ESRCH, GEOS_EBUSY, GEOS_ENOTSUP, GEOS_EEXIST, GEOS_ENAMETOOLONG,
+        GEOS_EAGAIN, GEOS_E2BIG, GEOS_ENOMEM_EXEC, GEOS_ERANGE,
+    ];
+    let mut encoded = std::collections::HashSet::new();
+    for &code in &codes {
+        let val = geos_errno(code);
+        assert!(
+            encoded.insert(val),
+            "Duplicate geos_errno encoding: code {} -> 0x{:08X}",
+            code,
+            val
+        );
+        // All error codes must have the high bit set (negative in i32)
+        assert!(
+            val & 0x8000_0000 != 0,
+            "Error code {} (0x{:08X}) does not have high bit set",
+            code,
+            val
+        );
+    }
+}
+
+#[test]
+fn test_p344_error_codes_dont_overlap_with_success_values() {
+    // Error codes use wrapping_neg so they all have the high bit set (0x80000000+)
+    // This means they can never overlap with valid fd returns (0..100)
+    // or device fds (0xE000..0xE003)
+    assert!(geos_errno(GEOS_ENOMEM) & 0x8000_0000 != 0);
+    assert!(geos_errno(GEOS_ERANGE) & 0x8000_0000 != 0); // lowest code 19
+    assert!(geos_errno(GEOS_EINVAL) & 0x8000_0000 != 0);
+    // Specifically, error codes must not be in valid fd range
+    assert!(geos_errno(GEOS_ENOENT) > 100);
+    assert!(geos_errno(GEOS_EINVAL) > 100);
+}
+
+#[test]
+fn test_p344_open_nonexistent_file_returns_geos_enoent() {
+    // OPEN a file that doesn't exist -> r0 = GEOS_ENOENT
+    // Write a filename into RAM first
+    let name_addr: usize = 0x2000;
+    let filename = "nonexistent_file_xyz.asm";
+    let mut vm = Vm::new();
+    for (i, ch) in filename.chars().enumerate() {
+        vm.ram[name_addr + i] = ch as u32;
+    }
+    vm.ram[name_addr + filename.len()] = 0; // null terminator
+    vm.regs[1] = name_addr as u32; // path address
+    vm.regs[2] = 0; // mode = read
+    vm.halted = false;
+    vm.pc = 0;
+    vm.ram[0] = 0x54; // OPEN
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 0x00; // HALT
+    // Step through OPEN + HALT
+    for _ in 0..10 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.regs[0], geos_errno(GEOS_ENOENT));
 }

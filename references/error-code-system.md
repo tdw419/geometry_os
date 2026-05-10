@@ -10,7 +10,7 @@ can distinguish error types by checking `r0` against known error codes.
 
 ```rust
 pub const fn geos_errno(code: u32) -> u32 {
-    (!code).wrapping_add(1)  // two's complement negation
+    code.wrapping_neg()  // two's complement negation
 }
 ```
 
@@ -62,14 +62,42 @@ pub const fn is_geos_errno(val: u32) -> bool {
 | Error Code | Used By |
 |-----------|---------|
 | GEOS_ENOMEM | ALARM (no free slots), SPAWN (max processes), SPRITE_LOAD |
-| GEOS_ENOENT | VSTAT (file not found), VFS operations |
-| GEOS_EPERM | Capability-denied VM ops, SPAWNC (insufficient caps) |
-| GEOS_EIO | File write/read failures, PNG screenshot, SCREENA I/O |
-| GEOS_EINVAL | Invalid arguments, invalid mode, bad register, empty config |
-| GEOS_EBADF | Bad register index, bad file descriptor |
-| GEOS_ESRCH | VM not found, process not found |
+| GEOS_ENOENT | VSTAT (file not found), VFS fopen, SEEK, UNLINK, RENAME, STAT |
+| GEOS_EPERM | Capability-denied VM ops, SPAWNC (insufficient caps), HYPERVISOR (no window) |
+| GEOS_EIO | File write/read failures, PNG screenshot, SCREENA I/O, VFS READ/WRITE |
+| GEOS_EINVAL | Invalid arguments, invalid mode, bad register, empty config, HYPERVISOR (missing arch/kernel) |
+| GEOS_EBADF | Bad register index, bad file descriptor, IOCTL bad cmd, HYPERVISOR bad reg |
+| GEOS_EACCES | Read on write-only fd, write on read-only fd (VFS) |
+| GEOS_ENFILE | VFS fd table full, pipe table full |
+| GEOS_ESRCH | VM not found, process not found, MSGSND target dead |
+| GEOS_EBUSY | Mutex already locked, HYPERVISOR already active, snapshot slot busy |
 | GEOS_ENOTSUP | Unknown sub-op, unsupported operation |
+| GEOS_EEXIST | MKDIR/CREATE when file exists |
+| GEOS_EISDIR | OPEN on directory |
+| GEOS_ENOSPC | Snapshot table full |
+| GEOS_E2BIG | String/buffer too long |
+| GEOS_ENOMEM_EXEC | Insufficient memory for EXECP |
 | GEOS_ERANGE | Index out of range, dest buffer out of range |
+| GEOS_ENAMETOOLONG | Filename exceeds limit |
+
+## Syscall Handler Coverage
+
+All syscall handlers in `src/vm/ops_syscall.rs` (52 geos_errno uses), `src/vfs.rs` (20+ uses),
+and `src/vm/ops_host_fs.rs` (65 uses) return structured error codes. The `src/vm/ops_extended.rs`
+handler (40 uses) covers IOCTL, device drivers, process control, hypervisor, and trace ops.
+
+Coverage by opcode handler file (as of Phase 344 hardening):
+- `ops_syscall.rs`: 52 error returns using geos_errno (OPEN, READ, WRITE, CLOSE, SEEK, IOCTL, PIPE, MSGSND/RCV, SPAWN, KILL, etc.)
+- `ops_host_fs.rs`: 65 error returns using geos_errno (FOPEN, FREAD, FWRITE, FCLOSE, FSEEK, FUNLINK, FRENAME, FSTAT, FMKDIR, FLS, etc.)
+- `vfs.rs`: 20+ error returns using geos_errno (internal VFS operations, surface loading)
+- `ops_extended.rs`: 40 error returns using geos_errno (IOCTL, device drivers, hypervisor, trace, mutex, snapshot)
+- `ops_memory.rs`: 0 error returns (LOAD/STORE/PEEK are infallible or return 0)
+- `ops_graphics.rs`: 0 error returns (PSET/FILL/RECTF are infallible)
+- `mod.rs`: All hypervisor boot paths use geos_errno
+
+No raw `0xFFFFFFxx` error returns remain in production code. The `FD_ERROR` constant
+(0xFFFFFFFF) in `src/vfs.rs` is an internal sentinel for fd allocation, not a syscall
+return value — VFS fopen maps it to `geos_errno(GEOS_ENFILE)` before returning.
 
 ## Sentinel Values (NOT Error Codes)
 
@@ -97,6 +125,10 @@ grep -c 'geos_errno(' src/vm/mod.rs src/vm/ops_extended.rs src/vm/ops_graphics.r
 
 ## History
 
-- **Phase 344**: Replaced 66+ raw `0xFFFFFFFF`/`0xFFFFFFFE` returns across mod.rs,
+- **Phase 344 (hardening)**: Replaced last 4 raw `0xFFFFFFFD`/`0xFFFFFFFC` returns in
+  hypervisor boot paths (mod.rs, ops_extended.rs) with proper `geos_errno()` calls.
+  Added syscall handler coverage documentation. Updated encoding to match actual
+  `code.wrapping_neg()` implementation.
+- **Phase 344 (initial)**: Replaced 66+ raw `0xFFFFFFFF`/`0xFFFFFFFE` returns across mod.rs,
   ops_graphics.rs with proper `geos_errno()` calls. Added 7 new error codes
   (GEOS_ENOTSUP through GEOS_ERANGE).

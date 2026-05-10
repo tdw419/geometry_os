@@ -3783,7 +3783,7 @@ impl Vm {
                                 .split_whitespace()
                                 .any(|t| t.to_lowercase().starts_with("arch=") && t.len() > 5);
                             if !has_arch {
-                                self.regs[0] = 0xFFFFFFFD; // missing arch=
+                                self.regs[0] = geos_errno(GEOS_EINVAL); // missing arch=
                             } else {
                                 let mode = cfg
                                     .split_whitespace()
@@ -4642,7 +4642,7 @@ impl Vm {
                 if window_id == 0 {
                     self.regs[0] = geos_errno(GEOS_EPERM); // no window
                 } else if self.live_hypervisor.is_some() {
-                    self.regs[0] = 0xFFFFFFFD; // already active
+                    self.regs[0] = geos_errno(GEOS_EBUSY); // already active
                 } else if config_reg >= NUM_REGS {
                     self.regs[0] = geos_errno(GEOS_EBADF); // bad register
                 } else {
@@ -4659,7 +4659,7 @@ impl Vm {
                             if !has_arch {
                                 self.regs[0] = geos_errno(GEOS_EINVAL); // missing arch=
                             } else if !has_kernel {
-                                self.regs[0] = 0xFFFFFFFC; // missing kernel=
+                                self.regs[0] = geos_errno(GEOS_EINVAL); // missing kernel=
                             } else {
                                 // Parse ram size (default 64MB)
                                 let ram_mb: u32 = cfg

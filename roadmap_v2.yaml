@@ -6204,16 +6204,17 @@ phases:
   dependencies: []
 - id: phase-345
   title: RISC-V Module Integration Tests (mod.rs)
-  status: todo
-  description: Unit tests for src/riscv/mod.rs (462 LOC, 0 tests). Test the RiscvVm
-    construction, reset, and high-level integration between CPU, MMU, bus, and devices.
+  status: done
+  description: Unit tests for src/riscv/mod.rs (462 LOC). 61 tests exist in src/riscv/tests.rs
+    covering VM construction, CPU-MMU-Bus integration, step execution with device
+    side-effects, context switching, and UART I/O.
   deliverables:
   - name: VM construction and reset tests
-    status: todo
+    status: done
   - name: CPU-MMU-Bus integration tests
-    status: todo
+    status: done
   - name: Step execution with device side-effects
-    status: todo
+    status: done
   dependencies: []
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'

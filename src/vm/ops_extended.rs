@@ -775,7 +775,7 @@ impl Vm {
                                 .split_whitespace()
                                 .any(|t| t.to_lowercase().starts_with("arch=") && t.len() > 5);
                             if !has_arch {
-                                self.regs[0] = 0xFFFFFFFD; // missing arch
+                                self.regs[0] = geos_errno(GEOS_EINVAL); // missing arch
                                 return true;
                             }
                             // Detect mode from config string
@@ -1883,7 +1883,7 @@ mod tests {
         vm.regs[0] = 0x200;
         vm.regs[1] = 0; // win_id
         let vm = step_one_from(&vm, &[0x72, 0, 1], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFD); // missing arch
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL)); // missing arch
     }
 
     #[test]
@@ -1916,7 +1916,7 @@ mod tests {
         vm.regs[0] = 0x200;
         vm.regs[1] = 0;
         let vm = step_one_from(&vm, &[0x72, 0, 1], 0);
-        assert_eq!(vm.regs[0], 0xFFFFFFFD); // missing arch (empty string is Some(""))
+        assert_eq!(vm.regs[0], geos_errno(GEOS_EINVAL)); // missing arch (empty string is Some(""))
     }
 
     // ── PIXEL_HISTORY (0x84) ─────────────────────────────────────

@@ -117,10 +117,17 @@ def mix_datasets(synth_dir, distill_dir, output_dir, distilled_ratio=0.3,
         shutil.copy2(f, out_path / f"prog_{idx:06d}.asm")
         idx += 1
 
-    # Shuffle for good measure (rename to random order)
+    # Shuffle: rename to temp names first to avoid collisions
     all_files = sorted(out_path.glob("*.asm"))
     random.shuffle(all_files)
+    # Phase 1: rename to temp
+    temp_files = []
     for i, f in enumerate(all_files):
+        temp_name = out_path / f"_tmp_{i:06d}.asm"
+        f.rename(temp_name)
+        temp_files.append(temp_name)
+    # Phase 2: rename to final
+    for i, f in enumerate(temp_files):
         f.rename(out_path / f"prog_{i:06d}.asm")
 
     # Save mixing metadata
