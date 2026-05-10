@@ -6227,9 +6227,9 @@ phases:
   - name: ALU arithmetic and logic operation tests
     status: done
   - name: Load/store alignment and width tests
-    status: todo
+    status: done
   - name: Instruction dispatch and execution flow tests
-    status: todo
+    status: done
   - name: Atomic operation tests (LR/SC, AMO)
     status: todo
   dependencies: []
