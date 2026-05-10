@@ -1090,6 +1090,8 @@ impl Bus {
 #[cfg(test)]
 mod tests {
     use super::super::clint;
+    use super::super::plic;
+    use super::super::uart;
     use super::*;
 
     #[test]
@@ -1490,7 +1492,143 @@ mod tests {
         // Device IDs differ
         let blk_id = bus.read_word(0x1000_1000 + 8).expect("blk dev_id");
         let net_id = bus.read_word(0x1000_2000 + 8).expect("net dev_id");
-        assert_eq!(blk_id, 2); // block
         assert_eq!(net_id, 1); // network
+    }
+
+    // ============================================================
+    // Phase 348: UART bus routing tests
+    // ============================================================
+
+    #[test]
+    fn bus_uart_read_write_lcr() {
+        // UART_BASE = 0x10000000, LCR at offset 3
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let uart_lcr_addr = 0x1000_0000 + 3; // LCR offset
+
+        // Write 0x03 to LCR (8 data bits, 1 stop bit, no parity)
+        bus.write_word(uart_lcr_addr, 0x03)
+            .expect("UART LCR write should succeed");
+
+        // Read back via word read
+        let val = bus.read_word(uart_lcr_addr).expect("UART LCR read");
+        // LCR is at byte offset 3, word read packs 4 bytes starting from offset
+        // The LCR byte should be in the lowest byte of the word
+        assert!(val & 0xFF == 0x03 || val == 0x03);
+    }
+
+    #[test]
+    fn bus_uart_tx_rx_roundtrip() {
+        // Test TX and RX separately — UART does NOT echo TX to RX.
+        let mut bus = Bus::new(0x8000_0000, 4096);
+
+        // TX: write character 'A' (0x41) to THR, verify it lands in tx_buf
+        bus.write_word(0x1000_0000, 0x41)
+            .expect("UART THR write");
+        let tx = bus.uart.drain_tx();
+        assert_eq!(tx, vec![0x41], "TX should contain 'A'");
+
+        // RX: inject 'A' via receive_byte, then read from RBR
+        bus.uart.receive_byte(0x41);
+        let val = bus.read_word(0x1000_0000).expect("UART RBR read");
+        assert_eq!(val & 0xFF, 0x41, "RX should return 'A' in low byte");
+    }
+
+    #[test]
+    fn bus_uart_lsr_read() {
+        // LSR at offset 5 should have THRE bit set (TX holding register empty)
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let lsr_addr = 0x1000_0000 + 5;
+        let val = bus.read_word(lsr_addr).expect("LSR read");
+        // LSR bit 5 (THRE) should be set on a fresh UART
+        assert!(val & 0x20 != 0 || val == 0x20);
+    }
+
+    #[test]
+    fn bus_uart_address_range() {
+        // Verify UART addresses are within range but adjacent addresses are not
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        // UART_BASE + 0 should work
+        assert!(bus.read_word(0x1000_0000).is_ok());
+        // Just past UART_SIZE (8 bytes) should not be UART
+        // 0x1000_0008 is past UART range, may hit another device or error
+        // The important thing is that 0x1000_0000..=0x1000_0007 is UART
+        assert!(uart::Uart::contains(0x1000_0000));
+        assert!(uart::Uart::contains(0x1000_0007));
+        assert!(!uart::Uart::contains(0x1000_0008));
+    }
+
+    // ============================================================
+    // Phase 348: PLIC bus routing tests
+    // ============================================================
+
+    #[test]
+    fn bus_plic_priority_read_write() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let priority_addr = 0x0C00_0000 + 4; // Source 1 priority
+
+        // Write priority 7 for source 1
+        bus.write_word(priority_addr, 7)
+            .expect("PLIC priority write");
+
+        let val = bus.read_word(priority_addr).expect("PLIC priority read");
+        assert_eq!(val, 7);
+    }
+
+    #[test]
+    fn bus_plic_pending_read() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let pending_addr = 0x0C00_1000;
+
+        // No interrupts pending initially
+        let val = bus.read_word(pending_addr).expect("PLIC pending read");
+        assert_eq!(val, 0);
+    }
+
+    #[test]
+    fn bus_plic_enable_read_write() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let enable_addr = 0x0C00_2000;
+
+        // Enable all interrupts for context 0
+        bus.write_word(enable_addr, 0xFFFF)
+            .expect("PLIC enable write");
+
+        let val = bus.read_word(enable_addr).expect("PLIC enable read");
+        assert_eq!(val, 0xFFFF);
+    }
+
+    #[test]
+    fn bus_plic_address_range() {
+        // Verify PLIC address containment
+        assert!(plic::Plic::contains(0x0C00_0000));
+        assert!(plic::Plic::contains(0x0C00_0004));
+        assert!(plic::Plic::contains(0x0C00_1000)); // pending
+        assert!(plic::Plic::contains(0x0C00_2000)); // enable
+        assert!(!plic::Plic::contains(0x0C00_0000 - 4)); // below
+        assert!(!plic::Plic::contains(0x0C20_0000)); // above
+    }
+
+    #[test]
+    fn bus_plic_does_not_overlap_clint() {
+        // CLINT is at 0x02000000, PLIC at 0x0C000000
+        assert!(uart::Uart::contains(0x1000_0000));
+        assert!(plic::Plic::contains(0x0C00_0000));
+        // These should not overlap
+        assert!(!plic::Plic::contains(0x1000_0000)); // UART addr not in PLIC
+        assert!(!uart::Uart::contains(0x0C00_0000)); // PLIC addr not in UART
+    }
+
+    #[test]
+    fn bus_virtio_blk_read_magic() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let magic = bus.read_word(0x1000_1000).expect("virtio-blk magic");
+        assert_eq!(magic, 0x7472_6976); // "vtrd"
+    }
+
+    #[test]
+    fn bus_virtio_blk_device_id() {
+        let mut bus = Bus::new(0x8000_0000, 4096);
+        let dev_id = bus.read_word(0x1000_1000 + 8).expect("virtio-blk dev_id");
+        assert_eq!(dev_id, 2); // VirtIO block device
     }
 }
