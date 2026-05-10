@@ -157,12 +157,44 @@ class ISAConstraintEngine:
         if self.current_opcode is None and not self.in_comment:
             mask = torch.zeros_like(logits)
             for op_id in self.opcodes_id.values(): mask[op_id] = 1.0
-            for cid in self.char_range: mask[cid] = 1.0 # Labels
             mask[COMMENT] = 1.0
             mask[NEWLINE] = 1.0
             mask[EOS] = 1.0
             # Allow BPE at start of line (for comments)
             mask[self.bpe_start:] = 1.0
+
+            # Label chars: only allow lowercase start to prevent spelling fake opcodes
+            # Once in a label (in_literal), allow continuation chars + force colon at max length
+            if self.in_literal:
+                label_len = len(self.literal_text)
+                # Find colon ID
+                colon_id = None
+                for cid in self.char_range:
+                    if self.id_to_char.get(cid, "") == ":":
+                        colon_id = cid
+                        break
+                if label_len >= 8:
+                    # Force colon to terminate long labels
+                    for cid in self.char_range: pass  # skip
+                    if colon_id is not None:
+                        mask[colon_id] = 1.0
+                    # Block BPE to prevent escaping without colon
+                    mask[self.bpe_start:] = 0.0
+                else:
+                    # Allow lowercase, digits, underscore (label chars)
+                    for cid in self.char_range:
+                        ch = self.id_to_char.get(cid, "")
+                        if ch.isupper():
+                            mask[cid] = 0.0  # Block uppercase in labels
+                    if colon_id is not None:
+                        mask[colon_id] = 1.0
+            else:
+                # Start of line: allow lowercase chars to begin a label
+                for cid in self.char_range:
+                    ch = self.id_to_char.get(cid, "")
+                    if ch.isupper():
+                        mask[cid] = 0.0  # Don't start labels with uppercase
+
             logits[mask == 0] = float('-inf')
             return logits
 
