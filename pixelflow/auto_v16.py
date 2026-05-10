@@ -134,7 +134,7 @@ def mix_v16_dataset():
         f"--synthetic-dir {synth_dir} "
         f"--distilled-dir {V15_DISTILL_DIR} "
         f"--output-dir {MIXED_DIR} "
-        f"--distilled-ratio 0.35 "
+        f"--distilled-ratio 0.10 "
         f"--max-synthetic 70000 "
         f"--max-distilled 35000"
     )
@@ -166,7 +166,7 @@ def build_dataset():
 
 def train_v16():
     """Train V16 using the improved train_v2 with eval-guided early stopping."""
-    run(
+    rc = run(
         f"{PYTHON} pixelflow/train_v2.py "
         f"--dataset {V16_DATASET} "
         f"--tokenizer {TOKENIZER} "
@@ -176,10 +176,10 @@ def train_v16():
         f"--lr 5e-5 "
         f"--warmup-ratio 0.1 "
         f"--dropout 0.1",
-        timeout=7200,  # 2h max
+        timeout=10800,  # 3h max (eval takes extra time)
     )
 
-    # Check if EMA checkpoint was created (it gets saved as _ema.pt)
+    # Check if EMA checkpoint was created
     ema_path = Path(str(V16_CKPT).replace(".pt", "_ema.pt"))
     if ema_path.exists():
         print(f"[+] EMA checkpoint saved: {ema_path}")
@@ -268,8 +268,8 @@ def main():
         print("\n[*] Step 2/5: Skipping distillation (--skip-distill)")
         distill_stats = None
 
-    # Step 3: Mix dataset
-    print("\n[*] Step 3/5: Mixing dataset (35% distilled)...")
+    # Step 3: Mix dataset (conservative 10% distilled ratio)
+    print("\n[*] Step 3/5: Mixing dataset (10% distilled)...")
     mix_count = mix_v16_dataset()
 
     # Step 4: Build tokenized dataset
@@ -287,7 +287,15 @@ def main():
     if V16_CKPT.exists():
         print("\n[*] Final: Smoke testing V16...")
         v16_metrics = smoke_test(V16_CKPT, V16_RESULTS, label="V16")
-        compare_versions(v15_metrics, v16_metrics)
+
+        v15_total = sum(v15_metrics['metrics'].values()) if v15_metrics else 0
+        v16_total = sum(v16_metrics['metrics'].values()) if v16_metrics else 0
+
+        if v16_total < v15_total and v15_total > 0:
+            print(f"\n[!] REGRESSION: V16 ({v16_total}/30) < V15 ({v15_total}/30)")
+            print(f"    Keeping V15 as the best model. V16 saved for analysis.")
+        else:
+            compare_versions(v15_metrics, v16_metrics)
     else:
         print(f"\n[!] V16 checkpoint not found at {V16_CKPT}")
 

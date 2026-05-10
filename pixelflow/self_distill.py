@@ -186,8 +186,8 @@ def validate_program(asm_text):
                         else:
                             mismatches += 1
 
-            # Require at least 50% of PLAN registers verified
-            if plan_regs and mismatches > len(plan_regs) * 0.5:
+            # Require at least 85% of PLAN registers verified (was 50%)
+            if plan_regs and mismatches > len(plan_regs) * 0.15:
                 return False, "semantic", f"PLAN mismatch: {mismatches}/{len(plan_regs)} incorrect"
 
     # Classify the program

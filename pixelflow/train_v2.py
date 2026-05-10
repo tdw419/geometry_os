@@ -200,13 +200,15 @@ def train(args):
             n_batches += 1
 
             if (i + 1) % 500 == 0:
+                # Save intermediate to separate path (don't overwrite best)
+                int_path = args.checkpoint.replace(".pt", "_latest.pt")
                 ckpt = {
                     "model": model.state_dict(),
                     "args": {"embd": args.embd, "heads": args.heads, "layers": args.layers,
                              "context_len": args.context_len, "vocab_size": vocab_size},
                     "epoch": epoch + 1, "batch": i + 1, "loss": loss.item(),
                 }
-                torch.save(ckpt, args.checkpoint)
+                torch.save(ckpt, int_path)
 
         avg_loss = total_loss / n_batches
         lr = scheduler.get_last_lr()[0]

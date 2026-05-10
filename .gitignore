@@ -34,3 +34,5 @@ training_log*.txt
 synthetic_dataset_v9/
 mixed_dataset_v14/
 pixelflow/self_distilled_v13/
+pixelflow/self_distilled_v15/
+pixelflow/smoke_v15_results/
