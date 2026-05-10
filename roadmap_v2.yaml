@@ -6344,37 +6344,37 @@ phases:
   dependencies: []
 - id: phase-354
   title: GeOS Program -- Simon Says
-  status: todo
+  status: done
   description: Memory pattern game (Simon) with 4 colored quadrants. Computer plays
     a sequence, player repeats it. Sequence grows each round. Score tracking and speed
     increase.
   deliverables:
   - name: 4-quadrant color display with flash animation
-    status: todo
+    status: done
   - name: Sequence playback with visual feedback
-    status: todo
+    status: done
   - name: Input capture and sequence comparison
-    status: todo
+    status: done
   - name: Integration test verifying game progression
-    status: todo
+    status: done
   dependencies: []
 - id: phase-355
   title: GeOS Program -- Space Invaders
-  status: todo
+  status: done
   description: Classic Space Invaders with 5 rows of 11 aliens, player cannon, shields,
     alien movement patterns (step + drop), bullet management, score display, and wave
     progression.
   deliverables:
   - name: Alien grid with step-and-drop movement pattern
-    status: todo
+    status: done
   - name: Player cannon with movement and shooting
-    status: todo
+    status: done
   - name: Collision detection (bullets vs aliens, aliens vs player)
-    status: todo
+    status: done
   - name: Score, lives, and wave HUD
-    status: todo
+    status: done
   - name: Integration test verifying game loop
-    status: todo
+    status: done
   dependencies: []
 - id: phase-356
   title: GeOS VM -- PTY Opcode Tests
@@ -6424,21 +6424,21 @@ phases:
   dependencies: []
 - id: phase-359
   title: GeOS Program -- Sokoban
-  status: todo
+  status: done
   description: Classic box-pushing puzzle game. Multiple levels, undo support, move
     counter. Player pushes boxes onto target positions. Arrow keys to move, U to undo,
     R to restart level.
   deliverables:
   - name: Box pushing with wall collision and box-on-box prevention
-    status: todo
+    status: done
   - name: Win detection (all targets covered)
-    status: todo
+    status: done
   - name: Multiple level definitions in RAM
-    status: todo
+    status: done
   - name: Undo stack and move counter
-    status: todo
+    status: done
   - name: Integration test verifying puzzle completion
-    status: todo
+    status: done
   dependencies: []
 - id: phase-360
   title: RISC-V CPU System and Mod Integration Tests
