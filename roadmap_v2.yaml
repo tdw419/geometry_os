@@ -5788,18 +5788,18 @@ phases:
   dependencies: []
 - id: phase-319
   title: GeOS VM -- RISC-V Decode Module Unit Tests
-  status: todo
+  status: done
   description: 'Add unit tests for RISC-V instruction decoding. Zero-test: decode/compressed.rs,
     decode/operation.rs, decode/rv32i.rs.'
   deliverables:
   - name: C-extension dispatch order tests (bits[1:0] grouping)
-    status: todo
+    status: done
   - name: Sign extension tests (C.LUI bit 17, C.J 12-bit)
-    status: todo
+    status: done
   - name: RV64-only instruction rejection tests
-    status: todo
+    status: done
   - name: I-type/U-type/J-type immediate encoding tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-320
   title: GeOS Program -- Drum Machine and Melody Player

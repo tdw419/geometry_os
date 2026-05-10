@@ -1,11 +1,11 @@
 {
     "checkpoint": "pixelflow/bilingual_llm_v13_ckpt.pt",
-    "epoch": 4,
-    "loss": 0.023240048438310623,
+    "epoch": 20,
+    "loss": 0.024836700158417224,
     "metrics": {
         "syntax": 9,
         "visual": 10,
-        "semantic": 9,
+        "semantic": 10,
         "total": 10
     },
     "results": [
@@ -66,34 +66,34 @@
         },
         {
             "prompt": "; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.",
-            "asm": "; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.\n; PLAN: r0=100(x), r1=100(y), r2=40(width), r3=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.\nLDI r0, 100\nLDI r1, 100\nLDI r2, 40\nLDI r3, 0xFFFF00\nCIRCLE r0, r1, r2, r3\nHALT",
+            "asm": "; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.\n; PLAN: r0=100(x), r1=100(y), r2=40(width), r3=100(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.\nLDI r0, 100\nLDI r1, 100\nLDI r2, 40\nLDI r3, 100\nLDI r4, 0xFFFF00\nRECTF r0, r1, r2, r3, r4\nHALT",
             "status": "PASSED",
             "syntax_ok": true,
             "visual_ok": true,
             "plan_ok": true,
-            "plan_detail": "Verified 4/4 register assignments",
+            "plan_detail": "Verified 5/5 register assignments",
             "success": true,
             "reasons": "None"
         },
         {
             "prompt": "; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.",
-            "asm": "; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.\n; PLAN: r1=10(x), r1=10(y), r2=10(step). Loop then JNZ r1, loop.\nloop SUB r1, r2, r3.\nLDI r1, 10\nloop\np ange.\nLDI r2, 10\nLDI r3, 0xFF8800\nLDI r5, 0\nx_loop thena.\nPSET r2, r3, r4\nHALT",
-            "status": "FAILED",
-            "syntax_ok": false,
-            "visual_ok": true,
-            "plan_ok": true,
-            "plan_detail": "Verified 2/2 register assignments",
-            "success": false,
-            "reasons": "SYNTAX (Unknown opcode: LOOP)"
-        },
-        {
-            "prompt": "; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.",
-            "asm": "; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.\n; PLAN: r0=0x), r1=8(y), r2=0x000000(color). Op: PSET r0, r1, r2.\nLDI r0, 0x000000\nFILL r0\nHALT",
+            "asm": "; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.\n; PLAN: r0=10(x), r1=10(y), r2=10(width), r3=0(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.\nLDI r0, 10\nLDI r1, 10\nLDI r2, 10\nLDI r3, 0\nLDI r4, 0xFFFFFF\nRECTF r0, r1, r2, r3, r4\nHALT",
             "status": "PASSED",
             "syntax_ok": true,
             "visual_ok": true,
             "plan_ok": true,
-            "plan_detail": "Verified 0/2 register assignments",
+            "plan_detail": "Verified 5/5 register assignments",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.",
+            "asm": "; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.\n; PLAN: r0=3(x), r1=8(y), r2=89(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.\nLDI r0, 3\nLDI r1, 8\nLDI r2, 89\nLDI r3, 0x000000\nCIRCLE r0, r1, r2, r3\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 4/4 register assignments",
             "success": true,
             "reasons": "None"
         },
@@ -110,14 +110,14 @@
         },
         {
             "prompt": "; DESCRIPTION: Fills the screen with a vertical gradient from black to white.",
-            "asm": "; DESCRIPTION: Fills the screen with a vertical gradient from black to white.\n; PLAN: r0=0xFFFF00(color). CMPonly), r0.\nLDI r0, 0x0000\nFILL r0\nHALT",
+            "asm": "; DESCRIPTION: Fills the screen with a vertical gradient from black to white.\n; PLAN: r0=CMP flag (4(x), r1=0(y), r2=0(x), r3=1(y2), r4=0xFFFFFF(color). CMP stores result in r0.\nLDI r7, 0xFFFFFF\nLDI r1, 0\ny_loop\nLDI r2, 0\ny_loop SUB\nLDI r2, 0\nx_loop\nPSET r2, r1, r7\nLDI r5, 1\nADD r2, r5\nLDI r6, 512\nCMP r2, r6\nBLT r0, x_loop\nLDI r5, 1\nADD r1,",
             "status": "FAILED",
-            "syntax_ok": true,
+            "syntax_ok": false,
             "visual_ok": true,
-            "plan_ok": false,
-            "plan_detail": "Verified 0/1 register assignments. Mismatches: r0: PLAN says 0xFFFF00(color), code says 0x0000",
+            "plan_ok": true,
+            "plan_detail": "Verified 3/4 register assignments",
             "success": false,
-            "reasons": "PLAN MISMATCH"
+            "reasons": "SYNTAX (Unknown opcode: Y_LOOP)"
         }
     ]
 }

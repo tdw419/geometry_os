@@ -1,12 +1,12 @@
 # PixelGPT Smoke Test Report
 
 Checkpoint: pixelflow/bilingual_llm_v13_ckpt.pt
-Epoch: 4, Loss: 0.0232
+Epoch: 20, Loss: 0.0248
 
 ## Summary
 - Syntax: 9/10
 - Visual: 10/10
-- PLAN Consistency: 9/10
+- PLAN Consistency: 10/10
 
 ## 1. ; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.
 Status: ✅ (PASSED)
@@ -85,50 +85,51 @@ HALT
 
 ## 6. ; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.
 Status: ✅ (PASSED)
-PLAN: ✅ Verified 4/4 register assignments
+PLAN: ✅ Verified 5/5 register assignments
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.
-; PLAN: r0=100(x), r1=100(y), r2=40(width), r3=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
+; PLAN: r0=100(x), r1=100(y), r2=40(width), r3=100(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.
 LDI r0, 100
 LDI r1, 100
 LDI r2, 40
-LDI r3, 0xFFFF00
-CIRCLE r0, r1, r2, r3
+LDI r3, 100
+LDI r4, 0xFFFF00
+RECTF r0, r1, r2, r3, r4
 HALT
 ```
 
 ## 7. ; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.
-Status: ❌ (FAILED)
-PLAN: ✅ Verified 2/2 register assignments
+Status: ✅ (PASSED)
+PLAN: ✅ Verified 5/5 register assignments
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.
-; PLAN: r1=10(x), r1=10(y), r2=10(step). Loop then JNZ r1, loop.
-loop SUB r1, r2, r3.
+; PLAN: r0=10(x), r1=10(y), r2=10(width), r3=0(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.
+LDI r0, 10
 LDI r1, 10
-loop
-p ange.
 LDI r2, 10
-LDI r3, 0xFF8800
-LDI r5, 0
-x_loop thena.
-PSET r2, r3, r4
+LDI r3, 0
+LDI r4, 0xFFFFFF
+RECTF r0, r1, r2, r3, r4
 HALT
 ```
 
 ## 8. ; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.
 Status: ✅ (PASSED)
-PLAN: ✅ Verified 0/2 register assignments
+PLAN: ✅ Verified 4/4 register assignments
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.
-; PLAN: r0=0x), r1=8(y), r2=0x000000(color). Op: PSET r0, r1, r2.
-LDI r0, 0x000000
-FILL r0
+; PLAN: r0=3(x), r1=8(y), r2=89(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.
+LDI r0, 3
+LDI r1, 8
+LDI r2, 89
+LDI r3, 0x000000
+CIRCLE r0, r1, r2, r3
 HALT
 ```
 
@@ -147,14 +148,26 @@ HALT
 
 ## 10. ; DESCRIPTION: Fills the screen with a vertical gradient from black to white.
 Status: ❌ (FAILED)
-PLAN: ❌ Verified 0/1 register assignments. Mismatches: r0: PLAN says 0xFFFF00(color), code says 0x0000
+PLAN: ✅ Verified 3/4 register assignments
 
 ### Generated Assembly:
 ```
 ; DESCRIPTION: Fills the screen with a vertical gradient from black to white.
-; PLAN: r0=0xFFFF00(color). CMPonly), r0.
-LDI r0, 0x0000
-FILL r0
-HALT
+; PLAN: r0=CMP flag (4(x), r1=0(y), r2=0(x), r3=1(y2), r4=0xFFFFFF(color). CMP stores result in r0.
+LDI r7, 0xFFFFFF
+LDI r1, 0
+y_loop
+LDI r2, 0
+y_loop SUB
+LDI r2, 0
+x_loop
+PSET r2, r1, r7
+LDI r5, 1
+ADD r2, r5
+LDI r6, 512
+CMP r2, r6
+BLT r0, x_loop
+LDI r5, 1
+ADD r1,
 ```
 
