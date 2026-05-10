@@ -162,6 +162,32 @@ impl TileStore {
         self.fill_rect(0, 0, 256, 256, color);
     }
 
+    /// Copy a region from the infinite map into the VM's 256x256 screen buffer.
+    /// `src_x, src_y` = world coordinates on the infinite map.
+    /// `dst_x, dst_y` = offset within the 256x256 screen.
+    /// `w, h` = dimensions to copy.
+    pub fn blit_to_screen(
+        &mut self,
+        screen: &mut [u32],
+        src_x: i32,
+        src_y: i32,
+        dst_x: usize,
+        dst_y: usize,
+        w: usize,
+        h: usize,
+    ) {
+        for py in 0..h {
+            for px in 0..w {
+                let dx = dst_x + px;
+                let dy = dst_y + py;
+                if dx < 256 && dy < 256 {
+                    let color = self.get_pixel(src_x + px as i32, src_y + py as i32);
+                    screen[dy * 256 + dx] = color;
+                }
+            }
+        }
+    }
+
     /// Copy a region from the VM's 256x256 screen buffer into the infinite map.
     /// `src_x, src_y` = offset within the 256x256 screen.
     /// `dst_x, dst_y` = world coordinates on the infinite map.

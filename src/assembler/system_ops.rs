@@ -1370,6 +1370,104 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // ── Infinite Tile Map (0xFF) ──────────────────────────
+        // MAP_SET x_reg, y_reg, color_reg  (mode 0)
+        "MAP_SET" => {
+            if tokens.len() < 4 {
+                return Err(
+                    "MAP_SET requires 3 arguments: MAP_SET x_reg, y_reg, color_reg".to_string(),
+                );
+            }
+            bytecode.push(0xFF);
+            bytecode.push(0); // mode
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        // MAP_GET x_reg, y_reg  -> r0  (mode 1)
+        "MAP_GET" => {
+            if tokens.len() < 3 {
+                return Err("MAP_GET requires 2 arguments: MAP_GET x_reg, y_reg".to_string());
+            }
+            bytecode.push(0xFF);
+            bytecode.push(1); // mode
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        // MAP_FILL x_reg, y_reg, w_reg, h_reg, color_reg  (mode 2)
+        "MAP_FILL" => {
+            if tokens.len() < 6 {
+                return Err(
+                    "MAP_FILL requires 5 arguments: MAP_FILL x_reg, y_reg, w_reg, h_reg, color_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xFF);
+            bytecode.push(2); // mode
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            Ok(Some(()))
+        }
+
+        // MAP_SAVE sx_reg, sy_reg, dx_reg, dy_reg, w_reg, h_reg  (mode 3)
+        "MAP_SAVE" => {
+            if tokens.len() < 7 {
+                return Err(
+                    "MAP_SAVE requires 6 arguments: MAP_SAVE sx_reg, sy_reg, dx_reg, dy_reg, w_reg, h_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xFF);
+            bytecode.push(3); // mode
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            bytecode.push(parse_reg(tokens[6])? as u32);
+            Ok(Some(()))
+        }
+
+        // MAP_LOAD mx_reg, my_reg, dx_reg, dy_reg, w_reg, h_reg  (mode 4)
+        "MAP_LOAD" => {
+            if tokens.len() < 7 {
+                return Err(
+                    "MAP_LOAD requires 6 arguments: MAP_LOAD mx_reg, my_reg, dx_reg, dy_reg, w_reg, h_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xFF);
+            bytecode.push(4); // mode
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            bytecode.push(parse_reg(tokens[6])? as u32);
+            Ok(Some(()))
+        }
+
+        // MAP_FLUSH  (mode 5) -- flush dirty chunks to disk
+        "MAP_FLUSH" => {
+            bytecode.push(0xFF);
+            bytecode.push(5); // mode
+            Ok(Some(()))
+        }
+
+        // MAP_STATS  (mode 6) -- r0 = chunk count, r1 = total writes
+        "MAP_STATS" => {
+            bytecode.push(0xFF);
+            bytecode.push(6); // mode
+            Ok(Some(()))
+        }
+
         // Load sprite data from VFS file: SPRITE_LOAD fn_addr_reg, dest_reg, max_reg (0xD9)
         "SPRITE_LOAD" => {
             if tokens.len() < 4 {

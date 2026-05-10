@@ -898,6 +898,16 @@ impl Vm {
                 }
                 // Phase 68: blit active windows to screen in Z-order (lowest z first)
                 self.blit_windows();
+                // Sync 256x256 screen into infinite tile map at camera position.
+                // Programs using PSET/FILL/etc automatically populate the map.
+                {
+                    let cam_x_tiles = self.ram.get(0x7800).copied().unwrap_or(0) as i32;
+                    let cam_y_tiles = self.ram.get(0x7801).copied().unwrap_or(0) as i32;
+                    let cam_px = cam_x_tiles * 8; // tile -> pixel
+                    let cam_py = cam_y_tiles * 8;
+                    self.tile_store
+                        .blit_from_screen(&self.screen, 0, 0, cam_px, cam_py, 256, 256);
+                }
                 // Phase 4.1: swap mailbox buffers on FRAME boundary
                 // write_buf -> read_buf for consumption next frame, clear write_buf
                 std::mem::swap(&mut self.mailbox_write_buf, &mut self.mailbox_read_buf);
@@ -6084,6 +6094,126 @@ impl Vm {
                             self.trigger_segfault();
                             return false;
                         }
+                    }
+                }
+            }
+
+            // MAP -- Infinite tile map operations (0xFF)
+            // Mode-based dispatch: [0xFF, mode, ...operands]
+            // Mode 0: MAP_SET x_reg, y_reg, color_reg  -- set pixel at world coords
+            // Mode 1: MAP_GET x_reg, y_reg             -- get pixel at world coords into r0
+            // Mode 2: MAP_FILL x_reg, y_reg, w_reg, h_reg, color_reg  -- fill rect
+            // Mode 3: MAP_SAVE_SCREEN sx, sy, dx, dy, w, h  -- blit screen region to map
+            // Mode 4: MAP_LOAD_MAP mx, my, dx, dy, w, h     -- blit map region to screen
+            // Mode 5: MAP_FLUSH  -- flush dirty chunks to disk
+            // Mode 6: MAP_STATS  -- return stats in r0 (chunk count), r1 (write count)
+            0xFF => {
+                let mode = self.fetch();
+                match mode {
+                    0 => {
+                        // MAP_SET x_reg, y_reg, color_reg
+                        let xr = self.fetch() as usize;
+                        let yr = self.fetch() as usize;
+                        let cr = self.fetch() as usize;
+                        if xr < NUM_REGS && yr < NUM_REGS && cr < NUM_REGS {
+                            let wx = self.regs[xr] as i32;
+                            let wy = self.regs[yr] as i32;
+                            let color = self.regs[cr];
+                            self.tile_store.set_pixel(wx, wy, color);
+                        }
+                    }
+                    1 => {
+                        // MAP_GET x_reg, y_reg -> r0
+                        let xr = self.fetch() as usize;
+                        let yr = self.fetch() as usize;
+                        if xr < NUM_REGS && yr < NUM_REGS {
+                            let wx = self.regs[xr] as i32;
+                            let wy = self.regs[yr] as i32;
+                            self.regs[0] = self.tile_store.get_pixel(wx, wy);
+                        }
+                    }
+                    2 => {
+                        // MAP_FILL x_reg, y_reg, w_reg, h_reg, color_reg
+                        let xr = self.fetch() as usize;
+                        let yr = self.fetch() as usize;
+                        let wr = self.fetch() as usize;
+                        let hr = self.fetch() as usize;
+                        let cr = self.fetch() as usize;
+                        if xr < NUM_REGS
+                            && yr < NUM_REGS
+                            && wr < NUM_REGS
+                            && hr < NUM_REGS
+                            && cr < NUM_REGS
+                        {
+                            let x = self.regs[xr] as i32;
+                            let y = self.regs[yr] as i32;
+                            let w = self.regs[wr] as usize;
+                            let h = self.regs[hr] as usize;
+                            let color = self.regs[cr];
+                            self.tile_store.fill_rect(x, y, w, h, color);
+                        }
+                    }
+                    3 => {
+                        // MAP_SAVE_SCREEN sx_reg, sy_reg, dx_reg, dy_reg, w_reg, h_reg
+                        let sxr = self.fetch() as usize;
+                        let syr = self.fetch() as usize;
+                        let dxr = self.fetch() as usize;
+                        let dyr = self.fetch() as usize;
+                        let wr = self.fetch() as usize;
+                        let hr = self.fetch() as usize;
+                        if sxr < NUM_REGS
+                            && syr < NUM_REGS
+                            && dxr < NUM_REGS
+                            && dyr < NUM_REGS
+                            && wr < NUM_REGS
+                            && hr < NUM_REGS
+                        {
+                            let sx = self.regs[sxr] as usize;
+                            let sy = self.regs[syr] as usize;
+                            let dx = self.regs[dxr] as i32;
+                            let dy = self.regs[dyr] as i32;
+                            let w = self.regs[wr] as usize;
+                            let h = self.regs[hr] as usize;
+                            self.tile_store
+                                .blit_from_screen(&self.screen, sx, sy, dx, dy, w, h);
+                        }
+                    }
+                    4 => {
+                        // MAP_LOAD_MAP mx_reg, my_reg, dx_reg, dy_reg, w_reg, h_reg
+                        let mxr = self.fetch() as usize;
+                        let myr = self.fetch() as usize;
+                        let dxr = self.fetch() as usize;
+                        let dyr = self.fetch() as usize;
+                        let wr = self.fetch() as usize;
+                        let hr = self.fetch() as usize;
+                        if mxr < NUM_REGS
+                            && myr < NUM_REGS
+                            && dxr < NUM_REGS
+                            && dyr < NUM_REGS
+                            && wr < NUM_REGS
+                            && hr < NUM_REGS
+                        {
+                            let mx = self.regs[mxr] as i32;
+                            let my = self.regs[myr] as i32;
+                            let dx = self.regs[dxr] as usize;
+                            let dy = self.regs[dyr] as usize;
+                            let w = self.regs[wr] as usize;
+                            let h = self.regs[hr] as usize;
+                            self.tile_store
+                                .blit_to_screen(&mut self.screen, mx, my, dx, dy, w, h);
+                        }
+                    }
+                    5 => {
+                        // MAP_FLUSH -- flush dirty chunks to disk
+                        self.tile_store.flush();
+                    }
+                    6 => {
+                        // MAP_STATS -- r0 = chunk count, r1 = total writes
+                        self.regs[0] = self.tile_store.chunk_count() as u32;
+                        self.regs[1] = self.tile_store.write_count as u32;
+                    }
+                    _ => {
+                        // Unknown MAP sub-mode -> NOP (don't halt)
                     }
                 }
             }

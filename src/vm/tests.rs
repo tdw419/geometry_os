@@ -37116,3 +37116,348 @@ fn test_fractal_julia_toggle() {
     }
     assert!(has_color, "Julia mode should still produce colored pixels");
 }
+
+// ── Infinite Tile Map Opcode Tests ───────────────────────────
+
+#[test]
+fn test_map_set_and_get() {
+    let mut vm = Vm::new();
+    // MAP_SET r1, r2, r3  (set pixel at world coords)
+    // Encoding: [0xFF, 0, r1, r2, r3]
+    vm.ram[0] = 0xFF; // MAP
+    vm.ram[1] = 0; // mode = SET
+    vm.ram[2] = 1; // x_reg = r1
+    vm.ram[3] = 2; // y_reg = r2
+    vm.ram[4] = 3; // color_reg = r3
+    vm.regs[1] = 100; // world x
+    vm.regs[2] = 200; // world y
+    vm.regs[3] = 0x00FF0000; // red
+    vm.step();
+    assert!(!vm.halted);
+
+    // MAP_GET r1, r2  (get pixel -> r0)
+    vm.pc = 0;
+    vm.ram[0] = 0xFF; // MAP
+    vm.ram[1] = 1; // mode = GET
+    vm.ram[2] = 1; // x_reg = r1
+    vm.ram[3] = 2; // y_reg = r2
+    vm.regs[1] = 100;
+    vm.regs[2] = 200;
+    vm.step();
+    assert_eq!(vm.regs[0], 0x00FF0000);
+}
+
+#[test]
+fn test_map_get_unset_returns_zero() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xFF; // MAP
+    vm.ram[1] = 1; // mode = GET
+    vm.ram[2] = 1; // x_reg
+    vm.ram[3] = 2; // y_reg
+    vm.regs[1] = 500;
+    vm.regs[2] = 500;
+    vm.step();
+    assert_eq!(vm.regs[0], 0);
+}
+
+#[test]
+fn test_map_fill() {
+    let mut vm = Vm::new();
+    // MAP_FILL x, y, w, h, color
+    vm.ram[0] = 0xFF; // MAP
+    vm.ram[1] = 2; // mode = FILL
+    vm.ram[2] = 1; // x_reg
+    vm.ram[3] = 2; // y_reg
+    vm.ram[4] = 3; // w_reg
+    vm.ram[5] = 4; // h_reg
+    vm.ram[6] = 5; // color_reg
+    vm.regs[1] = 0; // x = 0
+    vm.regs[2] = 0; // y = 0
+    vm.regs[3] = 10; // w = 10
+    vm.regs[4] = 10; // h = 10
+    vm.regs[5] = 0x00FFFFFF; // white
+    vm.step();
+    assert!(!vm.halted);
+
+    // Verify a pixel in the filled region
+    vm.pc = 0;
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 1; // GET
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.regs[1] = 5;
+    vm.regs[2] = 5;
+    vm.step();
+    assert_eq!(vm.regs[0], 0x00FFFFFF);
+
+    // Verify a pixel outside the filled region
+    vm.pc = 0;
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 1; // GET
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.regs[1] = 15;
+    vm.regs[2] = 15;
+    vm.step();
+    assert_eq!(vm.regs[0], 0);
+}
+
+#[test]
+fn test_map_negative_coordinates() {
+    let mut vm = Vm::new();
+    // Set pixel at negative world coords
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 0; // SET
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.regs[1] = 0xFFFFFFF0u32; // -16 as i32
+    vm.regs[2] = 0xFFFFFFFCu32; // -4 as i32
+    vm.regs[3] = 0x0000FF00; // green
+    vm.step();
+    assert!(!vm.halted);
+
+    // Read it back
+    vm.pc = 0;
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 1; // GET
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.regs[1] = 0xFFFFFFF0u32;
+    vm.regs[2] = 0xFFFFFFFCu32;
+    vm.step();
+    assert_eq!(vm.regs[0], 0x0000FF00);
+}
+
+#[test]
+fn test_map_save_screen() {
+    let mut vm = Vm::new();
+    // Draw on the VM screen first
+    vm.screen[10 * 256 + 10] = 0x00FF0000; // red pixel at (10,10)
+
+    // MAP_SAVE: blit screen region -> map at (100,100)
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 3; // mode = SAVE_SCREEN
+    vm.ram[2] = 1; // sx_reg
+    vm.ram[3] = 2; // sy_reg
+    vm.ram[4] = 3; // dx_reg
+    vm.ram[5] = 4; // dy_reg
+    vm.ram[6] = 5; // w_reg
+    vm.ram[7] = 6; // h_reg
+    vm.regs[1] = 10; // src x on screen
+    vm.regs[2] = 10; // src y on screen
+    vm.regs[3] = 100; // dst x on map
+    vm.regs[4] = 100; // dst y on map
+    vm.regs[5] = 1; // width
+    vm.regs[6] = 1; // height
+    vm.step();
+    assert!(!vm.halted);
+
+    // Read back from map
+    vm.pc = 0;
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 1; // GET
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.regs[1] = 100;
+    vm.regs[2] = 100;
+    vm.step();
+    assert_eq!(vm.regs[0], 0x00FF0000);
+}
+
+#[test]
+fn test_map_load_to_screen() {
+    let mut vm = Vm::new();
+    // First, set a pixel in the map
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 0; // SET
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.regs[1] = 50;
+    vm.regs[2] = 50;
+    vm.regs[3] = 0x000000FF; // blue
+    vm.step();
+
+    // MAP_LOAD: blit map region -> screen at (10,20)
+    vm.pc = 0;
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 4; // mode = LOAD_MAP
+    vm.ram[2] = 1; // mx_reg
+    vm.ram[3] = 2; // my_reg
+    vm.ram[4] = 3; // dx_reg
+    vm.ram[5] = 4; // dy_reg
+    vm.ram[6] = 5; // w_reg
+    vm.ram[7] = 6; // h_reg
+    vm.regs[1] = 50; // map x
+    vm.regs[2] = 50; // map y
+    vm.regs[3] = 10; // screen dst x
+    vm.regs[4] = 20; // screen dst y
+    vm.regs[5] = 1; // width
+    vm.regs[6] = 1; // height
+    vm.step();
+    assert!(!vm.halted);
+    assert_eq!(vm.screen[20 * 256 + 10], 0x000000FF);
+}
+
+#[test]
+fn test_map_stats() {
+    let mut vm = Vm::new();
+    // Set a pixel
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 0; // SET
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 0xFFFFFF;
+    vm.step();
+
+    // MAP_STATS
+    vm.pc = 0;
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 6; // STATS
+    vm.step();
+    assert!(vm.regs[0] > 0, "chunk count should be > 0");
+    assert!(vm.regs[1] > 0, "write count should be > 0");
+}
+
+#[test]
+fn test_map_flush() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 5; // FLUSH
+    vm.step();
+    assert!(!vm.halted);
+}
+
+#[test]
+fn test_map_unknown_mode_is_nop() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xFF;
+    vm.ram[1] = 99; // unknown mode
+    vm.step();
+    assert!(!vm.halted, "unknown MAP mode should NOP, not halt");
+}
+
+#[test]
+fn test_map_set_assembles_and_roundtrips() {
+    let source = "\
+LDI r1, 100\n\
+LDI r2, 200\n\
+LDI r3, 65280\n\
+MAP_SET r1, r2, r3\n\
+MAP_GET r1, r2\n\
+HALT\n";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted);
+    assert_eq!(
+        vm.regs[0], 65280,
+        "MAP_GET should return the value we MAP_SET"
+    );
+}
+
+#[test]
+fn test_map_fill_assembles() {
+    let source = "\
+LDI r1, 0\n\
+LDI r2, 0\n\
+LDI r3, 32\n\
+LDI r4, 32\n\
+LDI r5, 16711680\n\
+MAP_FILL r1, r2, r3, r4, r5\n\
+HALT\n";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted);
+    // Verify a pixel inside the filled region
+    let get_source = "\
+LDI r1, 16\n\
+LDI r2, 16\n\
+MAP_GET r1, r2\n\
+HALT\n";
+    let get_asm = crate::assembler::assemble(get_source, 0).unwrap();
+    for (i, &word) in get_asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.regs[0], 16711680, "Pixel inside MAP_FILL should be red");
+}
+
+#[test]
+fn test_map_save_load_assembles() {
+    // Draw a red pixel on screen, save it to map, clear screen, load it back
+    let source = "\
+LDI r7, 0\n\
+PSETI 10, 10, 255\n\
+LDI r1, 10\n\
+LDI r2, 10\n\
+LDI r3, 200\n\
+LDI r4, 200\n\
+LDI r5, 1\n\
+LDI r6, 1\n\
+MAP_SAVE r1, r2, r3, r4, r5, r6\n\
+FILL r7\n\
+LDI r1, 200\n\
+LDI r2, 200\n\
+LDI r3, 10\n\
+LDI r4, 10\n\
+LDI r5, 1\n\
+LDI r6, 1\n\
+MAP_LOAD r1, r2, r3, r4, r5, r6\n\
+HALT\n";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..10000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted);
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        255,
+        "MAP_LOAD should restore the pixel"
+    );
+}

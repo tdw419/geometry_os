@@ -810,6 +810,63 @@ impl Vm {
                 format!("STOREH [{}], {}", reg(ram(a + 1)), reg(ram(a + 2))),
                 3,
             ),
+            // MAP -- Infinite tile map (0xFF), mode-based dispatch
+            0xFF => {
+                let mode = ram(a + 1);
+                match mode {
+                    0 => (
+                        format!(
+                            "MAP_SET {}, {}, {}",
+                            reg(ram(a + 2)),
+                            reg(ram(a + 3)),
+                            reg(ram(a + 4))
+                        ),
+                        5,
+                    ),
+                    1 => (
+                        format!("MAP_GET {}, {}", reg(ram(a + 2)), reg(ram(a + 3))),
+                        4,
+                    ),
+                    2 => (
+                        format!(
+                            "MAP_FILL {}, {}, {}, {}, {}",
+                            reg(ram(a + 2)),
+                            reg(ram(a + 3)),
+                            reg(ram(a + 4)),
+                            reg(ram(a + 5)),
+                            reg(ram(a + 6))
+                        ),
+                        7,
+                    ),
+                    3 => (
+                        format!(
+                            "MAP_SAVE {}, {}, {}, {}, {}, {}",
+                            reg(ram(a + 2)),
+                            reg(ram(a + 3)),
+                            reg(ram(a + 4)),
+                            reg(ram(a + 5)),
+                            reg(ram(a + 6)),
+                            reg(ram(a + 7))
+                        ),
+                        8,
+                    ),
+                    4 => (
+                        format!(
+                            "MAP_LOAD {}, {}, {}, {}, {}, {}",
+                            reg(ram(a + 2)),
+                            reg(ram(a + 3)),
+                            reg(ram(a + 4)),
+                            reg(ram(a + 5)),
+                            reg(ram(a + 6)),
+                            reg(ram(a + 7))
+                        ),
+                        8,
+                    ),
+                    5 => ("MAP_FLUSH".to_string(), 2),
+                    6 => ("MAP_STATS".to_string(), 2),
+                    _ => (format!("MAP ??? mode={}", mode), 2),
+                }
+            }
             0x87 => (format!("ABS {}", reg(ram(a + 1))), 2),
             0x88 => (
                 format!(

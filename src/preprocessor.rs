@@ -218,6 +218,14 @@ pub const OPCODES: &[&str] = &[
     // Phase 221: Multi-format clipboard + history
     "CLIP_TEXT",
     "CLIP_HISTORY",
+    // Infinite tile map
+    "MAP_SET",
+    "MAP_GET",
+    "MAP_FILL",
+    "MAP_SAVE",
+    "MAP_LOAD",
+    "MAP_FLUSH",
+    "MAP_STATS",
     // Phase 205: Sprite Sheet Loader
     "SPRITE_LOAD",
     "SPRITE_FRAME",

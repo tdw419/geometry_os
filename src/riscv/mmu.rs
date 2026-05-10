@@ -27,6 +27,23 @@
 use super::bus::Bus;
 use super::cpu::Privilege;
 
+// Kernel linear mapping: VA 0xC0000000 maps to PA 0x00000000 (RV32 default PAGE_OFFSET)
+const RV32_PAGE_OFFSET: u64 = 0xC000_0000;
+
+/// Translate a kernel virtual address to a guest physical address.
+/// Returns None if the VA doesn't fall within the kernel linear mapping region.
+fn kernel_va_to_guest_pa(va: u32, bus: &Bus) -> Option<u64> {
+    let va = va as u64;
+    if va >= RV32_PAGE_OFFSET {
+        let pa = va - RV32_PAGE_OFFSET;
+        // Verify the PA is within guest RAM
+        if pa < bus.mem.ram_base + bus.mem.size() as u64 {
+            return Some(pa);
+        }
+    }
+    None
+}
+
 // ---- PTE flag constants ----
 
 pub const PTE_V: u32 = 1 << 0;
@@ -319,10 +336,7 @@ pub fn translate(
             // Kernel linear mapping demand paging (see Fallback 2 in L1 V=0 check).
             // Gated by low_addr_identity_map so tests can disable all fallbacks.
             if vpn1 >= 768 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
-                let page_offset: u64 = 0xC000_0000;
-                let pa = (va as u64).wrapping_sub(page_offset);
-                let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
-                if pa >= bus.mem.ram_base && pa < ram_end {
+                if let Some(pa) = kernel_va_to_guest_pa(va, bus) {
                     let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
                     let eff_ppn = (pa >> 12) as u32;
                     tlb.insert(combined_vpn, asid, eff_ppn, flags);
@@ -347,14 +361,11 @@ pub fn translate(
         }
         // Fallback 2: kernel linear mapping demand paging.
         // When the kernel's page tables don't cover a VA yet (early boot, vmalloc),
-        // compute PA = VA - PAGE_OFFSET and map it if within RAM.
+        // compute PA = (VA - PAGE_OFFSET) + ram_base and map it if within RAM.
         // This prevents the trap handler from faulting on its own stack.
         // Gated by low_addr_identity_map so tests can disable all fallbacks.
         if vpn1 >= 768 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
-            let page_offset: u64 = 0xC000_0000;
-            let pa = (va as u64).wrapping_sub(page_offset);
-            let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
-            if pa >= bus.mem.ram_base && pa < ram_end {
+            if let Some(pa) = kernel_va_to_guest_pa(va, bus) {
                 let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
                 let eff_ppn = (pa >> 12) as u32;
                 tlb.insert(combined_vpn, asid, eff_ppn, flags);
@@ -433,10 +444,11 @@ pub fn translate(
         // VA 0xC0000000+ maps to PA 0x0+ (offset by PAGE_OFFSET).
         // For non-kernel VAs (below PAGE_OFFSET), use identity mapping.
         let pa_base: u64 = if vpn1 >= 768 {
-            // Kernel linear mapping: VA = PA + 0xC0000000
-            ((vpn1 - 768) as u64) << 22
+            // Kernel linear mapping: VA = PA_kernel + 0xC0000000
+            // PA_kernel needs ram_base offset for our VM
+            (((vpn1 - 768) as u64) << 22) + (bus.mem.ram_base as u64)
         } else {
-            // Low address: identity map
+            // Low address: identity map (for MMIO devices)
             (vpn1 as u64) << 22
         };
         let pa = pa_base | ((vpn0 as u64) << 12) | (offset as u64);
@@ -481,10 +493,7 @@ pub fn translate(
             // Kernel linear mapping demand paging.
             // Gated by low_addr_identity_map so tests can disable all fallbacks.
             if vpn1 >= 768 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
-                let page_offset: u64 = 0xC000_0000;
-                let pa = (va as u64).wrapping_sub(page_offset);
-                let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
-                if pa >= bus.mem.ram_base && pa < ram_end {
+                if let Some(pa) = kernel_va_to_guest_pa(va, bus) {
                     let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
                     let eff_ppn = (pa >> 12) as u32;
                     tlb.insert(combined_vpn, asid, eff_ppn, flags);
@@ -510,10 +519,7 @@ pub fn translate(
         // Kernel linear mapping demand paging.
         // Gated by low_addr_identity_map so tests can disable all fallbacks.
         if vpn1 >= 768 && effective_priv != Privilege::Machine && bus.low_addr_identity_map {
-            let page_offset: u64 = 0xC000_0000;
-            let pa = (va as u64).wrapping_sub(page_offset);
-            let ram_end = bus.mem.ram_base + bus.mem.size() as u64;
-            if pa >= bus.mem.ram_base && pa < ram_end {
+            if let Some(pa) = kernel_va_to_guest_pa(va, bus) {
                 let flags = PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
                 let eff_ppn = (pa >> 12) as u32;
                 tlb.insert(combined_vpn, asid, eff_ppn, flags);
