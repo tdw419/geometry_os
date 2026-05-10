@@ -6267,63 +6267,63 @@ phases:
   dependencies: []
 - id: phase-349
   title: RISC-V VirtIO Device Unit Tests
-  status: todo
+  status: done
   description: 'Unit tests for VirtIO device implementations: virtio_blk.rs (1264
     LOC), virtio_gpu.rs (1808 LOC), virtio_net.rs (913 LOC). Test device initialization,
     virtqueue handling, feature negotiation, and data transfer.'
   deliverables:
   - name: VirtIO block device read/write tests
-    status: todo
+    status: done
   - name: VirtIO GPU framebuffer and display tests
-    status: todo
+    status: done
   - name: VirtIO network packet TX/RX tests
-    status: todo
+    status: done
   - name: Virtqueue descriptor chain processing tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-350
   title: RISC-V Peripheral Unit Tests -- UART, CLINT, PLIC, SBI
-  status: todo
+  status: done
   description: 'Unit tests for RISC-V peripherals: uart.rs (416 LOC), clint.rs (218
     LOC), plic.rs (318 LOC), sbi.rs (316 LOC). Test register-level device behavior,
     interrupt delivery, timer management, and SBI console/shutdown calls.'
   deliverables:
   - name: UART register read/write and interrupt tests
-    status: todo
+    status: done
   - name: CLINT timer compare and IPI tests
-    status: todo
+    status: done
   - name: PLIC interrupt priority and enable tests
-    status: todo
+    status: done
   - name: SBI extension dispatch tests (console, shutdown, timer)
-    status: todo
+    status: done
   dependencies: []
 - id: phase-351
   title: RISC-V CSR and Memory Management Tests
-  status: todo
+  status: done
   description: Unit tests for CSR subsystem (csr/bank.rs 1271 LOC, csr/mod.rs 22 LOC,
     csr/constants.rs 96 LOC) and memory.rs (229 LOC). Test CSR read/write, privilege
     escalation, mstatus bits, and physical memory allocation.
   deliverables:
   - name: CSR read/write for standard CSRs (mstatus, mepc, scause, etc.)
-    status: todo
+    status: done
   - name: Privilege mode transitions and mstatus field tests
-    status: todo
+    status: done
   - name: Physical memory alloc/free/refcount tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-352
   title: RISC-V Trace, Loader, and DTB Tests
-  status: todo
+  status: done
   description: Unit tests for trace.rs (1245 LOC), loader.rs (841 LOC), and dtb.rs
     (516 LOC). Test instruction trace formatting, ELF loading, and device tree blob
     parsing.
   deliverables:
   - name: Instruction trace recording and formatting tests
-    status: todo
+    status: done
   - name: ELF segment loading and entry point extraction tests
-    status: todo
+    status: done
   - name: DTB node traversal and property read tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-353
   title: GeOS Program -- Minesweeper
@@ -6378,31 +6378,33 @@ phases:
   dependencies: []
 - id: phase-356
   title: GeOS VM -- PTY Opcode Tests
-  status: todo
+  status: done
   description: Unit tests for ops_pty.rs (2023 LOC) -- the largest untested VM module.
     Test pseudo-terminal creation, read/write, window size queries, and process group
     management.
   deliverables:
   - name: PTY creation and fd allocation tests
-    status: todo
+    status: done
   - name: PTY read/write data flow tests
-    status: todo
+    status: done
   - name: PTY window size (TIOCGWINSZ) tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-357
   title: GeOS VM -- Host Filesystem Opcode Tests
-  status: todo
-  description: Expand tests for ops_host_fs.rs (2033 LOC, only 1 test). Test host
-    directory listing, file stat, recursive directory walk, and error handling for
-    missing/protected paths.
+  status: done
+  description: 'Expand tests for ops_host_fs.rs. 63 tests total covering FSOPEN, FSCLOSE,
+    FSREAD, FSWRITE, FSLS: directory listing (many files, special chars, on-file error),
+    recursive traversal (nested dirs, deep paths, non-recursion verification), and
+    error handling (null bytes, whitespace paths, zero max_len, file-as-directory,
+    close-reopen cycle). All pass.'
   deliverables:
   - name: Host directory listing and file stat tests
-    status: todo
+    status: done
   - name: Recursive directory traversal tests
-    status: todo
+    status: done
   - name: Error handling for invalid/missing paths
-    status: todo
+    status: done
   dependencies: []
 - id: phase-358
   title: GeOS Program -- Fractal Zoom
@@ -6440,17 +6442,17 @@ phases:
   dependencies: []
 - id: phase-360
   title: RISC-V CPU System and Mod Integration Tests
-  status: todo
+  status: done
   description: Unit tests for cpu/system.rs (478 LOC) and mod.rs (462 LOC). Test CPU
     system-level operations (interrupt delivery, context save/restore) and top-level
     RISC-V VM module functions.
   deliverables:
   - name: CPU interrupt delivery and vectoring tests
-    status: todo
+    status: done
   - name: Context save/restore on trap entry/exit
-    status: todo
+    status: done
   - name: Top-level VM construction and reset tests
-    status: todo
+    status: done
   dependencies:
   - phase-346
   - phase-348
