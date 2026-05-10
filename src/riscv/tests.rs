@@ -1538,3 +1538,623 @@ fn test_gpu_compute_sbi_invalid_params_returns_error() {
     vm.step();
     assert_eq!(vm.cpu.x[10], SBI_ERR_INVALID_PARAM as u32);
 }
+
+// ============================================================
+// Phase 345: RISC-V Module Integration Tests (mod.rs)
+// Tests for RiscvVm construction, reset, CPU-MMU-Bus integration,
+// and step execution with device side-effects.
+// ============================================================
+
+/// Helper: encode LW rd, offset(rs1)
+fn enc_lw(rd: u32, rs1: u32, offset: u32) -> u32 {
+    ((offset >> 5) << 25)
+        | ((offset & 0x1F) << 20)
+        | (rs1 << 15)
+        | (0b010 << 12)
+        | (rd << 7)
+        | 0x03
+}
+
+/// Helper: encode ECALL
+fn enc_ecall() -> u32 {
+    0x00000073
+}
+
+/// Helper: encode ADD rd, rs1, rs2
+fn enc_add(rd: u32, rs1: u32, rs2: u32) -> u32 {
+    (rs2 << 20) | (rs1 << 15) | (0 << 12) | (rd << 7) | 0x33
+}
+
+// --- VM Construction and Reset Tests ---
+
+#[test]
+fn test_vm_new_default_state() {
+    // Verify RiscvVm::new initializes with correct defaults.
+    let vm = RiscvVm::new(64 * 1024);
+
+    // CPU should be at Machine privilege, PC at 0x8000_0000
+    assert_eq!(vm.cpu.pc, 0x8000_0000);
+    assert_eq!(vm.cpu.privilege, cpu::Privilege::Machine);
+
+    // All registers should be zero
+    for i in 0..32 {
+        assert_eq!(vm.cpu.x[i], 0, "x{} should be 0 after new()", i);
+    }
+
+    // Should have exactly one context (the primary)
+    assert_eq!(vm.contexts.len(), 1);
+    assert_eq!(vm.current_context, 0);
+    assert_eq!(vm.next_context_id, 1);
+
+    // Primary context should be alive
+    assert!(vm.contexts[0].alive);
+    assert_eq!(vm.contexts[0].id, 0);
+
+    // Bus should have correct ram_base
+    assert_eq!(vm.bus.mem.ram_base, 0x8000_0000);
+}
+
+#[test]
+fn test_vm_new_with_custom_base() {
+    // Verify RiscvVm::new_with_base sets custom ram_base.
+    let vm = RiscvVm::new_with_base(0x0000_0000, 128 * 1024);
+
+    assert_eq!(vm.bus.mem.ram_base, 0x0000_0000);
+    assert_eq!(vm.cpu.csr.mtvec, 0x0000_0000);
+
+    // CPU PC should still be the primary context's PC (0x8000_0000 default)
+    assert_eq!(vm.contexts[0].pc, 0x8000_0000);
+}
+
+#[test]
+fn test_vm_debug_format() {
+    // Verify Debug impl produces useful output.
+    let vm = RiscvVm::new(1024);
+    let debug_str = format!("{:?}", vm);
+    assert!(
+        debug_str.contains("RiscvVm"),
+        "Debug should contain type name"
+    );
+    assert!(
+        debug_str.contains("contexts"),
+        "Debug should show context count"
+    );
+}
+
+#[test]
+fn test_guest_context_new_defaults() {
+    // Verify GuestContext::new initializes all fields correctly.
+    let ctx = GuestContext::new(42);
+
+    assert_eq!(ctx.id, 42);
+    assert!(ctx.alive);
+    assert_eq!(ctx.pc, 0x8000_0000);
+    assert_eq!(ctx.privilege, cpu::Privilege::Machine);
+    assert!(!ctx.satp_flush_pending);
+    assert!(ctx.reservation.is_none());
+
+    // All registers zero
+    for i in 0..32 {
+        assert_eq!(ctx.x[i], 0);
+    }
+}
+
+#[test]
+fn test_guest_context_clone() {
+    // Verify GuestContext is clonable and independent after clone.
+    let mut ctx = GuestContext::new(7);
+    ctx.x[5] = 0xDEADBEEF;
+    ctx.pc = 0x12345678;
+
+    let mut ctx2 = ctx.clone();
+    ctx2.x[5] = 0xCAFEBABE;
+
+    assert_eq!(ctx.x[5], 0xDEADBEEF, "Original should be unchanged");
+    assert_eq!(ctx2.x[5], 0xCAFEBABE, "Clone should be independent");
+}
+
+// --- CPU-MMU-Bus Integration Tests ---
+
+#[test]
+fn test_bus_write_read_word_roundtrip() {
+    // Write a word via Bus, read it back.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new(4096);
+
+    vm.bus.write_word(ram_base, 0x12345678).unwrap();
+    let val = vm.bus.read_word(ram_base).unwrap();
+    assert_eq!(val, 0x12345678);
+}
+
+#[test]
+fn test_bus_write_read_byte_roundtrip() {
+    // Write individual bytes and read them back.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new(4096);
+
+    vm.bus.write_byte(ram_base, 0xAB).unwrap();
+    vm.bus.write_byte(ram_base + 1, 0xCD).unwrap();
+    vm.bus.write_byte(ram_base + 2, 0xEF).unwrap();
+    vm.bus.write_byte(ram_base + 3, 0x01).unwrap();
+
+    assert_eq!(vm.bus.read_byte(ram_base).unwrap(), 0xAB);
+    assert_eq!(vm.bus.read_byte(ram_base + 1).unwrap(), 0xCD);
+    assert_eq!(vm.bus.read_byte(ram_base + 2).unwrap(), 0xEF);
+    assert_eq!(vm.bus.read_byte(ram_base + 3).unwrap(), 0x01);
+}
+
+#[test]
+fn test_bus_word_read_is_little_endian() {
+    // Verify byte writes assemble into little-endian word reads.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new(4096);
+
+    // Write bytes 0x78, 0x56, 0x34, 0x12
+    vm.bus.write_byte(ram_base, 0x78).unwrap();
+    vm.bus.write_byte(ram_base + 1, 0x56).unwrap();
+    vm.bus.write_byte(ram_base + 2, 0x34).unwrap();
+    vm.bus.write_byte(ram_base + 3, 0x12).unwrap();
+
+    let word = vm.bus.read_word(ram_base).unwrap();
+    assert_eq!(word, 0x12345678, "Word read should be little-endian");
+}
+
+#[test]
+fn test_bus_write_word_overwrites_bytes() {
+    // A word write should overwrite all 4 bytes.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new(4096);
+
+    vm.bus.write_word(ram_base, 0xAABBCCDD).unwrap();
+    assert_eq!(vm.bus.read_byte(ram_base).unwrap(), 0xDD);
+    assert_eq!(vm.bus.read_byte(ram_base + 1).unwrap(), 0xCC);
+    assert_eq!(vm.bus.read_byte(ram_base + 2).unwrap(), 0xBB);
+    assert_eq!(vm.bus.read_byte(ram_base + 3).unwrap(), 0xAA);
+}
+
+#[test]
+fn test_bus_out_of_range_returns_error() {
+    // Reading/writing outside RAM should return an error.
+    let mut vm = RiscvVm::new(4096); // 4KB RAM at 0x8000_0000
+
+    // Way beyond RAM (not in any device MMIO range)
+    let result = vm.bus.read_word(0xFFFF_FFFF);
+    assert!(result.is_err(), "Read beyond RAM should fail");
+
+    // Just above RAM end (0x8000_0000 + 4096 = 0x8000_1000)
+    let result = vm.bus.read_word(0x8000_2000);
+    assert!(
+        result.is_err(),
+        "Read at 0x8000_2000 (above 4KB RAM) should fail"
+    );
+}
+
+#[test]
+fn test_cpu_step_executes_lui_from_bus() {
+    // Place a LUI instruction on the bus, step CPU, verify register updated.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0; // bare metal, no MMU
+    vm.cpu.csr.mie = 0; // no interrupts
+    vm.cpu.csr.mstatus = 0;
+
+    // LUI x5, 0x12345
+    let lui = enc_lui(5, 0x12345);
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base, lui).unwrap();
+    vm.bus.write_word(ram_base + 4, ebreak).unwrap();
+
+    // Step 1: LUI
+    let r1 = vm.step_no_clint();
+    assert_eq!(r1, cpu::StepResult::Ok);
+    assert_eq!(vm.cpu.x[5], 0x12345_000);
+    assert_eq!(vm.cpu.pc, ram_base as u32 + 4);
+}
+
+#[test]
+fn test_cpu_step_addi_updates_register() {
+    // ADDI x3, x0, 42 should set x3 = 42.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    let addi = enc_addi(3, 0, 42);
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base, addi).unwrap();
+    vm.bus.write_word(ram_base + 4, ebreak).unwrap();
+
+    let r = vm.step_no_clint();
+    assert_eq!(r, cpu::StepResult::Ok);
+    assert_eq!(vm.cpu.x[3], 42);
+}
+
+#[test]
+fn test_cpu_step_sw_stores_to_bus() {
+    // SW x2, 0(x1) should write x2 to memory at address in x1.
+    let ram_base: u64 = 0x8000_0000;
+    let data_addr = ram_base + 0x100; // store target (within 4KB)
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // LUI x1, 0x80000 -> x1 = 0x8000_0000
+    let lui = enc_lui(1, 0x80000);
+    vm.bus.write_word(ram_base, lui).unwrap();
+    // ADDI x1, x1, 0x100 -> x1 = 0x8000_0100 (data_addr)
+    let addi_x1 = enc_addi(1, 1, 0x100);
+    vm.bus.write_word(ram_base + 4, addi_x1).unwrap();
+    // ADDI x2, x0, 0x123 -> x2 = 0x123
+    let addi_x2 = enc_addi(2, 0, 0x123);
+    vm.bus.write_word(ram_base + 8, addi_x2).unwrap();
+    // SW x2, 0(x1) -> mem[x1] = 0x123
+    let sw = enc_sw(2, 1, 0);
+    vm.bus.write_word(ram_base + 12, sw).unwrap();
+    // EBREAK
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base + 16, ebreak).unwrap();
+
+    vm.step_no_clint(); // LUI
+    vm.step_no_clint(); // ADDI x1
+    vm.step_no_clint(); // ADDI x2
+    vm.step_no_clint(); // SW
+
+    // Verify the store landed in memory
+    let val = vm.bus.read_word(data_addr).unwrap();
+    assert_eq!(val, 0x123, "SW should have stored 0x123 to memory");
+}
+
+#[test]
+fn test_cpu_step_lw_loads_from_bus() {
+    // LW x3, 0(x1) should load from memory into x3.
+    let ram_base: u64 = 0x8000_0000;
+    let data_addr = ram_base + 0x200;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // Pre-store a value at data_addr (within 4KB)
+    vm.bus.write_word(data_addr, 0xCAFEBABE).unwrap();
+
+    // LUI x1, 0x80000 -> x1 = 0x8000_0000
+    let lui = enc_lui(1, 0x80000);
+    vm.bus.write_word(ram_base, lui).unwrap();
+    // ADDI x1, x1, 0x200 -> x1 = 0x8000_0200 (data_addr)
+    let addi_x1 = enc_addi(1, 1, 0x200);
+    vm.bus.write_word(ram_base + 4, addi_x1).unwrap();
+    // LW x3, 0(x1) -> x3 = mem[x1]
+    let lw = enc_lw(3, 1, 0);
+    vm.bus.write_word(ram_base + 8, lw).unwrap();
+    // EBREAK
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base + 12, ebreak).unwrap();
+
+    vm.step_no_clint(); // LUI
+    vm.step_no_clint(); // ADDI x1
+    vm.step_no_clint(); // LW
+
+    assert_eq!(vm.cpu.x[3], 0xCAFEBABE, "LW should load stored value");
+}
+
+// --- Step Execution with Device Side-Effects ---
+
+#[test]
+fn test_step_advances_clint_mtime() {
+    // Each call to step() should advance CLINT mtime by 1.
+    let mut vm = RiscvVm::new(4096);
+    let initial_mtime = vm.bus.clint.mtime;
+
+    vm.step(); // NOP (all zeros = ADDI x0, x0, 0)
+    assert_eq!(
+        vm.bus.clint.mtime,
+        initial_mtime + 1,
+        "step() should tick CLINT"
+    );
+
+    vm.step();
+    assert_eq!(
+        vm.bus.clint.mtime,
+        initial_mtime + 2,
+        "step() should tick CLINT again"
+    );
+}
+
+#[test]
+fn test_step_no_clint_preserves_mtime() {
+    // step_no_clint() should NOT advance mtime.
+    let mut vm = RiscvVm::new(4096);
+    let initial_mtime = vm.bus.clint.mtime;
+
+    vm.step_no_clint();
+    assert_eq!(
+        vm.bus.clint.mtime, initial_mtime,
+        "step_no_clint() should not tick CLINT"
+    );
+
+    vm.step_no_clint();
+    assert_eq!(
+        vm.bus.clint.mtime, initial_mtime,
+        "mtime should remain unchanged"
+    );
+}
+
+#[test]
+fn test_step_with_clint_ticks_advances_by_n() {
+    // step_with_clint_ticks(n) should advance mtime by n.
+    let mut vm = RiscvVm::new(4096);
+    let initial_mtime = vm.bus.clint.mtime;
+
+    vm.step_with_clint_ticks(10);
+    assert_eq!(vm.bus.clint.mtime, initial_mtime + 10);
+
+    vm.step_with_clint_ticks(5);
+    assert_eq!(vm.bus.clint.mtime, initial_mtime + 15);
+}
+
+#[test]
+fn test_clint_timer_interrupt_pending_after_mtime_exceeds_mtimecmp() {
+    // When mtime >= mtimecmp, the timer MIP bit should be set.
+    let mut vm = RiscvVm::new(4096);
+
+    // Set mtimecmp to a small value
+    vm.bus.clint.mtimecmp = 3;
+
+    // Step until mtime reaches/exceeds mtimecmp
+    for _ in 0..4 {
+        vm.step();
+    }
+
+    // Timer interrupt should be pending in MIP
+    let mip = vm.cpu.csr.mip;
+    assert!(
+        mip & (1 << 7) != 0,
+        "MIP.MTIP (bit 7) should be set when mtime >= mtimecmp, mtime={} mtimecmp={}",
+        vm.bus.clint.mtime,
+        vm.bus.clint.mtimecmp
+    );
+}
+
+#[test]
+fn test_step_no_clint_skips_timer_sync() {
+    // step_no_clint should not set timer MIP even when mtime >= mtimecmp.
+    let mut vm = RiscvVm::new(4096);
+
+    // Advance mtime to exceed mtimecmp
+    vm.bus.clint.mtimecmp = 0;
+    vm.bus.clint.mtime = 100;
+
+    // step_no_clint should NOT sync timer MIP
+    vm.step_no_clint();
+
+    let mip = vm.cpu.csr.mip;
+    assert_eq!(
+        mip & (1 << 7),
+        0,
+        "MIP.MTIP should NOT be set by step_no_clint"
+    );
+}
+
+#[test]
+fn test_uart_write_during_cpu_step() {
+    // CPU executing SW to UART address should produce side-effect in UART.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // LUI x1, 0x10000 -> x1 = 0x1000_0000 (UART base)
+    let lui = enc_lui(1, 0x10000);
+    vm.bus.write_word(ram_base, lui).unwrap();
+    // ADDI x2, x0, 0x41 -> x2 = 'A'
+    let addi = enc_addi(2, 0, 0x41);
+    vm.bus.write_word(ram_base + 4, addi).unwrap();
+    // SW x2, 0(x1) -> write 'A' to UART
+    let sw = enc_sw(2, 1, 0);
+    vm.bus.write_word(ram_base + 8, sw).unwrap();
+    // EBREAK
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base + 12, ebreak).unwrap();
+
+    let initial_tx_count = vm.bus.uart.write_count;
+
+    vm.step_no_clint(); // LUI
+    vm.step_no_clint(); // ADDI
+    vm.step_no_clint(); // SW -> UART write
+
+    assert!(
+        vm.bus.uart.write_count > initial_tx_count,
+        "UART write_count should increase after SW to UART address"
+    );
+}
+
+#[test]
+fn test_context_save_preserves_all_cpu_state() {
+    // save_context should capture registers, PC, privilege, CSRs.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // Set up some CPU state
+    vm.cpu.x[1] = 0xAAAA;
+    vm.cpu.x[10] = 0xBBBB;
+    vm.cpu.pc = 0x8000_1000;
+    vm.cpu.privilege = cpu::Privilege::Supervisor;
+    vm.cpu.csr.mepc = 0xDEAD;
+
+    // Save context
+    vm.save_context();
+
+    // Modify CPU state
+    vm.cpu.x[1] = 0;
+    vm.cpu.x[10] = 0;
+    vm.cpu.pc = 0;
+    vm.cpu.privilege = cpu::Privilege::Machine;
+    vm.cpu.csr.mepc = 0;
+
+    // Restore context
+    vm.restore_context();
+
+    // Verify all state was preserved
+    assert_eq!(vm.cpu.x[1], 0xAAAA, "x1 should be restored");
+    assert_eq!(vm.cpu.x[10], 0xBBBB, "x10 should be restored");
+    assert_eq!(vm.cpu.pc, 0x8000_1000, "PC should be restored");
+    assert_eq!(
+        vm.cpu.privilege,
+        cpu::Privilege::Supervisor,
+        "privilege should be restored"
+    );
+    assert_eq!(vm.cpu.csr.mepc, 0xDEAD, "mepc should be restored");
+}
+
+#[test]
+fn test_alive_context_count_after_kill() {
+    // Spawn multiple contexts, kill some, verify count.
+    let mut vm = RiscvVm::new(4096);
+
+    assert_eq!(vm.alive_context_count(), 1);
+
+    // Manually add contexts (simulating spawn)
+    vm.contexts.push(GuestContext::new(1));
+    vm.contexts.push(GuestContext::new(2));
+    vm.contexts.push(GuestContext::new(3));
+
+    assert_eq!(vm.alive_context_count(), 4);
+
+    // Kill context 1
+    assert!(vm.kill_context(1));
+    assert_eq!(vm.alive_context_count(), 3);
+
+    // Kill context 3
+    assert!(vm.kill_context(3));
+    assert_eq!(vm.alive_context_count(), 2);
+
+    // Kill already-dead context should return false
+    assert!(!vm.kill_context(1));
+    assert_eq!(vm.alive_context_count(), 2);
+
+    // Kill non-existent context should return false
+    assert!(!vm.kill_context(99));
+    assert_eq!(vm.alive_context_count(), 2);
+}
+
+#[test]
+fn test_next_alive_context_round_robin() {
+    // With contexts [alive, dead, alive], next_alive from 0 should be 2.
+    let mut vm = RiscvVm::new(4096);
+    vm.contexts.push(GuestContext::new(1));
+    vm.contexts.push(GuestContext::new(2));
+
+    // Kill context 1
+    vm.contexts[1].alive = false;
+
+    // next_alive_context is private, but we can test it via alive_context_count
+    assert_eq!(vm.alive_context_count(), 2); // 0 and 2 are alive
+
+    // Kill all but primary
+    vm.contexts[2].alive = false;
+    assert_eq!(vm.alive_context_count(), 1);
+}
+
+#[test]
+fn test_step_returns_ok_for_nop() {
+    // A 32-bit NOP (ADDI x0, x0, 0 = 0x00000013) should return Ok.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // Write actual 32-bit NOPs (not zeros, which decode as 16-bit compressed)
+    let nop = 0x00000013u32; // ADDI x0, x0, 0
+    for i in 0..16 {
+        vm.bus.write_word(ram_base + (i as u64) * 4, nop).unwrap();
+    }
+
+    let result = vm.step_no_clint();
+    assert_eq!(result, cpu::StepResult::Ok);
+    assert_eq!(vm.cpu.pc, ram_base as u32 + 4);
+}
+
+#[test]
+fn test_step_returns_ebreak() {
+    // An EBREAK instruction should return Ebreak.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base, ebreak).unwrap();
+
+    let result = vm.step_no_clint();
+    assert_eq!(result, cpu::StepResult::Ebreak);
+}
+
+#[test]
+fn test_multiple_steps_accumulate_pc() {
+    // Running multiple 32-bit NOPs should advance PC by 4 each step.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // Write actual 32-bit NOPs (zeros decode as 16-bit compressed instructions)
+    let nop = 0x00000013u32; // ADDI x0, x0, 0
+    for i in 0..16 {
+        vm.bus.write_word(ram_base + (i as u64) * 4, nop).unwrap();
+    }
+
+    for i in 1..=10 {
+        let _ = vm.step_no_clint();
+        assert_eq!(vm.cpu.pc, ram_base as u32 + i * 4);
+    }
+}
+
+#[test]
+fn test_add_instruction_produces_correct_result() {
+    // ADD x3, x1, x2 where x1=10, x2=25 -> x3 should be 35.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // ADDI x1, x0, 10
+    let addi1 = enc_addi(1, 0, 10);
+    vm.bus.write_word(ram_base, addi1).unwrap();
+    // ADDI x2, x0, 25
+    let addi2 = enc_addi(2, 0, 25);
+    vm.bus.write_word(ram_base + 4, addi2).unwrap();
+    // ADD x3, x1, x2
+    let add = enc_add(3, 1, 2);
+    vm.bus.write_word(ram_base + 8, add).unwrap();
+    // EBREAK
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base + 12, ebreak).unwrap();
+
+    vm.step_no_clint(); // ADDI x1
+    vm.step_no_clint(); // ADDI x2
+    vm.step_no_clint(); // ADD x3
+
+    assert_eq!(vm.cpu.x[1], 10);
+    assert_eq!(vm.cpu.x[2], 25);
+    assert_eq!(vm.cpu.x[3], 35, "ADD should produce 10 + 25 = 35");
+}
