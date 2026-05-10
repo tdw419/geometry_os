@@ -325,4 +325,359 @@ mod tests {
         assert_eq!(r[2], Some((60, 50, 40, 40))); // x=60, y=50, w=40, h=40
         assert_eq!(r[3], None);
     }
+
+    // ============================================================
+    // Constants
+    // ============================================================
+
+    #[test]
+    fn fb_constants() {
+        assert_eq!(FB_WIDTH, 256);
+        assert_eq!(FB_HEIGHT, 256);
+        assert_eq!(FB_PIXEL_SIZE, 256 * 256 * 4); // 262144
+        assert_eq!(FB_BASE, 0x6000_0000);
+        assert_eq!(FB_CONTROL_ADDR, FB_BASE + FB_PIXEL_SIZE as u64);
+        assert_eq!(FB_CLIP_ADDR, FB_CONTROL_ADDR + 4);
+        assert_eq!(FB_TOTAL_SIZE, FB_PIXEL_SIZE as u64 + 8);
+    }
+
+    // ============================================================
+    // pixel_to_minifb conversion
+    // ============================================================
+
+    #[test]
+    fn pixel_to_minifb_strips_alpha() {
+        assert_eq!(pixel_to_minifb(0xFF0000FF), 0x00FF0000); // red
+        assert_eq!(pixel_to_minifb(0x00FF00FF), 0x0000FF00); // green
+        assert_eq!(pixel_to_minifb(0x0000FFFF), 0x000000FF); // blue
+    }
+
+    #[test]
+    fn pixel_to_minifb_zero() {
+        assert_eq!(pixel_to_minifb(0), 0);
+    }
+
+    #[test]
+    fn pixel_to_minifb_full_white() {
+        assert_eq!(pixel_to_minifb(0xFFFFFFFF), 0x00FFFFFF);
+    }
+
+    // ============================================================
+    // Framebuffer::new and Default
+    // ============================================================
+
+    #[test]
+    fn fb_new_all_zeros() {
+        let fb = Framebuffer::new();
+        assert_eq!(fb.pixels.len(), 256 * 256);
+        assert!(fb.pixels.iter().all(|&p| p == 0));
+        assert!(!fb.present_flag);
+        assert!(fb.on_present.is_none());
+    }
+
+    #[test]
+    fn fb_default_matches_new() {
+        let fb = Framebuffer::default();
+        assert_eq!(fb.pixels.len(), 256 * 256);
+        assert!(!fb.present_flag);
+    }
+
+    // ============================================================
+    // contains() address check
+    // ============================================================
+
+    #[test]
+    fn fb_contains_within_range() {
+        assert!(Framebuffer::contains(FB_BASE));
+        assert!(Framebuffer::contains(FB_BASE + 4));
+        assert!(Framebuffer::contains(FB_BASE + FB_PIXEL_SIZE as u64 - 4));
+        assert!(Framebuffer::contains(FB_CONTROL_ADDR));
+        assert!(Framebuffer::contains(FB_CLIP_ADDR));
+    }
+
+    #[test]
+    fn fb_contains_outside_range() {
+        assert!(!Framebuffer::contains(FB_BASE - 1));
+        assert!(!Framebuffer::contains(FB_CLIP_ADDR + 4));
+        assert!(!Framebuffer::contains(0));
+        assert!(!Framebuffer::contains(0x7000_0000));
+    }
+
+    // ============================================================
+    // read() pixel data
+    // ============================================================
+
+    #[test]
+    fn fb_read_pixel_at_base() {
+        let mut fb = Framebuffer::new();
+        fb.pixels[0] = 0xDEADBEEF;
+        assert_eq!(fb.read(FB_BASE), Some(0xDEADBEEF));
+    }
+
+    #[test]
+    fn fb_read_pixel_at_offset() {
+        let mut fb = Framebuffer::new();
+        fb.pixels[100] = 0xCAFEBABE;
+        assert_eq!(fb.read(FB_BASE + 100 * 4), Some(0xCAFEBABE));
+    }
+
+    #[test]
+    fn fb_read_last_pixel() {
+        let mut fb = Framebuffer::new();
+        fb.pixels[256 * 256 - 1] = 0x12345678;
+        let offset = (256 * 256 - 1) * 4;
+        assert_eq!(fb.read(FB_BASE + offset as u64), Some(0x12345678));
+    }
+
+    #[test]
+    fn fb_read_misaligned_returns_nearest_pixel() {
+        let mut fb = Framebuffer::new();
+        fb.pixels[65535] = 0xAAAA; // last pixel
+        // Misaligned read at last pixel end + 2: offset = pixel_size - 2
+        let addr = FB_BASE + FB_PIXEL_SIZE as u64 - 2;
+        // offset / 4 = 65535 (truncates down to valid pixel index)
+        assert_eq!(fb.read(addr), Some(0xAAAA));
+    }
+
+    #[test]
+    fn fb_read_control_register_returns_present_flag() {
+        let fb = Framebuffer::new();
+        // FB_BASE + FB_PIXEL_SIZE is the control register, not past the end
+        assert_eq!(fb.read(FB_BASE + FB_PIXEL_SIZE as u64), Some(0)); // present_flag=false
+    }
+
+    #[test]
+    fn fb_read_past_clip_register_returns_none() {
+        let fb = Framebuffer::new();
+        // Past the clip register is outside the FB range
+        assert_eq!(fb.read(FB_CLIP_ADDR + 4), None);
+    }
+
+    // ============================================================
+    // read() control register
+    // ============================================================
+
+    #[test]
+    fn fb_read_control_present_false() {
+        let fb = Framebuffer::new();
+        assert_eq!(fb.read(FB_CONTROL_ADDR), Some(0));
+    }
+
+    #[test]
+    fn fb_read_control_present_true() {
+        let mut fb = Framebuffer::new();
+        fb.present_flag = true;
+        assert_eq!(fb.read(FB_CONTROL_ADDR), Some(1));
+    }
+
+    #[test]
+    fn fb_read_clip_no_clip() {
+        let fb = Framebuffer::new();
+        assert_eq!(fb.read(FB_CLIP_ADDR), Some(0xFFFFFFFF));
+    }
+
+    #[test]
+    fn fb_read_clip_with_rect() {
+        let mut fb = Framebuffer::new();
+        fb.clip_rect = Some((10, 20, 30, 40));
+        let expected = (20u32 << 24) | (10u32 << 16) | (40u32 << 8) | 30u32;
+        assert_eq!(fb.read(FB_CLIP_ADDR), Some(expected));
+    }
+
+    #[test]
+    fn fb_read_unknown_register() {
+        let fb = Framebuffer::new();
+        // Address past clip register
+        assert_eq!(fb.read(FB_CLIP_ADDR + 4), None);
+    }
+
+    // ============================================================
+    // write() pixel data
+    // ============================================================
+
+    #[test]
+    fn fb_write_pixel() {
+        let mut fb = Framebuffer::new();
+        fb.write(FB_BASE, 0xFF0000FF);
+        assert_eq!(fb.pixels[0], 0xFF0000FF);
+    }
+
+    #[test]
+    fn fb_write_pixel_at_offset() {
+        let mut fb = Framebuffer::new();
+        fb.write(FB_BASE + 50 * 4, 0x00FF00FF);
+        assert_eq!(fb.pixels[50], 0x00FF00FF);
+    }
+
+    #[test]
+    fn fb_write_beyond_pixels_ignored() {
+        let mut fb = Framebuffer::new();
+        fb.write(FB_BASE + FB_PIXEL_SIZE as u64 + 100, 0xFF);
+        // Should not panic, pixels unchanged
+        assert!(fb.pixels.iter().all(|&p| p == 0));
+    }
+
+    #[test]
+    fn fb_write_below_base_ignored() {
+        let mut fb = Framebuffer::new();
+        fb.write(FB_BASE - 4, 0xFF);
+        assert!(fb.pixels.iter().all(|&p| p == 0));
+    }
+
+    // ============================================================
+    // write() control register
+    // ============================================================
+
+    #[test]
+    fn fb_write_control_sets_present() {
+        let mut fb = Framebuffer::new();
+        assert!(!fb.present_flag);
+        fb.write(FB_CONTROL_ADDR, 1);
+        assert!(fb.present_flag);
+    }
+
+    #[test]
+    fn fb_write_control_zero_no_present() {
+        let mut fb = Framebuffer::new();
+        fb.write(FB_CONTROL_ADDR, 0);
+        assert!(!fb.present_flag);
+    }
+
+    #[test]
+    fn fb_write_control_fires_callback() {
+        let fired: Rc<RefCell<bool>> = Rc::new(RefCell::new(false));
+        let fired_clone = fired.clone();
+        let cb: PresentCallback = Rc::new(RefCell::new({
+            move |_pixels: &[u32], _clip: ClipRect| {
+                *fired_clone.borrow_mut() = true;
+            }
+        }));
+        let mut fb = Framebuffer::with_callback(cb);
+        assert!(!*fired.borrow());
+        fb.write(FB_CONTROL_ADDR, 1);
+        assert!(*fired.borrow());
+    }
+
+    // ============================================================
+    // write() clip register
+    // ============================================================
+
+    #[test]
+    fn fb_write_clip_disable() {
+        let mut fb = Framebuffer::new();
+        fb.clip_rect = Some((10, 20, 30, 40));
+        fb.write(FB_CLIP_ADDR, 0xFFFFFFFF);
+        assert!(fb.clip_rect.is_none());
+    }
+
+    #[test]
+    fn fb_write_clip_set_rect() {
+        let mut fb = Framebuffer::new();
+        // packed: (y=5 << 24) | (x=10 << 16) | (h=20 << 8) | w=30
+        let packed = (5u32 << 24) | (10u32 << 16) | (20u32 << 8) | 30u32;
+        fb.write(FB_CLIP_ADDR, packed);
+        assert_eq!(fb.clip_rect, Some((10, 5, 30, 20)));
+    }
+
+    #[test]
+    fn fb_write_clip_zero_wh_means_256() {
+        let mut fb = Framebuffer::new();
+        // w=0 and h=0 should encode as 256
+        let packed = (5u32 << 24) | (10u32 << 16) | (0u32 << 8) | 0u32;
+        fb.write(FB_CLIP_ADDR, packed);
+        assert_eq!(fb.clip_rect, Some((10, 5, 256, 256)));
+    }
+
+    #[test]
+    fn fb_write_clip_drops_pixels_outside() {
+        let mut fb = Framebuffer::new();
+        // Clip to x=0, y=0, w=1, h=1 — only pixel (0,0) is writable
+        let packed = (0u32 << 24) | (0u32 << 16) | (1u32 << 8) | 1u32;
+        fb.write(FB_CLIP_ADDR, packed);
+
+        // Write to (0,0) — inside clip
+        fb.write(FB_BASE, 0xFF);
+        assert_eq!(fb.pixels[0], 0xFF);
+
+        // Write to (1,0) — outside clip (x=1 >= x+w=1)
+        fb.write(FB_BASE + 4, 0xAA);
+        assert_eq!(fb.pixels[1], 0); // dropped
+
+        // Write to (0,1) — outside clip (y=1 >= y+h=1)
+        fb.write(FB_BASE + 256 * 4, 0xBB);
+        assert_eq!(fb.pixels[256], 0); // dropped
+    }
+
+    // ============================================================
+    // set_clip_rect
+    // ============================================================
+
+    #[test]
+    fn set_clip_rect_none() {
+        let mut fb = Framebuffer::new();
+        fb.clip_rect = Some((10, 20, 30, 40));
+        fb.set_clip_rect(None);
+        assert!(fb.clip_rect.is_none());
+    }
+
+    #[test]
+    fn set_clip_rect_some() {
+        let mut fb = Framebuffer::new();
+        fb.set_clip_rect(Some((5, 10, 15, 20)));
+        assert_eq!(fb.clip_rect, Some((5, 10, 15, 20)));
+    }
+
+    // ============================================================
+    // SyscallEvent struct
+    // ============================================================
+
+    #[test]
+    fn syscall_event_fields() {
+        use crate::riscv::syscall::SyscallEvent;
+        let evt = SyscallEvent {
+            nr: 63,
+            name: "read",
+            args: [1, 2, 3, 4, 5, 6],
+            ret: Some(42),
+            pc: 0x1000,
+        };
+        assert_eq!(evt.nr, 63);
+        assert_eq!(evt.name, "read");
+        assert_eq!(evt.args[0], 1);
+        assert_eq!(evt.ret, Some(42));
+        assert_eq!(evt.pc, 0x1000);
+    }
+
+    // ============================================================
+    // syscall_name decoder
+    // ============================================================
+
+    #[test]
+    fn syscall_name_known() {
+        use crate::riscv::syscall::syscall_name;
+        assert_eq!(syscall_name(63), "read");
+        assert_eq!(syscall_name(64), "write");
+        assert_eq!(syscall_name(57), "close");
+        assert_eq!(syscall_name(56), "openat");
+        assert_eq!(syscall_name(91), "exit");
+        assert_eq!(syscall_name(92), "exit_group");
+        assert_eq!(syscall_name(29), "ioctl");
+        assert_eq!(syscall_name(218), "clone");
+        assert_eq!(syscall_name(260), "wait4");
+        assert_eq!(syscall_name(170), "getpid");
+    }
+
+    #[test]
+    fn syscall_name_unknown() {
+        use crate::riscv::syscall::syscall_name;
+        assert_eq!(syscall_name(99999), "unknown");
+        assert_eq!(syscall_name(100000), "unknown");
+    }
+
+    #[test]
+    fn syscall_name_zero() {
+        use crate::riscv::syscall::syscall_name;
+        assert_eq!(syscall_name(0), "io_setup");
+    }
 }
+

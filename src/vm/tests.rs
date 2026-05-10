@@ -37061,7 +37061,7 @@ fn test_fractal_julia_toggle() {
     // Sample center region (should be in-set for Mandelbrot)
     let cx = 128;
     let cy = 128;
-    let mandelbrot_color = vm.screen[cy * 256 + cx];
+    let _mandelbrot_color = vm.screen[cy * 256 + cx];
 
     // Inject 'J' key to toggle Julia mode
     vm.push_key(74); // 'J'
@@ -37086,7 +37086,7 @@ fn test_fractal_julia_toggle() {
     );
 
     // Julia set at same center should look different from Mandelbrot
-    let julia_color = vm.screen[cy * 256 + cx];
+    let _julia_color = vm.screen[cy * 256 + cx];
     // They might be the same color by coincidence, but at least verify
     // the program didn't crash and is still running
     let mut has_color = false;
