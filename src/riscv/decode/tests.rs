@@ -1245,3 +1245,457 @@ fn btype_imm_range() {
         panic!("Expected Beq, got {:?}", op);
     }
 }
+
+// ============================================================
+// Phase 347: M extension (MUL/DIV/REM) decode tests
+// opcode=0x33, funct7=0b0000001, various funct3
+// ============================================================
+
+#[test]
+fn decode_mul() {
+    // MUL: funct7=0b0000001, funct3=000, opcode=0x33
+    let w = encode_r(0b0000001, 3, 5, 0b000, 2);
+    assert_eq!(
+        decode(w),
+        Operation::Mul {
+            rd: 2,
+            rs1: 5,
+            rs2: 3
+        }
+    );
+}
+
+#[test]
+fn decode_mulh() {
+    // MULH: funct7=0b0000001, funct3=001
+    let w = encode_r(0b0000001, 7, 4, 0b001, 6);
+    assert_eq!(
+        decode(w),
+        Operation::Mulh {
+            rd: 6,
+            rs1: 4,
+            rs2: 7
+        }
+    );
+}
+
+#[test]
+fn decode_mulhsu() {
+    // MULHSU: funct7=0b0000001, funct3=010
+    let w = encode_r(0b0000001, 10, 8, 0b010, 9);
+    assert_eq!(
+        decode(w),
+        Operation::Mulhsu {
+            rd: 9,
+            rs1: 8,
+            rs2: 10
+        }
+    );
+}
+
+#[test]
+fn decode_mulhu() {
+    // MULHU: funct7=0b0000001, funct3=011
+    let w = encode_r(0b0000001, 11, 12, 0b011, 13);
+    assert_eq!(
+        decode(w),
+        Operation::Mulhu {
+            rd: 13,
+            rs1: 12,
+            rs2: 11
+        }
+    );
+}
+
+#[test]
+fn decode_div() {
+    // DIV: funct7=0b0000001, funct3=100
+    let w = encode_r(0b0000001, 3, 6, 0b100, 5);
+    assert_eq!(
+        decode(w),
+        Operation::Div {
+            rd: 5,
+            rs1: 6,
+            rs2: 3
+        }
+    );
+}
+
+#[test]
+fn decode_divu() {
+    // DIVU: funct7=0b0000001, funct3=101
+    let w = encode_r(0b0000001, 4, 7, 0b101, 2);
+    assert_eq!(
+        decode(w),
+        Operation::Divu {
+            rd: 2,
+            rs1: 7,
+            rs2: 4
+        }
+    );
+}
+
+#[test]
+fn decode_rem() {
+    // REM: funct7=0b0000001, funct3=110
+    let w = encode_r(0b0000001, 5, 8, 0b110, 3);
+    assert_eq!(
+        decode(w),
+        Operation::Rem {
+            rd: 3,
+            rs1: 8,
+            rs2: 5
+        }
+    );
+}
+
+#[test]
+fn decode_remu() {
+    // REMU: funct7=0b0000001, funct3=111
+    let w = encode_r(0b0000001, 6, 9, 0b111, 4);
+    assert_eq!(
+        decode(w),
+        Operation::Remu {
+            rd: 4,
+            rs1: 9,
+            rs2: 6
+        }
+    );
+}
+
+// ============================================================
+// Phase 347: A extension (AMO) decode tests
+// opcode=0x2F, funct3=010, various funct5
+// Format: funct5[31:27] | aq[26] | rl[25] | rs2 | rs1 | funct3 | rd
+// ============================================================
+
+fn encode_amo(funct5: u32, aq: bool, rl: bool, rs2: u32, rs1: u32, rd: u32) -> u32 {
+    let funct7 = (funct5 << 2) | ((aq as u32) << 1) | (rl as u32);
+    (funct7 << 25) | (rs2 << 20) | (rs1 << 15) | (0b010 << 12) | (rd << 7) | 0x2F
+}
+
+#[test]
+fn decode_lr_w() {
+    // LR.W: funct5=0b00010, funct3=010, opcode=0x2F
+    let w = encode_amo(0b00010, true, false, 0, 5, 3);
+    if let Operation::LrW { rd, rs1, aq, rl } = decode(w) {
+        assert_eq!(rd, 3);
+        assert_eq!(rs1, 5);
+        assert!(aq);
+        assert!(!rl);
+    } else {
+        panic!("Expected LrW, got {:?}", decode(w));
+    }
+}
+
+#[test]
+fn decode_sc_w() {
+    // SC.W: funct5=0b00011
+    let w = encode_amo(0b00011, false, true, 7, 5, 3);
+    if let Operation::ScW {
+        rd,
+        rs1,
+        rs2,
+        aq,
+        rl,
+    } = decode(w)
+    {
+        assert_eq!(rd, 3);
+        assert_eq!(rs1, 5);
+        assert_eq!(rs2, 7);
+        assert!(!aq);
+        assert!(rl);
+    } else {
+        panic!("Expected ScW, got {:?}", decode(w));
+    }
+}
+
+#[test]
+fn decode_amoswap_w() {
+    // AMOSWAP.W: funct5=0b00001
+    let w = encode_amo(0b00001, true, true, 4, 6, 2);
+    if let Operation::AmoswapW {
+        rd,
+        rs1,
+        rs2,
+        aq,
+        rl,
+    } = decode(w)
+    {
+        assert_eq!(rd, 2);
+        assert_eq!(rs1, 6);
+        assert_eq!(rs2, 4);
+        assert!(aq);
+        assert!(rl);
+    } else {
+        panic!("Expected AmoswapW, got {:?}", decode(w));
+    }
+}
+
+#[test]
+fn decode_amoadd_w() {
+    // AMOADD.W: funct5=0b00000
+    let w = encode_amo(0b00000, false, false, 3, 5, 2);
+    assert!(matches!(
+        decode(w),
+        Operation::AmoaddW {
+            rd: 2,
+            rs1: 5,
+            rs2: 3,
+            aq: false,
+            rl: false
+        }
+    ));
+}
+
+#[test]
+fn decode_amoxor_w() {
+    // AMOXOR.W: funct5=0b00100
+    let w = encode_amo(0b00100, false, false, 3, 5, 2);
+    assert!(matches!(
+        decode(w),
+        Operation::AmoxorW {
+            rd: 2,
+            rs1: 5,
+            rs2: 3,
+            aq: false,
+            rl: false
+        }
+    ));
+}
+
+#[test]
+fn decode_amoand_w() {
+    // AMOAND.W: funct5=0b01100
+    let w = encode_amo(0b01100, false, false, 3, 5, 2);
+    assert!(matches!(
+        decode(w),
+        Operation::AmoandW {
+            rd: 2,
+            rs1: 5,
+            rs2: 3,
+            aq: false,
+            rl: false
+        }
+    ));
+}
+
+#[test]
+fn decode_amoor_w() {
+    // AMOOR.W: funct5=0b01000
+    let w = encode_amo(0b01000, false, false, 3, 5, 2);
+    assert!(matches!(
+        decode(w),
+        Operation::AmoorW {
+            rd: 2,
+            rs1: 5,
+            rs2: 3,
+            aq: false,
+            rl: false
+        }
+    ));
+}
+
+#[test]
+fn decode_amomin_w() {
+    // AMOMIN.W: funct5=0b10000
+    let w = encode_amo(0b10000, false, false, 3, 5, 2);
+    assert!(matches!(
+        decode(w),
+        Operation::AmominW {
+            rd: 2,
+            rs1: 5,
+            rs2: 3,
+            aq: false,
+            rl: false
+        }
+    ));
+}
+
+#[test]
+fn decode_amomax_w() {
+    // AMOMAX.W: funct5=0b10100
+    let w = encode_amo(0b10100, false, false, 3, 5, 2);
+    assert!(matches!(
+        decode(w),
+        Operation::AmomaxW {
+            rd: 2,
+            rs1: 5,
+            rs2: 3,
+            aq: false,
+            rl: false
+        }
+    ));
+}
+
+#[test]
+fn decode_amominu_w() {
+    // AMOMINU.W: funct5=0b11000
+    let w = encode_amo(0b11000, false, false, 3, 5, 2);
+    assert!(matches!(
+        decode(w),
+        Operation::AmominuW {
+            rd: 2,
+            rs1: 5,
+            rs2: 3,
+            aq: false,
+            rl: false
+        }
+    ));
+}
+
+#[test]
+fn decode_amomaxu_w() {
+    // AMOMAXU.W: funct5=0b11100
+    let w = encode_amo(0b11100, false, false, 3, 5, 2);
+    assert!(matches!(
+        decode(w),
+        Operation::AmomaxuW {
+            rd: 2,
+            rs1: 5,
+            rs2: 3,
+            aq: false,
+            rl: false
+        }
+    ));
+}
+
+#[test]
+fn decode_amo_wrong_funct3_is_invalid() {
+    // AMO with funct3 != 010 should be Invalid
+    let w = (0b00010 << 25) | (0b0 << 20) | (5 << 15) | (0b011 << 12) | (2 << 7) | 0x2F;
+    assert!(matches!(decode(w), Operation::Invalid(_)));
+}
+
+// ============================================================
+// Phase 347: System instruction decode tests
+// MRET, SRET, SFENCE.VMA, NOP/WFI
+// ============================================================
+
+fn encode_system(funct12: u16, rd: u32, rs1: u32) -> u32 {
+    ((funct12 as u32) << 20) | (rs1 << 15) | (0b000 << 12) | (rd << 7) | 0x73
+}
+
+#[test]
+fn decode_mret() {
+    // MRET: funct12=0x302, rd=0, funct3=000
+    let w = encode_system(0x302, 0, 0);
+    assert_eq!(decode(w), Operation::Mret);
+}
+
+#[test]
+fn decode_sret() {
+    // SRET: funct12=0x102, rd=0, funct3=000
+    let w = encode_system(0x102, 0, 0);
+    assert_eq!(decode(w), Operation::Sret);
+}
+
+#[test]
+fn decode_sfence_vma() {
+    // SFENCE.VMA: funct7=0b0001001, funct3=000, rd=0, rs1, rs2
+    // Special encoding checked before general SYSTEM match
+    let w = (0b0001001 << 25) | (0 << 20) | (5 << 15) | (0b000 << 12) | (0 << 7) | 0x73;
+    if let Operation::SfenceVma { rs1, rs2 } = decode(w) {
+        assert_eq!(rs1, 5);
+        assert_eq!(rs2, 0);
+    } else {
+        panic!("Expected SfenceVma, got {:?}", decode(w));
+    }
+}
+
+#[test]
+fn decode_wfi_as_nop() {
+    // WFI (Wait For Interrupt): funct12=0x105, treated as NOP
+    let w = encode_system(0x105, 0, 0);
+    assert_eq!(decode(w), Operation::Nop);
+}
+
+#[test]
+fn decode_nop_from_addi_x0_x0_0() {
+    // NOP is encoded as ADDI x0, x0, 0 (instruction 0x00000013).
+    // The decoder returns Operation::Addi for this since it matches
+    // the I-type ADDI pattern first. This is correct behavior.
+    let w = encode_i(0, 0, 0b000, 0, 0x13);
+    if let Operation::Addi { rd, rs1, imm } = decode(w) {
+        assert_eq!(rd, 0);
+        assert_eq!(rs1, 0);
+        assert_eq!(imm, 0);
+    } else {
+        panic!("Expected Addi, got {:?}", decode(w));
+    }
+}
+
+// ============================================================
+// Phase 347: SB (store byte) decode test
+// S-type with funct3=000
+// ============================================================
+
+#[test]
+fn decode_sb() {
+    // SB rs1=5, rs2=3, imm=-4
+    // imm=-4 -> imm[11:5]=0b1111111 (sign extended), imm[4:0]=0b11100
+    let w = encode_s(0xFFFFFFFCu32, 3, 5, 0b000);
+    if let Operation::Sb { rs1, rs2, imm } = decode(w) {
+        assert_eq!(rs1, 5);
+        assert_eq!(rs2, 3);
+        assert_eq!(imm, -4);
+    } else {
+        panic!("Expected Sb, got {:?}", decode(w));
+    }
+}
+
+// ============================================================
+// Phase 347: Invalid instruction handling tests
+// ============================================================
+
+#[test]
+fn invalid_unknown_opcode() {
+    // Opcode 0x0B is not assigned in RV32I
+    let w = (0 << 25) | (0 << 20) | (0 << 15) | (0 << 12) | (0 << 7) | 0x0B;
+    assert!(matches!(decode(w), Operation::Invalid(_)));
+}
+
+#[test]
+fn invalid_unknown_r_type_funct3() {
+    // R-type (opcode=0x33) with funct3=100, funct7=0b0000010 (not SUB)
+    let w = encode_r(0b0000010, 3, 5, 0b100, 2);
+    assert!(matches!(decode(w), Operation::Invalid(_)));
+}
+
+#[test]
+fn invalid_unknown_s_type_funct3() {
+    // S-type (opcode=0x23) with funct3=011 (not SB/SH/SW)
+    let w = encode_s(0, 3, 5, 0b011);
+    assert!(matches!(decode(w), Operation::Invalid(_)));
+}
+
+#[test]
+fn invalid_m_ext_wrong_funct7() {
+    // opcode=0x33, funct3=000 (ADD/MUL), funct7=0b0000010 (should be Invalid, not SUB)
+    // Actually funct7=0b0000010 with funct3=000 is undefined (SUB is funct3=000 funct7=0b0100000)
+    let w = encode_r(0b0000010, 3, 5, 0b000, 2);
+    assert!(matches!(decode(w), Operation::Invalid(_)));
+}
+
+#[test]
+fn invalid_system_funct12() {
+    // SYSTEM (opcode=0x73) with unknown funct12
+    let w = encode_system(0x999, 0, 0);
+    assert!(matches!(decode(w), Operation::Invalid(_)));
+}
+
+#[test]
+fn invalid_amo_funct5() {
+    // AMO with funct5=0b11111 (not assigned)
+    let w = encode_amo(0b11111, false, false, 3, 5, 2);
+    assert!(matches!(decode(w), Operation::Invalid(_)));
+}
+
+#[test]
+fn invalid_c_extension_quadrant3() {
+    // bits[1:0]=11 is not a compressed instruction
+    // decode_c should return Invalid for any word with bits[1:0]=11
+    let w: u16 = 0xFF03;
+    let op = decode_c(w);
+    assert!(matches!(op, Operation::Invalid(_)));
+}

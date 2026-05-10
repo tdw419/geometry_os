@@ -73,14 +73,21 @@ fn lr_w_loads_value_and_sets_reservation() {
     let (mut cpu, mut bus) = make_cpu_bus();
     write_word(&mut bus, ATOM_ADDR, 0xDEADBEEF);
     cpu.x[5] = ATOM_ADDR as u32; // rs1 = address
-    // LR.W x10, (x5)
+                                 // LR.W x10, (x5)
     let instr = encode_amo(LR_FUNCT5, false, false, 10, 5, 0);
     write_word(&mut bus, RAM_BASE, instr);
 
     let result = cpu.step(&mut bus);
     assert_eq!(result, StepResult::Ok);
-    assert_eq!(cpu.x[10], 0xDEADBEEF, "LR.W should load the memory value into rd");
-    assert_eq!(cpu.reservation, Some(ATOM_ADDR), "LR.W should set reservation to the accessed PA");
+    assert_eq!(
+        cpu.x[10], 0xDEADBEEF,
+        "LR.W should load the memory value into rd"
+    );
+    assert_eq!(
+        cpu.reservation,
+        Some(ATOM_ADDR),
+        "LR.W should set reservation to the accessed PA"
+    );
     assert_eq!(cpu.pc, (RAM_BASE + 4) as u32);
 }
 
@@ -130,7 +137,11 @@ fn lr_w_overwrites_previous_reservation() {
     cpu.x[5] = (ATOM_ADDR + 4) as u32;
     cpu.pc = RAM_BASE as u32;
     cpu.step(&mut bus);
-    assert_eq!(cpu.reservation, Some(ATOM_ADDR + 4), "Second LR.W should overwrite reservation");
+    assert_eq!(
+        cpu.reservation,
+        Some(ATOM_ADDR + 4),
+        "Second LR.W should overwrite reservation"
+    );
 }
 
 // ============================================================
@@ -159,7 +170,10 @@ fn sc_w_success_after_lr_w() {
     assert_eq!(cpu.reservation, None, "SC.W should clear reservation");
     // Verify memory was updated
     let val = bus.read_word(ATOM_ADDR).unwrap();
-    assert_eq!(val, 0x12345678, "SC.W should write rs2 to memory on success");
+    assert_eq!(
+        val, 0x12345678,
+        "SC.W should write rs2 to memory on success"
+    );
 }
 
 #[test]
@@ -278,7 +292,10 @@ fn amoswap_w_with_rd_zero_discards_old_value() {
     cpu.step(&mut bus);
     assert_eq!(cpu.x[0], 0);
     let val = bus.read_word(ATOM_ADDR).unwrap();
-    assert_eq!(val, 0xAAAAAAAA, "memory should still be written even if rd=x0");
+    assert_eq!(
+        val, 0xAAAAAAAA,
+        "memory should still be written even if rd=x0"
+    );
 }
 
 // ============================================================
@@ -407,7 +424,10 @@ fn amoand_w_with_all_ones_is_nop() {
 
     cpu.step(&mut bus);
     let val = bus.read_word(ATOM_ADDR).unwrap();
-    assert_eq!(val, 0x12345678, "AND with all-ones should not change memory");
+    assert_eq!(
+        val, 0x12345678,
+        "AND with all-ones should not change memory"
+    );
 }
 
 #[test]
@@ -785,7 +805,11 @@ fn lr_sc_contention_simulation() {
     // "Another hart" does LR.W at ATOM_ADDR (simulated by another LR.W)
     cpu.pc = RAM_BASE as u32;
     cpu.step(&mut bus);
-    assert_eq!(cpu.reservation, Some(ATOM_ADDR), "second LR.W updates reservation to same addr");
+    assert_eq!(
+        cpu.reservation,
+        Some(ATOM_ADDR),
+        "second LR.W updates reservation to same addr"
+    );
 
     // Now SC.W -- reservation still matches (same address), so it succeeds
     // In a real multi-hart system this would fail, but single-hart always matches
@@ -829,16 +853,29 @@ fn amo_instructions_advance_pc_by_4() {
 
         let result = cpu.step(&mut bus);
         assert_eq!(result, StepResult::Ok, "{} should return Ok", name);
-        assert_eq!(cpu.pc, (RAM_BASE + 4) as u32, "{} should advance PC by 4", name);
+        assert_eq!(
+            cpu.pc,
+            (RAM_BASE + 4) as u32,
+            "{} should advance PC by 4",
+            name
+        );
     }
 }
 
 #[test]
 fn amo_instructions_preserve_x0() {
     let ops_under_test: &[u32] = &[
-        LR_FUNCT5, SC_FUNCT5, AMOSWAP_FUNCT5, AMOADD_FUNCT5,
-        AMOXOR_FUNCT5, AMOAND_FUNCT5, AMOOR_FUNCT5, AMOMIN_FUNCT5,
-        AMOMAX_FUNCT5, AMOMINU_FUNCT5, AMOMAXU_FUNCT5,
+        LR_FUNCT5,
+        SC_FUNCT5,
+        AMOSWAP_FUNCT5,
+        AMOADD_FUNCT5,
+        AMOXOR_FUNCT5,
+        AMOAND_FUNCT5,
+        AMOOR_FUNCT5,
+        AMOMIN_FUNCT5,
+        AMOMAX_FUNCT5,
+        AMOMINU_FUNCT5,
+        AMOMAXU_FUNCT5,
     ];
 
     for &funct5 in ops_under_test {
@@ -851,7 +888,11 @@ fn amo_instructions_preserve_x0() {
         write_word(&mut bus, RAM_BASE, instr);
 
         cpu.step(&mut bus);
-        assert_eq!(cpu.x[0], 0, "x0 must remain zero for funct5=0b{:05b}", funct5);
+        assert_eq!(
+            cpu.x[0], 0,
+            "x0 must remain zero for funct5=0b{:05b}",
+            funct5
+        );
     }
 }
 
@@ -916,5 +957,8 @@ fn amomaxu_w_all_ones_is_max() {
 
     cpu.step(&mut bus);
     let val = bus.read_word(ATOM_ADDR).unwrap();
-    assert_eq!(val, 0xFFFFFFFF, "max(0xFFFFFFFF, 0x80000000) unsigned = 0xFFFFFFFF");
+    assert_eq!(
+        val, 0xFFFFFFFF,
+        "max(0xFFFFFFFF, 0x80000000) unsigned = 0xFFFFFFFF"
+    );
 }

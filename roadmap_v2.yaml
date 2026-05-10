@@ -6235,19 +6235,19 @@ phases:
   dependencies: []
 - id: phase-347
   title: RISC-V Decode Unit Tests -- RV32I and Compressed
-  status: todo
+  status: done
   description: 'Unit tests for the RISC-V decoder: decode/rv32i.rs (212 LOC), decode/compressed.rs
     (394 LOC), decode/operation.rs (390 LOC). Test instruction encoding/decoding for
     all RV32I opcodes, C-extension dispatch, and immediate sign-extension.'
   deliverables:
   - name: RV32I instruction decode tests (R/I/S/B/U/J types)
-    status: todo
+    status: done
   - name: Compressed instruction dispatch tests (C.ADDI, C.LW, C.J, etc.)
-    status: todo
+    status: done
   - name: Immediate sign-extension edge case tests
-    status: todo
+    status: done
   - name: Invalid instruction handling tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-348
   title: RISC-V Bus and MMU Unit Tests
