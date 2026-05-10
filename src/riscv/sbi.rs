@@ -187,57 +187,79 @@ impl Sbi {
         _clint: &mut super::clint::Clint,
     ) -> Option<(u32, u32)> {
         if a7 == SBI_CONSOLE_PUTCHAR || (a7 == SBI_EXT_DBCN && a6 == SBI_DBCN_CONSOLE_WRITE_BYTE) {
-             let ch = a0 as u8;
-             if ch != 0 { eprintln!("[sbi-out] '{}'", ch as char); }
+            let ch = a0 as u8;
+            if ch != 0 {
+                eprintln!("[sbi-out] '{}'", ch as char);
+            }
         }
         self.ecall_log.push((a7, a6, a0));
         match a7 {
             SBI_CONSOLE_PUTCHAR => {
                 let ch = a0 as u8;
-                if ch != 0 { self.console_output.push(ch); }
+                if ch != 0 {
+                    self.console_output.push(ch);
+                }
                 Some((SBI_SUCCESS as u32, 0))
             }
             SBI_CONSOLE_GETCHAR => {
                 if !uart.rx_buf.is_empty() {
                     Some((uart.rx_buf.remove(0) as u32, 0))
-                } else { Some((0xFFFFFFFF, 0)) }
-            }
-            SBI_EXT_BASE => {
-                match a6 {
-                    SBI_BASE_GET_SPEC_VERSION => Some((SBI_SUCCESS as u32, (2 << 24) | 0)),
-                    SBI_BASE_GET_IMPL_ID => Some((SBI_SUCCESS as u32, 0x47454F53)),
-                    SBI_BASE_GET_IMPL_VERSION => Some((SBI_SUCCESS as u32, 1)),
-                    SBI_BASE_PROBE_EXTENSION => {
-                        let available = matches!(a0, SBI_EXT_BASE | SBI_EXT_TIME | SBI_EXT_IPI | SBI_EXT_RFENCE | SBI_EXT_HSM | SBI_EXT_SRST | SBI_EXT_DBCN | SBI_EXT_STA | SBI_EXT_SUSP | SBI_EXT_GEOMETRY | SBI_EXT_NET);
-                        Some((SBI_SUCCESS as u32, if available { 1 } else { 0 }))
-                    }
-                    _ => Some((SBI_SUCCESS as u32, 0)),
+                } else {
+                    Some((0xFFFFFFFF, 0))
                 }
             }
+            SBI_EXT_BASE => match a6 {
+                SBI_BASE_GET_SPEC_VERSION => Some((SBI_SUCCESS as u32, (2 << 24) | 0)),
+                SBI_BASE_GET_IMPL_ID => Some((SBI_SUCCESS as u32, 0x47454F53)),
+                SBI_BASE_GET_IMPL_VERSION => Some((SBI_SUCCESS as u32, 1)),
+                SBI_BASE_PROBE_EXTENSION => {
+                    let available = matches!(
+                        a0,
+                        SBI_EXT_BASE
+                            | SBI_EXT_TIME
+                            | SBI_EXT_IPI
+                            | SBI_EXT_RFENCE
+                            | SBI_EXT_HSM
+                            | SBI_EXT_SRST
+                            | SBI_EXT_DBCN
+                            | SBI_EXT_STA
+                            | SBI_EXT_SUSP
+                            | SBI_EXT_GEOMETRY
+                            | SBI_EXT_NET
+                    );
+                    Some((SBI_SUCCESS as u32, if available { 1 } else { 0 }))
+                }
+                _ => Some((SBI_SUCCESS as u32, 0)),
+            },
             SBI_EXT_TIME => {
                 self.timer_alarm = Some((a0 as u64) | ((a1 as u64) << 32));
                 Some((SBI_SUCCESS as u32, 0))
             }
             SBI_EXT_SRST => {
-                if a6 == SBI_SRST_SYSTEM_RESET { self.shutdown_requested = true; Some((SBI_SUCCESS as u32, 0)) }
-                else { Some((SBI_ERR_NOT_SUPPORTED as u32, 0)) }
+                if a6 == SBI_SRST_SYSTEM_RESET {
+                    self.shutdown_requested = true;
+                    Some((SBI_SUCCESS as u32, 0))
+                } else {
+                    Some((SBI_ERR_NOT_SUPPORTED as u32, 0))
+                }
             }
             // Legacy SBI v0.1 shutdown (a7=8) -- bare-metal programs use this
             8 => {
                 self.shutdown_requested = true;
                 Some((SBI_SUCCESS as u32, 0))
             }
-            SBI_EXT_DBCN => {
-                match a6 {
-                    SBI_DBCN_CONSOLE_WRITE => {
-                        let phys_addr = (a1 as u64) | ((a2 as u64) << 32);
-                        eprintln!("[sbi] DBCN_WRITE requested: {} bytes at PA 0x{:08X}", a0, phys_addr);
-                        self.dbcn_pending_write = Some((phys_addr, a0 as usize));
-                        Some((SBI_SUCCESS as u32, a0))
-                    }
-                    _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
+            SBI_EXT_DBCN => match a6 {
+                SBI_DBCN_CONSOLE_WRITE => {
+                    let phys_addr = (a1 as u64) | ((a2 as u64) << 32);
+                    eprintln!(
+                        "[sbi] DBCN_WRITE requested: {} bytes at PA 0x{:08X}",
+                        a0, phys_addr
+                    );
+                    self.dbcn_pending_write = Some((phys_addr, a0 as usize));
+                    Some((SBI_SUCCESS as u32, a0))
                 }
-            }
+                _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
+            },
             SBI_EXT_GEOMETRY => {
                 match a6 {
                     SBI_GEOM_GET_SCREEN_SIZE => Some((256, 256)),
@@ -246,7 +268,9 @@ impl Sbi {
                             buf_addr: a0 as u64,
                             path_addr: a1 as u64,
                             len: a2 as usize,
-                            name_addr: 0, name_len: 0, buf_len: 0,
+                            name_addr: 0,
+                            name_len: 0,
+                            buf_len: 0,
                         });
                         Some((SBI_SUCCESS as u32, 0))
                     }
@@ -283,7 +307,10 @@ impl Sbi {
                     _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
                 }
             }
-            _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
+            // Unrecognized SBI extension: return None to let the ECALL
+            // fall through to trap delivery (per SBI v2.0 spec, unknown
+            // extensions should trap to the next higher privilege level).
+            _ => None,
         }
     }
 }

@@ -5737,22 +5737,22 @@ phases:
     validation: Screen has a grid pattern with toggleable cells
 - id: phase-316
   title: GeOS VM -- ops_graphics.rs Unit Tests
-  status: todo
+  status: done
   description: Add comprehensive unit tests for the graphics opcode handlers in ops_graphics.rs
     (909 lines, 0 tests).
   deliverables:
   - name: PSET/PSETI pixel rendering tests (bounds, color, coordinate edge cases)
-    status: todo
+    status: done
   - name: RECTF filled rectangle tests (zero-size, full-screen, partial overlap)
-    status: todo
+    status: done
   - name: LINE Bresenham tests (horizontal, vertical, diagonal)
-    status: todo
+    status: done
   - name: CIRCLE midpoint tests (radius 0, large radius, screen edge clipping)
-    status: todo
+    status: done
   - name: SPRITE blit tests (transparent pixels, out-of-bounds, NxM sizes)
-    status: todo
+    status: done
   - name: ROTATE/SCALE/BLEND transform tests (angle wrapping, scale factors)
-    status: todo
+    status: done
   dependencies: []
 - id: phase-317
   title: GeOS VM -- RISC-V CPU Core Unit Tests
@@ -5771,20 +5771,20 @@ phases:
   dependencies: []
 - id: phase-318
   title: GeOS Program -- Mandelbrot Fractal Renderer
-  status: todo
+  status: done
   description: A Mandelbrot set fractal renderer with per-pixel iteration and fixed-point
     arithmetic.
   deliverables:
   - name: Complex plane to screen coordinate mapping with zoom/pan
-    status: todo
+    status: done
   - name: Fixed-point complex multiplication and squaring
-    status: todo
+    status: done
   - name: Iteration-based coloring with escape radius check
-    status: todo
+    status: done
   - name: Arrow key zoom and pan controls
-    status: todo
+    status: done
   - name: Integration test verifying non-trivial pixel distribution
-    status: todo
+    status: done
   dependencies: []
 - id: phase-319
   title: GeOS VM -- RISC-V Decode Module Unit Tests
@@ -5803,35 +5803,35 @@ phases:
   dependencies: []
 - id: phase-320
   title: GeOS Program -- Drum Machine and Melody Player
-  status: todo
+  status: done
   description: A drum machine and melody player using the BEEP opcode with note sequences
     in RAM.
   deliverables:
   - name: Note sequence storage in RAM with frequency/duration pairs
-    status: todo
+    status: done
   - name: Sequencer playback loop with BEEP and TICKS-based tempo
-    status: todo
+    status: done
   - name: Visual playback position indicator on screen
-    status: todo
+    status: done
   - name: Keyboard controls for play/stop/tempo and pattern selection
-    status: todo
+    status: done
   - name: Integration test verifying BEEP activation during playback
-    status: todo
+    status: done
   dependencies: []
 - id: phase-321
   title: GeOS VM -- RISC-V Boot and Module Integration Tests
-  status: todo
+  status: done
   description: 'Add unit tests for RISC-V boot sequence and module integration. Zero-test:
     boot.rs, mod.rs, trace.rs.'
   deliverables:
   - name: Boot setup tests (MRET, SATP, page table injection)
-    status: todo
+    status: done
   - name: ELF loader edge case tests (invalid header, misaligned segments)
-    status: todo
+    status: done
   - name: Trace format verification tests
-    status: todo
+    status: done
   - name: Module integration test (RiscvVm creation, reset)
-    status: todo
+    status: done
   dependencies: []
 - id: phase-322
   title: GeOS Program -- 3D Terrain Flyover
@@ -5852,67 +5852,67 @@ phases:
   dependencies: []
 - id: phase-323
   title: GeOS VM -- Memory and Formula Module Unit Tests
-  status: todo
+  status: done
   description: 'Add unit tests for VM memory management and reactive canvas formulas.
     Zero-test: memory.rs, formula.rs, boot.rs.'
   deliverables:
   - name: Page allocation and free tests (alloc_pages, free_page, ref counting)
-    status: todo
+    status: done
   - name: COW fork page table tests (shared pages, write-triggered copy)
-    status: todo
+    status: done
   - name: Formula registration and evaluation tests
-    status: todo
+    status: done
   - name: Boot initialization tests (register state, RAM clearing, SP setup)
-    status: todo
+    status: done
   dependencies: []
 - id: phase-324
   title: GeOS Program -- Network Chat Demo
-  status: todo
+  status: done
   description: A chat application demonstrating NET_SEND/NET_UDP opcodes and /dev/net
     device driver.
   deliverables:
   - name: Chat message rendering with scrolling history
-    status: todo
+    status: done
   - name: UDP message sending via NET_SEND opcode
-    status: todo
+    status: done
   - name: Incoming message display from /dev/net read
-    status: todo
+    status: done
   - name: Text input area with cursor and backspace support
-    status: todo
+    status: done
   - name: Integration test verifying screen layout
-    status: todo
+    status: done
   dependencies: []
 - id: phase-325
   title: GeOS VM -- Assembler Instructions Module Unit Tests
-  status: todo
+  status: done
   description: 'Add unit tests for the assembler instructions module. Zero-test: instructions.rs
     (111 lines).'
   deliverables:
   - name: Instruction classification tests (opcode category detection)
-    status: todo
+    status: done
   - name: Opcode-to-name mapping tests (all 214 opcodes have valid names)
-    status: todo
+    status: done
   - name: Instruction metadata tests (word count, argument count per opcode)
-    status: todo
+    status: done
   dependencies: []
 - id: phase-326
   title: GeOS Program -- Paint Program with Tools
-  status: todo
+  status: done
   description: A paint program with pencil, rectangle, circle, line, and fill tools
     with color palette and undo.
   deliverables:
   - name: Tool selection UI with visual toolbar
-    status: todo
+    status: done
   - name: Pencil and shape drawing tools (rect, circle, line)
-    status: todo
+    status: done
   - name: FLOOD fill tool with tolerance
-    status: todo
+    status: done
   - name: Color palette with selection highlight
-    status: todo
+    status: done
   - name: Undo support via RAM-based screen snapshots
-    status: todo
+    status: done
   - name: Integration test verifying toolbar rendering and tool switching
-    status: todo
+    status: done
   dependencies: []
 - id: phase-327
   title: GeOS VM -- Trace Module Unit Tests
@@ -5928,22 +5928,22 @@ phases:
   dependencies: []
 - id: phase-328
   title: GeOS Program -- Tower Defense Game
-  status: todo
+  status: done
   description: A tower defense game with path-based enemy movement, placeable towers,
     projectile animation, and wave progression.
   deliverables:
   - name: Enemy path following with waypoint-based movement
-    status: todo
+    status: done
   - name: Tower placement UI with adjacency constraint
-    status: todo
+    status: done
   - name: Auto-targeting and projectile rendering
-    status: todo
+    status: done
   - name: Wave progression with increasing difficulty
-    status: todo
+    status: done
   - name: HUD display (gold, HP, score, wave number)
-    status: todo
+    status: done
   - name: Integration test verifying path rendering and entity placement
-    status: todo
+    status: done
   dependencies: []
 - id: phase-329
   title: GeOS VM -- RISC-V CSR Module Unit Tests
@@ -5961,22 +5961,22 @@ phases:
   dependencies: []
 - id: phase-330
   title: GeOS Program -- Particle System Demo
-  status: todo
+  status: done
   description: 'A particle system with physics-based effects: fountain, explosion,
     rain, firework modes.'
   deliverables:
   - name: Particle pool allocation and recycling in RAM
-    status: todo
+    status: done
   - name: Physics simulation (gravity, velocity, lifetime decay)
-    status: todo
+    status: done
   - name: Fountain mode (continuous upward emission with gravity)
-    status: todo
+    status: done
   - name: Explosion mode (radial burst from center point)
-    status: todo
+    status: done
   - name: Mode switching via keyboard (1-4 for fountain/explosion/rain/fireworks)
-    status: todo
+    status: done
   - name: Integration test verifying particle count exceeds threshold per frame
-    status: todo
+    status: done
   dependencies: []
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'

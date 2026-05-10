@@ -1034,7 +1034,7 @@ mod tests {
         vm.regs[2] = 50; // y
         vm.regs[3] = 10; // w
         vm.regs[4] = 10; // h
-        // CLIPSET r1, r2, r3, r4
+                         // CLIPSET r1, r2, r3, r4
         let vm = step_from(&vm, &[0xC4, 1, 2, 3, 4], 0);
         assert!(vm.clip_rect.is_some());
         let (cx, cy, cw, ch) = vm.clip_rect.unwrap();
@@ -1308,7 +1308,11 @@ mod tests {
             .flat_map(|y| (0..256).map(move |x| (x, y)))
             .filter(|&(x, y)| vm.screen[y * 256 + x] == 0x0000FF)
             .count();
-        assert!(count >= 10, "steep line should have >= 10 pixels, got {}", count);
+        assert!(
+            count >= 10,
+            "steep line should have >= 10 pixels, got {}",
+            count
+        );
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -1321,7 +1325,7 @@ mod tests {
         let mut vm = Vm::new();
         vm.regs[1] = 128; // cx
         vm.regs[2] = 128; // cy
-        vm.regs[3] = 20;  // radius
+        vm.regs[3] = 20; // radius
         vm.regs[4] = 0xFFFFFF;
         let vm = step_from(&vm, &[0x46, 1, 2, 3, 4], 0);
         // Cardinal points must be set
@@ -1329,7 +1333,7 @@ mod tests {
         assert_eq!(vm.screen[128 * 256 + 108], 0xFFFFFF); // left
         assert_eq!(vm.screen[108 * 256 + 128], 0xFFFFFF); // top
         assert_eq!(vm.screen[148 * 256 + 128], 0xFFFFFF); // bottom
-        // Center should NOT be set (circle outline only)
+                                                          // Center should NOT be set (circle outline only)
         assert_eq!(vm.screen[128 * 256 + 128], 0);
     }
 
@@ -1348,14 +1352,18 @@ mod tests {
     #[test]
     fn test_circle_screen_edge_clipping() {
         let mut vm = Vm::new();
-        vm.regs[1] = 0;   // cx at left edge
-        vm.regs[2] = 0;   // cy at top edge
-        vm.regs[3] = 30;  // radius extends past edges
+        vm.regs[1] = 0; // cx at left edge
+        vm.regs[2] = 0; // cy at top edge
+        vm.regs[3] = 30; // radius extends past edges
         vm.regs[4] = 0x00FF00;
         let vm = step_from(&vm, &[0x46, 1, 2, 3, 4], 0);
         // Should not crash; some pixels on right/bottom should be set
         let count = vm.screen.iter().filter(|&&p| p == 0x00FF00).count();
-        assert!(count > 0, "circle at edge should produce pixels, got {}", count);
+        assert!(
+            count > 0,
+            "circle at edge should produce pixels, got {}",
+            count
+        );
     }
 
     #[test]
@@ -1385,11 +1393,11 @@ mod tests {
         vm.ram[0x2001] = 0x00FF00;
         vm.ram[0x2002] = 0x0000FF;
         vm.ram[0x2003] = 0xFFFFFF;
-        vm.regs[1] = 10;     // x
-        vm.regs[2] = 20;     // y
+        vm.regs[1] = 10; // x
+        vm.regs[2] = 20; // y
         vm.regs[3] = 0x2000; // addr
-        vm.regs[4] = 2;      // w
-        vm.regs[5] = 2;      // h
+        vm.regs[4] = 2; // w
+        vm.regs[5] = 2; // h
         let vm = step_from(&vm, &[0x4A, 1, 2, 3, 4, 5], 0);
         assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000);
         assert_eq!(vm.screen[20 * 256 + 11], 0x00FF00);
@@ -1414,9 +1422,9 @@ mod tests {
         vm.regs[4] = 3;
         vm.regs[5] = 1;
         let vm = step_from(&vm, &[0x4A, 1, 2, 3, 4, 5], 0);
-        assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000);  // red
-        assert_eq!(vm.screen[10 * 256 + 11], 0xFFFFFF);  // transparent = unchanged
-        assert_eq!(vm.screen[10 * 256 + 12], 0x00FF00);  // green
+        assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000); // red
+        assert_eq!(vm.screen[10 * 256 + 11], 0xFFFFFF); // transparent = unchanged
+        assert_eq!(vm.screen[10 * 256 + 12], 0x00FF00); // green
     }
 
     #[test]
@@ -1424,10 +1432,10 @@ mod tests {
         let mut vm = Vm::new();
         vm.ram[0x2000] = 0xFF0000;
         vm.ram[0x2001] = 0x00FF00;
-        vm.regs[1] = 255;     // x at right edge
+        vm.regs[1] = 255; // x at right edge
         vm.regs[2] = 0;
         vm.regs[3] = 0x2000;
-        vm.regs[4] = 2;       // extends past screen
+        vm.regs[4] = 2; // extends past screen
         vm.regs[5] = 1;
         let vm = step_from(&vm, &[0x4A, 1, 2, 3, 4, 5], 0);
         // First pixel should be drawn, second clipped
@@ -1510,7 +1518,7 @@ mod tests {
     fn test_cmp_signed() {
         let mut vm = Vm::new();
         vm.regs[1] = 0xFFFFFFFF; // -1 as i32
-        vm.regs[2] = 1;           // 1
+        vm.regs[2] = 1; // 1
         let vm = step_from(&vm, &[0x50, 1, 2], 0);
         assert_eq!(vm.regs[0], 0xFFFFFFFF); // -1 < 1
     }
@@ -1632,7 +1640,12 @@ mod tests {
         let vm = step_from(&vm, &[0x47, 1], 0);
         // Last row should be black
         for x in 0..256 {
-            assert_eq!(vm.screen[255 * 256 + x], 0, "bottom row pixel {} should be black", x);
+            assert_eq!(
+                vm.screen[255 * 256 + x],
+                0,
+                "bottom row pixel {} should be black",
+                x
+            );
         }
     }
 
@@ -1717,7 +1730,7 @@ mod tests {
         vm.regs[2] = 10; // y
         vm.regs[3] = 20; // w
         vm.regs[4] = 20; // h
-        vm.regs[5] = 0;  // angle = 0 (no rotation)
+        vm.regs[5] = 0; // angle = 0 (no rotation)
         let vm = step_from(&vm, &[0xF4, 1, 2, 3, 4, 5], 0);
         // Pixel should remain in place
         assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000);
@@ -1749,7 +1762,11 @@ mod tests {
                 }
             }
         }
-        assert!(pixel_count >= 300, "region should have >= 300 pixels after rotation, got {}", pixel_count);
+        assert!(
+            pixel_count >= 300,
+            "region should have >= 300 pixels after rotation, got {}",
+            pixel_count
+        );
     }
 
     #[test]
@@ -1779,14 +1796,14 @@ mod tests {
         vm.screen[1] = 0xFF0000;
         vm.screen[256] = 0xFF0000;
         vm.screen[257] = 0xFF0000;
-        vm.regs[1] = 0;  // sx
-        vm.regs[2] = 0;  // sy
-        vm.regs[3] = 2;  // sw
-        vm.regs[4] = 2;  // sh
+        vm.regs[1] = 0; // sx
+        vm.regs[2] = 0; // sy
+        vm.regs[3] = 2; // sw
+        vm.regs[4] = 2; // sh
         vm.regs[5] = 10; // dx
         vm.regs[6] = 10; // dy
-        vm.regs[7] = 4;  // dw (2x)
-        vm.regs[8] = 4;  // dh (2x)
+        vm.regs[7] = 4; // dw (2x)
+        vm.regs[8] = 4; // dh (2x)
         let vm = step_from(&vm, &[0xF5, 1, 2, 3, 4, 5, 6, 7, 8], 0);
         // Destination 4x4 should be all red
         for dy in 0..4 {
@@ -1811,14 +1828,14 @@ mod tests {
                 vm.screen[y * 256 + x] = 0x0000FF;
             }
         }
-        vm.regs[1] = 0;  // sx
-        vm.regs[2] = 0;  // sy
-        vm.regs[3] = 4;  // sw
-        vm.regs[4] = 4;  // sh
+        vm.regs[1] = 0; // sx
+        vm.regs[2] = 0; // sy
+        vm.regs[3] = 4; // sw
+        vm.regs[4] = 4; // sh
         vm.regs[5] = 20; // dx
         vm.regs[6] = 20; // dy
-        vm.regs[7] = 2;  // dw (half)
-        vm.regs[8] = 2;  // dh (half)
+        vm.regs[7] = 2; // dw (half)
+        vm.regs[8] = 2; // dh (half)
         let vm = step_from(&vm, &[0xF5, 1, 2, 3, 4, 5, 6, 7, 8], 0);
         // Destination 2x2 should be blue (nearest-neighbor from top-left)
         assert_eq!(vm.screen[20 * 256 + 20], 0x0000FF);
@@ -1848,14 +1865,14 @@ mod tests {
     fn test_scale_identity() {
         let mut vm = Vm::new();
         vm.screen[5 * 256 + 5] = 0x00FF00;
-        vm.regs[1] = 5;  // sx
-        vm.regs[2] = 5;  // sy
-        vm.regs[3] = 1;  // sw
-        vm.regs[4] = 1;  // sh
+        vm.regs[1] = 5; // sx
+        vm.regs[2] = 5; // sy
+        vm.regs[3] = 1; // sw
+        vm.regs[4] = 1; // sh
         vm.regs[5] = 20; // dx
         vm.regs[6] = 20; // dy
-        vm.regs[7] = 1;  // dw (same size)
-        vm.regs[8] = 1;  // dh
+        vm.regs[7] = 1; // dw (same size)
+        vm.regs[8] = 1; // dh
         let vm = step_from(&vm, &[0xF5, 1, 2, 3, 4, 5, 6, 7, 8], 0);
         assert_eq!(vm.screen[20 * 256 + 20], 0x00FF00);
     }
@@ -1880,7 +1897,7 @@ mod tests {
         vm.regs[1] = 1; // variable-width
         let vm = step_from(&vm, &[0xDC, 1], 0);
         assert_eq!(vm.regs[0], 0); // previous was 0 (default)
-        // FONT_SELECT returns previous mode in r0, now mode is 1
+                                   // FONT_SELECT returns previous mode in r0, now mode is 1
     }
 
     #[test]
@@ -1889,7 +1906,7 @@ mod tests {
         vm.regs[1] = 99; // should be clamped to 99 & 3 = 3
         let vm = step_from(&vm, &[0xDC, 1], 0);
         assert_eq!(vm.regs[0], 0); // previous was default 0
-        // FONT_SELECT returns previous mode in r0, now mode is 3
+                                   // FONT_SELECT returns previous mode in r0, now mode is 3
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -1901,11 +1918,11 @@ mod tests {
     fn test_vwtxt_basic() {
         let mut vm = Vm::new();
         write_string(&mut vm, 0x2000, "A");
-        vm.regs[1] = 10;     // x
-        vm.regs[2] = 10;     // y
+        vm.regs[1] = 10; // x
+        vm.regs[2] = 10; // y
         vm.regs[3] = 0x2000; // addr
         vm.regs[4] = 0xFFFFFF; // fg
-        vm.regs[5] = 0;      // bg = 0 (no background)
+        vm.regs[5] = 0; // bg = 0 (no background)
         let vm = step_from(&vm, &[0xDB, 1, 2, 3, 4, 5], 0);
         // At least one pixel should be white near (10, 10)
         let mut has_white = false;
