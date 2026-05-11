@@ -6218,7 +6218,7 @@ phases:
   dependencies: []
 - id: phase-346
   title: RISC-V CPU Unit Tests -- ALU, Load/Store, Execute
-  status: in_progress
+  status: done
   description: 'Unit tests for the RISC-V CPU core modules: cpu/alu.rs (221 LOC),
     cpu/loadstore.rs (183 LOC), cpu/execute.rs (147 LOC), and cpu/atomic.rs (249 LOC).
     Test arithmetic operations, memory access patterns, instruction dispatch, and
@@ -6231,228 +6231,569 @@ phases:
   - name: Instruction dispatch and execution flow tests
     status: done
   - name: Atomic operation tests (LR/SC, AMO)
-    status: todo
+    status: done
   dependencies: []
 - id: phase-347
   title: RISC-V Decode Unit Tests -- RV32I and Compressed
-  status: todo
+  status: done
   description: 'Unit tests for the RISC-V decoder: decode/rv32i.rs (212 LOC), decode/compressed.rs
     (394 LOC), decode/operation.rs (390 LOC). Test instruction encoding/decoding for
     all RV32I opcodes, C-extension dispatch, and immediate sign-extension.'
   deliverables:
   - name: RV32I instruction decode tests (R/I/S/B/U/J types)
-    status: todo
+    status: done
   - name: Compressed instruction dispatch tests (C.ADDI, C.LW, C.J, etc.)
-    status: todo
+    status: done
   - name: Immediate sign-extension edge case tests
-    status: todo
+    status: done
   - name: Invalid instruction handling tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-348
   title: RISC-V Bus and MMU Unit Tests
-  status: todo
+  status: done
   description: Unit tests for bus.rs (1496 LOC) and mmu.rs (1348 LOC). Test memory-mapped
     I/O routing, device handler dispatch, page table walks, TLB behavior, and address
     translation edge cases.
   deliverables:
   - name: Bus read/write routing to CLINT/PLIC/UART/VirtIO
-    status: todo
+    status: done
   - name: MMU page table walk and translation tests
-    status: todo
+    status: done
   - name: TLB lookup, insertion, and flush tests
-    status: todo
+    status: done
   - name: Fault generation for unmapped/protected addresses
-    status: todo
+    status: done
   dependencies: []
 - id: phase-349
   title: RISC-V VirtIO Device Unit Tests
-  status: todo
+  status: done
   description: 'Unit tests for VirtIO device implementations: virtio_blk.rs (1264
     LOC), virtio_gpu.rs (1808 LOC), virtio_net.rs (913 LOC). Test device initialization,
     virtqueue handling, feature negotiation, and data transfer.'
   deliverables:
   - name: VirtIO block device read/write tests
-    status: todo
+    status: done
   - name: VirtIO GPU framebuffer and display tests
-    status: todo
+    status: done
   - name: VirtIO network packet TX/RX tests
-    status: todo
+    status: done
   - name: Virtqueue descriptor chain processing tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-350
   title: RISC-V Peripheral Unit Tests -- UART, CLINT, PLIC, SBI
-  status: todo
+  status: done
   description: 'Unit tests for RISC-V peripherals: uart.rs (416 LOC), clint.rs (218
     LOC), plic.rs (318 LOC), sbi.rs (316 LOC). Test register-level device behavior,
     interrupt delivery, timer management, and SBI console/shutdown calls.'
   deliverables:
   - name: UART register read/write and interrupt tests
-    status: todo
+    status: done
   - name: CLINT timer compare and IPI tests
-    status: todo
+    status: done
   - name: PLIC interrupt priority and enable tests
-    status: todo
+    status: done
   - name: SBI extension dispatch tests (console, shutdown, timer)
-    status: todo
+    status: done
   dependencies: []
 - id: phase-351
   title: RISC-V CSR and Memory Management Tests
-  status: todo
+  status: done
   description: Unit tests for CSR subsystem (csr/bank.rs 1271 LOC, csr/mod.rs 22 LOC,
     csr/constants.rs 96 LOC) and memory.rs (229 LOC). Test CSR read/write, privilege
     escalation, mstatus bits, and physical memory allocation.
   deliverables:
   - name: CSR read/write for standard CSRs (mstatus, mepc, scause, etc.)
-    status: todo
+    status: done
   - name: Privilege mode transitions and mstatus field tests
-    status: todo
+    status: done
   - name: Physical memory alloc/free/refcount tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-352
   title: RISC-V Trace, Loader, and DTB Tests
-  status: todo
+  status: done
   description: Unit tests for trace.rs (1245 LOC), loader.rs (841 LOC), and dtb.rs
     (516 LOC). Test instruction trace formatting, ELF loading, and device tree blob
     parsing.
   deliverables:
   - name: Instruction trace recording and formatting tests
-    status: todo
+    status: done
   - name: ELF segment loading and entry point extraction tests
-    status: todo
+    status: done
   - name: DTB node traversal and property read tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-353
   title: GeOS Program -- Minesweeper
-  status: todo
-  description: Classic Minesweeper game with left-click reveal, right-click flag,
-    flood-fill reveal of empty cells, mine count display, timer, and win/loss detection.
-    Uses 16x16 grid with 40 mines.
+  status: done
+  description: 'Implemented minesweeper.asm: 16x16 grid, 40 mines, safe first-click
+    guarantee, flood-fill reveal, cursor movement, flag toggling, win/loss detection.
+    925 lines of assembly. Integration tests verify assembly (1853 bytes), rendering
+    (3+ frames, 1000+ pixels, dark gray grid).'
   deliverables:
   - name: Mine generation with safe first-click guarantee
-    status: todo
+    status: done
   - name: Flood-fill reveal for empty cells
-    status: todo
+    status: done
   - name: Mine counter and timer HUD
-    status: todo
+    status: done
   - name: Integration test verifying game loop
-    status: todo
+    status: done
   dependencies: []
 - id: phase-354
   title: GeOS Program -- Simon Says
-  status: todo
+  status: done
   description: Memory pattern game (Simon) with 4 colored quadrants. Computer plays
     a sequence, player repeats it. Sequence grows each round. Score tracking and speed
     increase.
   deliverables:
   - name: 4-quadrant color display with flash animation
-    status: todo
+    status: done
   - name: Sequence playback with visual feedback
-    status: todo
+    status: done
   - name: Input capture and sequence comparison
-    status: todo
+    status: done
   - name: Integration test verifying game progression
-    status: todo
+    status: done
   dependencies: []
 - id: phase-355
   title: GeOS Program -- Space Invaders
-  status: todo
+  status: done
   description: Classic Space Invaders with 5 rows of 11 aliens, player cannon, shields,
     alien movement patterns (step + drop), bullet management, score display, and wave
     progression.
   deliverables:
   - name: Alien grid with step-and-drop movement pattern
-    status: todo
+    status: done
   - name: Player cannon with movement and shooting
-    status: todo
+    status: done
   - name: Collision detection (bullets vs aliens, aliens vs player)
-    status: todo
+    status: done
   - name: Score, lives, and wave HUD
-    status: todo
+    status: done
   - name: Integration test verifying game loop
-    status: todo
+    status: done
   dependencies: []
 - id: phase-356
   title: GeOS VM -- PTY Opcode Tests
-  status: todo
+  status: done
   description: Unit tests for ops_pty.rs (2023 LOC) -- the largest untested VM module.
     Test pseudo-terminal creation, read/write, window size queries, and process group
     management.
   deliverables:
   - name: PTY creation and fd allocation tests
-    status: todo
+    status: done
   - name: PTY read/write data flow tests
-    status: todo
+    status: done
   - name: PTY window size (TIOCGWINSZ) tests
-    status: todo
+    status: done
   dependencies: []
 - id: phase-357
   title: GeOS VM -- Host Filesystem Opcode Tests
-  status: todo
-  description: Expand tests for ops_host_fs.rs (2033 LOC, only 1 test). Test host
-    directory listing, file stat, recursive directory walk, and error handling for
-    missing/protected paths.
+  status: done
+  description: 'Expand tests for ops_host_fs.rs. 63 tests total covering FSOPEN, FSCLOSE,
+    FSREAD, FSWRITE, FSLS: directory listing (many files, special chars, on-file error),
+    recursive traversal (nested dirs, deep paths, non-recursion verification), and
+    error handling (null bytes, whitespace paths, zero max_len, file-as-directory,
+    close-reopen cycle). All pass.'
   deliverables:
   - name: Host directory listing and file stat tests
-    status: todo
+    status: done
   - name: Recursive directory traversal tests
-    status: todo
+    status: done
   - name: Error handling for invalid/missing paths
-    status: todo
+    status: done
   dependencies: []
 - id: phase-358
   title: GeOS Program -- Fractal Zoom
-  status: todo
+  status: done
   description: Interactive Mandelbrot/Julia set renderer with zoom-in on click. Uses
     iterative escape-time algorithm with color mapping. WASD to pan, mouse/scroll
     to zoom, number keys to switch between Mandelbrot and Julia sets.
   deliverables:
   - name: Mandelbrot set renderer with configurable iterations
-    status: todo
+    status: done
   - name: Zoom and pan with coordinate transformation
-    status: todo
+    status: done
   - name: Julia set mode with parameter cycling
-    status: todo
+    status: done
   - name: Integration test verifying rendering output
-    status: todo
+    status: done
   dependencies: []
 - id: phase-359
   title: GeOS Program -- Sokoban
-  status: todo
+  status: done
   description: Classic box-pushing puzzle game. Multiple levels, undo support, move
     counter. Player pushes boxes onto target positions. Arrow keys to move, U to undo,
     R to restart level.
   deliverables:
   - name: Box pushing with wall collision and box-on-box prevention
-    status: todo
+    status: done
   - name: Win detection (all targets covered)
-    status: todo
+    status: done
   - name: Multiple level definitions in RAM
-    status: todo
+    status: done
   - name: Undo stack and move counter
-    status: todo
+    status: done
   - name: Integration test verifying puzzle completion
-    status: todo
+    status: done
   dependencies: []
 - id: phase-360
   title: RISC-V CPU System and Mod Integration Tests
-  status: todo
+  status: done
   description: Unit tests for cpu/system.rs (478 LOC) and mod.rs (462 LOC). Test CPU
     system-level operations (interrupt delivery, context save/restore) and top-level
     RISC-V VM module functions.
   deliverables:
   - name: CPU interrupt delivery and vectoring tests
-    status: todo
+    status: done
   - name: Context save/restore on trap entry/exit
-    status: todo
+    status: done
   - name: Top-level VM construction and reset tests
-    status: todo
+    status: done
   dependencies:
   - phase-346
   - phase-348
+- id: phase-361
+  title: ops_host_fs.rs Test Coverage
+  status: done
+  deliverables:
+  - name: Unit tests for host filesystem operations (HOST_READ, HOST_WRITE, HOST_LIST)
+    status: done
+    dependencies: []
+  - name: Edge case tests for path handling and permission errors
+    status: done
+    dependencies: []
+  - name: Integration test with real temp file operations
+    status: done
+    dependencies: []
+- id: phase-362
+  title: RISC-V Syscall Tests
+  status: todo
+  deliverables:
+  - name: Tests for RISC-V syscall dispatch and argument passing
+    status: todo
+    dependencies: []
+  - name: Tests for syscall return value handling and error propagation
+    status: todo
+    dependencies: []
+  - name: Tests for syscall number validation
+    status: todo
+    dependencies: []
+- id: phase-363
+  title: RISC-V GPU Bridge Tests
+  status: todo
+  deliverables:
+  - name: Tests for GPU register read/write via bridge interface
+    status: todo
+    dependencies: []
+  - name: Tests for framebuffer memory mapping
+    status: todo
+    dependencies: []
+  - name: Tests for GPU command queue submission
+    status: todo
+    dependencies: []
+- id: phase-364
+  title: RISC-V Socket Tests
+  status: todo
+  deliverables:
+  - name: Tests for socket creation and binding
+    status: todo
+    dependencies: []
+  - name: Tests for send/receive data path
+    status: todo
+    dependencies: []
+  - name: Connection lifecycle tests
+    status: todo
+    dependencies: []
+- id: phase-365
+  title: Episode Log Tests
+  status: todo
+  deliverables:
+  - name: Tests for episode recording with VM state capture
+    status: todo
+    dependencies: []
+  - name: Tests for JSONL serialization format
+    status: todo
+    dependencies: []
+  - name: Tests for context formatting from episode history
+    status: todo
+    dependencies: []
+- id: phase-366
+  title: Save/Load State Tests
+  status: todo
+  deliverables:
+  - name: Tests for VM state serialization to disk
+    status: todo
+    dependencies: []
+  - name: Tests for state deserialization with version compatibility
+    status: todo
+    dependencies: []
+  - name: Edge case tests for large canvas buffers
+    status: todo
+    dependencies: []
+- id: phase-367
+  title: STRLEN Opcode
+  status: todo
+  deliverables:
+  - name: 'STRLEN opcode: count bytes until null terminator in RAM'
+    status: todo
+    dependencies: []
+  - name: Assembler support for STRLEN
+    status: todo
+    dependencies: []
+  - name: Integration test with string operations
+    status: todo
+    dependencies: []
+- id: phase-368
+  title: MEMCPY Opcode
+  status: todo
+  deliverables:
+  - name: 'MEMCPY opcode: bulk memory copy between RAM regions'
+    status: todo
+    dependencies: []
+  - name: Assembler support for MEMCPY
+    status: todo
+    dependencies: []
+  - name: Integration test copying data between regions
+    status: todo
+    dependencies: []
+- id: phase-369
+  title: MEMSET Opcode
+  status: todo
+  deliverables:
+  - name: 'MEMSET opcode: fill memory region with a value'
+    status: todo
+    dependencies: []
+  - name: Assembler support for MEMSET
+    status: todo
+    dependencies: []
+  - name: Integration test with canvas buffer initialization
+    status: todo
+    dependencies: []
+- id: phase-370
+  title: BSWAP Opcode
+  status: todo
+  deliverables:
+  - name: 'BSWAP opcode: byte-swap a 32-bit register value'
+    status: todo
+    dependencies: []
+  - name: Assembler support for BSWAP
+    status: todo
+    dependencies: []
+  - name: Test for endianness conversion use case
+    status: todo
+    dependencies: []
+- id: phase-371
+  title: CLZ/CTZ Opcodes
+  status: todo
+  deliverables:
+  - name: 'CLZ opcode: count leading zeros'
+    status: todo
+    dependencies: []
+  - name: 'CTZ opcode: count trailing zeros'
+    status: todo
+    dependencies: []
+  - name: Assembler support and tests for both
+    status: todo
+    dependencies: []
+- id: phase-372
+  title: GeOS Program -- Pong
+  status: todo
+  deliverables:
+  - name: Classic Pong with AI opponent
+    status: todo
+    dependencies: []
+  - name: Score tracking and ball speed increase
+    status: todo
+    dependencies: []
+  - name: Sound effects on paddle hit and score
+    status: todo
+    dependencies: []
+- id: phase-373
+  title: GeOS Program -- Flappy Bird
+  status: todo
+  deliverables:
+  - name: Side-scrolling bird with gravity and flap
+    status: todo
+    dependencies: []
+  - name: Pipe obstacle generation and scrolling
+    status: todo
+    dependencies: []
+  - name: Score counter and collision detection
+    status: todo
+    dependencies: []
+- id: phase-374
+  title: GeOS Program -- 2048
+  status: todo
+  deliverables:
+  - name: 4x4 grid with tile merging mechanics
+    status: todo
+    dependencies: []
+  - name: Arrow key input for tile sliding
+    status: todo
+    dependencies: []
+  - name: Score display and game over detection
+    status: todo
+    dependencies: []
+- id: phase-375
+  title: GeOS Program -- Conway Advanced
+  status: todo
+  deliverables:
+  - name: Game of Life with pattern library (gliders, oscillators)
+    status: todo
+    dependencies: []
+  - name: Pattern placement mode with mouse/click
+    status: todo
+    dependencies: []
+  - name: Speed control and generation counter
+    status: todo
+    dependencies: []
+- id: phase-376
+  title: GeOS Program -- Waveform Visualizer
+  status: todo
+  deliverables:
+  - name: Real-time waveform display using audio buffer
+    status: todo
+    dependencies: []
+  - name: Multiple visualization modes (oscilloscope, spectrum)
+    status: todo
+    dependencies: []
+  - name: Frame-synchronized rendering
+    status: todo
+    dependencies: []
+- id: phase-377
+  title: RISC-V VirtIO Network Driver
+  status: todo
+  deliverables:
+  - name: VirtIO network device MMIO registers
+    status: todo
+    dependencies: []
+  - name: TX/RX ring buffer management
+    status: todo
+    dependencies: []
+  - name: Basic packet send/receive support
+    status: todo
+    dependencies: []
+- id: phase-378
+  title: RISC-V VirtIO GPU Driver
+  status: todo
+  deliverables:
+  - name: VirtIO GPU device initialization
+    status: todo
+    dependencies: []
+  - name: Framebuffer resolution negotiation
+    status: todo
+    dependencies: []
+  - name: Scanout support for display output
+    status: todo
+    dependencies: []
+- id: phase-379
+  title: RISC-V SD Card Driver
+  status: todo
+  deliverables:
+  - name: SPI-based SD card protocol
+    status: todo
+    dependencies: []
+  - name: Block read/write operations
+    status: todo
+    dependencies: []
+  - name: Filesystem mount support
+    status: todo
+    dependencies: []
+- id: phase-380
+  title: VM Opcode Validation Hardening
+  status: todo
+  deliverables:
+  - name: Validate all register arguments are in 0-31 range
+    status: todo
+    dependencies: []
+  - name: Reject reserved opcodes with clear error codes
+    status: todo
+    dependencies: []
+  - name: Add geos_errno codes for all validation failures
+    status: todo
+    dependencies: []
+- id: phase-381
+  title: Assembler Error Recovery
+  status: todo
+  deliverables:
+  - name: Continue parsing after first error to report multiple issues
+    status: todo
+    dependencies: []
+  - name: Column numbers in error messages
+    status: todo
+    dependencies: []
+  - name: Warning system for deprecated opcodes
+    status: todo
+    dependencies: []
+- id: phase-382
+  title: Instruction Cache Performance
+  status: todo
+  deliverables:
+  - name: Benchmark icache hit/miss rates for common patterns
+    status: todo
+    dependencies: []
+  - name: Tune cache parameters for game loop patterns
+    status: todo
+    dependencies: []
+  - name: Add cache statistics to PROFILE opcode output
+    status: todo
+    dependencies: []
+- id: phase-383
+  title: GeOS Program -- Raytracer
+  status: todo
+  deliverables:
+  - name: Simple raytracer with sphere primitives
+    status: todo
+    dependencies: []
+  - name: Recursive reflection (1 bounce)
+    status: todo
+    dependencies: []
+  - name: Phong shading with shadow rays
+    status: todo
+    dependencies: []
+- id: phase-384
+  title: GeOS Program -- Rhythm Game
+  status: todo
+  deliverables:
+  - name: Falling note lanes with timing windows
+    status: todo
+    dependencies: []
+  - name: Score based on timing accuracy
+    status: todo
+    dependencies: []
+  - name: BEEP-based audio feedback
+    status: todo
+    dependencies: []
+- id: phase-385
+  title: GeOS Program -- Chess
+  status: todo
+  deliverables:
+  - name: Board rendering with piece glyphs
+    status: todo
+    dependencies: []
+  - name: Legal move validation for all piece types
+    status: todo
+    dependencies: []
+  - name: Two-player hot-seat mode
+    status: todo
+    dependencies: []
+- id: phase-386
+  title: Forth Interpreter Enhancement
+  status: todo
+  deliverables:
+  - name: Add string handling words (s", type, compare)
+    status: todo
+    dependencies: []
+  - name: Add array/memory words (cells, allot, fill)
+    status: todo
+    dependencies: []
+  - name: Integration test with a Forth program using new words
+    status: todo
+    dependencies: []
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
@@ -6480,5 +6821,5 @@ meta:
   programs: 219
   loc: 132466
   tests: 3959
-  total_phases: 186
+  total_phases: 212
   last_updated: '2026-05-10'

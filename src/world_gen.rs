@@ -53,9 +53,7 @@ const BIOME_COLORS: [u32; 32] = [
 
 /// Nibble variation table -- per-tile color offsets.
 /// Fine hash nibble indexes into this. Applied as signed packed-RGB offsets.
-const NIBBLE_TABLE: [i32; 16] = [
-    0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 8, -8, 12,
-];
+const NIBBLE_TABLE: [i32; 16] = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 8, -8, 12];
 
 /// Water biome indices (0, 1) -- get animated shimmer.
 const WATER_BIOMES: [usize; 2] = [0, 1];
@@ -207,7 +205,10 @@ pub fn tile_color(wx: i32, wy: i32, frame: u32) -> u32 {
             // Not water above -- show reflection
             let reflected = BIOME_COLORS[above_biome.min(31)];
             let dimmed = reflected >> 1; // 50% dim
-            let ripple = ((frame.wrapping_add((wx * 3) as u32).wrapping_add((wy * 7) as u32)) & 0xF) as u32;
+            let ripple = ((frame
+                .wrapping_add((wx * 3) as u32)
+                .wrapping_add((wy * 7) as u32))
+                & 0xF) as u32;
             let ripple_color = ripple * 0x020202;
             let blue_tint = 0x0E1C38;
             color = dimmed.wrapping_add(blue_tint).wrapping_add(ripple_color);
@@ -401,8 +402,8 @@ mod tests {
         assert_eq!(coarse_hash(0, 0), coarse_hash(0, 0));
         assert_eq!(coarse_hash(100, 200), coarse_hash(100, 200));
         // Different COARSE zones should give different hashes
-        assert_ne!(coarse_hash(0, 0), coarse_hash(8, 0));  // different x zone
-        assert_ne!(coarse_hash(0, 0), coarse_hash(0, 8));  // different y zone
+        assert_ne!(coarse_hash(0, 0), coarse_hash(8, 0)); // different x zone
+        assert_ne!(coarse_hash(0, 0), coarse_hash(0, 8)); // different y zone
     }
 
     #[test]
