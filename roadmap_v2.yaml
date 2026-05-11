@@ -6471,16 +6471,16 @@ phases:
     dependencies: []
 - id: phase-362
   title: RISC-V Syscall Tests
-  status: todo
+  status: done
   deliverables:
   - name: Tests for RISC-V syscall dispatch and argument passing
-    status: todo
+    status: done
     dependencies: []
   - name: Tests for syscall return value handling and error propagation
-    status: todo
+    status: done
     dependencies: []
   - name: Tests for syscall number validation
-    status: todo
+    status: done
     dependencies: []
 - id: phase-363
   title: RISC-V GPU Bridge Tests
