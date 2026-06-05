@@ -16,10 +16,19 @@ Memory Palace Linux is an experimental Linux distribution that leverages the Mem
 
 ### What's Inside
 
+#### 1. GPU-Enabled Variant (Default Built)
 ```
-ubuntu_palace_working.png (27M)
+ubuntu_palace_working.png (28M)
+├── Kernel: Image (22M) - Linux 6.9.0 RISC-V with DRM/VirtIO-GPU
+├── Initramfs: initramfs.cpio.gz (1.3M) - BusyBox /bin/sh shell
+└── Cmdline: console=ttyS0 video=virtio:1920x1080 earlycon=sbi
+```
+
+#### 2. Standard CPU-Only Variant
+```
+ubuntu_palace_working_cpu.png (27M)
 ├── Kernel: Image (22M) - Linux 6.14.0 RISC-V
-├── Initramfs: initramfs.cpio.gz (717B) - minimal /init
+├── Initramfs: initramfs.cpio.gz (717B) - minimal /init script
 ├── DTB: qemu-virt.dtb (1.6K) - QEMU virt machine
 └── Cmdline: console=ttyS0 earlycon=sbi
 ```
@@ -28,11 +37,15 @@ ubuntu_palace_working.png (27M)
 
 ### Boot from PNG (Recommended)
 
+To boot in GPU-enabled graphical mode:
 ```bash
 python3 palace_boot.py ubuntu_palace_working.png
 ```
 
-This extracts components from the PNG and boots via QEMU.
+To boot in console-only mode:
+```bash
+python3 palace_boot.py ubuntu_palace_working.png --nographic
+```
 
 ### Boot from ISO (Convenience Format)
 
@@ -40,12 +53,16 @@ This extracts components from the PNG and boots via QEMU.
 # Generate ISO from PNG (one-time)
 python3 palace_to_iso.py ubuntu_palace_working.png memory_palace_linux.iso
 
-# Boot from extracted ISO components
-cd iso_test  # or extract ISO with xorriso
-qemu-system-riscv64 -nographic -machine virt -m 1G -smp 2 \
+# Extract ISO with xorriso
+mkdir -p iso_test
+xorriso -osirrox on -indev memory_palace_linux.iso -extract / iso_test/
+
+# Boot GPU graphical mode from extracted ISO components
+cd iso_test
+qemu-system-riscv64 -machine virt -m 1G -smp 1 -device virtio-gpu-pci \
   -kernel boot/Image -initrd boot/initramfs.cpio.gz \
-  -dtb boot/qemu-virt.dtb -append "console=ttyS0 earlycon=sbi" \
-  -bios default
+  -append "console=ttyS0 video=virtio:1920x1080 earlycon=sbi" \
+  -bios default -display gtk
 ```
 
 **Note**: ISO is generated from PNG. PNG remains the canonical format.
@@ -53,14 +70,14 @@ qemu-system-riscv64 -nographic -machine virt -m 1G -smp 2 \
 ## System Requirements
 
 ### QEMU Boot (Current)
-- QEMU with RISC-V support
+- QEMU with RISC-V support (including GTK/SDL display for GPU mode)
 - Linux/macOS/Windows host
 - ~1GB RAM
 
 ### Hardware Boot (Future)
 - RISC-V hardware (e.g., SiFive HiFive Unmatched)
 - UEFI firmware with RISC-V GRUB support
-- Serial console at 115200 baud
+- Serial console at 115200 baud or display output for GPU mode
 
 ## Build Your Own
 
