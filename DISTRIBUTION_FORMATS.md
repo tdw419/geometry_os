@@ -1,240 +1,217 @@
-# Memory Palace Linux - Distribution Formats
+# Distribution Formats - Memory Palace Linux
 
-This document explains the dual-format distribution strategy and when to use each.
+## Overview
 
----
+Memory Palace Linux is distributed in **two complementary formats**:
 
-## Two Formats, One OS
+1. **PNG** (Canonical) - Native Memory Palace format
+2. **ISO** (Generated) - Convenience distribution format
 
-Memory Palace Linux is distributed in two formats:
-
-1. **PNG** (Primary/Canonical) - Memory Palace native format
-2. **ISO** (Convenience) - Standard Linux distribution format
-
-Both formats contain the exact same OS components. PNG is the source of truth; ISO is generated from PNG.
+Both formats boot the same operating system, but serve different purposes.
 
 ---
 
-## Format Comparison
+## PNG Format (Canonical)
 
-| Aspect | PNG Format | ISO Format |
-|--------|-----------|------------|
-| **Purpose** | Native Memory Palace distribution | Convenience for Linux users |
-| **Size** | 27M | 22M |
-| **Compression** | None (raw pixels) | ISO 9660 filesystem |
-| **Visualizable** | ✅ Yes - open in image viewer | ❌ No |
-| **Boot Method** | `python3 palace_boot.py file.png` | QEMU direct kernel load |
-| **Hardware Boot** | ❌ Requires PNG-aware bootloader | ✅ With grub-riscv64.efi |
-| **Version Control** | ✅ Git can track images | ⚠️ Git can track, but large |
-| **Unique Factor** | "Boot from an image" | Standard Linux distro |
-| **Maintenance** | Single source of truth | Auto-generated from PNG |
+### Characteristics
+- **Size**: ~27MB
+- **Format**: PNG image with embedded pixel metadata
+- **Components**: Encoded in SPBF (Spatial Pixel Byte Format)
+- **Status**: **Primary** - This is the real OS
+- **Workflow**: Edit PNG → Test → Ship
 
----
+### What's Inside
+```
+ubuntu_palace_working.png (27M PNG)
+├── Kernel: Image (22M) - Linux 6.14.0 RISC-V
+├── Initramfs: initramfs.cpio.gz (717B)
+├── DTB: qemu-virt.dtb (1.6K)
+└── Cmdline: console=ttyS0 earlycon=sbi
+```
 
-## When to Use PNG
+### Advantages
+✅ **Spatial Storage** - OS components in pixel metadata
+✅ **Visualizable** - You can literally see your OS
+✅ **Git-Friendly** - Track OS like any image file
+✅ **Novel** - First Linux distribution bootable from PNG
+✅ **Native** - Memory Palace spatial computing paradigm
 
-Use PNG format when:
-- ✅ You want the full Memory Palace experience
-- ✅ You're building/deploying on Memory Palace platform
-- ✅ You need to inspect the OS visually
-- ✅ You're contributing to Memory Palace ecosystem
-- ✅ You want spatial computing benefits
-- ✅ Booting via QEMU (recommended)
-
-**Example:**
+### Usage
 ```bash
 python3 palace_boot.py ubuntu_palace_working.png
 ```
 
 ---
 
-## When to Use ISO
+## ISO Format (Generated)
 
-Use ISO format when:
-- ✅ You want standard Linux distribution experience
-- ✅ You're packaging for RISC-V hardware (future)
-- ✅ You need to mount/extract with standard tools
-- ✅ You're integrating with existing Linux tooling
-- ✅ You want smaller file size
+### Characteristics
+- **Size**: ~22MB
+- **Format**: ISO 9660 filesystem
+- **Components**: Extracted from PNG
+- **Status**: **Derived** - Auto-generated from PNG
+- **Workflow**: PNG → ISO (automatic)
 
-**Example:**
+### What's Inside
+```
+memory_palace_linux.iso (22M ISO)
+├── boot/
+│   ├── Image (22M) - Kernel
+│   ├── initramfs.cpio.gz (717B)
+│   └── qemu-virt.dtb (1.6K)
+├── EFI/BOOT/
+│   └── grub.cfg - Boot configuration
+├── palace_boot.py - PNG boot script
+└── boot_iso.sh - QEMU boot helper
+```
+
+### Advantages
+✅ **Standard** - Traditional ISO format
+✅ **Convenience** - Easier for traditional Linux users
+✅ **Distribution** - Well-understood format
+✅ **Hardware Ready** - Structure ready for GRUB bootloader
+
+### Usage
 ```bash
-# Generate ISO from PNG
+# Generate from PNG
 python3 palace_to_iso.py ubuntu_palace_working.png memory_palace_linux.iso
 
-# Mount ISO
-sudo mount -o loop memory_palace_linux.iso /mnt/iso
-
-# Boot from ISO components
+# Extract and boot
+mkdir iso_extract
+xorriso -osirrox on -indev memory_palace_linux.iso -extract / iso_extract/
+cd iso_extract
 qemu-system-riscv64 -nographic -machine virt -m 1G -smp 2 \
-  -kernel /mnt/iso/boot/Image \
-  -initrd /mnt/iso/boot/initramfs.cpio.gz \
-  -dtb /mnt/iso/boot/qemu-virt.dtb \
-  -append "console=ttyS0 earlycon=sbi" \
+  -kernel boot/Image -initrd boot/initramfs.cpio.gz \
+  -dtb boot/qemu-virt.dtb -append "console=ttyS0 earlycon=sbi" \
   -bios default
 ```
 
 ---
 
-## Format Conversion
+## Format Comparison
 
-### PNG → ISO (One-way conversion)
+| Aspect | PNG | ISO |
+|--------|-----|-----|
+| **Type** | Canonical | Generated |
+| **Size** | 27M | 22M |
+| **Format** | PNG + SPBF | ISO 9660 |
+| **Source** | Handcrafted | Auto-extracted |
+| **Visualizable** | ✅ Yes | ❌ No |
+| **Git-Friendly** | ✅ Yes | ❌ No |
+| **Standard** | ❌ Novel | ✅ Traditional |
+| **Boot Method** | palace_boot.py | QEMU direct / GRUB |
+| **Distribution** | Novel | Conventional |
+| **Hardware Support** | Via ISO | Direct (with GRUB) |
 
+---
+
+## Development Workflow
+
+### 1. Create/Modify OS
 ```bash
-python3 palace_to_iso.py input.png output.iso
+# Build kernel, initramfs, DTB
+make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- -j$(nproc)
 ```
 
-This extracts PNG components and packages into ISO 9660 format.
-
-**Why one-way?**
-- PNG is canonical source of truth
-- ISO is generated, not maintained separately
-- Changes made to PNG; ISO regenerated
-
-### ISO → PNG (Not recommended)
-
-While technically possible to extract ISO components and re-encode as PNG, this loses spatial computing metadata and should be avoided.
-
----
-
-## File Structure
-
-### PNG Internal Structure
-```
-ubuntu_palace_working.png
-├── Pixel Metadata (SPBF format)
-│   ├── Building (ring=1, angle=0): Kernel (22M)
-│   ├── Building (ring=1, angle=1): Initramfs (717B)
-│   ├── Building (ring=1, angle=2): DTB (1.6K)
-│   └── Building (ring=1, angle=3): Cmdline
-└── Visual pixels (can be any image)
-```
-
-### ISO Internal Structure
-```
-memory_palace_linux.iso
-├── /
-│   ├── boot/
-│   │   ├── Image (22M)
-│   │   ├── initramfs.cpio.gz (717B)
-│   │   └── qemu-virt.dtb (1.6K)
-│   ├── EFI/BOOT/
-│   │   └── grub.cfg (boot menu)
-│   ├── palace_boot.py (PNG boot option)
-│   └── boot_iso.sh (QEMU boot script)
-```
-
----
-
-## Boot Workflows
-
-### PNG Boot (Recommended)
-```mermaid
-graph LR
-    A[PNG file] --> B[pixelpack decode]
-    B --> C[Extract components]
-    C --> D[QEMU boot]
-```
-
-### ISO Boot (Alternative)
-```mermaid
-graph LR
-    A[ISO file] --> B[mount/extract]
-    B --> C[QEMU boot]
-```
-
----
-
-## Technical Details
-
-### PNG Encoding
-- **Format**: SPBF (Spatial Byte Format)
-- **Tool**: pixelpack (Rust CLI)
-- **Encoding**: Base64 → CRC32 → Pixel metadata
-- **Overhead**: ~33% (Base64)
-
-### ISO Encoding
-- **Format**: ISO 9660 + Rock Ridge
-- **Tool**: xorriso
-- **Encoding**: Filesystem image
-- **Overhead**: Minimal
-
----
-
-## FAQ
-
-### Q: Why two formats?
-A: PNG is the innovation; ISO is for adoption. Keep PNG as primary, use ISO for distribution to users who expect standard formats.
-
-### Q: Which format should I ship?
-A: Ship both. Document PNG as the "native" format, ISO as "convenience."
-
-### Q: Can I edit the OS in ISO format?
-A: You can extract and edit components, but edits should be made to PNG source, then regenerate ISO.
-
-### Q: Will there ever be a bootable PNG directly?
-A: Future Memory Palace firmware could boot directly from PNG, eliminating extraction step. This is the end goal.
-
-### Q: Why not just use a container image?
-A: PNG fits the spatial computing paradigm - visualizable, spatial, novel. Container images are just another archive format.
-
----
-
-## Migration Path
-
-If you're currently using ISO and want to switch to PNG:
-
+### 2. Package into PNG
 ```bash
-# Step 1: Get the PNG source
-# (You should already have it - PNG is canonical)
+python3 package_to_png.py Image initramfs.cpio.gz qemu-virt.dtb
+```
 
-# Step 2: Verify PNG boots
+### 3. Test PNG Boot
+```bash
 python3 palace_boot.py ubuntu_palace_working.png
+```
 
-# Step 3: Delete old ISO
-rm memory_palace_linux.iso
-
-# Step 4: Archive old ISO if needed
-mv memory_palace_linux.iso archive/
-
-# Step 5: Re-generate ISO when needed
+### 4. Generate ISO (Optional)
+```bash
 python3 palace_to_iso.py ubuntu_palace_working.png memory_palace_linux.iso
 ```
 
+### 5. Verify ISO Boot
+```bash
+# Extract ISO
+xorriso -osirrox on -indev memory_palace_linux.iso -extract / iso_test/
+
+# Boot from extracted components
+cd iso_test
+qemu-system-riscv64 -nographic -machine virt -m 1G -smp 2 \
+  -kernel boot/Image -initrd boot/initramfs.cpio.gz \
+  -dtb boot/qemu-virt.dtb -append "console=ttyS0 earlycon=sbi" \
+  -bios default
+```
+
+### 6. Ship Both
+```bash
+git add ubuntu_palace_working.png memory_palace_linux.iso
+git commit -m "Release Memory Palace Linux vX"
+git push origin main
+```
+
 ---
 
-## Future Enhancements
+## Distribution Strategy
 
-### PNG Format
-- [ ] Add filesystem embedding
-- [ ] Support incremental updates
-- [ ] Add PNG signature verification
-- [ ] Create PNG with visual boot splash
+### Primary: PNG
+- **Target**: Memory Palace ecosystem users
+- **Use Case**: Spatial computing, version tracking, novel distribution
+- **Delivery**: Direct download, git clone
+- **Documentation**: palace_boot.py, README.md
 
-### ISO Format
-- [ ] Build grub-riscv64.efi for hardware boot
-- [ ] Add hybrid boot support (UEFI + BIOS)
-- [ ] Create checksums and signatures
-- [ ] Add ISO metadata (release notes, versioning)
+### Secondary: ISO
+- **Target**: Traditional Linux users
+- **Use Case**: Standard boot process, hardware deployment
+- **Delivery**: Standard ISO distribution
+- **Documentation**: ISO_BOOT_VERIFICATION.md
+
+---
+
+## Future Directions
+
+### Hardware Boot Support
+```bash
+# Build GRUB for RISC-V
+sudo apt install grub-riscv64-efi
+
+# Add to ISO structure
+grub-mkrescue -o memory_palace_linux.iso iso_root/
+```
+
+### Multiple Variants
+```
+ubuntu_palace_minimal.png    (~15M) - Kernel + init only
+ubuntu_palace_dev.png        (~50M) - + dev tools
+ubuntu_palace_full.png       (~100M) - + userspace
+```
+
+### Compression
+- Explore PNG compression strategies
+- Consider alternative spatial formats
+- Optimize SPBF encoding efficiency
+
+---
+
+## Golden Rule
+
+**PNG is the real operating system. ISO is just a convenience wrapper.**
+
+Always:
+1. Edit PNG components
+2. Test PNG boot
+3. Regenerate ISO
+4. Ship both
+
+Never:
+1. Edit ISO directly
+2. Modify extracted components
+3. Treat ISO as source of truth
 
 ---
 
 ## Summary
 
-- **PNG** = Innovation, spatial computing, canonical
-- **ISO** = Convenience, standard format, auto-generated
-- **Rule**: Update PNG, regenerate ISO
-- **Goal**: PNG-first, ISO-secondary
+Memory Palace Linux represents a paradigm shift in OS distribution:
+- **PNG** = Novel, spatial, visual, git-trackable (canonical)
+- **ISO** = Traditional, standard, convenient (derived)
 
-**Remember**: The PNG is the real Memory Palace Linux. ISO is just a convenience wrapper for users who expect standard Linux distribution formats.
-
-```bash
-# The right way to build Memory Palace Linux:
-# 1. Update PNG components
-# 2. Test PNG boot
-# 3. Generate ISO from PNG
-# 4. Ship both
-
-python3 palace_boot.py ubuntu_palace_working.png  # Test
-python3 palace_to_iso.py ubuntu_palace_working.png  # Ship
-```
+Both formats serve different users while booting the same system. Choose the format that matches your use case, but remember: **the PNG is the real OS**.
