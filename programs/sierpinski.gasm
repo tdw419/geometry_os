@@ -1,0 +1,61 @@
+; Sierpinski Triangle Filmstrip
+; Renders (x & y) == 0 pattern into a 32x32 region of the screen.
+; Uses 3 frames: Init -> Compute (self-looping) -> Done
+;
+; Register allocation:
+;   r0  = x coordinate (0..31)
+;   r1  = y coordinate (0..31)
+;   r2  = x & y (test value)
+;   r3  = 0 (constant)
+;   r4  = 1 (constant)
+;   r5  = 32 (row limit)
+;   r6  = color "on" (white = 0xFFFFFFFF)
+;   r9  = target frame index (for FRAME jumps)
+
+.frame "Init"
+
+LDI r3, 0           ; zero constant
+LDI r4, 1           ; one constant
+LDI r5, 32          ; row limit
+LDI r6, 0xFFFFFFFF  ; white
+LDI r9, 1           ; frame index for @Compute
+LDI r0, 0           ; x = 0
+LDI r1, 0           ; y = 0
+
+FRAME r9             ; jump to Compute
+
+---
+
+.frame "Compute"
+
+; Inner loop: test each pixel (x, y)
+pixel_loop:
+MOV r2, r0          ; r2 = x
+AND r2, r1          ; r2 = x & y
+BNE r2, r3, pixel_off  ; if (x&y) != 0, skip draw
+
+; Pixel is ON: draw white
+PSET r0, r1, r6
+JMP next_pixel
+
+pixel_off:
+NOP                  ; BNE target when pixel is off
+
+next_pixel:
+ADD r0, r4           ; x++
+BNE r0, r5, pixel_loop  ; if x != 32, loop
+
+; End of row: reset x, advance y
+LDI r0, 0
+ADD r1, r4           ; y++
+BNE r1, r5, pixel_loop  ; if y != 32, loop
+
+; Finished all 32x32 pixels
+LDI r9, 2            ; @Done = frame 2
+FRAME r9
+
+---
+
+.frame "Done"
+
+HALT

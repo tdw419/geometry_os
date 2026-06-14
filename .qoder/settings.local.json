@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"status:\" roadmap_v2.yaml | head -40)",
+      "Bash(grep -B1 \"status:\" roadmap_v2.yaml | grep -E \"id:|status:\" | head -60)",
+      "Bash(git add src/main.rs && git commit -m \"$\\(cat <<'EOF'\nfix: add hypervisor_console command with shared buffer for QEMU guest output\n\nThe one-shot stream drain was missing boot logs and returning empty.\nNow all QEMU stdout is appended to HYPERVISOR_CONSOLE_BUF, and the\nhypervisor_console shell command returns accumulated guest output on\neach query. Verified with Ubuntu RISC-V guest fully booted at shell.\nEOF\n\\)\")",
+      "Bash(cargo test sprite 2>&1 | tail -30)"
+    ]
+  }
+}

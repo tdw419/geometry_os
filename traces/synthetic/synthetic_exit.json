@@ -1,0 +1,425 @@
+{
+  "trace_name": "synthetic_exit",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4586,
+        "a5": 102
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479571,
+        "a2": 2,
+        "a3": 4,
+        "a4": 4587,
+        "a5": 103
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479671,
+        "a2": 3,
+        "a3": 5,
+        "a4": 4588,
+        "a5": 104
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479771,
+        "a2": 4,
+        "a3": 6,
+        "a4": 4589,
+        "a5": 105
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479871,
+        "a2": 5,
+        "a3": 7,
+        "a4": 4590,
+        "a5": 106
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479971,
+        "a2": 6,
+        "a3": 8,
+        "a4": 4586,
+        "a5": 107
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147480071,
+        "a2": 7,
+        "a3": 9,
+        "a4": 4587,
+        "a5": 108
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147480171,
+        "a2": 8,
+        "a3": 10,
+        "a4": 4588,
+        "a5": 109
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147480271,
+        "a2": 9,
+        "a3": 11,
+        "a4": 4589,
+        "a5": 110
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147480371,
+        "a2": 10,
+        "a3": 12,
+        "a4": 4590,
+        "a5": 111
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 2,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 5,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 6,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 7,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 8,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 9,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "exit syscall"
+      },
+      "arguments": {
+        "a0": 10,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    }
+  ]
+}

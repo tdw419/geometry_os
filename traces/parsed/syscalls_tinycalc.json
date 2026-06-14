@@ -1,0 +1,2762 @@
+{
+  "metadata": {
+    "source_log": "/tmp/xv6_traces/syscalls_tinycalc.log",
+    "total_pairs": 61,
+    "unique_syscalls": 8
+  },
+  "statistics": {
+    "total_syscalls": 61,
+    "syscall_counts": {
+      "openat": 1,
+      "unlink": 1,
+      "write": 46,
+      "fstat": 9,
+      "exit": 1,
+      "read": 1,
+      "wait": 1,
+      "close": 1
+    },
+    "unique_syscalls": 8
+  },
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "Open file at directory fd + path"
+      },
+      "arguments": {
+        "a0": 4276,
+        "a1": 2,
+        "a2": 2152761456,
+        "a3": 3,
+        "a4": 1,
+        "a5": 0
+      },
+      "return_value": 3,
+      "program_counter": {
+        "ecall_entry": 2244,
+        "sret_return": 2248
+      },
+      "semantics": {
+        "description": "Open file at directory fd + path",
+        "args": [
+          "dirfd",
+          "pathname",
+          "flags",
+          "mode"
+        ],
+        "returns": "fd_or_error",
+        "memory_ops": [
+          "namei_path_resolution",
+          "inode_load",
+          "fd_table_alloc"
+        ],
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      },
+      "openat_analysis": {
+        "dirfd": 4276,
+        "pathname_address": 2,
+        "flags": 2152761456,
+        "mode": 3,
+        "fd_returned": 3,
+        "open_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "Delete file"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2,
+        "a2": 2152761456,
+        "a3": 3,
+        "a4": 1,
+        "a5": 2
+      },
+      "return_value": 0,
+      "program_counter": {
+        "ecall_entry": 2220,
+        "sret_return": 2224
+      },
+      "semantics": {
+        "description": "Delete file",
+        "args": [
+          "pathname"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "namei_path_resolution",
+          "inode_free",
+          "block_free"
+        ],
+        "spatial_ops": [
+          "free_inode_pixels",
+          "free_block_pixels"
+        ]
+      },
+      "unlink_analysis": {
+        "pathname_address": 3,
+        "unlink_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 2,
+        "a1": 2147479407,
+        "a2": 1,
+        "a3": 3,
+        "a4": 1,
+        "a5": 2147479480
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2212,
+        "sret_return": 2216
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 2,
+        "is_stdout": false,
+        "is_stderr": true,
+        "buffer_address": 2147479407,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 2,
+        "a1": 2147479407,
+        "a2": 1,
+        "a3": 3,
+        "a4": 1,
+        "a5": 2147479480
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2212,
+        "sret_return": 2216
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 2,
+        "is_stdout": false,
+        "is_stderr": true,
+        "buffer_address": 2147479407,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 1,
+        "a5": 4676
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4577,
+        "a5": 116
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4578,
+        "a5": 105
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4579,
+        "a5": 110
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4580,
+        "a5": 121
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4581,
+        "a5": 99
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4582,
+        "a5": 97
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4583,
+        "a5": 108
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 5,
+        "name": "fstat",
+        "description": "Get file status"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4584,
+        "a5": 99
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2204,
+        "sret_return": 2208
+      },
+      "semantics": {
+        "description": "Get file status",
+        "args": [
+          "fd",
+          "statbuf"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_lookup",
+          "inode_read",
+          "statbuf_fill"
+        ],
+        "spatial_ops": [
+          "read_inode_pixels",
+          "write_stat_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 1,
+        "name": "exit",
+        "description": "Terminate current process"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4585,
+        "a5": 116
+      },
+      "return_value": 2,
+      "program_counter": {
+        "ecall_entry": 2172,
+        "sret_return": 2176
+      },
+      "semantics": {
+        "description": "Terminate current process",
+        "args": [
+          "exit_code"
+        ],
+        "returns": "never",
+        "memory_ops": [
+          "process_table_cleanup",
+          "fd_table_cleanup"
+        ],
+        "spatial_ops": [
+          "free_user_memory"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "Read from file descriptor"
+      },
+      "arguments": {
+        "a0": 2,
+        "a1": 2147479471,
+        "a2": 1,
+        "a3": 3,
+        "a4": 4585,
+        "a5": 116
+      },
+      "return_value": 0,
+      "program_counter": {
+        "ecall_entry": 2188,
+        "sret_return": 2176
+      },
+      "semantics": {
+        "description": "Read from file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_read_or_error",
+        "memory_ops": [
+          "buffer_copy_from_kernel",
+          "block_cache_read"
+        ],
+        "spatial_ops": [
+          "copy_pixels_from_block_region"
+        ]
+      },
+      "read_analysis": {
+        "fd": 2,
+        "buffer_address": 2147479471,
+        "buffer_size": 1,
+        "bytes_read": 0,
+        "read_failed": false,
+        "eof_reached": true
+      }
+    },
+    {
+      "syscall": {
+        "number": 12,
+        "name": "wait",
+        "description": "Wait for child process"
+      },
+      "arguments": {
+        "a0": 88,
+        "a1": 116,
+        "a2": 4212,
+        "a3": 3,
+        "a4": 4576,
+        "a5": 0
+      },
+      "return_value": 8192,
+      "program_counter": {
+        "ecall_entry": 2316,
+        "sret_return": 2320
+      },
+      "semantics": {
+        "description": "Wait for child process",
+        "args": [
+          "status"
+        ],
+        "returns": "child_pid_or_error",
+        "memory_ops": [
+          "process_table_scan",
+          "reap_zombie"
+        ],
+        "spatial_ops": [
+          "scan_process_table_pixels",
+          "free_zombie_pixels"
+        ]
+      },
+      "wait_analysis": {
+        "status_address": 88,
+        "child_pid": 8192,
+        "child_exited": true,
+        "no_child": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 4576,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 2236,
+        "sret_return": 1666
+      },
+      "semantics": {
+        "description": "Close file descriptor",
+        "args": [
+          "fd"
+        ],
+        "returns": "0_or_error",
+        "memory_ops": [
+          "fd_table_cleanup",
+          "file_handle_release"
+        ],
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      },
+      "close_analysis": {
+        "fd_closed": 4576,
+        "close_failed": true
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "Write to file descriptor"
+      },
+      "arguments": {
+        "a0": 1,
+        "a1": 2147475247,
+        "a2": 1,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 2147475320
+      },
+      "return_value": 1,
+      "program_counter": {
+        "ecall_entry": 1718,
+        "sret_return": 1722
+      },
+      "semantics": {
+        "description": "Write to file descriptor",
+        "args": [
+          "fd",
+          "buffer",
+          "count"
+        ],
+        "returns": "bytes_written_or_error",
+        "memory_ops": [
+          "buffer_copy_to_kernel",
+          "console_write",
+          "block_cache_write"
+        ],
+        "spatial_ops": [
+          "copy_pixels_to_console",
+          "copy_pixels_to_block_region"
+        ]
+      },
+      "write_analysis": {
+        "fd": 1,
+        "is_stdout": true,
+        "is_stderr": false,
+        "buffer_address": 2147475247,
+        "buffer_size": 1,
+        "bytes_written": 1,
+        "write_failed": false
+      }
+    }
+  ]
+}

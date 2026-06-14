@@ -1,0 +1,25 @@
+[Unit]
+Description=SeedFS — One Pixel = One File (FUSE)
+After=network.target local-fs.target
+Wants=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/jericho/projects/zion/projects/geometry_os/geometry_os/scripts/seedfs.py mount /home/jericho/.seedfs/store /mnt/seedfs
+ExecStop=/usr/bin/fusermount3 -u /mnt/seedfs
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+ProtectSystem=strict
+ReadWritePaths=/home/jericho/.seedfs /mnt/seedfs
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=seedfs
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,112 @@
+; engineer.gasm -- Fitness-benchmarking VM program
+; Runs on VM 3. Receives work orders from strategist, spawns child VMs,
+; evaluates their output, and sends fitness reports to historian (VM 2).
+;
+; Register allocation:
+;   r0  = mailbox_buf (0x00C00000) - RECV destination address
+;   r1  = recv_status / temp
+;   r2  = historian VM id (constant 2)
+;   r3  = zero constant (0)
+;   r4  = child_base_addr (from work order)
+;   r5  = child_entry_offset (from work order)
+;   r6  = output_addr (scan pointer into child output)
+;   r7  = fitness_score (quantized integer)
+;   r8  = report_buf (0x00C00100) - outbound message buffer
+;   r9  = frame_counter (for child wait loop)
+;   r10 = max_wait (constant 3)
+;   r11 = temp / scratch
+;   r12 = one constant (1)
+;   r13 = fitness_msg_type (constant 1)
+;
+; Message format (work order from strategist):
+;   pixel 0: msg_type (2 = mutation_request)
+;   pixel 1: program_base_addr
+;   pixel 2: program_entry_offset
+;   pixel 3: child_vm_slot
+;
+; Message format (fitness report to historian):
+;   pixel 0: msg_type (1 = fitness_report)
+;   pixel 1: sender_vm_id (3 = engineer)
+;   pixel 2: fitness_score_quantized
+;   pixel 3: cycles_consumed (0 for now)
+
+; === Setup constants ===
+LDI r0, 0x00C00000    ; [0,1]   mailbox buf
+LDI r2, 2             ; [2,3]   historian VM id
+LDI r3, 0             ; [4,5]   zero
+LDI r8, 0x00C00100    ; [6,7]   report buf
+LDI r10, 3            ; [8,9]   max wait frames
+LDI r12, 1            ; [10,11] constant 1
+LDI r13, 1            ; [12,13] fitness msg type
+
+; === recv_loop (addr 14) ===
+RECV r0, r1           ; [14]    check mailbox
+BNE r1, r3, 5         ; [15,16] if status!=0, goto got_work (15+5=20)
+
+; no_message (addr 17):
+YIELD                 ; [17]    nothing to do
+JMP -4                ; [18,19] back to recv_loop (18+(-4)=14)
+
+; === got_work (addr 20) ===
+; Read work order data from mailbox buffer
+LDI r11, 0x00C00001   ; [20,21]
+LOAD r4, r11          ; [22]    r4 = base_addr
+LDI r11, 0x00C00002   ; [23,24]
+LOAD r5, r11          ; [25]    r5 = entry_offset
+
+; === spawn_child (addr 26) ===
+SPAWN r4, r5          ; [26]    spawn child VM
+LDI r11, 0x00C00001   ; [27,28]
+LOAD r4, r11          ; [29]    re-read base_addr (SPAWN overwrites r4)
+
+; === wait_loop (addr 30) ===
+LDI r9, 0             ; [30,31] frame counter = 0
+; wait_yield (addr 32):
+YIELD                 ; [32]    give child a frame to run
+ADD r9, r12           ; [33]    r9 += 1
+BLT r9, r10, -2       ; [34,35] if r9 < 3, goto wait_yield (34+(-2)=32)
+
+; === evaluate (addr 36) ===
+; Scan 16 pixels starting at child_base + 100 for non-zero values.
+LDI r7, 0             ; [36,37] fitness = 0
+MOV r6, r4            ; [38]    r6 = base_addr
+LDI r11, 100          ; [39,40]
+ADD r6, r11           ; [41]    r6 = base_addr + 100 (output start)
+
+; scan_loop (addr 42):
+LOAD r1, r6           ; [42]    r1 = mem[r6]
+BNE r1, r3, 4         ; [43,44] if non-zero, goto nonzero (43+4=47)
+JMP 5                 ; [45,46] goto next_pixel (45+5=50)
+
+; nonzero (addr 47):
+LDI r11, 100          ; [47,48]
+ADD r7, r11           ; [49]    fitness += 100
+
+; next_pixel (addr 50):
+LDI r11, 1            ; [50,51]
+ADD r6, r11           ; [52]    r6++ (next pixel)
+LDI r11, 116          ; [53,54]
+ADD r11, r4           ; [55]    r11 = base_addr + 116 (bound)
+BLT r6, r11, -14      ; [56,57] if r6 < bound, goto scan_loop (56+(-14)=42)
+
+; === build_report (addr 58) ===
+; Report at 0x00C00100:
+;   [0] = 1 (fitness_report), [1] = 3 (engineer), [2] = fitness, [3] = 0
+LDI r11, 0x00C00100   ; [58,59]
+STORE r11, r13        ; [60]    report[0] = 1 (msg_type)
+LDI r11, 0x00C00101   ; [61,62]
+LDI r1, 3             ; [63,64]
+STORE r11, r1         ; [65]    report[1] = 3 (engineer VM id)
+LDI r11, 0x00C00102   ; [66,67]
+STORE r11, r7         ; [68]    report[2] = fitness_score
+LDI r11, 0x00C00103   ; [69,70]
+STORE r11, r3         ; [71]    report[3] = 0 (cycles)
+
+; === send_report (addr 72) ===
+SEND r2, r8, 4        ; [72,73] send 4 pixels to historian (VM 2)
+
+; === done_cycle (addr 74) ===
+YIELD                 ; [74]
+JMP -61               ; [75,76] back to recv_loop (75+(-61)=14)
+
+HALT                  ; [77]    (unreachable safety net)

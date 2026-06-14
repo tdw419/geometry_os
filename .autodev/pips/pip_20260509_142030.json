@@ -1,0 +1,77 @@
+{
+  "timestamp": "2026-05-09T14:20:30.553066",
+  "summary": {
+    "period": "2026-05-09T09:24 -> 2026-05-09T14:20",
+    "samples": 14,
+    "health_rate": 92.9,
+    "commits_trend": {
+      "first_half_avg": 79.3,
+      "second_half_avg": 82.6,
+      "direction": "stable"
+    },
+    "phases_completed": 26,
+    "tasks_completed": 169,
+    "dirty_tree_rate": 85.7,
+    "loc_delta": 135310,
+    "latest": {
+      "ts": "2026-05-09T14:20:24.969763",
+      "git": {
+        "commits_24h": 90,
+        "lines_added_24h": 2579825,
+        "lines_removed_24h": 990719,
+        "last_commit": "2026-05-09 14:19:19 -0500"
+      },
+      "roadmap": {
+        "total_phases": 26,
+        "completed_phases": 26,
+        "total_tasks": 170,
+        "done_tasks": 169,
+        "pct_phases": 100.0,
+        "pct_tasks": 99.4
+      },
+      "performance": {
+        "ADD": {
+          "median": 85.4,
+          "unit": "\u00b5s"
+        },
+        "MUL/DIV": {
+          "median": 2.18,
+          "unit": "\u00b5s"
+        },
+        "LOAD/STORE": {
+          "median": 371.0,
+          "unit": "\u00b5s"
+        },
+        "PUSH/POP": {
+          "median": 159.6,
+          "unit": "\u00b5s"
+        },
+        "PSET": {
+          "median": 177.3,
+          "unit": "\u00b5s"
+        }
+      },
+      "health": {
+        "compiles": true,
+        "errors": false
+      },
+      "autodev": {
+        "dirty_files": 0,
+        "staged_files": 0,
+        "clean_tree": true
+      },
+      "loc": {
+        "src_loc": 135310
+      }
+    }
+  },
+  "bottlenecks": [
+    {
+      "severity": "medium",
+      "signal": "Tree dirty 85.7% of the time",
+      "hypothesis": "Reviewer/shipper not committing work promptly, or drafter leaving uncommitted artifacts.",
+      "target": "reviewer/shipper prompt"
+    }
+  ],
+  "evaluator_prompt": "You are the Process Evaluator for Geometry OS autodev. Analyze these metrics and produce ONE Process Improvement Proposal (PIP).\n\n## Metrics Summary\n- Period: 2026-05-09T09:24 -> 2026-05-09T14:20\n- Samples: 14\n- Build health: 92.9%\n- Commit velocity: 79.3 -> 82.6 avg commits/24h (stable)\n- Phases completed: 26\n- Tasks completed: 169\n- Dirty tree rate: 85.7%\n- LOC delta: +135310\n\n## Detected Bottlenecks\n- [MEDIUM] Tree dirty 85.7% of the time -- Hypothesis: Reviewer/shipper not committing work promptly, or drafter leaving uncommitted artifacts.\n\n## Latest Snapshot\n{\n  \"ts\": \"2026-05-09T14:20:24.969763\",\n  \"git\": {\n    \"commits_24h\": 90,\n    \"lines_added_24h\": 2579825,\n    \"lines_removed_24h\": 990719,\n    \"last_commit\": \"2026-05-09 14:19:19 -0500\"\n  },\n  \"roadmap\": {\n    \"total_phases\": 26,\n    \"completed_phases\": 26,\n    \"total_tasks\": 170,\n    \"done_tasks\": 169,\n    \"pct_phases\": 100.0,\n    \"pct_tasks\": 99.4\n  },\n  \"performance\": {\n    \"ADD\": {\n      \"median\": 85.4,\n      \"unit\": \"\\u00b5s\"\n    },\n    \"MUL/DIV\": {\n      \"median\": 2.18,\n      \"unit\": \"\\u00b5s\"\n    },\n    \"LOAD/STORE\": {\n      \"median\": 371.0,\n      \"unit\": \"\\u00b5s\"\n    },\n    \"PUSH/POP\": {\n      \"median\": 159.6,\n      \"unit\": \"\\u00b5s\"\n    },\n    \"PSET\": {\n      \"median\": 177.3,\n      \"unit\": \"\\u00b5s\"\n    }\n  },\n  \"health\": {\n    \"compiles\": true,\n    \"errors\": false\n  },\n  \"autodev\": {\n    \"dirty_files\": 0,\n    \"staged_files\": 0,\n    \"clean_tree\": true\n  },\n  \"loc\": {\n    \"src_loc\": 135310\n  }\n}\n\n## Instructions\nIf severity is \"none\", output: {\"action\": \"none\", \"reason\": \"system healthy\"}\nOtherwise, produce a structured PIP:\n```json\n{\n  \"action\": \"modify_file\",\n  \"target\": \"path/to/file\",\n  \"description\": \"What to change and why\",\n  \"hypothesis\": \"Expected improvement\",\n  \"risk\": \"low|medium|high\",\n  \"apply_cmd\": \"bash command to make the edit (e.g. sed, python script)\",\n  \"validate_cmd\": \"bash command to verify health (e.g. cargo check or test)\"\n}\n```"
+}

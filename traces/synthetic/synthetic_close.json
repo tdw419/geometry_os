@@ -1,0 +1,425 @@
+{
+  "trace_name": "synthetic_close",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 5,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 6,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 7,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 8,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 9,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 10,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 11,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 12,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 13,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 14,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 15,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 16,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 17,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 18,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 19,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 20,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 21,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 7,
+        "name": "close",
+        "description": "Close file descriptor"
+      },
+      "arguments": {
+        "a0": 22,
+        "a1": 8200,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 196
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "free_fd_table_pixels"
+        ]
+      }
+    }
+  ]
+}

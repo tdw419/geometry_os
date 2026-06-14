@@ -1,0 +1,182 @@
+[boot] boot_linux_setup_with_patches: ram=256MB, args='console=ttyS0 earlycon=sbi panic=5 loglevel=7'
+[boot] loading kernel image (len=6139180)...
+[loader] Segment 0: paddr=0x00000000, vaddr=0xC0000000, offset=0x00001000, target_pa=0x80000000, filesz=0x22215C
+[loader] Segment 1: paddr=0x00400000, vaddr=0xC0400000, offset=0x00400000, target_pa=0x80400000, filesz=0x277A2
+[mem-watch] WRITE to 0x80400FFE val=0xE7
+[mem-watch] WRITE to 0x80400FFF val=0x80
+[loader] Segment 2: paddr=0x00800000, vaddr=0xC0800000, offset=0x00428000, target_pa=0x80800000, filesz=0xB85C
+[loader] Segment 3: paddr=0x0080C000, vaddr=0xC080C000, offset=0x00434000, target_pa=0x8080C000, filesz=0x17A0
+[loader] Segment 4: paddr=0x00C00000, vaddr=0xC0C00000, offset=0x00436000, target_pa=0x80C00000, filesz=0x7B6F8
+[loader] Segment 5: paddr=0x01000000, vaddr=0xC1000000, offset=0x004B2000, target_pa=0x81000000, filesz=0x298
+[loader] Segment 6: paddr=0x01400000, vaddr=0xC1400000, offset=0x004B3000, target_pa=0x81400000, filesz=0x81200
+[boot] kernel loaded at 0xC0000000, highest=0x814BB8B8
+[boot-valid] PA 0x80400FFE: E7 80 80 A6 (expect E7 80 80 A6)
+[boot-diag] RAM: base=0x80000000 size=0x10000000 (256MB)
+[boot-diag] PA 0x80404AB2: bytes=[DC C4 94 C8] half=0xC4DC word=0xC894C4DC
+[boot-diag] ELF file off 0x404AB2: bytes=[DC C4 94 C8] half=0xC4DC
+[boot-diag] offset from base = 0x404AB2, in_ram=true, ram_array_len=0x10000000
+[boot] DTB ram_size: 260096K (262144K total, pool: 2048K)
+[boot] Loaded initrd: 772615 bytes at PA 0x816BC000 - 0x81778A07
+[boot] Pre-set _dtb_early_va=0x8FD00000, _dtb_early_pa=0x8FD00000
+[boot] Found setup_vm kernel_map writes at PA 0x80404AB2 (pattern scan) -- leaving intact
+[boot] Pre-set loops_per_jiffy=400000 to skip calibrate_delay()
+[boot] Pre-set sbi_debug_console_available=true for earlycon DBCN
+[boot] Patched calibrate_delay to return immediately at PA 0x800080DA (scan)
+[boot] Patched udelay to return immediately at PA 0x8021B34E (scan)
+[boot] Patched ndelay to return immediately at PA 0x8021B308 (scan)
+[boot-patch] Writing reserved region to 0x80803A8C
+[boot] Pre-populated memblock reserved: base=0x80000000 size=0x014BC000 (end=0x814BC000)
+[boot-patch] Writing reserved initrd to 0x80803A98
+[boot] Pre-populated memblock reserved initrd: base=0x816BC000 size=0x000BCA07
+[boot-patch] Writing reserved DTB+PT to 0x80803AA4
+[boot] Pre-populated memblock reserved DTB+PT: base=0x8FCFE000 size=0x00102000 (dtb=0x8FD00000, 1274 bytes)
+[boot-patch] Writing memory regions to 0x8080348C
+[boot] Pre-populated memblock memory: PA 0x80000000 - PA 0x8FE00000
+[boot] WARNING: ebreak for up_read not found in function body starting at PA 0x8006CE7C
+[boot] WARNING: ebreak for down_read_trylock not found in function body starting at PA 0x8006C748
+[boot] Patched initrd overlap bypass at PA 0x80402BE8: c.beqz a0,+26 -> c.j +26 (unconditional)
+[boot] Patched ebreak at PA 0x8002D446 to NOP (unblocking abort_creds, offset +40)
+[boot] Patch summary: dtb=true setup_vm=true timebase=true lpj=true dbcn=true cal_delay=true udelay=true ndelay=true memblock=true up_read=false down_read=false initrd_bypass=true abort_creds=true
+[boot] ELF entry at PA 0x80000000 has MZ/EFI stub header (c.li s4,-13; j _start_kernel) -- OK
+[boot-table] Creating preliminary page table at PA 0x8FCFE000
+[boot-table] SATP value: 0x8008FCFE
+[boot] Preliminary Sv32 page table at PA 0x8FCFE000, SATP=0x8008FCFE -- kernel VA entry at 0xC0000000
+[boot-setup] After mret simulation: PC=0xC0000000 priv=Supervisor mepc=0xC0000000 mstatus=0x00000088
+[boot-setup] Boot regs: a0=0 (hartid), a1=0x8FD00000 (DTB PA)
+[boot-setup] Initial mtimecmp=500 (simulates OpenSBI first timer)
+[diag] Starting diagnostic boot: entry=0xC0000000, dtb=0x8FD00000
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x81484000 (SATP 0x8008FCFE -> 0x80081484)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x00000000 va_kernel_pa_offset=0x00000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] Patching kernel_map.va_pa_offset: 0x00000000 -> 0x40000000 at PA 0x80C7A0AC
+[pte_fixup] Patching kernel_map.va_kernel_pa_offset: 0x00000000 -> 0x40000000 at PA 0x80C7A0B0
+[pte_fixup] Fixed L1[768] at PA 0x81484C00: PPN 0xC0000 -> 0x80000 (0x300000EF -> 0x200000EF)
+[pte_fixup] L1[768] at PA 0x81484C00 already set: 0x20000001 (PPN 0x80000, flags 0x01), skipping force-map
+[pte_fixup] Force-map L1[769] at PA 0x81484C04: megapage PA 0x80400000 -> VA 0xC0400000
+[pte_fixup] Force-map L1[770] at PA 0x81484C08: megapage PA 0x80800000 -> VA 0xC0800000
+[pte_fixup] Force-map L1[771] at PA 0x81484C0C: megapage PA 0x80C00000 -> VA 0xC0C00000
+[pte_fixup] Force-map L1[772] at PA 0x81484C10: megapage PA 0x81000000 -> VA 0xC1000000
+[pte_fixup] Force-map L1[773] at PA 0x81484C14: megapage PA 0x81400000 -> VA 0xC1400000
+[pte_fixup] Force-map L1[774] at PA 0x81484C18: megapage PA 0x81800000 -> VA 0xC1800000
+[pte_fixup] Force-map L1[775] at PA 0x81484C1C: megapage PA 0x81C00000 -> VA 0xC1C00000
+[pte_fixup] Force-map L1[776] at PA 0x81484C20: megapage PA 0x82000000 -> VA 0xC2000000
+[pte_fixup] Force-map L1[777] at PA 0x81484C24: megapage PA 0x82400000 -> VA 0xC2400000
+[pte_fixup] Registered 2 page table pages (L1 at PA 0x81484000)
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x80802000 (SATP 0x80081484 -> 0x80080802)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] Fixed L1[630] at PA 0x808029D8: PPN 0xC1483 -> 0x81483 (0x30520C01 -> 0x20520C01)
+[pte_fixup] Fixed L1[768] at PA 0x80802C00: PPN 0xC0000 -> 0x80000 (0x300000EF -> 0x200000EF)
+[pte_fixup] Fixed L1[769] at PA 0x80802C04: PPN 0xC0400 -> 0x80400 (0x301000EF -> 0x201000EF)
+[mem-watch] WRITE_WORD to 0x80400FFC val=0x00000000
+[pte_fixup] Fixed L1[770] at PA 0x80802C08: PPN 0xC0800 -> 0x80800 (0x302000EF -> 0x202000EF)
+[pte_fixup] Fixed L1[771] at PA 0x80802C0C: PPN 0xC0C00 -> 0x80C00 (0x303000EF -> 0x203000EF)
+[pte_fixup] Fixed L1[772] at PA 0x80802C10: PPN 0xC1000 -> 0x81000 (0x304000EF -> 0x204000EF)
+[pte_fixup] Fixed L1[773] at PA 0x80802C14: PPN 0xC1400 -> 0x81400 (0x305000EF -> 0x205000EF)
+[pte_fixup] L1[768] at PA 0x80802C00 already set: 0x20000001 (PPN 0x80000, flags 0x01), skipping force-map
+[pte_fixup] L1[769] at PA 0x80802C04 already set: 0x20100001 (PPN 0x80400, flags 0x01), skipping force-map
+[pte_fixup] L1[770] at PA 0x80802C08 already set: 0x20200001 (PPN 0x80800, flags 0x01), skipping force-map
+[pte_fixup] L1[771] at PA 0x80802C0C already set: 0x20300001 (PPN 0x80C00, flags 0x01), skipping force-map
+[pte_fixup] L1[772] at PA 0x80802C10 already set: 0x20400001 (PPN 0x81000, flags 0x01), skipping force-map
+[pte_fixup] L1[773] at PA 0x80802C14 already set: 0x20500001 (PPN 0x81400, flags 0x01), skipping force-map
+[pte_fixup] Force-map L1[774] at PA 0x80802C18: megapage PA 0x81800000 -> VA 0xC1800000
+[pte_fixup] Force-map L1[775] at PA 0x80802C1C: megapage PA 0x81C00000 -> VA 0xC1C00000
+[pte_fixup] Force-map L1[776] at PA 0x80802C20: megapage PA 0x82000000 -> VA 0xC2000000
+[pte_fixup] Force-map L1[777] at PA 0x80802C24: megapage PA 0x82400000 -> VA 0xC2400000
+[pte_fixup] Registered 10 page table pages (L1 at PA 0x80802000)
+[diag] S->M TRAP at count=178458: PC was=0xC0401000 now=0x80000000 mcause=0x00000002 mepc=0xC0401000 mtval=0xC0401000
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x81484000 (SATP 0x80080802 -> 0x80081484)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[mem-watch] WRITE_WORD to 0x80400FFC val=0x00000000
+[pte_fixup] L1[768] at PA 0x81484C00 already set: 0x20000001 (PPN 0x80000, flags 0x01), skipping force-map
+[pte_fixup] L1[769] at PA 0x81484C04 already set: 0x20100001 (PPN 0x80400, flags 0x01), skipping force-map
+[pte_fixup] L1[770] at PA 0x81484C08 already set: 0x20200001 (PPN 0x80800, flags 0x01), skipping force-map
+[pte_fixup] L1[771] at PA 0x81484C0C already set: 0x20300001 (PPN 0x80C00, flags 0x01), skipping force-map
+[pte_fixup] L1[772] at PA 0x81484C10 already set: 0x20400001 (PPN 0x81000, flags 0x01), skipping force-map
+[pte_fixup] L1[773] at PA 0x81484C14 already set: 0x20500001 (PPN 0x81400, flags 0x01), skipping force-map
+[pte_fixup] L1[774] at PA 0x81484C18 already set: 0x20600001 (PPN 0x81800, flags 0x01), skipping force-map
+[pte_fixup] L1[775] at PA 0x81484C1C already set: 0x20700001 (PPN 0x81C00, flags 0x01), skipping force-map
+[pte_fixup] L1[776] at PA 0x81484C20 already set: 0x20800001 (PPN 0x82000, flags 0x01), skipping force-map
+[pte_fixup] L1[777] at PA 0x81484C24 already set: 0x20900001 (PPN 0x82400, flags 0x01), skipping force-map
+[pte_fixup] Registered 14 page table pages (L1 at PA 0x81484000)
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x9DD00000 (SATP 0x80081484 -> 0x8009DD00)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] Force-map L1[768] at PA 0x9DD00C00: megapage PA 0x80000000 -> VA 0xC0000000
+[pte_fixup] Force-map L1[769] at PA 0x9DD00C04: megapage PA 0x80400000 -> VA 0xC0400000
+[pte_fixup] Force-map L1[770] at PA 0x9DD00C08: megapage PA 0x80800000 -> VA 0xC0800000
+[pte_fixup] Force-map L1[771] at PA 0x9DD00C0C: megapage PA 0x80C00000 -> VA 0xC0C00000
+[pte_fixup] Force-map L1[772] at PA 0x9DD00C10: megapage PA 0x81000000 -> VA 0xC1000000
+[pte_fixup] Force-map L1[773] at PA 0x9DD00C14: megapage PA 0x81400000 -> VA 0xC1400000
+[pte_fixup] Force-map L1[774] at PA 0x9DD00C18: megapage PA 0x81800000 -> VA 0xC1800000
+[pte_fixup] Force-map L1[775] at PA 0x9DD00C1C: megapage PA 0x81C00000 -> VA 0xC1C00000
+[pte_fixup] Force-map L1[776] at PA 0x9DD00C20: megapage PA 0x82000000 -> VA 0xC2000000
+[pte_fixup] Force-map L1[777] at PA 0x9DD00C24: megapage PA 0x82400000 -> VA 0xC2400000
+[pte_fixup] Registered 15 page table pages (L1 at PA 0x9DD00000)
+[diag] PROGRESS 10M: PC=0x012BBBA6 priv=Machine mstatus=0x00000880 satp=0x8009DD00 mepc=0xC0401000 ra=0x00001118 sp=0xC1401F70
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x81484000 (SATP 0x8009DD00 -> 0x80081484)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] L1[768] at PA 0x81484C00 already set: 0x20000001 (PPN 0x80000, flags 0x01), skipping force-map
+[pte_fixup] L1[769] at PA 0x81484C04 already set: 0x20100001 (PPN 0x80400, flags 0x01), skipping force-map
+[pte_fixup] L1[770] at PA 0x81484C08 already set: 0x20200001 (PPN 0x80800, flags 0x01), skipping force-map
+[pte_fixup] L1[771] at PA 0x81484C0C already set: 0x20300001 (PPN 0x80C00, flags 0x01), skipping force-map
+[pte_fixup] L1[772] at PA 0x81484C10 already set: 0x20400001 (PPN 0x81000, flags 0x01), skipping force-map
+[pte_fixup] L1[773] at PA 0x81484C14 already set: 0x20500001 (PPN 0x81400, flags 0x01), skipping force-map
+[pte_fixup] L1[774] at PA 0x81484C18 already set: 0x20600001 (PPN 0x81800, flags 0x01), skipping force-map
+[pte_fixup] L1[775] at PA 0x81484C1C already set: 0x20700001 (PPN 0x81C00, flags 0x01), skipping force-map
+[pte_fixup] L1[776] at PA 0x81484C20 already set: 0x20800001 (PPN 0x82000, flags 0x01), skipping force-map
+[pte_fixup] L1[777] at PA 0x81484C24 already set: 0x20900001 (PPN 0x82400, flags 0x01), skipping force-map
+[pte_fixup] Registered 15 page table pages (L1 at PA 0x81484000)
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x80001000 (SATP 0x80081484 -> 0x80080001)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] Fixed L1[0] at PA 0x80001000: PPN 0x031E5 -> 0x831E5 (0x00C79597 -> 0x20C79597)
+[pte_fixup] Fixed L1[9] at PA 0x80001024: PPN 0x03155 -> 0x83155 (0x00C55613 -> 0x20C55613)
+[pte_fixup] Fixed L1[10] at PA 0x80001028: PPN 0x031E5 -> 0x831E5 (0x00C79597 -> 0x20C79597)
+[pte_fixup] Fixed L1[13] at PA 0x80001034: PPN 0x0520D -> 0x8520D (0x01483517 -> 0x21483517)
+[pte_fixup] Fixed L1[14] at PA 0x80001038: PPN 0x3F3141 -> 0x3B3141 (0xFCC50513 -> 0xECC50513)
+[pte_fixup] Fixed L1[15] at PA 0x8000103C: PPN 0x235360 -> 0x1F5360 (0x8D4D8131 -> 0x7D4D8131)
+[pte_fixup] Fixed L1[18] at PA 0x80001048: PPN 0x00001 -> 0x80001 (0x00000517 -> 0x20000517)
+[pte_fixup] Fixed L1[19] at PA 0x8000104C: PPN 0x08141 -> 0x88141 (0x02050513 -> 0x22050513)
+[pte_fixup] Fixed L1[21] at PA 0x80001054: PPN 0x05200 -> 0x85200 (0x01480197 -> 0x21480197)
+[pte_fixup] Fixed L1[27] at PA 0x8000106C: PPN 0x0006F -> 0x8006F (0x0001BFF5 -> 0x2001BFF5)
+[pte_fixup] Fixed L1[28] at PA 0x80001070: PPN 0x00885 -> 0x80885 (0x00221517 -> 0x20221517)
+[pte_fixup] Fixed L1[29] at PA 0x80001074: PPN 0x3BD141 -> 0x37D141 (0xEF450513 -> 0xDF450513)
+[pte_fixup] Fixed L1[35] at PA 0x8000108C: PPN 0x05200 -> 0x85200 (0x01480197 -> 0x21480197)
+[pte_fixup] Fixed L1[37] at PA 0x80001094: PPN 0x20A4D8 -> 0x1CA4D8 (0x82936299 -> 0x72936299)
+[pte_fixup] Fixed L1[43] at PA 0x800010AC: PPN 0x35D8E0 -> 0x31D8E0 (0xD7638127 -> 0xC7638127)
+[pte_fixup] Fixed L1[46] at PA 0x800010B8: PPN 0x3FB9B3 -> 0x3BB9B3 (0xFEE6CDE3 -> 0xEEE6CDE3)
+[pte_fixup] Fixed L1[47] at PA 0x800010BC: PPN 0x05205 -> 0x85205 (0x01481617 -> 0x21481617)
+[pte_fixup] Fixed L1[48] at PA 0x800010C0: PPN 0x3EF181 -> 0x3AF181 (0xFBC60613 -> 0xEBC60613)
+[pte_fixup] Fixed L1[53] at PA 0x800010D4: PPN 0x1C5D7C -> 0x185D7C (0x7175F321 -> 0x6175F321)
+[pte_fixup] Fixed L1[61] at PA 0x800010F4: PPN 0x3C3BFC -> 0x383BFC (0xF0EFF125 -> 0xE0EFF125)
+[pte_fixup] Fixed L1[62] at PA 0x800010F8: PPN 0x3C3BFC -> 0x383BFC (0xF0EFF0BF -> 0xE0EFF0BF)
+[pte_fixup] Fixed L1[63] at PA 0x800010FC: PPN 0x1085FD -> 0xC85FD (0x4217F77F -> 0x3217F77F)
+[pte_fixup] Fixed L1[67] at PA 0x8000110C: PPN 0x1C5D7B -> 0x185D7B (0x7175EFA1 -> 0x6175EFA1)
+[pte_fixup] Fixed L1[68] at PA 0x80001110: PPN 0x01008 -> 0x81008 (0x00402097 -> 0x20402097)
+[pte_fixup] Fixed L1[69] at PA 0x80001114: PPN 0x32A820 -> 0x2EA820 (0xCAA080E7 -> 0xBAA080E7)
+[pte_fixup] Fixed L1[70] at PA 0x80001118: PPN 0x00FFC -> 0x80FFC (0x003FF317 -> 0x203FF317)
+[pte_fixup] Fixed L1[71] at PA 0x8000111C: PPN 0x19D8C0 -> 0x15D8C0 (0x67630067 -> 0x57630067)
+[pte_fixup] Force-map L1[768] at PA 0x80001C00: megapage PA 0x80000000 -> VA 0xC0000000
+[pte_fixup] Force-map L1[769] at PA 0x80001C04: megapage PA 0x80400000 -> VA 0xC0400000
+[pte_fixup] Force-map L1[770] at PA 0x80001C08: megapage PA 0x80800000 -> VA 0xC0800000
+[pte_fixup] Force-map L1[771] at PA 0x80001C0C: megapage PA 0x80C00000 -> VA 0xC0C00000
+[pte_fixup] Force-map L1[772] at PA 0x80001C10: megapage PA 0x81000000 -> VA 0xC1000000
+[pte_fixup] Force-map L1[773] at PA 0x80001C14: megapage PA 0x81400000 -> VA 0xC1400000
+[pte_fixup] Force-map L1[774] at PA 0x80001C18: megapage PA 0x81800000 -> VA 0xC1800000
+[pte_fixup] Force-map L1[775] at PA 0x80001C1C: megapage PA 0x81C00000 -> VA 0xC1C00000
+[pte_fixup] Force-map L1[776] at PA 0x80001C20: megapage PA 0x82000000 -> VA 0xC2000000
+[pte_fixup] Force-map L1[777] at PA 0x80001C24: megapage PA 0x82400000 -> VA 0xC2400000
+[pte_fixup] Registered 16 page table pages (L1 at PA 0x80001000)
+[diag] PROGRESS 20M: PC=0x405CE97E priv=Machine mstatus=0x00001800 satp=0x80080001 mepc=0x02000002 ra=0x40001118 sp=0xC1401F70
+[diag] PROGRESS 30M: PC=0x418E167E priv=Machine mstatus=0x00001800 satp=0x80080001 mepc=0x02000002 ra=0x40001118 sp=0xC1401F70
+[diag] PROGRESS 40M: PC=0x42BF437E priv=Machine mstatus=0x00001800 satp=0x80080001 mepc=0x02000002 ra=0x40001118 sp=0xC1401F70
+[diag] Diagnostic run finished: count=50000000, final PC=0x43F0707E

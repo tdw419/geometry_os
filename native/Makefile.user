@@ -1,0 +1,33 @@
+# Makefile for user programs
+
+CC = riscv64-unknown-elf-gcc
+CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -march=rv32imac_zicsr -mabi=ilp32 -std=gnu99 -mcmodel=medany -ffreestanding -fno-common -nostdlib
+INCLUDE = -I../conductor/tracks/xv6-rv32/kernel -I../conductor/tracks/xv6-rv32/user -I.
+
+# User library object
+ULIB_OBJ = ../conductor/tracks/xv6-rv32/user/crt0.o ../conductor/tracks/xv6-rv32/user/ulib.o ../conductor/tracks/xv6-rv32/user/usys.o ../conductor/tracks/xv6-rv32/user/printf.o ../conductor/tracks/xv6-rv32/user/umalloc.o
+
+# Build forktest program
+forktest.elf: user/forktest.o $(ULIB_OBJ)
+	@mkdir -p user
+	$(CC) -nostdlib -Wl,-m,elf32lriscv -T ../conductor/tracks/xv6-rv32/user/Umode.ld -o $@ $^
+	riscv64-unknown-elf-objcopy -O binary $@ user/_forktest
+
+user/forktest.o: user/forktest.c
+	@mkdir -p user
+	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
+
+# Build simple_user program (for reference)
+simple_user.elf: simple_user.o $(ULIB_OBJ)
+	$(CC) -nostdlib -Wl,-m,elf32lriscv -T ../conductor/tracks/xv6-rv32/user/Umode.ld -o $@ $^
+	riscv64-unknown-elf-objcopy -O binary $@ simple_user.bin
+
+simple_user.o: simple_user.c
+	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
+
+clean:
+	rm -f simple_user.o simple_user.elf simple_user.bin
+	rm -f user/*.o forktest.elf user/_forktest
+
+.PHONY: clean all
+all: forktest.elf

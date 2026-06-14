@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeOS IDE</title>
+<style>
+  :root {
+    --bg-dark: #0a0e17;
+    --bg-panel: #111827;
+    --bg-editor: #1e293b;
+    --border: #1e3a5f;
+    --accent: #22d3ee;
+    --accent-dim: #0e7490;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: var(--mono);
+    background: var(--bg-dark);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .hdr {
+    display: flex; align-items: center; padding: 4px 12px;
+    background: var(--bg-panel); border-bottom: 1px solid var(--border);
+    gap: 12px; height: 36px; flex-shrink: 0;
+  }
+  .hdr .logo { font-weight: 700; font-size: 13px; color: var(--accent); letter-spacing: 1px; }
+  .hdr .fname { font-size: 11px; color: var(--text-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hdr .st { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--bg-dark); }
+  .hdr .st.ok { color: var(--success); }
+  .hdr .st.err { color: var(--error); }
+  .hdr .st.run { color: var(--warning); }
+
+  /* ── Toolbar ── */
+  .tb {
+    display: flex; align-items: center; padding: 3px 12px;
+    background: var(--bg-panel); border-bottom: 1px solid var(--border);
+    gap: 5px; height: 34px; flex-shrink: 0;
+  }
+  .b {
+    padding: 3px 10px; border: 1px solid var(--border); border-radius: 3px;
+    background: var(--bg-dark); color: var(--text); font-family: var(--mono);
+    font-size: 10px; cursor: pointer; transition: all 0.1s; white-space: nowrap;
+  }
+  .b:hover { border-color: var(--accent); color: var(--accent); }
+  .b:active { background: var(--accent-dim); }
+  .b.pri { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .b.pri:hover { background: var(--accent); color: var(--bg-dark); }
+  .b.dan { border-color: var(--error); color: var(--error); }
+  .b.dan:hover { background: var(--error); color: white; }
+  .b:disabled { opacity: 0.3; cursor: not-allowed; }
+  .sep { width: 1px; height: 18px; background: var(--border); }
+  .info { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+
+  /* ── Main ── */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Left: Framebuffer + Registers ── */
+  .lp { display: flex; flex-direction: column; width: 520px; min-width: 320px; }
+  .fb-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: #000; position: relative; overflow: hidden;
+  }
+  #fb { image-rendering: pixelated; image-rendering: crisp-edges; }
+  .regp {
+    height: 130px; flex-shrink: 0; border-top: 1px solid var(--border);
+    background: var(--bg-panel); overflow-y: auto; padding: 4px 10px;
+    font-size: 10px; line-height: 1.5;
+  }
+  .regp .rt { color: var(--accent); font-size: 9px; font-weight: 700; letter-spacing: 1px; margin-bottom: 2px; }
+  .regp .rr { display: inline-block; margin-right: 10px; }
+  .regp .rn { color: var(--text-dim); }
+  .regp .rv { color: var(--text); }
+  .regp .rv.sp { color: var(--accent); }
+
+  /* ── Resizer ── */
+  .rz { width: 4px; cursor: col-resize; background: var(--border); flex-shrink: 0; }
+  .rz:hover, .rz.active { background: var(--accent); }
+
+  /* ── Right: Files + Editor + Console ── */
+  .rp { display: flex; flex-direction: column; flex: 1; min-width: 280px; }
+  .fbrowser {
+    height: 110px; flex-shrink: 0; border-bottom: 1px solid var(--border);
+    background: var(--bg-panel); overflow: hidden; display: flex; flex-direction: column;
+  }
+  .fbhdr {
+    display: flex; align-items: center; padding: 3px 10px;
+    font-size: 9px; color: var(--text-dim); letter-spacing: 1px;
+    border-bottom: 1px solid var(--border); gap: 8px;
+  }
+  .fbhdr input {
+    flex: 1; background: var(--bg-dark); border: 1px solid var(--border);
+    border-radius: 2px; color: var(--text); font-family: var(--mono);
+    font-size: 10px; padding: 2px 6px; outline: none;
+  }
+  .fbhdr input:focus { border-color: var(--accent); }
+  .flist { flex: 1; overflow-y: auto; padding: 1px 0; }
+  .fi {
+    padding: 2px 10px; font-size: 10px; cursor: pointer;
+    display: flex; justify-content: space-between; color: var(--text-dim);
+  }
+  .fi:hover { background: var(--bg-dark); color: var(--text); }
+  .fi.act { background: var(--accent-dim); color: var(--accent); }
+  .fi .fs { font-size: 9px; opacity: 0.5; }
+
+  /* Editor */
+  .edwrap { flex: 1; overflow: hidden; position: relative; }
+  #editor { width: 100%; height: 100%; }
+
+  /* Console */
+  .con {
+    height: 70px; flex-shrink: 0; border-top: 1px solid var(--border);
+    background: var(--bg-dark); overflow-y: auto; padding: 3px 10px;
+    font-size: 10px; line-height: 1.4;
+  }
+  .cok { color: var(--success); }
+  .cerr { color: var(--error); }
+  .cinf { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <span class="logo">GEO</span>
+  <span class="fname" id="fn">no file loaded</span>
+  <span class="st err" id="ws">disconnected</span>
+</div>
+
+<div class="tb">
+  <button class="b pri" id="bRun" title="Load, assemble, run (Ctrl+Enter)">Run</button>
+  <button class="b" id="bStep" title="Single step (F10)">Step</button>
+  <button class="b dan" id="bHalt" title="Halt (Esc)">Halt</button>
+  <div class="sep"></div>
+  <button class="b" id="bSnap">Screenshot</button>
+  <button class="b" id="bRef">Refresh</button>
+  <div class="sep"></div>
+  <button class="b" id="bSave" title="Save (Ctrl+S)">Save</button>
+  <button class="b" id="bLoadCanvas" title="Load into canvas buffer">Load Canvas</button>
+  <span class="info" id="tinfo"></span>
+</div>
+
+<div class="main">
+  <div class="lp">
+    <div class="fb-wrap">
+      <canvas id="fb" width="256" height="256"></canvas>
+    </div>
+    <div class="regp" id="regs">
+      <div class="rt">REGISTERS</div>
+      <div style="color:var(--text-dim);font-size:9px;">waiting for GeOS connection...</div>
+    </div>
+  </div>
+  <div class="rz" id="rz"></div>
+  <div class="rp">
+    <div class="fbrowser">
+      <div class="fbhdr">PROGRAMS <input type="text" id="ffilt" placeholder="filter..." /></div>
+      <div class="flist" id="flist"></div>
+    </div>
+    <div class="edwrap"><div id="editor"></div></div>
+    <div class="con" id="con"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs/loader.js"></script>
+<script>
+const S = { ws:null, on:false, running:false, file:null, editor:null, mready:false, files:[], timer:null };
+const canvas = document.getElementById('fb');
+const ctx = canvas.getContext('2d');
+
+// ─── Console ───
+function log(m, t='inf') {
+  const c = document.getElementById('con');
+  const d = document.createElement('div');
+  d.className = 'c'+t;
+  d.textContent = m;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+  while (c.children.length > 300) c.removeChild(c.firstChild);
+}
+
+// ─── WebSocket ───
+function connect() {
+  const p = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // WS runs on port+1 (HTTP on port, WS on port+1)
+  const port = parseInt(location.port) + 1;
+  const ws = new WebSocket(`${p}//${location.hostname}:${port}`);
+  ws.onopen = () => {
+    S.on = true; S.ws = ws;
+    document.getElementById('ws').textContent = 'connected';
+    document.getElementById('ws').className = 'st ok';
+    log('Connected to GeOS', 'ok');
+    snap();
+    getRegs();
+    startPoll();
+  };
+  ws.onclose = () => {
+    S.on = false; S.ws = null;
+    document.getElementById('ws').textContent = 'disconnected';
+    document.getElementById('ws').className = 'st err';
+    stopPoll();
+    setTimeout(connect, 3000);
+  };
+  ws.onerror = () => {};
+  ws.onmessage = e => {
+    try { handle(JSON.parse(e.data)); } catch(x) {}
+  };
+}
+
+function send(obj) {
+  if (S.ws && S.ws.readyState === WebSocket.OPEN) S.ws.send(JSON.stringify(obj));
+}
+
+function handle(m) {
+  switch (m.type) {
+    case 'resp':
+      // Log first line of socket response
+      const first = (m.data||'').trim().split('\n')[0];
+      if (!first) break;
+      if (first.startsWith('[loadasm OK') || first.startsWith('[ASM OK') || first.startsWith('[loaded'))
+        log(first, 'ok');
+      else if (first.startsWith('[ASM ERROR') || first.startsWith('[error') || first.startsWith('[not'))
+        log(first, 'err');
+      else if (first.includes('halted') || first.includes('HALTED'))
+        log(first, 'inf');
+      break;
+
+    case 'b64':
+      // Base64 PNG screenshot
+      const img = new Image();
+      img.onload = () => {
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, 256, 256);
+        ctx.drawImage(img, 0, 0, 256, 256);
+      };
+      img.src = 'data:image/png;base64,' + m.data;
+      break;
+
+    case 'regs':
+      showRegs(m.data);
+      break;
+
+    case 'err':
+      log(m.error, 'err');
+      break;
+  }
+}
+
+// ─── Screen rendering ───
+function snap() { send({cmd:'screenshot_b64'}); }
+function getRegs() { send({cmd:'regs'}); }
+
+function showRegs(data) {
+  const el = document.getElementById('regs');
+  const lines = (data||'').trim().split('\n');
+  let h = '<div class="rt">REGISTERS</div>';
+  for (const l of lines) {
+    const m = l.match(/^(r(\d{2}))=([0-9A-F]+)/i);
+    if (m) {
+      const n = parseInt(m[2]);
+      const sp = (n >= 28) ? 'sp' : ''; // R28-R31 are special
+      h += `<span class="rr"><span class="rn">${m[1]}:</span> <span class="rv ${sp}">${m[3]}</span></span>`;
+    }
+  }
+  el.innerHTML = h || '<div style="color:var(--text-dim);font-size:9px;">no data</div>';
+}
+
+// ─── Commands ───
+async function sock(cmd) {
+  return new Promise(r => {
+    if (!S.on) { r('[not connected]'); return; }
+    const id = Date.now() + Math.random();
+    const handler = (e) => {
+      try {
+        const m = JSON.parse(e.data);
+        if (m.id === id) { S.ws.removeEventListener('message', handler); r(m.data); }
+      } catch(x) {}
+    };
+    S.ws.addEventListener('message', handler);
+    send({cmd:'raw', data:cmd, id});
+    setTimeout(() => { S.ws.removeEventListener('message', handler); r('[timeout]'); }, 5000);
+  });
+}
+
+async function doRun() {
+  if (!S.file) { log('No file loaded', 'err'); return; }
+  await doSave();
+  log(`Running ${S.file}...`, 'ok');
+  S.running = true; ui();
+  // Use loadasm which loads + assembles in one shot
+  const r = await sock(`loadasm programs/${S.file}`);
+  log(r.trim().split('\n')[0], r.includes('OK') ? 'ok' : 'err');
+  await sleep(100);
+  await sock('run');
+  await sleep(300);
+  snap(); getRegs();
+}
+
+function doStep() {
+  send({cmd:'raw', data:'step'});
+  setTimeout(() => { snap(); getRegs(); }, 150);
+}
+
+function doHalt() {
+  send({cmd:'raw', data:'halt'});
+  S.running = false; ui();
+  setTimeout(() => { snap(); getRegs(); }, 150);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── Polling ───
+function startPoll() {
+  stopPoll();
+  S.timer = setInterval(() => { if (S.running) snap(); }, 200);
+}
+function stopPoll() { if (S.timer) { clearInterval(S.timer); S.timer = null; } }
+
+// ─── File browser ───
+async function loadFiles() {
+  try {
+    const r = await fetch('/api/files');
+    S.files = await r.json();
+    renderFiles();
+  } catch(e) { log('Failed to load files', 'err'); }
+}
+
+function renderFiles() {
+  const el = document.getElementById('flist');
+  const f = document.getElementById('ffilt').value.toLowerCase();
+  const filtered = S.files.filter(x => x.name.toLowerCase().includes(f));
+  el.innerHTML = filtered.map(x => `
+    <div class="fi ${x.name===S.file?'act':''}" onclick="openFile('${x.name}')">
+      <span>${x.name}</span><span class="fs">${x.size}b</span>
+    </div>`).join('');
+}
+
+async function openFile(name) {
+  try {
+    const r = await fetch('/api/file/' + encodeURIComponent(name));
+    const content = await r.text();
+    S.file = name;
+    document.getElementById('fn').textContent = name;
+    if (S.editor) {
+      const m = monaco.editor.createModel(content, 'geos-asm');
+      S.editor.setModel(m);
+    }
+    renderFiles();
+    log(`Opened ${name}`, 'ok');
+  } catch(e) { log(`Failed: ${e}`, 'err'); }
+}
+
+async function doSave() {
+  if (!S.file || !S.editor) return;
+  try {
+    const r = await fetch('/api/file/' + encodeURIComponent(S.file), { method:'POST', body: S.editor.getValue() });
+    const j = await r.json();
+    if (j.ok) log(`Saved ${S.file}`, 'ok');
+  } catch(e) { log(`Save error: ${e}`, 'err'); }
+}
+
+function doLoadCanvas() {
+  if (!S.file) return;
+  // Load file content into canvas buffer (for programs that use canvas text mode)
+  send({cmd:'raw', data:`load programs/${S.file}`});
+  log(`Loaded ${S.file} into canvas`, 'inf');
+}
+
+// ─── UI state ───
+function ui() {
+  document.getElementById('bRun').disabled = !S.on;
+  document.getElementById('bStep').disabled = !S.on;
+  document.getElementById('bHalt').disabled = !S.on || !S.running;
+  document.getElementById('bSnap').disabled = !S.on;
+  document.getElementById('bRef').disabled = !S.on;
+  const ti = document.getElementById('tinfo');
+  ti.textContent = S.running ? 'RUNNING' : (S.on ? 'READY' : 'NO CONN');
+  ti.style.color = S.running ? 'var(--warning)' : (S.on ? 'var(--success)' : 'var(--error)');
+}
+
+// ─── Resizer ───
+function initResize() {
+  const rz = document.getElementById('rz');
+  const lp = document.querySelector('.lp');
+  let active = false;
+  rz.addEventListener('mousedown', () => {
+    active = true; rz.classList.add('active');
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!active) return;
+    lp.style.width = Math.max(280, Math.min(900, e.clientX)) + 'px';
+    // Resize canvas to fit
+    const wrap = document.querySelector('.fb-wrap');
+    const sz = Math.min(wrap.clientWidth - 16, wrap.clientHeight - 16, 768);
+    canvas.style.width = sz + 'px';
+    canvas.style.height = sz + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!active) return;
+    active = false; rz.classList.remove('active');
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+  });
+}
+
+// ─── Keyboard shortcuts ───
+function initKeys() {
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey||e.metaKey) && e.key === 's') { e.preventDefault(); doSave(); }
+    if ((e.ctrlKey||e.metaKey) && e.key === 'Enter') { e.preventDefault(); doRun(); }
+    if (e.key === 'F5') { e.preventDefault(); doRun(); }
+    if (e.key === 'F10') { e.preventDefault(); doStep(); }
+    if (e.key === 'Escape') { doHalt(); }
+  });
+}
+
+// ─── Monaco ───
+function initMonaco() {
+  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs' } });
+
+  monaco.languages.register({ id: 'geos-asm' });
+  monaco.languages.setMonarchTokensProvider('geos-asm', {
+    keywords: [
+      'HALT','NOP','FRAME','LDI','LOAD','STORE','TEXTI','STRO',
+      'CMPI','LOADS','STORES','SHLI','SHRI','SARI','ADDI','SUBI',
+      'ANDI','ORI','XORI','ADD','SUB','MUL','DIV','AND','OR',
+      'XOR','SHL','SHR','MOD','NEG','SAR','JMP','JZ','JNZ',
+      'CALL','RET','BLT','BGE','CMP','MOV','PUSH','POP',
+      'FILL','RECT','RECTF','PSET','TEXT','DRAWTEXT','SMALLTEXT',
+      'MEDTEXT','VWTXT','PATCH','SPRITE','TILEMAP','HITSET','HITQ',
+      'MOUSEQ','KEYQ','FONT_SELECT','CLIPSET','CLIPCLR',
+      'BFE','BFI','MATVEC','RELU','MATMUL',
+      'FOPEN','FCLOSE','FREAD','FWRITE','FSEEK','FTELL','FSTAT',
+      'FEXIST','FSIZE','FUNLINK','FLEN',
+      'SPAWN','WAIT','KILL','SIGNAL','YIELD','LOCK','UNLOCK',
+      'MBOX','MSEND','MRECV','PTYPE','PWRITE','PREAD',
+      'OPEN','READ','WRITE','CLOSE','SEEK',
+      'SAVEPNG','LOADPNG','SCRSHOT','PEEK','POKE','COPY',
+    ],
+    tokenizer: {
+      root: [
+        [/[;#].*$/, 'comment'],
+        [/\b[A-Z_][A-Z0-9_]*\b/, { cases: { '@keywords':'keyword', '@default':'identifier' }}],
+        [/\b(r\d+|R\d+)\b/, 'variable'],
+        [/\b(0x[0-9A-Fa-f]+|0b[01]+|\d+)\b/, 'number'],
+        [/"[^"]*"/, 'string'],
+        [/'[^']*'/, 'string'],
+        [/[a-z_]\w*:/, 'type.identifier'],
+      ]
+    }
+  });
+
+  monaco.editor.defineTheme('geos', {
+    base: 'vs-dark', inherit: true,
+    rules: [
+      { token:'keyword', foreground:'22d3ee', fontStyle:'bold' },
+      { token:'number', foreground:'f59e0b' },
+      { token:'string', foreground:'22c55e' },
+      { token:'comment', foreground:'475569', fontStyle:'italic' },
+      { token:'identifier', foreground:'e2e8f0' },
+      { token:'variable', foreground:'a78bfa' },
+      { token:'type.identifier', foreground:'fb923c' },
+    ],
+    colors: {
+      'editor.background':'#0f172a', 'editor.foreground':'#e2e8f0',
+      'editorLineNumber.foreground':'#334155', 'editorCursor.foreground':'#22d3ee',
+      'editor.selectionBackground':'#1e3a5f', 'editor.lineHighlightBackground':'#1e293b',
+    }
+  });
+
+  require(['vs/editor/editor.main'], function() {
+    S.editor = monaco.editor.create(document.getElementById('editor'), {
+      value: '; GeOS IDE\n; Select a program above, or start typing.\n;\n; Ctrl+S    Save\n; Ctrl+Enter Run (loadasm + run)\n; F10       Step\n; Escape    Halt\n',
+      language: 'geos-asm', theme: 'geos',
+      fontFamily: "'JetBrains Mono','Fira Code',monospace",
+      fontSize: 13, lineNumbers: 'on', minimap: { enabled: true, maxColumn: 80 },
+      scrollBeyondLastLine: false, tabSize: 2, renderWhitespace: 'none',
+      bracketPairColorization: { enabled: true }, automaticLayout: true,
+      wordWrap: 'off', padding: { top: 8 },
+    });
+    S.mready = true;
+    log('Editor ready', 'ok');
+
+    // Auto-resize canvas after layout
+    setTimeout(() => {
+      const wrap = document.querySelector('.fb-wrap');
+      const sz = Math.min(wrap.clientWidth - 16, wrap.clientHeight - 16, 768);
+      canvas.style.width = sz + 'px';
+      canvas.style.height = sz + 'px';
+    }, 100);
+  });
+}
+
+// ─── Init ───
+document.addEventListener('DOMContentLoaded', () => {
+  initMonaco();
+  initResize();
+  initKeys();
+  loadFiles();
+  connect();
+  ui();
+
+  document.getElementById('ffilt').addEventListener('input', renderFiles);
+  document.getElementById('bRun').addEventListener('click', doRun);
+  document.getElementById('bStep').addEventListener('click', doStep);
+  document.getElementById('bHalt').addEventListener('click', doHalt);
+  document.getElementById('bSnap').addEventListener('click', () => { snap(); getRegs(); });
+  document.getElementById('bRef').addEventListener('click', () => { snap(); getRegs(); });
+  document.getElementById('bSave').addEventListener('click', doSave);
+  document.getElementById('bLoadCanvas').addEventListener('click', doLoadCanvas);
+});
+</script>
+</body>
+</html>

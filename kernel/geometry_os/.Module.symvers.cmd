@@ -1,0 +1,1 @@
+savedcmd_Module.symvers :=  /home/jericho/projects/zion/projects/geometry_os/geometry_os/.geometry_os/build/linux-6.14/scripts/mod/modpost -M          -o Module.symvers -T modules.order -i /home/jericho/projects/zion/projects/geometry_os/geometry_os/.geometry_os/build/linux-6.14/Module.symvers -e 

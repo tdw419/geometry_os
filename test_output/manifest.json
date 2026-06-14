@@ -1,0 +1,18 @@
+{
+  "factorial": {
+    "gasm_path": "/home/jericho/zion/projects/geometry_os/geometry_os/tools/c_transpiler/../../test_output/factorial.gasm",
+    "expected_reg0": 120,
+    "input_reg0": 5
+  },
+  "max_ab": {
+    "gasm_path": "/home/jericho/zion/projects/geometry_os/geometry_os/tools/c_transpiler/../../test_output/max_ab.gasm",
+    "expected_reg0": 25,
+    "input_reg0": 10,
+    "input_reg1": 25
+  },
+  "sum_to": {
+    "gasm_path": "/home/jericho/zion/projects/geometry_os/geometry_os/tools/c_transpiler/../../test_output/sum_to.gasm",
+    "expected_reg0": 15,
+    "input_reg0": 6
+  }
+}

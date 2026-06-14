@@ -1,0 +1,9655 @@
+#[cfg(feature = "gpu")]
+use crate::kernel::active_substrate;
+#[cfg(feature = "python")]
+use pyo3::prelude::*;
+use std::io::{Read, Write};
+
+pub struct Vm {
+    pub ram: Vec<u32>,
+    pub regs: [u32; NUM_REGS],
+    pub pc: u32,
+    pub screen: Vec<u32>,
+    /// Off-screen back buffer for double-buffered rendering.
+    /// When back_buffer_active is true, pixel-drawing opcodes (PSET, RECTF, FILL, etc.)
+    /// write to back_buffer instead of screen. SWAPBB copies back_buffer to screen.
+    pub back_buffer: Vec<u32>,
+    /// When true, redirect pixel writes to back_buffer instead of screen.
+    pub back_buffer_active: bool,
+    pub sprite_layer: Vec<u32>,
+    pub sprite_layer_active: bool,
+    pub halted: bool,
+    /// Set by SHUTDOWN opcode (kernel mode); host checks after step() returns false
+    pub shutdown_requested: bool,
+    /// Set by BREAKPOINT opcode; host checks after step() returns false.
+    /// Unlike halted, execution can be resumed by clearing this flag.
+    pub breakpoint_hit: bool,
+    /// Set by FRAME opcode; cleared by the host after rendering
+    pub frame_ready: bool,
+    /// LCG state for RAND opcode
+    pub rand_state: u32,
+    /// Incremented each time FRAME fires; mirrored to RAM\[0xFFE\]
+    pub frame_count: u32,
+    /// Set by BEEP opcode: (freq_hz, duration_ms). Consumed and cleared by host.
+    pub beep: Option<(u32, u32)>,
+    /// Set by NOTE opcode: (waveform, freq_hz, duration_ms). Consumed by host.
+    /// waveform: 0=sine, 1=square, 2=triangle, 3=sawtooth, 4=noise.
+    pub note: Option<(u32, u32, u32)>,
+    /// Set by AUDIO_PLAY opcode: (ram_addr, num_samples, sample_rate).
+    /// Consumed and cleared by host. Streams raw PCM from RAM buffer.
+    pub audio_play: Option<(u32, u32, u32)>,
+    /// Set by AUDIO_STOP opcode. Host stops any current PCM stream.
+    pub audio_stop: bool,
+    /// Set by AUDIO_STATUS opcode: host writes 1 (playing) or 0 (idle) to reg.
+    pub audio_status_query: bool,
+    /// When true, log RAM accesses to access_log (off by default for performance)
+    pub debug_mode: bool,
+    /// Frame-scoped log of RAM accesses for the visual debugger
+    pub access_log: Vec<MemAccess>,
+    /// Secondary execution contexts spawned by SPATIAL_SPAWN
+    pub processes: Vec<SpawnedProcess>,
+    /// CPU privilege mode -- kernel can do anything, user is restricted
+    pub mode: CpuMode,
+    /// Kernel stack: saves (return_pc, saved_mode) on SYSCALL, restored by RETK
+    pub kernel_stack: Vec<(u32, CpuMode)>,
+    /// Bitmap of allocated physical pages (bit N = page N in use)
+    pub allocated_pages: u64,
+    /// Reference count per physical page for COW fork support.
+    /// When a page is shared between processes, ref_count > 1.
+    /// A write to a COW page triggers a copy (ref_count decremented on original).
+    pub page_ref_count: [u32; NUM_RAM_PAGES],
+    /// Bitmap of physical pages marked as copy-on-write.
+    /// Bit N = 1 means physical page N is shared and should be copied on write.
+    pub page_cow: u64,
+    /// Current page directory for address translation (None = identity mapping)
+    pub current_page_dir: Option<Vec<u32>>,
+    /// VMA list for the currently executing process (used by page fault handler)
+    pub current_vmas: Vec<Vma>,
+    /// PID of last process that segfaulted
+    pub segfault_pid: u32,
+    /// True when a segfault occurred this step
+    pub segfault: bool,
+    /// Virtual filesystem for file I/O operations
+    pub vfs: crate::vfs::Vfs,
+    /// In-memory inode filesystem for directory tree and inode operations
+    pub inode_fs: crate::inode_fs::InodeFs,
+    /// PID of currently executing context (0 = main, 1+ = children)
+    pub current_pid: u32,
+    /// Cached capabilities of the currently executing context.
+    /// Set by the scheduler when dispatching child processes.
+    /// None = no capabilities (full access, backward compatible).
+    pub current_capabilities: Option<Vec<crate::vm::types::Capability>>,
+    /// Monotonically increasing scheduler tick (incremented each step)
+    pub sched_tick: u64,
+    /// Base time slice length for priority-1 processes
+    pub default_time_slice: u32,
+    /// Per-step scheduler flag: process yielded voluntarily
+    pub yielded: bool,
+    /// Per-step scheduler flag: process wants to block (mutex/semaphore)
+    pub wants_block: bool,
+    /// Pending wake-ups: PIDs to unblock after this scheduling round
+    pub pending_wakes: Vec<u32>,
+    /// Per-step scheduler value: sleep for this many sched_ticks
+    pub sleep_frames: u32,
+    /// Per-step scheduler value: new priority requested by SETPRIORITY
+    pub new_priority: u8,
+    /// System-wide pipe table (Phase 27: IPC)
+    pub pipes: Vec<Pipe>,
+    /// Mutex table for inter-process mutual exclusion (Phase 289).
+    /// Up to MAX_MUTEXES active mutexes, indexed by RAM address.
+    pub mutexes: Vec<GeosMutex>,
+    /// Semaphore table for inter-process synchronization (Phase 289).
+    /// Up to MAX_SEMAPHORES active semaphores, indexed by RAM address.
+    pub semaphores: Vec<GeosSemaphore>,
+    /// Mirror of the canvas grid (Phase 45: Pixel Driving Pixels)
+    pub canvas_buffer: Vec<u32>,
+    /// Per-step IPC flag: set by PIPE opcode to signal pipe creation
+    pub pipe_created: bool,
+    /// Per-step IPC value: sender PID for MSGSND
+    pub msg_sender: u32,
+    /// Per-step IPC value: message data for MSGSND
+    pub msg_data: [u32; MSG_WORDS],
+    /// If true, VM fetches instructions from the Active Substrate instead of RAM (Substrate Singularity).
+    pub substrate_execution: bool,
+    /// Per-step IPC flag: MSGRCV requested
+    pub msg_recv_requested: bool,
+    /// Environment variables for shell support (Phase 29).
+    /// Shared across all processes; SETENV by any process is visible to all.
+    pub env_vars: std::collections::HashMap<String, String>,
+    /// Boot state: true when VM has been booted (init process started)
+    pub booted: bool,
+    pub kernel_font_mode: u8,
+    /// Font mode for bare VM instances (before boot/init process).
+    /// Per-step transient: exit code from EXIT opcode.
+    pub step_exit_code: Option<u32>,
+    /// Per-step transient: zombie flag from EXIT opcode.
+    pub step_zombie: bool,
+    /// Hypervisor active flag (Phase 33: QEMU Bridge).
+    /// Set by HYPERVISOR opcode, checked by host to pipe I/O.
+    pub hypervisor_active: bool,
+    /// Hypervisor config string read from RAM (Phase 33).
+    pub hypervisor_config: String,
+    /// Hypervisor mode: Qemu (Phase 33) or Native RISC-V (Phase 37).
+    /// Detected from config string's mode= parameter.
+    pub hypervisor_mode: HypervisorMode,
+    /// Window ID to render hypervisor output into (Phase 86).
+    /// 0 = full canvas (default), >0 = target WINSYS window offscreen buffer.
+    pub hypervisor_window_id: u32,
+    /// Hypervisor input queue (Phase 190: Developer Console).
+    /// Bytes written by HYPERVISOR_SEND opcode (0x95), drained by host main loop.
+    pub hypervisor_input_queue: Vec<u8>,
+    /// Set by HYPERVISOR_SEND when input is queued, cleared by host after draining.
+    pub hypervisor_input_pending: bool,
+    /// Mailbox for VEC_FIND → RISC-V hypervisor bridge.
+    /// 64 u32 words (256 bytes) of config/status data shared with the
+    /// live RISC-V hypervisor. Written by IOCTL /dev/mailbox, preloaded
+    /// into RISC-V guest RAM by VM_LIVE_SPAWN at (ram_base + ram_size - 256).
+    pub hypervisor_mailbox: [u32; 64],
+    /// PID of the process that currently has keyboard focus.
+    /// In desktop mode, PID 0 is the background. Windowed apps have PIDs 1+.
+    /// IKEY only returns characters to the focused process.
+    pub focused_pid: u32,
+    /// Opcode execution histogram: counts how many times each opcode (0x00-0xFF) was dispatched.
+    /// Zero overhead -- just an array increment per step.
+    pub opcode_histogram: [u64; 256],
+    /// Total instruction step counter (always-on, used by PROFILE opcode).
+    /// Incremented once per step() call regardless of tracing state.
+    pub total_steps: u64,
+    /// Profile regions: accumulated instruction counts per region (0-15).
+    /// Used by PROFILE opcode to measure code region performance.
+    pub profile_regions: [u64; 16],
+    /// Profile region active flags: true when a MARK is pending (waiting for stop).
+    pub profile_active: [bool; 16],
+    /// Profile region start step: the total_steps value when each region was last MARK-started.
+    pub profile_start: [u64; 16],
+    /// Key ring buffer: host pushes keystrokes, IKEY reads them in order.
+    /// Supports up to 256 queued keys so rapid typing doesn't drop inputs.
+    pub key_buffer: Vec<u32>,
+    /// Key buffer head (next read position)
+    pub key_buffer_head: usize,
+    /// Key buffer tail (next write position)
+    pub key_buffer_tail: usize,
+    #[cfg(feature = "gpu")]
+    pub active_substrate: Option<active_substrate::ActiveSubstrate>,
+    pub substrate_x: u32,
+    pub substrate_y: u32,
+    pub substrate_cmd: u32,
+    pub substrate_arg1: u32,
+    pub substrate_arg2: u32,
+    pub substrate_status: u32,
+    pub substrate_result: u32,
+    /// Legacy single-key port (replaces RAM[0xFFF] to avoid bytecode overlap).
+    /// Programs loaded at address 0 may extend past 0xFFF (e.g., ai_terminal.asm
+    /// at 4479 words). Using a separate field prevents IKEY/push_key from
+    /// clobbering bytecode at that address.
+    pub key_port: u32,
+    /// Multi-key bitmask port (replaces RAM[0xFFB] to avoid bytecode overlap).
+    /// Bitmask: bits 0-5 = up/down/left/right/space/enter.
+    /// Programs loaded at address 0 may extend past 0xFFB (e.g., world_desktop.asm
+    /// at 10011 words). Using a separate field prevents LOAD/STORE at 0xFFB from
+    /// clobbering bytecode at that address.
+    pub key_bitmask: u32,
+    /// Active formulas on canvas cells (Phase 50: Reactive Canvas).
+    pub formulas: Vec<Formula>,
+    /// Reverse dependency index: dep_idx -> list of formula indices in self.formulas.
+    /// Used to quickly find which formulas need recalculation when a cell changes.
+    /// Reverse dependency index for reactive canvas formulas.
+    /// Maps canvas cell index -> list of formula indices that depend on it.
+    /// Uses HashMap for lazy allocation (no 4096 empty Vecs at construction).
+    pub formula_dep_index: std::collections::HashMap<usize, Vec<usize>>,
+    /// Building metadata for Memory Palace (Phase 202).
+    /// Maps building_id (u32 from RAM 0x7500 table) -> metadata HashMap.
+    /// Supports arbitrary key-value pairs: description, tags, purpose, etc.
+    pub building_metadata:
+        std::collections::HashMap<u32, std::collections::HashMap<String, String>>,
+    /// Coordinate-based metadata for spatial annotations (Phase 202).
+    /// Maps coordinate (x,y packed as u64) -> metadata HashMap.
+    /// Allows virtual annotations on the spatial grid.
+    pub coordinate_metadata:
+        std::collections::HashMap<u64, std::collections::HashMap<String, String>>,
+    /// When true, every instruction execution is recorded to trace_buffer.
+    /// Off by default for zero-overhead forward execution.
+    pub trace_recording: bool,
+    /// Execution trace ring buffer (Phase 38a: Time-Travel Debugger).
+    pub trace_buffer: TraceBuffer,
+    /// Frame checkpoint ring buffer (Phase 38b: Frame Checkpointing).
+    /// Snapshots the full screen at every FRAME opcode when trace_recording is on.
+    pub frame_checkpoints: FrameCheckBuffer,
+    /// Saved VM snapshots for timeline forking (Phase 38d).
+    /// Max 16 snapshots; each captures full RAM + screen + registers.
+    pub snapshots: Vec<VmSnapshot>,
+    /// Pixel write history log (Phase 54: Pixel Write History).
+    /// Records every PSET/PSETI when trace_recording is on.
+    /// Hit-test regions for GUI interaction (HITSET/HITQ opcodes).
+    pub hit_regions: Vec<HitRegion>,
+    /// Current mouse/touch cursor X position, set by host via push_mouse().
+    /// Queried by HITQ to find which region was clicked.
+    pub mouse_x: u32,
+    /// Current mouse/touch cursor Y position.
+    pub mouse_y: u32,
+    /// Mouse button state: 0=none, 1=left down, 2=left click (consumed on read).
+    /// Set by host via push_mouse_button(). Queried by MOUSEQ into reg+2.
+    pub mouse_button: u32,
+    /// Mouse event ring buffer (Phase 273: Interrupt-Driven Input Queue).
+    /// Each event is a packed u32: bits[7:0]=event_type (0=move, 1=down, 2=up),
+    /// bits[15:8]=button (0=none, 1=left, 2=right, 3=middle),
+    /// bits[23:16]=x_low8, bits[31:24]=y_low8. Full coords in separate queues.
+    /// IMOUSE reads events in FIFO order. Supports up to 64 queued events.
+    pub mouse_event_buffer: Vec<u32>,
+    /// Mouse event X coordinate ring buffer (full 16-bit coords).
+    pub mouse_event_x: Vec<u32>,
+    /// Mouse event Y coordinate ring buffer (full 16-bit coords).
+    pub mouse_event_y: Vec<u32>,
+    /// Mouse event buffer head (next read position).
+    pub mouse_event_head: usize,
+    /// Mouse event buffer tail (next write position).
+    pub mouse_event_tail: usize,
+    pub pixel_write_log: PixelWriteLog,
+    /// Render operation log (high-level draw calls).
+    pub render_logging: bool,
+    pub render_log: RenderLog,
+    /// Active TCP connections (Phase 41: Networking).
+    /// Up to 8 simultaneous connections, indexed by fd.
+    pub tcp_connections: Vec<Option<std::net::TcpStream>>,
+    /// Persistent PTY slots for PTYOPEN/PTYWRITE/PTYREAD/PTYCLOSE.
+    /// Each slot owns a child process and a background reader thread.
+    pub pty_slots: Vec<Option<ops_pty::PtySlot>>,
+    /// Network inbox: received pixel frames waiting to be consumed by NET_RECV.
+    /// Each entry is a Vec<u32> containing a pixel protocol frame.
+    pub net_inbox: Vec<Vec<u32>>,
+    /// Managed windows (Phase 68: WINSYS opcode).
+    /// Max MAX_WINDOWS active at once. Window IDs are 1-based.
+    pub windows: Vec<Window>,
+    /// Next window ID to assign (monotonically increasing).
+    pub next_window_id: u32,
+    /// Mock LLM response for testing. When set, the LLM opcode returns this
+    /// instead of making a real API call. Cleared after use.
+    pub llm_mock_response: Option<String>,
+    /// LLM configuration URL. Defaults to provider.json or local Ollama.
+    /// Can be overridden by tests or host. Format: "url model api_key"
+    pub llm_config: Option<String>,
+    /// Mock HERMES response for testing. When set, the HERMES opcode returns
+    /// this instead of shelling out. Cleared after use.
+    pub hermes_mock_response: Option<String>,
+    /// Session ID for Hermes --resume continuity across HERMES opcode calls.
+    pub hermes_session_id: Option<String>,
+    /// Background hypervisor VM instances (Phase 87: Multi-Hypervisor).
+    /// Each building on the map can host one. Host time-slices between active ones.
+    pub background_vms: Vec<BackgroundVm>,
+    /// Next background VM ID to assign (monotonically increasing, 1-based).
+    pub next_bg_vm_id: u32,
+
+    // ── Phase 123: Alpine Linux Live Tile ────────────────────
+    /// Active live RISC-V hypervisor instance (only one at a time).
+    /// Rendered to a WINSYS window's offscreen buffer each frame.
+    /// Created by VM_LIVE_SPAWN, destroyed by VM_LIVE_KILL.
+    pub live_hypervisor: Option<LiveHypervisorState>,
+
+    // ── Inter-Tile Mailbox (Phase 4.1) ──────────────────────────
+    /// Write buffer for mailbox sends. Messages are committed on FRAME.
+    pub mailbox_write_buf: Vec<MailboxEntry>,
+    /// Read buffer for mailbox receives. Swapped from write_buf on FRAME.
+    pub mailbox_read_buf: Vec<MailboxEntry>,
+
+    /// Crash Recovery (Phase 104) ───────────────────────────────
+    /// Virtual address that caused the last segfault (0 if none).
+    /// Set by trigger_segfault_with_addr.
+    pub segfault_addr: u32,
+    /// Circular buffer of last 16 PC values executed (across all processes).
+    /// Used to reconstruct the instruction trace in core dumps.
+    pub pc_trace: [u32; 16],
+    /// Current write index into pc_trace (wraps around).
+    pub pc_trace_idx: usize,
+    /// True when a crash dialog is being displayed on screen.
+    pub crash_dialog_active: bool,
+    /// PID of the process whose crash dialog is displayed.
+    pub crash_dialog_pid: u32,
+
+    // ── Phase 137: Host Filesystem Bridge ─────────────────────────
+    /// Active host file handles. Up to MAX_HOST_FILES (16) simultaneous.
+    /// Clip rectangle for constraining drawing operations (CLIPSET/CLIPCLR).
+    /// When Some((x, y, w, h)), all pixel writes are clamped to this region.
+    /// When None, no clipping is applied (full 256x256 screen).
+    pub clip_rect: Option<(u32, u32, u32, u32)>,
+    /// Clipboard buffer for CLIP_COPY/CLIP_PASTE (Phase 204).
+    /// Stores a rectangular pixel region copied from the screen.
+    /// Layout: [width, height, pixel_data...]. Pixel count = width * height.
+    /// Width and height are u32 stored at indices 0 and 1.
+    /// Empty (len <= 2) means clipboard is empty.
+    pub clipboard: Vec<u32>,
+
+    // ── Phase 221: Multi-Format Clipboard & History ──────────────
+    /// Text clipboard buffer. Stores UTF-8 encoded text as u32 words (4 bytes each).
+    /// Layout: [char_count, byte0-3, byte4-7, ...]. char_count is total chars.
+    /// Empty (len <= 1) means no text in clipboard.
+    pub clipboard_text: Vec<u32>,
+    /// Clipboard history ring buffer. Each entry is (pixel_clipboard, text_clipboard).
+    /// Up to CLIP_HISTORY_MAX (8) entries. Newest at history_head.
+    pub clipboard_history: Vec<(Vec<u32>, Vec<u32>)>,
+    /// Index of the most recent entry in the history ring buffer.
+    pub clipboard_history_head: usize,
+    /// Current number of entries in the history ring buffer.
+    pub clipboard_history_count: usize,
+
+    // ── Phase 269: Hash Table Opcodes ────────────────────────────
+    /// Up to 8 hash tables for HASHINIT/HASHSET/HASHGET opcodes.
+    /// Each table is a HashMap<u32, u32> mapping key -> value.
+    /// Tables persist across frames but reset on VM reset.
+    pub hash_tables: [std::collections::HashMap<u32, u32>; 8],
+    /// Bitmask of which hash table slots are allocated (bit N = table N in use).
+    pub hash_tables_active: u8,
+
+    // ── Phase 272: Sprite Sheet and Animation Frame Opcodes ──────
+    /// Registered sprite sheets for SPRLOAD/SPRFRAME/SPRANIM opcodes.
+    /// Up to MAX_SPRITE_SHEETS (16) sheets. Each tracks base addr, frame dims,
+    /// total frames, and current frame selection.
+    pub sprite_sheets: [crate::vm::types::SpriteSheet; MAX_SPRITE_SHEETS],
+
+    // ── Phase 441: Hardware Sprite Layer Compositing ────────────────
+    /// Off-screen sprite layers for hardware-accelerated compositing.
+    /// Layers are rendered independently, then composed in z-order.
+    /// Up to MAX_SPRITE_LAYERS (8) layers.
+    pub sprite_layers: [crate::vm::types::SpriteLayer; MAX_SPRITE_LAYERS],
+
+    // ── Instruction Cache (Phase N: Hot Loop Performance) ──────────
+    /// Direct-mapped decoded instruction cache, indexed by PC address.
+    /// None means not yet decoded or invalidated. Populated on first
+    /// execution after ICACHE_HOT_THRESHOLD visits to the same PC.
+    pub icache: Vec<Option<DecodedInstruction>>,
+    /// Visit frequency counter per PC address. Incremented each step().
+    /// When a PC reaches ICACHE_HOT_THRESHOLD, the instruction is decoded
+    /// and cached. u8 is sufficient -- saturates at 255.
+    pub icache_freq: Vec<u8>,
+    /// Cache generation counter. Incremented when any STORE writes to code
+    /// memory, invalidating all cached entries whose generation doesn't match.
+    pub icache_generation: u32,
+    /// Number of cache hits (for PROFILE/diagnostics).
+    pub icache_hits: u64,
+    /// Number of cache misses (for PROFILE/diagnostics).
+    pub icache_misses: u64,
+    /// Configurable hot threshold for icache. Instructions are cached after
+    /// this many visits to the same PC. Default: ICACHE_HOT_THRESHOLD (4).
+    /// Programs can tune this via PROFILE mode=6 for benchmarking.
+    pub icache_hot_threshold: usize,
+
+    /// Indices 0..N are used. host_file_handles[i] = Some((File, mode)) when open.
+    pub host_file_handles: Vec<Option<(std::fs::File, u8)>>,
+
+    // ── Phase 222: Wall-Clock Timer & Alarm Opcodes ─────────────────
+    /// Instant when the VM was created. Used as the epoch for TMR_GET.
+    pub epoch: std::time::Instant,
+    /// Pending wall-clock alarms. Checked each FRAME opcode.
+    /// When real time >= alarm.target_ms, writes value to RAM[addr].
+    pub alarms: Vec<types::WallAlarm>,
+
+    // ── Phase N: Infinite Tile Map ────────────────────────────
+    /// Chunk-based infinite pixel map extending beyond the 256x256 screen.
+    /// Programs can write to world-space coordinates via MAP_SET/MAP_GET opcodes.
+    /// Rendered as a background layer in fullscreen map mode.
+    pub tile_store: crate::tile_store::TileStore,
+
+    // ── Phase 34: Area Agent Evolution ──────────────────────────
+    /// Coordinates autonomous region agents for substrate maintenance.
+    pub area_manager: crate::kernel::area_manager::AreaManager,
+    /// Pending actions requested by area agents (e.g. vision inspection).
+    pub pending_agent_actions: Vec<(usize, crate::kernel::area_manager::AgentAction)>,
+
+    // ── Phase P: Spatial File System ────────────────────────────
+    /// Open spatial files mapped to regions of the active substrate.
+    /// Maps FD (0x7000+) -> SpatialFile handle (rect + cursor).
+    pub spatial_files: std::collections::HashMap<u32, types::SpatialFile>,
+
+    // ── Glyph Grid Layer (Phase Glyph) ───────────────────────────
+    /// Bidirectional glyph abstraction layer over the pixel framebuffer.
+    /// 32x32 grid of 8x8 glyph cells, with token bindings and change detection.
+    pub glyph_grid: crate::glyph_grid::GlyphGrid,
+
+    // ── Phase 435: Label Table for Disassembler ────────────────────
+    /// Label table populated by the assembler after successful assembly.
+    /// Maps RAM address -> label name (e.g., 0x1004 -> "loop").
+    /// Used by the disassembler to show real label names instead of
+    /// synthetic L_XXXX labels in branch/call targets.
+    pub assembler_labels: std::collections::HashMap<u32, String>,
+    /// Phase 202+: Infinite Memory Palace buildings.
+    /// Heap-backed Vec for unlimited building capacity.
+    /// The RAM table at 0x7500 is a read-only cache synced from this Vec.
+    pub buildings: Vec<Building>,
+    /// Phase 204: Active navigation path for visual overlay.
+    /// Stores waypoints from player position to destination.
+    pub nav_path: Vec<(i32, i32)>,
+}
+
+impl std::fmt::Debug for Vm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Vm")
+            .field("pc", &self.pc)
+            .field("halted", &self.halted)
+            .field("shutdown_requested", &self.shutdown_requested)
+            .field("frame_count", &self.frame_count)
+            .field("current_pid", &self.current_pid)
+            .field("mode", &self.mode)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Default for Vm {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Vm {
+    /// Decode VMFS path from ring/angle encoding.
+    /// Ring selects VMFS directory (0=zion/data, 1=zion/cache, 2=tmp, 3+zion/research).
+    /// Angle is a 32-bit hash that maps to a filename via external lookup table.
+    /// In v1, uses simple static mapping: angle -> "file_{angle}.dat".
+    /// Returns None if ring is invalid.
+    fn decode_vmfs_path(&self, ring: u32, angle: u32) -> Option<String> {
+        let dirs = ["inner_ring", "middle_ring", "outer_ring"];
+        let dir = dirs.get(ring as usize)?;
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+        let filename = format!("file_{:08x}.dat", angle);
+        Some(format!("{}/.geometry_os/vmfs/{}/{}", home, dir, filename))
+    }
+
+    /// Create a new VM with zeroed RAM, registers, and screen buffer.
+    pub fn new() -> Self {
+        Vm {
+            ram: vec![0; RAM_SIZE],
+            regs: [0; NUM_REGS],
+            pc: 0,
+            screen: vec![0; SCREEN_SIZE],
+            back_buffer: Vec::new(),
+            back_buffer_active: false,
+            sprite_layer: vec![0; SCREEN_SIZE],
+            sprite_layer_active: false,
+            halted: false,
+            shutdown_requested: false,
+            breakpoint_hit: false,
+            frame_ready: false,
+            rand_state: 0xDEADBEEF,
+            frame_count: 0,
+            beep: None,
+            note: None,
+            audio_play: None,
+            audio_stop: false,
+            audio_status_query: false,
+            debug_mode: false,
+            access_log: Vec::with_capacity(4096),
+            processes: Vec::new(),
+            mode: CpuMode::Kernel,
+            kernel_stack: Vec::new(),
+            allocated_pages: 0b11, // pages 0-1 used by main process
+            page_ref_count: {
+                let mut rc = [0u32; NUM_RAM_PAGES];
+                rc[0] = 1; // page 0 used by main process
+                rc[1] = 1; // page 1 used by main process
+                rc
+            },
+            page_cow: 0,
+            current_page_dir: None,
+            current_vmas: Vec::new(),
+            segfault_pid: 0,
+            segfault: false,
+            vfs: crate::vfs::Vfs::new(),
+            inode_fs: crate::inode_fs::InodeFs::new(),
+            current_pid: 0,
+            current_capabilities: None,
+            sched_tick: 0,
+            default_time_slice: DEFAULT_TIME_SLICE,
+            yielded: false,
+            wants_block: false,
+            pending_wakes: Vec::new(),
+            sleep_frames: 0,
+            new_priority: 0,
+            pipes: Vec::new(),
+            mutexes: Vec::new(),
+            semaphores: Vec::new(),
+            canvas_buffer: vec![0; CANVAS_RAM_SIZE],
+            pipe_created: false,
+            msg_sender: 0,
+            msg_data: [0; MSG_WORDS],
+            msg_recv_requested: false,
+            env_vars: std::collections::HashMap::new(),
+            building_metadata: std::collections::HashMap::new(),
+            coordinate_metadata: std::collections::HashMap::new(),
+            booted: false,
+            kernel_font_mode: 0,
+            step_exit_code: None,
+            step_zombie: false,
+            hypervisor_active: false,
+            hypervisor_config: String::new(),
+            hypervisor_mode: HypervisorMode::Qemu,
+            hypervisor_window_id: 0,
+            hypervisor_input_queue: Vec::new(),
+            hypervisor_input_pending: false,
+            hypervisor_mailbox: [0u32; 64],
+            focused_pid: 0,
+            opcode_histogram: [0; 256],
+            total_steps: 0,
+            profile_regions: [0; 16],
+            profile_active: [false; 16],
+            profile_start: [0; 16],
+            key_buffer: vec![0; 256],
+            key_buffer_head: 0,
+            key_buffer_tail: 0,
+            #[cfg(feature = "gpu")]
+            active_substrate: None,
+            substrate_x: 0,
+            substrate_y: 0,
+            substrate_cmd: 0,
+            substrate_arg1: 0,
+            substrate_arg2: 0,
+            substrate_status: 0,
+            substrate_result: 0,
+            key_port: 0,
+            key_bitmask: 0,
+            formulas: Vec::new(),
+            formula_dep_index: std::collections::HashMap::new(),
+            trace_recording: false,
+            trace_buffer: TraceBuffer::new(DEFAULT_TRACE_CAPACITY),
+            frame_checkpoints: FrameCheckBuffer::new(DEFAULT_FRAME_CHECK_CAPACITY),
+            snapshots: Vec::new(),
+            pixel_write_log: PixelWriteLog::new(DEFAULT_PIXEL_WRITE_CAPACITY),
+            render_logging: false,
+            render_log: RenderLog::new(DEFAULT_RENDER_LOG_CAPACITY),
+            hit_regions: Vec::with_capacity(MAX_HIT_REGIONS),
+            mouse_x: 0,
+            mouse_y: 0,
+            mouse_button: 0,
+            mouse_event_buffer: vec![0; 64],
+            mouse_event_x: vec![0; 64],
+            mouse_event_y: vec![0; 64],
+            mouse_event_head: 0,
+            mouse_event_tail: 0,
+            tcp_connections: (0..MAX_TCP_CONNECTIONS).map(|_| None).collect(),
+            pty_slots: (0..ops_pty::MAX_PTY_SLOTS).map(|_| None).collect(),
+            net_inbox: Vec::new(),
+            windows: Vec::with_capacity(MAX_WINDOWS),
+            next_window_id: 1,
+            llm_mock_response: None,
+            llm_config: None,
+            hermes_mock_response: None,
+            hermes_session_id: None,
+            background_vms: Vec::new(),
+            next_bg_vm_id: 1,
+            live_hypervisor: None,
+            mailbox_write_buf: vec![MailboxEntry::default(); MAILBOX_SIZE],
+            mailbox_read_buf: vec![MailboxEntry::default(); MAILBOX_SIZE],
+            segfault_addr: 0,
+            pc_trace: [0; 16],
+            pc_trace_idx: 0,
+            crash_dialog_active: false,
+            crash_dialog_pid: 0,
+            host_file_handles: (0..crate::vm::types::MAX_HOST_FILES)
+                .map(|_| None)
+                .collect(),
+            clip_rect: None,
+            clipboard: Vec::new(),
+            clipboard_text: Vec::new(),
+            clipboard_history: Vec::new(),
+            clipboard_history_head: 0,
+            clipboard_history_count: 0,
+            hash_tables: Default::default(),
+            hash_tables_active: 0,
+            sprite_sheets: Default::default(),
+            sprite_layers: Default::default(),
+            icache: vec![None; RAM_SIZE],
+            icache_freq: vec![0; RAM_SIZE],
+            icache_generation: 0,
+            icache_hits: 0,
+            icache_misses: 0,
+            icache_hot_threshold: ICACHE_HOT_THRESHOLD,
+            // Phase 222: Wall-clock timer epoch and alarm table
+            epoch: std::time::Instant::now(),
+            alarms: (0..MAX_ALARMS)
+                .map(|_| types::WallAlarm {
+                    target_ms: 0,
+                    addr: 0,
+                    value: 0,
+                    active: false,
+                })
+                .collect(),
+            // Infinite tile map
+            tile_store: crate::tile_store::TileStore::new(),
+            // ── Phase 34: Area Agent Evolution ──────────────────────────
+            area_manager: crate::kernel::area_manager::AreaManager::new(),
+            pending_agent_actions: Vec::new(),
+            // ── Phase P: Spatial File System ────────────────────────────
+            spatial_files: std::collections::HashMap::new(),
+            glyph_grid: crate::glyph_grid::GlyphGrid::new(),
+            substrate_execution: false,
+            assembler_labels: std::collections::HashMap::new(),
+            buildings: Vec::new(),
+            nav_path: Vec::new(),
+        }
+    }
+
+    /// Add a building to the Memory Palace (unlimited capacity).
+    /// Returns the building ID (index in the Vec).
+    /// Automatically syncs the first 32 buildings to the RAM cache at 0x7500.
+    pub fn add_building(&mut self, x: i32, y: i32, type_color: u32, name: &str) -> u32 {
+        let id = self.buildings.len() as u32;
+        self.buildings.push(Building {
+            id,
+            x,
+            y,
+            type_color,
+            name: name.to_string(),
+        });
+        self.sync_buildings_to_ram();
+        id
+    }
+
+    /// Remove a building by ID.
+    /// Shifts subsequent building IDs (they change when removed from the middle).
+    /// Returns true if the building was found and removed.
+    pub fn remove_building(&mut self, id: u32) -> bool {
+        if (id as usize) < self.buildings.len() {
+            self.buildings.remove(id as usize);
+            // Re-index remaining buildings
+            for (i, b) in self.buildings.iter_mut().enumerate() {
+                b.id = i as u32;
+            }
+            self.sync_buildings_to_ram();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Get the total number of buildings (unbounded).
+    pub fn building_count(&self) -> u32 {
+        self.buildings.len() as u32
+    }
+
+    /// Get a reference to a building by ID.
+    pub fn get_building(&self, id: u32) -> Option<&Building> {
+        self.buildings.get(id as usize)
+    }
+
+    /// Iterate over all buildings.
+    pub fn iter_buildings(&self) -> impl Iterator<Item = &Building> {
+        self.buildings.iter()
+    }
+
+    /// Sync the first 32 buildings to the RAM table at 0x7500 for backward compat.
+    /// RAM[0x7580] gets the true building count (not capped at 32).
+    fn sync_buildings_to_ram(&mut self) {
+        let count = self.buildings.len().min(32);
+        // Write building data to RAM table
+        for i in 0..count {
+            let base = 0x7500 + i * 4;
+            if base + 3 >= self.ram.len() {
+                break;
+            }
+            let b = &self.buildings[i];
+            self.ram[base] = b.x as u32;
+            self.ram[base + 1] = b.y as u32;
+            self.ram[base + 2] = b.type_color;
+            // Write name string at 0x7600 + i*16
+            let name_addr = 0x7600 + i * 16;
+            self.ram[base + 3] = name_addr as u32;
+            for j in 0..15 {
+                if name_addr + j < self.ram.len() {
+                    let ch = b.name.as_bytes().get(j).copied().unwrap_or(0);
+                    self.ram[name_addr + j] = ch as u32;
+                }
+            }
+            if name_addr + 15 < self.ram.len() {
+                self.ram[name_addr + 15] = 0; // null terminator
+            }
+        }
+        // Write the ACTUAL building count (not capped) to 0x7580
+        self.ram[0x7580] = self.buildings.len() as u32;
+        // Clear stale entries beyond count with 0 sentinel
+        for i in count..32 {
+            let base = 0x7500 + i * 4;
+            if base + 3 < self.ram.len() {
+                self.ram[base] = 0; // sentinel: empty (checked by extract_binary_from_building)
+                self.ram[base + 1] = 0;
+                self.ram[base + 2] = 0;
+                self.ram[base + 3] = 0;
+            }
+        }
+    }
+
+    /// Replaces current program with new bytecode from file.
+    pub fn chain_load(&mut self, filename: &str) -> bool {
+        if let Some(data) = crate::vfs::read_file_by_name(filename) {
+            // If it's .png, it's a pixelpack. If .asm, we must assemble it.
+            let bytecode = if filename.ends_with(".png") {
+                match crate::pixel::decode_pixelpack_png(&data) {
+                    Ok(b) => {
+                        let mut words = Vec::with_capacity(b.len() / 4);
+                        for chunk in b.chunks_exact(4) {
+                            words
+                                .push(u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
+                        }
+                        Some(words)
+                    },
+                    Err(_) => None,
+                }
+            } else if filename.ends_with(".asm") {
+                let source = String::from_utf8_lossy(&data);
+                let mut pp = crate::preprocessor::Preprocessor::new();
+                let expanded = pp.preprocess(&source);
+                match crate::assembler::assemble(&expanded, 0) {
+                    Ok(res) => {
+                        // Phase 435: Populate labels from chain-loaded assembly
+                        self.populate_assembler_labels(&res.labels, 0);
+                        Some(res.pixels)
+                    },
+                    Err(e) => {
+                        eprintln!("[VM] CHAIN assembly error: {}", e);
+                        None
+                    },
+                }
+            } else {
+                None
+            };
+
+            if let Some(words) = bytecode {
+                // Load into RAM at 0x1000 (standard program base)
+                let base: usize = 0x1000;
+                for (i, &word) in words.iter().enumerate() {
+                    if base + i < self.ram.len() {
+                        self.ram[base + i] = word;
+                    }
+                }
+                // Reset PC to 0x1000 and invalidate icache
+                self.pc = base as u32;
+                self.icache.iter_mut().for_each(|slot| *slot = None);
+                // Clear halt state so new program runs
+                self.halted = false;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Push a keystroke into the ring buffer. Called by host on key events.
+    /// Returns false if the buffer is full (key dropped).
+    pub fn push_key(&mut self, key: u32) -> bool {
+        let next_tail = (self.key_buffer_tail + 1) % self.key_buffer.len();
+        if next_tail == self.key_buffer_head {
+            return false; // buffer full
+        }
+        self.key_buffer[self.key_buffer_tail] = key;
+        self.key_buffer_tail = next_tail;
+        // Write to key_port field (separate from RAM to avoid bytecode overlap)
+        self.key_port = key;
+        true
+    }
+
+    /// Set a pixel on the screen, respecting the current clip rectangle.
+    /// If clip_rect is set, pixels outside the rectangle are silently discarded.
+    pub fn set_pixel_clipped(&mut self, x: usize, y: usize, color: u32) {
+        if x >= 256 || y >= 256 {
+            return;
+        }
+        if let Some((cx, cy, cw, ch)) = self.clip_rect {
+            let cx = cx as usize;
+            let cy = cy as usize;
+            let cw = cw as usize;
+            let ch = ch as usize;
+            if x < cx || x >= cx + cw || y < cy || y >= cy + ch {
+                return;
+            }
+        }
+        let buf = if self.back_buffer_active && !self.back_buffer.is_empty() {
+            &mut self.back_buffer[..]
+        } else {
+            &mut self.screen[..]
+        };
+        buf[y * 256 + x] = color;
+    }
+
+    // ── Phase 441: Hardware Sprite Layer Compositing ─────────────────
+    /// Blit pixels from RAM to a sprite layer buffer.
+    /// layer_id: 0-7 for individual layers, 255 for main screen
+    /// src_addr: RAM address of source pixel data (packed u32 colors, 0=transparent)
+    /// dst_x, dst_y: destination position in layer
+    /// width, height: dimensions of blit region
+    /// blend_mode: 0=opaque, 1=alpha blend, 2=additive
+    /// alpha: global alpha (0-255)
+    /// Returns: 0 on success, error code on failure
+    pub fn blit_to_layer(
+        &mut self,
+        layer_id: u32,
+        src_addr: u32,
+        dst_x: u32,
+        dst_y: u32,
+        width: u32,
+        height: u32,
+        blend_mode: u32,
+        alpha: u32,
+    ) -> u32 {
+        if layer_id > 255 {
+            return GEOS_EINVAL;
+        }
+
+        // Check bounds
+        if width > 256 || height > 256 || dst_x + width > 256 || dst_y + height > 256 {
+            return GEOS_EINVAL;
+        }
+
+        let src_addr = src_addr as usize;
+        let dst_x = dst_x as usize;
+        let dst_y = dst_y as usize;
+        let width = width as usize;
+        let height = height as usize;
+
+        // Choose target buffer
+        let target = if layer_id == 255 {
+            &mut self.screen
+        } else if layer_id < MAX_SPRITE_LAYERS as u32 {
+            &mut self.sprite_layers[layer_id as usize].buffer
+        } else {
+            return GEOS_EINVAL;
+        };
+
+        // Blit pixels
+        for dy in 0..height {
+            for dx in 0..width {
+                let src_idx = src_addr + dy * width + dx;
+                if src_idx >= self.ram.len() {
+                    continue;
+                }
+                let color = self.ram[src_idx];
+                if color == 0 {
+                    continue; // transparent
+                }
+                let px = dst_x + dx;
+                let py = dst_y + dy;
+                let dst_idx = py * 256 + px;
+                if dst_idx >= target.len() {
+                    continue;
+                }
+
+                // Apply blending
+                match blend_mode {
+                    1 if alpha < 255 => {
+                        // Alpha blend
+                        let dst_color = target[dst_idx];
+                        let src_r = (color >> 16) & 0xFF;
+                        let src_g = (color >> 8) & 0xFF;
+                        let src_b = color & 0xFF;
+                        let dst_r = (dst_color >> 16) & 0xFF;
+                        let dst_g = (dst_color >> 8) & 0xFF;
+                        let dst_b = dst_color & 0xFF;
+                        let a = alpha as u32;
+                        let inv_a = 255 - a;
+                        let r = (src_r * a + dst_r * inv_a) / 255;
+                        let g = (src_g * a + dst_g * inv_a) / 255;
+                        let b = (src_b * a + dst_b * inv_a) / 255;
+                        target[dst_idx] = (r << 16) | (g << 8) | b;
+                    },
+                    2 => {
+                        // Additive blend
+                        let dst_color = target[dst_idx];
+                        let src_r = (color >> 16) & 0xFF;
+                        let src_g = (color >> 8) & 0xFF;
+                        let src_b = color & 0xFF;
+                        let dst_r = (dst_color >> 16) & 0xFF;
+                        let dst_g = (dst_color >> 8) & 0xFF;
+                        let dst_b = dst_color & 0xFF;
+                        let a = (alpha as u32).min(255);
+                        let r = ((src_r * a) / 255 + dst_r).min(255);
+                        let g = ((src_g * a) / 255 + dst_g).min(255);
+                        let b = ((src_b * a) / 255 + dst_b).min(255);
+                        target[dst_idx] = (r << 16) | (g << 8) | b;
+                    },
+                    _ => {
+                        // Opaque
+                        target[dst_idx] = color;
+                    },
+                }
+            }
+        }
+
+        0
+    }
+
+    /// Clear a sprite layer to transparent (all zeros).
+    /// layer_id: 0-7 for individual layers, 255 for main screen
+    pub fn clear_layer(&mut self, layer_id: u32) {
+        if layer_id == 255 {
+            self.screen.fill(0);
+        } else if layer_id < MAX_SPRITE_LAYERS as u32 {
+            self.sprite_layers[layer_id as usize].buffer.fill(0);
+        }
+    }
+
+    /// Set layer properties: visibility, z-order, blend mode, alpha.
+    /// layer_id: 0-7 for individual layers
+    /// Returns: 0 on success, error code on failure
+    pub fn set_layer_property(&mut self, layer_id: u32, prop_id: u32, value: u32) -> u32 {
+        if layer_id >= MAX_SPRITE_LAYERS as u32 {
+            return GEOS_EINVAL;
+        }
+
+        let layer = &mut self.sprite_layers[layer_id as usize];
+        match prop_id {
+            0 => layer.visible = value != 0,   // visibility
+            1 => layer.z_order = value,        // z-order
+            2 => layer.blend_mode = value,     // blend mode
+            3 => layer.alpha = value.min(255), // alpha
+            _ => return GEOS_EINVAL,
+        }
+
+        0
+    }
+
+    /// Compose all active sprite layers to the main screen in z-order.
+    /// Layers with active=true and visible=true are composed.
+    /// Compositing respects each layer's blend_mode and alpha.
+    pub fn compose_layers(&mut self) {
+        // Sort layers by z-order
+        let mut layers: Vec<_> = self
+            .sprite_layers
+            .iter()
+            .enumerate()
+            .filter(|(_, l)| l.active && l.visible)
+            .collect();
+        layers.sort_by_key(|(_, l)| l.z_order);
+
+        // Clear screen first
+        self.screen.fill(0);
+
+        // Compose each layer
+        for (layer_id, layer) in layers {
+            for y in 0..256 {
+                for x in 0..256 {
+                    let src_idx = y * 256 + x;
+                    if src_idx >= layer.buffer.len() {
+                        continue;
+                    }
+                    let color = layer.buffer[src_idx];
+                    if color == 0 {
+                        continue; // transparent
+                    }
+                    let dst_idx = src_idx;
+                    if dst_idx >= self.screen.len() {
+                        continue;
+                    }
+
+                    // Apply blending
+                    match layer.blend_mode {
+                        1 if layer.alpha < 255 => {
+                            // Alpha blend
+                            let dst_color = self.screen[dst_idx];
+                            let src_r = (color >> 16) & 0xFF;
+                            let src_g = (color >> 8) & 0xFF;
+                            let src_b = color & 0xFF;
+                            let dst_r = (dst_color >> 16) & 0xFF;
+                            let dst_g = (dst_color >> 8) & 0xFF;
+                            let dst_b = dst_color & 0xFF;
+                            let a = layer.alpha as u32;
+                            let inv_a = 255 - a;
+                            let r = (src_r * a + dst_r * inv_a) / 255;
+                            let g = (src_g * a + dst_g * inv_a) / 255;
+                            let b = (src_b * a + dst_b * inv_a) / 255;
+                            self.screen[dst_idx] = (r << 16) | (g << 8) | b;
+                        },
+                        2 => {
+                            // Additive blend
+                            let dst_color = self.screen[dst_idx];
+                            let src_r = (color >> 16) & 0xFF;
+                            let src_g = (color >> 8) & 0xFF;
+                            let src_b = color & 0xFF;
+                            let dst_r = (dst_color >> 16) & 0xFF;
+                            let dst_g = (dst_color >> 8) & 0xFF;
+                            let dst_b = dst_color & 0xFF;
+                            let a = (layer.alpha as u32).min(255);
+                            let r = ((src_r * a) / 255 + dst_r).min(255);
+                            let g = ((src_g * a) / 255 + dst_g).min(255);
+                            let b = ((src_b * a) / 255 + dst_b).min(255);
+                            self.screen[dst_idx] = (r << 16) | (g << 8) | b;
+                        },
+                        _ => {
+                            // Opaque
+                            self.screen[dst_idx] = color;
+                        },
+                    }
+                }
+            }
+        }
+    }
+
+    /// Update mouse/touch cursor position. Called by host on mouse events.
+    /// The cursor is read by HITQ to determine which region was clicked.
+    /// Also queues a move event for IMOUSE (Phase 273).
+    pub fn push_mouse(&mut self, x: u32, y: u32) {
+        self.mouse_x = x;
+        self.mouse_y = y;
+        // Also mirror to RAM ports for direct access
+        if (0xFF9) < self.ram.len() {
+            self.ram[0xFF9] = x;
+        }
+        if (0xFFA) < self.ram.len() {
+            self.ram[0xFFA] = y;
+        }
+        // Queue mouse move event (type=0, button=0)
+        self.queue_mouse_event(0, 0, x, y);
+    }
+
+    /// Update mouse button state. Called by host on mouse button events.
+    /// button: 0=none/release, 1=left down, 2=left click.
+    /// Also queues a button event for IMOUSE (Phase 273).
+    pub fn push_mouse_button(&mut self, button: u32) {
+        self.mouse_button = button;
+        // Determine event type: 0=release, 1=down, 2=click
+        let event_type = if button == 0 {
+            2
+        } else if button == 2 {
+            1
+        } else {
+            button
+        };
+        let btn = if button >= 1 { 1 } else { 0 }; // left button
+        self.queue_mouse_event(event_type, btn, self.mouse_x, self.mouse_y);
+    }
+
+    /// Queue a mouse event into the ring buffer. Called by push_mouse/push_mouse_button.
+    /// Returns false if the buffer is full (event dropped).
+    /// Event packing: bits[7:0]=event_type, bits[15:8]=button,
+    /// bits[23:16]=x_low8, bits[31:24]=y_low8.
+    pub fn queue_mouse_event(&mut self, event_type: u32, button: u32, x: u32, y: u32) {
+        let next_tail = (self.mouse_event_tail + 1) % self.mouse_event_buffer.len();
+        if next_tail == self.mouse_event_head {
+            return; // buffer full, drop event
+        }
+        let packed =
+            (event_type & 0xFF) | ((button & 0xFF) << 8) | ((x & 0xFF) << 16) | ((y & 0xFF) << 24);
+        self.mouse_event_buffer[self.mouse_event_tail] = packed;
+        self.mouse_event_x[self.mouse_event_tail] = x;
+        self.mouse_event_y[self.mouse_event_tail] = y;
+        self.mouse_event_tail = next_tail;
+    }
+
+    /// Translate global mouse coordinates to window-relative for the current process.
+    /// If the current process (current_pid) owns a window, returns mouse coords
+    /// relative to that window's top-left corner. Otherwise returns global coords.
+    /// For world-space windows, computes screen position from camera + world coords.
+    fn translate_mouse_for_current_process(&self) -> (u32, u32) {
+        if self.current_pid == 0 {
+            // Main/kernel context: use global coordinates as-is
+            return (self.mouse_x, self.mouse_y);
+        }
+
+        // Find the window owned by the current process
+        let win = match self
+            .windows
+            .iter()
+            .find(|w| w.pid == self.current_pid && w.active)
+        {
+            Some(w) => w,
+            None => return (self.mouse_x, self.mouse_y), // No window: global coords
+        };
+
+        let (win_x, win_y) = if win.is_world_space() {
+            // World-space window: compute screen position from camera + world coords
+            // Same formula as render.rs: vm_fb = (world - cam) * 8
+            let cam_x = self.ram.get(0x7800).copied().unwrap_or(0) as i32;
+            let cam_y = self.ram.get(0x7801).copied().unwrap_or(0) as i32;
+            let sx = (win.world_x as i32 - cam_x) * 8;
+            let sy = (win.world_y as i32 - cam_y) * 8;
+            (sx, sy)
+        } else {
+            (win.x as i32, win.y as i32)
+        };
+
+        // Translate: mouse position relative to window origin
+        let rel_x = (self.mouse_x as i32 - win_x).max(0) as u32;
+        let rel_y = (self.mouse_y as i32 - win_y).max(0) as u32;
+        (rel_x, rel_y)
+    }
+
+    /// Reset the VM to initial state (zeroed RAM, registers, screen, halted=false).
+    #[allow(dead_code)]
+    pub fn reset(&mut self) {
+        for r in self.ram.iter_mut() {
+            *r = 0;
+        }
+        for s in self.screen.iter_mut() {
+            *s = 0;
+        }
+        for s in self.sprite_layer.iter_mut() {
+            *s = 0;
+        }
+        self.sprite_layer_active = false;
+        self.regs = [0; NUM_REGS];
+        self.pc = 0;
+        self.halted = false;
+        self.shutdown_requested = false;
+        self.frame_ready = false;
+        self.rand_state = 0xDEADBEEF;
+        self.frame_count = 0;
+        self.beep = None;
+        self.note = None;
+        self.audio_play = None;
+        self.audio_stop = false;
+        self.audio_status_query = false;
+        self.access_log.clear();
+        self.processes.clear();
+        self.mode = CpuMode::Kernel;
+        self.kernel_stack.clear();
+        self.allocated_pages = 0b11;
+        self.page_ref_count = {
+            let mut rc = [0u32; NUM_RAM_PAGES];
+            rc[0] = 1;
+            rc[1] = 1;
+            rc
+        };
+        self.page_cow = 0;
+        self.current_page_dir = None;
+        self.current_vmas = Vec::new();
+        self.segfault_pid = 0;
+        self.segfault = false;
+        self.pipes.clear();
+        self.mutexes.clear();
+        self.semaphores.clear();
+        self.pipe_created = false;
+        self.msg_sender = 0;
+        self.msg_data = [0; MSG_WORDS];
+        self.msg_recv_requested = false;
+        self.env_vars.clear();
+        self.booted = false;
+        self.kernel_font_mode = 0;
+        self.hypervisor_active = false;
+        self.hypervisor_config.clear();
+        self.hypervisor_mode = HypervisorMode::default();
+        self.hypervisor_window_id = 0;
+        self.opcode_histogram = [0; 256];
+        self.total_steps = 0;
+        self.profile_regions = [0; 16];
+        self.profile_active = [false; 16];
+        self.profile_start = [0; 16];
+        self.formulas.clear();
+        for dep_list in self.formula_dep_index.values_mut() {
+            dep_list.clear();
+        }
+        self.trace_recording = false;
+        self.trace_buffer.clear();
+        self.frame_checkpoints.clear();
+        self.snapshots.clear();
+        self.pixel_write_log.clear();
+        self.render_logging = false;
+        self.render_log.clear();
+        self.windows.clear();
+        self.next_window_id = 1;
+        self.mouse_button = 0;
+        self.mouse_event_buffer.fill(0);
+        self.mouse_event_x.fill(0);
+        self.mouse_event_y.fill(0);
+        self.mouse_event_head = 0;
+        self.mouse_event_tail = 0;
+        self.net_inbox.clear();
+        self.llm_mock_response = None;
+        self.hit_regions.clear();
+        self.llm_config = None;
+        self.hermes_mock_response = None;
+        self.hermes_session_id = None;
+        self.background_vms.clear();
+        self.next_bg_vm_id = 1;
+        self.live_hypervisor = None;
+        self.hypervisor_mailbox = [0u32; 64];
+        self.mailbox_write_buf = vec![MailboxEntry::default(); MAILBOX_SIZE];
+        self.mailbox_read_buf = vec![MailboxEntry::default(); MAILBOX_SIZE];
+        self.segfault_addr = 0;
+        self.pc_trace = [0; 16];
+        self.pc_trace_idx = 0;
+        self.crash_dialog_active = false;
+        self.crash_dialog_pid = 0;
+        self.key_port = 0;
+        self.key_bitmask = 0;
+        self.substrate_cmd = 0;
+        self.substrate_arg1 = 0;
+        self.substrate_arg2 = 0;
+        self.substrate_status = 0;
+        self.substrate_result = 0;
+        self.host_file_handles = (0..crate::vm::types::MAX_HOST_FILES)
+            .map(|_| None)
+            .collect();
+        self.focused_pid = 0;
+        self.clip_rect = None;
+        for table in self.hash_tables.iter_mut() {
+            table.clear();
+        }
+        self.hash_tables_active = 0;
+        self.sprite_sheets = Default::default();
+        self.assembler_labels.clear();
+    }
+
+    /// Populate assembler labels from an AsmResult label map.
+    /// Takes the assembler's name->offset map and converts it to address->name.
+    /// `load_addr` is the base RAM address where bytecode was loaded (0 for CLI, 0x1000 for GUI).
+    pub fn populate_assembler_labels(
+        &mut self,
+        labels: &std::collections::HashMap<String, usize>,
+        load_addr: u32,
+    ) {
+        self.assembler_labels.clear();
+        self.assembler_labels.reserve(labels.len());
+        for (name, offset) in labels {
+            self.assembler_labels
+                .insert(*offset as u32 + load_addr, name.clone());
+        }
+    }
+
+    /// Legacy method name - delegates to populate_assembler_labels.
+    pub fn set_label_map(
+        &mut self,
+        labels: &std::collections::HashMap<String, usize>,
+        load_addr: u32,
+    ) {
+        self.populate_assembler_labels(labels, load_addr);
+    }
+
+    /// Log a high-level graphics operation to the render log.
+    #[inline]
+    pub fn log_render_op(&mut self, opcode: u8, name: &'static str, args: &[u32]) {
+        if self.render_logging {
+            self.render_log.push(self.frame_count, opcode, name, args);
+        }
+    }
+
+    /// Internal helper to log a memory access with a safety cap.
+    fn log_access(&mut self, addr: usize, kind: MemAccessKind) {
+        if self.debug_mode && self.access_log.len() < 4096 {
+            self.access_log.push(MemAccess { addr, kind });
+        }
+    }
+
+    /// Take a full snapshot of VM state for timeline forking (Phase 38d).
+    /// Returns the VmSnapshot capturing RAM, screen, registers, PC, and config.
+    /// The snapshot can be restored later with `restore()`.
+    pub fn snapshot(&self) -> VmSnapshot {
+        VmSnapshot {
+            ram: self.ram.clone(),
+            screen: self.screen.clone(),
+            regs: self.regs,
+            pc: self.pc,
+            mode: self.mode,
+            halted: self.halted,
+            frame_count: self.frame_count,
+            shutdown_requested: self.shutdown_requested,
+            rand_state: self.rand_state,
+            current_pid: self.current_pid,
+            step_number: self.trace_buffer.step_counter(),
+        }
+    }
+
+    /// Restore VM state from a snapshot (Phase 38d).
+    /// Overwrites RAM, screen, registers, PC, and config with the snapshot values.
+    /// Does NOT restore child processes, pipes, VFS, or other system state --
+    /// only the execution state of the current context.
+    pub fn restore(&mut self, snap: &VmSnapshot) {
+        self.ram.copy_from_slice(&snap.ram);
+        self.screen.copy_from_slice(&snap.screen);
+        self.regs = snap.regs;
+        self.pc = snap.pc;
+        self.mode = snap.mode;
+        self.halted = snap.halted;
+        self.frame_count = snap.frame_count;
+        self.rand_state = snap.rand_state;
+        self.current_pid = snap.current_pid;
+    }
+}
+pub mod types;
+pub use types::*;
+
+// Execution trace ring buffer (Phase 38a)
+mod trace;
+pub use trace::*;
+
+// Opcode handler submodules
+mod ops_extended;
+mod ops_graphics;
+mod ops_host_fs;
+mod ops_memory;
+pub mod ops_palace_fs;
+pub mod ops_pty;
+mod ops_substrate;
+mod ops_syscall;
+
+mod formula;
+pub mod hilbert;
+mod icache;
+mod io;
+mod memory;
+mod neural;
+pub mod vast_allocator;
+pub mod vast_directory;
+#[cfg(test)]
+mod vast_directory_tests;
+pub mod vast_geometry;
+pub mod vast_pixelfs;
+#[cfg(test)]
+mod vast_pixelfs_tests;
+
+impl Vm {
+    /// Execute one instruction. Returns false if halted.
+    pub fn step(&mut self) -> bool {
+        if self.halted || self.pc as usize >= self.ram.len() {
+            self.halted = true;
+            return false;
+        }
+
+        // Log the instruction fetch for the visual debugger
+        let pc_addr = self.pc as usize;
+
+        // Record PC in circular trace buffer (Phase 104: Crash Recovery)
+        self.pc_trace[self.pc_trace_idx] = pc_addr as u32;
+        self.pc_trace_idx = (self.pc_trace_idx + 1) % self.pc_trace.len();
+
+        self.log_access(pc_addr, MemAccessKind::Read);
+
+        // ── Instruction Cache Fast Path ──────────────────────────────
+        // Check for a cached decoded instruction at this PC.
+        // On hit: skip fetch() calls and match dispatch, execute directly.
+        if let Some(decoded) = self.icache_lookup(pc_addr) {
+            self.icache_hits += 1;
+            // Advance PC past the full instruction (opcode + operands)
+            self.pc = pc_addr as u32 + 1 + decoded.num_ops as u32;
+
+            // Track opcode execution for diagnostic context
+            if (decoded.opcode as usize) < self.opcode_histogram.len() {
+                self.opcode_histogram[decoded.opcode as usize] += 1;
+            }
+            self.total_steps += 1;
+
+            // Execution trace
+            if self.trace_recording {
+                self.trace_buffer
+                    .push(pc_addr as u32, &self.regs, decoded.opcode);
+            }
+
+            // Execute the cached instruction
+            if let Some(result) = self.icache_execute(&decoded) {
+                return result;
+            }
+            // icache_execute returned None -- should not happen for cached ops,
+            // but fall through safely to normal path
+            return true;
+        }
+
+        let opcode = self.fetch();
+
+        // Track opcode execution for diagnostic context
+        if (opcode as usize) < self.opcode_histogram.len() {
+            self.opcode_histogram[opcode as usize] += 1;
+        }
+
+        // Always-on step counter for PROFILE opcode.
+        self.total_steps += 1;
+
+        // Execution trace: record (pc, regs, opcode) if recording is enabled.
+        // Zero overhead when off (single bool check).
+        if self.trace_recording {
+            self.trace_buffer.push(pc_addr as u32, &self.regs, opcode);
+        }
+
+        // ── Cache Population (post-fetch, pre-execute) ───────────────
+        // For cacheable opcodes, track visit frequency and populate cache
+        // when threshold is reached. The instruction is already fetched
+        // so we can read operands from RAM directly.
+        if Self::is_icacheable(opcode) && pc_addr < self.icache_freq.len() {
+            let freq = self.icache_freq[pc_addr] as usize;
+            if freq < 255 {
+                self.icache_freq[pc_addr] = freq as u8 + 1;
+            }
+            if freq + 1 >= self.icache_hot_threshold {
+                // Decode and cache this instruction
+                let decoded = self.icache_decode(pc_addr);
+                self.icache_store(pc_addr, decoded);
+            }
+            self.icache_misses += 1;
+        }
+
+        match opcode {
+            // ── Phase 300: Memory Palace Vector Opcodes ──
+            // VEC_FIND table_addr_reg, query_x_reg, query_y_reg  (0x08)
+            // Search 2D embedding table for nearest neighbor by Euclidean distance.
+            // Encoding: 5 words [0x08, table_addr_reg, qx_reg, qy_reg]
+            // Embedding table format at RAM[table_addr]:
+            //   Offset 0: u32 count (N)
+            //   Per entry (2 u32 words):
+            //     word 0: (x_q16) | ((y_q16) << 16) — packed 0..65535 coords
+            //     word 1: (ring) | ((angle) << 8) | ((index) << 16)
+            // Returns: r0=entry_index, r1=ring, r2=angle
+            0x08 => {
+                let tr = self.fetch() as usize;
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                if tr < NUM_REGS && xr < NUM_REGS && yr < NUM_REGS {
+                    let table_addr = self.regs[tr] as usize;
+                    let qx = self.regs[xr] as i32;
+                    let qy = self.regs[yr] as i32;
+                    if table_addr + 1 < self.ram.len() {
+                        let count = self.ram[table_addr] as usize;
+                        let mut best_idx = 0u32;
+                        let mut best_ring = 0u32;
+                        let mut best_angle = 0u32;
+                        let mut best_dist = i32::MAX;
+                        for i in 0..count {
+                            let entry_offset = table_addr + 1 + i * 2;
+                            if entry_offset + 1 >= self.ram.len() {
+                                break;
+                            }
+                            let packed_xy = self.ram[entry_offset];
+                            let packed_ra = self.ram[entry_offset + 1];
+                            let ex = (packed_xy & 0xFFFF) as i32;
+                            let ey = ((packed_xy >> 16) & 0xFFFF) as i32;
+                            let dx = qx - ex;
+                            let dy = qy - ey;
+                            let dist = dx * dx + dy * dy;
+                            if dist < best_dist {
+                                best_dist = dist;
+                                best_idx = (packed_ra >> 16) & 0xFFFF;
+                                best_ring = packed_ra & 0xFF;
+                                best_angle = (packed_ra >> 8) & 0xFF;
+                            }
+                        }
+                        self.regs[0] = best_idx;
+                        self.regs[1] = best_ring;
+                        self.regs[2] = best_angle;
+                    }
+                }
+            },
+
+            // VEC_NEAR table_addr_reg, idx_reg  (0x09)
+            // Find nearest neighbor of the fact at index idx_reg.
+            // Skips the entry at idx_reg (finds nearest OTHER).
+            // Encoding: 4 words [0x09, table_addr_reg, idx_reg]
+            // Returns: r0=neighbor_index, r1=ring, r2=angle
+            0x09 => {
+                let tr = self.fetch() as usize;
+                let ir = self.fetch() as usize;
+                if tr < NUM_REGS && ir < NUM_REGS {
+                    let table_addr = self.regs[tr] as usize;
+                    let target_idx = self.regs[ir] as usize;
+                    if table_addr + 1 < self.ram.len() {
+                        let count = self.ram[table_addr] as usize;
+                        let mut best_idx = 0u32;
+                        let mut best_ring = 0u32;
+                        let mut best_angle = 0u32;
+                        let mut best_dist = i32::MAX;
+                        // First, find the target entry's coordinates
+                        let mut target_x = 0i32;
+                        let mut target_y = 0i32;
+                        for i in 0..count {
+                            let entry_offset = table_addr + 1 + i * 2;
+                            if entry_offset + 1 >= self.ram.len() {
+                                break;
+                            }
+                            let packed_ra = self.ram[entry_offset + 1];
+                            let idx = (packed_ra >> 16) & 0xFFFF;
+                            if idx as usize == target_idx {
+                                let packed_xy = self.ram[entry_offset];
+                                target_x = (packed_xy & 0xFFFF) as i32;
+                                target_y = ((packed_xy >> 16) & 0xFFFF) as i32;
+                                break;
+                            }
+                        }
+                        // Now find nearest OTHER entry
+                        for i in 0..count {
+                            let entry_offset = table_addr + 1 + i * 2;
+                            if entry_offset + 1 >= self.ram.len() {
+                                break;
+                            }
+                            let packed_xy = self.ram[entry_offset];
+                            let packed_ra = self.ram[entry_offset + 1];
+                            let idx = (packed_ra >> 16) & 0xFFFF;
+                            if idx as usize == target_idx {
+                                continue; // skip self
+                            }
+                            let ex = (packed_xy & 0xFFFF) as i32;
+                            let ey = ((packed_xy >> 16) & 0xFFFF) as i32;
+                            let dx = target_x - ex;
+                            let dy = target_y - ey;
+                            let dist = dx * dx + dy * dy;
+                            if dist < best_dist {
+                                best_dist = dist;
+                                best_idx = idx;
+                                best_ring = packed_ra & 0xFF;
+                                best_angle = (packed_ra >> 8) & 0xFF;
+                            }
+                        }
+                        self.regs[0] = best_idx;
+                        self.regs[1] = best_ring;
+                        self.regs[2] = best_angle;
+                    }
+                }
+            },
+
+            // HALT
+            0x00 => {
+                self.halted = true;
+                return false;
+            },
+
+            // NOP
+            0x01 => {},
+
+            // FRAME -- signal host to display current screen; execution continues
+            0x02 => {
+                self.frame_count = self.frame_count.wrapping_add(1);
+                // TICKS port (0xFFE) is now a separate virtual port (read via LOAD intercept).
+                // Do NOT write to self.ram[0xFFE] -- large programs extend past that address.
+                self.frame_ready = true;
+                self.access_log.clear(); // Reset for next frame
+                                         // Phase 38b: snapshot screen if trace recording is on
+                if self.trace_recording {
+                    let step = self.trace_buffer.step_counter();
+                    self.frame_checkpoints
+                        .push(step, self.frame_count, &self.screen);
+                }
+                // Phase 68: blit active windows to screen in Z-order (lowest z first)
+                self.blit_windows();
+                // Phase 223: check for Recursive Singularity expansion trigger from host
+                let trigger = self.ram.get(0xF020).copied().unwrap_or(0);
+                if trigger == 1 {
+                    self.ram[0xF020] = 0; // Clear flag
+                    let path_addr = 0xF010;
+                    if let Some(filename) = Self::read_string_static(&self.ram, path_addr) {
+                        eprintln!("[VM] Recursive Singularity: Loading {}", filename);
+                        self.chain_load(&filename);
+                    }
+                }
+
+                // Sync 256x256 screen into infinite tile map at camera position.
+                // Programs using PSET/FILL/etc automatically populate the map.
+                {
+                    let cam_x_tiles = self.ram.get(0x7800).copied().unwrap_or(0) as i32;
+                    let cam_y_tiles = self.ram.get(0x7801).copied().unwrap_or(0) as i32;
+                    let cam_px = cam_x_tiles * 8; // tile -> pixel
+                    let cam_py = cam_y_tiles * 8;
+                    self.tile_store
+                        .blit_from_screen(&self.screen, 0, 0, cam_px, cam_py, 256, 256);
+                }
+                // Phase 4.1: swap mailbox buffers on FRAME boundary
+                // write_buf -> read_buf for consumption next frame, clear write_buf
+                std::mem::swap(&mut self.mailbox_write_buf, &mut self.mailbox_read_buf);
+                for entry in self.mailbox_write_buf.iter_mut() {
+                    entry.valid = false;
+                    entry.sender_id = 0;
+                    entry.data = 0;
+                }
+                // Phase 222: check wall-clock alarms
+                let now_ms = self.epoch.elapsed().as_millis() as u64;
+                for alarm in self.alarms.iter_mut() {
+                    if alarm.active && now_ms >= alarm.target_ms {
+                        let addr = alarm.addr as usize;
+                        if addr < self.ram.len() {
+                            self.ram[addr] = alarm.value;
+                        }
+                        alarm.active = false;
+                    }
+                }
+
+                // ── Phase 34: Area Agent Evolution ──────────────────────────
+                // Synchronize agent states between VM RAM and the kernel AreaManager.
+                // 1. Host reads VM-side status changes (e.g. repair agent wrote STATUS_DONE)
+                self.area_manager.read_from_ram(&self.ram);
+                self.area_manager.process_vm_completions(&self.ram);
+                // 2. Tick the manager to schedule new inspections
+                let actions = self.area_manager.tick(self.frame_count);
+                // 3. Store actions for host processing (e.g. vision inspection)
+                self.pending_agent_actions.extend(actions);
+                // 4. Write updated task table back to RAM for VM consumption
+                self.area_manager.write_to_ram(&mut self.ram);
+
+                // ── Glyph Grid: Token Callback Return ────────────────
+                // Check if a callback routine requested return (set RAM[0x7B52] = 1).
+                // If so, restore the saved PC from RAM[0x7B50] and clear flags.
+                if self.ram.get(0x7B52).copied().unwrap_or(0) == 1 {
+                    self.ram[0x7B52] = 0; // clear return request
+                    let ret_pc = self.ram.get(0x7B50).copied().unwrap_or(0);
+                    self.ram[0x7B50] = 0; // clear saved PC
+                    if ret_pc != 0 && ret_pc < self.ram.len() as u32 {
+                        self.pc = ret_pc;
+                    }
+                }
+
+                // ── Glyph Grid Layer (Phase Glyph) ─────────────────────
+                // Process mailbox commands, render dirty cells to screen,
+                // scan for external pixel changes, write events to RAM.
+                // May set self.glyph_grid.callback_pending if a token event fired.
+                self.glyph_grid.on_frame(&mut self.ram, &mut self.screen);
+
+                // ── Glyph Grid: Token Callback Dispatch ───────────────
+                // If a token's change event has a callback_addr, jump to it.
+                // Uses CALL semantics: push current r31 onto the stack, set
+                // r31 = return address (next instruction), then jump to callback.
+                // This allows the callback to RETURN via the standard RET opcode,
+                // which pops r31 from the stack -- no fixed RAM address needed.
+                //
+                // Also kept: the legacy RAM[0x7B52] return protocol for backward
+                // compatibility (checked at the top of this FRAME handler).
+                if let Some(cb_addr) = self.glyph_grid.callback_pending.take() {
+                    // Only block dispatch if legacy return protocol explicitly requested
+                    // (RAM[0x7B52] == 1). Event buffer data at this address must not block
+                    // callbacks — 0x7B52 overlaps with event slot 4's cell_x field.
+                    if cb_addr < self.ram.len() as u32
+                        && self.ram.get(0x7B52).copied().unwrap_or(0) != 1
+                    {
+                        // CALL semantics: push r31 to stack, set r31 = return addr
+                        let sp = self.regs[30];
+                        if sp > 0 {
+                            let new_sp = sp - 1;
+                            match self.translate_va_or_fault(new_sp) {
+                                Some(pa) if pa < self.ram.len() => {
+                                    self.ram[pa] = self.regs[31];
+                                    self.regs[30] = new_sp;
+                                },
+                                None => {
+                                    self.trigger_segfault();
+                                    return false;
+                                },
+                                _ => {},
+                            }
+                        }
+                        self.regs[31] = self.pc; // return address
+                        self.pc = cb_addr; // jump to callback
+                    }
+                }
+
+                return true; // keep running (host checks frame_ready to pace rendering)
+            },
+
+            // BEEP freq_reg, dur_reg  -- play a sine-wave tone (freq Hz, dur ms)
+            0x03 => {
+                if let (Some(fr), Some(dr)) = (self.fetch_reg(), self.fetch_reg()) {
+                    let freq = self.regs[fr].clamp(20, 20000);
+                    let dur = self.regs[dr].clamp(1, 5000);
+                    self.beep = Some((freq, dur));
+                }
+            },
+
+            // MEMCPY dst_reg, src_reg, len_reg -- overlap-safe block copy
+            // Copies len words from [src] to [dst]. If regions overlap,
+            // copies backward to prevent clobbering (like memmove).
+            // Architectural decision: visual integrity over raw speed.
+            0x04 => {
+                if let (Some(dr), Some(sr), Some(lr)) =
+                    (self.fetch_reg(), self.fetch_reg(), self.fetch_reg())
+                {
+                    let dst = self.regs[dr] as usize;
+                    let src = self.regs[sr] as usize;
+                    let len = self.regs[lr] as usize;
+                    let max_copy = self.ram.len().min(len);
+                    // Detect overlap: if dst > src and regions intersect,
+                    // copy backward to avoid clobbering source data
+                    if dst > src && dst < src + max_copy {
+                        for i in (0..max_copy).rev() {
+                            let d = dst + i;
+                            let s = src + i;
+                            if d < self.ram.len() && s < self.ram.len() {
+                                self.ram[d] = self.ram[s];
+                            }
+                        }
+                    } else {
+                        for i in 0..max_copy {
+                            let d = dst + i;
+                            let s = src + i;
+                            if d < self.ram.len() && s < self.ram.len() {
+                                self.ram[d] = self.ram[s];
+                            }
+                        }
+                    }
+                }
+            },
+
+            // === IPC Synchronization Primitives (Phase 289) ===
+            //
+            // Mutex unlocked sentinel: u32::MAX (NO_MUTEX_OWNER).
+            // PID 0 is a valid process (the main/primary process), so we
+            // cannot use 0 to mean "unlocked". u32::MAX is never a valid PID.
+
+            // MTEXINIT addr_reg  -- initialize a mutex at a RAM address
+            // r0 = 0 on success, error code on failure
+            // Encoding: 2 words [0x05, addr_reg]
+            0x05 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar];
+                    // Check if mutex already exists at this address
+                    if self.mutexes.iter().any(|m| m.addr == addr) {
+                        self.regs[0] = geos_errno(GEOS_EBUSY);
+                    } else if self.mutexes.len() >= MAX_MUTEXES {
+                        self.regs[0] = geos_errno(GEOS_ENOMEM);
+                    } else {
+                        self.mutexes.push(GeosMutex {
+                            addr,
+                            owner_pid: NO_MUTEX_OWNER,
+                            wait_queue: Vec::new(),
+                        });
+                        self.regs[0] = 0;
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // MTEXLOCK addr_reg  -- acquire mutex (blocks if held by another process)
+            // r0 = 0 on success, error code on failure
+            // If mutex is free: acquire it, set owner to current PID
+            // If mutex held by current PID: return EBUSY (no recursive locking)
+            // If mutex held by another PID: block current process, rewind PC for retry
+            // Encoding: 2 words [0x06, addr_reg]
+            0x06 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar];
+                    if let Some(mtx) = self.mutexes.iter_mut().find(|m| m.addr == addr) {
+                        let pid = self.current_pid;
+                        if mtx.owner_pid == NO_MUTEX_OWNER {
+                            // Free: acquire immediately
+                            mtx.owner_pid = pid;
+                            self.regs[0] = 0;
+                        } else if mtx.owner_pid == pid {
+                            // Already held by us: no recursive locking
+                            self.regs[0] = geos_errno(GEOS_EBUSY);
+                        } else {
+                            // Held by another process: block and retry
+                            if !mtx.wait_queue.contains(&pid) {
+                                mtx.wait_queue.push(pid);
+                            }
+                            // Use wants_block flag instead of directly setting
+                            // process state (processes may be taken out of
+                            // self.processes during scheduling round)
+                            self.wants_block = true;
+                            self.pc -= 2; // rewind to retry MTEXLOCK
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_ENOENT); // no mutex at this addr
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // MTEXUNLOCK addr_reg  -- release mutex, wake one waiter
+            // r0 = 0 on success, error code on failure
+            // Only the owner can unlock. Wakes the first process in the wait queue.
+            // Encoding: 2 words [0x07, addr_reg]
+            0x07 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar];
+                    if let Some(mtx) = self.mutexes.iter_mut().find(|m| m.addr == addr) {
+                        let pid = self.current_pid;
+                        if mtx.owner_pid == pid {
+                            // Release
+                            mtx.owner_pid = NO_MUTEX_OWNER;
+                            // Wake first waiter if any
+                            if let Some(waker_pid) = mtx.wait_queue.first().copied() {
+                                mtx.wait_queue.remove(0);
+                                mtx.owner_pid = waker_pid;
+                                // Queue wake-up (process may be out of
+                                // self.processes during scheduling round)
+                                self.pending_wakes.push(waker_pid);
+                            }
+                            self.regs[0] = 0;
+                        } else if mtx.owner_pid == NO_MUTEX_OWNER {
+                            self.regs[0] = geos_errno(GEOS_EINVAL); // not locked
+                        } else {
+                            self.regs[0] = geos_errno(GEOS_EPERM); // not owner
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_ENOENT);
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // SPRITE_SCALE x_reg, y_reg, addr_reg, w_reg, h_reg, scale_reg  (0x0A)
+            // Blit NxM pixels from RAM with nearest-neighbor scaling.
+            // Color 0 = transparent (same as SPRITE). Scale: 1=1x, 2=2x, 4=4x.
+            // For invalid scales, defaults to 1x (passthrough).
+            // Encoding: 7 words [0x0A, x_reg, y_reg, addr_reg, w_reg, h_reg, scale_reg]
+            0x0A => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                if xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && ar < NUM_REGS
+                    && wr < NUM_REGS
+                    && hr < NUM_REGS
+                    && sr < NUM_REGS
+                {
+                    let sx = self.regs[xr] as usize;
+                    let sy = self.regs[yr] as usize;
+                    let addr = self.regs[ar] as usize;
+                    let w = self.regs[wr] as usize;
+                    let h = self.regs[hr] as usize;
+                    let scale = match self.regs[sr] {
+                        2 | 4 => self.regs[sr] as usize,
+                        _ => 1,
+                    };
+                    if w > 0 && h > 0 && w <= 256 && h <= 256 && scale <= 4 {
+                        for dy in 0..h {
+                            for dx in 0..w {
+                                let src_idx = addr + dy * w + dx;
+                                if src_idx >= self.ram.len() {
+                                    break;
+                                }
+                                let color = self.ram[src_idx];
+                                if color == 0 {
+                                    continue;
+                                } // transparent
+                                for sy_ in 0..scale {
+                                    for sx_ in 0..scale {
+                                        let px = sx + dx * scale + sx_;
+                                        let py = sy + dy * scale + sy_;
+                                        self.set_pixel_clipped(px, py, color);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if self.render_logging {
+                    let sx = if xr < NUM_REGS { self.regs[xr] } else { 0 };
+                    let sy = if yr < NUM_REGS { self.regs[yr] } else { 0 };
+                    let w = if wr < NUM_REGS { self.regs[wr] } else { 0 };
+                    let h = if hr < NUM_REGS { self.regs[hr] } else { 0 };
+                    let scale = if sr < NUM_REGS { self.regs[sr] } else { 0 };
+                    self.log_render_op(0x0A, "SPRITE_SCALE", &[sx, sy, w, h, scale]);
+                }
+            },
+
+            // ASM src_reg, dst_reg, base_reg  (0x0B) -- Host-assisted assembly
+            // Reads null-terminated source text from byte-addressable VM RAM at
+            // address in src_reg, assembles it using the host Rust assembler (which
+            // supports labels, #define, .equ, etc.), and writes the output bytecode
+            // pixels starting at the pixel address in dst_reg.
+            // base_reg provides the base address for label resolution.
+            // Sets r0 = word count on success, 0 on error.
+            // Encoding: 4 words [0x0B, src_reg, dst_reg, base_reg]
+            0x0B => {
+                let src_r = self.fetch() as usize;
+                let dst_r = self.fetch() as usize;
+                let base_r = self.fetch() as usize;
+                if src_r < NUM_REGS && dst_r < NUM_REGS && base_r < NUM_REGS {
+                    let src_addr = self.regs[src_r] as usize;
+                    let dst_addr = self.regs[dst_r] as usize;
+                    let base_addr = self.regs[base_r] as usize;
+
+                    // Read null-terminated source text from byte-addressable VM memory.
+                    // Each u32 RAM word packs 4 bytes (little-endian: byte0 = bits 0-7).
+                    let mut source_bytes: Vec<u8> = Vec::new();
+                    let max_read = 65536;
+                    for i in 0..max_read {
+                        let byte_addr = src_addr + i;
+                        let word_idx = byte_addr / 4;
+                        let byte_shift = (byte_addr % 4) * 8;
+                        if word_idx >= self.ram.len() {
+                            break;
+                        }
+                        let byte = ((self.ram[word_idx] >> byte_shift) & 0xFF) as u8;
+                        if byte == 0 {
+                            break;
+                        }
+                        source_bytes.push(byte);
+                    }
+
+                    if source_bytes.is_empty() {
+                        self.regs[0] = 0;
+                    } else {
+                        let source = String::from_utf8_lossy(&source_bytes);
+                        match crate::assembler::assemble(&source, base_addr) {
+                            Ok(result) => {
+                                let pixels = &result.pixels;
+                                let word_count = pixels.len();
+                                for (i, &pixel) in pixels.iter().enumerate() {
+                                    let addr = dst_addr + i;
+                                    if addr < self.ram.len() {
+                                        // Invalidate instruction cache if writing to code memory
+                                        if addr < self.icache.len() && self.ram[addr] != pixel {
+                                            self.icache_invalidate_range(addr, addr + 1);
+                                        }
+                                        self.ram[addr] = pixel;
+                                    }
+                                }
+                                self.regs[0] = word_count as u32;
+                            },
+                            Err(e) => {
+                                self.regs[0] = 0;
+                            },
+                        }
+                    }
+                }
+            },
+
+            // MEMSET dst_reg, val_reg, count_reg -- fill memory region with value
+            // Fills count words starting at dst with val. Bounds-checks against RAM.
+            // Intercepts canvas buffer (0x8000-0x8FFF) and screen buffer (0x10000+) ranges.
+            0xF6 => {
+                let dr = self.fetch() as usize;
+                let vr = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if dr < NUM_REGS && vr < NUM_REGS && cr < NUM_REGS {
+                    let dst_base = self.regs[dr] as usize;
+                    let val = self.regs[vr];
+                    let count = self.regs[cr] as usize;
+                    for i in 0..count {
+                        let vaddr = (dst_base + i) as u32;
+                        // COW resolve before each write (like STORE)
+                        self.resolve_cow_if_needed(vaddr);
+                        match self.translate_va_or_fault(vaddr) {
+                            Some(addr) => {
+                                // Screen buffer intercept
+                                if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE).contains(&addr)
+                                {
+                                    self.screen[addr - SCREEN_RAM_BASE] = val;
+                                    self.log_access(addr, MemAccessKind::Write);
+                                } else if addr < self.ram.len() {
+                                    if self.mode == CpuMode::User && addr >= 0xFF00 {
+                                        self.trigger_segfault();
+                                        return false;
+                                    }
+                                    // Canvas buffer intercept
+                                    if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
+                                        .contains(&addr)
+                                    {
+                                        let cidx = addr - CANVAS_RAM_BASE;
+                                        self.canvas_buffer[cidx] = val;
+                                        self.formula_recalc(cidx);
+                                    } else {
+                                        // Invalidate instruction cache if writing to code memory
+                                        if addr < self.icache.len() && self.ram[addr] != val {
+                                            self.icache_invalidate_range(addr, addr + 1);
+                                        }
+                                        self.ram[addr] = val;
+                                    }
+                                    self.log_access(addr, MemAccessKind::Write);
+                                } else {
+                                    break; // out of bounds, stop filling
+                                }
+                            },
+                            None => {
+                                self.trigger_segfault();
+                                return false;
+                            },
+                        }
+                    }
+                }
+            },
+
+            0x10..=0x1F | 0x2C => {
+                if !self.step_memory(opcode) {
+                    return false;
+                }
+            },
+
+            // ADD rd, rs  -- rd = rd + rs
+            0x20 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    self.regs[rd] = self.regs[rd].wrapping_add(self.regs[rs]);
+                }
+            },
+
+            // SUB rd, rs
+            0x21 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    self.regs[rd] = self.regs[rd].wrapping_sub(self.regs[rs]);
+                }
+            },
+
+            // MUL rd, rs
+            0x22 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    self.regs[rd] = self.regs[rd].wrapping_mul(self.regs[rs]);
+                }
+            },
+
+            // DIV rd, rs
+            0x23 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    if self.regs[rs] != 0 {
+                        self.regs[rd] /= self.regs[rs];
+                    }
+                }
+            },
+
+            // AND rd, rs
+            0x24 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    self.regs[rd] &= self.regs[rs];
+                }
+            },
+
+            // OR rd, rs
+            0x25 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    self.regs[rd] |= self.regs[rs];
+                }
+            },
+
+            // XOR rd, rs
+            0x26 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    self.regs[rd] ^= self.regs[rs];
+                }
+            },
+
+            // SHL rd, rs  -- rd = rd << rs (logical shift left)
+            0x27 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    let shift = self.regs[rs] % 32;
+                    self.regs[rd] = self.regs[rd].wrapping_shl(shift);
+                }
+            },
+
+            // SHR rd, rs  -- rd = rd >> rs (logical shift right)
+            0x28 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    let shift = self.regs[rs] % 32;
+                    self.regs[rd] = self.regs[rd].wrapping_shr(shift);
+                }
+            },
+
+            // MOD rd, rs  -- rd = rd % rs
+            0x29 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    if self.regs[rs] != 0 {
+                        self.regs[rd] %= self.regs[rs];
+                    }
+                }
+            },
+
+            // NEG rd  -- rd = -rd (two's complement)
+            0x2A => {
+                if let Some(rd) = self.fetch_reg() {
+                    self.regs[rd] = self.regs[rd].wrapping_neg();
+                }
+            },
+
+            // SAR rd, rs  -- rd = rd >> rs (arithmetic shift right)
+            0x2B => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    let shift = self.regs[rs] % 32;
+                    self.regs[rd] = ((self.regs[rd] as i32) >> shift) as u32;
+                }
+            },
+
+            // CLZ rd, rs  (0x2D) -- count leading zeros in rs, store in rd
+            // Returns 32 if rs == 0. Uses u32::leading_zeros.
+            // Encoding: 3 words [0x2D, rd_reg, rs_reg]
+            0x2D => {
+                let rd = self.fetch() as usize;
+                let rs = self.fetch() as usize;
+                if rd < NUM_REGS && rs < NUM_REGS {
+                    self.regs[rd] = self.regs[rs].leading_zeros();
+                }
+            },
+
+            // JMP addr
+            0x30 => {
+                let addr = self.fetch();
+                self.pc = addr;
+                return true; // don't increment PC again
+            },
+
+            // JZ reg, addr  -- jump if reg == 0
+            0x31 => {
+                if let Some(reg) = self.fetch_reg() {
+                    let addr = self.fetch();
+                    if self.regs[reg] == 0 {
+                        self.pc = addr;
+                        return true;
+                    }
+                } else {
+                    let _addr = self.fetch(); // consume the address word
+                }
+            },
+
+            // JNZ reg, addr  -- jump if reg != 0
+            0x32 => {
+                if let Some(reg) = self.fetch_reg() {
+                    let addr = self.fetch();
+                    if self.regs[reg] != 0 {
+                        self.pc = addr;
+                        return true;
+                    }
+                } else {
+                    let _addr = self.fetch(); // consume the address word
+                }
+            },
+
+            // CALL addr -- push old r31 onto stack, set r31 = return addr, jump
+            0x33 => {
+                let addr = self.fetch();
+                if NUM_REGS > 0 {
+                    // Push old r31 (link register) onto stack (r30=SP)
+                    let sp = self.regs[30];
+                    if sp > 0 {
+                        let new_sp = sp - 1;
+                        match self.translate_va_or_fault(new_sp) {
+                            Some(pa) if pa < self.ram.len() => {
+                                self.ram[pa] = self.regs[31];
+                                self.regs[30] = new_sp;
+                            },
+                            None => {
+                                self.trigger_segfault();
+                                return false;
+                            },
+                            _ => {},
+                        }
+                    }
+                    self.regs[31] = self.pc;
+                }
+                self.pc = addr;
+                return true;
+            },
+
+            // RET  -- jump to r31, then pop saved r31 from stack
+            0x34 => {
+                let ret_addr = self.regs[31];
+                if NUM_REGS > 0 {
+                    // Pop saved link register from stack (r30=SP)
+                    let sp = self.regs[30];
+                    match self.translate_va_or_fault(sp) {
+                        Some(pa) if pa < self.ram.len() => {
+                            self.regs[31] = self.ram[pa];
+                            self.regs[30] = sp + 1;
+                        },
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        },
+                        _ => {},
+                    }
+                }
+                self.pc = ret_addr;
+                return true;
+            },
+
+            // BLT reg, addr  -- branch if CMP result < 0 (r0 == 0xFFFFFFFF)
+            0x35 => {
+                let _reg = self.fetch() as usize;
+                let addr = self.fetch();
+                if self.regs[0] == 0xFFFFFFFF {
+                    self.pc = addr;
+                    return true;
+                }
+            },
+
+            // BGE reg, addr  -- branch if CMP result >= 0 (r0 != 0xFFFFFFFF)
+            0x36 => {
+                let _reg = self.fetch() as usize;
+                let addr = self.fetch();
+                if self.regs[0] != 0xFFFFFFFF {
+                    self.pc = addr;
+                    return true;
+                }
+            },
+
+            // HITSET xr, yr, wr, hr, id  -- register a hit-test region
+            // Adds a rectangular region to the hit table. Used for buttons,
+            // clickable areas, and GUI elements. Max MAX_HIT_REGIONS regions.
+            0x37 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                let id = self.fetch();
+                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS {
+                    if self.hit_regions.len() < MAX_HIT_REGIONS {
+                        self.hit_regions.push(HitRegion {
+                            x: self.regs[xr],
+                            y: self.regs[yr],
+                            w: self.regs[wr],
+                            h: self.regs[hr],
+                            id,
+                        });
+                    }
+                }
+            },
+
+            // HITTEST rd (0x38) -- check if mouse is inside any registered HitRegion
+            // Checks if current mouse position (self.mouse_x/y, set by host via
+            // push_mouse) falls inside any registered HitRegion.
+            // rd = region id if hit, 0 if no match. First match wins.
+            0x38 => {
+                if let Some(rd) = self.fetch_reg() {
+                    let mx = self.mouse_x;
+                    let my = self.mouse_y;
+                    let mut found_id = 0u32;
+                    for region in &self.hit_regions {
+                        if mx >= region.x
+                            && mx < region.x + region.w
+                            && my >= region.y
+                            && my < region.y + region.h
+                        {
+                            found_id = region.id;
+                            break;
+                        }
+                    }
+                    self.regs[rd] = found_id;
+                }
+            },
+
+            // BSWAP rd, rs -- byte-swap a 32-bit register value
+            // Reverses the byte order: 0x12345678 -> 0x78563412
+            // Encoding: 3 words [0x39, rd, rs]
+            0x39 => {
+                if let (Some(rd), Some(rs)) = (self.fetch_reg(), self.fetch_reg()) {
+                    let val = self.regs[rs];
+                    self.regs[rd] = ((val & 0xFF) << 24)
+                        | ((val & 0xFF00) << 8)
+                        | ((val & 0xFF0000) >> 8)
+                        | ((val & 0xFF000000) >> 24);
+                }
+            },
+
+            // CHAIN path_addr_reg (0x3A) -- Replace current program with file from VFS
+            // Reads null-terminated filename from RAM at address in path_addr_reg.
+            // Assembles/loads file from .geometry_os/fs/ and resets PC to 0.
+            // Registers are preserved.
+            0x3A => {
+                let pr = self.fetch() as usize;
+                if pr < NUM_REGS {
+                    let addr = self.regs[pr] as usize;
+                    if let Some(filename) = Self::read_string_static(&self.ram, addr) {
+                        eprintln!("[VM] CHAIN to file: {}", filename);
+                        if let Some(data) = crate::vfs::read_file_by_name(&filename) {
+                            // If it's .png, it's a pixelpack. If .asm, we must assemble it.
+                            let bytecode = if filename.ends_with(".png") {
+                                match crate::pixel::decode_pixelpack_png(&data) {
+                                    Ok(b) => {
+                                        // Convert Vec<u8> to Vec<u32>
+                                        let mut words = Vec::with_capacity(b.len() / 4);
+                                        for chunk in b.chunks_exact(4) {
+                                            words.push(u32::from_le_bytes([
+                                                chunk[0], chunk[1], chunk[2], chunk[3],
+                                            ]));
+                                        }
+                                        Some(words)
+                                    },
+                                    Err(_) => None,
+                                }
+                            } else if filename.ends_with(".asm") {
+                                let source = String::from_utf8_lossy(&data);
+                                let mut pp = crate::preprocessor::Preprocessor::new();
+                                let expanded = pp.preprocess(&source);
+                                match crate::assembler::assemble(&expanded, 0) {
+                                    Ok(res) => Some(res.pixels),
+                                    Err(e) => {
+                                        eprintln!("[VM] CHAIN assembly error: {}", e);
+                                        None
+                                    },
+                                }
+                            } else {
+                                None
+                            };
+
+                            if let Some(words) = bytecode {
+                                // Load into RAM at 0x0000
+                                for (i, &word) in words.iter().enumerate() {
+                                    if i < self.ram.len() {
+                                        self.ram[i] = word;
+                                    }
+                                }
+                                // Reset PC and icache
+                                self.pc = 0;
+                                self.icache.iter_mut().for_each(|slot| *slot = None);
+                                return true; // Branching behavior
+                            }
+                        }
+                    }
+                    self.regs[0] = 0xFFFFFFFF; // Error
+                }
+            },
+
+            // FILEOPEN ring_reg, angle_reg  (0x0D) -- Open a host file via VMFS bridge
+            // Reads null-terminated path from ring/angle encoding (see VMFS spec).
+            // Returns fd (0x7000+) in r0, or GEOS error code on failure.
+            // Encoding: 3 words [0x0D, ring_reg, angle_reg]
+            0x0D => {
+                let ring_r = self.fetch() as usize;
+                let angle_r = self.fetch() as usize;
+                if ring_r < NUM_REGS && angle_r < NUM_REGS {
+                    let ring = self.regs[ring_r];
+                    let angle = self.regs[angle_r];
+                    // Decode path from ring/angle encoding
+                    if let Some(path) = self.decode_vmfs_path(ring, angle) {
+                        // Open the file
+                        match std::fs::OpenOptions::new()
+                            .read(true)
+                            .write(true)
+                            .create(false)
+                            .open(&path)
+                        {
+                            Ok(file) => {
+                                // Find a free host file handle slot
+                                let fd = if let Some(idx) =
+                                    self.host_file_handles.iter().position(|h| h.is_none())
+                                {
+                                    self.host_file_handles[idx] = Some((file, 2)); // mode 2 = read/write
+                                    0x7000 + (idx as u32)
+                                } else {
+                                    self.regs[0] = geos_errno(GEOS_ENFILE);
+                                    return true;
+                                };
+                                self.regs[0] = fd;
+                            },
+                            Err(_) => {
+                                self.regs[0] = geos_errno(GEOS_ENOENT);
+                            },
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
+                    }
+                }
+            },
+
+            // FILEREAD handle_reg, buf_reg, len_reg  (0x0E) -- Read from host file
+            // Reads len bytes from file into RAM[buf]. Returns bytes read in r0.
+            // Encoding: 4 words [0x0E, handle_reg, buf_reg, len_reg]
+            0x0E => {
+                let hr = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                if hr < NUM_REGS && br < NUM_REGS && lr < NUM_REGS {
+                    let fd = self.regs[hr];
+                    let buf = self.regs[br] as usize;
+                    let len = self.regs[lr] as usize;
+                    let idx = (fd.wrapping_sub(0x7000)) as usize;
+                    if fd >= 0x7000 && idx < self.host_file_handles.len() {
+                        if let Some((file, _mode)) = &mut self.host_file_handles[idx] {
+                            let mut buffer = vec![0u8; len];
+                            match file.read(&mut buffer) {
+                                Ok(n) => {
+                                    for (i, &byte) in buffer.iter().enumerate().take(n) {
+                                        if buf + i < self.ram.len() {
+                                            self.ram[buf + i] = byte as u32;
+                                        }
+                                    }
+                                    self.regs[0] = n as u32;
+                                },
+                                Err(_) => {
+                                    self.regs[0] = geos_errno(GEOS_EIO);
+                                },
+                            }
+                        } else {
+                            self.regs[0] = geos_errno(GEOS_EBADF);
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EBADF);
+                    }
+                }
+            },
+
+            // FILEWRITE handle_reg, buf_reg, len_reg  (0x0F) -- Write to host file
+            // Writes len bytes from RAM[buf] to file. Returns bytes written in r0.
+            // Encoding: 4 words [0x0F, handle_reg, buf_reg, len_reg]
+            0x0F => {
+                let hr = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                if hr < NUM_REGS && br < NUM_REGS && lr < NUM_REGS {
+                    let fd = self.regs[hr];
+                    let buf = self.regs[br] as usize;
+                    let len = self.regs[lr] as usize;
+                    let idx = (fd.wrapping_sub(0x7000)) as usize;
+                    if fd >= 0x7000 && idx < self.host_file_handles.len() {
+                        if let Some((file, mode)) = &mut self.host_file_handles[idx] {
+                            if *mode & 2 == 0 {
+                                self.regs[0] = geos_errno(GEOS_EACCES);
+                                return true;
+                            }
+                            let buffer: Vec<u8> = (0..len)
+                                .filter_map(|i| {
+                                    if buf + i < self.ram.len() {
+                                        Some((self.ram[buf + i] & 0xFF) as u8)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect();
+                            match file.write_all(&buffer) {
+                                Ok(()) => {
+                                    let _ = file.flush();
+                                    self.regs[0] = len as u32;
+                                },
+                                Err(_) => {
+                                    self.regs[0] = geos_errno(GEOS_EIO);
+                                },
+                            }
+                        } else {
+                            self.regs[0] = geos_errno(GEOS_EBADF);
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EBADF);
+                    }
+                }
+            },
+
+            // FILELIST ring_reg, angle_reg, buf_reg, max_entries_reg (0x1F)
+            // Lists files in VMFS directory at path decoded from ring/angle encoding.
+            // Writes null-terminated filenames to buf, each max 64 chars.
+            // Returns number of entries written in r0, or GEOS error on failure.
+            // Encoding: 5 words [0x1F, ring_reg, angle_reg, buf_reg, max_entries_reg]
+            0x1F => {
+                let ring_r = self.fetch() as usize;
+                let angle_r = self.fetch() as usize;
+                let buf_r = self.fetch() as usize;
+                let max_r = self.fetch() as usize;
+                if ring_r < NUM_REGS && angle_r < NUM_REGS && buf_r < NUM_REGS && max_r < NUM_REGS {
+                    let ring = self.regs[ring_r];
+                    let angle = self.regs[angle_r];
+                    let buf = self.regs[buf_r] as usize;
+                    let max_entries = self.regs[max_r] as usize;
+
+                    if let Some(path) = self.decode_vmfs_path(ring, angle) {
+                        match std::fs::read_dir(&path) {
+                            Ok(entries) => {
+                                let mut count = 0;
+                                let mut offset = 0;
+                                for entry in entries.take(max_entries) {
+                                    if let Ok(e) = entry {
+                                        if let Some(name) = e.file_name().to_str() {
+                                            let bytes = name.as_bytes();
+                                            let len = bytes.len().min(64);
+                                            for (i, &byte) in bytes.iter().enumerate().take(len) {
+                                                if buf + offset + i < self.ram.len() {
+                                                    self.ram[buf + offset + i] = byte as u32;
+                                                }
+                                            }
+                                            if buf + offset + len < self.ram.len() {
+                                                self.ram[buf + offset + len] = 0;
+                                                // null terminate
+                                            }
+                                            offset += len + 1;
+                                            count += 1;
+                                        }
+                                    }
+                                }
+                                self.regs[0] = count;
+                            },
+                            Err(_) => {
+                                self.regs[0] = geos_errno(GEOS_ENOENT);
+                            },
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
+                    }
+                }
+            },
+
+            // PUSH reg  -- push onto stack (r30=SP, page-translated)
+            0x60 => {
+                if let Some(reg) = self.fetch_reg() {
+                    let sp = self.regs[30];
+                    if sp > 0 {
+                        let new_sp = sp - 1;
+                        match self.translate_va_or_fault(new_sp) {
+                            Some(addr) if addr < self.ram.len() => {
+                                self.ram[addr] = self.regs[reg];
+                                self.regs[30] = new_sp;
+                            },
+                            None => {
+                                self.trigger_segfault();
+                                return false;
+                            },
+                            _ => {},
+                        }
+                    }
+                }
+            },
+
+            // POP reg  -- pop from stack (r30=SP, page-translated)
+            0x61 => {
+                if let Some(reg) = self.fetch_reg() {
+                    let sp = self.regs[30];
+                    match self.translate_va_or_fault(sp) {
+                        Some(addr) if addr < self.ram.len() => {
+                            self.regs[reg] = self.ram[addr];
+                            self.regs[30] = sp + 1;
+                        },
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        },
+                        _ => {},
+                    }
+                }
+            },
+            // Phase 217: HILBERT_XY2D (0x3B), HILBERT_D2XY (0x3C), NEURAL_EVAL (0x3D)
+            // Phase-201: HMIRROR (0x3E)
+            // Remapped from 0x07/0x08/0x09 which conflicted with mutex/semaphore opcodes.
+            0x3B..=0x3E => {
+                if !self.step_graphics(opcode) {
+                    return false;
+                }
+            },
+
+            // FILECREATE ring_reg, angle_reg, size_hint_reg  (0x3F) -- Create new host file
+            // Creates file at path decoded from ring/angle, returns fd in r0.
+            // size_hint is optional (for preallocation, ignored in v1).
+            // Encoding: 4 words [0x3F, ring_reg, angle_reg, size_hint_reg]
+            0x3F => {
+                let ring_r = self.fetch() as usize;
+                let angle_r = self.fetch() as usize;
+                let _size_r = self.fetch() as usize;
+                if ring_r < NUM_REGS && angle_r < NUM_REGS {
+                    let ring = self.regs[ring_r];
+                    let angle = self.regs[angle_r];
+                    if let Some(path) = self.decode_vmfs_path(ring, angle) {
+                        match std::fs::OpenOptions::new()
+                            .write(true)
+                            .create_new(true)
+                            .open(&path)
+                        {
+                            Ok(file) => {
+                                let fd = if let Some(idx) =
+                                    self.host_file_handles.iter().position(|h| h.is_none())
+                                {
+                                    self.host_file_handles[idx] = Some((file, 2));
+                                    0x7000 + (idx as u32)
+                                } else {
+                                    self.regs[0] = geos_errno(GEOS_ENFILE);
+                                    return true;
+                                };
+                                self.regs[0] = fd;
+                            },
+                            Err(_) => {
+                                self.regs[0] = geos_errno(GEOS_EEXIST);
+                            },
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
+                    }
+                }
+            },
+
+            0x40..=0x51 => {
+                if !self.step_graphics(opcode) {
+                    return false;
+                }
+            },
+            // Phase 241: ROTATE (0xF4) and SCALE (0xF5) dispatched to step_graphics
+            0xF4 | 0xF5 => {
+                if !self.step_graphics(opcode) {
+                    return false;
+                }
+            },
+            0x52..=0x5F => {
+                if !self.step_syscall(opcode) {
+                    return false;
+                }
+            },
+            0x62..=0x7D => {
+                if !self.step_extended(opcode) {
+                    return false;
+                }
+            },
+            // NOTE wave_reg, freq_reg, dur_reg -- play a note with selectable waveform
+            // wave_reg: 0=sine, 1=square, 2=triangle, 3=sawtooth, 4=noise
+            // freq in Hz (20-20000), dur in ms (1-5000)
+            0x7E => {
+                if let (Some(wr), Some(fr), Some(dr)) =
+                    (self.fetch_reg(), self.fetch_reg(), self.fetch_reg())
+                {
+                    let wave = self.regs[wr].min(4);
+                    let freq = self.regs[fr].clamp(20, 20000);
+                    let dur = self.regs[dr].clamp(1, 5000);
+                    self.note = Some((wave, freq, dur));
+                }
+            },
+            // CONNECT addr_reg, port_reg, fd_reg  (0x7F) -- TCP connect
+            // Reads null-terminated IP string from RAM[addr_reg], connects to port.
+            // Returns fd in fd_reg, status in r0 (0=ok).
+            0x7F => {
+                self.op_connect();
+            },
+            // SOCKSEND fd_reg, buf_reg, len_reg, sent_reg  (0x80) -- TCP send
+            // Sends len bytes from RAM[buf_reg]. Returns bytes sent in sent_reg.
+            0x80 => {
+                self.op_socksend();
+            },
+            // SOCKRECV fd_reg, buf_reg, max_len_reg, recv_reg  (0x81) -- TCP recv
+            // Receives up to max_len bytes into RAM[buf_reg]. Returns bytes recv in recv_reg.
+            0x81 => {
+                self.op_sockrecv();
+            },
+            // DISCONNECT fd_reg  (0x82) -- TCP close
+            // Closes connection and frees slot. Status in r0.
+            0x82 => {
+                self.op_disconnect();
+            },
+            // TRACE_READ mode_reg  (0x83) -- Query execution trace buffer from assembly.
+            // Encoding: 0x83, mode_reg
+            // mode_reg value:
+            //   0 = query count: r0 = number of entries in trace buffer
+            //   1 = read entry: r2 = index (0=oldest), r3 = dest RAM address
+            //       Writes 20 words: [step_lo, step_hi, pc, r0..r15, opcode]
+            //       r0 = 0 on success, 0xFFFFFFFF if index out of range
+            //   2 = count opcode: r2 = target opcode, r0 = count of matching entries
+            //   3 = find opcode indices: r2 = target opcode, r3 = dest RAM address
+            //       Writes up to 256 entry indices (oldest to newest)
+            //       r0 = number of matches written
+            0x83 => {
+                let mode_reg = self.fetch() as usize;
+                let mode = if mode_reg < NUM_REGS {
+                    self.regs[mode_reg]
+                } else {
+                    0
+                };
+                match mode {
+                    0 => {
+                        // Query: return number of entries
+                        self.regs[0] = self.trace_buffer.len() as u32;
+                    },
+                    1 => {
+                        // Read entry at index into RAM
+                        let idx = self.regs[2] as usize;
+                        let dest = self.regs[3] as usize;
+                        if let Some(entry) = self.trace_buffer.get_at(idx) {
+                            let step_lo = (entry.step_number & 0xFFFFFFFF) as u32;
+                            let step_hi = ((entry.step_number >> 32) & 0xFFFFFFFF) as u32;
+                            if dest + 20 <= self.ram.len() {
+                                self.ram[dest] = step_lo;
+                                self.ram[dest + 1] = step_hi;
+                                self.ram[dest + 2] = entry.pc;
+                                for i in 0..16 {
+                                    self.ram[dest + 3 + i] = entry.regs[i];
+                                }
+                                self.ram[dest + 19] = entry.opcode;
+                                self.regs[0] = 0; // success
+                            } else {
+                                self.regs[0] = geos_errno(GEOS_ERANGE); // dest out of range
+                            }
+                        } else {
+                            self.regs[0] = geos_errno(GEOS_ERANGE); // index out of range
+                        }
+                    },
+                    0x2D => {
+                        if !self.step_extended(0x2D) {
+                            return false;
+                        }
+                    },
+
+                    0x2E => {
+                        if !self.step_extended(0x2E) {
+                            return false;
+                        }
+                    },
+
+                    0x2F => {
+                        if !self.step_extended(0x2F) {
+                            return false;
+                        }
+                    },
+
+                    0x30 => {
+                        // Find entries with specific opcode, write indices to RAM
+                        let target = self.regs[2];
+                        let dest = self.regs[3] as usize;
+                        let indices = self.trace_buffer.find_opcode_indices(target, 256);
+                        let count = indices.len().min(256);
+                        if dest + count <= self.ram.len() {
+                            for (i, &idx) in indices.iter().enumerate().take(count) {
+                                self.ram[dest + i] = idx as u32;
+                            }
+                            self.regs[0] = count as u32;
+                        } else {
+                            self.regs[0] = geos_errno(GEOS_ERANGE); // dest out of range
+                        }
+                    },
+                    _ => {
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // invalid mode
+                    },
+                }
+            },
+            // PIXEL_HISTORY mode_reg  (0x84) -- Query pixel write history.
+            // Delegates to step_extended which has the full implementation.
+            0x84 => {
+                if !self.step_extended(opcode) {
+                    return false;
+                }
+            },
+            // HYPERVISOR_SEND addr_reg, len_reg  (0x1C) -- Forward bytes to hypervisor guest
+            0x1C => {
+                if !self.step_extended(opcode) {
+                    return false;
+                }
+            },
+            // HYPERVISOR_STATUS  (0x1D) -- Query hypervisor guest status
+            0x1D => {
+                if !self.step_extended(opcode) {
+                    return false;
+                }
+            },
+            // MOUSEQ x_reg  (0x85) -- Query mouse position and button.
+            // Reads current mouse X into x_reg, mouse Y into x_reg+1, button into x_reg+2.
+            // Button: 0=none, 1=left down, 2=left click (auto-cleared after read).
+            // Set by host via push_mouse(x, y) and push_mouse_button(btn).
+            // Phase 124: When the calling process owns a window, coordinates are
+            // translated to be window-relative so the app sees (0,0) at its top-left.
+            0x85 => {
+                let xr = self.fetch() as usize;
+                if xr < NUM_REGS && xr + 2 < NUM_REGS {
+                    let (mx, my) = self.translate_mouse_for_current_process();
+                    self.regs[xr] = mx;
+                    self.regs[xr + 1] = my;
+                    self.regs[xr + 2] = self.mouse_button;
+                    // Auto-clear click state after read (but not down state)
+                    if self.mouse_button == 2 {
+                        self.mouse_button = 1; // was click, now just down
+                    }
+                }
+            },
+
+            // STRCMP addr1_reg, addr2_reg -- compare two null-terminated strings
+            // Sets r0: 0 if equal, 1 if s1 > s2, 0xFFFFFFFF (-1) if s1 < s2
+            0x86 => {
+                let a1 = self.fetch() as usize;
+                let a2 = self.fetch() as usize;
+                if a1 < NUM_REGS && a2 < NUM_REGS {
+                    let mut addr1 = self.regs[a1] as usize;
+                    let mut addr2 = self.regs[a2] as usize;
+                    loop {
+                        let c1 = if addr1 < self.ram.len() {
+                            (self.ram[addr1] & 0xFF) as u8
+                        } else {
+                            0
+                        };
+                        let c2 = if addr2 < self.ram.len() {
+                            (self.ram[addr2] & 0xFF) as u8
+                        } else {
+                            0
+                        };
+                        if c1 != c2 {
+                            self.regs[0] = if c1 > c2 { 1 } else { 0xFFFFFFFF };
+                            break;
+                        }
+                        if c1 == 0 {
+                            self.regs[0] = 0;
+                            break;
+                        }
+                        addr1 += 1;
+                        addr2 += 1;
+                    }
+                }
+            },
+
+            // ABS rd  (0x87) -- absolute value: rd = |rd|
+            // Handles i32::MIN edge case (0x80000000) by returning itself
+            0x87 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    let val = self.regs[rd] as i32;
+                    self.regs[rd] = val.wrapping_abs() as u32;
+                }
+            },
+
+            // RECT x, y, w, h, color  (0x88) -- outline rectangle (4 edges only)
+            0x88 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS && cr < NUM_REGS
+                {
+                    let x0 = self.regs[xr] as usize;
+                    let y0 = self.regs[yr] as usize;
+                    let w = self.regs[wr] as usize;
+                    let h = self.regs[hr] as usize;
+                    let color = self.regs[cr];
+                    self.log_render_op(
+                        0x88,
+                        "RECT",
+                        &[x0 as u32, y0 as u32, w as u32, h as u32, color],
+                    );
+                    if w > 0 && h > 0 {
+                        // Top edge
+                        for dx in 0..w {
+                            let px = x0 + dx;
+                            if px < 256 && y0 < 256 {
+                                self.screen[y0 * 256 + px] = color;
+                            }
+                        }
+                        // Bottom edge
+                        let by = y0 + h - 1;
+                        for dx in 0..w {
+                            let px = x0 + dx;
+                            if px < 256 && by < 256 {
+                                self.screen[by * 256 + px] = color;
+                            }
+                        }
+                        // Left edge (excluding corners already drawn)
+                        for dy in 1..h.saturating_sub(1) {
+                            let py = y0 + dy;
+                            if x0 < 256 && py < 256 {
+                                self.screen[py * 256 + x0] = color;
+                            }
+                        }
+                        // Right edge (excluding corners already drawn)
+                        let rx = x0 + w - 1;
+                        for dy in 1..h.saturating_sub(1) {
+                            let py = y0 + dy;
+                            if rx < 256 && py < 256 {
+                                self.screen[py * 256 + rx] = color;
+                            }
+                        }
+                    }
+                }
+            },
+
+            // MIN rd, rs  (0x89) -- rd = min(rd, rs) as signed i32
+            0x89 => {
+                let rd = self.fetch() as usize;
+                let rs = self.fetch() as usize;
+                if rd < NUM_REGS && rs < NUM_REGS {
+                    let a = self.regs[rd] as i32;
+                    let b = self.regs[rs] as i32;
+                    self.regs[rd] = a.min(b) as u32;
+                }
+            },
+
+            // MAX rd, rs  (0x8A) -- rd = max(rd, rs) as signed i32
+            0x8A => {
+                let rd = self.fetch() as usize;
+                let rs = self.fetch() as usize;
+                if rd < NUM_REGS && rs < NUM_REGS {
+                    let a = self.regs[rd] as i32;
+                    let b = self.regs[rs] as i32;
+                    self.regs[rd] = a.max(b) as u32;
+                }
+            },
+
+            // CLAMP rd, min_reg, max_reg  (0x8B) -- rd = clamp(rd, min, max) as signed i32
+            0x8B => {
+                let rd = self.fetch() as usize;
+                let min_r = self.fetch() as usize;
+                let max_r = self.fetch() as usize;
+                if rd < NUM_REGS && min_r < NUM_REGS && max_r < NUM_REGS {
+                    let val = self.regs[rd] as i32;
+                    let lo = self.regs[min_r] as i32;
+                    let hi = self.regs[max_r] as i32;
+                    self.regs[rd] = val.clamp(lo, hi) as u32;
+                }
+            },
+
+            // DRAWTEXT x_reg, y_reg, addr_reg, fg_reg, bg_reg  (0x8C)
+            // Render text from RAM with fg/bg colors. bg=0 means transparent.
+            0x8C => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let fgr = self.fetch() as usize;
+                let bgr = self.fetch() as usize;
+                if xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && ar < NUM_REGS
+                    && fgr < NUM_REGS
+                    && bgr < NUM_REGS
+                {
+                    let mut sx = self.regs[xr] as usize;
+                    let mut sy = self.regs[yr] as usize;
+                    let mut addr = self.regs[ar] as usize;
+                    let fg = self.regs[fgr];
+                    let bg_val = self.regs[bgr];
+                    self.log_render_op(
+                        0x8C,
+                        "DRAWTEXT",
+                        &[sx as u32, sy as u32, fg, bg_val, addr as u32],
+                    );
+                    let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    loop {
+                        if addr >= self.ram.len() {
+                            break;
+                        }
+                        let ch = (self.ram[addr] & 0xFF) as u8;
+                        if ch == 0 {
+                            break;
+                        }
+                        if ch == b'\n' {
+                            // fill bg for rest of line if bg set
+                            if let Some(bg_color) = bg {
+                                for col in 0..6 {
+                                    let px = sx + col;
+                                    if px < 256 && sy < 256 && (sy + 7) < 256 {
+                                        for row in 0..8 {
+                                            self.screen[(sy + row) * 256 + px] = bg_color;
+                                        }
+                                    }
+                                }
+                            }
+                            sx = self.regs[xr] as usize;
+                            sy += 10;
+                            addr += 1;
+                            continue;
+                        }
+                        self.draw_char_with_bg(ch, sx, sy, fg, bg);
+                        sx += 6;
+                        if sx > 250 {
+                            sx = self.regs[xr] as usize;
+                            sy += 8;
+                        }
+                        addr += 1;
+                    }
+                }
+            },
+
+            // SMALLTEXT x_reg, y_reg, addr_reg, fg_reg, bg_reg  (0xD0)
+            // Like DRAWTEXT but uses 3x5 tiny font for 85 columns in 256px.
+            // Advance per char: 3px horizontal, 6px vertical (5px + 1 spacing).
+            0xD0 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let fgr = self.fetch() as usize;
+                let bgr = self.fetch() as usize;
+                if xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && ar < NUM_REGS
+                    && fgr < NUM_REGS
+                    && bgr < NUM_REGS
+                {
+                    let mut sx = self.regs[xr] as usize;
+                    let mut sy = self.regs[yr] as usize;
+                    let mut addr = self.regs[ar] as usize;
+                    let fg = self.regs[fgr];
+                    let bg_val = self.regs[bgr];
+                    self.log_render_op(
+                        0xD0,
+                        "SMALLTEXT",
+                        &[sx as u32, sy as u32, fg, bg_val, addr as u32],
+                    );
+                    let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    loop {
+                        if addr >= self.ram.len() {
+                            break;
+                        }
+                        let ch = (self.ram[addr] & 0xFF) as u8;
+                        if ch == 0 {
+                            break;
+                        }
+                        if ch == b'\n' {
+                            sx = self.regs[xr] as usize;
+                            sy += 6;
+                            addr += 1;
+                            continue;
+                        }
+                        self.draw_char_tiny(ch, sx, sy, fg, bg);
+                        sx += 3;
+                        if sx > 253 {
+                            sx = self.regs[xr] as usize;
+                            sy += 6;
+                        }
+                        addr += 1;
+                    }
+                }
+            },
+
+            // MEDTEXT x_reg, y_reg, addr_reg, fg_reg, bg_reg  (0xD1)
+            // 5x7 medium font for readable terminal text. 42 cols in 256px.
+            // Advance per char: 6px horizontal, 8px vertical (7px + 1 spacing).
+            0xD1 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let fgr = self.fetch() as usize;
+                let bgr = self.fetch() as usize;
+                if xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && ar < NUM_REGS
+                    && fgr < NUM_REGS
+                    && bgr < NUM_REGS
+                {
+                    let mut sx = self.regs[xr] as usize;
+                    let mut sy = self.regs[yr] as usize;
+                    let mut addr = self.regs[ar] as usize;
+                    let fg = self.regs[fgr];
+                    let bg_val = self.regs[bgr];
+                    self.log_render_op(
+                        0xD1,
+                        "MEDTEXT",
+                        &[sx as u32, sy as u32, fg, bg_val, addr as u32],
+                    );
+                    let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    loop {
+                        if addr >= self.ram.len() {
+                            break;
+                        }
+                        let ch = (self.ram[addr] & 0xFF) as u8;
+                        if ch == 0 {
+                            break;
+                        }
+                        if ch == b'\n' {
+                            sx = self.regs[xr] as usize;
+                            sy += 8;
+                            addr += 1;
+                            continue;
+                        }
+                        self.draw_char_medium(ch, sx, sy, fg, bg);
+                        sx += 6;
+                        if sx > 250 {
+                            sx = self.regs[xr] as usize;
+                            sy += 8;
+                        }
+                        addr += 1;
+                    }
+                }
+            },
+
+            // PATCH addr, val, mask  (0xD2, 4 words)
+            // Spatial instruction patching: ram[addr] = (ram[addr] & ~mask) | (val & mask)
+            // Enables self-modifying code at the pixel level.
+            0xD2 => {
+                let ar = self.fetch() as usize;
+                let vr = self.fetch() as usize;
+                let mr = self.fetch() as usize;
+                if ar < NUM_REGS && vr < NUM_REGS && mr < NUM_REGS {
+                    let addr = self.regs[ar] as usize;
+                    let val = self.regs[vr];
+                    let mask = self.regs[mr];
+                    if addr < self.ram.len() {
+                        self.ram[addr] = (self.ram[addr] & !mask) | (val & mask);
+                    }
+                }
+            },
+
+            // VWTXT x_reg, y_reg, addr_reg, fg_reg, bg_reg  (0xDB)
+            // Variable-width text rendering using per-glyph advance widths.
+            // Each character advances by its own width (narrow 'i'=3px, wide 'M'=7px).
+            // Produces more readable, proportional text than fixed-width fonts.
+            // Line height: 10px (8px glyph + 2px spacing).
+            0xDB => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let fgr = self.fetch() as usize;
+                let bgr = self.fetch() as usize;
+                if xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && ar < NUM_REGS
+                    && fgr < NUM_REGS
+                    && bgr < NUM_REGS
+                {
+                    let mut sx = self.regs[xr] as usize;
+                    let mut sy = self.regs[yr] as usize;
+                    let mut addr = self.regs[ar] as usize;
+                    let fg = self.regs[fgr];
+                    let bg_val = self.regs[bgr];
+                    let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    let mut prev_ch: u8 = 0;
+                    loop {
+                        if addr >= self.ram.len() {
+                            break;
+                        }
+                        let ch = (self.ram[addr] & 0xFF) as u8;
+                        if ch == 0 {
+                            break;
+                        }
+                        if ch == b'\n' {
+                            sx = self.regs[xr] as usize;
+                            sy += 10;
+                            prev_ch = 0;
+                            addr += 1;
+                            continue;
+                        }
+                        // Apply kerning: adjust x position based on previous character pair
+                        if prev_ch != 0 {
+                            let kern = crate::font::get_kerning(prev_ch, ch);
+                            if kern < 0 {
+                                sx = sx.saturating_sub(-kern as usize);
+                            } else {
+                                sx += kern as usize;
+                            }
+                        }
+                        let advance = self.draw_char_vw(ch, sx, sy, fg, bg);
+                        sx += advance as usize;
+                        prev_ch = ch;
+                        // Word wrap: if we're past column 248, go to next line
+                        if sx > 248 {
+                            sx = self.regs[xr] as usize;
+                            sy += 10;
+                            prev_ch = 0;
+                        }
+                        addr += 1;
+                    }
+                }
+            },
+
+            // FONT_SELECT mode_reg  (0xDC)
+            // Select font mode for TEXT opcode (Phase 210).
+            // r[mode_reg]: 0 = fixed 5x7 (default), 1 = variable-width 8x8,
+            //   2 = tiny 3x5, 3 = medium 5x7.
+            // Persists per-process until changed. Invalid values are clamped to 0-3.
+            // r0 = previous font mode (for save/restore).
+            0xDC => {
+                let mr = self.fetch() as usize;
+                if mr < NUM_REGS {
+                    let old_mode = self.get_font_mode();
+                    let new_mode = (self.regs[mr] & 0x3) as u8;
+                    self.set_font_mode(new_mode);
+                    self.regs[0] = old_mode as u32;
+                }
+            },
+
+            // PATCHW addr, val  (0xD3, 3 words)
+            // Full word overwrite patch: ram[addr] = val
+            0xD3 => {
+                let ar = self.fetch() as usize;
+                let vr = self.fetch() as usize;
+                if ar < NUM_REGS && vr < NUM_REGS {
+                    let addr = self.regs[ar] as usize;
+                    let val = self.regs[vr];
+                    if addr < self.ram.len() {
+                        self.ram[addr] = val;
+                    }
+                }
+            },
+
+            // AUDIO_PLAY addr_reg, len_reg, rate_reg  (0xD4, 4 words)
+            // Stream raw PCM samples from RAM[addr..addr+len] at given sample rate.
+            // Each u32 word = one signed 16-bit sample (low 16 bits, sign-extended).
+            // Non-blocking: sets audio_play flag, host streams via aplay in background.
+            // Only one concurrent stream: previous is stopped before starting new.
+            0xD4 => {
+                let ar = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                let rr = self.fetch() as usize;
+                if ar < NUM_REGS && lr < NUM_REGS && rr < NUM_REGS {
+                    let addr = self.regs[ar];
+                    let len = self.regs[lr].min(65536); // max 64K samples
+                    let rate = self.regs[rr].clamp(8000, 48000);
+                    if len > 0 {
+                        self.audio_play = Some((addr, len, rate));
+                    }
+                }
+            },
+
+            // AUDIO_STOP  (0xD5, 1 word)
+            // Stop any currently playing PCM stream.
+            0xD5 => {
+                self.audio_stop = true;
+            },
+
+            // AUDIO_STATUS reg  (0xD6, 2 words)
+            // Query PCM playback status: writes 1 (playing) or 0 (idle) to reg.
+            0xD6 => {
+                let dr = self.fetch() as usize;
+                if dr < NUM_REGS {
+                    self.audio_status_query = true;
+                    // For tests, we query directly since there's no host loop
+                    self.regs[dr] = if crate::audio::is_pcm_playing() { 1 } else { 0 };
+                }
+            },
+
+            // CLIP_COPY x_reg, y_reg, w_reg, h_reg  (0xD7) -- Copy screen region to clipboard
+            // Copies a rectangular region from the screen into the clipboard buffer.
+            // The clipboard stores [width, height, pixel0, pixel1, ...].
+            // Encoding: 5 words [0xD7, x_reg, y_reg, w_reg, h_reg]
+            0xD7 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS {
+                    let x = self.regs[xr] as usize;
+                    let y = self.regs[yr] as usize;
+                    let w = self.regs[wr].min(256) as usize;
+                    let h = self.regs[hr].min(256) as usize;
+                    let mut buf = Vec::with_capacity(2 + w * h);
+                    buf.push(w as u32);
+                    buf.push(h as u32);
+                    for row in 0..h {
+                        for col in 0..w {
+                            let sx = x + col;
+                            let sy = y + row;
+                            let pixel = if sx < 256 && sy < 256 {
+                                self.screen[sy * 256 + sx]
+                            } else {
+                                0
+                            };
+                            buf.push(pixel);
+                        }
+                    }
+                    self.clipboard = buf;
+                    self.log_render_op(
+                        0xD7,
+                        "CLIP_COPY",
+                        &[x as u32, y as u32, w as u32, h as u32],
+                    );
+                }
+            },
+
+            // CLIP_PASTE x_reg, y_reg  (0xD8) -- Paste clipboard buffer to screen
+            // Pastes the clipboard contents at (x, y) on the screen.
+            // Respects the current clip rectangle via set_pixel_clipped. Out-of-bounds pixels are skipped.
+            // Encoding: 3 words [0xD8, x_reg, y_reg]
+            0xD8 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && self.clipboard.len() > 2 {
+                    let x = self.regs[xr] as usize;
+                    let y = self.regs[yr] as usize;
+                    let w = self.clipboard[0] as usize;
+                    let h = self.clipboard[1] as usize;
+                    self.log_render_op(
+                        0xD8,
+                        "CLIP_PASTE",
+                        &[x as u32, y as u32, w as u32, h as u32],
+                    );
+                    for row in 0..h {
+                        for col in 0..w {
+                            let sx = x + col;
+                            let sy = y + row;
+                            if sx < 256 && sy < 256 {
+                                let pixel = self.clipboard[2 + row * w + col];
+                                self.set_pixel_clipped(sx, sy, pixel);
+                            }
+                        }
+                    }
+                }
+            },
+
+            // CLIP_TEXT mode_reg, addr_reg, len_reg  (0xDD) -- Text clipboard operations
+            // Mode 0: Store text to clipboard. Reads len bytes from RAM[addr..addr+len], packs into u32 words.
+            //   Layout in clipboard_text: [char_count, packed_bytes...]
+            //   Returns char_count in r0.
+            // Mode 1: Paste text from clipboard to RAM. Writes clipboard_text to RAM starting at addr.
+            //   Returns bytes written in r0. If addr+len exceeds RAM, truncates.
+            // Mode 2: Get text length. Returns byte count in r0 (excluding the header word).
+            // Encoding: 4 words [0xDD, mode_reg, addr_reg, len_reg]
+            0xDD => {
+                let mode_r = self.fetch() as usize;
+                let addr_r = self.fetch() as usize;
+                let len_r = self.fetch() as usize;
+                if mode_r < NUM_REGS && addr_r < NUM_REGS && len_r < NUM_REGS {
+                    let mode = self.regs[mode_r];
+                    let addr = self.regs[addr_r] as usize;
+                    let len = self.regs[len_r] as usize;
+                    match mode {
+                        0 => {
+                            // Store text to clipboard
+                            let mut packed = Vec::new();
+                            let mut byte_count = 0;
+                            let mut i = 0;
+                            while i + 3 < len && addr + i + 3 < RAM_SIZE {
+                                let b0 = (self.ram[addr + i] & 0xFF) as u8;
+                                let b1 = (self.ram[addr + i + 1] & 0xFF) as u8;
+                                let b2 = (self.ram[addr + i + 2] & 0xFF) as u8;
+                                let b3 = (self.ram[addr + i + 3] & 0xFF) as u8;
+                                packed.push(
+                                    (b0 as u32)
+                                        | ((b1 as u32) << 8)
+                                        | ((b2 as u32) << 16)
+                                        | ((b3 as u32) << 24),
+                                );
+                                byte_count += 4;
+                                i += 4;
+                            }
+                            // Handle remaining bytes
+                            while i < len && addr + i < RAM_SIZE {
+                                let b = (self.ram[addr + i] & 0xFF) as u8;
+                                let shift = (byte_count % 4) * 8;
+                                if byte_count % 4 == 0 {
+                                    packed.push(0);
+                                }
+                                let last = packed.last_mut().unwrap();
+                                *last |= (b as u32) << shift;
+                                byte_count += 1;
+                                i += 1;
+                            }
+                            // Count actual chars (UTF-8: ASCII chars = bytes for simple text)
+                            let char_count = if len > 0 && addr < RAM_SIZE {
+                                // Count non-zero bytes as char estimate
+                                (0..len.min(RAM_SIZE.saturating_sub(addr)))
+                                    .filter(|&j| self.ram[addr + j] != 0)
+                                    .count() as u32
+                            } else {
+                                0
+                            };
+                            let mut result = Vec::with_capacity(1 + packed.len());
+                            result.push(char_count);
+                            result.extend_from_slice(&packed);
+                            self.clipboard_text = result;
+                            if 0 < NUM_REGS {
+                                self.regs[0] = char_count;
+                            }
+                            self.log_render_op(
+                                0xDD,
+                                "CLIP_TEXT_STORE",
+                                &[mode, addr as u32, len as u32, char_count],
+                            );
+                        },
+                        1 => {
+                            // Paste text from clipboard to RAM
+                            if self.clipboard_text.len() > 1 {
+                                let data = &self.clipboard_text[1..];
+                                let mut bytes_written = 0u32;
+                                for (_idx, &word) in data.iter().enumerate() {
+                                    for byte_pos in 0..4u32 {
+                                        let ram_addr = addr + bytes_written as usize;
+                                        if ram_addr >= RAM_SIZE || bytes_written >= len as u32 {
+                                            break;
+                                        }
+                                        self.ram[ram_addr] = (word >> (byte_pos * 8)) & 0xFF;
+                                        bytes_written += 1;
+                                    }
+                                }
+                                if 0 < NUM_REGS {
+                                    self.regs[0] = bytes_written;
+                                }
+                                self.log_render_op(
+                                    0xDD,
+                                    "CLIP_TEXT_PASTE",
+                                    &[mode, addr as u32, len as u32, bytes_written],
+                                );
+                            } else {
+                                if 0 < NUM_REGS {
+                                    self.regs[0] = 0;
+                                }
+                            }
+                        },
+                        2 => {
+                            // Get text byte count
+                            let byte_count = if self.clipboard_text.len() > 1 {
+                                (self.clipboard_text.len() - 1) * 4
+                            } else {
+                                0
+                            };
+                            if 0 < NUM_REGS {
+                                self.regs[0] = byte_count as u32;
+                            }
+                            self.log_render_op(0xDD, "CLIP_TEXT_LEN", &[mode, byte_count as u32]);
+                        },
+                        3 => {
+                            // Clear text clipboard
+                            self.clipboard_text.clear();
+                            if 0 < NUM_REGS {
+                                self.regs[0] = 0;
+                            }
+                            self.log_render_op(0xDD, "CLIP_TEXT_CLEAR", &[]);
+                        },
+                        _ => {},
+                    }
+                }
+            },
+
+            // CLIP_HISTORY mode_reg, slot_reg  (0xDF) -- Clipboard history management
+            // Mode 0: Push current clipboard (pixel + text) to history ring buffer.
+            //   Returns history count in r0.
+            // Mode 1: Get history count → r0.
+            // Mode 2: Restore clipboard from history slot (0=newest, 1=previous, ...).
+            //   Overwrites current clipboard + clipboard_text with the snapshot.
+            //   Returns 1 in r0 on success, 0 if slot invalid.
+            // Mode 3: Clear all history. Returns 0 in r0.
+            // Encoding: 3 words [0xDF, mode_reg, slot_reg]
+            0xDF => {
+                let mode_r = self.fetch() as usize;
+                let slot_r = self.fetch() as usize;
+                if mode_r < NUM_REGS && slot_r < NUM_REGS {
+                    let mode = self.regs[mode_r];
+                    let slot = self.regs[slot_r] as usize;
+                    match mode {
+                        0 => {
+                            // Push current to history
+                            let pixel_snap = self.clipboard.clone();
+                            let text_snap = self.clipboard_text.clone();
+                            if self.clipboard_history.len() < CLIP_HISTORY_MAX {
+                                self.clipboard_history.push((pixel_snap, text_snap));
+                                self.clipboard_history_head = self.clipboard_history.len() - 1;
+                            } else {
+                                // Ring buffer: overwrite oldest
+                                self.clipboard_history_head =
+                                    (self.clipboard_history_head + 1) % CLIP_HISTORY_MAX;
+                                self.clipboard_history[self.clipboard_history_head] =
+                                    (pixel_snap, text_snap);
+                            }
+                            self.clipboard_history_count =
+                                self.clipboard_history.len().min(CLIP_HISTORY_MAX);
+                            if 0 < NUM_REGS {
+                                self.regs[0] = self.clipboard_history_count as u32;
+                            }
+                            self.log_render_op(
+                                0xDF,
+                                "CLIP_HIST_PUSH",
+                                &[self.clipboard_history_count as u32],
+                            );
+                        },
+                        1 => {
+                            // Get count
+                            if 0 < NUM_REGS {
+                                self.regs[0] = self.clipboard_history_count as u32;
+                            }
+                            self.log_render_op(
+                                0xDF,
+                                "CLIP_HIST_COUNT",
+                                &[self.clipboard_history_count as u32],
+                            );
+                        },
+                        2 => {
+                            // Restore from slot
+                            if slot < self.clipboard_history_count {
+                                // slot 0 = newest (at head), slot 1 = previous, etc.
+                                let hist_idx = if self.clipboard_history_count < CLIP_HISTORY_MAX {
+                                    self.clipboard_history_count - 1 - slot
+                                } else {
+                                    (self.clipboard_history_head + CLIP_HISTORY_MAX - slot)
+                                        % CLIP_HISTORY_MAX
+                                };
+                                if let Some((pixel_snap, text_snap)) =
+                                    self.clipboard_history.get(hist_idx)
+                                {
+                                    self.clipboard = pixel_snap.clone();
+                                    self.clipboard_text = text_snap.clone();
+                                    if 0 < NUM_REGS {
+                                        self.regs[0] = 1;
+                                    }
+                                    self.log_render_op(0xDF, "CLIP_HIST_RESTORE", &[slot as u32]);
+                                } else if 0 < NUM_REGS {
+                                    self.regs[0] = 0;
+                                }
+                            } else if 0 < NUM_REGS {
+                                self.regs[0] = 0;
+                            }
+                        },
+                        3 => {
+                            // Clear history
+                            self.clipboard_history.clear();
+                            self.clipboard_history_head = 0;
+                            self.clipboard_history_count = 0;
+                            if 0 < NUM_REGS {
+                                self.regs[0] = 0;
+                            }
+                            self.log_render_op(0xDF, "CLIP_HIST_CLEAR", &[]);
+                        },
+                        4 => {
+                            // Get history entry info: returns format bitmap in r0
+                            // bit 0 = has pixel data, bit 1 = has text data
+                            // slot 0 = newest, etc.
+                            if slot < self.clipboard_history_count {
+                                let hist_idx = if self.clipboard_history_count < CLIP_HISTORY_MAX {
+                                    self.clipboard_history_count - 1 - slot
+                                } else {
+                                    (self.clipboard_history_head + CLIP_HISTORY_MAX - slot)
+                                        % CLIP_HISTORY_MAX
+                                };
+                                if let Some((pixel_snap, text_snap)) =
+                                    self.clipboard_history.get(hist_idx)
+                                {
+                                    let mut info = 0u32;
+                                    if pixel_snap.len() > 2 {
+                                        info |= 1; // has pixel data
+                                    }
+                                    if text_snap.len() > 1 {
+                                        info |= 2; // has text data
+                                    }
+                                    if 0 < NUM_REGS {
+                                        self.regs[0] = info;
+                                    }
+                                    self.log_render_op(
+                                        0xDF,
+                                        "CLIP_HIST_INFO",
+                                        &[slot as u32, info],
+                                    );
+                                } else if 0 < NUM_REGS {
+                                    self.regs[0] = 0;
+                                }
+                            } else if 0 < NUM_REGS {
+                                self.regs[0] = 0;
+                            }
+                        },
+                        _ => {},
+                    }
+                }
+            },
+
+            // SPRITE_LOAD filename_addr_reg, dest_addr_reg, max_pixels_reg (0xD9)
+            // Load sprite data from a VFS file into RAM as packed u32 pixels.
+            // File format: raw RGBA (4 bytes per pixel), packed as (R<<24|G<<16|B<<8|A).
+            // Returns number of pixels loaded in r0, or 0xFFFFFFFF on error.
+            0xD9 => {
+                let fn_reg = self.fetch() as usize;
+                let dst_reg = self.fetch() as usize;
+                let max_reg = self.fetch() as usize;
+                if fn_reg < NUM_REGS && dst_reg < NUM_REGS && max_reg < NUM_REGS {
+                    let fn_addr = self.regs[fn_reg] as usize;
+                    let dst_addr = self.regs[dst_reg] as usize;
+                    let max_pixels = self.regs[max_reg] as usize;
+                    let count = self
+                        .vfs
+                        .load_sprite(&mut self.ram, fn_addr, dst_addr, max_pixels);
+                    self.regs[0] = count;
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EBADF);
+                }
+            },
+
+            // SPRITE_FRAME base_reg, fw_reg, fh_reg, idx_reg, dest_reg (0xDA)
+            // Compute the RAM address of a specific frame in a sprite sheet.
+            // offset = base + (frame_index * frame_width * frame_height)
+            // Stores the computed address in dest_reg.
+            0xDA => {
+                let base_r = self.fetch() as usize;
+                let fw_r = self.fetch() as usize;
+                let fh_r = self.fetch() as usize;
+                let idx_r = self.fetch() as usize;
+                let dest_r = self.fetch() as usize;
+                if base_r < NUM_REGS
+                    && fw_r < NUM_REGS
+                    && fh_r < NUM_REGS
+                    && idx_r < NUM_REGS
+                    && dest_r < NUM_REGS
+                {
+                    let base = self.regs[base_r] as u64;
+                    let fw = self.regs[fw_r] as u64;
+                    let fh = self.regs[fh_r] as u64;
+                    let idx = self.regs[idx_r] as u64;
+                    let offset = base + idx * fw * fh;
+                    self.regs[dest_r] = offset as u32;
+                }
+            },
+
+            // MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
+            // 2D matrix multiply using fixed-point 16.16 arithmetic.
+            // Multiplies MxK matrix A (at regs[r_a]) by KxN matrix B (at regs[r_b]),
+            // stores MxN result at dst (at regs[r_dst]).
+            // dst[i*n + j] = sum(a[i*k + l] * b[l*n + j]) >> 16, for l in 0..k
+            0xDE => {
+                let r_dst = self.fetch() as usize;
+                let r_a = self.fetch() as usize;
+                let r_b = self.fetch() as usize;
+                let r_m = self.fetch() as usize;
+                let r_n = self.fetch() as usize;
+                let r_k = self.fetch() as usize;
+                if r_dst < NUM_REGS
+                    && r_a < NUM_REGS
+                    && r_b < NUM_REGS
+                    && r_m < NUM_REGS
+                    && r_n < NUM_REGS
+                    && r_k < NUM_REGS
+                {
+                    let dst_base = self.regs[r_dst] as usize;
+                    let a_base = self.regs[r_a] as usize;
+                    let b_base = self.regs[r_b] as usize;
+                    let m = self.regs[r_m] as usize;
+                    let n = self.regs[r_n] as usize;
+                    let k = self.regs[r_k] as usize;
+                    for i in 0..m {
+                        for j in 0..n {
+                            let mut sum: i64 = 0;
+                            for l in 0..k {
+                                let a_addr = a_base + i * k + l;
+                                let b_addr = b_base + l * n + j;
+                                if a_addr < self.ram.len() && b_addr < self.ram.len() {
+                                    let a_val = self.ram[a_addr] as i32;
+                                    let b_val = self.ram[b_addr] as i32;
+                                    sum += (a_val as i64 * b_val as i64) >> 16;
+                                }
+                            }
+                            let dst_addr = dst_base + i * n + j;
+                            if dst_addr < self.ram.len() {
+                                self.ram[dst_addr] = sum as u32;
+                            }
+                        }
+                    }
+                }
+            },
+
+            // HASHINIT table_id, buckets_reg  (0xE2)
+            // Initialize a hash table. table_id = 0-7, buckets_reg = register with bucket count.
+            // Clears any existing data in the table. Max 8 tables.
+            // Sets r0 = 1 on success, 0 on failure (invalid id or already at max).
+            // Encoding: 3 words [0xE2, table_id, buckets_reg]
+            0xE2 => {
+                let table_id = self.fetch();
+                let br = self.fetch() as usize;
+                if br < NUM_REGS {
+                    let tid = table_id as usize;
+                    if tid < 8 {
+                        self.hash_tables[tid].clear();
+                        self.hash_tables_active |= 1 << tid;
+                        self.regs[0] = 1; // success
+                    } else {
+                        self.regs[0] = 0; // invalid table id
+                    }
+                }
+            },
+
+            // HASHSET table_id, key_reg, val_reg  (0xE3)
+            // Insert or update key->value in hash table. Uses Rust HashMap internally.
+            // Sets r0 = 1 on success, 0 on failure (invalid table id).
+            // Encoding: 4 words [0xE3, table_id, key_reg, val_reg]
+            0xE3 => {
+                let table_id = self.fetch();
+                let kr = self.fetch() as usize;
+                let vr = self.fetch() as usize;
+                if kr < NUM_REGS && vr < NUM_REGS {
+                    let tid = table_id as usize;
+                    if tid < 8 && (self.hash_tables_active & (1 << tid)) != 0 {
+                        let key = self.regs[kr];
+                        let val = self.regs[vr];
+                        self.hash_tables[tid].insert(key, val);
+                        self.regs[0] = 1; // success
+                    } else {
+                        self.regs[0] = 0; // invalid table id or not initialized
+                    }
+                }
+            },
+
+            // HASHGET table_id, key_reg, dst_reg  (0xE4)
+            // Look up key in hash table, store value in dst_reg.
+            // If key not found, sets dst to 0xFFFFFFFF (sentinel).
+            // Sets r0 = 1 on found, 0 on not found.
+            // Encoding: 4 words [0xE4, table_id, key_reg, dst_reg]
+            0xE4 => {
+                let table_id = self.fetch();
+                let kr = self.fetch() as usize;
+                let dr = self.fetch() as usize;
+                if kr < NUM_REGS && dr < NUM_REGS {
+                    let tid = table_id as usize;
+                    if tid < 8 && (self.hash_tables_active & (1 << tid)) != 0 {
+                        let key = self.regs[kr];
+                        match self.hash_tables[tid].get(&key) {
+                            Some(&val) => {
+                                self.regs[dr] = val;
+                                self.regs[0] = 1; // found
+                            },
+                            None => {
+                                self.regs[dr] = 0xFFFFFFFF; // sentinel
+                                self.regs[0] = 0; // not found
+                            },
+                        }
+                    } else {
+                        self.regs[dr] = 0xFFFFFFFF;
+                        self.regs[0] = 0;
+                    }
+                }
+            },
+
+            // SPRLOAD sheet_id, addr_reg, frame_w_reg, frame_h_reg, frames_reg  (0xE5)
+            // Register a sprite sheet: base address in RAM, frame dimensions, total frame count.
+            // Max MAX_SPRITE_SHEETS (16) sheets. sheet_id is an immediate (0-15).
+            // Encoding: 6 words [0xE5, sheet_id, addr_reg, w_reg, h_reg, frames_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error (invalid sheet_id or regs).
+            0xE5 => {
+                let sheet_id = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                let fr = self.fetch() as usize;
+                if sheet_id < MAX_SPRITE_SHEETS
+                    && ar < NUM_REGS
+                    && wr < NUM_REGS
+                    && hr < NUM_REGS
+                    && fr < NUM_REGS
+                {
+                    let sheet = &mut self.sprite_sheets[sheet_id];
+                    sheet.base_addr = self.regs[ar];
+                    sheet.frame_w = self.regs[wr];
+                    sheet.frame_h = self.regs[hr];
+                    sheet.total_frames = self.regs[fr];
+                    sheet.current_frame = 0;
+                    sheet.active = true;
+                    self.regs[0] = 0; // success
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // error
+                }
+            },
+
+            // SPRFRAME sheet_id, frame_reg  (0xE6)
+            // Select the current frame for a registered sprite sheet.
+            // sheet_id is an immediate (0-15). frame_reg contains the frame index.
+            // Encoding: 3 words [0xE6, sheet_id, frame_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error.
+            0xE6 => {
+                let sheet_id = self.fetch() as usize;
+                let fr = self.fetch() as usize;
+                if sheet_id < MAX_SPRITE_SHEETS
+                    && fr < NUM_REGS
+                    && self.sprite_sheets[sheet_id].active
+                {
+                    let frame = self.regs[fr];
+                    if frame < self.sprite_sheets[sheet_id].total_frames {
+                        self.sprite_sheets[sheet_id].current_frame = frame;
+                        self.regs[0] = 0; // success
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_ERANGE); // frame out of range
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // invalid sheet or reg
+                }
+            },
+
+            // SPRANIM sheet_id, x_reg, y_reg  (0xE7)
+            // Blit the current frame of a registered sprite sheet to the screen.
+            // Auto-computes source address from sheet base + current_frame * frame_w * frame_h.
+            // sheet_id is an immediate (0-15). Uses the frame_w/frame_h from SPRLOAD.
+            // Pixels with value 0 are transparent (skipped).
+            // Encoding: 4 words [0xE7, sheet_id, x_reg, y_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error.
+            0xE7 => {
+                let sheet_id = self.fetch() as usize;
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                if sheet_id < MAX_SPRITE_SHEETS
+                    && xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && self.sprite_sheets[sheet_id].active
+                {
+                    let sheet = self.sprite_sheets[sheet_id];
+                    let sx = self.regs[xr] as usize;
+                    let sy = self.regs[yr] as usize;
+                    let fw = sheet.frame_w as usize;
+                    let fh = sheet.frame_h as usize;
+                    let frame_offset = sheet.current_frame as usize * fw * fh;
+                    let mut addr = sheet.base_addr as usize + frame_offset;
+                    for dy in 0..fh {
+                        for dx in 0..fw {
+                            if addr >= self.ram.len() {
+                                break;
+                            }
+                            let color = self.ram[addr];
+                            addr += 1;
+                            if color == 0 {
+                                continue; // transparent
+                            }
+                            let px = sx + dx;
+                            let py = sy + dy;
+                            self.set_pixel_clipped(px, py, color);
+                        }
+                    }
+                    self.regs[0] = 0; // success
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // error
+                }
+            },
+
+            // TMR_GET dest_reg  (0xE8) -- Wall-clock milliseconds since VM start.
+            // Writes the number of real-world milliseconds elapsed since the VM was
+            // created into dest_reg. Low 32 bits (wraps at ~49.7 days).
+            // Encoding: 2 words [0xE8, dest_reg]
+            // Returns: dest_reg = elapsed ms (low 32 bits)
+            0xE8 => {
+                let dr = self.fetch() as usize;
+                if dr < NUM_REGS {
+                    let elapsed_ms = self.epoch.elapsed().as_millis() as u32;
+                    self.regs[dr] = elapsed_ms;
+                }
+            },
+
+            // TMR_WAIT ms_reg  (0xE9) -- Spin-wait for wall-clock milliseconds.
+            // Records the target wake time, then yields each frame until real time
+            // reaches the target. The VM remains responsive (processes other tasks
+            // via the scheduler) while waiting.
+            // Encoding: 2 words [0xE9, ms_reg]
+            // ms_reg: number of milliseconds to wait from now
+            // Returns: r0 = 0 on success
+            0xE9 => {
+                let mr = self.fetch() as usize;
+                if mr < NUM_REGS {
+                    let wait_ms = self.regs[mr];
+                    let target_ms = self.epoch.elapsed().as_millis() as u64 + wait_ms as u64;
+                    // Yield to scheduler until the wall-clock time is reached.
+                    // We use FRAME to yield and re-check.
+                    // Store the target in a register pair (r30/r31) as temp storage
+                    // and emit FRAME + check loop inline by setting sleep_frames = 1
+                    // per frame until elapsed.
+                    let now_ms = self.epoch.elapsed().as_millis() as u64;
+                    if now_ms >= target_ms {
+                        // Already elapsed (wait_ms was 0 or very small)
+                        self.regs[0] = 0;
+                    } else {
+                        // Sleep for 1 scheduler tick to yield, then re-check.
+                        // The program should loop: TMR_WAIT loops internally
+                        // by setting sleep_frames so the scheduler handles it.
+                        self.sleep_frames = 1;
+                        // The caller is expected to loop with a TMR_WAIT check,
+                        // but for single-call convenience we do a busy yield here.
+                        // Re-check next step by not advancing PC -- we back up.
+                        self.pc -= 2; // re-execute this TMR_WAIT next step
+                    }
+                }
+            },
+
+            // ALARM_SET ms_reg, addr_reg, value_reg  (0xEA) -- Set a wall-clock alarm.
+            // Schedules an alarm to fire `ms_reg` milliseconds from now.
+            // When the alarm fires (checked each FRAME), writes `value_reg` to
+            // RAM[`addr_reg`]. Up to MAX_ALARMS (8) concurrent alarms.
+            // Encoding: 4 words [0xEA, ms_reg, addr_reg, value_reg]
+            // Returns: r0 = alarm slot index (0-7) on success, 0xFFFFFFFF if no slots
+            0xEA => {
+                let mr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let vr = self.fetch() as usize;
+                if mr < NUM_REGS && ar < NUM_REGS && vr < NUM_REGS {
+                    let delay_ms = self.regs[mr] as u64;
+                    let addr = self.regs[ar];
+                    let value = self.regs[vr];
+                    let now_ms = self.epoch.elapsed().as_millis() as u64;
+                    // Find a free alarm slot
+                    let mut found = false;
+                    for (i, alarm) in self.alarms.iter_mut().enumerate() {
+                        if !alarm.active {
+                            alarm.target_ms = now_ms + delay_ms;
+                            alarm.addr = addr;
+                            alarm.value = value;
+                            alarm.active = true;
+                            self.regs[0] = i as u32;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        self.regs[0] = geos_errno(GEOS_ENOMEM); // no free slots
+                    }
+                }
+            },
+
+            // ALARM_CLR slot_reg  (0xEB) -- Cancel a pending wall-clock alarm.
+            // ALARM_CLR slot_reg  (0xEB) -- Cancel a pending wall-clock alarm.
+            // Encoding: 2 words [0xEB, slot_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error (invalid register or inactive slot).
+            0xEB => {
+                let sr = self.fetch() as usize;
+                if sr < NUM_REGS {
+                    let slot = self.regs[sr] as usize;
+                    if slot < self.alarms.len() && self.alarms[slot].active {
+                        self.alarms[slot].active = false;
+                        self.regs[0] = 0;
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // error
+                    }
+                }
+            },
+
+            // SPRITEANIM sheet_id, x_reg, y_reg  (0xEC)
+            // Blit the current frame of a registered sprite sheet to the screen,
+            // then auto-advance the frame counter with wrap-around.
+            // Unlike SPRANIM (0xE7) which only blits the current frame,
+            // SPRITEANIM increments current_frame after each blit (mod total_frames).
+            // This eliminates boilerplate in game loops: one instruction per frame instead
+            // of SPRFRAME + SPRANIM + ADD + MOD sequence.
+            // sheet_id is an immediate (0-15). Uses the frame_w/frame_h from SPRLOAD.
+            // Pixels with value 0 are transparent (skipped).
+            // Encoding: 4 words [0xEC, sheet_id, x_reg, y_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error.
+            0xEC => {
+                let sheet_id = self.fetch() as usize;
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                if sheet_id < MAX_SPRITE_SHEETS
+                    && xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && self.sprite_sheets[sheet_id].active
+                {
+                    // Copy sheet metadata out to avoid borrow conflict with set_pixel_clipped
+                    let sheet = self.sprite_sheets[sheet_id];
+                    let sx = self.regs[xr] as usize;
+                    let sy = self.regs[yr] as usize;
+                    let fw = sheet.frame_w as usize;
+                    let fh = sheet.frame_h as usize;
+                    let current_frame = sheet.current_frame as usize;
+                    let total_frames = sheet.total_frames;
+                    let frame_offset = current_frame * fw * fh;
+                    let mut addr = sheet.base_addr as usize + frame_offset;
+                    for dy in 0..fh {
+                        for dx in 0..fw {
+                            if addr >= self.ram.len() {
+                                break;
+                            }
+                            let color = self.ram[addr];
+                            addr += 1;
+                            if color == 0 {
+                                continue; // transparent
+                            }
+                            let px = sx + dx;
+                            let py = sy + dy;
+                            self.set_pixel_clipped(px, py, color);
+                        }
+                    }
+                    // Auto-advance frame counter with wrap-around
+                    self.sprite_sheets[sheet_id].current_frame =
+                        (current_frame as u32 + 1) % total_frames;
+                    self.regs[0] = 0; // success
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // error
+                }
+            },
+
+            // STRLEN addr_reg  (0xED) -- length of null-terminated string
+            // Scans RAM starting at the address in addr_reg, counting bytes
+            // until a null terminator (0x00) is found. The null byte is not
+            // included in the count. Sets r0 = length (excluding null).
+            // Encoding: 2 words [0xED, addr_reg]
+            // Safety: stops at RAM boundary to prevent runaway scan.
+            0xED => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let mut addr = self.regs[ar] as usize;
+                    let mut len: u32 = 0;
+                    while addr < self.ram.len() {
+                        let byte = self.ram[addr] & 0xFF;
+                        if byte == 0 {
+                            break;
+                        }
+                        len += 1;
+                        addr += 1;
+                    }
+                    self.regs[0] = len;
+                }
+            },
+
+            // STRCPY src_reg, dst_reg  (0xEE) -- copy null-terminated string
+            // Copies bytes from the address in src_reg to the address in dst_reg
+            // until a null terminator is found (and copied). Sets r0 = number
+            // of bytes copied (including the null terminator).
+            // Encoding: 3 words [0xEE, src_reg, dst_reg]
+            // Safety: stops at RAM boundary for both src and dst.
+            0xEE => {
+                let sr = self.fetch() as usize;
+                let dr = self.fetch() as usize;
+                if sr < NUM_REGS && dr < NUM_REGS {
+                    let mut src = self.regs[sr] as usize;
+                    let mut dst = self.regs[dr] as usize;
+                    let mut copied: u32 = 0;
+                    loop {
+                        if src >= self.ram.len() || dst >= self.ram.len() {
+                            break;
+                        }
+                        let byte = self.ram[src] & 0xFF;
+                        self.ram[dst] = byte;
+                        copied += 1;
+                        if byte == 0 {
+                            break;
+                        }
+                        src += 1;
+                        dst += 1;
+                    }
+                    self.regs[0] = copied;
+                }
+            },
+
+            // BITSET rd, bit_reg  (0x8D)
+            0x8D => {
+                let rd = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if rd < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31; // clamp to 0-31
+                    self.regs[rd] |= 1 << bit;
+                }
+            },
+
+            // BITCLR rd, bit_reg  (0x8E) -- rd &= !(1 << bit_reg)
+            0x8E => {
+                let rd = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if rd < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[rd] &= !(1 << bit);
+                }
+            },
+
+            // BITTEST rd, bit_reg  (0x8F) -- r0 = (rd >> bit_reg) & 1
+            0x8F => {
+                let rd = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if rd < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[0] = (self.regs[rd] >> bit) & 1;
+                }
+            },
+
+            // NOT rd  (0x90) -- rd = !rd (bitwise complement)
+            0x90 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    self.regs[rd] = !self.regs[rd];
+                }
+            },
+
+            // CTZ rd, rs  (0x0C) -- count trailing zeros in rs, store in rd
+            // Returns 32 if rs == 0. Uses u32::trailing_zeros.
+            0x0C => {
+                let rd = self.fetch() as usize;
+                let rs = self.fetch() as usize;
+                if rd < NUM_REGS && rs < NUM_REGS {
+                    self.regs[rd] = self.regs[rs].trailing_zeros();
+                }
+            },
+
+            // INV  (0x91) -- invert all screen pixels (XOR 0xFFFFFF)
+            0x91 => {
+                self.log_render_op(0x91, "INV", &[]);
+                for pixel in self.screen.iter_mut() {
+                    *pixel ^= 0x00FFFFFF;
+                }
+            },
+
+            // MATVEC r_weight, r_input, r_output, r_rows, r_cols (0x92)
+            // Matrix-vector multiply using fixed-point 16.16 arithmetic.
+            // output[i] = sum(weight[i*cols + j] * input[j]) >> 16
+            // Addresses taken from registers, rows/cols from registers.
+            0x92 => {
+                let r_weight = self.fetch() as usize;
+                let r_input = self.fetch() as usize;
+                let r_output = self.fetch() as usize;
+                let r_rows = self.fetch() as usize;
+                let r_cols = self.fetch() as usize;
+                if r_weight < NUM_REGS
+                    && r_input < NUM_REGS
+                    && r_output < NUM_REGS
+                    && r_rows < NUM_REGS
+                    && r_cols < NUM_REGS
+                {
+                    let weight_base = self.regs[r_weight] as usize;
+                    let input_base = self.regs[r_input] as usize;
+                    let output_base = self.regs[r_output] as usize;
+                    let rows = self.regs[r_rows] as usize;
+                    let cols = self.regs[r_cols] as usize;
+                    for i in 0..rows {
+                        let mut sum: i64 = 0;
+                        for j in 0..cols {
+                            let w_addr = weight_base + i * cols + j;
+                            let i_addr = input_base + j;
+                            if w_addr < self.ram.len() && i_addr < self.ram.len() {
+                                // Fixed-point 16.16 multiply
+                                let w = self.ram[w_addr] as i32;
+                                let x = self.ram[i_addr] as i32;
+                                sum += (w as i64 * x as i64) >> 16;
+                            }
+                        }
+                        let o_addr = output_base + i;
+                        if o_addr < self.ram.len() {
+                            self.ram[o_addr] = sum as u32;
+                        }
+                    }
+                }
+            },
+
+            // RELU rd (0x93) -- ReLU activation: if rd < 0 (signed), rd = 0
+            0x93 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    if (self.regs[rd] as i32) < 0 {
+                        self.regs[rd] = 0;
+                    }
+                }
+            },
+
+            // WINSYS op_reg (0x94) -- Window management operations.
+            // op=0: create window (r1=x, r2=y, r3=w, r4=h, r5=title_addr) -> r0=window_id
+            // op=1: destroy window (r0=win_id)
+            // op=2: bring to front (r0=win_id)
+            // op=3: list windows (r0=addr to write list of u32: count, id1, id2, ...)
+            0x94 => {
+                let op_reg = self.fetch() as usize;
+                if op_reg < NUM_REGS {
+                    let op = self.regs[op_reg];
+                    match op {
+                        0 => {
+                            // CREATE: r1=x, r2=y, r3=w, r4=h, r5=title_addr
+                            // When RAM[WINDOW_WORLD_COORDS_ADDR] == 1, r1/r2 are world coords.
+                            // Phase 107: if RAM[0x7810] == 1, r1/r2 are world-space coords
+                            let active_count = self.windows.iter().filter(|w| w.active).count();
+                            if active_count >= MAX_WINDOWS {
+                                self.regs[0] = 0; // no slots
+                            } else {
+                                let id = self.next_window_id;
+                                self.next_window_id += 1;
+                                let arg1 = if 1 < NUM_REGS { self.regs[1] } else { 0 };
+                                let arg2 = if 2 < NUM_REGS { self.regs[2] } else { 0 };
+                                let w = if 3 < NUM_REGS { self.regs[3] } else { 64 };
+                                let h = if 4 < NUM_REGS { self.regs[4] } else { 48 };
+                                let title_addr = if 5 < NUM_REGS { self.regs[5] } else { 0 };
+                                let max_z =
+                                    self.windows.iter().map(|w| w.z_order).max().unwrap_or(0);
+
+                                // Check world-space flag: RAM[0x7810]
+                                let world_mode = self.ram.get(0x7810).copied().unwrap_or(0) == 1;
+                                eprintln!("[WINSYS CREATE] id={} pos=({},{}) size={}x{} title_addr=0x{:X} world={}", id, arg1, arg2, w, h, title_addr, world_mode);
+                                let mut win = if world_mode {
+                                    // r1=world_x, r2=world_y (tile coords)
+                                    Window::new_world(
+                                        id,
+                                        arg1,
+                                        arg2,
+                                        w,
+                                        h,
+                                        title_addr,
+                                        self.current_pid,
+                                    )
+                                } else {
+                                    // r1=screen_x, r2=screen_y (legacy)
+                                    Window::new(id, arg1, arg2, w, h, title_addr, self.current_pid)
+                                };
+                                win.z_order = max_z + 1;
+                                self.windows.push(win);
+                                self.regs[0] = id;
+                            }
+                        },
+                        1 => {
+                            // DESTROY: r0=win_id
+                            let win_id = self.regs[0];
+                            if let Some(w) =
+                                self.windows.iter_mut().find(|w| w.id == win_id && w.active)
+                            {
+                                w.active = false;
+                            }
+                        },
+                        2 => {
+                            // BRING TO FRONT: r0=win_id
+                            let win_id = self.regs[0];
+                            let max_z = self.windows.iter().map(|w| w.z_order).max().unwrap_or(0);
+                            if let Some(w) =
+                                self.windows.iter_mut().find(|w| w.id == win_id && w.active)
+                            {
+                                w.z_order = max_z + 1;
+                            }
+                        },
+                        3 => {
+                            // LIST: r0=addr to write list
+                            let addr = self.regs[0] as usize;
+                            let active: Vec<u32> = self
+                                .windows
+                                .iter()
+                                .filter(|w| w.active)
+                                .map(|w| w.id)
+                                .collect();
+                            if addr < self.ram.len() {
+                                self.ram[addr] = active.len() as u32;
+                            }
+                            for (i, &id) in active.iter().enumerate() {
+                                let slot = addr + 1 + i;
+                                if slot < self.ram.len() {
+                                    self.ram[slot] = id;
+                                }
+                            }
+                        },
+                        4 => {
+                            // HITTEST: Check which window the mouse is over.
+                            // Uses mouse_x, mouse_y. Iterates windows front-to-back
+                            // (highest z_order first). Returns in r0: window_id (0=none).
+                            // In r1: hit_type (0=none, 1=title bar, 2=body, 3=close button).
+                            // Title bar = top WINDOW_TITLE_BAR_H pixels.
+                            // Close button = top-right area within title bar.
+                            let mx = self.mouse_x;
+                            let my = self.mouse_y;
+                            let mut best_id: u32 = 0;
+                            let mut best_hit: u32 = 0;
+                            let mut best_z: u32 = 0;
+                            for w in &self.windows {
+                                if !w.active {
+                                    continue;
+                                }
+                                // Check if mouse is within window bounds
+                                let in_x = mx >= w.x && mx < w.x + w.w;
+                                let in_y = my >= w.y && my < w.y + w.h;
+                                if in_x && in_y && w.z_order > best_z {
+                                    best_z = w.z_order;
+                                    best_id = w.id;
+                                    let title_bar_h = crate::vm::types::WINDOW_TITLE_BAR_H;
+                                    if my < w.y + title_bar_h {
+                                        // Check if in close button area
+                                        let close_x_start = w.x + w.w - 2 - 8;
+                                        let close_y_end = w.y + 2 + 8;
+                                        if mx >= close_x_start && my < close_y_end {
+                                            best_hit = 3; // close button
+                                        } else {
+                                            best_hit = 1; // title bar
+                                        }
+                                    } else {
+                                        best_hit = 2; // body
+                                    }
+                                }
+                            }
+                            self.regs[0] = best_id;
+                            self.regs[1] = best_hit;
+                        },
+                        5 => {
+                            // MOVETO: Move window to new position.
+                            // r0=win_id, r1=new_x, r2=new_y.
+                            // For world-space windows, updates world_x/world_y.
+                            let win_id = self.regs[0];
+                            let new_x = if 1 < NUM_REGS { self.regs[1] } else { 0 };
+                            let new_y = if 2 < NUM_REGS { self.regs[2] } else { 0 };
+                            if let Some(w) =
+                                self.windows.iter_mut().find(|w| w.id == win_id && w.active)
+                            {
+                                if w.is_world_space() {
+                                    w.world_x = new_x;
+                                    w.world_y = new_y;
+                                } else {
+                                    w.x = new_x;
+                                    w.y = new_y;
+                                }
+                                self.regs[0] = 1; // success
+                            } else {
+                                self.regs[0] = 0; // not found
+                            }
+                        },
+                        6 => {
+                            // WINFO: Get window info.
+                            // r0=win_id. Writes [x, y, w, h, z_order, pid, world_x, world_y] to RAM
+                            // starting at address in r1.
+                            let win_id = self.regs[0];
+                            let addr = if 1 < NUM_REGS {
+                                self.regs[1] as usize
+                            } else {
+                                0
+                            };
+                            if let Some(w) =
+                                self.windows.iter().find(|w| w.id == win_id && w.active)
+                            {
+                                let info =
+                                    [w.x, w.y, w.w, w.h, w.z_order, w.pid, w.world_x, w.world_y];
+                                for (i, &val) in info.iter().enumerate() {
+                                    let slot = addr + i;
+                                    if slot < self.ram.len() {
+                                        self.ram[slot] = val;
+                                    }
+                                }
+                                self.regs[0] = 1; // success
+                            } else {
+                                self.regs[0] = 0; // not found
+                            }
+                        },
+                        7 => {
+                            // RESIZE: Resize window offscreen buffer.
+                            // r0=win_id, r1=new_w, r2=new_h.
+                            // Phase 133: allow up to 512x512 for wider terminal windows.
+                            let win_id = self.regs[0];
+                            let new_w = if 1 < NUM_REGS { self.regs[1] } else { 64 };
+                            let new_h = if 2 < NUM_REGS { self.regs[2] } else { 48 };
+                            if new_w == 0 || new_h == 0 || new_w > 512 || new_h > 512 {
+                                self.regs[0] = 0; // invalid size
+                            } else if let Some(w) =
+                                self.windows.iter_mut().find(|w| w.id == win_id && w.active)
+                            {
+                                w.w = new_w;
+                                w.h = new_h;
+                                w.offscreen_buffer
+                                    .resize((new_w as usize) * (new_h as usize), 0);
+                                self.regs[0] = 1; // success
+                            } else {
+                                self.regs[0] = 0; // not found
+                            }
+                        },
+                        8 => {
+                            // VFS_BLIT: Paint the VFS pixel surface into a window.
+                            // r0=win_id. Reads all files from VFS base_dir,
+                            // encodes them as RGBA pixels, and writes into the
+                            // window's offscreen buffer. "Pixels move pixels" --
+                            // the files ARE the visible pixels.
+                            // r0=1 on success, 0 on error.
+                            let win_id = self.regs[0];
+                            if let Some(w) =
+                                self.windows.iter_mut().find(|w| w.id == win_id && w.active)
+                            {
+                                let surface = crate::vfs::encode_pixel_surface_dir(
+                                    w.w as usize,
+                                    w.h as usize,
+                                    &self.vfs.base_dir,
+                                );
+                                // Blit surface into window offscreen buffer
+                                let buf_len = w.offscreen_buffer.len();
+                                for (i, &px) in surface.iter().enumerate() {
+                                    if i < buf_len {
+                                        w.offscreen_buffer[i] = px;
+                                    }
+                                }
+                                self.regs[0] = 1; // success
+                            } else {
+                                self.regs[0] = 0; // window not found
+                            }
+                        },
+                        9 => {
+                            // VFS_SYNC: Write the window's pixels back to the VFS files.
+                            // Inverse of VFS_BLIT. r0=win_id.
+                            let win_id = self.regs[0];
+                            if let Some(w) =
+                                self.windows.iter_mut().find(|w| w.id == win_id && w.active)
+                            {
+                                crate::vfs::decode_pixel_surface_dir(
+                                    w.w as usize,
+                                    w.h as usize,
+                                    &w.offscreen_buffer,
+                                    &self.vfs.base_dir,
+                                );
+                                self.regs[0] = 1; // success
+                            } else {
+                                self.regs[0] = 0; // window not found
+                            }
+                        },
+                        10 => {
+                            // WVIEWPORT: Set viewport (scroll) offset for a window.
+                            // r0=win_id, r1=viewport_x, r2=viewport_y.
+                            // Phase 133: for wider windows, controls which portion is
+                            // visible on the 256x256 screen during blit_windows().
+                            let win_id = self.regs[0];
+                            let vp_x = if 1 < NUM_REGS { self.regs[1] } else { 0 };
+                            let vp_y = if 2 < NUM_REGS { self.regs[2] } else { 0 };
+                            if let Some(w) =
+                                self.windows.iter_mut().find(|w| w.id == win_id && w.active)
+                            {
+                                // Clamp viewport to window dimensions
+                                w.viewport_x = vp_x.min(w.w.saturating_sub(1));
+                                w.viewport_y = vp_y.min(w.h.saturating_sub(1));
+                                self.regs[0] = 1; // success
+                            } else {
+                                self.regs[0] = 0; // window not found
+                            }
+                        },
+                        _ => {
+                            // Unknown op -- r0 = 0 (error)
+                            self.regs[0] = 0;
+                        },
+                    }
+                }
+            },
+
+            // WPIXEL win_id_reg, x_reg, y_reg, color_reg (0x95)
+            // Write a pixel to a window's offscreen buffer.
+            // If x or y is out of bounds for the window, the pixel is silently dropped.
+            0x95 => {
+                let wid_r = self.fetch() as usize;
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if wid_r < NUM_REGS && xr < NUM_REGS && yr < NUM_REGS && cr < NUM_REGS {
+                    let win_id = self.regs[wid_r];
+                    let px = self.regs[xr];
+                    let py = self.regs[yr];
+                    let color = self.regs[cr];
+                    if let Some(win) = self.windows.iter_mut().find(|w| w.id == win_id && w.active)
+                    {
+                        let px_u = px as usize;
+                        let py_u = py as usize;
+                        let w_u = win.w as usize;
+                        let h_u = win.h as usize;
+                        if px_u < w_u && py_u < h_u {
+                            let idx = py_u * w_u + px_u;
+                            if idx < win.offscreen_buffer.len() {
+                                win.offscreen_buffer[idx] = color;
+                            }
+                        }
+                    }
+                }
+            },
+
+            // WREAD win_id_reg, x_reg, y_reg, dest_reg (0x96)
+            // Read a pixel from a window's offscreen buffer into dest_reg.
+            // Out-of-bounds reads set dest to 0.
+            0x96 => {
+                let wid_r = self.fetch() as usize;
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let dr = self.fetch() as usize;
+                if wid_r < NUM_REGS && xr < NUM_REGS && yr < NUM_REGS && dr < NUM_REGS {
+                    let win_id = self.regs[wid_r];
+                    let px = self.regs[xr];
+                    let py = self.regs[yr];
+                    if let Some(win) = self.windows.iter().find(|w| w.id == win_id && w.active) {
+                        let px_u = px as usize;
+                        let py_u = py as usize;
+                        let w_u = win.w as usize;
+                        let h_u = win.h as usize;
+                        if px_u < w_u && py_u < h_u {
+                            let idx = py_u * w_u + px_u;
+                            if idx < win.offscreen_buffer.len() {
+                                self.regs[dr] = win.offscreen_buffer[idx];
+                            } else {
+                                self.regs[dr] = 0;
+                            }
+                        } else {
+                            self.regs[dr] = 0;
+                        }
+                    } else {
+                        self.regs[dr] = 0;
+                    }
+                }
+            },
+
+            // SPRBLT sheet_addr_reg, sprite_id_reg, x_reg, y_reg (0x97)
+            // Blit a 16x16 sprite from a sprite sheet in RAM to the screen.
+            // Sprite sheet: contiguous array of 16x16 pixel sprites.
+            // Sprite data starts at: sheet_addr + sprite_id * 256
+            // Each sprite is 16x16 = 256 u32 pixels (row-major).
+            // Pixels with value 0 are transparent (skipped).
+            // Clipped to screen boundaries (0..256).
+            0x97 => {
+                let sheet_r = self.fetch() as usize;
+                let sid_r = self.fetch() as usize;
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                if sheet_r < NUM_REGS && sid_r < NUM_REGS && xr < NUM_REGS && yr < NUM_REGS {
+                    let sheet_addr = self.regs[sheet_r] as usize;
+                    let sprite_id = self.regs[sid_r] as usize;
+                    let sx = self.regs[xr] as i32;
+                    let sy = self.regs[yr] as i32;
+
+                    let sprite_offset = sprite_id * 256; // 16x16 pixels per sprite
+                    let data_start = sheet_addr + sprite_offset;
+
+                    for dy in 0..16usize {
+                        for dx in 0..16usize {
+                            let ram_addr = data_start + dy * 16 + dx;
+                            if ram_addr >= self.ram.len() {
+                                break;
+                            }
+                            let color = self.ram[ram_addr];
+                            if color == 0 {
+                                continue; // transparent
+                            }
+                            let px = sx + dx as i32;
+                            let py = sy + dy as i32;
+                            if (0..256).contains(&px) && (0..256).contains(&py) {
+                                self.screen[(py as usize) * 256 + (px as usize)] = color;
+                            }
+                        }
+                    }
+                }
+            },
+
+            // SCRSHOT path_addr_reg (0x98) -- Screenshot: save screen to VFS file
+            // Reads null-terminated path from RAM at address in register.
+            // Writes 256x256 raw RGBA u32 pixels to the VFS file.
+            // Returns total bytes written in r0, or GEOS error code on failure.
+            0x98 => {
+                let pr = self.fetch() as usize;
+                if pr < NUM_REGS {
+                    let path_addr = self.regs[pr] as usize;
+                    // Read the current process's PID for VFS
+                    let pid = self.current_pid;
+                    let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid); // FOPEN_WRITE
+                    if is_geos_errno(fd) {
+                        self.regs[0] = fd; // propagate fopen error
+                    } else {
+                        // Write screen pixels to file
+                        // Pack screen as bytes: each u32 pixel = 4 bytes (RGBA)
+                        let mut pixel_bytes: Vec<u8> = Vec::with_capacity(256 * 256 * 4);
+                        for &pixel in self.screen.iter() {
+                            pixel_bytes.push((pixel >> 24) as u8); // A
+                            pixel_bytes.push((pixel >> 16) as u8); // R
+                            pixel_bytes.push((pixel >> 8) as u8); // G
+                            pixel_bytes.push(pixel as u8); // B
+                        }
+                        // Write bytes to VFS via fwrite - need to stage in RAM first
+                        // Use a temporary RAM region to stage bytes
+                        let stage_base = 0x9000u32;
+                        let chunk_size = 512u32; // write 512 bytes at a time
+                        let mut written: u32 = 0;
+                        let total_bytes = pixel_bytes.len() as u32;
+                        let mut offset = 0u32;
+                        while offset < total_bytes {
+                            let end = std::cmp::min(offset + chunk_size, total_bytes);
+                            let len = end - offset;
+                            // Copy bytes to staging area
+                            for i in 0..len {
+                                let addr = (stage_base as usize) + (i as usize);
+                                if addr < self.ram.len() {
+                                    self.ram[addr] =
+                                        pixel_bytes[(offset as usize) + (i as usize)] as u32;
+                                }
+                            }
+                            let n = self.vfs.fwrite(&self.ram, fd, stage_base, len, pid);
+                            if is_geos_errno(n) {
+                                let _ = self.vfs.fclose(fd, pid);
+                                self.regs[0] = n; // propagate fwrite error
+                                written = 0;
+                                break;
+                            }
+                            written += n;
+                            offset = end;
+                        }
+                        self.vfs.fclose(fd, pid);
+                        self.regs[0] = written; // total bytes written
+                    }
+                }
+            },
+
+            // NET_SEND addr_reg, len_reg, dest_reg (0x99)
+            //
+            // Send pixel data to a connected peer via the pixel protocol.
+            // Reads `len` u32 words from RAM starting at `addr_reg`, wraps them
+            // in a pixel protocol frame, and sends via the TCP connection
+            // identified by `dest_reg` (connection fd).
+            //
+            // Pixel protocol frame format (all u32 words):
+            //   [0] = header: (frame_type << 24) | (width << 16) | (height << 8) | flags
+            //         frame_type: 0=screen_share, 1=chat, 2=file
+            //         flags: bit 0 = compressed (future)
+            //   [1..] = pixel data (width * height u32 RGBA values)
+            //
+            // For simple sends, width=1 and height=len provides a raw data transfer.
+            // r0 = NET_OK on success, error code on failure.
+            // After success, r0 = number of u32 words sent (including header).
+            0x99 => {
+                let ar = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                let dr = self.fetch() as usize;
+
+                if ar >= NUM_REGS || lr >= NUM_REGS || dr >= NUM_REGS {
+                    self.regs[0] = geos_errno(GEOS_EBADF);
+                } else {
+                    let buf_addr = self.regs[ar] as usize;
+                    let len = self.regs[lr] as usize;
+                    let fd = self.regs[dr] as usize;
+
+                    if fd >= crate::vm::net::MAX_TCP_CONNECTIONS
+                        || self.tcp_connections[fd].is_none()
+                    {
+                        self.regs[0] = crate::vm::net::NET_ERR_INVALID_FD;
+                    } else {
+                        // Build the pixel protocol frame
+                        // Header: type=0 (screen_share), width=len, height=1, flags=0
+                        let header =
+                            ((0u32) << 24) | ((len.min(255) as u32) << 16) | (1u32 << 8) | 0u32;
+                        let mut frame = vec![0u8; 4 + len.min(65536) * 4];
+                        // Write header as big-endian u32
+                        frame[0] = (header >> 24) as u8;
+                        frame[1] = (header >> 16) as u8;
+                        frame[2] = (header >> 8) as u8;
+                        frame[3] = header as u8;
+                        // Write pixel data as little-endian u32 array
+                        let data_len = len.min(65536);
+                        for i in 0..data_len {
+                            let idx = buf_addr + i;
+                            let word = if idx < self.ram.len() {
+                                self.ram[idx]
+                            } else {
+                                0
+                            };
+                            let off = 4 + i * 4;
+                            frame[off] = word as u8;
+                            frame[off + 1] = (word >> 8) as u8;
+                            frame[off + 2] = (word >> 16) as u8;
+                            frame[off + 3] = (word >> 24) as u8;
+                        }
+                        let frame_bytes = 4 + data_len * 4;
+
+                        if let Some(ref mut stream) = self.tcp_connections[fd] {
+                            match stream.write_all(&frame[..frame_bytes]) {
+                                Ok(()) => {
+                                    self.regs[0] = (data_len + 1) as u32; // words sent (header + data)
+                                },
+                                Err(_) => {
+                                    self.regs[0] = crate::vm::net::NET_ERR_SEND_FAILED;
+                                },
+                            }
+                        } else {
+                            self.regs[0] = crate::vm::net::NET_ERR_INVALID_FD;
+                        }
+                    }
+                }
+            },
+
+            // NET_RECV addr_reg, max_len_reg (0x9A)
+            //
+            // Receive pending pixel data from the network inbox into RAM.
+            // Non-blocking: reads the oldest frame from the inbox queue.
+            // Stores the pixel data (without header) starting at RAM[addr_reg].
+            //
+            // r0 = number of u32 words received (0 if inbox empty).
+            // The frame header is written to RAM[addr_reg - 4..addr_reg] if there's room:
+            //   RAM[addr-4] = frame_type, RAM[addr-3] = width, RAM[addr-2] = height, RAM[addr-1] = flags
+            // Or the caller can check r0 for the data length.
+            //
+            // For testing without a network: push frames directly into vm.net_inbox.
+            0x9A => {
+                let ar = self.fetch() as usize;
+                let mr = self.fetch() as usize;
+
+                if ar >= NUM_REGS || mr >= NUM_REGS {
+                    self.regs[0] = 0;
+                } else if self.net_inbox.is_empty() {
+                    self.regs[0] = 0; // nothing to receive
+                } else {
+                    let buf_addr = self.regs[ar] as usize;
+                    let max_len = self.regs[mr] as usize;
+
+                    let frame = self.net_inbox.remove(0);
+                    if frame.len() < 1 {
+                        self.regs[0] = 0;
+                    } else {
+                        // Frame format: first word is header, rest is pixel data
+                        // Header: (type << 24) | (width << 16) | (height << 8) | flags
+                        let header = frame[0];
+                        // Write header to RAM at buf_addr..buf_addr+4
+                        if buf_addr + 3 < self.ram.len() {
+                            self.ram[buf_addr] = (header >> 24) & 0xFF; // type
+                            self.ram[buf_addr + 1] = (header >> 16) & 0xFF; // width
+                            self.ram[buf_addr + 2] = (header >> 8) & 0xFF; // height
+                            self.ram[buf_addr + 3] = header & 0xFF; // flags
+                        }
+                        // Write pixel data starting at buf_addr + 4
+                        let data_len = (frame.len() - 1).min(max_len as usize);
+                        for i in 0..data_len {
+                            let idx = buf_addr + 4 + i;
+                            if idx < self.ram.len() {
+                                self.ram[idx] = frame[1 + i];
+                            }
+                        }
+                        self.regs[0] = (data_len + 4) as u32; // total words written
+                    }
+                }
+            },
+
+            // PROCLS buf_reg (0x9B) -- list running process PIDs into RAM buffer
+            // Writes PID of each active process (including main PID 0) as u32 words
+            // starting at RAM[buf_reg]. Returns count in r0.
+            0x9B => {
+                let br = self.fetch() as usize;
+                if br < NUM_REGS {
+                    let mut buf_addr = self.regs[br] as usize;
+                    let mut count: u32 = 0;
+                    // Write main process PID (0)
+                    if buf_addr < self.ram.len() {
+                        self.ram[buf_addr] = 0;
+                        count += 1;
+                        buf_addr += 1;
+                    }
+                    // Write spawned process PIDs
+                    for p in &self.processes {
+                        if buf_addr < self.ram.len() {
+                            self.ram[buf_addr] = p.pid;
+                            count += 1;
+                            buf_addr += 1;
+                        }
+                    }
+                    self.regs[0] = count;
+                } else {
+                    self.regs[0] = 0;
+                }
+            },
+
+            // LLM prompt_addr_reg, response_addr_reg, max_len_reg (0x9C)
+            // Sends null-terminated prompt string from RAM to an LLM API.
+            // Response written to RAM at response_addr. r0 = response length (0 on error).
+            // Uses llm_mock_response if set (for testing), otherwise calls curl.
+            0x9C => {
+                let r_prompt = self.fetch() as usize;
+                let r_response = self.fetch() as usize;
+                let r_max_len = self.fetch() as usize;
+                if r_prompt < NUM_REGS && r_response < NUM_REGS && r_max_len < NUM_REGS {
+                    let prompt_addr = self.regs[r_prompt] as usize;
+                    let response_addr = self.regs[r_response] as usize;
+                    let max_len = self.regs[r_max_len] as usize;
+
+                    // Read null-terminated prompt string from RAM
+                    let mut prompt = String::new();
+                    let mut addr = prompt_addr;
+                    while addr < self.ram.len() {
+                        let ch = self.ram[addr];
+                        if ch == 0 {
+                            break;
+                        }
+                        if let Some(c) = char::from_u32(ch) {
+                            prompt.push(c);
+                        } else {
+                            prompt.push('?');
+                        }
+                        addr += 1;
+                    }
+
+                    // Get response: use mock if available, otherwise call LLM
+                    let response = if let Some(mock) = self.llm_mock_response.take() {
+                        mock
+                    } else if prompt.is_empty() {
+                        String::new()
+                    } else {
+                        // Call external LLM via curl (like hermes.rs call_llm pattern)
+                        match self.call_llm_external(&prompt) {
+                            Some(r) => r,
+                            None => "ERROR: INFERENCE TIMEOUT - PARTIAL RESULTS".to_string(),
+                        }
+                    };
+
+                    // Write response to RAM, one char per u32 word
+                    let write_len = response.len().min(max_len);
+                    for (i, byte) in response.bytes().take(write_len).enumerate() {
+                        let dest = response_addr + i;
+                        if dest < self.ram.len() {
+                            self.ram[dest] = byte as u32;
+                        }
+                    }
+                    // Null-terminate if space allows
+                    if response_addr + write_len < self.ram.len() {
+                        self.ram[response_addr + write_len] = 0;
+                    }
+                    self.regs[0] = write_len as u32;
+                } else {
+                    self.regs[0] = 0; // error: invalid registers
+                }
+            },
+
+            // HTPARSE src_addr_reg, dest_addr_reg, max_lines_reg  (0x9D)
+            // Parse HTML from RAM at src_addr into styled lines at dest_addr.
+            // Each line = 33 u32 words: [fg_color, char0, char1, ..., char31].
+            // Links are registered in hit_regions for HITQ click detection.
+            // Returns: r0 = number of parsed lines.
+            0x9D => {
+                let sr = self.fetch() as usize;
+                let dr = self.fetch() as usize;
+                let mr = self.fetch() as usize;
+                if sr < NUM_REGS && dr < NUM_REGS && mr < NUM_REGS {
+                    let src_addr = self.regs[sr] as usize;
+                    let dest_addr = self.regs[dr] as usize;
+                    let max_lines = self.regs[mr] as usize;
+
+                    // Read HTML from RAM
+                    let mut html = String::new();
+                    let mut a = src_addr;
+                    while a < self.ram.len() {
+                        let ch = self.ram[a];
+                        if ch == 0 {
+                            break;
+                        }
+                        if let Some(c) = char::from_u32(ch) {
+                            html.push(c);
+                        } else {
+                            html.push('?');
+                        }
+                        a += 1;
+                    }
+
+                    // Parse HTML into styled lines
+                    let parsed = self.parse_html_to_lines(&html, max_lines, dest_addr);
+
+                    // Write styled lines to dest_addr
+                    let line_size = 33;
+                    for (line_idx, line) in parsed.iter().enumerate() {
+                        let base = dest_addr + line_idx * line_size;
+                        if base + line_size > self.ram.len() {
+                            break;
+                        }
+                        self.ram[base] = line.fg_color;
+                        for (j, &ch) in line.chars.iter().enumerate() {
+                            if j < 32 {
+                                self.ram[base + 1 + j] = ch;
+                            }
+                        }
+                        for j in line.chars.len()..32 {
+                            if base + 1 + j < self.ram.len() {
+                                self.ram[base + 1 + j] = 0;
+                            }
+                        }
+                    }
+
+                    self.regs[0] = parsed.len() as u32;
+                } else {
+                    self.regs[0] = 0;
+                }
+            },
+
+            // HERMES prompt_addr_reg, response_addr_reg, max_len_reg (0xA8)
+            // Sends null-terminated prompt string from RAM to the Hermes Agent CLI.
+            // Response written to RAM at response_addr. r0 = response length (0 on error).
+            // Uses hermes_mock_response if set (for testing), otherwise shells out.
+            // Maintains session continuity via hermes_session_id for --resume.
+            0xA8 => {
+                let r_prompt = self.fetch() as usize;
+                let r_response = self.fetch() as usize;
+                let r_max_len = self.fetch() as usize;
+                if r_prompt < NUM_REGS && r_response < NUM_REGS && r_max_len < NUM_REGS {
+                    let prompt_addr = self.regs[r_prompt] as usize;
+                    let response_addr = self.regs[r_response] as usize;
+                    let max_len = self.regs[r_max_len] as usize;
+
+                    // Read null-terminated prompt string from RAM
+                    let mut prompt = String::new();
+                    let mut addr = prompt_addr;
+                    while addr < self.ram.len() {
+                        let ch = self.ram[addr];
+                        if ch == 0 {
+                            break;
+                        }
+                        if let Some(c) = char::from_u32(ch) {
+                            prompt.push(c);
+                        } else {
+                            prompt.push('?');
+                        }
+                        addr += 1;
+                    }
+
+                    // Get response: use mock if available, otherwise call Hermes CLI
+                    let response = if let Some(mock) = self.hermes_mock_response.take() {
+                        mock
+                    } else if prompt.is_empty() {
+                        String::new()
+                    } else {
+                        self.call_hermes_cli(&prompt).unwrap_or_default()
+                    };
+
+                    // Write response to RAM, one char per u32 word
+                    let write_len = response.len().min(max_len);
+                    for (i, byte) in response.bytes().take(write_len).enumerate() {
+                        let dest = response_addr + i;
+                        if dest < self.ram.len() {
+                            self.ram[dest] = byte as u32;
+                        }
+                    }
+                    // Null-terminate if space allows and we actually wrote data
+                    if write_len > 0 && response_addr + write_len < self.ram.len() {
+                        self.ram[response_addr + write_len] = 0;
+                    }
+                    self.regs[0] = write_len as u32;
+                } else {
+                    self.regs[0] = 0; // error: invalid registers
+                }
+            },
+
+            // PTYOPEN cmd_addr_reg, handle_reg  (0xA9)
+            0xA9 => {
+                self.op_ptyopen();
+            },
+            // PTYWRITE handle_reg, buf_reg, len_reg  (0xAA)
+            0xAA => self.op_ptywrite(),
+            // PTYREAD handle_reg, buf_reg, max_len_reg  (0xAB)
+            0xAB => {
+                eprintln!("[VM] PTYREAD dispatch at PC={}", self.pc);
+                self.op_ptyread();
+            },
+            // PTYCLOSE handle_reg  (0xAC)
+            0xAC => self.op_ptyclose(),
+            // PTYSIZE handle_reg, rows_reg, cols_reg  (0xAD)
+            0xAD => self.op_ptysize(),
+
+            // HITCLR  (0x9E) -- clear all hit-test regions
+            0x9E => {
+                self.hit_regions.clear();
+            },
+
+            // ── Phase 87: Multi-Hypervisor Opcodes ──────────────────────
+
+            // VM_SPAWN config_reg, window_reg (0x9F) -- Create background hypervisor VM.
+            // Reads config string from RAM at address in config_reg.
+            // window_reg: WINSYS window_id (0 = full canvas).
+            // Returns VM instance ID in r0 (1-based). 0xFFFFFFFF on error.
+            // Max 4 concurrent VMs. Config must have arch= parameter.
+            // Encoding: 3 words [0x9F, config_reg, window_reg]
+            0x9F => {
+                let config_reg = self.fetch() as usize;
+                let win_reg = self.fetch() as usize;
+                let window_id = if win_reg < NUM_REGS {
+                    self.regs[win_reg]
+                } else {
+                    0
+                };
+                const MAX_BG_VMS: usize = 4;
+                if config_reg >= NUM_REGS {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                } else if self.background_vms.len() >= MAX_BG_VMS {
+                    self.regs[0] = geos_errno(GEOS_EPERM); // max VMs reached
+                } else {
+                    let addr = self.regs[config_reg] as usize;
+                    let config = Self::read_string_static(&self.ram, addr);
+                    match config {
+                        Some(cfg) => {
+                            let has_arch = cfg
+                                .split_whitespace()
+                                .any(|t| t.to_lowercase().starts_with("arch=") && t.len() > 5);
+                            if !has_arch {
+                                self.regs[0] = geos_errno(GEOS_EINVAL); // missing arch=
+                            } else {
+                                let mode = cfg
+                                    .split_whitespace()
+                                    .find(|t| t.to_lowercase().starts_with("mode="))
+                                    .map(|t| {
+                                        let val = t.split('=').nth(1).unwrap_or("").to_lowercase();
+                                        if val == "native" {
+                                            HypervisorMode::Native
+                                        } else {
+                                            HypervisorMode::Qemu
+                                        }
+                                    })
+                                    .unwrap_or(HypervisorMode::Qemu);
+                                let id = self.next_bg_vm_id;
+                                self.next_bg_vm_id += 1;
+                                let bg_vm = BackgroundVm {
+                                    id,
+                                    config: cfg,
+                                    mode,
+                                    window_id,
+                                    state: BgVmState::Paused,
+                                    instructions_per_frame: 1000,
+                                    total_instructions: 0,
+                                    frames_active: 0,
+                                };
+                                self.background_vms.push(bg_vm);
+                                self.regs[0] = id; // success
+                            }
+                        },
+                        None => {
+                            self.regs[0] = geos_errno(GEOS_EINVAL); // empty/null config
+                        },
+                    }
+                }
+            },
+
+            // VM_KILL id_reg (0xA0) -- Kill a background VM by ID.
+            // Returns 0 in r0 on success, 0xFFFFFFFF if not found.
+            // Encoding: 2 words [0xA0, id_reg]
+            0xA0 => {
+                let id_reg = self.fetch() as usize;
+                if id_reg < NUM_REGS {
+                    let vm_id = self.regs[id_reg];
+                    let before = self.background_vms.len();
+                    self.background_vms.retain(|v| v.id != vm_id);
+                    if self.background_vms.len() < before {
+                        self.regs[0] = 0; // success
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EINVAL); // not found
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_ESRCH);
+                }
+            },
+
+            // VM_STATUS id_reg (0xA1) -- Query background VM status.
+            // Returns in r0: 0=not found, 1=Running, 2=Paused, 3=Saved.
+            // Also writes total_instructions to RAM at address in r1 (if r1 != 0).
+            // Encoding: 2 words [0xA1, id_reg]
+            0xA1 => {
+                let id_reg = self.fetch() as usize;
+                if id_reg < NUM_REGS {
+                    let vm_id = self.regs[id_reg];
+                    match self.background_vms.iter().find(|v| v.id == vm_id) {
+                        Some(bg) => {
+                            self.regs[0] = match bg.state {
+                                BgVmState::Running => 1,
+                                BgVmState::Paused => 2,
+                                BgVmState::Saved => 3,
+                            };
+                            // Also write stats to r1 if it points to a valid RAM region
+                            if NUM_REGS > 1 {
+                                let stats_addr = self.regs[1] as usize;
+                                if stats_addr > 0 && stats_addr + 1 < self.ram.len() {
+                                    self.ram[stats_addr] = bg.total_instructions as u32;
+                                    self.ram[stats_addr + 1] = bg.frames_active as u32;
+                                }
+                            }
+                        },
+                        None => {
+                            self.regs[0] = 0; // not found
+                        },
+                    }
+                } else {
+                    self.regs[0] = 0;
+                }
+            },
+
+            // VM_PAUSE id_reg (0xA2) -- Pause a running background VM.
+            // Returns 0 on success, 0xFFFFFFFF if not found or already paused.
+            // Encoding: 2 words [0xA2, id_reg]
+            0xA2 => {
+                let id_reg = self.fetch() as usize;
+                if id_reg < NUM_REGS {
+                    let vm_id = self.regs[id_reg];
+                    match self.background_vms.iter_mut().find(|v| v.id == vm_id) {
+                        Some(bg) => {
+                            if bg.state == BgVmState::Running {
+                                bg.state = BgVmState::Paused;
+                                self.regs[0] = 0;
+                            } else {
+                                self.regs[0] = geos_errno(GEOS_EPERM); // wrong state
+                            }
+                        },
+                        None => {
+                            self.regs[0] = geos_errno(GEOS_ESRCH);
+                        },
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // VM_RESUME id_reg (0xA3) -- Resume a paused/saved background VM.
+            // Returns 0 on success, 0xFFFFFFFF if not found or already running.
+            // Encoding: 2 words [0xA3, id_reg]
+            0xA3 => {
+                let id_reg = self.fetch() as usize;
+                if id_reg < NUM_REGS {
+                    let vm_id = self.regs[id_reg];
+                    match self.background_vms.iter_mut().find(|v| v.id == vm_id) {
+                        Some(bg) => {
+                            if bg.state != BgVmState::Running {
+                                bg.state = BgVmState::Running;
+                                self.regs[0] = 0;
+                            } else {
+                                self.regs[0] = geos_errno(GEOS_EPERM); // already running
+                            }
+                        },
+                        None => {
+                            self.regs[0] = geos_errno(GEOS_ESRCH);
+                        },
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // VM_SET_BUDGET id_reg, budget_reg (0xA4) -- Set instructions-per-frame budget.
+            // budget_reg holds the new instruction budget (must be > 0).
+            // Returns 0 on success, 0xFFFFFFFF if not found, 0xFFFFFFFE if budget == 0.
+            // Encoding: 3 words [0xA4, id_reg, budget_reg]
+            0xA4 => {
+                let id_reg = self.fetch() as usize;
+                let budget_reg = self.fetch() as usize;
+                if id_reg < NUM_REGS && budget_reg < NUM_REGS {
+                    let vm_id = self.regs[id_reg];
+                    let budget = self.regs[budget_reg];
+                    match self.background_vms.iter_mut().find(|v| v.id == vm_id) {
+                        Some(bg) => {
+                            if budget == 0 {
+                                self.regs[0] = geos_errno(GEOS_EPERM);
+                            } else {
+                                bg.instructions_per_frame = budget;
+                                self.regs[0] = 0;
+                            }
+                        },
+                        None => {
+                            self.regs[0] = geos_errno(GEOS_ESRCH);
+                        },
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // VM_LIST addr_reg (0xA5) -- List all background VM IDs to RAM.
+            // Writes up to 4 VM IDs starting at RAM address in addr_reg.
+            // Returns count of VMs in r0.
+            // Encoding: 2 words [0xA5, addr_reg]
+            0xA5 => {
+                let addr_reg = self.fetch() as usize;
+                if addr_reg < NUM_REGS {
+                    let base_addr = self.regs[addr_reg] as usize;
+                    let count = self.background_vms.len().min(4);
+                    for (i, bg) in self.background_vms.iter().take(4).enumerate() {
+                        if base_addr + i < self.ram.len() {
+                            self.ram[base_addr + i] = bg.id;
+                        }
+                    }
+                    self.regs[0] = count as u32;
+                } else {
+                    self.regs[0] = 0;
+                }
+            },
+
+            // ── Phase 89: AI Agent Input ──
+
+            // AI_INJECT op_reg (0xA6) -- AI programmatic input injection
+            // op=0: inject key event. r1=keycode, r2=shift_state. Calls push_key().
+            // op=1: inject mouse move. r1=x, r2=y. Calls push_mouse().
+            // op=2: inject mouse click. r1=x, r2=y, r3=button. Calls push_mouse() + push_mouse_button().
+            // op=3: inject text string. r1=addr of null-terminated string, pushes each char via push_key().
+            // Returns: r0=1 on success, 0 on failure.
+            // Encoding: 2 words [0xA6, op_reg]
+            0xA6 => {
+                let op_reg = self.fetch() as usize;
+                if op_reg >= NUM_REGS {
+                    self.regs[0] = 0; // invalid register
+                } else {
+                    let op = self.regs[op_reg];
+                    match op {
+                        // op=0: inject key event
+                        0 => {
+                            if op_reg + 2 < NUM_REGS {
+                                let keycode = self.regs[op_reg + 1];
+                                let _shift = self.regs[op_reg + 2];
+                                let ok = self.push_key(keycode);
+                                self.regs[0] = if ok { 1 } else { 0 };
+                            } else {
+                                self.regs[0] = 0;
+                            }
+                        },
+                        // op=1: inject mouse move
+                        1 => {
+                            if op_reg + 2 < NUM_REGS {
+                                let x = self.regs[op_reg + 1];
+                                let y = self.regs[op_reg + 2];
+                                self.push_mouse(x, y);
+                                self.regs[0] = 1;
+                            } else {
+                                self.regs[0] = 0;
+                            }
+                        },
+                        // op=2: inject mouse click
+                        2 => {
+                            if op_reg + 3 < NUM_REGS {
+                                let x = self.regs[op_reg + 1];
+                                let y = self.regs[op_reg + 2];
+                                let button = self.regs[op_reg + 3];
+                                self.push_mouse(x, y);
+                                self.push_mouse_button(button);
+                                self.regs[0] = 1;
+                            } else {
+                                self.regs[0] = 0;
+                            }
+                        },
+                        // op=3: inject text string (null-terminated in RAM)
+                        3 => {
+                            if op_reg + 1 < NUM_REGS {
+                                let mut addr = self.regs[op_reg + 1] as usize;
+                                let mut count = 0u32;
+                                // Push each character as a key event
+                                while addr < self.ram.len() {
+                                    let ch = self.ram[addr];
+                                    if ch == 0 {
+                                        break;
+                                    }
+                                    if !self.push_key(ch) {
+                                        break;
+                                    } // buffer full
+                                    count += 1;
+                                    addr += 1;
+                                }
+                                self.regs[0] = count;
+                            } else {
+                                self.regs[0] = 0;
+                            }
+                        },
+                        _ => {
+                            self.regs[0] = 0; // unknown op
+                        },
+                    }
+                }
+            },
+
+            // ── Phase 102: Permissions and Capability System ──
+
+            // SPAWNC addr_reg, caps_reg (0xA7) -- Spawn with capabilities.
+            // Like SPAWN but parent passes a capability list from RAM.
+            // RAM layout at caps_reg:
+            //   [n_entries, entry_0, entry_1, ..., entry_n-1, 0xFFFFFFFF sentinel]
+            //   Each entry: [resource_type, pattern_addr, pattern_len, permissions]
+            //   where pattern is a null-terminated string at pattern_addr (pattern_len chars).
+            //   resource_type: 0 = VFS path, 1 = opcode restriction.
+            //   permissions bitmask: bit 0 = read, bit 1 = write, bit 2 = exec.
+            // Returns child PID in RAM[0xFFA], or 0xFFFFFFFF on error.
+            // Encoding: 3 words [0xA7, addr_reg, caps_reg]
+            0xA7 => {
+                let addr_reg = self.fetch() as usize;
+                let caps_reg = self.fetch() as usize;
+                if addr_reg < NUM_REGS && caps_reg < NUM_REGS {
+                    let active_count = self.processes.iter().filter(|p| !p.is_halted()).count();
+                    if active_count >= MAX_PROCESSES {
+                        self.ram[0xFFA] = geos_errno(GEOS_EPERM);
+                    } else {
+                        let start_addr = self.regs[addr_reg];
+                        let caps_addr = self.regs[caps_reg] as usize;
+
+                        // Parse capability list from RAM
+                        let mut capabilities = Vec::new();
+                        if caps_addr < self.ram.len() {
+                            let n_entries = self.ram[caps_addr] as usize;
+                            let mut entry_offset = caps_addr + 1;
+                            for _ in 0..n_entries {
+                                if entry_offset + 3 >= self.ram.len() {
+                                    break;
+                                }
+                                let res_type = self.ram[entry_offset] as u8;
+                                let pat_addr = self.ram[entry_offset + 1] as usize;
+                                let pat_len = self.ram[entry_offset + 2] as usize;
+                                let perms = self.ram[entry_offset + 3] as u8;
+
+                                // Read pattern string from RAM
+                                let mut pattern = String::new();
+                                for i in 0..pat_len {
+                                    if pat_addr + i >= self.ram.len() {
+                                        break;
+                                    }
+                                    let ch = self.ram[pat_addr + i];
+                                    if ch == 0 {
+                                        break;
+                                    }
+                                    if let Some(c) = char::from_u32(ch) {
+                                        pattern.push(c);
+                                    }
+                                }
+
+                                capabilities.push(crate::vm::types::Capability {
+                                    resource_type: res_type,
+                                    pattern,
+                                    permissions: perms,
+                                });
+                                entry_offset += 4;
+                            }
+                        }
+
+                        // Same page directory logic as SPAWN
+                        let start_page = (start_addr as usize) / PAGE_SIZE;
+                        let page_offset = start_addr % (PAGE_SIZE as u32);
+                        let mut pd = vec![PAGE_UNMAPPED; NUM_PAGES];
+                        let child_pc: u32;
+                        let identity_map = start_page < 3;
+
+                        if identity_map {
+                            for (phys_page, pd_entry) in pd.iter_mut().enumerate().take(3) {
+                                if phys_page >= NUM_RAM_PAGES {
+                                    break;
+                                }
+                                *pd_entry = phys_page as u32;
+                                if self.page_ref_count[phys_page] == 0 {
+                                    self.page_ref_count[phys_page] = 1;
+                                }
+                                self.page_ref_count[phys_page] += 1;
+                                self.page_cow |= 1u64 << phys_page;
+                            }
+                            child_pc = start_addr;
+                        } else {
+                            for (vpage, pd_entry) in pd.iter_mut().enumerate().take(PROCESS_PAGES) {
+                                let parent_phys = start_page + vpage;
+                                if parent_phys >= NUM_RAM_PAGES {
+                                    break;
+                                }
+                                if vpage == 3 || parent_phys == 3 {
+                                    *pd_entry = 3;
+                                    self.page_ref_count[3] += 1;
+                                    continue;
+                                }
+                                *pd_entry = parent_phys as u32;
+                                self.page_ref_count[parent_phys] += 1;
+                                self.page_cow |= 1u64 << parent_phys;
+                            }
+                            child_pc = page_offset;
+                        }
+
+                        // Page 3 shared region
+                        if identity_map {
+                            pd[3] = 3;
+                            if self.page_ref_count[3] == 0 {
+                                self.page_ref_count[3] = 1;
+                            }
+                            self.page_ref_count[3] += 1;
+                        }
+
+                        // Page 63 (hardware ports)
+                        pd[63] = 63;
+
+                        let pid = (self.processes.len() + 1) as u32;
+                        self.processes.push(crate::vm::types::SpawnedProcess {
+                            pc: child_pc,
+                            regs: [0; NUM_REGS],
+                            state: crate::vm::types::ProcessState::Ready,
+                            pid,
+                            mode: crate::vm::types::CpuMode::User,
+                            page_dir: Some(pd),
+                            segfaulted: false,
+                            priority: 1,
+                            slice_remaining: 0,
+                            sleep_until: 0,
+                            yielded: false,
+                            kernel_stack: Vec::new(),
+                            msg_queue: Vec::new(),
+                            exit_code: 0,
+                            parent_pid: self.current_pid,
+                            pending_signals: Vec::new(),
+                            signal_handlers: [0; 4],
+                            vmas: crate::vm::types::Process::default_vmas_for_process(),
+                            brk_pos: PAGE_SIZE as u32,
+                            custom_font: None,
+                            font_mode: 0,
+                            capabilities: if capabilities.is_empty() {
+                                None
+                            } else {
+                                Some(capabilities)
+                            },
+                            data_base: 0,
+                        });
+                        self.ram[0xFFA] = pid;
+                    }
+                } else {
+                    self.ram[0xFFA] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // ── Phase 88: AI Vision Bridge ──
+
+            // AI_AGENT op_reg (0xB0) -- AI vision operations
+            // op=0: screenshot to VFS file. r1=path_addr. Returns fd in r0.
+            // op=1: canvas checksum. Returns FNV-1a hash in r0.
+            // op=2: diff two screens. r1=addr of saved checksum (u32). Returns changed pixel count in r0.
+            // op=3: call external vision API with screenshot + prompt from RAM.
+            //       r1=prompt_addr, r2=response_addr, r3=max_len. Returns response length in r0.
+            // op=4: specialized perception. r1=mode (0=full, 1=region, 2=count). Returns integer in r0.
+            0xB0 => {
+                let op_reg = self.fetch() as usize;
+                // SCREENA sentinel: 0xFF means sub-op 5, mode from next word
+                if op_reg == 0xFF {
+                    let mode_reg = self.fetch() as usize;
+                    if mode_reg >= NUM_REGS {
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
+                    } else {
+                        let mode = self.regs[mode_reg];
+                        self.exec_screena(mode);
+                    }
+                } else if op_reg >= NUM_REGS {
+                    self.regs[0] = geos_errno(GEOS_ENOTSUP); // unknown op
+                } else {
+                    let op = self.regs[op_reg];
+                    match op {
+                        0 => {
+                            // Screenshot to VFS as PNG
+                            // Read path from r1
+                            if op_reg + 1 < NUM_REGS {
+                                let path_addr = self.regs[op_reg + 1] as usize;
+                                let pid = self.current_pid;
+
+                                // Encode screen as PNG
+                                let png_bytes = crate::vision::encode_png(&self.screen);
+
+                                // Write PNG to VFS file
+                                // First, create the file
+                                let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid); // FOPEN_WRITE
+                                if is_geos_errno(fd) {
+                                    self.regs[0] = fd; // propagate fopen error
+                                } else {
+                                    // Stage PNG bytes in RAM at a temporary area, write in chunks
+                                    let stage_base = 0x9000u32;
+                                    let chunk_size = 512u32;
+                                    let mut written: u32 = 0;
+                                    let total_bytes = png_bytes.len() as u32;
+                                    let mut offset = 0u32;
+                                    while offset < total_bytes {
+                                        let end = std::cmp::min(offset + chunk_size, total_bytes);
+                                        let n = end - offset;
+                                        // Stage bytes into RAM as u32 words (4 bytes per word)
+                                        let mut stage_idx = 0u32;
+                                        while stage_idx < n {
+                                            let byte_off = offset + stage_idx;
+                                            let b0 = if (byte_off as usize) < png_bytes.len() {
+                                                png_bytes[byte_off as usize]
+                                            } else {
+                                                0u8
+                                            };
+                                            let b1 = if (byte_off as usize) + 1 < png_bytes.len() {
+                                                png_bytes[byte_off as usize + 1]
+                                            } else {
+                                                0u8
+                                            };
+                                            let b2 = if (byte_off as usize) + 2 < png_bytes.len() {
+                                                png_bytes[byte_off as usize + 2]
+                                            } else {
+                                                0u8
+                                            };
+                                            let b3 = if (byte_off as usize) + 3 < png_bytes.len() {
+                                                png_bytes[byte_off as usize + 3]
+                                            } else {
+                                                0u8
+                                            };
+                                            let word = (b0 as u32)
+                                                | ((b1 as u32) << 8)
+                                                | ((b2 as u32) << 16)
+                                                | ((b3 as u32) << 24);
+                                            let ram_addr = (stage_base + stage_idx / 4) as usize;
+                                            if ram_addr < self.ram.len() {
+                                                self.ram[ram_addr] = word;
+                                            }
+                                            stage_idx += 4;
+                                        }
+                                        let bytes_written = self.vfs.fwrite(
+                                            &self.ram,
+                                            fd,
+                                            stage_base,
+                                            (n + 3) / 4,
+                                            pid,
+                                        );
+                                        written += bytes_written;
+                                        offset = end;
+                                    }
+                                    self.vfs.fclose(fd, pid);
+                                    self.regs[0] = written; // total bytes written
+                                }
+                            } else {
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
+                            }
+                        },
+                        1 => {
+                            // Canvas checksum (FNV-1a)
+                            let hash = crate::vision::canvas_checksum(&self.screen);
+                            self.regs[0] = hash;
+                        },
+                        2 => {
+                            // Diff: compare current screen against saved checksum in RAM[r1]
+                            // Returns count of pixels that differ from expected pattern
+                            // (Since we can't store a full screen, this returns a simple
+                            // changed-pixel count vs the last saved checksum metadata)
+                            // For now: compute current checksum and return pixel diff stats
+                            // r1 = addr of previous screen data in RAM (256x256 u32 words starting at addr)
+                            // Returns count of changed pixels in r0
+                            if op_reg + 1 < NUM_REGS {
+                                let prev_addr = self.regs[op_reg + 1] as usize;
+                                let mut changed: u32 = 0;
+                                for i in 0..256 * 256 {
+                                    let prev_pixel = if prev_addr + i < self.ram.len() {
+                                        self.ram[prev_addr + i]
+                                    } else {
+                                        0
+                                    };
+                                    if self.screen[i] != prev_pixel {
+                                        changed += 1;
+                                    }
+                                }
+                                self.regs[0] = changed;
+                            } else {
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
+                            }
+                        },
+                        3 => {
+                            // Vision API call: screenshot + prompt -> LLM response
+                            // r1=prompt_addr (null-terminated string in RAM)
+                            // r2=response_addr (where to write response in RAM)
+                            // r3=max_len (max response bytes)
+                            // Returns response length in r0, or 0xFFFFFFFF on error
+                            if op_reg + 3 < NUM_REGS {
+                                let prompt_addr = self.regs[op_reg + 1] as usize;
+                                let response_addr = self.regs[op_reg + 2] as usize;
+                                let max_len = self.regs[op_reg + 3] as usize;
+
+                                // Read prompt from RAM
+                                let mut prompt = String::new();
+                                let mut pa = prompt_addr;
+                                while pa < self.ram.len() {
+                                    let ch = self.ram[pa];
+                                    if ch == 0 {
+                                        break;
+                                    }
+                                    if let Some(c) = char::from_u32(ch) {
+                                        prompt.push(c);
+                                    }
+                                    pa += 1;
+                                }
+
+                                // Encode screenshot as base64 PNG
+                                let screenshot_b64 = crate::vision::encode_png_base64(&self.screen);
+
+                                // Check for mock response (testing)
+                                let response = if let Some(ref mock) = self.llm_mock_response {
+                                    let resp = mock.clone();
+                                    self.llm_mock_response = None;
+                                    Some(resp)
+                                } else {
+                                    // Call real local Ollama vision model
+                                    crate::hermes::call_ollama_vision(
+                                        "You are a Geometry OS diagnostic assistant.",
+                                        &prompt,
+                                        &screenshot_b64,
+                                    )
+                                };
+
+                                if let Some(resp) = response {
+                                    let resp_bytes = resp.as_bytes();
+                                    let write_len = resp_bytes.len().min(max_len);
+                                    for i in 0..write_len {
+                                        if response_addr + i < self.ram.len() {
+                                            self.ram[response_addr + i] = resp_bytes[i] as u32;
+                                        }
+                                    }
+                                    self.regs[0] = write_len as u32;
+                                } else {
+                                    self.regs[0] = geos_errno(GEOS_EIO);
+                                }
+                            } else {
+                                self.regs[0] = geos_errno(GEOS_EIO);
+                            }
+                        },
+                        4 => {
+                            // Specialized perception: count objects
+                            // r1 = mode (0=full screen, 1=region, 2=count_color)
+                            // Returns count in r0
+                            if op_reg + 1 < NUM_REGS {
+                                let mode = self.regs[op_reg + 1];
+                                let prompt = match mode {
+                                    0 => "Reply with one integer: how many distinct objects do you see in the full screen?",
+                                    1 => "Reply with one integer: how many distinct objects do you see in the highlighted region?",
+                                    2 => "Reply with one integer: how many pixels of the most dominant color do you see?",
+                                    _ => "Reply with one integer: how many distinct objects do you see?",
+                                };
+
+                                let response = if let Some(ref mock) = self.llm_mock_response {
+                                    let resp = mock.clone();
+                                    self.llm_mock_response = None;
+                                    Some(resp)
+                                } else {
+                                    let screenshot_b64 =
+                                        crate::vision::encode_png_base64(&self.screen);
+                                    crate::hermes::call_ollama_vision(
+                                        "You are a Geometry OS diagnostic assistant.",
+                                        prompt,
+                                        &screenshot_b64,
+                                    )
+                                };
+
+                                if let Some(resp) = response {
+                                    // Parse leading integer
+                                    let count = resp
+                                        .split_whitespace()
+                                        .filter_map(|s| s.parse::<u32>().ok())
+                                        .next()
+                                        .unwrap_or(0);
+                                    self.regs[0] = count;
+                                } else {
+                                    self.regs[0] = geos_errno(GEOS_EIO);
+                                }
+                            } else {
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
+                            }
+                        },
+                        5 => {
+                            // SCREENA: Screen Analysis / Fitness Evaluation
+                            if op_reg + 1 < NUM_REGS {
+                                let mode = self.regs[op_reg + 1];
+                                self.exec_screena(mode);
+                            } else {
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
+                            }
+                        },
+                        _ => {
+                            self.regs[0] = geos_errno(GEOS_ENOTSUP); // unknown op
+                        },
+                    }
+                }
+            },
+
+            // LOADPNG path_reg, dest_addr_reg (0xB1) -- Load pixelpack-encoded PNG to RAM
+            // Reads a PNG file path from RAM at path_reg, decodes pixelpack seeds to bytes,
+            // writes bytecode to RAM starting at dest_addr_reg.
+            // Returns byte count in r0 (0xFFFFFFFF on error).
+            // Encoding: 3 words [0xB1, path_reg, dest_addr_reg]
+            0xB1 => {
+                let path_reg = self.fetch() as usize;
+                let dest_reg = self.fetch() as usize;
+                if path_reg >= NUM_REGS || dest_reg >= NUM_REGS {
+                    self.regs[0] = geos_errno(GEOS_ENOTSUP); // unknown op
+                } else {
+                    let path_addr = self.regs[path_reg] as usize;
+                    let dest_addr = self.regs[dest_reg] as usize;
+
+                    // Read path string from RAM (null-terminated)
+                    let mut path_str = String::new();
+                    let mut pa = path_addr;
+                    while pa < self.ram.len() {
+                        let ch = self.ram[pa];
+                        if ch == 0 {
+                            break;
+                        }
+                        if let Some(c) = char::from_u32(ch) {
+                            path_str.push(c);
+                        }
+                        pa += 1;
+                    }
+
+                    if path_str.is_empty() {
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
+                    } else {
+                        // Try to decode as pixelpack PNG
+                        match crate::pixel::decode_pixelpack_file(&path_str) {
+                            Ok(bytes) => {
+                                let byte_count = bytes.len();
+                                let words = crate::pixel::load_bytecode_to_ram(
+                                    &bytes,
+                                    &mut self.ram,
+                                    dest_addr,
+                                );
+                                self.regs[0] = byte_count as u32;
+                                let _ = words; // words written (for debugging)
+                            },
+                            Err(_) => {
+                                self.regs[0] = geos_errno(GEOS_EIO);
+                            },
+                        }
+                    }
+                }
+            },
+
+            // LOADSRCIMG path_reg (0xB2) -- Load pixelpack-encoded source PNG to canvas
+            // Reads a PNG file path from RAM at path_reg, decodes pixelpack seeds as UTF-8 source,
+            // writes the source text onto the canvas buffer (128x32 grid),
+            // then assembles it to bytecode at 0x1000.
+            // Returns bytecode word count in r0 (0xFFFFFFFF on error).
+            // Encoding: 2 words [0xB2, path_reg]
+            0xB2 => {
+                let path_reg = self.fetch() as usize;
+                if path_reg >= NUM_REGS {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                } else {
+                    let path_addr = self.regs[path_reg] as usize;
+
+                    // Read path string from RAM (null-terminated)
+                    let mut path_str = String::new();
+                    let mut pa = path_addr;
+                    while pa < self.ram.len() {
+                        let ch = self.ram[pa];
+                        if ch == 0 {
+                            break;
+                        }
+                        if let Some(c) = char::from_u32(ch) {
+                            path_str.push(c);
+                        }
+                        pa += 1;
+                    }
+
+                    if path_str.is_empty() {
+                        self.regs[0] = geos_errno(GEOS_EINVAL);
+                    } else {
+                        // Decode as source text
+                        match crate::pixel::decode_pixelpack_source_file(&path_str) {
+                            Ok(source) => {
+                                // Write source to canvas buffer (128x32 grid)
+                                crate::pixel::load_source_to_canvas_buffer(
+                                    &source,
+                                    &mut self.canvas_buffer,
+                                );
+
+                                // Assemble the source to bytecode at 0x1000
+                                match crate::assembler::assemble(&source, 0x1000) {
+                                    Ok(asm_result) => {
+                                        let word_count = asm_result.pixels.len().min(4096);
+                                        for i in 0..word_count {
+                                            self.ram[0x1000 + i] = asm_result.pixels[i];
+                                        }
+                                        self.regs[0] = word_count as u32;
+                                    },
+                                    Err(_) => {
+                                        self.regs[0] = geos_errno(GEOS_EINVAL);
+                                    },
+                                }
+                            },
+                            Err(_) => {
+                                self.regs[0] = geos_errno(GEOS_EINVAL);
+                            },
+                        }
+                    }
+                }
+            },
+
+            // ASM_RAM src_addr_reg (0xB3) -- Assemble source string from RAM.
+            // Reads null-terminated assembly source from RAM at the address in src_addr_reg.
+            // Runs preprocessor + assembler, writes bytecode to 0x1000.
+            // RAM[0xFFD] = bytecode word count on success, 0xFFFFFFFF on error.
+            // r0 = same value as RAM[0xFFD].
+            // Encoding: 2 words [0xB3, src_addr_reg]
+            0xB3 => {
+                let src_reg = self.fetch() as usize;
+                if src_reg < NUM_REGS {
+                    let addr = self.regs[src_reg] as usize;
+                    // Read null-terminated string from RAM
+                    let mut source = String::new();
+                    let mut a = addr;
+                    while a < self.ram.len() {
+                        let ch = self.ram[a];
+                        if ch == 0 {
+                            break;
+                        }
+                        if let Some(c) = char::from_u32(ch) {
+                            source.push(c);
+                        } else {
+                            source.push('?');
+                        }
+                        a += 1;
+                    }
+
+                    // Strip ```asm / ``` fences if present (AI responses)
+                    let source = source.replace("```asm", "").replace("```", "");
+
+                    // Run preprocessor then assembler
+                    let mut pp = crate::preprocessor::Preprocessor::new();
+                    let preprocessed = pp.preprocess(&source);
+
+                    match crate::assembler::assemble(&preprocessed, 0x1000) {
+                        Ok(asm_result) => {
+                            // Clear bytecode region
+                            let end = (0x1000 + 4096).min(self.ram.len());
+                            for baddr in 0x1000..end {
+                                self.ram[baddr] = 0;
+                            }
+                            // Write bytecode
+                            let word_count = asm_result.pixels.len().min(4096);
+                            for (i, &word) in asm_result.pixels.iter().enumerate().take(word_count)
+                            {
+                                let dest = 0x1000 + i;
+                                if dest < self.ram.len() {
+                                    self.ram[dest] = word;
+                                }
+                            }
+                            self.ram[0xFFD] = word_count as u32;
+                            self.regs[0] = word_count as u32;
+                        },
+                        Err(_) => {
+                            self.ram[0xFFD] = geos_errno(GEOS_EINVAL);
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
+                        },
+                    }
+                } else {
+                    self.ram[0xFFD] = geos_errno(GEOS_EINVAL);
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // ── Phase 123: Alpine Linux Live Tile Opcodes ──────────────
+
+            // VM_LIVE_SPAWN config_reg, window_reg (0xB4) -- Create a live RISC-V hypervisor.
+            // Reads config string from RAM at address in config_reg.
+            // window_reg: WINSYS window_id (MUST be >0 for console rendering).
+            // Creates a RiscvVm, sets PC to 0x80000000 (default RAM base), and stores
+            // in live_hypervisor. Only one live VM at a time.
+            // r0 = 0 on success, 0xFFFFFFFF on bad config, 0xFFFFFFFE on no window,
+            // 0xFFFFFFFD on already active, 0xFFFFFFFC on missing kernel=.
+            // Encoding: 3 words [0xB4, config_reg, window_reg]
+            // If window_reg==0, reads Window Bounds Protocol from RAM[0xFC00..0xFC03]
+            // and auto-creates a WINSYS window sized to those bounds (set by REGION SHARED).
+            0xB4 => {
+                let config_reg = self.fetch() as usize;
+                let win_reg = self.fetch() as usize;
+                let mut window_id = if win_reg < NUM_REGS {
+                    self.regs[win_reg]
+                } else {
+                    0
+                };
+
+                // Window Bounds Protocol: if window_id==0, read bounds from RAM and
+                // auto-create a WINSYS window (set by REGION ... SHARED preprocessor).
+                if window_id == 0 {
+                    let bx = self.ram.get(0xFC00).copied().unwrap_or(0);
+                    let by = self.ram.get(0xFC01).copied().unwrap_or(0);
+                    let bw = self.ram.get(0xFC02).copied().unwrap_or(0);
+                    let bh = self.ram.get(0xFC03).copied().unwrap_or(0);
+                    if bw > 0 && bh > 0 {
+                        let active_count = self.windows.iter().filter(|w| w.active).count();
+                        if active_count < MAX_WINDOWS {
+                            let id = self.next_window_id;
+                            self.next_window_id += 1;
+                            let mut win = Window::new(id, bx, by, bw, bh, 0, self.current_pid);
+                            let max_z = self.windows.iter().map(|w| w.z_order).max().unwrap_or(0);
+                            win.z_order = max_z + 1;
+                            self.windows.push(win);
+                            window_id = id;
+                        }
+                    }
+                }
+
+                if window_id == 0 {
+                    self.regs[0] = geos_errno(GEOS_EPERM); // no window and no valid bounds
+                } else if self.live_hypervisor.is_some() {
+                    self.regs[0] = geos_errno(GEOS_EBUSY); // already active
+                } else if config_reg >= NUM_REGS {
+                    self.regs[0] = geos_errno(GEOS_EBADF); // bad register
+                } else {
+                    let addr = self.regs[config_reg] as usize;
+                    let config = Self::read_string_static(&self.ram, addr);
+                    match config {
+                        Some(cfg) => {
+                            let has_arch = cfg
+                                .split_whitespace()
+                                .any(|t| t.to_lowercase().starts_with("arch=") && t.len() > 5);
+                            let has_kernel = cfg
+                                .split_whitespace()
+                                .any(|t| t.to_lowercase().starts_with("kernel=") && t.len() > 7);
+                            if !has_arch {
+                                self.regs[0] = geos_errno(GEOS_EINVAL); // missing arch=
+                            } else if !has_kernel {
+                                self.regs[0] = geos_errno(GEOS_EINVAL); // missing kernel=
+                            } else {
+                                // Parse ram size (default 64MB)
+                                let ram_mb: u32 = cfg
+                                    .split_whitespace()
+                                    .find(|t| t.to_lowercase().starts_with("ram="))
+                                    .and_then(|t| t.split('=').nth(1))
+                                    .and_then(|v| {
+                                        let v = v.to_lowercase();
+                                        let num: u32 = v.trim_end_matches('m').parse().ok()?;
+                                        Some(num)
+                                    })
+                                    .unwrap_or(64);
+                                let ram_size = (ram_mb as usize) * 1024 * 1024;
+                                let mut riscv_vm = crate::riscv::RiscvVm::new(ram_size);
+                                // Preload hypervisor_mailbox into RISC-V guest RAM at end of RAM
+                                // This lets the RISC-V bootloader/OS read boot config from there
+                                if ram_size >= 256 {
+                                    let mut mailbox_bytes = [0u8; 256];
+                                    for (i, &word) in self.hypervisor_mailbox.iter().enumerate() {
+                                        mailbox_bytes[i * 4..i * 4 + 4]
+                                            .copy_from_slice(&word.to_le_bytes());
+                                    }
+                                    let mailbox_offset = ram_size - 256;
+                                    riscv_vm.bus.mem.load(mailbox_offset, &mailbox_bytes);
+                                }
+                                self.live_hypervisor = Some(LiveHypervisorState {
+                                    vm: riscv_vm,
+                                    window_id,
+                                    instructions_per_slice: 500,
+                                    total_instructions: 0,
+                                    console_row: 0,
+                                    console_col: 0,
+                                    booted: false,
+                                });
+                                self.regs[0] = 0; // success
+                            }
+                        },
+                        None => {
+                            self.regs[0] = geos_errno(GEOS_EINVAL); // empty/null config
+                        },
+                    }
+                }
+            },
+
+            // VM_LIVE_STEP (0xB5) -- Advance the live RISC-V VM by one time slice.
+            // Steps the RiscvVm for instructions_per_slice instructions,
+            // drains UART output to the window offscreen buffer.
+            // r0 = total instructions executed (cumulative), 0xFFFFFFFF if no live VM.
+            // Encoding: 1 word [0xB5]
+            0xB5 => {
+                if let Some(ref mut live) = self.live_hypervisor {
+                    let budget = live.instructions_per_slice;
+                    let win_id = live.window_id;
+                    for _ in 0..budget {
+                        live.vm.step();
+                        live.total_instructions += 1;
+                    }
+                    // Drain UART output to window
+                    let win = self.windows.iter().find(|w| w.id == win_id && w.active);
+                    if let Some(win) = win {
+                        let w = win.w as usize;
+                        let h = win.h as usize;
+                        let row = live.console_row;
+                        let col = live.console_col;
+                        let max_cols = w / 6; // 6px per char
+                        let max_rows = h / 8; // 8px per char row
+                                              // Drain UART
+                        let bytes = live.vm.bus.uart.drain_tx();
+                        if !bytes.is_empty() {
+                            let mut cur_row = row as usize;
+                            let mut cur_col = col as usize;
+                            for &byte in &bytes {
+                                if byte == b'\n' {
+                                    cur_row += 1;
+                                    cur_col = 0;
+                                } else if byte == b'\r' {
+                                    cur_col = 0;
+                                } else if byte == 0x1B {
+                                    // Skip ANSI escapes (simplified)
+                                    continue;
+                                } else {
+                                    // Render char to offscreen buffer
+                                    let char_px_x = cur_col * 6;
+                                    let char_px_y = cur_row * 8;
+                                    if char_px_x + 6 <= w && char_px_y + 8 <= h {
+                                        let glyph_idx = byte as usize;
+                                        if glyph_idx < 128 {
+                                            let glyph = &crate::font::GLYPHS[glyph_idx];
+                                            let buf = self
+                                                .windows
+                                                .iter_mut()
+                                                .find(|w2| w2.id == win_id && w2.active);
+                                            if let Some(buf_win) = buf {
+                                                let text_color = 0xFF00FF00u32; // green on black
+                                                for (gi, &row_bits) in glyph.iter().enumerate() {
+                                                    for bit in 0..6 {
+                                                        if row_bits & (1 << (5 - bit)) != 0 {
+                                                            let px = char_px_x + bit;
+                                                            let py = char_px_y + gi;
+                                                            if px < w && py < h {
+                                                                buf_win.offscreen_buffer
+                                                                    [py * w + px] = text_color;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    cur_col += 1;
+                                    if cur_col >= max_cols {
+                                        cur_row += 1;
+                                        cur_col = 0;
+                                    }
+                                }
+                            }
+                            // Handle scroll
+                            if cur_row >= max_rows && max_rows > 0 {
+                                // Scroll up by one line
+                                let _line_bytes = max_cols * 6 * 8; // one row of chars in pixels
+                                let _line_width = max_cols * 6;
+                                let _total_px = w * h;
+                                let buf = self
+                                    .windows
+                                    .iter_mut()
+                                    .find(|w2| w2.id == win_id && w2.active);
+                                if let Some(buf_win) = buf {
+                                    // Shift everything up by 8 pixels (one char row)
+                                    for y in 8..h {
+                                        for x in 0..w {
+                                            buf_win.offscreen_buffer[(y - 8) * w + x] =
+                                                buf_win.offscreen_buffer[y * w + x];
+                                        }
+                                    }
+                                    // Clear last row
+                                    for y in (h - 8)..h {
+                                        for x in 0..w {
+                                            buf_win.offscreen_buffer[y * w + x] = 0;
+                                        }
+                                    }
+                                }
+                                cur_row = max_rows - 1;
+                            }
+                            live.console_row = cur_row as u32;
+                            live.console_col = cur_col as u32;
+                        }
+                    }
+                    self.regs[0] = live.total_instructions as u32;
+                } else {
+                    self.regs[0] = geos_errno(GEOS_ESRCH);
+                }
+            },
+
+            // VM_LIVE_KILL (0xB6) -- Kill the live RISC-V hypervisor.
+            // r0 = 0 on success, 0xFFFFFFFF if no live VM.
+            // Encoding: 1 word [0xB6]
+            0xB6 => {
+                if self.live_hypervisor.is_some() {
+                    self.live_hypervisor = None;
+                    self.regs[0] = 0;
+                } else {
+                    self.regs[0] = geos_errno(GEOS_ESRCH);
+                }
+            },
+
+            // UNLINK name_reg -- delete file from VFS
+            // Returns 0 on success, 0xFFFFFFFF on error, 0xFFFFFFFE if capability denied
+            // Encoding: 1 word [0xB7] + 1 word [name_reg]
+            0xB7 => {
+                let name_reg = self.fetch() as usize;
+                if name_reg < NUM_REGS {
+                    let name_addr = self.regs[name_reg];
+                    let pid = self.current_pid;
+                    // Phase 189: Capability enforcement on file delete
+                    let caps = if self.current_capabilities.is_some() {
+                        self.current_capabilities.clone()
+                    } else {
+                        self.processes
+                            .iter()
+                            .find(|p| p.pid == pid)
+                            .and_then(|p| p.capabilities.clone())
+                    };
+                    if let Some(name) = Self::read_string_static(&self.ram, name_addr as usize) {
+                        if !crate::vm::types::check_path_capability(
+                            &caps,
+                            &name,
+                            crate::vm::types::Capability::PERM_WRITE,
+                        ) {
+                            self.regs[0] = geos_errno(GEOS_EPERM); // EPERM
+                        } else {
+                            self.regs[0] = self.vfs.funlink(&self.ram, name_addr, pid);
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EPERM);
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EPERM);
+                }
+            },
+
+            // FCOPY src_reg, dst_reg -- copy file within VFS
+            // Returns 0 on success, 0xFFFFFFFF on error, 0xFFFFFFFE if capability denied
+            // Encoding: 1 word [0xB8] + 1 word [src_name_reg] + 1 word [dst_name_reg]
+            0xB8 => {
+                let src_reg = self.fetch() as usize;
+                let dst_reg = self.fetch() as usize;
+                if src_reg < NUM_REGS && dst_reg < NUM_REGS {
+                    let src_addr = self.regs[src_reg];
+                    let dst_addr = self.regs[dst_reg];
+                    let pid = self.current_pid;
+                    // Phase 189: Capability enforcement on file copy (need write on dst)
+                    let caps = if self.current_capabilities.is_some() {
+                        self.current_capabilities.clone()
+                    } else {
+                        self.processes
+                            .iter()
+                            .find(|p| p.pid == pid)
+                            .and_then(|p| p.capabilities.clone())
+                    };
+                    if let Some(dst_name) = Self::read_string_static(&self.ram, dst_addr as usize) {
+                        if !crate::vm::types::check_path_capability(
+                            &caps,
+                            &dst_name,
+                            crate::vm::types::Capability::PERM_WRITE,
+                        ) {
+                            self.regs[0] = geos_errno(GEOS_EPERM); // EPERM
+                        } else {
+                            self.regs[0] = self.vfs.fcopy(&self.ram, src_addr, dst_addr, pid);
+                        }
+                    } else {
+                        self.regs[0] = geos_errno(GEOS_EPERM);
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EPERM);
+                }
+            },
+
+            // ── Phase 137: Host Filesystem Bridge ──────────────────────
+            // FSOPEN path_reg, mode_reg  (0xB9) -- Open host file
+            // Encoding: 3 words [0xB9, path_reg, mode_reg]
+            0xB9 => {
+                self.op_fsopen();
+            },
+            // FSCLOSE handle_reg  (0xBA) -- Close host file
+            // Encoding: 2 words [0xBA, handle_reg]
+            0xBA => {
+                self.op_fsclose();
+            },
+            // FSREAD handle_reg, buf_reg, len_reg  (0xBB) -- Read from host file
+            // Encoding: 4 words [0xBB, handle_reg, buf_reg, len_reg]
+            0xBB => {
+                self.op_fsread();
+            },
+            // FSWRITE handle_reg, buf_reg, len_reg  (0xBC) -- Write to host file
+            // Encoding: 4 words [0xBC, handle_reg, buf_reg, len_reg]
+            0xBC => {
+                self.op_fswrite();
+            },
+            // FSLS path_reg, buf_reg, max_len_reg  (0xBD) -- List directory
+            // Encoding: 4 words [0xBD, path_reg, buf_reg, max_len_reg]
+            0xBD => {
+                self.op_fsls();
+            },
+
+            // NPROC (0xBE) -- Number of processes
+            // r0 = number of processes (including main as PID 0)
+            // Encoding: 1 word [0xBE]
+            0xBE => {
+                // Count: 1 (main) + spawned children
+                self.regs[0] = 1 + self.processes.len() as u32;
+            },
+
+            // PROCINFO pid_reg, field_reg  (0xBF) -- Query process info
+            // pid_reg: PID to query (0 = main process, 1+ = spawned child)
+            // field_reg: field number (0=state, 1=pc, 2=priority, 3=parent_pid, 4=page_count)
+            // Returns: value in r0, 0xFFFFFFFF on error (invalid pid/field)
+            // Encoding: 3 words [0xBF, pid_reg, field_reg]
+            0xBF => {
+                let pr = self.fetch() as usize;
+                let fr = self.fetch() as usize;
+                if pr < NUM_REGS && fr < NUM_REGS {
+                    let pid = self.regs[pr];
+                    let field = self.regs[fr];
+                    if pid == 0 {
+                        // Main process info
+                        self.regs[0] = match field {
+                            0 => 1, // Running
+                            1 => self.pc,
+                            2 => 1, // default priority
+                            3 => 0, // no parent
+                            4 => 0, // main uses identity mapping, no private pages
+                            _ => geos_errno(GEOS_EINVAL),
+                        };
+                    } else {
+                        let idx = (pid - 1) as usize;
+                        if idx < self.processes.len() {
+                            let p = &self.processes[idx];
+                            self.regs[0] = match field {
+                                0 => match p.state {
+                                    types::ProcessState::Ready => 0,
+                                    types::ProcessState::Running => 1,
+                                    types::ProcessState::Sleeping => 2,
+                                    types::ProcessState::Blocked => 3,
+                                    types::ProcessState::Zombie => 4,
+                                    types::ProcessState::Stopped => 5,
+                                },
+                                1 => p.pc,
+                                2 => p.priority as u32,
+                                3 => p.parent_pid,
+                                4 => {
+                                    // Count mapped pages in page directory
+                                    match &p.page_dir {
+                                        Some(pd) => pd
+                                            .iter()
+                                            .filter(|&&e| e != types::PAGE_UNMAPPED)
+                                            .count()
+                                            as u32,
+                                        None => 0,
+                                    }
+                                },
+                                _ => geos_errno(GEOS_EINVAL),
+                            };
+                        } else {
+                            self.regs[0] = geos_errno(GEOS_ESRCH);
+                        }
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // SETCAPS path_addr_reg  (0xC0) -- Set capability restriction on current process
+            // Reads a null-terminated path pattern from RAM at the address in path_addr_reg.
+            // Sets process capabilities to allow ONLY that path pattern with PERM_READ|PERM_WRITE.
+            // If path_addr_reg points to an empty string (first word is 0 or null), clears
+            // capabilities (restores full access).
+            // Returns 0 in r0 on success, 0xFFFFFFFF on error.
+            0xC0 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar] as usize;
+                    let path_str = Self::read_string_static(&self.ram, addr);
+                    let caps: Option<Vec<Capability>> =
+                        if path_str.is_none() || path_str.as_ref().map_or(true, |s| s.is_empty()) {
+                            None // Clear caps = full access
+                        } else {
+                            Some(vec![Capability {
+                                resource_type: 0, // VFS path
+                                pattern: path_str.unwrap(),
+                                permissions: Capability::PERM_READ | Capability::PERM_WRITE,
+                            }])
+                        };
+                    // Update both the process struct and current_capabilities cache
+                    let pid = self.current_pid;
+                    if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == pid) {
+                        proc.capabilities = caps.clone();
+                    }
+                    self.current_capabilities = caps;
+                    self.regs[0] = 0; // success
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EIO);
+                }
+            },
+
+            // VSTAT name_addr_reg  (0xC1) -- Get VFS file size by name
+            // Reads null-terminated filename from RAM at address in register.
+            // Returns file size in bytes in r0, 0xFFFFFFFF on error.
+            0xC1 => {
+                let nr = self.fetch() as usize;
+                if nr < NUM_REGS {
+                    let name_addr = self.regs[nr];
+                    self.regs[0] = self.vfs.fstat(&self.ram, name_addr);
+                } else {
+                    self.regs[0] = geos_errno(GEOS_ENOENT);
+                }
+            },
+
+            // BFE rd, rs, width_reg, lsb_reg  (0xC2) -- Bit field extract
+            // Extracts `width` bits starting at bit `lsb` from rs, zero-extends into rd.
+            // Encoding: 5 words [0xC2, rd, rs, width_reg, lsb_reg]
+            0xC2 => {
+                let rd = self.fetch() as usize;
+                let rs = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                if rd < NUM_REGS && rs < NUM_REGS && wr < NUM_REGS && lr < NUM_REGS {
+                    let val = self.regs[rs];
+                    let raw_width = self.regs[wr];
+                    let raw_lsb = self.regs[lr];
+                    let width = raw_width.min(32);
+                    let lsb = raw_lsb;
+                    if lsb >= 32 || width == 0 {
+                        self.regs[rd] = 0;
+                    } else {
+                        let mask = if width >= 32 {
+                            0xFFFFFFFF
+                        } else {
+                            (1u32 << width) - 1
+                        };
+                        self.regs[rd] = (val >> lsb) & mask;
+                    }
+                }
+            },
+
+            // BFI rd, rs, width_reg, lsb_reg  (0xC3) -- Bit field insert
+            // Inserts `width` low bits of rs into rd starting at bit `lsb`.
+            // Encoding: 5 words [0xC3, rd, rs, width_reg, lsb_reg]
+            0xC3 => {
+                let rd = self.fetch() as usize;
+                let rs = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                if rd < NUM_REGS && rs < NUM_REGS && wr < NUM_REGS && lr < NUM_REGS {
+                    let dst = self.regs[rd];
+                    let src = self.regs[rs];
+                    let raw_width = self.regs[wr];
+                    let raw_lsb = self.regs[lr];
+                    let width = raw_width.min(32);
+                    let lsb = raw_lsb;
+                    if width == 0 || lsb >= 32 {
+                        // No-op: inserting 0 bits or out-of-range
+                    } else {
+                        let field_mask = if width >= 32 {
+                            0xFFFFFFFF
+                        } else {
+                            (1u32 << width) - 1
+                        };
+                        let mask = field_mask << lsb;
+                        self.regs[rd] = (dst & !mask) | ((src << lsb) & mask);
+                    }
+                }
+            },
+
+            // CLIPSET x_reg, y_reg, w_reg, h_reg  (0xC4) -- Set clip rectangle
+            // Constrains all drawing operations (PSET, PSETI, RECTF, LINE, CIRCLE,
+            // FILL, TEXT, SPRITE, TILEMAP) to the given rectangle.
+            // Encoding: 5 words [0xC4, x_reg, y_reg, w_reg, h_reg]
+            0xC4 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS {
+                    let x = self.regs[xr];
+                    let y = self.regs[yr];
+                    let w = self.regs[wr];
+                    let h = self.regs[hr];
+                    // Clamp width/height to 0..=255 to avoid overflow
+                    let w = w.min(256);
+                    let h = h.min(256);
+                    self.clip_rect = Some((x, y, w, h));
+                }
+            },
+
+            // CLIPCLR  (0xC5) -- Clear clip rectangle
+            // Restores full 256x256 drawing area.
+            // Encoding: 1 word [0xC5]
+            0xC5 => {
+                self.clip_rect = None;
+            },
+
+            // PROFILE mode_reg, data_reg (0xC6, 3 words)
+            // Performance profiling: measure instruction counts per code region.
+            // mode=0 (MARK): Toggle region. data_reg=region_id (0-15).
+            //   Start: records total_steps. Stop: accumulates delta into region.
+            // mode=1 (READ): data_reg=region_id. Returns count in r0.
+            // mode=2 (RESET): Clears all profile regions. data_reg ignored.
+            // mode=3 (DUMP): data_reg=base RAM addr. Writes [id, lo, hi] per active region.
+            //   Returns entry count in r0.
+            // mode=4 (ICACHE_STATS): data_reg=base RAM addr. Writes [hits_lo, hits_hi,
+            //   misses_lo, misses_hi, generation, cached_entries] (6 words).
+            //   Returns total accesses (hits + misses) in r0.
+            // mode=5 (ICACHE_RESET): Resets icache hit/miss counters. data_reg ignored.
+            // mode=6 (SET_THRESHOLD): data_reg=new threshold (1-255). Returns old threshold in r0.
+            0xC6 => {
+                let mode_r = self.fetch() as usize;
+                let data_r = self.fetch() as usize;
+                if mode_r < NUM_REGS && data_r < NUM_REGS {
+                    let mode = self.regs[mode_r];
+                    let data = self.regs[data_r];
+                    match mode {
+                        0 => {
+                            // MARK: toggle profiling region
+                            let rid = (data & 0xF) as usize;
+                            if rid < 16 {
+                                if self.profile_active[rid] {
+                                    // Stop: accumulate delta
+                                    let delta =
+                                        self.total_steps.saturating_sub(self.profile_start[rid]);
+                                    self.profile_regions[rid] =
+                                        self.profile_regions[rid].saturating_add(delta);
+                                    self.profile_active[rid] = false;
+                                } else {
+                                    // Start: record current step
+                                    self.profile_start[rid] = self.total_steps;
+                                    self.profile_active[rid] = true;
+                                }
+                            }
+                        },
+                        1 => {
+                            // READ: get accumulated count for region
+                            let rid = (data & 0xF) as usize;
+                            if rid < 16 {
+                                let mut count = self.profile_regions[rid];
+                                if self.profile_active[rid] {
+                                    let delta =
+                                        self.total_steps.saturating_sub(self.profile_start[rid]);
+                                    count = count.saturating_add(delta);
+                                }
+                                // Return as u32 (truncated to low 32 bits)
+                                self.regs[0] = count as u32;
+                            }
+                        },
+                        2 => {
+                            // RESET: clear all profile regions
+                            self.profile_regions = [0; 16];
+                            self.profile_active = [false; 16];
+                            self.profile_start = [0; 16];
+                        },
+                        3 => {
+                            // DUMP: write non-zero entries to RAM
+                            let base = data as usize;
+                            let mut count = 0u32;
+                            for i in 0..16u32 {
+                                let mut val = self.profile_regions[i as usize];
+                                if self.profile_active[i as usize] {
+                                    let delta = self
+                                        .total_steps
+                                        .saturating_sub(self.profile_start[i as usize]);
+                                    val = val.saturating_add(delta);
+                                }
+                                if val > 0 || self.profile_active[i as usize] {
+                                    // Write [region_id, count_lo, count_hi] (3 words per entry)
+                                    if base + (count as usize) * 3 + 2 < self.ram.len() {
+                                        self.ram[base + (count as usize) * 3] = i;
+                                        self.ram[base + (count as usize) * 3 + 1] = val as u32;
+                                        self.ram[base + (count as usize) * 3 + 2] =
+                                            (val >> 32) as u32;
+                                        count += 1;
+                                    }
+                                }
+                            }
+                            self.regs[0] = count;
+                        },
+                        4 => {
+                            // ICACHE_STATS: write hit/miss/generation to RAM at data addr
+                            // Layout: [hits_lo, hits_hi, misses_lo, misses_hi, generation, cached_entries]
+                            // (6 words). Returns total accesses (hits + misses) in r0.
+                            let base = data as usize;
+                            let hits = self.icache_hits;
+                            let misses = self.icache_misses;
+                            let total = hits.saturating_add(misses);
+                            // Count how many cache slots are populated
+                            let cached = self.icache.iter().filter(|e| e.is_some()).count() as u32;
+                            if base + 5 < self.ram.len() {
+                                self.ram[base] = hits as u32;
+                                self.ram[base + 1] = (hits >> 32) as u32;
+                                self.ram[base + 2] = misses as u32;
+                                self.ram[base + 3] = (misses >> 32) as u32;
+                                self.ram[base + 4] = self.icache_generation;
+                                self.ram[base + 5] = cached;
+                            }
+                            self.regs[0] = total as u32;
+                        },
+                        5 => {
+                            // ICACHE_RESET: reset hit/miss counters only (keep cache entries)
+                            self.icache_hits = 0;
+                            self.icache_misses = 0;
+                        },
+                        6 => {
+                            // SET_THRESHOLD: change icache hot threshold (1-255)
+                            // Returns old threshold in r0. data = new threshold.
+                            let old = self.icache_hot_threshold as u32;
+                            let new_thresh = data as usize;
+                            if new_thresh >= 1 && new_thresh <= 255 {
+                                self.icache_hot_threshold = new_thresh;
+                            }
+                            self.regs[0] = old;
+                        },
+                        _ => {},
+                    }
+                }
+            },
+
+            // IMOUSE rd  (0xC7) -- Read next mouse event from queue.
+            // Returns packed event in rd: bits[7:0]=event_type (0=move, 1=down, 2=up),
+            // bits[15:8]=button (0=none, 1=left, 2=right, 3=middle).
+            // Also writes full X to rd+1 and full Y to rd+2.
+            // Returns 0 in rd if no event is pending.
+            0xC7 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS && rd + 2 < NUM_REGS {
+                    if self.mouse_event_head != self.mouse_event_tail {
+                        self.regs[rd] = self.mouse_event_buffer[self.mouse_event_head];
+                        self.regs[rd + 1] = self.mouse_event_x[self.mouse_event_head];
+                        self.regs[rd + 2] = self.mouse_event_y[self.mouse_event_head];
+                        self.mouse_event_buffer[self.mouse_event_head] = 0;
+                        self.mouse_event_x[self.mouse_event_head] = 0;
+                        self.mouse_event_y[self.mouse_event_head] = 0;
+                        self.mouse_event_head =
+                            (self.mouse_event_head + 1) % self.mouse_event_buffer.len();
+                    } else {
+                        self.regs[rd] = 0;
+                        self.regs[rd + 1] = 0;
+                        self.regs[rd + 2] = 0;
+                    }
+                }
+            },
+
+            // ── Phase 275: BYTEPACK opcode (0xAE) ──
+            // BYTEPACK src_addr_reg, len_reg, path_addr_reg (0xAE)
+            // Reads len u32 words from RAM starting at src_addr, encodes them as
+            // raw bytes (little-endian, 4 bytes per word) into a pixelpack PNG,
+            // then writes the PNG to a VFS file at the given path.
+            // Returns total PNG bytes written in r0, or 0xFFFFFFFF on error.
+            // Use case: shell 'as <src> <dst>' saves assembled bytecode as .png.
+            0xAE => {
+                let src_r = self.fetch() as usize;
+                let len_r = self.fetch() as usize;
+                let path_r = self.fetch() as usize;
+                if src_r < NUM_REGS && len_r < NUM_REGS && path_r < NUM_REGS {
+                    let src_addr = self.regs[src_r] as usize;
+                    let word_count = self.regs[len_r] as usize;
+                    let path_addr = self.regs[path_r] as usize;
+                    let pid = self.current_pid;
+
+                    // Convert u32 words to raw bytes (little-endian)
+                    let mut raw_bytes = Vec::with_capacity(word_count * 4);
+                    for i in 0..word_count {
+                        let addr = src_addr + i;
+                        if addr < self.ram.len() {
+                            let word = self.ram[addr];
+                            raw_bytes.push((word & 0xFF) as u8);
+                            raw_bytes.push(((word >> 8) & 0xFF) as u8);
+                            raw_bytes.push(((word >> 16) & 0xFF) as u8);
+                            raw_bytes.push(((word >> 24) & 0xFF) as u8);
+                        }
+                    }
+
+                    // Encode as pixelpack PNG
+                    match crate::pixel::encode_pixelpack_png(&raw_bytes) {
+                        Ok(png_bytes) => {
+                            // Write PNG to VFS file
+                            let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid);
+                            if is_geos_errno(fd) {
+                                self.regs[0] = fd; // propagate fopen error
+                            } else {
+                                // Stage PNG bytes in RAM: one byte per u32 word
+                                let stage_base = 0x9000u32;
+                                let chunk_size = 512u32;
+                                let mut written: u32 = 0;
+                                let total_bytes = png_bytes.len() as u32;
+                                let mut offset = 0u32;
+                                while offset < total_bytes {
+                                    let end = std::cmp::min(offset + chunk_size, total_bytes);
+                                    let n = end - offset;
+                                    for i in 0..n {
+                                        let ram_addr = (stage_base + i) as usize;
+                                        if ram_addr < self.ram.len() {
+                                            self.ram[ram_addr] =
+                                                png_bytes[(offset + i) as usize] as u32;
+                                        }
+                                    }
+                                    let bytes_written =
+                                        self.vfs.fwrite(&self.ram, fd, stage_base, n, pid);
+                                    if is_geos_errno(bytes_written) {
+                                        let _ = self.vfs.fclose(fd, pid);
+                                        self.regs[0] = bytes_written; // propagate fwrite error
+                                        written = 0;
+                                        break;
+                                    }
+                                    written += bytes_written;
+                                    offset = end;
+                                }
+                                self.vfs.fclose(fd, pid);
+                                self.regs[0] = written;
+                            }
+                        },
+                        Err(_) => {
+                            self.regs[0] = geos_errno(GEOS_EIO);
+                        },
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL);
+                }
+            },
+
+            // ── Phase 212: SAVEPNG opcode (0xAF) ──
+            // SAVEPNG path_addr_reg (0xAF) -- Screenshot: save screen as PNG to VFS file
+            // Reads null-terminated path from RAM at address in register.
+            // Encodes the 256x256 screen as a PNG file (RGB, 8-bit per channel).
+            // Uses pure-Rust zero-dependency PNG encoder (vision::encode_png).
+            // Returns total bytes written in r0, or GEOS error code on failure.
+            0xAF => {
+                let pr = self.fetch() as usize;
+                if pr < NUM_REGS {
+                    let path_addr = self.regs[pr] as usize;
+                    let pid = self.current_pid;
+
+                    // Encode screen as PNG (pure Rust, no external deps)
+                    let png_bytes = crate::vision::encode_png(&self.screen);
+
+                    // Open VFS file for writing
+                    let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid); // FOPEN_WRITE
+                    if is_geos_errno(fd) {
+                        self.regs[0] = fd; // propagate fopen error
+                    } else {
+                        // Stage PNG bytes in RAM and write in chunks.
+                        // VFS fwrite reads low 8 bits of each u32 word, so we store
+                        // one byte per RAM word.
+                        let stage_base = 0x9000u32;
+                        let chunk_size = 512u32;
+                        let mut written: u32 = 0;
+                        let total_bytes = png_bytes.len() as u32;
+                        let mut offset = 0u32;
+                        while offset < total_bytes {
+                            let end = std::cmp::min(offset + chunk_size, total_bytes);
+                            let n = end - offset;
+                            // Stage bytes: one byte per u32 word (low byte)
+                            for i in 0..n {
+                                let ram_addr = (stage_base + i) as usize;
+                                if ram_addr < self.ram.len() {
+                                    self.ram[ram_addr] = png_bytes[(offset + i) as usize] as u32;
+                                }
+                            }
+                            let bytes_written = self.vfs.fwrite(
+                                &self.ram, fd, stage_base, n, // one word per byte
+                                pid,
+                            );
+                            if is_geos_errno(bytes_written) {
+                                let _ = self.vfs.fclose(fd, pid);
+                                self.regs[0] = bytes_written; // propagate fwrite error
+                                written = 0;
+                                break;
+                            }
+                            written += bytes_written;
+                            offset = end;
+                        }
+                        self.vfs.fclose(fd, pid);
+                        self.regs[0] = written; // total bytes written
+                    }
+                } else {
+                    self.regs[0] = geos_errno(GEOS_EINVAL); // error: invalid register
+                }
+            },
+
+            // ── Phase 217: Mouse Support Opcodes ─────────────────────
+            // MOUSEX rd  (0xC8) -- Read current mouse X into register.
+            // Non-blocking. Returns 0-255 for the X coordinate.
+            // For windowed processes, coordinates are window-relative.
+            0xC8 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    let (mx, _my) = self.translate_mouse_for_current_process();
+                    self.regs[rd] = mx;
+                }
+            },
+
+            // MOUSEY rd  (0xC9) -- Read current mouse Y into register.
+            // Non-blocking. Returns 0-255 for the Y coordinate.
+            // For windowed processes, coordinates are window-relative.
+            0xC9 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    let (_mx, my) = self.translate_mouse_for_current_process();
+                    self.regs[rd] = my;
+                }
+            },
+
+            // MOUSEB rd  (0xCA) -- Read mouse button bitmask into register.
+            // Bit 0 = left button, bit 1 = right button, bit 2 = middle button.
+            // Non-blocking. Returns current state (0 if no buttons pressed).
+            0xCA => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    // Build bitmask from current mouse_button field.
+                    // mouse_button: 0=none, 1=left down, 2=left click
+                    let bitmask = if self.mouse_button >= 1 {
+                        1 // bit 0 = left button
+                    } else {
+                        0
+                    };
+                    self.regs[rd] = bitmask;
+                }
+            },
+
+            // MOUSECLICK rd  (0xCB) -- Blocking wait for mouse click.
+            // Waits until a click event is available in the mouse event queue.
+            // Returns immediately if a click event is already pending.
+            // Writes: rd = event_type (1=down, 2=up), rd+1 = x, rd+2 = y.
+            // Does NOT consume the event (use IMOUSE to consume).
+            // Returns 0 in rd if no click event after peeking.
+            0xCB => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS && rd + 2 < NUM_REGS {
+                    // Peek at the event queue for a click (type=1 down or type=2 up)
+                    let mut found = false;
+                    let mut head = self.mouse_event_head;
+                    while head != self.mouse_event_tail {
+                        let packed = self.mouse_event_buffer[head];
+                        let event_type = packed & 0xFF;
+                        if event_type == 1 || event_type == 2 {
+                            // Found a click event: down or up
+                            self.regs[rd] = event_type;
+                            self.regs[rd + 1] = self.mouse_event_x[head];
+                            self.regs[rd + 2] = self.mouse_event_y[head];
+                            found = true;
+                            break;
+                        }
+                        head = (head + 1) % self.mouse_event_buffer.len();
+                    }
+                    if !found {
+                        // No click pending: return 0
+                        self.regs[rd] = 0;
+                        self.regs[rd + 1] = 0;
+                        self.regs[rd + 2] = 0;
+                    }
+                }
+            },
+
+            // HTTPGET url_reg, buf_reg, max_len_reg, status_reg, len_reg  (0xCC)
+            // Blocking HTTP/1.0 GET. Reads URL from RAM[url_reg], stores
+            // response body in RAM[buf_reg] (up to max_len bytes).
+            // Returns: status_reg = HTTP code, len_reg = body length, r0 = error code.
+            0xCC => {
+                self.op_httpget();
+            },
+
+            // BREAKPOINT (0xCD) -- Hardware breakpoint: triggers debugger
+            // Sets breakpoint_hit flag and returns false (like HALT).
+            // Host checks breakpoint_hit after step() and enters interactive debug mode.
+            // Zero words (no arguments).
+            0xCD => {
+                self.breakpoint_hit = true;
+                return false;
+            },
+
+            // FLOOD x_reg, y_reg, fill_reg, tolerance_reg  (0xCE)
+            // Scanline flood fill starting at (x, y). Replaces connected pixels
+            // whose color is within tolerance of the seed color with fill color.
+            // Uses an iterative scanline span algorithm (no recursion).
+            // Encoding: 5 words [0xCE, x_reg, y_reg, fill_reg, tolerance_reg]
+            // tolerance: max per-channel absolute difference (0 = exact match).
+            // r0 = number of pixels filled.
+            0xCE => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let fr = self.fetch() as usize;
+                let tr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && fr < NUM_REGS && tr < NUM_REGS {
+                    let seed_x = self.regs[xr] as usize;
+                    let seed_y = self.regs[yr] as usize;
+                    let fill_color = self.regs[fr];
+                    let tolerance = self.regs[tr] as i32;
+                    if self.render_logging {
+                        self.log_render_op(
+                            0xCE,
+                            "FLOOD",
+                            &[seed_x as u32, seed_y as u32, fill_color, self.regs[tr]],
+                        );
+                    }
+
+                    let mut count = 0u32;
+
+                    // Only fill if seed is on-screen
+                    if seed_x < 256 && seed_y < 256 {
+                        let seed_color = self.screen[seed_y * 256 + seed_x];
+
+                        // Don't fill if seed already equals fill color
+                        if seed_color != fill_color {
+                            // Extract RGB components for tolerance comparison
+                            let sr = ((seed_color >> 16) & 0xFF) as i32;
+                            let sg = ((seed_color >> 8) & 0xFF) as i32;
+                            let sb = (seed_color & 0xFF) as i32;
+                            let fr_r = ((fill_color >> 16) & 0xFF) as i32;
+                            let fr_g = ((fill_color >> 8) & 0xFF) as i32;
+                            let fr_b = (fill_color & 0xFF) as i32;
+
+                            fn color_match(
+                                pixel: u32,
+                                sr: i32,
+                                sg: i32,
+                                sb: i32,
+                                tol: i32,
+                            ) -> bool {
+                                let pr = ((pixel >> 16) & 0xFF) as i32;
+                                let pg = ((pixel >> 8) & 0xFF) as i32;
+                                let pb = (pixel & 0xFF) as i32;
+                                (pr - sr).abs() <= tol
+                                    && (pg - sg).abs() <= tol
+                                    && (pb - sb).abs() <= tol
+                            }
+
+                            fn is_fill(pixel: u32, fr_r: i32, fr_g: i32, fr_b: i32) -> bool {
+                                let pr = ((pixel >> 16) & 0xFF) as i32;
+                                let pg = ((pixel >> 8) & 0xFF) as i32;
+                                let pb = (pixel & 0xFF) as i32;
+                                pr == fr_r && pg == fr_g && pb == fr_b
+                            }
+
+                            // Iterative scanline flood fill
+                            let mut stack: Vec<(usize, usize)> = Vec::new();
+                            stack.push((seed_y, seed_x));
+
+                            let max_pixels = 256 * 256; // safety limit
+
+                            while let Some((y, start_x)) = stack.pop() {
+                                if count >= max_pixels {
+                                    break;
+                                }
+
+                                // Scan left to find leftmost matching pixel on this scanline
+                                let mut left = start_x;
+                                while left > 0
+                                    && color_match(
+                                        self.screen[y * 256 + left - 1],
+                                        sr,
+                                        sg,
+                                        sb,
+                                        tolerance,
+                                    )
+                                    && !is_fill(self.screen[y * 256 + left - 1], fr_r, fr_g, fr_b)
+                                {
+                                    left -= 1;
+                                }
+
+                                // Scan right, filling as we go
+                                let mut right = left;
+                                let mut span_above = false;
+                                let mut span_below = false;
+
+                                while right < 256 {
+                                    let idx = y * 256 + right;
+                                    let pixel = self.screen[idx];
+
+                                    if is_fill(pixel, fr_r, fr_g, fr_b)
+                                        || !color_match(pixel, sr, sg, sb, tolerance)
+                                    {
+                                        break;
+                                    }
+
+                                    // Fill this pixel
+                                    self.screen[idx] = fill_color;
+                                    count += 1;
+
+                                    // Check above
+                                    if y > 0 {
+                                        let above = self.screen[(y - 1) * 256 + right];
+                                        if color_match(above, sr, sg, sb, tolerance)
+                                            && !is_fill(above, fr_r, fr_g, fr_b)
+                                        {
+                                            if !span_above {
+                                                stack.push((y - 1, right));
+                                                span_above = true;
+                                            }
+                                        } else {
+                                            span_above = false;
+                                        }
+                                    }
+
+                                    // Check below
+                                    if y < 255 {
+                                        let below = self.screen[(y + 1) * 256 + right];
+                                        if color_match(below, sr, sg, sb, tolerance)
+                                            && !is_fill(below, fr_r, fr_g, fr_b)
+                                        {
+                                            if !span_below {
+                                                stack.push((y + 1, right));
+                                                span_below = true;
+                                            }
+                                        } else {
+                                            span_below = false;
+                                        }
+                                    }
+
+                                    right += 1;
+                                }
+                            }
+                        }
+                    }
+
+                    self.regs[0] = count;
+                }
+            },
+
+            // BNOT rd  (0xCF) -- Bitwise NOT (one's complement)
+            // rd = !rd (all bits flipped). Uses Rust ! operator (bitwise NOT).
+            // Encoding: 2 words [0xCF, rd]
+            0xCF => {
+                let dr = self.fetch() as usize;
+                if dr < NUM_REGS {
+                    self.regs[dr] = !self.regs[dr];
+                    if self.render_logging {
+                        self.log_render_op(0xCF, "BNOT", &[self.regs[dr]]);
+                    }
+                }
+            },
+
+            // SPRITELAYER layer_reg, mode_reg, data_reg (0xD0)
+            // Mode-based layer management:
+            //   mode 0: SET_ACTIVE (data=1 activate, 0 deactivate)
+            //   mode 1: SET_VISIBLE (data=1 visible, 0 hidden)
+            //   mode 2: SET_Z_ORDER (set z-order, lower drawn first)
+            //   mode 3: SET_ALPHA_MODE (0=opaque, 1=alpha blend, 2=additive)
+            //   mode 4: CLEAR (clear layer buffer to transparent)
+            // Encoding: 4 words [0xD0, layer_reg, mode_reg, data_reg]
+            0xD0 => {
+                let lr = self.fetch() as usize;
+                let mr = self.fetch() as usize;
+                let dr = self.fetch() as usize;
+                if lr < NUM_REGS && mr < NUM_REGS && dr < NUM_REGS {
+                    let layer_id = self.regs[lr];
+                    let mode = self.regs[mr];
+                    let data = self.regs[dr];
+                    if layer_id < MAX_SPRITE_LAYERS as u32 {
+                        match mode {
+                            0 => {
+                                self.sprite_layers[layer_id as usize].active = data != 0;
+                            },
+                            1 => {
+                                self.sprite_layers[layer_id as usize].visible = data != 0;
+                            },
+                            2 => {
+                                self.sprite_layers[layer_id as usize].z_order = data;
+                            },
+                            3 => {
+                                self.sprite_layers[layer_id as usize].blend_mode = data;
+                            },
+                            4 => {
+                                self.sprite_layers[layer_id as usize].buffer.fill(0);
+                            },
+                            _ => {},
+                        }
+                    }
+                }
+                self.pc += 4;
+            },
+
+            // BSET rd, bit_reg  (0xE1) -- Set bit in register
+            // rd = rd | (1 << (bit_reg & 31)). Sets the N-th bit of rd.
+            // Encoding: 3 words [0xE1, rd, bit_reg]
+            0xE1 => {
+                let dr = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if dr < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[dr] |= 1u32 << bit;
+                    if self.render_logging {
+                        self.log_render_op(0xE1, "BSET", &[self.regs[dr], self.regs[br]]);
+                    }
+                }
+            },
+
+            // CMOV rd, rs, cond_reg  (0xE0) -- Conditional move
+            // If cond_reg != 0, copy rs into rd. Otherwise rd is unchanged.
+            // Branchless alternative to CMP+BLT+LDI+MOV+JMP patterns.
+            // Encoding: 4 words [0xE0, rd, rs, cond_reg]
+            0xE0 => {
+                let dr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if dr < NUM_REGS && sr < NUM_REGS && cr < NUM_REGS {
+                    if self.regs[cr] != 0 {
+                        self.regs[dr] = self.regs[sr];
+                    }
+                    if self.render_logging {
+                        self.log_render_op(
+                            0xE0,
+                            "CMOV",
+                            &[self.regs[dr], self.regs[sr], self.regs[cr]],
+                        );
+                    }
+                }
+            },
+
+            // CSEL rd, rs1, rs2, cond_reg  (0xEF) -- Conditional select
+            // If cond_reg != 0, copy rs1 into rd. Otherwise copy rs2 into rd.
+            // Branchless min/max/clamp: CSEL r0, r_a, r_b, r_cond.
+            // Encoding: 5 words [0xEF, rd, rs1, rs2, cond_reg]
+            0xEF => {
+                let dr = self.fetch() as usize;
+                let s1 = self.fetch() as usize;
+                let s2 = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                if dr < NUM_REGS && s1 < NUM_REGS && s2 < NUM_REGS && cr < NUM_REGS {
+                    if self.regs[cr] != 0 {
+                        self.regs[dr] = self.regs[s1];
+                    } else {
+                        self.regs[dr] = self.regs[s2];
+                    }
+                    if self.render_logging {
+                        self.log_render_op(
+                            0xEF,
+                            "CSEL",
+                            &[self.regs[dr], self.regs[s1], self.regs[s2], self.regs[cr]],
+                        );
+                    }
+                }
+            },
+
+            // BCLR rd, bit_reg  (0xF0) -- Clear bit in register
+            // rd = rd & !(1 << (bit_reg & 31)). Clears the N-th bit of rd.
+            // Encoding: 3 words [0xF0, rd, bit_reg]
+            0xF0 => {
+                let dr = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if dr < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[dr] &= !(1u32 << bit);
+                    if self.render_logging {
+                        self.log_render_op(0xF0, "BCLR", &[self.regs[dr], self.regs[br]]);
+                    }
+                }
+            },
+
+            // BTST rd, bit_reg  (0xF1) -- Test bit in register
+            // Tests bit N of rd. Sets r0 = 1 if bit is set, r0 = 0 if clear.
+            // rd is NOT modified. bit_reg specifies which bit (0-31, masked).
+            // Useful for flag testing: BTST r_flags, r_bit; JNZ r0, bit_set
+            // Encoding: 3 words [0xF1, rd, bit_reg]
+            0xF1 => {
+                let dr = self.fetch() as usize;
+                let br = self.fetch() as usize;
+                if dr < NUM_REGS && br < NUM_REGS {
+                    let bit = self.regs[br] & 31;
+                    self.regs[0] = if (self.regs[dr] & (1u32 << bit)) != 0 {
+                        1
+                    } else {
+                        0
+                    };
+                    if self.render_logging {
+                        self.log_render_op(
+                            0xF1,
+                            "BTST",
+                            &[self.regs[dr], self.regs[br], self.regs[0]],
+                        );
+                    }
+                }
+            },
+
+            // ── Phase 234: BLEND opcode (0xF2) ──
+            // BLEND x_reg, y_reg, color_reg, alpha_reg -- Alpha blend a color onto screen pixel.
+            // Reads the existing screen pixel at (x, y), blends it with color using alpha (0-255),
+            // and writes the result back. Alpha 0 = fully transparent (no change),
+            // alpha 255 = fully opaque (replaces pixel with color).
+            // Standard Porter-Duff "source over" per-channel:
+            //   result_ch = (src_ch * alpha + dst_ch * (255 - alpha)) / 255
+            // Encoding: 5 words [0xF2, x_reg, y_reg, color_reg, alpha_reg]
+            0xF2 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let cr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && cr < NUM_REGS && ar < NUM_REGS {
+                    let x = self.regs[xr] as usize;
+                    let y = self.regs[yr] as usize;
+                    let src_color = self.regs[cr];
+                    let alpha = (self.regs[ar] & 0xFF) as u32;
+                    if x < 256 && y < 256 && alpha > 0 {
+                        let dst_color = self.screen[y * 256 + x];
+                        if alpha >= 255 {
+                            // Fully opaque: just set the pixel
+                            self.set_pixel_clipped(x, y, src_color);
+                        } else {
+                            let inv_alpha = 255 - alpha;
+                            let src_r = (src_color >> 16) & 0xFF;
+                            let src_g = (src_color >> 8) & 0xFF;
+                            let src_b = src_color & 0xFF;
+                            let dst_r = (dst_color >> 16) & 0xFF;
+                            let dst_g = (dst_color >> 8) & 0xFF;
+                            let dst_b = dst_color & 0xFF;
+                            let blend_r = (src_r * alpha + dst_r * inv_alpha) / 255;
+                            let blend_g = (src_g * alpha + dst_g * inv_alpha) / 255;
+                            let blend_b = (src_b * alpha + dst_b * inv_alpha) / 255;
+                            let blended = (blend_r << 16) | (blend_g << 8) | blend_b;
+                            self.set_pixel_clipped(x, y, blended);
+                        }
+                        if self.render_logging {
+                            self.log_render_op(
+                                0xF2,
+                                "BLEND",
+                                &[x as u32, y as u32, src_color, alpha],
+                            );
+                        }
+                    }
+                }
+            },
+
+            // ── Phase 234: BLENDR opcode (0xF3) ──
+            // BLENDR dst_reg, src_reg, alpha_reg -- Alpha blend two register colors.
+            // dst = blend(dst, src, alpha). Alpha 0 = no change, 255 = replace with src.
+            // Same per-channel formula as BLEND but operates on register values.
+            // Encoding: 4 words [0xF3, dst_reg, src_reg, alpha_reg]
+            0xF3 => {
+                let dr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                if dr < NUM_REGS && sr < NUM_REGS && ar < NUM_REGS {
+                    let dst_color = self.regs[dr];
+                    let src_color = self.regs[sr];
+                    let alpha = (self.regs[ar] & 0xFF) as u32;
+                    if alpha == 0 {
+                        // Fully transparent: no change
+                    } else if alpha >= 255 {
+                        self.regs[dr] = src_color;
+                    } else {
+                        let inv_alpha = 255 - alpha;
+                        let src_r = (src_color >> 16) & 0xFF;
+                        let src_g = (src_color >> 8) & 0xFF;
+                        let src_b = src_color & 0xFF;
+                        let dst_r = (dst_color >> 16) & 0xFF;
+                        let dst_g = (dst_color >> 8) & 0xFF;
+                        let dst_b = dst_color & 0xFF;
+                        let blend_r = (src_r * alpha + dst_r * inv_alpha) / 255;
+                        let blend_g = (src_g * alpha + dst_g * inv_alpha) / 255;
+                        let blend_b = (src_b * alpha + dst_b * inv_alpha) / 255;
+                        self.regs[dr] = (blend_r << 16) | (blend_g << 8) | blend_b;
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xF3, "BLENDR", &[self.regs[dr], src_color, alpha]);
+                    }
+                }
+            },
+
+            // EVAL script_addr_reg, result_buf_reg  (0xF7) -- Evaluate Python code
+            // Script is a null-terminated string at script_addr in RAM.
+            // Result (as a null-terminated string) is written to result_buf in RAM.
+            // Returns: r0 = 0 on success, GEOS error code on failure.
+            // Encoding: 3 words [0xF7, script_addr_reg, result_buf_reg]
+            0xF7 => {
+                let sar = self.fetch() as usize;
+                let rbr = self.fetch() as usize;
+                if sar < NUM_REGS && rbr < NUM_REGS {
+                    #[cfg(feature = "python")]
+                    {
+                        let script_addr = self.regs[sar] as usize;
+                        let result_addr = self.regs[rbr] as usize;
+                        let script = self.read_ram_string(script_addr, 4096);
+                        if let Some(s) = script {
+                            let res = Python::with_gil(|py| {
+                                let globals = pyo3::types::PyDict::new_bound(py);
+                                // Try eval first (expressions)
+                                match py.eval_bound(&s, Some(&globals), None) {
+                                    Ok(py_res) => Ok(py_res.to_string()),
+                                    Err(_) => {
+                                        // Try run (statements)
+                                        match py.run_bound(&s, Some(&globals), None) {
+                                            Ok(_) => Ok("None".to_string()),
+                                            Err(e) => Err(e),
+                                        }
+                                    },
+                                }
+                            });
+
+                            match res {
+                                Ok(output) => {
+                                    let bytes = output.as_bytes();
+                                    let len = bytes.len().min(1024);
+                                    for (i, &b) in bytes.iter().enumerate().take(len) {
+                                        if result_addr + i < self.ram.len() {
+                                            self.ram[result_addr + i] = b as u32;
+                                        }
+                                    }
+                                    if result_addr + len < self.ram.len() {
+                                        self.ram[result_addr + len] = 0;
+                                    }
+                                    self.regs[0] = 0;
+                                },
+                                Err(e) => {
+                                    let err_msg = format!("Python Error: {:?}", e);
+                                    let bytes = err_msg.as_bytes();
+                                    let len = bytes.len().min(1024);
+                                    for (i, &b) in bytes.iter().enumerate().take(len) {
+                                        if result_addr + i < self.ram.len() {
+                                            self.ram[result_addr + i] = b as u32;
+                                        }
+                                    }
+                                    if result_addr + len < self.ram.len() {
+                                        self.ram[result_addr + len] = 0;
+                                    }
+                                    self.regs[0] = geos_errno(GEOS_EIO);
+                                },
+                            }
+                        } else {
+                            self.regs[0] = geos_errno(GEOS_EINVAL);
+                        }
+                    }
+                    #[cfg(not(feature = "python"))]
+                    {
+                        self.regs[0] = geos_errno(GEOS_ENOTSUP);
+                    }
+                }
+            },
+
+            // STRCMP addr1_reg, addr2_reg  (0xF8) -- Lexicographic string comparison
+            // Compares two null-terminated strings from RAM.
+            // Result in r0: 0xFFFFFFFF (-1) if s1 < s2, 0 if equal, 1 if s1 > s2.
+            // Uses signed byte comparison (ASCII ordering).
+            // Max scan: 4096 bytes.
+            // Encoding: 3 words [0xF8, addr1_reg, addr2_reg]
+            0xF8 => {
+                let a1r = self.fetch() as usize;
+                let a2r = self.fetch() as usize;
+                if a1r < NUM_REGS && a2r < NUM_REGS {
+                    let mut addr1 = self.regs[a1r] as usize;
+                    let mut addr2 = self.regs[a2r] as usize;
+                    let mut result: i32 = 0;
+                    for _ in 0..4096 {
+                        if addr1 >= self.ram.len() || addr2 >= self.ram.len() {
+                            break;
+                        }
+                        let b1 = (self.ram[addr1] & 0xFF) as i8;
+                        let b2 = (self.ram[addr2] & 0xFF) as i8;
+                        if b1 == 0 && b2 == 0 {
+                            result = 0;
+                            break;
+                        }
+                        if b1 == 0 {
+                            result = -1;
+                            break;
+                        }
+                        if b2 == 0 {
+                            result = 1;
+                            break;
+                        }
+                        if b1 < b2 {
+                            result = -1;
+                            break;
+                        }
+                        if b1 > b2 {
+                            result = 1;
+                            break;
+                        }
+                        addr1 += 1;
+                        addr2 += 1;
+                    }
+                    // Match CMP convention: r0 = 0xFFFFFFFF (-1), 0, or 1
+                    self.regs[0] = match result {
+                        -1 => 0xFFFFFFFF,
+                        0 => 0,
+                        _ => 1,
+                    };
+                    if self.render_logging {
+                        self.log_render_op(0xF8, "STRCMP", &[self.regs[a1r], self.regs[a2r]]);
+                    }
+                }
+            },
+
+            // STRCPY dest_reg, src_reg  (0xF9) -- Copy null-terminated string
+            // Copies bytes from RAM[src] to RAM[dest], including null terminator.
+            // Max copy: 4096 bytes.
+            // Encoding: 3 words [0xF9, dest_reg, src_reg]
+            0xF9 => {
+                let dr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                if dr < NUM_REGS && sr < NUM_REGS {
+                    let mut src_addr = self.regs[sr] as usize;
+                    let mut dst_addr = self.regs[dr] as usize;
+                    for _ in 0..4096 {
+                        if src_addr >= self.ram.len() || dst_addr >= self.ram.len() {
+                            break;
+                        }
+                        let byte = self.ram[src_addr];
+                        self.ram[dst_addr] = byte;
+                        if byte & 0xFF == 0 {
+                            break;
+                        }
+                        src_addr += 1;
+                        dst_addr += 1;
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xF9, "STRCPY", &[self.regs[dr], self.regs[sr]]);
+                    }
+                }
+            },
+
+            // STRCAT dest_reg, src_reg  (0xFA) -- Append string to destination
+            // Finds null terminator in dest string, then copies src (including null)
+            // at that position. Max combined operation: 4096 bytes.
+            // Encoding: 3 words [0xFA, dest_reg, src_reg]
+            0xFA => {
+                let dr = self.fetch() as usize;
+                let sr = self.fetch() as usize;
+                if dr < NUM_REGS && sr < NUM_REGS {
+                    let mut dst_addr = self.regs[dr] as usize;
+                    let mut budget = 4096u32;
+                    // Find end of dest string
+                    while budget > 0 && dst_addr < self.ram.len() {
+                        if self.ram[dst_addr] & 0xFF == 0 {
+                            break;
+                        }
+                        dst_addr += 1;
+                        budget -= 1;
+                    }
+                    // Append src at the null terminator position
+                    let mut src_addr = self.regs[sr] as usize;
+                    while budget > 0 && src_addr < self.ram.len() && dst_addr < self.ram.len() {
+                        let byte = self.ram[src_addr];
+                        self.ram[dst_addr] = byte;
+                        if byte & 0xFF == 0 {
+                            break;
+                        }
+                        src_addr += 1;
+                        dst_addr += 1;
+                        budget -= 1;
+                    }
+                    if self.render_logging {
+                        self.log_render_op(0xFA, "STRCAT", &[self.regs[dr], self.regs[sr]]);
+                    }
+                }
+            },
+
+            // LOADB dest_reg, addr_reg  (0xFB) -- Load byte: read u32 at addr, zero-extend low 8 bits
+            // Encoding: 3 words [0xFB, dest_reg, addr_reg]
+            0xFB => {
+                let reg = self.fetch() as usize;
+                let addr_reg = self.fetch() as usize;
+                if reg < NUM_REGS && addr_reg < NUM_REGS {
+                    let vaddr = self.regs[addr_reg];
+                    match self.translate_va_or_fault(vaddr) {
+                        Some(addr) => {
+                            if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE).contains(&addr)
+                            {
+                                self.regs[reg] = self.canvas_buffer[addr - CANVAS_RAM_BASE] & 0xFF;
+                            } else if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                .contains(&addr)
+                            {
+                                self.regs[reg] = self.screen[addr - SCREEN_RAM_BASE] & 0xFF;
+                            } else if addr < self.ram.len() {
+                                self.regs[reg] = self.ram[addr] & 0xFF;
+                            } else {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        },
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        },
+                    }
+                }
+            },
+
+            // STOREB addr_reg, src_reg  (0xFC) -- Store byte: write low 8 bits of reg, preserve upper 24
+            // Encoding: 3 words [0xFC, addr_reg, src_reg]
+            0xFC => {
+                let addr_reg = self.fetch() as usize;
+                let reg = self.fetch() as usize;
+                if addr_reg < NUM_REGS && reg < NUM_REGS {
+                    let vaddr = self.regs[addr_reg];
+                    self.resolve_cow_if_needed(vaddr);
+                    match self.translate_va_or_fault(vaddr) {
+                        Some(addr) => {
+                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE).contains(&addr) {
+                                let mask = self.screen[addr - SCREEN_RAM_BASE] & !0xFF;
+                                self.screen[addr - SCREEN_RAM_BASE] =
+                                    mask | (self.regs[reg] & 0xFF);
+                            } else if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
+                                .contains(&addr)
+                            {
+                                let cidx = addr - CANVAS_RAM_BASE;
+                                let mask = self.canvas_buffer[cidx] & !0xFF;
+                                self.canvas_buffer[cidx] = mask | (self.regs[reg] & 0xFF);
+                                self.formula_recalc(cidx);
+                            } else if addr < self.ram.len() {
+                                if self.mode == CpuMode::User && addr >= 0xFF00 {
+                                    self.trigger_segfault();
+                                    return false;
+                                }
+                                let mask = self.ram[addr] & !0xFF_u32;
+                                self.ram[addr] = mask | (self.regs[reg] & 0xFF);
+                            } else {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        },
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        },
+                    }
+                }
+            },
+
+            // LOADH dest_reg, addr_reg  (0xFD) -- Load halfword: read u32 at addr, zero-extend low 16 bits
+            // Encoding: 3 words [0xFD, dest_reg, addr_reg]
+            0xFD => {
+                let reg = self.fetch() as usize;
+                let addr_reg = self.fetch() as usize;
+                if reg < NUM_REGS && addr_reg < NUM_REGS {
+                    let vaddr = self.regs[addr_reg];
+                    match self.translate_va_or_fault(vaddr) {
+                        Some(addr) => {
+                            if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE).contains(&addr)
+                            {
+                                self.regs[reg] =
+                                    self.canvas_buffer[addr - CANVAS_RAM_BASE] & 0xFFFF;
+                            } else if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                .contains(&addr)
+                            {
+                                self.regs[reg] = self.screen[addr - SCREEN_RAM_BASE] & 0xFFFF;
+                            } else if addr < self.ram.len() {
+                                self.regs[reg] = self.ram[addr] & 0xFFFF;
+                            } else {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        },
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        },
+                    }
+                }
+            },
+
+            // STOREH addr_reg, src_reg  (0xFE) -- Store halfword: write low 16 bits, preserve upper 16
+            // Encoding: 3 words [0xFE, addr_reg, src_reg]
+            0xFE => {
+                let addr_reg = self.fetch() as usize;
+                let reg = self.fetch() as usize;
+                if addr_reg < NUM_REGS && reg < NUM_REGS {
+                    let vaddr = self.regs[addr_reg];
+                    self.resolve_cow_if_needed(vaddr);
+                    match self.translate_va_or_fault(vaddr) {
+                        Some(addr) => {
+                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE).contains(&addr) {
+                                let mask = self.screen[addr - SCREEN_RAM_BASE] & !0xFFFF;
+                                self.screen[addr - SCREEN_RAM_BASE] =
+                                    mask | (self.regs[reg] & 0xFFFF);
+                            } else if (CANVAS_RAM_BASE..CANVAS_RAM_BASE + CANVAS_RAM_SIZE)
+                                .contains(&addr)
+                            {
+                                let cidx = addr - CANVAS_RAM_BASE;
+                                let mask = self.canvas_buffer[cidx] & !0xFFFF_u32;
+                                self.canvas_buffer[cidx] = mask | (self.regs[reg] & 0xFFFF);
+                                self.formula_recalc(cidx);
+                            } else if addr < self.ram.len() {
+                                if self.mode == CpuMode::User && addr >= 0xFF00 {
+                                    self.trigger_segfault();
+                                    return false;
+                                }
+                                let mask = self.ram[addr] & !0xFFFF_u32;
+                                self.ram[addr] = mask | (self.regs[reg] & 0xFFFF);
+                            } else {
+                                self.trigger_segfault();
+                                return false;
+                            }
+                        },
+                        None => {
+                            self.trigger_segfault();
+                            return false;
+                        },
+                    }
+                }
+            },
+
+            // MAP -- Infinite tile map operations (0xFF)
+            // Mode-based dispatch: [0xFF, mode, ...operands]
+            // Mode 0: MAP_SET x_reg, y_reg, color_reg  -- set pixel at world coords
+            // Mode 1: MAP_GET x_reg, y_reg             -- get pixel at world coords into r0
+            // Mode 2: MAP_FILL x_reg, y_reg, w_reg, h_reg, color_reg  -- fill rect
+            // Mode 3: MAP_SAVE_SCREEN sx, sy, dx, dy, w, h  -- blit screen region to map
+            // Mode 4: MAP_LOAD_MAP mx, my, dx, dy, w, h     -- blit map region to screen
+            // Mode 5: MAP_FLUSH  -- flush dirty chunks to disk
+            // Mode 6: MAP_STATS  -- return stats in r0 (chunk count), r1 (write count)
+            0xFF => {
+                let mode = self.fetch();
+                match mode {
+                    0 => {
+                        // MAP_SET x_reg, y_reg, color_reg
+                        let xr = self.fetch() as usize;
+                        let yr = self.fetch() as usize;
+                        let cr = self.fetch() as usize;
+                        if xr < NUM_REGS && yr < NUM_REGS && cr < NUM_REGS {
+                            let wx = self.regs[xr] as i32;
+                            let wy = self.regs[yr] as i32;
+                            let color = self.regs[cr];
+                            self.tile_store.set_pixel(wx, wy, color);
+                        }
+                    },
+                    1 => {
+                        // MAP_GET x_reg, y_reg -> r0
+                        let xr = self.fetch() as usize;
+                        let yr = self.fetch() as usize;
+                        if xr < NUM_REGS && yr < NUM_REGS {
+                            let wx = self.regs[xr] as i32;
+                            let wy = self.regs[yr] as i32;
+                            self.regs[0] = self.tile_store.get_pixel(wx, wy);
+                        }
+                    },
+                    2 => {
+                        // MAP_FILL x_reg, y_reg, w_reg, h_reg, color_reg
+                        let xr = self.fetch() as usize;
+                        let yr = self.fetch() as usize;
+                        let wr = self.fetch() as usize;
+                        let hr = self.fetch() as usize;
+                        let cr = self.fetch() as usize;
+                        if xr < NUM_REGS
+                            && yr < NUM_REGS
+                            && wr < NUM_REGS
+                            && hr < NUM_REGS
+                            && cr < NUM_REGS
+                        {
+                            let x = self.regs[xr] as i32;
+                            let y = self.regs[yr] as i32;
+                            let w = self.regs[wr] as usize;
+                            let h = self.regs[hr] as usize;
+                            let color = self.regs[cr];
+                            self.tile_store.fill_rect(x, y, w, h, color);
+                        }
+                    },
+                    3 => {
+                        // MAP_SAVE_SCREEN sx_reg, sy_reg, dx_reg, dy_reg, w_reg, h_reg
+                        let sxr = self.fetch() as usize;
+                        let syr = self.fetch() as usize;
+                        let dxr = self.fetch() as usize;
+                        let dyr = self.fetch() as usize;
+                        let wr = self.fetch() as usize;
+                        let hr = self.fetch() as usize;
+                        if sxr < NUM_REGS
+                            && syr < NUM_REGS
+                            && dxr < NUM_REGS
+                            && dyr < NUM_REGS
+                            && wr < NUM_REGS
+                            && hr < NUM_REGS
+                        {
+                            let sx = self.regs[sxr] as usize;
+                            let sy = self.regs[syr] as usize;
+                            let dx = self.regs[dxr] as i32;
+                            let dy = self.regs[dyr] as i32;
+                            let w = self.regs[wr] as usize;
+                            let h = self.regs[hr] as usize;
+                            self.tile_store
+                                .blit_from_screen(&self.screen, sx, sy, dx, dy, w, h);
+                        }
+                    },
+                    4 => {
+                        // MAP_LOAD_MAP mx_reg, my_reg, dx_reg, dy_reg, w_reg, h_reg
+                        let mxr = self.fetch() as usize;
+                        let myr = self.fetch() as usize;
+                        let dxr = self.fetch() as usize;
+                        let dyr = self.fetch() as usize;
+                        let wr = self.fetch() as usize;
+                        let hr = self.fetch() as usize;
+                        if mxr < NUM_REGS
+                            && myr < NUM_REGS
+                            && dxr < NUM_REGS
+                            && dyr < NUM_REGS
+                            && wr < NUM_REGS
+                            && hr < NUM_REGS
+                        {
+                            let mx = self.regs[mxr] as i32;
+                            let my = self.regs[myr] as i32;
+                            let dx = self.regs[dxr] as usize;
+                            let dy = self.regs[dyr] as usize;
+                            let w = self.regs[wr] as usize;
+                            let h = self.regs[hr] as usize;
+                            self.tile_store
+                                .blit_to_screen(&mut self.screen, mx, my, dx, dy, w, h);
+                        }
+                    },
+                    5 => {
+                        // MAP_FLUSH -- flush dirty chunks to disk
+                        self.tile_store.flush();
+                    },
+                    6 => {
+                        // MAP_STATS -- r0 = chunk count, r1 = total writes
+                        self.regs[0] = self.tile_store.chunk_count() as u32;
+                        self.regs[1] = self.tile_store.write_count as u32;
+                    },
+                    _ => {
+                        // Unknown MAP sub-mode -> NOP (don't halt)
+                    },
+                }
+            },
+
+            _ => {
+                // Unknown/reserved opcode: set r0 to GEOS_EOPCODE error and skip.
+                // This allows programs to detect and handle bad opcodes instead of
+                // silently halting. PC was already advanced past the opcode byte.
+                self.regs[0] = geos_errno(GEOS_EOPCODE);
+            },
+        }
+        true
+    }
+
+    /// Execute screen analysis / fitness evaluation.
+    /// Called by the SCREENA sub-opcode (0xB0 sub-op 5) and the 0xFF sentinel path.
+    /// mode determines which metric to compute; result goes to r0.
+    /// Composite sprite layer onto main screen buffer
+    ///
+    /// Blits the sprite layer onto the main screen buffer, applying transparency
+    /// where sprite_layer pixel is 0. Only composites if sprite_layer_active is true.
+    /// This is called by the host renderer before displaying the frame.
+    pub fn composite_sprite_layer(&mut self) {
+        if !self.sprite_layer_active {
+            return;
+        }
+        for i in 0..SCREEN_SIZE {
+            let sprite_pixel = self.sprite_layer[i];
+            if sprite_pixel != 0 {
+                self.screen[i] = sprite_pixel;
+            }
+        }
+    }
+
+    /// Clear the sprite layer buffer and deactivate it
+    pub fn clear_sprite_layer(&mut self) {
+        for s in self.sprite_layer.iter_mut() {
+            *s = 0;
+        }
+        self.sprite_layer_active = false;
+    }
+
+    /// Activate the sprite layer (enables composition)
+    pub fn activate_sprite_layer(&mut self) {
+        self.sprite_layer_active = true;
+    }
+
+    /// Deactivate the sprite layer (disables composition without clearing)
+    pub fn deactivate_sprite_layer(&mut self) {
+        self.sprite_layer_active = false;
+    }
+
+    /// Write a pixel directly to the sprite layer
+    pub fn pset_sprite_layer(&mut self, x: u32, y: u32, color: u32) {
+        let screen_width = 256u32;
+        let screen_height = 256u32;
+        if x < screen_width && y < screen_height {
+            let idx = (y * screen_width + x) as usize;
+            if idx < self.sprite_layer.len() {
+                self.sprite_layer[idx] = color;
+            }
+        }
+    }
+
+    fn exec_screena(&mut self, mode: u32) {
+        match mode {
+            0 => {
+                // Non-zero pixel count (how much of the screen is drawn)
+                let mut count = 0u32;
+                for &px in &self.screen {
+                    if px != 0 {
+                        count += 1;
+                    }
+                }
+                self.regs[0] = count;
+            },
+            1 => {
+                // Unique color count (color diversity)
+                let mut colors = std::collections::HashSet::new();
+                for &px in &self.screen {
+                    if px != 0 {
+                        colors.insert(px);
+                    }
+                }
+                self.regs[0] = colors.len() as u32;
+            },
+            2 => {
+                // Horizontal symmetry: compare left half to mirrored right half
+                // Only count pixels where at least one side is non-zero
+                // Sample 32 rows x 128 columns (left half vs right half mirrored)
+                let mut matches = 0u32;
+                let mut total = 0u32;
+                for y in 0..32u32 {
+                    for x in 0..128u32 {
+                        let left = self.screen[(y * 256 + x) as usize];
+                        let right = self.screen[(y * 256 + (255 - x)) as usize];
+                        if left != 0 || right != 0 {
+                            total += 1;
+                            if left == right {
+                                matches += 1;
+                            }
+                        }
+                    }
+                }
+                self.regs[0] = if total > 0 {
+                    (matches * 10000) / total
+                } else {
+                    10000 // empty screen is trivially symmetric
+                };
+            },
+            3 => {
+                // Vertical symmetry: compare top half to mirrored bottom half
+                // Only count pixels where at least one side is non-zero
+                let mut matches = 0u32;
+                let mut total = 0u32;
+                for y in 0..128u32 {
+                    for x in 0..256u32 {
+                        let top = self.screen[(y * 256 + x) as usize];
+                        let bot = self.screen[((255 - y) * 256 + x) as usize];
+                        if top != 0 || bot != 0 {
+                            total += 1;
+                            if top == bot {
+                                matches += 1;
+                            }
+                        }
+                    }
+                }
+                self.regs[0] = if total > 0 {
+                    (matches * 10000) / total
+                } else {
+                    10000 // empty screen is trivially symmetric
+                };
+            },
+            4 => {
+                // Entropy estimate: count how many of 16 color buckets are used
+                let mut buckets = [0u32; 16];
+                for &px in &self.screen {
+                    if px != 0 {
+                        let bucket = ((px >> 20) & 0xF) as usize;
+                        if bucket < 16 {
+                            buckets[bucket] += 1;
+                        }
+                    }
+                }
+                let mut filled = 0u32;
+                for &b in &buckets {
+                    if b > 0 {
+                        filled += 1;
+                    }
+                }
+                self.regs[0] = filled * 625; // Scale: 16 buckets * 625 = 10000 max
+            },
+            5 => {
+                // Center of mass X (average x of non-zero pixels, 0-255)
+                let mut sum_x = 0u64;
+                let mut count = 0u64;
+                for (i, &px) in self.screen.iter().enumerate() {
+                    if px != 0 {
+                        sum_x += (i % 256) as u64;
+                        count += 1;
+                    }
+                }
+                self.regs[0] = if count > 0 {
+                    (sum_x / count) as u32
+                } else {
+                    128
+                };
+            },
+            6 => {
+                // Center of mass Y (average y of non-zero pixels, 0-255)
+                let mut sum_y = 0u64;
+                let mut count = 0u64;
+                for (i, &px) in self.screen.iter().enumerate() {
+                    if px != 0 {
+                        sum_y += (i / 256) as u64;
+                        count += 1;
+                    }
+                }
+                self.regs[0] = if count > 0 {
+                    (sum_y / count) as u32
+                } else {
+                    128
+                };
+            },
+            7 => {
+                // Combined fitness score (enhanced for evolution)
+                // Weight: nonzero_pixels*2 + unique_colors*10 + h_symmetry*5
+                let mut nonzero = 0u32;
+                let mut colors = std::collections::HashSet::new();
+                for &px in &self.screen {
+                    if px != 0 {
+                        nonzero += 1;
+                        colors.insert(px);
+                    }
+                }
+                let unique = colors.len() as u32;
+                // Quick horizontal symmetry (sampled, non-zero only)
+                let mut sym = 0u32;
+                let mut sym_total = 0u32;
+                for y in 0..32u32 {
+                    for x in 0..128u32 {
+                        let left = self.screen[(y * 256 + x) as usize];
+                        let right = self.screen[(y * 256 + (255 - x)) as usize];
+                        if left != 0 || right != 0 {
+                            sym_total += 1;
+                            if left == right {
+                                sym += 1;
+                            }
+                        }
+                    }
+                }
+                let sym_score = if sym_total > 0 {
+                    (sym * 10000) / sym_total
+                } else {
+                    10000
+                };
+                self.regs[0] = (nonzero.saturating_mul(2))
+                    .saturating_add(unique.saturating_mul(10))
+                    .saturating_add(sym_score.saturating_mul(5));
+            },
+            // ── Enhanced fitness modes (Phase 199) ──
+            8 => {
+                // Spatial coherence: fraction of non-zero pixels that have
+                // at least one non-zero neighbor (4-connected).
+                // Measures structural connectivity vs scattered noise.
+                let mut has_neighbor = 0u32;
+                let mut nonzero = 0u32;
+                for y in 0..256u32 {
+                    for x in 0..256u32 {
+                        let idx = (y * 256 + x) as usize;
+                        if self.screen[idx] != 0 {
+                            nonzero += 1;
+                            // Check 4-connected neighbors
+                            let mut found = false;
+                            if x > 0 && self.screen[idx - 1] != 0 {
+                                found = true;
+                            }
+                            if x < 255 && self.screen[idx + 1] != 0 {
+                                found = true;
+                            }
+                            if y > 0 && self.screen[idx - 256] != 0 {
+                                found = true;
+                            }
+                            if y < 255 && self.screen[idx + 256] != 0 {
+                                found = true;
+                            }
+                            if found {
+                                has_neighbor += 1;
+                            }
+                        }
+                    }
+                }
+                self.regs[0] = if nonzero > 0 {
+                    (has_neighbor * 10000) / nonzero
+                } else {
+                    0
+                };
+            },
+            9 => {
+                // Edge density: count pixel-to-pixel transitions (non-zero to zero
+                // or zero to non-zero) in a 64x64 downsampled grid.
+                // Measures how much outline/border structure exists.
+                let mut edges = 0u32;
+                let step = 4u32; // 256/64 = 4
+                for y in 0..63u32 {
+                    for x in 0..63u32 {
+                        let idx = ((y * step) * 256 + (x * step)) as usize;
+                        let cur = self.screen[idx] != 0;
+                        let right = self.screen[idx + (step as usize)] != 0;
+                        let below = self.screen[idx + (step as usize * 256)] != 0;
+                        if cur != right {
+                            edges += 1;
+                        }
+                        if cur != below {
+                            edges += 1;
+                        }
+                    }
+                }
+                // Normalize: max edges ~ 63*64*2 = 8064, scale to 0-10000
+                self.regs[0] = (edges * 10000) / 8064;
+            },
+            10 => {
+                // Region count: flood-fill based count of distinct connected
+                // components of non-zero pixels (8-connected), sampled on a
+                // 64x64 downsampled grid. Measures structural complexity.
+                let step = 4usize;
+                let mut visited = [false; 64 * 64];
+                let mut regions = 0u32;
+                for sy in 0..64usize {
+                    for sx in 0..64usize {
+                        let si = sy * 64 + sx;
+                        if visited[si] {
+                            continue;
+                        }
+                        let idx = (sy * step) * 256 + (sx * step);
+                        if self.screen[idx] == 0 {
+                            visited[si] = true;
+                            continue;
+                        }
+                        // BFS flood fill
+                        regions += 1;
+                        let mut queue = std::collections::VecDeque::new();
+                        queue.push_back((sx, sy));
+                        visited[si] = true;
+                        while let Some((cx, cy)) = queue.pop_front() {
+                            // 8-connected neighbors
+                            for (dx, dy) in &[
+                                (-1, 0),
+                                (1, 0),
+                                (0, -1),
+                                (0, 1),
+                                (-1, -1),
+                                (-1, 1),
+                                (1, -1),
+                                (1, 1),
+                            ] {
+                                let nx = cx as i32 + dx;
+                                let ny = cy as i32 + dy;
+                                if nx >= 0 && nx < 64 && ny >= 0 && ny < 64 {
+                                    let ni = ny as usize * 64 + nx as usize;
+                                    if !visited[ni] {
+                                        let nidx =
+                                            (ny as usize * step) * 256 + (nx as usize * step);
+                                        if self.screen[nidx] != 0 {
+                                            visited[ni] = true;
+                                            queue.push_back((nx as usize, ny as usize));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                self.regs[0] = regions;
+            },
+            11 => {
+                // Color harmony: measures how many non-zero pixels use colors
+                // from a restricted "pleasant" palette. Checks if R, G, B
+                // channels share similar brightness ranges (low std dev).
+                let mut r_vals: Vec<u32> = Vec::new();
+                let mut g_vals: Vec<u32> = Vec::new();
+                let mut b_vals: Vec<u32> = Vec::new();
+                for &px in &self.screen {
+                    if px != 0 {
+                        r_vals.push((px >> 16) & 0xFF);
+                        g_vals.push((px >> 8) & 0xFF);
+                        b_vals.push(px & 0xFF);
+                    }
+                }
+                if r_vals.is_empty() {
+                    self.regs[0] = 0;
+                    return;
+                }
+                // Compute average brightness per channel
+                let r_avg = r_vals.iter().sum::<u32>() / r_vals.len() as u32;
+                let g_avg = g_vals.iter().sum::<u32>() / g_vals.len() as u32;
+                let b_avg = b_vals.iter().sum::<u32>() / b_vals.len() as u32;
+                // Compute variance (simplified: mean absolute deviation)
+                let r_dev: u64 = r_vals
+                    .iter()
+                    .map(|&v| (v as i32 - r_avg as i32).unsigned_abs() as u64)
+                    .sum();
+                let g_dev: u64 = g_vals
+                    .iter()
+                    .map(|&v| (v as i32 - g_avg as i32).unsigned_abs() as u64)
+                    .sum();
+                let b_dev: u64 = b_vals
+                    .iter()
+                    .map(|&v| (v as i32 - b_avg as i32).unsigned_abs() as u64)
+                    .sum();
+                let n = r_vals.len() as u64;
+                let r_mad = (r_dev * 100) / (n * 255); // 0-100 per channel
+                let g_mad = (g_dev * 100) / (n * 255);
+                let b_mad = (b_dev * 100) / (n * 255);
+                // Harmony = 100 - average_mad (lower deviation = more harmonious)
+                let avg_mad = (r_mad + g_mad + b_mad) / 3;
+                self.regs[0] = if avg_mad > 100 {
+                    0
+                } else {
+                    (10000 - avg_mad * 100) as u32
+                };
+            },
+            12 => {
+                // Super combined fitness (Phase 199 enhanced):
+                // Weighted sum of multiple metrics for evolution selection.
+                // nonzero*1 + unique*8 + h_sym*3 + coherence*4 + edge_density*2 + harmony*3
+                let mut nonzero = 0u32;
+                let mut colors = std::collections::HashSet::new();
+                for &px in &self.screen {
+                    if px != 0 {
+                        nonzero += 1;
+                        colors.insert(px);
+                    }
+                }
+                let unique = colors.len() as u32;
+
+                // Spatial coherence (mode 8, simplified sampling)
+                let mut has_neighbor = 0u32;
+                let mut coh_nonzero = 0u32;
+                for y in (0..256u32).step_by(4) {
+                    for x in (0..256u32).step_by(4) {
+                        let idx = (y * 256 + x) as usize;
+                        if self.screen[idx] != 0 {
+                            coh_nonzero += 1;
+                            let mut found = false;
+                            if x > 0 && self.screen[idx - 1] != 0 {
+                                found = true;
+                            }
+                            if x < 255 && self.screen[idx + 1] != 0 {
+                                found = true;
+                            }
+                            if y > 0 && self.screen[idx - 256] != 0 {
+                                found = true;
+                            }
+                            if y < 255 && self.screen[idx + 256] != 0 {
+                                found = true;
+                            }
+                            if found {
+                                has_neighbor += 1;
+                            }
+                        }
+                    }
+                }
+                let coherence = if coh_nonzero > 0 {
+                    (has_neighbor * 10000) / coh_nonzero
+                } else {
+                    0
+                };
+
+                // Horizontal symmetry (mode 2, fast 16-row sample, non-zero only)
+                let mut sym = 0u32;
+                let mut sym_total = 0u32;
+                for y in 0..16u32 {
+                    for x in 0..64u32 {
+                        let sy = y * 16;
+                        let sx = x * 4;
+                        let left = self.screen[(sy * 256 + sx) as usize];
+                        let right = self.screen[(sy * 256 + (255 - sx)) as usize];
+                        if left != 0 || right != 0 {
+                            sym_total += 1;
+                            if left == right {
+                                sym += 1;
+                            }
+                        }
+                    }
+                }
+                let sym_score = if sym_total > 0 {
+                    (sym * 10000) / sym_total
+                } else {
+                    10000
+                };
+
+                // Combined (scaled to prevent overflow)
+                self.regs[0] = nonzero
+                    .saturating_mul(1)
+                    .saturating_add(unique.saturating_mul(8))
+                    .saturating_add(sym_score.saturating_mul(3))
+                    .saturating_add(coherence.saturating_mul(4));
+            },
+            _ => {
+                self.regs[0] = geos_errno(GEOS_ENOTSUP);
+            },
+        }
+    }
+
+    /// Blit all active windows to the screen in Z-order (lowest z first).
+    /// Non-zero pixels in the offscreen buffer overwrite the screen.
+    /// Zero pixels (0x00000000) are transparent -- they don't overwrite.
+    /// Clip at screen edges (256x256).
+    /// Phase 107: World-space windows (is_world_space() == true) are skipped here
+    /// and composited separately by the host renderer via blit_world_windows().
+    pub fn blit_windows(&mut self) {
+        // DEBUG: count non-zero pixels in each window's offscreen buffer
+        for w in &self.windows {
+            if w.active {
+                let nonzero: usize = w.offscreen_buffer.iter().filter(|&&p| p != 0).count();
+                if nonzero > 0 {
+                    eprintln!(
+                        "[BLIT] win {} ({}x{}): {}/{} non-zero pixels, pos=({},{}), z={}",
+                        w.id,
+                        w.w,
+                        w.h,
+                        nonzero,
+                        w.offscreen_buffer.len(),
+                        w.x,
+                        w.y,
+                        w.z_order
+                    );
+                }
+            }
+        }
+        // Collect (id, x, y, w, h, z_order) for active SCREEN-SPACE windows, sorted by z_order ascending
+        let mut wins: Vec<(u32, u32, u32, u32, u32, u32)> = self
+            .windows
+            .iter()
+            .filter(|w| w.active && !w.is_world_space())
+            .map(|w| (w.id, w.x, w.y, w.w, w.h, w.z_order))
+            .collect();
+        wins.sort_by_key(|w| w.5); // sort by z_order ascending (lowest first)
+
+        let max_z = wins.iter().map(|w| w.5).max().unwrap_or(0);
+
+        // Save the taskbar region (y=240..255) so it stays on top of all windows.
+        // Z-order: terrain < windows < taskbar.
+        let mut taskbar_saved = [0u32; 256 * types::TASKBAR_H];
+        for ty in 0..types::TASKBAR_H {
+            let screen_row = types::TASKBAR_Y + ty;
+            for tx in 0..256 {
+                taskbar_saved[ty * 256 + tx] = self.screen[screen_row * 256 + tx];
+            }
+        }
+
+        for (win_id, _wx, _wy, _ww, wh, _z) in wins {
+            // Find the window and blit its offscreen buffer + title bar
+            // Phase 133: also capture viewport offset for scroll support
+            let win_data: Option<(u32, u32, u32, Vec<u32>, u32, String, u32, u32)> =
+                self.windows.iter().find(|w| w.id == win_id).map(|w| {
+                    let title = w.read_title(&self.ram);
+                    (
+                        w.x,
+                        w.y,
+                        w.w,
+                        w.offscreen_buffer.clone(),
+                        w.z_order,
+                        title,
+                        w.viewport_x,
+                        w.viewport_y,
+                    )
+                });
+            if let Some((wx, wy, ww, buf, z_order, title, vp_x, vp_y)) = win_data {
+                // Render content below the title bar, offset by viewport
+                let bar_h = types::WINDOW_TITLE_BAR_H as i32;
+                let w_usize = ww as usize;
+                // Phase 133: only render the visible portion starting from viewport offset
+                let visible_w = (ww - vp_x).min(256);
+                let visible_h = (wh - vp_y).min(256);
+                for py in 0..visible_h as usize {
+                    for px in 0..visible_w as usize {
+                        let src_x = vp_x as usize + px;
+                        let src_y = vp_y as usize + py;
+                        if src_x < w_usize && src_y < buf.len() / w_usize {
+                            let color = buf[src_y * w_usize + src_x];
+                            if color != 0 {
+                                let sx = wx as i32 + px as i32;
+                                let sy = wy as i32 + bar_h + py as i32;
+                                if sx >= 0 && sx < 256 && sy >= 0 && sy < 256 {
+                                    self.screen[(sy as usize) * 256 + (sx as usize)] = color;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Draw title bar on top of window content
+                let is_active = z_order == max_z;
+                let display_title = if title.is_empty() {
+                    format!("Win {}", win_id)
+                } else {
+                    title
+                };
+                Self::draw_title_bar_screen(
+                    &mut self.screen,
+                    wx as i32,
+                    wy as i32,
+                    ww,
+                    &display_title,
+                    is_active,
+                );
+            }
+        }
+
+        // Restore the taskbar region on top of all windows.
+        // This ensures Z-order: terrain < windows < taskbar.
+        for ty in 0..types::TASKBAR_H {
+            let screen_row = types::TASKBAR_Y + ty;
+            for tx in 0..256 {
+                let saved_pixel = taskbar_saved[ty * 256 + tx];
+                if saved_pixel != 0 {
+                    self.screen[screen_row * 256 + tx] = saved_pixel;
+                }
+            }
+        }
+    }
+
+    /// Draw a title bar onto the 256x256 VM screen buffer.
+    /// Renders: background, border, title text (8x8 font), close button (X).
+    fn draw_title_bar_screen(
+        screen: &mut [u32],
+        x0: i32,
+        y0: i32,
+        win_w: u32,
+        title: &str,
+        is_active: bool,
+    ) {
+        let bar_h = types::WINDOW_TITLE_BAR_H as i32;
+        let w = win_w as i32;
+        let bg_color = if is_active { 0x3A3A5A } else { 0x2A2A3A };
+        let border_color = 0x444466u32;
+        let text_color = 0xCCCCCCu32;
+        let close_color = 0xFF6666u32;
+        let highlight_color = 0x5A5A7Au32; // raised edge = clickable affordance
+        let shadow_color = 0x1A1A2Au32;
+        let close_bg_color = 0x4A2A2Au32;
+
+        // Draw title bar background
+        for dy in 0..bar_h {
+            let py = y0 + dy;
+            if py < 0 {
+                continue;
+            }
+            for dx in 0..w {
+                let px = x0 + dx;
+                if px < 0 {
+                    continue;
+                }
+                let idx = (py as usize) * 256 + (px as usize);
+                if idx < screen.len() {
+                    screen[idx] = bg_color;
+                }
+            }
+        }
+
+        // Draw raised edge: lighter top row + left column (clickable affordance)
+        {
+            // Top edge (highlight)
+            let py = y0;
+            if py >= 0 {
+                for dx in 0..w {
+                    let px = x0 + dx;
+                    if px >= 0 {
+                        let idx = (py as usize) * 256 + (px as usize);
+                        if idx < screen.len() {
+                            screen[idx] = highlight_color;
+                        }
+                    }
+                }
+            }
+            // Left edge (highlight)
+            if x0 >= 0 {
+                for dy in 0..bar_h {
+                    let py = y0 + dy;
+                    if py >= 0 {
+                        let idx = (py as usize) * 256 + (x0 as usize);
+                        if idx < screen.len() {
+                            screen[idx] = highlight_color;
+                        }
+                    }
+                }
+            }
+            // Right edge (shadow)
+            let px = x0 + w - 1;
+            if px >= 0 {
+                for dy in 0..bar_h {
+                    let py = y0 + dy;
+                    if py >= 0 {
+                        let idx = (py as usize) * 256 + (px as usize);
+                        if idx < screen.len() {
+                            screen[idx] = shadow_color;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Draw border line at bottom of title bar (inside title bar area, not content area)
+        let border_y = y0 + bar_h - 1;
+        if border_y >= 0 {
+            for dx in 0..w {
+                let px = x0 + dx;
+                if px < 0 {
+                    continue;
+                }
+                let idx = (border_y as usize) * 256 + (px as usize);
+                if idx < screen.len() {
+                    screen[idx] = border_color;
+                }
+            }
+        }
+
+        // Draw close button background rectangle
+        {
+            let cb_x0 = x0 + w - 2 - 8 - 1;
+            let cb_y0 = y0 + 1;
+            let cb_w = 10i32; // 8 + 2 margin
+            let cb_h = 10i32;
+            for dy in 0..cb_h {
+                let py = cb_y0 + dy;
+                if py < 0 {
+                    continue;
+                }
+                for dx in 0..cb_w {
+                    let px = cb_x0 + dx;
+                    if px < 0 {
+                        continue;
+                    }
+                    let idx = (py as usize) * 256 + (px as usize);
+                    if idx < screen.len() {
+                        screen[idx] = close_bg_color;
+                    }
+                }
+            }
+        }
+
+        // Draw title text (8x8 font)
+        let max_chars = w / 9 - 2;
+        let mut cx = x0 + 2;
+        let cy = y0 + 2;
+        for (i, ch) in title.chars().enumerate() {
+            if i as i32 >= max_chars {
+                break;
+            }
+            let idx = ch as usize;
+            if idx < 128 {
+                let glyph = &crate::font::GLYPHS[idx];
+                for (row, &glyph_row) in glyph.iter().enumerate().take(crate::font::GLYPH_H) {
+                    for col in 0..crate::font::GLYPH_W {
+                        if glyph_row & (1 << (7 - col)) != 0 {
+                            let px = cx + col as i32;
+                            let py = cy + row as i32;
+                            if px >= 0 && py >= 0 {
+                                let buf_idx = (py as usize) * 256 + (px as usize);
+                                if buf_idx < screen.len() {
+                                    screen[buf_idx] = text_color;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            cx += crate::font::GLYPH_W as i32 + 1;
+        }
+
+        // Draw close button (X) at top-right corner
+        let btn_x = x0 + w - 2 - 8;
+        let btn_y = y0 + 2;
+        let x_glyph = &crate::font::GLYPHS['X' as usize];
+        for (row, &glyph_row) in x_glyph.iter().enumerate().take(crate::font::GLYPH_H) {
+            for col in 0..crate::font::GLYPH_W {
+                if glyph_row & (1 << (7 - col)) != 0 {
+                    let px = btn_x + col as i32;
+                    let py = btn_y + row as i32;
+                    if px >= 0 && py >= 0 {
+                        let buf_idx = (py as usize) * 256 + (px as usize);
+                        if buf_idx < screen.len() {
+                            screen[buf_idx] = close_color;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Render console output from the live hypervisor into its window.
+    /// Drains UART TX, renders printable chars to the offscreen buffer,
+    /// handles newlines, scroll, and ANSI escapes (simplified).
+    /// Phase 123: used by tests to verify console rendering.
+    pub fn render_console_to_window(&mut self, live: &mut LiveHypervisorState) {
+        let win_id = live.window_id;
+        let win = self.windows.iter().find(|w| w.id == win_id && w.active);
+        if win.is_none() {
+            return;
+        }
+        let win_ref = win.unwrap();
+        let w = win_ref.w as usize;
+        let h = win_ref.h as usize;
+        let max_cols = if w >= 6 { w / 6 } else { 1 };
+        let max_rows = if h >= 8 { h / 8 } else { 1 };
+
+        let bytes = live.vm.bus.uart.drain_tx();
+        if bytes.is_empty() {
+            return;
+        }
+
+        let mut cur_row = live.console_row as usize;
+        let mut cur_col = live.console_col as usize;
+
+        for &byte in &bytes {
+            if byte == b'\n' {
+                cur_row += 1;
+                cur_col = 0;
+            } else if byte == b'\r' {
+                cur_col = 0;
+            } else if byte == 0x1B {
+                // Skip ANSI escape sequences (simplified)
+                continue;
+            } else {
+                // Render character
+                let char_px_x = cur_col * 6;
+                let char_px_y = cur_row * 8;
+                if char_px_x + 6 <= w && char_px_y + 8 <= h {
+                    let glyph_idx = byte as usize;
+                    if glyph_idx < 128 {
+                        let glyph = &crate::font::GLYPHS[glyph_idx];
+                        let text_color = 0xFF00FF00u32; // green text
+                        let buf = self
+                            .windows
+                            .iter_mut()
+                            .find(|w2| w2.id == win_id && w2.active);
+                        if let Some(buf_win) = buf {
+                            for (gi, &row_bits) in glyph.iter().enumerate() {
+                                for bit in 0..6 {
+                                    if row_bits & (1 << (5 - bit)) != 0 {
+                                        let px = char_px_x + bit;
+                                        let py = char_px_y + gi;
+                                        if px < w && py < h {
+                                            buf_win.offscreen_buffer[py * w + px] = text_color;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                cur_col += 1;
+                if cur_col >= max_cols {
+                    cur_row += 1;
+                    cur_col = 0;
+                }
+            }
+        }
+
+        // Scroll if needed
+        if cur_row >= max_rows && max_rows > 0 {
+            let buf = self
+                .windows
+                .iter_mut()
+                .find(|w2| w2.id == win_id && w2.active);
+            if let Some(buf_win) = buf {
+                for y in 8..h {
+                    for x in 0..w {
+                        buf_win.offscreen_buffer[(y - 8) * w + x] =
+                            buf_win.offscreen_buffer[y * w + x];
+                    }
+                }
+                for y in (h - 8)..h {
+                    for x in 0..w {
+                        buf_win.offscreen_buffer[y * w + x] = 0;
+                    }
+                }
+            }
+            cur_row = max_rows - 1;
+        }
+
+        live.console_row = cur_row as u32;
+        live.console_col = cur_col as u32;
+    }
+
+    /// Call an external LLM API via curl. Returns the response text or None on error.
+    /// Uses provider.json config (same as hermes agent) or falls back to local Ollama.
+    /// The prompt is sent as a user message with a minimal system prompt.
+    fn call_llm_external(&self, prompt: &str) -> Option<String> {
+        // Use model_choice library for smart provider routing, fallback, and
+        // Ollama lifecycle management. Falls back to raw curl if model_choice
+        // is unavailable.
+        //
+        // model_choice handles: provider selection (Ollama/ZAI/cloud), auto-start
+        // Ollama, rate limiting, response caching, and fallback chains.
+        //
+        // We call it via Python subprocess since Geometry OS is Rust.
+        // The prompt and system context are written to temp files.
+
+        let prompt_path = "/tmp/geo_llm_prompt.txt";
+        let system_path = "/tmp/geo_llm_system.txt";
+        if std::fs::write(prompt_path, prompt).is_err() {
+            return None;
+        }
+
+        // Build world-aware system prompt from VM state
+        let system = self.build_llm_system_prompt();
+        if std::fs::write(system_path, &system).is_err() {
+            return None;
+        }
+
+        // Python script: load system + user prompt, call generate with system prompt
+        let py_code = "\
+import sys\n\
+from model_choice import generate\n\
+p = open('/tmp/geo_llm_prompt.txt').read()\n\
+s = open('/tmp/geo_llm_system.txt').read()\n\
+r = generate(p, complexity='balanced', system=s)\n\
+print(r if r else '')";
+
+        // Use 'timeout' shell command to ensure we don't hang the VM indefinitely.
+        let output = match std::process::Command::new("timeout")
+            .args(["30s", "python3", "-c", py_code])
+            .env("MODEL_CHOICE_TEMPLATE", "agent")
+            .output()
+        {
+            Ok(o) => o,
+            Err(_) => {
+                return self.call_llm_curl(prompt);
+            },
+        };
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let result = stdout.trim().to_string();
+
+        if result.is_empty() {
+            return self.call_llm_curl(prompt);
+        }
+
+        let cleaned = strip_think_blocks(&result);
+        Some(cleaned)
+    }
+
+    /// Build a world-aware system prompt from current VM state.
+    /// Reads player position, camera, biome, and nearby buildings from RAM.
+    fn build_llm_system_prompt(&self) -> String {
+        // Prompt mode hint: RAM[0x7820]. 0 = oracle (world guide, default),
+        // 1 = asm_dev (assembly pair programmer). Apps that want developer-mode
+        // responses write 1 to this slot before issuing the LLM opcode.
+        if self.ram.get(0x7820).copied().unwrap_or(0) == 1 {
+            return self.asm_dev_system_prompt();
+        }
+
+        let px = self.ram.get(0x7808).copied().unwrap_or(0);
+        let py = self.ram.get(0x7809).copied().unwrap_or(0);
+        let cam_x = self.ram.get(0x7800).copied().unwrap_or(0);
+        let cam_y = self.ram.get(0x7801).copied().unwrap_or(0);
+        let zoom = self.ram.get(0x7812).copied().unwrap_or(2);
+        let frame = self.ram.get(0x7802).copied().unwrap_or(0);
+
+        // Biome lookup: same mapping as world_desktop.asm color table at RAM[0x7000]
+        let biome_names = [
+            "Deep Ocean",
+            "Ocean",
+            "Beach",
+            "Desert",
+            "Sandy Desert",
+            "Oasis",
+            "Grassland",
+            "Dark Grass",
+            "Swamp",
+            "Deep Swamp",
+            "Forest",
+            "Dense Forest",
+            "Mushroom Grove",
+            "Mountain",
+            "Snowy Peak",
+            "Tundra",
+            "Lava Field",
+            "Cooled Lava",
+            "Volcanic Rock",
+            "Snowfield",
+            "Packed Snow",
+            "Fresh Snow",
+            "Coral Reef",
+            "Ancient Ruins",
+            "Crystal Cave",
+            "Deep Crystal",
+            "Ash Wastes",
+            "Deadlands",
+            "Barren Deadlands",
+            "Mystic Grove",
+            "Unknown",
+            "Unknown",
+        ];
+        let biome_idx =
+            (px.wrapping_add(py.wrapping_mul(79007)).wrapping_mul(12345) >> 27) as usize;
+        let biome_name = biome_names.get(biome_idx.min(31)).unwrap_or(&"Unknown");
+
+        // Building list
+        let bldg_count = self.ram.get(0x7580).copied().unwrap_or(0).min(32);
+        let mut buildings = Vec::new();
+        for i in 0..bldg_count as usize {
+            let base = 0x7500 + i * 4;
+            let bx = self.ram.get(base).copied().unwrap_or(0);
+            let by = self.ram.get(base + 1).copied().unwrap_or(0);
+            let name_addr = self.ram.get(base + 3).copied().unwrap_or(0) as usize;
+            let mut name = String::new();
+            for j in 0..12 {
+                if name_addr + j >= self.ram.len() {
+                    break;
+                }
+                let ch = self.ram[name_addr + j];
+                if ch == 0 || ch > 127 {
+                    break;
+                }
+                name.push(ch as u8 as char);
+            }
+            if !name.is_empty() {
+                let dist = ((bx as i32 - px as i32).abs() + (by as i32 - py as i32).abs()) as u32;
+                buildings.push(format!("{} ({},{}) dist={}", name, bx, by, dist));
+            }
+        }
+
+        let mut sys = format!(
+            "You are the Oracle of Geometry OS, an AI guide inside a procedurally generated infinite world. \
+             You speak concisely (1-3 sentences). You have spatial awareness of the world.\n\n\
+             Current world state:\n\
+             - Player position: ({}, {})\n\
+             - Camera: ({}, {}) zoom={}\n\
+             - Frame: {}\n\
+             - Player biome: {} (index {})\n",
+            px, py, cam_x, cam_y, zoom, frame, biome_name, biome_idx
+        );
+
+        if !buildings.is_empty() {
+            sys.push_str("- Buildings on map:\n");
+            for b in &buildings {
+                sys.push_str(&format!("  - {}\n", b));
+            }
+        }
+
+        // Check if player is near a building
+        let nearby_flag = self.ram.get(0x7588).copied().unwrap_or(0);
+        if nearby_flag == 1 {
+            let nearby_idx = self.ram.get(0x7584).copied().unwrap_or(0) as usize;
+            let base = 0x7500 + nearby_idx * 4;
+            let name_addr = self.ram.get(base + 3).copied().unwrap_or(0) as usize;
+            let mut name = String::new();
+            for j in 0..12 {
+                if name_addr + j >= self.ram.len() {
+                    break;
+                }
+                let ch = self.ram[name_addr + j];
+                if ch == 0 || ch > 127 {
+                    break;
+                }
+                name.push(ch as u8 as char);
+            }
+            if !name.is_empty() {
+                sys.push_str(&format!(
+                    "- Player is currently near the {} building\n",
+                    name
+                ));
+            }
+        }
+
+        sys.push_str("\nAnswer questions about the world, suggest where to explore, describe the terrain, or help with anything the player asks.");
+        sys
+    }
+
+    /// System prompt for assembly pair-programming mode (RAM[0x7820] == 1).
+    /// Target audience: a user inside the AI Terminal asking for Geometry OS
+    /// assembly code. Kept tight (~2KB) — enough opcode reference to produce
+    /// runnable programs without blowing context.
+    fn asm_dev_system_prompt(&self) -> String {
+        let frame = self.ram.get(0x7802).copied().unwrap_or(0);
+        let opcode_inventory = build_opcode_inventory_line();
+        let focus = self.ram.get(0x7821).copied().unwrap_or(0);
+        let focus_hint = if focus != 0 && focus <= 0xFF {
+            let name = crate::vm::disasm::valid_opcode_mnemonics()
+                .into_iter()
+                .find(|(op, _)| *op as u32 == focus)
+                .map(|(_, n)| n)
+                .unwrap_or_else(|| "???".to_string());
+            format!(
+                "\n# Focus opcode\nThe user is debugging opcode 0x{:02X} ({}). Prefer programs that exercise this opcode at boundary conditions and write pass/fail markers to RAM so the caller can inspect results.\n",
+                focus, name
+            )
+        } else {
+            String::new()
+        };
+        let asm_status = self.ram.get(0xFFD).copied().unwrap_or(0);
+        let asm_status_line = if asm_status != 0 {
+            let note = if asm_status == 0xFFFFFFFF {
+                "assembly FAILED"
+            } else {
+                "assembly succeeded"
+            };
+            format!(
+                "\n# Last assemble result (RAM[0xFFD])\n0x{:08X} ({}). Use this when the user asks why their last generation didn't run.\n",
+                asm_status, note
+            )
+        } else {
+            String::new()
+        };
+        format!(
+            "You are an assembly pair programmer for Geometry OS, a custom 32-bit VM.\n\
+             Output ONLY code inside a fenced ```asm block unless the user explicitly asks for prose.\n\
+             Assume the user will paste your code straight into the assembler — no placeholders, no TODOs.\n\
+             \n\
+             # VM model\n\
+             - 32 registers r0..r31. r30 = stack pointer. r31 = call return.\n\
+             - r27..r29 are reserved for preprocessor macros — do not use.\n\
+             - RAM: 65536 u32 words. Screen: 256x256 u32 (ARGB).\n\
+             - Programs load at 0x1000 by default.\n\
+             \n\
+             # RAM conventions\n\
+             - 0x0000-0x0FFF : reserved / zero page\n\
+             - 0x1000-0x3FFF : program bytecode (default .org)\n\
+             - 0x4000-0x7EFF : free scratch / app data\n\
+             - 0x7500-0x758F : building table. Each entry = [world_x, world_y, type_color, name_addr], 4 words. Count at 0x7580, max 32.\n\
+             - 0x7600-0x76CF : building name strings (16 chars each). 0x76D0+ for dynamic buildings.\n\
+             - 0x7800-0x782F : world/VM state (cam, frame, player, prompt-mode)\n\
+             - 0x7808        : player_x (tile coords). Write to teleport.\n\
+             - 0x7809        : player_y (tile coords). Write to teleport.\n\
+             - 0x780A        : player_facing (0=down,1=up,2=left,3=right)\n\
+             - 0x7820        : prompt mode (0=oracle, 1=asm_dev). Already set by AI Terminal.\n\
+             - 0xF00-0xF03   : window bounds protocol (x,y,w,h)\n\
+             - 0xFFA-0xFFF   : hardware ports (keyboard=0xFFF, ticks=0xFFE, multi-key=0xFFB)\n\
+             \n\
+             # Core instruction forms\n\
+             LDI rD, imm            ; load 32-bit immediate\n\
+             LOAD rD, rAddr         ; rD = RAM[rAddr]\n\
+             STORE rAddr, rSrc      ; RAM[rAddr] = rSrc\n\
+             MOV rD, rS\n\
+             ADD/SUB/MUL/DIV rD, rS ; rD = rD op rS\n\
+             ADDI/SUBI rD, imm      ; immediate forms\n\
+             AND/OR/XOR/SHL/SHR rD, rS\n\
+             CMP rA, rB             ; sets r0 flag: 0 eq, 1 lt, 2 gt\n\
+             CMPI rA, imm\n\
+             JMP label              ; unconditional\n\
+             JZ rCond, label / JNZ rCond, label\n\
+             BLT rFlag, label / BGE rFlag, label   ; after CMP\n\
+             CALL label / RET       ; uses r31\n\
+             PUSH rS / POP rD       ; r30 stack\n\
+             \n\
+             # Graphics\n\
+             FILL rColor                                ; clear screen\n\
+             PSET rX, rY, rColor / PSETI x, y, color\n\
+             RECTF rX, rY, rW, rH, rColor               ; filled rect\n\
+             LINE rX1, rY1, rX2, rY2, rColor\n\
+             CIRCLE rCX, rCY, rRad, rColor\n\
+             DRAWTEXT rX, rY, rStrAddr, rFg, rBg        ; null-terminated string in RAM\n\
+             STRO rAddr, \"literal\"                    ; write string literal to RAM\n\
+             \n\
+             # Interaction\n\
+             IKEY rD                 ; non-blocking key read (0 if none)\n\
+             HITSET rX, rY, rW, rH, id / HITQ rD   ; mouse hit regions\n\
+             FRAME                   ; end of frame, present buffer\n\
+             RAND rD                 ; pseudorandom u32\n\
+             \n\
+             # Recursion (the useful bit for self-building)\n\
+             LLM rPromptAddr, rRespAddr, rMaxLen ; call cloud AI, writes response to RAM\n\
+             ASMSELF rSrcAddr, rDstAddr          ; assemble source string in RAM\n\
+             RUNNEXT rAddr                       ; jump into assembled bytecode\n\
+             VM_SPAWN rConfigAddr, rWindowId     ; launch a background VM\n\
+             \n\
+             # Program skeleton\n\
+             LDI r1, 1\n\
+             LDI r30, 0xFD00       ; stack\n\
+             LDI r0, 0x101820\n\
+             FILL r0\n\
+             main_loop:\n\
+                 FRAME\n\
+                 IKEY r5\n\
+                 CMPI r5, 0\n\
+                 JZ r0, main_loop\n\
+                 HALT\n\
+             \n\
+             # Valid opcodes (complete inventory — anything not here does not exist)\n\
+             {}\n\
+             {}{}\n\
+             Current frame: {}. If the user's request is ambiguous, ask ONE clarifying question.\n\
+             Prefer short, runnable programs. Use #define for constants at the top.\n\
+             Never invent opcodes — if a name isn't in the inventory above, it doesn't exist. Use CALL into a helper label instead.",
+            opcode_inventory, focus_hint, asm_status_line, frame
+        )
+    }
+
+    /// Call the Hermes Agent CLI (`hermes chat -Q -q`) with a prompt.
+    /// Maintains session continuity via `hermes_session_id` for `--resume`.
+    /// Returns the agent's text response, or None on failure.
+    fn call_hermes_cli(&mut self, prompt: &str) -> Option<String> {
+        let mut args: Vec<String> = vec![
+            "chat".to_string(),
+            "-Q".to_string(), // quiet mode (suppress banner/spinner)
+        ];
+
+        // Resume session if we have one for continuity
+        if let Some(ref sid) = self.hermes_session_id {
+            args.push("--resume".to_string());
+            args.push(sid.clone());
+        }
+
+        // Pass prompt via -q flag (hermes chat -Q -q "<prompt>")
+        args.push("-q".to_string());
+        args.push(prompt.to_string());
+
+        let output = match std::process::Command::new("hermes")
+            .args(&args)
+            .env("TERM", "dumb")
+            .env("NO_COLOR", "1")
+            .output()
+        {
+            Ok(o) => o,
+            Err(_) => return None,
+        };
+
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
+        // Try to extract session ID from stderr for --resume on next call
+        // Hermes prints "Session: <id>" or similar on startup
+        for line in stderr.lines() {
+            if line.contains("session") && line.contains(':') {
+                if let Some(id) = line.split(':').nth(1) {
+                    let id = id.trim().to_string();
+                    if !id.is_empty() && id.len() < 100 {
+                        self.hermes_session_id = Some(id);
+                    }
+                }
+            }
+        }
+
+        // Also check stdout for session ID pattern
+        if self.hermes_session_id.is_none() {
+            for line in stdout.lines() {
+                if line.contains("session") && line.contains(':') {
+                    if let Some(id) = line.split(':').nth(1) {
+                        let id = id.trim().to_string();
+                        if !id.is_empty() && id.len() < 100 {
+                            self.hermes_session_id = Some(id);
+                        }
+                    }
+                }
+            }
+        }
+
+        if stdout.is_empty() {
+            None
+        } else {
+            Some(stdout)
+        }
+    }
+
+    /// Fallback: raw curl-based LLM call using provider.json config.
+    /// Used when model_choice is unavailable.
+    fn call_llm_curl(&self, prompt: &str) -> Option<String> {
+        let (base_url, model, api_key) = self.load_llm_config();
+
+        let esc_prompt = prompt
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n")
+            .replace('\t', "\\t");
+
+        let system_msg = "Reply with ONLY the requested information. No explanation, no thinking.";
+        let esc_sys = system_msg
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n")
+            .replace('\t', "\\t");
+
+        let payload = format!(
+            r#"{{"model":"{}","messages":[{{"role":"system","content":"{}"}},{{"role":"user","content":"{}"}}],"stream":false,"max_tokens":512,"temperature":0.3}}"#,
+            model, esc_sys, esc_prompt
+        );
+
+        let tmp_path = "/tmp/geo_llm_payload.json";
+        if std::fs::write(tmp_path, &payload).is_err() {
+            return None;
+        }
+
+        let data_arg = format!("@{}", tmp_path);
+        let mut curl_args: Vec<&str> = vec![
+            "-s",
+            "-X",
+            "POST",
+            &base_url,
+            "-d",
+            &data_arg,
+            "-H",
+            "Content-Type: application/json",
+            "--max-time",
+            "30",
+        ];
+
+        let auth_header;
+        if !api_key.is_empty() {
+            auth_header = format!("Authorization: Bearer {}", api_key);
+            curl_args.push("-H");
+            curl_args.push(&auth_header);
+        }
+
+        let output = match std::process::Command::new("curl").args(&curl_args).output() {
+            Ok(o) => o,
+            Err(_) => return None,
+        };
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if stdout.contains("\"error\"") {
+            return None;
+        }
+
+        let mut extracted: Option<String> = None;
+        for field in &["\"content\":\"", "\"reasoning_content\":\""] {
+            if let Some(start) = stdout.find(field) {
+                let content_start = start + field.len();
+                let mut i = content_start;
+                let mut result = String::new();
+                let bytes = stdout.as_bytes();
+                while i < bytes.len() {
+                    if bytes[i] == b'\\' && i + 1 < bytes.len() {
+                        match bytes[i + 1] {
+                            b'n' => result.push('\n'),
+                            b't' => result.push('\t'),
+                            b'"' => result.push('"'),
+                            b'\\' => result.push('\\'),
+                            _ => {
+                                result.push(bytes[i] as char);
+                                result.push(bytes[i + 1] as char);
+                            },
+                        }
+                        i += 2;
+                    } else if bytes[i] == b'"' {
+                        break;
+                    } else {
+                        result.push(bytes[i] as char);
+                        i += 1;
+                    }
+                }
+                if !result.is_empty() {
+                    let cleaned = strip_think_blocks(&result);
+                    let final_text = if field == &"\"reasoning_content\":\"" {
+                        cleaned
+                            .lines()
+                            .filter(|l| !l.trim().is_empty())
+                            .last()
+                            .map(|s| s.to_string())
+                            .unwrap_or(cleaned)
+                    } else {
+                        cleaned
+                    };
+                    if !final_text.is_empty() {
+                        extracted = Some(final_text);
+                        break;
+                    }
+                }
+            }
+        }
+        extracted
+    }
+
+    /// Load LLM config from provider.json or self.llm_config override.
+    /// Returns (base_url, model, api_key).
+    fn load_llm_config(&self) -> (String, String, String) {
+        // Check for runtime override first
+        if let Some(ref cfg) = self.llm_config {
+            let parts: Vec<&str> = cfg.splitn(3, ' ').collect();
+            if parts.len() >= 2 {
+                return (
+                    parts[0].to_string(),
+                    parts[1].to_string(),
+                    parts.get(2).unwrap_or(&"").to_string(),
+                );
+            }
+        }
+        // Try loading provider.json
+        let config_path =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("provider.json");
+        if config_path.exists() {
+            if let Ok(contents) = std::fs::read_to_string(&config_path) {
+                let mut base_url = extract_json_str(&contents, "base_url")
+                    .unwrap_or_else(|| "http://localhost:11434/api/chat".to_string());
+
+                if !base_url.contains("/chat/completions") && !base_url.contains("/api/chat") {
+                    if base_url.contains("11434") {
+                        if !base_url.ends_with('/') {
+                            base_url.push('/');
+                        }
+                        base_url.push_str("api/chat");
+                    } else {
+                        if !base_url.ends_with('/') {
+                            base_url.push('/');
+                        }
+                        base_url.push_str("chat/completions");
+                    }
+                }
+
+                let model = extract_json_str(&contents, "model")
+                    .unwrap_or_else(|| "qwen3.5-tools".to_string());
+                let api_key = extract_json_str(&contents, "api_key").unwrap_or_default();
+                return (base_url, model, api_key);
+            }
+        }
+        // Default to local Ollama
+        (
+            "http://localhost:11434/api/chat".to_string(),
+            "qwen3.5-tools".to_string(),
+            String::new(),
+        )
+    }
+
+    /// Parse HTML into styled lines for the browser (Phase 82).
+    /// Supports: p, br, h1-h3, b, i, a href, img src, hr, ul/li.
+    /// Colors: h1=green, h2=yellow, h3=orange, body=white, links=cyan.
+    /// Links are registered as hit_regions for click detection.
+    fn parse_html_to_lines(
+        &mut self,
+        html: &str,
+        max_lines: usize,
+        dest_base: usize,
+    ) -> Vec<crate::vm::types::StyledLine> {
+        use crate::vm::types::{HtmlLink, StyledLine};
+
+        const COLOR_H1: u32 = 0x00FF00;
+        const COLOR_H2: u32 = 0xFFFF00;
+        const COLOR_H3: u32 = 0xFF8800;
+        const COLOR_BODY: u32 = 0xFFFFFF;
+        const COLOR_LINK: u32 = 0x00FFFF;
+        const COLOR_BOLD: u32 = 0xFFFFFF;
+        const COLOR_ITALIC: u32 = 0xAAAAAA;
+        const COLOR_HR: u32 = 0x666666;
+        const CHARS_PER_LINE: usize = 32;
+
+        let mut lines: Vec<StyledLine> = Vec::new();
+        let mut links: Vec<HtmlLink> = Vec::new();
+        let mut tag_stack: Vec<String> = Vec::new();
+        let mut current_color = COLOR_BODY;
+        let mut current_link_href: Option<String> = None;
+        let mut _link_char_start: usize = 0;
+        let mut line_chars: Vec<u32> = Vec::new();
+        let mut line_color = COLOR_BODY;
+        let mut pos = 0;
+        let chars: Vec<char> = html.chars().collect();
+
+        let flush_line =
+            |lines: &mut Vec<StyledLine>, lc: &mut Vec<u32>, lcol: &mut u32, ccol: u32| {
+                if !lc.is_empty() || lines.is_empty() {
+                    lines.push(StyledLine {
+                        fg_color: *lcol,
+                        chars: lc.clone(),
+                    });
+                    lc.clear();
+                    *lcol = ccol;
+                }
+            };
+
+        while pos < chars.len() && lines.len() < max_lines {
+            if chars[pos] == '<' {
+                let tag_start = pos + 1;
+                let mut tag_end = tag_start;
+                while tag_end < chars.len() && chars[tag_end] != '>' {
+                    tag_end += 1;
+                }
+                if tag_end >= chars.len() {
+                    pos += 1;
+                    continue;
+                }
+
+                let tag_content: String = chars[tag_start..tag_end].iter().collect();
+                pos = tag_end + 1;
+                let is_closing = tag_content.starts_with('/');
+                let tag_text = if is_closing {
+                    &tag_content[1..]
+                } else {
+                    &tag_content[..]
+                };
+                let tag_name = tag_text
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .to_lowercase();
+
+                match tag_name.as_str() {
+                    "br" | "br/" => {
+                        lines.push(StyledLine {
+                            fg_color: line_color,
+                            chars: line_chars.clone(),
+                        });
+                        line_chars.clear();
+                        line_color = current_color;
+                    },
+                    "p" => {
+                        if is_closing {
+                            lines.push(StyledLine {
+                                fg_color: line_color,
+                                chars: line_chars.clone(),
+                            });
+                            line_chars.clear();
+                            if lines.len() < max_lines {
+                                lines.push(StyledLine {
+                                    fg_color: COLOR_BODY,
+                                    chars: Vec::new(),
+                                });
+                            }
+                            tag_stack.pop();
+                            current_color = COLOR_BODY;
+                            for t in &tag_stack {
+                                match t.as_str() {
+                                    "h1" => current_color = COLOR_H1,
+                                    "h2" => current_color = COLOR_H2,
+                                    "h3" => current_color = COLOR_H3,
+                                    "a" => current_color = COLOR_LINK,
+                                    "b" => current_color = COLOR_BOLD,
+                                    "i" => current_color = COLOR_ITALIC,
+                                    _ => {},
+                                }
+                            }
+                            line_color = current_color;
+                        } else {
+                            tag_stack.push("p".to_string());
+                            line_color = COLOR_BODY;
+                            current_color = COLOR_BODY;
+                        }
+                    },
+                    "h1" | "h2" | "h3" => {
+                        if is_closing {
+                            lines.push(StyledLine {
+                                fg_color: line_color,
+                                chars: line_chars.clone(),
+                            });
+                            line_chars.clear();
+                            if lines.len() < max_lines {
+                                lines.push(StyledLine {
+                                    fg_color: COLOR_BODY,
+                                    chars: Vec::new(),
+                                });
+                            }
+                            tag_stack.pop();
+                            current_color = COLOR_BODY;
+                            line_color = COLOR_BODY;
+                        } else {
+                            flush_line(&mut lines, &mut line_chars, &mut line_color, current_color);
+                            tag_stack.push(tag_name.clone());
+                            current_color = match tag_name.as_str() {
+                                "h1" => COLOR_H1,
+                                "h2" => COLOR_H2,
+                                "h3" => COLOR_H3,
+                                _ => COLOR_BODY,
+                            };
+                            line_color = current_color;
+                        }
+                    },
+                    "b" => {
+                        if is_closing {
+                            if !line_chars.is_empty() {
+                                flush_line(
+                                    &mut lines,
+                                    &mut line_chars,
+                                    &mut line_color,
+                                    current_color,
+                                );
+                            }
+                            tag_stack.retain(|t| t != "b");
+                            current_color = COLOR_BODY;
+                            for t in &tag_stack {
+                                match t.as_str() {
+                                    "h1" => current_color = COLOR_H1,
+                                    "h2" => current_color = COLOR_H2,
+                                    "h3" => current_color = COLOR_H3,
+                                    "a" => current_color = COLOR_LINK,
+                                    _ => {},
+                                }
+                            }
+                        } else {
+                            tag_stack.push("b".to_string());
+                            current_color = COLOR_BOLD;
+                        }
+                        line_color = current_color;
+                    },
+                    "i" => {
+                        if is_closing {
+                            if !line_chars.is_empty() {
+                                flush_line(
+                                    &mut lines,
+                                    &mut line_chars,
+                                    &mut line_color,
+                                    current_color,
+                                );
+                            }
+                            tag_stack.retain(|t| t != "i");
+                            current_color = COLOR_BODY;
+                            for t in &tag_stack {
+                                match t.as_str() {
+                                    "h1" => current_color = COLOR_H1,
+                                    "h2" => current_color = COLOR_H2,
+                                    "h3" => current_color = COLOR_H3,
+                                    "a" => current_color = COLOR_LINK,
+                                    _ => {},
+                                }
+                            }
+                        } else {
+                            tag_stack.push("i".to_string());
+                            current_color = COLOR_ITALIC;
+                        }
+                        line_color = current_color;
+                    },
+                    "a" => {
+                        if is_closing {
+                            // Flush accumulated text with link color BEFORE resetting
+                            if !line_chars.is_empty() {
+                                flush_line(
+                                    &mut lines,
+                                    &mut line_chars,
+                                    &mut line_color,
+                                    current_color,
+                                );
+                            }
+                            if let Some(href) = current_link_href.take() {
+                                let char_end = 0; // already flushed
+                                links.push(HtmlLink {
+                                    href,
+                                    line_index: if lines.len() > 0 { lines.len() - 1 } else { 0 },
+                                    char_start: 0,
+                                    char_end,
+                                });
+                            }
+                            tag_stack.retain(|t| t != "a");
+                            current_color = COLOR_BODY;
+                            for t in &tag_stack {
+                                match t.as_str() {
+                                    "h1" => current_color = COLOR_H1,
+                                    "h2" => current_color = COLOR_H2,
+                                    "h3" => current_color = COLOR_H3,
+                                    "b" => current_color = COLOR_BOLD,
+                                    "i" => current_color = COLOR_ITALIC,
+                                    _ => {},
+                                }
+                            }
+                            line_color = current_color;
+                        } else {
+                            tag_stack.push("a".to_string());
+                            current_color = COLOR_LINK;
+                            line_color = COLOR_LINK;
+                            _link_char_start = line_chars.len();
+                            current_link_href = None;
+                            if let Some(hpos) = tag_text.find("href") {
+                                let rest = &tag_text[hpos + 4..];
+                                let rest = rest.trim_start_matches(|c: char| c == ' ' || c == '=');
+                                let rest = rest.trim_start_matches('"');
+                                if let Some(end) = rest.find('"') {
+                                    current_link_href = Some(rest[..end].to_string());
+                                } else if let Some(end) = rest.find(' ') {
+                                    current_link_href = Some(rest[..end].to_string());
+                                }
+                            }
+                        }
+                    },
+                    "img" => {
+                        let mut alt_text = String::from("IMAGE");
+                        if let Some(apos) = tag_text.find("alt") {
+                            let rest = &tag_text[apos + 3..];
+                            let rest = rest.trim_start_matches(|c: char| c == ' ' || c == '=');
+                            let rest = rest.trim_start_matches('"');
+                            if let Some(end) = rest.find('"') {
+                                alt_text = rest[..end].to_string();
+                            }
+                        }
+                        let img_label = format!("[{}]", alt_text);
+                        for c in img_label.chars() {
+                            if line_chars.len() < CHARS_PER_LINE {
+                                line_chars.push(c as u32);
+                            }
+                        }
+                    },
+                    "hr" => {
+                        flush_line(&mut lines, &mut line_chars, &mut line_color, current_color);
+                        let mut hr_chars = Vec::new();
+                        for _ in 0..CHARS_PER_LINE.min(30) {
+                            hr_chars.push('-' as u32);
+                        }
+                        lines.push(StyledLine {
+                            fg_color: COLOR_HR,
+                            chars: hr_chars,
+                        });
+                    },
+                    "ul" => {
+                        if is_closing {
+                            tag_stack.retain(|t| t != "ul");
+                        } else {
+                            tag_stack.push("ul".to_string());
+                        }
+                    },
+                    "li" => {
+                        flush_line(&mut lines, &mut line_chars, &mut line_color, current_color);
+                        line_chars.push('*' as u32);
+                        line_chars.push(' ' as u32);
+                        line_color = COLOR_BODY;
+                    },
+                    "title" => {
+                        if !is_closing {
+                            tag_stack.push("title".to_string());
+                        } else {
+                            flush_line(&mut lines, &mut line_chars, &mut line_color, current_color);
+                            tag_stack.retain(|t| t != "title");
+                        }
+                    },
+                    _ => {},
+                }
+            } else {
+                let c = chars[pos];
+                if c == '\n' {
+                    lines.push(StyledLine {
+                        fg_color: line_color,
+                        chars: line_chars.clone(),
+                    });
+                    line_chars.clear();
+                    line_color = current_color;
+                } else if c == '\r' {
+                    // skip carriage return
+                } else {
+                    if line_chars.len() >= CHARS_PER_LINE {
+                        lines.push(StyledLine {
+                            fg_color: line_color,
+                            chars: line_chars.clone(),
+                        });
+                        line_chars.clear();
+                        line_color = current_color;
+                    }
+                    line_chars.push(c as u32);
+                }
+                pos += 1;
+            }
+        }
+
+        if !line_chars.is_empty() {
+            lines.push(StyledLine {
+                fg_color: line_color,
+                chars: line_chars,
+            });
+        }
+
+        // Register links as hit regions for HITQ click detection
+        let line_height: u32 = 8;
+        let char_width: u32 = 6;
+        for (link_idx, link) in links.iter().enumerate() {
+            let line_y = (link.line_index as u32) * line_height;
+            let x_start = (link.char_start as u32) * char_width;
+            let x_end = (link.char_end as u32) * char_width;
+            if self.hit_regions.len() < types::MAX_HIT_REGIONS {
+                self.hit_regions.push(types::HitRegion {
+                    x: x_start,
+                    y: line_y,
+                    w: x_end.saturating_sub(x_start),
+                    h: line_height,
+                    id: link_idx as u32,
+                });
+            }
+            // Store link href in RAM after the styled lines data
+            let href_base = dest_base + max_lines * 33 + link_idx * 64;
+            for (j, byte) in link.href.bytes().enumerate() {
+                if j < 63 && href_base + j < self.ram.len() {
+                    self.ram[href_base + j] = byte as u32;
+                }
+            }
+            let null_pos = href_base + link.href.len().min(63);
+            if null_pos < self.ram.len() {
+                self.ram[null_pos] = 0;
+            }
+        }
+
+        lines
+    }
+
+    // ── Crash Recovery (Phase 104) ────────────────────────────────
+
+    /// Write a core dump file to InodeFS for a segfaulted process.
+    /// Creates /var/core/ directory if needed, then writes PID.txt with:
+    /// PID, exit code, PC, faulting address, all 32 registers,
+    /// and the last 16 PC values from the instruction trace buffer.
+    /// Returns true if the core dump was written successfully.
+    pub fn write_core_dump(&mut self, proc_info: &types::Process) -> bool {
+        // Ensure /var/core/ directory exists
+        if self.inode_fs.resolve("/var").is_none() {
+            self.inode_fs.mkdir("/var");
+        }
+        if self.inode_fs.resolve("/var/core").is_none() {
+            self.inode_fs.mkdir("/var/core");
+        }
+
+        // Build core dump content as a string
+        let mut dump = String::new();
+        dump.push_str("=== CORE DUMP ===\n");
+        dump.push_str(&format!("PID: {}\n", proc_info.pid));
+        dump.push_str("Exit: segfault\n");
+        dump.push_str(&format!("PC: 0x{:04X}\n", proc_info.pc));
+        dump.push_str(&format!("Fault: 0x{:04X}\n", self.segfault_addr));
+        dump.push_str(&format!("Tick: {}\n", self.sched_tick));
+        dump.push_str("Registers:\n");
+        for i in 0..32 {
+            dump.push_str(&format!("  r{:02}: 0x{:08X}\n", i, proc_info.regs[i]));
+        }
+        dump.push_str("PC Trace (last 16, oldest first):\n");
+        let start = self.pc_trace_idx; // next write position = oldest
+        for i in 0..16 {
+            let idx = (start + i) % 16;
+            let pc = self.pc_trace[idx];
+            if pc != 0 {
+                dump.push_str(&format!("  {:2}: 0x{:04X}\n", i, pc));
+            }
+        }
+        dump.push_str("=== END DUMP ===\n");
+
+        // Convert string to u32 words (one ASCII char per word, null terminated)
+        let words: Vec<u32> = dump
+            .bytes()
+            .map(|b| b as u32)
+            .chain(std::iter::once(0))
+            .collect();
+
+        // Create the file
+        let path = format!("/var/core/{}.txt", proc_info.pid);
+        let ino = self.inode_fs.create(&path);
+        if ino == 0 {
+            return false;
+        }
+
+        // Write the data
+        let written = self.inode_fs.write_inode(ino, 0, &words);
+        written > 0
+    }
+
+    /// Render a crash dialog on the 256x256 screen showing segfault info.
+    /// Draws a dark red dialog box with white text for PID, PC, fault address.
+    /// Sets crash_dialog_active and crash_dialog_pid for host to check.
+    pub fn render_crash_dialog(&mut self, proc_info: &types::Process) {
+        let dx = 16u32;
+        let dy = 80u32;
+        let dw = 224u32;
+        let dh = 96u32;
+
+        // Dark background (0x1A1A2E)
+        for y in dy..dy + dh {
+            for x in dx..dx + dw {
+                if (x as usize) < 256 && (y as usize) < 256 {
+                    self.screen[y as usize * 256 + x as usize] = 0x1A1A2E;
+                }
+            }
+        }
+
+        // Red border (0xFF0000)
+        let border = 0xFF0000u32;
+        for x in dx..dx + dw {
+            if (x as usize) < 256 {
+                if (dy as usize) < 256 {
+                    self.screen[dy as usize * 256 + x as usize] = border;
+                }
+                let by = (dy + dh - 1) as usize;
+                if by < 256 {
+                    self.screen[by * 256 + x as usize] = border;
+                }
+            }
+        }
+        for y in dy..dy + dh {
+            if (y as usize) < 256 {
+                self.screen[y as usize * 256 + dx as usize] = border;
+                self.screen[y as usize * 256 + (dx + dw - 1) as usize] = border;
+            }
+        }
+
+        // Red title bar
+        for x in (dx + 1)..(dx + dw - 1) {
+            if (x as usize) < 256 {
+                self.screen[(dy + 1) as usize * 256 + x as usize] = 0xCC0000;
+            }
+        }
+
+        // Render text lines using pixel font (white on dark)
+        let white = 0xFFFFFFu32;
+        let gray = 0xAAAAAAu32;
+
+        // Line 1: "SEGFAULT" in title bar
+        let text_y = dy + 3;
+        for (i, ch) in b"SEGFAULT!".iter().enumerate() {
+            let tx = dx + 8 + (i as u32) * 10;
+            Self::render_char(&mut self.screen, *ch, tx, text_y, white);
+        }
+
+        // Line 2: PID
+        let pid_str = format!("PID: {}  Parent: {}", proc_info.pid, proc_info.parent_pid);
+        let text2_y = text_y + 18;
+        for (i, ch) in pid_str.bytes().enumerate() {
+            let tx = dx + 8 + (i as u32) * 8;
+            Self::render_char(&mut self.screen, ch, tx, text2_y, gray);
+        }
+
+        // Line 3: PC and fault address
+        let crash_str = format!(
+            "PC=0x{:04X}  FAULT=0x{:04X}",
+            proc_info.pc, self.segfault_addr
+        );
+        let text3_y = text2_y + 14;
+        for (i, ch) in crash_str.bytes().enumerate() {
+            let tx = dx + 8 + (i as u32) * 8;
+            Self::render_char(&mut self.screen, ch, tx, text3_y, white);
+        }
+
+        // Line 4: r0 value
+        let r0_str = format!("r0=0x{:08X}", proc_info.regs[0]);
+        let text4_y = text3_y + 14;
+        for (i, ch) in r0_str.bytes().enumerate() {
+            let tx = dx + 8 + (i as u32) * 8;
+            Self::render_char(&mut self.screen, ch, tx, text4_y, gray);
+        }
+
+        // Line 5: dismiss prompt
+        let text5_y = text4_y + 16;
+        for (i, ch) in b"Press any key to dismiss".iter().enumerate() {
+            let tx = dx + 8 + (i as u32) * 8;
+            if tx + 8 < 256 {
+                Self::render_char(&mut self.screen, *ch, tx, text5_y, 0x666666);
+            }
+        }
+
+        self.crash_dialog_active = true;
+        self.crash_dialog_pid = proc_info.pid;
+    }
+
+    /// Render a single 8x8 character glyph on the screen buffer.
+    fn render_char(screen: &mut [u32], ch: u8, x: u32, y: u32, color: u32) {
+        let glyph_idx = (ch as usize).min(127);
+        let glyph = &crate::font::GLYPHS[glyph_idx];
+        for row in 0..8u32 {
+            let row_bits = glyph[row as usize];
+            for col in 0..8 {
+                if row_bits & (0x80 >> col) != 0 {
+                    let px = x + col;
+                    let py = y + row;
+                    if (px as usize) < 256 && (py as usize) < 256 {
+                        screen[py as usize * 256 + px as usize] = color;
+                    }
+                }
+            }
+        }
+    }
+
+    // Phase 201: Memory Palace Checkpointing and Spatial Version Control
+    // Create checkpoint snapshots of VM state for safe rollback and branching.
+
+    /// Create a checkpoint snapshot of current VM state.
+    /// Returns (filename, checkpoint) where filename can be used for restore.
+    pub fn checkpoint_create(
+        &mut self,
+        description: Option<String>,
+    ) -> Result<(String, checkpoint::VmCheckpoint), checkpoint::CheckpointError> {
+        use checkpoint::*;
+
+        let checkpoint_dir = ensure_checkpoint_dir()?;
+
+        // Snapshot CPU state
+        let pc = self.pc;
+        let regs = self.regs;
+        let mode = self.mode as u8;
+
+        // Snapshot memory
+        let ram = self.ram.clone();
+        let screen = self.screen.clone();
+
+        // Snapshot execution stats
+        let total_steps = self.total_steps;
+        let halted = self.halted;
+
+        // Phase 202: Snapshot metadata
+        let building_metadata = self.building_metadata.clone();
+        let coordinate_metadata = self.coordinate_metadata.clone();
+        let buildings = self.buildings.clone();
+
+        let checkpoint = VmCheckpoint {
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            description,
+            pc,
+            regs,
+            mode,
+            ram,
+            screen,
+            total_steps,
+            halted,
+            building_metadata,
+            coordinate_metadata,
+            buildings,
+        };
+
+        let filename = save_checkpoint(&checkpoint, &checkpoint_dir)?;
+        Ok((filename, checkpoint))
+    }
+
+    /// Restore VM state from a checkpoint file.
+    /// Resets complex process/IPC state to defaults; only RAM/CPU state is restored.
+    pub fn restore_checkpoint(
+        &mut self,
+        filename: &str,
+    ) -> Result<checkpoint::VmCheckpoint, checkpoint::CheckpointError> {
+        use checkpoint::*;
+
+        let checkpoint_dir = ensure_checkpoint_dir()?;
+        let checkpoint = load_checkpoint(filename, &checkpoint_dir)?;
+
+        // Restore CPU state
+        self.pc = checkpoint.pc;
+        self.regs = checkpoint.regs;
+        self.mode = match checkpoint.mode {
+            0 => crate::vm::types::CpuMode::Kernel,
+            1 => crate::vm::types::CpuMode::User,
+            _ => crate::vm::types::CpuMode::Kernel,
+        };
+
+        // Restore memory
+        self.ram.clone_from(&checkpoint.ram);
+        self.screen.clone_from(&checkpoint.screen);
+
+        // Restore execution stats
+        self.total_steps = checkpoint.total_steps;
+        self.halted = checkpoint.halted;
+
+        // Phase 202: Restore metadata
+        self.building_metadata
+            .clone_from(&checkpoint.building_metadata);
+        self.coordinate_metadata
+            .clone_from(&checkpoint.coordinate_metadata);
+        // Phase 202+: Restore infinite buildings
+        self.buildings.clone_from(&checkpoint.buildings);
+
+        // Reset complex state to defaults
+        self.processes.clear();
+        self.current_pid = 0;
+        self.sched_tick = 0;
+        self.pipes.clear();
+        self.mutexes.clear();
+        self.semaphores.clear();
+        self.formulas.clear();
+        self.formula_dep_index.clear();
+
+        Ok(checkpoint)
+    }
+
+    /// List all available checkpoints.
+    pub fn checkpoint_list(&self) -> Result<Vec<String>, checkpoint::CheckpointError> {
+        use checkpoint::*;
+        let checkpoint_dir = ensure_checkpoint_dir()?;
+        list_checkpoints(&checkpoint_dir)
+    }
+
+    /// Delete a checkpoint file.
+    pub fn checkpoint_delete(&self, filename: &str) -> Result<(), checkpoint::CheckpointError> {
+        use checkpoint::*;
+        let checkpoint_dir = ensure_checkpoint_dir()?;
+        delete_checkpoint(filename, &checkpoint_dir)
+    }
+
+    /// Diff two checkpoints and return structured comparison.
+    pub fn checkpoint_diff(
+        &self,
+        filename_a: &str,
+        filename_b: &str,
+    ) -> Result<serde_json::Value, checkpoint::CheckpointError> {
+        use checkpoint::*;
+        let checkpoint_dir = ensure_checkpoint_dir()?;
+        let a = load_checkpoint(filename_a, &checkpoint_dir)?;
+        let b = load_checkpoint(filename_b, &checkpoint_dir)?;
+        Ok(diff_checkpoints(&a, &b))
+    }
+}
+
+/// Strip <think/> and <think ...>...</think blocks from text.
+pub(crate) fn strip_think_blocks(text: &str) -> String {
+    let mut result = text.to_string();
+    // Strip <think/> or <think /> (self-closing)
+    loop {
+        if let Some(pos) = result.find("<think/>") {
+            result.replace_range(pos..pos + 8, "");
+        } else if let Some(pos) = result.find("<think />") {
+            result.replace_range(pos..pos + 9, "");
+        } else {
+            break;
+        }
+    }
+    // Strip <think ...>...</think or <think...</think (non-greedy)
+    // Handles both proper XML (<think reasoning here</think) and
+    // malformed (<think...</think without closing >)
+    loop {
+        let start = result.find("<think");
+        if let Some(s) = start {
+            // Skip self-closing tags (already handled above)
+            let rest = &result[s + 6..];
+            if rest.starts_with("/>") || rest.starts_with(" />") {
+                break;
+            }
+            // Find </think closing tag
+            if let Some(close_offset) = result[s..].find("</think") {
+                let close_start = s + close_offset;
+                // Find the > after </think (or end of tag)
+                let after_close = &result[close_start + 7..];
+                let end_len = if let Some(gt) = after_close.find('>') {
+                    close_start + 7 + gt + 1 - s
+                } else if after_close.starts_with(' ') {
+                    // </think without > but followed by space - strip to end of </think
+                    let sp_end = after_close
+                        .find(|c: char| !c.is_whitespace())
+                        .unwrap_or(after_close.len());
+                    close_start + 7 + sp_end - s
+                } else {
+                    close_start + 7 - s
+                };
+                if s + end_len <= result.len() {
+                    result.replace_range(s..s + end_len, "");
+                    continue;
+                }
+            }
+        }
+        break;
+    }
+    result.trim().to_string()
+}
+
+/// Extract a string value from JSON by key name (minimal parser, no serde dependency).
+pub(crate) fn extract_json_str(json: &str, key: &str) -> Option<String> {
+    let search = format!("\"{}\":\"", key);
+    let start = json.find(&search)?;
+    let val_start = start + search.len();
+    let mut i = val_start;
+    let bytes = json.as_bytes();
+    let mut result = String::new();
+    while i < bytes.len() {
+        if bytes[i] == b'\\' && i + 1 < bytes.len() {
+            match bytes[i + 1] {
+                b'n' => result.push('\n'),
+                b't' => result.push('\t'),
+                b'"' => result.push('"'),
+                b'\\' => result.push('\\'),
+                _ => {
+                    result.push(bytes[i] as char);
+                    result.push(bytes[i + 1] as char);
+                },
+            }
+            i += 2;
+        } else if bytes[i] == b'"' {
+            break;
+        } else {
+            result.push(bytes[i] as char);
+            i += 1;
+        }
+    }
+    Some(result)
+}
+
+/// Build a compact, deduplicated, comma-separated list of valid opcode mnemonics
+/// with their hex codes. Emitted into the asm_dev system prompt as the authoritative
+/// inventory the LLM may emit. Sorted by opcode.
+fn build_opcode_inventory_line() -> String {
+    let mut pairs = crate::vm::disasm::valid_opcode_mnemonics();
+    pairs.sort_by_key(|(op, _)| *op);
+    let mut out = String::with_capacity(pairs.len() * 16);
+    for (i, (op, name)) in pairs.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        out.push_str(&format!("{}(0x{:02X})", name, op));
+    }
+    out
+}
+
+mod boot;
+mod checkpoint;
+mod disasm;
+mod gpu_lexer;
+mod gpu_patcher;
+mod net;
+pub(crate) use net::MAX_TCP_CONNECTIONS;
+#[allow(unused_imports)]
+pub(crate) use ops_pty::MAX_PTY_SLOTS;
+mod scheduler;
+
+#[cfg(test)]
+mod browser_tests;
+#[cfg(test)]
+mod http_tests;
+
+#[cfg(test)]
+mod tests;
+#[cfg(test)]
+mod tests_middle_out;
+#[cfg(test)]
+mod tests_palace_fs;
+#[cfg(all(test, feature = "python"))]
+mod tests_python;
+
+#[cfg(test)]
+mod tests_bgvm;
+
+#[cfg(test)]
+mod sprite_layer_tests;
+
+#[cfg(test)]
+mod tests_devcon;
+#[cfg(test)]
+mod tests_live_tile;
+
+// FIXME: Phase 426 tests have type errors (40 errors). Re-enable after fixing.
+// #[cfg(test)]
+// FIXME: Phase 426 tests have runtime failures (11 stale API tests).
+// Syscall opcodes are tested in vm::ops_extended::tests instead.
+// #[cfg(test)]
+// mod syscall_opcode_tests;
+
+#[cfg(test)]
+mod test_phase124;

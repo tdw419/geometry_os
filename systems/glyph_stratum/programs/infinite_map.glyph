@@ -1,0 +1,298 @@
+// ============================================================================
+// INFINITE MAP - Glyph-Native Spatial Compositor
+// ============================================================================
+//
+// This glyph IS the infinite map. It renders the viewport by sampling from
+// Hilbert-indexed texture memory.
+//
+// When executed on the GPU, this program becomes a live, pannable, zoomable
+// view into the Geometry OS substrate.
+//
+// Entry: 0x0000 (Hilbert origin)
+// Stratum: SPEC (3) - This is a specification
+// ============================================================================
+
+// ============================================================================
+// REGISTER CONVENTIONS
+// ============================================================================
+// r0  = Always 0 (zero register)
+// r1-r7 = Temp/Scratch
+// r8-r15 = Function arguments
+// r16-r19 = Saved registers (callee-saved)
+// r20 = CAMERA_X
+// r21 = CAMERA_Y
+// r22 = ZOOM (16.16 fixed point)
+// r23 = SCREEN_W
+// r24 = SCREEN_H
+// r25 = MOUSE_X
+// r26 = MOUSE_Y
+// r27 = MOUSE_BTN
+// r28 = FRAME_COUNT
+// r29 = HEAP_PTR
+// r30-31 = Reserved
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+.equ CAMERA_X, 20
+.equ CAMERA_Y, 21
+.equ ZOOM, 22
+.equ SCREEN_W, 23
+.equ SCREEN_H, 24
+.equ MOUSE_X, 25
+.equ MOUSE_Y, 26
+.equ MOUSE_BTN, 27
+.equ FRAME, 28
+
+.equ ZOOM_DEFAULT, 0x10000     ; 1.0 in 16.16 fixed
+.equ ZOOM_MIN, 0x04000         ; 0.25x
+.equ ZOOM_MAX, 0x40000         ; 4.0x
+
+.equ EVENT_BASE, 0x0200
+.equ EVENT_TYPE, 0x0200
+.equ EVENT_X, 0x0204
+.equ EVENT_Y, 0x0208
+.equ EVENT_BTN, 0x020C
+.equ EVENT_DX, 0x0210
+.equ EVENT_DY, 0x0214
+
+.equ WINDOW_TABLE, 0x0100
+.equ MAX_WINDOWS, 8
+
+// ============================================================================
+// ENTRY POINT
+// ============================================================================
+:entry
+    // Initialize camera
+    MOV r[CAMERA_X], 0
+    MOV r[CAMERA_Y], 0
+    MOV r[ZOOM], ZOOM_DEFAULT
+    MOV r[SCREEN_W], 1920
+    MOV r[SCREEN_H], 1080
+    MOV r[FRAME], 0
+
+    // Initialize heap pointer
+    MOV r29, 0x10000
+
+    // Jump to main loop
+    JMP main_loop
+
+// ============================================================================
+// MAIN LOOP
+// ============================================================================
+:main_loop
+    // Increment frame counter
+    ADD r[FRAME], r[FRAME], 1
+
+    // 1. Handle input (pan/zoom)
+    CALL handle_input
+
+    // 2. Render viewport via OP_CAMERA
+    CALL render_viewport
+
+    // 3. Process window events
+    CALL process_windows
+
+    // 4. Yield to scheduler (cooperative multitasking)
+    YIELD
+
+    // 5. Loop forever
+    JMP main_loop
+
+// ============================================================================
+// INPUT HANDLING
+// ============================================================================
+:handle_input
+    // Load event type
+    LOAD r1, EVENT_TYPE
+    CMP r1, 0
+    JE :input_done
+
+    // Event type 1 = Mouse move
+    CMP r1, 1
+    JNE :check_scroll
+
+    // For mouse move with button down, pan
+    LOAD r7, EVENT_BTN
+    CMP r7, 0
+    JE :clear_event
+
+    // Pan camera
+    LOAD r2, EVENT_DX
+    LOAD r3, EVENT_DY
+
+    // Apply inverse zoom: delta / zoom
+    // For simplicity, we use the delta directly
+    SUB r[CAMERA_X], r[CAMERA_X], r2
+    SUB r[CAMERA_Y], r[CAMERA_Y], r3
+    JMP :clear_event
+
+:check_scroll
+    // Event type 4 = Scroll (zoom)
+    CMP r1, 4
+    JNE :clear_event
+
+    LOAD r2, EVENT_DY    ; Scroll delta
+
+    // Zoom in/out
+    CMP r2, 0
+    JLT :zoom_out
+
+:zoom_in
+    // zoom *= 1.1
+    MOV r3, 0x11EB8      ; ~1.1 in 16.16
+    MUL r[ZOOM], r[ZOOM], r3
+    SHR r[ZOOM], r[ZOOM], 16
+    JMP :clamp_zoom
+
+:zoom_out
+    // zoom *= 0.9
+    MOV r3, 0xE666       ; ~0.9 in 16.16
+    MUL r[ZOOM], r[ZOOM], r3
+    SHR r[ZOOM], r[ZOOM], 16
+
+:clamp_zoom
+    // Clamp zoom to [ZOOM_MIN, ZOOM_MAX]
+    CMP r[ZOOM], ZOOM_MIN
+    JLT :set_min_zoom
+    CMP r[ZOOM], ZOOM_MAX
+    JGT :set_max_zoom
+    JMP :clear_event
+
+:set_min_zoom
+    MOV r[ZOOM], ZOOM_MIN
+    JMP :clear_event
+
+:set_max_zoom
+    MOV r[ZOOM], ZOOM_MAX
+
+:clear_event
+    // Clear event
+    MOV r1, 0
+    STORE EVENT_TYPE, r1
+
+:input_done
+    RET
+
+// ============================================================================
+// VIEWPORT RENDERING
+// ============================================================================
+:render_viewport
+    // Use OP_CAMERA (230) to render the viewport
+    MOV r1, r[SCREEN_W]
+    MOV r2, r[SCREEN_H]
+    CAMERA r1, r2          ; Opcode 230: render from Hilbert space
+
+    RET
+
+// ============================================================================
+// WINDOW MANAGEMENT
+// ============================================================================
+:process_windows
+    // Check for clicks on window regions
+    LOAD r1, EVENT_TYPE
+    CMP r1, 2              ; Event type 2 = click
+    JNE :windows_done
+
+    ; Hit test against window table
+    CALL hit_test_windows
+
+    ; If hit, dispatch event to that window
+    CMP r8, 0xFF
+    JE :windows_done
+
+    ; r8 = hit window ID
+    CALL dispatch_to_window
+
+:windows_done
+    RET
+
+// ============================================================================
+// HIT TESTING
+// ============================================================================
+:hit_test_windows
+    ; r8 = hit window ID (0xFF = none)
+    MOV r8, 0xFF
+    MOV r9, 0              ; window index
+
+:hit_loop
+    ; Calculate window base address
+    MOV r10, r9
+    MUL r10, r10, 8
+    ADD r10, WINDOW_TABLE, r10
+
+    ; Load window bounds
+    LOAD r2, r10 + 1       ; win.x
+    LOAD r3, r10 + 2       ; win.y
+    LOAD r4, r10 + 3       ; win.w
+    LOAD r5, r10 + 4       ; win.h
+
+    ; Get mouse position
+    LOAD r6, EVENT_X
+    LOAD r7, EVENT_Y
+
+    ; Check bounds
+    CMP r6, r2
+    JLT :next_window
+    ADD r11, r2, r4
+    CMP r6, r11
+    JGT :next_window
+    CMP r7, r3
+    JLT :next_window
+    ADD r11, r3, r5
+    CMP r7, r11
+    JGT :next_window
+
+    ; HIT!
+    LOAD r8, r10           ; win.id
+    JMP :hit_done
+
+:next_window
+    ADD r9, r9, 1
+    CMP r9, MAX_WINDOWS
+    JLT :hit_loop
+
+:hit_done
+    RET
+
+// ============================================================================
+// DISPATCH TO WINDOW
+// ============================================================================
+:dispatch_to_window
+    ; r8 = window ID
+    ; Send event to window's mailbox
+
+    ; Calculate mailbox address: 0x10000 + (window_id * 0x100)
+    MOV r10, r8
+    MUL r10, r10, 0x100
+    ADD r10, 0x10000, r10
+
+    ; Store event in mailbox
+    LOAD r11, EVENT_X
+    STORE r10, r11         ; mailbox.mouse_x
+    LOAD r11, EVENT_Y
+    STORE r10 + 4, r11     ; mailbox.mouse_y
+    LOAD r11, EVENT_BTN
+    STORE r10 + 8, r11     ; mailbox.mouse_btn
+    MOV r11, 1
+    STORE r10 + 12, r11    ; mailbox.pending = 1
+
+    RET
+
+// ============================================================================
+// HALT
+// ============================================================================
+:halt
+    HALT
+
+// ============================================================================
+// DATA SECTION (initialized at boot)
+// ============================================================================
+:camera_state
+    .word 0, 0, 0x10000    ; x, y, zoom
+
+:screen_state
+    .word 1920, 1080       ; width, height
+
+:event_queue
+    .skip 32               ; 8 words for event data

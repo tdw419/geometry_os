@@ -1,0 +1,10 @@
+; Simple PSET test
+LDI r1, 128
+LDI r2, 128
+LDI r3, 0xFF0000
+PSET r1, r2, r3
+LDI r1, 10
+LDI r2, 10
+LDI r3, 0x00FF00
+PSET r1, r2, r3
+HALT

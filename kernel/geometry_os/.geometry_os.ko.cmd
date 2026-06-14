@@ -1,0 +1,1 @@
+savedcmd_geometry_os.ko := riscv64-linux-gnu-ld -r -melf32lriscv -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /home/jericho/projects/zion/projects/geometry_os/geometry_os/.geometry_os/build/linux-6.14/scripts/module.lds -o geometry_os.ko geometry_os.o geometry_os.mod.o .module-common.o

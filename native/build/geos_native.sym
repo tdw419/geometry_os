@@ -1,0 +1,241 @@
+
+
+
+
+00000000 l    d  .comment	00000000 .comment
+00000000 l    df *ABS*	00000000 bio.c
+00000000 l    df *ABS*	00000000 console.c
+00000000 l    df *ABS*	00000000 file.c
+00000000 l    df *ABS*	00000000 fs.c
+00000000 l    df *ABS*	00000000 geos_main.c
+00000000 l    df *ABS*	00000000 geos_stubs.c
+00000000 l    df *ABS*	00000000 geos_sys.o
+00000000 l    df *ABS*	00000000 log.c
+00000000 l    df *ABS*	00000000 pipe.c
+00000000 l    df *ABS*	00000000 sleeplock.c
+00000000 l    df *ABS*	00000000 spinlock.c
+00000000 l    df *ABS*	00000000 string.c
+00000000 l    df *ABS*	00000000 swtch.o
+00000000 l    df *ABS*	00000000 syscall_patched.c
+00000000 l    df *ABS*	00000000 sysfile.c
+00000000 l    df *ABS*	00000000 sysproc.c
+00000000 l    d  .riscv.attributes	00000000 .riscv.attributes
+80000000 g       .text	00000000 _entry
+80000000 l    d  .text	00000000 .text
+80000022 l       .text	00000000 bss_loop
+8000002c l       .text	00000000 bss_done
+8000003a g       .text	00000000 putchar
+80000042 g       .text	00000000 getchar_impl
+8000004a g       .text	00000000 kalloc_impl
+80000054 g       .text	00000000 kfree_impl
+8000005e g       .text	00000000 disk_read_impl
+80000068 g       .text	00000000 disk_write_impl
+80000072 g       .text	00000000 shutdown
+8000007a g       .text	00000000 exec_elf
+800000d0 g       .text	00000000 exec_elf_smode_trampoline
+8000012c g       .text	00000000 kernelvec
+80000140 g       .text	00000000 stvec_handler
+800001dc l       .text	00000000 non_syscall_trap
+800001f4 l       .text	00000000 is_interrupt
+800001f6 g       .text	00000000 child_trampoline
+800001f8 g       .text	00000000 stvec_restore
+8000025c g       .text	00000000 sv32_enter_user
+800002e2 g       .text	00000000 sret_to_user
+8000037c l     F .text	00000042 stub_memmove
+800003be l     F .text	00000038 print_str
+800003f6 g     F .text	00000014 mycpu
+8000040a g     F .text	00000034 myproc
+8000043e g     F .text	00000018 child_entry
+80000456 g     F .text	00000042 set_myproc
+80000498 g     F .text	0000000c intr_on
+800004a4 g     F .text	0000000c intr_off
+800004b0 g     F .text	0000000e intr_get
+800004be g     F .text	00000012 uartputc
+800004d0 g     F .text	00000012 uartputc_sync
+800004e2 g     F .text	0000000c uartinit
+800004ee g     F .text	00000030 uartwrite
+8000051e g     F .text	00000012 kalloc
+80000530 g     F .text	00000016 kfree
+80000546 g     F .text	0000000c kvminit
+80000552 g     F .text	0000000c kvminithart
+8000055e g     F .text	0000000c uvminit
+8000056a g     F .text	0000000e uvmalloc
+80000578 g     F .text	0000000e uvmdealloc
+80000586 g     F .text	0000000c freewalk
+80000592 g     F .text	0000000c uvmunmap
+8000059e g     F .text	0000000c uvmclear
+800005aa g     F .text	0000000e walkaddr
+800005b8 g     F .text	0000000e mappages
+800005c6 g     F .text	0000000c kvmpa
+800005d2 g     F .text	0000000c procinit
+800005de g     F .text	0000000c trapinit
+800005ea g     F .text	0000000c trapinithart
+800005f6 g     F .text	0000000c plicinit
+80000602 g     F .text	0000000c plicinithart
+8000060e g     F .text	0000000e plic_claim
+8000061c g     F .text	0000000c plic_complete
+80000628 g     F .text	0000000c timerinit
+80000634 g     F .text	0000000c virtio_disk_init
+80000640 g     F .text	00000046 virtio_disk_rw
+80000686 g     F .text	00000188 printf
+8000080e g     F .text	0000001a procdump
+80000828 g     F .text	00000018 panic
+80000840 g     F .text	000000ac copyout
+800008ec g     F .text	000000a4 copyin
+80000990 g     F .text	0000004e either_copyout
+800009de g     F .text	00000088 sched
+80000a66 g     F .text	0000001a yield
+80000a80 g     F .text	0000005a freeproc
+80000ada g     F .text	000000be scheduler
+80000b98 l     F .text	0000000c scheduler_entry
+80000ba4 g     F .text	00000032 sleep
+80000bd6 g     F .text	000000c4 kwait
+80000c9a g     F .text	0000003c wakeup
+80000cd6 g     F .text	0000007a kexit
+80000d50 g     F .text	0000000e kkill
+80000d5e g     F .text	0000001a either_copyin
+80000d78 g     F .text	000000c0 copyinstr
+80000e38 g     F .text	0000000e killed
+80000e46 g     F .text	00000026 alloc_pgtbl
+80000e6c g     F .text	00000012 uvmcreate
+80000e7e g     F .text	00000078 sv32_map_page
+80000ef6 g     F .text	000001f2 allocproc
+800010e8 g     F .text	000000d6 uvmcopy
+800011be g     F .text	00000120 kfork
+800012de g     F .text	00000484 kexec
+80001762 g     F .text	000000d0 growproc
+80001832 g     F .text	00000036 handle_non_syscall_trap
+80001868 g     F .text	000001a8 handle_syscall
+80001a10 l     F .text	0000013a print_dirent
+80001b4a g     F .text	00000aa6 geos_main
+800025f0 g       .text	00000000 swtch
+8000265a g     F .text	00000082 binit
+800026dc g     F .text	000000cc bread
+800027a8 g     F .text	00000030 bwrite
+800027d8 g     F .text	0000007c brelse
+80002854 g     F .text	00000030 bpin
+80002884 g     F .text	00000030 bunpin
+800028b4 g     F .text	00000016 initlock
+800028ca g     F .text	0000002a holding
+800028f4 g     F .text	00000040 push_off
+80002934 g     F .text	0000003a acquire
+8000296e g     F .text	00000050 pop_off
+800029be g     F .text	00000034 release
+800029f2 g     F .text	00000034 initsleeplock
+80002a26 g     F .text	00000042 acquiresleep
+80002a68 g     F .text	00000034 releasesleep
+80002a9c g     F .text	00000046 holdingsleep
+80002ae2 l     F .text	0000006a bfree
+80002b4c l     F .text	0000010a balloc
+80002c56 l     F .text	000000b0 bmap
+80002d06 l     F .text	000000ac iget
+80002db2 g     F .text	00000058 iinit
+80002e0a g     F .text	000000b4 ialloc
+80002ebe g     F .text	0000007c iupdate
+80002f3a g     F .text	00000036 idup
+80002f70 g     F .text	000000ac ilock
+8000301c g     F .text	00000040 iunlock
+8000305c g     F .text	0000008c itrunc
+800030e8 g     F .text	00000084 iput
+8000316c g     F .text	0000001c iunlockput
+80003188 g     F .text	000000b8 ireclaim
+80003240 g     F .text	00000070 fsinit
+800032b0 g     F .text	00000028 stati
+800032d8 g     F .text	000000dc readi
+800033b4 g     F .text	000000ee writei
+800034a2 g     F .text	00000016 namecmp
+800034b8 g     F .text	00000098 dirlookup
+80003550 l     F .text	0000011a namex
+8000366a g     F .text	00000092 dirlink
+800036fc g     F .text	00000018 namei
+80003714 g     F .text	00000016 nameiparent
+8000372a g     F .text	00000024 fileinit
+8000374e g     F .text	0000005c filealloc
+800037aa g     F .text	00000046 filedup
+800037f0 g     F .text	000000ba fileclose
+800038aa g     F .text	0000005c filestat
+80003906 g     F .text	000000bc fileread
+800039c2 g     F .text	0000010e filewrite
+80003ad0 g     F .text	000000c8 pipealloc
+80003b98 g     F .text	0000005e pipeclose
+80003bf6 g     F .text	000000e4 pipewrite
+80003cda g     F .text	000000e0 piperead
+80003dba l     F .text	0000005e write_head
+80003e18 l     F .text	000000c2 install_trans
+80003eda g     F .text	0000007a initlog
+80003f54 g     F .text	00000068 begin_op
+80003fbc g     F .text	00000114 end_op
+800040d0 g     F .text	000000c2 log_write
+80004192 g     F .text	0000001c memset
+800041ae g     F .text	00000030 memcmp
+800041de g     F .text	00000042 memmove
+80004220 g     F .text	00000012 memcpy
+80004232 g     F .text	00000036 strncmp
+80004268 g     F .text	0000003c strncpy
+800042a4 g     F .text	0000002e safestrcpy
+800042d2 g     F .text	00000026 strlen
+800042f8 l     F .text	00000058 argfd
+80004350 l     F .text	0000003e fdalloc
+8000438e l     F .text	0000013a create
+800044c8 g     F .text	00000048 sys_dup
+80004510 g     F .text	00000046 sys_read
+80004556 g     F .text	00000046 sys_write
+8000459c g     F .text	00000040 sys_close
+800045dc g     F .text	00000038 sys_fstat
+80004614 g     F .text	00000116 sys_link
+8000472a g     F .text	00000186 sys_unlink
+800048b0 g     F .text	00000150 sys_open
+80004a00 g     F .text	00000046 sys_mkdir
+80004a46 g     F .text	0000005a sys_mknod
+80004aa0 g     F .text	0000007e sys_chdir
+80004b1e g     F .text	00000112 sys_exec
+80004c30 g     F .text	000000da sys_pipe
+80004d0a g     F .text	00000022 sys_exit
+80004d2c g     F .text	00000016 sys_getpid
+80004d42 g     F .text	00000014 sys_fork
+80004d56 g     F .text	00000020 sys_wait
+80004d76 g     F .text	00000072 sys_sbrk
+80004de8 g     F .text	0000009e sys_pause
+80004e86 g     F .text	00000020 sys_kill
+80004ea6 g     F .text	00000036 sys_uptime
+80004edc l     F .text	00000060 argraw
+80004f3c g     F .text	0000004a fetchaddr
+80004f86 g     F .text	00000040 fetchstr
+80004fc6 g     F .text	0000001a argint
+80004fe0 g     F .text	0000001a argaddr
+80004ffa g     F .text	0000002c argstr
+80005026 g     F .text	00000062 syscall
+80005088 g     F .text	0000007a consolewrite
+80005102 g     F .text	00000032 consputc
+80005134 g     F .text	0000017a consoleread
+800052ae g     F .text	0000015c consoleintr
+8000540a g     F .text	00000040 consoleinit
+80006000 l    d  .rodata	00000000 .rodata
+80006db8 l     O .rodata	00000058 syscalls
+80006e10 l    d  .data	00000000 .data
+80006e10 l     O .data	00000004 next_pid
+80006e20 l     O .data	000000c0 dummy_proc
+80007000 g       .bss	00000000 _bss_start
+80007000 g     O .bss	00000004 ticks
+80007000 l    d  .bss	00000000 .bss
+80007004 l     O .bss	00000004 sched_initialized
+80007008 l     O .bss	00000004 exec_pending
+8000700c l     O .bss	00000004 saved_tf
+80007010 l     O .bss	00000004 current_proc
+80007020 l     O .bss	00000044 single_cpu
+80007064 l     O .bss	00000090 dummy_tf
+800070f4 g     O .bss	00000038 sched_ctx
+8000712c g     O .bss	0000000c tickslock
+80007138 l     O .bss	00003000 ptable
+8000a138 g     O .bss	00008258 bcache
+80012390 g     O .bss	00000020 sb
+800123b0 g     O .bss	0000145c itable
+8001380c g     O .bss	00000050 devsw
+8001385c g     O .bss	00000afc ftable
+80014358 g     O .bss	00000098 log
+800143f0 g     O .bss	00000098 cons
+80015000 g       .bss	00000000 _bss_end
+80015000 l    d  .stack	00000000 .stack
+80019000 g       .stack	00000000 _stack_top
+build/geos_native.elf:     file format elf32-littleriscv
+SYMBOL TABLE:

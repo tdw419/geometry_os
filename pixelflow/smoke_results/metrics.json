@@ -1,0 +1,123 @@
+{
+    "checkpoint": "pixelflow/bilingual_llm_v14_ckpt.pt",
+    "epoch": 10,
+    "loss": 0.02306134788058031,
+    "metrics": {
+        "syntax": 10,
+        "visual": 9,
+        "semantic": 10,
+        "total": 10
+    },
+    "results": [
+        {
+            "prompt": "; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.",
+            "asm": "; DESCRIPTION: Draws a red circle at the center of the screen (128, 128) with radius 50.\n; PLAN: r0=128(x), r1=128(y), r2=0xFF0000(color). Op: PSET r0, r1, r2.\nLDI r0, 128\nLDI r1, 128\nLDI r2, 0xFF0000\nPSET r0, r1, r2\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 3/3 register assignments",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: Fills the entire 256x256 screen with solid blue color (0x0000FF).",
+            "asm": "; DESCRIPTION: Fills the entire 256x256 screen with solid blue color (0x0000FF). Op: FILL r0.\nLDI r0, 0x0000FF\nFILL r0\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "No PLAN (V10 style, skip semantic check)",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: Draws a green rectangle of size 64x64 at the top-left corner (0, 0).",
+            "asm": "; DESCRIPTION: Draws a green rectangle of size 64x64 at the top-left corner (0, 0).\n; PLAN: r0=0(x), r1=0(y), r2=64(width), r3=64(height), r4=0x00FF00(color). Op: RECTF r0, r1, r2, r3, r4.\nLDI r0, 0\nLDI r1, 0\nLDI r2, 64\nLDI r3, 64\nLDI r4, 0x00FF00\nRECTF r0, r1, r2, r3, r4\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 5/5 register assignments",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: Draws a white diagonal line from the top-left (0, 0) to the bottom-right (255, 255).",
+            "asm": "; DESCRIPTION: Draws a white diagonal line from the top-left (0, 0) to the bottom-right (255, 255).\n; PLAN: r0=0(x1), r1=0(y1), r2=255(x2), r3=255(y2), r4=0xFFFFFF(color). Op: LINE r0, r1, r2, r3, r4.\nLDI r0, 0\nLDI r1, 0\nLDI r2, 255\nLDI r3, 255\nLDI r4, 0xFFFFFF\nLINE r0, r1, r2, r3, r4\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 5/5 register assignments",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: Clears the screen to black and then halts.",
+            "asm": "; DESCRIPTION: Clears the screen to black and then halts.\n; PLAN: r0=0x000000(color). Op: FILL r0.\nLDI r0, 0x000000\nFILL r0\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 1/1 register assignments",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.",
+            "asm": "; DESCRIPTION: Draws a yellow square at (100, 100) with side length 40.\n; PLAN: r0=100(x), r1=100(y), r2=40(width), r3=0(height), r4=0xFFFF00(color). Op: RECTF r0, r1, r2, r3, r4.\nLDI r0, 100\nLDI r1, 100\nLDI r2, 40\nLDI r3, 0\nLDI r4, 0xFFFF00\nRECTF r0, r1, r2, r3, r4\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 5/5 register assignments",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.",
+            "asm": "; DESCRIPTION: A simple program that loads 10 into r1 and decrements it in a loop until it reaches 0.\n; PLAN: r1=10(counter), r2=1(step). Loop: SUB r1, loop.\nLDI r1, 10\nLDI r2, 1\nSUB r1, r2\nJNZ r1, loop\nJNZ r1, loop\nHALT",
+            "status": "FAILED",
+            "syntax_ok": true,
+            "visual_ok": false,
+            "plan_ok": true,
+            "plan_detail": "Verified 2/2 register assignments",
+            "success": false,
+            "reasons": "NO VISUAL OP"
+        },
+        {
+            "prompt": "; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.",
+            "asm": "; DESCRIPTION: Draws a checkerboard pattern of 8x8 squares using black and white.\n; PLAN: r0=3(x), r1=8(y), r2=8(radius), r3=0x000000(color). Op: CIRCLE r0, r1, r2, r3.\nLDI r0, 3\nLDI r1, 8\nLDI r2, 8\nLDI r3, 0x000000\nCIRCLE r0, r1, r2, r3\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 4/4 register assignments",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: Draws a horizontal red line across the middle of the screen.",
+            "asm": "; DESCRIPTION: Draws a horizontal red line across the middle of the screen.\n; PLAN: r0=0xFF0000(color). Op: FILL r0.\nLDI r0, 0xFF0000\nFILL r0\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 1/1 register assignments",
+            "success": true,
+            "reasons": "None"
+        },
+        {
+            "prompt": "; DESCRIPTION: Fills the screen with a vertical gradient from black to white.",
+            "asm": "; DESCRIPTION: Fills the screen with a vertical gradient from black to white.\n; PLAN: r0=3(x), r1=17(y), r2=0(width), r3=1(height), r4=0xFFFFFF(color). Op: RECTF r0, r1, r2, r3, r4.\nLDI r0, 3\nLDI r1, 17\nLDI r2, 0\nLDI r3, 1\nLDI r4, 0xFFFFFF\nRECTF r0, r1, r2, r3, r4\nHALT",
+            "status": "PASSED",
+            "syntax_ok": true,
+            "visual_ok": true,
+            "plan_ok": true,
+            "plan_detail": "Verified 5/5 register assignments",
+            "success": true,
+            "reasons": "None"
+        }
+    ]
+}

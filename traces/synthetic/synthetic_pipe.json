@@ -1,0 +1,425 @@
+{
+  "trace_name": "synthetic_pipe",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 8,
+        "name": "pipe",
+        "description": "Create pipe"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 14,
+        "a3": 2147479336,
+        "a4": 46,
+        "a5": 2147478888
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "allocate_pipe_buffer_pixels"
+        ]
+      }
+    }
+  ]
+}

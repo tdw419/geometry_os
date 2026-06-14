@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeOS Git Monitor</title>
+<style>
+  :root {
+    --bg-dark: #0a0e17;
+    --bg-panel: #111827;
+    --bg-editor: #1e293b;
+    --border: #1e3a5f;
+    --accent: #22d3ee;
+    --accent-dim: #0e7490;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: var(--mono);
+    background: var(--bg-dark);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .header h1 {
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #branch {
+    font-size: 13px;
+    color: var(--warning);
+    cursor: pointer;
+  }
+  #branch:hover { text-decoration: underline; }
+  #dirty-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--error);
+    color: #fff;
+    display: none;
+  }
+  #auto-refresh {
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  #auto-refresh.active { color: var(--success); }
+  #last-refresh {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .btn {
+    font-size: 11px;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-editor);
+    color: var(--text);
+    cursor: pointer;
+    font-family: var(--mono);
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Main area */
+  .main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Commit list */
+  .commit-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .commit {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .commit:hover { background: var(--bg-panel); }
+  .commit.selected { background: var(--bg-editor); border-left: 3px solid var(--accent); }
+  .commit-hash {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .commit-author {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 8px;
+  }
+  .commit-time {
+    font-size: 10px;
+    color: var(--text-dim);
+    float: right;
+  }
+  .commit-msg {
+    font-size: 13px;
+    margin-top: 4px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Detail panel */
+  .detail {
+    width: 420px;
+    border-left: 1px solid var(--border);
+    background: var(--bg-panel);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .detail-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .detail-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  .diff-stat {
+    white-space: pre-wrap;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+  .diff-file {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(30,58,95,0.3);
+  }
+  .diff-file-status {
+    display: inline-block;
+    width: 16px;
+    font-weight: bold;
+    font-size: 11px;
+  }
+  .diff-file-status.M { color: var(--warning); }
+  .diff-file-status.A { color: var(--success); }
+  .diff-file-status.D { color: var(--error); }
+  .diff-file-status.R { color: var(--accent); }
+  .diff-file-path {
+    color: var(--text);
+    font-size: 11px;
+  }
+  .detail-empty {
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  /* Unstaged changes bar */
+  .unstaged-bar {
+    background: var(--bg-editor);
+    border-top: 1px solid var(--border);
+    padding: 6px 16px;
+    font-size: 11px;
+    max-height: 80px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .unstaged-bar .label {
+    color: var(--error);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .unstaged-file {
+    color: var(--text-dim);
+    padding: 1px 0;
+  }
+  .unstaged-file .s { font-weight: bold; display: inline-block; width: 14px; }
+  .unstaged-file .s.M { color: var(--warning); }
+  .unstaged-file .s.? { color: var(--error); }
+  .unstaged-file .s.A { color: var(--success); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>GeOS Git Monitor</h1>
+  <div class="header-right">
+    <span id="branch">--</span>
+    <span id="dirty-badge">dirty</span>
+    <span id="auto-refresh" class="active" onclick="toggleAuto()">auto-refresh</span>
+    <span id="last-refresh">--</span>
+    <button class="btn" onclick="refresh()">Refresh</button>
+    <a href="/" style="color:var(--text-dim);font-size:11px;text-decoration:none;">IDE</a>
+  </div>
+</div>
+
+<div class="main">
+  <div class="commit-list" id="commits"></div>
+  <div class="detail" id="detail">
+    <div class="detail-header" id="detail-header">Select a commit</div>
+    <div class="detail-body" id="detail-body">
+      <div class="detail-empty">Click a commit to see diff stats</div>
+    </div>
+  </div>
+</div>
+
+<div class="unstaged-bar" id="unstaged" style="display:none">
+  <div class="label">Unstaged changes</div>
+  <div id="unstaged-files"></div>
+</div>
+
+<script>
+const API = '';
+let autoInterval = null;
+let selectedHash = null;
+
+function toggleAuto() {
+  const el = document.getElementById('auto-refresh');
+  if (autoInterval) {
+    clearInterval(autoInterval);
+    autoInterval = null;
+    el.classList.remove('active');
+  } else {
+    autoInterval = setInterval(refresh, 15000);
+    el.classList.add('active');
+  }
+}
+
+function timeAgo(ts) {
+  const s = Math.floor(Date.now()/1000 - ts);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s/60)}m ago`;
+  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+  return `${Math.floor(s/86400)}d ago`;
+}
+
+async function refresh() {
+  try {
+    const [statusRes, logRes] = await Promise.all([
+      fetch(API + '/api/git/status'),
+      fetch(API + '/api/git/log/50'),
+    ]);
+    const status = await statusRes.json();
+    const log = await logRes.json();
+
+    // Branch
+    document.getElementById('branch').textContent = status.branch;
+    const badge = document.getElementById('dirty-badge');
+    badge.style.display = status.clean ? 'none' : 'inline-block';
+
+    // Unstaged
+    const unstagedEl = document.getElementById('unstaged');
+    const unstagedFiles = document.getElementById('unstaged-files');
+    if (status.files.length > 0) {
+      unstagedEl.style.display = 'block';
+      unstagedFiles.innerHTML = status.files.map(f => {
+        const s = f.status || '??';
+        return `<div class="unstaged-file"><span class="s ${s[0]}">${s[0]}</span>${esc(f.path)}</div>`;
+      }).join('');
+    } else {
+      unstagedEl.style.display = 'none';
+    }
+
+    // Commits
+    const el = document.getElementById('commits');
+    el.innerHTML = log.map(c => `
+      <div class="commit${c.hash === selectedHash ? ' selected' : ''}" onclick="selectCommit('${c.hash}','${c.hash_full}')" title="${esc(c.message)}">
+        <span class="commit-hash">${c.hash}</span>
+        <span class="commit-author">${esc(c.author)}</span>
+        <span class="commit-time">${timeAgo(c.timestamp)}</span>
+        <div class="commit-msg">${esc(c.message)}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('last-refresh').textContent = new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error('refresh failed', e);
+  }
+}
+
+async function selectCommit(hash, fullHash) {
+  selectedHash = hash;
+  // Highlight
+  document.querySelectorAll('.commit').forEach(el => el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+
+  const header = document.getElementById('detail-header');
+  const body = document.getElementById('detail-body');
+  header.textContent = hash + ' loading...';
+  body.innerHTML = '<div class="detail-empty">Loading diff...</div>';
+
+  try {
+    const parent = fullHash + '^';
+    const res = await fetch(API + '/api/git/diff/' + encodeURIComponent(parent + '..' + fullHash));
+    const data = await res.json();
+    header.textContent = hash;
+
+    let html = '';
+    if (data.stat) {
+      html += `<div class="diff-stat">${esc(data.stat)}</div>`;
+    }
+    if (data.files && data.files.length) {
+      html += data.files.map(f =>
+        `<div class="diff-file"><span class="diff-file-status ${f.status[0]}">${f.status}</span><span class="diff-file-path">${esc(f.path)}</span></div>`
+      ).join('');
+    } else {
+      html += '<div class="detail-empty">No file changes</div>';
+    }
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = '<div class="detail-empty">Failed to load diff</div>';
+  }
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Boot
+refresh();
+toggleAuto();
+</script>
+</body>
+</html>

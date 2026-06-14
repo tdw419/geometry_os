@@ -1,0 +1,465 @@
+{
+  "trace_name": "synthetic_rmdir",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152726528,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152727028,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152727528,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152728028,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152728528,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152729028,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152729528,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152730028,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152730528,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152731028,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152726784,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152727284,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152727784,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152728284,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152728784,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152729284,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152729784,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152730284,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152730784,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 20,
+        "name": "rmdir",
+        "description": "rmdir syscall"
+      },
+      "arguments": {
+        "a0": 2152731284,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    }
+  ]
+}

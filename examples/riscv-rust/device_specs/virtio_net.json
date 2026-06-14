@@ -1,0 +1,40 @@
+{
+  "device_name": "Virtio Network Device",
+  "device_type": "network",
+  "description": "Virtio MMIO network device for packet I/O",
+  "mmio_base": "0x10002000",
+  "mmio_size": 4096,
+  "bus_interface": "virtio MMIO 1.0",
+  "registers": [
+    {"offset": "0x00", "name": "MagicValue", "access": "read", "value": "0x74726976"},
+    {"offset": "0x04", "name": "Version", "access": "read", "value": "2"},
+    {"offset": "0x08", "name": "DeviceID", "access": "read", "value": "1"},
+    {"offset": "0x0C", "name": "VendorID", "access": "read", "value": "0x55555555"},
+    {"offset": "0x10", "name": "DeviceFeatures", "access": "read"},
+    {"offset": "0x14", "name": "DeviceFeaturesSel", "access": "write"},
+    {"offset": "0x20", "name": "DriverFeatures", "access": "write"},
+    {"offset": "0x24", "name": "DriverFeaturesSel", "access": "write"},
+    {"offset": "0x28", "name": "Status", "access": "read_write"},
+    {"offset": "0x30", "name": "QueueSel", "access": "write"},
+    {"offset": "0x34", "name": "QueueNumMax", "access": "read"},
+    {"offset": "0x38", "name": "QueueNum", "access": "write"},
+    {"offset": "0x44", "name": "QueueReady", "access": "read_write"},
+    {"offset": "0x48", "name": "QueueDescLow", "access": "write"},
+    {"offset": "0x4C", "name": "QueueDescHigh", "access": "write"},
+    {"offset": "0x50", "name": "QueueAvailLow", "access": "write"},
+    {"offset": "0x54", "name": "QueueAvailHigh", "access": "write"},
+    {"offset": "0x58", "name": "QueueUsedLow", "access": "write"},
+    {"offset": "0x5C", "name": "QueueUsedHigh", "access": "write"},
+    {"offset": "0x60", "name": "QueueNotify", "access": "write"},
+    {"offset": "0x64", "name": "InterruptACK", "access": "write"},
+    {"offset": "0x70", "name": "InterruptStatus", "access": "read"},
+    {"offset": "0x80", "name": "ConfigGeneration", "access": "read"},
+    {"offset": "0x100", "name": "Config", "access": "read", "description": "Device config (MAC address, link status)"}
+  ],
+  "programming_model": {
+    "initialization": "1. Read MagicValue, verify 0x74726976. 2. Read Version, verify 2. 3. Negotiate features. 4. Set status bits: ACKNOWLEDGE(1), DRIVER(2), FEATURES_OK(8), DRIVER_OK(4).",
+    "queue_setup": "1. Write queue index to QueueSel. 2. Write size to QueueNum. 3. Write descriptor/available/used ring addresses. 4. Set QueueReady.",
+    "io": "Build descriptor chain with packet header + data buffer. RX queue (0) for receiving, TX queue (1) for sending.",
+    "config": "Config space at 0x100: first 6 bytes are MAC address. Next 2 bytes are link status."
+  }
+}

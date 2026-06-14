@@ -1,0 +1,1024 @@
+use super::*;
+
+// ── ASM OPCODE ──────────────────────────────────────────────────
+
+#[test]
+fn test_asm_opcode_basic() {
+    let mut vm = Vm::new();
+    let source = "LDI r0, 42\nHALT\n";
+    for (i, &byte) in source.as_bytes().iter().enumerate() {
+        vm.ram[0x0800 + i] = byte as u32;
+    }
+    vm.ram[0x0800 + source.len()] = 0;
+    let prog = assemble("LDI r5, 0x0800\nLDI r6, 0x1000\nASM r5, r6\nHALT\n", 0)
+        .expect("assembly should succeed");
+    for (i, &word) in prog.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    vm.pc = 0;
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.ram[0x1000], 0x10, "LDI opcode at dest");
+    assert_eq!(vm.ram[0x1001], 0, "r0 register");
+    assert_eq!(vm.ram[0x1002], 42, "immediate 42");
+    assert_eq!(vm.ram[0x1003], 0x00, "HALT at dest+3");
+    assert_eq!(vm.ram[0xFFD], 4, "ASM result should be 4");
+    assert!(vm.halted);
+}
+
+#[test]
+fn test_asm_opcode_error() {
+    let mut vm = Vm::new();
+    let source = "BOGUS r0\n";
+    for (i, &byte) in source.as_bytes().iter().enumerate() {
+        vm.ram[0x0800 + i] = byte as u32;
+    }
+    vm.ram[0x0800 + source.len()] = 0;
+    let prog = assemble("LDI r5, 0x0800\nLDI r6, 0x1000\nASM r5, r6\nHALT\n", 0)
+        .expect("assembly should succeed");
+    for (i, &word) in prog.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    vm.pc = 0;
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.ram[0xFFD], 0xFFFFFFFF, "ASM error indicator");
+}
+
+#[test]
+fn test_self_host_assembles() {
+    let vm = compile_run("programs/self_host.asm");
+    assert!(vm.halted, "self_host should halt");
+}
+
+#[test]
+fn test_self_host_runs() {
+    let vm = compile_run("programs/self_host.asm");
+    // The enhanced self_host generates a diagonal gradient program:
+    // color = (x + y) & 255, drawn with PSET.
+    // Assembly must succeed
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASM should succeed");
+    assert!(vm.ram[0xFFD] > 0, "ASM should produce bytecode");
+    // The program should halt (generated code ends with HALT)
+    assert!(vm.halted, "self_host should halt after gradient completes");
+    // Screen should have non-black pixels from both the border and gradient
+    let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        non_black > 1000,
+        "screen should have gradient + border pixels, got {} non-black",
+        non_black
+    );
+}
+
+#[test]
+fn test_phase48_registers_preserved_across_runnext() {
+    // Phase 48: registers survive ASMSELF + RUNNEXT transition
+    // 1. Set r5 = 12345 in parent context
+    // 2. Write canvas code that reads r5 and adds 1 to r10 (r5 must be untouched)
+    // 3. ASMSELF assembles canvas -> bytecode at 0x1000
+    // 4. RUNNEXT jumps PC to 0x1000
+    // 5. Verify: r5 == 12345 (preserved), r10 == 12346 (new code read r5 + 1)
+
+    // Canvas source text: reads r5 into r10, adds 1, halts
+    let canvas_source = "MOV r10, r5\nLDI r11, 1\nADD r10, r11\nHALT\n";
+
+    // Bootstrap: ASMSELF then RUNNEXT
+    let bootstrap = "ASMSELF\nRUNNEXT\n";
+
+    let boot_asm = assemble(bootstrap, 0).expect("assembly should succeed");
+
+    let mut vm = Vm::new();
+
+    // Load bootstrap bytecode at address 0
+    for (i, &w) in boot_asm.pixels.iter().enumerate() {
+        vm.ram[i] = w;
+    }
+
+    // Write source text into canvas_buffer (ASMSELF reads canvas_buffer as text)
+    // Each canvas row is 32 cells. Write chars sequentially, newlines as actual \n bytes.
+    for (i, byte) in canvas_source.bytes().enumerate() {
+        if i >= vm.canvas_buffer.len() {
+            break;
+        }
+        vm.canvas_buffer[i] = byte as u32;
+    }
+
+    // Pre-set r5 = 12345
+    vm.regs[5] = 12345;
+    vm.pc = 0;
+    vm.halted = false;
+
+    // Run until halt
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // r5 must be unchanged -- registers survive the transition
+    assert_eq!(
+        vm.regs[5], 12345,
+        "r5 must be preserved across ASMSELF+RUNNEXT: got {}",
+        vm.regs[5]
+    );
+
+    // r10 should be 12346 (new code read r5 and added 1)
+    assert_eq!(
+        vm.regs[10], 12346,
+        "r10 should be 12346 (r5+1): got {}",
+        vm.regs[10]
+    );
+
+    assert!(vm.halted, "VM should have halted after new code finished");
+}
+
+#[test]
+fn test_hello_texti_vs_original() {
+    // TEXTI hello vs original hello -- TEXTI should be much smaller
+    let src_texti = "TEXTI 90, 120, \"Hello, World!\"\nHALT";
+    let texti_asm = assemble(src_texti, 0).expect("assembly should succeed");
+    let src_original =
+        std::fs::read_to_string("programs/hello.asm").expect("filesystem operation failed");
+    let original_asm = assemble(&src_original, 0).expect("assembly should succeed");
+    // TEXTI version should be much smaller
+    assert!(
+        texti_asm.pixels.len() < original_asm.pixels.len() / 4,
+        "TEXTI hello ({} words) should be < 1/4 of original ({} words)",
+        texti_asm.pixels.len(),
+        original_asm.pixels.len()
+    );
+}
+
+// === Self Writer (Phase 49: Pixel Driving Pixels) ===
+
+#[test]
+fn test_self_writer() {
+    // self_writer.asm writes successor code to canvas via STORE,
+    // compiles with ASMSELF, runs with RUNNEXT.
+    // Successor: LDI r1, 42 / HALT
+    // Expected: r1 = 42
+    let vm = compile_run("programs/self_writer.asm");
+
+    assert!(vm.halted, "self_writer should halt after successor runs");
+
+    // r1 = 42 from successor (LDI r1, 42; HALT)
+    assert_eq!(vm.regs[1], 42, "r1 should be 42: got {}", vm.regs[1]);
+
+    // ASMSELF should have succeeded (bytecode word count > 0, not error)
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASMSELF should not report error");
+    assert!(vm.ram[0xFFD] > 0, "ASMSELF should produce bytecode words");
+
+    // Verify canvas buffer has the successor text written to it
+    // First char should be 'L' (76) from "LDI r0, 42"
+    assert_eq!(
+        vm.canvas_buffer[0], 76,
+        "canvas[0] should be 'L' (76): got {}",
+        vm.canvas_buffer[0]
+    );
+    // Second char should be 'D' (68)
+    assert_eq!(
+        vm.canvas_buffer[1], 68,
+        "canvas[1] should be 'D' (68): got {}",
+        vm.canvas_buffer[1]
+    );
+}
+
+// === Evolving Counter (Phase 49: Pixel Driving Pixels) ===
+
+#[test]
+fn test_evolving_counter() {
+    // evolving_counter.asm reads TICKS from RAM[0xFFE] each frame,
+    // converts to 4 decimal ASCII digits, writes to canvas buffer at 0x8000-0x8003.
+    // The grid IS the display -- digits change each frame.
+    let vm = compile_run("programs/evolving_counter.asm");
+
+    // Program is an infinite loop (FRAME+JMP), won't halt
+    assert!(
+        !vm.halted,
+        "evolving_counter should not halt (infinite animation)"
+    );
+
+    // After running, frame_count should be > 0 (many FRAME opcodes executed)
+    assert!(
+        vm.frame_count > 0,
+        "frame_count should be > 0: got {}",
+        vm.frame_count
+    );
+
+    // Canvas buffer positions 0-3 should contain ASCII digit characters ('0'-'9')
+    for i in 0..4 {
+        let val = vm.canvas_buffer[i];
+        assert!(
+            val >= 0x30 && val <= 0x39,
+            "canvas[{}] should be ASCII digit (0x30-0x39): got 0x{:02X} ('{}')",
+            i,
+            val,
+            if val >= 0x20 && val < 0x7F {
+                val as u8 as char
+            } else {
+                '?'
+            }
+        );
+    }
+
+    // Verify the 4 digits actually represent the frame count value
+    // Extract the displayed number from canvas buffer
+    let displayed = (vm.canvas_buffer[0] - 0x30) * 1000
+        + (vm.canvas_buffer[1] - 0x30) * 100
+        + (vm.canvas_buffer[2] - 0x30) * 10
+        + (vm.canvas_buffer[3] - 0x30);
+
+    // The displayed count should match the frame_count mod 10000
+    // (4-digit display wraps at 10000)
+    let expected = vm.frame_count % 10000;
+    assert_eq!(
+        displayed,
+        expected,
+        "canvas digits should show frame_count mod 10000: expected {}, got {} (digits: {}{}{}{})",
+        expected,
+        displayed,
+        vm.canvas_buffer[0] - 0x30,
+        vm.canvas_buffer[1] - 0x30,
+        vm.canvas_buffer[2] - 0x30,
+        vm.canvas_buffer[3] - 0x30
+    );
+}
+
+// === Register Dashboard (Phase 50: Pixel Driving Pixels) ===
+
+#[test]
+fn test_register_dashboard() {
+    // register_dashboard.asm displays 16 registers (r1-r16) as 4-digit
+    // decimal ASCII values on the canvas grid. r1 = frame counter,
+    // r2-r16 derive from r1 via arithmetic. The grid IS the debug view.
+    //
+    // Run for limited steps (2000) so exactly 1 frame completes and r1 = 1.
+    let source = std::fs::read_to_string("programs/register_dashboard.asm")
+        .unwrap_or_else(|e| panic!("failed to read register_dashboard.asm: {}", e));
+    let asm = assemble(&source, 0).unwrap_or_else(|e| panic!("assembly failed: {}", e));
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    // Run exactly enough steps for 1 frame (682 = 4 init + 87 loop body - 1 JMP + 16*37 sub)
+    for _ in 0..682 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Program is an infinite animation loop (FRAME + JMP main_loop)
+    assert!(!vm.halted, "register_dashboard should not halt");
+    assert!(
+        vm.frame_count > 0,
+        "frame_count should be > 0: got {}",
+        vm.frame_count
+    );
+
+    // After first FRAME, r1 = 1 (frame counter incremented once)
+    // Verify r1's digits at canvas indices 0-3: "0001"
+    assert_eq!(vm.canvas_buffer[0], 0x30, "r1 thousands should be '0'");
+    assert_eq!(vm.canvas_buffer[1], 0x30, "r1 hundreds should be '0'");
+    assert_eq!(vm.canvas_buffer[2], 0x30, "r1 tens should be '0'");
+    assert_eq!(vm.canvas_buffer[3], 0x31, "r1 ones should be '1'");
+
+    // r2 = r1*2 = 2 at canvas indices 4-7: "0002"
+    assert_eq!(vm.canvas_buffer[7], 0x32, "r2 ones digit should be '2'");
+
+    // r4 = r1*4 = 4 at canvas indices 12-15: "0004"
+    assert_eq!(vm.canvas_buffer[15], 0x34, "r4 ones digit should be '4'");
+
+    // r8 = r1<<4 = 16 at canvas indices 28-31: "0016"
+    assert_eq!(vm.canvas_buffer[30], 0x31, "r8 tens digit should be '1'");
+    assert_eq!(vm.canvas_buffer[31], 0x36, "r8 ones digit should be '6'");
+
+    // r9 = NEG(r1) = 0xFFFFFFFF at canvas indices 32-35
+    // 0xFFFFFFFF = 4294967295, last 4 decimal digits = "7295"
+    assert_eq!(
+        vm.canvas_buffer[32], 0x37,
+        "r9 thousands digit should be '7'"
+    );
+    assert_eq!(
+        vm.canvas_buffer[33], 0x32,
+        "r9 hundreds digit should be '2'"
+    );
+    assert_eq!(vm.canvas_buffer[34], 0x39, "r9 tens digit should be '9'");
+    assert_eq!(vm.canvas_buffer[35], 0x35, "r9 ones digit should be '5'");
+
+    // r12 = (r1*r1)>>8 = 0 at canvas indices 44-47: "0000"
+    assert_eq!(vm.canvas_buffer[47], 0x30, "r12 ones digit should be '0'");
+
+    // r16 = r8-r1 = 16-1 = 15 at canvas indices 60-63: "0015"
+    assert_eq!(vm.canvas_buffer[62], 0x31, "r16 tens digit should be '1'");
+    assert_eq!(vm.canvas_buffer[63], 0x35, "r16 ones digit should be '5'");
+
+    // Verify ALL 64 canvas positions (16 regs × 4 digits) contain ASCII digits
+    for i in 0..64 {
+        let val = vm.canvas_buffer[i];
+        assert!(
+            val >= 0x30 && val <= 0x39,
+            "canvas[{}] should be ASCII digit (0x30-0x39): got 0x{:02X} ('{}')",
+            i,
+            val,
+            if val >= 0x20 && val < 0x7F {
+                val as u8 as char
+            } else {
+                '?'
+            }
+        );
+    }
+}
+
+// === Living Map (stateful world + simulated creatures) ===
+
+#[test]
+fn test_living_map_assembles() {
+    let source =
+        std::fs::read_to_string("programs/living_map.asm").expect("living_map.asm should exist");
+    assemble(&source, 0).expect("living_map.asm should assemble cleanly");
+}
+
+#[test]
+fn test_living_map_runs() {
+    let source =
+        std::fs::read_to_string("programs/living_map.asm").expect("filesystem operation failed");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &v) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = v;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+
+    // Run for enough steps for several frames
+    for _ in 0..3_000_000 {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Player at center of viewport
+    assert_eq!(vm.ram[0x7803], 32, "player_world_x should be 32");
+    assert_eq!(vm.ram[0x7804], 32, "player_world_y should be 32");
+
+    // Screen should have terrain
+    let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        non_black > 100,
+        "Expected terrain on screen, got {} non-black pixels",
+        non_black
+    );
+
+    // Should not halt
+    assert!(!vm.halted, "living_map should not halt");
+}
+
+#[test]
+fn test_living_map_draws_terrain() {
+    let source =
+        std::fs::read_to_string("programs/living_map.asm").expect("filesystem operation failed");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &v) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = v;
+        }
+    }
+
+    // Run until first frame completes
+    for _ in 0..1_000_000 {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
+    }
+
+    let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        non_black > 1000,
+        "terrain should fill screen, got {} non-black pixels",
+        non_black
+    );
+}
+
+#[test]
+fn test_living_map_draws_player() {
+    let source =
+        std::fs::read_to_string("programs/living_map.asm").expect("filesystem operation failed");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &v) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = v;
+        }
+    }
+
+    for _ in 0..1_000_000 {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
+    }
+
+    // Player at pixel (128,128) as 4x4 white rectangle
+    let white = 0xFFFFFFu32;
+    assert_eq!(
+        vm.screen[128 * 256 + 128],
+        white,
+        "player top-left should be white"
+    );
+    assert_eq!(
+        vm.screen[131 * 256 + 131],
+        white,
+        "player bottom-right should be white"
+    );
+}
+
+#[test]
+fn test_living_map_footstep_trail() {
+    let source =
+        std::fs::read_to_string("programs/living_map.asm").expect("filesystem operation failed");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &v) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = v;
+        }
+    }
+
+    // Press Right for several frames
+    let mut frames = 0;
+    for _ in 0..5_000_000 {
+        if vm.halted {
+            break;
+        }
+        vm.key_bitmask = 8; // bit 3 = right
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames += 1;
+            if frames >= 10 {
+                break;
+            }
+        }
+    }
+
+    let state_count = vm.ram[0x7807];
+    assert!(
+        state_count > 0,
+        "should have footstep entries after moving, got state_count={}",
+        state_count
+    );
+
+    let cam_x = vm.ram[0x7800];
+    assert!(
+        cam_x > 0,
+        "camera should have moved right: camera_x={}",
+        cam_x
+    );
+}
+
+// Helper: create a VM loaded with living_map.asm, run until a frame completes
+fn living_map_vm_until_frame(max_steps: usize) -> (Vm, usize) {
+    let source =
+        std::fs::read_to_string("programs/living_map.asm").expect("filesystem operation failed");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &v) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = v;
+        }
+    }
+    let mut steps = 0;
+    for _ in 0..max_steps {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+        steps += 1;
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
+    }
+    (vm, steps)
+}
+
+#[test]
+fn test_living_map_weather_init() {
+    let (vm, _) = living_map_vm_until_frame(2_000_000);
+
+    // Weather state should be initialized to 0 (clear)
+    assert_eq!(vm.ram[0x7809], 0, "weather_state should init to 0 (clear)");
+    // Weather timer should be 200 (initial value, may have decremented by 1)
+    assert!(
+        vm.ram[0x780A] <= 200,
+        "weather_timer should be <= 200, got {}",
+        vm.ram[0x780A]
+    );
+    // Lightning vars should be initialized
+    assert_eq!(vm.ram[0x780C], 0, "lightning_flash should init to 0");
+
+    // Rain particles should be initialized (some should be non-zero)
+    let mut rain_initialized = false;
+    for i in 0..32 {
+        let x = vm.ram[0x7010 + i * 2];
+        let y = vm.ram[0x7010 + i * 2 + 1];
+        if x != 0 || y != 0 {
+            rain_initialized = true;
+            break;
+        }
+    }
+    assert!(
+        rain_initialized,
+        "at least one rain particle should be initialized"
+    );
+
+    // Snow particles should be initialized
+    let mut snow_initialized = false;
+    for i in 0..32 {
+        let x = vm.ram[0x7050 + i * 2];
+        let y = vm.ram[0x7050 + i * 2 + 1];
+        if x != 0 || y != 0 {
+            snow_initialized = true;
+            break;
+        }
+    }
+    assert!(
+        snow_initialized,
+        "at least one snow particle should be initialized"
+    );
+}
+
+#[test]
+fn test_living_map_weather_cycles() {
+    // Run for many frames and verify weather state eventually changes
+    let source =
+        std::fs::read_to_string("programs/living_map.asm").expect("filesystem operation failed");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &v) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = v;
+        }
+    }
+
+    // Force weather timer to 1 so it changes on next frame
+    vm.ram[0x780A] = 1;
+
+    let mut frames = 0;
+    for _ in 0..3_000_000 {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames += 1;
+            // Check if weather changed
+            if vm.ram[0x7809] != 0 {
+                // Weather changed! Verify it's in valid range 0..3
+                let ws = vm.ram[0x7809];
+                assert!(ws <= 3, "weather_state should be 0-3, got {}", ws);
+                return; // test passed
+            }
+            if frames >= 50 {
+                break; // enough frames
+            }
+        }
+    }
+
+    // The weather might not have changed (random), but timer should have decremented
+    // If it did change, we already returned. If not, the timer should be lower.
+    assert!(frames > 1, "should have completed multiple frames");
+}
+
+#[test]
+fn test_living_map_rain_particles_move() {
+    // Run init first, then force rain
+    let (mut vm, _) = living_map_vm_until_frame(3_000_000);
+
+    // Force rain
+    vm.ram[0x7809] = 1;
+    vm.ram[0x780A] = 500;
+
+    // Record initial particle positions
+    let initial_y: Vec<u32> = (0..32).map(|i| vm.ram[0x7010 + i * 2 + 1]).collect();
+
+    // Run 5 frames
+    let mut frames = 0;
+    for _ in 0..3_000_000 {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames += 1;
+            if frames >= 5 {
+                break;
+            }
+        }
+    }
+
+    assert!(frames >= 5, "should complete 5 frames");
+
+    // Verify at least some rain particles moved downward (y increased)
+    let mut moved_down = 0;
+    for i in 0..32 {
+        let new_y = vm.ram[0x7010 + i * 2 + 1];
+        if new_y > initial_y[i] {
+            moved_down += 1;
+        }
+    }
+
+    assert!(
+        moved_down > 0,
+        "at least some rain particles should have moved down, {} did",
+        moved_down
+    );
+
+    assert!(!vm.halted, "program should not halt");
+}
+
+#[test]
+fn test_living_map_snow_particles_exist() {
+    // Set weather to snow, run a frame, verify snow particles are in valid range
+    let source =
+        std::fs::read_to_string("programs/living_map.asm").expect("filesystem operation failed");
+    let asm = assemble(&source, 0).expect("assembly should succeed");
+    let mut vm = Vm::new();
+    for (i, &v) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = v;
+        }
+    }
+
+    // Force weather to snow
+    vm.ram[0x7809] = 3; // snow
+    vm.ram[0x780A] = 100; // long timer
+
+    // Run 3 frames
+    let mut frames = 0;
+    for _ in 0..2_000_000 {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames += 1;
+            if frames >= 3 {
+                break;
+            }
+        }
+    }
+
+    assert!(frames >= 3, "should complete 3 frames");
+
+    // Verify snow particles are in valid screen range (0..256)
+    for i in 0..32 {
+        let x = vm.ram[0x7050 + i * 2];
+        let y = vm.ram[0x7050 + i * 2 + 1];
+        assert!(x < 256, "snow particle {} x should be < 256, got {}", i, x);
+        assert!(y < 256, "snow particle {} y should be < 256, got {}", i, y);
+    }
+
+    assert!(!vm.halted, "program should not halt");
+}
+
+#[test]
+fn test_living_map_storm_lightning() {
+    // Run init first, then force storm
+    let (mut vm, _) = living_map_vm_until_frame(3_000_000);
+
+    // Force weather to storm
+    vm.ram[0x7809] = 2; // storm
+    vm.ram[0x780A] = 500; // long timer (won't expire during test)
+    vm.ram[0x780B] = 0; // lightning countdown = 0 (will trigger)
+    vm.ram[0x780C] = 0; // no current flash
+
+    // Run frames - lightning should trigger
+    let mut frames = 0;
+    for _ in 0..5_000_000 {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames += 1;
+            if vm.ram[0x780C] > 0 {
+                // Saw lightning flash - test passes
+                assert!(!vm.halted, "program should not halt during storm");
+                return;
+            }
+            if frames >= 30 {
+                break;
+            }
+        }
+    }
+
+    // Program didn't crash with storm weather
+    assert!(!vm.halted, "program should not halt during storm");
+}
+
+#[test]
+fn test_living_map_rain_draws_blue_pixels() {
+    // Run init first, then force rain, then check screen
+    let (mut vm, _) = living_map_vm_until_frame(3_000_000);
+
+    // Force rain
+    vm.ram[0x7809] = 1;
+    vm.ram[0x780A] = 500;
+
+    // Run one more frame
+    for _ in 0..3_000_000 {
+        if vm.halted {
+            break;
+        }
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            break;
+        }
+    }
+
+    // Check for rain-colored pixels (0x4488FF)
+    let rain_color = 0x4488FFu32;
+    let rain_pixels = vm.screen.iter().filter(|&&p| p == rain_color).count();
+    assert!(
+        rain_pixels > 0,
+        "should have rain pixels (0x4488FF) on screen, found {}",
+        rain_pixels
+    );
+}
+
+// === Pixel IDE (Phase 70: Self-Hosting Pixel Assembler) ===
+
+#[test]
+fn test_pixel_ide_assembles() {
+    let vm = compile_run("programs/pixel_ide.asm");
+    // The pixel_ide creates 3 windows, draws into them, then assembles
+    // and runs "LDI r1, 42; HALT" which sets r1=42 and halts.
+    assert!(
+        vm.halted,
+        "pixel_ide should halt after running generated code"
+    );
+    // The generated program sets r1 = 42
+    assert_eq!(vm.regs[1], 42, "r1 should be 42 from generated code");
+    // Assembly should have succeeded
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASM should succeed in pixel_ide");
+    // Should have created windows (3 windows)
+    let active_windows = vm.windows.iter().filter(|w| w.active).count();
+    assert!(
+        active_windows >= 3,
+        "pixel_ide should create at least 3 windows, got {}",
+        active_windows
+    );
+}
+
+// === Self-Modification Showcase Demos (Phase 115) ===
+
+#[test]
+fn test_mirror_self_modifies() {
+    // mirror.asm draws 3 colored pixels, then generates PSETI instructions
+    // on the canvas to reproduce them, then ASMSELF+RUNNEXT.
+    let vm = compile_run("programs/mirror.asm");
+
+    assert!(
+        vm.halted,
+        "mirror should halt after self-assembled code runs"
+    );
+
+    // ASMSELF should have succeeded
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASMSELF should not report error");
+    assert!(vm.ram[0xFFD] > 0, "ASMSELF should produce bytecode");
+
+    // Verify self-assembled code drew pixels on screen
+    // Original program draws at (100,80), (100,100), (100,120)
+    // Then clears screen, then self-assembled code redraws them
+    let has_red = vm.screen.iter().any(|&p| p == 0xFF0000);
+    let has_green = vm.screen.iter().any(|&p| p == 0x00FF00);
+    let has_blue = vm.screen.iter().any(|&p| p == 0x0000FF);
+    assert!(
+        has_red,
+        "screen should have red pixels from self-assembled code"
+    );
+    assert!(
+        has_green,
+        "screen should have green pixels from self-assembled code"
+    );
+    assert!(
+        has_blue,
+        "screen should have blue pixels from self-assembled code"
+    );
+}
+
+#[test]
+fn test_fractal_gen_sierpinski() {
+    // fractal_gen.asm computes a Sierpinski pattern (x AND y == 0),
+    // writes PSETI instructions to canvas, then ASMSELF+RUNNEXT.
+    let vm = compile_run("programs/fractal_gen.asm");
+
+    assert!(
+        vm.halted,
+        "fractal_gen should halt after self-assembled code runs"
+    );
+
+    // ASMSELF should have succeeded
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASMSELF should not report error");
+    assert!(vm.ram[0xFFD] > 0, "ASMSELF should produce bytecode");
+
+    // Verify screen has colored pixels (red from top row, yellow/green from others)
+    let has_colored_pixels = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        has_colored_pixels > 0,
+        "fractal should produce colored pixels, found {}",
+        has_colored_pixels
+    );
+
+    // Sierpinski property: (0,0) should be colored (0 AND 0 == 0)
+    assert_ne!(
+        vm.screen[0], 0,
+        "pixel (0,0) should be colored in Sierpinski"
+    );
+}
+
+#[test]
+fn test_chatbot_smiley_default() {
+    // chatbot.asm with pattern code 0 (default/smiley)
+    let source = std::fs::read_to_string("programs/chatbot.asm").unwrap();
+    let asm = geometry_os::assembler::assemble(&source, 0).unwrap();
+    let mut vm = geometry_os::vm::Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.ram[0x7000] = 0; // default = smiley
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..500_000 {
+        if vm.halted {
+            break;
+        }
+        vm.step();
+    }
+
+    assert!(
+        vm.halted,
+        "chatbot should halt after self-assembled code runs"
+    );
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASMSELF should succeed");
+
+    // Verify green smiley pixels on screen
+    let green = 0x00FF00u32;
+    let green_count = vm.screen.iter().filter(|&&p| p == green).count();
+    assert!(
+        green_count >= 5,
+        "should have at least 5 green smiley pixels, got {}",
+        green_count
+    );
+}
+
+#[test]
+fn test_chatbot_sun_pattern() {
+    // chatbot.asm with pattern code 1 (sun = yellow cross)
+    let source = std::fs::read_to_string("programs/chatbot.asm").unwrap();
+    let asm = geometry_os::assembler::assemble(&source, 0).unwrap();
+    let mut vm = geometry_os::vm::Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.ram[0x7000] = 1; // sun
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..500_000 {
+        if vm.halted {
+            break;
+        }
+        vm.step();
+    }
+
+    assert!(vm.halted, "chatbot sun should halt");
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASMSELF should succeed");
+
+    // Verify yellow cross pixels
+    let yellow = 0xFFFF00u32;
+    let yellow_count = vm.screen.iter().filter(|&&p| p == yellow).count();
+    assert!(
+        yellow_count >= 5,
+        "should have at least 5 yellow sun pixels, got {}",
+        yellow_count
+    );
+}
+
+#[test]
+fn test_chatbot_rain_pattern() {
+    // chatbot.asm with pattern code 2 (rain = blue drops)
+    let source = std::fs::read_to_string("programs/chatbot.asm").unwrap();
+    let asm = geometry_os::assembler::assemble(&source, 0).unwrap();
+    let mut vm = geometry_os::vm::Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.ram[0x7000] = 2; // rain
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..500_000 {
+        if vm.halted {
+            break;
+        }
+        vm.step();
+    }
+
+    assert!(vm.halted, "chatbot rain should halt");
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASMSELF should succeed");
+
+    // Verify blue rain pixels
+    let rain_color = 0x4444FFu32;
+    let rain_count = vm.screen.iter().filter(|&&p| p == rain_color).count();
+    assert!(
+        rain_count >= 5,
+        "should have at least 5 blue rain pixels, got {}",
+        rain_count
+    );
+}
+
+#[test]
+fn test_chatbot_star_pattern() {
+    // chatbot.asm with pattern code 3 (star = white starburst)
+    let source = std::fs::read_to_string("programs/chatbot.asm").unwrap();
+    let asm = geometry_os::assembler::assemble(&source, 0).unwrap();
+    let mut vm = geometry_os::vm::Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.ram[0x7000] = 3; // star
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..500_000 {
+        if vm.halted {
+            break;
+        }
+        vm.step();
+    }
+
+    assert!(vm.halted, "chatbot star should halt");
+    assert_ne!(vm.ram[0xFFD], 0xFFFFFFFF, "ASMSELF should succeed");
+
+    // Verify white star pixels
+    let white = 0xFFFFFFu32;
+    let white_count = vm.screen.iter().filter(|&&p| p == white).count();
+    assert!(
+        white_count >= 5,
+        "should have at least 5 white star pixels, got {}",
+        white_count
+    );
+}

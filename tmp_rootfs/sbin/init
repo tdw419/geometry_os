@@ -1,0 +1,15 @@
+#!/bin/sh
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+
+echo "=========================================="
+echo " Welcome to Alpine Linux on Geometry OS! "
+echo "=========================================="
+echo "[*] Mounting Memory Palace storage namespace..."
+python3 /usr/bin/palace_fuse.py /mnt/memory_palace &
+sleep 1
+
+echo "[*] Storage verification:"
+ls -la /mnt/memory_palace/inner_ring/
+
+exec /bin/sh

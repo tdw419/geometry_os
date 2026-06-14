@@ -1,0 +1,9 @@
+; Test RECTF drawing
+LDI r7, 1
+LDI r15, 10
+LDI r1, 20
+LDI r2, 30
+LDI r3, 40
+LDI r13, 0xFF0000
+RECTF r15, r1, r2, r3, r13
+HALT

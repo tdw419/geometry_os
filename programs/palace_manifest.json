@@ -1,0 +1,18 @@
+{
+  "test_kernel": {
+    "source_file": "test_data.bin",
+    "total_bytes": 3145728,
+    "checksum": "1e48f258027a27d79a239023bd77b2aa56abd56f3f18b2a5604667d6a4dbeb49",
+    "num_entries": 12,
+    "bytes_per_entry": 262144,
+    "timestamp": 0
+  },
+  "alpine_initramfs": {
+    "source_file": "initramfs_palace.cpio.gz",
+    "total_bytes": 298551,
+    "checksum": "446cb7874b9eca107a418e2105562508c5936a00b0840356891c03020fc93644",
+    "num_entries": 2,
+    "bytes_per_entry": 262144,
+    "timestamp": 1781294932.1848626
+  }
+}

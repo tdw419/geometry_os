@@ -1,0 +1,92 @@
+#!/bin/bash
+# geos-term control client -- send commands to /tmp/geos-term.sock
+# Usage:
+#   geos-ctrl version
+#   geos-ctrl screen
+#   geos-ctrl row 5
+#   geos-ctrl type "hermes"
+#   geos-ctrl type "echo hello"
+#   geos-ctrl enter
+#   geos-ctrl key 0x1B        # raw key code
+#   geos-ctrl cursor
+#   geos-ctrl pty
+#   geos-ctrl wait-for "prompt" [timeout_seconds]
+#   geos-ctrl wait-prompt [timeout_seconds]
+
+SOCK="/tmp/geos-term.sock"
+
+send() {
+    echo "$1" | nc -U -q1 "$SOCK" 2>/dev/null
+}
+
+case "${1:-help}" in
+    version)
+        send '{"cmd":"version"}'
+        ;;
+    screen)
+        send '{"cmd":"screen"}' | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('text',''))" 2>/dev/null || send '{"cmd":"screen"}'
+        ;;
+    row)
+        ROW="${2:-0}"
+        send "{\"cmd\":\"buf_row\",\"row\":$ROW}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('text',''))" 2>/dev/null || send "{\"cmd\":\"buf_row\",\"row\":$ROW}"
+        ;;
+    type)
+        TEXT="${2:-}"
+        send "{\"cmd\":\"type\",\"text\":\"$TEXT\"}"
+        ;;
+    enter)
+        send '{"cmd":"raw_key","code":13}'
+        ;;
+    key)
+        CODE="${2:-0}"
+        send "{\"cmd\":\"raw_key\",\"code\":$CODE}"
+        ;;
+    ctrl-c)
+        send '{"cmd":"raw_key","code":3}'
+        ;;
+    cursor)
+        send '{"cmd":"cursor"}'
+        ;;
+    pty)
+        send '{"cmd":"pty_count"}'
+        ;;
+    wait-for|wait-prompt)
+        # Poll screen until text appears (default 30s timeout)
+        SEARCH="${2:-$}"
+        TIMEOUT="${3:-30}"
+        ELAPSED=0
+        while [ $ELAPSED -lt $TIMEOUT ]; do
+            RESULT=$(send '{"cmd":"screen"}' 2>/dev/null)
+            if echo "$RESULT" | grep -q "$SEARCH"; then
+                echo "FOUND after ${ELAPSED}s"
+                echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('text',''))" 2>/dev/null
+                exit 0
+            fi
+            sleep 0.5
+            ELAPSED=$((ELAPSED + 1))
+        done
+        echo "TIMEOUT after ${TIMEOUT}s waiting for '$SEARCH'"
+        echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('text',''))" 2>/dev/null
+        exit 1
+        ;;
+    raw)
+        # Send raw JSON
+        send "$2"
+        ;;
+    help|*)
+        echo "geos-ctrl -- control geos-term via /tmp/geos-term.sock"
+        echo ""
+        echo "Commands:"
+        echo "  version           Show geos-term version"
+        echo "  screen            Dump all visible text rows"
+        echo "  row N             Show row N"
+        echo "  type \"TEXT\"       Type text into terminal"
+        echo "  enter             Send Enter key"
+        echo "  key CODE          Send raw key code (decimal)"
+        echo "  ctrl-c            Send Ctrl-C"
+        echo "  cursor            Show cursor position"
+        echo "  pty               Show active PTY count"
+        echo "  wait-for TEXT [S] Poll until text appears (default 30s)"
+        echo "  raw JSON          Send raw JSON command"
+        ;;
+esac

@@ -1,0 +1,135 @@
+[package]
+name = "geometry_os"
+version = "1.0.0"
+edition = "2021"
+default-run = "geometry_os"
+
+[dependencies]
+# Library deps (always available)
+libc = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+xxhash-rust = { version = "0.8", features = ["xxh3", "const_xxh3"] }
+base64 = "0.22"
+png = "0.18.1"
+portable-pty = "0.9"
+
+# GUI binary deps (only needed for native build)
+minifb = { version = "0.27", optional = true }
+arboard = { version = "3", optional = true }
+fontdue = { version = "0.9", optional = true }
+
+# GPU compute deps (optional, for multicore RISC-V shader execution)
+wgpu = { version = "27", optional = true }
+pollster = { version = "0.4", optional = true }
+anyhow = { version = "1", optional = true }
+bytemuck = { version = "1", optional = true, features = ["derive"] }
+futures-intrusive = { version = "0.5", optional = true }
+rand = "0.8"
+
+# HTTP server for remote API access (optional, Phase 203)
+hyper = { version = "0.14", features = ["http1", "server", "tcp"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"], optional = true }
+tokio-tungstenite = { version = "0.20", optional = true }
+futures-util = { version = "0.3", optional = true }
+chrono = { version = "0.4", optional = true }
+
+# FUSE filesystem mount (optional)
+fuser = { version = "0.17", optional = true }
+
+# Python integration (optional)
+pyo3 = { version = "0.23", features = ["auto-initialize"], optional = true }
+image = "0.25.10"
+
+
+[features]
+default = ["native"]
+native = ["minifb", "arboard", "fontdue"]
+gpu = ["wgpu", "pollster", "anyhow", "bytemuck", "futures-intrusive"]
+python = ["pyo3"]
+http = ["hyper", "tokio", "tokio-tungstenite", "futures-util", "chrono"]
+
+[[bin]]
+name = "geometry_os"
+path = "src/main.rs"
+required-features = ["native"]
+
+[[bin]]
+name = "geos-term"
+path = "src/bin/geos_term.rs"
+required-features = ["native"]
+
+[[bin]]
+name = "fuzzer"
+path = "src/fuzzer.rs"
+
+[[bin]]
+name = "riscv_fuzzer"
+path = "src/riscv_fuzzer.rs"
+
+[[bin]]
+name = "geo_mcp_server"
+path = "src/mcp_server.rs"
+
+[[bin]]
+name = "vision_render"
+path = "src/bin/vision_render.rs"
+required-features = ["gpu"]
+
+[[bin]]
+name = "ollama_linux_boot"
+path = "src/bin/ollama_linux_boot.rs"
+
+[[bin]]
+name = "linux_panic_reader"
+path = "src/bin/linux_panic_reader.rs"
+
+[[bin]]
+name = "active_substrate_test"
+path = "src/bin/active_substrate_test.rs"
+required-features = ["gpu"]
+
+[[bin]]
+name = "mmu_viz"
+path = "tools/mmu_viz.rs"
+
+[[bin]]
+name = "mmu_log_gen"
+path = "tools/mmu_log_gen.rs"
+
+[[bin]]
+name = "geos_fuse"
+path = "src/bin/geos_fuse.rs"
+required-features = ["fuser"]
+
+[[bin]]
+name = "geos_debug_vis"
+path = "src/bin/geos_debug_vis.rs"
+
+[[bin]]
+name = "geos_diag_boot"
+path = "src/bin/geos_diag_boot.rs"
+
+[[bin]]
+name = "assemble_bin"
+path = "tools/assemble_bin.rs"
+
+[dev-dependencies]
+tempfile = "3"
+criterion = "0.5"
+
+[[bench]]
+name = "vm_bench"
+harness = false
+
+[[bench]]
+name = "assembler_bench"
+harness = false
+
+[[bench]]
+name = "vm_bench_extended"
+harness = false
+
+[[bench]]
+name = "riscv_bench"
+harness = false

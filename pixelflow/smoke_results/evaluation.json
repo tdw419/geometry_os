@@ -1,0 +1,15 @@
+{
+    "epoch": 4,
+    "loss": 0.023240048438310623,
+    "category_scores": {
+        "circle": 1.0,
+        "fill": 1.0,
+        "rectf": 1.0,
+        "line": 1.0,
+        "loop": 0.0,
+        "multi": 1.0,
+        "gradient": 0.0
+    },
+    "weakest_category": "loop",
+    "min_score": 0.0
+}

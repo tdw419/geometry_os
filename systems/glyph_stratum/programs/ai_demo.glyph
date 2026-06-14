@@ -1,0 +1,12 @@
+// AI Demo - Simple memory write pattern
+// Writes 0xDEADBEEF to address 0x100000, halts
+
+:main
+    // Load pattern 0xDEADBEEF into r1
+    LDI r1, 0xDEADBEEF
+    // Load target address into r2
+    LDI r2, 0x100000
+    // Store pattern at target
+    STORE r2, r1
+    // Halt
+    HALT

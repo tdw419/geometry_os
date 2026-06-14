@@ -1,0 +1,137 @@
+# Geometry OS - Root Project Configuration
+# =========================================
+
+[project]
+name = "geometry-os"
+version = "2.0.0"
+description = "High-performance Wayland compositor with neural state visualization"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Geometry OS Team"}
+]
+keywords = ["wayland", "compositor", "neural", "visualization", "wgpu"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["systems", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "F",      # Pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line-too-long
+    "B008",   # function-call-in-default-argument
+    "SIM108", # ternary-operator
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["systems", "geometry_os"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = [
+    "node_modules",
+    "visual-vm",
+    "\\.worktrees",
+    "apps/openspec/node_modules",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --tb=short --strict-markers"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: Fast, isolated unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests (>1s)",
+    "asyncio: marks tests as async tests (auto-detected)",
+    "requires_cuda: Test requires CUDA",
+    "requires_gpu: Test requires any GPU",
+    "requires_network: Test requires network access",
+    "requires_docker: Test requires Docker",
+    "requires_amp: Test requires AMP/PyTorch Lightning",
+    "requires_intelligence: Test requires intelligence modules",
+]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+# Enable all registered markers
+required_plugins = ["pytest-asyncio"]
+
+[tool.coverage.run]
+source = ["systems", "core"]
+branch = true
+parallel = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/node_modules/*",
+    "*/visual-vm/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+    "@abc.abstractmethod",
+]
+show_missing = true
+skip_covered = true
+# Fail if coverage below this threshold
+fail_under = 30
+# Sort by coverage percentage (lowest first)
+sort = "cover"
+
+[tool.coverage.html]
+directory = "htmlcov"
+title = "Geometry OS Coverage Report"
+
+[tool.coverage.json]
+output = "coverage.json"
+pretty_print = true
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.bandit]
+exclude_dirs = [
+    "tests",
+    "node_modules",
+    ".worktrees",
+]
+skips = [
+    "B101",  # assert_used (OK in tests)
+    "B311",  # random (we use it intentionally)
+]
+
+# Build system configuration (for pip install -e .)
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "last_updated": "2026-06-12T15:28:50.602904",
+  "facts": [
+    {
+      "id": 1,
+      "tier": "critical",
+      "subject": "Pixelpack decode",
+      "path": "/home/jericho/.hermes/memories/memory_palace_index_latest.png",
+      "content": "Sharded architecture: master index + category shards",
+      "ring": 0,
+      "angle": 0
+    },
+    {
+      "id": 2,
+      "tier": "important",
+      "subject": "GeOS Bridge",
+      "content": "Memory Palace polls facts.json and renders autonomously",
+      "path": "",
+      "ring": 1,
+      "angle": 30
+    },
+    {
+      "id": 3,
+      "tier": "reference",
+      "subject": "GeOS Opcodes",
+      "content": "400+ opcodes for spatial compute",
+      "path": "",
+      "ring": 2,
+      "angle": 60
+    },
+    {
+      "id": 4,
+      "tier": "critical",
+      "subject": "Pixelpack Encode",
+      "content": "Pixel-based encoding system for data",
+      "path": "",
+      "ring": 0,
+      "angle": 90
+    },
+    {
+      "id": 5,
+      "tier": "critical",
+      "subject": "filewrite_opcode",
+      "content": "Hello from inner ring angle 045!",
+      "ring": 0,
+      "angle": 45
+    },
+    {
+      "id": 6,
+      "tier": "important",
+      "subject": "palace_tools",
+      "content": "\"\"\"\nPalace filesystem tools\n\nTools for reading/writing the palace from Python.\n\"\"\"\n\nimport json\nfrom pathlib import Path\n\nPALACE_JSON = Path.home() / \"projects/zion/projects/geometry_os/geometry_os/memory_palace_facts.json\"\n\n\ndef load_palace():\n    \"\"\"Load palace facts.\"\"\"\n    with open(PALACE_JSON) as f:\n        data = json.load(f)\n    return data\n\n\ndef save_palace(data):\n    \"\"\"Save palace facts.\"\"\"\n    with open(PALACE_JSON, 'w') as f:\n        json.dump(data, f, indent=2)\n        f.write('\\n')\n\n\ndef get_facts_by_ring(ring: int):\n    \"\"\"Get all facts in a ring (0=inner, 1=middle, 2=outer).\"\"\"\n    data = load_palace()\n    return [f for f in data['facts'] if f['ring'] == ring]\n\n\ndef get_facts_by_angle_range(ring: int, start_angle: int, end_angle: int):\n    \"\"\"Get facts within angle range (wraps 360).\"\"\"\n    facts = get_facts_by_ring(ring)\n    result = []\n    for f in facts:\n        angle = f['angle']\n        if start_angle <= angle <= end_angle:\n            result.append(f)\n    return result\n\n\ndef spatial_search(query: str, ring: int = None, tolerance: int = 30):\n    \"\"\"\n    Find facts near a position.\n\n    query: text to search for\n    ring: which ring (None = all)\n    tolerance: angle degrees to search\n    \"\"\"\n    data = load_palace()\n    results = []\n\n    for f in data['facts']:\n        if ring is not None and f['ring'] != ring:\n            continue\n\n        # Text search\n        if query.lower() in f['subject'].lower() or query.lower() in f.get('content', '').lower():\n            results.append(f)\n\n    return results\n\n\nif __name__ == \"__main__\":\n    # Test\n    critical = get_facts_by_ring(0)\n    print(f\"Critical facts: {len(critical)}\")\n    for f in critical:\n        print(f\"  angle {f['angle']}: {f['subject']}\")",
+      "ring": 1,
+      "angle": 120
+    },
+    {
+      "id": 7,
+      "tier": "important",
+      "subject": "compile_palace.py",
+      "content": "#!/usr/bin/env python3\n\"\"\"\nCompile Memory Palace facts to binary format.\n\nConverts memory_palace_facts.json to a compact binary representation\nsuitable for loading into GeOS VM memory.\n\nBinary Format:\n- Header: \"PALC\" magic + version (4 bytes)\n- Fact count: u32 (4 bytes)\n- Per fact:\n  - ring: u8 (1 byte)\n  - angle: u16 (2 bytes)\n  - subject_len: u8 (1 byte)\n  - content_len: u16 (2 bytes)\n  - subject: N bytes\n  - content: M bytes\n\nTotal: ~10 bytes overhead + variable payload\n\"\"\"\n\nimport json\nfrom pathlib import Path\nimport struct\n\nFACTS_FILE = Path.home() / \"projects/zion/projects/geometry_os/geometry_os/memory_palace_facts.json\"\nOUTPUT_FILE = Path.home() / \"projects/zion/projects/geometry_os/geometry_os/palace.bin\"\n\n\ndef compile_palace():\n    \"\"\"Compile palace facts to binary.\"\"\"\n    with open(FACTS_FILE) as f:\n        data = json.load(f)\n\n    facts = data.get(\"facts\", [])\n\n    with open(OUTPUT_FILE, \"wb\") as out:\n        # Header\n        out.write(b\"PALC\")           # Magic\n        out.write(struct.pack(\"<I\", 1))  # Version\n\n        # Fact count\n        out.write(struct.pack(\"<I\", len(facts)))\n\n        # Facts\n        for fact in facts:\n            subject = fact[\"subject\"].encode(\"utf-8\")\n            content = fact.get(\"content\", \"\").encode(\"utf-8\")\n\n            out.write(struct.pack(\"<B\", fact[\"ring\"]))           # ring: u8\n            out.write(struct.pack(\"<H\", fact[\"angle\"]))          # angle: u16\n            out.write(struct.pack(\"<B\", len(subject)))           # subject_len: u8\n            out.write(struct.pack(\"<H\", len(content)))           # content_len: u16\n            out.write(subject)\n            out.write(content)\n\n    print(f\"Compiled {len(facts)} facts to {OUTPUT_FILE}\")\n\n\nif __name__ == \"__main__\":\n    compile_palace()",
+      "ring": 1,
+      "angle": 135
+    },
+    {
+      "id": 8,
+      "tier": "important",
+      "subject": "test.txt",
+      "content": "test content\n",
+      "ring": 1,
+      "angle": 90
+    },
+    {
+      "id": 9,
+      "tier": "important",
+      "subject": "hermes-bridge",
+      "content": "Bidirectional Hermes bridge established between host and pixel-booted Ubuntu VM via SSH + 9p",
+      "source": "jericho",
+      "ring": 2,
+      "angle": 240,
+      "added": "2026-06-02T06:28:10.414192"
+    },
+    {
+      "id": 10,
+      "tier": "reference",
+      "subject": "vm-pixel-ubuntu",
+      "content": "Pixel-booted Ubuntu 24.04 LTS x86_64 running on host via qemu-system-x86_64 KVM. 4 cores, 8GB RAM, 446GB free. SSH :2222, VNC :5900. 9p mounts /mnt/projects/.",
+      "source": "osboxes",
+      "ring": 0,
+      "angle": 270,
+      "added": "2026-06-02T07:28:24.917752"
+    },
+    {
+      "id": 11,
+      "tier": "important",
+      "subject": "vm-discovery",
+      "content": "Test: Hermes bridge bidirectional communication verified via shared Memory Palace",
+      "source": "osboxes",
+      "ring": 1,
+      "angle": 300,
+      "added": "2026-06-02T07:28:52.042978"
+    },
+    {
+      "id": 13,
+      "tier": "critical",
+      "subject": "palace-boot",
+      "content": "Boot config stored in Memory Palace. Use palace_boot.py to register/show/update. Both host and VM read the same config via 9p.",
+      "source": "jericho",
+      "ring": 0,
+      "angle": 0,
+      "added": "2026-06-02T06:44:06.101068"
+    },
+    {
+      "id": 14,
+      "tier": "critical",
+      "subject": "palace-boot-verified",
+      "content": "VM booted successfully from Memory Palace config at Tue Jun  2 07:49:28 AM EDT 2026. Boot params read from palace via 9p shared facts file.",
+      "source": "osboxes",
+      "ring": 1,
+      "angle": 30,
+      "added": "2026-06-02T07:49:28.571357"
+    },
+    {
+      "id": 15,
+      "tier": "critical",
+      "subject": "boot:kernel",
+      "content": "{\"shard\": \"kernel_shard.png\", \"sha256\": \"4551848b4ab43cb4321c4d6ba98e1d215f950cee21bfd82c8c82ab64e34ec9a6\", \"size_bytes\": 15567240, \"version\": \"v1\"}",
+      "source": "palace-shard",
+      "ring": 0,
+      "angle": 0
+    },
+    {
+      "id": 16,
+      "tier": "critical",
+      "subject": "boot:initramfs",
+      "content": "{\"shard\": \"initramfs_shard.png\", \"sha256\": \"4dd614e5c1e269d028a75d0f93fcfc51aed5779e988b484e1592825851815fdb\", \"size_bytes\": 72709197, \"version\": \"v1\"}",
+      "source": "palace-shard",
+      "ring": 0,
+      "angle": 0
+    },
+    {
+      "id": 17,
+      "tier": "critical",
+      "subject": "boot-palace-verified",
+      "content": "VM booted from kernel decoded from palace shard PNG (kernel_shard.png). No flat cartridge file used. Boot config from palace facts.",
+      "source": "osboxes",
+      "ring": 1,
+      "angle": 120,
+      "added": "2026-06-02T07:53:15.437946"
+    },
+    {
+      "id": 18,
+      "tier": "critical",
+      "subject": "boot-config",
+      "content": "{\n  \"kernel\": \"/home/jericho/projects/zion/projects/pixel-linux/qcow2_test_kernel\",\n  \"initramfs\": \"/home/jericho/projects/zion/projects/pixel-linux/qcow2_test_initramfs.img\",\n  \"disk\": \"/home/jericho/projects/zion/projects/geometry_os/geometry_os_original/apps/linux/ubuntu-24.04-desktop.qcow2\",\n  \"root_uuid\": \"eaaf9de6-0dfb-43be-ae29-56f2742523e8\",\n  \"append\": \"root=UUID=eaaf9de6-0dfb-43be-ae29-56f2742523e8 ro console=ttyS0,115200 plymouth.enable=0 systemd.show_status=false\",\n  \"memory\": \"4G\",\n  \"cpus\": 2,\n  \"ssh_port\": 2222,\n  \"vnc_display\": \":0\"\n}",
+      "source": "palace-boot",
+      "ring": 0,
+      "angle": 0
+    }
+  ]
+}

@@ -1,0 +1,948 @@
+warning: unused import: `HashSet`
+  --> src/epl.rs:28:33
+   |
+28 | use std::collections::{HashMap, HashSet};
+   |                                 ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `crate::pixel::BootMode`
+  --> src/geo_extent.rs:16:5
+   |
+16 | use crate::pixel::BootMode;
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `xxhash_rust::xxh3::xxh3_64`
+ --> src/grammar.rs:9:5
+  |
+9 | use xxhash_rust::xxh3::xxh3_64;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `SituationSignature`
+ --> src/kernel/cf.rs:2:42
+  |
+2 | use crate::kernel::memory::{MemoryStore, SituationSignature};
+  |                                          ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `CoherentCluster`
+ --> src/kernel/competition.rs:1:32
+  |
+1 | use crate::kernel::coherence::{CoherentCluster, FieldCoherenceDetector};
+  |                                ^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::kernel::physics::PhysicsParams`
+ --> src/kernel/semantics.rs:1:5
+  |
+1 | use crate::kernel::physics::PhysicsParams;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `BiosResolution`
+  --> src/pixelfs.rs:19:20
+   |
+19 | use crate::pixel::{BiosResolution, BootChain, ChainRegionType};
+   |                    ^^^^^^^^^^^^^^
+
+warning: unnecessary parentheses around closure body
+   --> src/pixelfs.rs:449:53
+    |
+449 |         file_entries.sort_by_key(|&(_, x, y, _, _)| (y as u16 * 256 + x as u16));
+    |                                                     ^                         ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+449 -         file_entries.sort_by_key(|&(_, x, y, _, _)| (y as u16 * 256 + x as u16));
+449 +         file_entries.sort_by_key(|&(_, x, y, _, _)| y as u16 * 256 + x as u16);
+    |
+
+warning: unused import: `super::bus::Bus`
+ --> src/riscv/dtb.rs:1:5
+  |
+1 | use super::bus::Bus;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::riscv::loader`
+ --> src/riscv/dtb.rs:2:5
+  |
+2 | use crate::riscv::loader;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `loader` and `memory`
+ --> src/riscv/mmu.rs:1:13
+  |
+1 | use super::{loader, memory};
+  |             ^^^^^^  ^^^^^^
+
+warning: unused import: `is_geos_errno`
+  --> src/vfs.rs:13:17
+   |
+13 |     geos_errno, is_geos_errno, GEOS_EACCES, GEOS_EBADF, GEOS_EINVAL, GEOS_EIO, GEOS_EISDIR,
+   |                 ^^^^^^^^^^^^^
+
+warning: unused variable: `s`
+   --> src/grammar.rs:160:31
+    |
+160 |         Transform::ColorShift(s) => {
+    |                               ^ help: if this is intentional, prefix it with an underscore: `_s`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `rule`
+   --> src/grammar.rs:373:19
+    |
+373 |         for (&id, rule) in &registry.rules {
+    |                   ^^^^ help: if this is intentional, prefix it with an underscore: `_rule`
+
+warning: variable does not need to be mutable
+  --> src/kernel/cf.rs:65:21
+   |
+65 |                 let mut memory = if let Some(cf) = self.fields.get(id) {
+   |                     ----^^^^^^
+   |                     |
+   |                     help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `tick`
+  --> src/kernel/coherence.rs:28:58
+   |
+28 |     pub fn detect(&mut self, particles: &[FileParticle], tick: u64) {
+   |                                                          ^^^^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+28 |     pub fn detect(&mut self, particles: &[FileParticle], _tick: u64) {
+   |                                                          +
+help: you might have meant to pattern match on the similarly named constant `CONFIG`
+   |
+28 -     pub fn detect(&mut self, particles: &[FileParticle], tick: u64) {
+28 +     pub fn detect(&mut self, particles: &[FileParticle], riscv::virtio_serial::CONFIG: u64) {
+   |
+
+warning: unused variable: `i`
+  --> src/kernel/physics.rs:99:10
+   |
+99 |     for (i, p) in particles.iter_mut().enumerate() {
+   |          ^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+99 |     for (_i, p) in particles.iter_mut().enumerate() {
+   |          +
+help: you might have meant to pattern match on the similarly named constant `MAX_TCP_CONNECTIONS`
+   |
+99 -     for (i, p) in particles.iter_mut().enumerate() {
+99 +     for (vm::net::MAX_TCP_CONNECTIONS, p) in particles.iter_mut().enumerate() {
+   |
+
+warning: unused variable: `radius_sq`
+  --> src/kernel/spatial.rs:56:13
+   |
+56 |         let radius_sq = radius * radius;
+   |             ^^^^^^^^^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+56 |         let _radius_sq = radius * radius;
+   |             +
+help: you might have meant to pattern match on the similarly named constant `SEMANTIC_NOVELTY_MAX`
+   |
+56 -         let radius_sq = radius * radius;
+56 +         let kernel::memory::SEMANTIC_NOVELTY_MAX = radius * radius;
+   |
+
+warning: unused variable: `i`
+  --> src/kernel/spatial.rs:60:23
+   |
+60 |             .filter(|&i| true) // Caller filters by actual distance after index lookup
+   |                       ^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+60 |             .filter(|&_i| true) // Caller filters by actual distance after index lookup
+   |                       +
+help: you might have meant to pattern match on the similarly named constant `MAX_TCP_CONNECTIONS`
+   |
+60 -             .filter(|&i| true) // Caller filters by actual distance after index lookup
+60 +             .filter(|&vm::net::MAX_TCP_CONNECTIONS| true) // Caller filters by actual distance after index lookup
+   |
+
+warning: unused variable: `strategy`
+    --> src/pixel.rs:3138:21
+     |
+3138 |                 let strategy = match n {
+     |                     ^^^^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+3138 |                 let _strategy = match n {
+     |                     +
+help: you might have meant to pattern match on the similarly named constant `SBI_ERR_FAILURE`
+     |
+3138 -                 let strategy = match n {
+3138 +                 let riscv::sbi::SBI_ERR_FAILURE = match n {
+     |
+
+warning: unused variable: `depth`
+    --> src/pixel.rs:3459:9
+     |
+3459 |     for depth in 0..max_depth {
+     |         ^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+3459 |     for _depth in 0..max_depth {
+     |         +
+help: you might have meant to pattern match on the similarly named constant `MAX_TCP_CONNECTIONS`
+     |
+3459 -     for depth in 0..max_depth {
+3459 +     for vm::net::MAX_TCP_CONNECTIONS in 0..max_depth {
+     |
+
+warning: unused variable: `fixed_val`
+    --> src/riscv/bus.rs:1184:13
+     |
+1184 |         let fixed_val = (val & !PPN_MASK) | (final_ppn << 10);
+     |             ^^^^^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+1184 |         let _fixed_val = (val & !PPN_MASK) | (final_ppn << 10);
+     |             +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+     |
+1184 -         let fixed_val = (val & !PPN_MASK) | (final_ppn << 10);
+1184 +         let vm::net::_HTTP_ERR_PARSE = (val & !PPN_MASK) | (final_ppn << 10);
+     |
+
+warning: variable `fixed_count` is assigned to, but never used
+    --> src/riscv/bus.rs:1448:21
+     |
+1448 |             let mut fixed_count = 0;
+     |                     ^^^^^^^^^^^
+     |
+     = note: consider using `_fixed_count` instead
+help: you might have meant to pattern match on the similarly named constant `SBI_ERR_FAILURE`
+     |
+1448 -             let mut fixed_count = 0;
+1448 +             let mut riscv::sbi::SBI_ERR_FAILURE = 0;
+     |
+
+warning: value assigned to `fixed_val` is never read
+   --> src/riscv/cpu/mod.rs:246:21
+    |
+246 |             let mut fixed_val = val;
+    |                     ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `sb`
+   --> src/riscv/gsfs.rs:275:13
+    |
+275 |         let sb = self.superblock.as_ref()?;
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_sb`
+
+warning: unused variable: `bus`
+    --> src/riscv/linux.rs:1108:41
+     |
+1108 | pub fn sys_dup2(oldfd: i32, newfd: i32, bus: &mut Bus) -> i32 {
+     |                                         ^^^ help: if this is intentional, prefix it with an underscore: `_bus`
+
+warning: unused variable: `entry`
+   --> src/riscv/live.rs:350:33
+    |
+350 |                 Ok((mut vm, fw, entry, dtb)) => {
+    |                                 ^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+350 |                 Ok((mut vm, fw, _entry, dtb)) => {
+    |                                 +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+350 -                 Ok((mut vm, fw, entry, dtb)) => {
+350 +                 Ok((mut vm, fw, vm::net::_HTTP_ERR_PARSE, dtb)) => {
+    |
+
+warning: unused variable: `compiles`
+   --> src/riscv/live.rs:628:36
+    |
+628 |                 let (hits, misses, compiles, cached) = vm.block_cache.stats();
+    |                                    ^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+628 |                 let (hits, misses, _compiles, cached) = vm.block_cache.stats();
+    |                                    +
+help: you might have meant to pattern match on the similarly named constant `CONFIG`
+    |
+628 -                 let (hits, misses, compiles, cached) = vm.block_cache.stats();
+628 +                 let (hits, misses, riscv::virtio_serial::CONFIG, cached) = vm.block_cache.stats();
+    |
+
+warning: variable does not need to be mutable
+   --> src/riscv/live.rs:350:21
+    |
+350 |                 Ok((mut vm, fw, entry, dtb)) => {
+    |                     ----^^
+    |                     |
+    |                     help: remove this `mut`
+
+warning: unused variable: `level`
+   --> src/riscv/mmu.rs:228:22
+    |
+228 |                      level: usize,
+    |                      ^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+228 |                      _level: usize,
+    |                      +
+help: you might have meant to pattern match on the similarly named constant `MAX_TCP_CONNECTIONS`
+    |
+228 -                      level: usize,
+228 +                      vm::net::MAX_TCP_CONNECTIONS: usize,
+    |
+
+warning: unused variable: `pte`
+   --> src/riscv/mmu.rs:229:22
+    |
+229 |                      pte: u32,
+    |                      ^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+229 |                      _pte: u32,
+    |                      +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+229 -                      pte: u32,
+229 +                      vm::net::_HTTP_ERR_PARSE: u32,
+    |
+
+warning: unused variable: `port`
+   --> src/vm/ops_substrate.rs:228:38
+    |
+228 |     fn write_circuit_port(&mut self, port: u32, val: u32) {
+    |                                      ^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+228 |     fn write_circuit_port(&mut self, _port: u32, val: u32) {
+    |                                      +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+228 -     fn write_circuit_port(&mut self, port: u32, val: u32) {
+228 +     fn write_circuit_port(&mut self, vm::net::_HTTP_ERR_PARSE: u32, val: u32) {
+    |
+
+warning: unused variable: `val`
+   --> src/vm/ops_substrate.rs:228:49
+    |
+228 |     fn write_circuit_port(&mut self, port: u32, val: u32) {
+    |                                                 ^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+228 |     fn write_circuit_port(&mut self, port: u32, _val: u32) {
+    |                                                 +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+228 -     fn write_circuit_port(&mut self, port: u32, val: u32) {
+228 +     fn write_circuit_port(&mut self, port: u32, vm::net::_HTTP_ERR_PARSE: u32) {
+    |
+
+warning: unused variable: `sx`
+   --> src/vm/ops_substrate.rs:293:39
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |                                       ^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+293 |     fn copy_substrate_rect(&mut self, _sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |                                       +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+293 -     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+293 +     fn copy_substrate_rect(&mut self, vm::net::_HTTP_ERR_PARSE: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |
+
+warning: unused variable: `sy`
+   --> src/vm/ops_substrate.rs:293:48
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |                                                ^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, _sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |                                                +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+293 -     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+293 +     fn copy_substrate_rect(&mut self, sx: u32, vm::net::_HTTP_ERR_PARSE: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |
+
+warning: unused variable: `dx`
+   --> src/vm/ops_substrate.rs:293:57
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |                                                         ^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, _dx: u32, dy: u32, w: u32, h: u32) {
+    |                                                         +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+293 -     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+293 +     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, vm::net::_HTTP_ERR_PARSE: u32, dy: u32, w: u32, h: u32) {
+    |
+
+warning: unused variable: `dy`
+   --> src/vm/ops_substrate.rs:293:66
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |                                                                  ^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, _dy: u32, w: u32, h: u32) {
+    |                                                                  +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+293 -     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+293 +     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, vm::net::_HTTP_ERR_PARSE: u32, w: u32, h: u32) {
+    |
+
+warning: unused variable: `w`
+   --> src/vm/ops_substrate.rs:293:75
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |                                                                           ^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, _w: u32, h: u32) {
+    |                                                                           +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+293 -     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+293 +     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, vm::net::_HTTP_ERR_PARSE: u32, h: u32) {
+    |
+
+warning: unused variable: `h`
+   --> src/vm/ops_substrate.rs:293:83
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |                                                                                   ^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, _h: u32) {
+    |                                                                                   +
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+    |
+293 -     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+293 +     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, vm::net::_HTTP_ERR_PARSE: u32) {
+    |
+
+warning: unused variable: `sf`
+   --> src/vm/ops_syscall.rs:215:33
+    |
+215 |                         let mut sf = if let Some(sf) = self.spatial_files.get(&fd) {
+    |                                 ^^ help: if this is intentional, prefix it with an underscore: `_sf`
+
+warning: unused variable: `buf_addr`
+   --> src/vm/ops_syscall.rs:221:29
+    |
+221 |                         let buf_addr = self.regs[buf_reg] as usize;
+    |                             ^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+221 |                         let _buf_addr = self.regs[buf_reg] as usize;
+    |                             +
+help: you might have meant to pattern match on the similarly named constant `MAX_TCP_CONNECTIONS`
+    |
+221 -                         let buf_addr = self.regs[buf_reg] as usize;
+221 +                         let vm::net::MAX_TCP_CONNECTIONS = self.regs[buf_reg] as usize;
+    |
+
+warning: unused variable: `len`
+   --> src/vm/ops_syscall.rs:222:29
+    |
+222 |                         let len = self.regs[len_reg] as usize;
+    |                             ^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+222 |                         let _len = self.regs[len_reg] as usize;
+    |                             +
+help: you might have meant to pattern match on the similarly named constant `MAX_TCP_CONNECTIONS`
+    |
+222 -                         let len = self.regs[len_reg] as usize;
+222 +                         let vm::net::MAX_TCP_CONNECTIONS = self.regs[len_reg] as usize;
+    |
+
+warning: unused variable: `sf`
+   --> src/vm/ops_syscall.rs:286:33
+    |
+286 |                         let mut sf = if let Some(sf) = self.spatial_files.get(&fd) {
+    |                                 ^^ help: if this is intentional, prefix it with an underscore: `_sf`
+
+warning: unused variable: `buf_addr`
+   --> src/vm/ops_syscall.rs:292:29
+    |
+292 |                         let buf_addr = self.regs[buf_reg] as usize;
+    |                             ^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+292 |                         let _buf_addr = self.regs[buf_reg] as usize;
+    |                             +
+help: you might have meant to pattern match on the similarly named constant `MAX_TCP_CONNECTIONS`
+    |
+292 -                         let buf_addr = self.regs[buf_reg] as usize;
+292 +                         let vm::net::MAX_TCP_CONNECTIONS = self.regs[buf_reg] as usize;
+    |
+
+warning: unused variable: `len`
+   --> src/vm/ops_syscall.rs:293:29
+    |
+293 |                         let len = self.regs[len_reg] as usize;
+    |                             ^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+293 |                         let _len = self.regs[len_reg] as usize;
+    |                             +
+help: you might have meant to pattern match on the similarly named constant `MAX_TCP_CONNECTIONS`
+    |
+293 -                         let len = self.regs[len_reg] as usize;
+293 +                         let vm::net::MAX_TCP_CONNECTIONS = self.regs[len_reg] as usize;
+    |
+
+warning: variable does not need to be mutable
+   --> src/vm/ops_syscall.rs:215:29
+    |
+215 |                         let mut sf = if let Some(sf) = self.spatial_files.get(&fd) {
+    |                             ----^^
+    |                             |
+    |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/vm/ops_syscall.rs:223:29
+    |
+223 |                         let mut count = 0usize;
+    |                             ----^^^^^
+    |                             |
+    |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/vm/ops_syscall.rs:286:29
+    |
+286 |                         let mut sf = if let Some(sf) = self.spatial_files.get(&fd) {
+    |                             ----^^
+    |                             |
+    |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/vm/ops_syscall.rs:294:29
+    |
+294 |                         let mut count = 0usize;
+    |                             ----^^^^^
+    |                             |
+    |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/vm/hilbert.rs:17:21
+   |
+17 | pub fn d2xy(n: u32, mut d: u32) -> (u32, u32) {
+   |                     ----^
+   |                     |
+   |                     help: remove this `mut`
+
+warning: variable `label_counter` is assigned to, but never used
+    --> src/vm/disasm.rs:1644:17
+     |
+1644 |         let mut label_counter = 0u32;
+     |                 ^^^^^^^^^^^^^
+     |
+     = note: consider using `_label_counter` instead
+help: you might have meant to pattern match on the similarly named constant `_HTTP_ERR_PARSE`
+     |
+1644 -         let mut label_counter = 0u32;
+1644 +         let mut vm::net::_HTTP_ERR_PARSE = 0u32;
+     |
+
+warning: constant `NO_NEXT` is never used
+  --> src/geo_extent.rs:57:7
+   |
+57 | const NO_NEXT: (i32, i32) = (0, 0);
+   |       ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FDT_NOP` is never used
+ --> src/riscv/dtb.rs:9:7
+  |
+9 | const FDT_NOP: u32 = 0x00000004;
+  |       ^^^^^^^
+
+warning: function `draw_hex_digit` is never used
+   --> src/riscv/mmu_heatmap.rs:177:4
+    |
+177 | fn draw_hex_digit(fb: &mut [u32], x: usize, y: usize, digit: u8, _color: u32) {
+    |    ^^^^^^^^^^^^^^
+
+warning: constant `STATUS_BUSY` is never used
+  --> src/riscv/substrate.rs:61:7
+   |
+61 | const STATUS_BUSY: u32 = 0x01;
+   |       ^^^^^^^^^^^
+
+warning: methods `copy_substrate_rect` and `evict_substrate_edges` are never used
+   --> src/vm/ops_substrate.rs:293:8
+    |
+  3 | impl Vm {
+    | ------- methods in this implementation
+...
+293 |     fn copy_substrate_rect(&mut self, sx: u32, sy: u32, dx: u32, dy: u32, w: u32, h: u32) {
+    |        ^^^^^^^^^^^^^^^^^^^
+...
+313 |     fn evict_substrate_edges(&mut self) {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `activation` and `gradient` are never read
+  --> src/vm/neural.rs:9:9
+   |
+ 6 | pub struct Perceptron {
+   |            ---------- fields in this struct
+...
+ 9 |     pub activation: u8,
+   |         ^^^^^^^^^^
+10 |     pub gradient: i8,
+   |         ^^^^^^^^
+
+warning: method `to_u32` is never used
+  --> src/vm/neural.rs:23:12
+   |
+13 | impl Perceptron {
+   | --------------- method in this implementation
+...
+23 |     pub fn to_u32(&self) -> u32 {
+   |            ^^^^^^
+
+warning: struct `LexedInstruction` is never constructed
+  --> src/vm/gpu_lexer.rs:36:12
+   |
+36 | pub struct LexedInstruction {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: function `cpu_opcode_width` is never used
+   --> src/vm/gpu_lexer.rs:284:4
+    |
+284 | fn cpu_opcode_width(op: u32) -> u32 {
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `cpu_variable_width` is never used
+   --> src/vm/gpu_lexer.rs:332:4
+    |
+332 | fn cpu_variable_width(input: &[u32], addr: usize, op: u32) -> Option<u32> {
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `cpu_lex` is never used
+   --> src/vm/gpu_lexer.rs:368:8
+    |
+368 | pub fn cpu_lex(input: &[u32], start: usize, end: usize) -> Vec<LexedInstruction> {
+    |        ^^^^^^^
+
+warning: function `cpu_lex_all` is never used
+   --> src/vm/gpu_lexer.rs:413:8
+    |
+413 | pub fn cpu_lex_all(input: &[u32]) -> Vec<LexedInstruction> {
+    |        ^^^^^^^^^^^
+
+warning: enum `PatchMode` is never used
+  --> src/vm/gpu_patcher.rs:39:10
+   |
+39 | pub enum PatchMode {
+   |          ^^^^^^^^^
+
+warning: struct `Patch` is never constructed
+  --> src/vm/gpu_patcher.rs:48:12
+   |
+48 | pub struct Patch {
+   |            ^^^^^
+
+warning: function `cpu_apply_patch` is never used
+   --> src/vm/gpu_patcher.rs:293:8
+    |
+293 | pub fn cpu_apply_patch(bytecode: &mut [u32], patch: &Patch) {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `cpu_apply_patches` is never used
+   --> src/vm/gpu_patcher.rs:310:8
+    |
+310 | pub fn cpu_apply_patches(bytecode: &mut [u32], patches: &[Patch]) {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: constant `WATER_BIOMES` is never used
+  --> src/world_gen.rs:59:7
+   |
+59 | const WATER_BIOMES: [usize; 2] = [0, 1];
+   |       ^^^^^^^^^^^^
+
+warning: function `pattern_type` is never used
+  --> src/world_gen.rs:99:4
+   |
+99 | fn pattern_type(wx: i32, wy: i32) -> u32 {
+   |    ^^^^^^^^^^^^
+
+warning: function `accent_mask` is never used
+   --> src/world_gen.rs:105:4
+    |
+105 | fn accent_mask(wx: i32, wy: i32) -> u32 {
+    |    ^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+  --> src/bin/linux_diag.rs:19:10
+   |
+19 |     let (mut vm, result) = RiscvVm::boot_linux(
+   |          ----^^
+   |          |
+   |          help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+Kernel: 6139180 bytes
+Initrd: 6144 bytes
+[loader] Segment 0: paddr=0x00000000, vaddr=0xC0000000, offset=0x00001000, target_pa=0x80000000, filesz=0x22215C
+[loader] Segment 1: paddr=0x00400000, vaddr=0xC0400000, offset=0x00400000, target_pa=0x80400000, filesz=0x277A2
+[loader] Segment 2: paddr=0x00800000, vaddr=0xC0800000, offset=0x00428000, target_pa=0x80800000, filesz=0xB85C
+[loader] Segment 3: paddr=0x0080C000, vaddr=0xC080C000, offset=0x00434000, target_pa=0x8080C000, filesz=0x17A0
+[loader] Segment 4: paddr=0x00C00000, vaddr=0xC0C00000, offset=0x00436000, target_pa=0x80C00000, filesz=0x7B6F8
+[loader] Segment 5: paddr=0x01000000, vaddr=0xC1000000, offset=0x004B2000, target_pa=0x81000000, filesz=0x298
+[loader] Segment 6: paddr=0x01400000, vaddr=0xC1400000, offset=0x004B3000, target_pa=0x81400000, filesz=0x81200
+[boot-diag] RAM: base=0x80000000 size=0x30000000 (768MB)
+[boot-diag] PA 0x80404AB2: bytes=[DC C4 94 C8] half=0xC4DC word=0xC894C4DC
+[boot-diag] ELF file off 0x404AB2: bytes=[DC C4 94 C8] half=0xC4DC
+[boot-diag] offset from base = 0x404AB2, in_ram=true, ram_array_len=0x30000000
+[boot] DTB ram_size: 784384K (786432K total, pool: 2048K)
+[boot] Loaded initrd: 6144 bytes at PA 0x816BC000 - 0x816BD800
+[boot] Pre-set _dtb_early_va=0xAFD00000, _dtb_early_pa=0xAFD00000
+[boot] Found setup_vm kernel_map writes at PA 0x80404AB2 (pattern scan) -- leaving intact
+[boot] Pre-set loops_per_jiffy=400000 to skip calibrate_delay()
+[boot] Pre-set sbi_debug_console_available=true for earlycon DBCN
+[boot] Patched calibrate_delay to return immediately at PA 0x800080DA (scan)
+[boot] Patched udelay to return immediately at PA 0x8021B34E (scan)
+[boot] Patched ndelay to return immediately at PA 0x8021B308 (scan)
+[boot] Pre-populated memblock reserved: base=0x80000000 size=0x014BC000 (end=0x814BC000)
+[boot] Pre-populated memblock reserved initrd: base=0x816BC000 size=0x00001800
+[boot] Pre-populated memblock reserved DTB+PT: base=0xAFCFE000 size=0x00102000 (dtb=0xAFD00000, 1282 bytes)
+[boot] Pre-populated memblock memory: PA 0x80000000 - PA 0xAFE00000
+[boot] WARNING: ebreak for up_read not found in function body starting at PA 0x8006CE7C
+[boot] WARNING: ebreak for down_read_trylock not found in function body starting at PA 0x8006C748
+[boot] Patched initrd overlap bypass at PA 0x80402BE8: c.beqz a0,+26 -> c.j +26 (unconditional)
+[boot] Patched ebreak at PA 0x8002D446 to NOP (unblocking abort_creds, offset +40)
+[boot] Patch summary: dtb=true setup_vm=true timebase=true lpj=true dbcn=true cal_delay=true udelay=true ndelay=true memblock=true up_read=false down_read=false initrd_bypass=true abort_creds=true
+[boot] ELF entry at PA 0x80000000 has MZ/EFI stub header (c.li s4,-13; j _start_kernel) -- OK
+[boot-table] Creating preliminary page table at PA 0xAFCFE000
+[boot-table] SATP value: 0x800AFCFE
+[boot] Preliminary Sv32 page table at PA 0xAFCFE000, SATP=0x800AFCFE -- kernel VA entry at 0xC0000000
+[boot-setup] After mret simulation: PC=0xC0000000 priv=Supervisor mepc=0xC0000000 mstatus=0x00000088
+[boot-setup] Boot regs: a0=0 (hartid), a1=0xAFD00000 (DTB PA)
+[boot-setup] Initial mtimecmp=500 (simulates OpenSBI first timer)
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x81484000 (SATP 0x800AFCFE -> 0x80081484)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x00000000 va_kernel_pa_offset=0x00000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] Patching kernel_map.va_pa_offset: 0x00000000 -> 0x40000000 at PA 0x80C7A0AC
+[pte_fixup] Patching kernel_map.va_kernel_pa_offset: 0x00000000 -> 0x40000000 at PA 0x80C7A0B0
+[pte_fixup] Fixed L1[768] at PA 0x81484C00: PPN 0xC0000 -> 0x80000 (0x300000EF -> 0x200000EF)
+[pte_fixup] L1[768] at PA 0x81484C00 already set: 0x20000001 (PPN 0x80000, flags 0x01), skipping force-map
+[pte_fixup] Force-map L1[769] at PA 0x81484C04: megapage PA 0x80400000 -> VA 0xC0400000
+[pte_fixup] Force-map L1[770] at PA 0x81484C08: megapage PA 0x80800000 -> VA 0xC0800000
+[pte_fixup] Force-map L1[771] at PA 0x81484C0C: megapage PA 0x80C00000 -> VA 0xC0C00000
+[pte_fixup] Force-map L1[772] at PA 0x81484C10: megapage PA 0x81000000 -> VA 0xC1000000
+[pte_fixup] Force-map L1[773] at PA 0x81484C14: megapage PA 0x81400000 -> VA 0xC1400000
+[pte_fixup] Force-map L1[774] at PA 0x81484C18: megapage PA 0x81800000 -> VA 0xC1800000
+[pte_fixup] Force-map L1[775] at PA 0x81484C1C: megapage PA 0x81C00000 -> VA 0xC1C00000
+[pte_fixup] Force-map L1[776] at PA 0x81484C20: megapage PA 0x82000000 -> VA 0xC2000000
+[pte_fixup] Force-map L1[777] at PA 0x81484C24: megapage PA 0x82400000 -> VA 0xC2400000
+[pte_fixup] Registered 2 page table pages (L1 at PA 0x81484000)
+[mmu] SATP: 800afcfe -> 80081484
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x80802000 (SATP 0x80081484 -> 0x80080802)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] Fixed L1[630] at PA 0x808029D8: PPN 0xC1483 -> 0x81483 (0x30520C01 -> 0x20520C01)
+[pte_fixup] Fixed L1[768] at PA 0x80802C00: PPN 0xC0000 -> 0x80000 (0x300000EF -> 0x200000EF)
+[pte_fixup] Fixed L1[769] at PA 0x80802C04: PPN 0xC0400 -> 0x80400 (0x301000EF -> 0x201000EF)
+[pte_fixup] Fixed L1[770] at PA 0x80802C08: PPN 0xC0800 -> 0x80800 (0x302000EF -> 0x202000EF)
+[pte_fixup] Fixed L1[771] at PA 0x80802C0C: PPN 0xC0C00 -> 0x80C00 (0x303000EF -> 0x203000EF)
+[pte_fixup] Fixed L1[772] at PA 0x80802C10: PPN 0xC1000 -> 0x81000 (0x304000EF -> 0x204000EF)
+[pte_fixup] Fixed L1[773] at PA 0x80802C14: PPN 0xC1400 -> 0x81400 (0x305000EF -> 0x205000EF)
+[pte_fixup] L1[768] at PA 0x80802C00 already set: 0x20000001 (PPN 0x80000, flags 0x01), skipping force-map
+[pte_fixup] L1[769] at PA 0x80802C04 already set: 0x20100001 (PPN 0x80400, flags 0x01), skipping force-map
+[pte_fixup] L1[770] at PA 0x80802C08 already set: 0x20200001 (PPN 0x80800, flags 0x01), skipping force-map
+[pte_fixup] L1[771] at PA 0x80802C0C already set: 0x20300001 (PPN 0x80C00, flags 0x01), skipping force-map
+[pte_fixup] L1[772] at PA 0x80802C10 already set: 0x20400001 (PPN 0x81000, flags 0x01), skipping force-map
+[pte_fixup] L1[773] at PA 0x80802C14 already set: 0x20500001 (PPN 0x81400, flags 0x01), skipping force-map
+[pte_fixup] Force-map L1[774] at PA 0x80802C18: megapage PA 0x81800000 -> VA 0xC1800000
+[pte_fixup] Force-map L1[775] at PA 0x80802C1C: megapage PA 0x81C00000 -> VA 0xC1C00000
+[pte_fixup] Force-map L1[776] at PA 0x80802C20: megapage PA 0x82000000 -> VA 0xC2000000
+[pte_fixup] Force-map L1[777] at PA 0x80802C24: megapage PA 0x82400000 -> VA 0xC2400000
+[pte_fixup] Registered 10 page table pages (L1 at PA 0x80802000)
+[mmu] SATP: 80081484 -> 80080802
+[boot] S->M TRAP at count=178458: PC was=0xC0401000 now=0x80000000 mcause=0x00000002 mepc=0xC0401000 mtval=0xC0401000 mtvec=0x80000000 stvec=0xC0221F64
+[boot] Recent S-mode PCs before trap:
+  count=178438 PC=0xC0400FD8 priv=Supervisor
+  count=178439 PC=0xC0400FDA priv=Supervisor
+  count=178440 PC=0xC0400FDC priv=Supervisor
+  count=178441 PC=0xC0400FDE priv=Supervisor
+  count=178442 PC=0xC0400FE0 priv=Supervisor
+  count=178443 PC=0xC0400FE2 priv=Supervisor
+  count=178444 PC=0xC0400FE4 priv=Supervisor
+  count=178445 PC=0xC0400FE6 priv=Supervisor
+  count=178446 PC=0xC0400FE8 priv=Supervisor
+  count=178447 PC=0xC0400FEA priv=Supervisor
+  count=178448 PC=0xC0400FEC priv=Supervisor
+  count=178449 PC=0xC0400FEE priv=Supervisor
+  count=178450 PC=0xC0400FF0 priv=Supervisor
+  count=178451 PC=0xC0400FF2 priv=Supervisor
+  count=178452 PC=0xC0400FF4 priv=Supervisor
+  count=178453 PC=0xC0400FF6 priv=Supervisor
+  count=178454 PC=0xC0400FF8 priv=Supervisor
+  count=178455 PC=0xC0400FFA priv=Supervisor
+  count=178456 PC=0xC0400FFC priv=Supervisor
+  count=178457 PC=0xC0400FFE priv=Supervisor
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x81484000 (SATP 0x80080802 -> 0x80081484)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] L1[768] at PA 0x81484C00 already set: 0x20000001 (PPN 0x80000, flags 0x01), skipping force-map
+[pte_fixup] L1[769] at PA 0x81484C04 already set: 0x20100001 (PPN 0x80400, flags 0x01), skipping force-map
+[pte_fixup] L1[770] at PA 0x81484C08 already set: 0x20200001 (PPN 0x80800, flags 0x01), skipping force-map
+[pte_fixup] L1[771] at PA 0x81484C0C already set: 0x20300001 (PPN 0x80C00, flags 0x01), skipping force-map
+[pte_fixup] L1[772] at PA 0x81484C10 already set: 0x20400001 (PPN 0x81000, flags 0x01), skipping force-map
+[pte_fixup] L1[773] at PA 0x81484C14 already set: 0x20500001 (PPN 0x81400, flags 0x01), skipping force-map
+[pte_fixup] L1[774] at PA 0x81484C18 already set: 0x20600001 (PPN 0x81800, flags 0x01), skipping force-map
+[pte_fixup] L1[775] at PA 0x81484C1C already set: 0x20700001 (PPN 0x81C00, flags 0x01), skipping force-map
+[pte_fixup] L1[776] at PA 0x81484C20 already set: 0x20800001 (PPN 0x82000, flags 0x01), skipping force-map
+[pte_fixup] L1[777] at PA 0x81484C24 already set: 0x20900001 (PPN 0x82400, flags 0x01), skipping force-map
+[pte_fixup] Registered 14 page table pages (L1 at PA 0x81484000)
+[mmu] SATP: 80080802 -> 80081484
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x9DD00000 (SATP 0x80081484 -> 0x8009DD00)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] Force-map L1[768] at PA 0x9DD00C00: megapage PA 0x80000000 -> VA 0xC0000000
+[pte_fixup] Force-map L1[769] at PA 0x9DD00C04: megapage PA 0x80400000 -> VA 0xC0400000
+[pte_fixup] Force-map L1[770] at PA 0x9DD00C08: megapage PA 0x80800000 -> VA 0xC0800000
+[pte_fixup] Force-map L1[771] at PA 0x9DD00C0C: megapage PA 0x80C00000 -> VA 0xC0C00000
+[pte_fixup] Force-map L1[772] at PA 0x9DD00C10: megapage PA 0x81000000 -> VA 0xC1000000
+[pte_fixup] Force-map L1[773] at PA 0x9DD00C14: megapage PA 0x81400000 -> VA 0xC1400000
+[pte_fixup] Force-map L1[774] at PA 0x9DD00C18: megapage PA 0x81800000 -> VA 0xC1800000
+[pte_fixup] Force-map L1[775] at PA 0x9DD00C1C: megapage PA 0x81C00000 -> VA 0xC1C00000
+[pte_fixup] Force-map L1[776] at PA 0x9DD00C20: megapage PA 0x82000000 -> VA 0xC2000000
+[pte_fixup] Force-map L1[777] at PA 0x9DD00C24: megapage PA 0x82400000 -> VA 0xC2400000
+[pte_fixup] Registered 15 page table pages (L1 at PA 0x9DD00000)
+[mmu] SATP: 80081484 -> 8009dd00
+[boot] PROGRESS 10M: PC=0x012BBBA8 priv=Machine mtime=10100002 sbi_out=0 faults=0
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x81484000 (SATP 0x8009DD00 -> 0x80081484)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] L1[768] at PA 0x81484C00 already set: 0x20000001 (PPN 0x80000, flags 0x01), skipping force-map
+[pte_fixup] L1[769] at PA 0x81484C04 already set: 0x20100001 (PPN 0x80400, flags 0x01), skipping force-map
+[pte_fixup] L1[770] at PA 0x81484C08 already set: 0x20200001 (PPN 0x80800, flags 0x01), skipping force-map
+[pte_fixup] L1[771] at PA 0x81484C0C already set: 0x20300001 (PPN 0x80C00, flags 0x01), skipping force-map
+[pte_fixup] L1[772] at PA 0x81484C10 already set: 0x20400001 (PPN 0x81000, flags 0x01), skipping force-map
+[pte_fixup] L1[773] at PA 0x81484C14 already set: 0x20500001 (PPN 0x81400, flags 0x01), skipping force-map
+[pte_fixup] L1[774] at PA 0x81484C18 already set: 0x20600001 (PPN 0x81800, flags 0x01), skipping force-map
+[pte_fixup] L1[775] at PA 0x81484C1C already set: 0x20700001 (PPN 0x81C00, flags 0x01), skipping force-map
+[pte_fixup] L1[776] at PA 0x81484C20 already set: 0x20800001 (PPN 0x82000, flags 0x01), skipping force-map
+[pte_fixup] L1[777] at PA 0x81484C24 already set: 0x20900001 (PPN 0x82400, flags 0x01), skipping force-map
+[pte_fixup] Registered 15 page table pages (L1 at PA 0x81484000)
+[mmu] SATP: 8009dd00 -> 80081484
+[cpu] write_csr SATP: auto PTE fixup at pg_dir PA 0x80001000 (SATP 0x80081484 -> 0x80080001)
+[pte_fixup] kernel_map: page_offset=0xC0000000 virt_addr=0xC0000000 phys_addr=0x00000000 size=0xC0000000
+[pte_fixup] kernel_map: va_pa_offset=0x40000000 va_kernel_pa_offset=0x40000000
+[pte_fixup] phys_ram_base=0x00000000
+[pte_fixup] Fixed L1[0] at PA 0x80001000: PPN 0x031E5 -> 0x831E5 (0x00C79597 -> 0x20C79597)
+[pte_fixup] Fixed L1[1] at PA 0x80001004: PPN 0x26161 -> 0xA6161 (0x09858593 -> 0x29858593)
+[pte_fixup] Fixed L1[3] at PA 0x8000100C: PPN 0x184FF -> 0x984FF (0x0613FFFF -> 0x2613FFFF)
+[pte_fixup] Fixed L1[9] at PA 0x80001024: PPN 0x03155 -> 0x83155 (0x00C55613 -> 0x20C55613)
+[pte_fixup] Fixed L1[10] at PA 0x80001028: PPN 0x031E5 -> 0x831E5 (0x00C79597 -> 0x20C79597)
+[pte_fixup] Fixed L1[11] at PA 0x8000102C: PPN 0x24161 -> 0xA4161 (0x09058593 -> 0x29058593)
+[pte_fixup] Fixed L1[13] at PA 0x80001034: PPN 0x0520D -> 0x8520D (0x01483517 -> 0x21483517)
+[pte_fixup] Fixed L1[14] at PA 0x80001038: PPN 0x3F3141 -> 0x3B3141 (0xFCC50513 -> 0xECC50513)
+[pte_fixup] Fixed L1[15] at PA 0x8000103C: PPN 0x235360 -> 0x1F5360 (0x8D4D8131 -> 0x7D4D8131)
+[pte_fixup] Fixed L1[18] at PA 0x80001048: PPN 0x00001 -> 0x80001 (0x00000517 -> 0x20000517)
+[pte_fixup] Fixed L1[19] at PA 0x8000104C: PPN 0x08141 -> 0x88141 (0x02050513 -> 0x22050513)
+[pte_fixup] Fixed L1[21] at PA 0x80001054: PPN 0x05200 -> 0x85200 (0x01480197 -> 0x21480197)
+[pte_fixup] Fixed L1[27] at PA 0x8000106C: PPN 0x0006F -> 0x8006F (0x0001BFF5 -> 0x2001BFF5)
+[pte_fixup] Fixed L1[28] at PA 0x80001070: PPN 0x00885 -> 0x80885 (0x00221517 -> 0x20221517)
+[pte_fixup] Fixed L1[29] at PA 0x80001074: PPN 0x3BD141 -> 0x37D141 (0xEF450513 -> 0xDF450513)
+[pte_fixup] Fixed L1[35] at PA 0x8000108C: PPN 0x05200 -> 0x85200 (0x01480197 -> 0x21480197)
+[pte_fixup] Fixed L1[37] at PA 0x80001094: PPN 0x20A4D8 -> 0x1CA4D8 (0x82936299 -> 0x72936299)
+[pte_fixup] Fixed L1[42] at PA 0x800010A8: PPN 0x1C4C0 -> 0x9C4C0 (0x0713014B -> 0x2713014B)
+[pte_fixup] Fixed L1[43] at PA 0x800010AC: PPN 0x35D8E0 -> 0x31D8E0 (0xD7638127 -> 0xC7638127)
+[pte_fixup] Fixed L1[46] at PA 0x800010B8: PPN 0x3FB9B3 -> 0x3BB9B3 (0xFEE6CDE3 -> 0xEEE6CDE3)
+[pte_fixup] Fixed L1[47] at PA 0x800010BC: PPN 0x05205 -> 0x85205 (0x01481617 -> 0x21481617)
+[pte_fixup] Fixed L1[48] at PA 0x800010C0: PPN 0x3EF181 -> 0x3AF181 (0xFBC60613 -> 0xEBC60613)
+[pte_fixup] Fixed L1[53] at PA 0x800010D4: PPN 0x1C5D7C -> 0x185D7C (0x7175F321 -> 0x6175F321)
+[pte_fixup] Fixed L1[61] at PA 0x800010F4: PPN 0x3C3BFC -> 0x383BFC (0xF0EFF125 -> 0xE0EFF125)
+[pte_fixup] Fixed L1[62] at PA 0x800010F8: PPN 0x3C3BFC -> 0x383BFC (0xF0EFF0BF -> 0xE0EFF0BF)
+[pte_fixup] Fixed L1[63] at PA 0x800010FC: PPN 0x1085FD -> 0xC85FD (0x4217F77F -> 0x3217F77F)
+[pte_fixup] Fixed L1[67] at PA 0x8000110C: PPN 0x1C5D7B -> 0x185D7B (0x7175EFA1 -> 0x6175EFA1)
+[pte_fixup] Fixed L1[68] at PA 0x80001110: PPN 0x01008 -> 0x81008 (0x00402097 -> 0x20402097)
+[pte_fixup] Fixed L1[69] at PA 0x80001114: PPN 0x32A820 -> 0x2EA820 (0xCAA080E7 -> 0xBAA080E7)
+[pte_fixup] Fixed L1[70] at PA 0x80001118: PPN 0x00FFC -> 0x80FFC (0x003FF317 -> 0x203FF317)
+[pte_fixup] Fixed L1[71] at PA 0x8000111C: PPN 0x19D8C0 -> 0x15D8C0 (0x67630067 -> 0x57630067)
+[pte_fixup] Force-map L1[768] at PA 0x80001C00: megapage PA 0x80000000 -> VA 0xC0000000
+[pte_fixup] Force-map L1[769] at PA 0x80001C04: megapage PA 0x80400000 -> VA 0xC0400000
+[pte_fixup] Force-map L1[770] at PA 0x80001C08: megapage PA 0x80800000 -> VA 0xC0800000
+[pte_fixup] Force-map L1[771] at PA 0x80001C0C: megapage PA 0x80C00000 -> VA 0xC0C00000
+[pte_fixup] Force-map L1[772] at PA 0x80001C10: megapage PA 0x81000000 -> VA 0xC1000000
+[pte_fixup] Force-map L1[773] at PA 0x80001C14: megapage PA 0x81400000 -> VA 0xC1400000
+[pte_fixup] Force-map L1[774] at PA 0x80001C18: megapage PA 0x81800000 -> VA 0xC1800000
+[pte_fixup] Force-map L1[775] at PA 0x80001C1C: megapage PA 0x81C00000 -> VA 0xC1C00000
+[pte_fixup] Force-map L1[776] at PA 0x80001C20: megapage PA 0x82000000 -> VA 0xC2000000
+[pte_fixup] Force-map L1[777] at PA 0x80001C24: megapage PA 0x82400000 -> VA 0xC2400000
+[pte_fixup] Registered 16 page table pages (L1 at PA 0x80001000)
+[mmu] SATP: 80081484 -> 80080001
+[boot] PROGRESS 20M: PC=0x405CE980 priv=Machine mtime=20200002 sbi_out=0 faults=0
+[boot] PROGRESS 30M: PC=0x418E1680 priv=Machine mtime=30300002 sbi_out=0 faults=0
+[boot] DETAIL 33M: PC=0x41E9A400 priv=Machine
+[boot] DETAIL 34M: PC=0x42082880 priv=Machine
+[boot] DETAIL 35M: PC=0x4226AD00 priv=Machine
+[boot] DETAIL 36M: PC=0x42453180 priv=Machine
+[boot] DETAIL 37M: PC=0x4263B600 priv=Machine
+[boot] DETAIL 38M: PC=0x42823A80 priv=Machine
+[boot] PROGRESS 40M: PC=0x42BF4380 priv=Machine mtime=40400002 sbi_out=0 faults=0
+[boot] PROGRESS 50M: PC=0x43F07080 priv=Machine mtime=50500002 sbi_out=0 faults=0
+[boot] PROGRESS 60M: PC=0x45219D80 priv=Machine mtime=60600002 sbi_out=0 faults=0
+[boot] PROGRESS 70M: PC=0x4652CA80 priv=Machine mtime=70700002 sbi_out=0 faults=0
+[boot] PROGRESS 80M: PC=0x4783F780 priv=Machine mtime=80800002 sbi_out=0 faults=0
+[boot] PROGRESS 90M: PC=0x48B52480 priv=Machine mtime=90900002 sbi_out=0 faults=0
+[boot] PROGRESS 100M: PC=0x49E65180 priv=Machine mtime=101000002 sbi_out=0 faults=0
+[boot] PROGRESS 110M: PC=0x4B177E80 priv=Machine mtime=111100002 sbi_out=0 faults=0
+[boot] PROGRESS 120M: PC=0x4C48AB80 priv=Machine mtime=121200002 sbi_out=0 faults=0
+[boot] PROGRESS 130M: PC=0x4D79D880 priv=Machine mtime=131300002 sbi_out=0 faults=0
+[boot] PROGRESS 140M: PC=0x4EAB0580 priv=Machine mtime=141400002 sbi_out=0 faults=0
+[boot] PROGRESS 150M: PC=0x4FDC3280 priv=Machine mtime=151500002 sbi_out=0 faults=0
+[boot] PROGRESS 160M: PC=0x510D5F80 priv=Machine mtime=161600002 sbi_out=0 faults=0
+[boot] PROGRESS 170M: PC=0x523E8C80 priv=Machine mtime=171700002 sbi_out=0 faults=0
+[boot] PROGRESS 180M: PC=0x536FB980 priv=Machine mtime=181800002 sbi_out=0 faults=0
+[boot] PROGRESS 190M: PC=0x54A0E680 priv=Machine mtime=191900002 sbi_out=0 faults=0
+Result: 200000000 instrs, entry=0xC0000000, dtb=0xAFD00000
+PC=0x55D2137E priv=Machine
+No SBI output
+No UART output
+SBI ecall count: 0
+a0=0x80001068 a1=0x80000000 a2=0x80080001 a3=0xC0404834

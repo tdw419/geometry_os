@@ -1,0 +1,568 @@
+// RISC-V 64-bit Virtual Machine - SPIR-V Compute Shader
+//
+// Native uint64_t implementation of the RV64I base instruction set.
+// Uses PhysicalStorageBuffer for direct VRAM pointer access.
+// SPIR-V capabilities: Int64, Int64Atomics, PhysicalStorageBuffer
+
+#version 450
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_scalar_block_layout : require
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const int REG_COUNT = 32;
+const int STACK_SIZE = 64;
+const int MAX_VMS = 8;
+const int MAX_CYCLES = 64;
+
+// Opcodes
+const uint OP_NOP    = 0u;
+const uint OP_ALLOC  = 1u;
+const uint OP_FREE   = 2u;
+const uint OP_LOAD   = 3u;
+const uint OP_STORE  = 4u;
+const uint OP_ADD    = 5u;
+const uint OP_SUB    = 6u;
+const uint OP_MUL    = 7u;
+const uint OP_DIV    = 8u;
+const uint OP_JMP    = 9u;
+const uint OP_BRANCH = 10u;
+const uint OP_CALL   = 11u;
+const uint OP_RETURN = 12u;
+const uint OP_HALT   = 13u;
+const uint OP_DATA   = 14u;
+const uint OP_LOOP   = 15u;
+const uint OP_AND    = 16u;
+const uint OP_OR     = 17u;
+const uint OP_XOR    = 18u;
+const uint OP_SHL    = 19u;
+const uint OP_SHR    = 20u;
+const uint OP_SLT    = 21u;  // Set Less Than
+const uint OP_LDI    = 22u;  // Load Immediate (64-bit)
+const uint OP_MOV    = 23u;
+
+// RV64I specific
+const uint OP_ADDI   = 100u;  // Add Immediate
+const uint OP_ANDI   = 101u;
+const uint OP_ORI    = 102u;
+const uint OP_XORI   = 103u;
+const uint OP_SLTI   = 104u;
+const uint OP_SLLI   = 105u;
+const uint OP_SRLI   = 106u;
+const uint OP_SRAI   = 107u;
+const uint OP_LUI    = 108u;  // Load Upper Immediate
+const uint OP_AUIPC  = 109u;  // Add Upper Immediate to PC
+const uint OP_JAL    = 110u;  // Jump and Link
+const uint OP_JALR   = 111u;  // Jump and Link Register
+const uint OP_BEQ    = 112u;
+const uint OP_BNE    = 113u;
+const uint OP_BLT    = 114u;
+const uint OP_BGE    = 115u;
+const uint OP_BLTU   = 116u;
+const uint OP_BGEU   = 117u;
+const uint OP_LD     = 118u;  // Load Doubleword (64-bit)
+const uint OP_SD     = 119u;  // Store Doubleword (64-bit)
+const uint OP_ADDIW  = 120u;  // Add Immediate Word (32-bit, sign-extended)
+const uint OP_SLLIW  = 121u;
+const uint OP_SRLIW  = 122u;
+const uint OP_SRAIW  = 123u;
+const uint OP_ADDW   = 124u;  // Add Word (32-bit)
+const uint OP_SUBW   = 125u;
+const uint OP_SLLW   = 126u;
+const uint OP_SRLW   = 127u;
+const uint OP_SRAW   = 128u;
+
+// AI-Native / Substrate Opcodes
+const uint OP_SPATIAL_SPAWN = 225u;
+const uint OP_GLYPH_MUTATE  = 226u;
+const uint OP_YIELD         = 227u;
+const uint OP_GET_INPUT     = 228u;
+
+// Strata
+const uint STRATUM_SUBSTRATE = 0u;
+const uint STRATUM_MEMORY    = 1u;
+const uint STRATUM_LOGIC     = 2u;
+const uint STRATUM_SPEC      = 3u;
+const uint STRATUM_INTENT    = 4u;
+
+// VM States
+const uint VM_STATE_INACTIVE = 0u;
+const uint VM_STATE_RUNNING  = 1u;
+const uint VM_STATE_HALTED   = 2u;
+const uint VM_STATE_WAITING  = 3u;
+
+// ============================================================================
+// BUFFER REFERENCES (PhysicalStorageBuffer)
+// ============================================================================
+
+layout(buffer_reference, scalar, buffer_reference_align = 8) buffer VRAM64 {
+    uint64_t data[];
+};
+
+// ============================================================================
+// VM STATE STRUCTURE
+// ============================================================================
+
+struct VmState {
+    uint64_t regs[32];      // 64-bit general purpose registers (x0-x31)
+    uint64_t pc;            // 64-bit program counter
+    uint     halted;
+    uint     stratum;
+    uint     cycles;
+    uint     stack_ptr;
+    uint     vm_id;
+    uint     state;
+    uint     parent_id;
+    uint64_t entry_point;
+    uint64_t base_addr;
+    uint64_t bound_addr;
+    uint64_t stack[64];
+};
+
+// ============================================================================
+// STORAGE BUFFERS
+// ============================================================================
+
+layout(scalar, binding = 0) buffer VMBuffer {
+    VmState vms[];
+} vm_buffer;
+
+layout(scalar, binding = 1) buffer RAMBuffer {
+    uint data[];  // Instruction memory (encoded as u32 words)
+} ram;
+
+layout(scalar, binding = 2) buffer OutputBuffer {
+    uint64_t results[];
+} output;
+
+// ============================================================================
+// INSTRUCTION DECODING
+// ============================================================================
+
+// Instruction word layout (32-bit encoded):
+// [31:26] opcode (6 bits)
+// [25:21] rd (5 bits)
+// [20:16] rs1 (5 bits)
+// [15:11] rs2 (5 bits)
+// [10:0]  immediate (11 bits) - or extended to next word for 64-bit
+
+uint decode_opcode(uint inst) { return (inst >> 26u) & 0x3Fu; }
+uint decode_rd(uint inst)     { return (inst >> 21u) & 0x1Fu; }
+uint decode_rs1(uint inst)    { return (inst >> 16u) & 0x1Fu; }
+uint decode_rs2(uint inst)    { return (inst >> 11u) & 0x1Fu; }
+uint decode_imm11(uint inst)  { return inst & 0x7FFu; }
+
+// Sign-extend 11-bit immediate to 64-bit
+int64_t sign_extend_11(uint imm11) {
+    uint64_t val = uint64_t(imm11);
+    if ((val & 0x400ul) != 0ul) {
+        val |= 0xFFFFF800ul;
+    }
+    return int64_t(val);
+}
+
+// Sign-extend 32-bit value to 64-bit
+int64_t sign_extend_32(uint32_t val) {
+    return int64_t(int(val));
+}
+
+// ============================================================================
+// RAM ACCESS
+// ============================================================================
+
+uint fetch_word(uint64_t addr) {
+    // Address is in words (4-byte units)
+    if (addr >= uint64_t(ram.data.length())) return 0u;
+    return ram.data[uint(addr)];
+}
+
+// Fetch 64-bit immediate from two consecutive words (little-endian)
+uint64_t fetch_dword(uint64_t addr) {
+    uint lo = fetch_word(addr);
+    uint hi = fetch_word(addr + 1ul);
+    return uint64_t(lo) | (uint64_t(hi) << 32ul);
+}
+
+void write_word(uint64_t addr, uint val) {
+    if (addr < uint64_t(ram.data.length())) {
+        ram.data[uint(addr)] = val;
+    }
+}
+
+void write_dword(uint64_t addr, uint64_t val) {
+    write_word(addr, uint(val & 0xFFFFFFFFul));
+    write_word(addr + 1ul, uint(val >> 32ul));
+}
+
+// ============================================================================
+// EXECUTE ONE INSTRUCTION
+// ============================================================================
+
+bool execute_instruction(inout VmState vm) {
+    uint inst = fetch_word(vm.pc);
+    uint opcode = decode_opcode(inst);
+    uint rd    = decode_rd(inst);
+    uint rs1   = decode_rs1(inst);
+    uint rs2   = decode_rs2(inst);
+    uint imm11 = decode_imm11(inst);
+    int64_t simm = sign_extend_11(imm11);
+
+    // x0 is always zero
+    if (rd == 0u) {
+        // x0 writes are discarded, but instruction still executes
+    }
+
+    switch (opcode) {
+        case OP_NOP:
+            vm.pc += 1ul;
+            break;
+
+        case OP_HALT:
+            vm.halted = 1u;
+            vm.state = VM_STATE_HALTED;
+            return false;
+
+        case OP_LDI: {
+            // Load 64-bit immediate from next word
+            uint64_t imm = fetch_dword(vm.pc + 1ul);
+            vm.regs[rd] = imm;
+            vm.pc += 3ul; // opcode + 2 words for u64
+            break;
+        }
+
+        case OP_MOV:
+            vm.regs[rd] = vm.regs[rs1];
+            vm.pc += 1ul;
+            break;
+
+        case OP_ADD:
+            vm.regs[rd] = vm.regs[rs1] + vm.regs[rs2];
+            vm.pc += 1ul;
+            break;
+
+        case OP_SUB:
+            vm.regs[rd] = vm.regs[rs1] - vm.regs[rs2];
+            vm.pc += 1ul;
+            break;
+
+        case OP_MUL:
+            vm.regs[rd] = vm.regs[rs1] * vm.regs[rs2];
+            vm.pc += 1ul;
+            break;
+
+        case OP_DIV:
+            if (vm.regs[rs2] != 0ul) {
+                vm.regs[rd] = vm.regs[rs1] / vm.regs[rs2];
+            }
+            vm.pc += 1ul;
+            break;
+
+        case OP_AND:
+            vm.regs[rd] = vm.regs[rs1] & vm.regs[rs2];
+            vm.pc += 1ul;
+            break;
+
+        case OP_OR:
+            vm.regs[rd] = vm.regs[rs1] | vm.regs[rs2];
+            vm.pc += 1ul;
+            break;
+
+        case OP_XOR:
+            vm.regs[rd] = vm.regs[rs1] ^ vm.regs[rs2];
+            vm.pc += 1ul;
+            break;
+
+        case OP_SHL:
+            vm.regs[rd] = vm.regs[rs1] << uint(vm.regs[rs2] & 0x3Ful);
+            vm.pc += 1ul;
+            break;
+
+        case OP_SHR:
+            vm.regs[rd] = vm.regs[rs1] >> uint(vm.regs[rs2] & 0x3Ful);
+            vm.pc += 1ul;
+            break;
+
+        case OP_SLT:
+            vm.regs[rd] = (int64_t(vm.regs[rs1]) < int64_t(vm.regs[rs2])) ? 1ul : 0ul;
+            vm.pc += 1ul;
+            break;
+
+        // RV64I Immediate Arithmetic
+        case OP_ADDI:
+            vm.regs[rd] = uint64_t(int64_t(vm.regs[rs1]) + simm);
+            vm.pc += 1ul;
+            break;
+
+        case OP_ANDI:
+            vm.regs[rd] = vm.regs[rs1] & uint64_t(simm);
+            vm.pc += 1ul;
+            break;
+
+        case OP_ORI:
+            vm.regs[rd] = vm.regs[rs1] | uint64_t(simm);
+            vm.pc += 1ul;
+            break;
+
+        case OP_XORI:
+            vm.regs[rd] = vm.regs[rs1] ^ uint64_t(simm);
+            vm.pc += 1ul;
+            break;
+
+        case OP_SLTI:
+            vm.regs[rd] = (int64_t(vm.regs[rs1]) < simm) ? 1ul : 0ul;
+            vm.pc += 1ul;
+            break;
+
+        case OP_SLLI:
+            vm.regs[rd] = vm.regs[rs1] << uint(imm11 & 0x3Fu);
+            vm.pc += 1ul;
+            break;
+
+        case OP_SRLI:
+            vm.regs[rd] = vm.regs[rs1] >> uint(imm11 & 0x3Fu);
+            vm.pc += 1ul;
+            break;
+
+        case OP_SRAI:
+            vm.regs[rd] = uint64_t(int64_t(vm.regs[rs1]) >> uint(imm11 & 0x3Fu));
+            vm.pc += 1ul;
+            break;
+
+        case OP_LUI: {
+            // Load upper 20 bits (from imm11 extended)
+            vm.regs[rd] = uint64_t(imm11) << 32ul;
+            vm.pc += 1ul;
+            break;
+        }
+
+        case OP_AUIPC:
+            vm.regs[rd] = vm.pc + (uint64_t(imm11) << 32ul);
+            vm.pc += 1ul;
+            break;
+
+        // Branch instructions
+        case OP_BEQ:
+            if (vm.regs[rs1] == vm.regs[rs2]) {
+                vm.pc = vm.pc + uint64_t(simm);
+            } else {
+                vm.pc += 1ul;
+            }
+            break;
+
+        case OP_BNE:
+            if (vm.regs[rs1] != vm.regs[rs2]) {
+                vm.pc = vm.pc + uint64_t(simm);
+            } else {
+                vm.pc += 1ul;
+            }
+            break;
+
+        case OP_BLT:
+            if (int64_t(vm.regs[rs1]) < int64_t(vm.regs[rs2])) {
+                vm.pc = vm.pc + uint64_t(simm);
+            } else {
+                vm.pc += 1ul;
+            }
+            break;
+
+        case OP_BGE:
+            if (int64_t(vm.regs[rs1]) >= int64_t(vm.regs[rs2])) {
+                vm.pc = vm.pc + uint64_t(simm);
+            } else {
+                vm.pc += 1ul;
+            }
+            break;
+
+        case OP_BLTU:
+            if (vm.regs[rs1] < vm.regs[rs2]) {
+                vm.pc = vm.pc + uint64_t(simm);
+            } else {
+                vm.pc += 1ul;
+            }
+            break;
+
+        case OP_BGEU:
+            if (vm.regs[rs1] >= vm.regs[rs2]) {
+                vm.pc = vm.pc + uint64_t(simm);
+            } else {
+                vm.pc += 1ul;
+            }
+            break;
+
+        // Jump and Link
+        case OP_JAL:
+            vm.regs[rd] = vm.pc + 1ul; // Save return address
+            vm.pc = vm.pc + uint64_t(simm);
+            break;
+
+        case OP_JALR:
+            vm.regs[rd] = vm.pc + 1ul;
+            vm.pc = vm.regs[rs1] + uint64_t(simm);
+            break;
+
+        // Memory operations
+        case OP_LD:
+            vm.regs[rd] = fetch_dword(vm.regs[rs1] + uint64_t(simm));
+            vm.pc += 1ul;
+            break;
+
+        case OP_SD:
+            write_dword(vm.regs[rs1] + uint64_t(simm), vm.regs[rs2]);
+            vm.pc += 1ul;
+            break;
+
+        case OP_LOAD:
+            vm.regs[rd] = uint64_t(fetch_word(vm.regs[rs1] + uint64_t(simm)));
+            vm.pc += 1ul;
+            break;
+
+        case OP_STORE:
+            write_word(vm.regs[rs1] + uint64_t(simm), uint(vm.regs[rs2]));
+            vm.pc += 1ul;
+            break;
+
+        // 32-bit Word operations (sign-extend to 64-bit)
+        case OP_ADDW: {
+            uint32_t a = uint32_t(vm.regs[rs1]);
+            uint32_t b = uint32_t(vm.regs[rs2]);
+            vm.regs[rd] = uint64_t(int64_t(int(a + b)));
+            vm.pc += 1ul;
+            break;
+        }
+
+        case OP_SUBW: {
+            uint32_t a = uint32_t(vm.regs[rs1]);
+            uint32_t b = uint32_t(vm.regs[rs2]);
+            vm.regs[rd] = uint64_t(int64_t(int(a - b)));
+            vm.pc += 1ul;
+            break;
+        }
+
+        case OP_ADDIW: {
+            uint32_t a = uint32_t(vm.regs[rs1]);
+            vm.regs[rd] = uint64_t(int64_t(int(a + int(imm11))));
+            vm.pc += 1ul;
+            break;
+        }
+
+        case OP_SLLW: {
+            uint32_t a = uint32_t(vm.regs[rs1]);
+            uint sh = uint(vm.regs[rs2] & 0x1Ful);
+            vm.regs[rd] = uint64_t(int64_t(int(a << sh)));
+            vm.pc += 1ul;
+            break;
+        }
+
+        case OP_SRLW: {
+            uint32_t a = uint32_t(vm.regs[rs1]);
+            uint sh = uint(vm.regs[rs2] & 0x1Ful);
+            vm.regs[rd] = uint64_t(a >> sh);
+            vm.pc += 1ul;
+            break;
+        }
+
+        case OP_SRAW: {
+            int a = int(vm.regs[rs1]);
+            uint sh = uint(vm.regs[rs2] & 0x1Ful);
+            vm.regs[rd] = uint64_t(int64_t(a >> sh));
+            vm.pc += 1ul;
+            break;
+        }
+
+        // Jump
+        case OP_JMP:
+            vm.pc = vm.pc + uint64_t(simm);
+            break;
+
+        // Call/Return with stack
+        case OP_CALL:
+            vm.stack[vm.stack_ptr] = vm.pc + 1ul;
+            vm.stack_ptr++;
+            vm.pc = vm.regs[rs1];
+            break;
+
+        case OP_RETURN:
+            if (vm.stack_ptr > 0u) {
+                vm.stack_ptr--;
+                vm.pc = vm.stack[vm.stack_ptr];
+            } else {
+                vm.halted = 1u;
+                vm.state = VM_STATE_HALTED;
+                return false;
+            }
+            break;
+
+        // Data (embedded literal)
+        case OP_DATA:
+            // Skip data word
+            vm.pc += 2ul;
+            break;
+
+        // Branch (generic)
+        case OP_BRANCH:
+            if (vm.regs[rs1] != 0ul) {
+                vm.pc = vm.pc + uint64_t(simm);
+            } else {
+                vm.pc += 1ul;
+            }
+            break;
+
+        case OP_LOOP:
+            vm.regs[rs1] = vm.regs[rs1] - 1ul;
+            if (vm.regs[rs1] > 0ul) {
+                vm.pc = vm.pc + uint64_t(simm);
+            } else {
+                vm.pc += 1ul;
+            }
+            break;
+
+        case OP_YIELD:
+            vm.state = VM_STATE_WAITING;
+            vm.pc += 1ul;
+            return false;
+
+        default:
+            // Unknown opcode - halt
+            vm.halted = 2u; // Error halt
+            vm.state = VM_STATE_HALTED;
+            return false;
+    }
+
+    // x0 is hardwired to zero
+    vm.regs[0] = 0ul;
+    vm.cycles++;
+
+    return true;
+}
+
+// ============================================================================
+// MAIN ENTRY POINT
+// ============================================================================
+
+void main() {
+    uint vm_id = gl_GlobalInvocationID.x;
+    if (vm_id >= uint(vm_buffer.vms.length())) return;
+
+    VmState vm = vm_buffer.vms[vm_id];
+
+    // Skip inactive/halted VMs
+    if (vm.state != VM_STATE_RUNNING) return;
+
+    // Execute up to MAX_CYCLES
+    for (int i = 0; i < MAX_CYCLES; i++) {
+        if (vm.halted != 0u) break;
+        if (!execute_instruction(vm)) break;
+    }
+
+    // Write back state
+    vm_buffer.vms[vm_id] = vm;
+
+    // Write result to output buffer for verification
+    output.results[vm_id * 2ul] = vm.regs[1];     // x1 (link register)
+    output.results[vm_id * 2ul + 1ul] = vm.cycles;
+}

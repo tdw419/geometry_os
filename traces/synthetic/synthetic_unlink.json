@@ -1,0 +1,465 @@
+{
+  "trace_name": "synthetic_unlink",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4276,
+        "a1": 2,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4277,
+        "a1": 3,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4278,
+        "a1": 4,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4279,
+        "a1": 5,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4280,
+        "a1": 6,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4276,
+        "a1": 7,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4277,
+        "a1": 8,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4278,
+        "a1": 9,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4279,
+        "a1": 10,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 4280,
+        "a1": 11,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147483640,
+        "a1": 4585,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147483740,
+        "a1": 4586,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147483840,
+        "a1": 4587,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147483940,
+        "a1": 4588,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147484040,
+        "a1": 4589,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147484140,
+        "a1": 4585,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147484240,
+        "a1": 4586,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147484340,
+        "a1": 4587,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147484440,
+        "a1": 4588,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 21,
+        "name": "unlink",
+        "description": "unlink syscall"
+      },
+      "arguments": {
+        "a0": 2147484540,
+        "a1": 4589,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels",
+          "free_block_pixels"
+        ]
+      }
+    }
+  ]
+}

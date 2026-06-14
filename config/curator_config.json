@@ -1,0 +1,30 @@
+{
+  "curator": {
+    "version": "1.0.0",
+    "cycle_interval_seconds": 300,
+    "metrics": {
+      "min_item_count_for_spawn": 15,
+      "min_diversity_for_spawn": 0.7,
+      "min_growth_pct_for_respawn": 10,
+      "max_children_per_shard": 15,
+      "cooldown_seconds": 7200
+    },
+    "shard_types": {
+      "convention": { "icon": "🏛️", "grid_origin": [60, 60] },
+      "project": { "icon": "🏗️", "grid_origin": [60, 60] },
+      "environment": { "icon": "🌳", "grid_origin": [340, 60] },
+      "other": { "icon": "📦", "grid_origin": [480, 60] },
+      "user_profile": { "icon": "👤", "grid_origin": [340, 340] }
+    },
+    "socket": {
+      "unix_path": "/tmp/geo_cmd.sock",
+      "tcp_ports": [8392, 8732, 9732],
+      "timeout_seconds": 5
+    },
+    "pipeline_gaps": {
+      "environment": "PARTIALLY FIXED 2026-05-28 — Recategorized 14 research_library docs from other→environment via concept name matching. Environment shard now has 15 items (spawn threshold met!). Still needs ingest pipeline to tag docs with environment domain directly.",
+      "other": "FIXED 2026-05-29 — write_metadata_sidecar now extracts multiple topic seeds per statement (prefix+suffix+middle) + strips UUIDs from outcome subjects. Other shard diversity improved from 0.46→1.0 (247 topics for 178 items). Spawning unblocked.",
+      "user_profile": "FIXED 2026-05-28 — write_metadata_sidecar now extracts topics from content-only entries (USER.md). 12 topics extracted. Still needs 3+ more items to reach spawn threshold (15)."
+    }
+  }
+}

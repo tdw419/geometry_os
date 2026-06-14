@@ -1,0 +1,4 @@
+# Function to decompose a task into atomic steps
+def decompose_task(goal_text):
+    # Placeholder for actual decomposition logic
+    return ['Step 1', 'Step 2', 'Step 3']

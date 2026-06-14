@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "=== Booted Alpine Rootfs on Geometry OS Substrate ==="
+echo "Memory Palace Spatial Storage Interface Ready"
+echo "VirtIO Block Device: /dev/vda"

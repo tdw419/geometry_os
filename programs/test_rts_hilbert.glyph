@@ -1,0 +1,6 @@
+; Test Hilbert spatial opcodes + arithmetic
+LDI r1, 10
+LDI r2, 20
+ADD r3, r1, r2
+HILBERT_XY2D r4, r1, r2
+HALT

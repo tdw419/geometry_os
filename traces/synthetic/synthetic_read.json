@@ -1,0 +1,445 @@
+{
+  "trace_name": "synthetic_read",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147479368,
+        "a2": 512,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147479468,
+        "a2": 513,
+        "a3": 2147479436,
+        "a4": 4309,
+        "a5": 2
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 5,
+        "a1": 2147479568,
+        "a2": 514,
+        "a3": 2147479536,
+        "a4": 4310,
+        "a5": 3
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 6,
+        "a1": 2147479668,
+        "a2": 515,
+        "a3": 2147479636,
+        "a4": 4311,
+        "a5": 4
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 7,
+        "a1": 2147479768,
+        "a2": 516,
+        "a3": 2147479736,
+        "a4": 4312,
+        "a5": 5
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 8,
+        "a1": 2147479868,
+        "a2": 517,
+        "a3": 2147479836,
+        "a4": 4308,
+        "a5": 6
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 9,
+        "a1": 2147479968,
+        "a2": 518,
+        "a3": 2147479936,
+        "a4": 4309,
+        "a5": 7
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 10,
+        "a1": 2147480068,
+        "a2": 519,
+        "a3": 2147480036,
+        "a4": 4310,
+        "a5": 8
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 11,
+        "a1": 2147480168,
+        "a2": 520,
+        "a3": 2147480136,
+        "a4": 4311,
+        "a5": 9
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 12,
+        "a1": 2147480268,
+        "a2": 521,
+        "a3": 2147480236,
+        "a4": 4312,
+        "a5": 10
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 13,
+        "a1": 2147480368,
+        "a2": 522,
+        "a3": 2147480336,
+        "a4": 4308,
+        "a5": 11
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 14,
+        "a1": 2147480468,
+        "a2": 523,
+        "a3": 2147480436,
+        "a4": 4309,
+        "a5": 12
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 15,
+        "a1": 2147480568,
+        "a2": 524,
+        "a3": 2147480536,
+        "a4": 4310,
+        "a5": 13
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 16,
+        "a1": 2147480668,
+        "a2": 525,
+        "a3": 2147480636,
+        "a4": 4311,
+        "a5": 14
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 17,
+        "a1": 2147480768,
+        "a2": 526,
+        "a3": 2147480736,
+        "a4": 4312,
+        "a5": 15
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 18,
+        "a1": 2147480868,
+        "a2": 527,
+        "a3": 2147480836,
+        "a4": 4308,
+        "a5": 16
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 19,
+        "a1": 2147480968,
+        "a2": 528,
+        "a3": 2147480936,
+        "a4": 4309,
+        "a5": 17
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 20,
+        "a1": 2147481068,
+        "a2": 529,
+        "a3": 2147481036,
+        "a4": 4310,
+        "a5": 18
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 21,
+        "a1": 2147481168,
+        "a2": 530,
+        "a3": 2147481136,
+        "a4": 4311,
+        "a5": 19
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 3,
+        "name": "read",
+        "description": "read syscall"
+      },
+      "arguments": {
+        "a0": 22,
+        "a1": 2147481268,
+        "a2": 531,
+        "a3": 2147481236,
+        "a4": 4312,
+        "a5": 20
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "read_inode_pixels",
+          "copy_pixels_from_block_region"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+#!/bin/sh
+echo "=== Geometry OS Alpine Init Starting ==="
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t devpts devpts /dev/pts 2>/dev/null || true
+hostname geos-vm
+if [ -d /etc/local.d ]; then
+    for script in /etc/local.d/*.start; do
+        if [ -x "$script" ]; then
+            echo "Running: $script"
+            "$script"
+        fi
+    done
+fi
+echo ""
+echo "=== Geometry OS Spatial Console Ready ==="
+echo "Root login: passwordless (console-only)"
+echo ""
+exec sh -l

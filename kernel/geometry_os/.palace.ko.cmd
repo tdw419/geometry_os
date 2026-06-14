@@ -1,0 +1,1 @@
+savedcmd_palace.ko := riscv64-linux-gnu-ld -r -melf32lriscv -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /home/jericho/projects/zion/projects/geometry_os/geometry_os/.geometry_os/build/linux-6.14/scripts/module.lds -o palace.ko palace.o palace.mod.o .module-common.o

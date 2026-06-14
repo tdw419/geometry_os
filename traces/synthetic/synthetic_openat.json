@@ -1,0 +1,445 @@
+{
+  "trace_name": "synthetic_openat",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4276,
+        "a1": 2,
+        "a2": 2152761456,
+        "a3": 3,
+        "a4": 1,
+        "a5": 0
+      },
+      "return_value": 9,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4277,
+        "a1": 3,
+        "a2": 2152761956,
+        "a3": 4,
+        "a4": 2,
+        "a5": 0
+      },
+      "return_value": 10,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4278,
+        "a1": 4,
+        "a2": 2152762456,
+        "a3": 5,
+        "a4": 3,
+        "a5": 0
+      },
+      "return_value": 11,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4279,
+        "a1": 5,
+        "a2": 2152762956,
+        "a3": 6,
+        "a4": 4,
+        "a5": 0
+      },
+      "return_value": 12,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4280,
+        "a1": 6,
+        "a2": 2152763456,
+        "a3": 7,
+        "a4": 5,
+        "a5": 0
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4276,
+        "a1": 7,
+        "a2": 2152763956,
+        "a3": 8,
+        "a4": 6,
+        "a5": 0
+      },
+      "return_value": 9,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4277,
+        "a1": 8,
+        "a2": 2152764456,
+        "a3": 9,
+        "a4": 7,
+        "a5": 0
+      },
+      "return_value": 10,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4278,
+        "a1": 9,
+        "a2": 2152764956,
+        "a3": 10,
+        "a4": 8,
+        "a5": 0
+      },
+      "return_value": 11,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4279,
+        "a1": 10,
+        "a2": 2152765456,
+        "a3": 11,
+        "a4": 9,
+        "a5": 0
+      },
+      "return_value": 12,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 4280,
+        "a1": 11,
+        "a2": 2152765956,
+        "a3": 12,
+        "a4": 10,
+        "a5": 0
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147483640,
+        "a1": 0,
+        "a2": 4585,
+        "a3": 2147479368,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147483740,
+        "a1": 0,
+        "a2": 4586,
+        "a3": 2147479468,
+        "a4": 4309,
+        "a5": 2
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147483840,
+        "a1": 0,
+        "a2": 4587,
+        "a3": 2147479568,
+        "a4": 4310,
+        "a5": 3
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147483940,
+        "a1": 0,
+        "a2": 4588,
+        "a3": 2147479668,
+        "a4": 4311,
+        "a5": 4
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147484040,
+        "a1": 0,
+        "a2": 4589,
+        "a3": 2147479768,
+        "a4": 4312,
+        "a5": 5
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147484140,
+        "a1": 0,
+        "a2": 4585,
+        "a3": 2147479868,
+        "a4": 4308,
+        "a5": 6
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147484240,
+        "a1": 0,
+        "a2": 4586,
+        "a3": 2147479968,
+        "a4": 4309,
+        "a5": 7
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147484340,
+        "a1": 0,
+        "a2": 4587,
+        "a3": 2147480068,
+        "a4": 4310,
+        "a5": 8
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147484440,
+        "a1": 0,
+        "a2": 4588,
+        "a3": 2147480168,
+        "a4": 4311,
+        "a5": 9
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 15,
+        "name": "openat",
+        "description": "openat syscall"
+      },
+      "arguments": {
+        "a0": 2147484540,
+        "a1": 0,
+        "a2": 4589,
+        "a3": 2147480268,
+        "a4": 4312,
+        "a5": 10
+      },
+      "return_value": 3,
+      "semantics": {
+        "spatial_ops": [
+          "traverse_directory_hilbert_tree",
+          "load_inode_pixels"
+        ]
+      }
+    }
+  ]
+}

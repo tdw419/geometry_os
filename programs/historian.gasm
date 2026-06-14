@@ -1,0 +1,48 @@
+; historian.gasm -- IPC ring-buffer historian VM program
+; Receives fitness report messages from other VMs via RECV,
+; stores them in a ring buffer, yields each frame.
+;
+; Register allocation:
+;   r0 = dest_addr (RECV destination, points into ring buffer)
+;   r1 = status (RECV result: 1=message, 0=empty)
+;   r2 = ring_base (0x00D00000)
+;   r3 = ring_write_ptr (current write position in ring)
+;   r4 = ring_end (ring_base + 16 * 4 = 0x00D00040)
+;   r5 = msg_size (4 pixels per message)
+;   r6 = zero constant
+;
+; Ring buffer: 16 entries x 4 pixels, wraps at ring_end
+; Message format: [msg_type, sender_vm_id, fitness_score, cycles]
+;
+; Address map:
+;   addr 0-9:   setup (5 LDI instructions, 2 pixels each)
+;   addr 10-16: recv_loop (MOV, RECV, BNE, YIELD, JMP)
+;   addr 17-20: got_message (ADD, BNE, MOV wrap)
+;   addr 21-23: continue (YIELD, JMP)
+;   addr 24:    HALT (unreachable, for governance compliance)
+
+LDI r2, 0x00D00000
+LDI r3, 0x00D00000
+LDI r4, 0x00D00040
+LDI r5, 4
+LDI r6, 0
+
+; recv_loop (addr 10):
+MOV r0, r3
+RECV r0, r1
+BNE r1, r6, 5
+
+; no_message (addr 14):
+YIELD
+JMP -5
+
+; got_message (addr 17):
+ADD r3, r5
+BNE r3, r4, 3
+MOV r3, r2
+
+; continue (addr 21):
+YIELD
+JMP -12
+
+HALT

@@ -1,0 +1,8 @@
+[build]
+target = "x86_64-unknown-uefi"
+
+[target.x86_64-unknown-uefi]
+runner = "./run_bare_metal.sh"
+
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]

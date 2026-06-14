@@ -1,0 +1,17 @@
+; AI Bridge Initialization
+; Sends the Strategic Brief to Ollama via Opcode 0x9C
+
+:main
+    LDI r1, :prompt_addr        ; Address of the Brief
+    LDI r2, :response_addr      ; Destination for Strategy
+    LDI r3, 2048                ; Max response length
+    LLM r1, r2, r3              ; The Discussion Begins
+    HALT
+
+:prompt_addr
+    ; (The text from ollama_spatial_strategy.txt would be loaded here)
+    0x00
+
+:response_addr
+    ; Response buffer starts here
+    0x00

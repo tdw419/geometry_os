@@ -1,0 +1,19 @@
+title: "Generated from Possibility Tree"
+version: "0.1.0"
+description: "Auto-generated roadmap from possibility exploration"
+project_url: ""
+
+phases:
+  - id: "phase-1"
+    title: "What should we work on next for geometry_os?"
+    status: "planned"
+    goal: ""
+    description: ""
+    deliverables:
+      - name: "Implementation"
+        description: "Implement What should we work on next for geometry_os?"
+        status: "planned"
+        acceptance_criteria:
+          - description: "Tests pass"
+            validation: "pytest"
+            met: false

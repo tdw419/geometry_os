@@ -1,0 +1,24 @@
+; Neural Importance Evaluator
+; Uses a weight pixel to decide if a fragment should be migrated
+
+:main
+    LDI r1, 100         ; Input: Data CPPM (Current usage)
+    LDI r2, :weight_pk  ; Address of the Neural Weight pixel
+    NEURAL_EVAL r3, r1, r2 ; Execute Neural Substrate logic
+    
+    ; If r3 > 128, the "Neural Brain" says this is IMPORTANT
+    LDI r4, 128
+    SUB r5, r3, r4
+    JZ r5, :migrate     ; Jump to migration if important
+    HALT
+
+:migrate
+    ; Perform spatial migration to Hub...
+    LDI r0, 0x00FF00    ; Success Green
+    FILL r0
+    HALT
+
+:weight_pk
+    ; Weight(127) | Bias(-10) | Act(0) | Grad(0)
+    ; This pixel acts as the "Decision logic"
+    0x7F F6 00 00

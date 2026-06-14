@@ -1,0 +1,32 @@
+{
+  "device_name": "Geometry OS Framebuffer",
+  "device_type": "display",
+  "description": "256x256 RGBA pixel framebuffer with direct MMIO access",
+  "mmio_base": "0x60000000",
+  "mmio_size": 262152,
+  "bus_interface": "MMIO",
+  "memory_layout": {
+    "pixel_buffer": {
+      "base": "0x60000000",
+      "size": 262144,
+      "description": "256x256 pixels, each 32-bit RGBA. Bits [31:24]=R, [23:16]=G, [15:8]=B, [7:0]=A",
+      "pixel_address": "offset = (y * 256 + x) * 4 from base"
+    },
+    "control_register": {
+      "address": "0x60400000",
+      "description": "Write 1 to flush/signal present to host display",
+      "access": "write_only"
+    },
+    "clip_register": {
+      "address": "0x60400004",
+      "description": "Clip control. Write format: (y << 24) | (x << 16) | (h << 8) | w. Write 0xFFFFFFFF to disable clipping.",
+      "access": "write_only"
+    }
+  },
+  "programming_model": {
+    "write_pixel": "Store 32-bit value at base + (y * 256 + x) * 4",
+    "flush": "Write 1 to control register at 0x60400000",
+    "pixel_format": "0xRRGGBBAA (alpha in low byte)",
+    "resolution": "256x256"
+  }
+}

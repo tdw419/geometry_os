@@ -1,0 +1,16 @@
+{
+  "base_url": "https://api.z.ai/api/coding/paas/v4",
+  "model": "glm-5.1",
+  "vision_model": "llama3.2-vision:11b",
+  "api_key": "6d908c76477a42d79130548952761348.jRdbLXpjwHEsa0a1",
+  "max_tokens": 4096,
+  "temperature": 0.1,
+  "fallback": {
+    "base_url": "https://api.moonshot.cn/v1",
+    "model": "moonshot-v2-128k",
+    "vision_model": "llama3.2-vision:11b",
+    "api_key": "sk-kimi-SsEvQZzWWLKJOtfCtMgebG7XF7IwMspIIY359yHDsYMyV6De1V5oM7XMKTdzl7AQ",
+    "max_tokens": 4096,
+    "temperature": 0.3
+  }
+}

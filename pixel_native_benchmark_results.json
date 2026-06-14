@@ -1,0 +1,64 @@
+{
+  "timestamp": "2026-06-12T22:23:04.360724",
+  "dispatch_analysis": {
+    "traditional_steps": [
+      "ECALL_U trap detection",
+      "Trap delegation check",
+      "S-mode trap delivery",
+      "Kernel syscall handler",
+      "Kernel execution",
+      "SRET to user space"
+    ],
+    "pixel_native_steps": [
+      "ECALL_U trap detection",
+      "Pixel-native dispatch call",
+      "Direct spatial execution",
+      "Return to user space"
+    ],
+    "traditional_cycles": 100,
+    "pixel_native_cycles": 48,
+    "improvement_pct": 52.0,
+    "speedup": 2.0833333333333335
+  },
+  "trace_analysis": {
+    "workloads": [
+      {
+        "name": "echo TEST",
+        "syscall_count": 10,
+        "traditional_overhead": 1000,
+        "pixel_native_overhead": 300
+      },
+      {
+        "name": "fork_test",
+        "syscall_count": 137,
+        "traditional_overhead": 13700,
+        "pixel_native_overhead": 4110
+      },
+      {
+        "name": "ls",
+        "syscall_count": 469,
+        "traditional_overhead": 46900,
+        "pixel_native_overhead": 14070
+      },
+      {
+        "name": "cat init",
+        "syscall_count": 58,
+        "traditional_overhead": 5800,
+        "pixel_native_overhead": 1740
+      },
+      {
+        "name": "mkdir /tmp; ls /tmp",
+        "syscall_count": 62,
+        "traditional_overhead": 6200,
+        "pixel_native_overhead": 1860
+      }
+    ],
+    "total_syscalls_traditional": 736,
+    "total_syscalls_pixel_native": 0
+  },
+  "summary": {
+    "dispatch_speedup": 2.0833333333333335,
+    "dispatch_improvement_pct": 52.0,
+    "vcc_improvement_pct": 70.0
+  }
+}

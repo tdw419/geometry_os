@@ -1,0 +1,276 @@
+; Conway's Game of Life Filmstrip -- Double-Buffered Version
+; Runs one generation of GoL on a 32x32 region of the screen.
+; Uses 3 frames: Seed (plant a Blinker), Step (compute one gen), Done
+;
+; Double-buffering strategy:
+;   Pass 1 (Compute): For each cell, PGET neighbors from screen, STORE
+;     new state to scratch buffer (at SCRATCH_BASE + y*32 + x).
+;   Pass 2 (Copy): For each cell, LOAD from scratch buffer, PSET to screen.
+;   This avoids the in-place corruption where early writes affect later reads.
+;
+; Register allocation:
+;   r0  = x coordinate (0..31)
+;   r1  = y coordinate (0..31)
+;   r2  = neighbor count (accumulated)
+;   r3  = 0 constant
+;   r4  = 1 constant
+;   r5  = 32 (row/col limit)
+;   r6  = current cell state / temp
+;   r7  = temp for coordinate math
+;   r8  = temp for coordinate math
+;   r9  = target frame index (for FRAME jumps)
+;   r10 = scratch buffer base address (pixel index)
+;   r11 = scratch offset for current cell
+;   r12 = alive color (white = 0xFFFFFFFF)
+;   r14 = neighbor temp value
+;   r15 = generation counter
+;   r16 = max generations
+
+.frame "Seed"
+
+; Constants
+LDI r3, 0
+LDI r4, 1
+LDI r5, 32
+LDI r12, 0xFFFFFFFF
+LDI r15, 0              ; generation = 0
+LDI r16, 1              ; max generations = 1
+
+; Scratch buffer base: use pixel index 32000 (past all frame code)
+LDI r10, 32000
+
+; Plant a Blinker at (10,10):
+;   XXX    (9,10), (10,10), (11,10)
+
+LDI r0, 9
+LDI r1, 10
+PSET r0, r1, r12        ; (9,10)
+
+LDI r0, 10
+LDI r1, 10
+PSET r0, r1, r12        ; (10,10)
+
+LDI r0, 11
+LDI r1, 10
+PSET r0, r1, r12        ; (11,10)
+
+; Jump to Step
+LDI r9, 1
+FRAME r9
+
+---
+
+.frame "Step"
+
+; Re-establish constants (registers survive frame jump, but be safe)
+LDI r3, 0
+LDI r4, 1
+LDI r5, 32
+LDI r10, 32000
+LDI r12, 0xFFFFFFFF
+
+; ══════════════════════════════════════════════
+; Pass 1: Compute -- read screen, write to scratch
+; ══════════════════════════════════════════════
+
+LDI r0, 0               ; x = 0
+LDI r1, 0               ; y = 0
+
+compute_cell:
+LDI r2, 0               ; neighbor count = 0
+
+; ── Neighbor 1: (x-1, y-1) ──
+MOV r7, r0
+SUB r7, r4
+MOV r8, r1
+SUB r8, r4
+PGET r14, r7, r8
+BNE r14, r3, nb1_alive
+JMP nb1_done
+nb1_alive:
+ADD r2, r4
+nb1_done:
+
+; ── Neighbor 2: (x, y-1) ──
+MOV r8, r1
+SUB r8, r4
+PGET r14, r0, r8
+BNE r14, r3, nb2_alive
+JMP nb2_done
+nb2_alive:
+ADD r2, r4
+nb2_done:
+
+; ── Neighbor 3: (x+1, y-1) ──
+MOV r7, r0
+ADD r7, r4
+MOV r8, r1
+SUB r8, r4
+PGET r14, r7, r8
+BNE r14, r3, nb3_alive
+JMP nb3_done
+nb3_alive:
+ADD r2, r4
+nb3_done:
+
+; ── Neighbor 4: (x-1, y) ──
+MOV r7, r0
+SUB r7, r4
+PGET r14, r7, r1
+BNE r14, r3, nb4_alive
+JMP nb4_done
+nb4_alive:
+ADD r2, r4
+nb4_done:
+
+; ── Neighbor 5: (x+1, y) ──
+MOV r7, r0
+ADD r7, r4
+PGET r14, r7, r1
+BNE r14, r3, nb5_alive
+JMP nb5_done
+nb5_alive:
+ADD r2, r4
+nb5_done:
+
+; ── Neighbor 6: (x-1, y+1) ──
+MOV r7, r0
+SUB r7, r4
+MOV r8, r1
+ADD r8, r4
+PGET r14, r7, r8
+BNE r14, r3, nb6_alive
+JMP nb6_done
+nb6_alive:
+ADD r2, r4
+nb6_done:
+
+; ── Neighbor 7: (x, y+1) ──
+MOV r8, r1
+ADD r8, r4
+PGET r14, r0, r8
+BNE r14, r3, nb7_alive
+JMP nb7_done
+nb7_alive:
+ADD r2, r4
+nb7_done:
+
+; ── Neighbor 8: (x+1, y+1) ──
+MOV r7, r0
+ADD r7, r4
+MOV r8, r1
+ADD r8, r4
+PGET r14, r7, r8
+BNE r14, r3, nb8_alive
+JMP nb8_done
+nb8_alive:
+ADD r2, r4
+nb8_done:
+
+; ── Apply B3/S23 rules ──
+; Get current cell state
+PGET r6, r0, r1
+
+; If cell is alive:
+BNE r6, r3, cell_alive
+
+; Cell is dead: born if neighbors == 3
+LDI r7, 3
+BNE r2, r7, cell_dead_store
+JMP cell_born_store
+
+cell_alive:
+; Cell is alive: survive if neighbors == 2 or neighbors == 3
+LDI r7, 2
+BNE r2, r7, alive_test3
+JMP cell_survive_store
+alive_test3:
+LDI r7, 3
+BNE r2, r7, cell_dead_store
+JMP cell_survive_store
+
+cell_born_store:
+cell_survive_store:
+; Store 1 (alive) to scratch[y*32 + x]
+MOV r11, r1
+MUL r11, r5             ; r11 = y * 32
+ADD r11, r0             ; r11 = y*32 + x
+ADD r11, r10            ; r11 = SCRATCH_BASE + y*32 + x
+STORE r11, r4           ; store 1
+JMP next_cell
+
+cell_dead_store:
+; Store 0 to scratch[y*32 + x]
+MOV r11, r1
+MUL r11, r5
+ADD r11, r0
+ADD r11, r10
+STORE r11, r3           ; store 0
+
+next_cell:
+; Advance x
+ADD r0, r4
+BNE r0, r5, compute_cell
+
+; End of row: reset x, advance y
+LDI r0, 0
+ADD r1, r4
+BNE r1, r5, compute_cell
+
+; ══════════════════════════════════════════════
+; Pass 2: Copy -- read scratch, write to screen
+; ══════════════════════════════════════════════
+
+LDI r0, 0               ; x = 0
+LDI r1, 0               ; y = 0
+
+copy_cell:
+; Load from scratch[y*32 + x]
+MOV r11, r1
+MUL r11, r5
+ADD r11, r0
+ADD r11, r10
+LOAD r6, r11            ; r6 = scratch cell state
+
+; Write to screen
+BNE r6, r3, copy_alive
+; Dead cell: write 0
+PSET r0, r1, r3
+JMP copy_next
+
+copy_alive:
+; Alive cell: write white
+PSET r0, r1, r12
+
+copy_next:
+; Advance x
+ADD r0, r4
+BNE r0, r5, copy_cell
+
+; End of row
+LDI r0, 0
+ADD r1, r4
+BNE r1, r5, copy_cell
+
+; ══════════════════════════════════════════════
+; Generation bookkeeping
+; ══════════════════════════════════════════════
+
+ADD r15, r4
+LDI r0, 0
+LDI r1, 0
+
+; Check if done
+BNE r15, r16, more_gens
+LDI r9, 2
+FRAME r9
+
+more_gens:
+LDI r9, 1
+FRAME r9
+
+---
+
+.frame "Done"
+
+HALT

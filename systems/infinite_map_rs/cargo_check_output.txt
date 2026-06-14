@@ -1,0 +1,815 @@
+warning: unexpected `cfg` condition value: `parallel`
+  --> /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/src/spectral_mixer.rs:27:7
+   |
+27 | #[cfg(feature = "parallel")]
+   |       ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `image` and `png_export`
+   = help: consider adding `parallel` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `parallel`
+   --> /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/src/spectral_mixer.rs:363:11
+    |
+363 |     #[cfg(feature = "parallel")]
+    |           ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `image` and `png_export`
+    = help: consider adding `parallel` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `parallel`
+   --> /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/src/spectral_mixer.rs:325:15
+    |
+325 |         #[cfg(feature = "parallel")]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `image` and `png_export`
+    = help: consider adding `parallel` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `parallel`
+   --> /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/src/spectral_mixer.rs:334:19
+    |
+334 |         #[cfg(not(feature = "parallel"))]
+    |                   ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `image` and `png_export`
+    = help: consider adding `parallel` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unused variable: `total_samples`
+   --> /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/src/pixelrts_bridge.rs:332:13
+    |
+332 |         let total_samples = blur_diameter * blur_diameter;
+    |             ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_total_samples`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `rot` is never used
+   --> /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/src/hilbert_mapper.rs:309:8
+    |
+ 27 | impl HilbertMapper {
+    | ------------------ method in this implementation
+...
+309 |     fn rot(&self, n: i32, x: i32, y: i32, rx: i32, ry: i32) -> (i32, i32) {
+    |        ^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `visual_shell` (lib) generated 6 warnings
+    Checking infinite_map_rs v0.1.0 (/home/jericho/zion/projects/geometry_os/geometry_os/systems/infinite_map_rs)
+error[E0433]: failed to resolve: could not find `SmallRng` in `rngs`
+   --> src/glyph_stratum/mod.rs:398:35
+    |
+398 |         let mut rng = rand::rngs::SmallRng::seed_from_u64(seed);
+    |                                   ^^^^^^^^ could not find `SmallRng` in `rngs`
+    |
+note: found an item that was configured out
+   --> /home/jericho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand-0.8.5/src/rngs/mod.rs:114:52
+    |
+114 | #[cfg(feature = "small_rng")] pub use self::small::SmallRng;
+    |       ---------------------                        ^^^^^^^^
+    |       |
+    |       the item is gated behind the `small_rng` feature
+
+warning: unused imports: `SeedableRng` and `rngs::StdRng`
+ --> src/glyph_stratum/mod.rs:7:17
+  |
+7 | use rand::{Rng, SeedableRng, rngs::StdRng};
+  |                 ^^^^^^^^^^^  ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `cartridge_registry::CartridgeRegistry`
+  --> src/app.rs:43:5
+   |
+43 |     cartridge_registry::CartridgeRegistry,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::glyph_stratum::*`
+ --> src/font_atlas.rs:6:5
+  |
+6 | use crate::glyph_stratum::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unnecessary parentheses around assigned value
+  --> src/tile.rs:49:24
+   |
+49 |           self.overall = (
+   |  ________________________^
+50 | |             boot_fitness * 0.2 +
+   | |____________^
+...
+53 |               self.user_utility * 0.2
+   |  ____________________________________^
+54 | |         );
+   | |_________^
+   |
+   = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+   |
+49 ~         self.overall = boot_fitness * 0.2 +
+50 |             self.stability_score * 0.3 +
+51 |             self.performance_score * 0.3 +
+52 ~             self.user_utility * 0.2;
+   |
+
+warning: unused variable: `clients_broadcast`
+   --> src/camera_sync.rs:170:21
+    |
+170 |                 let clients_broadcast = Arc::clone(&clients);
+    |                     ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_clients_broadcast`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `client_id_broadcast`
+   --> src/camera_sync.rs:171:21
+    |
+171 |                 let client_id_broadcast = client_id.clone();
+    |                     ^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_client_id_broadcast`
+
+warning: unused variable: `u32_size`
+   --> src/compiler_tile.rs:459:13
+    |
+459 |         let u32_size = std::mem::size_of::<u32>() as u32;
+    |             ^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+459 |         let _u32_size = std::mem::size_of::<u32>() as u32;
+    |             +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_VERSION`
+    |
+459 -         let u32_size = std::mem::size_of::<u32>() as u32;
+459 +         let virtual_machine::VIRTIO_CONSOLE_VERSION = std::mem::size_of::<u32>() as u32;
+    |
+
+warning: variable does not need to be mutable
+  --> src/glass_ram/bridge.rs:88:28
+   |
+88 | async fn handle_connection(mut stream: tokio::net::UnixStream, tx: mpsc::Sender<VisualCommand>) {
+   |                            ----^^^^^^
+   |                            |
+   |                            help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `color`
+   --> src/synapse/morphology.rs:189:9
+    |
+189 |         color: [f32; 4],
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_color`
+
+warning: unused variable: `code`
+   --> src/synapse/z_ai_client.rs:102:47
+    |
+102 |     pub async fn analyze_syntax_health(&self, code: &str) -> Result<(f32, Vec<String>)> {
+    |                                               ^^^^ help: if this is intentional, prefix it with an underscore: `_code`
+
+warning: unused variable: `prompt`
+   --> src/synapse/z_ai_client.rs:103:13
+    |
+103 |         let prompt = "Analyze this Rust code for 'health'. Return a JSON: {\"score\": 0.0-1.0, \"issues\": [\"list\"]}.";
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_prompt`
+
+warning: use of deprecated associated function `nix::errno::<impl nix::errno::Errno>::from_i32`: please use `Errno::from_raw()` instead
+   --> src/glass_ram/uffd_wrapper.rs:363:32
+    |
+363 |                     Err(Errno::from_i32(errno))
+    |                                ^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: unreachable statement
+    --> src/renderer.rs:1204:9
+     |
+1203 |         return; // TEMPORARY: Disable to stop crash due to shader binding mismatch
+     |         ------ any code following this expression is unreachable
+1204 |         eprintln!("debug: Enabling evolution terrain rendering...");
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+     |
+     = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+     = note: this warning originates in the macro `eprintln` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: variable does not need to be mutable
+   --> src/alpine_vm.rs:509:13
+    |
+509 |         let mut child = Command::new("python3")
+    |             ----^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> src/app.rs:2566:23
+     |
+2566 |             if let Ok(mut bridge) = bridge_arc.lock() {
+     |                       ----^^^^^^
+     |                       |
+     |                       help: remove this `mut`
+
+warning: unused variable: `window_id`
+    --> src/app.rs:2754:79
+     |
+2754 |     fn launch_cartridge_vm(&mut self, cartridge_id: &str, binary_data: &[u8], window_id: usize) -> Result<(), String> {
+     |                                                                               ^^^^^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+2754 |     fn launch_cartridge_vm(&mut self, cartridge_id: &str, binary_data: &[u8], _window_id: usize) -> Result<(), String> {
+     |                                                                               +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+     |
+2754 -     fn launch_cartridge_vm(&mut self, cartridge_id: &str, binary_data: &[u8], window_id: usize) -> Result<(), String> {
+2754 +     fn launch_cartridge_vm(&mut self, cartridge_id: &str, binary_data: &[u8], virtual_machine::VIRTIO_CONSOLE_F_SIZE: usize) -> Result<(), String> {
+     |
+
+warning: unused variable: `image_data`
+    --> src/app.rs:2789:13
+     |
+2789 |         let image_data = std::fs::read(path_obj)
+     |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_image_data`
+
+warning: variable does not need to be mutable
+    --> src/app.rs:3515:21
+     |
+3515 |                 let mut external_emu = None;
+     |                     ----^^^^^^^^^^^^
+     |                     |
+     |                     help: remove this `mut`
+
+warning: variable `first_error` is assigned to, but never used
+  --> src/backend/winit.rs:49:17
+   |
+49 |         let mut first_error = None;
+   |                 ^^^^^^^^^^^
+   |
+   = note: consider using `_first_error` instead
+
+warning: value assigned to `first_error` is never read
+  --> src/backend/winit.rs:57:17
+   |
+57 |                 first_error = Some(e);
+   |                 ^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> src/cognitive/host_functions.rs:10:46
+   |
+10 |     linker.func_wrap("ace", "read_texture", |mut caller: Caller<'_, ACEState>, x: u32, y: u32| -> u32 {
+   |                                              ----^^^^^^
+   |                                              |
+   |                                              help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/cognitive/host_functions.rs:27:47
+   |
+27 |     linker.func_wrap("ace", "write_texture", |mut caller: Caller<'_, ACEState>, x: u32, y: u32, color: u32| {
+   |                                               ----^^^^^^
+   |                                               |
+   |                                               help: remove this `mut`
+
+warning: unused variable: `loop_handle`
+   --> src/compositor_state.rs:102:33
+    |
+102 | pub fn init_xwayland(&mut self, loop_handle: &LoopHandle<'static, GeometryCompositorState>) {
+    |                                 ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_loop_handle`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:196:17
+    |
+196 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:331:17
+    |
+331 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:367:17
+    |
+367 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:392:17
+    |
+392 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:418:17
+    |
+418 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:454:17
+    |
+454 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:538:13
+    |
+538 |         let mut client = self.client.lock().unwrap();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:618:13
+    |
+618 |         let mut client = self.client.lock().unwrap();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/evolution_manager.rs:660:13
+    |
+660 |         let mut client = self.client.lock().unwrap();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `dt`
+   --> src/flash_texture.rs:109:30
+    |
+109 |     pub fn update(&mut self, dt: f64) {
+    |                              ^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+109 |     pub fn update(&mut self, _dt: f64) {
+    |                              +
+help: you might have meant to pattern match on the similarly named constant `MIN_TEMPERATURE`
+    |
+109 -     pub fn update(&mut self, dt: f64) {
+109 +     pub fn update(&mut self, tectonic::solver::MIN_TEMPERATURE: f64) {
+    |
+
+warning: unused variable: `device`
+   --> src/flash_texture.rs:120:30
+    |
+120 |     pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    |                              ^^^^^^ help: if this is intentional, prefix it with an underscore: `_device`
+
+warning: unused variable: `queue`
+   --> src/flash_texture.rs:120:53
+    |
+120 |     pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    |                                                     ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `info`
+  --> src/foundry/rts_loader.rs:27:13
+   |
+27 |         let info = reader.next_frame(&mut buf).map_err(|e| Error::new(ErrorKind::InvalidData, e.to_string()))?;
+   |             ^^^^ help: if this is intentional, prefix it with an underscore: `_info`
+
+warning: unused variable: `range`
+  --> src/glass_ram/process_attacher.rs:42:17
+   |
+42 |             let range = UffdIoctlMode::REGISTER_MODE_WP; // Use WP mode for registration if available?
+   |                 ^^^^^ help: if this is intentional, prefix it with an underscore: `_range`
+
+warning: unused variable: `flags`
+  --> src/glass_ram/monitor.rs:58:46
+   |
+58 |             FaultEvent::PageFault { address, flags, thread_id } => {
+   |                                              ^^^^^ help: try ignoring the field: `flags: _`
+
+warning: unused variable: `z`
+  --> src/glass_ram/compressed_sensing.rs:53:29
+   |
+53 |                  let (x, y, z) = self.hilbert.d_to_xyz(scaled_idx as u64);
+   |                             ^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+53 |                  let (x, y, _z) = self.hilbert.d_to_xyz(scaled_idx as u64);
+   |                             +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_VERSION`
+   |
+53 -                  let (x, y, z) = self.hilbert.d_to_xyz(scaled_idx as u64);
+53 +                  let (x, y, virtual_machine::VIRTIO_CONSOLE_VERSION) = self.hilbert.d_to_xyz(scaled_idx as u64);
+   |
+
+warning: unused variable: `id`
+   --> src/graph_renderer.rs:384:14
+    |
+384 |         for (id, node) in &graph.nodes {
+    |              ^^ help: if this is intentional, prefix it with an underscore: `_id`
+
+warning: unused variable: `queue`
+   --> src/hex_tensor_editor.rs:275:50
+    |
+275 |     pub fn set_mode(&mut self, mode: EditorMode, queue: &wgpu::Queue) {
+    |                                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `queue`
+   --> src/hex_tensor_editor.rs:280:44
+    |
+280 |     pub fn update_hex_at_cursor(&mut self, queue: &wgpu::Queue, ch: char) -> bool {
+    |                                            ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `queue`
+   --> src/hex_tensor_editor.rs:329:36
+    |
+329 |     pub fn navigate_hex(&mut self, queue: &wgpu::Queue, direction: HexNavDirection) {
+    |                                    ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `queue`
+   --> src/hex_tensor_editor.rs:415:28
+    |
+415 |     pub fn undo(&mut self, queue: &wgpu::Queue) -> bool {
+    |                            ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `queue`
+   --> src/hex_tensor_editor.rs:430:28
+    |
+430 |     pub fn redo(&mut self, queue: &wgpu::Queue) -> bool {
+    |                            ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `start`
+   --> src/hex_tensor_editor.rs:453:32
+    |
+453 |     pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+    |                                ^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+453 |     pub fn get_hex_dump(&self, _start: usize, count: usize) -> Vec<String> {
+    |                                +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+453 -     pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+453 +     pub fn get_hex_dump(&self, virtual_machine::VIRTIO_CONSOLE_F_SIZE: usize, count: usize) -> Vec<String> {
+    |
+
+warning: unused variable: `count`
+   --> src/hex_tensor_editor.rs:453:46
+    |
+453 |     pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+    |                                              ^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+453 |     pub fn get_hex_dump(&self, start: usize, _count: usize) -> Vec<String> {
+    |                                              +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+453 -     pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+453 +     pub fn get_hex_dump(&self, start: usize, virtual_machine::VIRTIO_CONSOLE_F_SIZE: usize) -> Vec<String> {
+    |
+
+warning: unused variable: `last_idx`
+   --> src/hex_tensor_editor.rs:573:17
+    |
+573 |             let last_idx = self.search_query.len() - 1;
+    |                 ^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+573 |             let _last_idx = self.search_query.len() - 1;
+    |                 +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+573 -             let last_idx = self.search_query.len() - 1;
+573 +             let virtual_machine::VIRTIO_CONSOLE_F_SIZE = self.search_query.len() - 1;
+    |
+
+warning: unused variable: `j`
+   --> src/hex_tensor_editor.rs:714:17
+    |
+714 |             for j in chunk.len()..bytes_per_row {
+    |                 ^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+714 |             for _j in chunk.len()..bytes_per_row {
+    |                 +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+714 -             for j in chunk.len()..bytes_per_row {
+714 +             for virtual_machine::VIRTIO_CONSOLE_F_SIZE in chunk.len()..bytes_per_row {
+    |
+
+warning: unused variable: `manager_arc`
+   --> src/hex_tensor_editor.rs:737:21
+    |
+737 |         if let Some(manager_arc) = &self.evolution_manager {
+    |                     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_manager_arc`
+
+warning: unused variable: `queue`
+   --> src/hex_tensor_editor.rs:829:42
+    |
+829 |     pub fn apply_neural_patch(&mut self, queue: &wgpu::Queue, offset: usize, patch: &[u8]) -> Result<(), String> {
+    |                                          ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: value assigned to `rx` is never read
+   --> src/hilbert_memory.rs:110:17
+    |
+110 |         let mut rx = 0u32;
+    |                 ^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: value assigned to `ry` is never read
+   --> src/hilbert_memory.rs:111:17
+    |
+111 |         let mut ry = 0u32;
+    |                 ^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `current_time`
+   --> src/immune_system.rs:265:13
+    |
+265 |         let current_time = crate::tile::current_timestamp();
+    |             ^^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+265 |         let _current_time = crate::tile::current_timestamp();
+    |             +
+help: you might have meant to pattern match on the similarly named constant `MIN_TEMPERATURE`
+    |
+265 -         let current_time = crate::tile::current_timestamp();
+265 +         let tectonic::solver::MIN_TEMPERATURE = crate::tile::current_timestamp();
+    |
+
+warning: variable does not need to be mutable
+  --> src/infinite_map.rs:44:32
+   |
+44 |     pub fn add_tile(&mut self, mut tile: Tile) {
+   |                                ----^^^^
+   |                                |
+   |                                help: remove this `mut`
+
+warning: unused variable: `key`
+   --> src/infinite_map.rs:234:14
+    |
+234 |         for (key, value) in &mut tile.genotype.kernel_params {
+    |              ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+
+warning: unused variable: `key`
+   --> src/infinite_map.rs:247:14
+    |
+247 |         for (key, value) in &mut tile.genotype.kernel_params {
+    |              ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+
+warning: unused variable: `duration_ms`
+   --> src/memory_artifacts.rs:533:56
+    |
+533 |     pub fn pulse(&mut self, id: usize, intensity: f32, duration_ms: u64) {
+    |                                                        ^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+533 |     pub fn pulse(&mut self, id: usize, intensity: f32, _duration_ms: u64) {
+    |                                                        +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_PORT_SIZE`
+    |
+533 -     pub fn pulse(&mut self, id: usize, intensity: f32, duration_ms: u64) {
+533 +     pub fn pulse(&mut self, id: usize, intensity: f32, virtual_machine::VIRTIO_CONSOLE_PORT_SIZE: u64) {
+    |
+
+warning: unused variable: `world`
+  --> src/memory_inspector.rs:98:47
+   |
+98 |     pub fn create_memory_artifacts(&mut self, world: &mut ()) {
+   |                                               ^^^^^ help: if this is intentional, prefix it with an underscore: `_world`
+
+warning: variable `neural_metadata` is assigned to, but never used
+   --> src/memory_tensor.rs:315:17
+    |
+315 |         let mut neural_metadata = None;
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = note: consider using `_neural_metadata` instead
+
+warning: value assigned to `neural_metadata` is never read
+   --> src/memory_tensor.rs:321:17
+    |
+321 |                 neural_metadata = Some(json.clone());
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+   --> src/memory_tensor.rs:282:13
+    |
+282 |         let mut text_chunks: HashMap<String, String> = HashMap::new();
+    |             ----^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `n`
+   --> src/memory_texture_manager.rs:491:13
+    |
+491 |         let n = width.max(height); // Assume power of 2
+    |             ^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+491 |         let _n = width.max(height); // Assume power of 2
+    |             +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_VERSION`
+    |
+491 -         let n = width.max(height); // Assume power of 2
+491 +         let virtual_machine::VIRTIO_CONSOLE_VERSION = width.max(height); // Assume power of 2
+    |
+
+warning: unused variable: `width`
+  --> src/qemu/memory_bridge.rs:95:40
+   |
+95 |     pub fn xy2h(&self, x: u32, y: u32, width: u32) -> Option<usize> {
+   |                                        ^^^^^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+95 |     pub fn xy2h(&self, x: u32, y: u32, _width: u32) -> Option<usize> {
+   |                                        +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_VERSION`
+   |
+95 -     pub fn xy2h(&self, x: u32, y: u32, width: u32) -> Option<usize> {
+95 +     pub fn xy2h(&self, x: u32, y: u32, virtual_machine::VIRTIO_CONSOLE_VERSION: u32) -> Option<usize> {
+   |
+
+warning: unused variable: `gpu_resources`
+    --> src/renderer.rs:1202:48
+     |
+1202 |     pub fn enable_evolution_terrain(&mut self, gpu_resources: &crate::evolution_terrain_bridge::EvolutionTerrainGPU) {
+     |                                                ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_gpu_resources`
+
+warning: value assigned to `view_proj_matrix` is never read
+    --> src/renderer.rs:1867:17
+     |
+1867 |         let mut view_proj_matrix = [[0.0; 4]; 4];
+     |                 ^^^^^^^^^^^^^^^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: unused variable: `inspector_ui`
+    --> src/renderer.rs:2227:29
+     |
+2227 |                 if let Some(inspector_ui) = inspector_ui {
+     |                             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_inspector_ui`
+
+warning: unused variable: `memory_size`
+   --> src/riscv_linux_vm.rs:739:32
+    |
+739 |     pub fn generate_simple_dtb(memory_size: u64, boot_args: &str) -> Vec<u8> {
+    |                                ^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+739 |     pub fn generate_simple_dtb(_memory_size: u64, boot_args: &str) -> Vec<u8> {
+    |                                +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_PORT_SIZE`
+    |
+739 -     pub fn generate_simple_dtb(memory_size: u64, boot_args: &str) -> Vec<u8> {
+739 +     pub fn generate_simple_dtb(virtual_machine::VIRTIO_CONSOLE_PORT_SIZE: u64, boot_args: &str) -> Vec<u8> {
+    |
+
+warning: unused variable: `boot_args`
+   --> src/riscv_linux_vm.rs:739:50
+    |
+739 |     pub fn generate_simple_dtb(memory_size: u64, boot_args: &str) -> Vec<u8> {
+    |                                                  ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_boot_args`
+
+warning: unused variable: `args`
+   --> src/riscv_linux_vm.rs:835:52
+    |
+835 |     fn handle_time_extension(&self, function: u64, args: &[u64; 6]) -> SBIResponse {
+    |                                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_args`
+
+warning: unused variable: `template`
+   --> src/semantic_mutator.rs:252:64
+    |
+252 |     fn simulate_llm_response(&self, request: &MutationRequest, template: &MutationTemplate) -> String {
+    |                                                                ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_template`
+
+warning: unused variable: `m`
+   --> src/terrain_raycaster.rs:153:26
+    |
+153 | pub fn invert_matrix_4x4(m: &[[f32; 4]; 4]) -> [[f32; 4]; 4] {
+    |                          ^ help: if this is intentional, prefix it with an underscore: `_m`
+
+warning: unused variable: `cell_size`
+   --> src/text_engine.rs:111:9
+    |
+111 |     let cell_size = 64.0;
+    |         ^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+111 |     let _cell_size = 64.0;
+    |         +
+help: you might have meant to pattern match on the similarly named constant `MIN_TEMPERATURE`
+    |
+111 -     let cell_size = 64.0;
+111 +     let tectonic::solver::MIN_TEMPERATURE = 64.0;
+    |
+
+warning: unused variable: `cpu_buffer`
+   --> src/text_engine.rs:446:13
+    |
+446 |         let cpu_buffer = vec![0u32; (1024 * 1024 / 4) as usize];
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_buffer`
+
+warning: unused variable: `hex_editor`
+   --> src/text_engine.rs:564:13
+    |
+564 |         let hex_editor = Some(HexTensorEditor::new(device));
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_hex_editor`
+
+warning: unused variable: `end`
+    --> src/text_engine.rs:1044:25
+     |
+1044 |                     let end = (pos + chars.len() as u32) as usize;
+     |                         ^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+1044 |                     let _end = (pos + chars.len() as u32) as usize;
+     |                         +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+     |
+1044 -                     let end = (pos + chars.len() as u32) as usize;
+1044 +                     let virtual_machine::VIRTIO_CONSOLE_F_SIZE = (pos + chars.len() as u32) as usize;
+     |
+
+warning: unused variable: `end`
+    --> src/text_engine.rs:1166:25
+     |
+1166 |                     let end = (pos + chars.len() as u32) as usize;
+     |                         ^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+1166 |                     let _end = (pos + chars.len() as u32) as usize;
+     |                         +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+     |
+1166 -                     let end = (pos + chars.len() as u32) as usize;
+1166 +                     let virtual_machine::VIRTIO_CONSOLE_F_SIZE = (pos + chars.len() as u32) as usize;
+     |
+
+warning: unused variable: `syscall_rate`
+   --> src/tool_adapter/bpftrace_adapter.rs:176:38
+    |
+176 |     fn calculate_health_score(&self, syscall_rate: f64, io_wait: f32) -> f32 {
+    |                                      ^^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+176 |     fn calculate_health_score(&self, _syscall_rate: f64, io_wait: f32) -> f32 {
+    |                                      +
+help: you might have meant to pattern match on the similarly named constant `MIN_TEMPERATURE`
+    |
+176 -     fn calculate_health_score(&self, syscall_rate: f64, io_wait: f32) -> f32 {
+176 +     fn calculate_health_score(&self, tectonic::solver::MIN_TEMPERATURE: f64, io_wait: f32) -> f32 {
+    |
+
+warning: unused variable: `device_id`
+   --> src/virtual_machine.rs:449:13
+    |
+449 |         let device_id = format!("fb_{}", 
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_device_id`
+
+warning: unused variable: `project_root`
+   --> src/visual_ast.rs:139:42
+    |
+139 |     fn apply_directory_layout(&mut self, project_root: &std::path::Path, origin: (f32, f32)) -> Result<(), ParseError> {
+    |                                          ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_project_root`
+
+warning: variable does not need to be mutable
+   --> src/visual_feedback.rs:322:13
+    |
+322 |         let mut client = self.client.lock().unwrap();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+For more information about this error, try `rustc --explain E0433`.
+warning: `infinite_map_rs` (lib) generated 81 warnings
+error: could not compile `infinite_map_rs` (lib) due to 1 previous error; 81 warnings emitted

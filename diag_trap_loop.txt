@@ -1,0 +1,1 @@
+[diag] S->M TRAP at count=178458: PC was=0xC0401000 now=0x80000000 mcause=0x00000002 mepc=0xC0401000 mtval=0xC0401000

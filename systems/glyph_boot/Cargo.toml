@@ -1,0 +1,22 @@
+[package]
+name = "glyph_boot"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal Glyph-Native Boot - GPU seed for Geometry OS"
+
+[[bin]]
+name = "glyph_boot"
+path = "src/main.rs"
+
+[dependencies]
+wgpu = "0.19"
+pollster = "0.3"
+bytemuck = { version = "1.14", features = ["derive"] }
+image = "0.24"
+log = "0.4"
+env_logger = "0.10"
+anyhow = "1.0"
+
+[profile.release]
+opt-level = 3
+lto = true

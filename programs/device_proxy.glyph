@@ -1,0 +1,153 @@
+// ============================================================================
+// DEVICE PROXY - Layer 2 IPC-to-Command-Buffer Shim
+// ============================================================================
+//
+// This glyph acts as a device proxy VM. It receives IPC requests from
+// worker VMs, formats them into the CPU stub command buffer, polls for
+// completion, and sends responses back to callers.
+//
+// Architecture:
+//   Worker VM -> SEND -> Proxy VM (this program, VM 0)
+//   Proxy writes command buffer at 0x00E20000
+//   CPU Stub (Rust) polls command buffer, executes, marks COMPLETE
+//   Proxy reads result, SENDs response back to worker VM
+//
+// Entry Point: 0x0000 (Hilbert origin)
+// Stratum: 2
+// ============================================================================
+
+// IPC Message format (6 pixels, sent by worker):
+//   pixel[0] = cmd_type  (1=READ_BLOCK, 2=WRITE_BLOCK, 3=OPEN, 4=CLOSE, 5=IOCTL)
+//   pixel[1] = worker_vm_id (so we know who to respond to)
+//   pixel[2] = param1
+//   pixel[3] = param2
+//   pixel[4] = param3
+//   pixel[5] = param4
+
+// Command buffer slot layout (8 pixels at 0x00E20000):
+//   [0] cmd_type, [1] vm_id, [2] param1, [3] param2,
+//   [4] param3, [5] param4, [6] status, [7] result
+
+// Response format (2 pixels sent back to worker):
+//   pixel[0] = result_code
+//   pixel[1] = cmd_type (echo for request-response matching)
+
+// Register conventions:
+//   r0  = scratch (recv dest / address calc)
+//   r1  = recv_status (1=msg received, 0=empty)
+//   r2  = scratch data
+//   r3  = scratch data 2
+//   r4  = worker_vm_id
+//   r5  = STATUS_PENDING (1)
+//   r6  = STATUS_COMPLETE (2)
+//   r7  = zero constant
+//   r8  = scratch address
+//   r9  = scratch value
+//   r10 = scratch value 2
+
+// Constants
+.equ CMD_BUF_BASE, 0x00E20000
+.equ RECV_SCRATCH, 0x00C00000
+.equ RESP_BUF,     0x00C00010
+.equ STATUS_PEND,  1
+.equ STATUS_COMP,  2
+.equ STATUS_EMPTY, 0
+
+// ============================================================================
+// ENTRY POINT
+// ============================================================================
+
+:entry
+    // Initialize constants
+    MOV r5, 1            // STATUS_PENDING
+    MOV r6, 2            // STATUS_COMPLETE
+    MOV r7, 0            // zero constant
+
+// ============================================================================
+// MAIN RECEIVE LOOP
+// ============================================================================
+
+:recv_loop
+    // Try to receive a message into RECV_SCRATCH
+    MOV r0, 0x00C00000   // dest address for RECV
+    RECV r0, r1          // receive message, status in r1
+    CMP r1, 0
+    JE recv_loop         // no message, poll again
+
+    // Got a message! Copy fields from recv scratch to command buffer.
+    // Message at 0x00C00000..0x00C00005
+    // Command buffer at 0x00E20000..0x00E20005
+
+    // Copy cmd_type: recv[0] -> cmd_buf[0]
+    LOAD r2, 0x00C00000
+    STORE 0x00E20000, r2
+
+    // Copy worker_vm_id: recv[1] -> cmd_buf[1], also save in r4
+    LOAD r4, 0x00C00001
+    STORE 0x00E20001, r4
+
+    // Copy param1: recv[2] -> cmd_buf[2]
+    LOAD r2, 0x00C00002
+    STORE 0x00E20002, r2
+
+    // Copy param2: recv[3] -> cmd_buf[3]
+    LOAD r2, 0x00C00003
+    STORE 0x00E20003, r2
+
+    // Copy param3: recv[4] -> cmd_buf[4]
+    LOAD r2, 0x00C00004
+    STORE 0x00E20004, r2
+
+    // Copy param4: recv[5] -> cmd_buf[5]
+    LOAD r2, 0x00C00005
+    STORE 0x00E20005, r2
+
+    // Clear result field: cmd_buf[7] = 0
+    STORE 0x00E20007, r7
+
+    // Set status = PENDING (signals the CPU stub to process)
+    STORE 0x00E20006, r5
+
+// ============================================================================
+// POLL FOR COMPLETION
+// ============================================================================
+
+:poll_status
+    LOAD r2, 0x00E20006  // read cmd_buf[6] (status)
+    CMP r2, 1            // still PENDING?
+    JE poll_status       // keep polling
+
+    // Status is no longer PENDING (COMPLETE or error)
+
+// ============================================================================
+// READ RESULT AND RESPOND
+// ============================================================================
+
+:done_poll
+    // Read result from cmd_buf[7]
+    LOAD r9, 0x00E20007
+
+    // Store result into response buffer[0]
+    STORE 0x00C00010, r9
+
+    // Echo cmd_type into response buffer[1]
+    LOAD r10, 0x00C00000  // original cmd_type from recv scratch
+    STORE 0x00C00011, r10
+
+    // Clear command buffer status for reuse
+    STORE 0x00E20006, r7  // status = 0 (EMPTY)
+
+    // Send response back to worker VM (2 pixels from 0x00C00010)
+    MOV r8, 0x00C00010    // data address
+    SEND r4, r8, 2        // send 2 pixels to worker_vm_id
+
+    // Loop back for next request
+    YIELD
+    JMP recv_loop
+
+// ============================================================================
+// HALT (unreachable, governance compliance)
+// ============================================================================
+
+:halt
+    HALT

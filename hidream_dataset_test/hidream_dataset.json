@@ -1,0 +1,199 @@
+{
+  "format_version": "1.0",
+  "source": "synthetic_dataset_v13",
+  "total_samples": 10,
+  "image_size": [
+    256,
+    256
+  ],
+  "entries": [
+    {
+      "id": "prog_00000",
+      "instruction": "Places a magenta line segment connecting (195, 215) to (410, 39).",
+      "reasoning": "Goal: Places a magenta line segment connecting (195, 215) to (410, 39).\n\nVisual operations needed: LINE\nBounding box: (128, 128) to (128, 128)\nColor palette: r4\n\nExecution sequence:\n  1. Draw line from (r0, r1) to (r2, r3) in r4\n\nRegister allocation: r0, r1, r2, r3, r4",
+      "asm_code": "; DESCRIPTION: Places a magenta line segment connecting (195, 215) to (410, 39).\n; PLAN: r0=195(x1), r1=215(y1), r2=410(x2), r3=39(y2), r4=0xFF00FF(color). Op: LINE r0, r1, r2, r3, r4.\nLDI r0, 195\nLDI r1, 215\nLDI r2, 410\nLDI r3, 39\nLDI r4, 0xFF00FF\nLINE r0, r1, r2, r3, r4\nHALT\n",
+      "image_path": "images/prog_00000.png",
+      "spatial_bounds": {
+        "min_x": 128,
+        "max_x": 128,
+        "min_y": 128,
+        "max_y": 128,
+        "colors": [
+          "r4"
+        ],
+        "op_types": [
+          "LINE"
+        ]
+      },
+      "visual_op_count": 1
+    },
+    {
+      "id": "prog_00001",
+      "instruction": "Composite: Creates a orange rectangular region at (367, 57) spanning 86 by 70 pixels then Renders a green line between points (316, 84) and (395, 163).",
+      "reasoning": "Goal: Composite: Creates a orange rectangular region at (367, 57) spanning 86 by 70 pixels then Renders a green line between points (316, 84) and (395, 163).\n\nVisual operations needed: RECTF, LINE\nBounding box: (128, 128) to (256, 256)\nColor palette: r9, r4\n\nExecution sequence:\n  1. Fill rectangle at (r0, r1) size r2xr3 in r4\n  2. Draw line from (r5, r6) to (r7, r8) in r9\n\nRegister allocation: r0, r1, r2, r3, r4, r5, r6, r7, r8, r9",
+      "asm_code": "; DESCRIPTION: Composite: Creates a orange rectangular region at (367, 57) spanning 86 by 70 pixels then Renders a green line between points (316, 84) and (395, 163).\n; PLAN: r0=367(x), r1=57(y), r2=86(width), r3=70(height), r4=0xFF8800(color). Op: RECTF r0, r1, r2, r3, r4 Next: r5=316(x1), r6=84(y1), r7=395(x2), r8=163(y2), r9=0x00FF00(color). Op: LINE r5, r6, r7, r8, r9.\nLDI r0, 367\nLDI r1, 57\nLDI r2, 86\nLDI r3, 70\nLDI r4, 0xFF8800\nRECTF r0, r1, r2, r3, r4\nLDI r5, 316\nLDI r6, 84\nLDI r7, 395\nLDI r8, 163\nLDI r9, 0x00FF00\nLINE r5, r6, r7, r8, r9\nHALT\n",
+      "image_path": "images/prog_00001.png",
+      "spatial_bounds": {
+        "min_x": 128,
+        "max_x": 256,
+        "min_y": 128,
+        "max_y": 256,
+        "colors": [
+          "r9",
+          "r4"
+        ],
+        "op_types": [
+          "RECTF",
+          "LINE"
+        ]
+      },
+      "visual_op_count": 2
+    },
+    {
+      "id": "prog_00002",
+      "instruction": "Paints the whole screen purple.",
+      "reasoning": "Goal: Paints the whole screen purple.\n\nVisual operations needed: FILL\nColor palette: r0\n\nExecution sequence:\n  1. Fill entire screen with r0\n\nRegister allocation: r0",
+      "asm_code": "; DESCRIPTION: Paints the whole screen purple.\n; PLAN: r0=0xAA00FF(color). Op: FILL r0.\nLDI r0, 0xAA00FF\nFILL r0\nHALT\n",
+      "image_path": "images/prog_00002.png",
+      "spatial_bounds": {
+        "min_x": 0,
+        "max_x": 0,
+        "min_y": 0,
+        "max_y": 0,
+        "colors": [
+          "r0"
+        ],
+        "op_types": [
+          "FILL"
+        ]
+      },
+      "visual_op_count": 1
+    },
+    {
+      "id": "prog_00003",
+      "instruction": "Loads 4 into r1 and decrements it in a loop until zero.",
+      "reasoning": "Goal: Loads 4 into r1 and decrements it in a loop until zero.\n\nRegister allocation: r1, r2",
+      "asm_code": "; DESCRIPTION: Loads 4 into r1 and decrements it in a loop until zero.\n; PLAN: r1=4(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.\nLDI r1, 4\nloop:\nLDI r2, 1\nSUB r1, r2\nJNZ r1, loop\nHALT\n",
+      "image_path": "images/prog_00003.png",
+      "spatial_bounds": {
+        "min_x": 0,
+        "max_x": 0,
+        "min_y": 0,
+        "max_y": 0,
+        "colors": [],
+        "op_types": []
+      },
+      "visual_op_count": 0
+    },
+    {
+      "id": "prog_00004",
+      "instruction": "Loads 49 into r1 and decrements it in a loop until zero.",
+      "reasoning": "Goal: Loads 49 into r1 and decrements it in a loop until zero.\n\nRegister allocation: r1, r2",
+      "asm_code": "; DESCRIPTION: Loads 49 into r1 and decrements it in a loop until zero.\n; PLAN: r1=49(counter), r2=1(step). Loop: SUB r1, r2 then JNZ r1, loop.\nLDI r1, 49\nloop:\nLDI r2, 1\nSUB r1, r2\nJNZ r1, loop\nHALT\n",
+      "image_path": "images/prog_00004.png",
+      "spatial_bounds": {
+        "min_x": 0,
+        "max_x": 0,
+        "min_y": 0,
+        "max_y": 0,
+        "colors": [],
+        "op_types": []
+      },
+      "visual_op_count": 0
+    },
+    {
+      "id": "prog_00005",
+      "instruction": "Composite: Renders a black line between points (416, 92) and (102, 65) then Places a red dot at position (399, 167).",
+      "reasoning": "Goal: Composite: Renders a black line between points (416, 92) and (102, 65) then Places a red dot at position (399, 167).\n\nVisual operations needed: PSET, LINE\nBounding box: (128, 128) to (128, 128)\nColor palette: r7, r4\n\nExecution sequence:\n  1. Draw line from (r0, r1) to (r2, r3) in r4\n  2. Set pixel at (r5, r6) to color r7\n\nRegister allocation: r0, r1, r2, r3, r4, r5, r6, r7",
+      "asm_code": "; DESCRIPTION: Composite: Renders a black line between points (416, 92) and (102, 65) then Places a red dot at position (399, 167).\n; PLAN: r0=416(x1), r1=92(y1), r2=102(x2), r3=65(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4 Next: r5=399(x), r6=167(y), r7=0xFF0000(color). Op: PSET r5, r6, r7.\nLDI r0, 416\nLDI r1, 92\nLDI r2, 102\nLDI r3, 65\nLDI r4, 0x000000\nLINE r0, r1, r2, r3, r4\nLDI r5, 399\nLDI r6, 167\nLDI r7, 0xFF0000\nPSET r5, r6, r7\nHALT\n",
+      "image_path": "images/prog_00005.png",
+      "spatial_bounds": {
+        "min_x": 128,
+        "max_x": 128,
+        "min_y": 128,
+        "max_y": 128,
+        "colors": [
+          "r7",
+          "r4"
+        ],
+        "op_types": [
+          "PSET",
+          "LINE"
+        ]
+      },
+      "visual_op_count": 2
+    },
+    {
+      "id": "prog_00006",
+      "instruction": "Renders a green line between points (123, 158) and (198, 184).",
+      "reasoning": "Goal: Renders a green line between points (123, 158) and (198, 184).\n\nVisual operations needed: LINE\nBounding box: (128, 128) to (128, 128)\nColor palette: r4\n\nExecution sequence:\n  1. Draw line from (r0, r1) to (r2, r3) in r4\n\nRegister allocation: r0, r1, r2, r3, r4",
+      "asm_code": "; DESCRIPTION: Renders a green line between points (123, 158) and (198, 184).\n; PLAN: r0=123(x1), r1=158(y1), r2=198(x2), r3=184(y2), r4=0x00FF00(color). Op: LINE r0, r1, r2, r3, r4.\nLDI r0, 123\nLDI r1, 158\nLDI r2, 198\nLDI r3, 184\nLDI r4, 0x00FF00\nLINE r0, r1, r2, r3, r4\nHALT\n",
+      "image_path": "images/prog_00006.png",
+      "spatial_bounds": {
+        "min_x": 128,
+        "max_x": 128,
+        "min_y": 128,
+        "max_y": 128,
+        "colors": [
+          "r4"
+        ],
+        "op_types": [
+          "LINE"
+        ]
+      },
+      "visual_op_count": 1
+    },
+    {
+      "id": "prog_00007",
+      "instruction": "Creates a green circular shape at (117, 176) with radius 26.",
+      "reasoning": "Goal: Creates a green circular shape at (117, 176) with radius 26.\n\nRegister allocation: r0, r1, r2, r3",
+      "asm_code": "; DESCRIPTION: Creates a green circular shape at (117, 176) with radius 26.\n; PLAN: r0=117(x), r1=176(y), r2=26(radius), r3=0x00FF00(color). Op: CIRCLE r0, r1, r2, r3.\nLDI r0, 117\nLDI r1, 176\nLDI r2, 26\nLDI r3, 0x00FF00\nCIRCLE r0, r1, r2, r3\nHALT\n",
+      "image_path": "images/prog_00007.png",
+      "spatial_bounds": {
+        "min_x": 0,
+        "max_x": 0,
+        "min_y": 0,
+        "max_y": 0,
+        "colors": [],
+        "op_types": []
+      },
+      "visual_op_count": 0
+    },
+    {
+      "id": "prog_00008",
+      "instruction": "Places a blue circle of radius 66 at center (125, 181).",
+      "reasoning": "Goal: Places a blue circle of radius 66 at center (125, 181).\n\nRegister allocation: r0, r1, r2, r3",
+      "asm_code": "; DESCRIPTION: Places a blue circle of radius 66 at center (125, 181).\n; PLAN: r0=125(x), r1=181(y), r2=66(radius), r3=0x0000FF(color). Op: CIRCLE r0, r1, r2, r3.\nLDI r0, 125\nLDI r1, 181\nLDI r2, 66\nLDI r3, 0x0000FF\nCIRCLE r0, r1, r2, r3\nHALT\n",
+      "image_path": "images/prog_00008.png",
+      "spatial_bounds": {
+        "min_x": 0,
+        "max_x": 0,
+        "min_y": 0,
+        "max_y": 0,
+        "colors": [],
+        "op_types": []
+      },
+      "visual_op_count": 0
+    },
+    {
+      "id": "prog_00009",
+      "instruction": "Renders a black line between points (218, 54) and (143, 38).",
+      "reasoning": "Goal: Renders a black line between points (218, 54) and (143, 38).\n\nVisual operations needed: LINE\nBounding box: (128, 128) to (128, 128)\nColor palette: r4\n\nExecution sequence:\n  1. Draw line from (r0, r1) to (r2, r3) in r4\n\nRegister allocation: r0, r1, r2, r3, r4",
+      "asm_code": "; DESCRIPTION: Renders a black line between points (218, 54) and (143, 38).\n; PLAN: r0=218(x1), r1=54(y1), r2=143(x2), r3=38(y2), r4=0x000000(color). Op: LINE r0, r1, r2, r3, r4.\nLDI r0, 218\nLDI r1, 54\nLDI r2, 143\nLDI r3, 38\nLDI r4, 0x000000\nLINE r0, r1, r2, r3, r4\nHALT\n",
+      "image_path": "images/prog_00009.png",
+      "spatial_bounds": {
+        "min_x": 128,
+        "max_x": 128,
+        "min_y": 128,
+        "max_y": 128,
+        "colors": [
+          "r4"
+        ],
+        "op_types": [
+          "LINE"
+        ]
+      },
+      "visual_op_count": 1
+    }
+  ]
+}

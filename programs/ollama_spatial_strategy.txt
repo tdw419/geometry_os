@@ -1,0 +1,19 @@
+[GEOMETRY OS ARCHITECTURAL BRIEF]
+You are the Spatial Strategist for Geometry OS. Your goal is to organize a massive data migration from a traditional Linux Hard Drive into our Infinite Hilbert Map.
+
+[SYSTEM PARAMETERS]
+- Total Search Space: 65,536 Hilbert Indices (256x256).
+- Zone 0 (The Hub): 0x0000 - 0x1000. Low latency, central gravity.
+- Zone 1 (Primary): 0x1001 - 0x4000. High-performance application space.
+- Zone 2 (Substrate): 0x4001 - 0xA000. Standard user data and programs.
+- Zone 3 (Periphery): 0xA001 - 0xFFFF. Dormant, high-latency, cold storage.
+
+[THE TASK]
+I am migrating the following data categories. Tell me exactly which Hilbert Zone each should occupy and explain the 'Geometric Rationale' (why they need that level of gravity):
+1. Kernel Driver Source Code (C/ASM/Rust)
+2. Personal Photos and Media (.jpg, .mp4)
+3. Active VM Neural Weights (The current 'Brain' state)
+4. System Log Files (.log)
+5. Network Protocol Handlers
+
+Respond with a table: | Category | Hilbert Zone | Geometric Rationale |

@@ -1,0 +1,59 @@
+// ============================================================================
+// SEED - The First Glyph (Minimal Boot Program)
+// ============================================================================
+//
+// This is the minimal glyph that boots the Glyph VM.
+// It initializes the camera and enters an infinite event loop.
+//
+// Entry: 0x0000 (Hilbert origin)
+// Stratum: SPEC (3)
+// ============================================================================
+
+// Register conventions
+.equ CAMERA_X, 20
+.equ CAMERA_Y, 21
+.equ ZOOM, 22
+.equ SCREEN_W, 23
+.equ SCREEN_H, 24
+.equ FRAME, 28
+
+.equ ZOOM_DEFAULT, 0x10000
+
+// ============================================================================
+// ENTRY POINT
+// ============================================================================
+:entry
+    // Initialize camera at world origin
+    MOV r[CAMERA_X], 0
+    MOV r[CAMERA_Y], 0
+    MOV r[ZOOM], ZOOM_DEFAULT
+    MOV r[SCREEN_W], 1920
+    MOV r[SCREEN_H], 1080
+    MOV r[FRAME], 0
+
+    // Jump to main loop
+    JMP main_loop
+
+// ============================================================================
+// MAIN LOOP - The Heart of Geometry OS
+// ============================================================================
+:main_loop
+    // Increment frame counter
+    ADD r[FRAME], r[FRAME], 1
+
+    // Render viewport (sample from Hilbert space)
+    MOV r1, r[SCREEN_W]
+    MOV r2, r[SCREEN_H]
+    CAMERA r1, r2
+
+    // Yield to scheduler (cooperative multitasking)
+    YIELD
+
+    // Loop forever
+    JMP main_loop
+
+// ============================================================================
+// HALT (never reached)
+// ============================================================================
+:halt
+    HALT

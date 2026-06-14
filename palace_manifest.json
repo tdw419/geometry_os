@@ -1,0 +1,15 @@
+{
+  "entries": [
+    {
+      "id": "hello_riscv",
+      "name": "hello_riscv",
+      "original_size": 5592,
+      "checksum": "c357827488a301a8b03650ff52f271156b675aaa6ea4ebb60edb9910d28e1d57",
+      "num_images": 1,
+      "files": [
+        "palace_hello_riscv_000.png"
+      ],
+      "created": "2026-05-25T14:52:09.634201Z"
+    }
+  ]
+}

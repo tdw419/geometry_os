@@ -1,0 +1,27 @@
+--- a/conductor/tracks/xv6-rv32/kernel/stubs.c
++++ b/conductor/tracks/xv6-rv32/kernel/stubs.c
+@@ -40,6 +40,14 @@ virtio_disk_init(void)
+ {
+   // All initialization is in the pre-computed data
++  // Ensure the superblock (block 1) is available from the start
++  // so fsinit() can read it and avoid "invalid file system" panic.
++  extern void stubs_ensure_sb(void);
++  stubs_ensure_sb();
+ }
+ 
+ void
+--- a/conductor/tracks/xv6-rv32/kernel/stubs_data.h
++++ b/conductor/tracks/xv6-rv32/kernel/stubs_data.h
+@@ -2029,6 +2029,15 @@ int stubs_read_block(uint blockno, uchar *data) {
+   }
+   return 0;
+ }
++
++// Write the superblock (block 1) from pre-computed data into the write cache
++// so fsinit() can immediately find a valid filesystem.
++void stubs_ensure_sb(void) {
++  uchar tmp[BSIZE];
++  if (stubs_get_block(1, tmp)) {
++    stubs_write_block(1, tmp);
++  }
++}

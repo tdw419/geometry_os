@@ -1,0 +1,1197 @@
+[
+  {
+    "name": "about.asm",
+    "size": 7100,
+    "summary": "about.asm -- System Information Panel for Geometry OS  Shows: version, opcode count, RAM size, scree..."
+  },
+  {
+    "name": "ai_interact.asm",
+    "size": 2600,
+    "summary": "ai_interact.asm -- AI Agent Input Demo (Phase 89) Demonstrates programmatic input injection via AI_I..."
+  },
+  {
+    "name": "ai_perception.asm",
+    "size": 1618,
+    "summary": "ai_perception.asm -- Test AI_AGENT op=4 (perception) and op=3 (real VLM)  Draws three colored square..."
+  },
+  {
+    "name": "ai_terminal.asm",
+    "size": 60030,
+    "summary": "ai_terminal.asm -- AI Chat Terminal for Geometry OS  Connects to cloud AI (ZAI) via LLM opcode (0x9C..."
+  },
+  {
+    "name": "ai_vision.asm",
+    "size": 1859,
+    "summary": "ai_vision.asm -- Phase 88: AI Vision Bridge demo  Demonstrates the AI_AGENT opcode: op=0: screenshot..."
+  },
+  {
+    "name": "alpine_tile.asm",
+    "size": 1371,
+    "summary": "alpine_tile.asm -- Alpine Linux Live Tile (Phase 123)  This program displays a title bar for the Alp..."
+  },
+  {
+    "name": "asteroids.asm",
+    "size": 20046,
+    "summary": "asteroids.asm -- Classic Asteroids arcade game for Geometry OS Controls: A/D=rotate, W=thrust, Space..."
+  },
+  {
+    "name": "ball.asm",
+    "size": 3532,
+    "summary": "ball.asm -- bouncing ball with keyboard control  Left arrow (ASCII 68 = not available... use WASD or..."
+  },
+  {
+    "name": "bit_manipulation_demo.asm",
+    "size": 2181,
+    "summary": "bit_manipulation_demo.asm -- Visual demo of BNOT, BSET, BCLR, BTST  Draws an 8-bit flag register on..."
+  },
+  {
+    "name": "bitfield_demo.asm",
+    "size": 3999,
+    "summary": "bitfield_demo.asm -- Demonstrates BFE and BFI opcodes Extracts RGB channels from a packed color and..."
+  },
+  {
+    "name": "blend_demo.asm",
+    "size": 5003,
+    "summary": "blend_demo.asm - Phase 234: Alpha blending demo Demonstrates BLEND and BLENDR opcodes for sprite com..."
+  },
+  {
+    "name": "blink.asm",
+    "size": 1936,
+    "summary": "BLINK: Toggle a pixel on/off using keyboard input and CMP  Demonstrates the CMP opcode (0x50) by tog..."
+  },
+  {
+    "name": "block_mem_demo.asm",
+    "size": 3032,
+    "summary": "block_mem_demo.asm -- Demonstrate MEMSET and MEMCPY opcodes MEMSET fills a region with a value, MEMC..."
+  },
+  {
+    "name": "boot_pixel_master.asm",
+    "size": 645,
+    "summary": "boot_pixel_master.asm -- Master Boot Loader (MBL) Loaded at 0x1000 by ChainBoot"
+  },
+  {
+    "name": "border.asm",
+    "size": 562,
+    "summary": "BORDER -- Draw a colored border around the screen edges Uses RECTF to draw borders on all four sides..."
+  },
+  {
+    "name": "boundary_demo.asm",
+    "size": 1106,
+    "summary": "========================================================== BOUNDARY DEMO: Semantic Labeling vs. Chro..."
+  },
+  {
+    "name": "breakout.asm",
+    "size": 14462,
+    "summary": "breakout.asm -- Breakout / Brick Breaker for Geometry OS  Controls: A/D or Left/Right arrows -- move..."
+  },
+  {
+    "name": "browser.asm",
+    "size": 9435,
+    "summary": "browser.asm -- Text Browser v1 for Geometry OS  A minimal web browser that fetches pages and renders..."
+  },
+  {
+    "name": "byte_demo.asm",
+    "size": 1628,
+    "summary": "byte_demo.asm -- Phase 282: Typed Memory Access Demo Demonstrates LOADB/STOREB/LOADH/STOREH  Draws a..."
+  },
+  {
+    "name": "calculator.asm",
+    "size": 5415,
+    "summary": "CALCULATOR: Add/subtract calculator with text display  Controls: 0-9: enter digits +: add operator -..."
+  },
+  {
+    "name": "calendar.asm",
+    "size": 11299,
+    "summary": "calendar.asm -- Monthly Calendar for Geometry OS  Shows a month grid with day numbers. Arrow keys na..."
+  },
+  {
+    "name": "canvas_border.asm",
+    "size": 22316,
+    "summary": "canvas_border.asm Self-modifying demo - writes a colorful 4-sided border to canvas Writes a program..."
+  },
+  {
+    "name": "canvas_checker.asm",
+    "size": 16167,
+    "summary": "canvas_checker.asm Self-modifying demo - writes a checkerboard pattern to canvas Writes a program to..."
+  },
+  {
+    "name": "canvas_counter.asm",
+    "size": 525,
+    "summary": "canvas_counter.asm Increments a digit on the canvas grid each frame. Demonstrates that the grid IS t..."
+  },
+  {
+    "name": "canvas_grid_writer.asm",
+    "size": 506,
+    "summary": "canvas_grid_writer.asm Writes \"PIXELS DRIVE PIXELS\" to the canvas grid using STORE to 0x8000+"
+  },
+  {
+    "name": "canvas_rainbow.asm",
+    "size": 5413,
+    "summary": "canvas_rainbow.asm Self-modifying demo - writes a rainbow diagonal generator to canvas Writes a prog..."
+  },
+  {
+    "name": "cat.asm",
+    "size": 1881,
+    "summary": "cat.asm -- Read a file and display its contents on screen Opens \"hello.txt\" from the VFS and renders..."
+  },
+  {
+    "name": "cellular_automata.asm",
+    "size": 7036,
+    "summary": "cellular_automata.asm - Multi-rule cellular automata sandbox 64x64 grid, 4x4 pixel cells, covers ful..."
+  },
+  {
+    "name": "chatbot.asm",
+    "size": 2505,
+    "summary": "chatbot.asm - Pattern-Responsive Art Generator Self-modification showcase demo  Reads pattern code f..."
+  },
+  {
+    "name": "checkerboard.asm",
+    "size": 1699,
+    "summary": "CHECKERBOARD -- 8x8 pixel squares, alternating black and white cell_row = y/8, cell_col = x/8, track..."
+  },
+  {
+    "name": "circles.asm",
+    "size": 471,
+    "summary": "circles.asm -- concentric circles with cycling colors"
+  },
+  {
+    "name": "click_test.asm",
+    "size": 2033,
+    "summary": "click_test.asm -- Phase 217 Mouse Support Demo Draws a crosshair at the cursor and paints pixels on..."
+  },
+  {
+    "name": "clip_pixel_demo.asm",
+    "size": 2862,
+    "summary": "clip_pixel_demo.asm -- Phase 204: CLIP_COPY/CLIP_PASTE opcode demo  Draws a colored pattern, copies..."
+  },
+  {
+    "name": "clipboard_demo.asm",
+    "size": 7049,
+    "summary": "\u2500\u2500 clipboard_demo.asm \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Phase 221: Multi-Format Clipboar..."
+  },
+  {
+    "name": "clipboard_pixel_demo.asm",
+    "size": 2467,
+    "summary": "clipboard_pixel_demo.asm -- Phase 204: Pixel Clipboard Demo  Draws a colored pattern, copies it to t..."
+  },
+  {
+    "name": "clipboard_v2_test.asm",
+    "size": 7174,
+    "summary": "\u2500\u2500 clipboard_v2_test.asm \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Phase 221 Enhancement: Multi-Form..."
+  },
+  {
+    "name": "clock.asm",
+    "size": 9099,
+    "summary": "clock.asm -- Digital Clock App for Geometry OS  Proves: FRAME (timing), TEXT (text rendering), RECTF..."
+  },
+  {
+    "name": "cmov_bench.asm",
+    "size": 4747,
+    "summary": "cmov_bench.asm -- Branch vs CSEL color clamp benchmark  Clamps a color value to 0-255 range using tw..."
+  },
+  {
+    "name": "code_evolution.asm",
+    "size": 68052,
+    "summary": "code_evolution.asm The Crown Jewel: Code that writes increasingly complex versions of itself.  Gen 0..."
+  },
+  {
+    "name": "color_picker.asm",
+    "size": 7483,
+    "summary": "color_picker.asm -- Mouse-Driven Color Picker for Geometry OS  Proves: RECT (0x88) outline opcode, H..."
+  },
+  {
+    "name": "color_test.asm",
+    "size": 1603,
+    "summary": "color_test.asm -- Test ANSI SGR color rendering Writes text in various ANSI colors to verify color b..."
+  },
+  {
+    "name": "colors.asm",
+    "size": 220,
+    "summary": "Colors -- fill screen with horizontal color bands Uses FILL in a loop to draw 4 color bands across t..."
+  },
+  {
+    "name": "concentric.asm",
+    "size": 855,
+    "summary": "concentric.asm -- Draw 4 concentric rings from center (128,128)  Intended output: Ring 1 (r=100): bl..."
+  },
+  {
+    "name": "conway_advanced.asm",
+    "size": 16565,
+    "summary": "conway_advanced.asm -- Conway's Game of Life Advanced 64x64 grid, 4px cells, toroidal wrap, mouse su..."
+  },
+  {
+    "name": "countdown.asm",
+    "size": 9466,
+    "summary": "countdown.asm -- Wall-Clock Countdown Timer for Geometry OS  Phase 222: Demonstrates TMR_GET and ALA..."
+  },
+  {
+    "name": "counter.asm",
+    "size": 4790,
+    "summary": "counter.asm -- Interactive Counter App for Geometry OS  Proves: bytecode persistence, HITSET/HITQ hi..."
+  },
+  {
+    "name": "crash_demo.asm",
+    "size": 668,
+    "summary": "Phase 104: Crash Demo - spawns a child that accesses unmapped memory The child triggers a segfault,..."
+  },
+  {
+    "name": "cron_daemon.asm",
+    "size": 8084,
+    "summary": "cron_daemon.asm -- Phase 101: Cron Daemon  A frame-based cron daemon that reads a schedule from VFS..."
+  },
+  {
+    "name": "debug_monitor.asm",
+    "size": 4864,
+    "summary": "debug_monitor.asm -- Debug Monitor Stub  A small program that runs the debug protocol over Page 3 sh..."
+  },
+  {
+    "name": "debug_parent_test.asm",
+    "size": 2648,
+    "summary": "debug_parent_test.asm -- Test parent that communicates with debug_monitor  Loads debug_monitor as a..."
+  },
+  {
+    "name": "debugger.asm",
+    "size": 10650,
+    "summary": "debugger.asm -- Visual Register & Trace Debugger for Geometry OS  Phase 76: Debugger UI  Shows: regi..."
+  },
+  {
+    "name": "device_test.asm",
+    "size": 3460,
+    "summary": "device_test.asm -- Phase 28: Device Driver Abstraction demo Opens all 4 device files, uses IOCTL to..."
+  },
+  {
+    "name": "diagonal.asm",
+    "size": 649,
+    "summary": "DIAGONAL_LINE -- Draw a diagonal line from (0,0) to (255,255) Uses PSET (register-based) in a loop T..."
+  },
+  {
+    "name": "disasm.asm",
+    "size": 8827,
+    "summary": "disasm.asm -- Interactive Disassembler for Geometry OS  Phase 76: Interactive Disassembler  Reads by..."
+  },
+  {
+    "name": "driver_abi.asm",
+    "size": 1096,
+    "summary": "driver_abi.asm -- Geometry OS Driver ABI Definitions  Memory Layout for Driver Registration: RAM[0x7..."
+  },
+  {
+    "name": "driver_screen.asm",
+    "size": 907,
+    "summary": "driver_screen.asm -- Sample Screen Driver Registers at 0x2000"
+  },
+  {
+    "name": "dungeon.asm",
+    "size": 19733,
+    "summary": "dungeon.asm -- Procedural Dungeon Crawler with Fog of War BSP room generation, L-shaped corridors, r..."
+  },
+  {
+    "name": "dungeon_bsp.asm",
+    "size": 23733,
+    "summary": "dungeon_bsp.asm -- BSP Dungeon Generator with Fog of War  Controls: WASD/Arrows to move, R to regene..."
+  },
+  {
+    "name": "evolving_counter.asm",
+    "size": 2571,
+    "summary": "evolving_counter.asm Pixel-Driving-Pixels Demo: A live frame counter on the canvas grid.  HOW IT WOR..."
+  },
+  {
+    "name": "file_browser.asm",
+    "size": 11150,
+    "summary": "file_browser.asm -- File Browser GUI App for Geometry OS  Proves: LS, OPEN, READ, CLOSE, UNLINK, VST..."
+  },
+  {
+    "name": "fill_screen.asm",
+    "size": 187,
+    "summary": "FILL_SCREEN -- Fill the screen with a solid color Uses FILL opcode to set every pixel to bright blue..."
+  },
+  {
+    "name": "fire.asm",
+    "size": 863,
+    "summary": "fire.asm -- scrolling fire animation using SCROLL + FRAME  Each frame: 1. SCROLL screen up 1 pixel 2..."
+  },
+  {
+    "name": "flappy_bird.asm",
+    "size": 14228,
+    "summary": "flappy_bird.asm -- Flappy Bird for Geometry OS Controls: Space/W = flap, R = restart Bird affected b..."
+  },
+  {
+    "name": "flatliner.asm",
+    "size": 1539,
+    "summary": "flatliner.asm -- Test program that simulates a crash  Updates heartbeat 5 times, then stops. Used to..."
+  },
+  {
+    "name": "flood_demo.asm",
+    "size": 3777,
+    "summary": "flood_demo.asm -- Interactive flood fill paint demo Controls: Arrow keys to move cursor, Space to fi..."
+  },
+  {
+    "name": "font_demo.asm",
+    "size": 2613,
+    "summary": "font_demo.asm -- Fixed vs proportional text comparison Top half: fixed-width TEXT (opcode 0x44) Bott..."
+  },
+  {
+    "name": "font_test.asm",
+    "size": 1684,
+    "summary": "font_test.asm -- Phase 218: Verify 8x8 font rendering capability Uses the pixel VM TEXT opcode with..."
+  },
+  {
+    "name": "fork_demo.asm",
+    "size": 3120,
+    "summary": "fork_demo.asm -- Phase 38d: Timeline Forking Demo  Visual proof of timeline forking. After FORK rest..."
+  },
+  {
+    "name": "fractal.asm",
+    "size": 5958,
+    "summary": "fractal.asm - Mandelbrot/Julia Set Explorer Controls: WASD=pan, Q/E=zoom in/out, J=Julia toggle, R=r..."
+  },
+  {
+    "name": "fractal_gen.asm",
+    "size": 3393,
+    "summary": "fractal_gen.asm - Self-Modifying Fractal Generator  Generates a Sierpinski triangle by computing whi..."
+  },
+  {
+    "name": "game_of_life.asm",
+    "size": 6111,
+    "summary": "game_of_life.asm - Conway's Game of Life 64x64 grid, 4x4 pixel cells, covers full 256x256 screen PEE..."
+  },
+  {
+    "name": "game_of_life_editor.asm",
+    "size": 12176,
+    "summary": "game_of_life_editor.asm -- Conway's Game of Life with Editor  64x64 grid, 4x4 pixel cells, covers fu..."
+  },
+  {
+    "name": "glyph_demo.asm",
+    "size": 595,
+    "summary": "glyph_demo.asm -- Auto-generated from GlyphLang: 3 4 + . @ Demonstrates GlyphLang compilation to Geo..."
+  },
+  {
+    "name": "gradient.asm",
+    "size": 663,
+    "summary": "GRADIENT -- Draw a horizontal blue gradient across the screen Each column x gets color = x (blue cha..."
+  },
+  {
+    "name": "grep.asm",
+    "size": 3097,
+    "summary": "grep.asm -- Search for a pattern in RAM text  Searches for all occurrences of a byte pattern in a te..."
+  },
+  {
+    "name": "gui_calc.asm",
+    "size": 17131,
+    "summary": "gui_calc.asm -- GUI Calculator App for Geometry OS  Proves: HITSET/HITQ mouse buttons, RECTF renderi..."
+  },
+  {
+    "name": "hello.asm",
+    "size": 4171,
+    "summary": "The assembly code primarily outputs the string 'Hello from Forth!' to a debug port and includes functions for squaring a number and counting down."
+  },
+  {
+    "name": "hello_forth.asm",
+    "size": 4171,
+    "summary": "This Geometry OS assembly code primarily outputs 'Hello from Forth!' to the console and includes a simple countdown routine."
+  },
+  {
+    "name": "hello_pixels.asm",
+    "size": 452,
+    "summary": "hello_pixels.asm -- Pixel-to-CPU-to-Pixel round-trip demo  Pipeline: ASM source -> assembler -> VM e..."
+  },
+  {
+    "name": "hello_window.asm",
+    "size": 1977,
+    "summary": "hello_window.asm -- Token-to-Pixel GUI \"Hello World\"  Proves the full loop: RECTF draws pixels, HITS..."
+  },
+  {
+    "name": "help.asm",
+    "size": 5447,
+    "summary": "help.asm -- Help Viewer for Geometry OS  Shows keyboard shortcuts, opcode reference, and shell comma..."
+  },
+  {
+    "name": "hermes_term.asm",
+    "size": 12850,
+    "summary": "hermes_term.asm -- Hermes Agent Terminal for Geometry OS  Uses the native HERMES opcode (0xA8) for d..."
+  },
+  {
+    "name": "hex_viewer.asm",
+    "size": 13797,
+    "summary": "hex_viewer.asm -- Interactive Hex Viewer for Geometry OS  Phase 120: File content viewer and hex edi..."
+  },
+  {
+    "name": "hexdump.asm",
+    "size": 3477,
+    "summary": "hexdump.asm -- Hex viewer for RAM contents  Reads bytes from a RAM buffer and displays them as hex v..."
+  },
+  {
+    "name": "host.asm",
+    "size": 79369,
+    "summary": "host_term.asm -- Host Shell Terminal for Geometry OS (v6)  Spawns bash inside a real PTY via the PTY..."
+  },
+  {
+    "name": "host_dir_list.asm",
+    "size": 974,
+    "summary": "Phase 137: Directory Listing Demo Uses FSLS to list the home directory. Blue bar at top = success, r..."
+  },
+  {
+    "name": "host_file_test.asm",
+    "size": 1330,
+    "summary": "Phase 137: Host Filesystem Read Demo Reads the first 4 bytes of a test file and draws green if \"GEOS..."
+  },
+  {
+    "name": "host_term.asm",
+    "size": 79369,
+    "summary": "host_term.asm -- Host Shell Terminal for Geometry OS (v6)  Spawns bash inside a real PTY via the PTY..."
+  },
+  {
+    "name": "host_term_tmux.asm",
+    "size": 23632,
+    "summary": "host_term_tmux.asm -- Multi-tab Terminal (tmux-like) for Geometry OS  Spawns bash inside real PTYs v..."
+  },
+  {
+    "name": "host_term_v4.asm",
+    "size": 26492,
+    "summary": "host_term.asm -- Host Shell Terminal for Geometry OS (v5)  Spawns bash inside a real PTY via the PTY..."
+  },
+  {
+    "name": "html_browser.asm",
+    "size": 6317,
+    "summary": "html_browser.asm -- Simple HTML Browser for Geometry OS  Fetches HTML pages via HTTPGET, parses with..."
+  },
+  {
+    "name": "http_get.asm",
+    "size": 15745,
+    "summary": "http_get.asm -- HTTP Client Library for Geometry OS  Provides subroutines for fetching web pages ove..."
+  },
+  {
+    "name": "imgview.asm",
+    "size": 2897,
+    "summary": "imgview.asm -- Image Viewer Demo  Generates a gradient pattern (simulating a loaded image), draws UI..."
+  },
+  {
+    "name": "infinite_map.asm",
+    "size": 30885,
+    "summary": "infinite_map.asm -- Infinite scrolling procedural terrain (v10)  Arrow keys / WASD scroll through in..."
+  },
+  {
+    "name": "infinite_map_pxpk.asm",
+    "size": 38987,
+    "summary": "infinite_map_pxpk.asm -- Pixelpack seed-driven infinite terrain  Evolution of infinite_map.asm. Uses..."
+  },
+  {
+    "name": "init.asm",
+    "size": 5241,
+    "summary": "init.asm -- Phase 30: Init process (PID 1)  The first user process. Started by the boot ROM. Reads b..."
+  },
+  {
+    "name": "init_service.asm",
+    "size": 11112,
+    "summary": "init_service.asm -- Phase 97: Config-driven service manager  Enhanced init process that reads boot.c..."
+  },
+  {
+    "name": "invert_demo.asm",
+    "size": 869,
+    "summary": "invert_demo.asm -- Visual demo cycling between normal and inverted screen Phase 67: uses INV opcode..."
+  },
+  {
+    "name": "kernel_demo.asm",
+    "size": 930,
+    "summary": "kernel_demo.asm -- Geometry OS \"Kernel\" Demo Loaded at 0x3000"
+  },
+  {
+    "name": "launcher.asm",
+    "size": 5491,
+    "summary": "launcher.asm -- App Launcher for Geometry OS  Phase 72: Full-screen grid of available .asm programs..."
+  },
+  {
+    "name": "lib_test.asm",
+    "size": 26366,
+    "summary": "lib/lib_test.asm -- Comprehensive library test suite  Tests ALL library functions. Results stored in..."
+  },
+  {
+    "name": "lib_test_v2.asm",
+    "size": 13702,
+    "summary": "lib_test_v2.asm -- Extended library test suite (v1.1.0)  Tests new library functions added in v1.1.0..."
+  },
+  {
+    "name": "lib_test_v3.asm",
+    "size": 17633,
+    "summary": "lib_test_v3.asm -- Full library test suite v3 (v1.2.0)  Tests ALL library functions including stdio..."
+  },
+  {
+    "name": "lib_test_v4.asm",
+    "size": 15804,
+    "summary": "lib_test_v4.asm -- Comprehensive library test suite v4  Tests ALL library modules: stdlib, math, col..."
+  },
+  {
+    "name": "lines.asm",
+    "size": 570,
+    "summary": "lines.asm -- draw a star burst of lines from center Uses LINE opcode (0x45)"
+  },
+  {
+    "name": "linux.asm",
+    "size": 8259,
+    "summary": "linux_building.asm -- Hypervisor Building Demo (Phase 86) Demonstrates: player sees hypervisor build..."
+  },
+  {
+    "name": "linux_building.asm",
+    "size": 8259,
+    "summary": "linux_building.asm -- Hypervisor Building Demo (Phase 86) Demonstrates: player sees hypervisor build..."
+  },
+  {
+    "name": "linux_gateway.asm",
+    "size": 1171,
+    "summary": "The code displays a menu with options to boot Linux or access a terminal, and upon selection, either boots Linux using RISC-V hypervisor commands or halts."
+  },
+  {
+    "name": "living_map.asm",
+    "size": 19381,
+    "summary": "living_map.asm -- Stateful infinite world with wandering creatures  Extends infinite_map.asm with: L..."
+  },
+  {
+    "name": "ls.asm",
+    "size": 2283,
+    "summary": "ls.asm -- List VFS directory contents  Uses the LS syscall to enumerate files from the VFS base dire..."
+  },
+  {
+    "name": "lsystem.asm",
+    "size": 15099,
+    "summary": "lsystem.asm -- L-System Fractal Generator Interactive fractal renderer with 5 presets Keys: 1-5 swit..."
+  },
+  {
+    "name": "lsystem_tree.asm",
+    "size": 7338,
+    "summary": "lsystem_tree.asm -- L-System Fractal Tree  L-System: F -> FF+[+F-F-F]-[-F+F+F], Axiom: F, 3 iteratio..."
+  },
+  {
+    "name": "mandelbrot.asm",
+    "size": 10874,
+    "summary": "mandelbrot.asm - Mandelbrot Fractal Explorer Fixed-point 4.12 format (scale = 4096) 2x2 pixel blocks..."
+  },
+  {
+    "name": "maze.asm",
+    "size": 15347,
+    "summary": "maze.asm -- Randomly generated maze with player navigation  Controls: WASD to move, R to restart wit..."
+  },
+  {
+    "name": "maze_gen.asm",
+    "size": 6633,
+    "summary": "maze_gen.asm -- procedural maze generator (static, non-interactive)  Generates a solvable maze on th..."
+  },
+  {
+    "name": "maze_generator.asm",
+    "size": 17604,
+    "summary": "maze_generator.asm -- DFS backtracking maze with animated generation + WASD player  16x16 maze, 4px..."
+  },
+  {
+    "name": "meminspect.asm",
+    "size": 6598,
+    "summary": "meminspect.asm -- Memory Inspector for Geometry OS  Phase 76: Memory Inspector  Hex dump of RAM regi..."
+  },
+  {
+    "name": "minesweeper.asm",
+    "size": 14983,
+    "summary": "minesweeper.asm -- Minesweeper on a 16x16 grid (16px per cell = 256x256)  Memory layout: 0x2000..0x2..."
+  },
+  {
+    "name": "mirror.asm",
+    "size": 5521,
+    "summary": "mirror.asm - Self-Modification Showcase Demo Reads screen pixels, generates PSETI assembly on the ca..."
+  },
+  {
+    "name": "mixer_demo.asm",
+    "size": 3187,
+    "summary": "mixer_demo.asm -- Multi-Channel Music Demo (Phase 99)  Two processes send notes to a mixer daemon on..."
+  },
+  {
+    "name": "mouse_demo.asm",
+    "size": 1719,
+    "summary": "Mouse Support Demo - Phase 217 Demonstrates MOUSEQ and IMOUSE opcodes for GUI programs  MOUSEQ rd: r..."
+  },
+  {
+    "name": "multiproc.asm",
+    "size": 2680,
+    "summary": "multiproc.asm -- SPATIAL_SPAWN demo  Primary process: draws a bouncing white dot in the LEFT half (x..."
+  },
+  {
+    "name": "music_demo.asm",
+    "size": 3532,
+    "summary": "music_demo.asm -- Simple melody with visual accompany  Plays \"Mary Had a Little Lamb\" using square w..."
+  },
+  {
+    "name": "nano_editor.asm",
+    "size": 56043,
+    "summary": "nano_editor.asm -- Nano-like Text Editor for Geometry OS Phase 139 -- Daily Driver Text Editor App..."
+  },
+  {
+    "name": "nested_rects.asm",
+    "size": 1034,
+    "summary": "NESTED_RECTS -- Draw concentric rectangles from outside in Outer = red, inner = green, innermost = b..."
+  },
+  {
+    "name": "net_chat.asm",
+    "size": 2876,
+    "summary": "net_chat.asm -- Pixel Chat Demo (Phase 71: Pixel Network Protocol)  Demonstrates bidirectional NET_R..."
+  },
+  {
+    "name": "net_demo.asm",
+    "size": 5806,
+    "summary": "net_demo.asm -- TCP Networking Demo for Geometry OS Connects to an echo server, sends a message, rec..."
+  },
+  {
+    "name": "net_share.asm",
+    "size": 3094,
+    "summary": "net_share.asm -- Screen Sharing Demo (Phase 71: Pixel Network Protocol)  Demonstrates NET_SEND for s..."
+  },
+  {
+    "name": "netmon.asm",
+    "size": 7753,
+    "summary": "netmon.asm -- Phase 141: Network Packet Viewer  Visual network packet monitor. Reads from /dev/net d..."
+  },
+  {
+    "name": "neural.asm",
+    "size": 13051,
+    "summary": "neural.asm -- Neural network inference running natively in Geometry OS VM  Demonstrates the MATVEC a..."
+  },
+  {
+    "name": "neural_network.asm",
+    "size": 8210,
+    "summary": "neural_network.asm -- Batch Neural Network Inference using MATMUL Phase 260: Demonstrates MATMUL opc..."
+  },
+  {
+    "name": "neural_search.asm",
+    "size": 2502,
+    "summary": "This assembly code sets up and displays a neural search interface with various program descriptions and queries an AI agent to find a program that helps count objects, then displays the result."
+  },
+  {
+    "name": "nn_demo.asm",
+    "size": 4631,
+    "summary": "nn_demo.asm -- XOR Neural Network Forward Pass Demo Phase 79: Demonstrates MATVEC and RELU opcodes..."
+  },
+  {
+    "name": "notepad.asm",
+    "size": 14790,
+    "summary": "notepad.asm -- Multi-line Text Editor for Geometry OS  Proves: TEXT rendering, IKEY keyboard input,..."
+  },
+  {
+    "name": "oracle.asm",
+    "size": 8040,
+    "summary": "oracle.asm -- Map-aware AI Oracle building Walk in, ask questions about the world. The LLM knows you..."
+  },
+  {
+    "name": "oracle_autodev.asm",
+    "size": 3249,
+    "summary": "oracle_autodev.asm -- LLM Oracle Architect for autonomous development  The Oracle building becomes t..."
+  },
+  {
+    "name": "p219_screen_capture.asm",
+    "size": 2029,
+    "summary": "Phase 219 Demo: Screen Capture to RAM ======================================= Draws 10 known pixels..."
+  },
+  {
+    "name": "paint.asm",
+    "size": 8309,
+    "summary": "paint.asm -- Mouse-Driven Paint App for Geometry OS  Proves: MOUSEQ opcode (0x85), PSET pixel drawin..."
+  },
+  {
+    "name": "paint_bucket.asm",
+    "size": 7151,
+    "summary": "paint_bucket.asm -- Paint Bucket Demo for Geometry OS  Proves: FLOOD opcode (0xCE) for scanline floo..."
+  },
+  {
+    "name": "painter.asm",
+    "size": 4535,
+    "summary": "PAINTER: Read keyboard port, draw colored pixels where cursor is  Controls: W = move cursor up (by 4..."
+  },
+  {
+    "name": "particle_sandbox.asm",
+    "size": 9829,
+    "summary": "particle_sandbox.asm -- Particle Physics Sandbox  Real-time particle simulation with gravity, wall b..."
+  },
+  {
+    "name": "particles.asm",
+    "size": 4230,
+    "summary": "particles.asm -- 100 colored pixels that drift, bounce, and fade  Proves FRAME + pixel write perform..."
+  },
+  {
+    "name": "peek_bounce.asm",
+    "size": 2850,
+    "summary": "peek_bounce.asm -- PEEK-based collision demo  Demonstrates PEEK (0x4F): a white ball bounces off dra..."
+  },
+  {
+    "name": "pipe_demo.asm",
+    "size": 1429,
+    "summary": "pipe_demo.asm -- Phase 27 IPC Demo Demonstrates pipes, MSGSND/MSGRCV, and blocking I/O  This program..."
+  },
+  {
+    "name": "pipe_test.asm",
+    "size": 1810,
+    "summary": "pipe_test.asm -- Phase 27: IPC pipe test Parent creates a pipe, spawns a child, writes 3 color words..."
+  },
+  {
+    "name": "pixel_history_demo.asm",
+    "size": 2236,
+    "summary": "pixel_history_demo.asm -- Demonstrates PIXEL_HISTORY (0x84) Time-travel debugging: write pixels, the..."
+  },
+  {
+    "name": "pixel_ide.asm",
+    "size": 5854,
+    "summary": "pixel_ide.asm -- Windowed IDE Demo (Phase 70)  Demonstrates a simple pixel IDE with three windowed p..."
+  },
+  {
+    "name": "pixel_key.asm",
+    "size": 2982,
+    "summary": "pixel_key.asm - The Pixelpack Key Interpreter This program defines a 'Key' mapping system where hex..."
+  },
+  {
+    "name": "pixel_llm_clear_the_screen_and_halt.asm",
+    "size": 527,
+    "summary": "The code clears the screen and draws a status bar with the text 'CLEAR' in a specific color before halting."
+  },
+  {
+    "name": "pixel_llm_draw_a_yellow_circle.asm",
+    "size": 608,
+    "summary": "The code draws a yellow circle on the screen using low-level machine language instructions."
+  },
+  {
+    "name": "pixel_llm_ldi_r1,_128.asm",
+    "size": 443,
+    "summary": "This code initializes and displays color bars at specific memory addresses for a graphical user interface."
+  },
+  {
+    "name": "pixel_llm_rect.asm",
+    "size": 130,
+    "summary": "Pixel-LLM Sample 5 - should assemble"
+  },
+  {
+    "name": "pixel_llm_red_pixel.asm",
+    "size": 405,
+    "summary": "Pixel-LLM generated: Draw a red pixel"
+  },
+  {
+    "name": "pixel_vm.asm",
+    "size": 7322,
+    "summary": "pixel_vm.asm -- A VM that runs inside the VM, with all state visible as pixels.  Architecture: A \"pi..."
+  },
+  {
+    "name": "pixelflow.asm",
+    "size": 4172,
+    "summary": "pixelflow.asm -- Neural network visualizer for Geometry OS Connects to pixelflow server via /tmp/pix..."
+  },
+  {
+    "name": "pixelpack_demo.asm",
+    "size": 338,
+    "summary": "PixelPack: D1EB30044EB74484EF Generated by PixelPack v2 decoder"
+  },
+  {
+    "name": "plasma.asm",
+    "size": 6200,
+    "summary": "plasma.asm -- classic plasma demo effect  Fills 256x256 screen with smoothly animated color waves. U..."
+  },
+  {
+    "name": "platformer.asm",
+    "size": 25926,
+    "summary": "platformer.asm -- Side-scrolling platformer with physics  Controls: A/D=move, W/Space=jump, R=restar..."
+  },
+  {
+    "name": "pong.asm",
+    "size": 10535,
+    "summary": "pong.asm -- Classic Pong with AI opponent for Geometry OS Controls: W/Up = paddle up, S/Down = paddl..."
+  },
+  {
+    "name": "preprocessor_advanced_test.asm",
+    "size": 406,
+    "summary": "preprocessor_advanced_test.asm Test register safety and INC/DEC"
+  },
+  {
+    "name": "preprocessor_test.asm",
+    "size": 325,
+    "summary": "preprocessor_test.asm Test the new abstraction layer"
+  },
+  {
+    "name": "procmon.asm",
+    "size": 7028,
+    "summary": "procmon.asm -- Process Monitor for Geometry OS (Phase 140)  Shows: all GeOS processes with PID, Stat..."
+  },
+  {
+    "name": "profile_demo.asm",
+    "size": 3166,
+    "summary": "profile_demo.asm -- Demonstrates PROFILE opcode (0xC6) Profiles two code regions and displays result..."
+  },
+  {
+    "name": "pulse.asm",
+    "size": 5072,
+    "summary": "pulse.asm -- Self-Animating Pulse Bar for Geometry OS  Proves: self-driven state change with zero ex..."
+  },
+  {
+    "name": "push_pop_test.asm",
+    "size": 2251,
+    "summary": "PUSH/POP test - stack operations with r30 as stack pointer Tests: LIFO order, SP tracking, multiple..."
+  },
+  {
+    "name": "rainbow.asm",
+    "size": 1091,
+    "summary": "RAINBOW -- Diagonal pattern"
+  },
+  {
+    "name": "raycaster.asm",
+    "size": 7707,
+    "summary": "raycaster.asm - Wolfenstein-style 3D raycasting engine  A first-person 3D renderer using ray marchin..."
+  },
+  {
+    "name": "reaction.asm",
+    "size": 5448,
+    "summary": "reaction.asm -- Reaction Time Tester for Geometry OS  Proves: FRAME (timing), IKEY (keyboard input),..."
+  },
+  {
+    "name": "register_dashboard.asm",
+    "size": 4157,
+    "summary": "register_dashboard.asm Phase 50: Live Register Dashboard  The canvas grid shows live register values..."
+  },
+  {
+    "name": "replay_demo.asm",
+    "size": 1704,
+    "summary": "replay_demo.asm -- Draw frames, then replay them backward  Phase 38c demo: Uses SNAP_TRACE to record..."
+  },
+  {
+    "name": "rings.asm",
+    "size": 2936,
+    "summary": "RINGS -- Concentric colored rings emanating from center (128,128) For each pixel, compute distance f..."
+  },
+  {
+    "name": "roguelike.asm",
+    "size": 50704,
+    "summary": "roguelike.asm -- Procedural Dungeon Crawler with Combat, Enemies, Items Controls: WASD to move, U to..."
+  },
+  {
+    "name": "rotate_demo.asm",
+    "size": 7028,
+    "summary": "rotate_demo.asm -- Interactive rotation and scaling demo  Draws an asymmetric sprite (colored L-shap..."
+  },
+  {
+    "name": "savepng_demo.asm",
+    "size": 1642,
+    "summary": "\u2500\u2500 Phase 212 Demo: SAVEPNG Opcode \u2500\u2500 Draws a colorful pattern on screen, then exports as PNG via SAV..."
+  },
+  {
+    "name": "sci_calc.asm",
+    "size": 12583,
+    "summary": "sci_calc.asm -- Scientific Calculator for Geometry OS  Phase 75: Scientific calculator with sin/cos/..."
+  },
+  {
+    "name": "screen_copy.asm",
+    "size": 2355,
+    "summary": "screen_copy.asm -- Screen buffer LOAD readback demo Phase 219: Copy screen pixels to RAM via LOAD/ST..."
+  },
+  {
+    "name": "screen_readback_demo.asm",
+    "size": 1661,
+    "summary": "screen_readback_demo.asm Phase: Memory-Mapped Screen Buffer Readback  Demonstrates that VM programs..."
+  },
+  {
+    "name": "screensaver.asm",
+    "size": 3237,
+    "summary": "screensaver.asm -- Multi-effect screensaver for Geometry OS Phase 64 demo: uses MIN/MAX/CLAMP opcode..."
+  },
+  {
+    "name": "screenshot.asm",
+    "size": 3036,
+    "summary": "screenshot.asm -- Screenshot capture utility  Press S to capture a screenshot, saves to VFS as \"shot..."
+  },
+  {
+    "name": "scroll_demo.asm",
+    "size": 613,
+    "summary": "scroll_demo.asm -- draw a bright bar at y=240 then scroll it upward CMP always writes result into r0..."
+  },
+  {
+    "name": "seed_grow.asm",
+    "size": 1665,
+    "summary": "seed_grow.asm - Seed Growth Demo 4 seeds, each grows into a 128x128 quadrant FRAME between tiles to..."
+  },
+  {
+    "name": "self_analysis.asm",
+    "size": 8599,
+    "summary": "self_analysis.asm -- Recursive Self-Analysis Program  The OS uses its own LLM to reason about its ow..."
+  },
+  {
+    "name": "self_host.asm",
+    "size": 5859,
+    "summary": "self_host.asm -- Enhanced Self-Hosting Pixel Assembler (Phase 70)  Demonstrates the full self-hostin..."
+  },
+  {
+    "name": "self_writer.asm",
+    "size": 1277,
+    "summary": "self_writer.asm A program that writes a NEW program to the canvas, compiles it, and runs it. Generat..."
+  },
+  {
+    "name": "settings.asm",
+    "size": 12239,
+    "summary": "settings.asm -- Settings Panel for Geometry OS Phase 77: Theme selection, volume control, config dis..."
+  },
+  {
+    "name": "sfx_demo.asm",
+    "size": 3433,
+    "summary": "sfx_demo.asm -- Retro sound effects catalog  Plays a sequence of notes in different waveforms, each..."
+  },
+  {
+    "name": "sfx_mixer.asm",
+    "size": 9471,
+    "summary": "sfx_mixer.asm -- Layered Sound Effects Demo Demonstrates overlapping BEEP and NOTE calls to simulate..."
+  },
+  {
+    "name": "shell.asm",
+    "size": 81529,
+    "summary": "shell.asm -- Phase 29: Interactive command shell for Geometry OS  A minimal command shell that provi..."
+  },
+  {
+    "name": "shift_test.asm",
+    "size": 1172,
+    "summary": "shift_test.asm -- Test SHL and SHR opcodes  Tests: 1 << 4 = 16  (SHL basic) 16 >> 2 = 4  (SHR basic)..."
+  },
+  {
+    "name": "simon.asm",
+    "size": 8222,
+    "summary": "simon.asm -- Simon Says Memory Game for Geometry OS  Proves: BEEP (audio tones), RAND (sequence gene..."
+  },
+  {
+    "name": "simon_says.asm",
+    "size": 8878,
+    "summary": "simon_says.asm -- Simon Says memory game  Flashes a sequence of colored quadrants; player repeats by..."
+  },
+  {
+    "name": "simple_bug.asm",
+    "size": 615,
+    "summary": "simple_bug.asm -- Draw three colored pixels Intended: (50,50)=red, (100,100)=green, (150,150)=blue B..."
+  },
+  {
+    "name": "smart_term.asm",
+    "size": 8817,
+    "summary": "smart_term.asm -- Terminal with AI assist Type text, press Tab to ask the LLM, response appears on s..."
+  },
+  {
+    "name": "snake.asm",
+    "size": 8518,
+    "summary": "snake.asm -- Snake game on a 32x32 cell grid (8px per cell = 256x256)  Memory layout (all RAM addres..."
+  },
+  {
+    "name": "sokoban.asm",
+    "size": 14064,
+    "summary": "sokoban.asm - Sokoban Puzzle Game Controls: WASD/Arrows=move, U=undo, R=restart, N=next level  Memor..."
+  },
+  {
+    "name": "solar_system.asm",
+    "size": 11436,
+    "summary": "solar_system.asm -- Solar System Simulator for Geometry OS  Interactive solar system with orbital me..."
+  },
+  {
+    "name": "sound_mixer.asm",
+    "size": 4603,
+    "summary": "sound_mixer.asm -- Sound Mixer Daemon with Music Player (Phase 99)  Demonstrates IPC-based audio con..."
+  },
+  {
+    "name": "space_invaders.asm",
+    "size": 20702,
+    "summary": "space_invaders.asm -- Space Invaders for Geometry OS  Controls: A/D or Left/Right arrows -- move can..."
+  },
+  {
+    "name": "sprint_c_test.asm",
+    "size": 2211,
+    "summary": "Sprint C test: MOD, PUSH/POP, BLT/BGE Results stored at RAM[0x0200..0x0209]"
+  },
+  {
+    "name": "sprite_anim.asm",
+    "size": 4463,
+    "summary": "sprite_anim.asm -- Animated sprite walk cycle demo Demonstrates SPRITEANIM opcode (0xEC): auto-advan..."
+  },
+  {
+    "name": "sprite_demo.asm",
+    "size": 7493,
+    "summary": "sprite_demo.asm -- Animated sprites walking around the screen Demonstrates SPRBLT opcode (0x97) with..."
+  },
+  {
+    "name": "starfield.asm",
+    "size": 4723,
+    "summary": "starfield.asm -- 3D starfield zoom effect  Classic demo scene effect: stars stream toward the viewer..."
+  },
+  {
+    "name": "stdlib_test.asm",
+    "size": 5312,
+    "summary": "stdlib_test.asm -- Phase 31: Test program using standard library functions  Tests: strlen, strcpy, s..."
+  },
+  {
+    "name": "stopwatch.asm",
+    "size": 7463,
+    "summary": "stopwatch.asm -- Stopwatch with Lap Times for Geometry OS  Phase 75: Time management app. Proves FRA..."
+  },
+  {
+    "name": "string_ops_demo.asm",
+    "size": 10259,
+    "summary": "STRING_OPS_DEMO: Demonstrates STRLEN, STRCMP, STRCPY opcodes  Visual demo showing three string opera..."
+  },
+  {
+    "name": "stripes.asm",
+    "size": 1083,
+    "summary": "HORIZONTAL_STRIPES -- Draw alternating horizontal stripes Each stripe is 16 pixels tall, alternating..."
+  },
+  {
+    "name": "sysmon.asm",
+    "size": 12745,
+    "summary": "sysmon.asm -- System Dashboard for Geometry OS (Phase 140)  Shows: host memory stats from /proc/memi..."
+  },
+  {
+    "name": "taskbar.asm",
+    "size": 7239,
+    "summary": "taskbar.asm -- Desktop Taskbar for Geometry OS  Phase 72: Persistent taskbar at bottom of screen wit..."
+  },
+  {
+    "name": "term_mux.asm",
+    "size": 9793,
+    "summary": "term_mux.asm -- Phase 103: Terminal Multiplexer  A minimal terminal multiplexer that manages 2 sessi..."
+  },
+  {
+    "name": "terminal.asm",
+    "size": 37020,
+    "summary": "terminal.asm -- Interactive Terminal for Geometry OS (v7 with self-hosting)  Self-contained GUI app:..."
+  },
+  {
+    "name": "terrain_flyover.asm",
+    "size": 6795,
+    "summary": "terrain_flyover.asm -- 3D terrain flyover demo  Fly over procedural heightmap terrain with perspecti..."
+  },
+  {
+    "name": "test_complex.asm",
+    "size": 353,
+    "summary": "test_complex.asm -- Test RAND + nested CALL + PUSH/POP"
+  },
+  {
+    "name": "test_db.asm",
+    "size": 120,
+    "summary": "Test .db directive"
+  },
+  {
+    "name": "test_labels.asm",
+    "size": 385,
+    "summary": "Test label resolution"
+  },
+  {
+    "name": "test_push_pop.asm",
+    "size": 284,
+    "summary": "test_push_pop.asm -- Test PUSH/POP/CALL/RET"
+  },
+  {
+    "name": "test_sandbox_init.asm",
+    "size": 557,
+    "summary": "test_sandbox_init.asm -- Just the init section of particle sandbox"
+  },
+  {
+    "name": "test_sandbox_main.asm",
+    "size": 2576,
+    "summary": "test_sandbox_main.asm -- Init + spawn + main loop"
+  },
+  {
+    "name": "test_sandbox_spawn.asm",
+    "size": 1123,
+    "summary": "test_sandbox_spawn.asm -- Init + spawn_burst"
+  },
+  {
+    "name": "test_vfs_pixel.asm",
+    "size": 1367,
+    "summary": "The code reads the Pixel VFS surface magic and file count from memory, checks if the magic matches 'PXFS', and attempts to load the first file's header if files exist."
+  },
+  {
+    "name": "tetris.asm",
+    "size": 24120,
+    "summary": "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 TETRIS for Geometry OS Controls:..."
+  },
+  {
+    "name": "tetris_clean.asm",
+    "size": 32217,
+    "summary": "tetris.asm -- Tetris for Geometry OS  Controls: A / D          -- move piece left / right W..."
+  },
+  {
+    "name": "thinking_creature.asm",
+    "size": 7239,
+    "summary": "thinking_creature.asm -- One LLM-driven creature on a simple world  A red creature wanders the map...."
+  },
+  {
+    "name": "tilemap_demo.asm",
+    "size": 19030,
+    "summary": "tilemap_demo.asm -- Tilemap Demo Game (Phase 213)  Loads a 16x16 tilemap from RAM at 0x7000 (exporte..."
+  },
+  {
+    "name": "tilemap_editor.asm",
+    "size": 18326,
+    "summary": "tilemap_editor.asm -- Interactive Tilemap Editor for Geometry OS (Phase 213)  Visual map building to..."
+  },
+  {
+    "name": "timer.asm",
+    "size": 6887,
+    "summary": "timer.asm -- Countdown Timer with Alarm for Geometry OS  Phase 75: Countdown timer. Enter time, pres..."
+  },
+  {
+    "name": "timer_demo.asm",
+    "size": 1610,
+    "summary": "timer_demo.asm -- Phase 222: Wall-Clock Timer & Alarm Demo Demonstrates TMR_GET, TMR_WAIT, ALARM_SET..."
+  },
+  {
+    "name": "tmptest_str_opsasm.asm",
+    "size": 47,
+    "summary": "The code loads a string 'hello' into memory at address 0x3000 and then calculates its length."
+  },
+  {
+    "name": "tower_defense.asm",
+    "size": 25371,
+    "summary": "tower_defense.asm -- Tower Defense Game for Geometry OS  Grid: 16x14 cells (16px each), play area y=..."
+  },
+  {
+    "name": "vfs_viewer.asm",
+    "size": 1115,
+    "summary": "vfs_viewer.asm -- VFS Pixel Surface Viewer  \"Pixels move pixels\" -- creates a window and paints the..."
+  },
+  {
+    "name": "vm_park.asm",
+    "size": 3146,
+    "summary": "vm_park.asm -- Phase 87: VM Park Demo Map region with 3 hypervisor buildings: Linux RISC-V, Linux x8..."
+  },
+  {
+    "name": "vw_font_demo.asm",
+    "size": 2420,
+    "summary": "vw_font_demo.asm -- Phase 210: Variable-width font demo Demonstrates VWTXT (0xDB) and FONT_SELECT (0..."
+  },
+  {
+    "name": "wallpaper.asm",
+    "size": 8677,
+    "summary": "wallpaper.asm -- Procedural Wallpaper Generator for Geometry OS Phase 77 demo: generates full-screen..."
+  },
+  {
+    "name": "waveform.asm",
+    "size": 13642,
+    "summary": "waveform.asm -- Waveform Oscilloscope  Controls: 1/2/3   Switch waveform (sine/square/sawtooth) N..."
+  },
+  {
+    "name": "wc.asm",
+    "size": 3612,
+    "summary": "wc.asm -- Word count utility  Counts characters, lines, and words in a text buffer stored in RAM. Te..."
+  },
+  {
+    "name": "window_desktop.asm",
+    "size": 7868,
+    "summary": "window_desktop.asm -- Multi-window desktop demo (Phase 68b) Demonstrates WINSYS + MOUSEQ integration..."
+  },
+  {
+    "name": "window_manager.asm",
+    "size": 15995,
+    "summary": "window_manager.asm -- Geometry OS Desktop Shell  Two windows: terminal (PTY) + system monitor. Click..."
+  },
+  {
+    "name": "wirecube.asm",
+    "size": 8177,
+    "summary": "wirecube.asm -- 3D rotating wireframe cube  A wireframe cube tumbles in 3D space with perspective pr..."
+  },
+  {
+    "name": "wm_drag_close.asm",
+    "size": 13541,
+    "summary": "wm_drag_close.asm -- Window Manager with drag, close, and re-tiling (Phase 95)  A window manager pro..."
+  },
+  {
+    "name": "world_desktop.asm",
+    "size": 112431,
+    "summary": "world_desktop.asm -- Infinite Map Desktop with Player Avatar + Buildings  Based on infinite_map_pxpk..."
+  }
+]

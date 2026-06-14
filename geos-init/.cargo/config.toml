@@ -1,0 +1,6 @@
+[target.riscv32imac-unknown-none-elf]
+rustflags = [
+  "-C", "link-arg=-T/home/jericho/projects/zion/projects/geometry_os/geometry_os/geos-init/Umode.ld",
+  "-C", "link-arg=-z",
+  "-C", "link-arg=max-page-size=4096",
+]

@@ -1,0 +1,215 @@
+{
+  "trace_name": "synthetic_getpid",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 11,
+        "name": "getpid",
+        "description": "getpid syscall"
+      },
+      "arguments": {
+        "a0": 0,
+        "a1": 0,
+        "a2": 0,
+        "a3": 0,
+        "a4": 0,
+        "a5": 0
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "scan_process_table_pixels"
+        ]
+      }
+    }
+  ]
+}

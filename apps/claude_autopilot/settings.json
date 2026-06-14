@@ -1,0 +1,41 @@
+{
+  "hooks": {
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/autopilot.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/subagent_autopilot.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/session_init.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+
+  }
+}

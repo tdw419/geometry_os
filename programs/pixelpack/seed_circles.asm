@@ -1,0 +1,117 @@
+; PixelPack Seed: 0xDE123456 (3725734998)
+; Pattern=13, ColorA=0x888888, ColorB=0xFF0000
+; Density=3, Offset=(52,86)
+
+; === Registers ===
+LDI r10, 0   ; color A
+LDI r11, 0   ; color B
+LDI r20, 0   ; temp x
+LDI r21, 0   ; temp y
+LDI r22, 0   ; temp w
+LDI r23, 0   ; temp h
+LDI r30, 1   ; const 1
+
+LDI r10, 0x888888  ; Color A
+LDI r11, 0xFF0000  ; Color B
+
+; Pattern 13: Concentric circles
+LDI r20, 0
+LDI r21, 0
+LDI r22, 256
+LDI r23, 256
+RECTF r20, r21, r22, r23, r11
+LDI r20, 128
+LDI r21, 128
+LDI r22, 6
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 12
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 18
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 24
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 30
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 36
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 42
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 48
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 54
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 60
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 66
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 72
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 78
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 84
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 90
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 96
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 102
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 108
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 114
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 120
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 126
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 132
+CIRCLE r20, r21, r22, r10
+LDI r20, 128
+LDI r21, 128
+LDI r22, 138
+CIRCLE r20, r21, r22, r10
+
+FRAME
+HALT

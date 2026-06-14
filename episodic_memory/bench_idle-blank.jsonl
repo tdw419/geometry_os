@@ -1,0 +1,3 @@
+{"ts":"40573-40922","prog":"bench_idle-blank","ops":0,"pc":0,"halted":true,"screen":{"non_zero":0,"total":65536,"pct":0.0},"top_ops":[],"bk":"idle-blank","mo":"text","ve":"NO\nThe framebuffer is completely black.","outcome":"black_screen"}
+{"ts":"40573-41108","prog":"bench_idle-blank","ops":0,"pc":0,"halted":true,"screen":{"non_zero":0,"total":65536,"pct":0.0},"top_ops":[],"bk":"idle-blank","mo":"text","ve":"NO, the framebuffer is 100% black indicating no visual output was rendered.","outcome":"black_screen"}
+{"ts":"40573-41108","prog":"bench_idle-blank","ops":0,"pc":0,"halted":true,"screen":{"non_zero":0,"total":65536,"pct":0.0},"top_ops":[],"bk":"idle-blank","mo":"vision","ve":"NO. No graphics or system information is visible.","outcome":"black_screen"}

@@ -1,0 +1,3 @@
+; Minimal test: LDI r0, 42 then HALT
+LDI r0, 42
+HALT

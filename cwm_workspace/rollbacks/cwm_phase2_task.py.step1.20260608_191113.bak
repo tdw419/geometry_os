@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""
+CWM Phase 2: Multi-Step Autonomous Planning System
+
+This evolution adds:
+1. Task decomposition (break complex goals into steps)
+2. State tracking across iterations (memory)
+3. Rollback capability (undo failed modifications)
+4. Progress persistence (save/restore execution state)
+"""
+
+import os
+import sys
+import time
+import json
+import subprocess
+from pathlib import Path
+import requests
+
+# Config
+current_file = Path(__file__).resolve()
+if current_file.parent.name != "cwm_workspace":
+    WORKSPACE_DIR = current_file.parent / "cwm_workspace"
+    WORKSPACE_DIR.mkdir(exist_ok=True)
+    target_file = WORKSPACE_DIR / "cwm_phase2_task.py"
+    target_file.write_text(current_file.read_text())
+    print(f"[*] Bootstrapping: Executing self from workspace copy: {target_file}")
+    os.execv(sys.executable, [sys.executable, str(target_file)])
+else:
+    WORKSPACE_DIR = current_file.parent
+
+LOG_FILE = WORKSPACE_DIR / "cwm_phase2_system.log"
+STATE_FILE = WORKSPACE_DIR / "cwm_execution_state.json"
+ROLLBACK_DIR = WORKSPACE_DIR / "rollbacks"
+ROLLBACK_DIR.mkdir(exist_ok=True)
+
+OLLAMA_API = "http://localhost:11434/api/generate"
+MODEL = "qwen2.5-coder:14b"
+INITIAL_MTIME = os.path.getmtime(current_file)
+
+def log(message):
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    formatted = f"[{timestamp}] {message}"
+    print(formatted)
+    with open(LOG_FILE, "a") as f:
+        f.write(formatted + "\n")
+
+def load_state():
+    """Load execution state from disk"""
+    if STATE_FILE.exists():
+        try:
+            return json.loads(STATE_FILE.read_text())
+        except Exception:
+            pass
+    return {
+        "completed_steps": [],
+        "failed_steps": [],
+        "current_step": 0,
+        "task_decomposition": None,
+        "total_steps": 0
+    }
+
+def save_state(state):
+    """Save execution state to disk"""
+    STATE_FILE.write_text(json.dumps(state, indent=2))
+
+def create_rollback(filepath, step_number):
+    """Create rollback snapshot before modification"""
+    filepath = Path(filepath)
+    if filepath.exists():
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        rollback_path = ROLLBACK_DIR / f"{filepath.name}.step{step_number}.{timestamp}.bak"
+        rollback_path.write_text(filepath.read_text())
+        log(f"[ROLLBACK] Created: {rollback_path.name}")
+        return rollback_path
+    return None
+
+def execute_rollback(step_number):
+    """Rollback to state before failed step"""
+    pattern = f"*.step{step_number}.*.bak"
+    rollbacks = list(ROLLBACK_DIR.glob(pattern))
+    if rollbacks:
+        for rb in rollbacks:
+            original = WORKSPACE_DIR / rb.name.replace(f".step{step_number}.{rb.suffixes[1]}.bak", "")
+            if original.exists():
+                original.write_text(rb.read_text())
+                log(f"[ROLLBACK] Restored: {original.name}")
+        return True
+    return False
+
+def get_system_state(last_result=None):
+    files = [f.name for f in WORKSPACE_DIR.glob("*") if not f.name.startswith(".")]
+    
+    try:
+        meminfo = Path("/proc/meminfo").read_text().splitlines()
+        mem_free = next((line for line in meminfo if "MemFree" in line), "")
+        mem_total = next((line for line in meminfo if "MemTotal" in line), "")
+        stats = f"{mem_total.strip()}, {mem_free.strip()}"
+    except Exception:
+        stats = "CPU/Mem stats unavailable"
+        
+    execution_state = load_state()
+    
+    return {
+        "workspace_files": files,
+        "system_status": stats,
+        "last_execution_result": str(last_result)[:2000] if last_result else "None",
+        "execution_state": execution_state
+    }
+
+def execute_action(action_type, payload, step_number=0):
+    log(f"Executing action ({action_type}) [Step {step_number}]...")
+    
+    if action_type == "shell":
+        result = subprocess.run(
+            payload,
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=str(WORKSPACE_DIR),
+            timeout=30
+        )
+        return {
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "exit_code": result.returncode
+        }
+    elif action_type == "write_file":
+        filename = payload.get("filename", "output.txt")
+        content = payload.get("content", "")
+        filepath = WORKSPACE_DIR / filename
+        
+        # Create rollback before writing
+        if filepath.exists():
+            create_rollback(filepath, step_number)
+        
+        filepath.write_text(content)
+        return f"Successfully wrote file '{filename}' ({len(content)} bytes)"
+    elif action_type == "rollback":
+        if execute_rollback(step_number):
+            return "Rollback successful"
+        else:
+            return "Rollback failed - no snapshot found"
+    else:
+        return f"Unknown action: {action_type}"
+
+def generate_via_ollama(prompt):
+    """Generate action decision using Ollama API"""
+    try:
+        response = requests.post(OLLAMA_API, json={
+            "model": MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.3,
+                "num_predict": 1024,
+                "top_k": 20,
+                "top_p": 0.9
+            }
+        }, timeout=120)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("response", "")
+        else:
+            log(f"[!] Ollama API error: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        log(f"[!] Failed to call Ollama API: {e}")
+        return None
+
+def parse_cwm_response(raw_text):
+    """Parse JSON or text format responses"""
+    raw_text = raw_text.strip()
+    
+    # Try JSON parsing
+    try:
+        clean_text = raw_text
+        if "```json" in clean_text:
+            clean_text = clean_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean_text:
+            clean_text = clean_text.split("```")[1].split("```")[0].strip()
+        else:
+            start = clean_text.find('{')
+            end = clean_text.rfind('}')
+            if start >= 0 and end > start:
+                clean_text = clean_text[start:end+1]
+        
+        parsed = json.loads(clean_text)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+    
+    # Fallback parsing
+    return {
+        "thought": "No thought parsed",
+        "action": "done",
+        "payload": None,
+        "next_step": None
+    }
+
+def main():
+    log("=" * 60)
+    log("CWM Phase 2: Multi-Step Planning System")
+    log(f"Model: {MODEL}")
+    log("=" * 60)
+    
+    # Check Ollama availability
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=5)
+        if response.status_code != 200:
+            log("[!] Ollama API not responding")
+            sys.exit(1)
+        log("[+] Ollama API connected")
+    except Exception as e:
+        log(f"[!] Failed to connect to Ollama: {e}")
+        sys.exit(1)
+    
+    # Load or initialize execution state
+    state = load_state()
+    
+    # Phase 2 Goal: Implement task decomposition system
+    goal = (
+        "Goal: Implement a task decomposition system in cwm_phase2_task.py. "
+        "You must add THREE new functions:\n"
+        "1. decompose_task(goal_text) - breaks a complex goal into atomic steps\n"
+        "2. execute_step(step, context) - executes a single step with rollback\n"
+        "3. validate_step_completion(step, result) - checks if step succeeded\n\n"
+        "CRITICAL: This is a multi-step task. Plan your approach, implement each function, "
+        "and validate before declaring done. Use rollback if a step fails."
+    )
+    
+    last_result = "Phase 2 initialized. Task decomposition system needed."
+    iteration = 0
+    recent_actions = []
+    MAX_REPEATS = 2
+    
+    while True:
+        iteration += 1
+        log(f"--- Iteration {iteration} ---")
+        
+        system_state = get_system_state(last_result)
+        
+        prompt = f"""You are the Code World Model (CWM) Phase 2 - Multi-Step Planning System.
+You can decompose complex tasks, track execution state, and rollback on failure.
+
+Current Goal: {goal}
+
+Execution State:
+- Completed Steps: {system_state['execution_state']['completed_steps']}
+- Failed Steps: {system_state['execution_state']['failed_steps']}
+- Current Step: {system_state['execution_state']['current_step']}
+- Total Steps: {system_state['execution_state']['total_steps']}
+
+Workspace Files: {system_state['workspace_files']}
+System Status: {system_state['system_status']}
+Last Execution Result: {system_state['last_execution_result']}
+
+Current runner source (first 2000 chars):
+{current_file.read_text()[:2000]}
+
+Available Actions:
+- shell: Execute command (for reading files, testing)
+- write_file: Create/modify files (with automatic rollback)
+- rollback: Undo last failed modification
+- done: Declare task complete
+
+Format your response as JSON:
+{{
+  "thought": "your reasoning about current state and next action",
+  "action": "shell" | "write_file" | "rollback" | "done",
+  "payload": "command string" OR {{"filename": "name", "content": "content"}} OR null,
+  "next_step": "brief description of what this action accomplishes"
+}}
+
+Response:"""
+
+        log("Generating next action decision via Ollama...")
+        raw_text = generate_via_ollama(prompt)
+        
+        if not raw_text:
+            log("[!] Failed to generate decision, retrying...")
+            time.sleep(5)
+            continue
+            
+        log(f"[DEBUG] Raw model output:\n{raw_text}\n[END DEBUG]")
+        
+        decision = parse_cwm_response(raw_text)
+        thought = decision.get("thought", "No thought parsed")
+        action = decision.get("action", "done")
+        payload = decision.get("payload")
+        next_step = decision.get("next_step", "")
+        
+        # Loop detection
+        action_sig = f"{action}:{payload}"
+        recent_actions.append(action_sig)
+        if len(recent_actions) > 5:
+            recent_actions.pop(0)
+        
+        if recent_actions.count(action_sig) >= MAX_REPEATS:
+            log(f"[!] LOOP DETECTED: '{action}' repeated. Try different approach.")
+            last_result = "Loop detected - change strategy"
+            continue
+        
+        log(f"CWM Thought: {thought}")
+        log(f"CWM Action: {action}")
+        if next_step:
+            log(f"Next Step: {next_step}")
+        
+        # Update execution state
+        state["current_step"] = iteration
+        
+        if action == "done":
+            # Validate all three functions exist
+            source = current_file.read_text()
+            required = ["def decompose_task", "def execute_step", "def validate_step_completion"]
+            missing = [fn for fn in required if fn not in source]
+            
+            if not missing:
+                state["completed_steps"].append(f"iteration_{iteration}")
+                save_state(state)
+                log("✓ All required functions implemented. Task decomposition system complete!")
+                break
+            else:
+                last_result = f"Validation failed: Missing functions: {missing}"
+                state["failed_steps"].append(f"iteration_{iteration}:{missing}")
+                save_state(state)
+                log(f"[!] {last_result}")
+                continue
+        
+        result = execute_action(action, payload, iteration)
+        
+        # Update state based on result
+        if action == "write_file" and "Successfully wrote" in str(result):
+            state["completed_steps"].append(f"iteration_{iteration}")
+        elif action == "rollback":
+            state["failed_steps"].append(f"iteration_{iteration}:rolled_back")
+        
+        save_state(state)
+        last_result = result
+        log(f"Result: {last_result}")
+        
+        # Hot-reload check
+        try:
+            current_mtime = os.path.getmtime(current_file)
+            if current_mtime > INITIAL_MTIME:
+                modified_text = current_file.read_text()
+                if "def main()" in modified_text:
+                    log("[*] HOT-RELOAD: File modified, restarting...")
+                    backup_path = WORKSPACE_DIR / "cwm_phase2_task.py.bak"
+                    if not backup_path.exists():
+                        backup_path.write_text(current_file.read_text())
+                    os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception as e:
+            log(f"[!] Hot-reload check warning: {e}")
+
+if __name__ == "__main__":
+    main()

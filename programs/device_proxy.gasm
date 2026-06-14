@@ -1,0 +1,143 @@
+; device_proxy.gasm -- Layer 2 device proxy VM
+; Receives IPC requests from worker VMs, formats them into the CPU stub
+; command buffer, polls for completion, and sends responses back.
+;
+; Architecture:
+;   Worker VM -> SEND -> Proxy VM (this program, runs on VM 0)
+;   Proxy writes command buffer at 0x00E20000
+;   CPU Stub (Rust) polls command buffer, executes, marks COMPLETE
+;   Proxy reads result, SENDs response back to worker VM
+;
+; IPC Message format (6 pixels, sent by worker):
+;   pixel[0] = cmd_type  (1=READ_BLOCK, 2=WRITE_BLOCK, 3=OPEN, 4=CLOSE, 5=IOCTL)
+;   pixel[1] = worker_vm_id (so we know who to respond to)
+;   pixel[2] = param1
+;   pixel[3] = param2
+;   pixel[4] = param3
+;   pixel[5] = param4
+;
+; Command buffer slot layout (8 pixels at 0x00E20000):
+;   [0] cmd_type, [1] vm_id, [2] param1, [3] param2,
+;   [4] param3, [5] param4, [6] status, [7] result
+;
+; Response format (2 pixels sent back to worker):
+;   pixel[0] = result_code
+;   pixel[1] = cmd_type (echo for request-response matching)
+;
+; Register allocation:
+;   r0  = recv_dest / scratch (points to IPC scratch at 0x00C00000)
+;   r1  = recv_status (1=msg received, 0=empty)
+;   r2  = cmd_buf_base (0x00E20000)
+;   r3  = STATUS_PENDING (1)
+;   r4  = STATUS_COMPLETE (2)
+;   r5  = STATUS_EMPTY (0)
+;   r6  = worker_vm_id (extracted from message)
+;   r7  = scratch address register
+;   r8  = zero constant
+;   r9  = scratch data register
+;   r10 = scratch data register 2
+
+; === Setup ===
+LDI r0, 0x00C00000       ; recv scratch area
+LDI r2, 0x00E20000       ; command buffer base
+LDI r3, 1                ; STATUS_PENDING
+LDI r4, 2                ; STATUS_COMPLETE
+LDI r5, 0                ; STATUS_EMPTY
+LDI r8, 0                ; zero constant
+
+; === Main receive loop ===
+recv_loop:
+RECV r0, r1              ; try to receive message, status in r1
+BNE r1, r8, got_msg   ; if status != 0, we got a message
+
+; No message: yield and retry
+YIELD
+JMP recv_loop
+
+; === Got message: copy IPC fields to command buffer ===
+got_msg:
+; Message data is at 0x00C00000..0x00C00005 (6 pixels)
+; Command buffer is at 0x00E20000..0x00E20005 (6 pixels)
+
+; Copy cmd_type -> cmd_buf[0]
+LDI r7, 0x00C00000
+LOAD r9, r7
+STORE r2, r9             ; store to cmd_buf_base + 0
+
+; Copy worker_vm_id -> cmd_buf[1], also save in r6
+LDI r7, 0x00C00001
+LOAD r6, r7              ; r6 = worker_vm_id
+LDI r7, 0x00E20001
+STORE r7, r6
+
+; Copy param1 -> cmd_buf[2]
+LDI r7, 0x00C00002
+LOAD r9, r7
+LDI r7, 0x00E20002
+STORE r7, r9
+
+; Copy param2 -> cmd_buf[3]
+LDI r7, 0x00C00003
+LOAD r9, r7
+LDI r7, 0x00E20003
+STORE r7, r9
+
+; Copy param3 -> cmd_buf[4]
+LDI r7, 0x00C00004
+LOAD r9, r7
+LDI r7, 0x00E20004
+STORE r7, r9
+
+; Copy param4 -> cmd_buf[5]
+LDI r7, 0x00C00005
+LOAD r9, r7
+LDI r7, 0x00E20005
+STORE r7, r9
+
+; Clear result field
+LDI r7, 0x00E20007
+STORE r7, r8             ; result = 0
+
+; Set status = PENDING (this signals the CPU stub)
+LDI r7, 0x00E20006
+STORE r7, r3             ; status = PENDING
+
+; === Poll for completion ===
+poll_status:
+LDI r7, 0x00E20006
+LOAD r9, r7              ; r9 = current status
+BNE r9, r3, done_poll   ; if status != PENDING, done
+
+; Still pending: yield and recheck
+YIELD
+JMP poll_status
+
+; === Command complete: read result and respond ===
+done_poll:
+; Read result from cmd_buf[7]
+LDI r7, 0x00E20007
+LOAD r9, r7              ; r9 = result value
+
+; Store result into response buffer at 0x00C00010
+LDI r7, 0x00C00010
+STORE r7, r9             ; response[0] = result
+
+; Echo cmd_type in response[1]
+LDI r7, 0x00C00000
+LOAD r10, r7             ; r10 = original cmd_type
+LDI r7, 0x00C00011
+STORE r7, r10            ; response[1] = cmd_type
+
+; Clear command buffer status for reuse
+LDI r7, 0x00E20006
+STORE r7, r5             ; status = EMPTY
+
+; Send response back to worker VM (2 pixels from 0x00C00010)
+LDI r7, 0x00C00010
+SEND r6, r7, 2           ; send to worker_vm_id
+
+; Loop back to receive next request
+YIELD
+JMP recv_loop
+
+HALT                      ; unreachable, governance compliance

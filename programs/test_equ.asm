@@ -1,0 +1,10 @@
+; Test .equ and .set directives
+.equ SCREEN_WIDTH 256
+.set SCREEN_HEIGHT 256
+.equ MAX_X 255
+.set MAX_Y 255
+
+LDI r0, SCREEN_WIDTH
+ADDI r0, SCREEN_HEIGHT
+CMP r0, 512  ; 256 + 256 = 512
+HALT

@@ -1,0 +1,145 @@
+; PixelPack Seed: 0x89ABCDEF (2309737967)
+; Pattern=8, ColorA=0x8800FF, ColorB=0x0088FF
+; Density=12, Offset=(205,239)
+
+; === Registers ===
+LDI r10, 0   ; color A
+LDI r11, 0   ; color B
+LDI r20, 0   ; temp x
+LDI r21, 0   ; temp y
+LDI r22, 0   ; temp w
+LDI r23, 0   ; temp h
+LDI r30, 1   ; const 1
+
+LDI r10, 0x8800FF  ; Color A
+LDI r11, 0x0088FF  ; Color B
+
+; Pattern 8: Scatter
+LDI r20, 0
+LDI r21, 0
+LDI r22, 256
+LDI r23, 256
+RECTF r20, r21, r22, r23, r11
+LDI r20, 67
+LDI r21, 196
+LDI r22, 13
+LDI r23, 13
+RECTF r20, r21, r22, r23, r10
+LDI r20, 207
+LDI r21, 100
+LDI r22, 14
+LDI r23, 14
+RECTF r20, r21, r22, r23, r10
+LDI r20, 214
+LDI r21, 147
+LDI r22, 32
+LDI r23, 32
+RECTF r20, r21, r22, r23, r10
+LDI r20, 72
+LDI r21, 25
+LDI r22, 27
+LDI r23, 27
+RECTF r20, r21, r22, r23, r10
+LDI r20, 61
+LDI r21, 198
+LDI r22, 23
+LDI r23, 23
+RECTF r20, r21, r22, r23, r10
+LDI r20, 76
+LDI r21, 77
+LDI r22, 20
+LDI r23, 20
+RECTF r20, r21, r22, r23, r10
+LDI r20, 205
+LDI r21, 28
+LDI r22, 22
+LDI r23, 22
+RECTF r20, r21, r22, r23, r11
+LDI r20, 24
+LDI r21, 133
+LDI r22, 19
+LDI r23, 19
+RECTF r20, r21, r22, r23, r10
+LDI r20, 22
+LDI r21, 115
+LDI r22, 13
+LDI r23, 13
+RECTF r20, r21, r22, r23, r11
+LDI r20, 104
+LDI r21, 160
+LDI r22, 9
+LDI r23, 9
+RECTF r20, r21, r22, r23, r10
+LDI r20, 57
+LDI r21, 52
+LDI r22, 10
+LDI r23, 10
+RECTF r20, r21, r22, r23, r10
+LDI r20, 211
+LDI r21, 4
+LDI r22, 32
+LDI r23, 32
+RECTF r20, r21, r22, r23, r10
+LDI r20, 117
+LDI r21, 134
+LDI r22, 8
+LDI r23, 8
+RECTF r20, r21, r22, r23, r10
+LDI r20, 175
+LDI r21, 126
+LDI r22, 31
+LDI r23, 31
+RECTF r20, r21, r22, r23, r10
+LDI r20, 168
+LDI r21, 33
+LDI r22, 23
+LDI r23, 23
+RECTF r20, r21, r22, r23, r10
+LDI r20, 205
+LDI r21, 0
+LDI r22, 15
+LDI r23, 15
+RECTF r20, r21, r22, r23, r10
+LDI r20, 98
+LDI r21, 159
+LDI r22, 26
+LDI r23, 26
+RECTF r20, r21, r22, r23, r10
+LDI r20, 172
+LDI r21, 47
+LDI r22, 8
+LDI r23, 8
+RECTF r20, r21, r22, r23, r10
+LDI r20, 72
+LDI r21, 192
+LDI r22, 11
+LDI r23, 11
+RECTF r20, r21, r22, r23, r10
+LDI r20, 216
+LDI r21, 89
+LDI r22, 9
+LDI r23, 9
+RECTF r20, r21, r22, r23, r10
+LDI r20, 155
+LDI r21, 131
+LDI r22, 28
+LDI r23, 28
+RECTF r20, r21, r22, r23, r10
+LDI r20, 31
+LDI r21, 149
+LDI r22, 24
+LDI r23, 24
+RECTF r20, r21, r22, r23, r10
+LDI r20, 22
+LDI r21, 216
+LDI r22, 18
+LDI r23, 18
+RECTF r20, r21, r22, r23, r10
+LDI r20, 127
+LDI r21, 11
+LDI r22, 21
+LDI r23, 21
+RECTF r20, r21, r22, r23, r11
+
+FRAME
+HALT

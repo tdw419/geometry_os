@@ -1,0 +1,1859 @@
+// vm.rs -- Geometry OS Virtual Machine
+//
+// Executes bytecode assembled from the canvas text surface.
+// The VM is simple: fetch one u32 from RAM at PC, decode as opcode, execute.
+// 32 registers (r0-r31), 64K RAM, 256x256 screen buffer.
+
+use serde::{Deserialize, Serialize};
+
+pub const RAM_SIZE: usize = 0x10000; // 65536 u32 cells
+pub const SCREEN_SIZE: usize = 256 * 256;
+pub const NUM_REGS: usize = 32;
+/// Canvas RAM region: address range [0x8000, 0x8FFF] maps to the pixel grid.
+pub const CANVAS_RAM_BASE: usize = 0x8000;
+pub const CANVAS_RAM_SIZE: usize = 4096;
+/// Screen RAM region: address range [0x10000, 0x1FFFF] maps to the screen buffer.
+pub const SCREEN_RAM_BASE: usize = 0x10000;
+
+/// Substrate MMIO region: [0xE000, 0xEFFF] maps to the Active Cellular Substrate.
+pub const SUBSTRATE_MMIO_BASE: usize = 0xE000;
+pub const SUBSTRATE_MMIO_SIZE: usize = 0x1000; // 4096 cells
+
+/// Formula engine constants (Phase 50: Reactive Canvas).
+/// Maximum number of formula cells allowed (to bound recalc cost).
+pub const MAX_FORMULAS: usize = 256;
+/// Maximum dependencies a single formula can reference.
+pub const MAX_FORMULA_DEPS: usize = 8;
+/// Maximum evaluation depth to prevent infinite recursion in cyclic deps.
+#[allow(dead_code)]
+pub const FORMULA_EVAL_DEPTH_LIMIT: u32 = 32;
+
+/// A formula attached to a canvas cell. When any of its dependencies change,
+/// the formula is re-evaluated and the result written back to the cell.
+#[derive(Debug, Clone)]
+pub struct Formula {
+    /// The canvas-buffer index this formula writes its result to.
+    pub target_idx: usize,
+    /// List of canvas-buffer indices this formula reads from.
+    pub deps: Vec<usize>,
+    /// The operation to perform.
+    pub op: FormulaOp,
+}
+
+/// Operations a formula can perform.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FormulaOp {
+    /// result = first dep + second dep
+    Add,
+    /// result = first dep - second dep
+    Sub,
+    /// result = first dep * second dep
+    Mul,
+    /// result = first dep / second dep (0 on div-by-zero)
+    Div,
+    /// result = first dep & second dep
+    And,
+    /// result = first dep | second dep
+    Or,
+    /// result = first dep ^ second dep
+    Xor,
+    /// result = !first dep (bitwise NOT, single dep)
+    Not,
+    /// result = first dep (identity/copy, single dep)
+    Copy,
+    /// result = max(first dep, second dep)
+    Max,
+    /// result = min(first dep, second dep)
+    Min,
+    /// result = first dep % second dep
+    Mod,
+    /// result = first dep << second dep
+    Shl,
+    /// result = first dep >> second dep
+    Shr,
+    /// result = sum of ALL dependencies (iterates over all deps)
+    Sum,
+    /// result = average of ALL dependencies (sum / len(deps))
+    Avg,
+}
+/// Instruction cache: decoded instruction with pre-fetched operands.
+/// Caches the opcode and all operand words so hot loops skip repeated fetch() calls.
+/// Stored in a direct-mapped Vec indexed by PC address.
+#[derive(Debug, Clone, Copy)]
+pub struct DecodedInstruction {
+    /// The opcode byte (0x00-0xFF).
+    pub opcode: u32,
+    /// Pre-fetched operand words (register indices, immediate values, addresses).
+    /// Up to 4 operands cover all current instruction formats.
+    /// For instructions with fewer operands, unused slots are 0.
+    pub ops: [u32; 4],
+    /// Number of operand words (instruction total size = 1 + num_ops).
+    pub num_ops: u8,
+    /// Generation counter for invalidation. If this doesn't match the cache's
+    /// current generation, the entry is stale (code was modified by STORE).
+    pub generation: u32,
+}
+
+/// Whether an opcode is cacheable (simple enough to benefit from pre-decode).
+/// Cacheable opcodes have fixed operand counts and no side effects during fetch.
+/// Complex opcodes (FRAME, syscalls, graphics, etc.) are not cacheable because
+/// their execution logic varies and the fetch overhead is negligible compared
+/// to the work they do.
+pub const ICACHE_HOT_THRESHOLD: usize = 4; // Cache after N visits to same PC (default)
+
+/// Maximum number of concurrently spawned child processes
+pub const MAX_PROCESSES: usize = 8;
+
+/// A handle for an open spatial file mapped to a region of the active substrate.
+#[derive(Debug, Clone, Copy)]
+pub struct SpatialFile {
+    pub x: u32,
+    pub y: u32,
+    pub w: u32,
+    pub h: u32,
+    pub cursor: u32, // Current seek position in pixels (not bytes)
+}
+/// Syscall dispatch table base address in RAM.
+/// RAM[SYSCALL_TABLE + N] = handler address for syscall number N.
+pub const SYSCALL_TABLE: usize = 0xFE00;
+
+/// Maximum number of hit-test regions (GUI buttons, clickable areas).
+pub const MAX_HIT_REGIONS: usize = 64;
+
+/// A rectangular hit-test region for GUI interaction.
+/// Registered by HITSET, queried by HITQ.
+#[derive(Debug, Clone, Copy)]
+pub struct HitRegion {
+    pub x: u32,
+    pub y: u32,
+    pub w: u32,
+    pub h: u32,
+    pub id: u32,
+}
+
+/// A styled text line produced by the HTML parser (Phase 82).
+/// Each line has a foreground color and up to 32 characters.
+#[derive(Debug, Clone)]
+pub struct StyledLine {
+    pub fg_color: u32,
+    pub chars: Vec<u32>,
+}
+
+/// A link extracted from HTML during parsing.
+/// Registered as a HITSET region for click detection.
+#[derive(Debug, Clone)]
+pub struct HtmlLink {
+    pub href: String,
+    pub line_index: usize,
+    pub char_start: usize,
+    pub char_end: usize,
+}
+
+/// Memory protection constants (Phase 24: Memory Protection).
+/// RAM is divided into pages. Each process gets a page directory mapping
+/// virtual page numbers to physical page numbers.
+pub const PAGE_SIZE: usize = 1024; // words per page (4096 bytes)
+/// Total number of addressable pages (RAM + Screen)
+pub const NUM_PAGES: usize = (RAM_SIZE + SCREEN_SIZE) / PAGE_SIZE; // 128 pages
+/// Number of pages backed by actual RAM (allocatable)
+pub const NUM_RAM_PAGES: usize = RAM_SIZE / PAGE_SIZE; // 64 pages
+/// Sentinel: page directory entry is unmapped (no physical page backing).
+pub const PAGE_UNMAPPED: u32 = 0xFFFFFFFF;
+/// Number of pages allocated to each new spawned process.
+pub const PROCESS_PAGES: usize = 4; // 4096 words = 16KB per process
+
+/// CPU privilege mode: Kernel (full access) or User (restricted).
+/// VM starts in Kernel mode for backward compatibility.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CpuMode {
+    #[default]
+    Kernel,
+    User,
+}
+
+/// Process priority levels for the preemptive scheduler (Phase 26).
+/// Higher priority = more CPU time slices per round.
+#[allow(dead_code)]
+pub const PRIORITY_LEVELS: u8 = 4;
+/// Default base time slice length (in VM steps) for priority-1 processes.
+pub const DEFAULT_TIME_SLICE: u32 = 100;
+
+/// IPC constants (Phase 27: Inter-Process Communication).
+/// Pipe buffer size in u32 words.
+pub const PIPE_BUFFER_SIZE: usize = 256;
+/// Maximum number of pipes system-wide.
+pub const MAX_PIPES: usize = 16;
+/// Maximum messages per-process message queue.
+pub const MAX_MESSAGES: usize = 16;
+/// Message payload size in u32 words.
+pub const MSG_WORDS: usize = 4;
+
+/// Device driver constants (Phase 28: Device Driver Abstraction).
+/// Device fd base: device fds live at 0xE000+device_index.
+pub const DEVICE_FD_BASE: u32 = 0xE000;
+/// Device types mapped to fixed fd slots.
+#[allow(dead_code)]
+pub const DEVICE_SCREEN: u32 = 0; // /dev/screen -> fd 0xE000
+#[allow(dead_code)]
+pub const DEVICE_KEYBOARD: u32 = 1; // /dev/keyboard -> fd 0xE001
+#[allow(dead_code)]
+pub const DEVICE_AUDIO: u32 = 2; // /dev/audio -> fd 0xE002
+#[allow(dead_code)]
+pub const DEVICE_NET: u32 = 3; // /dev/net -> fd 0xE003
+#[allow(dead_code)]
+pub const DEVICE_MAILBOX: u32 = 4; // /dev/mailbox -> fd 0xE004
+pub const DEVICE_COUNT: usize = 5;
+
+/// GEOS Error Code System (Phase 285).
+/// Error codes are returned in r0 by syscall opcodes (OPEN, READ, WRITE, etc.)
+/// and IOCTL. Positive values or zero indicate success; negative values (high bit set)
+/// indicate errors. Programs can check for errors with a simple signed comparison
+/// or by using the `is_geos_err()` helper in assembly (SAR r0, 31; JNZ r0, error).
+///
+/// Encoding: -(error_number). The absolute value is the error number.
+/// This makes error detection trivial: if r0 has bit 31 set, it's an error.
+pub const GEOS_ENOMEM: u32 = 1; // Out of memory / no fd slots available
+pub const GEOS_ENOENT: u32 = 2; // No such file or directory
+pub const GEOS_EPERM: u32 = 3; // Operation not permitted (capability denied)
+pub const GEOS_EIO: u32 = 4; // I/O error (read/write failed)
+pub const GEOS_EISDIR: u32 = 5; // Is a directory (can't open dir as file)
+pub const GEOS_ENOSPC: u32 = 6; // No space left on device
+pub const GEOS_EINVAL: u32 = 7; // Invalid argument
+pub const GEOS_EBADF: u32 = 8; // Bad file descriptor
+pub const GEOS_EACCES: u32 = 9; // Permission denied (wrong mode)
+pub const GEOS_ENFILE: u32 = 10; // File table overflow (too many open files)
+pub const GEOS_ESRCH: u32 = 11; // No such process (for MSGSND)
+pub const GEOS_EBUSY: u32 = 12; // Resource busy (mutex already locked by caller)
+pub const GEOS_ENOTSUP: u32 = 13; // Operation not supported
+pub const GEOS_EEXIST: u32 = 14; // File already exists
+pub const GEOS_ENAMETOOLONG: u32 = 15; // File name too long
+pub const GEOS_EAGAIN: u32 = 16; // Resource temporarily unavailable (try again)
+pub const GEOS_E2BIG: u32 = 17; // Argument list too long
+pub const GEOS_ENOMEM_EXEC: u32 = 18; // Insufficient memory for execution
+pub const GEOS_ERANGE: u32 = 19; // Result out of range / index out of bounds
+pub const GEOS_EREG: u32 = 20; // Invalid register number (not in 0..31)
+pub const GEOS_EOPCODE: u32 = 21; // Unknown/reserved opcode
+
+/// Encode a GEOS error code as a negative u32 for return in r0.
+/// Example: geos_errno(GEOS_ENOENT) returns 0xFFFFFFFE (-2 in two's complement).
+#[inline]
+pub const fn geos_errno(code: u32) -> u32 {
+    code.wrapping_neg() // -(code as i32) as u32
+}
+
+/// Check if a value returned in r0 is a GEOS error code.
+/// Returns true if the high bit is set (negative in signed interpretation).
+/// Assembly equivalent: SAR r0, 31; result is 0xFFFFFFFF if error, 0 if ok.
+#[inline]
+pub const fn is_geos_errno(val: u32) -> bool {
+    val & 0x8000_0000 != 0
+}
+
+/// Mailbox constants (Phase 4.1: Inter-tile mailbox communication).
+/// Each tile has one incoming message slot. Messages are (sender_id, data) pairs.
+/// Double-buffered: writes go to write_buf, FRAME swaps write_buf into read_buf.
+/// Max 256 tiles (supports 16x16 tile grid at 16px tiles).
+pub const MAILBOX_SIZE: usize = 256;
+pub const MAX_HOST_FILES: usize = 16;
+
+/// Clipboard history constants (Phase 221).
+/// Ring buffer of up to 8 clipboard snapshots (pixel + text).
+pub const CLIP_HISTORY_MAX: usize = 8;
+
+/// Sprite sheet constants (Phase 272: Sprite Sheet and Animation Frame Opcodes).
+/// Up to 16 sprite sheets can be registered at once.
+/// Each sheet has a base address, frame dimensions, total frame count, and current frame.
+pub const MAX_SPRITE_SHEETS: usize = 16;
+
+/// Wall-clock alarm constants (Phase 222: Timer and Alarm Opcodes).
+/// Maximum number of concurrent wall-clock alarms.
+pub const MAX_ALARMS: usize = 8;
+
+/// A wall-clock alarm set by ALARM_SET.
+/// When the alarm fires (real time >= target), it writes `value` to RAM[`addr`]
+/// and clears itself. Checked every FRAME opcode.
+#[derive(Debug, Clone)]
+pub struct WallAlarm {
+    /// Wall-clock target time in milliseconds since VM start.
+    pub target_ms: u64,
+    /// RAM address to write the alarm value to when it fires.
+    pub addr: u32,
+    /// Value to write to RAM[addr] when the alarm fires.
+    pub value: u32,
+    /// Whether this slot is active.
+    pub active: bool,
+}
+
+/// A registered sprite sheet for animated sprite blitting.
+/// Programs register a sheet with SPRLOAD, select a frame with SPRFRAME,
+/// then blit with SPRANIM which auto-computes the source address.
+#[derive(Debug, Clone, Copy)]
+pub struct SpriteSheet {
+    /// Base RAM address of the sprite sheet data.
+    pub base_addr: u32,
+    /// Width of each frame in pixels.
+    pub frame_w: u32,
+    /// Height of each frame in pixels.
+    pub frame_h: u32,
+    /// Total number of frames in the sheet.
+    pub total_frames: u32,
+    /// Currently selected frame index (0-based).
+    pub current_frame: u32,
+    /// Whether this sheet slot is in use.
+    pub active: bool,
+}
+
+impl Default for SpriteSheet {
+    fn default() -> Self {
+        Self {
+            base_addr: 0,
+            frame_w: 0,
+            frame_h: 0,
+            total_frames: 0,
+            current_frame: 0,
+            active: false,
+        }
+    }
+}
+
+/// Maximum number of sprite layers supported by the hardware compositing system.
+pub const MAX_SPRITE_LAYERS: usize = 8;
+
+/// A sprite layer buffer for hardware compositing.
+/// Layers are rendered off-screen, then composed in z-order to the main screen.
+#[derive(Debug, Clone)]
+pub struct SpriteLayer {
+    /// Off-screen buffer for this layer (256x256 pixels, same as main screen).
+    /// Color 0 = transparent.
+    pub buffer: Vec<u32>,
+    /// Z-order for compositing (lower = drawn first, higher = drawn last).
+    pub z_order: u32,
+    /// Whether this layer is active and participates in composition.
+    pub active: bool,
+    /// Layer visibility flag (can be toggled without losing buffer data).
+    pub visible: bool,
+    /// Alpha blending mode: 0=opaque, 1=alpha blend, 2=additive.
+    pub blend_mode: u32,
+    /// Global alpha (0-255) applied to entire layer.
+    pub alpha: u32,
+}
+
+impl Default for SpriteLayer {
+    fn default() -> Self {
+        Self {
+            buffer: vec![0u32; SCREEN_SIZE],
+            z_order: 0,
+            active: false,
+            visible: true,
+            blend_mode: 0, // opaque
+            alpha: 255,
+        }
+    }
+}
+
+/// MMIO base address for mailbox region (documented convention).
+pub const MAILBOX_RAM_BASE: usize = 0x5000;
+/// A single mailbox message entry.
+/// Stored per-destination-tile. sender_id identifies the source tile.
+/// valid=false means no message pending (slot empty).
+#[derive(Debug, Clone, Copy)]
+pub struct MailboxEntry {
+    pub valid: bool,
+    pub sender_id: u32,
+    pub data: u32,
+}
+
+impl Default for MailboxEntry {
+    fn default() -> Self {
+        Self {
+            valid: false,
+            sender_id: 0,
+            data: 0,
+        }
+    }
+}
+
+/// Device names (indexed by device type).
+pub const DEVICE_NAMES: &[&str] = &[
+    "/dev/screen",
+    "/dev/keyboard",
+    "/dev/audio",
+    "/dev/net",
+    "/dev/mailbox",
+];
+
+/// A unidirectional pipe with a circular buffer.
+/// Created by PIPE syscall. Two fd slots are allocated: read_fd and write_fd.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct Pipe {
+    /// Circular buffer data
+    pub buffer: [u32; PIPE_BUFFER_SIZE],
+    /// Index of next read position
+    pub read_pos: usize,
+    /// Index of next write position
+    pub write_pos: usize,
+    /// Number of words currently in the buffer
+    pub count: usize,
+    /// PID of the process that has the read end open (0 = main)
+    pub read_pid: u32,
+    /// PID of the process that has the write end open (0 = main)
+    pub write_pid: u32,
+    /// Whether the pipe is still alive (false if write end closed)
+    pub alive: bool,
+}
+
+impl Pipe {
+    /// Create a new pipe with the given reader/writer PIDs.
+    pub fn new(read_pid: u32, write_pid: u32) -> Self {
+        Pipe {
+            buffer: [0; PIPE_BUFFER_SIZE],
+            read_pos: 0,
+            write_pos: 0,
+            count: 0,
+            read_pid,
+            write_pid,
+            alive: true,
+        }
+    }
+
+    /// Write one word to the pipe. Returns true on success, false if full.
+    pub fn write_word(&mut self, val: u32) -> bool {
+        if self.count >= PIPE_BUFFER_SIZE {
+            return false;
+        }
+        self.buffer[self.write_pos] = val;
+        self.write_pos = (self.write_pos + 1) % PIPE_BUFFER_SIZE;
+        self.count += 1;
+        true
+    }
+
+    /// Read one word from the pipe. Returns Some(word) or None if empty.
+    pub fn read_word(&mut self) -> Option<u32> {
+        if self.count == 0 {
+            return None;
+        }
+        let val = self.buffer[self.read_pos];
+        self.read_pos = (self.read_pos + 1) % PIPE_BUFFER_SIZE;
+        self.count -= 1;
+        Some(val)
+    }
+
+    /// Returns true if the pipe buffer is empty.
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+
+    /// Returns true if the pipe buffer is full.
+    #[allow(dead_code)]
+    pub fn is_full(&self) -> bool {
+        self.count >= PIPE_BUFFER_SIZE
+    }
+}
+
+/// A fixed-size message sent between processes.
+#[derive(Debug, Clone, Copy)]
+pub struct Message {
+    /// Sender PID
+    pub sender: u32,
+    /// Payload: 4 u32 words
+    pub data: [u32; MSG_WORDS],
+}
+
+impl Message {
+    /// Create a new message with the given sender PID and payload.
+    pub fn new(sender: u32, data: [u32; MSG_WORDS]) -> Self {
+        Message { sender, data }
+    }
+}
+
+/// Signal types that can be sent to processes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Signal {
+    /// Terminate the process (default handler: halt with exit code 1)
+    Term = 0,
+    /// User-defined signal 1 (default handler: ignore)
+    User1 = 1,
+    /// User-defined signal 2 (default handler: ignore)
+    User2 = 2,
+    /// Stop the process (default handler: halt with exit code 2)
+    Stop = 3,
+}
+
+impl Signal {
+    /// Convert from u32 signal number. Returns None for invalid signals.
+    pub fn from_u32(n: u32) -> Option<Signal> {
+        match n {
+            0 => Some(Signal::Term),
+            1 => Some(Signal::User1),
+            2 => Some(Signal::User2),
+            3 => Some(Signal::Stop),
+            _ => None,
+        }
+    }
+}
+
+/// Process lifecycle states, analogous to Linux task_state.
+///
+/// State transitions:
+///   Ready -> Running       (scheduler picks this process)
+///   Running -> Ready       (time slice exhausted or yield)
+///   Running -> Sleeping    (SLEEP opcode)
+///   Sleeping -> Ready      (sleep timer expires)
+///   Running -> Blocked     (pipe read empty / MSGRCV empty)
+///   Blocked -> Ready       (data available)
+///   Running -> Zombie      (EXIT opcode or fatal signal)
+///   Zombie -> gone         (parent calls WAITPID, reaps exit code)
+///   Any -> Stopped         (SIGSTOP)
+///   Stopped -> Ready       (SIGCONT -- future)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(dead_code)]
+pub enum ProcessState {
+    /// Runnable, waiting for scheduler to pick it up.
+    #[default]
+    Ready,
+    /// Currently executing on the CPU.
+    Running,
+    /// Sleeping until sched_tick reaches sleep_until.
+    Sleeping,
+    /// Blocked on I/O (empty pipe read, empty message receive).
+    Blocked,
+    /// Exited but parent has not reaped it yet. exit_code holds the result.
+    Zombie,
+    /// Stopped by signal (SIGSTOP equivalent).
+    Stopped,
+}
+
+/// VMA (Virtual Memory Area) type, analogous to Linux vm_area_struct.
+/// Each VMA describes a contiguous range of virtual pages with a purpose.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum VmaType {
+    /// Code segment: loaded at spawn, read+execute, not growable.
+    Code,
+    /// Heap segment: grows upward via brk, read+write.
+    Heap,
+    /// Stack segment: grows downward on page fault, read+write.
+    Stack,
+    /// Memory-mapped region: allocated via mmap, read+write.
+    Mmap,
+}
+
+/// A single virtual memory area describing a contiguous page range.
+///
+/// `start_page` is inclusive, `current_end` is the last mapped page.
+/// For growable regions (Heap, Stack), `max_end` is the furthest the VMA
+/// is allowed to expand to.
+#[derive(Debug, Clone)]
+pub struct Vma {
+    /// What this region is used for.
+    pub vtype: VmaType,
+    /// First virtual page number of this region.
+    pub start_page: usize,
+    /// Last currently-mapped virtual page number (inclusive).
+    pub current_end: usize,
+    /// Maximum virtual page number this region may expand to (inclusive).
+    pub max_end: usize,
+}
+
+impl Vma {
+    /// Create a new virtual memory area.
+    pub fn new(vtype: VmaType, start_page: usize, current_end: usize, max_end: usize) -> Self {
+        Vma {
+            vtype,
+            start_page,
+            current_end,
+            max_end,
+        }
+    }
+
+    /// Does this VMA contain the given virtual page number?
+    pub fn contains_page(&self, vpage: usize) -> bool {
+        vpage >= self.start_page && vpage <= self.max_end
+    }
+
+    /// Is the page within the currently-mapped range?
+    #[allow(dead_code)]
+    pub fn is_mapped(&self, vpage: usize) -> bool {
+        vpage >= self.start_page && vpage <= self.current_end
+    }
+
+    /// Can this VMA grow to cover `vpage`?
+    pub fn can_grow_to(&self, vpage: usize) -> bool {
+        if !self.contains_page(vpage) {
+            return false;
+        }
+        match self.vtype {
+            VmaType::Code => false, // code is fixed
+            VmaType::Heap => vpage > self.current_end && vpage <= self.max_end,
+            VmaType::Stack => vpage < self.start_page && vpage >= self.max_end,
+            VmaType::Mmap => vpage > self.current_end && vpage <= self.max_end,
+        }
+    }
+}
+
+/// Process control block, modeled after Linux task_struct.
+///
+/// Each process has:
+/// - Identity: PID, parent PID
+/// - CPU state: saved registers, PC, privilege mode
+/// - Memory: page table root (page directory), kernel stack
+/// - Scheduling: state, priority, time slice
+/// - IPC: message queue, signal handlers
+/// Maximum number of mutexes in the system.
+pub const MAX_MUTEXES: usize = 16;
+/// Maximum number of semaphores in the system.
+pub const MAX_SEMAPHORES: usize = 16;
+/// Sentinel value indicating a mutex has no owner (is unlocked).
+/// PID 0 is a valid process (main/primary), so we cannot use 0.
+pub const NO_MUTEX_OWNER: u32 = u32::MAX;
+
+/// A mutex for inter-process mutual exclusion.
+/// Stored at a RAM address chosen by the programmer (via MTEXINIT).
+/// Processes use MTEXLOCK to acquire (blocks if held) and MTEXUNLOCK to release.
+#[derive(Debug, Clone)]
+pub struct GeosMutex {
+    /// RAM address where this mutex lives (used as an ID).
+    pub addr: u32,
+    /// PID of the process currently holding the lock (0 = unlocked).
+    pub owner_pid: u32,
+    /// Queue of PIDs waiting to acquire this mutex.
+    pub wait_queue: Vec<u32>,
+}
+
+/// A counting semaphore for inter-process synchronization.
+/// Initialized with a count via SEMINIT. SEMWAIT decrements (blocks if zero),
+/// SEMPOST increments (wakes one waiter).
+#[derive(Debug, Clone)]
+pub struct GeosSemaphore {
+    /// RAM address where this semaphore lives (used as an ID).
+    pub addr: u32,
+    /// Current count. Processes block on SEMWAIT when count is 0.
+    pub count: u32,
+    /// Queue of PIDs waiting for this semaphore.
+    pub wait_queue: Vec<u32>,
+}
+
+/// A capability granting access to a VFS path pattern.
+/// Used by Phase 102 (Permissions and Capability System).
+///
+/// `resource_type`: 0 = VFS path, 1 = opcode restriction.
+/// `pattern`: glob-like pattern for VFS paths (e.g. "/tmp/*", "/lib/fonts/*").
+/// `permissions`: bitmask — bit 0 = read, bit 1 = write, bit 2 = execute.
+#[derive(Debug, Clone)]
+pub struct Capability {
+    pub resource_type: u8,
+    pub pattern: String,
+    pub permissions: u8,
+}
+
+impl Capability {
+    pub const PERM_READ: u8 = 0x01;
+    pub const PERM_WRITE: u8 = 0x02;
+    #[allow(dead_code)]
+    pub const PERM_EXEC: u8 = 0x04;
+
+    /// Check if a given path matches this capability's pattern.
+    /// Supports simple glob: trailing `*` matches anything.
+    pub fn matches_path(&self, path: &str) -> bool {
+        if self.resource_type != 0 {
+            return false;
+        }
+        if self.pattern.ends_with('*') {
+            let prefix = &self.pattern[..self.pattern.len() - 1];
+            path.starts_with(prefix)
+        } else {
+            path == self.pattern
+        }
+    }
+
+    /// Check if this capability allows the given permission bits.
+    pub fn allows(&self, perm: u8) -> bool {
+        (self.permissions & perm) != 0
+    }
+}
+
+/// Check if a process with the given capabilities can access a path with a specific permission.
+/// Returns true if access is allowed, false if denied.
+/// If capabilities is None, all access is allowed (backward compatible).
+pub fn check_path_capability(caps: &Option<Vec<Capability>>, path: &str, perm: u8) -> bool {
+    match caps {
+        None => true, // No capability list = full access
+        Some(cap_list) => {
+            // Must find at least one matching capability that grants the permission
+            cap_list
+                .iter()
+                .any(|c| c.matches_path(path) && c.allows(perm))
+        },
+    }
+}
+
+/// Check if a process with the given capabilities can execute a restricted opcode.
+/// Returns true if allowed, false if denied.
+#[allow(dead_code)]
+pub fn check_opcode_capability(caps: &Option<Vec<Capability>>, opcode: u8) -> bool {
+    match caps {
+        None => true,
+        Some(cap_list) => {
+            // Check if any capability restricts this opcode
+            // Resource type 1 = opcode restriction. Pattern is the opcode number as string.
+            // If a restriction exists and doesn't grant EXEC, deny.
+            let restricted = cap_list.iter().filter(|c| c.resource_type == 1);
+            for r in restricted {
+                if let Ok(restricted_op) = r.pattern.parse::<u8>() {
+                    if restricted_op == opcode && !r.allows(Capability::PERM_EXEC) {
+                        return false;
+                    }
+                }
+            }
+            true
+        },
+    }
+}
+
+/// Per-process capability table. On SPAWN, parent specifies allowed VFS paths (wildcard patterns) and restricted opcodes.
+/// Stores as a list of (resource_type, pattern, permissions) tuples.
+///
+/// - Lifecycle: exit code, zombie tracking
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct Process {
+    // ── Identity ──────────────────────────────────────────────────
+    /// Process ID (1-based). PID 0 is the main/kernel context.
+    pub pid: u32,
+    /// PID of the parent process. 0 = spawned by kernel/init.
+    pub parent_pid: u32,
+
+    // ── CPU state (saved context) ─────────────────────────────────
+    /// Program counter: address of next instruction to execute.
+    pub pc: u32,
+    /// General-purpose register file (r0-r31).
+    pub regs: [u32; NUM_REGS],
+    /// CPU privilege mode: Kernel (full access) or User (restricted).
+    pub mode: CpuMode,
+
+    // ── Memory ────────────────────────────────────────────────────
+    /// Page directory for virtual-to-physical address translation.
+    /// None = identity mapping (kernel mode).
+    /// Each entry maps a virtual page number to a physical page number.
+    /// PAGE_UNMAPPED (0xFFFFFFFF) = unmapped -> segfault on access.
+    pub page_dir: Option<Vec<u32>>,
+
+    /// Per-process kernel stack. Stores (return_pc, saved_mode) frames
+    /// pushed by SYSCALL and popped by RETK. Each process has its own
+    /// stack so nested syscalls in different processes don't interfere.
+    pub kernel_stack: Vec<(u32, CpuMode)>,
+
+    // ── Scheduling ────────────────────────────────────────────────
+    /// Current process state (Ready, Running, Sleeping, etc.).
+    pub state: ProcessState,
+    /// Scheduler priority (0 = lowest, 3 = highest). Default: 1.
+    pub priority: u8,
+    /// Remaining instructions in current time slice.
+    pub slice_remaining: u32,
+    /// If sleeping: the sched_tick value at which this process wakes.
+    pub sleep_until: u64,
+    /// Set by YIELD opcode; scheduler preempts mid-slice.
+    pub yielded: bool,
+
+    // ── IPC ────────────────────────────────────────────────────────
+    /// Per-process message queue (max MAX_MESSAGES entries).
+    pub msg_queue: Vec<Message>,
+    /// Signal handler addresses, indexed by signal number (0-3).
+    /// 0 = default handler, 0xFFFFFFFF = ignore, else = RAM address.
+    pub signal_handlers: [u32; 4],
+    /// Pending signals queued for delivery on next step.
+    pub pending_signals: Vec<Signal>,
+
+    // ── Windowed App Data Region (Phase 107) ──────────────────────
+    /// Base address of this process's private data region in RAM.
+    /// For windowed apps: 0x9000 + slot * 0x1000 (4096 words each).
+    /// 0 = unset (main process, no private region).
+    pub data_base: u32,
+
+    // ── Virtual Memory Areas (Phase 44) ────────────────────────────
+    /// Per-process list of virtual memory areas describing address space layout.
+    /// Used by the page fault handler to decide whether to allocate on demand.
+    pub vmas: Vec<Vma>,
+    /// Current heap break position (virtual address). Grows upward via brk.
+    /// Initial value is end of code+data segment.
+    pub brk_pos: u32,
+
+    // ── Lifecycle ──────────────────────────────────────────────────
+    /// Exit code set by EXIT opcode or fatal signal. 0 = success.
+    pub exit_code: u32,
+    /// True if the process segfaulted on an unmapped memory access.
+    pub segfaulted: bool,
+
+    // ── Fonts (Phase 98: Custom Bitmap Fonts) ──────────────────────
+    /// Per-process custom font override. 128 glyphs × 8 rows each.
+    /// None = use built-in GLYPHS array. Set via /dev/screen IOCTL cmd 2.
+    pub custom_font: Option<Vec<[u8; 8]>>,
+
+    /// Font mode for TEXT opcode (Phase 210: Variable-Width Font Support).
+    /// 0 = fixed 5x7 (default), 1 = variable-width 8x8, 2 = tiny 3x5, 3 = medium 5x7.
+    /// Set via FONT_SELECT opcode (0xDC).
+    pub font_mode: u8,
+
+    // ── Capabilities (Phase 102: Permissions and Capability System) ─
+    /// Per-process capability list. None = full access (backward compatible).
+    /// Each capability grants access to a VFS path pattern with specific permissions.
+    pub capabilities: Option<Vec<Capability>>,
+}
+
+/// Backward-compatible alias for Process.
+pub type SpawnedProcess = Process;
+
+#[allow(dead_code)]
+impl Process {
+    /// Create a new process with the given PID and entry point.
+    ///
+    /// The process starts in Ready state with User mode, priority 1,
+    /// and no page directory (identity-mapped, which means kernel mode
+    /// will be used; callers should set `mode` and `page_dir` as needed).
+    pub fn new(pid: u32, parent_pid: u32, entry_pc: u32) -> Self {
+        Process {
+            pid,
+            parent_pid,
+            pc: entry_pc,
+            regs: [0; NUM_REGS],
+            mode: CpuMode::User,
+            page_dir: None,
+            kernel_stack: Vec::new(),
+            state: ProcessState::Ready,
+            priority: 1,
+            slice_remaining: 0,
+            sleep_until: 0,
+            yielded: false,
+            msg_queue: Vec::new(),
+            signal_handlers: [0; 4],
+            pending_signals: Vec::new(),
+            vmas: Vec::new(),
+            brk_pos: 0,
+            exit_code: 0,
+            segfaulted: false,
+            custom_font: None,
+            font_mode: 0,
+            capabilities: None,
+            data_base: 0,
+        }
+    }
+
+    /// Create a minimal test process with default fields.
+    /// Useful for unit tests that need a process without full setup.
+    pub fn default_spawned(pid: u32) -> Self {
+        Process::new(pid, 0, 0)
+    }
+
+    /// Convenience: is this process halted (zombie, segfaulted, or stopped)?
+    /// The scheduler skips halted processes.
+    pub fn is_halted(&self) -> bool {
+        matches!(self.state, ProcessState::Zombie | ProcessState::Stopped) || self.segfaulted
+    }
+
+    /// Is this process in a runnable state (Ready or Running)?
+    pub fn is_runnable(&self) -> bool {
+        matches!(self.state, ProcessState::Ready | ProcessState::Running)
+    }
+
+    /// Default VMA layout for a new process:
+    ///   Page 0: Code (fixed, loaded at spawn)
+    ///   Page 1: Heap (grows up to page 4)
+    ///   Page 2: Stack (grows downward from page 2 to page 1 -- toward lower pages)
+    ///   Pages 3+: available for mmap
+    pub fn default_vmas_for_process() -> Vec<Vma> {
+        // Initial address space for a spawned process:
+        //   Code:  virtual pages 0-2 (3 pages for code/data, max PROCESS_PAGES-1)
+        //   Stack: virtual page 3 (top of initial allocation, grows downward)
+        //   Heap:  starts at page 4 but current_end == max_end so no demand paging
+        //          until brk() extends it
+        //
+        // Only the Stack VMA permits demand growth (downward, toward lower pages).
+        // The Heap VMA requires explicit brk() to extend max_end before faults resolve.
+        vec![
+            // Code: pages 0-2, not growable (max_end == current_end)
+            Vma::new(VmaType::Code, 0, PROCESS_PAGES - 2, PROCESS_PAGES - 2),
+            // Stack: page 3 (top of user space), can grow down to page 2
+            // Stack grows downward so start_page > max_end is intentional for Stack
+            Vma::new(
+                VmaType::Stack,
+                PROCESS_PAGES - 1,
+                PROCESS_PAGES - 1,
+                PROCESS_PAGES - 2,
+            ),
+            // Heap: page 4 onward, initially empty (max_end == PROCESS_PAGES so no growth)
+            // brk() extends max_end to allow demand allocation
+            Vma::new(VmaType::Heap, PROCESS_PAGES, PROCESS_PAGES, PROCESS_PAGES),
+        ]
+    }
+
+    /// Find the VMA that contains the given virtual page.
+    pub fn find_vma(&self, vpage: usize) -> Option<&Vma> {
+        self.vmas.iter().find(|vma| vma.contains_page(vpage))
+    }
+
+    /// Find the VMA that contains the given virtual page (mutable).
+    pub fn find_vma_mut(&mut self, vpage: usize) -> Option<&mut Vma> {
+        self.vmas.iter_mut().find(|vma| vma.contains_page(vpage))
+    }
+
+    /// Create a new process with explicit capabilities.
+    pub fn new_with_caps(
+        pid: u32,
+        parent_pid: u32,
+        entry_pc: u32,
+        capabilities: Option<Vec<Capability>>,
+    ) -> Self {
+        let mut proc = Process::new(pid, parent_pid, entry_pc);
+        proc.capabilities = capabilities;
+        proc
+    }
+
+    /// Inherit capabilities from a parent process.
+    /// Returns a clone of the parent's capability list (or None if parent has none).
+    pub fn inherit_capabilities(parent_caps: &Option<Vec<Capability>>) -> Option<Vec<Capability>> {
+        parent_caps.clone()
+    }
+
+    /// Restrict capabilities to only allow access under a specific path prefix.
+    /// Each existing capability's pattern is replaced with the new prefix.
+    /// If the parent had no capabilities (full access), a single RW cap for the prefix is created.
+    pub fn restrict_to_path(
+        parent_caps: &Option<Vec<Capability>>,
+        prefix: &str,
+    ) -> Option<Vec<Capability>> {
+        match parent_caps {
+            None => {
+                // No existing caps = full access. Restrict to prefix with RW.
+                Some(vec![Capability {
+                    resource_type: 0,
+                    pattern: prefix.to_string(),
+                    permissions: Capability::PERM_READ | Capability::PERM_WRITE,
+                }])
+            },
+            Some(caps) => {
+                // Replace each cap's pattern with the restricted prefix,
+                // preserving original permissions.
+                Some(
+                    caps.iter()
+                        .map(|c| Capability {
+                            resource_type: c.resource_type,
+                            pattern: prefix.to_string(),
+                            permissions: c.permissions,
+                        })
+                        .collect(),
+                )
+            },
+        }
+    }
+}
+
+/// Maximum number of windows that can be active simultaneously.
+pub const MAX_WINDOWS: usize = 8;
+
+/// Window title bar height in pixels.
+#[allow(dead_code)]
+pub const WINDOW_TITLE_BAR_H: u32 = 12;
+/// Window border width in pixels.
+#[allow(dead_code)]
+pub const WINDOW_BORDER_W: u32 = 1;
+
+/// Taskbar occupies the bottom 16 rows of the 256x256 screen.
+/// This region must always render on top of windows (Z-order: terrain < windows < taskbar).
+pub const TASKBAR_Y: usize = 240;
+pub const TASKBAR_H: usize = 16;
+
+/// A managed window with position, size, Z-order, and offscreen buffer.
+/// Created by WINSYS op=0, destroyed by WINSYS op=1.
+///
+/// Phase 107: Windows can live in world-space (infinite map coordinates)
+/// or screen-space (256x256 framebuffer). When `world_x`/`world_y` are set,
+/// the window is positioned in the infinite map and pans with the camera.
+/// RAM[0x7810] = 1 enables world-space mode for WINSYS op=0.
+#[derive(Debug, Clone)]
+pub struct Window {
+    /// Window ID (1-based, 0 = invalid/no window).
+    pub id: u32,
+    /// Left edge X coordinate (screen-space, or computed from world coords).
+    pub x: u32,
+    /// Top edge Y coordinate (screen-space, or computed from world coords).
+    pub y: u32,
+    /// Window width in pixels.
+    pub w: u32,
+    /// Window height in pixels.
+    pub h: u32,
+    /// Z-order: higher = on top. Auto-assigned on create/bring-to-front.
+    pub z_order: u32,
+    /// RAM address of null-terminated title string.
+    #[allow(dead_code)]
+    pub title_addr: u32,
+    /// PID of the process that created this window.
+    pub pid: u32,
+    /// Whether this window is active (alive).
+    pub active: bool,
+    /// Offscreen pixel buffer (w * h pixels). Initialized to all black (0).
+    /// Programs write pixels here; FRAME blits to main screen in Z-order.
+    /// Can be larger than 256x256; viewport_x/y controls which portion is displayed.
+    pub offscreen_buffer: Vec<u32>,
+    // ── Phase 107: World-space coordinates ──
+    /// World-space X position (tile coordinate). 0xFFFFFFFF = unset (screen-space window).
+    pub world_x: u32,
+    /// World-space Y position (tile coordinate). 0xFFFFFFFF = unset (screen-space window).
+    pub world_y: u32,
+    // ── Phase 133: Viewport offset for wider/taller windows ──
+    /// Horizontal scroll offset within the offscreen buffer (pixels).
+    /// Controls which portion of a wider buffer is visible on the 256x256 screen.
+    pub viewport_x: u32,
+    /// Vertical scroll offset within the offscreen buffer (pixels).
+    pub viewport_y: u32,
+    // ── Phase 153: Maximize/restore ──
+    /// Whether this window is currently maximized.
+    pub maximized: bool,
+    /// Saved position/size before maximize, for restore. None if never maximized.
+    pub restore_rect: Option<(u32, u32, u32, u32)>, // (x, y, w, h)
+}
+
+/// Sentinel value: world coords unset, window uses screen-space positioning.
+pub const WORLD_COORD_UNSET: u32 = 0xFFFFFFFF;
+
+/// RAM address for the window world-coords flag.
+/// When RAM[0x7810] == 1, WINSYS op=0 uses r1/r2 as world-space coordinates.
+pub const WINDOW_WORLD_COORDS_ADDR: usize = 0x7810;
+
+/// Base address for windowed app data regions.
+/// Each app gets APP_DATA_SIZE words of private data starting at APP_DATA_BASE + slot * APP_DATA_SIZE.
+/// Placed at 0x9000 to avoid canvas RAM (0x8000-0x8FFF) and hardware ports (0xFF00+).
+pub const APP_DATA_BASE: usize = 0x9000;
+/// Size of each windowed app's private data region (4096 words = 16KB).
+pub const APP_DATA_SIZE: usize = 0x1000;
+
+impl Window {
+    /// Create a new window with the given parameters.
+    /// Offscreen buffer is initialized to transparent black (0x00000000).
+    pub fn new(id: u32, x: u32, y: u32, w: u32, h: u32, title_addr: u32, pid: u32) -> Self {
+        let buf_size = (w as usize) * (h as usize);
+        Window {
+            id,
+            x,
+            y,
+            w,
+            h,
+            z_order: 0,
+            title_addr,
+            pid,
+            active: true,
+            offscreen_buffer: vec![0u32; buf_size],
+            world_x: WORLD_COORD_UNSET,
+            world_y: WORLD_COORD_UNSET,
+            viewport_x: 0,
+            viewport_y: 0,
+            maximized: false,
+            restore_rect: None,
+        }
+    }
+
+    /// Create a new window positioned in world-space.
+    /// Screen x,y will be computed from viewport at render time.
+    pub fn new_world(
+        id: u32,
+        world_x: u32,
+        world_y: u32,
+        w: u32,
+        h: u32,
+        title_addr: u32,
+        pid: u32,
+    ) -> Self {
+        let buf_size = (w as usize) * (h as usize);
+        Window {
+            id,
+            x: 0, // computed at render time
+            y: 0,
+            w,
+            h,
+            z_order: 0,
+            title_addr,
+            pid,
+            active: true,
+            offscreen_buffer: vec![0u32; buf_size],
+            world_x,
+            world_y,
+            viewport_x: 0,
+            viewport_y: 0,
+            maximized: false,
+            restore_rect: None,
+        }
+    }
+
+    /// Returns true if this window is positioned in world-space.
+    pub fn is_world_space(&self) -> bool {
+        self.world_x != WORLD_COORD_UNSET && self.world_y != WORLD_COORD_UNSET
+    }
+
+    /// Read the window title from RAM (up to 32 chars, null-terminated).
+    /// Returns empty string if title_addr is 0 or invalid.
+    pub fn read_title(&self, ram: &[u32]) -> String {
+        let mut title = String::new();
+        if self.title_addr > 0 && (self.title_addr as usize) < ram.len() {
+            for j in 0..32 {
+                let addr = self.title_addr as usize + j;
+                if addr >= ram.len() {
+                    break;
+                }
+                let ch = ram[addr];
+                if ch == 0 || ch > 127 {
+                    break;
+                }
+                title.push(ch as u8 as char);
+            }
+        }
+        title
+    }
+
+    /// Toggle maximize/restore for this window.
+    /// When maximizing, saves current rect to restore_rect.
+    /// When restoring, resets from restore_rect.
+    /// Returns true if state changed.
+    /// `max_w` and `max_h` are the screen dimensions to fill (e.g., 256, 240 with taskbar).
+    pub fn toggle_maximize(&mut self, max_w: u32, max_h: u32) -> bool {
+        if self.maximized {
+            // Restore
+            if let Some((rx, ry, rw, rh)) = self.restore_rect {
+                self.x = rx;
+                self.y = ry;
+                self.w = rw;
+                self.h = rh;
+                self.maximized = false;
+                // Rebuild offscreen buffer to match restored size
+                let new_size = (rw as usize) * (rh as usize);
+                self.offscreen_buffer.resize(new_size, 0);
+                return true;
+            }
+            false
+        } else {
+            // Maximize: save current rect, fill screen (minus taskbar)
+            self.restore_rect = Some((self.x, self.y, self.w, self.h));
+            self.x = 0;
+            self.y = 0;
+            self.w = max_w;
+            self.h = max_h;
+            self.maximized = true;
+            // Rebuild offscreen buffer to match new size
+            let new_size = (max_w as usize) * (max_h as usize);
+            self.offscreen_buffer.resize(new_size, 0);
+            true
+        }
+    }
+}
+
+/// Magic bytes for save files
+pub const SAVE_MAGIC: &[u8; 4] = b"GEOS";
+/// Save file format version
+/// A building in the Memory Palace: position, color, name.
+/// Stored in a heap-backed Vec for unlimited capacity.
+/// The RAM table at 0x7500 is a read-only cache synced from this Vec.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Building {
+    pub id: u32,
+    pub x: i32,
+    pub y: i32,
+    pub type_color: u32,
+    pub name: String,
+}
+
+pub const SAVE_VERSION: u32 = 4;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemAccessKind {
+    Read,
+    Write,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct MemAccess {
+    pub addr: usize,
+    pub kind: MemAccessKind,
+}
+/// Hypervisor execution mode.
+/// QEMU mode spawns a subprocess; Native mode uses the built-in RISC-V interpreter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HypervisorMode {
+    /// Use QEMU subprocess for guest execution (any architecture).
+    #[default]
+    Qemu,
+    /// Use built-in RISC-V interpreter (Phases 34-36, pure Rust, WASM-portable).
+    Native,
+}
+
+/// State of a background hypervisor VM (Phase 87: Multi-Hypervisor).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BgVmState {
+    /// VM is actively executing (time-sliced by host).
+    Running,
+    /// VM is paused (not executing, state preserved).
+    Paused,
+    /// VM state was saved to RAM, VM is dormant.
+    #[allow(dead_code)]
+    Saved,
+}
+
+impl Default for BgVmState {
+    fn default() -> Self {
+        BgVmState::Paused
+    }
+}
+
+/// A background hypervisor VM instance (Phase 87: Multi-Hypervisor).
+/// Each building on the map can host one of these. The host time-slices
+/// between active instances, giving each N instructions per frame.
+#[derive(Debug, Clone)]
+pub struct BackgroundVm {
+    /// Unique instance ID (assigned by VM_SPAWN, 1-based).
+    pub id: u32,
+    /// Config string: "arch=riscv64 [kernel=file.img] [ram=256M] [mode=native|qemu]"
+    #[allow(dead_code)]
+    pub config: String,
+    /// Execution mode (Qemu or Native).
+    #[allow(dead_code)]
+    pub mode: HypervisorMode,
+    /// Window ID to render output into (0 = full canvas, >0 = WINSYS window).
+    #[allow(dead_code)]
+    pub window_id: u32,
+    /// Current state (Running, Paused, Saved).
+    pub state: BgVmState,
+    /// Instructions per frame budget for time-slicing (default: 1000).
+    pub instructions_per_frame: u32,
+    /// Total instructions executed across all time slices.
+    pub total_instructions: u64,
+    /// Number of frames this VM has been active for.
+    pub frames_active: u64,
+}
+
+impl Default for BackgroundVm {
+    fn default() -> Self {
+        BackgroundVm {
+            id: 0,
+            config: String::new(),
+            mode: HypervisorMode::default(),
+            window_id: 0,
+            state: BgVmState::default(),
+            instructions_per_frame: 1000,
+            total_instructions: 0,
+            frames_active: 0,
+        }
+    }
+}
+
+// ── Phase 123: Live Hypervisor State ──────────────────────────
+
+/// State for a live RISC-V hypervisor VM running inside a WINSYS window.
+/// Managed by VM_LIVE_SPAWN / VM_LIVE_STEP / VM_LIVE_KILL opcodes.
+/// Only one live hypervisor can be active at a time.
+pub struct LiveHypervisorState {
+    /// The RISC-V VM instance
+    pub vm: crate::riscv::RiscvVm,
+    /// WINSYS window ID to render console output into
+    pub window_id: u32,
+    /// How many RISC-V instructions to execute per VM_LIVE_STEP
+    pub instructions_per_slice: u32,
+    /// Cumulative instruction count across all time slices
+    pub total_instructions: u64,
+    /// Current console cursor row (in character cells)
+    pub console_row: u32,
+    /// Current console cursor column (in character cells)
+    pub console_col: u32,
+    /// Whether the guest has booted (set after first successful step)
+    pub booted: bool,
+}
+
+impl std::fmt::Debug for LiveHypervisorState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LiveHypervisorState")
+            .field("window_id", &self.window_id)
+            .field("instructions_per_slice", &self.instructions_per_slice)
+            .field("total_instructions", &self.total_instructions)
+            .field("console_row", &self.console_row)
+            .field("console_col", &self.console_col)
+            .field("booted", &self.booted)
+            .finish_non_exhaustive()
+    }
+}
+
+#[cfg(test)]
+mod capability_tests {
+    use super::*;
+
+    fn make_cap(rtype: u8, pattern: &str, perms: u8) -> Capability {
+        Capability {
+            resource_type: rtype,
+            pattern: pattern.to_string(),
+            permissions: perms,
+        }
+    }
+
+    fn read_only_path_cap(pattern: &str) -> Capability {
+        make_cap(0, pattern, Capability::PERM_READ)
+    }
+
+    fn write_only_path_cap(pattern: &str) -> Capability {
+        make_cap(0, pattern, Capability::PERM_WRITE)
+    }
+
+    fn rw_path_cap(pattern: &str) -> Capability {
+        make_cap(0, pattern, Capability::PERM_READ | Capability::PERM_WRITE)
+    }
+
+    // === Capability.matches_path tests ===
+
+    #[test]
+    fn test_exact_match() {
+        let cap = read_only_path_cap("/data/file.txt");
+        assert!(cap.matches_path("/data/file.txt"));
+        assert!(!cap.matches_path("/data/other.txt"));
+        assert!(!cap.matches_path("/data/file.txt.bak"));
+    }
+
+    #[test]
+    fn test_wildcard_prefix() {
+        // Pattern ending with * does prefix matching
+        let cap = read_only_path_cap("/dev/*");
+        assert!(cap.matches_path("/dev/screen"));
+        assert!(cap.matches_path("/dev/keyboard"));
+        assert!(cap.matches_path("/dev/anything/deep"));
+        assert!(!cap.matches_path("/data/screen"));
+        assert!(!cap.matches_path("/device"));
+    }
+
+    #[test]
+    fn test_wildcard_star_char() {
+        // The * in a pattern like "/logs/*" means: strip the *, then starts_with("/logs/")
+        // So "/logs/*" becomes prefix "/logs/"
+        let cap = read_only_path_cap("/logs/*");
+        assert!(cap.matches_path("/logs/app.log"));
+        assert!(cap.matches_path("/logs/sub/error.log"));
+        // "/logs/" (just the prefix) also matches
+        assert!(cap.matches_path("/logs/"));
+        // "/logs" without trailing slash does NOT match prefix "/logs/"
+        assert!(!cap.matches_path("/logs"));
+        assert!(!cap.matches_path("/data/app.log"));
+    }
+
+    #[test]
+    fn test_root_prefix() {
+        let cap = rw_path_cap("/*");
+        // "/*" strips *, prefix becomes "/" - matches everything
+        assert!(cap.matches_path("/anything"));
+        assert!(cap.matches_path("/a/b/c"));
+        assert!(cap.matches_path("/dev/screen"));
+        // But doesn't match non-absolute paths
+        assert!(!cap.matches_path("relative"));
+    }
+
+    #[test]
+    fn test_empty_pattern() {
+        let cap = read_only_path_cap("");
+        // Empty pattern (no *) = exact match only
+        assert!(!cap.matches_path("/anything"));
+        // Empty string == empty string is true (exact match)
+        assert!(cap.matches_path(""));
+    }
+
+    #[test]
+    fn test_exact_vs_prefix_distinction() {
+        // "/tmp" (exact) vs "/tmp/*" (prefix via star)
+        let exact = rw_path_cap("/tmp");
+        let prefix = rw_path_cap("/tmp/*");
+
+        assert!(exact.matches_path("/tmp"));
+        assert!(!exact.matches_path("/tmpfile"));
+        assert!(!exact.matches_path("/tmp/file"));
+
+        // "/tmp/*" strips *, prefix becomes "/tmp/"
+        assert!(!prefix.matches_path("/tmp"));
+        assert!(prefix.matches_path("/tmp/file"));
+        assert!(prefix.matches_path("/tmp/sub/deep/file.txt"));
+    }
+
+    // === Capability.allows tests ===
+
+    #[test]
+    fn test_allows_read_only() {
+        let cap = read_only_path_cap("/data");
+        assert!(cap.allows(Capability::PERM_READ));
+        assert!(!cap.allows(Capability::PERM_WRITE));
+        // allows() uses AND, so allows(RW) is true if ANY perm bit matches
+        assert!(cap.allows(Capability::PERM_READ | Capability::PERM_WRITE));
+    }
+
+    #[test]
+    fn test_allows_write_only() {
+        let cap = write_only_path_cap("/data");
+        assert!(!cap.allows(Capability::PERM_READ));
+        assert!(cap.allows(Capability::PERM_WRITE));
+    }
+
+    #[test]
+    fn test_allows_read_write() {
+        let cap = rw_path_cap("/data");
+        assert!(cap.allows(Capability::PERM_READ));
+        assert!(cap.allows(Capability::PERM_WRITE));
+        assert!(cap.allows(Capability::PERM_READ | Capability::PERM_WRITE));
+    }
+
+    #[test]
+    fn test_allows_zero_perm() {
+        let cap = make_cap(0, "/data", 0);
+        assert!(!cap.allows(Capability::PERM_READ));
+        assert!(!cap.allows(Capability::PERM_WRITE));
+    }
+
+    // === check_path_capability tests ===
+
+    #[test]
+    fn test_no_caps_allows_all() {
+        assert!(check_path_capability(
+            &None,
+            "/anything",
+            Capability::PERM_READ
+        ));
+        assert!(check_path_capability(
+            &None,
+            "/secret",
+            Capability::PERM_WRITE
+        ));
+    }
+
+    #[test]
+    fn test_empty_cap_list_denies_all() {
+        let caps = Some(vec![]);
+        assert!(!check_path_capability(
+            &caps,
+            "/anything",
+            Capability::PERM_READ
+        ));
+        assert!(!check_path_capability(
+            &caps,
+            "/anything",
+            Capability::PERM_WRITE
+        ));
+    }
+
+    #[test]
+    fn test_single_cap_exact_path() {
+        let caps = Some(vec![read_only_path_cap("/dev/screen")]);
+        assert!(check_path_capability(
+            &caps,
+            "/dev/screen",
+            Capability::PERM_READ
+        ));
+        assert!(!check_path_capability(
+            &caps,
+            "/dev/screen",
+            Capability::PERM_WRITE
+        ));
+        assert!(!check_path_capability(
+            &caps,
+            "/dev/keyboard",
+            Capability::PERM_READ
+        ));
+    }
+
+    #[test]
+    fn test_single_cap_prefix() {
+        let caps = Some(vec![rw_path_cap("/dev/*")]);
+        assert!(check_path_capability(
+            &caps,
+            "/dev/screen",
+            Capability::PERM_READ
+        ));
+        assert!(check_path_capability(
+            &caps,
+            "/dev/screen",
+            Capability::PERM_WRITE
+        ));
+        assert!(check_path_capability(
+            &caps,
+            "/dev/keyboard",
+            Capability::PERM_READ
+        ));
+        assert!(!check_path_capability(
+            &caps,
+            "/data/file",
+            Capability::PERM_READ
+        ));
+    }
+
+    #[test]
+    fn test_multiple_caps_union() {
+        let caps = Some(vec![
+            read_only_path_cap("/dev/screen"),
+            rw_path_cap("/tmp/*"),
+        ]);
+        assert!(check_path_capability(
+            &caps,
+            "/dev/screen",
+            Capability::PERM_READ
+        ));
+        // READ cap on /dev/screen does NOT allow WRITE
+        assert!(!check_path_capability(
+            &caps,
+            "/dev/screen",
+            Capability::PERM_WRITE
+        ));
+        assert!(check_path_capability(
+            &caps,
+            "/tmp/file",
+            Capability::PERM_READ
+        ));
+        assert!(check_path_capability(
+            &caps,
+            "/tmp/file",
+            Capability::PERM_WRITE
+        ));
+        assert!(!check_path_capability(
+            &caps,
+            "/secret",
+            Capability::PERM_READ
+        ));
+    }
+
+    #[test]
+    fn test_multiple_perms_across_caps() {
+        // One cap grants read on /data, another grants write on /data
+        let caps = Some(vec![
+            read_only_path_cap("/data"),
+            write_only_path_cap("/data"),
+        ]);
+        assert!(check_path_capability(&caps, "/data", Capability::PERM_READ));
+        assert!(check_path_capability(
+            &caps,
+            "/data",
+            Capability::PERM_WRITE
+        ));
+    }
+
+    // === check_opcode_capability tests ===
+
+    #[test]
+    fn test_no_caps_allows_all_opcodes() {
+        assert!(check_opcode_capability(&None, 0x54)); // OPEN
+        assert!(check_opcode_capability(&None, 0xFF));
+    }
+
+    #[test]
+    fn test_empty_cap_list_allows_all_opcodes() {
+        // Empty cap list has no restrictions, so all opcodes are allowed
+        let caps = Some(vec![]);
+        assert!(check_opcode_capability(&caps, 0x54));
+    }
+
+    #[test]
+    fn test_opcode_restriction() {
+        // Resource type 1 = opcode restriction. If exists without EXEC, blocks that opcode.
+        // If exists WITH EXEC, allows it.
+        let caps = Some(vec![
+            make_cap(1, "77", Capability::PERM_EXEC), // 0x4D = 77 = SPAWN allowed
+            make_cap(1, "78", Capability::PERM_EXEC), // 0x4E = 78 = KILL allowed
+        ]);
+        assert!(check_opcode_capability(&caps, 0x4D)); // SPAWN allowed
+        assert!(check_opcode_capability(&caps, 0x4E)); // KILL allowed
+        assert!(check_opcode_capability(&caps, 0x54)); // OPEN: no restriction exists, allowed
+        assert!(check_opcode_capability(&caps, 0x42)); // FILL: no restriction exists, allowed
+    }
+
+    #[test]
+    fn test_opcode_restriction_no_exec() {
+        // Capability exists but doesn't grant EXEC
+        let caps = Some(vec![make_cap(1, "77", Capability::PERM_READ)]); // SPAWN restricted, READ only
+        assert!(!check_opcode_capability(&caps, 0x4D));
+    }
+
+    #[test]
+    fn test_opcode_restriction_blocks() {
+        // A restriction that denies SPAWN
+        let caps = Some(vec![make_cap(1, "77", 0)]); // SPAWN with zero perms
+        assert!(!check_opcode_capability(&caps, 0x4D));
+    }
+
+    // === Capability on Process creation ===
+
+    #[test]
+    fn test_process_new_no_capabilities() {
+        let proc = Process::new(1, 0, 100);
+        assert!(proc.capabilities.is_none());
+    }
+
+    #[test]
+    fn test_process_new_with_capabilities() {
+        let caps = vec![rw_path_cap("/dev/*")];
+        let proc = Process::new_with_caps(1, 0, 100, Some(caps.clone()));
+        assert!(proc.capabilities.is_some());
+        let proc_caps = proc.capabilities.unwrap();
+        assert_eq!(proc_caps.len(), 1);
+        assert!(proc_caps[0].matches_path("/dev/screen"));
+        assert!(proc_caps[0].allows(Capability::PERM_READ | Capability::PERM_WRITE));
+    }
+
+    #[test]
+    fn test_process_capability_inheritance() {
+        let parent_caps = vec![rw_path_cap("/tmp/*"), read_only_path_cap("/dev/screen")];
+        let child_caps = Process::inherit_capabilities(&Some(parent_caps));
+        assert!(child_caps.is_some());
+        let cc = child_caps.unwrap();
+        assert_eq!(cc.len(), 2);
+        assert!(cc[0].matches_path("/tmp/file"));
+        assert!(cc[1].matches_path("/dev/screen"));
+    }
+
+    #[test]
+    fn test_process_capability_inheritance_none() {
+        let child_caps = Process::inherit_capabilities(&None);
+        assert!(child_caps.is_none());
+    }
+
+    #[test]
+    fn test_process_restrict_to_path() {
+        let caps = vec![rw_path_cap("/data/*")];
+        let restricted = Process::restrict_to_path(&Some(caps), "/sandbox/");
+        assert!(restricted.is_some());
+        let rc = restricted.unwrap();
+        assert_eq!(rc.len(), 1);
+        // restrict_to_path replaces the pattern, so it's exact "/sandbox/" now
+        assert!(rc[0].matches_path("/sandbox/"));
+        assert!(!rc[0].matches_path("/sandbox/file.txt"));
+        assert!(!rc[0].matches_path("/data/file.txt"));
+        assert!(rc[0].allows(Capability::PERM_READ));
+        assert!(rc[0].allows(Capability::PERM_WRITE));
+    }
+
+    #[test]
+    fn test_process_restrict_to_path_none() {
+        let restricted = Process::restrict_to_path(&None, "/sandbox/");
+        assert!(restricted.is_some());
+        let rc = restricted.unwrap();
+        assert_eq!(rc.len(), 1);
+        // Pattern is exact "/sandbox/", not a prefix
+        assert!(rc[0].matches_path("/sandbox/"));
+        assert!(!rc[0].matches_path("/sandbox/file"));
+        assert!(rc[0].allows(Capability::PERM_READ | Capability::PERM_WRITE));
+    }
+
+    #[test]
+    fn test_process_restrict_preserves_perms() {
+        let caps = vec![read_only_path_cap("/data/*")];
+        let restricted = Process::restrict_to_path(&Some(caps), "/sandbox/");
+        assert!(restricted.is_some());
+        let rc = restricted.unwrap();
+        assert!(rc[0].allows(Capability::PERM_READ));
+        assert!(!rc[0].allows(Capability::PERM_WRITE));
+    }
+
+    // === Integration: VFS + Capability enforcement ===
+
+    #[test]
+    fn test_vfs_open_denied_by_capability() {
+        use crate::vm::Vm;
+
+        let mut vm = Vm::new();
+
+        // Create a process with read-only access to /dev/screen only
+        let caps = vec![read_only_path_cap("/dev/screen")];
+        let proc = Process::new_with_caps(1, 0, 100, Some(caps));
+        vm.processes.push(proc);
+        vm.current_pid = 1;
+
+        // Write a path to RAM
+        let path_bytes = b"/dev/keyboard";
+        for (i, &b) in path_bytes.iter().enumerate() {
+            vm.ram[0x3000 + i] = b as u32;
+        }
+        vm.ram[0x3000 + path_bytes.len()] = 0;
+
+        // OPEN /dev/keyboard for read (mode=0)
+        vm.regs[1] = 0x3000; // path
+        vm.regs[2] = 0; // mode = read
+        vm.ram[0] = 0x54; // OPEN
+        vm.ram[1] = 0x01; // reg 1
+        vm.ram[2] = 0x02; // reg 2
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+
+        // Should return EPERM, not the device fd
+        assert_eq!(
+            vm.regs[0],
+            geos_errno(GEOS_EPERM),
+            "Should deny access to /dev/keyboard"
+        );
+    }
+
+    #[test]
+    fn test_vfs_open_allowed_by_capability() {
+        use crate::vm::Vm;
+
+        let mut vm = Vm::new();
+
+        // Create a process with read access to /dev/* (prefix match)
+        let caps = vec![read_only_path_cap("/dev/*")];
+        let proc = Process::new_with_caps(1, 0, 100, Some(caps));
+        vm.processes.push(proc);
+        vm.current_pid = 1;
+
+        // Write path to RAM
+        let path_bytes = b"/dev/screen";
+        for (i, &b) in path_bytes.iter().enumerate() {
+            vm.ram[0x3000 + i] = b as u32;
+        }
+        vm.ram[0x3000 + path_bytes.len()] = 0;
+
+        // OPEN /dev/screen for read
+        vm.regs[1] = 0x3000;
+        vm.regs[2] = 0;
+        vm.ram[0] = 0x54; // OPEN
+        vm.ram[1] = 0x01;
+        vm.ram[2] = 0x02;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+
+        // Should succeed with device fd
+        assert_eq!(vm.regs[0], 0xE000, "Should allow access to /dev/screen");
+    }
+
+    #[test]
+    fn test_vfs_open_no_caps_allows_all() {
+        use crate::vm::Vm;
+
+        let mut vm = Vm::new();
+
+        // Process with no capabilities (full access)
+        let proc = Process::new(1, 0, 100);
+        vm.processes.push(proc);
+        vm.current_pid = 1;
+
+        // Write path to RAM
+        let path_bytes = b"/dev/screen";
+        for (i, &b) in path_bytes.iter().enumerate() {
+            vm.ram[0x3000 + i] = b as u32;
+        }
+        vm.ram[0x3000 + path_bytes.len()] = 0;
+
+        // OPEN /dev/screen for read
+        vm.regs[1] = 0x3000;
+        vm.regs[2] = 0;
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 0x01;
+        vm.ram[2] = 0x02;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+
+        // Should succeed
+        assert_eq!(vm.regs[0], 0xE000);
+    }
+
+    #[test]
+    fn test_write_denied_when_only_read_cap() {
+        use crate::vm::Vm;
+
+        let mut vm = Vm::new();
+
+        // Process with read-only access to /dev/screen
+        let caps = vec![read_only_path_cap("/dev/screen")];
+        let proc = Process::new_with_caps(1, 0, 100, Some(caps));
+        vm.processes.push(proc);
+        vm.current_pid = 1;
+
+        let path_bytes = b"/dev/screen";
+        for (i, &b) in path_bytes.iter().enumerate() {
+            vm.ram[0x3000 + i] = b as u32;
+        }
+        vm.ram[0x3000 + path_bytes.len()] = 0;
+
+        // OPEN /dev/screen for WRITE (mode=1)
+        vm.regs[1] = 0x3000;
+        vm.regs[2] = 1; // write mode
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 0x01;
+        vm.ram[2] = 0x02;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+
+        // Should deny write access
+        assert_eq!(
+            vm.regs[0],
+            geos_errno(GEOS_EPERM),
+            "Should deny write to /dev/screen with read-only cap"
+        );
+    }
+
+    #[test]
+    fn test_write_allowed_with_rw_cap() {
+        use crate::vm::Vm;
+
+        let mut vm = Vm::new();
+
+        // Process with RW access to /dev/* (prefix match)
+        let caps = vec![rw_path_cap("/dev/*")];
+        let proc = Process::new_with_caps(1, 0, 100, Some(caps));
+        vm.processes.push(proc);
+        vm.current_pid = 1;
+
+        let path_bytes = b"/dev/screen";
+        for (i, &b) in path_bytes.iter().enumerate() {
+            vm.ram[0x3000 + i] = b as u32;
+        }
+        vm.ram[0x3000 + path_bytes.len()] = 0;
+
+        // OPEN /dev/screen for WRITE
+        vm.regs[1] = 0x3000;
+        vm.regs[2] = 1;
+        vm.ram[0] = 0x54;
+        vm.ram[1] = 0x01;
+        vm.ram[2] = 0x02;
+        vm.pc = 0;
+        vm.halted = false;
+        vm.step();
+
+        // Should succeed
+        assert_eq!(vm.regs[0], 0xE000);
+    }
+
+    // === Wildcard edge cases matching actual implementation ===
+
+    #[test]
+    fn test_star_in_middle_of_pattern() {
+        // "/dev/*" strips the * and becomes prefix "/dev/"
+        let cap = read_only_path_cap("/dev/*");
+        assert!(cap.matches_path("/dev/screen"));
+        assert!(cap.matches_path("/dev/keyboard"));
+        assert!(!cap.matches_path("/data/screen"));
+    }
+
+    #[test]
+    fn test_no_star_exact_match() {
+        // "/dev" without * = exact match
+        let cap = rw_path_cap("/dev");
+        assert!(cap.matches_path("/dev"));
+        assert!(!cap.matches_path("/device"));
+        assert!(!cap.matches_path("/dev/screen"));
+    }
+
+    #[test]
+    fn test_prefix_star_pattern() {
+        // "/tmp/*" strips * -> prefix "/tmp/"
+        let cap = rw_path_cap("/tmp/*");
+        assert!(cap.matches_path("/tmp/file"));
+        assert!(cap.matches_path("/tmp/sub/file"));
+        assert!(!cap.matches_path("/tmp")); // no trailing slash
+        assert!(!cap.matches_path("/tmpfile"));
+    }
+
+    #[test]
+    fn test_non_path_resource_type() {
+        // Resource type != 0 should never match a path
+        let cap = make_cap(1, "/dev/screen", Capability::PERM_READ);
+        assert!(!cap.matches_path("/dev/screen"));
+        assert!(!cap.matches_path("anything"));
+    }
+}

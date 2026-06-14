@@ -1,0 +1,2170 @@
+// geos-term -- standalone single-window Geometry OS terminal.
+//
+// Boots straight into one program (default programs/host_term.asm) inside a
+// minifb window. No infinite desktop, no map mode, no building icons -- just
+// the VM, the program, and a window. Intended as the "open a shell" entry
+// point so GeOS can replace gnome-terminal etc.
+//
+// Usage:
+//   geos-term                        # runs programs/host_term.asm
+//   geos-term programs/snake.asm     # runs any GeOS program
+//   geos-term --scale 4              # 4x scale (1024x1024 window)
+//   geos-term --script "frame:50,type:echo hello,key:13,frame:80,dump"
+//   geos-term --test echo_round_trip # run a built-in confidence test
+//
+// Keyboard shortcuts (host-level, intercepted before VM):
+//   Shift+PageUp      Scroll back through terminal history
+//   Shift+PageDown    Scroll forward through terminal history
+//   Ctrl+Shift+C      Copy visible text to host clipboard
+//   Ctrl+Shift+V      Paste from host clipboard (types chars into PTY)
+//   Ctrl+Shift+D      Describe screen via local Ollama vision model (~2s)
+//   Ctrl+Shift+F      Auto-defrag PixelFS storage (in storage view)
+//   Ctrl+Shift+P      Persist (Save) PixelFS grid to geos_storage.rts.png
+//   Ctrl+Shift+O      Open (Load) PixelFS grid from geos_storage.rts.png
+//   Ctrl+L            Send "clear" command to shell
+//   Ctrl+Shift+T      Open new terminal tab (PTY slot)
+//   Ctrl+Shift+W      Close current terminal tab
+
+use minifb::{Key, KeyRepeat, MouseButton, MouseMode, Window, WindowOptions};
+
+use std::io::Write;
+use std::sync::{Arc, Mutex};
+
+use fontdue::Font;
+use geometry_os::assembler::assemble;
+use geometry_os::keys::{key_to_ascii, key_to_ascii_shifted};
+use geometry_os::pixelfs::PixelFS;
+use geometry_os::preprocessor::Preprocessor;
+use geometry_os::vision::{canvas_checksum, encode_png};
+use geometry_os::vm::Vm;
+
+const VM_W: usize = 256;
+const VM_H: usize = 256;
+
+/// Text buffer layout in RAM (must match host_term.asm #defines).
+const BUF_BASE: usize = 0x4000;
+const BUF_COLS: usize = 80;
+const BUF_ROWS: usize = 30;
+const CUR_COL: usize = 0x4E00;
+const CUR_ROW: usize = 0x4E01;
+const PTY_HANDLE: usize = 0x4E03;
+#[allow(dead_code)]
+const ANSI_STATE: usize = 0x4E04;
+const COLOR_BUF_BASE: usize = 0x7800;
+/// Slot bitmap base: RAM[0x4E10..0x4E13] = 1 if slot N is active, 0 if empty.
+#[allow(dead_code)]
+const SLOT_MAP: usize = 0x4E10;
+
+/// Write the current PTY slot occupancy bitmap into RAM for the ASM program to read.
+#[allow(dead_code)]
+fn sync_slot_map(vm: &mut Vm) {
+    for i in 0..4 {
+        vm.ram[SLOT_MAP + i] = if i < vm.pty_slots.len() && vm.pty_slots[i].is_some() {
+            1
+        } else {
+            0
+        };
+    }
+}
+
+// ── Script mode ──────────────────────────────────────────────────────
+
+/// A single command in a --script sequence.
+#[derive(Debug)]
+enum ScriptCmd {
+    /// Advance N frames (with PTY sleep timing).
+    Frame(usize),
+    /// Inject a single keystroke (raw byte value).
+    Key(u8),
+    /// Type each character of the text as a separate keystroke.
+    Type(String),
+    /// Host-level sleep in milliseconds.
+    Sleep(u64),
+    /// Assert that text buffer ROW contains TEXT (substring match).
+    Assert { row: usize, text: String },
+    /// Assert that the canvas FNV-1a checksum equals HEX (e.g. 0x12abcdef).
+    AssertChecksum(u32),
+    /// Assert that the local Ollama vision model's description of the screen
+    /// contains EXPECTED (case-insensitive substring) when given PROMPT.
+    AssertVision { prompt: String, expected: String },
+    /// Save current canvas as PNG to PATH.
+    Snapshot(String),
+    /// Dump diagnostics and text buffer to stderr.
+    Dump,
+}
+
+fn parse_script(script: &str) -> Result<Vec<ScriptCmd>, String> {
+    let mut cmds = Vec::new();
+    for part in script.split(',') {
+        let part = part.trim();
+        if part.is_empty() {
+            continue;
+        }
+        if let Some(n) = part.strip_prefix("frame:") {
+            let n: usize = n.parse().map_err(|_| format!("bad frame: {}", n))?;
+            cmds.push(ScriptCmd::Frame(n));
+        } else if let Some(n) = part.strip_prefix("key:") {
+            let byte = if n.starts_with("0x") {
+                u8::from_str_radix(&n[2..], 16).map_err(|_| format!("bad key hex: {}", n))?
+            } else {
+                n.parse().map_err(|_| format!("bad key: {}", n))?
+            };
+            cmds.push(ScriptCmd::Key(byte));
+        } else if let Some(text) = part.strip_prefix("type:") {
+            // Decode escape sequences
+            let decoded = text
+                .replace("\\n", "\n")
+                .replace("\\t", "\t")
+                .replace("\\x03", "\x03")
+                .replace("\\x04", "\x04");
+            cmds.push(ScriptCmd::Type(decoded));
+        } else if let Some(ms) = part.strip_prefix("sleep:") {
+            let ms: u64 = ms.parse().map_err(|_| format!("bad sleep: {}", ms))?;
+            cmds.push(ScriptCmd::Sleep(ms));
+        } else if let Some(rest) = part.strip_prefix("assert:") {
+            // Format: assert:checksum:HEX  or  assert:ROW:TEXT
+            if let Some(hex) = rest.strip_prefix("checksum:") {
+                let trimmed = hex.trim_start_matches("0x").trim_start_matches("0X");
+                let hash = u32::from_str_radix(trimmed, 16)
+                    .map_err(|_| format!("bad checksum hex: {}", hex))?;
+                cmds.push(ScriptCmd::AssertChecksum(hash));
+            } else if let Some(spec) = rest.strip_prefix("vision:") {
+                // Format: assert:vision:PROMPT||EXPECTED
+                // `||` separator avoids colliding with colons in prompts.
+                let mut halves = spec.splitn(2, "||");
+                let prompt = halves
+                    .next()
+                    .ok_or_else(|| "assert:vision needs PROMPT||EXPECTED".to_string())?
+                    .trim()
+                    .to_string();
+                let expected = halves
+                    .next()
+                    .ok_or_else(|| format!("assert:vision missing '||EXPECTED': {}", spec))?
+                    .trim()
+                    .to_string();
+                if prompt.is_empty() || expected.is_empty() {
+                    return Err(format!(
+                        "assert:vision needs non-empty PROMPT and EXPECTED: {}",
+                        spec
+                    ));
+                }
+                cmds.push(ScriptCmd::AssertVision { prompt, expected });
+            } else {
+                let mut parts = rest.splitn(2, ':');
+                let row: usize = parts
+                    .next()
+                    .ok_or_else(|| "assert needs ROW:TEXT".to_string())?
+                    .parse()
+                    .map_err(|_| format!("bad assert row: {}", rest))?;
+                let text = parts.next().unwrap_or("").to_string();
+                cmds.push(ScriptCmd::Assert { row, text });
+            }
+        } else if let Some(path) = part.strip_prefix("snapshot:") {
+            cmds.push(ScriptCmd::Snapshot(path.to_string()));
+        } else if part == "dump" {
+            cmds.push(ScriptCmd::Dump);
+        } else {
+            return Err(format!("unknown script command: {}", part));
+        }
+    }
+    Ok(cmds)
+}
+
+/// Read a text buffer row from VM RAM.
+fn read_buf_row(vm: &Vm, row: usize) -> String {
+    let mut s = String::new();
+    if row >= BUF_ROWS {
+        return s;
+    }
+    for col in 0..BUF_COLS {
+        let ch = vm.ram[BUF_BASE + row * BUF_COLS + col] & 0xFF;
+        if ch >= 32 && ch < 127 {
+            s.push(ch as u8 as char);
+        } else {
+            break; // stop at null/non-printable
+        }
+    }
+    s
+}
+
+/// Run N frames in headless mode with PTY timing.
+fn run_frames(vm: &mut Vm, n: usize) {
+    for frame in 0..n {
+        if vm.halted {
+            break;
+        }
+        vm.frame_ready = false;
+        for _ in 0..1_000_000 {
+            if !vm.step() {
+                break;
+            }
+            if vm.frame_ready {
+                break;
+            }
+        }
+        if frame == 0 {
+            // Bash needs time to start and send its initial prompt
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+        } else if frame < 10 {
+            // First few frames: longer wait for PTY data to arrive
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        } else {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+    }
+}
+
+/// Run one frame and return.
+fn run_one_frame(vm: &mut Vm) {
+    if vm.halted {
+        return;
+    }
+    vm.frame_ready = false;
+    for _ in 0..1_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            break;
+        }
+    }
+    std::thread::sleep(std::time::Duration::from_millis(1));
+}
+
+/// Dump diagnostics to stderr.
+fn dump_diagnostics(vm: &Vm) {
+    let pty_handle = vm.ram[PTY_HANDLE];
+    let _active = vm.pty_slots.iter().filter(|s| s.is_some()).count();
+    let _alive = if pty_handle < vm.pty_slots.len() as u32 {
+        vm.pty_slots[pty_handle as usize]
+            .as_ref()
+            .map_or(false, |s| s.is_alive())
+    } else {
+        false
+    };
+    // Opcode histogram for key opcodes
+    let key_opcodes = [
+        (0x02, "FRAME"),
+        (0x10, "LDI"),
+        (0x11, "LOAD"),
+        (0x12, "STORE"),
+        (0x20, "ADD"),
+        (0x30, "JMP"),
+        (0x31, "JZ"),
+        (0x32, "JNZ"),
+        (0x33, "CALL"),
+        (0x34, "RET"),
+        (0x35, "BLT"),
+        (0x36, "BGE"),
+        (0x50, "CMP"),
+        (0x15, "CMPI"),
+        (0x51, "MOV"),
+        (0xA9, "PTYOPEN"),
+        (0xAA, "PTYWRITE"),
+        (0xAB, "PTYREAD"),
+        (0xAC, "PTYCLOSE"),
+    ];
+    eprintln!("[geos-term] Opcode histogram (key opcodes):");
+    for (op, name) in &key_opcodes {
+        let count = if (*op as usize) < vm.opcode_histogram.len() {
+            vm.opcode_histogram[*op as usize]
+        } else {
+            0
+        };
+        if count > 0 {
+            eprintln!("  {:3} (0x{:02X}) {:12}: {}", op, op, name, count);
+        }
+    }
+    // Dump ALL non-zero histogram entries
+    eprintln!("[geos-term] Full opcode histogram (all non-zero):");
+    for i in 0..vm.opcode_histogram.len() {
+        if vm.opcode_histogram[i] > 0 {
+            eprintln!("  [0x{:02X}] {}", i, vm.opcode_histogram[i]);
+        }
+    }
+    // Show what instruction is at current PC
+    eprintln!(
+        "[geos-term] Instruction at PC={}: opcode=0x{:02X}",
+        vm.pc, vm.ram[vm.pc as usize]
+    );
+    // Show 10 instructions starting at current PC
+    let mut trace_pc = vm.pc as usize;
+    eprintln!("[geos-term] Trace from PC:");
+    for _ in 0..10 {
+        if trace_pc >= vm.ram.len() {
+            break;
+        }
+        let op = vm.ram[trace_pc];
+        eprintln!("  [{:5}] 0x{:02X}", trace_pc, op);
+        // advance by instruction size
+        if op == 0x00
+            || op == 0x01
+            || op == 0x02
+            || op == 0x73
+            || op == 0x74
+            || op == 0x76
+            || op == 0x34
+        {
+            trace_pc += 1;
+        } else if (op >= 0x20 && op <= 0x2B)
+            || (op >= 0x10 && op <= 0x17)
+            || op == 0x50
+            || op == 0x51
+        {
+            trace_pc += 3;
+        } else if op == 0x30 || op == 0x33 {
+            trace_pc += 2;
+        } else if op == 0xA9 || op == 0xAA || op == 0xAC {
+            trace_pc += 2;
+        } else if op == 0xAB {
+            trace_pc += 4;
+        } else {
+            trace_pc += 1;
+        }
+    }
+    // Check RAM[0x6000..0x6010] for the "bash: " string
+    let mut dump_6000 = String::new();
+    for i in 0..16 {
+        let b = vm.ram[0x6000 + i] & 0xFF;
+        if b == 0 {
+            dump_6000.push('.');
+        } else {
+            dump_6000.push(if b >= 32 && b < 127 {
+                (b as u8) as char
+            } else {
+                '?'
+            });
+        }
+    }
+    eprintln!(
+        "[geos-term] RAM[0x6000..0x6010]: '{}' (hex: {})",
+        dump_6000,
+        (0..8)
+            .map(|i| format!("{:02X}", vm.ram[0x6000 + i] & 0xFF))
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+    for row in 0..BUF_ROWS.min(5) {
+        eprintln!("[geos-term] buf row {}: '{}'", row, read_buf_row(vm, row));
+    }
+}
+
+// ── Scrollback buffer ────────────────────────────────────────────
+
+/// Maximum scrollback pages (10 pages * 30 rows = 300 rows of history).
+const SCROLLBACK_PAGES: usize = 10;
+const SCROLLBACK_ROWS: usize = SCROLLBACK_PAGES * BUF_ROWS;
+
+struct ScrollbackBuffer {
+    /// Ring buffer of saved rows. Each row is COLS u32 values.
+    rows: Vec<Vec<u32>>,
+    /// Next write position in the ring buffer.
+    write_pos: usize,
+    /// Total number of rows ever written (for "how much history" indicator).
+    total_written: usize,
+    /// Current scrollback offset (0 = live view, N = scrolled back N rows).
+    scroll_offset: usize,
+}
+
+impl ScrollbackBuffer {
+    fn new() -> Self {
+        let mut rows = Vec::with_capacity(SCROLLBACK_ROWS);
+        for _ in 0..SCROLLBACK_ROWS {
+            rows.push(vec![32u32; BUF_COLS]); // space-filled rows
+        }
+        ScrollbackBuffer {
+            rows,
+            write_pos: 0,
+            total_written: 0,
+            scroll_offset: 0,
+        }
+    }
+
+    /// Save a single row into the scrollback ring buffer.
+    fn push_row(&mut self, row_data: &[u32]) {
+        let row = &mut self.rows[self.write_pos % SCROLLBACK_ROWS];
+        row[..row_data.len().min(BUF_COLS)]
+            .copy_from_slice(&row_data[..row_data.len().min(BUF_COLS)]);
+        self.write_pos = (self.write_pos + 1) % SCROLLBACK_ROWS;
+        self.total_written += 1;
+    }
+
+    /// Scroll back by `n` rows (toward older history).
+    fn scroll_up(&mut self, n: usize) {
+        let max_offset = self
+            .available_history()
+            .min(SCROLLBACK_ROWS.saturating_sub(BUF_ROWS));
+        self.scroll_offset = (self.scroll_offset + n).min(max_offset);
+    }
+
+    /// Scroll forward by `n` rows (toward live view).
+    fn scroll_down(&mut self, n: usize) {
+        self.scroll_offset = self.scroll_offset.saturating_sub(n);
+    }
+
+    /// Number of rows of history available.
+    fn available_history(&self) -> usize {
+        self.total_written
+    }
+
+    /// Whether we're currently in scrollback view (not live).
+    fn is_scrolled(&self) -> bool {
+        self.scroll_offset > 0
+    }
+
+    /// Get a history row relative to the current scroll position.
+    /// offset=0 is the most recent history row, offset=N goes further back.
+    fn get_history_row(&self, offset: usize) -> &[u32] {
+        if self.total_written == 0 {
+            return &self.rows[0];
+        }
+        // total_written is the count of rows pushed. The most recent is at (write_pos - 1).
+        // We want to go back scroll_offset + offset from the most recent.
+        let back_from = self.scroll_offset + offset;
+        if back_from >= self.total_written {
+            return &self.rows[0];
+        }
+        // Index in ring buffer: (write_pos - 1 - back_from) mod SCROLLBACK_ROWS
+        let idx = (self.total_written as isize - 1 - back_from as isize)
+            .rem_euclid(SCROLLBACK_ROWS as isize) as usize;
+        &self.rows[idx]
+    }
+}
+
+// ── Text Selection ──────────────────────────────────────────────
+
+/// Tracks a mouse-drag text selection in the terminal text buffer.
+/// Coordinates are in (row, col) of the text buffer (BUF_BASE layout).
+struct TextSelection {
+    /// Start position (row, col) of the selection.
+    start: Option<(usize, usize)>,
+    /// End position (row, col) of the selection.
+    end: Option<(usize, usize)>,
+    /// Whether the mouse button is currently held (dragging).
+    dragging: bool,
+}
+
+impl TextSelection {
+    fn new() -> Self {
+        TextSelection {
+            start: None,
+            end: None,
+            dragging: false,
+        }
+    }
+
+    /// Begin a selection at the given buffer position.
+    fn begin(&mut self, row: usize, col: usize) {
+        let c = col.min(BUF_COLS - 1);
+        self.start = Some((row, c));
+        self.end = Some((row, c));
+        self.dragging = true;
+    }
+
+    /// Extend the selection to a new end position during drag.
+    fn extend(&mut self, row: usize, col: usize) {
+        if self.dragging {
+            let c = col.min(BUF_COLS - 1);
+            let r = row.min(BUF_ROWS - 1);
+            self.end = Some((r, c));
+        }
+    }
+
+    /// Finish the selection (mouse up).
+    fn finish(&mut self) {
+        self.dragging = false;
+    }
+
+    /// Clear the selection entirely.
+    fn clear(&mut self) {
+        self.start = None;
+        self.end = None;
+        self.dragging = false;
+    }
+
+    /// Check if there is an active selection with extent (start != end).
+    fn has_selection(&self) -> bool {
+        match (self.start, self.end) {
+            (Some((sr, sc)), Some((er, ec))) => sr != er || sc != ec,
+            _ => false,
+        }
+    }
+
+    /// Get the ordered (top-left, bottom-right) of the selection.
+    fn ordered(&self) -> Option<((usize, usize), (usize, usize))> {
+        match (self.start, self.end) {
+            (Some((sr, sc)), Some((er, ec))) => {
+                if (sr, sc) <= (er, ec) {
+                    Some(((sr, sc), (er, ec)))
+                } else {
+                    Some(((er, ec), (sr, sc)))
+                }
+            },
+            _ => None,
+        }
+    }
+
+    /// Check if a buffer cell (row, col) is within the selection.
+    fn contains(&self, row: usize, col: usize) -> bool {
+        if let Some(((sr, sc), (er, ec))) = self.ordered() {
+            if row < sr || row > er {
+                return false;
+            }
+            if row == sr && col < sc {
+                return false;
+            }
+            if row == er && col > ec {
+                return false;
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Extract the selected text from the VM text buffer.
+    fn extract_text(&self, vm: &Vm) -> String {
+        if let Some(((sr, sc), (er, ec))) = self.ordered() {
+            let mut result = String::new();
+            for row in sr..=er {
+                let col_start = if row == sr { sc } else { 0 };
+                let col_end = if row == er { ec } else { BUF_COLS - 1 };
+                for col in col_start..=col_end {
+                    let ch = vm.ram[BUF_BASE + row * BUF_COLS + col] & 0xFF;
+                    if ch >= 32 && ch < 127 {
+                        result.push(ch as u8 as char);
+                    } else if ch == 0 {
+                        // stop at null within a row
+                        break;
+                    }
+                }
+                if row < er {
+                    result.push('\n');
+                }
+            }
+            result
+        } else {
+            String::new()
+        }
+    }
+}
+
+/// Convert screen (pixel) coordinates to text buffer (row, col).
+/// Returns None if the coordinates are outside the text area.
+fn screen_to_buf_pos(screen_x: usize, screen_y: usize, scale: usize) -> Option<(usize, usize)> {
+    // Text area starts at y=12 (VM coords), each char is 6x8
+    let text_start_y = 12;
+    let char_w = 6;
+    let char_h = 8;
+    let vm_x = screen_x / scale;
+    let vm_y = screen_y / scale;
+    if vm_y < text_start_y || vm_x >= BUF_COLS * char_w {
+        return None;
+    }
+    let row = (vm_y - text_start_y) / char_h;
+    let col = vm_x / char_w;
+    if row >= BUF_ROWS || col >= BUF_COLS {
+        return None;
+    }
+    Some((row, col))
+}
+
+// ── Clipboard helpers ────────────────────────────────────────────
+
+/// Read text from host clipboard using xclip.
+fn clipboard_read() -> Option<String> {
+    use std::process::Command;
+    let output = Command::new("xclip")
+        .args(["-selection", "clipboard", "-o"])
+        .output()
+        .ok()?;
+    if output.status.success() {
+        Some(String::from_utf8_lossy(&output.stdout).to_string())
+    } else {
+        // Try xsel as fallback
+        let output2 = Command::new("xsel")
+            .args(["--clipboard", "--output"])
+            .output()
+            .ok()?;
+        if output2.status.success() {
+            Some(String::from_utf8_lossy(&output2.stdout).to_string())
+        } else {
+            None
+        }
+    }
+}
+
+/// Write text to host clipboard using xclip.
+fn clipboard_write(text: &str) -> bool {
+    use std::process::{Command, Stdio};
+    // Try xclip first
+    if let Ok(mut child) = Command::new("xclip")
+        .args(["-selection", "clipboard"])
+        .stdin(Stdio::piped())
+        .spawn()
+    {
+        if let Some(ref mut stdin) = child.stdin {
+            let _ = stdin.write_all(text.as_bytes());
+        }
+        if child.wait().map(|s| s.success()).unwrap_or(false) {
+            return true;
+        }
+    }
+    // Fallback: xsel
+    if let Ok(mut child) = Command::new("xsel")
+        .args(["--clipboard", "--input"])
+        .stdin(Stdio::piped())
+        .spawn()
+    {
+        if let Some(ref mut stdin) = child.stdin {
+            let _ = stdin.write_all(text.as_bytes());
+        }
+        if child.wait().map(|s| s.success()).unwrap_or(false) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Collect all visible text from the VM text buffer.
+fn collect_visible_text(vm: &Vm) -> String {
+    let mut lines = Vec::new();
+    for row in 0..BUF_ROWS {
+        lines.push(read_buf_row(vm, row));
+    }
+    // Trim trailing empty lines
+    while lines.last().map_or(false, |l| l.trim().is_empty()) {
+        lines.pop();
+    }
+    lines.join("\n")
+}
+
+/// Execute a script against the VM. Returns Ok(()) or Err(assertion message).
+fn execute_script(vm: &mut Vm, cmds: &[ScriptCmd]) -> Result<(), String> {
+    for cmd in cmds {
+        match cmd {
+            ScriptCmd::Frame(n) => {
+                eprintln!("[script] advancing {} frames", n);
+                run_frames(vm, *n);
+            },
+            ScriptCmd::Key(byte) => {
+                eprintln!("[script] inject key 0x{:02X}", byte);
+                vm.push_key(*byte as u32);
+                run_one_frame(vm);
+                // Extra frame to ensure key is consumed
+                run_one_frame(vm);
+            },
+            ScriptCmd::Type(text) => {
+                for ch in text.chars() {
+                    let byte = ch as u8;
+                    eprintln!("[script] type '{}'", if byte >= 32 { ch } else { '?' });
+                    vm.push_key(byte as u32);
+                    // Run frame to consume the key
+                    run_one_frame(vm);
+                    run_one_frame(vm);
+                }
+            },
+            ScriptCmd::Sleep(ms) => {
+                eprintln!("[script] sleep {}ms", ms);
+                std::thread::sleep(std::time::Duration::from_millis(*ms));
+            },
+            ScriptCmd::Assert { row, text } => {
+                let actual = read_buf_row(vm, *row);
+                if actual.contains(text) {
+                    eprintln!(
+                        "[script] PASS assert row {} contains '{}' (got '{}')",
+                        row,
+                        text,
+                        &actual[..actual.len().min(60)]
+                    );
+                } else {
+                    return Err(format!(
+                        "FAIL assert row {} contains '{}': got '{}'",
+                        row,
+                        text,
+                        &actual[..actual.len().min(80)]
+                    ));
+                }
+            },
+            ScriptCmd::AssertChecksum(expected) => {
+                let actual = canvas_checksum(&vm.screen);
+                if actual == *expected {
+                    eprintln!("[script] PASS assert checksum 0x{:08x}", actual);
+                } else {
+                    return Err(format!(
+                        "FAIL assert checksum: expected 0x{:08x}, got 0x{:08x}",
+                        expected, actual
+                    ));
+                }
+            },
+            ScriptCmd::AssertVision { prompt, expected } => {
+                let b64 = geometry_os::vision::encode_png_base64(&vm.screen);
+                let system = "You are a vision model describing a 256x256 pixel terminal framebuffer from Geometry OS. Be concise and factual.";
+                eprintln!("[script] vision query: '{}'", prompt);
+                let desc = geometry_os::hermes::call_ollama_vision(system, prompt, &b64)
+                    .ok_or_else(|| {
+                        "FAIL assert:vision -- Ollama vision model unavailable".to_string()
+                    })?;
+                let desc_lower = desc.to_lowercase();
+                let expected_lower = expected.to_lowercase();
+                if desc_lower.contains(&expected_lower) {
+                    eprintln!(
+                        "[script] PASS assert:vision contains '{}' (got: '{}')",
+                        expected,
+                        desc.lines()
+                            .next()
+                            .unwrap_or(&desc)
+                            .chars()
+                            .take(80)
+                            .collect::<String>()
+                    );
+                } else {
+                    return Err(format!(
+                        "FAIL assert:vision expected '{}' in description, got: {}",
+                        expected, desc
+                    ));
+                }
+            },
+            ScriptCmd::Snapshot(path) => {
+                let png = encode_png(&vm.screen);
+                match std::fs::write(path, &png) {
+                    Ok(()) => eprintln!(
+                        "[script] snapshot {} bytes -> {} (checksum 0x{:08x})",
+                        png.len(),
+                        path,
+                        canvas_checksum(&vm.screen)
+                    ),
+                    Err(e) => return Err(format!("snapshot {} failed: {}", path, e)),
+                }
+            },
+            ScriptCmd::Dump => {
+                dump_diagnostics(vm);
+            },
+        }
+    }
+    Ok(())
+}
+
+/// Auto-dump screen as PNG when a script/test fails. Returns the path written, or None.
+fn dump_failure_png(vm: &Vm, label: &str) -> Option<String> {
+    let path = format!("/tmp/geos_term_fail_{}.png", label);
+    let png = encode_png(&vm.screen);
+    match std::fs::write(&path, &png) {
+        Ok(()) => {
+            eprintln!(
+                "[fail-dump] wrote {} bytes -> {} (checksum 0x{:08x})",
+                png.len(),
+                path,
+                canvas_checksum(&vm.screen)
+            );
+            Some(path)
+        },
+        Err(e) => {
+            eprintln!("[fail-dump] could not write {}: {}", path, e);
+            None
+        },
+    }
+}
+
+// ── Built-in confidence tests ────────────────────────────────────────
+
+/// Run the built-in test suite. Returns exit code.
+fn run_test(test_name: &str, vm: &mut Vm) -> i32 {
+    match test_name {
+        "echo_round_trip" => test_echo_round_trip(vm),
+        "line_wrap" => test_line_wrap(vm),
+        "ctrl_c" => test_ctrl_c(vm),
+        "all" => {
+            let tests = ["echo_round_trip", "line_wrap", "ctrl_c"];
+            let mut failed = 0;
+            for name in &tests {
+                eprintln!("\n[TEST] === {} ===", name);
+                // Re-initialize VM for each test
+                let source = match std::fs::read_to_string("programs/host_term.asm") {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("[TEST] failed to read host_term.asm: {}", e);
+                        return 1;
+                    },
+                };
+                let mut pp = Preprocessor::new();
+                let preprocessed = pp.preprocess(&source);
+                let asm = match assemble(&preprocessed, 0) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        eprintln!(
+                            "[TEST] failed to assemble host_term.asm: line {}: {}",
+                            e.line, e.message
+                        );
+                        return 1;
+                    },
+                };
+                let mut fresh_vm = Vm::new();
+                for (i, &word) in asm.pixels.iter().enumerate() {
+                    if i < fresh_vm.ram.len() {
+                        fresh_vm.ram[i] = word;
+                    }
+                }
+                fresh_vm.pc = 0;
+                fresh_vm.halted = false;
+                let code = run_test(name, &mut fresh_vm);
+                if code != 0 {
+                    failed += 1;
+                }
+            }
+            eprintln!("\n[TEST] {}/{} passed", tests.len() - failed, tests.len());
+            if failed > 0 {
+                1
+            } else {
+                0
+            }
+        },
+        _ => {
+            eprintln!(
+                "unknown test: {}. Available: echo_round_trip, line_wrap, ctrl_c, all",
+                test_name
+            );
+            2
+        },
+    }
+}
+
+fn test_echo_round_trip(vm: &mut Vm) -> i32 {
+    eprintln!("[TEST] Echo Hello Round-Trip");
+    eprintln!("[TEST] Phase 1: Wait for bash prompt...");
+    run_frames(vm, 50);
+
+    // Verify prompt appeared (scan all rows -- prompt may not be on row 0)
+    // Retry up to 5 times with short waits for bash to start
+    let mut prompt_row = None;
+    for attempt in 0..5 {
+        for row in 0..BUF_ROWS {
+            let text = read_buf_row(vm, row);
+            if text.contains("$") || text.contains("#") {
+                prompt_row = Some((row, text));
+                break;
+            }
+        }
+        if prompt_row.is_some() {
+            break;
+        }
+        eprintln!(
+            "[TEST] Phase 1: waiting for prompt (attempt {})...",
+            attempt + 1
+        );
+        run_frames(vm, 30);
+    }
+    let (prompt_row_idx, prompt_text) = match prompt_row {
+        Some((r, t)) => (r, t),
+        None => {
+            eprintln!("[TEST] FAIL: no shell prompt in any buffer row after 5 retries");
+            dump_diagnostics(vm);
+            return 1;
+        },
+    };
+    eprintln!(
+        "[TEST] Phase 1 PASS: prompt detected in row {}: '{}'",
+        prompt_row_idx,
+        &prompt_text[..prompt_text.len().min(40)]
+    );
+
+    // Push ALL keys at once into the ring buffer (16 slots, "echo hello\n" = 11).
+    // Each frame the program reads 1 key via IKEY, so we need >= 11 frames.
+    eprintln!("[TEST] Phase 2: queueing 'echo hello' + Enter...");
+    for ch in "echo hello".chars() {
+        vm.push_key(ch as u32);
+    }
+    vm.push_key(0x0D); // Enter
+                       // 11 frames to drain keys + 60 more for bash execution + output
+    for _ in 0..80 {
+        run_one_frame(vm);
+    }
+
+    // Check if "hello" appears anywhere in the buffer
+    eprintln!("[TEST] Phase 3: checking output...");
+    dump_diagnostics(vm);
+    let mut found = false;
+    for row in 0..BUF_ROWS {
+        let text = read_buf_row(vm, row);
+        if text.contains("hello") {
+            eprintln!(
+                "[TEST] PASS: 'hello' found in row {}: '{}'",
+                row,
+                &text[..text.len().min(50)]
+            );
+            found = true;
+            break;
+        }
+    }
+    if !found {
+        eprintln!("[TEST] FAIL: 'hello' not found in any buffer row");
+        return 1;
+    }
+    0
+}
+
+fn test_line_wrap(vm: &mut Vm) -> i32 {
+    eprintln!("[TEST] Line Wrap Boundary (86 chars)");
+    eprintln!("[TEST] Phase 1: Wait for bash prompt...");
+    run_frames(vm, 50);
+
+    // Scan all rows for prompt (may not be on row 0), retry for bash startup
+    let mut found_prompt = false;
+    for attempt in 0..5 {
+        for row in 0..BUF_ROWS {
+            let text = read_buf_row(vm, row);
+            if text.contains("$") || text.contains("#") {
+                found_prompt = true;
+                break;
+            }
+        }
+        if found_prompt {
+            break;
+        }
+        eprintln!(
+            "[TEST] Phase 1: waiting for prompt (attempt {})...",
+            attempt + 1
+        );
+        run_frames(vm, 30);
+    }
+    if !found_prompt {
+        eprintln!("[TEST] FAIL: no shell prompt in any row after 5 retries");
+        dump_diagnostics(vm);
+        return 1;
+    }
+
+    // Use a short command that produces more than 85 chars of output.
+    // "seq 20" = 6 chars, outputs "1\n2\n...20\n" -- tests scroll, not wrapping.
+    // For wrapping, use printf with a variable: very short command.
+    // Actually, just use a 12-char command: printf %0.sX $(seq 86)
+    // But $(seq 86) is shell expansion, not literal. Use: yes X | head -86
+    // That's 16 chars. Use: perl -e 'print "X"x86'
+    // That's 25 chars -- too long. Use: seq 1 90  (7 chars, outputs many lines)
+    eprintln!("[TEST] Phase 2: queueing 'seq 1 90'...");
+    let cmd = "seq 1 90";
+    for ch in cmd.chars() {
+        vm.push_key(ch as u32);
+    }
+    vm.push_key(0x0D); // Enter
+    for _ in 0..200 {
+        run_one_frame(vm);
+    }
+
+    eprintln!("[TEST] Phase 3: checking output...");
+    dump_diagnostics(vm);
+
+    // seq 1 90 outputs numbers 1-90, each on its own line.
+    // Verify the buffer has multiple rows with numbers (proves scroll/output).
+    // Check if the trimmed row starts with a digit (numbers on the left margin)
+    // or contains a standalone number (ANSI positioning may offset the number).
+    let mut found_rows = 0;
+    for row in 0..BUF_ROWS {
+        let text = read_buf_row(vm, row);
+        let trimmed = text.trim();
+        if !trimmed.is_empty() {
+            // Accept rows where the first non-space char is a digit
+            if trimmed.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+                found_rows += 1;
+            }
+        }
+    }
+    if found_rows >= 5 {
+        eprintln!("[TEST] PASS: {} rows with numeric output found", found_rows);
+        0
+    } else {
+        eprintln!(
+            "[TEST] FAIL: only {} rows with numbers (need >= 5)",
+            found_rows
+        );
+        1
+    }
+}
+
+fn test_ctrl_c(vm: &mut Vm) -> i32 {
+    eprintln!("[TEST] Signal Delivery (Ctrl-C interrupts sleep)");
+    eprintln!("[TEST] Phase 1: Wait for bash prompt...");
+    run_frames(vm, 50);
+
+    // Scan all rows for prompt (may not be on row 0), retry for bash startup
+    let mut found_prompt = false;
+    for attempt in 0..5 {
+        for row in 0..BUF_ROWS {
+            let text = read_buf_row(vm, row);
+            if text.contains("$") || text.contains("#") {
+                found_prompt = true;
+                break;
+            }
+        }
+        if found_prompt {
+            break;
+        }
+        eprintln!(
+            "[TEST] Phase 1: waiting for prompt (attempt {})...",
+            attempt + 1
+        );
+        run_frames(vm, 30);
+    }
+    if !found_prompt {
+        eprintln!("[TEST] FAIL: no shell prompt in any row after 5 retries");
+        dump_diagnostics(vm);
+        return 1;
+    }
+
+    // Push "sleep 100" + Enter (11 chars, fits in 16-slot ring buffer)
+    eprintln!("[TEST] Phase 2: starting sleep 100...");
+    for ch in "sleep 100".chars() {
+        vm.push_key(ch as u32);
+    }
+    vm.push_key(0x0D); // Enter
+    for _ in 0..40 {
+        run_one_frame(vm);
+    }
+
+    // Send Ctrl-C (0x03)
+    eprintln!("[TEST] Phase 3: sending Ctrl-C...");
+    vm.push_key(0x03);
+    for _ in 0..60 {
+        run_one_frame(vm);
+    }
+
+    // Check that prompt returned (a $ or # should appear after ^C)
+    eprintln!("[TEST] Phase 4: checking prompt returned...");
+    dump_diagnostics(vm);
+
+    let mut prompt_found = false;
+    for row in 0..BUF_ROWS.min(10) {
+        let text = read_buf_row(vm, row);
+        // After Ctrl-C, bash prints ^C and a new prompt
+        if text.contains("$") || text.contains("#") || text.contains("^C") {
+            eprintln!(
+                "[TEST] PASS: row {} shows '{}'",
+                row,
+                &text[..text.len().min(50)]
+            );
+            prompt_found = true;
+            break;
+        }
+    }
+    if !prompt_found {
+        eprintln!("[TEST] FAIL: no prompt/ctrl-c marker found after Ctrl-C");
+        return 1;
+    }
+    0
+}
+
+// ── Host Font Renderer ────────────────────────────────────────────
+//
+// Instead of upscaling the VM's 3x5 pixel font, we re-render the text buffer
+// using a real TrueType font (Ubuntu Mono) at the host window's resolution.
+// This gives crisp, readable text regardless of VM resolution.
+
+/// Find and load a monospace TTF font. Tries Ubuntu Mono, then Noto Mono,
+/// then Liberation Mono, then any monospace font from fontconfig.
+fn load_mono_font() -> Font {
+    // Prefer static TTF fonts (variable fonts may not work with fontdue)
+    let candidates = [
+        "/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        // Variable fonts -- may fail with fontdue
+        "/usr/share/fonts/truetype/ubuntu/UbuntuMono[wght].ttf",
+    ];
+    for path in &candidates {
+        if let Ok(data) = std::fs::read(path) {
+            match Font::from_bytes(data, fontdue::FontSettings::default()) {
+                Ok(font) => {
+                    eprintln!("[geos-term] loaded font: {}", path);
+                    return font;
+                },
+                Err(e) => eprintln!("[geos-term] font load failed {}: {}", path, e),
+            }
+        }
+    }
+    // Fallback: probe fontconfig
+    let output = std::process::Command::new("fc-match")
+        .args(["-f", "%{file}", "monospace"])
+        .output();
+    if let Ok(out) = output {
+        if out.status.success() {
+            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if let Ok(data) = std::fs::read(&path) {
+                match Font::from_bytes(data, fontdue::FontSettings::default()) {
+                    Ok(font) => {
+                        eprintln!("[geos-term] loaded font (fc-match): {}", path);
+                        return font;
+                    },
+                    Err(e) => eprintln!("[geos-term] font load failed {}: {}", path, e),
+                }
+            }
+        }
+    }
+    panic!("[geos-term] no monospace font found. Install fonts-ubuntu-mono or similar.");
+}
+
+/// Render the text buffer from VM RAM using a host TTF font at native resolution.
+/// Writes directly into the minifb framebuffer (fb_w x fb_h pixels).
+fn render_text_buffer_host(
+    vm: &Vm,
+    framebuffer: &mut [u32],
+    fb_w: usize,
+    fb_h: usize,
+    font: &Font,
+    scale: usize,
+) {
+    // Character dimensions in host pixels
+    // 80 VM columns map to the window. Each VM column = 3 VM pixels.
+    // At scale N, each VM pixel = N host pixels. So each column = 3*N host px.
+    // But for font rendering, we just want to fill the window evenly.
+    let char_w: usize = (fb_w / BUF_COLS).max(6); // at least 6px wide
+    let char_h: usize = char_w * 2; // roughly 2:1 for monospace
+    let font_size: f32 = char_h as f32 * 1.0; // fontdue uses font size ~= line height
+
+    // Background color
+    let bg_color: u32 = 0x0A0A0A;
+
+    // Clear the text area (below title bar)
+    let top_margin = 12 * scale; // match VM's title bar area
+    for y in top_margin..fb_h {
+        for x in 0..fb_w {
+            framebuffer[y * fb_w + x] = bg_color;
+        }
+    }
+
+    // Render each character
+    for row in 0..BUF_ROWS {
+        for col in 0..BUF_COLS {
+            let ch = vm.ram[BUF_BASE + row * BUF_COLS + col] as u8;
+            if ch < 32 {
+                continue;
+            }
+            if ch == 127 {
+                continue;
+            }
+            // Extended chars (128-157) -- box drawing etc
+            if ch >= 128 && ch > 157 {
+                continue;
+            }
+
+            // Get color from color buffer
+            let color_val = vm.ram[COLOR_BUF_BASE + row * BUF_COLS + col];
+            let fg_color: u32 = if color_val == 0 { 0xBBBBBB } else { color_val };
+
+            // Convert to RGB tuple for fontdue
+            let r = ((fg_color >> 16) & 0xFF) as u8;
+            let g = ((fg_color >> 8) & 0xFF) as u8;
+            let b = (fg_color & 0xFF) as u8;
+
+            let px_x = col * char_w;
+            let px_y = top_margin + row * char_h;
+
+            // Use fontdue to rasterize the glyph
+            let c = ch as char;
+            let (metrics, bitmap) = font.rasterize(c, font_size);
+            // fontdue gives us a bitmap with width/height from metrics
+            let glyph_w = metrics.width;
+            let glyph_h = metrics.height;
+            // Advance: use char_w as cell width (monospace alignment)
+            let offset_x = (char_w.saturating_sub(glyph_w)) / 2;
+            let offset_y = char_h.saturating_sub(glyph_h).saturating_sub(1);
+
+            for gy in 0..glyph_h {
+                for gx in 0..glyph_w {
+                    let coverage = bitmap[gy * glyph_w + gx];
+                    if coverage == 0 {
+                        continue;
+                    }
+                    let px = px_x + offset_x + gx;
+                    let py = px_y + offset_y + gy;
+                    if px < fb_w && py < fb_h {
+                        let idx = py * fb_w + px;
+                        if coverage >= 255 {
+                            framebuffer[idx] = fg_color;
+                        } else {
+                            // Alpha blend
+                            let alpha = coverage as f32 / 255.0;
+                            let bg_r = ((bg_color >> 16) & 0xFF) as f32;
+                            let bg_g = ((bg_color >> 8) & 0xFF) as f32;
+                            let bg_b = (bg_color & 0xFF) as f32;
+                            let br = (r as f32 * alpha + bg_r * (1.0 - alpha)) as u8;
+                            let bg2 = (g as f32 * alpha + bg_g * (1.0 - alpha)) as u8;
+                            let bb = (b as f32 * alpha + bg_b * (1.0 - alpha)) as u8;
+                            framebuffer[idx] = (br as u32) << 16 | (bg2 as u32) << 8 | bb as u32;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Draw cursor
+    let cur_col = vm.ram[CUR_COL] as usize;
+    let cur_row = vm.ram[CUR_ROW] as usize;
+    if cur_col < BUF_COLS && cur_row < BUF_ROWS {
+        let cx = cur_col * char_w;
+        let cy = top_margin + cur_row * char_h;
+        let cursor_w = std::cmp::min(2 * scale, char_w);
+        for dy in 0..char_h.saturating_sub(2) {
+            for dx in 0..cursor_w {
+                let px = cx + dx;
+                let py = cy + dy;
+                if px < fb_w && py < fb_h {
+                    framebuffer[py * fb_w + px] = 0x44FF44;
+                }
+            }
+        }
+    }
+}
+
+/// Fallback: draw 5x7 mini font glyph at scaled size (for chars TTF can't handle).
+fn draw_char_5x7_scaled(
+    framebuffer: &mut [u32],
+    fb_w: usize,
+    fb_h: usize,
+    x: usize,
+    y: usize,
+    ch: u8,
+    color: u32,
+    scale: usize,
+) {
+    draw_char_5x7(framebuffer, fb_w, fb_h, x, y, ch, color, scale);
+}
+
+// ── Main ─────────────────────────────────────────────────────────────
+
+fn main() {
+    let mut asm_path = String::from("programs/host_term.asm");
+    let mut scale: usize = 3;
+    let mut dump_frames: Option<usize> = None;
+    let mut script: Option<String> = None;
+    let mut test_name: Option<String> = None;
+
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--scale" if i + 1 < args.len() => {
+                scale = args[i + 1].parse().unwrap_or(3).clamp(1, 8);
+                i += 2;
+            },
+            "--dump" if i + 1 < args.len() => {
+                dump_frames = Some(args[i + 1].parse().unwrap_or(300));
+                i += 2;
+            },
+            "--script" if i + 1 < args.len() => {
+                script = Some(args[i + 1].clone());
+                i += 2;
+            },
+            "--test" if i + 1 < args.len() => {
+                test_name = Some(args[i + 1].clone());
+                i += 2;
+            },
+            "-h" | "--help" => {
+                eprintln!("Usage: geos-term [PROGRAM.asm] [OPTIONS]");
+                eprintln!("  PROGRAM.asm    GeOS program to run (default: programs/host_term.asm)");
+                eprintln!("  --scale N      Pixel scale factor (1-8, default 3 -> 768x768 window)");
+                eprintln!("  --dump N       Run N frames headless then dump screen as ASCII");
+                eprintln!("  --script CMDS  Run headless script (comma-separated commands)");
+                eprintln!("  --test NAME    Run built-in confidence test (echo_round_trip, line_wrap, ctrl_c, all)");
+                eprintln!();
+                eprintln!("Script commands:");
+                eprintln!("  frame:N             Advance N frames");
+                eprintln!("  key:BYTE            Inject keystroke (decimal or 0xNN)");
+                eprintln!("  type:TEXT           Type each character");
+                eprintln!("  sleep:MS            Host-level sleep");
+                eprintln!("  assert:ROW:TEXT     Assert text-buffer row contains substring");
+                eprintln!("  assert:checksum:HEX Assert canvas FNV-1a checksum (e.g. 0xDEADBEEF)");
+                eprintln!("  assert:vision:PROMPT||EXPECTED");
+                eprintln!("                      Ask Ollama vision model PROMPT, assert response contains EXPECTED (case-insensitive)");
+                eprintln!("  snapshot:PATH       Save current canvas as PNG to PATH");
+                eprintln!("  dump                Print diagnostics");
+                eprintln!();
+                eprintln!(
+                    "On script/test failure a PNG is auto-dumped to /tmp/geos_term_fail_*.png"
+                );
+                return;
+            },
+            other if !other.starts_with('-') => {
+                asm_path = other.to_string();
+                i += 1;
+            },
+            other => {
+                eprintln!("unknown arg: {}", other);
+                std::process::exit(2);
+            },
+        }
+    }
+
+    let source = std::fs::read_to_string(&asm_path).unwrap_or_else(|e| {
+        eprintln!("read {}: {}", asm_path, e);
+        std::process::exit(1);
+    });
+    let mut pp = Preprocessor::new();
+    let preprocessed = pp.preprocess(&source);
+    let asm = assemble(&preprocessed, 0).unwrap_or_else(|e| {
+        eprintln!("assemble {}: line {}: {}", asm_path, e.line, e.message);
+        std::process::exit(1);
+    });
+
+    let mut vm = Vm::new();
+    eprintln!(
+        "[geos-term] Assembled {} bytes ({} words)",
+        asm.pixels.len() * 4,
+        asm.pixels.len()
+    );
+    // Check if PTY opcodes are in the bytecode
+    let mut ptyread_count = 0;
+    for &w in &asm.pixels {
+        if w == 0xAB {
+            ptyread_count += 1;
+        }
+    }
+    eprintln!(
+        "[geos-term] PTYREAD (0xAB) appears {} times in bytecode",
+        ptyread_count
+    );
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+
+    // --test mode: built-in confidence tests
+    if let Some(name) = test_name {
+        let code = run_test(&name, &mut vm);
+        if code != 0 {
+            dump_failure_png(&vm, &format!("test_{}", name.replace('/', "_")));
+        }
+        std::process::exit(code);
+    }
+
+    // --script mode: headless scripted execution
+    if let Some(script_str) = script {
+        let cmds = parse_script(&script_str).unwrap_or_else(|e| {
+            eprintln!("script parse error: {}", e);
+            std::process::exit(2);
+        });
+        eprintln!("[geos-term] script mode: {} commands", cmds.len());
+        match execute_script(&mut vm, &cmds) {
+            Ok(()) => {
+                eprintln!(
+                    "[geos-term] script completed successfully (final checksum 0x{:08x})",
+                    canvas_checksum(&vm.screen)
+                );
+                std::process::exit(0);
+            },
+            Err(msg) => {
+                eprintln!("[geos-term] script FAILED: {}", msg);
+                dump_failure_png(&vm, "script");
+                std::process::exit(1);
+            },
+        }
+    }
+
+    // Headless dump mode: run N frames, dump screen as ASCII, exit
+    if let Some(nframes) = dump_frames {
+        eprintln!("[geos-term] headless mode: {} frames", nframes);
+        run_frames(&mut vm, nframes);
+        dump_diagnostics(&vm);
+        // Dump 256x256 screen as ASCII
+        let chars: Vec<char> = " .:-=+*#%@".chars().collect();
+        for y in 0..VM_H {
+            let mut line = String::with_capacity(VM_W);
+            for x in 0..VM_W {
+                let px = vm.screen[y * VM_W + x];
+                let r = (px >> 16) & 0xFF;
+                let g = (px >> 8) & 0xFF;
+                let b = px & 0xFF;
+                let bright = ((r as usize + g as usize + b as usize) * chars.len()) / (3 * 256 + 1);
+                let idx = bright.min(chars.len() - 1);
+                line.push(chars[idx]);
+            }
+            let trimmed = line.trim_end();
+            if !trimmed.is_empty() {
+                println!("{}", trimmed);
+            }
+        }
+        return;
+    }
+
+    // GUI mode
+    let win_w = VM_W * scale;
+    let win_h = VM_H * scale;
+    let title = format!("geos-term -- {}", asm_path);
+    let mut window = Window::new(
+        &title,
+        win_w,
+        win_h,
+        WindowOptions {
+            resize: false,
+            ..Default::default()
+        },
+    )
+    .unwrap_or_else(|e| {
+        eprintln!(
+            "Failed to open window: {}. Ensure a display is available.",
+            e
+        );
+        std::process::exit(1);
+    });
+    window.set_target_fps(60);
+
+    let mut framebuffer = vec![0u32; win_w * win_h];
+    let mut prev_mouse_down = false;
+    let mut scrollback = ScrollbackBuffer::new();
+    let mut prev_top_row: Vec<u32> = vec![32u32; BUF_COLS];
+    let mut status_msg = String::new();
+    let mut status_ttl: usize = 0; // frames until status bar disappears
+    let mut selection = TextSelection::new();
+    let mut pixelfs = PixelFS::new();
+    let mut show_pixelfs = false;
+    let mut pixelfs_frame_idx: usize = 0; // which frame to display in storage view
+    let mut selected_file: Option<String> = None;
+    let mut dragging_file: Option<(String, i32, i32)> = None; // (name, offset_x, offset_y)
+    let mut hovered_file_info: Option<(String, usize, u8, u8, u8, u8)> = None; // (name, data_len, x, y, w, h)
+    let mut mouse_screen_pos: Option<(usize, usize)> = None; // host coords for tooltip placement
+                                                             // Ctrl+Shift+D: vision describe -- shared state for async vision result
+    let vision_result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let mut vision_busy = false;
+    // Load host TTF font for crisp text rendering
+    let host_font = load_mono_font();
+    eprintln!(
+        "[geos-term] host font rendering: {}x{} window, {} cols x {} rows",
+        win_w, win_h, BUF_COLS, BUF_ROWS
+    );
+
+    while window.is_open() && !window.is_key_down(Key::Escape) {
+        let ctrl = window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl);
+        let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
+
+        // ── Host-level keyboard shortcuts (intercepted before VM) ──
+        for key in window.get_keys_pressed(KeyRepeat::Yes) {
+            // Shift+PageUp: scrollback up
+            if key == Key::PageUp && shift {
+                scrollback.scroll_up(BUF_ROWS / 2);
+                status_msg = format!("history: {} rows back", scrollback.scroll_offset);
+                status_ttl = 120; // ~2 seconds
+                continue;
+            }
+            // Shift+PageDown: scrollback down
+            if key == Key::PageDown && shift {
+                scrollback.scroll_down(BUF_ROWS / 2);
+                if scrollback.is_scrolled() {
+                    status_msg = format!("history: {} rows back", scrollback.scroll_offset);
+                } else {
+                    status_msg = "live view".to_string();
+                }
+                status_ttl = 120;
+                continue;
+            }
+            // Ctrl+Shift+C: copy selected or all visible text to clipboard
+            if key == Key::C && ctrl && shift {
+                let text = if selection.has_selection() {
+                    selection.extract_text(&vm)
+                } else {
+                    collect_visible_text(&vm)
+                };
+                if clipboard_write(&text) {
+                    status_msg = format!("copied {} chars", text.len());
+                } else {
+                    status_msg = "clipboard write failed".to_string();
+                }
+                status_ttl = 120;
+                selection.clear();
+                continue;
+            }
+            // Ctrl+Shift+V: paste from clipboard
+            if key == Key::V && ctrl && shift {
+                if let Some(text) = clipboard_read() {
+                    let paste_text = text.replace('\r', "");
+                    let count = paste_text.len();
+                    // Push each character into VM key buffer
+                    for ch in paste_text.chars() {
+                        if ch == '\n' {
+                            vm.push_key(0x0D); // Enter
+                        } else if ch == '\t' {
+                            vm.push_key(0x09); // Tab
+                        } else if (ch as u32) < 128 {
+                            vm.push_key(ch as u32);
+                        }
+                    }
+                    status_msg = format!("pasted {} chars", count);
+                } else {
+                    status_msg = "clipboard empty/unavailable".to_string();
+                }
+                status_ttl = 120;
+                continue;
+            }
+            // Ctrl+L: send "clear\n" to PTY
+            if key == Key::L && ctrl && !shift {
+                let pty_handle = vm.ram[PTY_HANDLE];
+                if pty_handle < vm.pty_slots.len() as u32 {
+                    if let Some(ref mut slot) = vm.pty_slots[pty_handle as usize] {
+                        if let Some(ref mut writer) = slot.writer {
+                            let _ = writer.write_all(b"clear\n");
+                            let _ = writer.flush();
+                        }
+                    }
+                }
+                status_msg = "clear".to_string();
+                status_ttl = 60;
+                continue;
+            }
+            // Ctrl+Shift+T: open new PTY tab
+            if key == Key::T && ctrl && shift {
+                // Find an empty slot
+                if let Some(slot_idx) = vm.pty_slots.iter().position(|s| s.is_none()) {
+                    match geometry_os::vm::ops_pty::spawn("") {
+                        Ok(slot) => {
+                            vm.pty_slots[slot_idx] = Some(slot);
+                            // Switch to new tab
+                            vm.ram[PTY_HANDLE] = slot_idx as u32;
+                            vm.ram[CUR_COL] = 0;
+                            vm.ram[CUR_ROW] = 0;
+                            status_msg = format!("opened tab {} (slot {})", slot_idx + 1, slot_idx);
+                        },
+                        Err(e) => {
+                            status_msg = format!("open tab failed: {}", e);
+                        },
+                    }
+                } else {
+                    status_msg = "no free PTY slots (max 4)".to_string();
+                }
+                status_ttl = 120;
+                continue;
+            }
+            // Ctrl+Shift+W: close current PTY tab
+            if key == Key::W && ctrl && shift {
+                let pty_handle = vm.ram[PTY_HANDLE];
+                if pty_handle < vm.pty_slots.len() as u32 {
+                    vm.pty_slots[pty_handle as usize] = None;
+                    // Switch to next available slot
+                    let next = vm.pty_slots.iter().position(|s| s.is_some());
+                    if let Some(idx) = next {
+                        vm.ram[PTY_HANDLE] = idx as u32;
+                        vm.ram[CUR_COL] = 0;
+                        vm.ram[CUR_ROW] = 0;
+                        status_msg = format!("closed tab, switched to slot {}", idx);
+                    } else {
+                        status_msg = "all tabs closed".to_string();
+                    }
+                }
+                status_ttl = 120;
+                continue;
+            }
+            // Ctrl+Shift+D: describe screen via local Ollama vision model
+            if key == Key::D && ctrl && shift {
+                if !vision_busy {
+                    vision_busy = true;
+                    // Clone what we need for the thread
+                    let pixelfs_mode = show_pixelfs;
+                    let screen_snapshot = if pixelfs_mode {
+                        let idx = pixelfs_frame_idx.min(pixelfs.grids.len() - 1);
+                        let highlight = selected_file.as_ref().and_then(|name| {
+                            pixelfs
+                                .files
+                                .iter()
+                                .find(|f| f.name == *name && f.frame as usize == idx)
+                        });
+                        pixelfs.grids[idx].render_allocation_map(highlight)
+                    } else {
+                        vm.screen.clone()
+                    };
+
+                    let result = Arc::clone(&vision_result);
+                    std::thread::spawn(move || {
+                        let (system, prompt) = if pixelfs_mode {
+                            (
+                                "You are a filesystem expert describing a spatial 2D allocation map from Geometry OS. Red (0xFF0000) is reserved system metadata, White (0xFFFFFF) is allocated file data, Black (0x000000) is free space.",
+                                "Describe the spatial distribution of data on this 'hard drive' grid. Is it fragmented? Are there large contiguous blocks? Where is the sediment line (highest Y)? Be technical and morphological."
+                            )
+                        } else {
+                            (
+                                "You are a vision model describing a 256x256 pixel terminal framebuffer from Geometry OS. Be concise and factual.",
+                                "Describe what you see on this screen. Be concise: layout, colors, text, any visual anomalies."
+                            )
+                        };
+
+                        let b64 = geometry_os::vision::encode_png_base64(&screen_snapshot);
+                        match geometry_os::hermes::call_ollama_vision(system, prompt, &b64) {
+                            Some(desc) => {
+                                *result.lock().unwrap_or_else(|e| e.into_inner()) = Some(desc);
+                            },
+                            None => {
+                                *result.lock().unwrap_or_else(|e| e.into_inner()) =
+                                    Some("error: vision model unavailable".to_string());
+                            },
+                        }
+                    });
+                    status_msg = if pixelfs_mode {
+                        "pixelfs: analyzing morphology...".to_string()
+                    } else {
+                        "vision: analyzing...".to_string()
+                    };
+                    status_ttl = 300; // show for ~5s
+                } else {
+                    status_msg = "vision: already analyzing...".to_string();
+                    status_ttl = 60;
+                }
+                continue;
+            }
+            // Ctrl+Shift+S: toggle PixelFS Storage View
+            if key == Key::S && ctrl && shift {
+                show_pixelfs = !show_pixelfs;
+                if show_pixelfs {
+                    pixelfs_frame_idx = pixelfs.grids.len() - 1; // start at latest frame
+                    let report = pixelfs.grids[pixelfs_frame_idx].report();
+                    status_msg = report.summarize();
+                } else {
+                    status_msg = "storage view: disabled".to_string();
+                }
+                status_ttl = 120;
+                continue;
+            }
+            // Arrow keys in Storage View: navigate frames
+            if show_pixelfs {
+                let num_frames = pixelfs.grids.len();
+                if key == Key::Left && pixelfs_frame_idx > 0 {
+                    pixelfs_frame_idx -= 1;
+                    let report = pixelfs.grids[pixelfs_frame_idx].report();
+                    status_msg = report.summarize();
+                    status_ttl = 120;
+                    continue;
+                }
+                if key == Key::Right && pixelfs_frame_idx + 1 < num_frames {
+                    pixelfs_frame_idx += 1;
+                    let report = pixelfs.grids[pixelfs_frame_idx].report();
+                    status_msg = report.summarize();
+                    status_ttl = 120;
+                    continue;
+                }
+            }
+            // Ctrl+Shift+F: auto-defrag PixelFS (only in storage view)
+            if key == Key::F && ctrl && shift && show_pixelfs {
+                let (moved, free_px) = pixelfs.defrag();
+                status_msg = format!("defrag: {} files moved, {}px free", moved, free_px);
+                status_ttl = 180;
+                continue;
+            }
+            // Ctrl+Z: undo (storage view only)
+            if key == Key::Z && ctrl && !shift && show_pixelfs {
+                if pixelfs.undo() {
+                    status_msg = "undo".into();
+                } else {
+                    status_msg = "nothing to undo".into();
+                }
+                status_ttl = 120;
+                continue;
+            }
+            // Ctrl+Y: redo (storage view only)
+            if key == Key::Y && ctrl && !shift && show_pixelfs {
+                if pixelfs.redo() {
+                    status_msg = "redo".into();
+                } else {
+                    status_msg = "nothing to redo".into();
+                }
+                status_ttl = 120;
+                continue;
+            }
+            // Ctrl+Shift+P: Persist (Save) PixelFS
+            if key == Key::P && ctrl && shift {
+                let frame = pixelfs.grids.len() - 1;
+                match pixelfs.save_to_png(frame, "geos_storage.rts.png") {
+                    Ok(()) => status_msg = "saved to geos_storage.rts.png".into(),
+                    Err(e) => status_msg = format!("save failed: {}", e),
+                }
+                status_ttl = 180;
+                continue;
+            }
+            // Ctrl+Shift+O: Open (Load) PixelFS
+            if key == Key::O && ctrl && shift {
+                match PixelFS::load_from_png("geos_storage.rts.png") {
+                    Ok(new_fs) => {
+                        pixelfs = new_fs;
+                        pixelfs_frame_idx = 0;
+                        selected_file = None;
+                        status_msg = "loaded from geos_storage.rts.png".into();
+                    },
+                    Err(e) => status_msg = format!("load failed: {}", e),
+                }
+                status_ttl = 180;
+                continue;
+            }
+            // Ctrl+1..4: switch tabs
+            if ctrl && !shift {
+                let tab = match key {
+                    Key::Key1 => Some(0),
+                    Key::Key2 => Some(1),
+                    Key::Key3 => Some(2),
+                    Key::Key4 => Some(3),
+                    _ => None,
+                };
+                if let Some(idx) = tab {
+                    if idx < vm.pty_slots.len() && vm.pty_slots[idx].is_some() {
+                        vm.ram[PTY_HANDLE] = idx as u32;
+                        vm.ram[CUR_COL] = 0;
+                        vm.ram[CUR_ROW] = 0;
+                        status_msg = format!("switched to tab {}", idx + 1);
+                        status_ttl = 60;
+                    } else {
+                        status_msg = format!("tab {} not open", idx + 1);
+                        status_ttl = 60;
+                    }
+                    continue;
+                }
+            }
+
+            // Normal key -> forward to VM
+            if let Some(ch) = key_to_ascii_shifted(key, shift) {
+                vm.push_key(ch as u32);
+            } else if let Some(ch) = key_to_ascii(key) {
+                vm.push_key(ch as u32);
+            }
+        }
+
+        // Reset scrollback offset on any key that isn't scroll
+        // (auto-return to live view when user types)
+        if !scrollback.is_scrolled() {
+            // already at live
+        }
+
+        // Pump mouse events (scale host coords to VM 256x256)
+        if let Some((mx, my)) = window.get_mouse_pos(MouseMode::Clamp) {
+            let vm_x = (mx as u32 * VM_W as u32 / win_w as u32).min(255);
+            let vm_y = (my as u32 * VM_H as u32 / win_h as u32).min(255);
+
+            // Intercept for PixelFS interaction
+            if show_pixelfs {
+                let mouse_down_now = window.get_mouse_down(MouseButton::Left);
+                let right_click = window.get_mouse_down(MouseButton::Right);
+
+                // Hover detection (every frame, no click needed)
+                if let Some(file) = pixelfs.get_file_at(vm_x as u8, vm_y as u8) {
+                    hovered_file_info = Some((
+                        file.name.clone(),
+                        file.data.len(),
+                        file.x,
+                        file.y,
+                        file.width,
+                        file.height,
+                    ));
+                    mouse_screen_pos = Some((mx as usize, my as usize));
+                } else {
+                    hovered_file_info = None;
+                    mouse_screen_pos = None;
+                }
+
+                if (mouse_down_now || right_click) && !prev_mouse_down {
+                    if let Some(file) = pixelfs.get_file_at(vm_x as u8, vm_y as u8) {
+                        let name = file.name.clone();
+                        if right_click {
+                            // Right Click: Delete
+                            let _ = pixelfs.delete_file(&name);
+                            status_msg = format!("deleted: {}", name);
+                            selected_file = None;
+                            dragging_file = None;
+                        } else {
+                            // Left Click: Select and start drag
+                            selected_file = Some(name.clone());
+                            dragging_file = Some((
+                                name.clone(),
+                                vm_x as i32 - file.x as i32,
+                                vm_y as i32 - file.y as i32,
+                            ));
+                            status_msg = format!("selected: {} ({} bytes)", name, file.data.len());
+                        }
+                        status_ttl = 120;
+                    } else {
+                        selected_file = None;
+                        dragging_file = None;
+                    }
+                }
+
+                // Handle drop
+                if !mouse_down_now && prev_mouse_down {
+                    if let Some((name, off_x, off_y)) = dragging_file.take() {
+                        let new_x = (vm_x as i32 - off_x).clamp(0, 255) as u8;
+                        let new_y = (vm_y as i32 - off_y).clamp(0, 255) as u8;
+                        match pixelfs.move_file(&name, new_x, new_y) {
+                            Ok(()) => {
+                                status_msg = format!("moved {} to ({}, {})", name, new_x, new_y);
+                            },
+                            Err(e) => {
+                                status_msg = format!("move failed: {}", e);
+                            },
+                        }
+                        status_ttl = 120;
+                    }
+                }
+            } else {
+                vm.push_mouse(vm_x, vm_y);
+            }
+        }
+        let mouse_down_now = window.get_mouse_down(MouseButton::Left);
+        if !show_pixelfs {
+            if mouse_down_now && !prev_mouse_down {
+                // Click transition: send button=2 (left click)
+                vm.push_mouse_button(2);
+            } else if mouse_down_now {
+                // Held: send button=1 (down)
+                vm.push_mouse_button(1);
+            }
+            if window.get_mouse_down(MouseButton::Right) && !prev_mouse_down {
+                vm.push_mouse_button(3); // right click
+            }
+        }
+        prev_mouse_down = mouse_down_now;
+
+        // Step until FRAME or halt
+        if !vm.halted {
+            vm.frame_ready = false;
+            for _ in 0..1_000_000 {
+                if !vm.step() {
+                    break;
+                }
+                vm.step_all_processes();
+                if vm.frame_ready {
+                    break;
+                }
+            }
+        }
+
+        // ── Scrollback: detect row 0 changes and save old rows ──
+        {
+            let mut current_top: Vec<u32> = Vec::with_capacity(BUF_COLS);
+            for col in 0..BUF_COLS {
+                current_top.push(vm.ram[BUF_BASE + col]);
+            }
+            if current_top != prev_top_row && !prev_top_row.iter().all(|&v| v == 32) {
+                // Row 0 changed -> a scroll happened. Save old top row.
+                scrollback.push_row(&prev_top_row);
+
+                // Log to PixelFS to create a "sediment map" of the session
+                let mut row_bytes = Vec::with_capacity(BUF_COLS);
+                for &v in &prev_top_row {
+                    row_bytes.push(v as u8);
+                }
+                let _ =
+                    pixelfs.create_file(&format!("scroll_{}", scrollback.total_written), row_bytes);
+            }
+            prev_top_row = current_top;
+        }
+
+        // ── Poll vision result (Ctrl+Shift+D) ──
+        if vision_busy {
+            let mut result = vision_result.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(desc) = result.take() {
+                vision_busy = false;
+                eprintln!("\n[vision] {}", desc);
+                // Update status bar with first line of description
+                let first_line = desc.lines().next().unwrap_or(&desc);
+                let truncated: String = first_line.chars().take(40).collect();
+                status_msg = format!("vision: {}", truncated);
+                status_ttl = 300;
+            }
+            drop(result);
+        }
+
+        // ── Render ──
+        // If in scrollback view, overlay history rows onto the screen
+        if scrollback.is_scrolled() {
+            // Save the live text buffer, replace with history rows, render, restore
+            let saved_buf: Vec<u32> = (0..BUF_ROWS * BUF_COLS)
+                .map(|i| vm.ram[BUF_BASE + i])
+                .collect();
+
+            for row in 0..BUF_ROWS {
+                if row < scrollback.scroll_offset {
+                    let history_row = scrollback.get_history_row(row);
+                    for col in 0..BUF_COLS {
+                        vm.ram[BUF_BASE + row * BUF_COLS + col] = history_row[col];
+                    }
+                } else {
+                    // Fill remaining rows with spaces
+                    for col in 0..BUF_COLS {
+                        vm.ram[BUF_BASE + row * BUF_COLS + col] = 32;
+                    }
+                }
+            }
+            // Trigger a re-render of the text buffer
+            // We'll do a simplified MEDTEXT render directly
+            render_text_buffer(&vm, &mut framebuffer, win_w, scale);
+
+            // Restore text buffer
+            for (i, &val) in saved_buf.iter().enumerate() {
+                vm.ram[BUF_BASE + i] = val;
+            }
+        }
+
+        // Blit vm.screen to framebuffer using host TTF font (crisp text)
+        if !scrollback.is_scrolled() && !show_pixelfs {
+            render_text_buffer_host(&vm, &mut framebuffer, win_w, win_h, &host_font, scale);
+        }
+
+        // ── PixelFS Storage View Blit ──
+        if show_pixelfs {
+            let idx = pixelfs_frame_idx.min(pixelfs.grids.len() - 1);
+            let highlight = selected_file.as_ref().and_then(|name| {
+                pixelfs
+                    .files
+                    .iter()
+                    .find(|f| f.name == *name && f.frame as usize == idx)
+            });
+            let mut map = pixelfs.grids[idx].render_allocation_map(highlight);
+
+            // Render ghost preview if dragging
+            if let Some((ref name, off_x, off_y)) = dragging_file {
+                if let Some(file) = pixelfs
+                    .files
+                    .iter()
+                    .find(|f| f.name == *name && f.frame as usize == idx)
+                {
+                    if let Some((mx, my)) = window.get_mouse_pos(MouseMode::Clamp) {
+                        let vm_mx = (mx as u32 * VM_W as u32 / win_w as u32).min(255);
+                        let vm_my = (my as u32 * VM_H as u32 / win_h as u32).min(255);
+                        let gx = (vm_mx as i32 - off_x).clamp(0, 255) as u8;
+                        let gy = (vm_my as i32 - off_y).clamp(0, 255) as u8;
+
+                        // Draw ghost rectangle in Yellow (0x00FFFF00)
+                        for ry in 0..file.height as u16 {
+                            for rx in 0..file.width as u16 {
+                                let px = gx as u16 + rx;
+                                let py = gy as u16 + ry;
+                                if px < 256 && py < 256 {
+                                    map[(py * 256 + px) as usize] = 0x00FFFF00;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            for y in 0..VM_H {
+                for x in 0..VM_W {
+                    let color = map[y * VM_W + x];
+                    // Scale to window
+                    for dy in 0..scale {
+                        for dx in 0..scale {
+                            let fx = x * scale + dx;
+                            let fy = y * scale + dy;
+                            if fx < win_w && fy < win_h {
+                                framebuffer[fy * win_w + fx] = color;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── PixelFS Hover Tooltip ──
+        if show_pixelfs {
+            if let Some((ref name, data_len, fx, fy, fw, fh)) = hovered_file_info {
+                if let Some((mx, my)) = mouse_screen_pos {
+                    let tooltip_text =
+                        format!("{} {}b @({},{}) {}x{}", name, data_len, fx, fy, fw, fh);
+                    let char_w = 6 * scale;
+                    let char_h = 8 * scale;
+                    let text_len = tooltip_text.len();
+                    let box_w = text_len * char_w + 8 * scale;
+                    let box_h = char_h + 8 * scale;
+
+                    // Position tooltip below-right of cursor, flip if near edge
+                    let mut tx = mx + 12;
+                    let mut ty = my + 12;
+                    if tx + box_w > win_w {
+                        tx = mx.saturating_sub(box_w + 4);
+                    }
+                    if ty + box_h > win_h {
+                        ty = my.saturating_sub(box_h + 4);
+                    }
+
+                    // Draw semi-transparent background
+                    for y in ty..(ty + box_h).min(win_h) {
+                        for x in tx..(tx + box_w).min(win_w) {
+                            let idx = y * win_w + x;
+                            if idx < framebuffer.len() {
+                                // Alpha-blend with 0xCC dark background
+                                let existing = framebuffer[idx];
+                                let r = ((existing & 0xFF) * 30) / 100;
+                                let g = ((existing & 0xFF00) >> 8) * 30 / 100;
+                                let b = ((existing & 0xFF0000) >> 16) * 30 / 100;
+                                framebuffer[idx] = (b << 16) | (g << 8) | r;
+                            }
+                        }
+                    }
+                    // Draw border
+                    for x in tx..(tx + box_w).min(win_w) {
+                        let t_idx = ty * win_w + x;
+                        let b_idx = (ty + box_h - 1).min(win_h - 1) * win_w + x;
+                        if t_idx < framebuffer.len() {
+                            framebuffer[t_idx] = 0x44DD44;
+                        }
+                        if b_idx < framebuffer.len() {
+                            framebuffer[b_idx] = 0x44DD44;
+                        }
+                    }
+                    for y in ty..(ty + box_h).min(win_h) {
+                        let l_idx = y * win_w + tx;
+                        let r_idx = y * win_w + (tx + box_w - 1).min(win_w - 1);
+                        if l_idx < framebuffer.len() {
+                            framebuffer[l_idx] = 0x44DD44;
+                        }
+                        if r_idx < framebuffer.len() {
+                            framebuffer[r_idx] = 0x44DD44;
+                        }
+                    }
+                    // Draw text
+                    let text_bytes: Vec<u8> = tooltip_text.bytes().collect();
+                    for (i, &byte) in text_bytes.iter().enumerate() {
+                        draw_char_5x7(
+                            &mut framebuffer,
+                            win_w,
+                            win_h,
+                            tx + 4 * scale + i * char_w,
+                            ty + 4 * scale,
+                            byte,
+                            0xEEEEFF,
+                            scale,
+                        );
+                    }
+                }
+            }
+        }
+
+        // ── Status bar overlay ──
+        if status_ttl > 0 {
+            status_ttl -= 1;
+            // Draw status bar at bottom of framebuffer
+            let bar_y = win_h.saturating_sub(20 * scale);
+            let bar_h = 20 * scale;
+            for y in bar_y..(bar_y + bar_h).min(win_h) {
+                for x in 0..win_w {
+                    framebuffer[y * win_w + x] = 0x1A1A2E;
+                }
+            }
+            // Render status text using simple block characters
+            let msg_bytes: Vec<u8> = status_msg.bytes().take(42).collect();
+            for (i, &byte) in msg_bytes.iter().enumerate() {
+                let char_x = (i * 6 * scale) + 4;
+                draw_char_5x7(
+                    &mut framebuffer,
+                    win_w,
+                    win_h,
+                    char_x,
+                    bar_y + 4 * scale,
+                    byte,
+                    0x44DD44,
+                    scale,
+                );
+            }
+
+            // Show scrollback indicator
+            if scrollback.is_scrolled() {
+                let pos_text = format!(
+                    " [{}/{}]",
+                    scrollback.scroll_offset,
+                    scrollback.available_history().min(SCROLLBACK_ROWS)
+                );
+                let pos_bytes: Vec<u8> = pos_text.bytes().collect();
+                let start_x = win_w.saturating_sub(pos_text.len() * 6 * scale + 10);
+                for (i, &byte) in pos_bytes.iter().enumerate() {
+                    let char_x = start_x + i * 6 * scale;
+                    draw_char_5x7(
+                        &mut framebuffer,
+                        win_w,
+                        win_h,
+                        char_x,
+                        bar_y + 4 * scale,
+                        byte,
+                        0xBBBB44,
+                        scale,
+                    );
+                }
+            }
+        }
+
+        if let Err(e) = window.update_with_buffer(&framebuffer, win_w, win_h) {
+            eprintln!("present: {}", e);
+            break;
+        }
+    }
+}
+
+/// Render text buffer rows to the framebuffer using the VM's 5x7 font.
+fn render_text_buffer(vm: &Vm, framebuffer: &mut [u32], fb_width: usize, scale: usize) {
+    // Clear content area first (y=12 to y=252 in VM coords)
+    for y in 12..252 {
+        for x in 0..256 {
+            let dst_y = y * scale;
+            let dst_x = x * scale;
+            for dy in 0..scale {
+                let row = (dst_y + dy) * fb_width;
+                for dx in 0..scale {
+                    framebuffer[row + dst_x + dx] = 0x0A0A0A;
+                }
+            }
+        }
+    }
+    // Render each row with per-character colors from COLOR_BUF
+    // Supports ASCII 32-126 plus extended box-drawing chars 128-157
+    for row in 0..BUF_ROWS {
+        let y_pos = (12 + row * 8) * scale;
+        for col in 0..BUF_COLS {
+            let ch = vm.ram[BUF_BASE + row * BUF_COLS + col] as u8;
+            // Skip control chars, but allow extended chars 128-157
+            if ch < 32 {
+                continue;
+            }
+            if ch >= 127 && ch > 157 {
+                continue;
+            }
+            if ch == 127 {
+                continue;
+            }
+            let color = vm.ram[COLOR_BUF_BASE + row * BUF_COLS + col];
+            // Use default gray if color is 0 (uninitialized)
+            let fg = if color == 0 { 0xBBBBBB } else { color };
+            let x_pos = (col * 6) * scale;
+            draw_char_5x7(
+                framebuffer,
+                fb_width,
+                256 * scale,
+                x_pos,
+                y_pos,
+                ch,
+                fg,
+                scale,
+            );
+        }
+    }
+}
+
+/// Draw a single character using the 5x7 font from pixel.rs.
+fn draw_char_5x7(
+    framebuffer: &mut [u32],
+    fb_width: usize,
+    _fb_height: usize,
+    x: usize,
+    y: usize,
+    ch: u8,
+    color: u32,
+    scale: usize,
+) {
+    use geometry_os::pixel::mini_font_glyph;
+    let glyph = mini_font_glyph(ch);
+    for gy in 0..7 {
+        for gx in 0..5 {
+            if glyph[gy] & (1 << (4 - gx)) != 0 {
+                for dy in 0..scale {
+                    for dx in 0..scale {
+                        let px = x + gx * scale + dx;
+                        let py = y + gy * scale + dy;
+                        if px < fb_width && py * fb_width + px < framebuffer.len() {
+                            framebuffer[py * fb_width + px] = color;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,500 @@
+extends Node
+## Autonomous Spatial Developer
+## Runs as Godot headless agent, performs development tasks on spatial canvas
+## Connects to ENet server, opens windows, executes commands, encodes knowledge
+
+var enet_peer: ENetMultiplayerPeer
+var connected: bool = false
+var server_pid: int = 0
+var pty_pid: int = 0
+var current_task: Dictionary = {}
+var task_history: Array = []
+var root_node: Node
+
+signal task_completed(result: Dictionary)
+signal error_occurred(message: String)
+
+## Configuration
+const SERVER_HOST: String = "127.0.0.1"
+const SERVER_PORT: int = 7000
+const PTY_HOST: String = "127.0.0.1"
+const PTY_PORT: int = 8765
+const MAX_RETRIES: int = 3
+const RETRY_DELAY: float = 2.0
+
+## Task types
+enum TaskType {
+	CODE_ANALYSIS,
+	TEST_EXECUTION,
+	GIT_STATUS,
+	FILE_EDITING,
+	KNOWLEDGE_ENCODE
+}
+
+## Memory Palace categories (must match memory_palace_window.gd)
+const CAT_GENERAL: int = 0
+const CAT_CODE: int = 1
+const CAT_ARCH: int = 2
+const CAT_PITFALL: int = 3
+const CAT_DECISION: int = 4
+const CAT_PREFERENCE: int = 5
+
+func _ready() -> void:
+	root_node = self
+	
+	print("Autonomous Spatial Developer initialized")
+	print("Connecting to ENet server at %s:%d" % [SERVER_HOST, SERVER_PORT])
+	await connect_to_server()
+	
+	if connected:
+		print("\n=== Running Autonomous Development Workflow ===")
+		var result = await run_development_workflow(".")
+		
+		print("\n=== Final Report ===")
+		print("Success: ", result.get("success", false))
+		print("Tasks completed: ", result.get("tasks_completed", 0))
+		print("Tasks failed: ", result.get("tasks_failed", 0))
+		print("Total tasks: ", result.get("total_tasks", 0))
+		
+		if result.has("test_passed"):
+			print("Tests passed: ", result["test_passed"])
+			print("Tests failed: ", result["test_failed"])
+		
+		# Wait for RPC calls to complete
+		await get_tree().create_timer(2.0).timeout
+		
+		# Clean exit
+		print("\nAutonomous workflow complete. Exiting.")
+		get_tree().quit()
+	else:
+		print("Failed to connect to server. Exiting.")
+		get_tree().quit(1)
+
+## Connect to Godot Spatial IDE server
+func connect_to_server() -> void:
+	for attempt in range(MAX_RETRIES):
+		enet_peer = ENetMultiplayerPeer.new()
+		var err = enet_peer.create_client(SERVER_HOST, SERVER_PORT)
+		
+		if err != OK:
+			print("Connection attempt %d failed: error %d" % [attempt + 1, err])
+			if attempt < MAX_RETRIES - 1:
+				await get_tree().create_timer(RETRY_DELAY).timeout
+				continue
+		multiplayer.multiplayer_peer = enet_peer
+		multiplayer.connected_to_server.connect(_on_connected)
+		multiplayer.connection_failed.connect(_on_connection_failed)
+		multiplayer.server_disconnected.connect(_on_server_disconnected)
+		
+		print("Connection initiated, waiting for handshake...")
+		await get_tree().create_timer(5.0).timeout
+		
+		if connected:
+			print("Successfully connected to Spatial IDE server")
+			return
+		else:
+			print("Connection timeout on attempt %d" % (attempt + 1))
+			multiplayer.multiplayer_peer = null
+	
+	error_occurred.emit("Failed to connect after %d attempts" % MAX_RETRIES)
+
+func _on_connected() -> void:
+	connected = true
+	print("Connected to Spatial IDE server!")
+	print("Ready to perform autonomous development tasks")
+
+func _on_connection_failed() -> void:
+	print("Connection to server failed")
+	connected = false
+
+func _on_server_disconnected() -> void:
+	print("Server disconnected")
+	connected = false
+
+## Main task execution interface
+func perform_task(task: Dictionary) -> Dictionary:
+	"""
+	Execute a development task on the spatial canvas
+	
+	task = {
+		"type": TaskType.CODE_ANALYSIS,
+		"target": "/path/to/file.gd",
+		"position": Vector2(x, y),
+		"metadata": {}
+	}
+	"""
+	if not connected:
+		return {"success": false, "error": "Not connected to server"}
+	
+	current_task = task
+	var result = {"success": false, "task_id": task.get("id", "unknown")}
+	
+	print("Performing task: ", task.get("type"))
+	
+	match task.get("type", TaskType.CODE_ANALYSIS):
+		TaskType.CODE_ANALYSIS:
+			result = await perform_code_analysis(task)
+		TaskType.TEST_EXECUTION:
+			result = await perform_test_execution(task)
+		TaskType.GIT_STATUS:
+			result = await perform_git_status(task)
+		TaskType.FILE_EDITING:
+			result = await perform_file_editing(task)
+		TaskType.KNOWLEDGE_ENCODE:
+			result = await perform_knowledge_encode(task)
+		_:
+			result["error"] = "Unknown task type"
+	
+	task_history.append(result)
+	task_completed.emit(result)
+	
+	print("Task completed: ", result.get("success", false))
+	return result
+
+## Task: Analyze code file spatially
+func perform_code_analysis(task: Dictionary) -> Dictionary:
+	var file_path = task.get("target")
+	var position = task.get("position", Vector2(100, 100))
+	var result = {"success": false, "file": file_path}
+	
+	print("Analyzing file: ", file_path)
+	
+	# Step 1: Open PTY terminal
+	var term_pos = position
+	rpc_id(1, "open_terminal", term_pos)
+	await get_tree().create_timer(1.0).timeout
+	
+	# Step 2: Open code editor
+	var editor_pos = position + Vector2(300, 0)
+	rpc_id(1, "open_file_editor", file_path, editor_pos)
+	await get_tree().create_timer(2.0).timeout
+	
+	# Step 3: Read file content via PTY
+	var pty_sock = StreamPeerTCP.new()
+	pty_sock.connect_to_host(PTY_HOST, PTY_PORT)
+	await get_tree().process_frame
+	
+	if pty_sock.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		result["error"] = "PTY connection failed"
+		return result
+	
+	# Spawn PTY and read file
+	pty_sock.put_data(JSON.stringify({"action": "spawn"}).to_utf8_buffer())
+	await get_tree().create_timer(0.5).timeout
+	
+	pty_sock.put_data(("cat " + str(file_path)).to_utf8_buffer())
+	pty_sock.put_data("\n".to_utf8_buffer())
+	await get_tree().create_timer(1.0).timeout
+	
+	var response_data = pty_sock.get_data(1000000)
+	if response_data[0] == OK:
+		var content = response_data[1].get_string_from_utf8()
+		result["content_length"] = content.length()
+		result["line_count"] = content.split("\n").size()
+		result["success"] = true
+	
+	# Step 4: Open Memory Palace for insights
+	var palace_pos = position + Vector2(600, 0)
+	rpc_id(1, "spawn_pixel_window", palace_pos)
+	await get_tree().create_timer(1.0).timeout
+	
+	# Encode knowledge about file analysis
+	var knowledge = {
+		"statement": "Analyzed %s - %d lines" % [file_path.get_file(), result.get("line_count", 0)],
+		"category": CAT_CODE,
+		"importance": 50,
+		"subject": file_path.get_file().get_basename()
+	}
+	rpc_id(1, "encode_knowledge", knowledge)
+	
+	return result
+
+## Task: Execute tests and visualize results
+func perform_test_execution(task: Dictionary) -> Dictionary:
+	var project_path = task.get("target", ".")
+	var position = task.get("position", Vector2(100, 100))
+	var test_command = task.get("command", "pytest")
+	var result = {"success": false, "project": project_path}
+	
+	print("Running tests in: ", project_path)
+	
+	# Step 1: Open PTY terminal
+	var term_pos = position
+	rpc_id(1, "open_terminal", term_pos)
+	await get_tree().create_timer(1.0).timeout
+	
+	# Step 2: Execute tests via PTY
+	var pty_sock = StreamPeerTCP.new()
+	pty_sock.connect_to_host(PTY_HOST, PTY_PORT)
+	await get_tree().process_frame
+	
+	if pty_sock.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		result["error"] = "PTY connection failed"
+		return result
+	
+	# Change to project directory and run tests
+	var cmd = "cd %s && %s" % [project_path, test_command]
+	pty_sock.put_data(JSON.stringify({"action": "spawn"}).to_utf8_buffer())
+	await get_tree().create_timer(0.5).timeout
+	
+	pty_sock.put_data(cmd.to_utf8_buffer())
+	pty_sock.put_data("\n".to_utf8_buffer())
+	await get_tree().create_timer(5.0).timeout
+	
+	var response_data = pty_sock.get_data(1000000)
+	if response_data[0] == OK:
+		var output = response_data[1].get_string_from_utf8()
+		
+		# Parse test results
+		result["output"] = output
+		result["passed"] = output.count("PASSED")
+		result["failed"] = output.count("FAILED")
+		result["errors"] = output.count("ERROR")
+		result["success"] = true
+		
+		print("Test results: %d passed, %d failed, %d errors" % [result["passed"], result["failed"], result["errors"]])
+		
+		# Step 3: Encode test results to Memory Palace
+		var palace_pos = position + Vector2(300, 0)
+		rpc_id(1, "spawn_pixel_window", palace_pos)
+		await get_tree().create_timer(1.0).timeout
+		
+		var knowledge = {
+			"statement": "Test run: %d passed, %d failed" % [result["passed"], result["failed"]],
+			"category": CAT_CODE if result["failed"] == 0 else CAT_PITFALL,
+			"importance": 70 if result["failed"] > 0 else 50,
+			"subject": "tests"
+		}
+		rpc_id(1, "encode_knowledge", knowledge)
+	
+	return result
+
+## Task: Check git status and visualize changes
+func perform_git_status(task: Dictionary) -> Dictionary:
+	var project_path = task.get("target", ".")
+	var position = task.get("position", Vector2(100, 100))
+	var result = {"success": false, "project": project_path}
+	
+	print("Checking git status: ", project_path)
+	
+	# Step 1: Open PTY terminal
+	var term_pos = position
+	rpc_id(1, "open_terminal", term_pos)
+	await get_tree().create_timer(1.0).timeout
+	
+	# Step 2: Run git status
+	var pty_sock = StreamPeerTCP.new()
+	pty_sock.connect_to_host(PTY_HOST, PTY_PORT)
+	await get_tree().process_frame
+	
+	if pty_sock.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		result["error"] = "PTY connection failed"
+		return result
+	
+	pty_sock.put_data(JSON.stringify({"action": "spawn"}).to_utf8_buffer())
+	await get_tree().create_timer(0.5).timeout
+	
+	pty_sock.put_data(("cd %s && git status --short" % project_path).to_utf8_buffer())
+	pty_sock.put_data("\n".to_utf8_buffer())
+	await get_tree().create_timer(2.0).timeout
+	
+	var response_data = pty_sock.get_data(1000000)
+	if response_data[0] == OK:
+		var output = response_data[1].get_string_from_utf8()
+		result["status_output"] = output
+		result["modified_files"] = output.split("\n").filter(func(l): return l.length() > 0).size()
+		result["success"] = true
+		
+		print("Found %d modified files" % result["modified_files"])
+		
+		# Step 3: For each modified file, open code editor
+		var file_offset = 0
+		for line in output.split("\n"):
+			if line.length() > 0:
+				var status = line.substr(0, 2).strip_edges()
+				var file_path = line.substr(2).strip_edges()
+				
+				if "M" in status or "A" in status:
+					var editor_pos = position + Vector2(300 + file_offset, 0)
+					rpc_id(1, "open_file_editor", file_path, editor_pos)
+					file_offset += 350
+					
+					# Small delay between file opens
+					await get_tree().create_timer(0.5).timeout
+		
+		# Step 4: Encode git status to Memory Palace
+		var palace_pos = position + Vector2(300 + file_offset, 0)
+		rpc_id(1, "spawn_pixel_window", palace_pos)
+		await get_tree().create_timer(1.0).timeout
+		
+		var knowledge = {
+			"statement": "Git status: %d modified files" % result["modified_files"],
+			"category": CAT_DECISION,
+			"importance": 60,
+			"subject": "git"
+		}
+		rpc_id(1, "encode_knowledge", knowledge)
+	
+	return result
+
+## Task: Edit file via spatial editor
+func perform_file_editing(task: Dictionary) -> Dictionary:
+	var file_path = task.get("target")
+	var content = task.get("content", "")
+	var position = task.get("position", Vector2(100, 100))
+	var result = {"success": false, "file": file_path}
+	
+	print("Editing file: ", file_path)
+	
+	# Step 1: Open code editor
+	var editor_pos = position
+	rpc_id(1, "open_file_editor", file_path, editor_pos)
+	await get_tree().create_timer(2.0).timeout
+	
+	# Step 2: Write content via PTY
+	if content.length() > 0:
+		var pty_sock = StreamPeerTCP.new()
+		pty_sock.connect_to_host(PTY_HOST, PTY_PORT)
+		await get_tree().process_frame
+		
+		if pty_sock.get_status() == StreamPeerTCP.STATUS_CONNECTED:
+			# Use heredoc to write file
+			var heredoc_cmd = 'cat > "%s" << \'EOF\'\n%s\nEOF\n' % [file_path, content]
+			
+			pty_sock.put_data(JSON.stringify({"action": "spawn"}).to_utf8_buffer())
+			await get_tree().create_timer(0.5).timeout
+			
+			pty_sock.put_data(heredoc_cmd.to_utf8_buffer())
+			pty_sock.put_data("\n".to_utf8_buffer())
+			await get_tree().create_timer(1.0).timeout
+			
+			result["success"] = true
+			result["bytes_written"] = content.length()
+	
+	return result
+
+## Task: Encode knowledge to Memory Palace
+func perform_knowledge_encode(task: Dictionary) -> Dictionary:
+	var statement = task.get("statement", "")
+	var category = task.get("category", CAT_GENERAL)
+	var importance = task.get("importance", 50)
+	var subject = task.get("subject", "general")
+	var position = task.get("position", Vector2(100, 100))
+	
+	var result = {"success": false}
+	
+	print("Encoding knowledge: ", statement)
+	
+	# Step 1: Open Memory Palace window
+	var palace_pos = position
+	rpc_id(1, "spawn_pixel_window", palace_pos)
+	await get_tree().create_timer(1.0).timeout
+	
+	# Step 2: Encode knowledge
+	var knowledge = {
+		"statement": statement,
+		"category": category,
+		"importance": importance,
+		"subject": subject
+	}
+	rpc_id(1, "encode_knowledge", knowledge)
+	
+	result["success"] = true
+	result["encoded_statement"] = statement
+	
+	return result
+
+## Run autonomous development workflow
+func run_development_workflow(project_path: String) -> Dictionary:
+	var result = {"success": false, "tasks_completed": 0, "tasks_failed": 0}
+	
+	print("\n=== Starting Autonomous Development Workflow ===")
+	print("Project: ", project_path)
+	
+	if not connected:
+		result["error"] = "Not connected to server"
+		return result
+	
+	var base_position = Vector2(100, 100)
+	
+	# Task 1: Check git status
+	var git_task = {
+		"type": TaskType.GIT_STATUS,
+		"target": project_path,
+		"position": base_position
+	}
+	var git_result = await perform_task(git_task)
+	if git_result.get("success"):
+		result["tasks_completed"] += 1
+	else:
+		result["tasks_failed"] += 1
+	
+	# Task 2: Analyze modified files
+	if git_result.get("modified_files", 0) > 0:
+		# Find Python/GDScript files to analyze
+		var pty_sock = StreamPeerTCP.new()
+		pty_sock.connect_to_host(PTY_HOST, PTY_PORT)
+		await get_tree().process_frame
+		
+		if pty_sock.get_status() == StreamPeerTCP.STATUS_CONNECTED:
+			pty_sock.put_data(JSON.stringify({"action": "spawn"}).to_utf8_buffer())
+			await get_tree().create_timer(0.5).timeout
+			
+			pty_sock.put_data(("cd %s && git diff --name-only | grep -E '\\\\.(py|gd)$'" % project_path).to_utf8_buffer())
+			pty_sock.put_data("\\n".to_utf8_buffer())
+			await get_tree().create_timer(1.0).timeout
+			
+			var response_data = pty_sock.get_data(1000000)
+			if response_data[0] == OK:
+				var files = response_data[1].get_string_from_utf8().split("\n").filter(func(f): return f.length() > 0)
+				
+				var offset = 0
+				for file_path in files:
+					var file_task = {
+						"type": TaskType.CODE_ANALYSIS,
+						"target": file_path,
+						"position": base_position + Vector2(100, 200 + offset)
+					}
+					var file_result = await perform_task(file_task)
+					if file_result.get("success"):
+						result["tasks_completed"] += 1
+					else:
+						result["tasks_failed"] += 1
+					offset += 200
+	
+	# Task 3: Run tests
+	var test_task = {
+		"type": TaskType.TEST_EXECUTION,
+		"target": project_path,
+		"command": "pytest -x -v 2>&1 | head -100",
+		"position": base_position + Vector2(100, -200)
+	}
+	var test_result = await perform_task(test_task)
+	if test_result.get("success"):
+		result["tasks_completed"] += 1
+		result["test_passed"] = test_result.get("passed", 0)
+		result["test_failed"] = test_result.get("failed", 0)
+	else:
+		result["tasks_failed"] += 1
+	
+	# Task 4: Encode workflow summary
+	var summary_knowledge = {
+		"type": TaskType.KNOWLEDGE_ENCODE,
+		"statement": "Workflow: %d tasks completed, %d tasks failed, %d modified files" % [
+			result["tasks_completed"],
+			result["tasks_failed"],
+			git_result.get("modified_files", 0)
+		],
+		"category": CAT_DECISION,
+		"importance": 70,
+		"subject": "workflow",
+		"position": base_position + Vector2(100, 400)
+	}
+	await perform_task(summary_knowledge)
+	
+	result["success"] = result["tasks_completed"] > 0
+	result["total_tasks"] = result["tasks_completed"] + result["tasks_failed"]
+	print("\n=== Workflow Summary ===")
+	print("Success: ", result["success"])
+	print("Tasks: %d completed, %d failed" % [result["tasks_completed"], result["tasks_failed"]])
+	return result

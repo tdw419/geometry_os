@@ -1,0 +1,250 @@
+```asciidoc
+                 ┌─────────────────────────────────────────────┐
+                 │           HOST LINUX SYSTEM                 │
+                 │  [geometry_os binary running here]         │
+                 └────────────────┬────────────────────────────┘
+                                  │
+                 ┌────────────────▼────────────────────────────┐
+                 │         GEOMETRY OS VM (Native)              │
+                 │  ┌────────────────────────────────────────┐ │
+                 │  │  256×256 RGBA Framebuffer (256KB)     │ │
+                 │  │  400+ opcodes, windowing, sprites     │ │
+                 │  │  Renders pixels to screen              │ │
+                 │  └────────────────────────────────────────┘ │
+                 └────────────────┬────────────────────────────┘
+                                  │
+                 ┌────────────────▼────────────────────────────┐
+                 │         PIXEL SUBSTRATE (The Palace)        │
+                 │  ┌────────────────────────────────────────┐ │
+                 │  │  VFS Surface @ 0x7000_0000 (256KB)    │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │ Row 0: Directory Index        │  │ │
+                 │  │  │  [0:0]   = PXFS_MAGIC         │  │ │
+                 │  │  │  [0:1]   = file_count         │  │ │
+                 │  │  │  [0:2+]  = dir entries         │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │ Row 1+: File Data            │  │ │
+                 │  │  │  Each row = one file          │  │ │
+                 │  │  │  Pixels ARE file bytes        │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  └────────────────────────────────────────┘ │
+                 └────────────────┬────────────────────────────┘
+                                  │
+                 ┌────────────────▼────────────────────────────┐
+                 │      RISC-V HYPERVISOR (geometry_os)        │
+                 │  ┌────────────────────────────────────────┐ │
+                 │  │  CPU: RV32IMAC + Sv32 MMU + SBI       │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │  Registers (32 × u32)         │  │ │
+                 │  │  │  CSRs (mstatus, satp, etc.)   │  │ │
+                 │  │  │  Privilege (M-mode, S-mode)   │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │  MMU (Sv32 page tables)      │  │ │
+                 │  │  │  VA → PA translation          │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  └────────────────────────────────────────┘ │
+                 │  ┌────────────────────────────────────────┐ │
+                 │  │  Devices:                            │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │ CLINT @ 0x0200_0000           │  │ │
+                 │  │  │ (Timer, interrupts)           │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │ PLIC @ 0x0C00_0000            │  │ │
+                 │  │  │ (Interrupt controller)       │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │ UART @ 0x1000_0000            │  │ │
+                 │  │  │ (Console I/O)                │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │ VirtIO Block @ 0x1000_1000   │  │ │
+                 │  │  │ (Block device, initramfs)    │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  │  ┌────────────────────────────────┐  │ │
+                 │  │  │ VFS Surface @ 0x7000_0000     │  │ │
+                 │  │  │ (Files as pixels!)           │  │ │
+                 │  │  └────────────────────────────────┘  │ │
+                 │  └────────────────────────────────────────┘ │
+                 └────────────────┬────────────────────────────┘
+                                  │
+                 ┌────────────────▼────────────────────────────┐
+                 │            LINUX KERNEL (Guest)             │
+                 │  ┌────────────────────────────────────────┐ │
+                 │  │  RISC-V Linux Kernel (vmlinux)        │ │
+                 │  │  - ELF32 loaded @ 0x8000_0000         │ │
+                 │  │  - Sv32 MMU enabled                  │ │
+                 │  │  - Runs in S-mode                     │ │
+                 │  └────────────────────────────────────────┘ │
+                 │  ┌────────────────────────────────────────┐ │
+                 │  │  Device Tree (DTB)                   │ │
+                 │  │  - CPU description                   │ │
+                 │  │  - Memory map                        │ │
+                 │  │  - Device addresses                  │ │
+                 │  │  - Boot arguments                    │ │
+                 │  └────────────────────────────────────────┘ │
+                 │  ┌────────────────────────────────────────┐ │
+                 │  │  Initramfs (cpio.gz)                 │ │
+                 │  │  - busybox + init script             │ │
+                 │  │  - Userspace environment            │ │ │
+                 │  └────────────────────────────────────────┘ │
+                 └────────────────┬────────────────────────────┘
+                                  │
+                 ┌────────────────▼────────────────────────────┐
+                 │          INIT PROCESS (/init)                │
+                 │  ┌────────────────────────────────────────┐ │
+                 │  │  #!/bin/sh                            │ │
+                 │  │  mount -t proc none /proc             │ │
+                 │  │  mount -t sysfs none /sys             │ │
+                 │  │  echo "Linux booted on pixels!"      │ │
+                 │  │  cat /proc/cpuinfo                    │ │
+                 │  │  hexdump /dev/mem | head             │ │
+                 │  │  # Access VFS surface @ 0x70000000   │ │
+                 │  │  # Create files as pixels!           │ │
+                 │  └────────────────────────────────────────┘ │
+                 └─────────────────────────────────────────────┘
+
+
+                ────────────────────────────────────────────────
+                MEMORY MAP (GUEST PHYSICAL ADDRESS SPACE)
+                ────────────────────────────────────────────────
+
+                0x7000_0000 ──────────────────────┐
+                 VFS Surface (256KB)              │
+                 - Files as pixels                │
+                 - Directory index (row 0)        │
+                 - File data (row 1+)             │
+                 - Canvas persistence             │
+                0x7004_0000 ──────────────────────┤
+                 Reserved                        │
+                0x8000_0000 ──────────────────────┤
+                 Guest RAM (512MB - 1GB)          │
+                 - Linux kernel text @ 0x80200000 │
+                 - Page tables @ 0x80500000       │
+                 - Kernel data/bss @ 0x80800000   │
+                 - Initramfs @ 0x82000000         │
+                 - Userspace stack @ 0x84000000   │
+                0x8FC0_0000 ──────────────────────┤
+                 Device Tree Blob (DTB)           │
+                 - Generated by hypervisor         │
+                 - Describes hardware to Linux     │
+                0x9000_0000 ──────────────────────┤
+                 MMIO Devices                     │
+                 - CLINT @ 0x0200_0000            │
+                 - PLIC @ 0x0C00_0000             │
+                 - UART @ 0x1000_0000             │
+                 - VirtIO @ 0x1000_1000           │
+                0xFFFF_FFFF ──────────────────────┘
+
+
+                ────────────────────────────────────────────────
+                BOOT SEQUENCE TIMELINE
+                ────────────────────────────────────────────────
+
+                T=0ms     [host] cargo run geometry_os
+                          ↓
+                T=10ms    [geos] Load hypervisor
+                          ↓
+                T=20ms    [geos] Initialize 256×256 framebuffer
+                          ↓
+                T=30ms    [geos] Initialize VFS surface
+                          ↓
+                T=40ms    [geos] Load programs/hypervisor.asm
+                          ↓
+                T=50ms    [geos] Run VM → RISC-V hypervisor starts
+                          ↓
+                T=60ms    [riscv] boot_linux_setup_with_patches()
+                          - Load vmlinux ELF to RAM @ 0x80000000
+                          - Generate DTB blob
+                          - Apply kernel patches (setup_vm, etc.)
+                          ↓
+                T=100ms   [riscv] Set CPU state
+                          - PC = 0x80200000 (kernel entry)
+                          - a0 = 0 (hartid)
+                          - a1 = 0x8FC00000 (DTB address)
+                          - privilege = M-mode
+                          ↓
+                T=110ms   [linux] _start (arch/riscv/kernel/head.S)
+                          - Setup stack
+                          - Call setup_vm() ← PATCHED
+                          - Enable MMU (satp = page_table >> 12)
+                          - MRET to S-mode
+                          ↓
+                T=200ms   [linux] start_kernel()
+                          - Parse bootargs
+                          - Parse device tree
+                          - Initialize subsystems
+                          - Setup console (UART @ 0x10000000)
+                          ↓
+                T=300ms   [linux] Print to console
+                          "[linux] Linux version 6.1.0"
+                          "[linux] CPU: RV32IMAC"
+                          "[linux] Zone ranges: Normal [0x80000000-0x8fffffff]"
+                          ↓
+                T=400ms   [linux] init_IRQ()
+                          - Initialize PLIC @ 0x0C000000
+                          - Enable timer interrupts (CLINT)
+                          ↓
+                T=500ms   [linux] console_init()
+                          - Register UART driver
+                          - Enable printk output
+                          ↓
+                T=600ms   [linux] rest_init() → kernel_init()
+                          - do_basic_setup()
+                          - prepare_namespace() (mount initramfs)
+                          ↓
+                T=700ms   [linux] run_init_process("/init")
+                          - Fork userspace process
+                          - Execute /init (busybox shell)
+                          ↓
+                T=800ms   [init] /init script runs
+                          mount -t proc none /proc
+                          mount -t sysfs none /sys
+                          echo "Linux booted on pixels!"
+                          ↓
+                T=900ms   [guest] Optional: Access VFS surface
+                          - Read @ 0x70000000 to list files
+                          - Write @ 0x70000000 to create files
+                          - Flush to host: VFS_CONTROL = 0x01
+                          ↓
+                T=1000ms  [host] File appears on disk
+                          .geometry_os/fs/test.txt contains
+                          guest-written data
+                          ↓
+                SUCCESS! Linux running on pixels!
+```
+
+**Legend:**
+
+- **Host Linux**: The system running geometry_os
+- **GeOS VM**: The native Geometry OS virtual machine
+- **Pixel Substrate**: The Memory Palace framebuffer (256×256 RGBA)
+- **RISC-V Hypervisor**: Full RISC-V emulator in Rust
+- **Linux Kernel**: Guest operating system (RV32)
+- **Init**: Userspace initialization process
+- **VFS Surface**: Files encoded as pixels @ 0x7000_0000
+
+**Key Innovations:**
+
+1. **Pixels ARE Files**: Every file is stored as RGBA pixels in the framebuffer
+2. **Visual Persistence**: Files survive reboots without serialization
+3. **Cross-Language Interop**: Rust, C, GeOS assembly all read/write the same pixel format
+4. **Live Debugging**: See the filesystem as visual patterns in the framebuffer
+5. **Autonomous Palace**: The Memory Palace runs autonomously, self-updating from RAM
+
+**Boot Time:** ~1 second from host start to Linux prompt
+
+**Memory Usage:**
+- GeOS VM: ~10MB
+- RISC-V guest RAM: 512MB (configurable)
+- VFS Surface: 256KB (fixed)
+- Total: ~522MB typical
+
+**Instructions Executed:** ~10M instructions to boot to shell
+
+---
+
+*Linux on Pixels Architecture Diagram*
+*Part of Geometry OS Documentation*

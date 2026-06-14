@@ -1,0 +1,318 @@
+#!/usr/bin/env python3
+import os
+import sys
+import time
+import json
+import subprocess
+from pathlib import Path
+import requests
+
+# Config
+current_file = Path(__file__).resolve()
+if current_file.parent.name != "cwm_workspace":
+    WORKSPACE_DIR = current_file.parent / "cwm_workspace"
+    WORKSPACE_DIR.mkdir(exist_ok=True)
+    target_file = WORKSPACE_DIR / "cwm_ollama_autoloop.py"
+    target_file.write_text(current_file.read_text())
+    print(f"[*] Bootstrapping: Executing self from workspace copy: {target_file}")
+    import sys
+    os.execv(sys.executable, [sys.executable, str(target_file)])
+else:
+    WORKSPACE_DIR = current_file.parent
+
+LOG_FILE = WORKSPACE_DIR / "cwm_ollama_system.log"
+OLLAMA_API = "http://localhost:11434/api/generate"
+MODEL = "qwen2.5-coder:14b"
+
+INITIAL_MTIME = os.path.getmtime(current_file)
+
+def log(message):
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    formatted = f"[{timestamp}] {message}"
+    print(formatted)
+    with open(LOG_FILE, "a") as f:
+        f.write(formatted + "\n")
+
+def get_system_state(last_result=None):
+    files = [f.name for f in WORKSPACE_DIR.glob("*")]
+    
+    try:
+        meminfo = Path("/proc/meminfo").read_text().splitlines()
+        mem_free = next(line for line in meminfo if "MemFree" in line)
+        mem_total = next(line for line in meminfo if "MemTotal" in line)
+        stats = f"{mem_total.strip()}, {mem_free.strip()}"
+    except Exception:
+        stats = "CPU/Mem stats unavailable"
+        
+    return {
+        "workspace_files": files,
+        "system_status": stats,
+        "last_execution_result": str(last_result)[:2000] if last_result else "None"
+    }
+
+def execute_action(action_type, payload):
+    log(f"Executing action ({action_type})...")
+    if action_type == "shell":
+        result = subprocess.run(
+            payload,
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=str(WORKSPACE_DIR),
+            timeout=30
+        )
+        return {
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "exit_code": result.returncode
+        }
+    elif action_type == "write_file":
+        filename = payload.get("filename", "output.txt")
+        content = payload.get("content", "")
+        filepath = WORKSPACE_DIR / filename
+        filepath.write_text(content)
+        return f"Successfully wrote file '{filename}' ({len(content)} bytes)"
+    else:
+        return f"Unknown action: {action_type}"
+
+def generate_via_ollama(prompt):
+    """Generate action decision using Ollama API"""
+    try:
+        response = requests.post(OLLAMA_API, json={
+            "model": MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.2,
+                "num_predict": 512,
+                "top_k": 20,
+                "top_p": 0.9
+            }
+        }, timeout=120)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("response", "")
+        else:
+            log(f"[!] Ollama API error: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        log(f"[!] Failed to call Ollama API: {e}")
+        return None
+
+def parse_cwm_response(raw_text):
+    """Parse JSON or text format responses"""
+    raw_text = raw_text.strip()
+    
+    # Try JSON parsing
+    try:
+        clean_text = raw_text
+        if "```json" in clean_text:
+            clean_text = clean_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean_text:
+            clean_text = clean_text.split("```")[1].split("```")[0].strip()
+        else:
+            start = clean_text.find('{')
+            end = clean_text.rfind('}')
+            if start >= 0 and end > start:
+                clean_text = clean_text[start:end+1]
+        
+        parsed = json.loads(clean_text)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+    
+    # Fallback parsing
+    thought = "No thought parsed"
+    action = "done"
+    payload = None
+    
+    if "thought:" in raw_text.lower():
+        parts = raw_text.split("Thought:", 1) if "Thought:" in raw_text else raw_text.split("thought:", 1)
+        after_thought = parts[1]
+        next_label = "Action:" if "Action:" in after_thought else "action:"
+        thought = after_thought.split(next_label, 1)[0].strip()
+        
+    if "action:" in raw_text.lower():
+        parts = raw_text.split("Action:", 1) if "Action:" in raw_text else raw_text.split("action:", 1)
+        after_action = parts[1]
+        action = after_action.split("\n")[0].strip().lower().replace('"', '').replace("'", "")
+        
+    return {
+        "thought": thought,
+        "action": action if action in ["shell", "write_file", "done"] else "done",
+        "payload": None
+    }
+
+def backup_before_write(filepath):
+    """Create a backup of a file before writing to it"""
+    filepath = Path(filepath)
+    if filepath.exists():
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        backup_path = filepath.parent / f"{filepath.name}.{timestamp}.bak"
+        backup_path.write_text(filepath.read_text())
+        log(f"[BACKUP] Created: {backup_path.name}")
+        return True
+    return False
+
+def main():
+    log("=" * 60)
+    log("Initializing CWM Autonomous System (Ollama Backend)...")
+    log(f"Model: {MODEL}")
+    log("=" * 60)
+    
+    # Check Ollama availability
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=5)
+        if response.status_code != 200:
+            log("[!] Ollama API not responding")
+            sys.exit(1)
+        log("[+] Ollama API connected")
+    except Exception as e:
+        log(f"[!] Failed to connect to Ollama: {e}")
+        sys.exit(1)
+    
+    last_result = "System initialized via Ollama. No actions executed yet."
+    iteration = 0
+    
+    # Check if function already exists and set goal accordingly
+    source_content = current_file.read_text()
+    if "def backup_before_write" in source_content:
+        goal = (
+            "The 'backup_before_write' function is already present in cwm_ollama_autoloop.py. "
+            "Your task is complete. Declare 'done'."
+        )
+        last_result = "INITIAL CONTEXT: backup_before_write function detected at line ~148. Ready to declare done."
+    else:
+        last_result = f"INITIAL CONTEXT: You are modifying this file:\n\n{source_content}\n"
+        last_result += "Your task is to add 'def backup_before_write()' function. DO NOT read the file again - just modify and write!"
+        goal = (
+            "Goal: Modify your own runner script (cwm_ollama_autoloop.py) to add self-improvement features. "
+            "You must implement a function named 'backup_before_write' INSIDE the script that creates "
+            "a backup of target files before edits. "
+            "CRITICAL INSTRUCTIONS: 1) First, READ cwm_ollama_autoloop.py ONCE using shell command 'cat cwm_ollama_autoloop.py'. "
+            "2) After seeing the source, IMMEDIATELY write the COMPLETE modified script with 'def backup_before_write' added. "
+            "3) Use write_file action with filename='cwm_ollama_autoloop.py' and content=FULL_MODIFIED_SOURCE. "
+            "4) Do NOT read the file multiple times - ONCE is enough. 5) After writing, declare 'done'. "
+            "You cannot declare 'done' until 'def backup_before_write' is present in the script."
+        )
+    
+    while True:
+        # Hot-reload check
+        try:
+            current_mtime = os.path.getmtime(current_file)
+            if current_mtime > INITIAL_MTIME:
+                modified_text = current_file.read_text()
+                if "def main()" in modified_text or "if __name__" in modified_text:
+                    log("[*] HOT-RELOAD: cwm_ollama_autoloop.py modified! Backup saved, restarting...")
+                    backup_path = WORKSPACE_DIR / "cwm_ollama_autoloop.py.bak"
+                    if not backup_path.exists():
+                        backup_path.write_text(current_file.read_text())
+                    os.execv(sys.executable, [sys.executable] + sys.argv)
+                else:
+                    log("[!] HOT-RELOAD BLOCKED: Modified file appears incomplete. Restoring backup...")
+                    backup_path = WORKSPACE_DIR / "cwm_ollama_autoloop.py.bak"
+                    if backup_path.exists():
+                        current_file.write_text(backup_path.read_text())
+                        log("[*] Original backup restored.")
+        except Exception as e:
+            log(f"[!] Warning (hot-reload check): {e}")
+
+        iteration += 1
+        log(f"--- Iteration {iteration} ---")
+        
+        state = get_system_state(last_result)
+        
+        prompt = f"""You are the Code World Model (CWM) running as the core operating agent.
+You have direct read/write access to the local workspace folder. You can also view and edit your own runner script (cwm_ollama_autoloop.py).
+
+Current Goal: {goal}
+Current Workspace Files: {state['workspace_files']}
+System Status: {state['system_status']}
+Last Execution Result: {state['last_execution_result'][:5000]}
+
+Format your action using JSON:
+{{
+  "thought": "your step-by-step reasoning",
+  "action": "shell" | "write_file" | "done",
+  "payload": "command line string to run" OR {{"filename": "name", "content": "file content"}} OR null
+}}
+
+Response:"""
+
+        log("Generating next action decision via Ollama...")
+        raw_text = generate_via_ollama(prompt)
+        
+        if not raw_text:
+            log("[!] Failed to generate decision, retrying...")
+            time.sleep(5)
+            continue
+            
+        log(f"[DEBUG] Raw model output:\n{raw_text}\n[END DEBUG]")
+        
+        decision = parse_cwm_response(raw_text)
+        thought = decision.get("thought", "No thought parsed")
+        action = decision.get("action", "done")
+        payload = decision.get("payload")
+        
+        # Track recent actions to detect loops
+        action_signature = f"{action}:{payload}" if payload else action
+        recent_actions.append(action_signature)
+        if len(recent_actions) > 5:
+            recent_actions.pop(0)
+        
+        loop_detected = False
+        loop_warning = ""
+        if recent_actions.count(action_signature) >= MAX_REPEATS:
+            loop_detected = True
+            loop_warning = (
+                f"\n\n!!! LOOP DETECTED: You've done '{action}' {recent_actions.count(action_signature)} times! "
+                "BLOCKED - skipping this action. Try something different. If reading the file, you've SEEN it - WRITE now!"
+            )
+            # Force the model to try a different action by skipping this one
+            log(f"[!] {loop_warning.strip()}")
+            # Inject warning into next iteration's result
+            if isinstance(last_result, str):
+                last_result += loop_warning
+            else:
+                last_result = str(last_result) + loop_warning
+            continue
+        
+        log(f"CWM Thought: {thought}")
+        log(f"CWM Action: {action}")
+        
+        if action == "done":
+            source_code = current_file.read_text()
+            if "def backup_before_write" in source_code:
+                log("CWM has declared the goal complete. Evolution verified! Exiting.")
+                break
+            else:
+                last_result = (
+                    "Validation Error: You cannot declare 'done' yet! "
+                    "You must first write the function 'def backup_before_write' into cwm_ollama_autoloop.py "
+                    "and save the updated file so that it hot-reloads."
+                )
+                log(f"[!] Blocked done action: {last_result}")
+                continue
+            
+        last_result = execute_action(action, payload)
+        log(f"Result: {last_result}")
+        
+        # Checkpoint snapshot every 5 iterations
+        if iteration % 5 == 0:
+            try:
+                checkpoint_file = WORKSPACE_DIR / f"cwm_checkpoint_iteration_{iteration}.txt"
+                checkpoint_file.write_text(json.dumps({
+                    "iteration": iteration,
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "last_thought": thought,
+                    "last_action": action,
+                    "result": str(last_result)[:500]
+                }, indent=2))
+                log(f"[+] Checkpoint saved: {checkpoint_file.name}")
+            except Exception as ex:
+                log(f"[!] Error writing checkpoint: {ex}")
+
+if __name__ == "__main__":
+    main()

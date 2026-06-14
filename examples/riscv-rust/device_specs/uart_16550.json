@@ -1,0 +1,78 @@
+{
+  "device_name": "NS16550A UART",
+  "device_type": "serial_port",
+  "description": "UART 16550 serial port for character I/O",
+  "mmio_base": "0x10000000",
+  "mmio_size": 8,
+  "bus_interface": "MMIO",
+  "registers": [
+    {
+      "offset": "0x00",
+      "name": "THR_RBR",
+      "access": "read_write",
+      "description": "Transmit Holding Register (write) / Receive Buffer Register (read)",
+      "behavior": "Write byte to transmit. Read to receive next byte from input buffer."
+    },
+    {
+      "offset": "0x01",
+      "name": "IER",
+      "access": "read_write",
+      "description": "Interrupt Enable Register",
+      "bits": {
+        "0": "ERBI - Enable Receive Data Interrupt",
+        "1": "ETBEI - Enable Transmit Holding Register Empty Interrupt",
+        "2": "ELSI - Enable Line Status Interrupt",
+        "3": "EDSSI - Enable Modem Status Interrupt"
+      }
+    },
+    {
+      "offset": "0x02",
+      "name": "IIR_FCR",
+      "access": "read_write",
+      "description": "Interrupt Identification (read) / FIFO Control (write)",
+      "notes": "IIR bit 0 = 1 means no interrupt pending"
+    },
+    {
+      "offset": "0x03",
+      "name": "LCR",
+      "access": "read_write",
+      "description": "Line Control Register",
+      "bits": {
+        "7": "DLAB - Divisor Latch Access Bit (when set, offset 0/1 access DLL/DLM)"
+      }
+    },
+    {
+      "offset": "0x04",
+      "name": "MCR",
+      "access": "read_write",
+      "description": "Modem Control Register"
+    },
+    {
+      "offset": "0x05",
+      "name": "LSR",
+      "access": "read_only",
+      "description": "Line Status Register",
+      "bits": {
+        "0": "DR - Data Ready (RX buffer has data)",
+        "5": "THRE - Transmit Holding Register Empty (ready for next byte)"
+      }
+    },
+    {
+      "offset": "0x06",
+      "name": "MSR",
+      "access": "read_only",
+      "description": "Modem Status Register"
+    },
+    {
+      "offset": "0x07",
+      "name": "SCR",
+      "access": "read_write",
+      "description": "Scratch Register"
+    }
+  ],
+  "programming_model": {
+    "transmit": "Write byte to THR (offset 0x00). LSR bit 5 (THRE) indicates ready.",
+    "receive": "Read byte from RBR (offset 0x00). LSR bit 0 (DR) indicates data available.",
+    "initial_state": "LSR has THRE bit set (transmitter always ready). RX buffer empty."
+  }
+}

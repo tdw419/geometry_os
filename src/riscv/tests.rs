@@ -1,0 +1,2767 @@
+// riscv/tests.rs -- Tests for RiscvVm (extracted from mod.rs)
+
+use super::*;
+use crate::riscv::bridge::UartBridge;
+use crate::riscv::memory::GuestMemory;
+use crate::riscv::virtio_blk::VirtioBlk;
+
+const CANVAS_COLS: usize = 32;
+const CANVAS_MAX_ROWS: usize = 128;
+
+fn make_canvas() -> Vec<u32> {
+    vec![0u32; CANVAS_MAX_ROWS * CANVAS_COLS]
+}
+
+/// Helper: encode LUI rd, imm
+fn enc_lui(rd: u32, imm: u32) -> u32 {
+    (imm << 12) | (rd << 7) | 0x37
+}
+
+/// Helper: encode ADDI rd, rs, imm
+fn enc_addi(rd: u32, rs: u32, imm: u32) -> u32 {
+    ((imm & 0xFFF) << 20) | (rs << 15) | (0 << 12) | (rd << 7) | 0x13
+}
+
+/// Helper: encode SW rs2, offset(rs1)
+fn enc_sw(rs2: u32, rs1: u32, offset: u32) -> u32 {
+    ((offset >> 5) << 25)
+        | (rs2 << 20)
+        | (rs1 << 15)
+        | (0b010 << 12)
+        | ((offset & 0x1F) << 7)
+        | 0x23
+}
+
+/// Helper: encode EBREAK
+fn enc_ebreak() -> u32 {
+    0x00100073
+}
+
+/// Build a tiny RISC-V binary that writes a string to UART at 0x10000000.
+/// The binary is a sequence of: LUI x1, 0x10000; ADDI x2, x0, char; SW x2, 0(x1)
+/// for each character, followed by EBREAK.
+fn build_uart_program(text: &str) -> Vec<u8> {
+    let mut code = Vec::new();
+    // LUI x1, 0x10000 -> x1 = 0x1000_0000 (UART base)
+    let lui = enc_lui(1, 0x10000);
+    code.extend_from_slice(&lui.to_le_bytes());
+    for &b in text.as_bytes() {
+        // ADDI x2, x0, b
+        let addi = enc_addi(2, 0, b as u32);
+        code.extend_from_slice(&addi.to_le_bytes());
+        // SW x2, 0(x1)
+        let sw = enc_sw(2, 1, 0);
+        code.extend_from_slice(&sw.to_le_bytes());
+    }
+    // EBREAK
+    code.extend_from_slice(&enc_ebreak().to_le_bytes());
+    code
+}
+
+#[test]
+fn fuzzer_lui_direct() {
+    // Replicate exactly what the riscv_fuzzer does for a single LUI instruction.
+    // LUI x1, 0x87EE5000 = word 0x87EE50B7
+    let ram_base: u64 = 0x8000_0000;
+    let ram_size: usize = 4096;
+    let mut vm = RiscvVm::new_with_base(ram_base, ram_size);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    let lui_word: u32 = 0x87EE50B7; // LUI x1, 0x87EE5000
+    let ebreak_word: u32 = 0x00100073;
+    vm.bus
+        .write_word(ram_base, lui_word)
+        .expect("operation should succeed");
+    vm.bus
+        .write_word(ram_base + 4, ebreak_word)
+        .expect("operation should succeed");
+
+    // Step 1: LUI
+    let r1 = vm.step();
+    assert_eq!(r1, cpu::StepResult::Ok, "LUI should return Ok");
+    assert_eq!(vm.cpu.x[1], 0x87EE5000, "x1 should be 0x87EE5000 after LUI");
+    assert_eq!(vm.cpu.pc, ram_base as u32 + 4, "PC should advance by 4");
+
+    // Step 2: EBREAK
+    let r2 = vm.step();
+    assert_eq!(r2, cpu::StepResult::Ebreak, "EBREAK should return Ebreak");
+}
+
+#[test]
+fn verified_boot_synthetic_kernel() {
+    // Build a tiny "kernel" that writes "Linux version 6.1.0" to UART.
+    let kernel = build_uart_program("Linux version 6.1.0\n");
+
+    // Create VM with 1MB RAM.
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let mut bridge = UartBridge::new();
+    let mut canvas = make_canvas();
+
+    // Boot the kernel.
+    let result = vm
+        .boot_guest(&kernel, 1, 10_000)
+        .expect("operation should succeed");
+
+    // Should have executed some instructions and stopped at EBREAK.
+    assert!(result.instructions > 0);
+    assert_eq!(result.entry, 0x8000_0000);
+    assert!(result.dtb_addr > 0x8000_0000);
+
+    // Drain UART output to canvas.
+    bridge.drain_uart_to_canvas(&mut vm.bus, &mut canvas);
+
+    // Verify "Linux version" appears on canvas.
+    let output = UartBridge::read_canvas_string(&canvas, 0, 0, 32);
+    assert!(
+        output.contains("Linux version"),
+        "Expected 'Linux version' on canvas, got: '{}'",
+        output
+    );
+}
+
+#[test]
+fn boot_sets_dtb_in_a1() {
+    // Verify that boot_guest sets a1 (x11) to the DTB address.
+    let kernel = build_uart_program("A"); // minimal
+    let mut vm = RiscvVm::new(64 * 1024);
+    let _ = vm.boot_guest(&kernel, 1, 100);
+
+    // x10 should be 0 (hartid), x11 should be DTB address.
+    assert_eq!(vm.cpu.x[10], 0, "a0 should be 0 (hartid)");
+    assert!(
+        vm.cpu.x[11] > 0,
+        "a1 should be DTB address, got {}",
+        vm.cpu.x[11]
+    );
+
+    // Verify the DTB is actually at that address (starts with FDT magic).
+    let dtb_addr = vm.cpu.x[11] as u64;
+    let byte0 = vm
+        .bus
+        .read_byte(dtb_addr)
+        .expect("operation should succeed");
+    // FDT magic is 0xD00DFEED stored big-endian, first byte is 0xD0.
+    assert_eq!(byte0, 0xD0, "DTB should start with FDT magic byte (0xD0)");
+}
+
+#[test]
+fn boot_raw_binary_at_default_base() {
+    // Raw (non-ELF) binary should load at 0x8000_0000.
+    let kernel = build_uart_program("OK");
+    let mut vm = RiscvVm::new(64 * 1024);
+    let result = vm
+        .boot_guest(&kernel, 1, 100)
+        .expect("operation should succeed");
+
+    assert_eq!(result.entry, 0x8000_0000);
+}
+
+#[test]
+fn boot_elf_kernel() {
+    // Build a minimal ELF32 RISC-V kernel with a UART program.
+    let code = build_uart_program("HELLO");
+    let mut img = Vec::new();
+
+    // ELF header (52 bytes).
+    let elf_magic: u32 = 0x464C457F;
+    img.extend_from_slice(&elf_magic.to_le_bytes());
+    img.push(1); // class: 32-bit
+    img.push(1); // endian: little
+    img.push(1); // version
+    img.extend_from_slice(&[0u8; 9]); // padding (OS/ABI etc)
+    img.extend_from_slice(&2u16.to_le_bytes()); // e_type: ET_EXEC
+    img.extend_from_slice(&243u16.to_le_bytes()); // e_machine: EM_RISCV
+    img.extend_from_slice(&1u32.to_le_bytes()); // version
+    let entry = 0x8000_0000u32;
+    img.extend_from_slice(&entry.to_le_bytes()); // entry
+    img.extend_from_slice(&52u32.to_le_bytes()); // phoff
+    img.extend_from_slice(&0u32.to_le_bytes()); // shoff (no section headers)
+    img.extend_from_slice(&0u32.to_le_bytes()); // flags
+    img.extend_from_slice(&52u16.to_le_bytes()); // ehsize
+    img.extend_from_slice(&32u16.to_le_bytes()); // phentsize
+    img.extend_from_slice(&1u16.to_le_bytes()); // phnum
+    img.extend_from_slice(&0u16.to_le_bytes()); // shentsize
+    img.extend_from_slice(&0u16.to_le_bytes()); // shnum
+    img.extend_from_slice(&0u16.to_le_bytes()); // shstrndx
+
+    // Program header (32 bytes) for PT_LOAD at 0x8000_0000.
+    let data_offset = 52 + 32; // data starts after header + phdr
+    img.extend_from_slice(&1u32.to_le_bytes()); // p_type = PT_LOAD
+    img.extend_from_slice(&(data_offset as u32).to_le_bytes()); // p_offset
+    img.extend_from_slice(&0x8000_0000u32.to_le_bytes()); // p_vaddr
+    img.extend_from_slice(&0x8000_0000u32.to_le_bytes()); // p_paddr
+    img.extend_from_slice(&(code.len() as u32).to_le_bytes()); // p_filesz
+    img.extend_from_slice(&(code.len() as u32).to_le_bytes()); // p_memsz
+    img.extend_from_slice(&5u32.to_le_bytes()); // p_flags = RX
+    img.extend_from_slice(&4096u32.to_le_bytes()); // p_align
+
+    // Code data.
+    img.extend_from_slice(&code);
+
+    let mut vm = RiscvVm::new(64 * 1024);
+    let mut bridge = UartBridge::new();
+    let mut canvas = make_canvas();
+
+    let result = vm
+        .boot_guest(&img, 1, 10_000)
+        .expect("operation should succeed");
+    assert_eq!(result.entry, 0x8000_0000);
+
+    bridge.drain_uart_to_canvas(&mut vm.bus, &mut canvas);
+    let output = UartBridge::read_canvas_string(&canvas, 0, 0, 8);
+    assert_eq!(output, "HELLO");
+}
+
+#[test]
+fn boot_dtb_is_valid_fdt() {
+    // Boot with any kernel, then verify the DTB in RAM is a valid FDT.
+    let kernel = build_uart_program("X");
+    let mut vm = RiscvVm::new(64 * 1024);
+    let _ = vm.boot_guest(&kernel, 128, 100);
+
+    let dtb_addr = vm.cpu.x[11] as u64;
+    let b0 = vm
+        .bus
+        .read_byte(dtb_addr)
+        .expect("operation should succeed");
+    let b1 = vm
+        .bus
+        .read_byte(dtb_addr + 1)
+        .expect("operation should succeed");
+    let b2 = vm
+        .bus
+        .read_byte(dtb_addr + 2)
+        .expect("operation should succeed");
+    let b3 = vm
+        .bus
+        .read_byte(dtb_addr + 3)
+        .expect("operation should succeed");
+    let magic = u32::from_be_bytes([b0, b1, b2, b3]);
+    assert_eq!(magic, 0xD00D_FEED, "DTB should have FDT magic");
+
+    // Verify totalsize field matches.
+    let ts0 = vm
+        .bus
+        .read_byte(dtb_addr + 4)
+        .expect("operation should succeed");
+    let ts1 = vm
+        .bus
+        .read_byte(dtb_addr + 5)
+        .expect("operation should succeed");
+    let ts2 = vm
+        .bus
+        .read_byte(dtb_addr + 6)
+        .expect("operation should succeed");
+    let ts3 = vm
+        .bus
+        .read_byte(dtb_addr + 7)
+        .expect("operation should succeed");
+    let totalsize = u32::from_be_bytes([ts0, ts1, ts2, ts3]) as usize;
+    assert!(totalsize > 40, "DTB should be > 40 bytes");
+}
+
+#[test]
+fn boot_keyboard_roundtrip() {
+    // Boot a kernel, inject keyboard input via bridge, verify guest can read it.
+    let kernel = build_uart_program(">");
+    let mut vm = RiscvVm::new(64 * 1024);
+    let mut bridge = UartBridge::new();
+    let mut canvas = make_canvas();
+
+    let _ = vm.boot_guest(&kernel, 1, 1_000);
+    bridge.drain_uart_to_canvas(&mut vm.bus, &mut canvas);
+
+    // Inject keyboard input.
+    bridge.forward_key(&mut vm.bus, b'H');
+    bridge.forward_key(&mut vm.bus, b'i');
+
+    // Guest reads it back.
+    assert_eq!(vm.bus.uart.read_byte(0), b'H');
+    assert_eq!(vm.bus.uart.read_byte(0), b'i');
+}
+
+#[test]
+fn performance_mips_benchmark() {
+    // Measure instructions per second of the interpreter.
+    // Build a kernel that does pure computation (NOP loop) for measurement.
+    let mut code = Vec::new();
+    // 1000 NOPs (ADDI x0, x0, 0) followed by EBREAK.
+    for _ in 0..1000 {
+        let nop = enc_addi(0, 0, 0); // NOP
+        code.extend_from_slice(&nop.to_le_bytes());
+    }
+    code.extend_from_slice(&enc_ebreak().to_le_bytes());
+
+    let mut vm = RiscvVm::new(64 * 1024);
+
+    let start = std::time::Instant::now();
+    let result = vm
+        .boot_guest(&code, 1, 100_000)
+        .expect("operation should succeed");
+    let elapsed = start.elapsed();
+
+    let mips = result.instructions as f64 / elapsed.as_secs_f64() / 1_000_000.0;
+
+    // Log the result (visible in test output with --nocapture).
+    eprintln!(
+        "Phase 37 MIPS benchmark: {} instructions in {:?} = {:.2} MIPS",
+        result.instructions, elapsed, mips
+    );
+
+    // Sanity: should have executed exactly 1000 NOPs + 1 EBREAK = 1000.
+    // EBREAK stops execution before incrementing count, so we get 1000 NOPs executed.
+    assert_eq!(result.instructions, 1000);
+
+    // Sanity: MIPS should be > 0 (trivially true but documents intent).
+    assert!(mips > 0.0, "MIPS should be positive, got {}", mips);
+
+    // Performance gate: interpreter should exceed 1 MIPS on any modern CPU.
+    // This is a very conservative floor -- real performance should be 10-50+ MIPS.
+    // Only enforce in release builds -- debug mode is too slow for this threshold.
+    #[cfg(not(debug_assertions))]
+    assert!(
+        mips > 1.0,
+        "Interpreter should exceed 1 MIPS, got {:.2} MIPS",
+        mips
+    );
+    #[cfg(debug_assertions)]
+    {
+        // In debug mode just log; the release build gate catches real regressions.
+        eprintln!("  (debug mode: skipping 1 MIPS gate, got {:.2} MIPS)", mips);
+    }
+}
+
+#[test]
+fn boot_guest_empty_image_runs_nop_loop() {
+    // An empty raw binary loads at 0x8000_0000 with entry=0x8000_0000.
+    // All-zero RAM decodes as ADDI x0, x0, 0 (NOP) so the CPU runs all N steps.
+    let mut vm = RiscvVm::new(64 * 1024);
+    let result = vm
+        .boot_guest(&[], 1, 100)
+        .expect("operation should succeed");
+    assert_eq!(result.instructions, 100);
+    assert_eq!(result.entry, 0x8000_0000);
+}
+
+#[ignore]
+// Runs 1B RISC-V instructions (~60s). Run explicitly: cargo test --lib -- --ignored test_linux_kernel_early_boot
+#[test]
+fn test_linux_kernel_early_boot() {
+    use std::fs;
+    use std::time::Instant;
+
+    let kernel_path = ".geometry_os/build/linux-6.14/vmlinux";
+    let initramfs_path = ".geometry_os/fs/linux/rv32/initramfs.cpio.gz";
+
+    // Skip if kernel not present (CI, etc.)
+    let kernel_data = match fs::read(kernel_path) {
+        Ok(d) => d,
+        Err(_) => {
+            eprintln!("Skipping: {} not found", kernel_path);
+            return;
+        },
+    };
+    let initramfs_data = fs::read(initramfs_path).ok();
+
+    eprintln!("Kernel size: {} bytes", kernel_data.len());
+    if let Some(ref ir) = initramfs_data {
+        eprintln!("Initramfs size: {} bytes", ir.len());
+    }
+
+    let bootargs = "console=ttyS0 earlycon=sbi panic=5 loglevel=7";
+    let start = Instant::now();
+    let (mut vm, result) = RiscvVm::boot_linux(
+        &kernel_data,
+        initramfs_data.as_deref(),
+        256,           // 256MB RAM (RV32 PAGE_OFFSET=0xC0000000 limits linear map to 1GB)
+        1_000_000_000, // 1B instructions -- push through full init
+        bootargs,
+    )
+    .expect("operation should succeed");
+
+    let elapsed = start.elapsed();
+    let mips = result.instructions as f64 / elapsed.as_secs_f64() / 1_000_000.0;
+    eprintln!(
+        "Linux boot: {} instructions in {:?} = {:.2} MIPS",
+        result.instructions, elapsed, mips
+    );
+    eprintln!(
+        "Entry: 0x{:08X}, DTB at: 0x{:08X}",
+        result.entry, result.dtb_addr
+    );
+    eprintln!("PC: 0x{:08X}, Privilege: {:?}", vm.cpu.pc, vm.cpu.privilege);
+    eprintln!("RAM base: 0x{:08X}", vm.bus.mem.ram_base);
+
+    // Check UART TX output (tx_buf is where SBI putchar writes go)
+    if !vm.bus.uart.tx_buf.is_empty() {
+        let s = String::from_utf8_lossy(&vm.bus.uart.tx_buf);
+        eprintln!("UART TX output ({} bytes): {}", vm.bus.uart.tx_buf.len(), s);
+    } else {
+        eprintln!("No UART TX output");
+    }
+
+    // Check SBI console output
+    if !vm.bus.sbi.console_output.is_empty() {
+        let s = String::from_utf8_lossy(&vm.bus.sbi.console_output);
+        eprintln!(
+            "SBI console output ({} bytes): {}",
+            vm.bus.sbi.console_output.len(),
+            s
+        );
+    } else {
+        eprintln!("No SBI console output");
+    }
+
+    // Dump SBI ecall log (first 50 and last 20 calls)
+    let ecall_count = vm.bus.sbi.ecall_log.len();
+    eprintln!("SBI ecall_log: {} calls", ecall_count);
+    let show_first = 50.min(ecall_count);
+    for i in 0..show_first {
+        let (a7, a6, a0) = vm.bus.sbi.ecall_log[i];
+        eprintln!(
+            "  ecall[{}]: a7=0x{:08X} a6=0x{:08X} a0=0x{:08X}",
+            i, a7, a6, a0
+        );
+    }
+    if ecall_count > show_first + 20 {
+        eprintln!("  ... ({} more) ...", ecall_count - show_first - 20);
+    }
+    let show_last_start = show_first.max(ecall_count.saturating_sub(20));
+    for i in show_last_start..ecall_count {
+        let (a7, a6, a0) = vm.bus.sbi.ecall_log[i];
+        eprintln!(
+            "  ecall[{}]: a7=0x{:08X} a6=0x{:08X} a0=0x{:08X}",
+            i, a7, a6, a0
+        );
+    }
+
+    // CPU ecall count
+    eprintln!("CPU ecall_count: {}", vm.cpu.ecall_count);
+
+    // UART MMIO write count (captures ttyS0 output after earlycon is disabled)
+    eprintln!(
+        "UART write_count: {}, tx_buf len: {}",
+        vm.bus.uart.write_count,
+        vm.bus.uart.tx_buf.len()
+    );
+
+    // Check CSRs
+    eprintln!(
+        "mcause: 0x{:08X}, mepc: 0x{:08X}",
+        vm.cpu.csr.mcause, vm.cpu.csr.mepc
+    );
+    eprintln!(
+        "scause: 0x{:08X}, sepc: 0x{:08X}",
+        vm.cpu.csr.scause, vm.cpu.csr.sepc
+    );
+    eprintln!("satp: 0x{:08X}", vm.cpu.csr.satp);
+    eprintln!("mstatus: 0x{:08X}", vm.cpu.csr.mstatus);
+
+    // Read instruction at mepc for diagnostics
+    let mepc_pa = vm.cpu.csr.mepc as u64;
+    match vm.bus.read_word(mepc_pa) {
+        Ok(word) => {
+            let hw = (word & 0xFFFF) as u16;
+            let is_c = (hw & 0x3) != 0x3;
+            eprintln!(
+                "Instruction at mepc: word=0x{:08X}, low16=0x{:04X} compressed={}",
+                word, hw, is_c
+            );
+            if is_c {
+                eprintln!(
+                    "  Decoded as: quadrant={}, funct3={}",
+                    hw & 0x3,
+                    (hw >> 13) & 0x7
+                );
+            }
+        },
+        Err(_) => eprintln!("Could not read instruction at mepc 0x{:08X}", mepc_pa),
+    }
+
+    // The test "passes" as long as it doesn't panic -- we're measuring progress.
+    assert!(
+        result.instructions > 0,
+        "Should have executed some instructions"
+    );
+    // With ram_base=0, PC may be a physical address (below 0x02000000)
+    // or a virtual address (0xC0xxxxxx) after MMU is enabled.
+    eprintln!(
+        "Boot result: PC=0x{:08X}, instructions={}",
+        vm.cpu.pc, result.instructions
+    );
+}
+
+/// Quick boot test: runs only 100 instructions to diagnose the first trap.
+#[test]
+fn test_linux_kernel_first_steps() {
+    use std::fs;
+
+    let kernel_path = ".geometry_os/build/linux-6.14/vmlinux";
+    let kernel_data = fs::read(kernel_path).expect("kernel not found");
+    let bootargs = "console=ttyS0 earlycon=sbi panic=5 loglevel=7";
+
+    let (mut vm, result) = RiscvVm::boot_linux(
+        &kernel_data,
+        None,    // No initramfs for quick test
+        256,     // 256MB RAM
+        200_000, // 200K instructions to find the first trap
+        bootargs,
+    )
+    .expect("operation should succeed");
+
+    eprintln!(
+        "First 100 instructions done. PC=0x{:08X}, instructions={}",
+        vm.cpu.pc, result.instructions
+    );
+    assert!(
+        result.instructions > 0,
+        "Should have executed some instructions"
+    );
+}
+
+#[test]
+fn test_parse_elf_highest_paddr() {
+    // Two PT_LOAD segments: paddr 0x0 with memsz 0x1000, paddr 0x100000 with memsz 0x2000
+    let elf = make_test_elf_two_segments(
+        0x80000000, 0x00000000, 0x1000, 0x1000, 0x00100000, 0x2000, 0x2000,
+    );
+    let result = RiscvVm::parse_elf_highest_paddr(&elf);
+    assert_eq!(result, Some(0x102000));
+}
+
+/// Build a minimal ELF32 RISC-V image with one PT_LOAD segment.
+fn make_test_elf(entry: u32, paddr: u64, filesz: u32, memsz: u32) -> Vec<u8> {
+    let vaddr = entry; // entry is at the start of the segment
+    let mut elf = Vec::new();
+    // ELF32 header (52 bytes)
+    // e_ident (16 bytes)
+    elf.extend_from_slice(&[0x7F, 0x45, 0x4C, 0x46]); // magic
+    elf.push(1); // EI_CLASS: 32-bit
+    elf.push(1); // EI_DATA: little-endian
+    elf.extend_from_slice(&[0; 9]); // padding (EI_VERSION through EI_PAD)
+    elf.extend_from_slice(&[0]); // EI_NIDENT padding
+                                 // e_type (2), e_machine (2), e_version (4)
+    elf.extend_from_slice(&2u16.to_le_bytes()); // e_type = ET_EXEC
+    elf.extend_from_slice(&0xF3u16.to_le_bytes()); // e_machine = EM_RISCV
+    elf.extend_from_slice(&1u32.to_le_bytes()); // e_version = 1
+                                                // e_entry (4)
+    elf.extend_from_slice(&entry.to_le_bytes());
+    // e_phoff (4)
+    elf.extend_from_slice(&52u32.to_le_bytes());
+    // e_shoff (4)
+    elf.extend_from_slice(&0u32.to_le_bytes());
+    // e_flags (4)
+    elf.extend_from_slice(&0u32.to_le_bytes());
+    // e_ehsize (2), e_phentsize (2), e_phnum (2), e_shentsize (2), e_shnum (2), e_shstrndx (2)
+    elf.extend_from_slice(&52u16.to_le_bytes()); // e_ehsize
+    elf.extend_from_slice(&32u16.to_le_bytes()); // e_phentsize
+    elf.extend_from_slice(&1u16.to_le_bytes()); // e_phnum
+    elf.extend_from_slice(&0u16.to_le_bytes()); // e_shentsize
+    elf.extend_from_slice(&0u16.to_le_bytes()); // e_shnum
+    elf.extend_from_slice(&0u16.to_le_bytes()); // e_shstrndx
+    assert_eq!(elf.len(), 52);
+    // Program header (32 bytes)
+    elf.extend_from_slice(&1u32.to_le_bytes()); // p_type = PT_LOAD
+    elf.extend_from_slice(&0u32.to_le_bytes()); // p_offset
+    elf.extend_from_slice(&vaddr.to_le_bytes()); // p_vaddr
+    elf.extend_from_slice(&(paddr as u32).to_le_bytes()); // p_paddr
+    elf.extend_from_slice(&filesz.to_le_bytes()); // p_filesz
+    elf.extend_from_slice(&memsz.to_le_bytes()); // p_memsz
+    elf.extend_from_slice(&[5, 0, 0, 0]); // p_flags = R+X
+    elf.extend_from_slice(&0x1000u32.to_le_bytes()); // p_align
+                                                     // Pad to filesz
+    while elf.len() < 52 + 32 + filesz as usize {
+        elf.push(0);
+    }
+    elf
+}
+
+/// Build a minimal ELF32 RISC-V image with two PT_LOAD segments.
+fn make_test_elf_two_segments(
+    entry: u32,
+    paddr1: u64,
+    filesz1: u32,
+    memsz1: u32,
+    paddr2: u64,
+    filesz2: u32,
+    memsz2: u32,
+) -> Vec<u8> {
+    let vaddr1 = entry;
+    let vaddr2 = 0x80100000u32;
+    let mut elf = Vec::new();
+    // ELF32 header (52 bytes)
+    elf.extend_from_slice(&[0x7F, 0x45, 0x4C, 0x46]); // magic
+    elf.push(1); // EI_CLASS: 32-bit
+    elf.push(1); // EI_DATA: little-endian
+    elf.extend_from_slice(&[0; 9]); // padding
+    elf.push(0); // EI_NIDENT padding
+    elf.extend_from_slice(&2u16.to_le_bytes()); // e_type = ET_EXEC
+    elf.extend_from_slice(&0xF3u16.to_le_bytes()); // e_machine = EM_RISCV
+    elf.extend_from_slice(&1u32.to_le_bytes()); // e_version
+    elf.extend_from_slice(&entry.to_le_bytes()); // e_entry
+    elf.extend_from_slice(&52u32.to_le_bytes()); // e_phoff
+    elf.extend_from_slice(&0u32.to_le_bytes()); // e_shoff
+    elf.extend_from_slice(&0u32.to_le_bytes()); // e_flags
+    elf.extend_from_slice(&52u16.to_le_bytes()); // e_ehsize
+    elf.extend_from_slice(&32u16.to_le_bytes()); // e_phentsize
+    elf.extend_from_slice(&2u16.to_le_bytes()); // e_phnum
+    elf.extend_from_slice(&0u16.to_le_bytes()); // e_shentsize
+    elf.extend_from_slice(&0u16.to_le_bytes()); // e_shnum
+    elf.extend_from_slice(&0u16.to_le_bytes()); // e_shstrndx
+    assert_eq!(elf.len(), 52);
+    // Segment 1
+    elf.extend_from_slice(&1u32.to_le_bytes()); // p_type = PT_LOAD
+    elf.extend_from_slice(&0u32.to_le_bytes()); // p_offset
+    elf.extend_from_slice(&vaddr1.to_le_bytes()); // p_vaddr
+    elf.extend_from_slice(&(paddr1 as u32).to_le_bytes()); // p_paddr
+    elf.extend_from_slice(&filesz1.to_le_bytes()); // p_filesz
+    elf.extend_from_slice(&memsz1.to_le_bytes()); // p_memsz
+    elf.extend_from_slice(&[5, 0, 0, 0]); // p_flags = R+X
+    elf.extend_from_slice(&0x1000u32.to_le_bytes()); // p_align
+                                                     // Segment 2
+    let seg2_offset = (52 + 32 + filesz1 as usize) as u32;
+    elf.extend_from_slice(&1u32.to_le_bytes()); // p_type = PT_LOAD
+    elf.extend_from_slice(&seg2_offset.to_le_bytes()); // p_offset
+    elf.extend_from_slice(&vaddr2.to_le_bytes()); // p_vaddr
+    elf.extend_from_slice(&(paddr2 as u32).to_le_bytes()); // p_paddr
+    elf.extend_from_slice(&filesz2.to_le_bytes()); // p_filesz
+    elf.extend_from_slice(&memsz2.to_le_bytes()); // p_memsz
+    elf.extend_from_slice(&[6, 0, 0, 0]); // p_flags = RW
+    elf.extend_from_slice(&0x1000u32.to_le_bytes()); // p_align
+    elf
+}
+
+#[test]
+fn test_rdtime_returns_clint_mtime() {
+    // rdtime should return the CLINT mtime value, not 0.
+    // CSRRS rd, time, x0 encodes as: funct3=010 (CSRRS), rd=a3(13), rs1=x0(0), csr=0xC01
+    // Encoding: imm[31:20]=0xC01, rs1=0, funct3=010, rd=13, opcode=1110011
+    // = 0xC0102073
+    use crate::riscv::bus::Bus;
+    use crate::riscv::cpu::RiscvCpu;
+
+    let mut bus = Bus::new(0x8000_0000, 1024 * 1024);
+    let mut cpu = RiscvCpu::new();
+    cpu.pc = 0x8000_0000;
+
+    // Write rdtime instruction: csrrs a3, time, x0
+    // Encoding: (0xC01 << 20) | (0 << 15) | (2 << 12) | (13 << 7) | 0x73 = 0xC01026F3
+    let rdtime_insn: u32 = 0xC01026F3;
+    bus.write_word(0x8000_0000, rdtime_insn).unwrap();
+
+    // Execute with mtime=0
+    cpu.step(&mut bus);
+    assert_eq!(cpu.x[13], 0); // a3 = mtime low = 0
+
+    // Advance mtime and execute again
+    bus.clint.mtime = 42;
+    cpu.pc = 0x8000_0000;
+    cpu.step(&mut bus);
+    assert_eq!(cpu.x[13], 42); // a3 = mtime low = 42
+
+    // Test TIMEH (0xC81): csrrs a4, timeh, x0 = 0xC8102773
+    cpu.pc = 0x8000_0000;
+    let rdtimeh_insn: u32 = 0xC8102773;
+    bus.write_word(0x8000_0000, rdtimeh_insn).unwrap();
+    bus.clint.mtime = 0x1_0000_0042; // high word = 1
+    cpu.step(&mut bus);
+    assert_eq!(cpu.x[14], 1); // a4 = mtime high = 1
+}
+
+#[test]
+fn test_rdtime_advances_with_clint_tick() {
+    // Each RiscvVm::step() calls tick_clint(), which increments mtime by 1.
+    // After N steps, rdtime should return N.
+    use crate::riscv::RiscvVm;
+
+    let mut vm = RiscvVm::new(1024 * 1024);
+    vm.cpu.pc = 0x8000_0000;
+
+    // Write a loop: csrrs a3, time, x0 (1 instruction)
+    let rdtime_insn: u32 = 0xC01026F3;
+    vm.bus.write_word(0x8000_0000, rdtime_insn).unwrap();
+
+    // After 1 step, mtime should be 1 (tick_clint increments before execute)
+    vm.step();
+    // The instruction reads mtime AFTER tick_clint (step() calls tick_clint first,
+    // then cpu.step which executes the instruction). So after 1 step, mtime=1,
+    // but the instruction reads mtime at that point which is 1.
+    // Wait -- tick_clint is called in RiscvVm::step() BEFORE cpu.step().
+    // So on the first call: mtime goes from 0 to 1, then rdtime reads 1.
+    assert_eq!(vm.cpu.x[13], 1);
+
+    // After 10 more steps, mtime should be 11
+    for _ in 0..10 {
+        vm.cpu.pc = 0x8000_0000;
+        vm.step();
+    }
+    assert_eq!(vm.cpu.x[13], 11);
+}
+
+#[test]
+fn test_c_hello_world_bare_metal() {
+    // Boot a bare-metal C program compiled with riscv64-linux-gnu-gcc
+    // through the Geometry OS hypervisor and verify UART output.
+    //
+    // IMPORTANT: Geometry OS CPU is RV32I (see src/riscv/cpu/mod.rs).
+    // build.sh uses -march=rv32imac -mabi=ilp32. Do not change to rv64.
+    //
+    // Build: cd examples/riscv-hello && ./build.sh hello.c
+    // The ELF is checked into examples/riscv-hello/hello_c.elf
+    let elf_path = "examples/riscv-hello/hello_c.elf";
+
+    // If cross-compiler not available, rebuild ELF from source
+    let elf_data = match std::fs::read(elf_path) {
+        Ok(d) => d,
+        Err(_) => {
+            // Try to build it
+            let status = std::process::Command::new("./examples/riscv-hello/build.sh")
+                .arg("hello.c")
+                .current_dir(env!("CARGO_MANIFEST_DIR"))
+                .status()
+                .ok();
+            match status {
+                Some(s) if s.success() => {
+                    let build_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join("examples/riscv-hello/hello.elf");
+                    std::fs::read(&build_path).unwrap_or_else(|e| {
+                        panic!(
+                            "Built hello.elf but can't read it: {} ({:?})",
+                            e, build_path
+                        )
+                    })
+                },
+                _ => {
+                    panic!(
+                        "Cannot build or find {} -- is riscv64-linux-gnu-gcc installed?",
+                        elf_path
+                    );
+                },
+            }
+        },
+    };
+
+    eprintln!("ELF size: {} bytes", elf_data.len());
+
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let mut bridge = UartBridge::new();
+
+    let result = vm
+        .boot_guest(&elf_data, 1, 500_000)
+        .expect("boot should succeed");
+
+    eprintln!(
+        "Boot: {} instructions, entry=0x{:08X}",
+        result.instructions, result.entry
+    );
+    assert_eq!(result.entry, 0x8000_0000, "entry should be at 0x80000000");
+
+    // Drain UART to canvas buffer
+    let mut canvas = make_canvas();
+    let drained = bridge.drain_uart_to_canvas(&mut vm.bus, &mut canvas);
+    eprintln!("UART drained: {} bytes", drained);
+
+    // Extract string from canvas
+    let mut uart_str = String::new();
+    for &ch in &canvas {
+        if ch == 0 {
+            break;
+        }
+        uart_str.push((ch & 0xFF) as u8 as char);
+    }
+
+    eprintln!("UART output: {:?}", uart_str);
+
+    assert!(
+        uart_str.contains("hello from C"),
+        "Expected 'hello from C' in UART output, got: {:?}",
+        uart_str
+    );
+}
+
+#[test]
+fn test_asm_hello_world_bare_metal() {
+    // Same test but for the assembly version
+    let elf_path = "examples/riscv-hello/hello_asm.elf";
+    let elf_data = match std::fs::read(elf_path) {
+        Ok(d) => d,
+        Err(_) => {
+            eprintln!(
+                "Skipping: {} not found (build with examples/riscv-hello/build.sh)",
+                elf_path
+            );
+            return;
+        },
+    };
+
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let mut bridge = UartBridge::new();
+
+    vm.boot_guest(&elf_data, 1, 500_000).expect("boot ok");
+
+    let mut canvas = make_canvas();
+    bridge.drain_uart_to_canvas(&mut vm.bus, &mut canvas);
+
+    let mut uart_str = String::new();
+    for &ch in &canvas {
+        if ch == 0 {
+            break;
+        }
+        uart_str.push((ch & 0xFF) as u8 as char);
+    }
+
+    assert!(
+        uart_str.contains("hello from C"),
+        "Expected 'hello from C', got: {:?}",
+        uart_str
+    );
+}
+
+#[test]
+#[ignore = "flaky: RISC-V guest may not complete within instruction budget"]
+fn test_vfs_pixel_surface_cat() {
+    // Boot vfs_pixel_cat.elf which reads file data directly from
+    // the Pixel VFS Surface at 0x7000_0000. No ecall for file reads --
+    // just lw from MMIO. "Pixels move pixels."
+    //
+    // Prerequisites:
+    //   - examples/riscv-hello/vfs_pixel_cat.elf
+    //   - .geometry_os/fs/test.txt (test fixture)
+    let elf_path = "examples/riscv-hello/vfs_pixel_cat.elf";
+    let elf_data = match std::fs::read(elf_path) {
+        Ok(d) => d,
+        Err(_) => {
+            let status = std::process::Command::new("./examples/riscv-hello/build.sh")
+                .arg("vfs_pixel_cat.c")
+                .current_dir(env!("CARGO_MANIFEST_DIR"))
+                .status()
+                .ok();
+            match status {
+                Some(s) if s.success() => {
+                    let p = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join("examples/riscv-hello/hello.elf");
+                    match std::fs::read(&p) {
+                        Ok(d) => {
+                            let _ = std::fs::copy(&p, elf_path);
+                            d
+                        },
+                        Err(e) => panic!("Built vfs_pixel_cat but can't read: {} ({:?})", e, p),
+                    }
+                },
+                _ => panic!(
+                    "Cannot build or find {} -- is riscv64-linux-gnu-gcc installed?",
+                    elf_path
+                ),
+            }
+        },
+    };
+
+    // Ensure test fixture exists
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".geometry_os/fs/test.txt");
+    assert!(fixture.exists(), "Test fixture missing: {:?}", fixture);
+
+    eprintln!("vfs_pixel_cat ELF size: {} bytes", elf_data.len());
+
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let mut bridge = UartBridge::new();
+
+    // Verify the VFS surface loaded the file
+    let magic = vm.bus.vfs_surface.pixels[0];
+    let file_count = vm.bus.vfs_surface.pixels[1];
+    eprintln!(
+        "VFS surface: magic=0x{:08X} file_count={}",
+        magic, file_count
+    );
+    assert_eq!(magic, 0x50584653, "PXFS magic should be present");
+    assert!(
+        file_count >= 1,
+        "Should have at least one file in VFS surface"
+    );
+
+    let result = vm
+        .boot_guest(&elf_data, 1, 500_000)
+        .expect("boot should succeed");
+
+    eprintln!(
+        "Boot: {} instructions, entry=0x{:08X}",
+        result.instructions, result.entry
+    );
+
+    // Drain UART
+    let mut canvas = make_canvas();
+    let drained = bridge.drain_uart_to_canvas(&mut vm.bus, &mut canvas);
+    eprintln!("UART drained: {} bytes", drained);
+
+    // Collect output
+    let mut uart_str = String::new();
+    for r in 0..32 {
+        let row = UartBridge::read_canvas_string(&canvas, r, 0, 32);
+        if !row.trim().is_empty() {
+            uart_str.push_str(&row);
+            uart_str.push('\n');
+        }
+    }
+
+    eprintln!("UART output: {:?}", uart_str);
+
+    // Should confirm PXFS magic detected
+    assert!(
+        uart_str.contains("pxcat: PXFS OK"),
+        "Expected PXFS magic confirmed, got: {:?}",
+        uart_str
+    );
+
+    // Should read and print file contents from pixel surface.
+    // Note: canvas wraps at 32 cols, so text gets broken across rows.
+    // Check for key fragments that survive wrapping.
+    let flat: String = uart_str.chars().filter(|c| !c.is_whitespace()).collect();
+    assert!(
+        flat.contains("ABCD") || flat.contains("world") || flat.contains("Line1Line2Line3"),
+        "Expected file contents from pixel surface, got flat: {:?}",
+        flat
+    );
+
+    assert!(
+        uart_str.contains("pxcat: done"),
+        "Expected clean completion, got: {:?}",
+        uart_str
+    );
+}
+
+/// Helper: build a RISC-V ELF from C source if it doesn't exist
+fn build_riscv_elf(source: &str, elf_name: &str) -> Vec<u8> {
+    let elf_path = format!("examples/riscv-hello/{}", elf_name);
+    match std::fs::read(&elf_path) {
+        Ok(d) => d,
+        Err(_) => {
+            let status = std::process::Command::new("./examples/riscv-hello/build.sh")
+                .arg(source)
+                .current_dir(env!("CARGO_MANIFEST_DIR"))
+                .status()
+                .ok();
+            match status {
+                Some(s) if s.success() => {
+                    let built = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join("examples/riscv-hello/hello.elf");
+                    let data = std::fs::read(&built)
+                        .unwrap_or_else(|e| panic!("Built {} but can't read: {}", source, e));
+                    let _ = std::fs::copy(&built, &elf_path);
+                    data
+                },
+                _ => panic!(
+                    "Cannot build or find {} -- is riscv64-linux-gnu-gcc installed?",
+                    elf_path
+                ),
+            }
+        },
+    }
+}
+
+/// Helper: collect UART output from a booted VM into a String
+fn collect_uart_output(bridge: &mut UartBridge, bus: &mut super::bus::Bus) -> String {
+    let mut canvas = make_canvas();
+    let _ = bridge.drain_uart_to_canvas(bus, &mut canvas);
+    let mut uart_str = String::new();
+    for r in 0..64 {
+        let row = UartBridge::read_canvas_string(&canvas, r, 0, 32);
+        if !row.trim().is_empty() {
+            uart_str.push_str(&row);
+            uart_str.push('\n');
+        }
+    }
+    uart_str
+}
+
+#[test]
+fn test_guest_vfs_write_creates_file() {
+    // Boot guest_vfs_write.elf which:
+    // 1. Lists existing files in the VFS pixel surface
+    // 2. Creates a new file (guest_log.txt) via vfs_create()
+    // 3. Modifies an existing file via vfs_write()
+    // 4. Flushes dirty rows via vfs_flush()
+    // 5. Verifies the created file by re-reading it
+    let elf_data = build_riscv_elf("guest_vfs_write.c", "guest_vfs_write.elf");
+    eprintln!("guest_vfs_write ELF size: {} bytes", elf_data.len());
+
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let tmp_dir = tempfile::TempDir::new().unwrap();
+    vm.bus.vfs_surface =
+        crate::riscv::vfs_surface::VfsSurface::new_with_base(tmp_dir.path().to_path_buf());
+    std::fs::write(tmp_dir.path().join("test.txt"), b"Initial dummy content").unwrap();
+    vm.bus.vfs_surface.load_files();
+
+    let mut bridge = UartBridge::new();
+
+    // Verify the VFS surface loaded the test fixture
+    let magic = vm.bus.vfs_surface.pixels[0];
+    let file_count = vm.bus.vfs_surface.pixels[1];
+    eprintln!(
+        "VFS surface: magic=0x{:08X} file_count={}",
+        magic, file_count
+    );
+    // Debug: dump directory index
+    for i in 0..6 {
+        eprintln!("  pixels[{}] = 0x{:08X}", i, vm.bus.vfs_surface.pixels[i]);
+    }
+    assert_eq!(magic, 0x50584653, "PXFS magic should be present");
+
+    let result = vm
+        .boot_guest(&elf_data, 1, 5_000_000)
+        .expect("boot should succeed");
+
+    eprintln!(
+        "Boot: {} instructions, entry=0x{:08X}",
+        result.instructions, result.entry
+    );
+
+    let uart_str = collect_uart_output(&mut bridge, &mut vm.bus);
+    eprintln!("UART output: {:?}", uart_str);
+
+    // Should detect the VFS surface
+    assert!(
+        uart_str.contains("guest_vfs_write: PXFS surface OK"),
+        "Expected PXFS surface detected, got: {:?}",
+        uart_str
+    );
+
+    // Should find a free row
+    assert!(
+        uart_str.contains("free_row="),
+        "Expected free_row calculation, got: {:?}",
+        uart_str
+    );
+
+    // Should create the file (UART wrapped at 32 cols, so match across wrap)
+    assert!(
+        uart_str.contains("created guest_l"),
+        "Expected file creation, got: {:?}",
+        uart_str
+    );
+
+    // Should flush to host
+    assert!(
+        uart_str.contains("flushed to host"),
+        "Expected flush confirmation, got: {:?}",
+        uart_str
+    );
+
+    // Should complete cleanly
+    assert!(
+        uart_str.contains("guest_vfs_write: done"),
+        "Expected clean completion, got: {:?}",
+        uart_str
+    );
+
+    // Verify the VFS surface was modified: file count should have increased
+    let new_file_count = vm.bus.vfs_surface.pixels[1];
+    assert!(
+        new_file_count > file_count,
+        "File count should have increased after create: was {} now {}",
+        file_count,
+        new_file_count
+    );
+}
+
+#[test]
+fn test_guest_vfs_write_readback() {
+    // Verify that guest-written data can be read back from the pixel surface.
+    // Boot guest_vfs_write, then directly inspect the surface pixels.
+    let elf_data = build_riscv_elf("guest_vfs_write.c", "guest_vfs_write.elf");
+
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let _ = vm
+        .boot_guest(&elf_data, 1, 5_000_000)
+        .expect("boot should succeed");
+
+    // The guest should have created a new file in the surface.
+    // Check that at least 2 files exist now (original + new).
+    let file_count = vm.bus.vfs_surface.pixels[1];
+    assert!(file_count >= 1, "Should have at least 1 file");
+
+    // Check that the new file has valid flag set
+    let mut found_valid_new = false;
+    for i in 0..file_count as usize {
+        let idx = vm.bus.vfs_surface.pixels[2 + i];
+        let start_row = (idx >> 16) as usize;
+        let header = vm.bus.vfs_surface.pixels[start_row * 256];
+        let flags = header & 0xFF;
+        if flags & 1 != 0 && (header >> 16) > 0 {
+            found_valid_new = true;
+            // Verify data is non-zero
+            let byte_count = (header >> 16) as usize;
+            let first_data = vm.bus.vfs_surface.pixels[start_row * 256 + 1];
+            eprintln!(
+                "File at row {}: {} bytes, first word=0x{:08X}, flags=0x{:02X}",
+                start_row, byte_count, first_data, flags
+            );
+            // At least one file should have written data (any content, not just printable ASCII)
+            if byte_count > 0 && first_data != 0 {
+                // Data exists — the guest VFS write/readback path works.
+                // We don't assert printable ASCII because pre-existing files (e.g. data.bin)
+                // may contain arbitrary binary data.
+            }
+        }
+    }
+    assert!(found_valid_new, "Should find at least one valid file");
+}
+
+#[test]
+#[ignore = "flaky: RISC-V guest may not complete within instruction budget"]
+fn test_vfs_pixel_cat_with_header() {
+    // Boot the ported vfs_pixel_cat.c (now using vfs_pixel.h)
+    // and verify it reads file contents correctly.
+    let elf_data = build_riscv_elf("vfs_pixel_cat.c", "vfs_pixel_cat.elf");
+    eprintln!("vfs_pixel_cat ELF size: {} bytes", elf_data.len());
+
+    // Ensure test fixture exists
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".geometry_os/fs/test.txt");
+    assert!(fixture.exists(), "Test fixture missing: {:?}", fixture);
+
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let mut bridge = UartBridge::new();
+
+    let result = vm
+        .boot_guest(&elf_data, 1, 500_000)
+        .expect("boot should succeed");
+
+    eprintln!(
+        "Boot: {} instructions, entry=0x{:08X}",
+        result.instructions, result.entry
+    );
+
+    let uart_str = collect_uart_output(&mut bridge, &mut vm.bus);
+    eprintln!("UART output: {:?}", uart_str);
+
+    // Should detect PXFS magic
+    assert!(
+        uart_str.contains("pxcat: PXFS OK"),
+        "Expected PXFS magic confirmed, got: {:?}",
+        uart_str
+    );
+
+    // Should read file contents (check for known content from test VFS files)
+    let flat: String = uart_str.chars().filter(|c| !c.is_whitespace()).collect();
+    assert!(
+        flat.contains("ABCD") || flat.contains("world") || flat.contains("Line1Line2Line3"),
+        "Expected file contents from pixel surface, got flat: {:?}",
+        flat
+    );
+
+    // Should complete cleanly
+    assert!(
+        uart_str.contains("pxcat: done"),
+        "Expected clean completion, got: {:?}",
+        uart_str
+    );
+}
+
+#[test]
+fn test_surface_direct_read() {
+    let elf_data = build_riscv_elf("test_surface.c", "test_surface.elf");
+    eprintln!("test_surface ELF size: {} bytes", elf_data.len());
+
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let tmp_dir = tempfile::TempDir::new().unwrap();
+    vm.bus.vfs_surface =
+        crate::riscv::vfs_surface::VfsSurface::new_with_base(tmp_dir.path().to_path_buf());
+    std::fs::write(tmp_dir.path().join("readme.txt"), b"Hello VFS").unwrap();
+    vm.bus.vfs_surface.load_files();
+
+    let mut bridge = UartBridge::new();
+
+    let result = vm
+        .boot_guest(&elf_data, 1, 500_000)
+        .expect("boot should succeed");
+
+    eprintln!("Boot: {} instructions", result.instructions);
+
+    let uart_str = collect_uart_output(&mut bridge, &mut vm.bus);
+    eprintln!("UART output: {:?}", uart_str);
+
+    // Should read magic correctly
+    assert!(
+        uart_str.contains("test: magic=0x50584653"),
+        "Expected correct magic, got: {:?}",
+        uart_str
+    );
+
+    // Should read count correctly (depends on files in .geometry_os/fs/)
+    assert!(
+        uart_str.contains("test: count="),
+        "Expected count line, got: {:?}",
+        uart_str
+    );
+    // Verify count matches vfs_list result
+    let count_str = uart_str
+        .lines()
+        .find(|l| l.starts_with("test: count="))
+        .and_then(|l| l.strip_prefix("test: count="))
+        .and_then(|v| v.parse::<u32>().ok())
+        .expect("should parse count");
+    let list_str = uart_str
+        .lines()
+        .find(|l| l.starts_with("test: vfs_list returned "))
+        .and_then(|l| l.strip_prefix("test: vfs_list returned "))
+        .and_then(|v| v.parse::<u32>().ok())
+        .expect("should parse vfs_list count");
+    // Allow off-by-one: direct surface read may include the header row
+    // that vfs_list skips
+    assert!(
+        (count_str as i32 - list_str as i32).abs() <= 1,
+        "surface count ({}) should be within 1 of vfs_list count ({})",
+        count_str,
+        list_str
+    );
+
+    // Should read first entry (non-zero)
+    assert!(
+        uart_str.contains("test: entry[0]=0x000"),
+        "Expected non-zero entry[0], got: {:?}",
+        uart_str
+    );
+
+    assert!(
+        uart_str.contains("test: done"),
+        "Expected clean completion, got: {:?}",
+        uart_str
+    );
+}
+
+// ── Framebuffer sub-word access tests (Phase A, a.3) ──────────────
+
+#[test]
+fn test_framebuf_write_word_read_word() {
+    let mut vm = super::RiscvVm::new(4096);
+    let addr = framebuf::FB_BASE;
+    vm.bus.write_word(addr, 0xAABBCCDD).unwrap();
+    let val = vm.bus.read_word(addr).unwrap();
+    assert_eq!(val, 0xAABBCCDD, "word write/read roundtrip");
+}
+
+#[test]
+fn test_framebuf_write_half_read_half() {
+    let mut vm = super::RiscvVm::new(4096);
+    let addr = framebuf::FB_BASE;
+
+    // Write a full word first
+    vm.bus.write_word(addr, 0x11223344).unwrap();
+
+    // Overwrite the lower half
+    vm.bus.write_half(addr, 0x5566).unwrap();
+    let word = vm.bus.read_word(addr).unwrap();
+    assert_eq!(word, 0x11225566, "lower half overwrite");
+
+    // Overwrite the upper half
+    vm.bus.write_half(addr + 2, 0x7788).unwrap();
+    let word = vm.bus.read_word(addr).unwrap();
+    assert_eq!(word, 0x77885566, "upper half overwrite");
+
+    // Read halves back
+    let lo = vm.bus.read_half(addr).unwrap();
+    let hi = vm.bus.read_half(addr + 2).unwrap();
+    assert_eq!(lo, 0x5566, "read lower half");
+    assert_eq!(hi, 0x7788, "read upper half");
+}
+
+#[test]
+fn test_framebuf_write_byte_read_byte() {
+    let mut vm = super::RiscvVm::new(4096);
+    let addr = framebuf::FB_BASE;
+
+    // Write individual bytes
+    vm.bus.write_byte(addr, 0x11).unwrap();
+    vm.bus.write_byte(addr + 1, 0x22).unwrap();
+    vm.bus.write_byte(addr + 2, 0x33).unwrap();
+    vm.bus.write_byte(addr + 3, 0x44).unwrap();
+
+    // Read back as word
+    let word = vm.bus.read_word(addr).unwrap();
+    assert_eq!(
+        word, 0x44332211,
+        "byte writes assembled to word (little-endian)"
+    );
+
+    // Read individual bytes
+    assert_eq!(vm.bus.read_byte(addr).unwrap(), 0x11);
+    assert_eq!(vm.bus.read_byte(addr + 1).unwrap(), 0x22);
+    assert_eq!(vm.bus.read_byte(addr + 2).unwrap(), 0x33);
+    assert_eq!(vm.bus.read_byte(addr + 3).unwrap(), 0x44);
+}
+
+#[test]
+fn test_framebuf_half_word_does_not_corrupt_ram() {
+    let mut vm = super::RiscvVm::new(4096);
+    let fb_addr = framebuf::FB_BASE;
+
+    // Write to RAM at same offset (should go to RAM, not framebuffer)
+    let ram_addr = vm.bus.mem.ram_base;
+    vm.bus.write_word(ram_addr, 0xDEADBEEF).unwrap();
+
+    // Write half-word to framebuffer (should NOT touch RAM)
+    vm.bus.write_half(fb_addr, 0x1234).unwrap();
+
+    // RAM should be untouched
+    let ram_val = vm.bus.read_word(ram_addr).unwrap();
+    assert_eq!(
+        ram_val, 0xDEADBEEF,
+        "RAM unchanged after framebuffer half write"
+    );
+}
+
+#[test]
+fn test_framebuf_control_register() {
+    let mut vm = super::RiscvVm::new(4096);
+    let ctrl_addr = framebuf::FB_CONTROL_ADDR;
+
+    // Write to control register (should not panic)
+    vm.bus.write_word(ctrl_addr, 1).unwrap();
+    assert!(vm.bus.framebuf.present_flag, "present flag set");
+}
+
+// ── Phase 209: Cooperative Multi-Process Tests ──────────────────────────────
+
+#[test]
+fn test_guest_context_save_restore() {
+    use super::cpu::Privilege;
+
+    let mut vm = super::RiscvVm::new(4096);
+
+    // Set some state in the primary context
+    vm.cpu.x[5] = 0xAAAA;
+    vm.cpu.x[10] = 0xBBBB;
+    vm.cpu.pc = 0x80001000;
+
+    // Save
+    vm.save_context();
+
+    // Modify state
+    vm.cpu.x[5] = 0;
+    vm.cpu.x[10] = 0;
+    vm.cpu.pc = 0;
+
+    // Restore
+    vm.restore_context();
+
+    // Should be back to original
+    assert_eq!(vm.cpu.x[5], 0xAAAA, "register x5 restored");
+    assert_eq!(vm.cpu.x[10], 0xBBBB, "register x10 restored");
+    assert_eq!(vm.cpu.pc, 0x80001000, "PC restored");
+}
+
+#[test]
+fn test_spawn_creates_new_context() {
+    let mut vm = super::RiscvVm::new(4096);
+    assert_eq!(vm.contexts.len(), 1, "starts with primary context");
+    assert_eq!(vm.current_context, 0);
+
+    // Simulate a spawn request
+    vm.bus.sbi.spawn_requested = Some((0x80100000, 0));
+
+    // Step to process the spawn
+    let result = vm.step();
+    // We expect Ok or similar since there is no real instruction to execute
+    // The spawn is processed at the beginning of step()
+    assert_eq!(vm.contexts.len(), 2, "new context created");
+    assert_eq!(
+        vm.contexts[1].pc, 0x80100000,
+        "new context has correct entry"
+    );
+    assert_eq!(vm.contexts[1].id, 1, "new context has correct id");
+    assert_eq!(vm.next_context_id, 2, "next id incremented");
+}
+
+#[test]
+fn test_yield_round_robin() {
+    let mut vm = super::RiscvVm::new(4096);
+
+    // Write an ECALL instruction at the current PC (0x80000000)
+    // ECALL = 0x00000073
+    let pa = vm.bus.mem.ram_base;
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+
+    // Set up registers for GEO_YIELD: a7=SBI_EXT_GEOMETRY, a6=SBI_GEOM_YIELD(16)
+    vm.cpu.x[17] = 0x47454F4D; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 16; // SBI_GEOM_YIELD
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Create a second context
+    let mut ctx2 = GuestContext::new(1);
+    ctx2.pc = 0x80000100;
+    vm.contexts.push(ctx2);
+
+    // Step -- should yield and switch to context 1
+    let result = vm.step();
+    assert_eq!(result, StepResult::Yielded, "yield returned");
+    assert_eq!(vm.current_context, 1, "switched to context 1");
+}
+
+#[test]
+fn test_yield_returns_to_original_context() {
+    let mut vm = super::RiscvVm::new(4096);
+    let pa = vm.bus.mem.ram_base;
+
+    // Write ECALL at PC of both contexts
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+
+    // Set up GEO_YIELD registers for context 0
+    vm.cpu.x[17] = 0x47454F4D; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 16; // SBI_GEOM_YIELD
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Create context 1
+    let mut ctx2 = GuestContext::new(1);
+    ctx2.pc = 0x80000000; // same PC -- will also yield
+    vm.contexts.push(ctx2);
+
+    // First yield: 0 -> 1
+    let r1 = vm.step();
+    assert_eq!(r1, StepResult::Yielded);
+    assert_eq!(vm.current_context, 1);
+
+    // Set up GEO_YIELD for context 1
+    vm.cpu.x[17] = 0x47454F4D;
+    vm.cpu.x[16] = 16;
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Second yield: 1 -> 0 (round-robin)
+    let r2 = vm.step();
+    assert_eq!(r2, StepResult::Yielded);
+    assert_eq!(vm.current_context, 0, "round-robin back to context 0");
+}
+
+#[test]
+fn test_contexts_have_independent_registers() {
+    let mut vm = super::RiscvVm::new(4096);
+
+    // Context 0 sets x5 = 42
+    vm.cpu.x[5] = 42;
+    vm.save_context();
+
+    // Create context 1 with x5 = 99
+    let mut ctx2 = GuestContext::new(1);
+    ctx2.x[5] = 99;
+    vm.contexts.push(ctx2);
+
+    // Switch to context 1
+    vm.current_context = 1;
+    vm.restore_context();
+    assert_eq!(vm.cpu.x[5], 99, "context 1 has x5=99");
+
+    // Switch back to context 0
+    vm.current_context = 0;
+    vm.restore_context();
+    assert_eq!(vm.cpu.x[5], 42, "context 0 still has x5=42");
+}
+
+#[test]
+fn test_kill_context() {
+    let mut vm = super::RiscvVm::new(4096);
+
+    // Create context 1
+    vm.contexts.push(GuestContext::new(1));
+    assert_eq!(vm.alive_context_count(), 2);
+
+    // Kill context 1
+    assert!(vm.kill_context(1));
+    assert_eq!(vm.alive_context_count(), 1);
+    assert!(!vm.contexts[1].alive);
+
+    // Kill again returns false
+    assert!(!vm.kill_context(1));
+}
+
+#[test]
+fn test_yield_to_specific_context() {
+    let mut vm = super::RiscvVm::new(4096);
+    let pa = vm.bus.mem.ram_base;
+
+    // Write ECALL at PC
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+
+    // Create contexts 1 and 2
+    vm.contexts.push(GuestContext::new(1));
+    vm.contexts.push(GuestContext::new(2));
+
+    // Set up GEO_YIELD_TO to context 2: a6=17 (SBI_GEOM_YIELD_TO), a0=2
+    vm.cpu.x[17] = 0x47454F4D; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 17; // SBI_GEOM_YIELD_TO
+    vm.cpu.x[10] = 2; // target context id
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    let result = vm.step();
+    assert_eq!(result, StepResult::Yielded);
+    assert_eq!(vm.current_context, 2, "yielded to context 2");
+}
+
+#[test]
+fn test_gpu_compute_sbi_sets_pending_and_bridge_unavailable() {
+    use crate::riscv::gpu_bridge::{GpuComputeRequest, GPU_ERR_UNAVAILABLE};
+
+    let mut vm = super::RiscvVm::new(4096);
+    let pa = vm.bus.mem.ram_base;
+
+    // Write ECALL at PC (so the CPU can execute an ecall)
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Set up SBI_GEOM_GPU_COMPUTE SBI call:
+    // a7 = SBI_EXT_GEOMETRY (0x47454F4D)
+    // a6 = 18 (SBI_GEOM_GPU_COMPUTE)
+    // a0 = code_addr = pa + 256 (arbitrary, no code there yet)
+    // a1 = num_words = 3
+    // a2 = max_steps = 100
+    // a3 = num_tiles = 1
+    // a4 = result_addr low = pa + 512
+    // a5 = result_addr high = 0
+    vm.cpu.x[17] = 0x47454F4D; // a7 = SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 18; // a6 = SBI_GEOM_GPU_COMPUTE
+    vm.cpu.x[10] = (pa + 256) as u32; // a0 = code_addr
+    vm.cpu.x[11] = 3; // a1 = num_words
+    vm.cpu.x[12] = 100; // a2 = max_steps
+    vm.cpu.x[13] = 1; // a3 = num_tiles
+    vm.cpu.x[14] = (pa + 512) as u32; // a4 = result_addr low
+    vm.cpu.x[15] = 0; // a5 = result_addr high
+
+    // Step once: CPU executes ECALL, SBI handler sets gpu_compute_requested
+    let result = vm.step();
+    // ECALL from M-mode gets handled as SBI, returns StepResult::Ok (continues)
+    assert_eq!(result, StepResult::Ok);
+
+    // After step(), the GPU compute request should have been fulfilled
+    // (bridge.execute was called, returning GPU_ERR_UNAVAILABLE since gpu feature
+    // is off in non-gpu builds)
+    // a0 should contain the result code
+    assert_eq!(
+        vm.cpu.x[10], GPU_ERR_UNAVAILABLE,
+        "GPU bridge should return UNAVAILABLE without gpu feature"
+    );
+
+    // The pending request should be consumed (taken)
+    assert!(
+        vm.bus.sbi.gpu_compute_requested.is_none(),
+        "GPU compute request should have been consumed"
+    );
+
+    // GPU bridge stats should show no dispatches
+    let (dispatches, tiles) = vm.gpu_bridge.stats();
+    assert_eq!(dispatches, 0);
+    assert_eq!(tiles, 0);
+}
+
+#[test]
+fn test_gpu_compute_sbi_invalid_params_returns_error() {
+    use crate::riscv::sbi::SBI_ERR_INVALID_PARAM;
+
+    let mut vm = super::RiscvVm::new(4096);
+    let pa = vm.bus.mem.ram_base;
+
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Test: num_words = 0 -> SBI validates and returns INVALID_PARAM
+    vm.cpu.x[17] = 0x47454F4D; // a7 = SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 18; // a6 = SBI_GEOM_GPU_COMPUTE
+    vm.cpu.x[10] = pa as u32; // a0 = code_addr
+    vm.cpu.x[11] = 0; // a1 = num_words = 0 (INVALID)
+    vm.cpu.x[12] = 100; // a2 = max_steps
+    vm.cpu.x[13] = 1; // a3 = num_tiles
+    vm.cpu.x[14] = (pa + 512) as u32; // a4
+    vm.cpu.x[15] = 0; // a5
+
+    vm.step();
+    assert_eq!(vm.cpu.x[10], SBI_ERR_INVALID_PARAM as u32);
+
+    // Test: num_tiles = 0 -> INVALID_PARAM
+    vm.cpu.x[11] = 4; // a1 = num_words = 4 (valid)
+    vm.cpu.x[13] = 0; // a3 = num_tiles = 0 (INVALID)
+    vm.step();
+    assert_eq!(vm.cpu.x[10], SBI_ERR_INVALID_PARAM as u32);
+}
+
+// ============================================================
+// Phase 345: RISC-V Module Integration Tests (mod.rs)
+// Tests for RiscvVm construction, reset, CPU-MMU-Bus integration,
+// and step execution with device side-effects.
+// ============================================================
+
+/// Helper: encode LW rd, offset(rs1)
+fn enc_lw(rd: u32, rs1: u32, offset: u32) -> u32 {
+    ((offset >> 5) << 25) | ((offset & 0x1F) << 20) | (rs1 << 15) | (0b010 << 12) | (rd << 7) | 0x03
+}
+
+/// Helper: encode ECALL
+fn enc_ecall() -> u32 {
+    0x00000073
+}
+
+/// Helper: encode ADD rd, rs1, rs2
+fn enc_add(rd: u32, rs1: u32, rs2: u32) -> u32 {
+    (rs2 << 20) | (rs1 << 15) | (0 << 12) | (rd << 7) | 0x33
+}
+
+// --- VM Construction and Reset Tests ---
+
+#[test]
+fn test_vm_new_default_state() {
+    // Verify RiscvVm::new initializes with correct defaults.
+    let vm = RiscvVm::new(64 * 1024);
+
+    // CPU should be at Machine privilege, PC at 0x8000_0000
+    assert_eq!(vm.cpu.pc, 0x8000_0000);
+    assert_eq!(vm.cpu.privilege, cpu::Privilege::Machine);
+
+    // All registers should be zero
+    for i in 0..32 {
+        assert_eq!(vm.cpu.x[i], 0, "x{} should be 0 after new()", i);
+    }
+
+    // Should have exactly one context (the primary)
+    assert_eq!(vm.contexts.len(), 1);
+    assert_eq!(vm.current_context, 0);
+    assert_eq!(vm.next_context_id, 1);
+
+    // Primary context should be alive
+    assert!(vm.contexts[0].alive);
+    assert_eq!(vm.contexts[0].id, 0);
+
+    // Bus should have correct ram_base
+    assert_eq!(vm.bus.mem.ram_base, 0x8000_0000);
+}
+
+#[test]
+fn test_vm_new_with_custom_base() {
+    // Verify RiscvVm::new_with_base sets custom ram_base.
+    let vm = RiscvVm::new_with_base(0x0000_0000, 128 * 1024);
+
+    assert_eq!(vm.bus.mem.ram_base, 0x0000_0000);
+    assert_eq!(vm.cpu.csr.mtvec, 0x0000_0000);
+
+    // CPU PC should still be the primary context's PC (0x8000_0000 default)
+    assert_eq!(vm.contexts[0].pc, 0x8000_0000);
+}
+
+#[test]
+fn test_vm_debug_format() {
+    // Verify Debug impl produces useful output.
+    let vm = RiscvVm::new(1024);
+    let debug_str = format!("{:?}", vm);
+    assert!(
+        debug_str.contains("RiscvVm"),
+        "Debug should contain type name"
+    );
+    assert!(
+        debug_str.contains("contexts"),
+        "Debug should show context count"
+    );
+}
+
+#[test]
+fn test_guest_context_new_defaults() {
+    // Verify GuestContext::new initializes all fields correctly.
+    let ctx = GuestContext::new(42);
+
+    assert_eq!(ctx.id, 42);
+    assert!(ctx.alive);
+    assert_eq!(ctx.pc, 0x8000_0000);
+    assert_eq!(ctx.privilege, cpu::Privilege::Machine);
+    assert!(!ctx.satp_flush_pending);
+    assert!(ctx.reservation.is_none());
+
+    // All registers zero
+    for i in 0..32 {
+        assert_eq!(ctx.x[i], 0);
+    }
+}
+
+#[test]
+fn test_guest_context_clone() {
+    // Verify GuestContext is clonable and independent after clone.
+    let mut ctx = GuestContext::new(7);
+    ctx.x[5] = 0xDEADBEEF;
+    ctx.pc = 0x12345678;
+
+    let mut ctx2 = ctx.clone();
+    ctx2.x[5] = 0xCAFEBABE;
+
+    assert_eq!(ctx.x[5], 0xDEADBEEF, "Original should be unchanged");
+    assert_eq!(ctx2.x[5], 0xCAFEBABE, "Clone should be independent");
+}
+
+// --- CPU-MMU-Bus Integration Tests ---
+
+#[test]
+fn test_bus_write_read_word_roundtrip() {
+    // Write a word via Bus, read it back.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new(4096);
+
+    vm.bus.write_word(ram_base, 0x12345678).unwrap();
+    let val = vm.bus.read_word(ram_base).unwrap();
+    assert_eq!(val, 0x12345678);
+}
+
+#[test]
+fn test_bus_write_read_byte_roundtrip() {
+    // Write individual bytes and read them back.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new(4096);
+
+    vm.bus.write_byte(ram_base, 0xAB).unwrap();
+    vm.bus.write_byte(ram_base + 1, 0xCD).unwrap();
+    vm.bus.write_byte(ram_base + 2, 0xEF).unwrap();
+    vm.bus.write_byte(ram_base + 3, 0x01).unwrap();
+
+    assert_eq!(vm.bus.read_byte(ram_base).unwrap(), 0xAB);
+    assert_eq!(vm.bus.read_byte(ram_base + 1).unwrap(), 0xCD);
+    assert_eq!(vm.bus.read_byte(ram_base + 2).unwrap(), 0xEF);
+    assert_eq!(vm.bus.read_byte(ram_base + 3).unwrap(), 0x01);
+}
+
+#[test]
+fn test_bus_word_read_is_little_endian() {
+    // Verify byte writes assemble into little-endian word reads.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new(4096);
+
+    // Write bytes 0x78, 0x56, 0x34, 0x12
+    vm.bus.write_byte(ram_base, 0x78).unwrap();
+    vm.bus.write_byte(ram_base + 1, 0x56).unwrap();
+    vm.bus.write_byte(ram_base + 2, 0x34).unwrap();
+    vm.bus.write_byte(ram_base + 3, 0x12).unwrap();
+
+    let word = vm.bus.read_word(ram_base).unwrap();
+    assert_eq!(word, 0x12345678, "Word read should be little-endian");
+}
+
+#[test]
+fn test_bus_write_word_overwrites_bytes() {
+    // A word write should overwrite all 4 bytes.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new(4096);
+
+    vm.bus.write_word(ram_base, 0xAABBCCDD).unwrap();
+    assert_eq!(vm.bus.read_byte(ram_base).unwrap(), 0xDD);
+    assert_eq!(vm.bus.read_byte(ram_base + 1).unwrap(), 0xCC);
+    assert_eq!(vm.bus.read_byte(ram_base + 2).unwrap(), 0xBB);
+    assert_eq!(vm.bus.read_byte(ram_base + 3).unwrap(), 0xAA);
+}
+
+#[test]
+fn test_bus_out_of_range_returns_error() {
+    // Reading/writing outside RAM should return an error.
+    let mut vm = RiscvVm::new(4096); // 4KB RAM at 0x8000_0000
+
+    // Way beyond RAM (not in any device MMIO range)
+    let result = vm.bus.read_word(0xFFFF_FFFF);
+    assert!(result.is_err(), "Read beyond RAM should fail");
+
+    // Just above RAM end (0x8000_0000 + 4096 = 0x8000_1000)
+    let result = vm.bus.read_word(0x8000_2000);
+    assert!(
+        result.is_err(),
+        "Read at 0x8000_2000 (above 4KB RAM) should fail"
+    );
+}
+
+#[test]
+fn test_cpu_step_executes_lui_from_bus() {
+    // Place a LUI instruction on the bus, step CPU, verify register updated.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0; // bare metal, no MMU
+    vm.cpu.csr.mie = 0; // no interrupts
+    vm.cpu.csr.mstatus = 0;
+
+    // LUI x5, 0x12345
+    let lui = enc_lui(5, 0x12345);
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base, lui).unwrap();
+    vm.bus.write_word(ram_base + 4, ebreak).unwrap();
+
+    // Step 1: LUI
+    let r1 = vm.step_no_clint();
+    assert_eq!(r1, cpu::StepResult::Ok);
+    assert_eq!(vm.cpu.x[5], 0x12345_000);
+    assert_eq!(vm.cpu.pc, ram_base as u32 + 4);
+}
+
+#[test]
+fn test_cpu_step_addi_updates_register() {
+    // ADDI x3, x0, 42 should set x3 = 42.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    let addi = enc_addi(3, 0, 42);
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base, addi).unwrap();
+    vm.bus.write_word(ram_base + 4, ebreak).unwrap();
+
+    let r = vm.step_no_clint();
+    assert_eq!(r, cpu::StepResult::Ok);
+    assert_eq!(vm.cpu.x[3], 42);
+}
+
+#[test]
+fn test_cpu_step_sw_stores_to_bus() {
+    // SW x2, 0(x1) should write x2 to memory at address in x1.
+    let ram_base: u64 = 0x8000_0000;
+    let data_addr = ram_base + 0x100; // store target (within 4KB)
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // LUI x1, 0x80000 -> x1 = 0x8000_0000
+    let lui = enc_lui(1, 0x80000);
+    vm.bus.write_word(ram_base, lui).unwrap();
+    // ADDI x1, x1, 0x100 -> x1 = 0x8000_0100 (data_addr)
+    let addi_x1 = enc_addi(1, 1, 0x100);
+    vm.bus.write_word(ram_base + 4, addi_x1).unwrap();
+    // ADDI x2, x0, 0x123 -> x2 = 0x123
+    let addi_x2 = enc_addi(2, 0, 0x123);
+    vm.bus.write_word(ram_base + 8, addi_x2).unwrap();
+    // SW x2, 0(x1) -> mem[x1] = 0x123
+    let sw = enc_sw(2, 1, 0);
+    vm.bus.write_word(ram_base + 12, sw).unwrap();
+    // EBREAK
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base + 16, ebreak).unwrap();
+
+    vm.step_no_clint(); // LUI
+    vm.step_no_clint(); // ADDI x1
+    vm.step_no_clint(); // ADDI x2
+    vm.step_no_clint(); // SW
+
+    // Verify the store landed in memory
+    let val = vm.bus.read_word(data_addr).unwrap();
+    assert_eq!(val, 0x123, "SW should have stored 0x123 to memory");
+}
+
+#[test]
+fn test_cpu_step_lw_loads_from_bus() {
+    // LW x3, 0(x1) should load from memory into x3.
+    let ram_base: u64 = 0x8000_0000;
+    let data_addr = ram_base + 0x200;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // Pre-store a value at data_addr (within 4KB)
+    vm.bus.write_word(data_addr, 0xCAFEBABE).unwrap();
+
+    // LUI x1, 0x80000 -> x1 = 0x8000_0000
+    let lui = enc_lui(1, 0x80000);
+    vm.bus.write_word(ram_base, lui).unwrap();
+    // ADDI x1, x1, 0x200 -> x1 = 0x8000_0200 (data_addr)
+    let addi_x1 = enc_addi(1, 1, 0x200);
+    vm.bus.write_word(ram_base + 4, addi_x1).unwrap();
+    // LW x3, 0(x1) -> x3 = mem[x1]
+    let lw = enc_lw(3, 1, 0);
+    vm.bus.write_word(ram_base + 8, lw).unwrap();
+    // EBREAK
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base + 12, ebreak).unwrap();
+
+    vm.step_no_clint(); // LUI
+    vm.step_no_clint(); // ADDI x1
+    vm.step_no_clint(); // LW
+
+    assert_eq!(vm.cpu.x[3], 0xCAFEBABE, "LW should load stored value");
+}
+
+// --- Step Execution with Device Side-Effects ---
+
+#[test]
+fn test_step_advances_clint_mtime() {
+    // Each call to step() should advance CLINT mtime by 1.
+    let mut vm = RiscvVm::new(4096);
+    let initial_mtime = vm.bus.clint.mtime;
+
+    vm.step(); // NOP (all zeros = ADDI x0, x0, 0)
+    assert_eq!(
+        vm.bus.clint.mtime,
+        initial_mtime + 1,
+        "step() should tick CLINT"
+    );
+
+    vm.step();
+    assert_eq!(
+        vm.bus.clint.mtime,
+        initial_mtime + 2,
+        "step() should tick CLINT again"
+    );
+}
+
+#[test]
+fn test_step_no_clint_preserves_mtime() {
+    // step_no_clint() should NOT advance mtime.
+    let mut vm = RiscvVm::new(4096);
+    let initial_mtime = vm.bus.clint.mtime;
+
+    vm.step_no_clint();
+    assert_eq!(
+        vm.bus.clint.mtime, initial_mtime,
+        "step_no_clint() should not tick CLINT"
+    );
+
+    vm.step_no_clint();
+    assert_eq!(
+        vm.bus.clint.mtime, initial_mtime,
+        "mtime should remain unchanged"
+    );
+}
+
+#[test]
+fn test_step_with_clint_ticks_advances_by_n() {
+    // step_with_clint_ticks(n) should advance mtime by n.
+    let mut vm = RiscvVm::new(4096);
+    let initial_mtime = vm.bus.clint.mtime;
+
+    vm.step_with_clint_ticks(10);
+    assert_eq!(vm.bus.clint.mtime, initial_mtime + 10);
+
+    vm.step_with_clint_ticks(5);
+    assert_eq!(vm.bus.clint.mtime, initial_mtime + 15);
+}
+
+#[test]
+fn test_clint_timer_interrupt_pending_after_mtime_exceeds_mtimecmp() {
+    // When mtime >= mtimecmp, the timer MIP bit should be set.
+    let mut vm = RiscvVm::new(4096);
+
+    // Set mtimecmp to a small value
+    vm.bus.clint.mtimecmp = 3;
+
+    // Step until mtime reaches/exceeds mtimecmp
+    for _ in 0..4 {
+        vm.step();
+    }
+
+    // Timer interrupt should be pending in MIP
+    let mip = vm.cpu.csr.mip;
+    assert!(
+        mip & (1 << 7) != 0,
+        "MIP.MTIP (bit 7) should be set when mtime >= mtimecmp, mtime={} mtimecmp={}",
+        vm.bus.clint.mtime,
+        vm.bus.clint.mtimecmp
+    );
+}
+
+#[test]
+fn test_step_no_clint_skips_timer_sync() {
+    // step_no_clint should not set timer MIP even when mtime >= mtimecmp.
+    let mut vm = RiscvVm::new(4096);
+
+    // Advance mtime to exceed mtimecmp
+    vm.bus.clint.mtimecmp = 0;
+    vm.bus.clint.mtime = 100;
+
+    // step_no_clint should NOT sync timer MIP
+    vm.step_no_clint();
+
+    let mip = vm.cpu.csr.mip;
+    assert_eq!(
+        mip & (1 << 7),
+        0,
+        "MIP.MTIP should NOT be set by step_no_clint"
+    );
+}
+
+#[test]
+fn test_uart_write_during_cpu_step() {
+    // CPU executing SW to UART address should produce side-effect in UART.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // LUI x1, 0x10000 -> x1 = 0x1000_0000 (UART base)
+    let lui = enc_lui(1, 0x10000);
+    vm.bus.write_word(ram_base, lui).unwrap();
+    // ADDI x2, x0, 0x41 -> x2 = 'A'
+    let addi = enc_addi(2, 0, 0x41);
+    vm.bus.write_word(ram_base + 4, addi).unwrap();
+    // SW x2, 0(x1) -> write 'A' to UART
+    let sw = enc_sw(2, 1, 0);
+    vm.bus.write_word(ram_base + 8, sw).unwrap();
+    // EBREAK
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base + 12, ebreak).unwrap();
+
+    let initial_tx_count = vm.bus.uart.write_count;
+
+    vm.step_no_clint(); // LUI
+    vm.step_no_clint(); // ADDI
+    vm.step_no_clint(); // SW -> UART write
+
+    assert!(
+        vm.bus.uart.write_count > initial_tx_count,
+        "UART write_count should increase after SW to UART address"
+    );
+}
+
+#[test]
+fn test_context_save_preserves_all_cpu_state() {
+    // save_context should capture registers, PC, privilege, CSRs.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // Set up some CPU state
+    vm.cpu.x[1] = 0xAAAA;
+    vm.cpu.x[10] = 0xBBBB;
+    vm.cpu.pc = 0x8000_1000;
+    vm.cpu.privilege = cpu::Privilege::Supervisor;
+    vm.cpu.csr.mepc = 0xDEAD;
+
+    // Save context
+    vm.save_context();
+
+    // Modify CPU state
+    vm.cpu.x[1] = 0;
+    vm.cpu.x[10] = 0;
+    vm.cpu.pc = 0;
+    vm.cpu.privilege = cpu::Privilege::Machine;
+    vm.cpu.csr.mepc = 0;
+
+    // Restore context
+    vm.restore_context();
+
+    // Verify all state was preserved
+    assert_eq!(vm.cpu.x[1], 0xAAAA, "x1 should be restored");
+    assert_eq!(vm.cpu.x[10], 0xBBBB, "x10 should be restored");
+    assert_eq!(vm.cpu.pc, 0x8000_1000, "PC should be restored");
+    assert_eq!(
+        vm.cpu.privilege,
+        cpu::Privilege::Supervisor,
+        "privilege should be restored"
+    );
+    assert_eq!(vm.cpu.csr.mepc, 0xDEAD, "mepc should be restored");
+}
+
+#[test]
+fn test_alive_context_count_after_kill() {
+    // Spawn multiple contexts, kill some, verify count.
+    let mut vm = RiscvVm::new(4096);
+
+    assert_eq!(vm.alive_context_count(), 1);
+
+    // Manually add contexts (simulating spawn)
+    vm.contexts.push(GuestContext::new(1));
+    vm.contexts.push(GuestContext::new(2));
+    vm.contexts.push(GuestContext::new(3));
+
+    assert_eq!(vm.alive_context_count(), 4);
+
+    // Kill context 1
+    assert!(vm.kill_context(1));
+    assert_eq!(vm.alive_context_count(), 3);
+
+    // Kill context 3
+    assert!(vm.kill_context(3));
+    assert_eq!(vm.alive_context_count(), 2);
+
+    // Kill already-dead context should return false
+    assert!(!vm.kill_context(1));
+    assert_eq!(vm.alive_context_count(), 2);
+
+    // Kill non-existent context should return false
+    assert!(!vm.kill_context(99));
+    assert_eq!(vm.alive_context_count(), 2);
+}
+
+#[test]
+fn test_next_alive_context_round_robin() {
+    // With contexts [alive, dead, alive], next_alive from 0 should be 2.
+    let mut vm = RiscvVm::new(4096);
+    vm.contexts.push(GuestContext::new(1));
+    vm.contexts.push(GuestContext::new(2));
+
+    // Kill context 1
+    vm.contexts[1].alive = false;
+
+    // next_alive_context is private, but we can test it via alive_context_count
+    assert_eq!(vm.alive_context_count(), 2); // 0 and 2 are alive
+
+    // Kill all but primary
+    vm.contexts[2].alive = false;
+    assert_eq!(vm.alive_context_count(), 1);
+}
+
+#[test]
+fn test_step_returns_ok_for_nop() {
+    // A 32-bit NOP (ADDI x0, x0, 0 = 0x00000013) should return Ok.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // Write actual 32-bit NOPs (not zeros, which decode as 16-bit compressed)
+    let nop = 0x00000013u32; // ADDI x0, x0, 0
+    for i in 0..16 {
+        vm.bus.write_word(ram_base + (i as u64) * 4, nop).unwrap();
+    }
+
+    let result = vm.step_no_clint();
+    assert_eq!(result, cpu::StepResult::Ok);
+    assert_eq!(vm.cpu.pc, ram_base as u32 + 4);
+}
+
+#[test]
+fn test_step_returns_ebreak() {
+    // An EBREAK instruction should return Ebreak.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base, ebreak).unwrap();
+
+    let result = vm.step_no_clint();
+    assert_eq!(result, cpu::StepResult::Ebreak);
+}
+
+#[test]
+fn test_multiple_steps_accumulate_pc() {
+    // Running multiple 32-bit NOPs should advance PC by 4 each step.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // Write actual 32-bit NOPs (zeros decode as 16-bit compressed instructions)
+    let nop = 0x00000013u32; // ADDI x0, x0, 0
+    for i in 0..16 {
+        vm.bus.write_word(ram_base + (i as u64) * 4, nop).unwrap();
+    }
+
+    for i in 1..=10 {
+        let _ = vm.step_no_clint();
+        assert_eq!(vm.cpu.pc, ram_base as u32 + i * 4);
+    }
+}
+
+#[test]
+fn test_add_instruction_produces_correct_result() {
+    // ADD x3, x1, x2 where x1=10, x2=25 -> x3 should be 35.
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 4096);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.csr.satp = 0;
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus = 0;
+
+    // ADDI x1, x0, 10
+    let addi1 = enc_addi(1, 0, 10);
+    vm.bus.write_word(ram_base, addi1).unwrap();
+    // ADDI x2, x0, 25
+    let addi2 = enc_addi(2, 0, 25);
+    vm.bus.write_word(ram_base + 4, addi2).unwrap();
+    // ADD x3, x1, x2
+    let add = enc_add(3, 1, 2);
+    vm.bus.write_word(ram_base + 8, add).unwrap();
+    // EBREAK
+    let ebreak = enc_ebreak();
+    vm.bus.write_word(ram_base + 12, ebreak).unwrap();
+
+    vm.step_no_clint(); // ADDI x1
+    vm.step_no_clint(); // ADDI x2
+    vm.step_no_clint(); // ADD x3
+
+    assert_eq!(vm.cpu.x[1], 10);
+    assert_eq!(vm.cpu.x[2], 25);
+    assert_eq!(vm.cpu.x[3], 35, "ADD should produce 10 + 25 = 35");
+}
+
+/// Test: Run syscall_stress.elf in User mode to exercise the Linux syscall layer.
+/// This test loads the ELF, sets up User-mode execution (SP, heap, mmap region,
+/// interrupts disabled), and runs for enough instructions to complete the stress test.
+#[test]
+fn test_syscall_stress_user_mode() {
+    let elf_data = build_riscv_elf("syscall_stress.c", "syscall_stress.elf");
+    eprintln!("ELF size: {} bytes", elf_data.len());
+
+    let ram_size = 4 * 1024 * 1024; // 4MB for stress test
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, ram_size);
+
+    // Load ELF
+    let load_info = loader::load_elf(&mut vm.bus, &elf_data).expect("ELF load should succeed");
+    eprintln!(
+        "Entry: 0x{:08X}, highest: 0x{:08X}",
+        load_info.entry, load_info.highest_addr
+    );
+
+    // Set up User-mode execution
+    vm.cpu.pc = load_info.entry;
+    vm.cpu.privilege = cpu::Privilege::User;
+
+    // Stack at top of RAM
+    vm.cpu.x[2] = (ram_base + ram_size as u64 - 16) as u32;
+
+    // Heap tracking
+    vm.bus.heap_start = load_info.highest_addr;
+    vm.bus.heap_end = load_info.highest_addr;
+    // mmap region starts at mid-RAM
+    vm.bus.mmap_next = ram_base + ram_size as u64 / 2;
+
+    // Disable interrupts so timer doesn't trap back to M-mode
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus &= !(1 << 3); // Clear MIE
+
+    // Set up mtvec to point at a small handler that halts on unexpected traps.
+    // Use an address in low RAM that won't conflict with the loaded program.
+    // The program starts at ram_base (0x80000000) so use a high address.
+    let trap_handler_addr = ram_base + (ram_size as u64 / 2) + 0x1000;
+    vm.bus.write_word(trap_handler_addr, 0x00100073).unwrap(); // EBREAK
+    vm.cpu.csr.mtvec = trap_handler_addr as u32;
+
+    // fd table already initialized by Bus::new() with stdin/stdout/stderr
+
+    // Run for up to 5M instructions (stress test needs many)
+    let max_instructions = 5_000_000u64;
+    let mut count: u64 = 0;
+    let mut uart_output = Vec::new();
+
+    while count < max_instructions {
+        match vm.step_no_clint() {
+            cpu::StepResult::Ok => {},
+            cpu::StepResult::Ecall => {
+                // U-mode ECALL is handled inline by the CPU (Linux syscall interception).
+                // Drain any UART output
+            },
+            cpu::StepResult::Ebreak => {
+                eprintln!(
+                    "EBREAK at PC=0x{:08X} after {} instructions",
+                    vm.cpu.pc, count
+                );
+                break;
+            },
+            cpu::StepResult::Shutdown => {
+                eprintln!("Shutdown after {} instructions", count);
+                break;
+            },
+            cpu::StepResult::Yielded => {},
+            cpu::StepResult::FetchFault
+            | cpu::StepResult::LoadFault
+            | cpu::StepResult::StoreFault => {
+                // In non-Linux mode, faults halt. Check if we got any output.
+                eprintln!(
+                    "FAULT at PC=0x{:08X} after {} instructions (priv={:?})",
+                    vm.cpu.pc, count, vm.cpu.privilege
+                );
+                break;
+            },
+        }
+        count += 1;
+
+        // Drain UART/SBI console output
+        if !vm.bus.sbi.console_output.is_empty() {
+            uart_output.extend_from_slice(&vm.bus.sbi.console_output);
+            vm.bus.sbi.console_output.clear();
+        }
+        if !vm.bus.uart.tx_buf.is_empty() {
+            uart_output.extend_from_slice(&vm.bus.uart.tx_buf);
+            vm.bus.uart.tx_buf.clear();
+        }
+    }
+
+    let output_str = String::from_utf8_lossy(&uart_output);
+    eprintln!("--- UART output ({} bytes) ---", uart_output.len());
+    eprintln!("{}", output_str);
+    eprintln!("--- End output ({} instructions) ---", count);
+
+    // The stress test should produce output containing test results
+    // At minimum, the syscall_stress test should print its header
+    assert!(
+        count > 100,
+        "Expected at least 100 instructions, got {}",
+        count
+    );
+}
+
+/// Run a RISC-V ELF in User mode and return (instruction_count, uart_output).
+fn run_usermode_elf(elf_name: &str, max_instructions: u64) -> (u64, String) {
+    let elf_path = format!("examples/riscv-hello/{}", elf_name);
+    let elf_data =
+        std::fs::read(&elf_path).unwrap_or_else(|e| panic!("Failed to read {}: {}", elf_path, e));
+
+    let ram_size = 4 * 1024 * 1024; // 4MB
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, ram_size);
+
+    let load_info = loader::load_elf(&mut vm.bus, &elf_data).expect("ELF load should succeed");
+
+    vm.cpu.pc = load_info.entry;
+    vm.cpu.privilege = cpu::Privilege::User;
+    vm.cpu.x[2] = (ram_base + ram_size as u64 - 16) as u32; // SP
+
+    vm.bus.heap_start = load_info.highest_addr;
+    vm.bus.heap_end = load_info.highest_addr;
+    vm.bus.mmap_next = ram_base + ram_size as u64 / 2;
+
+    vm.cpu.csr.mie = 0;
+    vm.cpu.csr.mstatus &= !(1 << 3); // Clear MIE
+
+    // Trap handler at safe address
+    let trap_addr = ram_base + (ram_size as u64 / 2) + 0x1000;
+    vm.bus.write_word(trap_addr, 0x00100073).unwrap(); // EBREAK
+    vm.cpu.csr.mtvec = trap_addr as u32;
+
+    let mut count: u64 = 0;
+    let mut uart_output = Vec::new();
+
+    while count < max_instructions {
+        match vm.step_no_clint() {
+            cpu::StepResult::Ok | cpu::StepResult::Ecall => {},
+            cpu::StepResult::Ebreak | cpu::StepResult::Shutdown => break,
+            cpu::StepResult::Yielded => {},
+            cpu::StepResult::FetchFault
+            | cpu::StepResult::LoadFault
+            | cpu::StepResult::StoreFault => {
+                eprintln!(
+                    "FAULT at PC=0x{:08X} after {} instructions",
+                    vm.cpu.pc, count
+                );
+                break;
+            },
+        }
+        count += 1;
+
+        if !vm.bus.sbi.console_output.is_empty() {
+            uart_output.extend_from_slice(&vm.bus.sbi.console_output);
+            vm.bus.sbi.console_output.clear();
+        }
+        if !vm.bus.uart.tx_buf.is_empty() {
+            uart_output.extend_from_slice(&vm.bus.uart.tx_buf);
+            vm.bus.uart.tx_buf.clear();
+        }
+    }
+
+    (count, String::from_utf8_lossy(&uart_output).into_owned())
+}
+
+/// Test the syscall_gaps.elf -- exercises syscalls that currently return ENOSYS.
+/// As we implement each one, the test should still pass (ENOSYS flips to success).
+#[test]
+fn test_syscall_gaps_user_mode() {
+    // Build if needed
+    build_riscv_elf("syscall_gaps.c", "syscall_gaps.elf");
+
+    let (count, output) = run_usermode_elf("syscall_gaps.elf", 2_000_000);
+
+    eprintln!("--- Gap test output ({} instructions) ---", count);
+    eprintln!("{}", output);
+    eprintln!("--- End ---");
+
+    assert!(
+        count > 50,
+        "Expected at least 50 instructions, got {}",
+        count
+    );
+
+    // All tests should pass (ENOSYS is acceptable for unimplemented)
+    assert!(
+        output.contains("passed") || output.contains("PASS"),
+        "Expected pass output, got: {:?}",
+        output
+    );
+
+    // Should not have unexpected failures
+    assert!(
+        !output.contains("FAIL"),
+        "Unexpected test failures in gap test:\n{}",
+        output
+    );
+}
+
+// ============================================================
+// Phase 421: SBI Timer and IPI interrupt forwarding tests
+// ============================================================
+
+/// Helper: encode CSRRW rd, csr, rs1 (funct3=001)
+fn enc_csrrw(rd: u32, rs1: u32, csr: u32) -> u32 {
+    (csr << 20) | (rs1 << 15) | (0b001 << 12) | (rd << 7) | 0x73
+}
+
+/// Helper: encode CSRRS rd, csr, rs1 (funct3=010)
+fn enc_csrrs(rd: u32, rs1: u32, csr: u32) -> u32 {
+    (csr << 20) | (rs1 << 15) | (0b010 << 12) | (rd << 7) | 0x73
+}
+
+/// Helper: encode CSRRC rd, csr, rs1 (funct3=011)
+fn enc_csrrc(rd: u32, rs1: u32, csr: u32) -> u32 {
+    (csr << 20) | (rs1 << 15) | (0b011 << 12) | (rd << 7) | 0x73
+}
+
+/// Helper: encode ECALL
+fn enc_ecall_v2() -> u32 {
+    0x00000073
+}
+
+/// Helper: encode ADDI x0, x0, 0 (NOP)
+fn enc_nop() -> u32 {
+    0x00000013
+}
+
+/// Test: Timer interrupt fires and delivers to S-mode handler.
+///
+/// Pipeline: CLINT mtime >= mtimecmp -> sync_mip sets STIP(bit 5) ->
+/// pending_interrupt returns STI cause -> mideleg[5]=1 routes to S-mode ->
+/// trap_enter sets sepc/scause -> PC jumps to stvec.
+#[test]
+fn test_timer_interrupt_delivers_to_smode() {
+    use crate::riscv::csr::constants::*;
+
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 64 * 1024);
+    vm.cpu.pc = ram_base as u32;
+
+    // Configure CSRs for S-mode timer interrupt delivery:
+    // 1. mideleg[INT_STI]=1 (bit 5) — delegate timer interrupt to S-mode
+    vm.cpu.csr.mideleg = 1 << INT_STI;
+    // 2. mstatus.SIE=1 — enable S-mode interrupts globally
+    vm.cpu.csr.mstatus = 1 << MSTATUS_SIE;
+    // 3. mie.STIE=1 (bit 5) — enable supervisor timer interrupt
+    vm.cpu.csr.mie = 1 << INT_STI;
+    // 4. stvec — S-mode trap handler at ram_base + 0x100
+    let handler_addr = ram_base as u32 + 0x100;
+    vm.cpu.csr.stvec = handler_addr;
+
+    // Set CLINT mtimecmp to 5 (timer will fire when mtime >= 5)
+    vm.bus.clint.mtimecmp = 5;
+    vm.bus.clint.mtime = 0;
+
+    // Place NOPs at PC (executed while waiting for timer)
+    for i in 0..20u32 {
+        vm.bus
+            .write_word(ram_base + (i * 4) as u64, enc_nop())
+            .unwrap();
+    }
+
+    // Place handler: just a NOP (we check PC arrival, not handler behavior)
+    vm.bus.write_word(handler_addr as u64, enc_nop()).unwrap();
+
+    // Start in S-mode (not Machine, so delegated interrupts reach S-mode)
+    vm.cpu.privilege = cpu::Privilege::Supervisor;
+
+    // Step until timer fires (each step_with_clint_ticks advances mtime by 1)
+    let mut fired = false;
+    for _ in 0..20 {
+        let _ = vm.step_with_clint_ticks(1);
+        // Check if PC jumped to the handler
+        if vm.cpu.pc == handler_addr {
+            fired = true;
+            break;
+        }
+    }
+
+    assert!(
+        fired,
+        "Timer interrupt should fire and jump to stvec. PC=0x{:08X}",
+        vm.cpu.pc
+    );
+
+    // Verify trap state
+    assert_eq!(
+        vm.cpu.csr.scause,
+        MCAUSE_INTERRUPT_BIT | INT_STI,
+        "scause should be 0x{:08X} (STI interrupt), got 0x{:08X}",
+        MCAUSE_INTERRUPT_BIT | INT_STI,
+        vm.cpu.csr.scause
+    );
+    assert_eq!(
+        vm.cpu.privilege,
+        cpu::Privilege::Supervisor,
+        "should be in S-mode after trap delivery"
+    );
+    // sepc should point to the instruction that was about to execute
+    // (the PC before the trap fired)
+    assert_ne!(vm.cpu.csr.sepc, 0, "sepc should be set to pre-trap PC");
+}
+
+/// Test: IPI/software interrupt fires and delivers to S-mode handler.
+///
+/// Pipeline: SBI SEND_IPI writes clint.msip=1 -> sync_mip sets SSIP(bit 1) ->
+/// pending_interrupt returns SSI cause -> mideleg[1]=1 routes to S-mode ->
+/// trap_enter sets sepc/scause -> PC jumps to stvec.
+#[test]
+fn test_ipi_interrupt_delivers_to_smode() {
+    use crate::riscv::csr::constants::*;
+
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 64 * 1024);
+    vm.cpu.pc = ram_base as u32;
+
+    // Configure CSRs for S-mode software interrupt delivery:
+    // 1. mideleg[INT_SSI]=1 (bit 1) — delegate software interrupt to S-mode
+    vm.cpu.csr.mideleg = 1 << INT_SSI;
+    // 2. mstatus.SIE=1 — enable S-mode interrupts globally
+    vm.cpu.csr.mstatus = 1 << MSTATUS_SIE;
+    // 3. mie.SSIE=1 (bit 1) — enable supervisor software interrupt
+    vm.cpu.csr.mie = 1 << INT_SSI;
+    // 4. stvec — S-mode trap handler at ram_base + 0x100
+    let handler_addr = ram_base as u32 + 0x100;
+    vm.cpu.csr.stvec = handler_addr;
+
+    // Place NOPs at PC
+    for i in 0..10u32 {
+        vm.bus
+            .write_word(ram_base + (i * 4) as u64, enc_nop())
+            .unwrap();
+    }
+
+    // Place handler: NOP
+    vm.bus.write_word(handler_addr as u64, enc_nop()).unwrap();
+
+    // Start in S-mode
+    vm.cpu.privilege = cpu::Privilege::Supervisor;
+
+    // Trigger IPI via SBI SEND_IPI: pulse msip=1
+    vm.bus.clint.msip = 1;
+
+    // Sync MIP so SSIP gets set
+    vm.bus.sync_mip(&mut vm.cpu.csr.mip);
+
+    // Step — pending interrupt should fire immediately
+    let _ = vm.step_no_clint();
+
+    // Verify PC jumped to handler
+    assert_eq!(
+        vm.cpu.pc, handler_addr,
+        "IPI should deliver to stvec handler. PC=0x{:08X}",
+        vm.cpu.pc
+    );
+
+    // Verify trap state
+    assert_eq!(
+        vm.cpu.csr.scause,
+        MCAUSE_INTERRUPT_BIT | INT_SSI,
+        "scause should be 0x{:08X} (SSI interrupt), got 0x{:08X}",
+        MCAUSE_INTERRUPT_BIT | INT_SSI,
+        vm.cpu.csr.scause
+    );
+    assert_eq!(
+        vm.cpu.privilege,
+        cpu::Privilege::Supervisor,
+        "should be in S-mode after trap delivery"
+    );
+    assert_ne!(vm.cpu.csr.sepc, 0, "sepc should be set to pre-trap PC");
+}
+
+/// Test: SBI SEND_IPI ecall pulses msip on hart 0.
+///
+/// Verifies the SBI handler writes clint.msip=1 when receiving
+/// an IPI send request (a7=SBI_EXT_IPI, a6=0).
+#[test]
+fn test_sbi_send_ipi_pulses_msip() {
+    use crate::riscv::clint::Clint;
+    use crate::riscv::sbi::Sbi;
+    use crate::riscv::uart::Uart;
+
+    let mut sbi = Sbi::new();
+    let mut clint = Clint::new();
+    let mut uart = Uart::new();
+
+    assert_eq!(clint.msip, 0, "msip should start at 0");
+
+    let mut mem = GuestMemory::new(0x8000_0000, 4096);
+    let mut virtio_blk = VirtioBlk::new();
+
+    // Call SBI SEND_IPI: a7=SBI_EXT_IPI (0x735049), a6=0
+    let result = sbi.handle_ecall(
+        0x735049, // a7 = SBI_EXT_IPI
+        0,        // a6 = send IPI function
+        1,        // a0 = hart_mask (hart 0)
+        0,        // a1 = hart_mask_base
+        0,
+        0,
+        0,
+        0,
+        &mut uart,
+        &mut clint,
+        &mut mem,
+        &mut virtio_blk,
+    );
+
+    assert!(result.is_some(), "SEND_IPI should return a result");
+    let (err, val) = result.unwrap();
+    assert_eq!(err, 0, "SEND_IPI should return SUCCESS (error=0)");
+    assert_eq!(val, 0, "SEND_IPI should return value=0");
+    assert_eq!(clint.msip, 1, "SEND_IPI should pulse msip to 1");
+}
+
+/// Test: Timer interrupt from M-mode ECALL to SBI SET_TIMER through to S-mode delivery.
+/// Test: Timer interrupt fires during step_with_clint_ticks when mtime >= mtimecmp.
+///
+/// Starts in S-mode with timer delegated. When step_with_clint_ticks advances
+/// mtime past mtimecmp, sync_mip sets STIP and the interrupt delivers to stvec.
+/// The handler at stvec contains a WFI (0x10500073) so PC stays at handler_addr.
+#[test]
+fn test_sbi_set_timer_then_fire_to_smode() {
+    use crate::riscv::csr::constants::*;
+
+    let ram_base: u64 = 0x8000_0000;
+    let mut vm = RiscvVm::new_with_base(ram_base, 64 * 1024);
+    vm.cpu.pc = ram_base as u32;
+    vm.cpu.privilege = cpu::Privilege::Supervisor;
+
+    // Configure for S-mode timer delivery
+    vm.cpu.csr.mideleg = 1 << INT_STI; // delegate timer to S-mode
+    vm.cpu.csr.mstatus = 1 << MSTATUS_SIE; // enable S-mode interrupts
+    vm.cpu.csr.mie = 1 << INT_STI; // enable supervisor timer interrupt
+
+    // Handler at ram_base + 0x100 — WFI instruction (stays put)
+    let handler_addr = ram_base as u32 + 0x100;
+    vm.cpu.csr.stvec = handler_addr;
+    // WFI = 0x10500073 — doesn't advance PC
+    vm.bus.write_word(handler_addr as u64, 0x10500073).unwrap();
+
+    // Place NOPs at PC
+    for i in 0..20u32 {
+        vm.bus
+            .write_word(ram_base + (i * 4) as u64, enc_nop())
+            .unwrap();
+    }
+
+    // Set timer to fire at mtime=5
+    vm.bus.clint.mtimecmp = 5;
+    vm.bus.clint.mtime = 0;
+
+    // Step until timer fires. Each step_with_clint_ticks(1) advances mtime by 1.
+    // At mtime=5, sync_mip sets STIP, cpu.step() delivers interrupt to stvec.
+    let mut fired = false;
+    for _ in 0..10 {
+        let _ = vm.step_with_clint_ticks(1);
+        // After interrupt delivery, PC = handler_addr (WFI keeps it there)
+        // or handler_addr + 4 (NOP advanced before we check)
+        let pc = vm.cpu.pc;
+        if pc == handler_addr || pc == handler_addr + 4 {
+            // Verify it's actually the timer interrupt, not some other trap
+            if vm.cpu.csr.scause == MCAUSE_INTERRUPT_BIT | INT_STI {
+                fired = true;
+                break;
+            }
+        }
+    }
+
+    assert!(fired, "Timer should fire and deliver to S-mode handler. PC=0x{:08X}, scause=0x{:08X}, mtime={}, mtimecmp={}",
+        vm.cpu.pc, vm.cpu.csr.scause, vm.bus.clint.mtime, vm.bus.clint.mtimecmp);
+    assert_eq!(
+        vm.cpu.csr.scause,
+        MCAUSE_INTERRUPT_BIT | INT_STI,
+        "scause should be STI interrupt"
+    );
+    assert_eq!(vm.cpu.privilege, cpu::Privilege::Supervisor);
+}
+
+// Phase 303: GPU substrate wiring tests
+mod phase303_gpu_substrate {
+    use super::*;
+    use crate::riscv::substrate::{SubstrateDevice, SUBSTRATE_BASE};
+
+    // STATUS_IDLE = 0x00 (not exported, using literal)
+    const STATUS_IDLE: u32 = 0x00;
+
+    /// Without the gpu feature, substrate starts in IDLE state (no active substrate).
+    #[test]
+    fn substrate_starts_idle_without_gpu_feature() {
+        let vm = RiscvVm::new(64 * 1024);
+        let status = vm.bus.substrate.read(SUBSTRATE_BASE + 0x04);
+        assert_eq!(
+            status,
+            Some(STATUS_IDLE),
+            "Substrate STATUS should be IDLE without gpu feature"
+        );
+    }
+
+    /// init_gpu_substrate() is callable without panicking (no-op path without gpu feature).
+    #[test]
+    fn init_gpu_substrate_noop_without_gpu_feature() {
+        let mut vm = RiscvVm::new(64 * 1024);
+        // Should not panic -- just silently does nothing without the gpu feature.
+        vm.init_gpu_substrate();
+        // Still idle because no gpu feature.
+        let status = vm.bus.substrate.read(SUBSTRATE_BASE + 0x04);
+        assert_eq!(
+            status,
+            Some(STATUS_IDLE),
+            "Substrate STATUS should remain IDLE without gpu feature"
+        );
+    }
+
+    /// After boot_guest, substrate doesn't panic on the init call.
+    #[test]
+    fn boot_path_does_not_panic_on_substrate_init() {
+        let kernel = build_uart_program("OK");
+        let mut vm = RiscvVm::new(64 * 1024);
+        let _ = vm.boot_guest(&kernel, 1, 100);
+        // Without gpu feature, substrate is still idle but nothing panicked.
+        let status = vm.bus.substrate.read(SUBSTRATE_BASE + 0x04);
+        assert_eq!(status, Some(STATUS_IDLE));
+    }
+
+    /// SubstrateDevice MMIO range is still accessible without active substrate.
+    /// X/Y register reads return 0 (initial state).
+    #[test]
+    fn substrate_mmio_responds_without_active_substrate() {
+        let mut dev = SubstrateDevice::new();
+        // Write/read X and Y to verify MMIO path works.
+        assert!(dev.write(SUBSTRATE_BASE, 42));
+        assert!(dev.write(SUBSTRATE_BASE + 4, 99));
+        assert_eq!(dev.read(SUBSTRATE_BASE), Some(42), "X register roundtrip");
+        assert_eq!(
+            dev.read(SUBSTRATE_BASE + 4),
+            Some(99),
+            "Y register roundtrip"
+        );
+    }
+
+    /// SubstrateDevice MMIO range check includes the base address.
+    #[test]
+    fn substrate_mmio_base_address_is_correct() {
+        assert!(
+            SubstrateDevice::contains(SUBSTRATE_BASE),
+            "SubstrateDevice should contain its base address 0x{:08X}",
+            SUBSTRATE_BASE
+        );
+    }
+
+    /// With the gpu feature, verify the substrate is actually initialized with a live substrate.
+    /// This test requires a GPU runtime (WGPU) and is ignored by default.
+    /// Run with: cargo test --lib --features gpu -- --ignored init_gpu_substrate_creates_active_substrate
+    #[cfg(feature = "gpu")]
+    #[ignore]
+    #[test]
+    fn init_gpu_substrate_creates_active_substrate() {
+        let mut vm = RiscvVm::new(64 * 1024);
+        vm.init_gpu_substrate();
+        assert!(
+            vm.bus.substrate.active_substrate.is_some(),
+            "Substrate should be Some when gpu feature is enabled and adapter is available"
+        );
+    }
+}

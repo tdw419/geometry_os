@@ -1,0 +1,29 @@
+; Heat-Map Migration Routine (Dormant-to-Active)
+; Periodically swaps low-CPPM fragments with high-CPPM ones
+
+:main
+    LDI r10, 0x1000     ; Heat Counter Base Address
+    LDI r11, 0          ; Current Hilbert Index
+    LDI r12, 65535      ; Max Hilbert Index (256x256)
+
+:loop
+    LOAD r1, r10        ; Read Heat Counter for this index
+    LDI r2, 100         ; Threshold for "Hot" status
+    SUB r3, r1, r2
+    
+    ; If (Heat > 100), it's "Hot". Move it to Center (Zone 0)
+    JZ r3, :move_to_center
+    
+    ADD r11, r11, 1     ; Next index
+    ADD r10, r10, 1     ; Next counter
+    SUB r4, r11, r12
+    JZ r4, :done
+    JMP :loop
+
+:move_to_center
+    ; Logical swap logic goes here
+    ; Swap fragment at r11 with fragment at 0x7FFF (The Hub)
+    HALT
+
+:done
+    HALT

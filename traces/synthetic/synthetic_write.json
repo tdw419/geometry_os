@@ -1,0 +1,425 @@
+{
+  "trace_name": "synthetic_write",
+  "syscalls": [
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 3,
+        "a1": 2147479368,
+        "a2": 1,
+        "a3": 0,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147479468,
+        "a2": 2,
+        "a3": 0,
+        "a4": 4309,
+        "a5": 2
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 5,
+        "a1": 2147479568,
+        "a2": 3,
+        "a3": 0,
+        "a4": 4310,
+        "a5": 3
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 6,
+        "a1": 2147479668,
+        "a2": 4,
+        "a3": 0,
+        "a4": 4311,
+        "a5": 4
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 7,
+        "a1": 2147479768,
+        "a2": 5,
+        "a3": 0,
+        "a4": 4312,
+        "a5": 5
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 8,
+        "a1": 2147479868,
+        "a2": 6,
+        "a3": 0,
+        "a4": 4308,
+        "a5": 6
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 9,
+        "a1": 2147479968,
+        "a2": 7,
+        "a3": 0,
+        "a4": 4309,
+        "a5": 7
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 10,
+        "a1": 2147480068,
+        "a2": 8,
+        "a3": 0,
+        "a4": 4310,
+        "a5": 8
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 11,
+        "a1": 2147480168,
+        "a2": 9,
+        "a3": 0,
+        "a4": 4311,
+        "a5": 9
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 12,
+        "a1": 2147480268,
+        "a2": 10,
+        "a3": 0,
+        "a4": 4312,
+        "a5": 10
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 4,
+        "a1": 2147478848,
+        "a2": 4602,
+        "a3": 2147479336,
+        "a4": 4308,
+        "a5": 1
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 5,
+        "a1": 2147478948,
+        "a2": 4603,
+        "a3": 2147479436,
+        "a4": 4309,
+        "a5": 2
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 6,
+        "a1": 2147479048,
+        "a2": 4604,
+        "a3": 2147479536,
+        "a4": 4310,
+        "a5": 3
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 7,
+        "a1": 2147479148,
+        "a2": 4605,
+        "a3": 2147479636,
+        "a4": 4311,
+        "a5": 4
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 8,
+        "a1": 2147479248,
+        "a2": 4606,
+        "a3": 2147479736,
+        "a4": 4312,
+        "a5": 5
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 9,
+        "a1": 2147479348,
+        "a2": 4602,
+        "a3": 2147479836,
+        "a4": 4308,
+        "a5": 6
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 10,
+        "a1": 2147479448,
+        "a2": 4603,
+        "a3": 2147479936,
+        "a4": 4309,
+        "a5": 7
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 11,
+        "a1": 2147479548,
+        "a2": 4604,
+        "a3": 2147480036,
+        "a4": 4310,
+        "a5": 8
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 12,
+        "a1": 2147479648,
+        "a2": 4605,
+        "a3": 2147480136,
+        "a4": 4311,
+        "a5": 9
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    },
+    {
+      "syscall": {
+        "number": 16,
+        "name": "write",
+        "description": "write syscall"
+      },
+      "arguments": {
+        "a0": 13,
+        "a1": 2147479748,
+        "a2": 4606,
+        "a3": 2147480236,
+        "a4": 4312,
+        "a5": 10
+      },
+      "return_value": 0,
+      "semantics": {
+        "spatial_ops": [
+          "copy_pixels_to_block_region"
+        ]
+      }
+    }
+  ]
+}
