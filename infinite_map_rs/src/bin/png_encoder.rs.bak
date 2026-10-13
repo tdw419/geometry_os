@@ -1,0 +1,195 @@
+use std::env;
+use std::fs::File;
+use std::io::{self, Read, Write};
+use std::path::Path;
+use std::process;
+use png::{Encoder, ColorType, BitDepth};
+use sha2::{Sha256, Digest};
+
+struct Config {
+    kernel_path: String,
+    initramfs_path: String,
+    output_path: String,
+    width: u32,
+    height: u32,
+    boot_params: String,
+}
+
+impl Config {
+    fn from_args() -> Result<Self, Box<dyn std::error::Error>> {
+        let args: Vec<String> = env::args().collect();
+        
+        let mut kernel_path = String::from("kernel.elf");
+        let mut initramfs_path = String::from("initramfs.cpio");
+        let mut output_path = String::from("boot.png");
+        let mut width = 512u32;
+        let mut height = 512u32;
+        let mut boot_params = String::from("console=ttyS0 root=/dev/ram0 rw");
+        
+        let mut i = 1;
+        while i < args.len() {
+            match args[i].as_str() {
+                "--kernel" => {
+                    kernel_path = args.get(i + 1).unwrap_or(&kernel_path).clone();
+                    i += 2;
+                }
+                "--initramfs" => {
+                    initramfs_path = args.get(i + 1).unwrap_or(&initramfs_path).clone();
+                    i += 2;
+                }
+                "--output" => {
+                    output_path = args.get(i + 1).unwrap_or(&output_path).clone();
+                    i += 2;
+                }
+                "--width" => {
+                    width = args.get(i + 1).unwrap_or(&width.to_string()).parse()?;
+                    i += 2;
+                }
+                "--height" => {
+                    height = args.get(i + 1).unwrap_or(&height.to_string()).parse()?;
+                    i += 2;
+                }
+                "--boot-params" => {
+                    boot_params = args.get(i + 1).unwrap_or(&boot_params).clone();
+                    i += 2;
+                }
+                _ => {
+                    eprintln!("Unknown argument: {}", args[i]);
+                    process::exit(1);
+                }
+            }
+        }
+        
+        Ok(Config {
+            kernel_path,
+            initramfs_path,
+            output_path,
+            width,
+            height,
+            boot_params,
+        })
+    }
+}
+
+fn read_file(path: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let mut file = File::open(path)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    Ok(buffer)
+}
+
+fn calculate_checksum(kernel: &[u8], initramfs: &[u8], boot_params: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(kernel);
+    hasher.update(initramfs);
+    hasher.update(boot_params);
+    let result = hasher.finalize();
+    format!("{:x}", result)
+}
+
+fn encode_into_png(kernel: &[u8], initramfs: &[u8], boot_params: &str, width: u32, height: u32) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let total_pixels = width * height;
+    let total_bytes = (total_pixels * 4) as usize;
+    
+    let mut pixels = vec![0u8; total_bytes];
+    let boot_params_bytes = boot_params.as_bytes();
+    
+    let mut kernel_idx = 0;
+    let mut initramfs_idx = 0;
+    let mut params_idx = 0;
+    
+    for y in 0..height {
+        for x in 0..width {
+            let offset = ((y * width + x) * 4) as usize;
+            
+            // R channel: kernel data (high 4 bits)
+            if kernel_idx < kernel.len() {
+                pixels[offset] = kernel[kernel_idx] >> 4;
+                kernel_idx += 1;
+            }
+            
+            // G channel: initramfs data (high 4 bits)
+            if initramfs_idx < initramfs.len() {
+                pixels[offset + 1] = initramfs[initramfs_idx] >> 4;
+                initramfs_idx += 1;
+            }
+            
+            // B channel: boot params (high 4 bits)
+            if params_idx < boot_params_bytes.len() {
+                pixels[offset + 2] = boot_params_bytes[params_idx] >> 4;
+                params_idx += 1;
+            }
+            
+            // Alpha channel: metadata
+            if y == 0 && x < 16 {
+                pixels[offset + 3] = b'G'; // Magic marker
+            } else if y == 0 && x < 32 && x >= 16 {
+                pixels[offset + 3] = b'E'; // Architecture marker
+            } else if y == 0 && x < 48 && x >= 32 {
+                pixels[offset + 3] = b'O'; // OS marker
+            } else if y == height - 1 && x == width - 1 {
+                // Checksum placeholder
+                pixels[offset + 3] = 0xFF;
+            } else {
+                pixels[offset + 3] = 0xFF;
+            }
+        }
+    }
+    
+    // Create PNG
+    let mut encoder = Encoder::new(Vec::new(), width, height);
+    encoder.set_color(ColorType::Rgba);
+    encoder.set_depth(BitDepth::Eight);
+    
+    let mut writer = encoder.write_header()?;
+    writer.write_image_data(&pixels)?;
+    
+    let png_data = writer.finish()?;
+    Ok(png_data.0)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::from_args()?;
+    
+    println!("=== Geometry OS PNG Encoder ===");
+    println!("Reading kernel: {}", config.kernel_path);
+    let kernel = read_file(&config.kernel_path)?;
+    println!("Kernel size: {} bytes", kernel.len());
+    
+    println!("Reading initramfs: {}", config.initramfs_path);
+    let initramfs = read_file(&config.initramfs_path)?;
+    println!("Initramfs size: {} bytes", initramfs.len());
+    
+    println!("Boot params: {}", config.boot_params);
+    
+    let required_capacity = kernel.len() + initramfs.len() + config.boot_params.len();
+    let available_capacity = (config.width * config.height) as usize;
+    
+    if required_capacity > available_capacity {
+        eprintln!("Error: Insufficient PNG capacity");
+        eprintln!("Required: {} bytes", required_capacity);
+        eprintln!("Available: {} pixels ({} bytes with 4x encoding)", 
+                   available_capacity, available_capacity * 4);
+        return Err("Capacity exceeded".into());
+    }
+    
+    println!("Encoding into {}x{} PNG...", config.width, config.height);
+    let png_data = encode_into_png(
+        &kernel,
+        &initramfs,
+        &config.boot_params,
+        config.width,
+        config.height
+    )?;
+    
+    println!("Writing PNG: {}", config.output_path);
+    let mut output_file = File::create(&config.output_path)?;
+    output_file.write_all(&png_data)?;
+    
+    let checksum = calculate_checksum(&kernel, &initramfs, config.boot_params.as_bytes());
+    println!("Checksum (SHA256): {}", checksum);
+    
+    println!("Done! Output size: {} bytes", png_data.len());
+    
+    Ok(())
+}

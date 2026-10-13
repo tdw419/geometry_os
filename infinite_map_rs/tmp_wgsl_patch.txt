@@ -1,0 +1,27 @@
+// ============================================
+// Phase 43: Syscall Bridge - Pending Counts
+// ============================================
+
+@group(0) @binding(6) var<storage, read_write> profiler_blocks: array<ProfilerEntry, MAX_PROFILED_BLOCKS>;
+
+// ============================================
+// Combined Small Buffers (Phase 99 consolidation)
+// ============================================
+// Consolidated buffer for pending_counts, vm_status, and debug counters
+// Total size: 96 bytes
+struct CombinedSmallBuffers {
+    pending_counts: array<atomic<u32>, 8>,       // Offset 0-31 (32 bytes)
+    vm_status: array<u32, 8>,                    // Offset 32-63 (32 bytes)
+    debug_ecall_pc_count: atomic<u32>,           // Offset 64-67 (4 bytes)
+    debug_op_system_count: atomic<u32>,          // Offset 68-71 (4 bytes)
+    debug_handle_syscall_count: atomic<u32>,     // Offset 72-75 (4 bytes)
+    debug_syscall_291_count: atomic<u32>,        // Offset 76-79 (4 bytes)
+    debug_vm_status_set_count: atomic<u32>,      // Offset 80-83 (4 bytes)
+    _padding: array<u32, 3>,                     // Offset 84-95 (12 bytes)
+};
+
+@group(0) @binding(7) var<storage, read_write> combined_small: CombinedSmallBuffers;
+
+// ============================================
+// Phase 44: Basic Block Profiler
+// ============================================

@@ -1,0 +1,688 @@
+    Checking infinite_map_rs v0.1.0 (/home/jericho/projects/zion/projects/geometry_os/rung0_lane/infinite_map_rs)
+error[E0432]: unresolved import `crate::spatial::process_scheduler::DEFAULT_TIME_SLICE`
+  --> src/process_region_bridge.rs:12:74
+   |
+12 | use crate::spatial::process_scheduler::{ProcessScheduler, ProcessRegion, DEFAULT_TIME_SLICE};
+   |                                                                          ^^^^^^^^^^^^^^^^^^ no `DEFAULT_TIME_SLICE` in `spatial::process_scheduler`
+
+warning: unused import: `std::path::Path`
+  --> src/glyph_stratum/glyph_to_rts.rs:14:5
+   |
+14 | use std::path::Path;
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::sync::Arc`
+  --> src/glyph_stratum/glyph_compiler.rs:13:5
+   |
+13 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `cartridge_registry::CartridgeRegistry`
+  --> src/app.rs:19:5
+   |
+19 |     cartridge_registry::CartridgeRegistry,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::wave_logic_unit::WaveLogicUnit`
+  --> src/app.rs:44:5
+   |
+44 | use crate::wave_logic_unit::WaveLogicUnit;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `anyhow`
+ --> src/backend/drm/amdgpu/bo_manager.rs:7:14
+  |
+7 | use anyhow::{anyhow, Context, Result};
+  |              ^^^^^^
+
+warning: unused import: `std::fs::File`
+ --> src/backend/drm/amdgpu/bo_manager.rs:9:5
+  |
+9 | use std::fs::File;
+  |     ^^^^^^^^^^^^^
+
+warning: unused imports: `AsRawFd`, `FromRawFd`, and `IntoRawFd`
+  --> src/backend/drm/amdgpu/bo_manager.rs:10:25
+   |
+10 | use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+   |                         ^^^^^^^  ^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `super::drm_ioctl::ctx_op`
+  --> src/backend/drm/amdgpu/bo_manager.rs:18:5
+   |
+18 | use super::drm_ioctl::ctx_op;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src/backend/drm/amdgpu/command_buffer.rs:5:22
+  |
+5 | use anyhow::{anyhow, Context, Result};
+  |                      ^^^^^^^
+
+warning: unused import: `anyhow`
+ --> src/backend/drm/amdgpu/native_riscv_executor.rs:6:14
+  |
+6 | use anyhow::{anyhow, Context, Result};
+  |              ^^^^^^
+
+warning: unused imports: `Context` and `anyhow`
+ --> src/backend/drm/amdgpu/shader.rs:3:14
+  |
+3 | use anyhow::{anyhow, Context, Result};
+  |              ^^^^^^  ^^^^^^^
+
+warning: unused imports: `Context` and `anyhow`
+ --> src/backend/drm/compute.rs:6:14
+  |
+6 | use anyhow::{anyhow, Context, Result};
+  |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `std::os::unix::io::AsRawFd`
+ --> src/backend/drm/compute.rs:7:5
+  |
+7 | use std::os::unix::io::AsRawFd;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `anyhow`
+  --> src/backend/drm/dmabuf.rs:10:14
+   |
+10 | use anyhow::{anyhow, Context, Result};
+   |              ^^^^^^
+
+warning: unused import: `super::dmabuf::DmaBuf`
+  --> src/backend/drm/integrated_executor.rs:23:5
+   |
+23 | use super::dmabuf::DmaBuf;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src/backend/drm/intel/batch.rs:5:22
+  |
+5 | use anyhow::{anyhow, Context, Result};
+  |                      ^^^^^^^
+
+warning: unused imports: `AsRawFd` and `OwnedFd`
+ --> src/backend/drm/intel/batch.rs:7:25
+  |
+7 | use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd};
+  |                         ^^^^^^^             ^^^^^^^
+
+warning: unused import: `std::mem::ManuallyDrop`
+  --> src/backend/drm/intel/batch.rs:10:5
+   |
+10 | use std::mem::ManuallyDrop;
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Context` and `anyhow`
+ --> src/backend/drm/intel/command_buffer.rs:5:14
+  |
+5 | use anyhow::{anyhow, Context, Result};
+  |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `anyhow`
+ --> src/backend/drm/intel/device.rs:3:14
+  |
+3 | use anyhow::{anyhow, Context, Result};
+  |              ^^^^^^
+
+warning: unused imports: `Context` and `anyhow`
+ --> src/backend/drm/intel/shader.rs:5:14
+  |
+5 | use anyhow::{anyhow, Context, Result};
+  |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `std::path::Path`
+  --> src/backend/drm/vcc_compute.rs:28:5
+   |
+28 | use std::path::Path;
+   |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `std::ptr`
+ --> src/backend/kernel/mod.rs:9:5
+  |
+9 | use std::ptr;
+  |     ^^^^^^^^
+
+warning: unused import: `ash::Device`
+ --> src/backend/vulkan/pipeline.rs:6:5
+  |
+6 | use ash::Device;
+  |     ^^^^^^^^^^^
+
+warning: unused import: `ScreenDimensionsConfig`
+ --> src/bare_metal/window_renderer.rs:6:29
+  |
+6 | use super::{GpuFramebuffer, ScreenDimensionsConfig};
+  |                             ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::glyph_stratum::*`
+ --> src/font_atlas.rs:6:5
+  |
+6 | use crate::glyph_stratum::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unnecessary parentheses around closure body
+  --> src/weight_loader.rs:83:22
+   |
+83 |             .map(|i| ((i as f32) / (num_weights as f32) * 2.0 - 1.0)) // -1.0 to 1.0
+   |                      ^                                             ^
+   |
+   = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+   |
+83 -             .map(|i| ((i as f32) / (num_weights as f32) * 2.0 - 1.0)) // -1.0 to 1.0
+83 +             .map(|i| (i as f32) / (num_weights as f32) * 2.0 - 1.0) // -1.0 to 1.0
+   |
+
+warning: unused import: `MaterializeCell`
+  --> src/neural_gate.rs:25:65
+   |
+25 | use crate::geoasm_materializer::{CellState, GeoasmMaterializer, MaterializeCell, MaterializeRequest};
+   |                                                                 ^^^^^^^^^^^^^^^
+
+warning: unused import: `ZLayer`
+  --> src/rendering/window_particle_renderer.rs:14:46
+   |
+14 | use crate::window_particle::{WindowParticle, ZLayer};
+   |                                              ^^^^^^
+
+warning: unused import: `GlyphInfo`
+  --> src/rendering/window_particle_renderer.rs:16:38
+   |
+16 | use crate::glyph_atlas::{GlyphAtlas, GlyphInfo, GlyphKey};
+   |                                      ^^^^^^^^^
+
+warning: unused import: `std::fmt`
+ --> src/refinery/types.rs:5:5
+  |
+5 | use std::fmt;
+  |     ^^^^^^^^
+
+warning: unused imports: `FluidType`, `Pipe`, and `Tank`
+ --> src/refinery/hybrid_simulation.rs:7:30
+  |
+7 | use crate::refinery::types::{FluidType, Pipe, RefineryState, Tank};
+  |                              ^^^^^^^^^  ^^^^                 ^^^^
+
+warning: unused import: `std::io::Cursor`
+ --> src/refinery/hybrid_simulation.rs:9:5
+  |
+9 | use std::io::Cursor;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `std::io::Write`
+  --> src/refinery/hybrid_simulation.rs:10:5
+   |
+10 | use std::io::Write;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `GlyphError`
+  --> src/riscv/ubuntu_bridge.rs:10:61
+   |
+10 | use crate::backend::drm::glyph_executor::{DrmGlyphExecutor, GlyphError};
+   |                                                             ^^^^^^^^^^
+
+warning: unused import: `crate::geoasm_materializer::CellState`
+ --> src/spatial/control_unit.rs:5:5
+  |
+5 | use crate::geoasm_materializer::CellState;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `TYPE_ADD_RI`, `TYPE_JZ`, `TYPE_SUB_RI`, and `TYPE_SUB_RR`
+  --> src/spatial/glyph_bridge.rs:13:68
+   |
+13 | use crate::geoasm_materializer::{CellState, TYPE_LDI, TYPE_ADD_RR, TYPE_SUB_RR, TYPE_ADD_RI, TYPE_SUB_RI, TYPE_JZ, TYPE_JMP, TYPE_HALT, T...
+   |                                                                    ^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^
+
+warning: unused import: `TYPE_WALL`
+  --> src/spatial/hypervisor_bridge.rs:13:45
+   |
+13 | use crate::geoasm_materializer::{CellState, TYPE_WALL};
+   |                                             ^^^^^^^^^
+
+warning: unused imports: `CellState` and `TYPE_WALL`
+  --> src/spatial/orchestration.rs:11:34
+   |
+11 | use crate::geoasm_materializer::{CellState, TYPE_WALL, TYPE_MEMBRANE, TYPE_DOOR};
+   |                                  ^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `SpatialRegionTable`
+  --> src/spatial/orchestration.rs:12:56
+   |
+12 | use crate::spatial::hypervisor_bridge::{SpatialRegion, SpatialRegionTable};
+   |                                                        ^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `TYPE_HALT`, `TYPE_JMP`, and `TYPE_LDI`
+  --> src/spatial/payload_loader.rs:13:45
+   |
+13 | use crate::geoasm_materializer::{CellState, TYPE_LDI, TYPE_JMP, TYPE_NOP, TYPE_HALT, TYPE_WALL};
+   |                                             ^^^^^^^^  ^^^^^^^^            ^^^^^^^^^
+
+warning: unused import: `TranspiledCell`
+  --> src/spatial/payload_loader.rs:14:57
+   |
+14 | use crate::spatial::riscv_transpiler::{RiscvTranspiler, TranspiledCell};
+   |                                                         ^^^^^^^^^^^^^^
+
+warning: unused import: `SpatialAllocResp`
+  --> src/spatial/payload_loader.rs:15:76
+   |
+15 | use crate::spatial::hypervisor_bridge::{SpatialAllocator, SpatialAllocReq, SpatialAllocResp, SPATIAL_ALLOC_OK};
+   |                                                                            ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `MemoryConfig` and `SpatialMemory`
+  --> src/spatial/payload_loader.rs:16:38
+   |
+16 | use crate::spatial::spatial_memory::{SpatialMemory, MemoryConfig};
+   |                                      ^^^^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unused import: `crate::spatial::path_cache::PathCache`
+  --> src/spatial/payload_loader.rs:17:5
+   |
+17 | use crate::spatial::path_cache::PathCache;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `DynamicImage`
+  --> src/spatial/payload_loader.rs:18:13
+   |
+18 | use image::{DynamicImage, GenericImageView};
+   |             ^^^^^^^^^^^^
+
+warning: unused import: `TYPE_NOP`
+  --> src/spatial/payload_loader_linux.rs:13:45
+   |
+13 | use crate::geoasm_materializer::{CellState, TYPE_NOP, TYPE_WALL};
+   |                                             ^^^^^^^^
+
+warning: unused import: `SpatialAllocResp`
+  --> src/spatial/payload_loader_linux.rs:14:76
+   |
+14 | use crate::spatial::hypervisor_bridge::{SpatialAllocator, SpatialAllocReq, SpatialAllocResp, SPATIAL_ALLOC_OK};
+   |                                                                            ^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::geoasm_materializer::CellState`
+ --> src/spatial/process_scheduler.rs:2:5
+  |
+2 | use crate::geoasm_materializer::CellState;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `TYPE_COPY`, `TYPE_HALT`, `TYPE_NOP`, and `TYPE_WALL`
+ --> src/spatial/riscv_core.rs:6:45
+  |
+6 | ...lizer::{CellState, TYPE_NOP, TYPE_ADD_RR, TYPE_SUB_RR, TYPE_LDI, TYPE_JZ, TYPE_JMP, TYPE_HALT, TYPE_COPY, TYPE_WALL};
+  |                       ^^^^^^^^                                                         ^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `MemoryConfig`
+ --> src/spatial/riscv_core.rs:7:53
+  |
+7 | use crate::spatial::spatial_memory::{SpatialMemory, MemoryConfig};
+  |                                                     ^^^^^^^^^^^^
+
+warning: unused imports: `TYPE_ADD_RI`, `TYPE_ADD_RR`, `TYPE_COPY`, `TYPE_JMP`, `TYPE_JZ`, `TYPE_LDI`, `TYPE_SUB_RI`, and `TYPE_SUB_RR`
+ --> src/spatial/riscv_decoder.rs:5:45
+  |
+5 | ...er::{CellState, TYPE_LDI, TYPE_ADD_RR, TYPE_SUB_RR, TYPE_ADD_RI, TYPE_SUB_RI, TYPE_JZ, TYPE_JMP, TYPE_HALT, TYPE_COPY};
+  |                    ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^  ^^^^^^^^             ^^^^^^^^^
+
+warning: unused import: `X0`
+ --> src/spatial/riscv_decoder.rs:6:61
+  |
+6 | use crate::spatial::riscv_core::{SpatialRiscvCore, RegAddr, X0, RA};
+  |                                                             ^^
+
+warning: unused imports: `MmuProgram` and `TYPE_ALLOC`
+  --> src/spatial/self_boot_loader.rs:28:35
+   |
+28 | use crate::spatial::spatial_mmu::{MmuProgram, TYPE_ALLOC, TYPE_NOP};
+   |                                   ^^^^^^^^^^  ^^^^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+  --> src/spatial/self_boot_loader.rs:29:5
+   |
+29 | use std::collections::HashMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Arc` and `RwLock`
+  --> src/spatial/self_config.rs:16:17
+   |
+16 | use std::sync::{Arc, RwLock};
+   |                 ^^^  ^^^^^^
+
+warning: unused import: `TYPE_NOP`
+ --> src/spatial/spatial_alu.rs:5:45
+  |
+5 | use crate::geoasm_materializer::{CellState, TYPE_NOP};
+  |                                             ^^^^^^^^
+
+warning: unused import: `TYPE_LDI`
+ --> src/spatial/spatial_memory.rs:6:66
+  |
+6 | use crate::geoasm_materializer::{CellState, TYPE_NOP, TYPE_WALL, TYPE_LDI, TYPE_COPY};
+  |                                                                  ^^^^^^^^
+
+warning: unused import: `super::circuit_optimizer::OptimizationConfig`
+  --> src/spatial/spatial_generator.rs:12:5
+   |
+12 | use super::circuit_optimizer::OptimizationConfig;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Instant`
+  --> src/spatial/circuit_optimizer.rs:14:27
+   |
+14 | use std::time::{Duration, Instant};
+   |                           ^^^^^^^
+
+warning: unused imports: `Read` and `self`
+  --> src/spatial/circuit_optimizer.rs:16:15
+   |
+16 | use std::io::{self, Read};
+   |               ^^^^  ^^^^
+
+warning: unused import: `super::spatial_attention::SpatialAttention`
+  --> src/spatial/circuit_optimizer.rs:19:5
+   |
+19 | use super::spatial_attention::SpatialAttention;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `MaterializeCell`
+  --> src/spatial/circuit_optimizer.rs:20:65
+   |
+20 | use crate::geoasm_materializer::{CellState, MaterializeRequest, MaterializeCell, GeoasmMaterializer};
+   |                                                                 ^^^^^^^^^^^^^^^
+
+warning: unused import: `CircuitOptimizer`
+  --> src/spatial/evolution_daemon.rs:17:32
+   |
+17 | use super::circuit_optimizer::{CircuitOptimizer, OptimizationConfig};
+   |                                ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `MetricsCollector` and `PerformanceMetrics`
+  --> src/spatial/evolution_daemon.rs:18:34
+   |
+18 | use super::performance_metrics::{MetricsCollector, PerformanceMetrics};
+   |                                  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GeoasmMaterializer`, `MaterializeCell`, and `MaterializeRequest`
+  --> src/spatial/evolution_daemon.rs:22:16
+   |
+22 |     CellState, GeoasmMaterializer, MaterializeCell, MaterializeRequest,
+   |                ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `TYPE_NOP`
+ --> src/spatial/layoutgan_saccade.rs:1:56
+  |
+1 | use crate::geoasm_materializer::{CellState, TYPE_WALL, TYPE_NOP};
+  |                                                        ^^^^^^^^
+
+warning: unused import: `VisionError`
+ --> src/spatial/layoutgan_saccade.rs:7:75
+  |
+7 | use super::vision_studio_bridge::{VisionStudioClient, VisionStudioConfig, VisionError};
+  |                                                                           ^^^^^^^^^^^
+
+warning: unused import: `TYPE_WALL`
+ --> src/spatial/tournament_manager.rs:1:70
+  |
+1 | use crate::geoasm_materializer::{CellState, TYPE_MEMBRANE, TYPE_NOP, TYPE_WALL};
+  |                                                                      ^^^^^^^^^
+
+warning: unused imports: `info` and `warn`
+ --> src/spatial/tournament_manager.rs:2:11
+  |
+2 | use log::{info, warn};
+  |           ^^^^  ^^^^
+
+warning: unused import: `TYPE_NOP`
+  --> src/spatial/spatial_processor.rs:11:74
+   |
+11 |     CellState, TYPE_ADD_RI, TYPE_ADD_RR, TYPE_COPY, TYPE_HALT, TYPE_LDI, TYPE_NOP,
+   |                                                                          ^^^^^^^^
+
+warning: unused import: `crate::geoasm_materializer::CellState`
+ --> src/spatial/spatial_ipc.rs:2:5
+  |
+2 | use crate::geoasm_materializer::CellState;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src/spatial/spatial_ipc.rs:3:5
+  |
+3 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `std::mem`
+  --> src/spatial/weight_loader.rs:34:5
+   |
+34 | use std::mem;
+   |     ^^^^^^^^
+
+warning: unused import: `crate::spatial::types::WriteRequest`
+  --> src/spatial/attention_head.rs:23:5
+   |
+23 | use crate::spatial::types::WriteRequest;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::f32::consts::SQRT_2`
+  --> src/spatial/attention_head.rs:24:5
+   |
+24 | use std::f32::consts::SQRT_2;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `TYPE_NOP`
+  --> src/spatial/tensor_gate.rs:30:45
+   |
+30 | use crate::geoasm_materializer::{CellState, TYPE_NOP};
+   |                                             ^^^^^^^^
+
+warning: unnecessary parentheses around assigned value
+   --> src/spatial/riscv_transpiler.rs:803:43
+    |
+803 |                         let imm_shifted = (inst & 0xFFFFF000);  // imm[31:12] << 12
+    |                                           ^                 ^
+    |
+help: remove these parentheses
+    |
+803 -                         let imm_shifted = (inst & 0xFFFFF000);  // imm[31:12] << 12
+803 +                         let imm_shifted = inst & 0xFFFFF000;  // imm[31:12] << 12
+    |
+
+warning: unused imports: `Pod` and `Zeroable`
+ --> src/spatial/tile_state.rs:5:16
+  |
+5 | use bytemuck::{Pod, Zeroable};
+  |                ^^^  ^^^^^^^^
+
+warning: unused import: `TileStateInfo`
+ --> src/spatial/priority_scheduler.rs:9:51
+  |
+9 | use super::tile_manager::{TileCoord, TileManager, TileStateInfo, TileManagerError};
+  |                                                   ^^^^^^^^^^^^^
+
+warning: unused imports: `Arc` and `Mutex`
+  --> src/spatial/priority_scheduler.rs:13:17
+   |
+13 | use std::sync::{Arc, Mutex};
+   |                 ^^^  ^^^^^
+
+warning: unused import: `self`
+  --> src/spatial/png_boot.rs:10:15
+   |
+10 | use std::io::{self, Read};
+   |               ^^^^
+
+warning: unused import: `AuditEntry`
+  --> src/spatial/spatial_process_coordinator.rs:16:72
+   |
+16 | use crate::spatial::spatial_security::{SecurityLevel, SpatialSecurity, AuditEntry};
+   |                                                                        ^^^^^^^^^^
+
+warning: unused import: `crate::spatial::spatial_memory::SpatialMemory`
+  --> src/spatial/llm_weight_mapper.rs:66:5
+   |
+66 | use crate::spatial::spatial_memory::SpatialMemory;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Hash`
+   --> src/spatial/llm_weight_mapper.rs:305:25
+    |
+305 |         use std::hash::{Hash, Hasher};
+    |                         ^^^^
+
+warning: unused import: `Reply`
+  --> src/spatial/evolution_stream.rs:10:48
+   |
+10 | use warp::{ws::Message, ws::WebSocket, Filter, Reply};
+   |                                                ^^^^^
+
+warning: unused import: `warp::path`
+   --> src/spatial/evolution_stream.rs:204:13
+    |
+204 |         use warp::path;
+    |             ^^^^^^^^^^
+
+warning: unused import: `TYPE_HALT`
+ --> src/spatial/pattern_materializer.rs:8:39
+  |
+8 |     CellState, pack_opcode, TYPE_NOP, TYPE_HALT,
+  |                                       ^^^^^^^^^
+
+warning: unnecessary parentheses around assigned value
+  --> src/spatial/vcc_validate.rs:67:30
+   |
+67 |                 let offset = (y as usize * grid_w + x as usize);
+   |                              ^                                ^
+   |
+help: remove these parentheses
+   |
+67 -                 let offset = (y as usize * grid_w + x as usize);
+67 +                 let offset = y as usize * grid_w + x as usize;
+   |
+
+warning: unused imports: `SystemTime` and `UNIX_EPOCH`
+ --> src/spatial/memory_palace_circuit.rs:2:17
+  |
+2 | use std::time::{SystemTime, UNIX_EPOCH};
+  |                 ^^^^^^^^^^  ^^^^^^^^^^
+
+warning: unused imports: `Pod` and `Zeroable`
+  --> src/spatial_grid.rs:11:28
+   |
+11 | use bytemuck::{cast_slice, Pod, Zeroable};
+   |                            ^^^  ^^^^^^^^
+
+warning: unused imports: `HYPERCALL_SPATIAL_PROCESS` and `SPATIAL_ALLOC_OK`
+  --> src/spatial_hypervisor_integration.rs:18:83
+   |
+18 |     SpatialAllocReq, SpatialAllocResp, SpatialAllocator, HYPERCALL_SPATIAL_ALLOC, SPATIAL_ALLOC_OK,
+   |                                                                                   ^^^^^^^^^^^^^^^^
+19 |     // Phase 5.3
+20 |     SpatialProcessReq, SpatialProcessResp, HYPERCALL_SPATIAL_PROCESS,
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unnecessary parentheses around assigned value
+  --> src/tile.rs:49:24
+   |
+49 |         self.overall = (boot_fitness * 0.2
+   |                        ^
+...
+52 |             + self.user_utility * 0.2);
+   |                                      ^
+   |
+help: remove these parentheses
+   |
+49 ~         self.overall = boot_fitness * 0.2
+50 |             + self.stability_score * 0.3
+51 |             + self.performance_score * 0.3
+52 ~             + self.user_utility * 0.2;
+   |
+
+warning: unused import: `Path`
+ --> src/tilestore.rs:7:17
+  |
+7 | use std::path::{Path, PathBuf};
+  |                 ^^^^
+
+warning: unused imports: `compile_glyph_file` and `create_glyph_texture`
+  --> src/visual_kernel_boot.rs:12:44
+   |
+12 | use crate::glyph_stratum::glyph_compiler::{compile_glyph_file, create_glyph_texture};
+   |                                            ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::fmt`
+ --> src/visual_shell.rs:6:5
+  |
+6 | use std::fmt;
+  |     ^^^^^^^^
+
+warning: unused imports: `CellState`, `GeoasmMaterializer`, and `MaterializeRequest`
+   --> src/materialization_test.rs:9:34
+    |
+  9 | use crate::geoasm_materializer::{CellState, GeoasmMaterializer, MaterializeRequest};
+    |                                  ^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+    |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+   --> src/lib.rs:203:1
+    |
+203 | mod materialization_test;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::spatial_grid`
+   --> src/materialization_test.rs:10:5
+    |
+ 10 | use crate::spatial_grid;
+    |     ^^^^^^^^^^^^^^^^^^^
+    |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+   --> src/lib.rs:203:1
+    |
+203 | mod materialization_test;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Arc` and `Mutex`
+  --> src/process_region_bridge.rs:14:17
+   |
+14 | use std::sync::{Arc, Mutex};
+   |                 ^^^  ^^^^^
+
+warning: use of deprecated constant `spatial::path_cache::GRID_W`: Use PathCache::new(cells, grid_w, grid_h) instead
+  --> src/spatial/mod.rs:79:22
+   |
+79 | pub use path_cache::{GRID_W, GRID_H, TOTAL_CELLS, PathCache, Segment};
+   |                      ^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated constant `spatial::path_cache::GRID_H`: Use PathCache::new(cells, grid_w, grid_h) instead
+  --> src/spatial/mod.rs:79:30
+   |
+79 | pub use path_cache::{GRID_W, GRID_H, TOTAL_CELLS, PathCache, Segment};
+   |                              ^^^^^^
+
+warning: use of deprecated constant `spatial::path_cache::TOTAL_CELLS`: Use PathCache::new(cells, grid_w, grid_h) instead
+  --> src/spatial/mod.rs:79:38
+   |
+79 | pub use path_cache::{GRID_W, GRID_H, TOTAL_CELLS, PathCache, Segment};
+   |                                      ^^^^^^^^^^^
+
+warning: use of deprecated constant `spatial::path_cache::GRID_H`: Use PathCache::new(cells, grid_w, grid_h) instead
+  --> src/spatial/self_config.rs:13:34
+   |
+13 | use crate::spatial::path_cache::{GRID_H, GRID_W};
+   |                                  ^^^^^^
+
+warning: use of deprecated constant `spatial::path_cache::GRID_W`: Use PathCache::new(cells, grid_w, grid_h) instead
+  --> src/spatial/self_config.rs:13:42
+   |
+13 | use crate::spatial::path_cache::{GRID_H, GRID_W};
+   |                                          ^^^^^^
+
+warning: use of deprecated constant `spatial::path_cache::GRID_W`: Use PathCache::new(cells, grid_w, grid_h) instead
+  --> src/spatial/self_config.rs:63:28
+   |
+63 |         let total_cells = (GRID_W * GRID_H) as u32;
+   |                            ^^^^^^
+
+warning: `infinite_map_rs` (lib) generated 105 warnings
+error: could not compile `infinite_map_rs` (lib) due to 1 previous error; 105 warnings emitted

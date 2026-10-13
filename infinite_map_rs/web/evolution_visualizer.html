@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - Spatial Circuit Evolution Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #header {
+            background: #1a1a2e;
+            padding: 10px 20px;
+            border-bottom: 2px solid #4a4a6a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 18px;
+            color: #7df9ff;
+        }
+
+        #stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #888;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        #main {
+            flex: 1;
+            display: flex;
+        }
+
+        #circuit-grid {
+            flex: 1;
+            background: #000;
+            position: relative;
+            overflow: auto;
+        }
+
+        #circuit-canvas {
+            display: block;
+        }
+
+        #sidebar {
+            width: 320px;
+            background: #1a1a2e;
+            border-left: 2px solid #4a4a6a;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .panel {
+            background: #0f0f1a;
+            border: 1px solid #4a4a6a;
+            border-radius: 5px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            color: #7df9ff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #generations-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .generation-item {
+            padding: 8px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .generation-item:hover {
+            background: #2a2a3e;
+        }
+
+        .generation-item.active {
+            background: #3a3a5e;
+            border-left: 3px solid #7df9ff;
+        }
+
+        .generation-num {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .generation-fitness {
+            color: #fbbf24;
+        }
+
+        #circuit-info {
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .info-value {
+            color: #4ade80;
+        }
+
+        #cell-inspector {
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .cell-detail {
+            padding: 6px;
+            margin: 4px 0;
+            background: #1a1a2e;
+            border-left: 2px solid #f472b6;
+        }
+
+        #connection-status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #065f46;
+            color: #4ade80;
+        }
+
+        .disconnected {
+            background: #7f1d1d;
+            color: #f87171;
+        }
+
+        #controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 8px;
+            background: #2a2a3e;
+            color: #e0e0e0;
+            border: 1px solid #4a4a6a;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        button:hover {
+            background: #3a3a5e;
+        }
+
+        button.active {
+            background: #4a4a6a;
+            border-color: #7df9ff;
+        }
+
+        #palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .palette-item {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #444;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .palette-item:hover {
+            border-color: #7df9ff;
+        }
+
+        /* Tooltip */
+        #tooltip {
+            position: absolute;
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid #7df9ff;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            max-width: 200px;
+        }
+
+        .tooltip-row {
+            padding: 2px 0;
+        }
+
+        .tooltip-label {
+            color: #888;
+        }
+
+        .tooltip-value {
+            color: #4ade80;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <h1>🧬 Geometry OS - Spatial Circuit Evolution Visualizer</h1>
+            <div id="connection-status" class="disconnected">● Disconnected</div>
+            <div id="stats">
+                <div class="stat">
+                    <span class="stat-label">Generation</span>
+                    <span class="stat-value" id="stat-generation">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Circuits</span>
+                    <span class="stat-value" id="stat-circuits">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Best Fitness</span>
+                    <span class="stat-value" id="stat-best-fitness">0.00</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Gen Time</span>
+                    <span class="stat-value" id="stat-gen-time">0ms</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="main">
+            <div id="circuit-grid">
+                <canvas id="circuit-canvas"></canvas>
+                <div id="tooltip"></div>
+            </div>
+
+            <div id="sidebar">
+                <div class="panel">
+                    <div class="panel-title">Generations</div>
+                    <div id="generations-list">
+                        <div style="padding: 10px; text-align: center; color: #666;">
+                            Waiting for data...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">Circuit Info</div>
+                    <div id="circuit-info">
+                        <div class="info-row">
+                            <span class="info-label">Sandbox ID:</span>
+                            <span class="info-value" id="info-sandbox">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Grid Size:</span>
+                            <span class="info-value" id="info-grid">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Active Cells:</span>
+                            <span class="info-value" id="info-active">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Spatial Density:</span>
+                            <span class="info-value" id="info-density">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Fitness:</span>
+                            <span class="info-value" id="info-fitness">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">Cell Inspector</div>
+                    <div id="cell-inspector">
+                        <div style="padding: 10px; text-align: center; color: #666;">
+                            Hover over a cell
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="panel">
+                    <div class="panel-title">Memory Palace</div>
+                    <div id="palace-library">
+                        <button id="btn-load-palace">Load Library</button>
+                        <div id="palace-list" style="margin-top: 10px; max-height: 150px; overflow-y: auto;">
+                            <div style="padding: 10px; text-align: center; color: #666;">
+                                Click Load to view apex circuits
+                            </div>
+                        </div>
+                    </div>
+                </div>
+<div class="panel">
+                    <div class="panel-title">Controls</div>
+                    <div id="controls">
+                        <button id="btn-play" class="active">▶ Play</button>
+                        <button id="btn-pause">⏸ Pause</button>
+                        <button id="btn-step">⏭ Step</button>
+                    </div>
+                    <div class="panel-title" style="margin-top: 10px;">View</div>
+                    <div id="controls">
+                        <button id="btn-all-circuits">All</button>
+                        <button id="btn-best-only">Best</button>
+                        <button id="btn-pareto-only">Pareto</button>
+                    </div>
+                    <div class="panel-title" style="margin-top: 10px;">Legend</div>
+                    <div id="palette">
+                        <div class="palette-item" style="background: #1a1a1a;" title="NOP / Data"></div>
+                        <div class="palette-item" style="background: #ef4444;" title="WALL"></div>
+                        <div class="palette-item" style="background: #22d3ee;" title="MEMBRANE"></div>
+                        <div class="palette-item" style="background: #4ade80;" title="LDI / ADD / SUB"></div>
+                        <div class="palette-item" style="background: #fbbf24;" title="JMP / JZ"></div>
+                        <div class="palette-item" style="background: #f472b6;" title="HALT"></div>
+                        <div class="palette-item" style="background: #818cf8;" title="COPY / MOVE / SWAP"></div>
+                        <div class="palette-item" style="background: #a78bfa;" title="MUL / DIV"></div>
+                        <div class="palette-item" style="background: #fb923c;" title="LOAD / STORE"></div>
+                        <div class="palette-item" style="background: #ffffff;" title="Active Token"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PixiJS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js"></script>
+
+    <script>
+        // Application state
+        const state = {
+            ws: null,
+            connected: false,
+            currentGeneration: 0,
+            currentSandbox: 0,
+            circuits: {}, // sandbox_id -> CircuitSnapshot
+            generations: [], // [{generation, best_fitness, best_sandbox_id, duration_ms}]
+            isPlaying: true,
+            viewMode: 'all', // 'all', 'best', 'pareto'
+            hoveredCell: null,
+        };
+
+        // Cell type colors
+        const CELL_COLORS = {
+            0: 0x1a1a1a,  // NOP / Data
+            1: 0xef4444,  // WALL
+            2: 0x22d3ee,  // MEMBRANE
+            3: 0x4ade80,  // LDI
+            4: 0x4ade80,  // ADD_RR
+            5: 0x4ade80,  // SUB_RR
+            6: 0x4ade80,  // ADD_RI
+            7: 0x4ade80,  // SUB_RI
+            8: 0xfbbf24,  // JZ
+            9: 0xfbbf24,  // JMP
+            10: 0xf472b6, // HALT
+            11: 0x818cf8, // COPY
+            12: 0x818cf8, // MOVE
+            13: 0x818cf8, // SWAP
+            14: 0xa78bfa, // MUL
+            15: 0xa78bfa, // DIV
+            30: 0xfb923c, // LOAD_IND
+            31: 0xfb923c, // STORE_IND
+        };
+
+        // Cell type names
+        const CELL_NAMES = {
+            0: 'NOP/Data',
+            1: 'WALL',
+            2: 'MEMBRANE',
+            3: 'LDI',
+            4: 'ADD_RR',
+            5: 'SUB_RR',
+            6: 'ADD_RI',
+            7: 'SUB_RI',
+            8: 'JZ',
+            9: 'JMP',
+            10: 'HALT',
+            11: 'COPY',
+            12: 'MOVE',
+            13: 'SWAP',
+            14: 'MUL',
+            15: 'DIV',
+            30: 'LOAD_IND',
+            31: 'STORE_IND',
+        };
+
+        // Initialize PixiJS app
+        const app = new PIXI.Application({
+            width: window.innerWidth - 320,
+            height: window.innerHeight - 60,
+            backgroundColor: 0x000000,
+            antialias: true,
+        });
+
+        document.getElementById('circuit-canvas').appendChild(app.view);
+        app.view.width = window.innerWidth - 320;
+        app.view.height = window.innerHeight - 60;
+
+        // Container for circuit visualization
+        const circuitContainer = new PIXI.Container();
+        app.stage.addChild(circuitContainer);
+
+        // Cell sprites cache
+        const cellSprites = {};
+        const CELL_SIZE = 4;
+        const CELL_GAP = 1;
+
+        // WebSocket connection
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.hostname || 'localhost'}:8765/ws`;
+            console.log('Connecting to', wsUrl);
+
+            state.ws = new WebSocket(wsUrl);
+
+            state.ws.onopen = () => {
+                console.log('WebSocket connected');
+                state.connected = true;
+                updateConnectionStatus();
+            };
+
+            state.ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                state.connected = false;
+                updateConnectionStatus();
+                // Attempt reconnection after 3 seconds
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            state.ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            state.ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (data.cells && data.width && data.height) {
+                        // Circuit snapshot
+                        handleCircuitSnapshot(data);
+                    } else if (data.generation !== undefined) {
+                        // Generation update
+                        handleGenerationUpdate(data);
+                    }
+                } catch (e) {
+                    console.error('Error parsing message:', e);
+                }
+            };
+        }
+
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            if (state.connected) {
+                statusEl.textContent = '● Connected';
+                statusEl.className = 'connected';
+            } else {
+                statusEl.textContent = '● Disconnected';
+                statusEl.className = 'disconnected';
+            }
+        }
+
+        function handleCircuitSnapshot(snapshot) {
+            // Store circuit data
+            state.circuits[snapshot.sandbox_id] = snapshot;
+
+            // Update current view if this is the selected circuit
+            if (state.viewMode === 'all' ||
+                (state.viewMode === 'best' && snapshot.sandbox_id === state.generations[state.generations.length - 1]?.best_sandbox_id) ||
+                (state.viewMode === 'pareto' && snapshot.sandbox_id === state.currentSandbox)) {
+
+                renderCircuit(snapshot);
+                updateCircuitInfo(snapshot);
+            }
+        }
+
+        function handleGenerationUpdate(update) {
+            state.generations.push(update);
+            state.currentGeneration = update.generation;
+
+            // Update stats
+            document.getElementById('stat-generation').textContent = update.generation;
+            document.getElementById('stat-circuits').textContent = update.variant_count;
+            document.getElementById('stat-best-fitness').textContent = update.best_fitness.toFixed(2);
+            document.getElementById('stat-gen-time').textContent = `${update.duration_ms}ms`;
+
+            // Update generations list
+            updateGenerationsList();
+
+            // Auto-select best circuit
+            state.currentSandbox = update.best_sandbox_id;
+        }
+
+        function renderCircuit(snapshot) {
+            // Clear existing sprites
+            circuitContainer.removeChildren();
+            Object.values(cellSprites).forEach(sprite => sprite.destroy());
+            Object.keys(cellSprites).forEach(key => delete cellSprites[key]);
+
+            if (!snapshot || !snapshot.cells || snapshot.cells.length === 0) {
+                return;
+            }
+
+            const { width, height, cells } = snapshot;
+            const totalWidth = width * (CELL_SIZE + CELL_GAP);
+            const totalHeight = height * (CELL_SIZE + CELL_GAP);
+
+            // Center the circuit
+            circuitContainer.x = (app.view.width - totalWidth) / 2;
+            circuitContainer.y = (app.view.height - totalHeight) / 2;
+
+            // Create sprites for each cell
+            cells.forEach(cell => {
+                const sprite = new PIXI.Graphics();
+
+                // Get cell color
+                const baseColor = CELL_COLORS[cell.cell_type] || 0x1a1a1a;
+
+                // Draw cell
+                sprite.beginFill(baseColor);
+                sprite.drawRect(0, 0, CELL_SIZE, CELL_SIZE);
+                sprite.endFill();
+
+                // Highlight active cells (tokens)
+                if (cell.active > 0) {
+                    sprite.lineStyle(1, 0xffffff, 0.8);
+                    sprite.drawRect(1, 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                }
+
+                // Position cell
+                sprite.x = cell.x * (CELL_SIZE + CELL_GAP);
+                sprite.y = cell.y * (CELL_SIZE + CELL_GAP);
+
+                // Store cell data in sprite for tooltip
+                sprite.cellData = cell;
+
+                // Add interaction
+                sprite.interactive = true;
+                sprite.cursor = 'pointer';
+                sprite.on('pointerover', (event) => {
+                    showTooltip(event, cell);
+                    highlightCell(sprite);
+                });
+                sprite.on('pointerout', () => {
+                    hideTooltip();
+                    unhighlightCell(sprite);
+                });
+
+                circuitContainer.addChild(sprite);
+                cellSprites[`${cell.x},${cell.y}`] = sprite;
+            });
+        }
+
+        function highlightCell(sprite) {
+            const glow = new PIXI.Graphics();
+            glow.lineStyle(2, 0x7df9ff);
+            glow.drawRect(-1, -1, CELL_SIZE + 2, CELL_SIZE + 2);
+            sprite.addChild(glow);
+        }
+
+        function unhighlightCell(sprite) {
+            while (sprite.children.length > 0) {
+                sprite.removeChildAt(0);
+            }
+        }
+
+        function showTooltip(event, cell) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'block';
+            tooltip.style.left = (event.global.x + 15) + 'px';
+            tooltip.style.top = (event.global.y + 15) + 'px';
+
+            const cellTypeName = CELL_NAMES[cell.cell_type] || `Type ${cell.cell_type}`;
+
+            tooltip.innerHTML = `
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Position:</span>
+                    <span class="tooltip-value">(${cell.x}, ${cell.y})</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Type:</span>
+                    <span class="tooltip-value">${cellTypeName}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Active Tokens:</span>
+                    <span class="tooltip-value">${cell.active}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Data:</span>
+                    <span class="tooltip-value">${cell.data.toFixed(4)}</span>
+                </div>
+                ${cell.reg !== undefined ? `
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Register:</span>
+                    <span class="tooltip-value">r${cell.reg}</span>
+                </div>` : ''}
+                ${cell.target_x !== 0 || cell.target_y !== 0 ? `
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Target:</span>
+                    <span class="tooltip-value">(${cell.target_x}, ${cell.target_y})</span>
+                </div>` : ''}
+            `;
+
+            // Update cell inspector
+            updateCellInspector(cell);
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        function updateCellInspector(cell) {
+            const cellTypeName = CELL_NAMES[cell.cell_type] || `Type ${cell.cell_type}`;
+
+            document.getElementById('cell-inspector').innerHTML = `
+                <div class="cell-detail">
+                    <strong>Position:</strong> (${cell.x}, ${cell.y})<br>
+                    <strong>Type:</strong> ${cellTypeName}<br>
+                    <strong>Active Tokens:</strong> ${cell.active}<br>
+                    <strong>Data:</strong> ${cell.data.toFixed(4)}<br>
+                    ${cell.reg !== undefined ? `<strong>Register:</strong> r${cell.reg}<br>` : ''}
+                    ${cell.target_x !== 0 || cell.target_y !== 0 ? `<strong>Target:</strong> (${cell.target_x}, ${cell.target_y})<br>` : ''}
+                </div>
+            `;
+        }
+
+        function updateCircuitInfo(snapshot) {
+            const activeCells = snapshot.cells.filter(c => c.active > 0 || c.cell_type !== 0).length;
+            const density = activeCells / snapshot.cells.length;
+
+            document.getElementById('info-sandbox').textContent = snapshot.sandbox_id;
+            document.getElementById('info-grid').textContent = `${snapshot.width}x${snapshot.height}`;
+            document.getElementById('info-active').textContent = activeCells;
+            document.getElementById('info-density').textContent = (density * 100).toFixed(2) + '%';
+            document.getElementById('info-fitness').textContent = snapshot.fitness?.toFixed(2) || '-';
+        }
+
+        function updateGenerationsList() {
+            const list = document.getElementById('generations-list');
+            list.innerHTML = '';
+
+            state.generations.forEach(gen => {
+                const item = document.createElement('div');
+                item.className = 'generation-item';
+                item.innerHTML = `
+                    <span class="generation-num">Gen ${gen.generation}</span><br>
+                    <span class="generation-fitness">Fitness: ${gen.best_fitness.toFixed(2)}</span><br>
+                    <small>Best: ${gen.best_sandbox_id} | ${gen.duration_ms}ms</small>
+                `;
+                item.onclick = () => {
+                    // Load circuits from this generation
+                    state.currentGeneration = gen.generation;
+                    state.currentSandbox = gen.best_sandbox_id;
+
+                    // Update active state
+                    document.querySelectorAll('.generation-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // Trigger circuit load (will be received via WebSocket)
+                };
+                list.appendChild(item);
+            });
+
+            // Mark latest as active
+            if (list.firstChild) {
+                list.firstChild.classList.add('active');
+            }
+        }
+
+        // Event handlers
+        document.getElementById('btn-play').onclick = () => {
+            state.isPlaying = true;
+            document.getElementById('btn-play').classList.add('active');
+            document.getElementById('btn-pause').classList.remove('active');
+        };
+
+        document.getElementById('btn-pause').onclick = () => {
+            state.isPlaying = false;
+            document.getElementById('btn-pause').classList.add('active');
+            document.getElementById('btn-play').classList.remove('active');
+        };
+
+        document.getElementById('btn-step').onclick = () => {
+            // Step through circuits
+            const keys = Object.keys(state.circuits);
+            if (keys.length > 0) {
+                const currentIndex = keys.indexOf(state.currentSandbox.toString());
+                const nextIndex = (currentIndex + 1) % keys.length;
+                state.currentSandbox = parseInt(keys[nextIndex]);
+
+                const circuit = state.circuits[state.currentSandbox];
+                if (circuit) {
+                    renderCircuit(circuit);
+                    updateCircuitInfo(circuit);
+                }
+            }
+        };
+
+        document.getElementById('btn-all-circuits').onclick = () => {
+            state.viewMode = 'all';
+            setActiveViewButton('btn-all-circuits');
+        };
+
+        document.getElementById('btn-best-only').onclick = () => {
+            state.viewMode = 'best';
+            setActiveViewButton('btn-best-only');
+
+            // Load best circuit
+            if (state.generations.length > 0) {
+                const latest = state.generations[state.generations.length - 1];
+                state.currentSandbox = latest.best_sandbox_id;
+                const circuit = state.circuits[state.currentSandbox];
+                if (circuit) {
+                    renderCircuit(circuit);
+                    updateCircuitInfo(circuit);
+                }
+            }
+        };
+
+        document.getElementById('btn-pareto-only').onclick = () => {
+            state.viewMode = 'pareto';
+            setActiveViewButton('btn-pareto-only');
+        };
+
+        function setActiveViewButton(activeId) {
+            ['btn-all-circuits', 'btn-best-only', 'btn-pareto-only'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (id === activeId) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            app.view.width = window.innerWidth - 320;
+            app.view.height = window.innerHeight - 60;
+
+            // Re-render current circuit
+            if (state.currentSandbox in state.circuits) {
+                renderCircuit(state.circuits[state.currentSandbox]);
+            }
+        });
+
+        // Initialize WebSocket connection
+        connectWebSocket();
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# Makefile for RISC-V test binaries
+
+.PHONY: all clean rv32 rv64
+
+all: rv32
+
+# Build RV32 (32-bit) binaries - these work with the WGSL RV32 emulator
+rv32:
+	@echo "Building RV32 test binaries..."
+	riscv64-unknown-elf-as -march=rv32i tests/test_spatial_alloc_poll.S -o tests/test_spatial_alloc_poll_rv32.bin
+	riscv64-unknown-elf-as -march=rv32i tests/test_simple_ecall.S -o tests/test_simple_ecall_rv32.bin
+	@echo "✓ RV32 binaries built successfully"
+
+# Build RV64 (64-bit) binaries - for reference, NOT used by WGSL emulator
+rv64:
+	@echo "Building RV64 test binaries..."
+	riscv64-unknown-elf-as tests/test_spatial_alloc_poll.S -o tests/test_spatial_alloc_poll.bin
+	riscv64-unknown-elf-as tests/test_simple_ecall.S -o tests/test_simple_ecall.bin
+	@echo "✓ RV64 binaries built successfully"
+
+clean:
+	@echo "Cleaning test binaries..."
+	rm -f tests/test_spatial_alloc_poll.bin tests/test_spatial_alloc_poll_rv32.bin
+	rm -f tests/test_simple_ecall.bin tests/test_simple_ecall_rv32.bin
+	@echo "✓ Cleaned"
